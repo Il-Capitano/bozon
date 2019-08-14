@@ -1,0 +1,64 @@
+
+
+function factorial(n: const (*const int32), out: int32) -> int32
+{
+	""[0];
+}
+
+
+
+
+
+
+/*
+
+a && b || c ^^ d  // ((a '&&' b) '||' (c '^^' d))
+a < b == c        // ((a '<' b) '==' c)
+a == b && c == d  // ((a '==' b) '&&' (c '==' d))
+
+typeof (a + b)  // ('typeof' (a '+' b))
+sizeof a + b    // (('sizeof' a) '+' b)
+++--a      // ('++' ('--' a))
+++a.b      // ('++' (a '.' b))
+
+a().b::c      // (a() '.' (b '::' c))
+a[b, c];      // (a '[' (b ',' c))
+a((b, c), d)  // a((b ',' c), d)
+a[b + c]      // (a '[' (b '+' c))
+
+(a + b) * c  // ((a '+' b) '*' c)
+a + b * c    // (a '+' (b '*' c))
+a = b = c    // (a '=' (b '=' c))
+a + b + c    // ((a '+' b) '+' c)
+a->b->c      // ((a '->' b) '->' c)
+*/
+
+/*
+if (x == 0)
+	return 0;
+if (x == 1)
+	return 1;
+return x * factorial(x - 1);
+*/
+/*
+typeof (a + b)   // (typeof (a + b))
+sizeof a + b     // ((sizeof a) + b)
+
+a/b/c     // ((a / b) / c)
+a+b+c     // ((a + b) + c)
+a=b=c     // (a = (b = c))
+a+b*c/d   // (a + ((b * c) / d))
+++++a     // (++ (++ a))
+
+a||b^^c&&d   // (a || (b ^^ (c && d)))
+a&&b||c^^d   // ((a && b) || (c ^^ d))
+a==b&&c==d   // ((a == b) && (c == d))
+
+((a|b)^c)&d   // (((a | b) ^ c) & d)
+a|b^c&d       // (a | (b ^ (c & d)))
+a&b|c^d       // ((a & b) | (c ^ d))
+
+++a->b->c.d   // ('++' (((a '->' b) '->' c) '.' d))
+&a::b         // ('&' (a '::' b))
+&(a+b+c)      // ('&' ((a '+' b) '+' c))
+*/
