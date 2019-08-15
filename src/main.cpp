@@ -535,6 +535,9 @@ a * vector<int>(3) - 3; // ambiguious
 #include "first_pass_parser.h"
 #include "parser.h"
 
+
+#include "variant.h"
+
 void print_typespec(ast_typespec_ptr const &typespec)
 {
 	if (!typespec)
@@ -808,6 +811,37 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 
 int main(void)
 {
+	auto v = variant<int, double>::make<int>(3);
+
+	auto v_int = v.get_if<int>();
+	auto v_double = v.get_if<double>();
+
+	assert(v_int != nullptr);
+	assert(v_double == nullptr);
+
+	std::cout << *v_int << '\n';
+
+	auto v2 = v.make<double>(2.5);
+
+	auto v2_int = v2.get_if<int>();
+	auto v2_double = v2.get_if<double>();
+
+	assert(v2_int == nullptr);
+	assert(v2_double != nullptr);
+
+	std::cout << *v2_double << '\n';
+
+	auto v3 = v2;
+	auto v4 = std::move(v);
+
+	std::cout << "v3: " << v3 << '\n';
+	std::cout << "v4: " << v4 << '\n';
+
+	std::cout << "success\n";
+
+	return 0;
+
+
 	lexer_init();
 	token_stream stream("src/test.txt");
 	auto fp_statements = get_fp_statements(stream);

@@ -2,7 +2,7 @@
 
 function factorial(n: const (*const int32), out: int32) -> int32
 {
-	""[0];
+	let a = 0 + 1 + 2;
 }
 
 
