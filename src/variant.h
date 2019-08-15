@@ -62,7 +62,6 @@ template<typename ...Ts>
 class variant
 {
 	static_assert(_all_different_v<Ts...>);
-
 public:
 	using self_t = variant<Ts...>;
 
@@ -88,37 +87,86 @@ public:
 		return variant<Ts...>(new T(std::forward<Args>(args)...), id_of<T>());
 	}
 
-	variant(void)
-		: _data(nullptr), _type_id(-1)
-	{}
-
 	~variant(void)
 	{
+		if (this->_data == nullptr)
+		{
+			return;
+		}
+
 		((this->_type_id == id_of<Ts>()
 		? (void)(delete static_cast<Ts *>(this->_data))
 		: (void)0 ), ...);
 	}
 
-
-	variant(self_t const &self)
-		: _data(nullptr), _type_id(self._type_id)
+	void clear(void)
 	{
-		((this->_data == nullptr
-		? (void)( this->_data = static_cast<Ts *>(this->_type_id == id_of<Ts>()
-			? (new Ts(*static_cast<Ts *>(self._data)))
-			: (nullptr) ))
-		: (void)0 ), ...);
+		if (this->_data == nullptr)
+		{
+			return;
+		}
+
+		((this->_type_id == id_of<Ts>()
+		? (void)((delete static_cast<Ts *>(this->_data)), this->_data = nullptr, this->_type_id = -1)
+		: (void)(0)
+		), ...);
 	}
 
-	variant(self_t &&self)
-		: _data(self._data), _type_id(self._type_id)
+
+	variant(self_t const &other)
+		: _data(nullptr), _type_id(other._type_id)
 	{
-		self._data = nullptr;
-		self._type_id = -1;
+		if (other._data == nullptr)
+		{
+			return;
+		}
+
+		((this->_type_id == id_of<Ts>()
+		? (void)(this->_data = new Ts(*static_cast<Ts *>(other._data)))
+		: (void)0), ...);
 	}
 
-	operator = (self_t const &) = delete;
-	operator = (self_t &&)      = delete;
+	variant(self_t &&other)
+		: _data(other._data), _type_id(other._type_id)
+	{
+		other._data = nullptr;
+		other._type_id = -1;
+	}
+
+	self_t &operator = (self_t const &other)
+	{
+		if (this == &other)
+		{
+			return *this;
+		}
+
+		this->clear();
+		this->_type_id = other._type_id;
+
+		((this->_type_id == id_of<Ts>()
+		? (void)(this->_data = new Ts(*static_cast<Ts *>(other._data)))
+		: (void)0), ...);
+
+		return *this;
+	}
+
+	self_t &operator = (self_t &&other)
+	{
+		if (this == &other)
+		{
+			return *this;
+		}
+
+		this->clear();
+
+		this->_type_id = other._type_id;
+		this->_data = other._data;
+
+		other._data = nullptr;
+		other._type_id = -1;
+
+		return *this;
+	}
 
 
 	template<typename T>

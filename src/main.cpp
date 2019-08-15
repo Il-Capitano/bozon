@@ -808,7 +808,6 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 }
 
 
-
 int main(void)
 {
 	auto v = variant<int, double>::make<int>(3);
@@ -831,8 +830,14 @@ int main(void)
 
 	std::cout << *v2_double << '\n';
 
-	auto v3 = v2;
+	auto v3 = v;
 	auto v4 = std::move(v);
+
+	std::cout << "v3: " << v3 << '\n';
+	std::cout << "v4: " << v4 << '\n';
+
+	v3 = v2;
+	v4 = std::move(v2);
 
 	std::cout << "v3: " << v3 << '\n';
 	std::cout << "v4: " << v4 << '\n';
