@@ -536,8 +536,6 @@ a * vector<int>(3) - 3; // ambiguious
 #include "parser.h"
 
 
-#include "variant.h"
-
 void print_typespec(ast_typespec_ptr const &typespec)
 {
 	if (!typespec)
@@ -577,38 +575,38 @@ void print_expr(ast_expression_ptr const &expr)
 
 	switch (expr->kind)
 	{
-	case expression::identifier:
-		std::cout << expr->identifier->value;
+	case ast_expression::identifier:
+		std::cout << expr->get<ast_expression::identifier>()->value;
 		break;
 
-	case expression::literal:
-		switch (expr->literal->kind)
+	case ast_expression::literal:
+		switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind)
 		{
-		case literal::integer_number:
-			std::cout << expr->literal->integer_value;
+		case ast_literal::integer_number:
+			std::cout << literal->integer_value;
 			break;
 
-		case literal::floating_point_number:
-			std::cout << expr->literal->floating_point_value;
+		case ast_literal::floating_point_number:
+			std::cout << literal->floating_point_value;
 			break;
 
-		case literal::string:
+		case ast_literal::string:
 			std::cout << "\"(string)\"";
 			break;
 
-		case literal::character:
+		case ast_literal::character:
 			std::cout << "'(char)'";
 			break;
 
-		case literal::bool_true:
+		case ast_literal::bool_true:
 			std::cout << "true";
 			break;
 
-		case literal::bool_false:
+		case ast_literal::bool_false:
 			std::cout << "false";
 			break;
 
-		case literal::null:
+		case ast_literal::null:
 			std::cout << "null";
 			break;
 
@@ -618,27 +616,35 @@ void print_expr(ast_expression_ptr const &expr)
 		}
 		break;
 
-	case expression::binary_op:
+	case ast_expression::binary_op:
+	{
+		auto &bin_op = expr->get<ast_expression::binary_op>();
 		std::cout << '(';
-		print_expr(expr->binary_op->lhs);
-		std::cout << ' ' << get_token_value(expr->binary_op->op) << ' ';
-		print_expr(expr->binary_op->rhs);
+		print_expr(bin_op->lhs);
+		std::cout << ' ' << get_token_value(bin_op->op) << ' ';
+		print_expr(bin_op->rhs);
 		std::cout << ')';
 		break;
+	}
 
-	case expression::unary_op:
+	case ast_expression::unary_op:
+	{
+		auto &un_op = expr->get<ast_expression::unary_op>();
 		std::cout << '(';
-		std::cout << get_token_value(expr->unary_op->op) << ' ';
-		print_expr(expr->unary_op->expr);
+		std::cout << get_token_value(un_op->op) << ' ';
+		print_expr(un_op->expr);
 		std::cout << ')';
 		break;
+	}
 
-	case expression::function_call_op:
-		print_expr(expr->function_call_op->called);
+	case ast_expression::function_call_op:
+	{
+		auto &fn_call = expr->get<ast_expression::function_call_op>();
+		print_expr(fn_call->called);
 		std::cout << '(';
-		if (expr->function_call_op->params.size() > 0)
+		if (fn_call->params.size() > 0)
 		{
-			for (auto &p : expr->function_call_op->params)
+			for (auto &p : fn_call->params)
 			{
 				print_expr(p);
 				std::cout << ", ";
@@ -650,6 +656,7 @@ void print_expr(ast_expression_ptr const &expr)
 			std::cout << ')';
 		}
 		break;
+	}
 	}
 }
 
@@ -671,134 +678,66 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 
 	switch (stmt->kind)
 	{
-	case statement::if_statement:
+	case ast_statement::if_statement:
+	{
+		auto &if_stmt = stmt->get<ast_statement::if_statement>();
 		std::cout << "if (";
-		print_expr(stmt->if_statement->condition);
+		print_expr(if_stmt->condition);
 		std::cout << ")\n";
-		print_stmt(stmt->if_statement->if_block, level);
-		if (stmt->if_statement->else_block)
+		print_stmt(if_stmt->then_block, level);
+		if (if_stmt->else_block)
 		{
 			indent();
 			std::cout << "else\n";
-			print_stmt(stmt->if_statement->else_block, level);
+			print_stmt(if_stmt->else_block, level);
 		}
 		break;
+	}
 
-	case statement::while_statement:
+	case ast_statement::while_statement:
+	{
+		auto &while_stmt = stmt->get<ast_statement::while_statement>();
 		std::cout << "while (";
-		print_expr(stmt->while_statement->condition);
+		print_expr(while_stmt->condition);
 		std::cout << ")\n";
-		print_stmt(stmt->while_statement->while_block, level);
+		print_stmt(while_stmt->while_block, level);
+		break;
+	}
+
+	case ast_statement::for_statement:
+		assert(false);
 		break;
 
-	case statement::for_statement:
-		std::cerr << "for statment not yet implemented\n";
-		exit(1);
-
-	case statement::return_statement:
+	case ast_statement::return_statement:
 		std::cout << "return ";
-		print_expr(stmt->return_statement->expr);
+		print_expr(stmt->get<ast_statement::return_statement>()->expr);
 		std::cout << ";\n";
 		break;
 
-	case statement::no_op_statement:
+	case ast_statement::no_op_statement:
 		std::cout << ";\n";
 		break;
 
-	case statement::variable_decl_statement:
-		std::cout << "let " << stmt->variable_decl_statement->identifier;
-		if (stmt->variable_decl_statement->typespec)
-		{
-			std::cout << ": ";
-			print_typespec(stmt->variable_decl_statement->typespec);
-		}
-		if (stmt->variable_decl_statement->init_expr)
-		{
-			std::cout << " = ";
-			print_expr(stmt->variable_decl_statement->init_expr);
-		}
-		std::cout << ";\n";
-		break;
-
-	case statement::compound_statement:
+	case ast_statement::compound_statement:
+	{
+		auto &comp_stmt = stmt->get<ast_statement::compound_statement>();
 		std::cout << "{\n";
-		for (auto &s : stmt->compound_statement->statements)
+		for (auto &s : comp_stmt->statements)
 		{
 			print_stmt(s, level + 1);
 		}
 		indent();
 		std::cout << "}\n";
 		break;
+	}
 
-	case statement::expression_statement:
-		print_expr(stmt->expression_statement->expr);
+	case ast_statement::expression_statement:
+		print_expr(stmt->get<ast_statement::expression_statement>()->expr);
 		std::cout << ";\n";
 		break;
 
-	case statement::struct_definition:
-		std::cout << "(struct definition)\n";
-		break;
-
-	case statement::function_definition:
-		std::cout << "function " << stmt->function_definition->identifier << '(';
-		{
-		int i = 0;
-		for (auto &p : stmt->function_definition->params)
-		{
-			if (i != 0)
-			{
-				std::cout << ", ";
-			}
-			std::cout << p->identifier << ": ";
-			print_typespec(p->typespec);
-			++i;
-		}
-		}
-		std::cout << ')';
-		if (stmt->function_definition->return_typespec)
-		{
-			std::cout << " -> ";
-			print_typespec(stmt->function_definition->return_typespec);
-			std::cout << '\n';
-		}
-		std::cout << "{\n";
-		for (auto &s : stmt->function_definition->body->statements)
-		{
-			print_stmt(s, level + 1);
-		}
-		indent();
-		std::cout << "}\n";
-		break;
-
-	case statement::operator_definition:
-		std::cout << "function " << get_token_value(stmt->operator_definition->op) << '(';
-		{
-		int i = 0;
-		for (auto &p : stmt->operator_definition->params)
-		{
-			if (i != 0)
-			{
-				std::cout << ", ";
-			}
-			std::cout << p->identifier << ": ";
-			print_typespec(p->typespec);
-			++i;
-		}
-		}
-		std::cout << ')';
-		if (stmt->operator_definition->return_typespec)
-		{
-			std::cout << " -> ";
-			print_typespec(stmt->operator_definition->return_typespec);
-			std::cout << '\n';
-		}
-		std::cout << "{\n";
-		for (auto &s : stmt->operator_definition->body->statements)
-		{
-			print_stmt(s, level + 1);
-		}
-		indent();
-		std::cout << "}\n";
+	case ast_statement::declaration_statement:
+		assert(false);
 		break;
 
 	default:
@@ -810,43 +749,6 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 
 int main(void)
 {
-	auto v = variant<int, double>::make<int>(3);
-
-	auto v_int = v.get_if<int>();
-	auto v_double = v.get_if<double>();
-
-	assert(v_int != nullptr);
-	assert(v_double == nullptr);
-
-	std::cout << *v_int << '\n';
-
-	auto v2 = v.make<double>(2.5);
-
-	auto v2_int = v2.get_if<int>();
-	auto v2_double = v2.get_if<double>();
-
-	assert(v2_int == nullptr);
-	assert(v2_double != nullptr);
-
-	std::cout << *v2_double << '\n';
-
-	auto v3 = v;
-	auto v4 = std::move(v);
-
-	std::cout << "v3: " << v3 << '\n';
-	std::cout << "v4: " << v4 << '\n';
-
-	v3 = v2;
-	v4 = std::move(v2);
-
-	std::cout << "v3: " << v3 << '\n';
-	std::cout << "v4: " << v4 << '\n';
-
-	std::cout << "success\n";
-
-	return 0;
-
-
 	lexer_init();
 	token_stream stream("src/test.txt");
 	auto fp_statements = get_fp_statements(stream);

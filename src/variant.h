@@ -77,6 +77,23 @@ template<int first, int ...vals>
 constexpr int _max_of_v = _max_of<first, vals...>::value;
 
 
+template<int id, typename First, typename ...Ts>
+struct _nth_type
+{
+	static_assert(id <= sizeof... (Ts));
+	using type = typename _nth_type<id - 1, Ts...>::type;
+};
+
+template<typename First, typename ...Ts>
+struct _nth_type<0, First, Ts...>
+{
+	using type = First;
+};
+
+template<int id, typename ...Ts>
+using _nth_type_t = typename _nth_type<id, Ts...>::type;
+
+
 
 template<typename ...Ts>
 class variant
@@ -84,6 +101,8 @@ class variant
 	static_assert(_all_different_v<Ts...>);
 public:
 	using self_t = variant<Ts...>;
+	template<int id>
+	using value_type = _nth_type_t<id, Ts...>;
 
 private:
 	alignas(_max_of_v<alignof(Ts)...>) char _data[_max_of_v<sizeof(Ts)...>];
@@ -135,6 +154,10 @@ public:
 		static_assert(_is_in_v<T, Ts...>);
 		return self_t(_<T>{}, std::forward<Args>(args)...);
 	}
+
+	variant(void)
+		: _data(), _type_id(-1)
+	{}
 
 	~variant(void)
 	{
@@ -221,6 +244,21 @@ public:
 		return *this;
 	}
 
+	template<typename T, typename = std::enable_if_t<!std::is_same_v<T, self_t>>>
+	variant(T const &val)
+		: _data(), _type_id(id_of<T>())
+	{
+		static_assert(_is_in_v<T, Ts...>);
+		this->no_check_emplace<T>(val);
+	}
+
+	template<typename T, typename = std::enable_if_t<!std::is_same_v<T, self_t>>>
+	variant(T &&val)
+		: _data(), _type_id(id_of<T>())
+	{
+		static_assert(_is_in_v<T, Ts...>);
+		this->no_check_emplace<T>(std::move(val));
+	}
 
 	template<typename T, typename ...Args>
 	void emplace(Args &&...args)

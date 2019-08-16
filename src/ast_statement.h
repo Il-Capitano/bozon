@@ -17,49 +17,73 @@ struct ast_return_statement;
 using ast_return_statement_ptr = std::unique_ptr<ast_return_statement>;
 struct ast_no_op_statement;
 using ast_no_op_statement_ptr = std::unique_ptr<ast_no_op_statement>;
-struct ast_variable_decl_statement;
-using ast_variable_decl_statement_ptr = std::unique_ptr<ast_variable_decl_statement>;
 struct ast_compound_statement;
 using ast_compound_statement_ptr = std::unique_ptr<ast_compound_statement>;
 struct ast_expression_statement;
 using ast_expression_statement_ptr = std::unique_ptr<ast_expression_statement>;
-struct ast_struct_definition;
-using ast_struct_definition_ptr = std::unique_ptr<ast_struct_definition>;
-struct ast_function_definition;
-using ast_function_definition_ptr = std::unique_ptr<ast_function_definition>;
-struct ast_operator_definition;
-using ast_operator_definition_ptr = std::unique_ptr<ast_operator_definition>;
+struct ast_declaration_statement;
+using ast_declaration_statement_ptr = std::unique_ptr<ast_declaration_statement>;
 
 
-struct ast_statement
+struct ast_statement :
+variant<
+	ast_if_statement_ptr,
+	ast_while_statement_ptr,
+	ast_for_statement_ptr,
+	ast_return_statement_ptr,
+	ast_no_op_statement_ptr,
+	ast_compound_statement_ptr,
+	ast_expression_statement_ptr,
+	ast_declaration_statement_ptr
+>
 {
-	uint32_t kind;
+	using base_t = variant<
+		ast_if_statement_ptr,
+		ast_while_statement_ptr,
+		ast_for_statement_ptr,
+		ast_return_statement_ptr,
+		ast_no_op_statement_ptr,
+		ast_compound_statement_ptr,
+		ast_expression_statement_ptr,
+		ast_declaration_statement_ptr
+	>;
 
-	ast_if_statement_ptr            if_statement            = nullptr;
-	ast_while_statement_ptr         while_statement         = nullptr;
-	ast_for_statement_ptr           for_statement           = nullptr;
-	ast_return_statement_ptr        return_statement        = nullptr;
-	ast_no_op_statement_ptr         no_op_statement         = nullptr;
-	ast_variable_decl_statement_ptr variable_decl_statement = nullptr;
-	ast_compound_statement_ptr      compound_statement      = nullptr;
-	ast_expression_statement_ptr    expression_statement    = nullptr;
-	ast_struct_definition_ptr       struct_definition       = nullptr;
-	ast_function_definition_ptr     function_definition     = nullptr;
-	ast_operator_definition_ptr     operator_definition     = nullptr;
+	enum : uint32_t
+	{
+		if_statement          = id_of<ast_if_statement_ptr>(),
+		while_statement       = id_of<ast_while_statement_ptr>(),
+		for_statement         = id_of<ast_for_statement_ptr>(),
+		return_statement      = id_of<ast_return_statement_ptr>(),
+		no_op_statement       = id_of<ast_no_op_statement_ptr>(),
+		compound_statement    = id_of<ast_compound_statement_ptr>(),
+		expression_statement  = id_of<ast_expression_statement_ptr>(),
+		declaration_statement = id_of<ast_declaration_statement_ptr>(),
+	};
+
+	uint32_t kind;
 
 	ast_statement(fp_statement_ptr const &stmt);
 
-	ast_statement(ast_if_statement_ptr            if_stmt        );
-	ast_statement(ast_while_statement_ptr         while_stmt     );
-	ast_statement(ast_for_statement_ptr           for_stmt       );
-	ast_statement(ast_return_statement_ptr        return_stmt    );
-	ast_statement(ast_no_op_statement_ptr         no_op_stmt     );
-	ast_statement(ast_variable_decl_statement_ptr var_decl_stmt  );
-	ast_statement(ast_compound_statement_ptr      compound_stmt  );
-	ast_statement(ast_expression_statement_ptr    expression_stmt);
-	ast_statement(ast_struct_definition_ptr       struct_def     );
-	ast_statement(ast_function_definition_ptr     func_def       );
-	ast_statement(ast_operator_definition_ptr     op_def         );
+	ast_statement(ast_if_statement_ptr          if_stmt        );
+	ast_statement(ast_while_statement_ptr       while_stmt     );
+	ast_statement(ast_for_statement_ptr         for_stmt       );
+	ast_statement(ast_return_statement_ptr      return_stmt    );
+	ast_statement(ast_no_op_statement_ptr       no_op_stmt     );
+	ast_statement(ast_compound_statement_ptr    compound_stmt  );
+	ast_statement(ast_expression_statement_ptr  expression_stmt);
+	ast_statement(ast_declaration_statement_ptr decl_stmt      );
+
+	template<uint32_t kind>
+	base_t::value_type<kind> &get(void)
+	{
+		return base_t::get<base_t::value_type<kind>>();
+	}
+
+	template<uint32_t kind, typename ...Args>
+	void emplace(Args &&...args)
+	{
+		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
+	}
 };
 
 using ast_statement_ptr = std::unique_ptr<ast_statement>;
@@ -68,16 +92,16 @@ using ast_statement_ptr = std::unique_ptr<ast_statement>;
 struct ast_if_statement
 {
 	ast_expression_ptr condition;
-	ast_statement_ptr  if_block;
+	ast_statement_ptr  then_block;
 	ast_statement_ptr  else_block;
 
 	ast_if_statement(
 		ast_expression_ptr _cond,
-		ast_statement_ptr  _if_block,
+		ast_statement_ptr  _then_block,
 		ast_statement_ptr  _else_block
 	)
 		: condition (std::move(_cond)),
-		  if_block  (std::move(_if_block)),
+		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
 };
@@ -195,77 +219,64 @@ struct ast_operator_definition
 	{}
 };
 
+struct ast_declaration_statement
+{
 
-template<typename... Args>
-ast_statement_ptr make_ast_statement(Args &&... args)
+};
+
+
+template<typename ...Args>
+ast_statement_ptr make_ast_statement(Args &&...args)
 {
 	return std::make_unique<ast_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_if_statement_ptr make_ast_if_statement(Args &&... args)
+template<typename ...Args>
+ast_if_statement_ptr make_ast_if_statement(Args &&...args)
 {
 	return std::make_unique<ast_if_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_while_statement_ptr make_ast_while_statement(Args &&... args)
+template<typename ...Args>
+ast_while_statement_ptr make_ast_while_statement(Args &&...args)
 {
 	return std::make_unique<ast_while_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_for_statement_ptr make_ast_for_statement(Args &&... args)
+template<typename ...Args>
+ast_for_statement_ptr make_ast_for_statement(Args &&...args)
 {
 	return std::make_unique<ast_for_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_return_statement_ptr make_ast_return_statement(Args &&... args)
+template<typename ...Args>
+ast_return_statement_ptr make_ast_return_statement(Args &&...args)
 {
 	return std::make_unique<ast_return_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_no_op_statement_ptr make_ast_no_op_statement(Args &&... args)
+template<typename ...Args>
+ast_no_op_statement_ptr make_ast_no_op_statement(Args &&...args)
 {
 	return std::make_unique<ast_no_op_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_variable_decl_statement_ptr make_ast_variable_decl_statement(Args &&... args)
-{
-	return std::make_unique<ast_variable_decl_statement>(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-ast_compound_statement_ptr make_ast_compound_statement(Args &&... args)
+template<typename ...Args>
+ast_compound_statement_ptr make_ast_compound_statement(Args &&...args)
 {
 	return std::make_unique<ast_compound_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_expression_statement_ptr make_ast_expression_statement(Args &&... args)
+template<typename ...Args>
+ast_expression_statement_ptr make_ast_expression_statement(Args &&...args)
 {
 	return std::make_unique<ast_expression_statement>(std::forward<Args>(args)...);
 }
 
-template<typename... Args>
-ast_struct_definition_ptr make_ast_struct_definition(Args &&... args)
+template<typename ...Args>
+ast_declaration_statement_ptr make_ast_declaration_statement(Args &&...args)
 {
-	return std::make_unique<ast_struct_definition>(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-ast_function_definition_ptr make_ast_function_definition(Args &&... args)
-{
-	return std::make_unique<ast_function_definition>(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-ast_operator_definition_ptr make_ast_operator_definition(Args &&... args)
-{
-	return std::make_unique<ast_operator_definition>(std::forward<Args>(args)...);
+	return std::make_unique<ast_declaration_statement>(std::forward<Args>(args)...);
 }
 
 

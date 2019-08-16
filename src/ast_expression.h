@@ -6,18 +6,6 @@
 #include "first_pass_parser.h"
 #include "ast_type.h"
 
-namespace expression
-{
-enum : uint32_t
-{
-	identifier,
-	literal,
-	unary_op,
-	binary_op,
-	function_call_op,
-};
-}
-
 struct ast_identifier;
 using ast_identifier_ptr = std::unique_ptr<ast_identifier>;
 struct ast_literal;
@@ -29,22 +17,51 @@ using ast_binary_op_ptr = std::unique_ptr<ast_binary_op>;
 struct ast_function_call_op;
 using ast_function_call_op_ptr = std::unique_ptr<ast_function_call_op>;
 
-struct ast_expression
+struct ast_expression :
+variant<
+	ast_identifier_ptr,
+	ast_literal_ptr,
+	ast_unary_op_ptr,
+	ast_binary_op_ptr,
+	ast_function_call_op_ptr
+>
 {
+	using base_t = variant<
+		ast_identifier_ptr,
+		ast_literal_ptr,
+		ast_unary_op_ptr,
+		ast_binary_op_ptr,
+		ast_function_call_op_ptr
+	>;
+
+	enum : uint32_t
+	{
+		identifier = id_of<ast_identifier_ptr>(),
+		literal = id_of<ast_literal_ptr>(),
+		unary_op = id_of<ast_unary_op_ptr>(),
+		binary_op = id_of<ast_binary_op_ptr>(),
+		function_call_op = id_of<ast_function_call_op_ptr>(),
+	};
+
 	uint32_t kind;
-
 	ast_typespec_ptr typespec = nullptr;
-
-	ast_identifier_ptr       identifier       = nullptr;
-	ast_literal_ptr          literal          = nullptr;
-	ast_unary_op_ptr         unary_op         = nullptr;
-	ast_binary_op_ptr        binary_op        = nullptr;
-	ast_function_call_op_ptr function_call_op = nullptr;
 
 	ast_expression(token                    _t           );
 	ast_expression(ast_unary_op_ptr         _unary_op    );
 	ast_expression(ast_binary_op_ptr        _binary_op   );
 	ast_expression(ast_function_call_op_ptr _func_call_op);
+
+	template<uint32_t kind>
+	base_t::value_type<kind> &get(void)
+	{
+		return base_t::get<base_t::value_type<kind>>();
+	}
+
+	template<uint32_t kind, typename ...Args>
+	void emplace(Args &&...args)
+	{
+		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
+	}
 };
 
 using ast_expression_ptr = std::unique_ptr<ast_expression>;
@@ -59,22 +76,19 @@ struct ast_identifier
 	{}
 };
 
-namespace literal
-{
-enum : uint32_t
-{
-	integer_number,
-	floating_point_number,
-	string,
-	character,
-	bool_true,
-	bool_false,
-	null,
-};
-}
-
 struct ast_literal
 {
+	enum : uint32_t
+	{
+		integer_number,
+		floating_point_number,
+		string,
+		character,
+		bool_true,
+		bool_false,
+		null,
+	};
+
 	uint32_t kind;
 
 	union

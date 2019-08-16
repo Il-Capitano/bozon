@@ -49,4 +49,6 @@ inline void _debug_assert_end(const char *expr, const char *file, int line)
 	exit(1);
 }
 
+#include "variant.h"
+
 #endif // CORE_H

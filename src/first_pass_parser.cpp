@@ -19,59 +19,44 @@ void append_vector(std::vector<T> &base, std::vector<T> new_elems)
 static fp_statement_ptr get_fp_statement(token_stream &stream);
 
 
-fp_statement::fp_statement(fp_if_statement_ptr if_stm)
-	: kind(statement::if_statement),
-	  if_statement(std::move(if_stm))
+fp_statement::fp_statement(fp_if_statement_ptr if_stmt)
+	: base_t(std::move(if_stmt)),
+	  kind(if_statement)
 {}
 
-fp_statement::fp_statement(fp_while_statement_ptr while_stm)
-	: kind(statement::while_statement),
-	  while_statement(std::move(while_stm))
+fp_statement::fp_statement(fp_while_statement_ptr while_stmt)
+	: base_t(std::move(while_stmt)),
+	  kind(while_statement)
 {}
 
-fp_statement::fp_statement(fp_for_statement_ptr for_stm)
-	: kind(statement::for_statement),
-	  for_statement(std::move(for_stm))
+fp_statement::fp_statement(fp_for_statement_ptr for_stmt)
+	: base_t(std::move(for_stmt)),
+	  kind(for_statement)
 {}
 
-fp_statement::fp_statement(fp_return_statement_ptr return_stm)
-	: kind(statement::return_statement),
-	  return_statement(std::move(return_stm))
+fp_statement::fp_statement(fp_return_statement_ptr return_stmt)
+	: base_t(std::move(return_stmt)),
+	  kind(return_statement)
 {}
 
-fp_statement::fp_statement(fp_no_op_statement_ptr no_op_stm)
-	: kind(statement::no_op_statement),
-	  no_op_statement(std::move(no_op_stm))
+fp_statement::fp_statement(fp_no_op_statement_ptr no_op_stmt)
+	: base_t(std::move(no_op_stmt)),
+	  kind(no_op_statement)
 {}
 
-fp_statement::fp_statement(fp_variable_decl_statement_ptr var_decl_stm)
-	: kind(statement::variable_decl_statement),
-	  variable_decl_statement(std::move(var_decl_stm))
+fp_statement::fp_statement(fp_compound_statement_ptr compound_stmt)
+	: base_t(std::move(compound_stmt)),
+	  kind(compound_statement)
 {}
 
-fp_statement::fp_statement(fp_compound_statement_ptr compound_stm)
-	: kind(statement::compound_statement),
-	  compound_statement(std::move(compound_stm))
+fp_statement::fp_statement(fp_expression_statement_ptr expr_stmt)
+	: base_t(std::move(expr_stmt)),
+	  kind(expression_statement)
 {}
 
-fp_statement::fp_statement(fp_expression_statement_ptr expr_stm)
-	: kind(statement::expression_statement),
-	  expression_statement(std::move(expr_stm))
-{}
-
-fp_statement::fp_statement(fp_struct_definition_ptr struct_def)
-	: kind(statement::struct_definition),
-	  struct_definition(std::move(struct_def))
-{}
-
-fp_statement::fp_statement(fp_function_definition_ptr func_def)
-	: kind(statement::function_definition),
-	  function_definition(std::move(func_def))
-{}
-
-fp_statement::fp_statement(fp_operator_definition_ptr op_def)
-	: kind(statement::operator_definition),
-	  operator_definition(std::move(op_def))
+fp_statement::fp_statement(fp_declaration_statement_ptr decl_stmt)
+	: base_t(std::move(decl_stmt)),
+	  kind(declaration_statement)
 {}
 
 
@@ -281,21 +266,6 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 		return make_fp_statement(make_fp_no_op_statement());
 	}
 
-	// variable declaration
-	case token::kw_let:
-	{
-		stream.step(); // 'let'
-		auto id = assert_token(stream, token::identifier).value;
-		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream);
-		assert_token(stream, token::semi_colon);
-
-		return make_fp_statement(
-			make_fp_variable_decl_statement(
-				std::move(id), std::move(type_and_init)
-			)
-		);
-	}
-
 	// TODO: could also be a tuple
 	// compound statement
 	case token::curly_open:
@@ -305,94 +275,32 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 		);
 	}
 
+	// variable declaration
+	case token::kw_let:
+	{
+		assert(false);
+		return nullptr;
+	}
+
 	// struct definition
 	case token::kw_struct:
 	{
-		// TODO: implement
-		std::cerr << "struct definition statement not yet implemented\n";
-		exit(1);
+		assert(false);
+		return nullptr;
 	}
 
 	// function definition
 	case token::kw_function:
 	{
-		stream.step(); // 'function'
-		auto id = assert_token(stream, token::identifier).value;
-		auto params = get_fp_parameters(stream);
-
-		// explicit return type
-		if (stream.current().kind == token::arrow)
-		{
-			stream.step(); // '->'
-			auto ret_type = get_fp_expression_or_type<token::curly_open>(stream);
-			auto body = get_fp_compound_statement(stream);
-
-			return make_fp_statement(
-				make_fp_function_definition(
-					std::move(id), std::move(params),
-					std::move(ret_type), std::move(body)
-				)
-			);
-		}
-		// no explicit return type
-		else
-		{
-			if (stream.current().kind != token::curly_open)
-			{
-				bad_token(stream, "Expected '->' or '{'");
-			}
-			auto body = get_fp_compound_statement(stream);
-
-			return make_fp_statement(
-				make_fp_function_definition(
-					std::move(id), std::move(params),
-					std::vector<token>{}, std::move(body)
-				)
-			);
-		}
+		assert(false);
+		return nullptr;
 	}
 
 	// operator definition
 	case token::kw_operator:
 	{
-		stream.step(); // 'operator'
-		if (!is_overloadable_operator(stream.current().kind))
-		{
-			bad_token(stream, "Expected overloadable operator");
-		}
-		auto op = stream.get().kind;
-		auto params = get_fp_parameters(stream);
-
-		// explicit return type
-		if (stream.current().kind == token::arrow)
-		{
-			stream.step(); // '->'
-			auto ret_type = get_fp_expression_or_type<token::curly_open>(stream);
-			auto body = get_fp_compound_statement(stream);
-
-			return make_fp_statement(
-				make_fp_operator_definition(
-					op, std::move(params),
-					std::move(ret_type), std::move(body)
-				)
-			);
-		}
-		// no explicit return type
-		else
-		{
-			if (stream.current().kind != token::curly_open)
-			{
-				bad_token(stream, "Expected '->' or '{'");
-			}
-			auto body = get_fp_compound_statement(stream);
-
-			return make_fp_statement(
-				make_fp_operator_definition(
-					op, std::move(params),
-					std::vector<token>{}, std::move(body)
-				)
-			);
-		}
+		assert(false);
+		return nullptr;
 	}
 
 	// expression statement

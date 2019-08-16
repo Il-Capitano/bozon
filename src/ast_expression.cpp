@@ -27,14 +27,14 @@ ast_literal::ast_literal(token t)
 
 		if (i == value.length())
 		{
-			this->kind = literal::integer_number;
+			this->kind = ast_literal::integer_number;
 			this->integer_value = static_cast<uint64_t>(num);
 		}
 		else
 		{
 			assert(value[i] == '.');
 			++i;
-			this->kind = literal::floating_point_number;
+			this->kind = ast_literal::floating_point_number;
 
 			double level = 1;
 			while (i < value.length())
@@ -51,26 +51,26 @@ ast_literal::ast_literal(token t)
 	}
 
 	case token::string_literal:
-		this->kind = literal::string;
+		this->kind = ast_literal::string;
 		this->string_value = static_cast<std::string>(t.value);
 		break;
 
 	case token::character_literal:
-		this->kind = literal::character;
+		this->kind = ast_literal::character;
 		assert(t.value.length() == 1);
 		this->char_value = t.value[0];
 		break;
 
 	case token::kw_true:
-		this->kind = literal::bool_true;
+		this->kind = ast_literal::bool_true;
 		break;
 
 	case token::kw_false:
-		this->kind = literal::bool_false;
+		this->kind = ast_literal::bool_false;
 		break;
 
 	case token::kw_null:
-		this->kind = literal::null;
+		this->kind = ast_literal::null;
 		break;
 
 	default:
@@ -177,24 +177,25 @@ static precedence get_unary_precedence(uint32_t kind)
 }
 
 ast_expression::ast_expression(token _t)
+	: base_t()
 {
 	switch (_t.kind)
 	{
 	case token::identifier:
-		this->kind = expression::identifier;
+		this->kind = identifier;
 		this->typespec = context.get_variable_typespec(_t.value);
 		if (!this->typespec)
 		{
 			bad_token(_t, "Undefined identifier");
 		}
-		this->identifier = make_ast_identifier(_t.value);
+		this->emplace<identifier>(make_ast_identifier(_t.value));
 		return;
 
 	case token::number_literal:
-		this->kind = expression::literal;
-		this->literal = make_ast_literal(std::move(_t));
+		this->kind = literal;
+		this->emplace<literal>(make_ast_literal(std::move(_t)));
 		this->typespec = make_ast_typespec(
-			this->literal->kind == literal::integer_number
+			this->get<literal>()->kind == ast_literal::integer_number
 			? "int32"
 			: "float64"
 		);
@@ -202,8 +203,8 @@ ast_expression::ast_expression(token _t)
 
 	case token::kw_true:
 	case token::kw_false:
-		this->kind = expression::literal;
-		this->literal = make_ast_literal(std::move(_t));
+		this->kind = literal;
+		this->emplace<literal>(make_ast_literal(std::move(_t)));
 		this->typespec = make_ast_typespec("bool");
 		return;
 
@@ -217,21 +218,25 @@ ast_expression::ast_expression(token _t)
 }
 
 ast_expression::ast_expression(ast_unary_op_ptr _unary_op)
-	: kind(expression::unary_op), unary_op(std::move(_unary_op))
+	: base_t(std::move(_unary_op)),
+	  kind(unary_op)
 {}
 
 ast_expression::ast_expression(ast_binary_op_ptr _binary_op)
-	: kind(expression::binary_op), binary_op(std::move(_binary_op))
+	: base_t(std::move(_binary_op)),
+	  kind(binary_op)
 {
+	auto &bin_op = this->get<binary_op>();
 	this->typespec = context.get_operation_typespec(
-		this->binary_op->op,
-		this->binary_op->lhs->typespec,
-		this->binary_op->rhs->typespec
+		bin_op->op,
+		bin_op->lhs->typespec,
+		bin_op->rhs->typespec
 	);
 }
 
 ast_expression::ast_expression(ast_function_call_op_ptr _func_call_op)
-	: kind(expression::function_call_op), function_call_op(std::move(_func_call_op))
+	: base_t(std::move(_func_call_op)),
+	  kind(function_call_op)
 {}
 
 
