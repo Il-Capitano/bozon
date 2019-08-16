@@ -139,23 +139,6 @@ struct ast_no_op_statement
 	// nothing
 };
 
-struct ast_variable_decl_statement
-{
-	intern_string      identifier;
-	ast_typespec_ptr   typespec;
-	ast_expression_ptr init_expr;
-
-	ast_variable_decl_statement(
-		intern_string      _id,
-		ast_typespec_ptr   _typespec,
-		ast_expression_ptr _init_expr
-	)
-		: identifier(_id),
-		  typespec  (_typespec ? std::move(_typespec) : _init_expr->typespec->clone()),
-		  init_expr (std::move(_init_expr))
-	{}
-};
-
 struct ast_compound_statement
 {
 	std::vector<ast_statement_ptr> statements;
@@ -174,54 +157,83 @@ struct ast_expression_statement
 	{}
 };
 
-struct ast_struct_definition
-{
-	// TODO: implement
-};
 
-struct ast_function_definition
+struct ast_variable_decl
 {
-	intern_string                 identifier;
-	std::vector<ast_variable_ptr> params;
-	ast_typespec_ptr              return_typespec;
-	ast_compound_statement_ptr    body;
+	intern_string      identifier;
+	ast_typespec_ptr   typespec;
+	ast_expression_ptr init_expr;
 
-	ast_function_definition(
-		intern_string                 _id,
-		std::vector<ast_variable_ptr> _params,
-		ast_typespec_ptr              _ret_typespec,
-		ast_compound_statement_ptr    _body
+	ast_variable_decl(
+		intern_string _id,
+		ast_typespec_ptr _typespec,
+		ast_expression_ptr _init_expr
 	)
-		: identifier     (_id),
-		  params         (std::move(_params)),
-		  return_typespec(std::move(_ret_typespec)),
-		  body           (std::move(_body))
+		: identifier(_id),
+		  typespec  (std::move(_typespec)),
+		  init_expr (std::move(_init_expr))
 	{}
 };
+using ast_variable_decl_ptr = std::unique_ptr<ast_variable_decl>;
 
-struct ast_operator_definition
+struct ast_function_decl
 {
-	uint32_t                      op;
-	std::vector<ast_variable_ptr> params;
-	ast_typespec_ptr              return_typespec;
-	ast_compound_statement_ptr    body;
 
-	ast_operator_definition(
-		uint32_t                      _op,
-		std::vector<ast_variable_ptr> _params,
-		ast_typespec_ptr              _ret_typespec,
-		ast_compound_statement_ptr    _body
-	)
-		: op             (_op),
-		  params         (std::move(_params)),
-		  return_typespec(std::move(_ret_typespec)),
-		  body           (std::move(_body))
-	{}
 };
+using ast_function_decl_ptr = std::unique_ptr<ast_function_decl>;
 
-struct ast_declaration_statement
+struct ast_operator_decl
 {
 
+};
+using ast_operator_decl_ptr = std::unique_ptr<ast_operator_decl>;
+
+struct ast_struct_decl
+{
+
+};
+using ast_struct_decl_ptr = std::unique_ptr<ast_struct_decl>;
+
+
+struct ast_declaration_statement :
+variant<
+	ast_variable_decl_ptr,
+	ast_function_decl_ptr,
+	ast_operator_decl_ptr,
+	ast_struct_decl_ptr
+>
+{
+	using base_t = variant<
+		ast_variable_decl_ptr,
+		ast_function_decl_ptr,
+		ast_operator_decl_ptr,
+		ast_struct_decl_ptr
+	>;
+
+	enum : uint32_t
+	{
+		variable_decl = id_of<ast_variable_decl_ptr>(),
+		function_decl = id_of<ast_function_decl_ptr>(),
+		operator_decl = id_of<ast_operator_decl_ptr>(),
+		struct_decl   = id_of<ast_struct_decl_ptr>(),
+	};
+
+	uint32_t kind;
+
+	ast_declaration_statement(fp_declaration_statement_ptr const &decl);
+
+
+	template<uint32_t kind>
+	base_t::value_type<kind> &get(void)
+	{
+		return base_t::get<base_t::value_type<kind>>();
+	}
+
+	template<uint32_t kind, typename ...Args>
+	void emplace(Args &&...args)
+	{
+		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
+	}
 };
 
 
@@ -279,7 +291,29 @@ ast_declaration_statement_ptr make_ast_declaration_statement(Args &&...args)
 	return std::make_unique<ast_declaration_statement>(std::forward<Args>(args)...);
 }
 
+template<typename ...Args>
+ast_variable_decl_ptr make_ast_variable_decl(Args &&...args)
+{
+	return std::make_unique<ast_variable_decl>(std::forward<Args>(args)...);
+}
 
+template<typename ...Args>
+ast_function_decl_ptr make_ast_function_decl(Args &&...args)
+{
+	return std::make_unique<ast_function_decl>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+ast_operator_decl_ptr make_ast_operator_decl(Args &&...args)
+{
+	return std::make_unique<ast_operator_decl>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+ast_struct_decl_ptr make_ast_struct_decl(Args &&...args)
+{
+	return std::make_unique<ast_struct_decl>(std::forward<Args>(args)...);
+}
 
 
 

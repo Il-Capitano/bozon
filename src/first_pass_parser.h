@@ -155,10 +155,130 @@ struct fp_expression_statement
 	{}
 };
 
-struct fp_declaration_statement
+
+struct fp_variable_decl
+{
+	intern_string      identifier;
+	std::vector<token> type_and_init;
+
+	fp_variable_decl(
+		intern_string      _id,
+		std::vector<token> _type_and_init
+	)
+		: identifier   (_id),
+		  type_and_init(std::move(_type_and_init))
+	{}
+};
+using fp_variable_decl_ptr = std::unique_ptr<fp_variable_decl>;
+
+struct fp_function_decl
+{
+	intern_string             identifier;
+	std::vector<token>        params;
+	std::vector<token>        return_type;
+	fp_compound_statement_ptr body;
+
+	fp_function_decl(
+		intern_string             _id,
+		std::vector<token>        _params,
+		std::vector<token>        _ret_type,
+		fp_compound_statement_ptr _body
+	)
+		: identifier (_id),
+		  params     (std::move(_params)),
+		  return_type(std::move(_ret_type)),
+		  body       (std::move(_body))
+	{}
+};
+using fp_function_decl_ptr = std::unique_ptr<fp_function_decl>;
+
+struct fp_operator_decl
+{
+	uint32_t                  op;
+	std::vector<token>        params;
+	std::vector<token>        return_type;
+	fp_compound_statement_ptr body;
+
+	fp_operator_decl(
+		uint32_t                  _op,
+		std::vector<token>        _params,
+		std::vector<token>        _ret_type,
+		fp_compound_statement_ptr _body
+	)
+		: op         (_op),
+		  params     (std::move(_params)),
+		  return_type(std::move(_ret_type)),
+		  body       (std::move(_body))
+	{}
+};
+using fp_operator_decl_ptr = std::unique_ptr<fp_operator_decl>;
+
+struct fp_struct_decl
 {
 
 };
+using fp_struct_decl_ptr = std::unique_ptr<fp_struct_decl>;
+
+
+struct fp_declaration_statement :
+variant<
+	fp_variable_decl_ptr,
+	fp_function_decl_ptr,
+	fp_operator_decl_ptr,
+	fp_struct_decl_ptr
+>
+{
+	using base_t = variant<
+		fp_variable_decl_ptr,
+		fp_function_decl_ptr,
+		fp_operator_decl_ptr,
+		fp_struct_decl_ptr
+	>;
+
+	enum : uint32_t
+	{
+		variable_decl = id_of<fp_variable_decl_ptr>(),
+		function_decl = id_of<fp_function_decl_ptr>(),
+		operator_decl = id_of<fp_operator_decl_ptr>(),
+		struct_decl   = id_of<fp_struct_decl_ptr>(),
+	};
+
+	uint32_t kind;
+
+	fp_declaration_statement(fp_variable_decl_ptr _var_decl)
+		: base_t(std::move(_var_decl)),
+		  kind  (variable_decl)
+	{}
+
+	fp_declaration_statement(fp_function_decl_ptr _func_decl)
+		: base_t(std::move(_func_decl)),
+		  kind  (function_decl)
+	{}
+
+	fp_declaration_statement(fp_operator_decl_ptr _op_decl)
+		: base_t(std::move(_op_decl)),
+		  kind  (operator_decl)
+	{}
+
+	fp_declaration_statement(fp_struct_decl_ptr _struct_decl)
+		: base_t(std::move(_struct_decl)),
+		  kind  (struct_decl)
+	{}
+
+
+	template<uint32_t kind>
+	base_t::value_type<kind> &get(void)
+	{
+		return base_t::get<base_t::value_type<kind>>();
+	}
+
+	template<uint32_t kind, typename ...Args>
+	void emplace(Args &&...args)
+	{
+		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
+	}
+};
+
 
 template<typename ...Args>
 inline fp_statement_ptr make_fp_statement(Args &&...args)
@@ -212,6 +332,30 @@ template<typename ...Args>
 inline fp_declaration_statement_ptr make_fp_declaration_statement(Args &&...args)
 {
 	return std::make_unique<fp_declaration_statement>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+inline fp_variable_decl_ptr make_fp_variable_decl(Args &&...args)
+{
+	return std::make_unique<fp_variable_decl>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+inline fp_function_decl_ptr make_fp_function_decl(Args &&...args)
+{
+	return std::make_unique<fp_function_decl>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+inline fp_operator_decl_ptr make_fp_operator_decl(Args &&...args)
+{
+	return std::make_unique<fp_operator_decl>(std::forward<Args>(args)...);
+}
+
+template<typename ...Args>
+inline fp_struct_decl_ptr make_fp_struct_decl(Args &&...args)
+{
+	return std::make_unique<fp_struct_decl>(std::forward<Args>(args)...);
 }
 
 

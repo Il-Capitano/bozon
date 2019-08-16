@@ -130,11 +130,84 @@ ast_statement::ast_statement(fp_statement_ptr const &stmt)
 		break;
 
 	case fp_statement::declaration_statement:
-		assert(false);
-		return;
+		this->emplace<declaration_statement>(
+			make_ast_declaration_statement(
+				stmt->get<fp_statement::declaration_statement>()
+			)
+		);
+		break;
 
 	default:
-		std::cerr << "Error in call to ast_statement::ast_statement(fp_statement_ptr)\n";
-		exit(1);
+		assert(false);
+		break;
+	}
+}
+
+ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_ptr const &decl)
+	: base_t(),
+	  kind()
+{
+	switch (decl->kind)
+	{
+	case fp_declaration_statement::variable_decl:
+	{
+		auto &var_decl = decl->get<fp_declaration_statement::variable_decl>();
+		auto id = var_decl->identifier;
+
+		auto stream = var_decl->type_and_init.cbegin();
+		auto end    = var_decl->type_and_init.cend();
+
+		if (stream == end)
+		{
+			std::cerr << "Error: cannot have an empty variable declaration\n";
+			exit(1);
+		}
+
+		ast_typespec_ptr typespec = nullptr;
+		if (stream->kind == token::colon)
+		{
+			++stream; // ':'
+			assert(stream != end);
+			typespec = parse_ast_typespec(stream, end);
+			if (stream == end)
+			{
+				this->emplace<variable_decl>(
+					make_ast_variable_decl(
+						id, std::move(typespec), ast_expression_ptr(nullptr)
+					)
+				);
+				return;
+			}
+		}
+
+		assert_token(*stream, token::assign);
+		++stream; // '='
+
+		auto init_expr = parse_ast_expression(stream, end);
+		if (stream != end)
+		{
+			bad_token(*stream, "Expected ';'");
+		}
+
+		this->emplace<variable_decl>(
+			make_ast_variable_decl(
+				id, std::move(typespec), std::move(init_expr)
+			)
+		);
+		break;
+	}
+
+	case fp_declaration_statement::function_decl:
+		break;
+
+	case fp_declaration_statement::operator_decl:
+		break;
+
+	case fp_declaration_statement::struct_decl:
+		break;
+
+	default:
+		assert(false);
+		break;
 	}
 }

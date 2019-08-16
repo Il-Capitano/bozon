@@ -278,8 +278,16 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	// variable declaration
 	case token::kw_let:
 	{
-		assert(false);
-		return nullptr;
+		stream.step(); // 'let'
+		auto id = assert_token(stream, token::identifier).value;
+		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream);
+		return make_fp_statement(
+			make_fp_declaration_statement(
+				make_fp_variable_decl(
+					id, std::move(type_and_init)
+				)
+			)
+		);
 	}
 
 	// struct definition
@@ -292,8 +300,24 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	// function definition
 	case token::kw_function:
 	{
-		assert(false);
-		return nullptr;
+		stream.step(); // 'function'
+		auto id = assert_token(stream, token::identifier).value;
+		auto params = get_fp_parameters(stream);
+		std::vector<token> ret_type = {};
+
+		if (stream.current().kind == token::arrow)
+		{
+			ret_type = get_fp_expression_or_type<token::curly_open>(stream);
+		}
+
+		auto body = get_fp_compound_statement(stream);
+		return make_fp_statement(
+			make_fp_declaration_statement(
+				make_fp_function_decl(
+					id, std::move(params), std::move(ret_type), std::move(body)
+				)
+			)
+		);
 	}
 
 	// operator definition
