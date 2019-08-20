@@ -30,7 +30,7 @@ constexpr bool _is_in_v = _all_different<Ts...>::value && !_all_different<T, Ts.
 
 
 template<typename T, typename First, typename ...Ts>
-constexpr int _get_id_func(void)
+constexpr uint32_t _get_id_func(void)
 {
 	if (std::is_same_v<T, First>)
 	{
@@ -54,30 +54,30 @@ constexpr int _get_id_func(void)
 template<typename T, typename First, typename ...Ts>
 struct _get_id
 {
-	static constexpr int value = _get_id_func<T, First, Ts...>();
+	static constexpr uint32_t value = _get_id_func<T, First, Ts...>();
 };
 
 template<typename T, typename First, typename ...Ts>
-constexpr int _get_id_v = _get_id<T, First, Ts...>::value;
+constexpr uint32_t _get_id_v = _get_id<T, First, Ts...>::value;
 
 
-template<int first, int ...vals>
+template<uint32_t first, uint32_t ...vals>
 struct _max_of
 {
-	static constexpr int value = first > _max_of<vals...>::value ? first : _max_of<vals...>::value;
+	static constexpr uint32_t value = first > _max_of<vals...>::value ? first : _max_of<vals...>::value;
 };
 
-template<int first>
+template<uint32_t first>
 struct _max_of<first>
 {
-	static constexpr int value = first;
+	static constexpr uint32_t value = first;
 };
 
-template<int first, int ...vals>
-constexpr int _max_of_v = _max_of<first, vals...>::value;
+template<uint32_t first, uint32_t ...vals>
+constexpr uint32_t _max_of_v = _max_of<first, vals...>::value;
 
 
-template<int id, typename First, typename ...Ts>
+template<uint32_t id, typename First, typename ...Ts>
 struct _nth_type
 {
 	static_assert(id <= sizeof... (Ts));
@@ -90,7 +90,7 @@ struct _nth_type<0, First, Ts...>
 	using type = First;
 };
 
-template<int id, typename ...Ts>
+template<uint32_t id, typename ...Ts>
 using _nth_type_t = typename _nth_type<id, Ts...>::type;
 
 
@@ -101,12 +101,13 @@ class variant
 	static_assert(_all_different_v<Ts...>);
 public:
 	using self_t = variant<Ts...>;
-	template<int id>
+	template<uint32_t id>
 	using value_type = _nth_type_t<id, Ts...>;
+	static constexpr uint32_t npos = 0xff'ff'ff'ff;
 
 private:
 	alignas(_max_of_v<alignof(Ts)...>) char _data[_max_of_v<sizeof(Ts)...>];
-	int _type_id;
+	uint32_t _type_id;
 
 
 	template<typename T>
@@ -142,7 +143,7 @@ private:
 
 public:
 	template<typename T>
-	static constexpr int id_of(void)
+	static constexpr uint32_t id_of(void)
 	{
 		static_assert(_is_in_v<T, Ts...>);
 		return _get_id_v<T, Ts...>;
@@ -156,12 +157,12 @@ public:
 	}
 
 	variant(void)
-		: _data(), _type_id(-1)
+		: _data(), _type_id(npos)
 	{}
 
 	~variant(void)
 	{
-		if (this->_type_id == -1)
+		if (this->_type_id == npos)
 		{
 			return;
 		}
@@ -173,13 +174,13 @@ public:
 
 	void clear(void)
 	{
-		if (this->_type_id == -1)
+		if (this->_type_id == npos)
 		{
 			return;
 		}
 
 		((this->_type_id == id_of<Ts>()
-		? (void)((this->no_check_get<Ts>().~Ts()), this->_type_id = -1)
+		? (void)((this->no_check_get<Ts>().~Ts()), this->_type_id = npos)
 		: (void)(0)
 		), ...);
 	}
@@ -188,7 +189,7 @@ public:
 	variant(self_t const &other)
 		: _data(), _type_id(other._type_id)
 	{
-		if (other._type_id == -1)
+		if (other._type_id == npos)
 		{
 			return;
 		}
@@ -204,8 +205,6 @@ public:
 		((this->_type_id == id_of<Ts>()
 		? (void)(this->no_check_emplace<Ts>(std::move(other.no_check_get<Ts>())))
 		: (void)0), ...);
-
-		other._type_id = -1;
 	}
 
 	self_t &operator = (self_t const &other)
@@ -239,8 +238,6 @@ public:
 		? (void)(this->no_check_emplace<Ts>(std::move(other.no_check_get<Ts>())))
 		: (void)0), ...);
 
-		other._type_id = -1;
-
 		return *this;
 	}
 
@@ -266,6 +263,7 @@ public:
 		static_assert(_is_in_v<T, Ts...>);
 		this->clear();
 		this->no_check_emplace<T>(std::forward<Args>(args)...);
+		this->_type_id = id_of<T>();
 	}
 
 	template<typename T, std::enable_if_t<!std::is_same_v<T, self_t>>>
@@ -332,6 +330,11 @@ public:
 			assert(false, "Bad type in variant::get");
 		}
 		return this->no_check_get<T>();
+	}
+
+	uint32_t type_id(void) const
+	{
+		return this->_type_id;
 	}
 
 

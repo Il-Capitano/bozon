@@ -145,7 +145,7 @@ ast_typespec_ptr parse_context::get_variable_typespec(intern_string id) const
 	return nullptr;
 }
 
-ast_typespec_ptr parse_context::get_operation_typespec(
+ast_typespec_ptr parse_context::get_binary_operation_typespec(
 	uint32_t op, ast_typespec_ptr const &lhs, ast_typespec_ptr const &rhs
 )
 {
@@ -188,6 +188,23 @@ ast_typespec_ptr parse_context::get_operation_typespec(
 	default:
 		assert(false);
 		return nullptr;
+	}
+}
+
+ast_typespec_ptr parse_context::get_unary_operation_typespec(
+	uint32_t op, ast_typespec_ptr const &arg
+)
+{
+	switch (op)
+	{
+		case token::ampersand:
+			return make_ast_typespec(type::pointer, arg->clone());
+
+		case token::star:
+		// ...
+		default:
+			assert(false);
+			return nullptr;
 	}
 }
 

@@ -70,8 +70,12 @@ struct parse_context
 	void add_function(context_function_ptr func);
 	void add_operator(context_operator_ptr op  );
 
-	ast_typespec_ptr get_operation_typespec(
+	ast_typespec_ptr get_binary_operation_typespec(
 		uint32_t op, ast_typespec_ptr const &lhs, ast_typespec_ptr const &rhs
+	);
+
+	ast_typespec_ptr get_unary_operation_typespec(
+		uint32_t op, ast_typespec_ptr const &arg
 	);
 
 	ast_typespec_ptr get_variable_typespec(intern_string id) const;

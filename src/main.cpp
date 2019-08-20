@@ -515,19 +515,15 @@ public:
 
 
 
-a * vector<int>() - 3;  // not ambiguious
-a * vector<int>(3) - 3; // ambiguious
+maybe tuples should use [] instead of {}...
+let t: [int32, float64];
+let t = [1, 10.5];
+let v: vec2d = [0.0, 5.2];
+vec2d[ 0.0, 1.0 ];    // <- maybe this should be allowed? not sure... in c++ it's a mess...
+vec2d([ 0.0, 1.0 ]);  // this is a bit more consistent
 
-((a * vector) < int) > (3 - 3)
-
-(a * vector<int>(3)) - 3
-
-'a' '*' 'vector' '<' 'int' '>' '(' '3' ')' '-' '3'
-
-';'
 
 */
-
 
 #include "core.h"
 
@@ -573,7 +569,7 @@ void print_expr(ast_expression_ptr const &expr)
 		return;
 	}
 
-	switch (expr->kind)
+	switch (expr->kind())
 	{
 	case ast_expression::identifier:
 		std::cout << expr->get<ast_expression::identifier>()->value;
@@ -676,7 +672,7 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 	};
 	indent();
 
-	switch (stmt->kind)
+	switch (stmt->kind())
 	{
 	case ast_statement::if_statement:
 	{
@@ -737,8 +733,32 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 		break;
 
 	case ast_statement::declaration_statement:
-		assert(false);
+	{
+		auto &decl = stmt->get<ast_statement::declaration_statement>();
+		switch (decl->kind())
+		{
+			case ast_declaration_statement::variable_decl:
+			{
+				auto &var_decl = decl->get<ast_declaration_statement::variable_decl>();
+				std::cout << "let " << var_decl->identifier << ": ";
+				print_typespec(var_decl->typespec);
+				if (var_decl->init_expr)
+				{
+					std::cout << " = ";
+					print_expr(var_decl->init_expr);
+				}
+				std::cout << ";\n";
+				break;
+			}
+			case ast_declaration_statement::function_decl:
+			case ast_declaration_statement::operator_decl:
+			case ast_declaration_statement::struct_decl:
+			default:
+				assert(false);
+				break;
+		}
 		break;
+	}
 
 	default:
 		std::cerr << "Error in print_stmt()\n";

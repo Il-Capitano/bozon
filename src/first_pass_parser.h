@@ -58,7 +58,10 @@ variant<
 		declaration_statement = id_of<fp_declaration_statement_ptr>(),
 	};
 
-	uint32_t kind;
+	uint32_t kind(void) const
+	{
+		return base_t::type_id();
+	}
 
 	fp_statement(fp_if_statement_ptr          if_stm      );
 	fp_statement(fp_while_statement_ptr       while_stm   );
@@ -215,7 +218,7 @@ using fp_operator_decl_ptr = std::unique_ptr<fp_operator_decl>;
 
 struct fp_struct_decl
 {
-
+	// TODO
 };
 using fp_struct_decl_ptr = std::unique_ptr<fp_struct_decl>;
 

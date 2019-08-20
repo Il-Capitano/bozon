@@ -20,43 +20,35 @@ static fp_statement_ptr get_fp_statement(token_stream &stream);
 
 
 fp_statement::fp_statement(fp_if_statement_ptr if_stmt)
-	: base_t(std::move(if_stmt)),
-	  kind(if_statement)
+	: base_t(std::move(if_stmt))
 {}
 
 fp_statement::fp_statement(fp_while_statement_ptr while_stmt)
-	: base_t(std::move(while_stmt)),
-	  kind(while_statement)
+	: base_t(std::move(while_stmt))
 {}
 
 fp_statement::fp_statement(fp_for_statement_ptr for_stmt)
-	: base_t(std::move(for_stmt)),
-	  kind(for_statement)
+	: base_t(std::move(for_stmt))
 {}
 
 fp_statement::fp_statement(fp_return_statement_ptr return_stmt)
-	: base_t(std::move(return_stmt)),
-	  kind(return_statement)
+	: base_t(std::move(return_stmt))
 {}
 
 fp_statement::fp_statement(fp_no_op_statement_ptr no_op_stmt)
-	: base_t(std::move(no_op_stmt)),
-	  kind(no_op_statement)
+	: base_t(std::move(no_op_stmt))
 {}
 
 fp_statement::fp_statement(fp_compound_statement_ptr compound_stmt)
-	: base_t(std::move(compound_stmt)),
-	  kind(compound_statement)
+	: base_t(std::move(compound_stmt))
 {}
 
 fp_statement::fp_statement(fp_expression_statement_ptr expr_stmt)
-	: base_t(std::move(expr_stmt)),
-	  kind(expression_statement)
+	: base_t(std::move(expr_stmt))
 {}
 
 fp_statement::fp_statement(fp_declaration_statement_ptr decl_stmt)
-	: base_t(std::move(decl_stmt)),
-	  kind(declaration_statement)
+	: base_t(std::move(decl_stmt))
 {}
 
 
@@ -266,7 +258,6 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 		return make_fp_statement(make_fp_no_op_statement());
 	}
 
-	// TODO: could also be a tuple
 	// compound statement
 	case token::curly_open:
 	{
@@ -281,6 +272,7 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 		stream.step(); // 'let'
 		auto id = assert_token(stream, token::identifier).value;
 		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream);
+		assert_token(stream, token::semi_colon);
 		return make_fp_statement(
 			make_fp_declaration_statement(
 				make_fp_variable_decl(

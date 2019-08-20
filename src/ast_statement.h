@@ -60,7 +60,10 @@ variant<
 		declaration_statement = id_of<ast_declaration_statement_ptr>(),
 	};
 
-	uint32_t kind;
+	uint32_t kind(void) const
+	{
+		return base_t::type_id();
+	}
 
 	ast_statement(fp_statement_ptr const &stmt);
 
@@ -165,8 +168,8 @@ struct ast_variable_decl
 	ast_expression_ptr init_expr;
 
 	ast_variable_decl(
-		intern_string _id,
-		ast_typespec_ptr _typespec,
+		intern_string      _id,
+		ast_typespec_ptr   _typespec,
 		ast_expression_ptr _init_expr
 	)
 		: identifier(_id),
@@ -178,7 +181,19 @@ using ast_variable_decl_ptr = std::unique_ptr<ast_variable_decl>;
 
 struct ast_function_decl
 {
+	intern_string              identifier;
+	ast_typespec_ptr           return_typespec;
+	ast_compound_statement_ptr body;
 
+	ast_function_decl(
+		intern_string              _id,
+		ast_typespec_ptr           _ret_type,
+		ast_compound_statement_ptr _body
+	)
+		: identifier     (_id),
+		  return_typespec(std::move(_ret_type)),
+		  body           (std::move(_body))
+	{}
 };
 using ast_function_decl_ptr = std::unique_ptr<ast_function_decl>;
 
@@ -218,7 +233,10 @@ variant<
 		struct_decl   = id_of<ast_struct_decl_ptr>(),
 	};
 
-	uint32_t kind;
+	uint32_t kind(void) const
+	{
+		return base_t::type_id();
+	}
 
 	ast_declaration_statement(fp_declaration_statement_ptr const &decl);
 

@@ -182,7 +182,6 @@ ast_expression::ast_expression(token _t)
 	switch (_t.kind)
 	{
 	case token::identifier:
-		this->kind = identifier;
 		this->typespec = context.get_variable_typespec(_t.value);
 		if (!this->typespec)
 		{
@@ -192,7 +191,6 @@ ast_expression::ast_expression(token _t)
 		return;
 
 	case token::number_literal:
-		this->kind = literal;
 		this->emplace<literal>(make_ast_literal(std::move(_t)));
 		this->typespec = make_ast_typespec(
 			this->get<literal>()->kind == ast_literal::integer_number
@@ -203,7 +201,6 @@ ast_expression::ast_expression(token _t)
 
 	case token::kw_true:
 	case token::kw_false:
-		this->kind = literal;
 		this->emplace<literal>(make_ast_literal(std::move(_t)));
 		this->typespec = make_ast_typespec("bool");
 		return;
@@ -218,25 +215,28 @@ ast_expression::ast_expression(token _t)
 }
 
 ast_expression::ast_expression(ast_unary_op_ptr _unary_op)
-	: base_t(std::move(_unary_op)),
-	  kind(unary_op)
-{}
+	: base_t(std::move(_unary_op))
+{
+	auto &op = this->get<unary_op>();
+	this->typespec = context.get_unary_operation_typespec(
+		op->op,
+		op->expr->typespec
+	);
+}
 
 ast_expression::ast_expression(ast_binary_op_ptr _binary_op)
-	: base_t(std::move(_binary_op)),
-	  kind(binary_op)
+	: base_t(std::move(_binary_op))
 {
-	auto &bin_op = this->get<binary_op>();
-	this->typespec = context.get_operation_typespec(
-		bin_op->op,
-		bin_op->lhs->typespec,
-		bin_op->rhs->typespec
+	auto &op = this->get<binary_op>();
+	this->typespec = context.get_binary_operation_typespec(
+		op->op,
+		op->lhs->typespec,
+		op->rhs->typespec
 	);
 }
 
 ast_expression::ast_expression(ast_function_call_op_ptr _func_call_op)
-	: base_t(std::move(_func_call_op)),
-	  kind(function_call_op)
+	: base_t(std::move(_func_call_op))
 {}
 
 

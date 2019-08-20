@@ -59,8 +59,9 @@ std::vector<ast_variable_ptr> get_function_params(std::vector<token> const &toke
 
 
 ast_statement::ast_statement(fp_statement_ptr const &stmt)
+	: base_t()
 {
-	switch (stmt->kind)
+	switch (stmt->kind())
 	{
 	case fp_statement::if_statement:
 	{
@@ -144,8 +145,7 @@ ast_statement::ast_statement(fp_statement_ptr const &stmt)
 }
 
 ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_ptr const &decl)
-	: base_t(),
-	  kind()
+	: base_t()
 {
 	switch (decl->kind)
 	{
@@ -189,6 +189,11 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 			bad_token(*stream, "Expected ';'");
 		}
 
+		if (!typespec)
+		{
+			typespec = init_expr->typespec->clone();
+		}
+
 		this->emplace<variable_decl>(
 			make_ast_variable_decl(
 				id, std::move(typespec), std::move(init_expr)
@@ -198,7 +203,13 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 	}
 
 	case fp_declaration_statement::function_decl:
+	{
+		auto &func_decl = decl->get<fp_declaration_statement::function_decl>();
+		auto id = func_decl->identifier;
+		// TODO
+		assert(false);
 		break;
+	}
 
 	case fp_declaration_statement::operator_decl:
 		break;

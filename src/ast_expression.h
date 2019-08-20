@@ -43,7 +43,11 @@ variant<
 		function_call_op = id_of<ast_function_call_op_ptr>(),
 	};
 
-	uint32_t kind;
+	uint32_t kind(void) const
+	{
+		return base_t::type_id();
+	}
+
 	ast_typespec_ptr typespec = nullptr;
 
 	ast_expression(token                    _t           );
