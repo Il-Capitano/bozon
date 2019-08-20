@@ -147,7 +147,7 @@ ast_statement::ast_statement(fp_statement_ptr const &stmt)
 ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_ptr const &decl)
 	: base_t()
 {
-	switch (decl->kind)
+	switch (decl->kind())
 	{
 	case fp_declaration_statement::variable_decl:
 	{

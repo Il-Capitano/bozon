@@ -50,19 +50,19 @@ variant<
 
 	enum : uint32_t
 	{
-		if_statement          = id_of<ast_if_statement_ptr>(),
-		while_statement       = id_of<ast_while_statement_ptr>(),
-		for_statement         = id_of<ast_for_statement_ptr>(),
-		return_statement      = id_of<ast_return_statement_ptr>(),
-		no_op_statement       = id_of<ast_no_op_statement_ptr>(),
-		compound_statement    = id_of<ast_compound_statement_ptr>(),
-		expression_statement  = id_of<ast_expression_statement_ptr>(),
-		declaration_statement = id_of<ast_declaration_statement_ptr>(),
+		if_statement          = index_of<ast_if_statement_ptr>(),
+		while_statement       = index_of<ast_while_statement_ptr>(),
+		for_statement         = index_of<ast_for_statement_ptr>(),
+		return_statement      = index_of<ast_return_statement_ptr>(),
+		no_op_statement       = index_of<ast_no_op_statement_ptr>(),
+		compound_statement    = index_of<ast_compound_statement_ptr>(),
+		expression_statement  = index_of<ast_expression_statement_ptr>(),
+		declaration_statement = index_of<ast_declaration_statement_ptr>(),
 	};
 
 	uint32_t kind(void) const
 	{
-		return base_t::type_id();
+		return base_t::index();
 	}
 
 	ast_statement(fp_statement_ptr const &stmt);
@@ -75,18 +75,6 @@ variant<
 	ast_statement(ast_compound_statement_ptr    compound_stmt  );
 	ast_statement(ast_expression_statement_ptr  expression_stmt);
 	ast_statement(ast_declaration_statement_ptr decl_stmt      );
-
-	template<uint32_t kind>
-	base_t::value_type<kind> &get(void)
-	{
-		return base_t::get<base_t::value_type<kind>>();
-	}
-
-	template<uint32_t kind, typename ...Args>
-	void emplace(Args &&...args)
-	{
-		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
-	}
 };
 
 using ast_statement_ptr = std::unique_ptr<ast_statement>;
@@ -227,31 +215,18 @@ variant<
 
 	enum : uint32_t
 	{
-		variable_decl = id_of<ast_variable_decl_ptr>(),
-		function_decl = id_of<ast_function_decl_ptr>(),
-		operator_decl = id_of<ast_operator_decl_ptr>(),
-		struct_decl   = id_of<ast_struct_decl_ptr>(),
+		variable_decl = index_of<ast_variable_decl_ptr>(),
+		function_decl = index_of<ast_function_decl_ptr>(),
+		operator_decl = index_of<ast_operator_decl_ptr>(),
+		struct_decl   = index_of<ast_struct_decl_ptr>(),
 	};
 
 	uint32_t kind(void) const
 	{
-		return base_t::type_id();
+		return base_t::index();
 	}
 
 	ast_declaration_statement(fp_declaration_statement_ptr const &decl);
-
-
-	template<uint32_t kind>
-	base_t::value_type<kind> &get(void)
-	{
-		return base_t::get<base_t::value_type<kind>>();
-	}
-
-	template<uint32_t kind, typename ...Args>
-	void emplace(Args &&...args)
-	{
-		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
-	}
 };
 
 

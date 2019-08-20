@@ -36,16 +36,16 @@ variant<
 
 	enum : uint32_t
 	{
-		identifier = id_of<ast_identifier_ptr>(),
-		literal = id_of<ast_literal_ptr>(),
-		unary_op = id_of<ast_unary_op_ptr>(),
-		binary_op = id_of<ast_binary_op_ptr>(),
-		function_call_op = id_of<ast_function_call_op_ptr>(),
+		identifier       = index_of<ast_identifier_ptr>(),
+		literal          = index_of<ast_literal_ptr>(),
+		unary_op         = index_of<ast_unary_op_ptr>(),
+		binary_op        = index_of<ast_binary_op_ptr>(),
+		function_call_op = index_of<ast_function_call_op_ptr>(),
 	};
 
 	uint32_t kind(void) const
 	{
-		return base_t::type_id();
+		return base_t::index();
 	}
 
 	ast_typespec_ptr typespec = nullptr;
@@ -54,18 +54,6 @@ variant<
 	ast_expression(ast_unary_op_ptr         _unary_op    );
 	ast_expression(ast_binary_op_ptr        _binary_op   );
 	ast_expression(ast_function_call_op_ptr _func_call_op);
-
-	template<uint32_t kind>
-	base_t::value_type<kind> &get(void)
-	{
-		return base_t::get<base_t::value_type<kind>>();
-	}
-
-	template<uint32_t kind, typename ...Args>
-	void emplace(Args &&...args)
-	{
-		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
-	}
 };
 
 using ast_expression_ptr = std::unique_ptr<ast_expression>;

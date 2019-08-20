@@ -48,19 +48,19 @@ variant<
 
 	enum : uint32_t
 	{
-		if_statement          = id_of<fp_if_statement_ptr>(),
-		while_statement       = id_of<fp_while_statement_ptr>(),
-		for_statement         = id_of<fp_for_statement_ptr>(),
-		return_statement      = id_of<fp_return_statement_ptr>(),
-		no_op_statement       = id_of<fp_no_op_statement_ptr>(),
-		compound_statement    = id_of<fp_compound_statement_ptr>(),
-		expression_statement  = id_of<fp_expression_statement_ptr>(),
-		declaration_statement = id_of<fp_declaration_statement_ptr>(),
+		if_statement          = index_of<fp_if_statement_ptr>(),
+		while_statement       = index_of<fp_while_statement_ptr>(),
+		for_statement         = index_of<fp_for_statement_ptr>(),
+		return_statement      = index_of<fp_return_statement_ptr>(),
+		no_op_statement       = index_of<fp_no_op_statement_ptr>(),
+		compound_statement    = index_of<fp_compound_statement_ptr>(),
+		expression_statement  = index_of<fp_expression_statement_ptr>(),
+		declaration_statement = index_of<fp_declaration_statement_ptr>(),
 	};
 
 	uint32_t kind(void) const
 	{
-		return base_t::type_id();
+		return base_t::index();
 	}
 
 	fp_statement(fp_if_statement_ptr          if_stm      );
@@ -71,18 +71,6 @@ variant<
 	fp_statement(fp_compound_statement_ptr    compound_stm);
 	fp_statement(fp_expression_statement_ptr  expr_stm    );
 	fp_statement(fp_declaration_statement_ptr decl_stmt   );
-
-	template<uint32_t kind>
-	base_t::value_type<kind> &get(void)
-	{
-		return base_t::get<base_t::value_type<kind>>();
-	}
-
-	template<uint32_t kind, typename ...Args>
-	void emplace(Args &&...args)
-	{
-		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
-	}
 };
 
 using fp_statement_ptr = std::unique_ptr<fp_statement>;
@@ -240,46 +228,32 @@ variant<
 
 	enum : uint32_t
 	{
-		variable_decl = id_of<fp_variable_decl_ptr>(),
-		function_decl = id_of<fp_function_decl_ptr>(),
-		operator_decl = id_of<fp_operator_decl_ptr>(),
-		struct_decl   = id_of<fp_struct_decl_ptr>(),
+		variable_decl = index_of<fp_variable_decl_ptr>(),
+		function_decl = index_of<fp_function_decl_ptr>(),
+		operator_decl = index_of<fp_operator_decl_ptr>(),
+		struct_decl   = index_of<fp_struct_decl_ptr>(),
 	};
 
-	uint32_t kind;
+	uint32_t kind(void) const
+	{
+		return base_t::index();
+	}
 
 	fp_declaration_statement(fp_variable_decl_ptr _var_decl)
-		: base_t(std::move(_var_decl)),
-		  kind  (variable_decl)
+		: base_t(std::move(_var_decl))
 	{}
 
 	fp_declaration_statement(fp_function_decl_ptr _func_decl)
-		: base_t(std::move(_func_decl)),
-		  kind  (function_decl)
+		: base_t(std::move(_func_decl))
 	{}
 
 	fp_declaration_statement(fp_operator_decl_ptr _op_decl)
-		: base_t(std::move(_op_decl)),
-		  kind  (operator_decl)
+		: base_t(std::move(_op_decl))
 	{}
 
 	fp_declaration_statement(fp_struct_decl_ptr _struct_decl)
-		: base_t(std::move(_struct_decl)),
-		  kind  (struct_decl)
+		: base_t(std::move(_struct_decl))
 	{}
-
-
-	template<uint32_t kind>
-	base_t::value_type<kind> &get(void)
-	{
-		return base_t::get<base_t::value_type<kind>>();
-	}
-
-	template<uint32_t kind, typename ...Args>
-	void emplace(Args &&...args)
-	{
-		base_t::emplace<base_t::value_type<kind>>(std::forward<Args>(args)...);
-	}
 };
 
 
