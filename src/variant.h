@@ -215,7 +215,7 @@ public:
 	using self_t = variant<Ts...>;
 	template<uint32_t I>
 	using value_type = meta::nth_type_t<I, Ts...>;
-	static constexpr uint32_t npos = 0xff'ff'ff'ff;
+	static constexpr uint32_t npos = std::numeric_limits<uint32_t>::max();
 
 private:
 	alignas(meta::lowest_common_divisor_v<alignof(Ts)...>)
@@ -409,13 +409,15 @@ template<typename ...Ts>
 variant<Ts...>::variant(self_t const &other)
 	: _type_id(other._type_id)
 {
-	if (other._type_id == npos)
+	if (this->_type_id == npos)
 	{
 		return;
 	}
 
 	((this->_type_id == index_of<Ts>()
-	? (void)(this->no_check_emplace<Ts>(other.no_check_get<Ts>()))
+	? (void)(this->no_check_emplace<Ts>(
+		other.no_check_get<Ts>()
+	))
 	: (void)0), ...);
 }
 
@@ -423,8 +425,15 @@ template<typename ...Ts>
 variant<Ts...>::variant(self_t &&other)
 	: _type_id(other._type_id)
 {
+	if (this->_type_id == npos)
+	{
+		return;
+	}
+
 	((this->_type_id == index_of<Ts>()
-	? (void)(this->no_check_emplace<Ts>(std::move(other.no_check_get<Ts>())))
+	? (void)(this->no_check_emplace<Ts>(
+		std::move(other.no_check_get<Ts>())
+	))
 	: (void)0), ...);
 }
 
@@ -439,8 +448,15 @@ variant<Ts...> &variant<Ts...>::operator = (self_t const &other)
 	this->clear();
 	this->_type_id = other._type_id;
 
+	if (this->_type_id == npos)
+	{
+		return *this;
+	}
+
 	((this->_type_id == index_of<Ts>()
-	? (void)(this->no_check_emplace<Ts>(other.no_check_get<Ts>()))
+	? (void)(this->no_check_emplace<Ts>(
+		other.no_check_get<Ts>()
+	))
 	: (void)0), ...);
 
 	return *this;
@@ -457,8 +473,15 @@ variant<Ts...> &variant<Ts...>::operator = (self_t &&other)
 	this->clear();
 	this->_type_id = other._type_id;
 
+	if (this->_type_id == npos)
+	{
+		return *this;
+	}
+
 	((this->_type_id == index_of<Ts>()
-	? (void)(this->no_check_emplace<Ts>(std::move(other.no_check_get<Ts>())))
+	? (void)(this->no_check_emplace<Ts>(
+		std::move(other.no_check_get<Ts>())
+	))
 	: (void)0), ...);
 
 	return *this;

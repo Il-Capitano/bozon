@@ -48,6 +48,27 @@ char const *intern_string::add_string(const char *str)
 	return _buffer_data.emplace_back(std::move(new_str)).get();
 }
 
+char const *intern_string::add_string(const char *begin, const char *end)
+{
+	if (
+		begin == nullptr
+		|| end == nullptr
+		|| begin >= end)
+	{
+		return nullptr;
+	}
+
+	size_t len = end - begin;
+	auto new_str = std::make_unique<char[]>(len + 1);
+	for (size_t i = 0; i < len; ++i)
+	{
+		new_str[i] = begin[i];
+	}
+	new_str[len] = '\0';
+
+	return _buffer_data.emplace_back(std::move(new_str)).get();
+}
+
 char const *intern_string::get_string(std::string const &str)
 {
 	auto it = std::find_if(
@@ -86,6 +107,38 @@ char const *intern_string::get_string(const char *str)
 	if (it == _buffer_data.end())
 	{
 		return add_string(str);
+	}
+
+	return it->get();
+}
+
+char const *intern_string::get_string(const char *begin, const char *end)
+{
+	auto it = std::find_if(
+		_buffer_data.begin(),
+		_buffer_data.end(),
+		[&](auto const &s)
+		{
+			auto len = strlen(s.get());
+			if (len != static_cast<size_t>(end - begin))
+			{
+				return false;
+			}
+
+			for (size_t i = 0; i < len; ++i)
+			{
+				if (s[i] != begin[i])
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+	);
+
+	if (it == _buffer_data.end())
+	{
+		return add_string(begin, end);
 	}
 
 	return it->get();

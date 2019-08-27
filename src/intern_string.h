@@ -15,9 +15,11 @@ private:
 
 	static char const *add_string(std::string const &str);
 	static char const *add_string(const char *str);
+	static char const *add_string(const char *begin, const char *end);
 
 	static char const *get_string(std::string const &str);
 	static char const *get_string(const char *str);
+	static char const *get_string(const char *begin, const char *end);
 
 
 private:
@@ -38,9 +40,13 @@ public:
 
 	intern_string(char c)
 	{
-		char str[2] = { c, '\0' };
-		this->_data = get_string(str);
+		const char tmp[2] = { c, '\0' };
+		this->_data = get_string(tmp);
 	}
+
+	intern_string(const char *begin, const char *end)
+		: _data(get_string(begin, end))
+	{}
 
 	intern_string(intern_string const &) = default;
 	intern_string(intern_string &&)      = default;
@@ -56,7 +62,7 @@ public:
 	{ return this->_data; }
 
 	explicit operator std::string ()
-	{ return this->_data; }
+	{ return std::string(this->_data); }
 
 
 	const char *get(void) const

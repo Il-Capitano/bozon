@@ -523,6 +523,49 @@ vec2d[ 0.0, 1.0 ];    // <- maybe this should be allowed? not sure... in c++ it'
 vec2d([ 0.0, 1.0 ]);  // this is a bit more consistent
 
 
+
+for loops
+
+// by value
+for (elem in elems)
+{ ... }
+
+// by reference
+for (&elem in elems)
+{ ... }
+
+// by pointer
+for (*elem in elems)
+{ ... }
+
+// iterate backwards
+for (e in <= elems)
+
+// iterate forwards (default)
+for (e in => elems)
+
+
+
+lambdas
+
+(x, y) => { return x * y; }
+(x, y) => x * y
+
+let get_value = x => x.value;
+let val = get_value(token);
+
+get_value expands to something like:
+
+let get_value: struct _get_value
+{
+	//             ??
+	operator () (x: &) -> typeof x.value
+	{
+		return x.value;
+	}
+};
+
+
 */
 
 #include "core.h"
@@ -767,11 +810,17 @@ void print_stmt(ast_statement_ptr const &stmt, int level = 0)
 }
 
 
+
 int main(void)
 {
 	lexer_init();
-	token_stream stream("src/test.txt");
-	auto fp_statements = get_fp_statements(stream);
+	src_tokens file("src/test.txt");
+
+	auto stream = file.begin();
+	auto end    = file.end();
+
+	auto fp_statements = get_fp_statements(stream, end);
+	assert(stream->kind == token::eof);
 
 	std::vector<ast_statement_ptr> statements;
 	for (auto &s : fp_statements)

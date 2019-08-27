@@ -28,8 +28,7 @@ std::vector<ast_variable_ptr> get_function_params(std::vector<token> const &toke
 			}
 		}
 
-		assert_token(*stream, token::colon);
-		++stream;
+		assert_token(stream, token::colon);
 		if (stream == end)
 		{
 			std::cerr << "Expected type in parameter list\n";
@@ -44,8 +43,7 @@ std::vector<ast_variable_ptr> get_function_params(std::vector<token> const &toke
 
 	while (stream != end)
 	{
-		assert_token(*stream, token::comma);
-		++stream;
+		assert_token(stream, token::comma);
 		if (stream == end)
 		{
 			std::cerr << "Expected variable definition after ','\n";
@@ -154,8 +152,8 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 		auto &var_decl = decl->get<fp_declaration_statement::variable_decl>();
 		auto id = var_decl->identifier;
 
-		auto stream = var_decl->type_and_init.cbegin();
-		auto end    = var_decl->type_and_init.cend();
+		auto stream = var_decl->type_and_init.begin;
+		auto end    = var_decl->type_and_init.end;
 
 		if (stream == end)
 		{
@@ -180,13 +178,12 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 			}
 		}
 
-		assert_token(*stream, token::assign);
-		++stream; // '='
+		assert_token(stream, token::assign);
 
 		auto init_expr = parse_ast_expression(stream, end);
 		if (stream != end)
 		{
-			bad_token(*stream, "Expected ';'");
+			bad_token(stream, "Expected ';'");
 		}
 
 		if (!typespec)

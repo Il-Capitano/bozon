@@ -3,7 +3,8 @@
 
 #include "core.h"
 
-#include "token_stream.h"
+#include "lexer.h"
+
 
 struct fp_if_statement;
 using fp_if_statement_ptr = std::unique_ptr<fp_if_statement>;
@@ -77,16 +78,16 @@ using fp_statement_ptr = std::unique_ptr<fp_statement>;
 
 struct fp_if_statement
 {
-	std::vector<token> condition;
-	fp_statement_ptr   then_block;
-	fp_statement_ptr   else_block;
+	token_range      condition;
+	fp_statement_ptr then_block;
+	fp_statement_ptr else_block;
 
 	fp_if_statement(
-		std::vector<token> _cond,
-		fp_statement_ptr   _then_block,
-		fp_statement_ptr   _else_block
+		token_range      _cond,
+		fp_statement_ptr _then_block,
+		fp_statement_ptr _else_block
 	)
-		: condition (std::move(_cond)),
+		: condition (_cond),
 		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
@@ -94,14 +95,14 @@ struct fp_if_statement
 
 struct fp_while_statement
 {
-	std::vector<token> condition;
-	fp_statement_ptr   while_block;
+	token_range      condition;
+	fp_statement_ptr while_block;
 
 	fp_while_statement(
-		std::vector<token> _cond,
-		fp_statement_ptr   _while_block
+		token_range      _cond,
+		fp_statement_ptr _while_block
 	)
-		: condition  (std::move(_cond)),
+		: condition  (_cond),
 		  while_block(std::move(_while_block))
 	{}
 };
@@ -116,10 +117,10 @@ struct fp_for_statement
 
 struct fp_return_statement
 {
-	std::vector<token> expr;
+	token_range expr;
 
-	fp_return_statement(std::vector<token> _expr)
-		: expr(std::move(_expr))
+	fp_return_statement(token_range _expr)
+		: expr(_expr)
 	{}
 };
 
@@ -139,25 +140,25 @@ struct fp_compound_statement
 
 struct fp_expression_statement
 {
-	std::vector<token> expr;
+	token_range expr;
 
-	fp_expression_statement(std::vector<token> _expr)
-		: expr(std::move(_expr))
+	fp_expression_statement(token_range _expr)
+		: expr(_expr)
 	{}
 };
 
 
 struct fp_variable_decl
 {
-	intern_string      identifier;
-	std::vector<token> type_and_init;
+	intern_string identifier;
+	token_range   type_and_init;
 
 	fp_variable_decl(
-		intern_string      _id,
-		std::vector<token> _type_and_init
+		intern_string _id,
+		token_range   _type_and_init
 	)
 		: identifier   (_id),
-		  type_and_init(std::move(_type_and_init))
+		  type_and_init(_type_and_init)
 	{}
 };
 using fp_variable_decl_ptr = std::unique_ptr<fp_variable_decl>;
@@ -165,19 +166,19 @@ using fp_variable_decl_ptr = std::unique_ptr<fp_variable_decl>;
 struct fp_function_decl
 {
 	intern_string             identifier;
-	std::vector<token>        params;
-	std::vector<token>        return_type;
+	token_range               params;
+	token_range               return_type;
 	fp_compound_statement_ptr body;
 
 	fp_function_decl(
 		intern_string             _id,
-		std::vector<token>        _params,
-		std::vector<token>        _ret_type,
+		token_range               _params,
+		token_range               _ret_type,
 		fp_compound_statement_ptr _body
 	)
 		: identifier (_id),
-		  params     (std::move(_params)),
-		  return_type(std::move(_ret_type)),
+		  params     (_params),
+		  return_type(_ret_type),
 		  body       (std::move(_body))
 	{}
 };
@@ -186,19 +187,19 @@ using fp_function_decl_ptr = std::unique_ptr<fp_function_decl>;
 struct fp_operator_decl
 {
 	uint32_t                  op;
-	std::vector<token>        params;
-	std::vector<token>        return_type;
+	token_range               params;
+	token_range               return_type;
 	fp_compound_statement_ptr body;
 
 	fp_operator_decl(
 		uint32_t                  _op,
-		std::vector<token>        _params,
-		std::vector<token>        _ret_type,
+		token_range               _params,
+		token_range               _ret_type,
 		fp_compound_statement_ptr _body
 	)
 		: op         (_op),
-		  params     (std::move(_params)),
-		  return_type(std::move(_ret_type)),
+		  params     (_params),
+		  return_type(_ret_type),
 		  body       (std::move(_body))
 	{}
 };
@@ -336,6 +337,7 @@ inline fp_struct_decl_ptr make_fp_struct_decl(Args &&...args)
 }
 
 
-std::vector<fp_statement_ptr> get_fp_statements(token_stream &stream);
+fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end);
+std::vector<fp_statement_ptr> get_fp_statements(src_tokens::pos &stream, src_tokens::pos end);
 
 #endif // FIRST_PASS_PARSER_H

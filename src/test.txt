@@ -1,11 +1,16 @@
 
 
-let a = &0;
-let b = 1;
-0 + 2 + 1;
+{
+	let a = &0;
+	let b = 1;
+	0 + 2 + 1;
 
-
-
+	let c = 0, 0.0;
+	if (true)
+	{
+		let hello = &1;
+	}
+}
 
 
 

@@ -50,10 +50,10 @@ variant<
 
 	ast_typespec_ptr typespec = nullptr;
 
-	ast_expression(token                    _t           );
-	ast_expression(ast_unary_op_ptr         _unary_op    );
-	ast_expression(ast_binary_op_ptr        _binary_op   );
-	ast_expression(ast_function_call_op_ptr _func_call_op);
+	ast_expression(src_tokens::pos          stream      );
+	ast_expression(ast_unary_op_ptr         unary_op    );
+	ast_expression(ast_binary_op_ptr        binary_op   );
+	ast_expression(ast_function_call_op_ptr func_call_op);
 };
 
 using ast_expression_ptr = std::unique_ptr<ast_expression>;
@@ -91,7 +91,7 @@ struct ast_literal
 		double   floating_point_value;
 	};
 
-	ast_literal(token t);
+	ast_literal(src_tokens::pos stream);
 };
 
 struct ast_unary_op
@@ -212,13 +212,13 @@ inline bool operator <= (precedence lhs, precedence rhs)
 }
 
 
-ast_expression_ptr parse_ast_expression(std::vector<token> const &expr);
+ast_expression_ptr parse_ast_expression(token_range expr);
 
 ast_expression_ptr parse_ast_expression(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos  end
 );
 
-std::vector<ast_expression_ptr> parse_ast_expression_comma_list(std::vector<token> const &expr);
+//std::vector<ast_expression_ptr> parse_ast_expression_comma_list(std::vector<token> const &expr);
 
 #endif // AST_EXPRESSION_H

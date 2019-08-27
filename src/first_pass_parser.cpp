@@ -1,7 +1,6 @@
 #include "first_pass_parser.h"
 
 
-
 template<typename T>
 void append_vector(std::vector<T> &base, std::vector<T> new_elems)
 {
@@ -12,11 +11,6 @@ void append_vector(std::vector<T> &base, std::vector<T> new_elems)
 	}
 }
 
-
-
-
-
-static fp_statement_ptr get_fp_statement(token_stream &stream);
 
 
 fp_statement::fp_statement(fp_if_statement_ptr if_stmt)
@@ -53,22 +47,22 @@ fp_statement::fp_statement(fp_declaration_statement_ptr decl_stmt)
 
 
 
-template<uint32_t... end_tokens>
-static std::vector<token> get_fp_expression_or_type(token_stream &stream)
+template<uint32_t ...end_tokens>
+static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens::pos end)
 {
-	std::vector<token> tokens = {};
+	auto begin = stream;
 
 	auto is_valid_expr_token = [&]()
 	{
 		if ((
-			(stream.current().kind == end_tokens)
+			(stream->kind == end_tokens)
 			|| ...
 		))
 		{
 			return false;
 		}
 
-		switch (stream.current().kind)
+		switch (stream->kind)
 		{
 		// literals
 		case token::identifier:
@@ -82,109 +76,102 @@ static std::vector<token> get_fp_expression_or_type(token_stream &stream)
 		case token::paren_open:
 		case token::curly_open:
 		case token::square_open:
-		// type specifiers
+		// type specifiers that are not operators
 		case token::colon:
 		case token::kw_auto:
 		case token::kw_const:
 			return true;
 
 		default:
-			return is_operator(stream.current().kind);
+			return is_operator(stream->kind);
 		}
 	};
 
 
 	while (is_valid_expr_token())
 	{
-		switch (stream.current().kind)
+		switch (stream->kind)
 		{
 		case token::paren_open:
 		{
-			tokens.emplace_back(stream.get());
-			auto new_tokens = get_fp_expression_or_type<token::paren_close>(stream);
-			append_vector(tokens, std::move(new_tokens));
-			tokens.emplace_back(assert_token(stream, token::paren_close));
+			++stream; // '('
+			get_fp_expression_or_type<token::paren_close>(stream, end);
+			assert_token(stream, token::paren_close);
 			break;
 		}
 
 		case token::curly_open:
 		{
-			tokens.emplace_back(stream.get());
-			auto new_tokens = get_fp_expression_or_type<token::curly_close>(stream);
-			append_vector(tokens, std::move(new_tokens));
-			tokens.emplace_back(assert_token(stream, token::curly_close));
+			++stream; // '{'
+			get_fp_expression_or_type<token::curly_close>(stream, end);
+			assert_token(stream, token::curly_close);
 			break;
 		}
 
 		case token::square_open:
 		{
-			tokens.emplace_back(stream.get());
-			auto new_tokens = get_fp_expression_or_type<token::square_close>(stream);
-			append_vector(tokens, std::move(new_tokens));
-			tokens.emplace_back(assert_token(stream, token::square_close));
+			++stream; // '['
+			get_fp_expression_or_type<token::square_close>(stream, end);
+			assert_token(stream, token::square_close);
 			break;
 		}
 
 		default:
-			tokens.emplace_back(stream.get());
+			++stream;
 			break;
 		}
 	}
 
-	return std::move(tokens);
+	return { begin, stream };
 }
 
 
-static std::vector<token> get_fp_parameters(token_stream &stream)
+static token_range get_fp_parameters(src_tokens::pos &stream, src_tokens::pos end)
 {
-	assert_token(stream, token::paren_open);
-	if (stream.current().kind == token::paren_close)
-	{
-		stream.step(); // ')'
-		return {};
-	}
-
-	auto params = get_fp_expression_or_type<token::paren_close>(stream);
-	assert_token(stream, token::paren_close);
-
-	return std::move(params);
+	return get_fp_expression_or_type<token::paren_close>(stream, end);
 }
 
-static fp_compound_statement_ptr get_fp_compound_statement(token_stream &stream)
+static fp_compound_statement_ptr get_fp_compound_statement(
+	src_tokens::pos &stream,
+	src_tokens::pos end
+)
 {
 	assert_token(stream, token::curly_open);
 	std::vector<fp_statement_ptr> stms;
-	while (stream.current().kind != token::curly_close)
+
+	while (stream != end && stream->kind != token::curly_close)
 	{
-		stms.emplace_back(get_fp_statement(stream));
+		stms.emplace_back(get_fp_statement(stream, end));
 	}
-	stream.step(); // '}'
+	assert(stream != end);
+	++stream; // '}'
+
 	return make_fp_compound_statement(std::move(stms));
 }
 
-static fp_statement_ptr get_fp_statement(token_stream &stream)
+fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 {
-	switch (stream.current().kind)
+	switch (stream->kind)
 	{
 	// if statement
 	case token::kw_if:
 	{
-		stream.step(); // 'if'
+		++stream; // 'if'
 
 		assert_token(stream, token::paren_open);
-		auto condition = get_fp_expression_or_type<token::paren_close>(stream);
+		auto condition = get_fp_expression_or_type<token::paren_close>(stream, end);
 		assert_token(stream, token::paren_close);
 
-		auto if_block = get_fp_statement(stream);
+		auto if_block = get_fp_statement(stream, end);
 
-		if (stream.current().kind == token::kw_else)
+		if (stream->kind == token::kw_else)
 		{
-			stream.step(); // 'else'
-			auto else_block = get_fp_statement(stream);
+			++stream; // 'else'
+			auto else_block = get_fp_statement(stream, end);
 
 			return make_fp_statement(
 				make_fp_if_statement(
-					std::move(condition),
+					condition,
 					std::move(if_block),
 					std::move(else_block)
 				)
@@ -194,7 +181,7 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 		{
 			return make_fp_statement(
 				make_fp_if_statement(
-					std::move(condition),
+					condition,
 					std::move(if_block),
 					nullptr
 				)
@@ -205,17 +192,17 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	// while statement
 	case token::kw_while:
 	{
-		stream.step(); // 'while'
+		++stream; // 'while'
 
 		assert_token(stream, token::paren_open);
-		auto condition = get_fp_expression_or_type<token::paren_close>(stream);
+		auto condition = get_fp_expression_or_type<token::paren_close>(stream, end);
 		assert_token(stream, token::paren_close);
 
-		auto while_block = get_fp_statement(stream);
+		auto while_block = get_fp_statement(stream, end);
 
 		return make_fp_statement(
 			make_fp_while_statement(
-				std::move(condition),
+				condition,
 				std::move(while_block)
 			)
 		);
@@ -225,36 +212,27 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	case token::kw_for:
 	{
 		// TODO: implement
-		std::cerr << "for statement not yet implemented\n";
-		exit(1);
+		assert(false);
+		return nullptr;
 	}
 
 	// return statement
 	case token::kw_return:
 	{
-		stream.step(); // 'return'
-		// empty return statement
-		if (stream.current().kind == token::semi_colon)
-		{
-			stream.step(); // ';'
-			return make_fp_statement(
-				make_fp_return_statement(std::vector<token>{})
-			);
-		}
+		++stream; // 'return'
 
-		auto expr = get_fp_expression_or_type<token::semi_colon>(stream);
+		auto expr = get_fp_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
 		return make_fp_statement(
-			make_fp_return_statement(std::move(expr))
+			make_fp_return_statement(expr)
 		);
 	}
 
 	// no-op statement
 	case token::semi_colon:
 	{
-		stream.step(); // ';'
-
+		++stream; // ';'
 		return make_fp_statement(make_fp_no_op_statement());
 	}
 
@@ -262,22 +240,23 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	case token::curly_open:
 	{
 		return make_fp_statement(
-			get_fp_compound_statement(stream)
+			get_fp_compound_statement(stream, end)
 		);
 	}
 
 	// variable declaration
 	case token::kw_let:
 	{
-		stream.step(); // 'let'
+		++stream; // 'let'
+		assert(stream != end);
+
 		auto id = assert_token(stream, token::identifier).value;
-		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream);
+		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
+
 		return make_fp_statement(
 			make_fp_declaration_statement(
-				make_fp_variable_decl(
-					id, std::move(type_and_init)
-				)
+				make_fp_variable_decl(id, type_and_init)
 			)
 		);
 	}
@@ -292,21 +271,22 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	// function definition
 	case token::kw_function:
 	{
-		stream.step(); // 'function'
+		++stream; // 'function'
 		auto id = assert_token(stream, token::identifier).value;
-		auto params = get_fp_parameters(stream);
-		std::vector<token> ret_type = {};
+		auto params = get_fp_parameters(stream, end);
+		token_range ret_type = { stream, stream };
 
-		if (stream.current().kind == token::arrow)
+		if (stream->kind == token::arrow)
 		{
-			ret_type = get_fp_expression_or_type<token::curly_open>(stream);
+			++stream; // '->'
+			ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
 		}
 
-		auto body = get_fp_compound_statement(stream);
+		auto body = get_fp_compound_statement(stream, end);
 		return make_fp_statement(
 			make_fp_declaration_statement(
 				make_fp_function_decl(
-					id, std::move(params), std::move(ret_type), std::move(body)
+					id, params, ret_type, std::move(body)
 				)
 			)
 		);
@@ -322,25 +302,23 @@ static fp_statement_ptr get_fp_statement(token_stream &stream)
 	// expression statement
 	default:
 	{
-		auto expr = get_fp_expression_or_type<token::semi_colon>(stream);
+		auto expr = get_fp_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
 		return make_fp_statement(
-			make_fp_expression_statement(
-				std::move(expr)
-			)
+			make_fp_expression_statement(expr)
 		);
 	}
 	}
 }
 
 
-std::vector<fp_statement_ptr> get_fp_statements(token_stream &stream)
+std::vector<fp_statement_ptr> get_fp_statements(src_tokens::pos &stream, src_tokens::pos end)
 {
 	std::vector<fp_statement_ptr> statements = {};
-	while (stream.current().kind != token::eof)
+	while (stream->kind != token::eof)
 	{
-		statements.emplace_back(get_fp_statement(stream));
+		statements.emplace_back(get_fp_statement(stream, end));
 	}
 	return std::move(statements);
 }

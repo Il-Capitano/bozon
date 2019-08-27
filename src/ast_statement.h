@@ -67,14 +67,14 @@ variant<
 
 	ast_statement(fp_statement_ptr const &stmt);
 
-	ast_statement(ast_if_statement_ptr          if_stmt        );
-	ast_statement(ast_while_statement_ptr       while_stmt     );
-	ast_statement(ast_for_statement_ptr         for_stmt       );
-	ast_statement(ast_return_statement_ptr      return_stmt    );
-	ast_statement(ast_no_op_statement_ptr       no_op_stmt     );
-	ast_statement(ast_compound_statement_ptr    compound_stmt  );
-	ast_statement(ast_expression_statement_ptr  expression_stmt);
-	ast_statement(ast_declaration_statement_ptr decl_stmt      );
+	ast_statement(ast_if_statement_ptr          if_stmt      );
+	ast_statement(ast_while_statement_ptr       while_stmt   );
+	ast_statement(ast_for_statement_ptr         for_stmt     );
+	ast_statement(ast_return_statement_ptr      return_stmt  );
+	ast_statement(ast_no_op_statement_ptr       no_op_stmt   );
+	ast_statement(ast_compound_statement_ptr    compound_stmt);
+	ast_statement(ast_expression_statement_ptr  expr_stmt    );
+	ast_statement(ast_declaration_statement_ptr decl_stmt    );
 };
 
 using ast_statement_ptr = std::unique_ptr<ast_statement>;

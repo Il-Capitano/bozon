@@ -4,7 +4,7 @@
 #include "core.h"
 
 void lexer_init(void);
-
+/*
 class buffered_ifstream
 {
 private:
@@ -148,11 +148,61 @@ public:
 		return this->_line_num;
 	}
 };
+*/
+
+class src_file
+{
+private:
+	std::vector<char> _data;
+public:
+	using pos = std::vector<char>::const_iterator;
+
+public:
+	src_file(const char *file_name)
+		: _data()
+	{
+		std::ifstream file(file_name, std::ios::binary);
+		assert(file.is_open());
+		assert(file.good());
+
+		// sets the file to its end so we can get its size
+		file.seekg(0, std::ios_base::end);
+		size_t size = file.tellg();
+		// resize the vector to the length of the file
+		// plus one for the '\0' char
+		this->_data.resize(size + 1);
+
+		auto begin = std::istreambuf_iterator<char>(file);
+		auto end   = std::istreambuf_iterator<char>();
+
+		// sets the file to its beginning
+		file.seekg(0, std::ios_base::beg);
+		std::copy(begin, end, this->_data.begin());
+		this->_data.back() = '\0';
+
+//		for (char c : this->_data)
+//		{
+//			std::cout << c;
+//		}
+	}
+
+	pos begin(void) const
+	{
+		return this->_data.begin();
+	}
+
+	pos end(void) const
+	{
+		return this->_data.end();
+	}
+};
 
 struct token
 {
 	enum : uint32_t
 	{
+		eof           = '\0',
+
 		paren_open    = '(',
 		paren_close   = ')',
 		curly_open    = '{',
@@ -248,15 +298,19 @@ struct token
 		kw_false,
 		kw_null,
 
-		eof,
+		_last
 	};
 
 	uint32_t kind;
 	intern_string value;
-	int line_num;
-	//int char_num;
+	struct
+	{
+		src_file::pos begin;
+		src_file::pos end;
+	} src_pos;
 
-	token *operator ->()
+
+	token *operator -> ()
 	{
 		return this;
 	}
@@ -269,13 +323,39 @@ struct token
 
 inline std::ostream &operator << (std::ostream &os, token const &t)
 {
-	return os << "type: " << t.kind << "; value: '" << t.value << "'; line number: " << t.line_num;
+	return os << "type: " << t.kind << "; value: '" << t.value << "';";
 }
 
 
 constexpr bool is_keyword_token(token const &t)
 {
-	return t.kind > token::dot_dot_dot && t.kind < token::eof;
+	switch (t.kind)
+	{
+	case token::kw_if:
+	case token::kw_else:
+	case token::kw_while:
+	case token::kw_for:
+	case token::kw_return:
+	case token::kw_function:
+	case token::kw_operator:
+	case token::kw_class:
+	case token::kw_struct:
+	case token::kw_typename:
+	case token::kw_namespace:
+	case token::kw_sizeof:
+	case token::kw_typeof:
+	case token::kw_using:
+	case token::kw_auto:
+	case token::kw_let:
+	case token::kw_const:
+	case token::kw_true:
+	case token::kw_false:
+	case token::kw_null:
+		return true;
+
+	default:
+		return false;
+	}
 }
 
 constexpr bool is_identifier_token(token const &t)
@@ -295,47 +375,91 @@ constexpr bool is_literal_token(token const &t)
 }
 
 
-
-constexpr bool is_number_char(char c)
-{
-	return c >= '0' && c <= '9';
-}
-
-constexpr bool is_identifier_char(char c)
-{
-	return (
-		(c >= 'a' && c <= 'z')
-		||
-		(c >= 'A' && c <= 'Z')
-		||
-		(c >= '0' && c <= '9')
-		||
-		c == '_'
-	);
-}
-
-constexpr bool is_whitespace_char(char c)
-{
-	return c == ' ' || c == '\t' || c == '\n';
-}
-
-bool is_identifier(buffered_ifstream &is);
-bool is_string_literal(buffered_ifstream &is);
-bool is_character_literal(buffered_ifstream &is);
-bool is_number_literal(buffered_ifstream &is);
-bool is_token(buffered_ifstream &is);
-
-intern_string get_identifier(buffered_ifstream &is);
-intern_string get_string_literal(buffered_ifstream &is);
-intern_string get_character_literal(buffered_ifstream &is);
-intern_string get_number_literal(buffered_ifstream &is);
-
-token get_next_token(buffered_ifstream &is);
-
+token get_next_token(src_file::pos &stream, src_file::pos end);
 
 std::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
 
+
+
+class src_tokens
+{
+private:
+	std::vector<token> _tokens;
+	src_file _src_file;
+
+public:
+	using pos = std::vector<token>::const_iterator;
+
+public:
+	src_tokens(const char *file)
+		: _tokens(), _src_file(file)
+	{
+		auto stream = this->_src_file.begin();
+		auto end    = this->_src_file.end();
+
+		token t;
+		do
+		{
+			t = get_next_token(stream, end);
+			this->_tokens.emplace_back(t);
+		} while (t.kind != token::eof);
+	}
+
+	pos begin(void) const
+	{
+		return this->_tokens.cbegin();
+	}
+
+	pos end(void) const
+	{
+		return this->_tokens.cend();
+	}
+};
+
+
+struct token_range
+{
+	src_tokens::pos begin;
+	src_tokens::pos end;
+};
+
+
+inline token assert_token(src_tokens::pos &stream, uint32_t kind)
+{
+	if (stream->kind != kind)
+	{
+		std::cerr << "Unexpected token: " << *stream << "\n"
+			"Expected " << get_token_value(kind) << '\n';
+		exit(1);
+	}
+	auto t = *stream;
+	++stream;
+	return t;
+}
+
+inline void assert_token(src_tokens::pos stream, uint32_t kind, bool)
+{
+	if (stream->kind != kind)
+	{
+		std::cerr << "Unexpected token: " << *stream << "\n"
+			"Expected " << get_token_value(kind) << '\n';
+		exit(1);
+	}
+}
+
+inline void bad_token(src_tokens::pos stream)
+{
+	std::cerr << "Unexpected token: " << *stream << '\n';
+	exit(1);
+}
+
+inline void bad_token(src_tokens::pos stream, const char *message)
+{
+	std::cerr << "Unexpected token: " << *stream << '\n'
+		<< message << '\n';
+	exit(1);
+}
 
 #endif // LEXER_H

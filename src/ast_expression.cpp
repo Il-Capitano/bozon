@@ -3,14 +3,14 @@
 
 
 
-ast_literal::ast_literal(token t)
+ast_literal::ast_literal(src_tokens::pos stream)
 {
-	switch(t.kind)
+	switch(stream->kind)
 	{
 	case token::number_literal:
 	{
 		size_t pos;
-		std::string value = static_cast<std::string>(t.value);
+		std::string value = stream->value.get();
 		while ((pos = value.find('\'')) != std::string::npos)
 		{
 			value.erase(std::remove(value.begin(), value.end(), '\''));
@@ -52,13 +52,13 @@ ast_literal::ast_literal(token t)
 
 	case token::string_literal:
 		this->kind = ast_literal::string;
-		this->string_value = static_cast<std::string>(t.value);
+		this->string_value = stream->value;
 		break;
 
 	case token::character_literal:
 		this->kind = ast_literal::character;
-		assert(t.value.length() == 1);
-		this->char_value = t.value[0];
+		assert(stream->value.length() == 1);
+		this->char_value = stream->value[0];
 		break;
 
 	case token::kw_true:
@@ -176,22 +176,22 @@ static precedence get_unary_precedence(uint32_t kind)
 	}
 }
 
-ast_expression::ast_expression(token _t)
+ast_expression::ast_expression(src_tokens::pos stream)
 	: base_t()
 {
-	switch (_t.kind)
+	switch (stream->kind)
 	{
 	case token::identifier:
-		this->typespec = context.get_variable_typespec(_t.value);
+		this->typespec = context.get_variable_typespec(stream->value);
 		if (!this->typespec)
 		{
-			bad_token(_t, "Undefined identifier");
+			bad_token(stream, "Undefined identifier");
 		}
-		this->emplace<identifier>(make_ast_identifier(_t.value));
+		this->emplace<identifier>(make_ast_identifier(stream->value));
 		return;
 
 	case token::number_literal:
-		this->emplace<literal>(make_ast_literal(std::move(_t)));
+		this->emplace<literal>(make_ast_literal(stream));
 		this->typespec = make_ast_typespec(
 			this->get<literal>()->kind == ast_literal::integer_number
 			? "int32"
@@ -201,7 +201,7 @@ ast_expression::ast_expression(token _t)
 
 	case token::kw_true:
 	case token::kw_false:
-		this->emplace<literal>(make_ast_literal(std::move(_t)));
+		this->emplace<literal>(make_ast_literal(stream));
 		this->typespec = make_ast_typespec("bool");
 		return;
 
@@ -243,19 +243,19 @@ ast_expression::ast_expression(ast_function_call_op_ptr _func_call_op)
 
 
 static ast_expression_ptr parse_expression_internal(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end,
+	src_tokens::pos &stream,
+	src_tokens::pos &end,
 	precedence p
 );
 
 static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos &end
 );
 
 static ast_expression_ptr parse_primary_expression(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos &end
 )
 {
 	if (stream == end)
@@ -274,7 +274,7 @@ static ast_expression_ptr parse_primary_expression(
 	case token::kw_false:
 	case token::kw_null:
 	{
-		auto expr = make_ast_expression(*stream);
+		auto expr = make_ast_expression(stream);
 		++stream;
 		return std::move(expr);
 	}
@@ -285,7 +285,7 @@ static ast_expression_ptr parse_primary_expression(
 		auto expr = parse_expression_internal(stream, end, precedence{});
 		if (stream->kind != token::paren_close)
 		{
-			bad_token(*stream, "Expected ')'");
+			bad_token(stream, "Expected ')'");
 		}
 		++stream;
 		return std::move(expr);
@@ -311,14 +311,14 @@ static ast_expression_ptr parse_primary_expression(
 	}
 
 	default:
-		assert(false);
+		bad_token(stream, "Expected primary expression");
 		return nullptr;
 	}
 }
 
 static ast_expression_ptr parse_expression_helper(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end,
+	src_tokens::pos &stream,
+	src_tokens::pos &end,
 	ast_expression_ptr lhs,
 	precedence p
 )
@@ -334,7 +334,6 @@ static ast_expression_ptr parse_expression_helper(
 	{
 		++stream;
 
-		// TODO: check for () and []
 		switch (op)
 		{
 		case token::paren_open:
@@ -353,8 +352,7 @@ static ast_expression_ptr parse_expression_helper(
 				std::cerr << "Expected ')'\n";
 				exit(1);
 			}
-			assert_token(*stream, token::paren_close);
-			++stream; // ')'
+			assert_token(stream, token::paren_close);
 
 			lhs = make_ast_expression(
 				make_ast_function_call_op(std::move(lhs), std::move(params))
@@ -365,8 +363,7 @@ static ast_expression_ptr parse_expression_helper(
 		case token::square_open:
 		{
 			auto rhs = parse_expression_internal(stream, end, precedence{});
-			assert_token(*stream, token::square_close);
-			++stream; // ']'
+			assert_token(stream, token::square_close);
 
 			lhs = make_ast_expression(make_ast_binary_op(op, std::move(lhs), std::move(rhs)));
 			break;
@@ -395,24 +392,20 @@ static ast_expression_ptr parse_expression_helper(
 };
 
 static ast_expression_ptr parse_expression_internal(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end,
+	src_tokens::pos &stream,
+	src_tokens::pos &end,
 	precedence p
 )
 {
-	if (stream == end)
-	{
-		std::cerr << "Internal error: unqualified call to parse_expression_internal()\n";
-		exit(1);
-	}
+	assert(stream != end);
 
 	auto lhs = parse_primary_expression(stream, end);
 	return parse_expression_helper(stream, end, std::move(lhs), p);
 }
 
 static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos &end
 )
 {
 	if (stream == end)
@@ -430,25 +423,23 @@ static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
 	return std::move(rv);
 }
 
-ast_expression_ptr parse_ast_expression(std::vector<token> const &expr)
+ast_expression_ptr parse_ast_expression(token_range expr)
 {
-	assert(!expr.empty());
+	auto stream = expr.begin;
+	auto end    = expr.end;
 
-	auto begin = expr.cbegin();
-	auto end   = expr.cend();
-
-	auto rv = parse_expression_internal(begin, end, precedence{});
-	if (begin != end)
+	auto rv = parse_expression_internal(stream, end, precedence{});
+	if (stream != end)
 	{
-		bad_token(*begin, "Expected ';'");
+		bad_token(stream, "Expected ';'");
 	}
 
 	return std::move(rv);
 }
 
 ast_expression_ptr parse_ast_expression(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos  end
 )
 {
 	return parse_expression_internal(stream, end, precedence{});
@@ -461,13 +452,13 @@ std::vector<ast_expression_ptr> parse_ast_expression_comma_list(std::vector<toke
 		return {};
 	}
 
-	auto begin = expr.cbegin();
-	auto end   = expr.cend();
+	auto stream = expr.cbegin();
+	auto end    = expr.cend();
 
-	auto rv = parse_expression_comma_list_internal(begin, end);
-	if (begin != end)
+	auto rv = parse_expression_comma_list_internal(stream, end);
+	if (stream != end)
 	{
-		bad_token(*begin, "Expected ';'");
+		bad_token(stream, "Expected ';'");
 	}
 
 	return std::move(rv);

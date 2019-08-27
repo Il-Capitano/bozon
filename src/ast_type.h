@@ -77,11 +77,11 @@ inline ast_variable_ptr make_ast_variable(Args &&... args)
 	return std::make_unique<ast_variable>(std::forward<Args>(args)...);
 }
 
-ast_typespec_ptr parse_ast_typespec(std::vector<token> const &t);
+ast_typespec_ptr parse_ast_typespec(token_range type);
 
 ast_typespec_ptr parse_ast_typespec(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos  end
 );
 
 #endif // AST_TYPE_H

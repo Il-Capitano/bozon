@@ -7,7 +7,7 @@ static std::array<
 
 static std::array<
 	std::pair<intern_string, uint32_t>,
-	token::eof - token::kw_if
+	token::_last - token::kw_if
 > keywords;
 
 
@@ -163,6 +163,8 @@ bool is_operator(uint32_t kind)
 	case token::dot_dot_dot:        // '...' unary
 	case token::kw_sizeof:          // 'sizeof' unary
 	case token::kw_typeof:          // 'typeof' unary
+	case token::question_mark:      // '?' ternary
+	case token::colon:              // ':' ternary and types
 		return true;
 
 	default:
@@ -218,333 +220,330 @@ bool is_overloadable_operator(uint32_t kind)
 }
 
 
-bool is_identifier(buffered_ifstream &is)
+static constexpr bool is_num_char(char c)
 {
-	return is_number_char(is.current()) ? false : is_identifier_char(is.current());
+	return c >= '0' && c <= '9';
 }
 
-bool is_string_literal(buffered_ifstream &is)
+static constexpr bool is_alpha_char(char c)
 {
-	return is.current() == '"';
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-bool is_character_literal(buffered_ifstream &is)
+static constexpr bool is_alphanum_char(char c)
 {
-	return is.current() == '\'';
+	return is_num_char(c) || is_alpha_char(c);
 }
 
-bool is_number_literal(buffered_ifstream &is)
+static constexpr bool is_whitespace_char(char c)
 {
-	if (is.current() == '.')
+	return c == ' '
+		|| c == '\t'
+		|| c == '\n'
+		|| c == '\r'; // for windows line ends
+}
+
+static bool is_identifier(src_file::pos stream)
+{
+	return is_alpha_char(*stream) || *stream == '_';
+}
+
+static bool is_string_literal(src_file::pos stream)
+{
+	return *stream == '"';
+}
+
+static bool is_character_literal(src_file::pos stream)
+{
+	return *stream == '\'';
+}
+
+static bool is_number_literal(src_file::pos stream)
+{
+	if (*stream == '.')
 	{
-		return is_number_char(is.next());
+		// we can do this because the stream is null terminated
+		return is_num_char(*++stream);
 	}
 	else
 	{
-		return is_number_char(is.current());
+		return is_num_char(*stream);
 	}
 }
 
-bool is_token(buffered_ifstream &is)
+static bool is_string(src_file::pos stream, src_file::pos end, intern_string str)
 {
-	return !is.eof();
+	int i = 0;
+	while (stream != end && str[i] != '\0' && *stream == str[i])
+	{
+		++i;
+		++stream;
+	}
+	if (stream == end)
+	{
+		return str[i] == '\0';
+	}
+	else
+	{
+		return !is_alphanum_char(*stream) && *stream != '_' && str[i] == '\0';
+	}
 }
 
-
-
-intern_string get_identifier(buffered_ifstream &is)
+static intern_string get_identifier_name(src_file::pos &stream, src_file::pos end)
 {
-	if (!is_identifier(is))
+	assert(is_identifier(stream));
+
+	auto begin = stream;
+	while (
+		stream != end
+		&& (
+			is_alphanum_char(*stream)
+			|| *stream == '_'
+		)
+	)
 	{
-		return "";
+		++stream;
 	}
 
-	std::string rv;
-	while (is_identifier_char(is.current()))
-	{
-		rv += is.current();
-		is.step();
-	}
-
-	return rv;
+	return intern_string(&*begin, &*stream);
 }
 
-intern_string get_string_literal(buffered_ifstream &is)
+static token get_string_literal(src_file::pos &stream, src_file::pos end)
 {
-	if (!is_string_literal(is))
-	{
-		return "";
-	}
+	assert(is_string_literal(stream));
 
-	is.step();
-	std::string rv;
+	++stream; // '"'
+	auto begin = stream;
 	bool loop = true;
 
-	while (loop)
+	while (stream != end && loop)
 	{
-		switch (is.current())
+		switch (*stream)
 		{
 		case '\\':
-			switch(is.next())
+			switch(++stream, *stream)
 			{
 			case '\'':
-				rv += '\'';
-				is.step(2);
-				break;
-
 			case '"':
-				rv += '"';
-				is.step(2);
-				break;
-
 			case '\\':
-				rv += '\\';
-				is.step(2);
-				break;
-
 			case 'b':
-				rv += '\b';
-				is.step(2);
-				break;
-
 			case 'n':
-				rv += '\n';
-				is.step(2);
-				break;
-
 			case 't':
-				rv += '\t';
-				is.step(2);
+				++stream;
 				break;
 
 			default:
-				// TODO: error
+				assert(false);
 				break;
 			}
 			break;
 
 		case '"':
 			loop = false;
-			is.step();
+			++stream;
 			break;
 
 		default:
-			rv += is.current();
-			is.step();
+			++stream;
 			break;
 		}
 	}
+	assert(stream != end);
 
-	return rv;
+	return { token::string_literal, intern_string(&*begin, &*stream), { begin, stream } };
 }
 
-intern_string get_character_literal(buffered_ifstream &is)
+static token get_character_literal(src_file::pos &stream, src_file::pos end)
 {
-	assert(is_character_literal(is));
+	assert(is_character_literal(stream));
 
-	std::string rv = "";
-	is.step(); // '
+	auto begin = stream;
+	++stream; // '\''
+	assert(stream != end);
 
-	switch (is.current())
+	switch (*stream)
 	{
 	case '\\':
-		switch(is.next())
+		switch(++stream, assert(stream != end), *stream)
 		{
 		case '\'':
-			rv += '\'';
-			is.step(2);
-			break;
-
 		case '"':
-			rv += '"';
-			is.step(2);
-			break;
-
 		case '\\':
-			rv += '\\';
-			is.step(2);
-			break;
-
 		case 'b':
-			rv += '\b';
-			is.step(2);
-			break;
-
 		case 'n':
-			rv += '\n';
-			is.step(2);
-			break;
-
 		case 't':
-			rv += '\t';
-			is.step(2);
+			++stream;
 			break;
 
 		default:
-			// TODO: error
+			assert(false);
 			break;
 		}
 		break;
 
 	case '\'':
-		std::cout << "Illegal character literal ''\n";
-		exit(1);
+		assert(false);
+		break;
 
 	default:
-		rv += is.current();
-		is.step();
+		++stream;
 		break;
 	}
 
-	if (is.current() == '\'')
-	{
-		is.step();
-		return rv;
-	}
-	else
-	{
-		std::cout << "Illegal character literal\n";
-		exit(1);
-	}
+	assert(stream != end);
+	assert(*stream == '\'');
+
+	return { token::character_literal, intern_string(&*begin, &*stream), { begin, stream } };
 }
 
-intern_string get_number_literal(buffered_ifstream &is)
+static token get_number_literal(src_file::pos &stream, src_file::pos end)
 {
-	if (!is_number_literal(is))
-	{
-		return "";
-	}
+	assert(is_number_literal(stream));
 
-	std::string rv;
-	bool is_decimal = false;
+	auto begin = stream;
 	while (
-		is_number_char(is.current())
-		||
-		(
-			is.current() == '\''
-			&&
-			is_number_char(is.previous())
-			&&
-			is_number_char(is.next())
-		)
-		||
-		(
-			is.current() == '.'
-			&&
-			!is_decimal
-			&&
-			is_number_char(is.next())
+		stream != end
+		&& (
+			is_num_char(*stream)
+			|| *stream == '.'
+			|| *stream == '\''
 		)
 	)
 	{
-		if (is.current() == '.') { is_decimal = true; }
-		rv += is.current();
-		is.step();
+		++stream;
 	}
 
-	return rv;
+	return { token::number_literal, intern_string(&*begin, &*stream), { begin, stream } };
 }
 
-
-void skip_comments(buffered_ifstream &is)
+void skip_comments(src_file::pos &stream, src_file::pos &end)
 {
-	is.step_while_whitespace();
-
-	// line comment
-	while (!is.eof() && is.is_string("//"))
+	if (stream == end)
 	{
-		is.step(2);
-		while (!is.eof() && is.current() != '\n')
-		{
-			is.step();
-		}
-		is.step_while_whitespace();
+		return;
 	}
 
-	// block comment
-	while (!is.eof() && is.is_string("/*"))
+	while (stream != end && is_whitespace_char(*stream))
 	{
-		int level = 1;
-		is.step(2);
-
-		while (!is.eof() && level > 0)
-		{
-			if (is.is_string("*/"))
-			{
-				--level;
-				is.step(2);
-			}
-			else if (is.is_string("/*"))
-			{
- 				++level;
-				is.step(2);
-			}
-			else
-			{
-				is.step();
-			}
-		}
-		is.step_while_whitespace();
+		++stream;
 	}
 
-	if (!is.eof() && is.is_string("//"))
+	switch (*stream)
 	{
-		skip_comments(is);
+	case '/':
+	{
+		auto copy = stream;
+		++copy;
+
+		if (copy == end)
+		{
+			return;
+		}
+
+		// line comment
+		if (*copy == '/')
+		{
+			// skips '//'
+			++stream;
+			++stream;
+
+			while (stream != end && *stream != '\n')
+			{
+				++stream;
+			}
+			skip_comments(stream, end);
+			return;
+		}
+		// block comment
+		else if (*copy == '*')
+		{
+			// skips '/*'
+			++stream;
+			++stream;
+
+			for (; stream != end; ++stream)
+			{
+				if (*stream == '*')
+				{
+					auto c = stream;
+					++c;
+					if (*c == '/')
+					{
+						// skips '*/'
+						++stream;
+						++stream;
+
+						skip_comments(stream, end);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	default:
+		return;
 	}
 }
 
-token get_next_token(buffered_ifstream &is)
+token get_next_token(src_file::pos &stream, src_file::pos end)
 {
-	skip_comments(is);
+	skip_comments(stream, end);
 
 	for (auto const &token : multi_char_tokens)
 	{
-		if (is.is_string(token.first))
+		if (is_string(stream, end, token.first))
 		{
+			auto begin = stream;
 			for (unsigned i = 0; i < token.first.length(); ++i)
 			{
-				is.step();
+				++stream;
 			}
 
-			return { token.second, token.first, is.line_num() };
+			return {
+				token.second,
+				token.first,
+				{ begin, stream }
+			};
 		}
 	}
 
-	if (is_identifier(is))
+	if (is_identifier(stream))
 	{
-		auto id = get_identifier(is);
+		auto begin = stream;
+		auto id = get_identifier_name(stream, end);
 		// check if the identifier is a keyword
 		for (auto keyword : keywords)
 		{
 			if (id == keyword.first)
 			{
-				return { keyword.second, id, is.line_num() };
+				return { keyword.second, id, { begin, stream } };
 			}
 		}
-		return { token::identifier, id, is.line_num() };
+		return { token::identifier, id, { begin, stream } };
 	}
-	else if (is_string_literal(is))
+	else if (is_string_literal(stream))
 	{
-		return { token::string_literal, get_string_literal(is), is.line_num() };
+		return get_string_literal(stream, end);
 	}
-	else if (is_character_literal(is))
+	else if (is_character_literal(stream))
 	{
-		return { token::character_literal, get_character_literal(is), is.line_num() };
+		return get_character_literal(stream, end);
 	}
-	else if (is_number_literal(is))
+	else if (is_number_literal(stream))
 	{
-		return { token::number_literal, get_number_literal(is), is.line_num() };
+		return get_number_literal(stream, end);
 	}
 	else
 	{
-		is.step();
-		if (is.eof())
-		{
-			return { token::eof, "eof", is.line_num() };
-		}
-		else
-		{
-			return { static_cast<uint32_t>(is.previous()), is.previous(), is.line_num() };
-		}
+		assert(stream != end);
+
+		auto prev = stream;
+		++stream;
+		return {
+			static_cast<uint32_t>(*prev),
+			intern_string(&*prev, &*stream),
+			{ prev, stream }
+		};
 	}
 }

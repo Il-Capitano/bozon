@@ -21,42 +21,36 @@ ast_typespec_ptr ast_typespec::clone(void) const
 
 
 static ast_typespec_ptr parse_ast_typespec_internal(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos  end
 )
 {
-	if (stream == end)
-	{
-		// TODO: auto type
-		assert(false);
-		return nullptr;
-	}
+	assert(stream != end);
 
 	switch (stream->kind)
 	{
 	case token::paren_open:
 	{
-		++stream;
+		++stream; // '('
 		auto t = parse_ast_typespec_internal(stream, end);
 		if (stream == end)
 		{
 			assert(false);
 		}
-		assert_token(*stream, token::paren_close);
-		++stream;
+		assert_token(stream, token::paren_close);
 		return std::move(t);
 	}
 
 	case token::ampersand:
-		++stream;
+		++stream; // '&'
 		return make_ast_typespec(type::reference, parse_ast_typespec_internal(stream, end));
 
 	case token::star:
-		++stream;
+		++stream; // '*'
 		return make_ast_typespec(type::pointer, parse_ast_typespec_internal(stream, end));
 
 	case token::kw_const:
-		++stream;
+		++stream; // 'const'
 		return make_ast_typespec(type::constant, parse_ast_typespec_internal(stream, end));
 
 	case token::identifier:
@@ -74,22 +68,22 @@ static ast_typespec_ptr parse_ast_typespec_internal(
 }
 
 ast_typespec_ptr parse_ast_typespec(
-	std::vector<token>::const_iterator &stream,
-	std::vector<token>::const_iterator &end
+	src_tokens::pos &stream,
+	src_tokens::pos  end
 )
 {
 	return parse_ast_typespec_internal(stream, end);
 }
 
-ast_typespec_ptr parse_ast_typespec(std::vector<token> const &t)
+ast_typespec_ptr parse_ast_typespec(token_range type)
 {
-	auto begin = t.cbegin();
-	auto end   = t.cend();
+	auto stream = type.begin;
+	auto end    = type.end;
 
-	auto rv = parse_ast_typespec_internal(begin, end);
-	if (begin != end)
+	auto rv = parse_ast_typespec_internal(stream, end);
+	if (stream != end)
 	{
-		bad_token(*begin);
+		bad_token(stream);
 	}
 
 	return std::move(rv);
