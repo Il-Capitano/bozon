@@ -5,12 +5,15 @@ TODO:
 		kind of done, template syntax stays the same, but expressions
 		need to be parsed seperately, once all glabal symbols are known
 
+		need to put in special cases later for lambdas
+
 	- expression type evaluation for auto types
 		kind of also done, need to clean up the function call and operator type checks
 	- array type
-	- make a char type (8 bit? unicode?)
-		leaning towards unicode, as an 8-bit representation could be
-		just a uint8, and a char could be a string storing a utf8 character
+	- make a char type (unicode)
+		probably a 32 bit value for representing unicode character codes,
+		strings should not use this as a base type however
+
 
 		possibly have a seperate type for an ascii character?
 		 -- probably not...
@@ -222,8 +225,21 @@ math::sqrt(2);
 let v : vector<int>;
 
 
+alternatively:
+have the namespacing based on folders eg:
+
+import std::vector;  // same as #include <std/vector>
+
+so a regular 'import math;' would just import it into the global namespace
+probably should be able to override it somehow (both import and export)
+
+
+
+
 
 // templates:
+
+not sure I like this syntax, maybe something simmilar to c++?
 
 function<typename T> add(lhs: T, rhs: T)
 { return lhs + rhs; }
@@ -420,7 +436,7 @@ operator / (lhs: vec2d, rhs) -> vec2d
 
 
 //////////////////////////////////////////////
-// in file vec2d.asdf
+// in file vec2d.bz
 
 import math;
 
@@ -458,7 +474,7 @@ v.length();  // ok
 
 
 ////////////////////////////////////////////////
-// file memory.asdf
+// file memory.bz
 
 struct<typename T> unique_ptr
 {
@@ -515,12 +531,15 @@ public:
 
 
 
-maybe tuples should use [] instead of {}...
+maybe tuples should use [] instead of {}
 let t: [int32, float64];
 let t = [1, 10.5];
 let v: vec2d = [0.0, 5.2];
 vec2d[ 0.0, 1.0 ];    // <- maybe this should be allowed? not sure... in c++ it's a mess...
 vec2d([ 0.0, 1.0 ]);  // this is a bit more consistent
+
+let [a, b] = get_pair();
+[a, b] = get_pair();
 
 
 
@@ -539,10 +558,28 @@ for (*elem in elems)
 { ... }
 
 // iterate backwards
-for (e in <= elems)
+for (e in <elems)
 
 // iterate forwards (default)
-for (e in => elems)
+for (e in >elems)
+
+for (i in 0..10)
+for (i in 0..v.size())
+
+what should the type of 0..10 be?
+
+operator overloading shouldn't be allowed on basic types,
+so it can't really be a library feature
+
+should the language have a built-in range type?
+	-- it could? but that would bring in inconsistencies
+should this be a special case for for loops?
+	-- probably not
+
+operaotor .. should be overloadable for basic types?
+	-- what about other operators? what makes this special?
+	-- sounds like unnecessary feature bloat
+
 
 
 
@@ -564,6 +601,11 @@ let get_value: struct _get_value
 		return x.value;
 	}
 };
+
+
+file endings as .bz? .boz? .bozon?
+.bozon is too long...
+.boz sounds funny...
 
 
 */
