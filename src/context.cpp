@@ -1,210 +1,208 @@
 #include "context.h"
 
-parse_context context{};
+parse_context context;
 
-
-bool are_types_equal(
-	ast_typespec_ptr const &lhs,
-	ast_typespec_ptr const &rhs
+void parse_context::add_variable(
+	intern_string id,
+	ast_typespec_ptr type
 )
 {
-	if (lhs->kind != rhs->kind)
-	{
-		return false;
-	}
-
-	switch (lhs->kind)
-	{
-	case type::constant:
-	case type::pointer:
-	case type::reference:
-		return are_types_equal(lhs->base, rhs->base);
-
-	case type::name:
-		return lhs->name == rhs->name;
-
-	default:
-		assert(false);
-		return false;
-	}
+	this->variables.back().push_back({ id, type });
 }
 
-bool compare_params(
-	std::vector<ast_typespec_ptr> const &lhs,
-	std::vector<ast_typespec_ptr> const &rhs
+void parse_context::add_function(
+	intern_string id,
+	ast_function_type_ptr type
 )
 {
-	if (lhs.size() != rhs.size())
-	{
-		return false;
-	}
-
-	for (size_t i = 0; i < lhs.size(); ++i)
-	{
-		if (!are_types_equal(lhs[i], rhs[i]))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-void parse_context::add_variable(context_variable_ptr var)
-{
 	auto it = std::find_if(
-		this->variables.back().begin(),
-		this->variables.back().end(),
-		[&](auto const &old_var)
+		this->functions.begin(), this->functions.end(), [&](auto const &set)
 		{
-			return var->identifier == old_var->identifier;
+			return set.id == id;
 		}
 	);
 
-	if (it == this->variables.back().end())
+	if (it == this->functions.end())
 	{
-		this->variables.back().emplace_back(std::move(var));
+		this->functions.push_back({ id, { type } });
 	}
 	else
 	{
-		std::cerr << "Variable '" << var->identifier
-			<< "' has already been defined in the current scope\n";
-		exit(1);
-	}
-}
-
-void parse_context::add_function(context_function_ptr func)
-{
-	auto it = find_if(
-		this->functions.back().begin(),
-		this->functions.back().end(),
-		[&](auto const &old_fn)
+		auto set_it = std::find_if(it->set.begin(), it->set.end(), [&](auto const &t)
 		{
-			return func->identifier == old_fn->identifier
-				&& compare_params(func->param_types, old_fn->param_types);
-		}
-	);
-
-	if (it == this->functions.back().begin())
-	{
-		this->functions.back().emplace_back(std::move(func));
-	}
-	else
-	{
-		std::cerr << "Function '" << func->identifier
-			<< "' has already been defined\n";
-		exit(1);
-	}
-}
-
-void parse_context::add_operator(context_operator_ptr op)
-{
-	auto it = std::find_if(
-		this->operators.back().begin(),
-		this->operators.back().end(),
-		[&](auto const &old_op)
-		{
-			return op->op == old_op->op
-				&& compare_params(op->param_types, old_op->param_types);
-		}
-	);
-
-	if (it == this->operators.back().end())
-	{
-		this->operators.back().emplace_back(std::move(op));
-	}
-	else
-	{
-		std::cerr << "Operator " << get_token_value(op->op)
-			<< " defined with the same parameters\n";
-		exit(1);
-	}
-}
-
-ast_typespec_ptr parse_context::get_variable_typespec(intern_string id) const
-{
-	for (
-		auto scope = this->variables.rbegin();
-		scope != this->variables.rend();
-		++scope
-	)
-	{
-		auto it = std::find_if(
-			scope->begin(),
-			scope->end(),
-			[&](auto const &var)
+			if (t->argument_types.size() != type->argument_types.size())
 			{
-				return id == var->identifier;
+				return false;
 			}
-		);
-		if (it != scope->end())
+
+			for (size_t i = 0; i < type->argument_types.size(); ++i)
+			{
+				if (!t->argument_types[i]->equals(type->argument_types[i]))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		});
+
+		if (set_it != it->set.end())
 		{
-			return (*it)->type->clone();
+			fatal_error("Error: redefinition of function '{}'\n", id);
+		}
+
+		it->set.emplace_back(type);
+	}
+}
+
+void parse_context::add_operator(
+	uint32_t op,
+	ast_function_type_ptr type
+)
+{
+	auto it = std::find_if(
+		this->operators.begin(), this->operators.end(), [&](auto const &set)
+		{
+			return set.op == op;
+		}
+	);
+
+	if (it == this->operators.end())
+	{
+		this->operators.push_back({ op, { type } });
+	}
+	else
+	{
+		auto set_it = std::find_if(it->set.begin(), it->set.end(), [&](auto const &t)
+		{
+			if (t->argument_types.size() != type->argument_types.size())
+			{
+				return false;
+			}
+
+			for (size_t i = 0; i < type->argument_types.size(); ++i)
+			{
+				if (!t->argument_types[i]->equals(type->argument_types[i]))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		});
+
+		if (set_it != it->set.end())
+		{
+			fatal_error("Error: redefinition of operator '{}'\n", get_token_value(op));
+		}
+
+		it->set.emplace_back(type);
+	}
+}
+
+
+ast_typespec_ptr parse_context::get_variable_type(intern_string id)
+{
+	for (auto &scope : this->variables)
+	{
+		auto it = std::find_if(scope.rbegin(), scope.rend(), [&](auto const &var)
+		{
+			return var.id == id;
+		});
+
+		if (it != scope.rend())
+		{
+			return it->type;
 		}
 	}
 
 	return nullptr;
 }
 
-ast_typespec_ptr parse_context::get_binary_operation_typespec(
-	uint32_t op, ast_typespec_ptr const &lhs, ast_typespec_ptr const &rhs
+ast_typespec_ptr parse_context::get_function_type(
+	intern_string id,
+	bz::vector<ast_typespec_ptr> const &args
 )
 {
-	switch (op)
-	{
-	case token::comma:
-		return rhs->clone();
-
-	case token::assign:
-	case token::plus_eq:
-	case token::minus_eq:
-	case token::multiply_eq:
-	case token::divide_eq:
-	case token::modulo_eq:
-	case token::bit_left_shift_eq:
-	case token::bit_right_shift_eq:
-	case token::bit_and_eq:
-	case token::bit_xor_eq:
-	case token::bit_or_eq:
-		return lhs->clone();
-
-	case token::bool_and:
-	case token::bool_xor:
-	case token::bool_or:
-		if (lhs->name != "bool" || rhs->name != "bool")
+	auto set_it = std::find_if(
+		this->functions.begin(), this->functions.end(), [&](auto const &set)
 		{
-			std::cerr << get_token_value(op) << " operation between non-bool types\n";
-			exit(1);
+			return set.id == id;
 		}
-		return make_ast_typespec("bool");
+	);
 
-	case token::plus:
-	case token::minus:
-	case token::multiply:
-	case token::divide:
-	case token::modulo:
-		assert(are_types_equal(lhs, rhs));
-		return lhs->clone();
-
-	default:
-		assert(false);
+	if (set_it == this->functions.end())
+	{
 		return nullptr;
 	}
+
+	auto &set = set_it->set;
+
+	for (auto &fn : set)
+	{
+		if (fn->argument_types.size() != args.size())
+		{
+			continue;
+		}
+
+		size_t i;
+		for (i = 0; i < args.size(); ++i)
+		{
+			if (!fn->argument_types[i]->equals(args[i]))
+			{
+				break;
+			}
+		}
+
+		if (i == args.size())
+		{
+			return fn->return_type;
+		}
+	}
+
+	return nullptr;
 }
 
-ast_typespec_ptr parse_context::get_unary_operation_typespec(
-	uint32_t op, ast_typespec_ptr const &arg
+ast_typespec_ptr parse_context::get_operator_type(
+	uint32_t op,
+	bz::vector<ast_typespec_ptr> const &args
 )
 {
-	switch (op)
+	auto set_it = std::find_if(
+		this->operators.begin(), this->operators.end(), [&](auto const &set)
+		{
+			return set.op == op;
+		}
+	);
+
+	if (set_it == this->operators.end())
 	{
-		case token::ampersand:
-			return make_ast_typespec(type::pointer, arg->clone());
-
-		case token::star:
-		// ...
-		default:
-			assert(false);
-			return nullptr;
+		return nullptr;
 	}
-}
 
+	auto &set = set_it->set;
+
+	for (auto &op : set)
+	{
+		if (op->argument_types.size() != args.size())
+		{
+			continue;
+		}
+
+		size_t i;
+		for (i = 0; i < args.size(); ++i)
+		{
+			if (!op->argument_types[i]->equals(args[i]))
+			{
+				break;
+			}
+		}
+
+		if (i == args.size())
+		{
+			return op->return_type;
+		}
+	}
+
+	return nullptr;
+}

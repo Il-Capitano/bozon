@@ -1,14 +1,23 @@
 
-{
-	let a = &0;
-	let b = 1;
-	0 + 2 + 1;
+operator + (: int32, : int32) -> int32
+{}
 
-	let c = 0, 0.0;
-	if (true)
-	{
-		let hello = &1;
-	}
+operator & (: int32) -> *int32
+{}
+
+operator || (: bool, : bool) -> bool
+{}
+
+function factorial(n: int32) -> int32
+{
+	let a = 0;
+	let b = n;
+
+	let c = 1 + 4;
+	let d = &c;
+
+	let e = true || false;
+	let f = e || true;
 }
 
 

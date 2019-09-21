@@ -2,19 +2,14 @@
 #include "context.h"
 
 
-
 ast_literal::ast_literal(src_tokens::pos stream)
 {
 	switch(stream->kind)
 	{
 	case token::number_literal:
 	{
-		size_t pos;
-		std::string value = stream->value.get();
-		while ((pos = value.find('\'')) != std::string::npos)
-		{
-			value.erase(std::remove(value.begin(), value.end(), '\''));
-		}
+		bz::string value = stream->value.get();
+		value.erase('\'');
 
 		double num = 0;
 		size_t i;
@@ -182,7 +177,8 @@ ast_expression::ast_expression(src_tokens::pos stream)
 	switch (stream->kind)
 	{
 	case token::identifier:
-		this->typespec = context.get_variable_typespec(stream->value);
+		this->typespec = nullptr;
+		this->typespec = context.get_variable_type(stream->value);
 		if (!this->typespec)
 		{
 			bad_token(stream, "Undefined identifier");
@@ -192,17 +188,17 @@ ast_expression::ast_expression(src_tokens::pos stream)
 
 	case token::number_literal:
 		this->emplace<literal>(make_ast_literal(stream));
-		this->typespec = make_ast_typespec(
+		this->typespec = make_ast_typespec<ast_typespec::name>(
 			this->get<literal>()->kind == ast_literal::integer_number
-			? "int32"
-			: "float64"
+			? "int32"_is
+			: "float64"_is
 		);
 		return;
 
 	case token::kw_true:
 	case token::kw_false:
 		this->emplace<literal>(make_ast_literal(stream));
-		this->typespec = make_ast_typespec("bool");
+		this->typespec = make_ast_typespec<ast_typespec::name>("bool"_is);
 		return;
 
 	case token::string_literal:
@@ -218,21 +214,30 @@ ast_expression::ast_expression(ast_unary_op_ptr _unary_op)
 	: base_t(std::move(_unary_op))
 {
 	auto &op = this->get<unary_op>();
-	this->typespec = context.get_unary_operation_typespec(
+	this->typespec = nullptr;
+	this->typespec = context.get_operator_type(
 		op->op,
-		op->expr->typespec
+		{ op->expr->typespec }
 	);
+	if (this->typespec == nullptr)
+	{
+		fatal_error("Error: undefined unary operator '{}'\n", get_token_value(op->op));
+	}
 }
 
 ast_expression::ast_expression(ast_binary_op_ptr _binary_op)
 	: base_t(std::move(_binary_op))
 {
 	auto &op = this->get<binary_op>();
-	this->typespec = context.get_binary_operation_typespec(
+	this->typespec = nullptr;
+	this->typespec = context.get_operator_type(
 		op->op,
-		op->lhs->typespec,
-		op->rhs->typespec
+		{ op->lhs->typespec, op->rhs->typespec }
 	);
+	if (this->typespec == nullptr)
+	{
+		fatal_error("Error: undefined binary operator '{}'\n", get_token_value(op->op));
+	}
 }
 
 ast_expression::ast_expression(ast_function_call_op_ptr _func_call_op)
@@ -248,7 +253,7 @@ static ast_expression_ptr parse_expression_internal(
 	precedence p
 );
 
-static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
+static bz::vector<ast_expression_ptr> parse_expression_comma_list_internal(
 	src_tokens::pos &stream,
 	src_tokens::pos &end
 );
@@ -260,8 +265,7 @@ static ast_expression_ptr parse_primary_expression(
 {
 	if (stream == end)
 	{
-		std::cerr << "Internal error: unqualified call to parse_primary_expression()\n";
-		exit(1);
+		fatal_error("Internal error: unqualified call to parse_primary_expression()\n");
 	}
 
 	switch (stream->kind)
@@ -342,16 +346,11 @@ static ast_expression_ptr parse_expression_helper(
 			{
 				++stream;
 				lhs = make_ast_expression(
-					make_ast_function_call_op(std::move(lhs), std::vector<ast_expression_ptr>())
+					make_ast_function_call_op(std::move(lhs), bz::vector<ast_expression_ptr>())
 				);
 				break;
 			}
 			auto params = parse_expression_comma_list_internal(stream, end);
-			if (stream == end)
-			{
-				std::cerr << "Expected ')'\n";
-				exit(1);
-			}
 			assert_token(stream, token::paren_close);
 
 			lhs = make_ast_expression(
@@ -403,7 +402,7 @@ static ast_expression_ptr parse_expression_internal(
 	return parse_expression_helper(stream, end, std::move(lhs), p);
 }
 
-static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
+static bz::vector<ast_expression_ptr> parse_expression_comma_list_internal(
 	src_tokens::pos &stream,
 	src_tokens::pos &end
 )
@@ -413,7 +412,7 @@ static std::vector<ast_expression_ptr> parse_expression_comma_list_internal(
 		return {};
 	}
 
-	std::vector<ast_expression_ptr> rv = {};
+	bz::vector<ast_expression_ptr> rv = {};
 	rv.emplace_back(parse_expression_internal(stream, end, no_comma));
 	while (stream != end && stream->kind == token::comma)
 	{
@@ -445,7 +444,7 @@ ast_expression_ptr parse_ast_expression(
 	return parse_expression_internal(stream, end, precedence{});
 }
 
-std::vector<ast_expression_ptr> parse_ast_expression_comma_list(std::vector<token> const &expr)
+bz::vector<ast_expression_ptr> parse_ast_expression_comma_list(bz::vector<token> const &expr)
 {
 	if (expr.empty())
 	{

@@ -2,57 +2,54 @@
 #include "context.h"
 
 
-std::vector<ast_variable_ptr> get_function_params(std::vector<token> const &tokens)
+bz::vector<ast_variable> get_function_params(token_range tokens)
 {
-	if (tokens.empty())
+	auto it  = tokens.begin;
+	auto end = tokens.end;
+
+	if (it == end)
 	{
 		return {};
 	}
 
-	auto stream = tokens.begin();
-	auto end    = tokens.end();
-
-	auto get_variable = [&]()
+	auto get_variable = [&]() -> ast_variable
 	{
-		assert(stream != end);
-
-		intern_string id = "";
-		if (stream->kind == token::identifier)
+		if (it == end)
 		{
-			id = stream->value;
-			++stream;
-			if (stream == end)
+			bad_token(end, "Expected variable definition");
+		}
+
+		intern_string id;
+		if (it->kind == token::identifier)
+		{
+			id = it->value;
+			++it;
+			if (it == end)
 			{
-				std::cerr << "Expected ':' in parameter list\n";
-				exit(1);
+				fatal_error("Expected ':' in parameter list\n");
 			}
 		}
 
-		assert_token(stream, token::colon);
-		if (stream == end)
+		assert_token(it, token::colon);
+		if (it == end)
 		{
-			std::cerr << "Expected type in parameter list\n";
+			fatal_error("Expected type in parameter list\n");
 		}
 
-		auto type = parse_ast_typespec(stream, end);
-		return make_ast_variable(id, std::move(type));
+		auto type = parse_ast_typespec(it, end);
+		return { id, type };
 	};
 
-	std::vector<ast_variable_ptr> params = {};
+	bz::vector<ast_variable> params = {};
 	params.emplace_back(get_variable());
 
-	while (stream != end)
+	while (it != end)
 	{
-		assert_token(stream, token::comma);
-		if (stream == end)
-		{
-			std::cerr << "Expected variable definition after ','\n";
-			exit(1);
-		}
+		assert_token(it, token::comma);
 		params.emplace_back(get_variable());
 	}
 
-	return std::move(params);
+	return params;
 }
 
 
@@ -106,7 +103,7 @@ ast_statement::ast_statement(fp_statement_ptr const &stmt)
 
 	case fp_statement::compound_statement:
 	{
-		std::vector<ast_statement_ptr> statements;
+		bz::vector<ast_statement_ptr> statements;
 		auto &comp_stmt = stmt->get<fp_statement::compound_statement>();
 		for (auto &s : comp_stmt->statements)
 		{
@@ -157,8 +154,7 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 
 		if (stream == end)
 		{
-			std::cerr << "Error: cannot have an empty variable declaration\n";
-			exit(1);
+			bad_token(stream, "Invalid variable declaration");
 		}
 
 		ast_typespec_ptr typespec = nullptr;
@@ -167,6 +163,9 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 			++stream; // ':'
 			assert(stream != end);
 			typespec = parse_ast_typespec(stream, end);
+
+			context.add_variable(id, typespec);
+
 			if (stream == end)
 			{
 				this->emplace<variable_decl>(
@@ -188,7 +187,8 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 
 		if (!typespec)
 		{
-			typespec = init_expr->typespec->clone();
+			typespec = init_expr->typespec;
+			context.add_variable(id, typespec);
 		}
 
 		this->emplace<variable_decl>(
@@ -202,14 +202,96 @@ ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_pt
 	case fp_declaration_statement::function_decl:
 	{
 		auto &func_decl = decl->get<fp_declaration_statement::function_decl>();
+
 		auto id = func_decl->identifier;
-		// TODO
-		assert(false);
+		auto ret_type = parse_ast_typespec(func_decl->return_type);
+		auto params = get_function_params(func_decl->params);
+
+		bz::vector<ast_typespec_ptr> param_types;
+		bz::vector<intern_string>    param_ids;
+
+		param_types.reserve(params.size());
+		param_ids.reserve(params.size());
+
+		for (auto &p : params)
+		{
+			param_types.emplace_back(p.type);
+			param_ids.emplace_back(p.id);
+		}
+
+		auto fn_type = make_ast_function_type(ret_type, param_types);
+		context.add_function(id, fn_type);
+
+		++context;
+		for (auto &p : params)
+		{
+			context.add_variable(p.id, p.type);
+		}
+
+		bz::vector<ast_statement_ptr> body;
+		body.reserve(func_decl->body->statements.size());
+
+		for (auto &stmt : func_decl->body->statements)
+		{
+			body.emplace_back(make_ast_statement(stmt));
+		}
+
+		this->emplace<function_decl>(
+			make_ast_function_decl(
+				id,
+				fn_type,
+				make_ast_compound_statement(std::move(body))
+			)
+		);
 		break;
 	}
 
 	case fp_declaration_statement::operator_decl:
+	{
+		auto &op_decl = decl->get<fp_declaration_statement::operator_decl>();
+
+		auto op = op_decl->op;
+		auto ret_type = parse_ast_typespec(op_decl->return_type);
+		auto params = get_function_params(op_decl->params);
+
+		bz::vector<ast_typespec_ptr> param_types;
+		bz::vector<intern_string>    param_ids;
+
+		param_types.reserve(params.size());
+		param_ids.reserve(params.size());
+
+		for (auto &p : params)
+		{
+			param_types.emplace_back(p.type);
+			param_ids.emplace_back(p.id);
+		}
+
+		auto fn_type = make_ast_function_type(ret_type, param_types);
+		context.add_operator(op, fn_type);
+
+		++context;
+		for (auto &p : params)
+		{
+			context.add_variable(p.id, p.type);
+		}
+
+		bz::vector<ast_statement_ptr> body;
+		body.reserve(op_decl->body->statements.size());
+
+		for (auto &stmt : op_decl->body->statements)
+		{
+			body.emplace_back(make_ast_statement(stmt));
+		}
+
+		this->emplace<operator_decl>(
+			make_ast_operator_decl(
+				op,
+				fn_type,
+				make_ast_compound_statement(std::move(body))
+			)
+		);
 		break;
+	}
 
 	case fp_declaration_statement::struct_decl:
 		break;

@@ -77,7 +77,7 @@ void lexer_init(void)
 }
 
 
-std::string get_token_value(uint32_t kind)
+bz::string get_token_value(uint32_t kind)
 {
 	switch (kind)
 	{
@@ -103,18 +103,20 @@ std::string get_token_value(uint32_t kind)
 	);
 	if (multi_char_it != multi_char_tokens.end())
 	{
-		return '\'' + std::string{multi_char_it->first} + '\'';
+		return multi_char_it->first;
 	}
 
-	auto keyword_it = std::find_if(keywords.begin(), keywords.end(), [&](auto const &p){
+	auto keyword_it = std::find_if(keywords.begin(), keywords.end(), [&](auto const &p)
+	{
 		return p.second == kind;
 	});
+
 	if (keyword_it != keywords.end())
 	{
-		return '\'' + std::string{keyword_it->first} + '\'';
+		return keyword_it->first;
 	}
 
-	return '\'' + std::string{(char)kind} + '\'';
+	return bz::string(1, (char)kind);
 }
 
 bool is_operator(uint32_t kind)

@@ -2,23 +2,21 @@
 #define INTERN_STRING_H
 
 #include <iostream>
-#include <vector>
 #include <memory>
-#include <string>
 #include <cstring>
+#include <bz/string.h>
+#include <bz/format.h>
 
 class intern_string
 {
 	// static members
 private:
-	static std::vector<std::unique_ptr<const char[]>> _buffer_data;
+	static bz::vector<std::unique_ptr<const char[]>> _buffer_data;
 
-	static char const *add_string(std::string const &str);
-	static char const *add_string(const char *str);
+	static char const *add_string(bz::string_view str);
 	static char const *add_string(const char *begin, const char *end);
 
-	static char const *get_string(std::string const &str);
-	static char const *get_string(const char *str);
+	static char const *get_string(bz::string_view str);
 	static char const *get_string(const char *begin, const char *end);
 
 
@@ -30,12 +28,13 @@ public:
 		: _data(nullptr)
 	{}
 
-	intern_string(std::string const &str)
+	intern_string(bz::string_view str)
 		: _data(get_string(str))
 	{}
 
-	intern_string(const char *str)
-		: _data(get_string(str))
+	template<size_t N>
+	intern_string(const char str[N])
+		: intern_string(static_cast<bz::string_view>(str))
 	{}
 
 	intern_string(char c)
@@ -61,11 +60,14 @@ public:
 	explicit operator const char * ()
 	{ return this->_data; }
 
-	explicit operator std::string ()
-	{ return std::string(this->_data); }
+	operator bz::string ()
+	{ return this->_data; }
 
 
 	const char *get(void) const
+	{ return this->_data; }
+
+	const char *data(void) const
 	{ return this->_data; }
 
 	size_t length(void) const
@@ -92,6 +94,15 @@ inline intern_string operator ""_is (const char *str, size_t)
 {
 	return intern_string(str);
 }
+
+template<>
+struct bz::formatter<intern_string>
+{
+	static bz::string format(intern_string str, const char *spec, const char *spec_end)
+	{
+		return bz::formatter<const char *>::format(str.data(), spec, spec_end);
+	}
+};
 
 
 void intern_string_test();

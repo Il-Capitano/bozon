@@ -4,158 +4,13 @@
 #include "core.h"
 
 void lexer_init(void);
-/*
-class buffered_ifstream
-{
-private:
-	std::ifstream _is;
-	char _buff[256];
-	bool _eof;
-	int _line_num;
-
-public:
-	buffered_ifstream(std::string const &file)
-		: _is(file), _buff(), _eof(false), _line_num(1)
-	{
-		for (int i = 128; i < 256 && this->_is; ++i)
-		{
-			this->_buff[i] = this->_is.get();
-		}
-	}
-
-	operator bool(void) const
-	{
-		return !this->_eof;
-	}
-
-	char operator[](int index) const
-	{
-		return this->_buff[index + 128];
-	}
-
-	char previous_non_whitespace(void) const
-	{
-		int i = 127;
-		while (
-			this->_buff[i] == ' '
-			||
-			this->_buff[i] == '\t'
-			||
-			this->_buff[i] == '\n'
-		)
-		{
-			--i;
-		}
-		return i < 0 ? '\0' : this->_buff[i];
-	}
-
-	char previous(void) const
-	{
-		return this->_buff[127];
-	}
-
-	char current(void) const
-	{
-		return this->_buff[128];
-	}
-
-	char next(void) const
-	{
-		return this->_buff[129];
-	}
-
-	char next_non_whitespace(void) const
-	{
-		int i = 129;
-		while (
-			this->_buff[i] == ' '
-			||
-			this->_buff[i] == '\t'
-			||
-			this->_buff[i] == '\n'
-		)
-		{
-			++i;
-		}
-		return i > 255 ? '\0' : this->_buff[i];
-	}
-
-	void step(unsigned count = 1)
-	{
-		if (this->current() == decltype(this->_is)::traits_type::eof())
-		{
-			this->_eof = true;
-			return;
-		}
-		else if (this->current() == '\n')
-		{
-			++this->_line_num;
-		}
-
-		for (unsigned i = 0; i < count; ++i)
-		{
-			for (int j = 0; j < 255; ++j)
-			{
-				this->_buff[j] = this->_buff[j + 1];
-			}
-
-			if (this->_is)
-			{
-				this->_buff[255] = this->_is.get();
-			}
-			else
-			{
-				this->_buff[255] = '\0';
-			}
-		}
-	}
-
-	void step_while_whitespace(void)
-	{
-		while (
-			this->current() == ' '
-			||
-			this->current() == '\t'
-			||
-			this->current() == '\n'
-		)
-		{
-			this->step();
-		}
-	}
-
-	bool is_string(intern_string str) const
-	{
-		auto len = str.length();
-		assert(len <= 128);
-		for (unsigned i = 0; i < len; ++i)
-		{
-			if (this->_buff[i + 128] != str[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
-	bool eof(void) const
-	{
-		return this->_eof;
-	}
-
-	int line_num(void) const
-	{
-		return this->_line_num;
-	}
-};
-*/
 
 class src_file
 {
 private:
-	std::vector<char> _data;
+	bz::vector<char> _data;
 public:
-	using pos = std::vector<char>::const_iterator;
+	using pos = bz::vector<char>::const_iterator;
 
 public:
 	src_file(const char *file_name)
@@ -326,6 +181,16 @@ inline std::ostream &operator << (std::ostream &os, token const &t)
 	return os << "type: " << t.kind << "; value: '" << t.value << "';";
 }
 
+template<>
+struct bz::formatter<token>
+{
+	static bz::string format(token const &t, const char *spec, const char *spec_end)
+	{
+		bz_assert(spec == spec_end);
+		return bz::format("type: {}; value: '{}';", t.kind, t.value);
+	}
+};
+
 
 constexpr bool is_keyword_token(token const &t)
 {
@@ -377,7 +242,7 @@ constexpr bool is_literal_token(token const &t)
 
 token get_next_token(src_file::pos &stream, src_file::pos end);
 
-std::string get_token_value(uint32_t kind);
+bz::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
 
@@ -386,11 +251,11 @@ bool is_overloadable_operator(uint32_t kind);
 class src_tokens
 {
 private:
-	std::vector<token> _tokens;
+	bz::vector<token> _tokens;
 	src_file _src_file;
 
 public:
-	using pos = std::vector<token>::const_iterator;
+	using pos = bz::vector<token>::const_iterator;
 
 public:
 	src_tokens(const char *file)
@@ -399,12 +264,10 @@ public:
 		auto stream = this->_src_file.begin();
 		auto end    = this->_src_file.end();
 
-		token t;
 		do
 		{
-			t = get_next_token(stream, end);
-			this->_tokens.emplace_back(t);
-		} while (t.kind != token::eof);
+			this->_tokens.emplace_back(get_next_token(stream, end));
+		} while (this->_tokens.back().kind != token::eof);
 	}
 
 	pos begin(void) const
@@ -430,9 +293,7 @@ inline token assert_token(src_tokens::pos &stream, uint32_t kind)
 {
 	if (stream->kind != kind)
 	{
-		std::cerr << "Unexpected token: " << *stream << "\n"
-			"Expected " << get_token_value(kind) << '\n';
-		exit(1);
+		fatal_error("Unexpected token: {}\nExpected '{}'\n", *stream, get_token_value(kind));
 	}
 	auto t = *stream;
 	++stream;
@@ -443,23 +304,18 @@ inline void assert_token(src_tokens::pos stream, uint32_t kind, bool)
 {
 	if (stream->kind != kind)
 	{
-		std::cerr << "Unexpected token: " << *stream << "\n"
-			"Expected " << get_token_value(kind) << '\n';
-		exit(1);
+		fatal_error("Unexpected token: {}\nExpected '{}'\n", *stream, get_token_value(kind));
 	}
 }
 
 inline void bad_token(src_tokens::pos stream)
 {
-	std::cerr << "Unexpected token: " << *stream << '\n';
-	exit(1);
+	fatal_error("Unexpected token: {}\n", *stream);
 }
 
 inline void bad_token(src_tokens::pos stream, const char *message)
 {
-	std::cerr << "Unexpected token: " << *stream << '\n'
-		<< message << '\n';
-	exit(1);
+	fatal_error("Unexpected token: {}\n{}\n", *stream, message);
 }
 
 #endif // LEXER_H

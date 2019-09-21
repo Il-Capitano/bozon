@@ -2,7 +2,7 @@
 
 
 template<typename T>
-void append_vector(std::vector<T> &base, std::vector<T> new_elems)
+void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 {
 	base.reserve(base.size() + new_elems.size());
 	for (auto &elem : new_elems)
@@ -44,7 +44,6 @@ fp_statement::fp_statement(fp_expression_statement_ptr expr_stmt)
 fp_statement::fp_statement(fp_declaration_statement_ptr decl_stmt)
 	: base_t(std::move(decl_stmt))
 {}
-
 
 
 template<uint32_t ...end_tokens>
@@ -137,7 +136,7 @@ static fp_compound_statement_ptr get_fp_compound_statement(
 )
 {
 	assert_token(stream, token::curly_open);
-	std::vector<fp_statement_ptr> stms;
+	bz::vector<fp_statement_ptr> stms;
 
 	while (stream != end && stream->kind != token::curly_close)
 	{
@@ -273,14 +272,13 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	{
 		++stream; // 'function'
 		auto id = assert_token(stream, token::identifier).value;
-		auto params = get_fp_parameters(stream, end);
-		token_range ret_type = { stream, stream };
 
-		if (stream->kind == token::arrow)
-		{
-			++stream; // '->'
-			ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
-		}
+		assert_token(stream, token::paren_open);
+		auto params = get_fp_parameters(stream, end);
+		assert_token(stream, token::paren_close);
+
+		assert_token(stream, token::arrow);
+		auto ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
 
 		auto body = get_fp_compound_statement(stream, end);
 		return make_fp_statement(
@@ -295,8 +293,29 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	// operator definition
 	case token::kw_operator:
 	{
-		assert(false);
-		return nullptr;
+		++stream; // 'operator'
+		auto op = stream->kind;
+		if (!is_operator(op))
+		{
+			bad_token(stream, "Expected overloadable operator");
+		}
+		++stream;
+
+		assert_token(stream, token::paren_open);
+		auto params = get_fp_parameters(stream, end);
+		assert_token(stream, token::paren_close);
+
+		assert_token(stream, token::arrow);
+		auto ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
+
+		auto body = get_fp_compound_statement(stream, end);
+		return make_fp_statement(
+			make_fp_declaration_statement(
+				make_fp_operator_decl(
+					op, params, ret_type, std::move(body)
+				)
+			)
+		);
 	}
 
 	// expression statement
@@ -313,9 +332,9 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 }
 
 
-std::vector<fp_statement_ptr> get_fp_statements(src_tokens::pos &stream, src_tokens::pos end)
+bz::vector<fp_statement_ptr> get_fp_statements(src_tokens::pos &stream, src_tokens::pos end)
 {
-	std::vector<fp_statement_ptr> statements = {};
+	bz::vector<fp_statement_ptr> statements = {};
 	while (stream->kind != token::eof)
 	{
 		statements.emplace_back(get_fp_statement(stream, end));

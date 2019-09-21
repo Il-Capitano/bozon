@@ -26,7 +26,7 @@ using ast_declaration_statement_ptr = std::unique_ptr<ast_declaration_statement>
 
 
 struct ast_statement :
-variant<
+bz::variant<
 	ast_if_statement_ptr,
 	ast_while_statement_ptr,
 	ast_for_statement_ptr,
@@ -37,7 +37,7 @@ variant<
 	ast_declaration_statement_ptr
 >
 {
-	using base_t = variant<
+	using base_t = bz::variant<
 		ast_if_statement_ptr,
 		ast_while_statement_ptr,
 		ast_for_statement_ptr,
@@ -50,14 +50,14 @@ variant<
 
 	enum : uint32_t
 	{
-		if_statement          = index_of<ast_if_statement_ptr>(),
-		while_statement       = index_of<ast_while_statement_ptr>(),
-		for_statement         = index_of<ast_for_statement_ptr>(),
-		return_statement      = index_of<ast_return_statement_ptr>(),
-		no_op_statement       = index_of<ast_no_op_statement_ptr>(),
-		compound_statement    = index_of<ast_compound_statement_ptr>(),
-		expression_statement  = index_of<ast_expression_statement_ptr>(),
-		declaration_statement = index_of<ast_declaration_statement_ptr>(),
+		if_statement          = index_of<ast_if_statement_ptr>,
+		while_statement       = index_of<ast_while_statement_ptr>,
+		for_statement         = index_of<ast_for_statement_ptr>,
+		return_statement      = index_of<ast_return_statement_ptr>,
+		no_op_statement       = index_of<ast_no_op_statement_ptr>,
+		compound_statement    = index_of<ast_compound_statement_ptr>,
+		expression_statement  = index_of<ast_expression_statement_ptr>,
+		declaration_statement = index_of<ast_declaration_statement_ptr>,
 	};
 
 	uint32_t kind(void) const
@@ -132,9 +132,9 @@ struct ast_no_op_statement
 
 struct ast_compound_statement
 {
-	std::vector<ast_statement_ptr> statements;
+	bz::vector<ast_statement_ptr> statements;
 
-	ast_compound_statement(std::vector<ast_statement_ptr> _stms)
+	ast_compound_statement(bz::vector<ast_statement_ptr> _stms)
 		: statements(std::move(_stms))
 	{}
 };
@@ -170,24 +170,36 @@ using ast_variable_decl_ptr = std::unique_ptr<ast_variable_decl>;
 struct ast_function_decl
 {
 	intern_string              identifier;
-	ast_typespec_ptr           return_typespec;
+	ast_function_type_ptr      type;
 	ast_compound_statement_ptr body;
 
 	ast_function_decl(
 		intern_string              _id,
-		ast_typespec_ptr           _ret_type,
+		ast_function_type_ptr      _type,
 		ast_compound_statement_ptr _body
 	)
-		: identifier     (_id),
-		  return_typespec(std::move(_ret_type)),
-		  body           (std::move(_body))
+		: identifier(_id),
+		  type      (_type),
+		  body      (std::move(_body))
 	{}
 };
 using ast_function_decl_ptr = std::unique_ptr<ast_function_decl>;
 
 struct ast_operator_decl
 {
+	uint32_t                   op;
+	ast_function_type_ptr      type;
+	ast_compound_statement_ptr body;
 
+	ast_operator_decl(
+		uint32_t                   _op,
+		ast_function_type_ptr      _type,
+		ast_compound_statement_ptr _body
+	)
+		: op  (_op),
+		  type(_type),
+		  body(std::move(_body))
+	{}
 };
 using ast_operator_decl_ptr = std::unique_ptr<ast_operator_decl>;
 
@@ -199,14 +211,14 @@ using ast_struct_decl_ptr = std::unique_ptr<ast_struct_decl>;
 
 
 struct ast_declaration_statement :
-variant<
+bz::variant<
 	ast_variable_decl_ptr,
 	ast_function_decl_ptr,
 	ast_operator_decl_ptr,
 	ast_struct_decl_ptr
 >
 {
-	using base_t = variant<
+	using base_t = bz::variant<
 		ast_variable_decl_ptr,
 		ast_function_decl_ptr,
 		ast_operator_decl_ptr,
@@ -215,10 +227,10 @@ variant<
 
 	enum : uint32_t
 	{
-		variable_decl = index_of<ast_variable_decl_ptr>(),
-		function_decl = index_of<ast_function_decl_ptr>(),
-		operator_decl = index_of<ast_operator_decl_ptr>(),
-		struct_decl   = index_of<ast_struct_decl_ptr>(),
+		variable_decl = index_of<ast_variable_decl_ptr>,
+		function_decl = index_of<ast_function_decl_ptr>,
+		operator_decl = index_of<ast_operator_decl_ptr>,
+		struct_decl   = index_of<ast_struct_decl_ptr>,
 	};
 
 	uint32_t kind(void) const

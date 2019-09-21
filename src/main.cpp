@@ -576,7 +576,7 @@ should the language have a built-in range type?
 should this be a special case for for loops?
 	-- probably not
 
-operaotor .. should be overloadable for basic types?
+operator .. should be overloadable for basic types?
 	-- what about other operators? what makes this special?
 	-- sounds like unnecessary feature bloat
 
@@ -608,6 +608,99 @@ file endings as .bz? .boz? .bozon?
 .boz sounds funny...
 
 
+
+ranges
+
+language or library feature?
+if language:
+	for (i in 0..10)  is easy, as operator .. returns a range
+	if it was library we have the problem illustrated a bit further up
+else:
+	we have the problem of having to allow operator overloading on built-in types
+
+
+let v: []int = [0, 2, 4, 2, 5];
+v[0..3] could also return a range, so instead of
+for (let _i = 0; _i < 3; ++_i) { let i = v[_i]; ... }
+we could write
+for (i in v[0..3]) { ... }
+maybe operator : ??
+similar to matlab
+v[0:3];
+v[0:=3];
+inclusive or exclusive?
+
+
+
+
+
+types:
+
+*type      // pointer
+&type      // lvalue reference
+&&type     // rvalue reference
+...... some kind of universal ref?  &&&type ???  #type ?
+[ types ]  // tuple
+[expr]type // array
+
+
+anonymous structs?
+
+function make_person() // auto return type required
+{
+	return [
+		.first_name = "John",
+		.last_name  = "Doe"
+	];
+
+	return [
+		.first_name: std::string = "John",
+		.last_name:  std::string = "Doe"
+	];
+}
+
+function main()
+{
+	let person = make_person();
+	std::print("{} {}\n".format(person.first_name, person.last_name));
+
+	// can work like a tuple, so person[0] == person.first_name
+	let [first, last] = make_person();
+	std::print("{} {}\n".format(first, last));
+
+	return 0;
+}
+
+
+
+syntax:
+
+template<typename T>
+using []T = std::vector<T>;
+
+template<typename T>
+using !*T = std::unique_ptr<T>;
+
+template<typename T>
+using ?T = std::optional<T>;
+
+...
+
+some number of tokens before a typename
+
+'[' has to be matched by a ']' and so on...
+
+so
+
+[][int32, int32] == std::vector<[int32, int32]>;
+
+[][]float64 == std::vector<std::vector<float64>>;
+
+
+
+
+
+
 */
 
 #include "core.h"
@@ -617,241 +710,281 @@ file endings as .bz? .boz? .bozon?
 #include "parser.h"
 
 
-void print_typespec(ast_typespec_ptr const &typespec)
+template<>
+struct bz::formatter<ast_typespec_ptr>
 {
-	if (!typespec)
+	static bz::string format(ast_typespec_ptr const &typespec, const char *, const char *)
 	{
-		return;
-	}
-
-	switch (typespec->kind)
-	{
-	case type::constant:
-		std::cout << "const ";
-		print_typespec(typespec->base);
-		break;
-
-	case type::pointer:
-		std::cout << '*';
-		print_typespec(typespec->base);
-		break;
-
-	case type::reference:
-		std::cout << '&';
-		print_typespec(typespec->base);
-		break;
-
-	case type::name:
-		std::cout << typespec->name;
-		break;
-	}
-}
-
-void print_expr(ast_expression_ptr const &expr)
-{
-	if (!expr)
-	{
-		return;
-	}
-
-	switch (expr->kind())
-	{
-	case ast_expression::identifier:
-		std::cout << expr->get<ast_expression::identifier>()->value;
-		break;
-
-	case ast_expression::literal:
-		switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind)
+		if (!typespec)
 		{
-		case ast_literal::integer_number:
-			std::cout << literal->integer_value;
-			break;
+			return "";
+		}
 
-		case ast_literal::floating_point_number:
-			std::cout << literal->floating_point_value;
-			break;
+		switch (typespec->kind())
+		{
+		case ast_typespec::constant:
+			return bz::format("const {}", typespec->get<ast_typespec::constant>());
 
-		case ast_literal::string:
-			std::cout << "\"(string)\"";
-			break;
+		case ast_typespec::pointer:
+			return bz::format("*{}", typespec->get<ast_typespec::pointer>());
 
-		case ast_literal::character:
-			std::cout << "'(char)'";
-			break;
+		case ast_typespec::reference:
+			return bz::format("&{}", typespec->get<ast_typespec::reference>());
 
-		case ast_literal::bool_true:
-			std::cout << "true";
-			break;
-
-		case ast_literal::bool_false:
-			std::cout << "false";
-			break;
-
-		case ast_literal::null:
-			std::cout << "null";
-			break;
+		case ast_typespec::name:
+			return typespec->get<ast_typespec::name>();
 
 		default:
 			assert(false);
-			break;
+			return "";
 		}
-		break;
-
-	case ast_expression::binary_op:
-	{
-		auto &bin_op = expr->get<ast_expression::binary_op>();
-		std::cout << '(';
-		print_expr(bin_op->lhs);
-		std::cout << ' ' << get_token_value(bin_op->op) << ' ';
-		print_expr(bin_op->rhs);
-		std::cout << ')';
-		break;
 	}
+};
 
-	case ast_expression::unary_op:
-	{
-		auto &un_op = expr->get<ast_expression::unary_op>();
-		std::cout << '(';
-		std::cout << get_token_value(un_op->op) << ' ';
-		print_expr(un_op->expr);
-		std::cout << ')';
-		break;
-	}
 
-	case ast_expression::function_call_op:
-	{
-		auto &fn_call = expr->get<ast_expression::function_call_op>();
-		print_expr(fn_call->called);
-		std::cout << '(';
-		if (fn_call->params.size() > 0)
-		{
-			for (auto &p : fn_call->params)
-			{
-				print_expr(p);
-				std::cout << ", ";
-			}
-			std::cout << "\b\b)";
-		}
-		else
-		{
-			std::cout << ')';
-		}
-		break;
-	}
-	}
-}
-
-void print_stmt(ast_statement_ptr const &stmt, int level = 0)
+template<>
+struct bz::formatter<ast_expression_ptr>
 {
-	if (!stmt)
+	static bz::string format(ast_expression_ptr const &expr, const char *, const char *)
 	{
-		return;
-	}
-
-	auto indent = [&]()
-	{
-		for (int i = 0; i < level; ++i)
+		if (!expr)
 		{
-			std::cout << "    ";
+			return "";
 		}
-	};
-	indent();
 
-	switch (stmt->kind())
-	{
-	case ast_statement::if_statement:
-	{
-		auto &if_stmt = stmt->get<ast_statement::if_statement>();
-		std::cout << "if (";
-		print_expr(if_stmt->condition);
-		std::cout << ")\n";
-		print_stmt(if_stmt->then_block, level);
-		if (if_stmt->else_block)
+		switch (expr->kind())
 		{
-			indent();
-			std::cout << "else\n";
-			print_stmt(if_stmt->else_block, level);
-		}
-		break;
-	}
+		case ast_expression::identifier:
+			return expr->get<ast_expression::identifier>()->value;
 
-	case ast_statement::while_statement:
-	{
-		auto &while_stmt = stmt->get<ast_statement::while_statement>();
-		std::cout << "while (";
-		print_expr(while_stmt->condition);
-		std::cout << ")\n";
-		print_stmt(while_stmt->while_block, level);
-		break;
-	}
-
-	case ast_statement::for_statement:
-		assert(false);
-		break;
-
-	case ast_statement::return_statement:
-		std::cout << "return ";
-		print_expr(stmt->get<ast_statement::return_statement>()->expr);
-		std::cout << ";\n";
-		break;
-
-	case ast_statement::no_op_statement:
-		std::cout << ";\n";
-		break;
-
-	case ast_statement::compound_statement:
-	{
-		auto &comp_stmt = stmt->get<ast_statement::compound_statement>();
-		std::cout << "{\n";
-		for (auto &s : comp_stmt->statements)
-		{
-			print_stmt(s, level + 1);
-		}
-		indent();
-		std::cout << "}\n";
-		break;
-	}
-
-	case ast_statement::expression_statement:
-		print_expr(stmt->get<ast_statement::expression_statement>()->expr);
-		std::cout << ";\n";
-		break;
-
-	case ast_statement::declaration_statement:
-	{
-		auto &decl = stmt->get<ast_statement::declaration_statement>();
-		switch (decl->kind())
-		{
-			case ast_declaration_statement::variable_decl:
+		case ast_expression::literal:
+			switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind)
 			{
-				auto &var_decl = decl->get<ast_declaration_statement::variable_decl>();
-				std::cout << "let " << var_decl->identifier << ": ";
-				print_typespec(var_decl->typespec);
-				if (var_decl->init_expr)
-				{
-					std::cout << " = ";
-					print_expr(var_decl->init_expr);
-				}
-				std::cout << ";\n";
-				break;
-			}
-			case ast_declaration_statement::function_decl:
-			case ast_declaration_statement::operator_decl:
-			case ast_declaration_statement::struct_decl:
+			case ast_literal::integer_number:
+				return bz::format("{}", literal->integer_value);
+
+			case ast_literal::floating_point_number:
+				return bz::format("{}", literal->floating_point_value);
+
+			case ast_literal::string:
+				return "\"(string)\"";
+
+			case ast_literal::character:
+				return "'(char)'";
+
+			case ast_literal::bool_true:
+				return "true";
+
+			case ast_literal::bool_false:
+				return "false";
+
+			case ast_literal::null:
+				return "null";
+
 			default:
 				assert(false);
-				break;
+				return "";
+			}
+
+		case ast_expression::binary_op:
+		{
+			auto &bin_op = expr->get<ast_expression::binary_op>();
+			return bz::format(
+				"({} {} {})", bin_op->lhs, get_token_value(bin_op->op), bin_op->rhs
+			);
 		}
-		break;
+
+		case ast_expression::unary_op:
+		{
+			auto &un_op = expr->get<ast_expression::unary_op>();
+			return bz::format("({} {})", get_token_value(un_op->op), un_op->expr);
+		}
+
+		case ast_expression::function_call_op:
+		{
+			auto &fn_call = expr->get<ast_expression::function_call_op>();
+			auto res = bz::format("{}(", fn_call->called);
+			if (fn_call->params.size() > 0)
+			{
+				bool first = true;
+				for (auto &p : fn_call->params)
+				{
+					if (first)
+					{
+						res += bz::format("{}", p);
+						first = false;
+					}
+					else
+					{
+						res += bz::format(", {}", p);
+					}
+				}
+			}
+			res += ')';
+			return res;
+		}
+		}
+		return "";
 	}
+};
 
-	default:
-		std::cerr << "Error in print_stmt()\n";
-		exit(1);
+
+template<>
+struct bz::formatter<ast_statement_ptr>
+{
+	static bz::string format(ast_statement_ptr const &stmt, const char *spec, const char *spec_end)
+	{
+		if (!stmt)
+		{
+			return "";
+		}
+
+		uint32_t level = 0;
+		while (spec != spec_end)
+		{
+			level *= 10;
+			level += *spec - '0';
+			++spec;
+		}
+
+		bz::string res = "";
+
+		auto indent = [&]()
+		{
+			for (uint32_t i = 0; i < level; ++i)
+			{
+				res += "    ";
+			}
+		};
+		indent();
+
+		switch (stmt->kind())
+		{
+		case ast_statement::if_statement:
+		{
+			auto &if_stmt = stmt->get<ast_statement::if_statement>();
+			res += bz::format(
+				"if ({})\n{:{}}", if_stmt->condition, level, if_stmt->then_block
+			);
+			if (if_stmt->else_block)
+			{
+				indent();
+				res += bz::format("else\n{:{}}", level, if_stmt->else_block);
+			}
+			break;
+		}
+
+		case ast_statement::while_statement:
+		{
+			auto &while_stmt = stmt->get<ast_statement::while_statement>();
+			res += bz::format(
+				"while ({})\n{:{}}", while_stmt->condition, level, while_stmt->while_block
+			);
+			break;
+		}
+
+		case ast_statement::for_statement:
+			assert(false);
+			break;
+
+		case ast_statement::return_statement:
+			res += bz::format("return {};\n", stmt->get<ast_statement::return_statement>()->expr);
+			break;
+
+		case ast_statement::no_op_statement:
+			res += ";\n";
+			break;
+
+		case ast_statement::compound_statement:
+		{
+			auto &comp_stmt = stmt->get<ast_statement::compound_statement>();
+			res += "{\n";
+			for (auto &s : comp_stmt->statements)
+			{
+				res += bz::format("{:{}}", level + 1, s);
+			}
+			indent();
+			res += "}\n";
+			break;
+		}
+
+		case ast_statement::expression_statement:
+			res += bz::format("{};\n", stmt->get<ast_statement::expression_statement>()->expr);
+			break;
+
+		case ast_statement::declaration_statement:
+		{
+			auto &decl = stmt->get<ast_statement::declaration_statement>();
+			switch (decl->kind())
+			{
+				case ast_declaration_statement::variable_decl:
+				{
+					auto &var_decl = decl->get<ast_declaration_statement::variable_decl>();
+					res += bz::format(
+						"let {}: {}{}{};\n", var_decl->identifier, var_decl->typespec,
+						var_decl->init_expr ? " = " : "", var_decl->init_expr
+					);
+					break;
+				}
+				case ast_declaration_statement::function_decl:
+				{
+					auto &fn_decl = decl->get<ast_declaration_statement::function_decl>();
+					res += bz::format("function {}(", fn_decl->identifier);
+					int i = 0;
+					for (auto &p : fn_decl->type->argument_types)
+					{
+						if (i == 0) res += bz::format("{}", p);
+						else        res += bz::format(", {}", p);
+						++i;
+					}
+					res += bz::format(") -> {}\n", fn_decl->type->return_type);
+					indent();
+					res += "{\n";
+
+					for (auto &stmt : fn_decl->body->statements)
+					{
+						res += bz::format("{:{}}", level + 1, stmt);
+					}
+
+					indent();
+					res += "}\n";
+					break;
+				}
+				case ast_declaration_statement::operator_decl:
+				{
+					auto &op_decl = decl->get<ast_declaration_statement::operator_decl>();
+					res += bz::format("operator {}(", get_token_value(op_decl->op));
+					int i = 0;
+					for (auto &p : op_decl->type->argument_types)
+					{
+						if (i == 0) res += bz::format("{}", p);
+						else        res += bz::format(", {}", p);
+						++i;
+					}
+					res += bz::format(") -> {}\n", op_decl->type->return_type);
+					indent();
+					res += "{\n";
+
+					for (auto &stmt : op_decl->body->statements)
+					{
+						res += bz::format("{:{}}", level + 1, stmt);
+					}
+
+					indent();
+					res += "}\n";
+					break;
+				}
+				case ast_declaration_statement::struct_decl:
+				default:
+					assert(false);
+					break;
+			}
+			break;
+		}
+		}
+		return res;
 	}
-}
-
-
+};
 
 int main(void)
 {
@@ -864,7 +997,7 @@ int main(void)
 	auto fp_statements = get_fp_statements(stream, end);
 	assert(stream->kind == token::eof);
 
-	std::vector<ast_statement_ptr> statements;
+	bz::vector<ast_statement_ptr> statements;
 	for (auto &s : fp_statements)
 	{
 		statements.emplace_back(make_ast_statement(s));
@@ -872,7 +1005,7 @@ int main(void)
 
 	for (auto &s : statements)
 	{
-		print_stmt(s);
+		bz::printf("{}", s);
 	}
 
 	return 0;

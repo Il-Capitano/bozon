@@ -18,7 +18,7 @@ struct ast_function_call_op;
 using ast_function_call_op_ptr = std::unique_ptr<ast_function_call_op>;
 
 struct ast_expression :
-variant<
+bz::variant<
 	ast_identifier_ptr,
 	ast_literal_ptr,
 	ast_unary_op_ptr,
@@ -26,7 +26,7 @@ variant<
 	ast_function_call_op_ptr
 >
 {
-	using base_t = variant<
+	using base_t = bz::variant<
 		ast_identifier_ptr,
 		ast_literal_ptr,
 		ast_unary_op_ptr,
@@ -36,11 +36,11 @@ variant<
 
 	enum : uint32_t
 	{
-		identifier       = index_of<ast_identifier_ptr>(),
-		literal          = index_of<ast_literal_ptr>(),
-		unary_op         = index_of<ast_unary_op_ptr>(),
-		binary_op        = index_of<ast_binary_op_ptr>(),
-		function_call_op = index_of<ast_function_call_op_ptr>(),
+		identifier       = index_of<ast_identifier_ptr>,
+		literal          = index_of<ast_literal_ptr>,
+		unary_op         = index_of<ast_unary_op_ptr>,
+		binary_op        = index_of<ast_binary_op_ptr>,
+		function_call_op = index_of<ast_function_call_op_ptr>,
 	};
 
 	uint32_t kind(void) const
@@ -118,9 +118,9 @@ struct ast_binary_op
 struct ast_function_call_op
 {
 	ast_expression_ptr              called = nullptr;
-	std::vector<ast_expression_ptr> params = {};
+	bz::vector<ast_expression_ptr> params = {};
 
-	ast_function_call_op(ast_expression_ptr _called, std::vector<ast_expression_ptr> _params)
+	ast_function_call_op(ast_expression_ptr _called, bz::vector<ast_expression_ptr> _params)
 		: called(std::move(_called)), params(std::move(_params))
 	{}
 };
