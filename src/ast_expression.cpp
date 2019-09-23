@@ -3,6 +3,7 @@
 
 
 ast_literal::ast_literal(src_tokens::pos stream)
+	: src_pos(stream)
 {
 	switch(stream->kind)
 	{
@@ -183,7 +184,7 @@ ast_expression::ast_expression(src_tokens::pos stream)
 		{
 			bad_token(stream, "Undefined identifier");
 		}
-		this->emplace<identifier>(make_ast_identifier(stream->value));
+		this->emplace<identifier>(make_ast_identifier(stream));
 		return;
 
 	case token::number_literal:
@@ -202,7 +203,15 @@ ast_expression::ast_expression(src_tokens::pos stream)
 		return;
 
 	case token::string_literal:
+		this->emplace<literal>(make_ast_literal(stream));
+		this->typespec = make_ast_typespec<ast_typespec::name>("str"_is);
+		return;
+
 	case token::character_literal:
+		this->emplace<literal>(make_ast_literal(stream));
+		this->typespec = make_ast_typespec<ast_typespec::name>("char"_is);
+		return;
+
 	case token::kw_null:
 	default:
 		assert(false);
@@ -221,7 +230,12 @@ ast_expression::ast_expression(ast_unary_op_ptr _unary_op)
 	);
 	if (this->typespec == nullptr)
 	{
-		fatal_error("Error: undefined unary operator '{}'\n", get_token_value(op->op));
+		bad_tokens(
+			op->get_tokens_begin(),
+			op->get_tokens_pivot(),
+			op->get_tokens_end(),
+			"Error: undefined unary operator"
+		);
 	}
 }
 
@@ -236,7 +250,12 @@ ast_expression::ast_expression(ast_binary_op_ptr _binary_op)
 	);
 	if (this->typespec == nullptr)
 	{
-		fatal_error("Error: undefined binary operator '{}'\n", get_token_value(op->op));
+		bad_tokens(
+			op->get_tokens_begin(),
+			op->get_tokens_pivot(),
+			op->get_tokens_end(),
+			"Error: undefined binary operator"
+		);
 	}
 }
 
@@ -306,9 +325,9 @@ static ast_expression_ptr parse_primary_expression(
 	case token::kw_sizeof:
 	case token::kw_typeof:
 	{
-		auto op = stream->kind;
+		auto op = stream;
 		++stream;
-		auto prec = get_unary_precedence(op);
+		auto prec = get_unary_precedence(op->kind);
 		auto expr = parse_expression_internal(stream, end, prec);
 
 		return make_ast_expression(make_ast_unary_op(op, std::move(expr)));
@@ -327,18 +346,18 @@ static ast_expression_ptr parse_expression_helper(
 	precedence p
 )
 {
-	uint32_t op;
+	auto op = stream;
 	precedence op_prec;
 
 	while (
 		stream != end
 		&&
-		(op_prec = get_binary_precedence(op = stream->kind)) <= p
+		(op_prec = get_binary_precedence((op = stream)->kind)) <= p
 	)
 	{
 		++stream;
 
-		switch (op)
+		switch (op->kind)
 		{
 		case token::paren_open:
 		{

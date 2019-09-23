@@ -54,6 +54,10 @@ bz::variant<
 	ast_expression(ast_unary_op_ptr         unary_op    );
 	ast_expression(ast_binary_op_ptr        binary_op   );
 	ast_expression(ast_function_call_op_ptr func_call_op);
+
+	src_tokens::pos get_tokens_begin() const;
+	src_tokens::pos get_tokens_pivot() const;
+	src_tokens::pos get_tokens_end() const;
 };
 
 using ast_expression_ptr = std::unique_ptr<ast_expression>;
@@ -61,11 +65,28 @@ using ast_expression_ptr = std::unique_ptr<ast_expression>;
 
 struct ast_identifier
 {
-	intern_string value;
+	intern_string   value;
+	src_tokens::pos src_pos;
 
-	ast_identifier(intern_string _value)
-		: value(std::move(_value))
+	ast_identifier(src_tokens::pos _token)
+		: value  (_token->value),
+		  src_pos(_token)
 	{}
+
+	src_tokens::pos get_tokens_begin() const
+	{
+		return this->src_pos;
+	}
+
+	src_tokens::pos get_tokens_pivot() const
+	{
+		return this->src_pos;
+	}
+
+	src_tokens::pos get_tokens_end() const
+	{
+		return this->src_pos;
+	}
 };
 
 struct ast_literal
@@ -90,18 +111,52 @@ struct ast_literal
 		uint64_t integer_value;
 		double   floating_point_value;
 	};
+	src_tokens::pos src_pos;
 
 	ast_literal(src_tokens::pos stream);
+
+	src_tokens::pos get_tokens_begin() const
+	{
+		return this->src_pos;
+	}
+
+	src_tokens::pos get_tokens_pivot() const
+	{
+		return this->src_pos;
+	}
+
+	src_tokens::pos get_tokens_end() const
+	{
+		return this->src_pos;
+	}
 };
 
 struct ast_unary_op
 {
 	uint32_t op;
 	ast_expression_ptr expr = nullptr;
+	src_tokens::pos op_src_pos;
 
-	ast_unary_op(uint32_t _op, ast_expression_ptr _expr)
-		: op(_op), expr(std::move(_expr))
+	ast_unary_op(src_tokens::pos _op, ast_expression_ptr _expr)
+		: op        (_op->kind),
+		  expr      (std::move(_expr)),
+		  op_src_pos(_op)
 	{}
+
+	src_tokens::pos get_tokens_begin() const
+	{
+		return this->op_src_pos;
+	}
+
+	src_tokens::pos get_tokens_pivot() const
+	{
+		return this->op_src_pos;
+	}
+
+	src_tokens::pos get_tokens_end() const
+	{
+		return this->expr->get_tokens_end();
+	}
 };
 
 struct ast_binary_op
@@ -109,23 +164,94 @@ struct ast_binary_op
 	uint32_t op;
 	ast_expression_ptr lhs = nullptr;
 	ast_expression_ptr rhs = nullptr;
+	src_tokens::pos op_src_pos;
 
-	ast_binary_op(uint32_t _op, ast_expression_ptr _lhs, ast_expression_ptr _rhs)
-		: op(std::move(_op)), lhs(std::move(_lhs)), rhs(std::move(_rhs))
+	ast_binary_op(src_tokens::pos _op, ast_expression_ptr _lhs, ast_expression_ptr _rhs)
+		: op        (_op->kind),
+		  lhs       (std::move(_lhs)),
+		  rhs       (std::move(_rhs)),
+		  op_src_pos(_op)
 	{}
+
+	src_tokens::pos get_tokens_begin() const
+	{
+		return this->lhs->get_tokens_begin();
+	}
+
+	src_tokens::pos get_tokens_pivot() const
+	{
+		return this->op_src_pos;
+	}
+
+	src_tokens::pos get_tokens_end() const
+	{
+		return this->rhs->get_tokens_end();
+	}
 };
 
 struct ast_function_call_op
 {
-	ast_expression_ptr              called = nullptr;
+	ast_expression_ptr             called = nullptr;
 	bz::vector<ast_expression_ptr> params = {};
 
 	ast_function_call_op(ast_expression_ptr _called, bz::vector<ast_expression_ptr> _params)
 		: called(std::move(_called)), params(std::move(_params))
 	{}
+
+	src_tokens::pos get_tokens_begin() const
+	{
+		return this->called->get_tokens_begin();
+	}
+
+	src_tokens::pos get_tokens_pivot() const
+	{
+		return this->called->get_tokens_end();
+	}
+
+	src_tokens::pos get_tokens_end() const
+	{
+		if (this->params.size() == 0)
+		{
+			return this->called->get_tokens_end() + 2;
+		}
+		else
+		{
+			return this->params.back()->get_tokens_end() + 1;
+		}
+	}
 };
 
 
+
+inline src_tokens::pos ast_expression::get_tokens_begin() const
+{
+	src_tokens::pos pos = nullptr;
+	this->visit([&pos](auto const &elem)
+	{
+		pos = elem->get_tokens_begin();
+	});
+	return pos;
+}
+
+inline src_tokens::pos ast_expression::get_tokens_pivot() const
+{
+	src_tokens::pos pos = nullptr;
+	this->visit([&pos](auto const &elem)
+	{
+		pos = elem->get_tokens_pivot();
+	});
+	return pos;
+}
+
+inline src_tokens::pos ast_expression::get_tokens_end() const
+{
+	src_tokens::pos pos = nullptr;
+	this->visit([&pos](auto const &elem)
+	{
+		pos = elem->get_tokens_end();
+	});
+	return pos;
+}
 
 
 template<typename... Args>

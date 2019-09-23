@@ -407,7 +407,7 @@ static token get_number_literal(src_file::pos &stream, src_file::pos end)
 		stream != end
 		&& (
 			is_num_char(*stream)
-			|| *stream == '.'
+			|| (*stream == '.' && is_num_char(*(stream + 1)))
 			|| *stream == '\''
 		)
 	)
@@ -548,4 +548,93 @@ token get_next_token(src_file::pos &stream, src_file::pos end)
 			{ prev, stream }
 		};
 	}
+}
+
+bz::string get_highlighted_tokens(
+	src_tokens::pos token_begin,
+	src_tokens::pos token_pivot,
+	src_tokens::pos token_end
+)
+{
+	auto src_begin = token_begin->src_pos.begin;
+	auto src_end   = token_end->src_pos.end;
+
+	auto token_begin_pos = token_begin->src_pos.begin;
+	auto token_pivot_pos = token_pivot->src_pos.begin;
+	auto token_end_pos   = token_end->src_pos.end;
+
+	assert(*src_begin != '\0');
+	while (
+		*(src_begin - 1) != '\n'
+		&& *(src_begin - 1) != '\0'
+	)
+	{
+		--src_begin;
+	}
+
+	while (
+		*src_end != '\n'
+		&& *src_end != '\0'
+	)
+	{
+		++src_end;
+	}
+
+	bz::string res;
+
+	res.reserve((src_end - src_begin) * 2);
+
+	auto print_line = [&]()
+	{
+		auto line_begin = src_begin;
+
+		for (; src_begin != src_end && *src_begin != '\n'; ++src_begin)
+		{
+			if (*src_begin != '\r')
+			{
+				res += *src_begin;
+			}
+		}
+		if (src_begin != src_end)
+		{
+			++src_begin;
+		}
+
+		res += '\n';
+
+		for (; line_begin < token_begin_pos; ++line_begin)
+		{
+			if (*line_begin == '\t')
+			{
+				res += '\t';
+			}
+			else
+			{
+				res += ' ';
+			}
+		}
+
+		for (;
+			line_begin != token_end_pos && line_begin != src_begin;
+			++line_begin
+		)
+		{
+			if (line_begin == token_pivot_pos)
+			{
+				res += '^';
+			}
+			else
+			{
+				res += '~';
+			}
+		}
+		res += '\n';
+	};
+
+	while (src_begin != src_end)
+	{
+		print_line();
+	}
+
+	return res;
 }

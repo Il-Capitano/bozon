@@ -24,26 +24,22 @@ public:
 		file.seekg(0, std::ios_base::end);
 		size_t size = file.tellg();
 		// resize the vector to the length of the file
-		// plus one for the '\0' char
-		this->_data.resize(size + 1);
+		// plus two for a '\0' at the beginning and the end
+		this->_data.resize(size + 2);
 
 		auto begin = std::istreambuf_iterator<char>(file);
 		auto end   = std::istreambuf_iterator<char>();
 
 		// sets the file to its beginning
 		file.seekg(0, std::ios_base::beg);
-		std::copy(begin, end, this->_data.begin());
+		std::copy(begin, end, this->_data.begin() + 1);
+		this->_data.front() = '\0';
 		this->_data.back() = '\0';
-
-//		for (char c : this->_data)
-//		{
-//			std::cout << c;
-//		}
 	}
 
 	pos begin(void) const
 	{
-		return this->_data.begin();
+		return this->_data.begin() + 1;
 	}
 
 	pos end(void) const
@@ -162,6 +158,8 @@ struct token
 	{
 		src_file::pos begin;
 		src_file::pos end;
+//		size_t line;
+//		size_t columb;
 	} src_pos;
 
 
@@ -173,21 +171,6 @@ struct token
 	token const *operator -> () const
 	{
 		return this;
-	}
-};
-
-inline std::ostream &operator << (std::ostream &os, token const &t)
-{
-	return os << "type: " << t.kind << "; value: '" << t.value << "';";
-}
-
-template<>
-struct bz::formatter<token>
-{
-	static bz::string format(token const &t, const char *spec, const char *spec_end)
-	{
-		bz_assert(spec == spec_end);
-		return bz::format("type: {}; value: '{}';", t.kind, t.value);
 	}
 };
 
@@ -247,7 +230,6 @@ bool is_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
 
 
-
 class src_tokens
 {
 private:
@@ -289,11 +271,45 @@ struct token_range
 };
 
 
+bz::string get_highlighted_tokens(
+	src_tokens::pos token_begin,
+	src_tokens::pos token_pivot,
+	src_tokens::pos token_end
+);
+
+inline bz::string get_highlighted_tokens(src_tokens::pos t)
+{
+	return get_highlighted_tokens(t, t, t);
+}
+
+inline void bad_token(src_tokens::pos stream)
+{
+	fatal_error("{}Unexpected token: '{}'\n", get_highlighted_tokens(stream), stream->value);
+}
+
+inline void bad_token(src_tokens::pos stream, bz::string_view message)
+{
+	fatal_error(
+		"{}{}\n",
+		get_highlighted_tokens(stream), message
+	);
+}
+
+inline void bad_tokens(
+	src_tokens::pos begin,
+	src_tokens::pos pivot,
+	src_tokens::pos end,
+	bz::string_view message
+)
+{
+	fatal_error("{}{}\n", get_highlighted_tokens(begin, pivot, end), message);
+}
+
 inline token assert_token(src_tokens::pos &stream, uint32_t kind)
 {
 	if (stream->kind != kind)
 	{
-		fatal_error("Unexpected token: {}\nExpected '{}'\n", *stream, get_token_value(kind));
+		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
 	}
 	auto t = *stream;
 	++stream;
@@ -304,18 +320,8 @@ inline void assert_token(src_tokens::pos stream, uint32_t kind, bool)
 {
 	if (stream->kind != kind)
 	{
-		fatal_error("Unexpected token: {}\nExpected '{}'\n", *stream, get_token_value(kind));
+		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
 	}
-}
-
-inline void bad_token(src_tokens::pos stream)
-{
-	fatal_error("Unexpected token: {}\n", *stream);
-}
-
-inline void bad_token(src_tokens::pos stream, const char *message)
-{
-	fatal_error("Unexpected token: {}\n{}\n", *stream, message);
 }
 
 #endif // LEXER_H
