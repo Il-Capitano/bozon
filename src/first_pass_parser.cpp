@@ -11,43 +11,11 @@ void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 	}
 }
 
-
-
-fp_statement::fp_statement(fp_if_statement_ptr if_stmt)
-	: base_t(std::move(if_stmt))
-{}
-
-fp_statement::fp_statement(fp_while_statement_ptr while_stmt)
-	: base_t(std::move(while_stmt))
-{}
-
-fp_statement::fp_statement(fp_for_statement_ptr for_stmt)
-	: base_t(std::move(for_stmt))
-{}
-
-fp_statement::fp_statement(fp_return_statement_ptr return_stmt)
-	: base_t(std::move(return_stmt))
-{}
-
-fp_statement::fp_statement(fp_no_op_statement_ptr no_op_stmt)
-	: base_t(std::move(no_op_stmt))
-{}
-
-fp_statement::fp_statement(fp_compound_statement_ptr compound_stmt)
-	: base_t(std::move(compound_stmt))
-{}
-
-fp_statement::fp_statement(fp_expression_statement_ptr expr_stmt)
-	: base_t(std::move(expr_stmt))
-{}
-
-fp_statement::fp_statement(fp_declaration_statement_ptr decl_stmt)
-	: base_t(std::move(decl_stmt))
-{}
-
-
 template<uint32_t ...end_tokens>
-static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens::pos end)
+static token_range get_expression_or_type(
+	src_tokens::pos &stream,
+	src_tokens::pos  end
+)
 {
 	auto begin = stream;
 
@@ -79,6 +47,7 @@ static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens
 		case token::colon:
 		case token::kw_auto:
 		case token::kw_const:
+		case token::kw_function:
 			return true;
 
 		default:
@@ -94,7 +63,7 @@ static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens
 		case token::paren_open:
 		{
 			++stream; // '('
-			get_fp_expression_or_type<token::paren_close>(stream, end);
+			get_expression_or_type<token::paren_close>(stream, end);
 			assert_token(stream, token::paren_close);
 			break;
 		}
@@ -102,7 +71,7 @@ static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens
 		case token::curly_open:
 		{
 			++stream; // '{'
-			get_fp_expression_or_type<token::curly_close>(stream, end);
+			get_expression_or_type<token::curly_close>(stream, end);
 			assert_token(stream, token::curly_close);
 			break;
 		}
@@ -110,7 +79,7 @@ static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens
 		case token::square_open:
 		{
 			++stream; // '['
-			get_fp_expression_or_type<token::square_close>(stream, end);
+			get_expression_or_type<token::square_close>(stream, end);
 			assert_token(stream, token::square_close);
 			break;
 		}
@@ -124,31 +93,78 @@ static token_range get_fp_expression_or_type(src_tokens::pos &stream, src_tokens
 	return { begin, stream };
 }
 
-
-static token_range get_fp_parameters(src_tokens::pos &stream, src_tokens::pos end)
+static bz::vector<ast_variable> get_function_params(
+	src_tokens::pos &stream,
+	src_tokens::pos  end
+)
 {
-	return get_fp_expression_or_type<token::paren_close>(stream, end);
+	assert_token(stream, token::paren_open);
+	bz::vector<ast_variable> params;
+
+	if (stream->kind == token::paren_close)
+	{
+		return params;
+	}
+
+	do
+	{
+		intern_string id;
+		if (stream->kind == token::identifier)
+		{
+			id = stream->value;
+			++stream;
+		}
+		else
+		{
+			id = ""_is;
+		}
+
+		assert_token(stream, token::colon);
+
+		auto type = get_expression_or_type<token::paren_close, token::comma>(stream, end);
+
+		params.push_back(
+			{
+				id,
+				make_ast_typespec(
+					ast_ts_unresolved(type)
+				)
+			}
+		);
+	} while (
+		stream != end
+		&& stream->kind == token::comma
+		&& (++stream, true)
+	);
+
+	assert_token(stream, token::paren_close);
+
+	return params;
 }
 
-static fp_compound_statement_ptr get_fp_compound_statement(
+
+static ast_compound_statement_ptr get_ast_compound_statement(
 	src_tokens::pos &stream,
 	src_tokens::pos end
 )
 {
 	assert_token(stream, token::curly_open);
-	bz::vector<fp_statement_ptr> stms;
+	bz::vector<ast_statement_ptr> stmts;
 
 	while (stream != end && stream->kind != token::curly_close)
 	{
-		stms.emplace_back(get_fp_statement(stream, end));
+		stmts.emplace_back(get_ast_statement(stream, end));
 	}
 	assert(stream != end);
 	++stream; // '}'
 
-	return make_fp_compound_statement(std::move(stms));
+	return make_ast_compound_statement(std::move(stmts));
 }
 
-fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
+ast_statement_ptr get_ast_statement(
+	src_tokens::pos &stream,
+	src_tokens::pos  end
+)
 {
 	switch (stream->kind)
 	{
@@ -158,19 +174,19 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 		++stream; // 'if'
 
 		assert_token(stream, token::paren_open);
-		auto condition = get_fp_expression_or_type<token::paren_close>(stream, end);
+		auto condition = get_expression_or_type<token::paren_close>(stream, end);
 		assert_token(stream, token::paren_close);
 
-		auto if_block = get_fp_statement(stream, end);
+		auto if_block = get_ast_statement(stream, end);
 
 		if (stream->kind == token::kw_else)
 		{
 			++stream; // 'else'
-			auto else_block = get_fp_statement(stream, end);
+			auto else_block = get_ast_statement(stream, end);
 
-			return make_fp_statement(
-				make_fp_if_statement(
-					condition,
+			return make_ast_statement(
+				make_ast_if_statement(
+					make_ast_expression(make_ast_expr_unresolved(condition)),
 					std::move(if_block),
 					std::move(else_block)
 				)
@@ -178,9 +194,9 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 		}
 		else
 		{
-			return make_fp_statement(
-				make_fp_if_statement(
-					condition,
+			return make_ast_statement(
+				make_ast_if_statement(
+					make_ast_expression(make_ast_expr_unresolved(condition)),
 					std::move(if_block),
 					nullptr
 				)
@@ -194,14 +210,14 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 		++stream; // 'while'
 
 		assert_token(stream, token::paren_open);
-		auto condition = get_fp_expression_or_type<token::paren_close>(stream, end);
+		auto condition = get_expression_or_type<token::paren_close>(stream, end);
 		assert_token(stream, token::paren_close);
 
-		auto while_block = get_fp_statement(stream, end);
+		auto while_block = get_ast_statement(stream, end);
 
-		return make_fp_statement(
-			make_fp_while_statement(
-				condition,
+		return make_ast_statement(
+			make_ast_while_statement(
+				make_ast_expression(make_ast_expr_unresolved(condition)),
 				std::move(while_block)
 			)
 		);
@@ -220,11 +236,13 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	{
 		++stream; // 'return'
 
-		auto expr = get_fp_expression_or_type<token::semi_colon>(stream, end);
+		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
-		return make_fp_statement(
-			make_fp_return_statement(expr)
+		return make_ast_statement(
+			make_ast_return_statement(
+				make_ast_expression(make_ast_expr_unresolved(expr))
+			)
 		);
 	}
 
@@ -232,14 +250,14 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	case token::semi_colon:
 	{
 		++stream; // ';'
-		return make_fp_statement(make_fp_no_op_statement());
+		return make_ast_statement(make_ast_no_op_statement());
 	}
 
 	// compound statement
 	case token::curly_open:
 	{
-		return make_fp_statement(
-			get_fp_compound_statement(stream, end)
+		return make_ast_statement(
+			get_ast_compound_statement(stream, end)
 		);
 	}
 
@@ -249,13 +267,48 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 		++stream; // 'let'
 		assert(stream != end);
 
-		auto id = assert_token(stream, token::identifier).value;
-		auto type_and_init = get_fp_expression_or_type<token::semi_colon>(stream, end);
-		assert_token(stream, token::semi_colon);
+		auto id = assert_token(stream, token::identifier);
 
-		return make_fp_statement(
-			make_fp_declaration_statement(
-				make_fp_variable_decl(id, type_and_init)
+		ast_typespec_ptr type = nullptr;
+
+		if (stream->kind == token::colon)
+		{
+			++stream; // ':'
+			auto type_tokens = get_expression_or_type<
+				token::assign, token::semi_colon
+			>(stream, end);
+
+			type = make_ast_typespec(ast_ts_unresolved(type_tokens));
+
+			if (stream->kind == token::semi_colon)
+			{
+				++stream; // ';'
+				return make_ast_statement(
+					make_ast_declaration_statement(
+						make_ast_variable_decl(
+							id, type, nullptr
+						)
+					)
+				);
+			}
+		}
+		else if (stream->kind != token::assign)
+		{
+			bad_token(stream, "Expected '=' or ':'");
+		}
+
+		assert_token(stream, token::assign);
+
+		auto init = get_expression_or_type<token::semi_colon>(stream, end);
+
+		assert_token(stream, token::semi_colon);
+		return make_ast_statement(
+			make_ast_declaration_statement(
+				make_ast_variable_decl(
+					id,
+					type,
+					make_ast_expression(make_ast_expr_unresolved(init))
+				)
 			)
 		);
 	}
@@ -271,20 +324,22 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	case token::kw_function:
 	{
 		++stream; // 'function'
-		auto id = assert_token(stream, token::identifier).value;
+		auto id = assert_token(stream, token::identifier);
 
-		assert_token(stream, token::paren_open);
-		auto params = get_fp_parameters(stream, end);
-		assert_token(stream, token::paren_close);
+		auto params = get_function_params(stream, end);
 
 		assert_token(stream, token::arrow);
-		auto ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
+		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
 
-		auto body = get_fp_compound_statement(stream, end);
-		return make_fp_statement(
-			make_fp_declaration_statement(
-				make_fp_function_decl(
-					id, params, ret_type, std::move(body)
+		return make_ast_statement(
+			make_ast_declaration_statement(
+				make_ast_function_decl(
+					id,
+					std::move(params),
+					make_ast_typespec(
+						ast_ts_unresolved(ret_type)
+					),
+					get_ast_compound_statement(stream, end)
 				)
 			)
 		);
@@ -294,25 +349,36 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	case token::kw_operator:
 	{
 		++stream; // 'operator'
-		auto op = stream->kind;
-		if (!is_operator(op))
+		auto op = stream;
+		if (!is_overloadable_operator(op->kind))
 		{
 			bad_token(stream, "Expected overloadable operator");
 		}
-		++stream;
 
-		assert_token(stream, token::paren_open);
-		auto params = get_fp_parameters(stream, end);
-		assert_token(stream, token::paren_close);
+		++stream;
+		if (op->kind == token::paren_open)
+		{
+			assert_token(stream, token::paren_close);
+		}
+		else if (op->kind == token::square_open)
+		{
+			assert_token(stream, token::square_close);
+		}
+
+		auto params = get_function_params(stream, end);
 
 		assert_token(stream, token::arrow);
-		auto ret_type = get_fp_expression_or_type<token::curly_open>(stream, end);
+		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
 
-		auto body = get_fp_compound_statement(stream, end);
-		return make_fp_statement(
-			make_fp_declaration_statement(
-				make_fp_operator_decl(
-					op, params, ret_type, std::move(body)
+		return make_ast_statement(
+			make_ast_declaration_statement(
+				make_ast_operator_decl(
+					op,
+					std::move(params),
+					make_ast_typespec(
+						ast_ts_unresolved(ret_type)
+					),
+					get_ast_compound_statement(stream, end)
 				)
 			)
 		);
@@ -321,23 +387,25 @@ fp_statement_ptr get_fp_statement(src_tokens::pos &stream, src_tokens::pos end)
 	// expression statement
 	default:
 	{
-		auto expr = get_fp_expression_or_type<token::semi_colon>(stream, end);
+		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
-		return make_fp_statement(
-			make_fp_expression_statement(expr)
+		return make_ast_statement(
+			make_ast_expression_statement(
+				make_ast_expression(make_ast_expr_unresolved(expr))
+			)
 		);
 	}
 	}
 }
 
 
-bz::vector<fp_statement_ptr> get_fp_statements(src_tokens::pos &stream, src_tokens::pos end)
+bz::vector<ast_statement_ptr> get_ast_statements(src_tokens::pos &stream, src_tokens::pos end)
 {
-	bz::vector<fp_statement_ptr> statements = {};
+	bz::vector<ast_statement_ptr> statements = {};
 	while (stream->kind != token::eof)
 	{
-		statements.emplace_back(get_fp_statement(stream, end));
+		statements.emplace_back(get_ast_statement(stream, end));
 	}
-	return std::move(statements);
+	return statements;
 }

@@ -2,302 +2,171 @@
 #include "context.h"
 
 
-bz::vector<ast_variable> get_function_params(token_range tokens)
+void ast_statement::resolve(void)
 {
-	auto it  = tokens.begin;
-	auto end = tokens.end;
-
-	if (it == end)
+	switch (this->kind())
 	{
-		return {};
+	case if_statement:
+	{
+		auto &if_stmt = this->get<if_statement>();
+		if_stmt->condition->resolve();
+		if_stmt->then_block->resolve();
+		if_stmt->else_block->resolve();
+		return;
 	}
 
-	auto get_variable = [&]() -> ast_variable
+	case while_statement:
 	{
-		if (it == end)
-		{
-			bad_token(end, "Expected variable definition");
-		}
-
-		intern_string id;
-		if (it->kind == token::identifier)
-		{
-			id = it->value;
-			++it;
-			if (it == end)
-			{
-				fatal_error("Expected ':' in parameter list\n");
-			}
-		}
-
-		assert_token(it, token::colon);
-		if (it == end)
-		{
-			fatal_error("Expected type in parameter list\n");
-		}
-
-		auto type = parse_ast_typespec(it, end);
-		return { id, type };
-	};
-
-	bz::vector<ast_variable> params = {};
-	params.emplace_back(get_variable());
-
-	while (it != end)
-	{
-		assert_token(it, token::comma);
-		params.emplace_back(get_variable());
+		auto &while_stmt = this->get<while_statement>();
+		while_stmt->condition->resolve();
+		while_stmt->while_block->resolve();
+		return;
 	}
 
-	return params;
-}
-
-
-ast_statement::ast_statement(fp_statement_ptr const &stmt)
-	: base_t()
-{
-	switch (stmt->kind())
-	{
-	case fp_statement::if_statement:
-	{
-		auto &if_stmt = stmt->get<fp_statement::if_statement>();
-		this->emplace<if_statement>(
-			make_ast_if_statement(
-				parse_ast_expression(if_stmt->condition),
-				make_ast_statement(if_stmt->then_block),
-				if_stmt->else_block
-					? make_ast_statement(if_stmt->else_block)
-					: nullptr
-			)
-		);
-		break;
-	}
-
-	case fp_statement::while_statement:
-	{
-		auto &while_stmt = stmt->get<fp_statement::while_statement>();
-		this->emplace<while_statement>(
-			make_ast_while_statement(
-				parse_ast_expression(while_stmt->condition),
-				make_ast_statement(while_stmt->while_block)
-			)
-		);
-		break;
-	}
-
-	case fp_statement::for_statement:
+	case for_statement:
 		assert(false);
 		return;
 
-	case fp_statement::return_statement:
-		this->emplace<return_statement>(
-			make_ast_return_statement(
-				parse_ast_expression(stmt->get<fp_statement::return_statement>()->expr)
-			)
-		);
-		break;
-
-	case fp_statement::no_op_statement:
-		this->emplace<no_op_statement>(make_ast_no_op_statement());
-		break;
-
-	case fp_statement::compound_statement:
+	case return_statement:
 	{
-		bz::vector<ast_statement_ptr> statements;
-		auto &comp_stmt = stmt->get<fp_statement::compound_statement>();
-		for (auto &s : comp_stmt->statements)
-		{
-			statements.emplace_back(make_ast_statement(s));
-		}
-		this->emplace<compound_statement>(
-			make_ast_compound_statement(
-				std::move(statements)
-			)
-		);
-		break;
+		auto &ret_stmt = this->get<return_statement>();
+		ret_stmt->expr->resolve();
+		return;
 	}
 
-	case fp_statement::expression_statement:
-		this->emplace<expression_statement>(
-			make_ast_expression_statement(
-				parse_ast_expression(stmt->get<fp_statement::expression_statement>()->expr)
-			)
-		);
-		break;
+	case no_op_statement:
+		return;
 
-	case fp_statement::declaration_statement:
-		this->emplace<declaration_statement>(
-			make_ast_declaration_statement(
-				stmt->get<fp_statement::declaration_statement>()
-			)
-		);
-		break;
+	case compound_statement:
+	{
+		++context;
+		auto &comp_stmt = this->get<compound_statement>();
+		for (auto &s : comp_stmt->statements)
+		{
+			s->resolve();
+		}
+		--context;
+		return;
+	}
+
+	case expression_statement:
+	{
+		auto &expr_stmt = this->get<expression_statement>();
+		expr_stmt->expr->resolve();
+		return;
+	}
+
+	case declaration_statement:
+	{
+		auto &decl_stmt = this->get<declaration_statement>();
+		decl_stmt->resolve();
+		return;
+	}
 
 	default:
 		assert(false);
-		break;
+		return;
 	}
 }
 
-ast_declaration_statement::ast_declaration_statement(fp_declaration_statement_ptr const &decl)
-	: base_t()
+void ast_declaration_statement::resolve(void)
 {
-	switch (decl->kind())
+	switch (this->kind())
 	{
-	case fp_declaration_statement::variable_decl:
+	case variable_decl:
 	{
-		auto &var_decl = decl->get<fp_declaration_statement::variable_decl>();
-		auto id = var_decl->identifier;
+		auto &var_decl = this->get<variable_decl>();
 
-		auto stream = var_decl->type_and_init.begin;
-		auto end    = var_decl->type_and_init.end;
-
-		if (stream == end)
+		if (var_decl->typespec)
 		{
-			bad_token(stream, "Invalid variable declaration");
+			var_decl->typespec->resolve();
+		}
+		if (var_decl->init_expr)
+		{
+			var_decl->init_expr->resolve();
 		}
 
-		ast_typespec_ptr typespec = nullptr;
-		if (stream->kind == token::colon)
+		if (!var_decl->typespec || var_decl->typespec->kind() == ast_typespec::none)
 		{
-			++stream; // ':'
-			assert(stream != end);
-			typespec = parse_ast_typespec(stream, end);
-
-			context.add_variable(id, typespec);
-
-			if (stream == end)
-			{
-				this->emplace<variable_decl>(
-					make_ast_variable_decl(
-						id, std::move(typespec), ast_expression_ptr(nullptr)
-					)
-				);
-				return;
-			}
+			assert(var_decl->init_expr);
+			var_decl->typespec = var_decl->init_expr->typespec;
 		}
 
-		assert_token(stream, token::assign);
+		context.add_variable(var_decl->identifier->value, var_decl->typespec);
 
-		auto init_expr = parse_ast_expression(stream, end);
-		if (stream != end)
-		{
-			bad_token(stream, "Expected ';'");
-		}
-
-		if (!typespec)
-		{
-			typespec = init_expr->typespec;
-			context.add_variable(id, typespec);
-		}
-
-		this->emplace<variable_decl>(
-			make_ast_variable_decl(
-				id, std::move(typespec), std::move(init_expr)
-			)
-		);
-		break;
+		return;
 	}
 
-	case fp_declaration_statement::function_decl:
+	case function_decl:
 	{
-		auto &func_decl = decl->get<fp_declaration_statement::function_decl>();
-
-		auto id = func_decl->identifier;
-		auto ret_type = parse_ast_typespec(func_decl->return_type);
-		auto params = get_function_params(func_decl->params);
-
-		bz::vector<ast_typespec_ptr> param_types;
-		bz::vector<intern_string>    param_ids;
-
-		param_types.reserve(params.size());
-		param_ids.reserve(params.size());
-
-		for (auto &p : params)
-		{
-			param_types.emplace_back(p.type);
-			param_ids.emplace_back(p.id);
-		}
-
-		auto fn_type = make_ast_function_type(ret_type, param_types);
-		context.add_function(id, fn_type);
+		auto &fn_decl = this->get<function_decl>();
 
 		++context;
-		for (auto &p : params)
+		bz::vector<ast_typespec_ptr> param_types = {};
+		param_types.reserve(fn_decl->params.size());
+		for (auto &p : fn_decl->params)
 		{
+			p.type->resolve();
+			param_types.emplace_back(p.type);
 			context.add_variable(p.id, p.type);
 		}
-
-		bz::vector<ast_statement_ptr> body;
-		body.reserve(func_decl->body->statements.size());
-
-		for (auto &stmt : func_decl->body->statements)
+		if (!context.add_function(
+			fn_decl->identifier->value,
+			ast_ts_function(fn_decl->return_type, std::move(param_types))
+		))
 		{
-			body.emplace_back(make_ast_statement(stmt));
+			bad_token(fn_decl->identifier, "Error: function redefinition");
 		}
 
-		this->emplace<function_decl>(
-			make_ast_function_decl(
-				id,
-				fn_type,
-				make_ast_compound_statement(std::move(body))
-			)
-		);
-		break;
+		fn_decl->return_type->resolve();
+
+		for (auto &s : fn_decl->body->statements)
+		{
+			s->resolve();
+		}
+		--context;
+
+		return;
 	}
 
-	case fp_declaration_statement::operator_decl:
+	case operator_decl:
 	{
-		auto &op_decl = decl->get<fp_declaration_statement::operator_decl>();
-
-		auto op = op_decl->op;
-		auto ret_type = parse_ast_typespec(op_decl->return_type);
-		auto params = get_function_params(op_decl->params);
-
-		bz::vector<ast_typespec_ptr> param_types;
-		bz::vector<intern_string>    param_ids;
-
-		param_types.reserve(params.size());
-		param_ids.reserve(params.size());
-
-		for (auto &p : params)
-		{
-			param_types.emplace_back(p.type);
-			param_ids.emplace_back(p.id);
-		}
-
-		auto fn_type = make_ast_function_type(ret_type, param_types);
-		context.add_operator(op, fn_type);
+		auto &op_decl = this->get<operator_decl>();
 
 		++context;
-		for (auto &p : params)
+		bz::vector<ast_typespec_ptr> param_types = {};
+		param_types.reserve(op_decl->params.size());
+		for (auto &p : op_decl->params)
 		{
+			p.type->resolve();
+			param_types.emplace_back(p.type);
 			context.add_variable(p.id, p.type);
 		}
-
-		bz::vector<ast_statement_ptr> body;
-		body.reserve(op_decl->body->statements.size());
-
-		for (auto &stmt : op_decl->body->statements)
+		if (!context.add_operator(
+			op_decl->op->kind,
+			ast_ts_function(op_decl->return_type, std::move(param_types))
+		))
 		{
-			body.emplace_back(make_ast_statement(stmt));
+			bad_token(op_decl->op, "Error: operator redefinition");
 		}
 
-		this->emplace<operator_decl>(
-			make_ast_operator_decl(
-				op,
-				fn_type,
-				make_ast_compound_statement(std::move(body))
-			)
-		);
-		break;
+		op_decl->return_type->resolve();
+
+		for (auto &s : op_decl->body->statements)
+		{
+			s->resolve();
+		}
+		--context;
+
+		return;
 	}
 
-	case fp_declaration_statement::struct_decl:
-		break;
+	case struct_decl:
+		assert(false);
+		return;
 
 	default:
 		assert(false);
-		break;
+		return;
 	}
 }

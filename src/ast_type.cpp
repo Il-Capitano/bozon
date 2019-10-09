@@ -1,71 +1,146 @@
 #include "ast_type.h"
 
-
-static ast_typespec_ptr parse_ast_typespec_internal(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
-)
+void ast_typespec::resolve(void)
 {
-	assert(stream != end);
+	switch (this->kind())
+	{
+	case unresolved:
+	{
+		auto &type = this->get<unresolved>();
 
-	switch (stream->kind)
-	{
-	case token::paren_open:
-	{
-		++stream; // '('
-		auto t = parse_ast_typespec_internal(stream, end);
+		auto stream = type.typespec.begin;
+		auto end    = type.typespec.end;
+
 		if (stream == end)
 		{
-			assert(false);
+			this->emplace<none>();
+			return;
 		}
-		assert_token(stream, token::paren_close);
-		return std::move(t);
+
+		switch (stream->kind)
+		{
+		case token::identifier:
+		{
+			auto id = stream->value;
+			++stream;
+			if (stream != end)
+			{
+				bad_token(stream);
+			}
+
+			this->emplace<name>(id);
+			return;
+		}
+
+		case token::kw_const:
+		{
+			++stream; // 'const'
+			this->emplace<constant>(
+				make_ast_typespec(ast_ts_unresolved({ stream, end }))
+			);
+
+			this->get<constant>().base->resolve();
+			return;
+		}
+
+		case token::star:
+		{
+			++stream; // '*'
+			this->emplace<pointer>(
+				make_ast_typespec(ast_ts_unresolved({ stream, end }))
+			);
+
+			this->get<pointer>().base->resolve();
+			return;
+		}
+
+		case token::ampersand:
+		{
+			++stream; // '&'
+			this->emplace<reference>(
+				make_ast_typespec(ast_ts_unresolved({ stream, end }))
+			);
+
+			this->get<reference>().base->resolve();
+			return;
+		}
+
+		case token::kw_function:
+		{
+			++stream; // 'function'
+			assert_token(stream, token::paren_open, false);
+
+			bz::vector<ast_typespec_ptr> param_types = {};
+			while (stream != end && stream->kind != token::paren_close)
+			{
+				++stream;
+				auto param_begin = stream;
+				while (
+					stream != end
+					&& stream->kind != token::comma
+					&& stream->kind != token::paren_close
+				)
+				{
+					++stream;
+				}
+				auto param_end = stream;
+
+				param_types.emplace_back(
+					make_ast_typespec(
+						ast_ts_unresolved({ param_begin, param_end })
+					)
+				);
+				param_types.back()->resolve();
+			}
+			assert_token(stream, token::paren_close);
+			assert_token(stream, token::arrow);
+
+			auto ret_type = make_ast_typespec(
+				ast_ts_unresolved({ stream, end })
+			);
+			ret_type->resolve();
+
+			this->emplace<function>(ret_type, std::move(param_types));
+			return;
+		}
+
+		default:
+			bad_token(stream, "Expected a type");
+			return;
+		}
 	}
 
-	case token::ampersand:
-		++stream; // '&'
-		return make_ast_typespec<ast_typespec::reference>(parse_ast_typespec_internal(stream, end));
+	case name:
+		return;
 
-	case token::star:
-		++stream; // '*'
-		return make_ast_typespec<ast_typespec::pointer>(parse_ast_typespec_internal(stream, end));
+	case constant:
+		this->get<constant>().base->resolve();
+		return;
 
-	case token::kw_const:
-		++stream; // 'const'
-		return make_ast_typespec<ast_typespec::constant>(parse_ast_typespec_internal(stream, end));
+	case pointer:
+		this->get<pointer>().base->resolve();
+		return;
 
-	case token::identifier:
+	case reference:
+		this->get<reference>().base->resolve();
+		return;
+
+	case function:
 	{
-		auto id = stream->value;
-		++stream;
-		return make_ast_typespec<ast_typespec::name>(id);
+		auto &fn = this->get<function>();
+		fn.return_type->resolve();
+		for (auto &t : fn.argument_types)
+		{
+			t->resolve();
+		}
+		return;
 	}
+
+	case none:
+		return;
 
 	default:
-		// TODO: auto type
 		assert(false);
-		return nullptr;
+		return;
 	}
-}
-
-ast_typespec_ptr parse_ast_typespec(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
-)
-{
-	return parse_ast_typespec_internal(stream, end);
-}
-
-ast_typespec_ptr parse_ast_typespec(token_range type)
-{
-	auto stream = type.begin;
-	auto end    = type.end;
-
-	auto rv = parse_ast_typespec_internal(stream, end);
-	if (stream != end)
-	{
-		bad_token(stream);
-	}
-
-	return std::move(rv);
 }

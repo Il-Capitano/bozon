@@ -305,13 +305,13 @@ inline void bad_tokens(
 	fatal_error("{}{}\n", get_highlighted_tokens(begin, pivot, end), message);
 }
 
-inline token assert_token(src_tokens::pos &stream, uint32_t kind)
+inline src_tokens::pos assert_token(src_tokens::pos &stream, uint32_t kind)
 {
 	if (stream->kind != kind)
 	{
 		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
 	}
-	auto t = *stream;
+	auto t = stream;
 	++stream;
 	return t;
 }

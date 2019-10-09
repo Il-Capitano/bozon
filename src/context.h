@@ -8,19 +8,13 @@
 struct function_overload_set
 {
 	intern_string id;
-	bz::vector<ast_function_type_ptr> set;
+	bz::vector<ast_ts_function> set;
 };
 
 struct operator_overload_set
 {
 	uint32_t op;
-	bz::vector<ast_function_type_ptr> set;
-};
-
-struct ast_variable
-{
-	intern_string id;
-	ast_typespec_ptr type;
+	bz::vector<ast_ts_function> set;
 };
 
 struct parse_context
@@ -28,6 +22,8 @@ struct parse_context
 	bz::vector<bz::vector<ast_variable>> variables;
 	bz::vector<function_overload_set>    functions;
 	bz::vector<operator_overload_set>    operators;
+
+//	bz::vector<bz::vector<>> types;
 
 	parse_context(void)
 		: variables{{}},
@@ -45,13 +41,16 @@ struct parse_context
 		this->variables.pop_back();
 	}
 
-	void add_variable(intern_string id, ast_typespec_ptr      type);
-	void add_function(intern_string id, ast_function_type_ptr type);
-	void add_operator(uint32_t      op, ast_function_type_ptr type);
+	bool add_variable(intern_string id, ast_typespec_ptr type);
+	bool add_function(intern_string id, ast_ts_function  type);
+	bool add_operator(uint32_t      op, ast_ts_function  type);
 
-	ast_typespec_ptr get_variable_type(intern_string id);
-	ast_typespec_ptr get_function_type(intern_string id, bz::vector<ast_typespec_ptr> const &args);
-	ast_typespec_ptr get_operator_type(uint32_t      op, bz::vector<ast_typespec_ptr> const &args);
+	bool is_variable(intern_string id);
+	bool is_function(intern_string id);
+
+	ast_typespec_ptr get_identifier_type(src_tokens::pos t);
+	ast_typespec_ptr get_function_type(intern_string   id, bz::vector<ast_typespec_ptr> const &args);
+	ast_typespec_ptr get_operator_type(uint32_t        op, bz::vector<ast_typespec_ptr> const &args);
 };
 
 extern parse_context context;

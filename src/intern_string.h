@@ -63,6 +63,9 @@ public:
 	operator bz::string ()
 	{ return this->_data; }
 
+	operator bz::string_view ()
+	{ return this->_data; }
+
 
 	const char *get(void) const
 	{ return this->_data; }
@@ -77,8 +80,39 @@ public:
 	friend bool operator == (intern_string lhs, intern_string rhs)
 	{ return lhs._data == rhs._data; }
 
+	friend bool operator == (intern_string lhs, bz::string_view rhs)
+	{
+		if (lhs.length() != rhs.length())
+		{
+			return false;
+		}
+
+		auto lhs_it  = lhs._data;
+		auto rhs_it  = rhs.begin();
+		auto rhs_end = rhs.end();
+
+		for (; rhs_it != rhs_end; ++lhs_it, ++rhs_it)
+		{
+			if (*lhs_it != *rhs_it)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	friend bool operator == (bz::string_view lhs, intern_string rhs)
+	{ return rhs == lhs; }
+
 	friend bool operator != (intern_string lhs, intern_string rhs)
 	{ return lhs._data != rhs._data; }
+
+	friend bool operator != (intern_string lhs, bz::string_view rhs)
+	{ return lhs != rhs; }
+
+	friend bool operator != (bz::string_view lhs, intern_string rhs)
+	{ return lhs != rhs; }
 
 	friend std::ostream &operator << (std::ostream &os, intern_string str)
 	{

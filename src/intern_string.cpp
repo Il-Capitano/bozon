@@ -9,16 +9,6 @@ bz::vector<std::unique_ptr<const char[]>> intern_string::_buffer_data = {};
 
 char const *intern_string::add_string(bz::string_view str)
 {
-	if (str.length() == 0)
-	{
-		return nullptr;
-	}
-
-	if (str.length() == 0)
-	{
-		return nullptr;
-	}
-
 	auto new_str = std::make_unique<char[]>(str.length() + 1);
 	for (size_t i = 0; i < str.length(); ++i)
 	{
@@ -35,7 +25,7 @@ char const *intern_string::add_string(const char *begin, const char *end)
 	if (
 		begin == nullptr
 		|| end == nullptr
-		|| begin >= end)
+		|| begin > end)
 	{
 		return nullptr;
 	}
@@ -54,11 +44,6 @@ char const *intern_string::add_string(const char *begin, const char *end)
 
 char const *intern_string::get_string(bz::string_view str)
 {
-	if (str.length() == 0)
-	{
-		return nullptr;
-	}
-
 	auto it = std::find_if(
 		_buffer_data.begin(),
 		_buffer_data.end(),

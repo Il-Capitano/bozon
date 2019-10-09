@@ -214,6 +214,8 @@ bool is_overloadable_operator(uint32_t kind)
 	case token::plus_plus:          // '++'  unary
 	case token::minus_minus:        // '--'  unary
 	case token::arrow:              // '->'        binary
+	case token::square_open:        // '[]'        binary
+	case token::paren_open:         // function call
 		return true;
 
 	default:

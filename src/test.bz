@@ -1,6 +1,15 @@
 operator + (: int32, : int32) -> int32
 {}
 
+operator - (: int32, : int32) -> int32
+{}
+
+operator * (: int32, : int32) -> int32
+{}
+
+operator / (: int32, : int32) -> int32
+{}
+
 operator + (: float64, : float64) -> float64
 {}
 
@@ -14,6 +23,15 @@ operator || (: bool, : bool) -> bool
 {}
 
 operator .. (: str, : str) -> str
+{}
+
+operator () (: str) -> int32
+{}
+
+operator () (: str, : float64) -> float64
+{}
+
+operator [] (: str, : int32) -> char
 {}
 
 
@@ -32,8 +50,31 @@ function factorial(n: int32) -> int32
 	let h = 0.0 + 1;
 
 	"hello" .. " world\n";
-	0..10;
+
+	let i = "test"();
+	let j = "test"(0.0);
+	let k = "test"[2];
+	let l = ("test1" .. "test2")();
+
+	{
+		let m = i;
+	}
+
+//	let n = m;
+
+	return factorial(n - 1) * n;
 }
+
+let a = factorial;
+
+function factorial(: float64) -> float64
+{
+	let a: function(int32, str, float32) -> char;
+	let b;
+	return 0.0;
+}
+
+// let b = factorial(0.0);
 
 
 

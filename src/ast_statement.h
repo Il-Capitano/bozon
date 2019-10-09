@@ -3,7 +3,6 @@
 
 #include "core.h"
 
-#include "first_pass_parser.h"
 #include "ast_expression.h"
 #include "ast_type.h"
 
@@ -25,57 +24,45 @@ struct ast_declaration_statement;
 using ast_declaration_statement_ptr = std::unique_ptr<ast_declaration_statement>;
 
 
+#define _ast_statement_types \
+_o(if_statement),            \
+_o(while_statement),         \
+_o(for_statement),           \
+_o(return_statement),        \
+_o(no_op_statement),         \
+_o(compound_statement),      \
+_o(expression_statement),    \
+_o(declaration_statement)
+
+
+#define _o(x) ast_##x##_ptr
+
 struct ast_statement :
-bz::variant<
-	ast_if_statement_ptr,
-	ast_while_statement_ptr,
-	ast_for_statement_ptr,
-	ast_return_statement_ptr,
-	ast_no_op_statement_ptr,
-	ast_compound_statement_ptr,
-	ast_expression_statement_ptr,
-	ast_declaration_statement_ptr
->
+bz::variant< _ast_statement_types >
 {
-	using base_t = bz::variant<
-		ast_if_statement_ptr,
-		ast_while_statement_ptr,
-		ast_for_statement_ptr,
-		ast_return_statement_ptr,
-		ast_no_op_statement_ptr,
-		ast_compound_statement_ptr,
-		ast_expression_statement_ptr,
-		ast_declaration_statement_ptr
-	>;
+	using base_t = bz::variant< _ast_statement_types >;
+
+#undef _o
+
+#define _o(x) x = index_of< ast_##x##_ptr >
 
 	enum : uint32_t
 	{
-		if_statement          = index_of<ast_if_statement_ptr>,
-		while_statement       = index_of<ast_while_statement_ptr>,
-		for_statement         = index_of<ast_for_statement_ptr>,
-		return_statement      = index_of<ast_return_statement_ptr>,
-		no_op_statement       = index_of<ast_no_op_statement_ptr>,
-		compound_statement    = index_of<ast_compound_statement_ptr>,
-		expression_statement  = index_of<ast_expression_statement_ptr>,
-		declaration_statement = index_of<ast_declaration_statement_ptr>,
+		_ast_statement_types
 	};
 
+#undef _o
+
+	using base_t::get;
+	using base_t::variant;
+
 	uint32_t kind(void) const
-	{
-		return base_t::index();
-	}
+	{ return base_t::index(); }
 
-	ast_statement(fp_statement_ptr const &stmt);
-
-	ast_statement(ast_if_statement_ptr          if_stmt      );
-	ast_statement(ast_while_statement_ptr       while_stmt   );
-	ast_statement(ast_for_statement_ptr         for_stmt     );
-	ast_statement(ast_return_statement_ptr      return_stmt  );
-	ast_statement(ast_no_op_statement_ptr       no_op_stmt   );
-	ast_statement(ast_compound_statement_ptr    compound_stmt);
-	ast_statement(ast_expression_statement_ptr  expr_stmt    );
-	ast_statement(ast_declaration_statement_ptr decl_stmt    );
+	void resolve(void);
 };
+
+#undef _ast_statement_types
 
 using ast_statement_ptr = std::unique_ptr<ast_statement>;
 
@@ -149,14 +136,15 @@ struct ast_expression_statement
 };
 
 
+
 struct ast_variable_decl
 {
-	intern_string      identifier;
+	src_tokens::pos    identifier;
 	ast_typespec_ptr   typespec;
 	ast_expression_ptr init_expr;
 
 	ast_variable_decl(
-		intern_string      _id,
+		src_tokens::pos    _id,
 		ast_typespec_ptr   _typespec,
 		ast_expression_ptr _init_expr
 	)
@@ -169,78 +157,85 @@ using ast_variable_decl_ptr = std::unique_ptr<ast_variable_decl>;
 
 struct ast_function_decl
 {
-	intern_string              identifier;
-	ast_function_type_ptr      type;
+	src_tokens::pos            identifier;
+	bz::vector<ast_variable>   params;
+	ast_typespec_ptr           return_type;
 	ast_compound_statement_ptr body;
 
 	ast_function_decl(
-		intern_string              _id,
-		ast_function_type_ptr      _type,
+		src_tokens::pos            _id,
+		bz::vector<ast_variable>   _params,
+		ast_typespec_ptr           _ret_type,
 		ast_compound_statement_ptr _body
 	)
-		: identifier(_id),
-		  type      (_type),
-		  body      (std::move(_body))
+		: identifier (_id),
+		  params     (std::move(_params)),
+		  return_type(_ret_type),
+		  body       (std::move(_body))
 	{}
 };
 using ast_function_decl_ptr = std::unique_ptr<ast_function_decl>;
 
 struct ast_operator_decl
 {
-	uint32_t                   op;
-	ast_function_type_ptr      type;
+	src_tokens::pos            op;
+	bz::vector<ast_variable>   params;
+	ast_typespec_ptr           return_type;
 	ast_compound_statement_ptr body;
 
 	ast_operator_decl(
-		uint32_t                   _op,
-		ast_function_type_ptr      _type,
+		src_tokens::pos            _op,
+		bz::vector<ast_variable>   _params,
+		ast_typespec_ptr           _ret_type,
 		ast_compound_statement_ptr _body
 	)
-		: op  (_op),
-		  type(_type),
-		  body(std::move(_body))
+		: op         (_op),
+		  params     (std::move(_params)),
+		  return_type(_ret_type),
+		  body       (std::move(_body))
 	{}
 };
 using ast_operator_decl_ptr = std::unique_ptr<ast_operator_decl>;
 
 struct ast_struct_decl
 {
-
+	// TODO: implement
 };
 using ast_struct_decl_ptr = std::unique_ptr<ast_struct_decl>;
 
+#define _ast_declaration_statement_types \
+_o(variable_decl),                       \
+_o(function_decl),                       \
+_o(operator_decl),                       \
+_o(struct_decl)
 
-struct ast_declaration_statement :
-bz::variant<
-	ast_variable_decl_ptr,
-	ast_function_decl_ptr,
-	ast_operator_decl_ptr,
-	ast_struct_decl_ptr
->
+#define _o(x) ast_##x##_ptr
+
+struct ast_declaration_statement : bz::variant< _ast_declaration_statement_types >
 {
-	using base_t = bz::variant<
-		ast_variable_decl_ptr,
-		ast_function_decl_ptr,
-		ast_operator_decl_ptr,
-		ast_struct_decl_ptr
-	>;
+	using base_t = bz::variant< _ast_declaration_statement_types >;
+
+#undef _o
+
+#define _o(x) x = index_of< ast_##x##_ptr >
 
 	enum : uint32_t
 	{
-		variable_decl = index_of<ast_variable_decl_ptr>,
-		function_decl = index_of<ast_function_decl_ptr>,
-		operator_decl = index_of<ast_operator_decl_ptr>,
-		struct_decl   = index_of<ast_struct_decl_ptr>,
+		_ast_declaration_statement_types
 	};
 
-	uint32_t kind(void) const
-	{
-		return base_t::index();
-	}
+#undef _o
 
-	ast_declaration_statement(fp_declaration_statement_ptr const &decl);
+	using base_t::get;
+	using base_t::variant;
+
+	uint32_t kind(void) const
+	{ return base_t::index(); }
+
+	void resolve(void);
 };
 
+#undef _ast_declaration_statement_types
 
 template<typename ...Args>
 ast_statement_ptr make_ast_statement(Args &&...args)

@@ -723,16 +723,43 @@ struct bz::formatter<ast_typespec_ptr>
 		switch (typespec->kind())
 		{
 		case ast_typespec::constant:
-			return bz::format("const {}", typespec->get<ast_typespec::constant>());
+			return bz::format("const {}", typespec->get<ast_typespec::constant>().base);
 
 		case ast_typespec::pointer:
-			return bz::format("*{}", typespec->get<ast_typespec::pointer>());
+			return bz::format("*{}", typespec->get<ast_typespec::pointer>().base);
 
 		case ast_typespec::reference:
-			return bz::format("&{}", typespec->get<ast_typespec::reference>());
+			return bz::format("&{}", typespec->get<ast_typespec::reference>().base);
 
 		case ast_typespec::name:
-			return typespec->get<ast_typespec::name>();
+			return typespec->get<ast_typespec::name>().name;
+
+		case ast_typespec::function:
+		{
+			auto &fn = typespec->get<ast_typespec::function>();
+			bz::string res = "function(";
+
+			bool put_comma = false;
+			for (auto &type : fn.argument_types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+
+			res += bz::format(") -> {}", fn.return_type);
+
+			return res;
+		}
+
+		case ast_typespec::none:
+			return "<error type>";
 
 		default:
 			assert(false);
@@ -758,27 +785,27 @@ struct bz::formatter<ast_expression_ptr>
 			return expr->get<ast_expression::identifier>()->value;
 
 		case ast_expression::literal:
-			switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind)
+			switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind())
 			{
-			case ast_literal::integer_number:
+			case ast_expr_literal::integer_number:
 				return bz::format("{}", literal->integer_value);
 
-			case ast_literal::floating_point_number:
+			case ast_expr_literal::floating_point_number:
 				return bz::format("{}", literal->floating_point_value);
 
-			case ast_literal::string:
+			case ast_expr_literal::string:
 				return "\"(string)\"";
 
-			case ast_literal::character:
+			case ast_expr_literal::character:
 				return "'(char)'";
 
-			case ast_literal::bool_true:
+			case ast_expr_literal::bool_true:
 				return "true";
 
-			case ast_literal::bool_false:
+			case ast_expr_literal::bool_false:
 				return "false";
 
-			case ast_literal::null:
+			case ast_expr_literal::null:
 				return "null";
 
 			default:
@@ -921,7 +948,7 @@ struct bz::formatter<ast_statement_ptr>
 				{
 					auto &var_decl = decl->get<ast_declaration_statement::variable_decl>();
 					res += bz::format(
-						"let {}: {}{}{};\n", var_decl->identifier, var_decl->typespec,
+						"let {}: {}{}{};\n", var_decl->identifier->value, var_decl->typespec,
 						var_decl->init_expr ? " = " : "", var_decl->init_expr
 					);
 					break;
@@ -929,15 +956,15 @@ struct bz::formatter<ast_statement_ptr>
 				case ast_declaration_statement::function_decl:
 				{
 					auto &fn_decl = decl->get<ast_declaration_statement::function_decl>();
-					res += bz::format("function {}(", fn_decl->identifier);
+					res += bz::format("function {}(", fn_decl->identifier->value);
 					int i = 0;
-					for (auto &p : fn_decl->type->argument_types)
+					for (auto &p : fn_decl->params)
 					{
-						if (i == 0) res += bz::format("{}", p);
-						else        res += bz::format(", {}", p);
+						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
+						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", fn_decl->type->return_type);
+					res += bz::format(") -> {}\n", fn_decl->return_type);
 					indent();
 					res += "{\n";
 
@@ -953,15 +980,15 @@ struct bz::formatter<ast_statement_ptr>
 				case ast_declaration_statement::operator_decl:
 				{
 					auto &op_decl = decl->get<ast_declaration_statement::operator_decl>();
-					res += bz::format("operator {}(", get_token_value(op_decl->op));
+					res += bz::format("operator {}(", op_decl->op->value);
 					int i = 0;
-					for (auto &p : op_decl->type->argument_types)
+					for (auto &p : op_decl->params)
 					{
-						if (i == 0) res += bz::format("{}", p);
-						else        res += bz::format(", {}", p);
+						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
+						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", op_decl->type->return_type);
+					res += bz::format(") -> {}\n", op_decl->return_type);
 					indent();
 					res += "{\n";
 
@@ -989,18 +1016,17 @@ struct bz::formatter<ast_statement_ptr>
 int main(void)
 {
 	lexer_init();
-	src_tokens file("src/test.txt");
+	src_tokens file("src/test.bz");
 
 	auto stream = file.begin();
 	auto end    = file.end();
 
-	auto fp_statements = get_fp_statements(stream, end);
+	auto statements = get_ast_statements(stream, end);
 	assert(stream->kind == token::eof);
 
-	bz::vector<ast_statement_ptr> statements;
-	for (auto &s : fp_statements)
+	for (auto &s : statements)
 	{
-		statements.emplace_back(make_ast_statement(s));
+		s->resolve();
 	}
 
 	for (auto &s : statements)
