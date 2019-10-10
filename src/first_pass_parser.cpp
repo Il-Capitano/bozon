@@ -186,7 +186,7 @@ ast_statement_ptr get_ast_statement(
 
 			return make_ast_statement(
 				make_ast_if_statement(
-					make_ast_expression(make_ast_expr_unresolved(condition)),
+					make_ast_unresolved_expression(condition),
 					std::move(if_block),
 					std::move(else_block)
 				)
@@ -196,7 +196,7 @@ ast_statement_ptr get_ast_statement(
 		{
 			return make_ast_statement(
 				make_ast_if_statement(
-					make_ast_expression(make_ast_expr_unresolved(condition)),
+					make_ast_unresolved_expression(condition),
 					std::move(if_block),
 					nullptr
 				)
@@ -217,7 +217,7 @@ ast_statement_ptr get_ast_statement(
 
 		return make_ast_statement(
 			make_ast_while_statement(
-				make_ast_expression(make_ast_expr_unresolved(condition)),
+				make_ast_unresolved_expression(condition),
 				std::move(while_block)
 			)
 		);
@@ -241,7 +241,7 @@ ast_statement_ptr get_ast_statement(
 
 		return make_ast_statement(
 			make_ast_return_statement(
-				make_ast_expression(make_ast_expr_unresolved(expr))
+				make_ast_unresolved_expression(expr)
 			)
 		);
 	}
@@ -307,7 +307,7 @@ ast_statement_ptr get_ast_statement(
 				make_ast_variable_decl(
 					id,
 					type,
-					make_ast_expression(make_ast_expr_unresolved(init))
+					make_ast_unresolved_expression(init)
 				)
 			)
 		);
@@ -392,7 +392,7 @@ ast_statement_ptr get_ast_statement(
 
 		return make_ast_statement(
 			make_ast_expression_statement(
-				make_ast_expression(make_ast_expr_unresolved(expr))
+				make_ast_unresolved_expression(expr)
 			)
 		);
 	}

@@ -149,14 +149,18 @@ ast_typespec_ptr parse_context::get_identifier_type(src_tokens::pos t)
 	assert(t->kind == token::identifier);
 
 	auto id = t->value;
-	for (auto &scope : this->variables)
+	for (
+		auto scope = this->variables.rbegin();
+		scope != this->variables.rend();
+		++scope
+	)
 	{
-		auto it = std::find_if(scope.rbegin(), scope.rend(), [&](auto const &var)
+		auto it = std::find_if(scope->rbegin(), scope->rend(), [&](auto const &var)
 		{
 			return var.id == id;
 		});
 
-		if (it != scope.rend())
+		if (it != scope->rend())
 		{
 			return it->type;
 		}

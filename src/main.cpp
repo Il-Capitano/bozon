@@ -1,26 +1,9 @@
 /*
 
 TODO:
-	- check identifiers while parsing
-		kind of done, template syntax stays the same, but expressions
-		need to be parsed seperately, once all glabal symbols are known
-
-		need to put in special cases later for lambdas
-
 	- expression type evaluation for auto types
 		kind of also done, need to clean up the function call and operator type checks
 	- array type
-	- make a char type (unicode)
-		probably a 32 bit value for representing unicode character codes,
-		strings should not use this as a base type however
-
-
-		possibly have a seperate type for an ascii character?
-		 -- probably not...
-
-		a standard string type should be utf8, and we could have a seperate
-		ascii_string
-
 	- user-defined type implementation
 
 
@@ -648,11 +631,13 @@ anonymous structs?
 
 function make_person() // auto return type required
 {
+	// first_name as last_name deduced as str
 	return [
 		.first_name = "John",
 		.last_name  = "Doe"
 	];
 
+	// explicit types
 	return [
 		.first_name: std::string = "John",
 		.last_name:  std::string = "Doe"
@@ -676,7 +661,7 @@ function main()
 syntax:
 
 template<typename T>
-using []T = std::vector<T>;
+using [..]T = std::vector<T>;
 
 template<typename T>
 using !*T = std::unique_ptr<T>;
@@ -692,9 +677,9 @@ some number of tokens before a typename
 
 so
 
-[][int32, int32] == std::vector<[int32, int32]>;
+[..][int32, int32] == std::vector<[int32, int32]>;
 
-[][]float64 == std::vector<std::vector<float64>>;
+[..][..]float64 == std::vector<std::vector<float64>>;
 
 
 
@@ -782,16 +767,16 @@ struct bz::formatter<ast_expression_ptr>
 		switch (expr->kind())
 		{
 		case ast_expression::identifier:
-			return expr->get<ast_expression::identifier>()->value;
+			return expr->get<ast_expression::identifier>().value;
 
 		case ast_expression::literal:
-			switch (auto &literal = expr->get<ast_expression::literal>(); literal->kind())
+			switch (auto &literal = expr->get<ast_expression::literal>(); literal.kind())
 			{
 			case ast_expr_literal::integer_number:
-				return bz::format("{}", literal->integer_value);
+				return bz::format("{}", literal.integer_value);
 
 			case ast_expr_literal::floating_point_number:
-				return bz::format("{}", literal->floating_point_value);
+				return bz::format("{}", literal.floating_point_value);
 
 			case ast_expr_literal::string:
 				return "\"(string)\"";
@@ -817,24 +802,24 @@ struct bz::formatter<ast_expression_ptr>
 		{
 			auto &bin_op = expr->get<ast_expression::binary_op>();
 			return bz::format(
-				"({} {} {})", bin_op->lhs, get_token_value(bin_op->op), bin_op->rhs
+				"({} {} {})", bin_op.lhs, get_token_value(bin_op.op), bin_op.rhs
 			);
 		}
 
 		case ast_expression::unary_op:
 		{
 			auto &un_op = expr->get<ast_expression::unary_op>();
-			return bz::format("({} {})", get_token_value(un_op->op), un_op->expr);
+			return bz::format("({} {})", get_token_value(un_op.op), un_op.expr);
 		}
 
 		case ast_expression::function_call_op:
 		{
 			auto &fn_call = expr->get<ast_expression::function_call_op>();
-			auto res = bz::format("{}(", fn_call->called);
-			if (fn_call->params.size() > 0)
+			auto res = bz::format("{}(", fn_call.called);
+			if (fn_call.params.size() > 0)
 			{
 				bool first = true;
-				for (auto &p : fn_call->params)
+				for (auto &p : fn_call.params)
 				{
 					if (first)
 					{

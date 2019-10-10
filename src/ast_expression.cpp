@@ -172,31 +172,35 @@ static precedence get_unary_precedence(uint32_t kind)
 	}
 }
 
-ast_expression::ast_expression(ast_expr_identifier_ptr _id)
+ast_expression::ast_expression(ast_expr_unresolved _unresolved)
+	: base_t(std::move(_unresolved))
+{}
+
+ast_expression::ast_expression(ast_expr_identifier _id)
 	: base_t(std::move(_id))
 {
 	this->resolve();
 }
 
-ast_expression::ast_expression(ast_expr_literal_ptr _literal)
+ast_expression::ast_expression(ast_expr_literal _literal)
 	: base_t(std::move(_literal))
 {
 	this->resolve();
 }
 
-ast_expression::ast_expression(ast_expr_unary_op_ptr _unary_op)
+ast_expression::ast_expression(ast_expr_unary_op _unary_op)
 	: base_t(std::move(_unary_op))
 {
 	this->resolve();
 }
 
-ast_expression::ast_expression(ast_expr_binary_op_ptr _binary_op)
+ast_expression::ast_expression(ast_expr_binary_op _binary_op)
 	: base_t(std::move(_binary_op))
 {
 	this->resolve();
 }
 
-ast_expression::ast_expression(ast_expr_function_call_op_ptr _func_call_op)
+ast_expression::ast_expression(ast_expr_function_call _func_call_op)
 	: base_t(std::move(_func_call_op))
 {
 	this->resolve();
@@ -224,9 +228,9 @@ static ast_expression_ptr parse_primary_expression(
 	{
 	case token::identifier:
 	{
-		auto id = make_ast_expr_identifier(stream);
+		auto id = make_ast_identifier_expression(stream);
 		++stream;
-		return make_ast_expression(std::move(id));
+		return std::move(id);
 	}
 
 	// literals
@@ -237,9 +241,9 @@ static ast_expression_ptr parse_primary_expression(
 	case token::kw_false:
 	case token::kw_null:
 	{
-		auto literal = make_ast_expr_literal(stream);
+		auto literal = make_ast_literal_expression(stream);
 		++stream;
-		return make_ast_expression(std::move(literal));
+		return std::move(literal);
 	}
 
 	case token::paren_open:
@@ -264,9 +268,7 @@ static ast_expression_ptr parse_primary_expression(
 			bad_token(stream, "Expected ')'");
 		}
 
-		return make_ast_expression(
-			make_ast_expr_unresolved(token_range{ paren_begin, stream })
-		);
+		return make_ast_unresolved_expression(token_range{ paren_begin, stream });
 	}
 
 	// unary operators
@@ -286,7 +288,7 @@ static ast_expression_ptr parse_primary_expression(
 		auto prec = get_unary_precedence(op->kind);
 		auto expr = parse_expression(stream, end, prec);
 
-		return make_ast_expression(make_ast_expr_unary_op(op, std::move(expr)));
+		return make_ast_unary_op_expression(op, std::move(expr));
 	}
 
 	default:
@@ -320,10 +322,8 @@ static ast_expression_ptr parse_expression_helper(
 			)
 			{
 				++stream;
-				lhs = make_ast_expression(
-					make_ast_expr_function_call_op(
-						std::move(lhs), bz::vector<ast_expression_ptr>{}
-					)
+				lhs = make_ast_function_call_expression(
+					std::move(lhs), bz::vector<ast_expression_ptr>{}
 				);
 				break;
 			}
@@ -331,10 +331,8 @@ static ast_expression_ptr parse_expression_helper(
 			auto params = parse_expression_comma_list(stream, end);
 			assert_token(stream, token::paren_close);
 
-			lhs = make_ast_expression(
-				make_ast_expr_function_call_op(
-					std::move(lhs), std::move(params)
-				)
+			lhs = make_ast_function_call_expression(
+				std::move(lhs), std::move(params)
 			);
 			break;
 		}
@@ -344,8 +342,8 @@ static ast_expression_ptr parse_expression_helper(
 			auto rhs = parse_expression(stream, end);
 			assert_token(stream, token::square_close);
 
-			lhs = make_ast_expression(
-				make_ast_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			lhs = make_ast_binary_op_expression(
+				op, std::move(lhs), std::move(rhs)
 			);
 			break;
 		}
@@ -363,8 +361,8 @@ static ast_expression_ptr parse_expression_helper(
 				rhs = parse_expression_helper(std::move(rhs), stream, end, rhs_prec);
 			}
 
-			lhs = make_ast_expression(
-				make_ast_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			lhs = make_ast_binary_op_expression(
+				op, std::move(lhs), std::move(rhs)
 			);
 			break;
 		}
@@ -414,8 +412,8 @@ void ast_expression::resolve(void)
 	{
 		auto &unresolved_expr = this->get<unresolved>();
 
-		auto begin = unresolved_expr->expr.begin;
-		auto end   = unresolved_expr->expr.end;
+		auto begin = unresolved_expr.expr.begin;
+		auto end   = unresolved_expr.expr.end;
 
 		auto expr = parse_expression(begin, end);
 		*this = std::move(*expr);
@@ -425,14 +423,14 @@ void ast_expression::resolve(void)
 
 	case identifier:
 		this->typespec = context.get_identifier_type(
-			this->get<identifier>()->src_pos
+			this->get<identifier>().src_pos
 		);
 		break;
 
 	case literal:
 		this->typespec = [this]() -> ast_typespec_ptr
 		{
-			switch (this->get<literal>()->kind())
+			switch (this->get<literal>().kind())
 			{
 			case ast_expr_literal::integer_number:
 				return make_ast_typespec(ast_ts_name("int32"_is));
@@ -457,10 +455,10 @@ void ast_expression::resolve(void)
 	case unary_op:
 	{
 		auto &unary = this->get<unary_op>();
-		unary->expr->resolve();
+		unary.expr->resolve();
 
 		this->typespec = context.get_operator_type(
-			unary->op, { unary->expr->typespec }
+			unary.op, { unary.expr->typespec }
 		);
 		break;
 	}
@@ -468,11 +466,11 @@ void ast_expression::resolve(void)
 	case binary_op:
 	{
 		auto &binary = this->get<binary_op>();
-		binary->lhs->resolve();
-		binary->rhs->resolve();
+		binary.lhs->resolve();
+		binary.rhs->resolve();
 
 		this->typespec = context.get_operator_type(
-			binary->op, { binary->lhs->typespec, binary->rhs->typespec }
+			binary.op, { binary.lhs->typespec, binary.rhs->typespec }
 		);
 		break;
 	}
@@ -480,37 +478,37 @@ void ast_expression::resolve(void)
 	case function_call_op:
 	{
 		auto &fn_call = this->get<function_call_op>();
-		fn_call->called->resolve();
+		fn_call.called->resolve();
 
-		for (auto &param : fn_call->params)
+		for (auto &param : fn_call.params)
 		{
 			param->resolve();
 		}
 
 		if (
-			fn_call->called->kind() == identifier
-			&& context.is_function(fn_call->called->get<identifier>()->value)
+			fn_call.called->kind() == identifier
+			&& context.is_function(fn_call.called->get<identifier>().value)
 		)
 		{
 			bz::vector<ast_typespec_ptr> typespecs = {};
-			typespecs.reserve(fn_call->params.size());
+			typespecs.reserve(fn_call.params.size());
 
-			for (auto &param : fn_call->params)
+			for (auto &param : fn_call.params)
 			{
 				typespecs.emplace_back(param->typespec);
 			}
 
 			this->typespec = context.get_function_type(
-				fn_call->called->get<identifier>()->value, typespecs
+				fn_call.called->get<identifier>().value, typespecs
 			);
 		}
 		else
 		{
 			bz::vector<ast_typespec_ptr> typespecs = {};
-			typespecs.reserve(fn_call->params.size() + 1);
-			typespecs.emplace_back(fn_call->called->typespec);
+			typespecs.reserve(fn_call.params.size() + 1);
+			typespecs.emplace_back(fn_call.called->typespec);
 
-			for (auto &param : fn_call->params)
+			for (auto &param : fn_call.params)
 			{
 				typespecs.emplace_back(param->typespec);
 			}

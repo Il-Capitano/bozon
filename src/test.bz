@@ -70,7 +70,17 @@ let a = factorial;
 function factorial(: float64) -> float64
 {
 	let a: function(int32, str, float32) -> char;
-	let b;
+//	let b;
+
+	{
+		let a = a;
+		let b: int32;
+		{
+			let b: float64;
+			let c = b;
+		}
+	}
+
 	return 0.0;
 }
 
