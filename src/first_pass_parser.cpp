@@ -39,7 +39,7 @@ static token_range get_expression_or_type(
 		case token::kw_true:
 		case token::kw_false:
 		case token::kw_null:
-		// open parenthesis
+		// parenthesis
 		case token::paren_open:
 		case token::curly_open:
 		case token::square_open:

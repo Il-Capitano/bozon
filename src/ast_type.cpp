@@ -1,5 +1,91 @@
 #include "ast_type.h"
 
+ast_typespec_ptr parse_typespec(
+	src_tokens::pos &stream,
+	src_tokens::pos  end
+)
+{
+	if (stream == end)
+	{
+		bad_token(stream);
+	}
+
+	switch (stream->kind)
+	{
+	case token::identifier:
+	{
+		auto id = stream->value;
+		++stream;
+		return make_ast_name_typespec(id);
+	}
+
+	case token::kw_const:
+		++stream; // 'const'
+		return make_ast_constant_typespec(parse_typespec(stream, end));
+
+	case token::star:
+		++stream; // '*'
+		return make_ast_pointer_typespec(parse_typespec(stream, end));
+
+	case token::ampersand:
+		++stream; // '&'
+		return make_ast_reference_typespec(parse_typespec(stream, end));
+
+	case token::kw_function:
+	{
+		++stream; // 'function'
+		assert_token(stream, token::paren_open);
+
+		bz::vector<ast_typespec_ptr> param_types = {};
+		if (stream->kind != token::paren_close) while (stream != end)
+		{
+			param_types.push_back(parse_typespec(stream, end));
+			if (stream->kind != token::paren_close)
+			{
+				assert_token(stream, token::comma);
+			}
+			else
+			{
+				break;
+			}
+		}
+		assert(stream != end);
+		assert_token(stream, token::paren_close);
+		assert_token(stream, token::arrow);
+
+		auto ret_type = parse_typespec(stream, end);
+
+		return make_ast_function_typespec(ret_type, std::move(param_types));
+	}
+
+	case token::square_open:
+	{
+		++stream; // '['
+
+		bz::vector<ast_typespec_ptr> types = {};
+		if (stream->kind != token::square_close) while (stream != end)
+		{
+			types.push_back(parse_typespec(stream, end));
+			if (stream->kind != token::square_close)
+			{
+				assert_token(stream, token::comma);
+			}
+			else
+			{
+				break;
+			}
+		}
+		assert(stream != end);
+		assert_token(stream, token::square_close);
+
+		return make_ast_tuple_typespec(std::move(types));
+	}
+
+	default:
+		assert(false);
+	}
+}
+
 void ast_typespec::resolve(void)
 {
 	switch (this->kind())
@@ -17,97 +103,8 @@ void ast_typespec::resolve(void)
 			return;
 		}
 
-		switch (stream->kind)
-		{
-		case token::identifier:
-		{
-			auto id = stream->value;
-			++stream;
-			if (stream != end)
-			{
-				bad_token(stream);
-			}
-
-			this->emplace<name>(id);
-			return;
-		}
-
-		case token::kw_const:
-		{
-			++stream; // 'const'
-			this->emplace<constant>(
-				make_ast_typespec(ast_ts_unresolved({ stream, end }))
-			);
-
-			this->get<constant>().base->resolve();
-			return;
-		}
-
-		case token::star:
-		{
-			++stream; // '*'
-			this->emplace<pointer>(
-				make_ast_typespec(ast_ts_unresolved({ stream, end }))
-			);
-
-			this->get<pointer>().base->resolve();
-			return;
-		}
-
-		case token::ampersand:
-		{
-			++stream; // '&'
-			this->emplace<reference>(
-				make_ast_typespec(ast_ts_unresolved({ stream, end }))
-			);
-
-			this->get<reference>().base->resolve();
-			return;
-		}
-
-		case token::kw_function:
-		{
-			++stream; // 'function'
-			assert_token(stream, token::paren_open, false);
-
-			bz::vector<ast_typespec_ptr> param_types = {};
-			while (stream != end && stream->kind != token::paren_close)
-			{
-				++stream;
-				auto param_begin = stream;
-				while (
-					stream != end
-					&& stream->kind != token::comma
-					&& stream->kind != token::paren_close
-				)
-				{
-					++stream;
-				}
-				auto param_end = stream;
-
-				param_types.emplace_back(
-					make_ast_typespec(
-						ast_ts_unresolved({ param_begin, param_end })
-					)
-				);
-				param_types.back()->resolve();
-			}
-			assert_token(stream, token::paren_close);
-			assert_token(stream, token::arrow);
-
-			auto ret_type = make_ast_typespec(
-				ast_ts_unresolved({ stream, end })
-			);
-			ret_type->resolve();
-
-			this->emplace<function>(ret_type, std::move(param_types));
-			return;
-		}
-
-		default:
-			bad_token(stream, "Expected a type");
-			return;
-		}
+		*this = *parse_typespec(stream, end);
+		return;
 	}
 
 	case name:
@@ -132,6 +129,16 @@ void ast_typespec::resolve(void)
 		for (auto &t : fn.argument_types)
 		{
 			t->resolve();
+		}
+		return;
+	}
+
+	case tuple:
+	{
+		auto &tp = this->get<tuple>();
+		for (auto &type : tp.types)
+		{
+			type->resolve();
 		}
 		return;
 	}

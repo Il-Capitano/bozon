@@ -5,14 +5,6 @@
 
 #include "lexer.h"
 
-struct ast_ts_unresolved;
-struct ast_ts_name;
-struct ast_ts_constant;
-struct ast_ts_pointer;
-struct ast_ts_reference;
-struct ast_ts_function;
-struct ast_ts_none;
-
 
 struct ast_typespec;
 using ast_typespec_ptr = std::shared_ptr<ast_typespec>;
@@ -77,6 +69,15 @@ struct ast_ts_function
 	{}
 };
 
+struct ast_ts_tuple
+{
+	bz::vector<ast_typespec_ptr> types;
+
+	ast_ts_tuple(bz::vector<ast_typespec_ptr> _types)
+		: types(std::move(_types))
+	{}
+};
+
 struct ast_ts_none
 {
 	// nothing
@@ -90,6 +91,7 @@ struct ast_typespec : bz::variant<
 	ast_ts_pointer,
 	ast_ts_reference,
 	ast_ts_function,
+	ast_ts_tuple,
 	ast_ts_none
 >
 {
@@ -100,18 +102,20 @@ struct ast_typespec : bz::variant<
 		ast_ts_pointer,
 		ast_ts_reference,
 		ast_ts_function,
+		ast_ts_tuple,
 		ast_ts_none
 	>;
 
 	enum : uint32_t
 	{
-		unresolved = 0,
-		name       = 1,
-		constant   = 2,
-		pointer    = 3,
-		reference  = 4,
-		function   = 5,
-		none       = 6,
+		unresolved = index_of<ast_ts_unresolved>,
+		name       = index_of<ast_ts_name>,
+		constant   = index_of<ast_ts_constant>,
+		pointer    = index_of<ast_ts_pointer>,
+		reference  = index_of<ast_ts_reference>,
+		function   = index_of<ast_ts_function>,
+		tuple      = index_of<ast_ts_tuple>,
+		none       = index_of<ast_ts_none>,
 	};
 
 	using base_t::get;
@@ -186,5 +190,57 @@ inline ast_typespec_ptr make_ast_typespec(Args &&...args)
 {
 	return std::make_unique<ast_typespec>(std::forward<Args>(args)...);
 }
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_unresolved_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_unresolved(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_name_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_name(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_constant_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_constant(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_pointer_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_pointer(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_reference_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_reference(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_function_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_function(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_tuple_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_tuple(std::forward<Args>(args)...));
+}
+
+template<typename ...Args>
+ast_typespec_ptr make_ast_none_typespec(Args &&...args)
+{
+	return make_ast_typespec(ast_ts_none(std::forward<Args>(args)...));
+}
+
+
+
+
 
 #endif // AST_TYPE_H

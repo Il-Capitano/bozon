@@ -80,6 +80,9 @@ function factorial(: float64) -> float64
 			let c = b;
 		}
 	}
+	let d: [int32, float32];
+	let e: [];
+	let f: [int32, [str, char], [], null_t];
 
 	return 0.0;
 }

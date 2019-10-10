@@ -743,6 +743,29 @@ struct bz::formatter<ast_typespec_ptr>
 			return res;
 		}
 
+		case ast_typespec::tuple:
+		{
+			auto &tuple = typespec->get<ast_typespec::tuple>();
+			bz::string res = "[";
+
+			bool put_comma = false;
+			for (auto &type : tuple.types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+			res += "]";
+
+			return res;
+		}
+
 		case ast_typespec::none:
 			return "<error type>";
 
@@ -998,6 +1021,11 @@ struct bz::formatter<ast_statement_ptr>
 	}
 };
 
+void print_statement(ast_statement_ptr const &stmt)
+{
+
+}
+
 int main(void)
 {
 	lexer_init();
@@ -1017,6 +1045,7 @@ int main(void)
 	for (auto &s : statements)
 	{
 		bz::printf("{}", s);
+		print_statement(s);
 	}
 
 	return 0;
