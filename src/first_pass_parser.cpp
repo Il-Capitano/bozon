@@ -143,7 +143,7 @@ static bz::vector<ast_variable> get_function_params(
 }
 
 
-static ast_compound_statement_ptr get_ast_compound_statement(
+static ast_stmt_compound get_stmt_compound(
 	src_tokens::pos &stream,
 	src_tokens::pos end
 )
@@ -158,7 +158,7 @@ static ast_compound_statement_ptr get_ast_compound_statement(
 	assert(stream != end);
 	++stream; // '}'
 
-	return make_ast_compound_statement(std::move(stmts));
+	return ast_stmt_compound(std::move(stmts));
 }
 
 ast_statement_ptr get_ast_statement(
@@ -184,22 +184,18 @@ ast_statement_ptr get_ast_statement(
 			++stream; // 'else'
 			auto else_block = get_ast_statement(stream, end);
 
-			return make_ast_statement(
-				make_ast_if_statement(
-					make_ast_unresolved_expression(condition),
-					std::move(if_block),
-					std::move(else_block)
-				)
+			return make_ast_if_statement(
+				make_ast_unresolved_expression(condition),
+				std::move(if_block),
+				std::move(else_block)
 			);
 		}
 		else
 		{
-			return make_ast_statement(
-				make_ast_if_statement(
-					make_ast_unresolved_expression(condition),
-					std::move(if_block),
-					nullptr
-				)
+			return make_ast_if_statement(
+				make_ast_unresolved_expression(condition),
+				std::move(if_block),
+				nullptr
 			);
 		}
 	}
@@ -215,11 +211,9 @@ ast_statement_ptr get_ast_statement(
 
 		auto while_block = get_ast_statement(stream, end);
 
-		return make_ast_statement(
-			make_ast_while_statement(
-				make_ast_unresolved_expression(condition),
-				std::move(while_block)
-			)
+		return make_ast_while_statement(
+			make_ast_unresolved_expression(condition),
+			std::move(while_block)
 		);
 	}
 
@@ -239,10 +233,8 @@ ast_statement_ptr get_ast_statement(
 		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
-		return make_ast_statement(
-			make_ast_return_statement(
-				make_ast_unresolved_expression(expr)
-			)
+		return make_ast_return_statement(
+			make_ast_unresolved_expression(expr)
 		);
 	}
 
@@ -250,14 +242,14 @@ ast_statement_ptr get_ast_statement(
 	case token::semi_colon:
 	{
 		++stream; // ';'
-		return make_ast_statement(make_ast_no_op_statement());
+		return make_ast_no_op_statement();
 	}
 
 	// compound statement
 	case token::curly_open:
 	{
 		return make_ast_statement(
-			get_ast_compound_statement(stream, end)
+			get_stmt_compound(stream, end)
 		);
 	}
 
@@ -284,10 +276,8 @@ ast_statement_ptr get_ast_statement(
 			{
 				++stream; // ';'
 				return make_ast_statement(
-					make_ast_declaration_statement(
-						make_ast_variable_decl(
-							id, type, nullptr
-						)
+					make_ast_variable_decl(
+						id, type, nullptr
 					)
 				);
 			}
@@ -303,12 +293,10 @@ ast_statement_ptr get_ast_statement(
 
 		assert_token(stream, token::semi_colon);
 		return make_ast_statement(
-			make_ast_declaration_statement(
-				make_ast_variable_decl(
-					id,
-					type,
-					make_ast_unresolved_expression(init)
-				)
+			make_ast_variable_decl(
+				id,
+				type,
+				make_ast_unresolved_expression(init)
 			)
 		);
 	}
@@ -332,15 +320,13 @@ ast_statement_ptr get_ast_statement(
 		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
 
 		return make_ast_statement(
-			make_ast_declaration_statement(
-				make_ast_function_decl(
-					id,
-					std::move(params),
-					make_ast_typespec(
-						ast_ts_unresolved(ret_type)
-					),
-					get_ast_compound_statement(stream, end)
-				)
+			make_ast_function_decl(
+				id,
+				std::move(params),
+				make_ast_typespec(
+					ast_ts_unresolved(ret_type)
+				),
+				get_stmt_compound(stream, end)
 			)
 		);
 	}
@@ -371,15 +357,13 @@ ast_statement_ptr get_ast_statement(
 		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
 
 		return make_ast_statement(
-			make_ast_declaration_statement(
-				make_ast_operator_decl(
-					op,
-					std::move(params),
-					make_ast_typespec(
-						ast_ts_unresolved(ret_type)
-					),
-					get_ast_compound_statement(stream, end)
-				)
+			make_ast_operator_decl(
+				op,
+				std::move(params),
+				make_ast_typespec(
+					ast_ts_unresolved(ret_type)
+				),
+				get_stmt_compound(stream, end)
 			)
 		);
 	}
@@ -390,10 +374,8 @@ ast_statement_ptr get_ast_statement(
 		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
-		return make_ast_statement(
-			make_ast_expression_statement(
-				make_ast_unresolved_expression(expr)
-			)
+		return make_ast_expression_statement(
+			make_ast_unresolved_expression(expr)
 		);
 	}
 	}

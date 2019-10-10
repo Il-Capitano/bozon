@@ -876,12 +876,12 @@ struct bz::formatter<ast_statement_ptr>
 		{
 			auto &if_stmt = stmt->get<ast_statement::if_statement>();
 			res += bz::format(
-				"if ({})\n{:{}}", if_stmt->condition, level, if_stmt->then_block
+				"if ({})\n{:{}}", if_stmt.condition, level, if_stmt.then_block
 			);
-			if (if_stmt->else_block)
+			if (if_stmt.else_block)
 			{
 				indent();
-				res += bz::format("else\n{:{}}", level, if_stmt->else_block);
+				res += bz::format("else\n{:{}}", level, if_stmt.else_block);
 			}
 			break;
 		}
@@ -890,7 +890,7 @@ struct bz::formatter<ast_statement_ptr>
 		{
 			auto &while_stmt = stmt->get<ast_statement::while_statement>();
 			res += bz::format(
-				"while ({})\n{:{}}", while_stmt->condition, level, while_stmt->while_block
+				"while ({})\n{:{}}", while_stmt.condition, level, while_stmt.while_block
 			);
 			break;
 		}
@@ -900,7 +900,7 @@ struct bz::formatter<ast_statement_ptr>
 			break;
 
 		case ast_statement::return_statement:
-			res += bz::format("return {};\n", stmt->get<ast_statement::return_statement>()->expr);
+			res += bz::format("return {};\n", stmt->get<ast_statement::return_statement>().expr);
 			break;
 
 		case ast_statement::no_op_statement:
@@ -911,7 +911,7 @@ struct bz::formatter<ast_statement_ptr>
 		{
 			auto &comp_stmt = stmt->get<ast_statement::compound_statement>();
 			res += "{\n";
-			for (auto &s : comp_stmt->statements)
+			for (auto &s : comp_stmt.statements)
 			{
 				res += bz::format("{:{}}", level + 1, s);
 			}
@@ -921,39 +921,39 @@ struct bz::formatter<ast_statement_ptr>
 		}
 
 		case ast_statement::expression_statement:
-			res += bz::format("{};\n", stmt->get<ast_statement::expression_statement>()->expr);
+			res += bz::format("{};\n", stmt->get<ast_statement::expression_statement>().expr);
 			break;
 
 		case ast_statement::declaration_statement:
 		{
 			auto &decl = stmt->get<ast_statement::declaration_statement>();
-			switch (decl->kind())
+			switch (decl.kind())
 			{
-				case ast_declaration_statement::variable_decl:
+				case ast_stmt_declaration::variable_declaration:
 				{
-					auto &var_decl = decl->get<ast_declaration_statement::variable_decl>();
+					auto &var_decl = decl.get<ast_stmt_declaration::variable_declaration>();
 					res += bz::format(
-						"let {}: {}{}{};\n", var_decl->identifier->value, var_decl->typespec,
-						var_decl->init_expr ? " = " : "", var_decl->init_expr
+						"let {}: {}{}{};\n", var_decl.identifier->value, var_decl.typespec,
+						var_decl.init_expr ? " = " : "", var_decl.init_expr
 					);
 					break;
 				}
-				case ast_declaration_statement::function_decl:
+				case ast_stmt_declaration::function_declaration:
 				{
-					auto &fn_decl = decl->get<ast_declaration_statement::function_decl>();
-					res += bz::format("function {}(", fn_decl->identifier->value);
+					auto &fn_decl = decl.get<ast_stmt_declaration::function_declaration>();
+					res += bz::format("function {}(", fn_decl.identifier->value);
 					int i = 0;
-					for (auto &p : fn_decl->params)
+					for (auto &p : fn_decl.params)
 					{
 						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
 						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", fn_decl->return_type);
+					res += bz::format(") -> {}\n", fn_decl.return_type);
 					indent();
 					res += "{\n";
 
-					for (auto &stmt : fn_decl->body->statements)
+					for (auto &stmt : fn_decl.body.statements)
 					{
 						res += bz::format("{:{}}", level + 1, stmt);
 					}
@@ -962,22 +962,22 @@ struct bz::formatter<ast_statement_ptr>
 					res += "}\n";
 					break;
 				}
-				case ast_declaration_statement::operator_decl:
+				case ast_stmt_declaration::operator_declaration:
 				{
-					auto &op_decl = decl->get<ast_declaration_statement::operator_decl>();
-					res += bz::format("operator {}(", op_decl->op->value);
+					auto &op_decl = decl.get<ast_stmt_declaration::operator_declaration>();
+					res += bz::format("operator {}(", op_decl.op->value);
 					int i = 0;
-					for (auto &p : op_decl->params)
+					for (auto &p : op_decl.params)
 					{
 						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
 						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", op_decl->return_type);
+					res += bz::format(") -> {}\n", op_decl.return_type);
 					indent();
 					res += "{\n";
 
-					for (auto &stmt : op_decl->body->statements)
+					for (auto &stmt : op_decl.body.statements)
 					{
 						res += bz::format("{:{}}", level + 1, stmt);
 					}
@@ -986,7 +986,7 @@ struct bz::formatter<ast_statement_ptr>
 					res += "}\n";
 					break;
 				}
-				case ast_declaration_statement::struct_decl:
+				case ast_stmt_declaration::struct_declaration:
 				default:
 					assert(false);
 					break;

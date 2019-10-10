@@ -9,17 +9,17 @@ void ast_statement::resolve(void)
 	case if_statement:
 	{
 		auto &if_stmt = this->get<if_statement>();
-		if_stmt->condition->resolve();
-		if_stmt->then_block->resolve();
-		if_stmt->else_block->resolve();
+		if_stmt.condition->resolve();
+		if_stmt.then_block->resolve();
+		if_stmt.else_block->resolve();
 		return;
 	}
 
 	case while_statement:
 	{
 		auto &while_stmt = this->get<while_statement>();
-		while_stmt->condition->resolve();
-		while_stmt->while_block->resolve();
+		while_stmt.condition->resolve();
+		while_stmt.while_block->resolve();
 		return;
 	}
 
@@ -30,7 +30,7 @@ void ast_statement::resolve(void)
 	case return_statement:
 	{
 		auto &ret_stmt = this->get<return_statement>();
-		ret_stmt->expr->resolve();
+		ret_stmt.expr->resolve();
 		return;
 	}
 
@@ -41,7 +41,7 @@ void ast_statement::resolve(void)
 	{
 		++context;
 		auto &comp_stmt = this->get<compound_statement>();
-		for (auto &s : comp_stmt->statements)
+		for (auto &s : comp_stmt.statements)
 		{
 			s->resolve();
 		}
@@ -52,14 +52,14 @@ void ast_statement::resolve(void)
 	case expression_statement:
 	{
 		auto &expr_stmt = this->get<expression_statement>();
-		expr_stmt->expr->resolve();
+		expr_stmt.expr->resolve();
 		return;
 	}
 
 	case declaration_statement:
 	{
 		auto &decl_stmt = this->get<declaration_statement>();
-		decl_stmt->resolve();
+		decl_stmt.resolve();
 		return;
 	}
 
@@ -69,58 +69,58 @@ void ast_statement::resolve(void)
 	}
 }
 
-void ast_declaration_statement::resolve(void)
+void ast_stmt_declaration::resolve(void)
 {
 	switch (this->kind())
 	{
-	case variable_decl:
+	case variable_declaration:
 	{
-		auto &var_decl = this->get<variable_decl>();
+		auto &var_decl = this->get<variable_declaration>();
 
-		if (var_decl->typespec)
+		if (var_decl.typespec)
 		{
-			var_decl->typespec->resolve();
+			var_decl.typespec->resolve();
 		}
-		if (var_decl->init_expr)
+		if (var_decl.init_expr)
 		{
-			var_decl->init_expr->resolve();
-		}
-
-		if (!var_decl->typespec || var_decl->typespec->kind() == ast_typespec::none)
-		{
-			assert(var_decl->init_expr);
-			var_decl->typespec = var_decl->init_expr->typespec;
+			var_decl.init_expr->resolve();
 		}
 
-		context.add_variable(var_decl->identifier->value, var_decl->typespec);
+		if (!var_decl.typespec || var_decl.typespec->kind() == ast_typespec::none)
+		{
+			assert(var_decl.init_expr);
+			var_decl.typespec = var_decl.init_expr->typespec;
+		}
+
+		context.add_variable(var_decl.identifier->value, var_decl.typespec);
 
 		return;
 	}
 
-	case function_decl:
+	case function_declaration:
 	{
-		auto &fn_decl = this->get<function_decl>();
+		auto &fn_decl = this->get<function_declaration>();
 
 		++context;
 		bz::vector<ast_typespec_ptr> param_types = {};
-		param_types.reserve(fn_decl->params.size());
-		for (auto &p : fn_decl->params)
+		param_types.reserve(fn_decl.params.size());
+		for (auto &p : fn_decl.params)
 		{
 			p.type->resolve();
 			param_types.emplace_back(p.type);
 			context.add_variable(p.id, p.type);
 		}
 		if (!context.add_function(
-			fn_decl->identifier->value,
-			ast_ts_function(fn_decl->return_type, std::move(param_types))
+			fn_decl.identifier->value,
+			ast_ts_function(fn_decl.return_type, std::move(param_types))
 		))
 		{
-			bad_token(fn_decl->identifier, "Error: function redefinition");
+			bad_token(fn_decl.identifier, "Error: function redefinition");
 		}
 
-		fn_decl->return_type->resolve();
+		fn_decl.return_type->resolve();
 
-		for (auto &s : fn_decl->body->statements)
+		for (auto &s : fn_decl.body.statements)
 		{
 			s->resolve();
 		}
@@ -129,30 +129,30 @@ void ast_declaration_statement::resolve(void)
 		return;
 	}
 
-	case operator_decl:
+	case operator_declaration:
 	{
-		auto &op_decl = this->get<operator_decl>();
+		auto &op_decl = this->get<operator_declaration>();
 
 		++context;
 		bz::vector<ast_typespec_ptr> param_types = {};
-		param_types.reserve(op_decl->params.size());
-		for (auto &p : op_decl->params)
+		param_types.reserve(op_decl.params.size());
+		for (auto &p : op_decl.params)
 		{
 			p.type->resolve();
 			param_types.emplace_back(p.type);
 			context.add_variable(p.id, p.type);
 		}
 		if (!context.add_operator(
-			op_decl->op->kind,
-			ast_ts_function(op_decl->return_type, std::move(param_types))
+			op_decl.op->kind,
+			ast_ts_function(op_decl.return_type, std::move(param_types))
 		))
 		{
-			bad_token(op_decl->op, "Error: operator redefinition");
+			bad_token(op_decl.op, "Error: operator redefinition");
 		}
 
-		op_decl->return_type->resolve();
+		op_decl.return_type->resolve();
 
-		for (auto &s : op_decl->body->statements)
+		for (auto &s : op_decl.body.statements)
 		{
 			s->resolve();
 		}
@@ -161,7 +161,7 @@ void ast_declaration_statement::resolve(void)
 		return;
 	}
 
-	case struct_decl:
+	case struct_declaration:
 		assert(false);
 		return;
 
