@@ -122,6 +122,7 @@ struct token
 		arrow,               // ->
 		scope,               // ::
 		dot_dot,             // ..
+		dot_dot_eq,          // ..=
 		dot_dot_dot,         // ...
 
 
@@ -289,10 +290,7 @@ inline void bad_token(src_tokens::pos stream)
 
 inline void bad_token(src_tokens::pos stream, bz::string_view message)
 {
-	fatal_error(
-		"{}{}\n",
-		get_highlighted_tokens(stream), message
-	);
+	fatal_error("{}{}\n", get_highlighted_tokens(stream), message);
 }
 
 inline void bad_tokens(
@@ -310,6 +308,24 @@ inline src_tokens::pos assert_token(src_tokens::pos &stream, uint32_t kind)
 	if (stream->kind != kind)
 	{
 		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
+	}
+	auto t = stream;
+	++stream;
+	return t;
+}
+
+inline src_tokens::pos assert_token(src_tokens::pos &stream, uint32_t kind1, uint32_t kind2)
+{
+	if (stream->kind != kind1 && stream->kind != kind2)
+	{
+		bad_token(
+			stream,
+			bz::format(
+				"Expected '{}' or '{}'",
+				get_token_value(kind1),
+				get_token_value(kind2)
+			)
+		);
 	}
 	auto t = stream;
 	++stream;

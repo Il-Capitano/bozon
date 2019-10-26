@@ -67,6 +67,12 @@ function factorial(n: int32) -> int32
 
 let a = factorial;
 
+operator ..= (:int32, :int32) -> range_int32
+{}
+
+operator ..= (:str, :str) -> &str
+{}
+
 function factorial(: float64) -> float64
 {
 	let a: function(int32, str, float32) -> char;
@@ -83,6 +89,12 @@ function factorial(: float64) -> float64
 	let d: [int32, float32];
 	let e: [];
 	let f: [int32, [str, char], [], null_t];
+	let g: [[[[]]]];
+
+	let h = 0 ..= 10;
+
+	let str = ("hello");
+	let res = (str ..= " world");
 
 	return 0.0;
 }

@@ -287,7 +287,7 @@ ast_statement_ptr get_ast_statement(
 			bad_token(stream, "Expected '=' or ':'");
 		}
 
-		assert_token(stream, token::assign);
+		assert_token(stream, token::assign, token::semi_colon);
 
 		auto init = get_expression_or_type<token::semi_colon>(stream, end);
 

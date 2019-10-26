@@ -18,6 +18,7 @@ void lexer_init(void)
 		std::make_pair( "<<="_is, token::bit_left_shift_eq  ),
 		std::make_pair( ">>="_is, token::bit_right_shift_eq ),
 		std::make_pair( "..."_is, token::dot_dot_dot        ),
+		std::make_pair( "..="_is, token::dot_dot_eq         ),
 
 		std::make_pair( "++"_is, token::plus_plus           ),
 		std::make_pair( "--"_is, token::minus_minus         ),
@@ -136,6 +137,7 @@ bool is_operator(uint32_t kind)
 	case token::modulo_eq:          // '%='        binary
 	case token::comma:              // ','         binary
 	case token::dot_dot:            // '..'        binary
+	case token::dot_dot_eq:         // '..='       binary
 	case token::equals:             // '=='        binary
 	case token::not_equals:         // '!='        binary
 	case token::less_than:          // '<'         binary
@@ -190,6 +192,7 @@ bool is_overloadable_operator(uint32_t kind)
 	case token::modulo:             // '%'         binary
 	case token::modulo_eq:          // '%='        binary
 	case token::dot_dot:            // '..'        binary
+	case token::dot_dot_eq:         // '..='       binary
 	case token::equals:             // '=='        binary
 	case token::not_equals:         // '!='        binary
 	case token::less_than:          // '<'         binary

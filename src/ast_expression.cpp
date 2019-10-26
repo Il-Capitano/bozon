@@ -119,6 +119,7 @@ static std::map<uint32_t, precedence> binary_op_precendences =
 	{ token::multiply_eq,        precedence{ 16, false } },
 	{ token::divide_eq,          precedence{ 16, false } },
 	{ token::modulo_eq,          precedence{ 16, false } },
+	{ token::dot_dot_eq,         precedence{ 16, false } },
 	{ token::bit_left_shift_eq,  precedence{ 16, false } },
 	{ token::bit_right_shift_eq, precedence{ 16, false } },
 	{ token::bit_and_eq,         precedence{ 16, false } },
@@ -251,7 +252,8 @@ static ast_expression_ptr parse_primary_expression(
 		++stream;
 		auto paren_begin = stream;
 
-		for (size_t paren_level = 1; stream != end && paren_level != 0; ++stream)
+		size_t paren_level;
+		for (paren_level = 1; stream != end && paren_level != 0; ++stream)
 		{
 			if (stream->kind == token::paren_open)
 			{
@@ -263,7 +265,7 @@ static ast_expression_ptr parse_primary_expression(
 			}
 		}
 
-		if (stream == end)
+		if (paren_level != 0)
 		{
 			bad_token(stream, "Expected ')'");
 		}
@@ -396,7 +398,9 @@ static ast_expression_ptr parse_expression(
 )
 {
 	auto lhs = parse_primary_expression(stream, end);
-	return parse_expression_helper(std::move(lhs), stream, end, prec);
+	auto result = parse_expression_helper(std::move(lhs), stream, end, prec);
+	result->resolve();
+	return result;
 }
 
 void ast_expression::resolve(void)

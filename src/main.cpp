@@ -600,6 +600,7 @@ if language:
 	if it was library we have the problem illustrated a bit further up
 else:
 	we have the problem of having to allow operator overloading on built-in types
+	probably this is the best idea...
 
 
 let v: []int = [0, 2, 4, 2, 5];
@@ -682,6 +683,30 @@ so
 [..][..]float64 == std::vector<std::vector<float64>>;
 
 
+
+
+
+---- type declarations ----
+
+let a = 0;             implicit typing
+let b: float64 = 0;    explicit typing
+let c: &float64 = b;   reference type
+
+a shorter and better looking syntax for a few cases
+let &d = b;             shorter version for reference
+let *e = &d;            maybe for pointers too?
+let const f = "hello"   const
+let &const g = f;       ref to const
+const h = [0.0, "test"] shorter and easier to read
+
+explicit types should not be allowed here
+
+maybe for  const a = ...;  it should be
+const a: float64 = 10;
+
+function foo(&const array, const n)
+is the same as
+function foo(array: &const, n: const)
 
 
 
