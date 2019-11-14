@@ -540,6 +540,8 @@ for (&elem in elems)
 for (*elem in elems)
 { ... }
 
+// ^^ ties in nicely with the shortened variable declarations (let &const a = b;)
+
 // iterate backwards
 for (e in <elems)
 
@@ -620,12 +622,34 @@ inclusive or exclusive?
 
 types:
 
-*type      // pointer
-&type      // lvalue reference
-&&type     // rvalue reference
+*T         // pointer
+&T         // lvalue reference
+&&T        // rvalue reference
 ...... some kind of universal ref?  &&&type ???  #type ?
-[ types ]  // tuple
-[expr]type // array
+[ Ts ]     // tuple
+[expr]T    // array
+...T       // pack parameter? also variable?
+
+let a: ...uint64 = [ 0, 1, 2, 3, 4, 5 ];  // ?
+
+function max(a, b, c: ...)
+{
+	let result = a > b ? a : b;
+	((c > result ? cast<void>(result = c) : cast<void> (0)), ...); // pack expansion
+	return result;
+}
+
+function min(a, b, ...c)
+{
+	static_if (sizeof... c == 0)
+	{
+		return a < b ? a : b;
+	}
+	else
+	{
+		return min(min(a, b), c...);
+	}
+}
 
 
 anonymous structs?
@@ -691,6 +715,7 @@ so
 let a = 0;             implicit typing
 let b: float64 = 0;    explicit typing
 let c: &float64 = b;   reference type
+let d: & = b;          auto typing
 
 a shorter and better looking syntax for a few cases
 let &d = b;             shorter version for reference
@@ -707,6 +732,52 @@ const a: float64 = 10;
 function foo(&const array, const n)
 is the same as
 function foo(array: &const, n: const)
+
+
+
+
+---- templates ----
+
+// (1)
+function<typename T> add(a: T, b: T) -> T
+{ return a + b; }
+
+// (2)
+function add<typename T>(a: T, b: T) -> T
+{ return a + b; }
+
+// (3)
+function add(a: typename T, b: T) -> T
+{ return a + b; }
+
+// of these (2) looks the best
+
+
+struct<typename T> vec2d<T>
+{
+	x: T;
+	y: T;
+}
+
+struct vec2d<typename T>
+{
+	x: T;
+	y: T;
+}
+
+// prefer the second one here too
+
+specializations are possible like this too
+
+
+struct vec2d<*typename T>
+{
+	static_assert(false);
+}
+
+
+
+
 
 
 
@@ -803,28 +874,23 @@ struct bz::formatter<ast_typespec_ptr>
 
 
 template<>
-struct bz::formatter<ast_expression_ptr>
+struct bz::formatter<ast_expression>
 {
-	static bz::string format(ast_expression_ptr const &expr, const char *, const char *)
+	static bz::string format(ast_expression const &expr, const char *, const char *)
 	{
-		if (!expr)
+		switch (expr.kind())
 		{
-			return "";
-		}
+		case ast_expression::index<ast_expr_identifier>:
+			return expr.get<ast_expr_identifier_ptr>()->identifier->value;
 
-		switch (expr->kind())
-		{
-		case ast_expression::identifier:
-			return expr->get<ast_expression::identifier>().value;
-
-		case ast_expression::literal:
-			switch (auto &literal = expr->get<ast_expression::literal>(); literal.kind())
+		case ast_expression::index<ast_expr_literal>:
+			switch (auto &literal = expr.get<ast_expr_literal_ptr>(); literal->kind())
 			{
 			case ast_expr_literal::integer_number:
-				return bz::format("{}", literal.integer_value);
+				return bz::format("{}", literal->integer_value);
 
 			case ast_expr_literal::floating_point_number:
-				return bz::format("{}", literal.floating_point_value);
+				return bz::format("{}", literal->floating_point_value);
 
 			case ast_expr_literal::string:
 				return "\"(string)\"";
@@ -846,28 +912,28 @@ struct bz::formatter<ast_expression_ptr>
 				return "";
 			}
 
-		case ast_expression::binary_op:
+		case ast_expression::index<ast_expr_binary_op>:
 		{
-			auto &bin_op = expr->get<ast_expression::binary_op>();
+			auto &bin_op = expr.get<ast_expr_binary_op_ptr>();
 			return bz::format(
-				"({} {} {})", bin_op.lhs, get_token_value(bin_op.op), bin_op.rhs
+				"({} {} {})", bin_op->lhs, bin_op->__op->value, bin_op->rhs
 			);
 		}
 
-		case ast_expression::unary_op:
+		case ast_expression::index<ast_expr_unary_op>:
 		{
-			auto &un_op = expr->get<ast_expression::unary_op>();
-			return bz::format("({} {})", get_token_value(un_op.op), un_op.expr);
+			auto &un_op = expr.get<ast_expr_unary_op_ptr>();
+			return bz::format("({} {})", un_op->__op->value, un_op->expr);
 		}
 
-		case ast_expression::function_call_op:
+		case ast_expression::index<ast_expr_function_call>:
 		{
-			auto &fn_call = expr->get<ast_expression::function_call_op>();
-			auto res = bz::format("{}(", fn_call.called);
-			if (fn_call.params.size() > 0)
+			auto &fn_call = expr.get<ast_expr_function_call_ptr>();
+			auto res = bz::format("{}(", fn_call->called);
+			if (fn_call->params.size() > 0)
 			{
 				bool first = true;
-				for (auto &p : fn_call.params)
+				for (auto &p : fn_call->params)
 				{
 					if (first)
 					{
@@ -981,9 +1047,13 @@ struct bz::formatter<ast_statement_ptr>
 				{
 					auto &var_decl = decl.get<ast_stmt_declaration::variable_declaration>();
 					res += bz::format(
-						"let {}: {}{}{};\n", var_decl.identifier->value, var_decl.typespec,
-						var_decl.init_expr ? " = " : "", var_decl.init_expr
+						"let {}: {}", var_decl.identifier->value, var_decl.typespec
 					);
+					if (var_decl.init_expr.has_value())
+					{
+						res += bz::format(" = {}", var_decl.init_expr.get());
+					}
+					res += ";\n";
 					break;
 				}
 				case ast_stmt_declaration::function_declaration:

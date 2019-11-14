@@ -283,17 +283,17 @@ inline bz::string get_highlighted_tokens(src_tokens::pos t)
 	return get_highlighted_tokens(t, t, t);
 }
 
-inline void bad_token(src_tokens::pos stream)
+[[noreturn]] inline void bad_token(src_tokens::pos stream)
 {
 	fatal_error("{}Unexpected token: '{}'\n", get_highlighted_tokens(stream), stream->value);
 }
 
-inline void bad_token(src_tokens::pos stream, bz::string_view message)
+[[noreturn]] inline void bad_token(src_tokens::pos stream, bz::string_view message)
 {
 	fatal_error("{}{}\n", get_highlighted_tokens(stream), message);
 }
 
-inline void bad_tokens(
+[[noreturn]] inline void bad_tokens(
 	src_tokens::pos begin,
 	src_tokens::pos pivot,
 	src_tokens::pos end,

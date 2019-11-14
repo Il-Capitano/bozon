@@ -1,6 +1,111 @@
 #include "ast_expression.h"
 #include "context.h"
 
+src_tokens::pos ast_expr_unary_op::get_tokens_begin(void) const
+{ return this->__op; }
+
+src_tokens::pos ast_expr_unary_op::get_tokens_pivot(void) const
+{ return this->__op; }
+
+src_tokens::pos ast_expr_unary_op::get_tokens_end(void) const
+{ return this->expr.get_tokens_end(); }
+
+
+src_tokens::pos ast_expr_binary_op::get_tokens_begin(void) const
+{ return this->lhs.get_tokens_begin(); }
+
+src_tokens::pos ast_expr_binary_op::get_tokens_pivot(void) const
+{ return this->__op; }
+
+src_tokens::pos ast_expr_binary_op::get_tokens_end(void) const
+{ return this->rhs.get_tokens_end(); }
+
+
+src_tokens::pos ast_expr_function_call::get_tokens_begin(void) const
+{ return this->called.get_tokens_begin(); }
+
+src_tokens::pos ast_expr_function_call::get_tokens_pivot(void) const
+{ return this->called.get_tokens_end(); }
+
+src_tokens::pos ast_expr_function_call::get_tokens_end(void) const
+{
+	if (this->params.size() == 0)
+	{
+		return this->called.get_tokens_end() + 2;
+	}
+	else
+	{
+		return this->params.back().get_tokens_end() + 1;
+	}
+}
+
+
+void ast_expr_identifier::resolve(void)
+{
+	this->typespec = context.get_identifier_type(this->identifier);
+}
+
+void ast_expr_literal::resolve(void)
+{}
+
+void ast_expr_unary_op::resolve(void)
+{
+	this->expr.resolve();
+	this->typespec = context.get_operator_type(this->__op->kind, { get_typespec(this->expr) });
+}
+
+void ast_expr_binary_op::resolve(void)
+{
+	this->lhs.resolve();
+	this->rhs.resolve();
+	this->typespec = context.get_operator_type(
+		this->__op->kind,
+		{ get_typespec(this->lhs), get_typespec(this->rhs) }
+	);
+}
+
+void ast_expr_function_call::resolve(void)
+{
+	this->called.resolve();
+	for (auto &p : this->params)
+	{
+		p.resolve();
+	}
+
+	if (this->called.kind() == ast_expression::index<ast_expr_identifier>)
+	{
+		bz::vector<ast_typespec_ptr> param_types = {};
+		param_types.reserve(this->params.size());
+
+		for (auto &p : this->params)
+		{
+			param_types.push_back(get_typespec(p));
+		}
+
+		this->typespec = context.get_function_type(
+			this->called.get<ast_expr_identifier_ptr>()->identifier->value,
+			param_types
+		);
+	}
+	else
+	{
+		bz::vector<ast_typespec_ptr> param_types = {};
+		param_types.reserve(this->params.size() + 1);
+
+		param_types.push_back(get_typespec(this->called));
+		for (auto &p : this->params)
+		{
+			param_types.push_back(get_typespec(p));
+		}
+
+		this->typespec = context.get_operator_type(
+			token::paren_open,
+			param_types
+		);
+	}
+}
+
+
 
 ast_expr_literal::ast_expr_literal(src_tokens::pos stream)
 	: src_pos(stream)
@@ -25,6 +130,7 @@ ast_expr_literal::ast_expr_literal(src_tokens::pos stream)
 		{
 			this->_kind = ast_expr_literal::integer_number;
 			this->integer_value = static_cast<uint64_t>(num);
+			this->typespec = make_ast_name_typespec("int32"_is);
 		}
 		else
 		{
@@ -42,6 +148,7 @@ ast_expr_literal::ast_expr_literal(src_tokens::pos stream)
 			}
 
 			this->floating_point_value = num;
+			this->typespec = make_ast_name_typespec("float64"_is);
 		}
 		break;
 	}
@@ -49,29 +156,81 @@ ast_expr_literal::ast_expr_literal(src_tokens::pos stream)
 	case token::string_literal:
 		this->_kind = ast_expr_literal::string;
 		this->string_value = stream->value;
+		this->typespec = make_ast_name_typespec("str"_is);
 		break;
 
 	case token::character_literal:
 		this->_kind = ast_expr_literal::character;
 		assert(stream->value.length() == 1);
 		this->char_value = stream->value[0];
+		this->typespec = make_ast_name_typespec("char"_is);
 		break;
 
 	case token::kw_true:
 		this->_kind = ast_expr_literal::bool_true;
+		this->typespec = make_ast_name_typespec("bool"_is);
 		break;
 
 	case token::kw_false:
 		this->_kind = ast_expr_literal::bool_false;
+		this->typespec = make_ast_name_typespec("bool"_is);
 		break;
 
 	case token::kw_null:
 		this->_kind = ast_expr_literal::null;
+		this->typespec = make_ast_name_typespec("null_t"_is);
 		break;
 
 	default:
 		assert(false);
 		break;
+	}
+}
+
+
+struct precedence
+{
+	int value;
+	bool is_left_associative;
+
+	precedence(void)
+		: value(-1), is_left_associative(true)
+	{}
+
+	constexpr precedence(int val, bool assoc)
+		: value(val), is_left_associative(assoc)
+	{}
+};
+
+inline bool operator < (precedence lhs, precedence rhs)
+{
+	if (lhs.value == -1)
+	{
+		return false;
+	}
+	else if (rhs.value == -1)
+	{
+		return true;
+	}
+	else
+	{
+		return rhs.is_left_associative ? lhs.value < rhs.value : lhs.value <= rhs.value;
+	}
+}
+
+inline bool operator <= (precedence lhs, precedence rhs)
+{
+	if (lhs.value == -1)
+	{
+		return false;
+	}
+	else if (rhs.value == -1)
+	{
+		return true;
+	}
+	else
+	{
+		return lhs.value <= rhs.value;
 	}
 }
 
@@ -173,54 +332,18 @@ static precedence get_unary_precedence(uint32_t kind)
 	}
 }
 
-ast_expression::ast_expression(ast_expr_unresolved _unresolved)
-	: base_t(std::move(_unresolved))
-{}
-
-ast_expression::ast_expression(ast_expr_identifier _id)
-	: base_t(std::move(_id))
-{
-	this->resolve();
-}
-
-ast_expression::ast_expression(ast_expr_literal _literal)
-	: base_t(std::move(_literal))
-{
-	this->resolve();
-}
-
-ast_expression::ast_expression(ast_expr_unary_op _unary_op)
-	: base_t(std::move(_unary_op))
-{
-	this->resolve();
-}
-
-ast_expression::ast_expression(ast_expr_binary_op _binary_op)
-	: base_t(std::move(_binary_op))
-{
-	this->resolve();
-}
-
-ast_expression::ast_expression(ast_expr_function_call _func_call_op)
-	: base_t(std::move(_func_call_op))
-{
-	this->resolve();
-}
-
-
-
-static ast_expression_ptr parse_expression(
+static ast_expression parse_expression(
 	src_tokens::pos &stream,
 	src_tokens::pos  end,
 	precedence       prec = precedence{}
 );
 
-static bz::vector<ast_expression_ptr> parse_expression_comma_list(
+static bz::vector<ast_expression> parse_expression_comma_list(
 	src_tokens::pos &stream,
 	src_tokens::pos  end
 );
 
-static ast_expression_ptr parse_primary_expression(
+static ast_expression parse_primary_expression(
 	src_tokens::pos &stream,
 	src_tokens::pos  end
 )
@@ -229,9 +352,9 @@ static ast_expression_ptr parse_primary_expression(
 	{
 	case token::identifier:
 	{
-		auto id = make_ast_identifier_expression(stream);
+		auto id = make_ast_expr_identifier(stream);
 		++stream;
-		return std::move(id);
+		return id;
 	}
 
 	// literals
@@ -242,9 +365,9 @@ static ast_expression_ptr parse_primary_expression(
 	case token::kw_false:
 	case token::kw_null:
 	{
-		auto literal = make_ast_literal_expression(stream);
+		auto literal = make_ast_expr_literal(stream);
 		++stream;
-		return std::move(literal);
+		return literal;
 	}
 
 	case token::paren_open:
@@ -270,7 +393,8 @@ static ast_expression_ptr parse_primary_expression(
 			bad_token(stream, "Expected ')'");
 		}
 
-		return make_ast_unresolved_expression(token_range{ paren_begin, stream });
+		auto result = make_ast_expr_unresolved(token_range{ paren_begin, stream });
+		return result;
 	}
 
 	// unary operators
@@ -290,20 +414,20 @@ static ast_expression_ptr parse_primary_expression(
 		auto prec = get_unary_precedence(op->kind);
 		auto expr = parse_expression(stream, end, prec);
 
-		return make_ast_unary_op_expression(op, std::move(expr));
+		auto result = make_ast_expr_unary_op(op, std::move(expr));
+		return result;
 	}
 
 	default:
 		bad_token(stream, "Expected primary expression");
-		return nullptr;
 	}
 };
 
-static ast_expression_ptr parse_expression_helper(
-	ast_expression_ptr lhs,
-	src_tokens::pos   &stream,
-	src_tokens::pos    end,
-	precedence         prec
+static ast_expression parse_expression_helper(
+	ast_expression   lhs,
+	src_tokens::pos &stream,
+	src_tokens::pos  end,
+	precedence       prec
 )
 {
 	src_tokens::pos op = nullptr;
@@ -324,8 +448,8 @@ static ast_expression_ptr parse_expression_helper(
 			)
 			{
 				++stream;
-				lhs = make_ast_function_call_expression(
-					std::move(lhs), bz::vector<ast_expression_ptr>{}
+				lhs = make_ast_expr_function_call(
+					std::move(lhs), bz::vector<ast_expression>{}
 				);
 				break;
 			}
@@ -333,7 +457,7 @@ static ast_expression_ptr parse_expression_helper(
 			auto params = parse_expression_comma_list(stream, end);
 			assert_token(stream, token::paren_close);
 
-			lhs = make_ast_function_call_expression(
+			lhs = make_ast_expr_function_call(
 				std::move(lhs), std::move(params)
 			);
 			break;
@@ -344,7 +468,7 @@ static ast_expression_ptr parse_expression_helper(
 			auto rhs = parse_expression(stream, end);
 			assert_token(stream, token::square_close);
 
-			lhs = make_ast_binary_op_expression(
+			lhs = make_ast_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
 			);
 			break;
@@ -363,7 +487,7 @@ static ast_expression_ptr parse_expression_helper(
 				rhs = parse_expression_helper(std::move(rhs), stream, end, rhs_prec);
 			}
 
-			lhs = make_ast_binary_op_expression(
+			lhs = make_ast_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
 			);
 			break;
@@ -371,15 +495,15 @@ static ast_expression_ptr parse_expression_helper(
 		}
 	}
 
-	return std::move(lhs);
+	return lhs;
 }
 
-static bz::vector<ast_expression_ptr> parse_expression_comma_list(
+static bz::vector<ast_expression> parse_expression_comma_list(
 	src_tokens::pos &stream,
 	src_tokens::pos  end
 )
 {
-	bz::vector<ast_expression_ptr> exprs = {};
+	bz::vector<ast_expression> exprs = {};
 
 	exprs.emplace_back(parse_expression(stream, end, no_comma));
 
@@ -391,7 +515,7 @@ static bz::vector<ast_expression_ptr> parse_expression_comma_list(
 	return exprs;
 }
 
-static ast_expression_ptr parse_expression(
+static ast_expression parse_expression(
 	src_tokens::pos &stream,
 	src_tokens::pos  end,
 	precedence       prec
@@ -399,133 +523,79 @@ static ast_expression_ptr parse_expression(
 {
 	auto lhs = parse_primary_expression(stream, end);
 	auto result = parse_expression_helper(std::move(lhs), stream, end, prec);
-	result->resolve();
 	return result;
 }
 
+template<>
 void ast_expression::resolve(void)
 {
-	if (this->typespec != nullptr)
-	{
-		return;
-	}
-
 	switch (this->kind())
 	{
-	case unresolved:
+	case index<ast_expr_unresolved>:
 	{
-		auto &unresolved_expr = this->get<unresolved>();
+		auto &unresolved_expr = this->get<ast_expr_unresolved_ptr>();
 
-		auto begin = unresolved_expr.expr.begin;
-		auto end   = unresolved_expr.expr.end;
+		auto begin = unresolved_expr->expr.begin;
+		auto end   = unresolved_expr->expr.end;
 
 		auto expr = parse_expression(begin, end);
-		*this = std::move(*expr);
+		expr.resolve();
+		this->assign(std::move(expr));
 
 		break;
 	}
 
-	case identifier:
-		this->typespec = context.get_identifier_type(
-			this->get<identifier>().src_pos
-		);
+	case index<ast_expr_identifier>:
+		this->get<ast_expr_identifier_ptr>()->resolve();
 		break;
 
-	case literal:
-		this->typespec = [this]() -> ast_typespec_ptr
-		{
-			switch (this->get<literal>().kind())
-			{
-			case ast_expr_literal::integer_number:
-				return make_ast_typespec(ast_ts_name("int32"_is));
-			case ast_expr_literal::floating_point_number:
-				return make_ast_typespec(ast_ts_name("float64"_is));
-			case ast_expr_literal::string:
-				return make_ast_typespec(ast_ts_name("str"_is));
-			case ast_expr_literal::character:
-				return make_ast_typespec(ast_ts_name("char"_is));
-			case ast_expr_literal::bool_true:
-			case ast_expr_literal::bool_false:
-				return make_ast_typespec(ast_ts_name("bool"_is));
-			case ast_expr_literal::null:
-				return make_ast_typespec(ast_ts_name("null_t"_is));
-			default:
-				assert(false);
-				return nullptr;
-			}
-		}();
+	case index<ast_expr_literal>:
+		this->get<ast_expr_literal_ptr>()->resolve();
 		break;
 
-	case unary_op:
-	{
-		auto &unary = this->get<unary_op>();
-		unary.expr->resolve();
-
-		this->typespec = context.get_operator_type(
-			unary.op, { unary.expr->typespec }
-		);
+	case index<ast_expr_unary_op>:
+		this->get<ast_expr_unary_op_ptr>()->resolve();
 		break;
-	}
 
-	case binary_op:
-	{
-		auto &binary = this->get<binary_op>();
-		binary.lhs->resolve();
-		binary.rhs->resolve();
-
-		this->typespec = context.get_operator_type(
-			binary.op, { binary.lhs->typespec, binary.rhs->typespec }
-		);
+	case index<ast_expr_binary_op>:
+		this->get<ast_expr_binary_op_ptr>()->resolve();
 		break;
-	}
 
-	case function_call_op:
-	{
-		auto &fn_call = this->get<function_call_op>();
-		fn_call.called->resolve();
-
-		for (auto &param : fn_call.params)
-		{
-			param->resolve();
-		}
-
-		if (
-			fn_call.called->kind() == identifier
-			&& context.is_function(fn_call.called->get<identifier>().value)
-		)
-		{
-			bz::vector<ast_typespec_ptr> typespecs = {};
-			typespecs.reserve(fn_call.params.size());
-
-			for (auto &param : fn_call.params)
-			{
-				typespecs.emplace_back(param->typespec);
-			}
-
-			this->typespec = context.get_function_type(
-				fn_call.called->get<identifier>().value, typespecs
-			);
-		}
-		else
-		{
-			bz::vector<ast_typespec_ptr> typespecs = {};
-			typespecs.reserve(fn_call.params.size() + 1);
-			typespecs.emplace_back(fn_call.called->typespec);
-
-			for (auto &param : fn_call.params)
-			{
-				typespecs.emplace_back(param->typespec);
-			}
-
-			this->typespec = context.get_operator_type(
-				token::paren_open, typespecs
-			);
-		}
+	case index<ast_expr_function_call>:
+		this->get<ast_expr_function_call_ptr>()->resolve();
 		break;
-	}
 
 	default:
 		assert(false);
 		break;
+	}
+}
+
+ast_typespec_ptr get_typespec(ast_expression const &expr)
+{
+	switch (expr.kind())
+	{
+	case ast_expression::index<ast_expr_unresolved>:
+		assert(false);
+		return nullptr;
+
+	case ast_expression::index<ast_expr_identifier>:
+		return expr.get<ast_expr_identifier_ptr>()->typespec;
+
+	case ast_expression::index<ast_expr_literal>:
+		return expr.get<ast_expr_literal_ptr>()->typespec;
+
+	case ast_expression::index<ast_expr_unary_op>:
+		return expr.get<ast_expr_unary_op_ptr>()->typespec;
+
+	case ast_expression::index<ast_expr_binary_op>:
+		return expr.get<ast_expr_binary_op_ptr>()->typespec;
+
+	case ast_expression::index<ast_expr_function_call>:
+		return expr.get<ast_expr_function_call_ptr>()->typespec;
+
+	default:
+		assert(false);
+		return nullptr;
 	}
 }

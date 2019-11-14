@@ -57,13 +57,13 @@ public:
 	char operator [] (size_t n) const
 	{ return this->_data[n]; }
 
-	explicit operator const char * ()
+	explicit operator const char * () const
 	{ return this->_data; }
 
-	operator bz::string ()
+	operator bz::string () const
 	{ return this->_data; }
 
-	operator bz::string_view ()
+	operator bz::string_view () const
 	{ return this->_data; }
 
 

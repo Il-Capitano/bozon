@@ -9,7 +9,7 @@ void ast_statement::resolve(void)
 	case if_statement:
 	{
 		auto &if_stmt = this->get<if_statement>();
-		if_stmt.condition->resolve();
+		if_stmt.condition.resolve();
 		if_stmt.then_block->resolve();
 		if_stmt.else_block->resolve();
 		return;
@@ -18,7 +18,7 @@ void ast_statement::resolve(void)
 	case while_statement:
 	{
 		auto &while_stmt = this->get<while_statement>();
-		while_stmt.condition->resolve();
+		while_stmt.condition.resolve();
 		while_stmt.while_block->resolve();
 		return;
 	}
@@ -30,7 +30,7 @@ void ast_statement::resolve(void)
 	case return_statement:
 	{
 		auto &ret_stmt = this->get<return_statement>();
-		ret_stmt.expr->resolve();
+		ret_stmt.expr.resolve();
 		return;
 	}
 
@@ -52,7 +52,7 @@ void ast_statement::resolve(void)
 	case expression_statement:
 	{
 		auto &expr_stmt = this->get<expression_statement>();
-		expr_stmt.expr->resolve();
+		expr_stmt.expr.resolve();
 		return;
 	}
 
@@ -81,15 +81,15 @@ void ast_stmt_declaration::resolve(void)
 		{
 			var_decl.typespec->resolve();
 		}
-		if (var_decl.init_expr)
+		if (var_decl.init_expr.has_value())
 		{
 			var_decl.init_expr->resolve();
 		}
 
 		if (!var_decl.typespec || var_decl.typespec->kind() == ast_typespec::none)
 		{
-			assert(var_decl.init_expr);
-			var_decl.typespec = var_decl.init_expr->typespec;
+			assert(var_decl.init_expr.has_value());
+			var_decl.typespec = get_typespec(var_decl.init_expr.get());
 		}
 
 		context.add_variable(var_decl.identifier->value, var_decl.typespec);

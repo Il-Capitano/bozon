@@ -185,7 +185,7 @@ ast_statement_ptr get_ast_statement(
 			auto else_block = get_ast_statement(stream, end);
 
 			return make_ast_if_statement(
-				make_ast_unresolved_expression(condition),
+				make_ast_expr_unresolved(condition),
 				std::move(if_block),
 				std::move(else_block)
 			);
@@ -193,7 +193,7 @@ ast_statement_ptr get_ast_statement(
 		else
 		{
 			return make_ast_if_statement(
-				make_ast_unresolved_expression(condition),
+				make_ast_expr_unresolved(condition),
 				std::move(if_block),
 				nullptr
 			);
@@ -212,7 +212,7 @@ ast_statement_ptr get_ast_statement(
 		auto while_block = get_ast_statement(stream, end);
 
 		return make_ast_while_statement(
-			make_ast_unresolved_expression(condition),
+			make_ast_expr_unresolved(condition),
 			std::move(while_block)
 		);
 	}
@@ -234,7 +234,7 @@ ast_statement_ptr get_ast_statement(
 		assert_token(stream, token::semi_colon);
 
 		return make_ast_return_statement(
-			make_ast_unresolved_expression(expr)
+			make_ast_expr_unresolved(expr)
 		);
 	}
 
@@ -276,9 +276,7 @@ ast_statement_ptr get_ast_statement(
 			{
 				++stream; // ';'
 				return make_ast_statement(
-					make_ast_variable_decl(
-						id, type, nullptr
-					)
+					make_ast_variable_decl(id, type)
 				);
 			}
 		}
@@ -296,7 +294,7 @@ ast_statement_ptr get_ast_statement(
 			make_ast_variable_decl(
 				id,
 				type,
-				make_ast_unresolved_expression(init)
+				make_ast_expr_unresolved(init)
 			)
 		);
 	}
@@ -375,7 +373,7 @@ ast_statement_ptr get_ast_statement(
 		assert_token(stream, token::semi_colon);
 
 		return make_ast_expression_statement(
-			make_ast_unresolved_expression(expr)
+			make_ast_expr_unresolved(expr)
 		);
 	}
 	}

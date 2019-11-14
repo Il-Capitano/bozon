@@ -13,16 +13,16 @@ using ast_statement_ptr = std::unique_ptr<ast_statement>;
 
 struct ast_stmt_if
 {
-	ast_expression_ptr condition;
+	ast_expression condition;
 	ast_statement_ptr  then_block;
 	ast_statement_ptr  else_block;
 
 	ast_stmt_if(
-		ast_expression_ptr _cond,
+		ast_expression _condition,
 		ast_statement_ptr  _then_block,
 		ast_statement_ptr  _else_block
 	)
-		: condition (std::move(_cond)),
+		: condition (std::move(_condition)),
 		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
@@ -30,14 +30,14 @@ struct ast_stmt_if
 
 struct ast_stmt_while
 {
-	ast_expression_ptr condition;
+	ast_expression condition;
 	ast_statement_ptr  while_block;
 
 	ast_stmt_while(
-		ast_expression_ptr _cond,
+		ast_expression _condition,
 		ast_statement_ptr  _while_block
 	)
-		: condition  (std::move(_cond)),
+		: condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
 };
@@ -49,9 +49,9 @@ struct ast_stmt_for
 
 struct ast_stmt_return
 {
-	ast_expression_ptr expr;
+	ast_expression expr;
 
-	ast_stmt_return(ast_expression_ptr _expr)
+	ast_stmt_return(ast_expression _expr)
 		: expr(std::move(_expr))
 	{}
 };
@@ -72,9 +72,9 @@ struct ast_stmt_compound
 
 struct ast_stmt_expression
 {
-	ast_expression_ptr expr;
+	ast_expression expr;
 
-	ast_stmt_expression(ast_expression_ptr _expr)
+	ast_stmt_expression(ast_expression _expr)
 		: expr(std::move(_expr))
 	{}
 };
@@ -84,16 +84,25 @@ struct ast_decl_variable
 {
 	src_tokens::pos    identifier;
 	ast_typespec_ptr   typespec;
-	ast_expression_ptr init_expr;
+	bz::optional<ast_expression> init_expr;
 
 	ast_decl_variable(
 		src_tokens::pos    _id,
 		ast_typespec_ptr   _typespec,
-		ast_expression_ptr _init_expr
+		ast_expression _init_expr
 	)
 		: identifier(_id),
 		  typespec  (std::move(_typespec)),
 		  init_expr (std::move(_init_expr))
+	{}
+
+	ast_decl_variable(
+		src_tokens::pos    _id,
+		ast_typespec_ptr   _typespec
+	)
+		: identifier(_id),
+		  typespec  (std::move(_typespec)),
+		  init_expr ()
 	{}
 };
 
@@ -105,9 +114,9 @@ struct ast_decl_function
 	ast_stmt_compound        body;
 
 	ast_decl_function(
-		src_tokens::pos            _id,
-		bz::vector<ast_variable>   _params,
-		ast_typespec_ptr           _ret_type,
+		src_tokens::pos          _id,
+		bz::vector<ast_variable> _params,
+		ast_typespec_ptr         _ret_type,
 		ast_stmt_compound        _body
 	)
 		: identifier (_id),

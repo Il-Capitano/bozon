@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <cmath>
 #include <array>
 #include <map>
 #include <memory>
@@ -13,6 +14,7 @@
 #include <bz/variant.h>
 #include <bz/string.h>
 #include <bz/vector.h>
+#include <bz/optional.h>
 
 #include "intern_string.h"
 #include "my_assert.h"
