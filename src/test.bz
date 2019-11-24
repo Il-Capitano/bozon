@@ -166,6 +166,8 @@ a&b|c^d       // ((a & b) | (c ^ d))
 
 struct vec3<typename T>
 {
+	static_assert(std::is_trivial<T>, "vec3 value_type must be trivial");
+
 	using value_type = T;
 
 	x: T;
@@ -190,17 +192,47 @@ struct vec3<typename T>
 
 	function unit(&const this) -> vec3
 	{
-		const len = this.abs();
+		const ilen = 1 / this.abs();
 		return [
-			this.x / len,
-			this.y / len,
-			this.z / len
+			this.x * ilen,
+			this.y * ilen,
+			this.z * ilen
 		];
 	}
 }
 
 
+struct vec<uint64 N, typename T>
+{
+	static_assert(std::is_trivial<T>, "...");
 
+	using value_type = T;
 
+	c: [N]value_type;
+
+	constructor() = default;
+
+	constructor(t: [...T])
+	[ .c = t ]
+	{}
+
+	function abs_sqr(&const this)
+	{
+		const ...Ns = std::make_index_sequence<N>();
+		return (this.c[Ns] * this.c[Ns]) + ...;
+	}
+
+	function abs(&const this)
+	{ return std::sqrt(this.abs()); }
+
+	function unit(&const this) -> vec<N, T>
+	{
+		const ilen = 1 / this.abs();
+		const ...Ns = std::make_index_sequence<N>();
+		return [ (this.c[Ns] * ilen)... ];
+	}
+}
+
+using vec3<typename T> = vec<3, T>;
 
 */

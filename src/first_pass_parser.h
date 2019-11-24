@@ -6,7 +6,7 @@
 #include "ast_statement.h"
 
 
-ast_statement_ptr get_ast_statement(src_tokens::pos &stream, src_tokens::pos end);
-bz::vector<ast_statement_ptr> get_ast_statements(src_tokens::pos &stream, src_tokens::pos end);
+ast_statement get_ast_statement(src_tokens::pos &stream, src_tokens::pos end);
+bz::vector<ast_statement> get_ast_statements(src_tokens::pos &stream, src_tokens::pos end);
 
 #endif // FIRST_PASS_PARSER_H

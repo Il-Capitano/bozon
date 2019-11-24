@@ -113,12 +113,12 @@ struct ast_expr_literal
 
 struct ast_expr_unary_op
 {
-	src_tokens::pos __op;
-	ast_expression  expr;
+	src_tokens::pos  op;
+	ast_expression   expr;
 	ast_typespec_ptr typespec = nullptr;
 
 	ast_expr_unary_op(src_tokens::pos _op, ast_expression _expr)
-		: __op(_op),
+		: op(_op),
 		  expr(std::move(_expr))
 	{}
 
@@ -131,13 +131,13 @@ struct ast_expr_unary_op
 
 struct ast_expr_binary_op
 {
-	src_tokens::pos __op;
+	src_tokens::pos op;
 	ast_expression  lhs;
 	ast_expression  rhs;
 	ast_typespec_ptr typespec = nullptr;
 
 	ast_expr_binary_op(src_tokens::pos _op, ast_expression _lhs, ast_expression _rhs)
-		: __op(_op),
+		: op(_op),
 		  lhs (std::move(_lhs)),
 		  rhs (std::move(_rhs))
 	{}

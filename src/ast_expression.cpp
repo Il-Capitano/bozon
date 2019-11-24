@@ -2,10 +2,10 @@
 #include "context.h"
 
 src_tokens::pos ast_expr_unary_op::get_tokens_begin(void) const
-{ return this->__op; }
+{ return this->op; }
 
 src_tokens::pos ast_expr_unary_op::get_tokens_pivot(void) const
-{ return this->__op; }
+{ return this->op; }
 
 src_tokens::pos ast_expr_unary_op::get_tokens_end(void) const
 { return this->expr.get_tokens_end(); }
@@ -15,7 +15,7 @@ src_tokens::pos ast_expr_binary_op::get_tokens_begin(void) const
 { return this->lhs.get_tokens_begin(); }
 
 src_tokens::pos ast_expr_binary_op::get_tokens_pivot(void) const
-{ return this->__op; }
+{ return this->op; }
 
 src_tokens::pos ast_expr_binary_op::get_tokens_end(void) const
 { return this->rhs.get_tokens_end(); }
@@ -51,7 +51,7 @@ void ast_expr_literal::resolve(void)
 void ast_expr_unary_op::resolve(void)
 {
 	this->expr.resolve();
-	this->typespec = context.get_operator_type(this->__op->kind, { get_typespec(this->expr) });
+	this->typespec = context.get_operator_type(this->op->kind, { get_typespec(this->expr) });
 }
 
 void ast_expr_binary_op::resolve(void)
@@ -59,7 +59,7 @@ void ast_expr_binary_op::resolve(void)
 	this->lhs.resolve();
 	this->rhs.resolve();
 	this->typespec = context.get_operator_type(
-		this->__op->kind,
+		this->op->kind,
 		{ get_typespec(this->lhs), get_typespec(this->rhs) }
 	);
 }

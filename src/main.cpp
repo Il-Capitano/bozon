@@ -916,14 +916,14 @@ struct bz::formatter<ast_expression>
 		{
 			auto &bin_op = expr.get<ast_expr_binary_op_ptr>();
 			return bz::format(
-				"({} {} {})", bin_op->lhs, bin_op->__op->value, bin_op->rhs
+				"({} {} {})", bin_op->lhs, bin_op->op->value, bin_op->rhs
 			);
 		}
 
 		case ast_expression::index<ast_expr_unary_op>:
 		{
 			auto &un_op = expr.get<ast_expr_unary_op_ptr>();
-			return bz::format("({} {})", un_op->__op->value, un_op->expr);
+			return bz::format("({} {})", un_op->op->value, un_op->expr);
 		}
 
 		case ast_expression::index<ast_expr_function_call>:
@@ -956,15 +956,10 @@ struct bz::formatter<ast_expression>
 
 
 template<>
-struct bz::formatter<ast_statement_ptr>
+struct bz::formatter<ast_statement>
 {
-	static bz::string format(ast_statement_ptr const &stmt, const char *spec, const char *spec_end)
+	static bz::string format(ast_statement const &stmt, const char *spec, const char *spec_end)
 	{
-		if (!stmt)
-		{
-			return "";
-		}
-
 		uint32_t level = 0;
 		while (spec != spec_end)
 		{
@@ -984,48 +979,48 @@ struct bz::formatter<ast_statement_ptr>
 		};
 		indent();
 
-		switch (stmt->kind())
+		switch (stmt.kind())
 		{
-		case ast_statement::if_statement:
+		case ast_statement::index<ast_stmt_if>:
 		{
-			auto &if_stmt = stmt->get<ast_statement::if_statement>();
+			auto &if_stmt = stmt.get<ast_stmt_if_ptr>();
 			res += bz::format(
-				"if ({})\n{:{}}", if_stmt.condition, level, if_stmt.then_block
+				"if ({})\n{:{}}", if_stmt->condition, level, if_stmt->then_block
 			);
-			if (if_stmt.else_block)
+			if (if_stmt->else_block.has_value())
 			{
 				indent();
-				res += bz::format("else\n{:{}}", level, if_stmt.else_block);
+				res += bz::format("else\n{:{}}", level, if_stmt->else_block.get());
 			}
 			break;
 		}
 
-		case ast_statement::while_statement:
+		case ast_statement::index<ast_stmt_while>:
 		{
-			auto &while_stmt = stmt->get<ast_statement::while_statement>();
+			auto &while_stmt = stmt.get<ast_stmt_while_ptr>();
 			res += bz::format(
-				"while ({})\n{:{}}", while_stmt.condition, level, while_stmt.while_block
+				"while ({})\n{:{}}", while_stmt->condition, level, while_stmt->while_block
 			);
 			break;
 		}
 
-		case ast_statement::for_statement:
+		case ast_statement::index<ast_stmt_for>:
 			assert(false);
 			break;
 
-		case ast_statement::return_statement:
-			res += bz::format("return {};\n", stmt->get<ast_statement::return_statement>().expr);
+		case ast_statement::index<ast_stmt_return>:
+			res += bz::format("return {};\n", stmt.get<ast_stmt_return_ptr>()->expr);
 			break;
 
-		case ast_statement::no_op_statement:
+		case ast_statement::index<ast_stmt_no_op>:
 			res += ";\n";
 			break;
 
-		case ast_statement::compound_statement:
+		case ast_statement::index<ast_stmt_compound>:
 		{
-			auto &comp_stmt = stmt->get<ast_statement::compound_statement>();
+			auto &comp_stmt = stmt.get<ast_stmt_compound_ptr>();
 			res += "{\n";
-			for (auto &s : comp_stmt.statements)
+			for (auto &s : comp_stmt->statements)
 			{
 				res += bz::format("{:{}}", level + 1, s);
 			}
@@ -1034,44 +1029,44 @@ struct bz::formatter<ast_statement_ptr>
 			break;
 		}
 
-		case ast_statement::expression_statement:
-			res += bz::format("{};\n", stmt->get<ast_statement::expression_statement>().expr);
+		case ast_statement::index<ast_stmt_expression>:
+			res += bz::format("{};\n", stmt.get<ast_stmt_expression_ptr>()->expr);
 			break;
 
-		case ast_statement::declaration_statement:
+		case ast_statement::index<ast_stmt_declaration>:
 		{
-			auto &decl = stmt->get<ast_statement::declaration_statement>();
-			switch (decl.kind())
+			auto &decl = stmt.get<ast_stmt_declaration_ptr>();
+			switch (decl->kind())
 			{
-				case ast_stmt_declaration::variable_declaration:
+				case ast_stmt_declaration::index<ast_decl_variable>:
 				{
-					auto &var_decl = decl.get<ast_stmt_declaration::variable_declaration>();
+					auto &var_decl = decl->get<ast_decl_variable_ptr>();
 					res += bz::format(
-						"let {}: {}", var_decl.identifier->value, var_decl.typespec
+						"let {}: {}", var_decl->identifier->value, var_decl->typespec
 					);
-					if (var_decl.init_expr.has_value())
+					if (var_decl->init_expr.has_value())
 					{
-						res += bz::format(" = {}", var_decl.init_expr.get());
+						res += bz::format(" = {}", var_decl->init_expr.get());
 					}
 					res += ";\n";
 					break;
 				}
-				case ast_stmt_declaration::function_declaration:
+				case ast_stmt_declaration::index<ast_decl_function>:
 				{
-					auto &fn_decl = decl.get<ast_stmt_declaration::function_declaration>();
-					res += bz::format("function {}(", fn_decl.identifier->value);
+					auto &fn_decl = decl->get<ast_decl_function_ptr>();
+					res += bz::format("function {}(", fn_decl->identifier->value);
 					int i = 0;
-					for (auto &p : fn_decl.params)
+					for (auto &p : fn_decl->params)
 					{
 						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
 						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", fn_decl.return_type);
+					res += bz::format(") -> {}\n", fn_decl->return_type);
 					indent();
 					res += "{\n";
 
-					for (auto &stmt : fn_decl.body.statements)
+					for (auto &stmt : fn_decl->body->statements)
 					{
 						res += bz::format("{:{}}", level + 1, stmt);
 					}
@@ -1080,22 +1075,22 @@ struct bz::formatter<ast_statement_ptr>
 					res += "}\n";
 					break;
 				}
-				case ast_stmt_declaration::operator_declaration:
+				case ast_stmt_declaration::index<ast_decl_operator>:
 				{
-					auto &op_decl = decl.get<ast_stmt_declaration::operator_declaration>();
-					res += bz::format("operator {}(", op_decl.op->value);
+					auto &op_decl = decl->get<ast_decl_operator_ptr>();
+					res += bz::format("operator {}(", op_decl->op->value);
 					int i = 0;
-					for (auto &p : op_decl.params)
+					for (auto &p : op_decl->params)
 					{
 						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
 						else        res += bz::format(", {}: {}", p.id, p.type);
 						++i;
 					}
-					res += bz::format(") -> {}\n", op_decl.return_type);
+					res += bz::format(") -> {}\n", op_decl->return_type);
 					indent();
 					res += "{\n";
 
-					for (auto &stmt : op_decl.body.statements)
+					for (auto &stmt : op_decl->body->statements)
 					{
 						res += bz::format("{:{}}", level + 1, stmt);
 					}
@@ -1104,7 +1099,7 @@ struct bz::formatter<ast_statement_ptr>
 					res += "}\n";
 					break;
 				}
-				case ast_stmt_declaration::struct_declaration:
+				case ast_stmt_declaration::index<ast_decl_struct>:
 				default:
 					assert(false);
 					break;
@@ -1115,11 +1110,6 @@ struct bz::formatter<ast_statement_ptr>
 		return res;
 	}
 };
-
-void print_statement(ast_statement_ptr const &stmt)
-{
-
-}
 
 int main(void)
 {
@@ -1134,13 +1124,12 @@ int main(void)
 
 	for (auto &s : statements)
 	{
-		s->resolve();
+		s.resolve();
 	}
 
 	for (auto &s : statements)
 	{
 		bz::printf("{}", s);
-		print_statement(s);
 	}
 
 	return 0;
