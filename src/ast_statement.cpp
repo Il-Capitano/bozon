@@ -1,75 +1,51 @@
 #include "ast_statement.h"
 #include "context.h"
 
+void ast_stmt_if::resolve(void)
+{
+	this->condition.resolve();
+	this->then_block.resolve();
+	if (this->else_block.has_value())
+	{
+		this->else_block->resolve();
+	}
+}
+
+void ast_stmt_while::resolve(void)
+{
+	this->condition.resolve();
+	this->while_block.resolve();
+}
+
+void ast_stmt_for::resolve(void)
+{
+	assert(false);
+}
+
+void ast_stmt_return::resolve(void)
+{
+	this->expr.resolve();
+}
+
+void ast_stmt_compound::resolve(void)
+{
+	++context;
+	for (auto &stmt : this->statements)
+	{
+		stmt.resolve();
+	}
+	--context;
+}
+
+void ast_stmt_expression::resolve(void)
+{
+	this->expr.resolve();
+}
+
 template<>
 void ast_statement::resolve(void)
 {
-	switch (this->kind())
-	{
-	case index<ast_stmt_if>:
-	{
-		auto &if_stmt = this->get<ast_stmt_if_ptr>();
-		if_stmt->condition.resolve();
-		if_stmt->then_block.resolve();
-		if (if_stmt->else_block.has_value())
-		{
-			if_stmt->else_block->resolve();
-		}
-		return;
-	}
-
-	case index<ast_stmt_while>:
-	{
-		auto &while_stmt = this->get<ast_stmt_while_ptr>();
-		while_stmt->condition.resolve();
-		while_stmt->while_block.resolve();
-		return;
-	}
-
-	case index<ast_stmt_for>:
-		assert(false);
-		return;
-
-	case index<ast_stmt_return>:
-	{
-		auto &ret_stmt = this->get<ast_stmt_return_ptr>();
-		ret_stmt->expr.resolve();
-		return;
-	}
-
-	case index<ast_stmt_no_op>:
-		return;
-
-	case index<ast_stmt_compound>:
-	{
-		++context;
-		auto &comp_stmt = this->get<ast_stmt_compound_ptr>();
-		for (auto &s : comp_stmt->statements)
-		{
-			s.resolve();
-		}
-		--context;
-		return;
-	}
-
-	case index<ast_stmt_expression>:
-	{
-		auto &expr_stmt = this->get<ast_stmt_expression_ptr>();
-		expr_stmt->expr.resolve();
-		return;
-	}
-
-	case index<ast_stmt_declaration>:
-	{
-		auto &decl_stmt = this->get<ast_stmt_declaration_ptr>();
-		decl_stmt->resolve();
-		return;
-	}
-
-	default:
-		assert(false);
-		return;
-	}
+	this->visit([](auto &stmt) { stmt->resolve(); });
 }
 
 template<>

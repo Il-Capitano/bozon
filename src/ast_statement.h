@@ -53,51 +53,59 @@ void ast_statement::resolve(void);
 
 struct ast_stmt_if
 {
+	token_range                 tokens;
 	ast_expression              condition;
 	ast_statement               then_block;
 	bz::optional<ast_statement> else_block;
 
 	ast_stmt_if(
+		token_range    _tokens,
 		ast_expression _condition,
 		ast_statement  _then_block
 	)
-		: condition (std::move(_condition)),
+		: tokens(_tokens),
+		  condition (std::move(_condition)),
 		  then_block(std::move(_then_block))
 	{}
 
 	ast_stmt_if(
+		token_range    _tokens,
 		ast_expression _condition,
 		ast_statement  _then_block,
 		ast_statement  _else_block
 	)
-		: condition (std::move(_condition)),
+		: tokens(_tokens),
+		  condition (std::move(_condition)),
 		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct ast_stmt_while
 {
+	token_range    tokens;
 	ast_expression condition;
 	ast_statement  while_block;
 
 	ast_stmt_while(
+		token_range    _tokens,
 		ast_expression _condition,
 		ast_statement  _while_block
 	)
-		: condition  (std::move(_condition)),
+		: tokens(_tokens),
+		  condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -108,65 +116,74 @@ struct ast_stmt_for
 
 	src_tokens::pos get_tokens_begin(void) const { assert(false); return nullptr; }
 	src_tokens::pos get_tokens_pivot(void) const { assert(false); return nullptr; }
-	src_tokens::pos get_tokens_end(void) const { assert(false); return nullptr; }
+	src_tokens::pos get_tokens_end(void) const   { assert(false); return nullptr; }
 
-	void resolve(void) { assert(false); }
+	void resolve(void);
 };
 
 struct ast_stmt_return
 {
+	token_range    tokens;
 	ast_expression expr;
 
-	ast_stmt_return(ast_expression _expr)
-		: expr(std::move(_expr))
+	ast_stmt_return(token_range _tokens, ast_expression _expr)
+		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct ast_stmt_no_op
 {
-	// nothing
+	token_range tokens;
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	ast_stmt_no_op(token_range _tokens)
+		: tokens(_tokens)
+	{}
+
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void) {}
 };
 
 struct ast_stmt_compound
 {
+	token_range               tokens;
 	bz::vector<ast_statement> statements;
 
-	ast_stmt_compound(void) = default;
-
-	ast_stmt_compound(bz::vector<ast_statement> _stms)
-		: statements(std::move(_stms))
+	ast_stmt_compound(token_range _tokens)
+		: tokens(_tokens)
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	ast_stmt_compound(token_range _tokens, bz::vector<ast_statement> _stms)
+		: tokens(_tokens), statements(std::move(_stms))
+	{}
+
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct ast_stmt_expression
 {
+	token_range    tokens;
 	ast_expression expr;
 
-	ast_stmt_expression(ast_expression _expr)
-		: expr(std::move(_expr))
+	ast_stmt_expression(token_range _tokens, ast_expression _expr)
+		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_tokens::pos get_tokens_begin(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	src_tokens::pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };

@@ -148,8 +148,9 @@ static ast_stmt_compound_ptr get_stmt_compound(
 	src_tokens::pos end
 )
 {
+	auto const begin_token = stream;
 	assert_token(stream, token::curly_open);
-	auto comp_stmt = std::make_unique<ast_stmt_compound>();
+	auto comp_stmt = std::make_unique<ast_stmt_compound>(token_range{ begin_token, stream });
 
 	while (stream != end && stream->kind != token::curly_close)
 	{
@@ -157,6 +158,7 @@ static ast_stmt_compound_ptr get_stmt_compound(
 	}
 	assert(stream != end);
 	++stream; // '}'
+	comp_stmt->tokens.end = stream;
 
 	return comp_stmt;
 }
@@ -171,6 +173,7 @@ ast_statement get_ast_statement(
 	// if statement
 	case token::kw_if:
 	{
+		auto begin_token = stream;
 		++stream; // 'if'
 
 		assert_token(stream, token::paren_open);
@@ -185,6 +188,7 @@ ast_statement get_ast_statement(
 			auto else_block = get_ast_statement(stream, end);
 
 			return make_ast_stmt_if(
+				token_range{ begin_token, stream },
 				make_ast_expr_unresolved(condition),
 				std::move(if_block),
 				std::move(else_block)
@@ -193,6 +197,7 @@ ast_statement get_ast_statement(
 		else
 		{
 			return make_ast_stmt_if(
+				token_range{ begin_token, stream },
 				make_ast_expr_unresolved(condition),
 				std::move(if_block)
 			);
@@ -202,6 +207,7 @@ ast_statement get_ast_statement(
 	// while statement
 	case token::kw_while:
 	{
+		auto const begin_token = stream;
 		++stream; // 'while'
 
 		assert_token(stream, token::paren_open);
@@ -211,6 +217,7 @@ ast_statement get_ast_statement(
 		auto while_block = get_ast_statement(stream, end);
 
 		return make_ast_stmt_while(
+			token_range{ begin_token, stream },
 			make_ast_expr_unresolved(condition),
 			std::move(while_block)
 		);
@@ -226,12 +233,14 @@ ast_statement get_ast_statement(
 	// return statement
 	case token::kw_return:
 	{
+		auto const begin_token = stream;
 		++stream; // 'return'
 
 		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
 		return make_ast_stmt_return(
+			token_range{ begin_token, stream },
 			make_ast_expr_unresolved(expr)
 		);
 	}
@@ -239,16 +248,15 @@ ast_statement get_ast_statement(
 	// no-op statement
 	case token::semi_colon:
 	{
+		auto const begin_token = stream;
 		++stream; // ';'
-		return make_ast_stmt_no_op();
+		return make_ast_stmt_no_op(token_range{ begin_token, stream });
 	}
 
 	// compound statement
 	case token::curly_open:
 	{
-		return make_ast_statement(
-			get_stmt_compound(stream, end)
-		);
+		return make_ast_statement(get_stmt_compound(stream, end));
 	}
 
 	// variable declaration
@@ -358,10 +366,12 @@ ast_statement get_ast_statement(
 	// expression statement
 	default:
 	{
+		auto const begin_token = stream;
 		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
 		assert_token(stream, token::semi_colon);
 
 		return make_ast_stmt_expression(
+			token_range{ begin_token, stream },
 			make_ast_expr_unresolved(expr)
 		);
 	}

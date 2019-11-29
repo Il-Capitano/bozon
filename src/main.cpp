@@ -780,6 +780,30 @@ struct vec2d<*typename T>
 
 
 
+// ==== exceptions ====
+
+should there be exceptions even?
+
+throw ...;
+
+try {} catch()
+
+it's much easier if functions pointers must be noexcept/nothrow
+
+e.g.
+
+function foo()
+{
+	try
+	{
+		some_throwing_function();
+	}
+	catch (e) // type can be deduced, because there's no indirection that can throw
+	{
+		std::println(e.what());
+	}
+}
+
 
 
 */
