@@ -1,6 +1,9 @@
-#include "ast_type.h"
+#include "type.h"
 
-ast_typespec_ptr parse_typespec(
+namespace ast
+{
+
+typespec_ptr parse_typespec(
 	src_tokens::pos &stream,
 	src_tokens::pos  end
 )
@@ -16,27 +19,27 @@ ast_typespec_ptr parse_typespec(
 	{
 		auto id = stream->value;
 		++stream;
-		return make_ast_name_typespec(id);
+		return make_name_typespec(id);
 	}
 
 	case token::kw_const:
 		++stream; // 'const'
-		return make_ast_constant_typespec(parse_typespec(stream, end));
+		return make_constant_typespec(parse_typespec(stream, end));
 
 	case token::star:
 		++stream; // '*'
-		return make_ast_pointer_typespec(parse_typespec(stream, end));
+		return make_pointer_typespec(parse_typespec(stream, end));
 
 	case token::ampersand:
 		++stream; // '&'
-		return make_ast_reference_typespec(parse_typespec(stream, end));
+		return make_reference_typespec(parse_typespec(stream, end));
 
 	case token::kw_function:
 	{
 		++stream; // 'function'
 		assert_token(stream, token::paren_open);
 
-		bz::vector<ast_typespec_ptr> param_types = {};
+		bz::vector<typespec_ptr> param_types = {};
 		if (stream->kind != token::paren_close) while (stream != end)
 		{
 			param_types.push_back(parse_typespec(stream, end));
@@ -55,14 +58,14 @@ ast_typespec_ptr parse_typespec(
 
 		auto ret_type = parse_typespec(stream, end);
 
-		return make_ast_function_typespec(ret_type, std::move(param_types));
+		return make_function_typespec(ret_type, std::move(param_types));
 	}
 
 	case token::square_open:
 	{
 		++stream; // '['
 
-		bz::vector<ast_typespec_ptr> types = {};
+		bz::vector<typespec_ptr> types = {};
 		if (stream->kind != token::square_close) while (stream != end)
 		{
 			types.push_back(parse_typespec(stream, end));
@@ -78,7 +81,7 @@ ast_typespec_ptr parse_typespec(
 		assert(stream != end);
 		assert_token(stream, token::square_close);
 
-		return make_ast_tuple_typespec(std::move(types));
+		return make_tuple_typespec(std::move(types));
 	}
 
 	default:
@@ -86,7 +89,7 @@ ast_typespec_ptr parse_typespec(
 	}
 }
 
-void ast_typespec::resolve(void)
+void typespec::resolve(void)
 {
 	switch (this->kind())
 	{
@@ -151,3 +154,5 @@ void ast_typespec::resolve(void)
 		return;
 	}
 }
+
+} // namespace ast

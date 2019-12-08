@@ -656,23 +656,23 @@ anonymous structs?
 
 function make_person() // auto return type required
 {
-	// first_name as last_name deduced as str
+	// first_name as last::name deduced as str
 	return [
 		.first_name = "John",
-		.last_name  = "Doe"
+		.last::name  = "Doe"
 	];
 
 	// explicit types
 	return [
 		.first_name: std::string = "John",
-		.last_name:  std::string = "Doe"
+		.last::name:  std::string = "Doe"
 	];
 }
 
 function main()
 {
 	let person = make_person();
-	std::print("{} {}\n".format(person.first_name, person.last_name));
+	std::print("{} {}\n".format(person.first_name, person.last::name));
 
 	// can work like a tuple, so person[0] == person.first_name
 	let [first, last] = make_person();
@@ -816,9 +816,9 @@ function foo()
 
 
 template<>
-struct bz::formatter<ast_typespec_ptr>
+struct bz::formatter<ast::typespec_ptr>
 {
-	static bz::string format(ast_typespec_ptr const &typespec, const char *, const char *)
+	static bz::string format(ast::typespec_ptr const &typespec, const char *, const char *)
 	{
 		if (!typespec)
 		{
@@ -827,21 +827,21 @@ struct bz::formatter<ast_typespec_ptr>
 
 		switch (typespec->kind())
 		{
-		case ast_typespec::constant:
-			return bz::format("const {}", typespec->get<ast_typespec::constant>().base);
+		case ast::typespec::constant:
+			return bz::format("const {}", typespec->get<ast::typespec::constant>().base);
 
-		case ast_typespec::pointer:
-			return bz::format("*{}", typespec->get<ast_typespec::pointer>().base);
+		case ast::typespec::pointer:
+			return bz::format("*{}", typespec->get<ast::typespec::pointer>().base);
 
-		case ast_typespec::reference:
-			return bz::format("&{}", typespec->get<ast_typespec::reference>().base);
+		case ast::typespec::reference:
+			return bz::format("&{}", typespec->get<ast::typespec::reference>().base);
 
-		case ast_typespec::name:
-			return typespec->get<ast_typespec::name>().name;
+		case ast::typespec::name:
+			return typespec->get<ast::typespec::name>().name;
 
-		case ast_typespec::function:
+		case ast::typespec::function:
 		{
-			auto &fn = typespec->get<ast_typespec::function>();
+			auto &fn = typespec->get<ast::typespec::function>();
 			bz::string res = "function(";
 
 			bool put_comma = false;
@@ -863,9 +863,9 @@ struct bz::formatter<ast_typespec_ptr>
 			return res;
 		}
 
-		case ast_typespec::tuple:
+		case ast::typespec::tuple:
 		{
-			auto &tuple = typespec->get<ast_typespec::tuple>();
+			auto &tuple = typespec->get<ast::typespec::tuple>();
 			bz::string res = "[";
 
 			bool put_comma = false;
@@ -886,7 +886,7 @@ struct bz::formatter<ast_typespec_ptr>
 			return res;
 		}
 
-		case ast_typespec::none:
+		case ast::typespec::none:
 			return "<error type>";
 
 		default:
@@ -898,37 +898,37 @@ struct bz::formatter<ast_typespec_ptr>
 
 
 template<>
-struct bz::formatter<ast_expression>
+struct bz::formatter<ast::expression>
 {
-	static bz::string format(ast_expression const &expr, const char *, const char *)
+	static bz::string format(ast::expression const &expr, const char *, const char *)
 	{
 		switch (expr.kind())
 		{
-		case ast_expression::index<ast_expr_identifier>:
-			return expr.get<ast_expr_identifier_ptr>()->identifier->value;
+		case ast::expression::index<ast::expr_identifier>:
+			return expr.get<ast::expr_identifier_ptr>()->identifier->value;
 
-		case ast_expression::index<ast_expr_literal>:
-			switch (auto &literal = expr.get<ast_expr_literal_ptr>(); literal->kind())
+		case ast::expression::index<ast::expr_literal>:
+			switch (auto &literal = expr.get<ast::expr_literal_ptr>(); literal->kind())
 			{
-			case ast_expr_literal::integer_number:
+			case ast::expr_literal::integer_number:
 				return bz::format("{}", literal->integer_value);
 
-			case ast_expr_literal::floating_point_number:
+			case ast::expr_literal::floating_point_number:
 				return bz::format("{}", literal->floating_point_value);
 
-			case ast_expr_literal::string:
+			case ast::expr_literal::string:
 				return "\"(string)\"";
 
-			case ast_expr_literal::character:
+			case ast::expr_literal::character:
 				return "'(char)'";
 
-			case ast_expr_literal::bool_true:
+			case ast::expr_literal::bool_true:
 				return "true";
 
-			case ast_expr_literal::bool_false:
+			case ast::expr_literal::bool_false:
 				return "false";
 
-			case ast_expr_literal::null:
+			case ast::expr_literal::null:
 				return "null";
 
 			default:
@@ -936,23 +936,23 @@ struct bz::formatter<ast_expression>
 				return "";
 			}
 
-		case ast_expression::index<ast_expr_binary_op>:
+		case ast::expression::index<ast::expr_binary_op>:
 		{
-			auto &bin_op = expr.get<ast_expr_binary_op_ptr>();
+			auto &bin_op = expr.get<ast::expr_binary_op_ptr>();
 			return bz::format(
 				"({} {} {})", bin_op->lhs, bin_op->op->value, bin_op->rhs
 			);
 		}
 
-		case ast_expression::index<ast_expr_unary_op>:
+		case ast::expression::index<ast::expr_unary_op>:
 		{
-			auto &un_op = expr.get<ast_expr_unary_op_ptr>();
+			auto &un_op = expr.get<ast::expr_unary_op_ptr>();
 			return bz::format("({} {})", un_op->op->value, un_op->expr);
 		}
 
-		case ast_expression::index<ast_expr_function_call>:
+		case ast::expression::index<ast::expr_function_call>:
 		{
-			auto &fn_call = expr.get<ast_expr_function_call_ptr>();
+			auto &fn_call = expr.get<ast::expr_function_call_ptr>();
 			auto res = bz::format("{}(", fn_call->called);
 			if (fn_call->params.size() > 0)
 			{
@@ -980,9 +980,9 @@ struct bz::formatter<ast_expression>
 
 
 template<>
-struct bz::formatter<ast_statement>
+struct bz::formatter<ast::statement>
 {
-	static bz::string format(ast_statement const &stmt, const char *spec, const char *spec_end)
+	static bz::string format(ast::statement const &stmt, const char *spec, const char *spec_end)
 	{
 		uint32_t level = 0;
 		while (spec != spec_end)
@@ -1005,9 +1005,9 @@ struct bz::formatter<ast_statement>
 
 		switch (stmt.kind())
 		{
-		case ast_statement::index<ast_stmt_if>:
+		case ast::statement::index<ast::stmt_if>:
 		{
-			auto &if_stmt = stmt.get<ast_stmt_if_ptr>();
+			auto &if_stmt = stmt.get<ast::stmt_if_ptr>();
 			res += bz::format(
 				"if ({})\n{:{}}", if_stmt->condition, level, if_stmt->then_block
 			);
@@ -1019,30 +1019,30 @@ struct bz::formatter<ast_statement>
 			break;
 		}
 
-		case ast_statement::index<ast_stmt_while>:
+		case ast::statement::index<ast::stmt_while>:
 		{
-			auto &while_stmt = stmt.get<ast_stmt_while_ptr>();
+			auto &while_stmt = stmt.get<ast::stmt_while_ptr>();
 			res += bz::format(
 				"while ({})\n{:{}}", while_stmt->condition, level, while_stmt->while_block
 			);
 			break;
 		}
 
-		case ast_statement::index<ast_stmt_for>:
+		case ast::statement::index<ast::stmt_for>:
 			assert(false);
 			break;
 
-		case ast_statement::index<ast_stmt_return>:
-			res += bz::format("return {};\n", stmt.get<ast_stmt_return_ptr>()->expr);
+		case ast::statement::index<ast::stmt_return>:
+			res += bz::format("return {};\n", stmt.get<ast::stmt_return_ptr>()->expr);
 			break;
 
-		case ast_statement::index<ast_stmt_no_op>:
+		case ast::statement::index<ast::stmt_no_op>:
 			res += ";\n";
 			break;
 
-		case ast_statement::index<ast_stmt_compound>:
+		case ast::statement::index<ast::stmt_compound>:
 		{
-			auto &comp_stmt = stmt.get<ast_stmt_compound_ptr>();
+			auto &comp_stmt = stmt.get<ast::stmt_compound_ptr>();
 			res += "{\n";
 			for (auto &s : comp_stmt->statements)
 			{
@@ -1053,18 +1053,18 @@ struct bz::formatter<ast_statement>
 			break;
 		}
 
-		case ast_statement::index<ast_stmt_expression>:
-			res += bz::format("{};\n", stmt.get<ast_stmt_expression_ptr>()->expr);
+		case ast::statement::index<ast::stmt_expression>:
+			res += bz::format("{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
 			break;
 
-		case ast_statement::index<ast_stmt_declaration>:
+		case ast::statement::index<ast::stmt_declaration>:
 		{
-			auto &decl = stmt.get<ast_stmt_declaration_ptr>();
+			auto &decl = stmt.get<ast::stmt_declaration_ptr>();
 			switch (decl->kind())
 			{
-				case ast_stmt_declaration::index<ast_decl_variable>:
+				case ast::stmt_declaration::index<ast::decl_variable>:
 				{
-					auto &var_decl = decl->get<ast_decl_variable_ptr>();
+					auto &var_decl = decl->get<ast::decl_variable_ptr>();
 					res += bz::format(
 						"let {}: {}", var_decl->identifier->value, var_decl->typespec
 					);
@@ -1075,9 +1075,9 @@ struct bz::formatter<ast_statement>
 					res += ";\n";
 					break;
 				}
-				case ast_stmt_declaration::index<ast_decl_function>:
+				case ast::stmt_declaration::index<ast::decl_function>:
 				{
-					auto &fn_decl = decl->get<ast_decl_function_ptr>();
+					auto &fn_decl = decl->get<ast::decl_function_ptr>();
 					res += bz::format("function {}(", fn_decl->identifier->value);
 					int i = 0;
 					for (auto &p : fn_decl->params)
@@ -1099,9 +1099,9 @@ struct bz::formatter<ast_statement>
 					res += "}\n";
 					break;
 				}
-				case ast_stmt_declaration::index<ast_decl_operator>:
+				case ast::stmt_declaration::index<ast::decl_operator>:
 				{
-					auto &op_decl = decl->get<ast_decl_operator_ptr>();
+					auto &op_decl = decl->get<ast::decl_operator_ptr>();
 					res += bz::format("operator {}(", op_decl->op->value);
 					int i = 0;
 					for (auto &p : op_decl->params)
@@ -1123,7 +1123,7 @@ struct bz::formatter<ast_statement>
 					res += "}\n";
 					break;
 				}
-				case ast_stmt_declaration::index<ast_decl_struct>:
+				case ast::stmt_declaration::index<ast::decl_struct>:
 				default:
 					assert(false);
 					break;

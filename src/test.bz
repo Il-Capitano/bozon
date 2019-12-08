@@ -96,7 +96,7 @@ function factorial(: float64) -> float64
 	let h = 0 ..= 10;
 
 	let str = ("hello");
-	let res = (str ..= " world");
+	let res = str ..= " world";
 
 	return 0.0;
 }

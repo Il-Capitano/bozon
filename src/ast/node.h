@@ -1,11 +1,14 @@
-#ifndef AST_NODE_H
-#define AST_NODE_H
+#ifndef NODE_H
+#define NODE_H
 
-#include "core.h"
-#include "lexer.h"
+#include "../core.h"
+#include "../lexer.h"
+
+namespace ast
+{
 
 template<typename ...Ts>
-struct ast_node : public bz::variant<std::unique_ptr<Ts>...>
+struct node : public bz::variant<std::unique_ptr<Ts>...>
 {
 	using base_t = bz::variant<std::unique_ptr<Ts>...>;
 
@@ -54,4 +57,6 @@ struct ast_node : public bz::variant<std::unique_ptr<Ts>...>
 	}
 };
 
-#endif // AST_NODE_H
+} // namespace ast
+
+#endif // NODE_H
