@@ -1,12 +1,12 @@
 #include "lexer.h"
 
 static std::array<
-	std::pair<intern_string, uint32_t>,
+	std::pair<bz::string, uint32_t>,
 	token::kw_if - token::plus_plus
 > multi_char_tokens;
 
 static std::array<
-	std::pair<intern_string, uint32_t>,
+	std::pair<bz::string, uint32_t>,
 	token::_last - token::kw_if
 > keywords;
 
@@ -15,65 +15,65 @@ void lexer_init(void)
 {
 	multi_char_tokens =
 	{
-		std::make_pair( "<<="_is, token::bit_left_shift_eq  ),
-		std::make_pair( ">>="_is, token::bit_right_shift_eq ),
-		std::make_pair( "..."_is, token::dot_dot_dot        ),
-		std::make_pair( "..="_is, token::dot_dot_eq         ),
+		std::make_pair( "<<=", token::bit_left_shift_eq  ),
+		std::make_pair( ">>=", token::bit_right_shift_eq ),
+		std::make_pair( "...", token::dot_dot_dot        ),
+		std::make_pair( "..=", token::dot_dot_eq         ),
 
-		std::make_pair( "++"_is, token::plus_plus           ),
-		std::make_pair( "--"_is, token::minus_minus         ),
-		std::make_pair( "+="_is, token::plus_eq             ),
-		std::make_pair( "-="_is, token::minus_eq            ),
-		std::make_pair( "*="_is, token::multiply_eq         ),
-		std::make_pair( "/="_is, token::divide_eq           ),
-		std::make_pair( "%="_is, token::modulo_eq           ),
-		std::make_pair( "<<"_is, token::bit_left_shift      ),
-		std::make_pair( ">>"_is, token::bit_right_shift     ),
-		std::make_pair( "&="_is, token::bit_and_eq          ),
-		std::make_pair( "|="_is, token::bit_or_eq           ),
-		std::make_pair( "^="_is, token::bit_xor_eq          ),
+		std::make_pair( "++", token::plus_plus           ),
+		std::make_pair( "--", token::minus_minus         ),
+		std::make_pair( "+=", token::plus_eq             ),
+		std::make_pair( "-=", token::minus_eq            ),
+		std::make_pair( "*=", token::multiply_eq         ),
+		std::make_pair( "/=", token::divide_eq           ),
+		std::make_pair( "%=", token::modulo_eq           ),
+		std::make_pair( "<<", token::bit_left_shift      ),
+		std::make_pair( ">>", token::bit_right_shift     ),
+		std::make_pair( "&=", token::bit_and_eq          ),
+		std::make_pair( "|=", token::bit_or_eq           ),
+		std::make_pair( "^=", token::bit_xor_eq          ),
 
-		std::make_pair( "=="_is, token::equals              ),
-		std::make_pair( "!="_is, token::not_equals          ),
-		std::make_pair( "<="_is, token::less_than_eq        ),
-		std::make_pair( ">="_is, token::greater_than_eq     ),
-		std::make_pair( "&&"_is, token::bool_and            ),
-		std::make_pair( "||"_is, token::bool_or             ),
-		std::make_pair( "^^"_is, token::bool_xor            ),
+		std::make_pair( "==", token::equals              ),
+		std::make_pair( "!=", token::not_equals          ),
+		std::make_pair( "<=", token::less_than_eq        ),
+		std::make_pair( ">=", token::greater_than_eq     ),
+		std::make_pair( "&&", token::bool_and            ),
+		std::make_pair( "||", token::bool_or             ),
+		std::make_pair( "^^", token::bool_xor            ),
 
-		std::make_pair( "->"_is, token::arrow               ),
-		std::make_pair( "::"_is, token::scope               ),
-		std::make_pair( ".."_is, token::dot_dot             ),
+		std::make_pair( "->", token::arrow               ),
+		std::make_pair( "::", token::scope               ),
+		std::make_pair( "..", token::dot_dot             ),
 	};
 
 	keywords =
 	{
-		std::make_pair( "namespace"_is, token::kw_namespace ),
+		std::make_pair( "namespace", token::kw_namespace ),
 
-		std::make_pair( "function"_is, token::kw_function   ),
-		std::make_pair( "operator"_is, token::kw_operator   ),
-		std::make_pair( "typename"_is, token::kw_typename   ),
+		std::make_pair( "function", token::kw_function   ),
+		std::make_pair( "operator", token::kw_operator   ),
+		std::make_pair( "typename", token::kw_typename   ),
 
-		std::make_pair( "return"_is, token::kw_return       ),
-		std::make_pair( "struct"_is, token::kw_struct       ),
-		std::make_pair( "sizeof"_is, token::kw_sizeof       ),
-		std::make_pair( "typeof"_is, token::kw_typeof       ),
+		std::make_pair( "return", token::kw_return       ),
+		std::make_pair( "struct", token::kw_struct       ),
+		std::make_pair( "sizeof", token::kw_sizeof       ),
+		std::make_pair( "typeof", token::kw_typeof       ),
 
-		std::make_pair( "while"_is, token::kw_while         ),
-		std::make_pair( "class"_is, token::kw_class         ),
-		std::make_pair( "using"_is, token::kw_using         ),
-		std::make_pair( "const"_is, token::kw_const         ),
-		std::make_pair( "false"_is, token::kw_false         ),
+		std::make_pair( "while", token::kw_while         ),
+		std::make_pair( "class", token::kw_class         ),
+		std::make_pair( "using", token::kw_using         ),
+		std::make_pair( "const", token::kw_const         ),
+		std::make_pair( "false", token::kw_false         ),
 
-		std::make_pair( "else"_is, token::kw_else           ),
-		std::make_pair( "auto"_is, token::kw_auto           ),
-		std::make_pair( "true"_is, token::kw_true           ),
-		std::make_pair( "null"_is, token::kw_null           ),
+		std::make_pair( "else", token::kw_else           ),
+		std::make_pair( "auto", token::kw_auto           ),
+		std::make_pair( "true", token::kw_true           ),
+		std::make_pair( "null", token::kw_null           ),
 
-		std::make_pair( "for"_is, token::kw_for             ),
-		std::make_pair( "let"_is, token::kw_let             ),
+		std::make_pair( "for", token::kw_for             ),
+		std::make_pair( "let", token::kw_let             ),
 
-		std::make_pair( "if"_is, token::kw_if               ),
+		std::make_pair( "if", token::kw_if               ),
 	};
 }
 
@@ -278,7 +278,7 @@ static bool is_number_literal(src_file::pos stream)
 	}
 }
 
-static bool is_string(src_file::pos stream, src_file::pos end, intern_string str)
+static bool is_string(src_file::pos stream, src_file::pos end, bz::string str)
 {
 	int i = 0;
 	while (stream != end && str[i] != '\0' && *stream == str[i])
@@ -296,7 +296,7 @@ static bool is_string(src_file::pos stream, src_file::pos end, intern_string str
 	}
 }
 
-static intern_string get_identifier_name(src_file::pos &stream, src_file::pos end)
+static bz::string get_identifier_name(src_file::pos &stream, src_file::pos end)
 {
 	assert(is_identifier(stream));
 
@@ -312,7 +312,7 @@ static intern_string get_identifier_name(src_file::pos &stream, src_file::pos en
 		++stream;
 	}
 
-	return intern_string(&*begin, &*stream);
+	return bz::string(&*begin, &*stream);
 }
 
 static token get_string_literal(src_file::pos &stream, src_file::pos end)
@@ -357,7 +357,7 @@ static token get_string_literal(src_file::pos &stream, src_file::pos end)
 	}
 	assert(stream != end);
 
-	return { token::string_literal, intern_string(&*begin, &*stream), { begin, stream } };
+	return { token::string_literal, bz::string(&*begin, &*stream), { begin, stream } };
 }
 
 static token get_character_literal(src_file::pos &stream, src_file::pos end)
@@ -400,7 +400,7 @@ static token get_character_literal(src_file::pos &stream, src_file::pos end)
 	assert(stream != end);
 	assert(*stream == '\'');
 
-	return { token::character_literal, intern_string(&*begin, &*stream), { begin, stream } };
+	return { token::character_literal, bz::string(&*begin, &*stream), { begin, stream } };
 }
 
 static token get_number_literal(src_file::pos &stream, src_file::pos end)
@@ -420,7 +420,7 @@ static token get_number_literal(src_file::pos &stream, src_file::pos end)
 		++stream;
 	}
 
-	return { token::number_literal, intern_string(&*begin, &*stream), { begin, stream } };
+	return { token::number_literal, bz::string(&*begin, &*stream), { begin, stream } };
 }
 
 void skip_comments(src_file::pos &stream, src_file::pos &end)
@@ -549,7 +549,7 @@ token get_next_token(src_file::pos &stream, src_file::pos end)
 		++stream;
 		return {
 			static_cast<uint32_t>(*prev),
-			intern_string(&*prev, &*stream),
+			bz::string(&*prev, &*stream),
 			{ prev, stream }
 		};
 	}

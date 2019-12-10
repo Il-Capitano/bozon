@@ -52,12 +52,11 @@ struct expr_unresolved
 
 struct expr_identifier
 {
-	src_tokens::pos  identifier;
-	typespec_ptr typespec = nullptr;
+	src_tokens::pos identifier;
+	typespec        expr_type;
 
 	expr_identifier(src_tokens::pos _id)
-		: identifier(_id),
-		  typespec  (nullptr)
+		: identifier(_id)
 	{}
 
 	src_tokens::pos get_tokens_begin(void) const
@@ -67,38 +66,35 @@ struct expr_identifier
 	{ return this->identifier; }
 
 	src_tokens::pos get_tokens_end(void) const
-	{ return this->identifier; }
+	{ return this->identifier + 1; }
 
 	void resolve(void);
 };
 
 struct expr_literal
 {
+	struct _bool_true {};
+	struct _bool_false {};
+	struct _null {};
+
+	using value_t = bz::variant<
+		uint64_t, double, bz::string, uint32_t,
+		_bool_true, _bool_false, _null
+	>;
 	enum : uint32_t
 	{
-		integer_number,
-		floating_point_number,
-		string,
-		character,
-		bool_true,
-		bool_false,
-		null,
+		integer_number        = value_t::index_of<uint64_t>,
+		floating_point_number = value_t::index_of<double>,
+		string                = value_t::index_of<bz::string>,
+		character             = value_t::index_of<uint32_t>,
+		bool_true             = value_t::index_of<_bool_true>,
+		bool_false            = value_t::index_of<_bool_false>,
+		null                  = value_t::index_of<_null>,
 	};
 
-	uint32_t _kind;
-
-	uint32_t kind(void) const
-	{ return this->_kind; }
-
-	union
-	{
-		intern_string string_value;
-		uint32_t      char_value;
-		uint64_t      integer_value;
-		double        floating_point_value;
-	};
+	value_t         value;
 	src_tokens::pos src_pos;
-	typespec_ptr typespec = nullptr;
+	typespec        expr_type;
 
 	expr_literal(src_tokens::pos stream);
 
@@ -109,16 +105,16 @@ struct expr_literal
 	{ return this->src_pos; }
 
 	src_tokens::pos get_tokens_end(void) const
-	{ return this->src_pos; }
+	{ return this->src_pos + 1; }
 
 	void resolve(void);
 };
 
 struct expr_unary_op
 {
-	src_tokens::pos  op;
-	expression   expr;
-	typespec_ptr typespec = nullptr;
+	src_tokens::pos op;
+	expression      expr;
+	typespec        expr_type;
 
 	expr_unary_op(src_tokens::pos _op, expression _expr)
 		: op(_op),
@@ -135,9 +131,9 @@ struct expr_unary_op
 struct expr_binary_op
 {
 	src_tokens::pos op;
-	expression  lhs;
-	expression  rhs;
-	typespec_ptr typespec = nullptr;
+	expression      lhs;
+	expression      rhs;
+	typespec        expr_type;
 
 	expr_binary_op(src_tokens::pos _op, expression _lhs, expression _rhs)
 		: op(_op),
@@ -154,12 +150,14 @@ struct expr_binary_op
 
 struct expr_function_call
 {
+	src_tokens::pos        op;
 	expression             called;
 	bz::vector<expression> params;
-	typespec_ptr typespec = nullptr;
+	typespec               expr_type;
 
-	expr_function_call(expression _called, bz::vector<expression> _params)
-		: called(std::move(_called)),
+	expr_function_call(src_tokens::pos _op, expression _called, bz::vector<expression> _params)
+		: op(_op),
+		  called(std::move(_called)),
 		  params(std::move(_params))
 	{}
 
@@ -171,7 +169,7 @@ struct expr_function_call
 };
 
 
-typespec_ptr get_typespec(expression const &expr);
+typespec get_typespec(expression const &expr);
 
 
 template<typename ...Args>

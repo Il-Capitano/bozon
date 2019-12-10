@@ -66,22 +66,22 @@ void stmt_declaration::resolve(void)
 	{
 		auto &var_decl = this->get<decl_variable_ptr>();
 
-		if (var_decl->typespec)
-		{
-			var_decl->typespec->resolve();
-		}
 		if (var_decl->init_expr.has_value())
 		{
 			var_decl->init_expr->resolve();
 		}
 
-		if (!var_decl->typespec || var_decl->typespec->kind() == typespec::none)
+		if (var_decl->var_type.kind() == typespec::null)
 		{
 			assert(var_decl->init_expr.has_value());
-			var_decl->typespec = get_typespec(var_decl->init_expr.get());
+			var_decl->var_type = get_typespec(var_decl->init_expr.get());
+		}
+		else
+		{
+			var_decl->var_type.resolve();
 		}
 
-		context.add_variable(var_decl->identifier->value, var_decl->typespec);
+		context.add_variable(var_decl->identifier, var_decl->var_type);
 
 		return;
 	}
@@ -92,10 +92,10 @@ void stmt_declaration::resolve(void)
 		++context;
 		for (auto &p : fn_decl->params)
 		{
-			p.type->resolve();
+			p.type.resolve();
 			context.add_variable(p.id, p.type);
 		}
-		fn_decl->return_type->resolve();
+		fn_decl->return_type.resolve();
 		context.add_function(fn_decl);
 		fn_decl->body->resolve();
 		--context;
@@ -108,10 +108,10 @@ void stmt_declaration::resolve(void)
 		++context;
 		for (auto &p : op_decl->params)
 		{
-			p.type->resolve();
+			p.type.resolve();
 			context.add_variable(p.id, p.type);
 		}
-		op_decl->return_type->resolve();
+		op_decl->return_type.resolve();
 		context.add_operator(op_decl);
 		op_decl->body->resolve();
 		--context;

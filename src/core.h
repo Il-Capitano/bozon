@@ -16,7 +16,6 @@
 #include <bz/vector.h>
 #include <bz/optional.h>
 
-#include "intern_string.h"
 #include "my_assert.h"
 #include "error.h"
 

@@ -4,241 +4,289 @@
 #include "../core.h"
 #include "../lexer.h"
 
+#include "node.h"
+
 namespace ast
 {
 
-struct typespec;
-using typespec_ptr = std::shared_ptr<typespec>;
+#define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
+
+declare_node_type(ts_unresolved);
+declare_node_type(ts_base_type);
+declare_node_type(ts_constant);
+declare_node_type(ts_pointer);
+declare_node_type(ts_reference);
+declare_node_type(ts_function);
+declare_node_type(ts_tuple);
+
+#undef declare_node_type
+
+using typespec = node<
+	ts_unresolved,
+	ts_base_type,
+	ts_constant,
+	ts_pointer,
+	ts_reference,
+	ts_function,
+	ts_tuple
+>;
+
+template<>
+void typespec::resolve(void);
+
+struct type;
+using type_ptr = std::shared_ptr<type>;
 
 
 struct ts_unresolved
 {
-	token_range typespec;
+	token_range tokens;
 
-	ts_unresolved(token_range _typespec)
-		: typespec(_typespec)
+	ts_unresolved(token_range _tokens)
+		: tokens(_tokens)
 	{}
 };
 
-struct ts_name
+struct ts_base_type
 {
-	intern_string name;
+	type_ptr    base_type;
 
-	ts_name(intern_string _name)
-		: name(_name)
+	ts_base_type(type_ptr _base_type)
+		: base_type(_base_type)
 	{}
 };
 
 struct ts_constant
 {
-	typespec_ptr base;
+	typespec base;
 
-	ts_constant(typespec_ptr _base)
-		: base(_base)
+	ts_constant(typespec _base)
+		: base(std::move(_base))
 	{}
 };
 
 struct ts_pointer
 {
-	typespec_ptr base;
+	typespec base;
 
-	ts_pointer(typespec_ptr _base)
-		: base(_base)
+	ts_pointer(typespec _base)
+		: base(std::move(_base))
 	{}
 };
 
 struct ts_reference
 {
-	typespec_ptr base;
+	typespec base;
 
-	ts_reference(typespec_ptr _base)
-		: base(_base)
+	ts_reference(typespec _base)
+		: base(std::move(_base))
 	{}
 };
 
 struct ts_function
 {
-	typespec_ptr             return_type;
-	bz::vector<typespec_ptr> argument_types;
+	typespec             return_type;
+	bz::vector<typespec> argument_types;
 
 	ts_function(
-		typespec_ptr             _ret_type,
-		bz::vector<typespec_ptr> _arg_types
+		typespec             _ret_type,
+		bz::vector<typespec> _arg_types
 	)
-		: return_type   (_ret_type),
+		: return_type   (std::move(_ret_type)),
 		  argument_types(std::move(_arg_types))
 	{}
 };
 
 struct ts_tuple
 {
-	bz::vector<typespec_ptr> types;
+	bz::vector<typespec> types;
 
-	ts_tuple(bz::vector<typespec_ptr> _types)
+	ts_tuple(bz::vector<typespec> _types)
 		: types(std::move(_types))
 	{}
 };
 
-struct ts_none
-{
-	// nothing
-};
-
-
-struct typespec : bz::variant<
-	ts_unresolved,
-	ts_name,
-	ts_constant,
-	ts_pointer,
-	ts_reference,
-	ts_function,
-	ts_tuple,
-	ts_none
->
-{
-	using base_t = bz::variant<
-		ts_unresolved,
-		ts_name,
-		ts_constant,
-		ts_pointer,
-		ts_reference,
-		ts_function,
-		ts_tuple,
-		ts_none
-	>;
-
-	enum : uint32_t
-	{
-		unresolved = index_of<ts_unresolved>,
-		name       = index_of<ts_name>,
-		constant   = index_of<ts_constant>,
-		pointer    = index_of<ts_pointer>,
-		reference  = index_of<ts_reference>,
-		function   = index_of<ts_function>,
-		tuple      = index_of<ts_tuple>,
-		none       = index_of<ts_none>,
-	};
-
-	using base_t::get;
-	using base_t::variant;
-
-	void resolve(void);
-
-	uint32_t kind(void) const
-	{ return base_t::index(); }
-
-	inline bool equals(typespec_ptr rhs) const;
-};
 
 struct variable
 {
-	intern_string    id;
-	typespec_ptr type;
+	src_tokens::pos id;
+	typespec        type;
 };
 
 
-inline bool typespec::equals(typespec_ptr rhs) const
+struct built_in_type
 {
-	if (this->kind() != rhs->kind())
+	enum : uint32_t
+	{
+		int8_, int16_, int32_, int64_, // int128_,
+		uint8_, uint16_, uint32_, uint64_, // uint128_,
+		float32_, float64_,
+		char_, bool_, str_, void_,
+		null_t_,
+	};
+
+	uint32_t kind;
+	size_t size;
+	size_t alignment;
+};
+
+
+struct user_defined_type
+{
+	// TODO: for now, only PODS's are allowed, so no ctors, dtors, and so on...
+	bz::vector<variable> members;
+};
+
+
+struct type : bz::variant<built_in_type, user_defined_type>
+{
+	using base_t = bz::variant<built_in_type, user_defined_type>;
+	using base_t::variant;
+
+	bz::string name;
+
+	template<typename T>
+	type(T &&_type, bz::string _name)
+		: base_t(std::forward<T>(_type)), name(_name)
+	{}
+
+	auto kind(void) const
+	{ return base_t::index(); }
+};
+using type_ptr = std::shared_ptr<type>;
+
+#define def_built_in_type(type_name, size, alignment)              \
+inline const auto type_name##_ = std::make_shared<type>(           \
+    built_in_type{ built_in_type::type_name##_, size, alignment }, \
+    #type_name                                                     \
+)
+
+def_built_in_type(int8, 1, 1);
+def_built_in_type(int16, 2, 2);
+def_built_in_type(int32, 4, 4);
+def_built_in_type(int64, 8, 8);
+// def_built_in_type(int128, 16, 16);
+def_built_in_type(uint8, 1, 1);
+def_built_in_type(uint16, 2, 2);
+def_built_in_type(uint32, 4, 4);
+def_built_in_type(uint64, 8, 8);
+// def_built_in_type(uint128, 16, 16);
+def_built_in_type(float32, 4, 4);
+def_built_in_type(float64, 8, 8);
+def_built_in_type(char, 4, 4);
+def_built_in_type(bool, 1, 1);
+def_built_in_type(str, 16, 8);
+def_built_in_type(void, 0, 0);
+def_built_in_type(null_t, 0, 0);
+
+#undef def_built_in_type
+
+
+
+inline bool operator == (typespec const &lhs, typespec const &rhs)
+{
+	if (lhs.kind() != rhs.kind())
 	{
 		return false;
 	}
 
-	switch (this->kind())
+	switch (lhs.kind())
 	{
-	case name:
-		return this->get<name>().name == rhs->get<name>().name;
-	case constant:
-		return this->get<constant>().base->equals(rhs->get<constant>().base);
-	case pointer:
-		return this->get<pointer>().base->equals(rhs->get<pointer>().base);
-	case reference:
-		return this->get<reference>().base->equals(rhs->get<reference>().base);
-	case function:
-	{
-		auto &lhs_fn_ret = this->get<function>().return_type;
-		auto &rhs_fn_ret = rhs->get<function>().return_type;
-		auto &lhs_fn_arg = this->get<function>().argument_types;
-		auto &rhs_fn_arg = rhs->get<function>().argument_types;
+	case typespec::index<ts_base_type>:
+		return lhs.get<ts_base_type_ptr>()->base_type->name
+			== rhs.get<ts_base_type_ptr>()->base_type->name;
 
-		if (!lhs_fn_ret->equals(rhs_fn_ret))
+	case typespec::index<ts_constant>:
+		return lhs.get<ts_constant_ptr>()->base == rhs.get<ts_constant_ptr>()->base;
+
+	case typespec::index<ts_pointer>:
+		return lhs.get<ts_pointer_ptr>()->base == rhs.get<ts_pointer_ptr>()->base;
+
+	case typespec::index<ts_reference>:
+		return lhs.get<ts_reference_ptr>()->base == rhs.get<ts_reference_ptr>()->base;
+
+	case typespec::index<ts_function>:
+	{
+		auto &lhs_fn = lhs.get<ts_function_ptr>();
+		auto &rhs_fn = rhs.get<ts_function_ptr>();
+
+		if (
+			lhs_fn->argument_types.size() != rhs_fn->argument_types.size()
+			|| lhs_fn->return_type != rhs_fn->return_type
+		)
 		{
 			return false;
 		}
 
-		if (lhs_fn_arg.size() != rhs_fn_arg.size())
+		for (size_t i = 0; i < lhs_fn->argument_types.size(); ++i)
 		{
-			return false;
-		}
-
-		for (size_t i = 0; i < lhs_fn_arg.size(); ++i)
-		{
-			if (!lhs_fn_arg[i]->equals(rhs_fn_arg[i]))
+			if (lhs_fn->argument_types[i] != rhs_fn->argument_types[i])
 			{
 				return false;
 			}
 		}
-
 		return true;
 	}
+
+	case typespec::index<ts_tuple>:
+	{
+		auto &lhs_tp = lhs.get<ts_tuple_ptr>();
+		auto &rhs_tp = rhs.get<ts_tuple_ptr>();
+
+		if (lhs_tp->types.size() != rhs_tp->types.size())
+		{
+			return false;
+		}
+
+		for (size_t i = 0; i < lhs_tp->types.size(); ++i)
+		{
+			if (lhs_tp->types[i] != rhs_tp->types[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	default:
+		assert(false);
 		return false;
 	}
 }
 
-template<typename ...Args>
-inline typespec_ptr make_typespec(Args &&...args)
-{
-	return std::make_unique<typespec>(std::forward<Args>(args)...);
-}
+inline bool operator != (typespec const &lhs, typespec const &rhs)
+{ return !(lhs == rhs); }
+
 
 template<typename ...Args>
-typespec_ptr make_unresolved_typespec(Args &&...args)
-{
-	return make_typespec(ts_unresolved(std::forward<Args>(args)...));
-}
+typespec make_ts_unresolved(Args &&...args)
+{ return typespec(std::make_unique<ts_unresolved>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_name_typespec(Args &&...args)
-{
-	return make_typespec(ts_name(std::forward<Args>(args)...));
-}
+typespec make_ts_base_type(Args &&...args)
+{ return typespec(std::make_unique<ts_base_type>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_constant_typespec(Args &&...args)
-{
-	return make_typespec(ts_constant(std::forward<Args>(args)...));
-}
+typespec make_ts_constant(Args &&...args)
+{ return typespec(std::make_unique<ts_constant>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_pointer_typespec(Args &&...args)
-{
-	return make_typespec(ts_pointer(std::forward<Args>(args)...));
-}
+typespec make_ts_pointer(Args &&...args)
+{ return typespec(std::make_unique<ts_pointer>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_reference_typespec(Args &&...args)
-{
-	return make_typespec(ts_reference(std::forward<Args>(args)...));
-}
+typespec make_ts_reference(Args &&...args)
+{ return typespec(std::make_unique<ts_reference>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_function_typespec(Args &&...args)
-{
-	return make_typespec(ts_function(std::forward<Args>(args)...));
-}
+typespec make_ts_function(Args &&...args)
+{ return typespec(std::make_unique<ts_function>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec_ptr make_tuple_typespec(Args &&...args)
-{
-	return make_typespec(ts_tuple(std::forward<Args>(args)...));
-}
+typespec make_ts_tuple(Args &&...args)
+{ return typespec(std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
 
-template<typename ...Args>
-typespec_ptr make_none_typespec(Args &&...args)
-{
-	return make_typespec(ts_none(std::forward<Args>(args)...));
-}
+
 
 } // namespace ast
 

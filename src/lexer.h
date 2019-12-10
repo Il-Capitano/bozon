@@ -154,7 +154,7 @@ struct token
 	};
 
 	uint32_t kind;
-	intern_string value;
+	bz::string value;
 	struct
 	{
 		src_file::pos begin;

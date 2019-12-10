@@ -3,12 +3,24 @@
 
 parse_context context;
 
+parse_context::parse_context(void)
+	: variables{{}},
+	  functions{},
+	  operators{},
+	  types{
+		  ast::int8_, ast::int16_, ast::int32_, ast::int64_,
+		  ast::uint8_, ast::uint16_, ast::uint32_, ast::uint64_,
+		  ast::float32_, ast::float64_,
+		  ast::char_, ast::bool_, ast::str_, ast::void_, ast::null_t_
+	  }
+{}
+
 bool parse_context::add_variable(
-	intern_string id,
-	ast::typespec_ptr type
+	src_tokens::pos id,
+	ast::typespec   type
 )
 {
-	if (id == "")
+	if (&*id == nullptr || id->value == "")
 	{
 		return false;
 	}
@@ -19,7 +31,7 @@ bool parse_context::add_variable(
 
 void parse_context::add_function(ast::decl_function_ptr &func_decl)
 {
-	bz::vector<ast::typespec_ptr> param_types;
+	bz::vector<ast::typespec> param_types;
 
 	for (auto &param : func_decl->params)
 	{
@@ -54,7 +66,7 @@ void parse_context::add_function(ast::decl_function_ptr &func_decl)
 
 			for (size_t i = 0; i < func_type.argument_types.size(); ++i)
 			{
-				if (!t.argument_types[i]->equals(func_type.argument_types[i]))
+				if (t.argument_types[i] != func_type.argument_types[i])
 				{
 					return false;
 				}
@@ -74,7 +86,7 @@ void parse_context::add_function(ast::decl_function_ptr &func_decl)
 
 void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 {
-	bz::vector<ast::typespec_ptr> param_types;
+	bz::vector<ast::typespec> param_types;
 
 	for (auto &param : op_decl->params)
 	{
@@ -109,7 +121,7 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 
 			for (size_t i = 0; i < op_type.argument_types.size(); ++i)
 			{
-				if (!t.argument_types[i]->equals(op_type.argument_types[i]))
+				if (t.argument_types[i] != op_type.argument_types[i])
 				{
 					return false;
 				}
@@ -128,13 +140,13 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 }
 
 
-bool parse_context::is_variable(intern_string id)
+bool parse_context::is_variable(bz::string id)
 {
 	for (auto &scope : this->variables)
 	{
 		auto it = std::find_if(scope.begin(), scope.end(), [&](auto const &var)
 		{
-			return var.id == id;
+			return var.id->value == id;
 		});
 
 		if (it != scope.end())
@@ -146,7 +158,7 @@ bool parse_context::is_variable(intern_string id)
 	return false;
 }
 
-bool parse_context::is_function(intern_string id)
+bool parse_context::is_function(bz::string id)
 {
 	auto it = std::find_if(
 		this->functions.begin(),
@@ -161,7 +173,22 @@ bool parse_context::is_function(intern_string id)
 }
 
 
-ast::typespec_ptr parse_context::get_identifier_type(src_tokens::pos t)
+ast::type_ptr parse_context::get_type(src_tokens::pos id)
+{
+	auto it = std::find_if(this->types.begin(), this->types.end(), [&](auto const &t)
+	{
+		return t->name == id->value;
+	});
+
+	if (it == this->types.end())
+	{
+		bad_token(id, "Error: unknown type");
+	}
+
+	return *it;
+}
+
+ast::typespec parse_context::get_identifier_type(src_tokens::pos t)
 {
 	assert(t->kind == token::identifier);
 
@@ -174,7 +201,7 @@ ast::typespec_ptr parse_context::get_identifier_type(src_tokens::pos t)
 	{
 		auto it = std::find_if(scope->rbegin(), scope->rend(), [&](auto const &var)
 		{
-			return var.id == id;
+			return var.id->value == id;
 		});
 
 		if (it != scope->rend())
@@ -199,12 +226,12 @@ ast::typespec_ptr parse_context::get_identifier_type(src_tokens::pos t)
 		bad_token(t, "Error: identifier is ambiguous");
 	}
 
-	return ast::make_typespec(it->set[0]);
+	return ast::typespec(std::make_unique<ast::ts_function>(it->set[0]));
 }
 
-ast::typespec_ptr parse_context::get_function_type(
-	intern_string id,
-	bz::vector<ast::typespec_ptr> const &args
+ast::typespec parse_context::get_function_type(
+	bz::string id,
+	bz::vector<ast::typespec> const &args
 )
 {
 	auto set_it = std::find_if(
@@ -216,7 +243,7 @@ ast::typespec_ptr parse_context::get_function_type(
 
 	if (set_it == this->functions.end())
 	{
-		return ast::make_typespec(ast::ts_none());
+		fatal_error("Error: unknown function: '{}'", id);
 	}
 
 	auto &set = set_it->set;
@@ -231,7 +258,7 @@ ast::typespec_ptr parse_context::get_function_type(
 		size_t i;
 		for (i = 0; i < args.size(); ++i)
 		{
-			if (!fn.argument_types[i]->equals(args[i]))
+			if (fn.argument_types[i] != args[i])
 			{
 				break;
 			}
@@ -243,24 +270,24 @@ ast::typespec_ptr parse_context::get_function_type(
 		}
 	}
 
-	return ast::make_typespec(ast::ts_none());
+	fatal_error("Error: unknown function: '{}'", id);
 }
 
-ast::typespec_ptr parse_context::get_operator_type(
-	uint32_t op,
-	bz::vector<ast::typespec_ptr> const &args
+ast::typespec parse_context::get_operator_type(
+	src_tokens::pos op,
+	bz::vector<ast::typespec> const &args
 )
 {
 	auto set_it = std::find_if(
 		this->operators.begin(), this->operators.end(), [&](auto const &set)
 		{
-			return set.op == op;
+			return set.op == op->kind;
 		}
 	);
 
 	if (set_it == this->operators.end())
 	{
-		return ast::make_typespec(ast::ts_none());
+		bad_token(op, "Error: Undeclared operator");
 	}
 
 	auto &set = set_it->set;
@@ -275,7 +302,7 @@ ast::typespec_ptr parse_context::get_operator_type(
 		size_t i;
 		for (i = 0; i < args.size(); ++i)
 		{
-			if (!op.argument_types[i]->equals(args[i]))
+			if (op.argument_types[i] != args[i])
 			{
 				break;
 			}
@@ -287,5 +314,5 @@ ast::typespec_ptr parse_context::get_operator_type(
 		}
 	}
 
-	return ast::make_typespec(ast::ts_none());
+	bad_token(op, "Error: Undeclared operator");
 }

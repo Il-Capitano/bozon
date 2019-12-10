@@ -108,29 +108,28 @@ static bz::vector<ast::variable> get_function_params(
 
 	do
 	{
-		intern_string id;
-		if (stream->kind == token::identifier)
+		auto id = stream;
+		if (id->kind == token::identifier)
 		{
-			id = stream->value;
 			++stream;
-		}
-		else
-		{
-			id = ""_is;
 		}
 
 		assert_token(stream, token::colon);
 
 		auto type = get_expression_or_type<token::paren_close, token::comma>(stream, end);
 
-		params.push_back(
-			{
-				id,
-				ast::make_typespec(
-					ast::ts_unresolved(type)
-				)
-			}
-		);
+		if (id->kind == token::identifier)
+		{
+			params.push_back({
+				id, ast::make_ts_unresolved(type)
+			});
+		}
+		else
+		{
+			params.push_back({
+				nullptr, ast::make_ts_unresolved(type)
+			});
+		}
 	} while (
 		stream != end
 		&& stream->kind == token::comma
@@ -267,8 +266,6 @@ ast::statement get_ast_statement(
 
 		auto id = assert_token(stream, token::identifier);
 
-		ast::typespec_ptr type = nullptr;
-
 		if (stream->kind == token::colon)
 		{
 			++stream; // ':'
@@ -276,27 +273,36 @@ ast::statement get_ast_statement(
 				token::assign, token::semi_colon
 			>(stream, end);
 
-			type = ast::make_typespec(ast::ts_unresolved(type_tokens));
+			auto type = ast::make_ts_unresolved(type_tokens);
 
 			if (stream->kind == token::semi_colon)
 			{
 				++stream; // ';'
 				return ast::make_decl_variable(id, type);
 			}
+
+			assert_token(stream, token::assign, token::semi_colon);
+
+			auto init = get_expression_or_type<token::semi_colon>(stream, end);
+
+			assert_token(stream, token::semi_colon);
+			return ast::make_decl_variable(
+				id,
+				type,
+				ast::make_expr_unresolved(init)
+			);
 		}
 		else if (stream->kind != token::assign)
 		{
 			bad_token(stream, "Expected '=' or ':'");
 		}
-
-		assert_token(stream, token::assign, token::semi_colon);
+		++stream;
 
 		auto init = get_expression_or_type<token::semi_colon>(stream, end);
 
 		assert_token(stream, token::semi_colon);
 		return ast::make_decl_variable(
 			id,
-			type,
 			ast::make_expr_unresolved(init)
 		);
 	}
@@ -321,9 +327,7 @@ ast::statement get_ast_statement(
 		return ast::make_decl_function(
 			id,
 			std::move(params),
-			ast::make_typespec(
-				ast::ts_unresolved(ret_type)
-			),
+			ast::make_ts_unresolved(ret_type),
 			get_stmt_compound(stream, end)
 		);
 	}
@@ -356,9 +360,7 @@ ast::statement get_ast_statement(
 		return ast::make_decl_operator(
 			op,
 			std::move(params),
-			ast::make_typespec(
-				ast::ts_unresolved(ret_type)
-			),
+			ast::make_ts_unresolved(ret_type),
 			get_stmt_compound(stream, end)
 		);
 	}

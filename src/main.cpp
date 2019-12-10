@@ -816,36 +816,31 @@ function foo()
 
 
 template<>
-struct bz::formatter<ast::typespec_ptr>
+struct bz::formatter<ast::typespec>
 {
-	static bz::string format(ast::typespec_ptr const &typespec, const char *, const char *)
+	static bz::string format(ast::typespec const &typespec, const char *, const char *)
 	{
-		if (!typespec)
+		switch (typespec.kind())
 		{
-			return "";
-		}
+		case ast::typespec::index<ast::ts_base_type>:
+			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name);
 
-		switch (typespec->kind())
+		case ast::typespec::index<ast::ts_constant>:
+			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_pointer>:
+			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_reference>:
+			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_function>:
 		{
-		case ast::typespec::constant:
-			return bz::format("const {}", typespec->get<ast::typespec::constant>().base);
-
-		case ast::typespec::pointer:
-			return bz::format("*{}", typespec->get<ast::typespec::pointer>().base);
-
-		case ast::typespec::reference:
-			return bz::format("&{}", typespec->get<ast::typespec::reference>().base);
-
-		case ast::typespec::name:
-			return typespec->get<ast::typespec::name>().name;
-
-		case ast::typespec::function:
-		{
-			auto &fn = typespec->get<ast::typespec::function>();
+			auto &fn = typespec.get<ast::ts_function_ptr>();
 			bz::string res = "function(";
 
 			bool put_comma = false;
-			for (auto &type : fn.argument_types)
+			for (auto &type : fn->argument_types)
 			{
 				if (put_comma)
 				{
@@ -858,18 +853,18 @@ struct bz::formatter<ast::typespec_ptr>
 				}
 			}
 
-			res += bz::format(") -> {}", fn.return_type);
+			res += bz::format(") -> {}", fn->return_type);
 
 			return res;
 		}
 
-		case ast::typespec::tuple:
+		case ast::typespec::index<ast::ts_tuple>:
 		{
-			auto &tuple = typespec->get<ast::typespec::tuple>();
+			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
 			bz::string res = "[";
 
 			bool put_comma = false;
-			for (auto &type : tuple.types)
+			for (auto &type : tuple->types)
 			{
 				if (put_comma)
 				{
@@ -886,8 +881,9 @@ struct bz::formatter<ast::typespec_ptr>
 			return res;
 		}
 
-		case ast::typespec::none:
-			return "<error type>";
+		case ast::typespec::index<ast::ts_unresolved>:
+			assert(false);
+			return "";
 
 		default:
 			assert(false);
@@ -908,13 +904,13 @@ struct bz::formatter<ast::expression>
 			return expr.get<ast::expr_identifier_ptr>()->identifier->value;
 
 		case ast::expression::index<ast::expr_literal>:
-			switch (auto &literal = expr.get<ast::expr_literal_ptr>(); literal->kind())
+			switch (auto &literal = expr.get<ast::expr_literal_ptr>(); literal->value.index())
 			{
 			case ast::expr_literal::integer_number:
-				return bz::format("{}", literal->integer_value);
+				return bz::format("{}", literal->value.get<uint64_t>());
 
 			case ast::expr_literal::floating_point_number:
-				return bz::format("{}", literal->floating_point_value);
+				return bz::format("{}", literal->value.get<double>());
 
 			case ast::expr_literal::string:
 				return "\"(string)\"";
@@ -979,164 +975,191 @@ struct bz::formatter<ast::expression>
 };
 
 
-template<>
-struct bz::formatter<ast::statement>
+void print_statement(ast::statement const &stmt, int indent_level = 0);
+
+void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 {
-	static bz::string format(ast::statement const &stmt, const char *spec, const char *spec_end)
+	auto indent = [indent_level]()
 	{
-		uint32_t level = 0;
-		while (spec != spec_end)
+		for (int i = 0; i < indent_level; ++i)
 		{
-			level *= 10;
-			level += *spec - '0';
-			++spec;
+			bz::print("    ");
 		}
+	};
 
-		bz::string res = "";
-
-		auto indent = [&]()
-		{
-			for (uint32_t i = 0; i < level; ++i)
-			{
-				res += "    ";
-			}
-		};
+	switch (decl.kind())
+	{
+	case ast::stmt_declaration::index<ast::decl_variable>:
+	{
+		auto &var_decl = decl.get<ast::decl_variable_ptr>();
 		indent();
-
-		switch (stmt.kind())
+		bz::printf("let {}: {}", var_decl->identifier->value, var_decl->var_type);
+		if (var_decl->init_expr.has_value())
 		{
-		case ast::statement::index<ast::stmt_if>:
+			bz::printf(" = {};\n", var_decl->init_expr.get());
+		}
+		else
 		{
-			auto &if_stmt = stmt.get<ast::stmt_if_ptr>();
-			res += bz::format(
-				"if ({})\n{:{}}", if_stmt->condition, level, if_stmt->then_block
-			);
-			if (if_stmt->else_block.has_value())
-			{
-				indent();
-				res += bz::format("else\n{:{}}", level, if_stmt->else_block.get());
-			}
-			break;
+			bz::print(";\n");
 		}
-
-		case ast::statement::index<ast::stmt_while>:
-		{
-			auto &while_stmt = stmt.get<ast::stmt_while_ptr>();
-			res += bz::format(
-				"while ({})\n{:{}}", while_stmt->condition, level, while_stmt->while_block
-			);
-			break;
-		}
-
-		case ast::statement::index<ast::stmt_for>:
-			assert(false);
-			break;
-
-		case ast::statement::index<ast::stmt_return>:
-			res += bz::format("return {};\n", stmt.get<ast::stmt_return_ptr>()->expr);
-			break;
-
-		case ast::statement::index<ast::stmt_no_op>:
-			res += ";\n";
-			break;
-
-		case ast::statement::index<ast::stmt_compound>:
-		{
-			auto &comp_stmt = stmt.get<ast::stmt_compound_ptr>();
-			res += "{\n";
-			for (auto &s : comp_stmt->statements)
-			{
-				res += bz::format("{:{}}", level + 1, s);
-			}
-			indent();
-			res += "}\n";
-			break;
-		}
-
-		case ast::statement::index<ast::stmt_expression>:
-			res += bz::format("{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
-			break;
-
-		case ast::statement::index<ast::stmt_declaration>:
-		{
-			auto &decl = stmt.get<ast::stmt_declaration_ptr>();
-			switch (decl->kind())
-			{
-				case ast::stmt_declaration::index<ast::decl_variable>:
-				{
-					auto &var_decl = decl->get<ast::decl_variable_ptr>();
-					res += bz::format(
-						"let {}: {}", var_decl->identifier->value, var_decl->typespec
-					);
-					if (var_decl->init_expr.has_value())
-					{
-						res += bz::format(" = {}", var_decl->init_expr.get());
-					}
-					res += ";\n";
-					break;
-				}
-				case ast::stmt_declaration::index<ast::decl_function>:
-				{
-					auto &fn_decl = decl->get<ast::decl_function_ptr>();
-					res += bz::format("function {}(", fn_decl->identifier->value);
-					int i = 0;
-					for (auto &p : fn_decl->params)
-					{
-						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
-						else        res += bz::format(", {}: {}", p.id, p.type);
-						++i;
-					}
-					res += bz::format(") -> {}\n", fn_decl->return_type);
-					indent();
-					res += "{\n";
-
-					for (auto &stmt : fn_decl->body->statements)
-					{
-						res += bz::format("{:{}}", level + 1, stmt);
-					}
-
-					indent();
-					res += "}\n";
-					break;
-				}
-				case ast::stmt_declaration::index<ast::decl_operator>:
-				{
-					auto &op_decl = decl->get<ast::decl_operator_ptr>();
-					res += bz::format("operator {}(", op_decl->op->value);
-					int i = 0;
-					for (auto &p : op_decl->params)
-					{
-						if (i == 0) res += bz::format("{}: {}", p.id, p.type);
-						else        res += bz::format(", {}: {}", p.id, p.type);
-						++i;
-					}
-					res += bz::format(") -> {}\n", op_decl->return_type);
-					indent();
-					res += "{\n";
-
-					for (auto &stmt : op_decl->body->statements)
-					{
-						res += bz::format("{:{}}", level + 1, stmt);
-					}
-
-					indent();
-					res += "}\n";
-					break;
-				}
-				case ast::stmt_declaration::index<ast::decl_struct>:
-				default:
-					assert(false);
-					break;
-			}
-			break;
-		}
-		}
-		return res;
+		return;
 	}
-};
+
+	case ast::stmt_declaration::index<ast::decl_function>:
+	{
+		auto &fn_decl = decl.get<ast::decl_function_ptr>();
+		indent();
+		bz::printf("function {}(", fn_decl->identifier->value);
+		bool put_comma = false;
+		for (auto &p : fn_decl->params)
+		{
+			if (put_comma)
+			{
+				bz::print(", ");
+			}
+			else
+			{
+				put_comma = true;
+			}
+			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.type);
+		}
+		bz::printf(") -> {}\n", fn_decl->return_type);
+
+		indent();
+		bz::print("{\n");
+		for (auto &s : fn_decl->body->statements)
+		{
+			print_statement(s, indent_level + 1);
+		}
+		indent();
+		bz::print("}\n");
+		return;
+	}
+
+	case ast::stmt_declaration::index<ast::decl_operator>:
+	{
+		auto &op_decl = decl.get<ast::decl_operator_ptr>();
+		indent();
+		bz::printf("operator {}(", op_decl->op->value);
+		bool put_comma = false;
+		for (auto &p : op_decl->params)
+		{
+			if (put_comma)
+			{
+				bz::print(", ");
+			}
+			else
+			{
+				put_comma = true;
+			}
+			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.type);
+		}
+		bz::printf(") -> {}\n", op_decl->return_type);
+
+		indent();
+		bz::print("{\n");
+		for (auto &s : op_decl->body->statements)
+		{
+			print_statement(s, indent_level + 1);
+		}
+		indent();
+		bz::print("}\n");
+		return;
+	}
+
+	case ast::stmt_declaration::index<ast::decl_struct>:
+		assert(false);
+		return;
+
+	default:
+		assert(false);
+		return;
+	}
+}
+
+void print_statement(ast::statement const &stmt, int indent_level)
+{
+	auto indent = [indent_level]()
+	{
+		for (int i = 0; i < indent_level; ++i)
+		{
+			bz::print("    ");
+		}
+	};
+
+	switch (stmt.kind())
+	{
+	case ast::statement::index<ast::stmt_if>:
+	{
+		auto &if_stmt = stmt.get<ast::stmt_if_ptr>();
+		indent();
+		bz::printf("if ({})\n", if_stmt->condition);
+		print_statement(if_stmt->then_block, indent_level);
+		if (if_stmt->else_block.has_value())
+		{
+			indent();
+			bz::printf("else\n");
+			print_statement(if_stmt->else_block.get());
+		}
+		return;
+	}
+
+	case ast::statement::index<ast::stmt_while>:
+	{
+		auto &while_stmt = stmt.get<ast::stmt_while_ptr>();
+		indent();
+		bz::printf("while ({})\n", while_stmt->condition);
+		print_statement(while_stmt->while_block, indent_level);
+		return;
+	}
+
+	case ast::statement::index<ast::stmt_for>:
+		assert(false);
+		return;
+
+	case ast::statement::index<ast::stmt_return>:
+		indent();
+		bz::printf("return {};\n", stmt.get<ast::stmt_return_ptr>()->expr);
+		return;
+
+	case ast::statement::index<ast::stmt_no_op>:
+		indent();
+		bz::print(";\n");
+		return;
+
+	case ast::statement::index<ast::stmt_compound>:
+	{
+		auto &cmp_stmt = stmt.get<ast::stmt_compound_ptr>();
+		indent();
+		bz::print("{\n");
+		for (auto &s : cmp_stmt->statements)
+		{
+			print_statement(s, indent_level + 1);
+		}
+		indent();
+		bz::print("}\n");
+		return;
+	}
+
+	case ast::statement::index<ast::stmt_expression>:
+		indent();
+		bz::printf("{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
+		return;
+
+	case ast::statement::index<ast::stmt_declaration>:
+		print_declaration(*stmt.get<ast::stmt_declaration_ptr>(), indent_level);
+		return;
+
+	default:
+		assert(false);
+		return;
+	}
+}
 
 int main(void)
 {
+	assert(bz::string("int32") == bz::string("int32"));
+
 	lexer_init();
 	src_tokens file("src/test.bz");
 
@@ -1153,7 +1176,7 @@ int main(void)
 
 	for (auto &s : statements)
 	{
-		bz::printf("{}", s);
+		print_statement(s);
 	}
 
 	return 0;

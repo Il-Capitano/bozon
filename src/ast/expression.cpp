@@ -28,7 +28,7 @@ src_tokens::pos expr_function_call::get_tokens_begin(void) const
 { return this->called.get_tokens_begin(); }
 
 src_tokens::pos expr_function_call::get_tokens_pivot(void) const
-{ return this->called.get_tokens_end(); }
+{ return this->op; }
 
 src_tokens::pos expr_function_call::get_tokens_end(void) const
 {
@@ -45,7 +45,7 @@ src_tokens::pos expr_function_call::get_tokens_end(void) const
 
 void expr_identifier::resolve(void)
 {
-	this->typespec = context.get_identifier_type(this->identifier);
+	this->expr_type = context.get_identifier_type(this->identifier);
 }
 
 void expr_literal::resolve(void)
@@ -54,15 +54,18 @@ void expr_literal::resolve(void)
 void expr_unary_op::resolve(void)
 {
 	this->expr.resolve();
-	this->typespec = context.get_operator_type(this->op->kind, { get_typespec(this->expr) });
+	this->expr_type = context.get_operator_type(
+		this->op,
+		{ get_typespec(this->expr) }
+	);
 }
 
 void expr_binary_op::resolve(void)
 {
 	this->lhs.resolve();
 	this->rhs.resolve();
-	this->typespec = context.get_operator_type(
-		this->op->kind,
+	this->expr_type = context.get_operator_type(
+		this->op,
 		{ get_typespec(this->lhs), get_typespec(this->rhs) }
 	);
 }
@@ -77,7 +80,7 @@ void expr_function_call::resolve(void)
 
 	if (this->called.kind() == expression::index<expr_identifier>)
 	{
-		bz::vector<typespec_ptr> param_types = {};
+		bz::vector<typespec> param_types = {};
 		param_types.reserve(this->params.size());
 
 		for (auto &p : this->params)
@@ -85,14 +88,14 @@ void expr_function_call::resolve(void)
 			param_types.push_back(get_typespec(p));
 		}
 
-		this->typespec = context.get_function_type(
+		this->expr_type = context.get_function_type(
 			this->called.get<expr_identifier_ptr>()->identifier->value,
 			param_types
 		);
 	}
 	else
 	{
-		bz::vector<typespec_ptr> param_types = {};
+		bz::vector<typespec> param_types = {};
 		param_types.reserve(this->params.size() + 1);
 
 		param_types.push_back(get_typespec(this->called));
@@ -101,8 +104,8 @@ void expr_function_call::resolve(void)
 			param_types.push_back(get_typespec(p));
 		}
 
-		this->typespec = context.get_operator_type(
-			token::paren_open,
+		this->expr_type = context.get_operator_type(
+			this->op,
 			param_types
 		);
 	}
@@ -117,7 +120,7 @@ expr_literal::expr_literal(src_tokens::pos stream)
 	{
 	case token::number_literal:
 	{
-		bz::string value = stream->value.get();
+		bz::string value = stream->value;
 		value.erase('\'');
 
 		double num = 0;
@@ -131,15 +134,13 @@ expr_literal::expr_literal(src_tokens::pos stream)
 
 		if (i == value.length())
 		{
-			this->_kind = expr_literal::integer_number;
-			this->integer_value = static_cast<uint64_t>(num);
-			this->typespec = make_name_typespec("int32"_is);
+			this->value.emplace<integer_number>(static_cast<uint64_t>(num));
+			this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::int32_));
 		}
 		else
 		{
 			assert(value[i] == '.');
 			++i;
-			this->_kind = expr_literal::floating_point_number;
 
 			double level = 1;
 			while (i < value.length())
@@ -150,38 +151,36 @@ expr_literal::expr_literal(src_tokens::pos stream)
 				++i;
 			}
 
-			this->floating_point_value = num;
-			this->typespec = make_name_typespec("float64"_is);
+			this->value.emplace<floating_point_number>(num);
+			this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::float64_));
 		}
 		break;
 	}
 
 	case token::string_literal:
-		this->_kind = expr_literal::string;
-		this->string_value = stream->value;
-		this->typespec = make_name_typespec("str"_is);
+		this->value.emplace<string>(stream->value);
+		this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::str_));
 		break;
 
 	case token::character_literal:
-		this->_kind = expr_literal::character;
 		assert(stream->value.length() == 1);
-		this->char_value = stream->value[0];
-		this->typespec = make_name_typespec("char"_is);
+		this->value.emplace<character>(stream->value[0]);
+		this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::char_));
 		break;
 
 	case token::kw_true:
-		this->_kind = expr_literal::bool_true;
-		this->typespec = make_name_typespec("bool"_is);
+		this->value.emplace<bool_true>();
+		this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::bool_));
 		break;
 
 	case token::kw_false:
-		this->_kind = expr_literal::bool_false;
-		this->typespec = make_name_typespec("bool"_is);
+		this->value.emplace<bool_false>();
+		this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::bool_));
 		break;
 
 	case token::kw_null:
-		this->_kind = expr_literal::null;
-		this->typespec = make_name_typespec("null_t"_is);
+		this->value.emplace<null>();
+		this->expr_type = ast::typespec(std::make_unique<ast::ts_base_type>(ast::null_t_));
 		break;
 
 	default:
@@ -452,7 +451,7 @@ static expression parse_expression_helper(
 			{
 				++stream;
 				lhs = make_expr_function_call(
-					std::move(lhs), bz::vector<expression>{}
+					op, std::move(lhs), bz::vector<expression>{}
 				);
 				break;
 			}
@@ -461,7 +460,7 @@ static expression parse_expression_helper(
 			assert_token(stream, token::paren_close);
 
 			lhs = make_expr_function_call(
-				std::move(lhs), std::move(params)
+				op, std::move(lhs), std::move(params)
 			);
 			break;
 		}
@@ -574,32 +573,32 @@ void expression::resolve(void)
 	}
 }
 
-typespec_ptr get_typespec(expression const &expr)
+typespec get_typespec(expression const &expr)
 {
 	switch (expr.kind())
 	{
 	case expression::index<expr_unresolved>:
 		assert(false);
-		return nullptr;
+		fatal_error("");
 
 	case expression::index<expr_identifier>:
-		return expr.get<expr_identifier_ptr>()->typespec;
+		return expr.get<expr_identifier_ptr>()->expr_type;
 
 	case expression::index<expr_literal>:
-		return expr.get<expr_literal_ptr>()->typespec;
+		return expr.get<expr_literal_ptr>()->expr_type;
 
 	case expression::index<expr_unary_op>:
-		return expr.get<expr_unary_op_ptr>()->typespec;
+		return expr.get<expr_unary_op_ptr>()->expr_type;
 
 	case expression::index<expr_binary_op>:
-		return expr.get<expr_binary_op_ptr>()->typespec;
+		return expr.get<expr_binary_op_ptr>()->expr_type;
 
 	case expression::index<expr_function_call>:
-		return expr.get<expr_function_call_ptr>()->typespec;
+		return expr.get<expr_function_call_ptr>()->expr_type;
 
 	default:
 		assert(false);
-		return nullptr;
+		fatal_error("");
 	}
 }
 

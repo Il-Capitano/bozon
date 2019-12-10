@@ -194,27 +194,36 @@ struct stmt_expression
 
 struct decl_variable
 {
-	src_tokens::pos              identifier;
-	typespec_ptr             typespec;
+	src_tokens::pos          identifier;
+	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
-		src_tokens::pos  _id,
-		typespec_ptr _typespec,
-		expression   _init_expr
+		src_tokens::pos _id,
+		typespec        _var_type,
+		expression      _init_expr
 	)
 		: identifier(_id),
-		  typespec  (std::move(_typespec)),
+		  var_type  (std::move(_var_type)),
 		  init_expr (std::move(_init_expr))
 	{}
 
 	decl_variable(
-		src_tokens::pos  _id,
-		typespec_ptr _typespec
+		src_tokens::pos _id,
+		typespec        _var_type
 	)
 		: identifier(_id),
-		  typespec  (std::move(_typespec)),
+		  var_type  (std::move(_var_type)),
 		  init_expr ()
+	{}
+
+	decl_variable(
+		src_tokens::pos _id,
+		expression      _init_expr
+	)
+		: identifier(_id),
+		  var_type  (),
+		  init_expr (std::move(_init_expr))
 	{}
 
 	src_tokens::pos get_tokens_begin(void) const;
@@ -226,20 +235,20 @@ struct decl_variable
 
 struct decl_function
 {
-	src_tokens::pos          identifier;
+	src_tokens::pos      identifier;
 	bz::vector<variable> params;
-	typespec_ptr         return_type;
+	typespec             return_type;
 	stmt_compound_ptr    body;
 
 	decl_function(
-		src_tokens::pos          _id,
+		src_tokens::pos      _id,
 		bz::vector<variable> _params,
-		typespec_ptr         _ret_type,
+		typespec             _ret_type,
 		stmt_compound_ptr    _body
 	)
 		: identifier (_id),
 		  params     (std::move(_params)),
-		  return_type(_ret_type),
+		  return_type(std::move(_ret_type)),
 		  body       (std::move(_body))
 	{}
 
@@ -252,20 +261,20 @@ struct decl_function
 
 struct decl_operator
 {
-	src_tokens::pos          op;
+	src_tokens::pos      op;
 	bz::vector<variable> params;
-	typespec_ptr         return_type;
+	typespec             return_type;
 	stmt_compound_ptr    body;
 
 	decl_operator(
-		src_tokens::pos          _op,
+		src_tokens::pos      _op,
 		bz::vector<variable> _params,
-		typespec_ptr         _ret_type,
+		typespec             _ret_type,
 		stmt_compound_ptr    _body
 	)
 		: op         (_op),
 		  params     (std::move(_params)),
-		  return_type(_ret_type),
+		  return_type(std::move(_ret_type)),
 		  body       (std::move(_body))
 	{}
 
