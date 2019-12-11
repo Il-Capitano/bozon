@@ -1,8 +1,6 @@
 /*
 
 TODO:
-	- expression type evaluation for auto types
-		kind of also done, need to clean up the function call and operator type checks
 	- array type
 	- user-defined type implementation
 
@@ -804,6 +802,142 @@ function foo()
 	}
 }
 
+
+
+
+
+// ==== types ====
+
+struct foo
+{
+	...
+}
+
+class ?
+
+
+templates:
+
+struct foo<typename T>
+{ ... }
+//     ^ no semicolon
+
+let a: foo<int32>;
+let a = foo<int32>();
+
+// specialization
+struct foo<const typename T>
+{ ... }
+
+let a: foo<const int32>;
+
+
+struct vec2d
+{
+	// private, protected and public members??
+
+private:
+	x: float64;
+	y: float64;
+
+	// maybe different syntax
+	.x: float64;
+	.y: float64;
+	private .z: float64; // access specifier for a specific element
+
+	public constructor(_x, _y)
+	[ .x = _x; .y = _y; ]
+	{}
+
+	public constructor(t: [float64, float64])
+	[
+		.x(t[0]);
+		.y(t[1]);
+	]
+	{}
+
+	destructor(&this)
+	{
+		std::println("vec2d::destructor(&)");
+	}
+
+	// move destructor
+	destructor(&&this)
+	{
+		std::println("vec2d::destructor(&&)");
+	}
+
+	// should the destructor take this as an explicit argument??
+	// if yes, it is inconsistent with the constructor
+
+	function abs(&const this)
+	{
+		return std::hypot(this.x, this.y);
+	}
+
+	function abs_sqr(&const this)
+	{
+		return this.x * this.x + this.y * this.y;
+	}
+
+	function dot_prod(&const this, rhs: const vec2d)
+	{
+		return this.x * rhs.x + this.y * rhs.y;
+	}
+}
+
+let v = vec2d(1, 2);
+v.abs();
+abs(v); // error
+
+function abs_alt(v: vec2d)
+{
+	return std::hypot(v.x, v.y);
+}
+
+abs_alt(v);  // good
+v.abs_alt(); // also good
+
+why is this good?
+
+in a templated function the .abs() syntax is more general
+e.g.:
+function get_abs(value)
+{
+	return value.abs();
+}
+
+let v = vec2d(1, 2);
+let z = complex(1, 2); // has a global abs() function
+
+get_abs(v); // uses the member function
+get_abs(z); // uses the global function
+
+also helps with namespacing!
+e.g.:
+
+import bz::complex;
+
+function foo(z)
+{
+	...
+	let abs_value = z.abs();
+	...
+}
+
+let z1 = bz::complex(1, 2);
+let z2 = std::complex(3, 4);
+foo(z1);
+foo(z2);
+
+also begin and end functions for arrays
+let a: [3]int32 = [ 1, 2, 3 ];
+// bulit-in types can't have memeber functions,
+// but global functions can use the same syntax, so it's good
+let   it  = a.begin();
+const end = a.end();
+
+more general code can be written without using helper functions
 
 
 */
