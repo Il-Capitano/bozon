@@ -32,6 +32,7 @@ using expression = node<
 template<>
 void expression::resolve(void);
 
+
 struct expr_unresolved
 {
 	token_range expr;

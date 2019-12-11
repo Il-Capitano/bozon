@@ -4,16 +4,8 @@
 #include "core.h"
 
 #include "ast/type.h"
-
-namespace ast
-{
-
-struct decl_operator;
-using decl_operator_ptr = std::unique_ptr<decl_operator>;
-struct decl_function;
-using decl_function_ptr = std::unique_ptr<decl_function>;
-
-} // namespace ast
+#include "ast/expression.h"
+#include "ast/statement.h"
 
 
 struct function_overload_set
@@ -53,13 +45,18 @@ struct parse_context
 	void add_function(ast::decl_function_ptr &func_decl);
 	void add_operator(ast::decl_operator_ptr &op_decl);
 
-	bool is_variable(bz::string id);
-	bool is_function(bz::string id);
+	bool is_variable(bz::string_view id);
+	bool is_function(bz::string_view id);
 
 	ast::type_ptr get_type(src_tokens::pos id);
 	ast::typespec get_identifier_type(src_tokens::pos t);
 	ast::typespec get_function_type(bz::string   id, bz::vector<ast::typespec> const &args);
 	ast::typespec get_operator_type(src_tokens::pos op, bz::vector<ast::typespec> const &args);
+
+	ast::typespec get_expression_type(ast::expression const &expr);
+	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);
+	ast::typespec get_operator_type(ast::expr_unary_op const &unary_op);
+	ast::typespec get_operator_type(ast::expr_binary_op const &binary_op);
 };
 
 extern parse_context context;

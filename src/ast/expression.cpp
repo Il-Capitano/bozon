@@ -54,61 +54,31 @@ void expr_literal::resolve(void)
 void expr_unary_op::resolve(void)
 {
 	this->expr.resolve();
-	this->expr_type = context.get_operator_type(
-		this->op,
-		{ get_typespec(this->expr) }
-	);
+	this->expr_type = context.get_operator_type(*this);
 }
 
 void expr_binary_op::resolve(void)
 {
 	this->lhs.resolve();
 	this->rhs.resolve();
-	this->expr_type = context.get_operator_type(
-		this->op,
-		{ get_typespec(this->lhs), get_typespec(this->rhs) }
-	);
+	this->expr_type = context.get_operator_type(*this);
 }
 
 void expr_function_call::resolve(void)
 {
-	this->called.resolve();
+	if (
+		this->called.kind() != expression::index<expr_identifier>
+		|| context.is_variable(this->called.get<expr_identifier_ptr>()->identifier->value)
+	)
+	{
+		this->called.resolve();
+	}
 	for (auto &p : this->params)
 	{
 		p.resolve();
 	}
 
-	if (this->called.kind() == expression::index<expr_identifier>)
-	{
-		bz::vector<typespec> param_types = {};
-		param_types.reserve(this->params.size());
-
-		for (auto &p : this->params)
-		{
-			param_types.push_back(get_typespec(p));
-		}
-
-		this->expr_type = context.get_function_type(
-			this->called.get<expr_identifier_ptr>()->identifier->value,
-			param_types
-		);
-	}
-	else
-	{
-		bz::vector<typespec> param_types = {};
-		param_types.reserve(this->params.size() + 1);
-
-		param_types.push_back(get_typespec(this->called));
-		for (auto &p : this->params)
-		{
-			param_types.push_back(get_typespec(p));
-		}
-
-		this->expr_type = context.get_operator_type(
-			this->op,
-			param_types
-		);
-	}
+	this->expr_type = context.get_function_call_type(*this);
 }
 
 
@@ -531,9 +501,7 @@ static expression parse_expression(
 template<>
 void expression::resolve(void)
 {
-	switch (this->kind())
-	{
-	case index<expr_unresolved>:
+	if (this->kind() == index<expr_unresolved>)
 	{
 		auto &unresolved_expr = this->get<expr_unresolved_ptr>();
 
@@ -543,10 +511,10 @@ void expression::resolve(void)
 		auto expr = parse_expression(begin, end);
 		expr.resolve();
 		this->assign(std::move(expr));
-
-		break;
 	}
 
+	switch (this->kind())
+	{
 	case index<expr_identifier>:
 		this->get<expr_identifier_ptr>()->resolve();
 		break;
@@ -579,7 +547,7 @@ typespec get_typespec(expression const &expr)
 	{
 	case expression::index<expr_unresolved>:
 		assert(false);
-		fatal_error("");
+		return typespec();
 
 	case expression::index<expr_identifier>:
 		return expr.get<expr_identifier_ptr>()->expr_type;

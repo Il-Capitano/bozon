@@ -140,7 +140,7 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 }
 
 
-bool parse_context::is_variable(bz::string id)
+bool parse_context::is_variable(bz::string_view id)
 {
 	for (auto &scope : this->variables)
 	{
@@ -158,7 +158,7 @@ bool parse_context::is_variable(bz::string id)
 	return false;
 }
 
-bool parse_context::is_function(bz::string id)
+bool parse_context::is_function(bz::string_view id)
 {
 	auto it = std::find_if(
 		this->functions.begin(),
@@ -315,4 +315,235 @@ ast::typespec parse_context::get_operator_type(
 	}
 
 	bad_token(op, "Error: Undeclared operator");
+}
+
+ast::typespec parse_context::get_function_call_type(ast::expr_function_call const &fn_call)
+{
+	if (
+		fn_call.called.kind() == ast::expression::index<ast::expr_identifier>
+		&& !is_variable(fn_call.called.get<ast::expr_identifier_ptr>()->identifier->value)
+	)
+	{
+		// it is a function, so we should look in the function overload set
+		auto fn_id = fn_call.called.get<ast::expr_identifier_ptr>()->identifier->value;
+		auto set_it = std::find_if(
+			this->functions.begin(),
+			this->functions.end(),
+			[&](auto const &set)
+			{
+				return set.id == fn_id;
+			}
+		);
+
+		if (set_it == this->functions.end())
+		{
+			bad_tokens(
+				fn_call.get_tokens_begin(),
+				fn_call.get_tokens_pivot(),
+				fn_call.get_tokens_end(),
+				"Error: Undeclared function"
+			);
+		}
+
+		for (auto &fn : set_it->set)
+		{
+			if (fn.argument_types.size() != fn_call.params.size())
+			{
+				continue;
+			}
+
+			size_t i;
+			for (i = 0; i < fn.argument_types.size(); ++i)
+			{
+				if (fn.argument_types[i] != get_expression_type(fn_call.params[i]))
+				{
+					break;
+				}
+			}
+			if (i == fn.argument_types.size())
+			{
+				return fn.return_type;
+			}
+		}
+
+		bad_tokens(
+			fn_call.get_tokens_begin(),
+			fn_call.get_tokens_pivot(),
+			fn_call.get_tokens_end(),
+			"Error: Undeclared function"
+		);
+	}
+	else
+	{
+		// it is a variable, so we should look for a function call operator
+
+		auto fn_call_set = std::find_if(
+			this->operators.begin(),
+			this->operators.end(),
+			[](auto const &set)
+			{
+				return set.op == token::paren_open;
+			}
+		);
+
+		if (fn_call_set == this->operators.end())
+		{
+			bad_tokens(
+				fn_call.get_tokens_begin(),
+				fn_call.get_tokens_pivot(),
+				fn_call.get_tokens_end(),
+				"Error: Unknown function call"
+			);
+		}
+
+		bz::vector<ast::typespec> op_types = {};
+		op_types.reserve(fn_call.params.size() + 1);
+		op_types.emplace_back(get_expression_type(fn_call.called));
+		for (auto &p : fn_call.params)
+		{
+			op_types.emplace_back(get_expression_type(p));
+		}
+
+		for (auto fn : fn_call_set->set)
+		{
+			if (fn.argument_types.size() != op_types.size())
+			{
+				continue;
+			}
+
+			size_t i;
+			for (i = 0; i < fn.argument_types.size(); ++i)
+			{
+				if (fn.argument_types[i] != op_types[i])
+				{
+					break;
+				}
+			}
+
+			if (i == fn.argument_types.size())
+			{
+				return fn.return_type;
+			}
+		}
+
+		bad_tokens(
+			fn_call.get_tokens_begin(),
+			fn_call.get_tokens_pivot(),
+			fn_call.get_tokens_end(),
+			"Error: Unknown function call"
+		);
+	}
+}
+
+ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_op)
+{
+	auto op_kind = unary_op.op->kind;
+	auto set_it = std::find_if(
+		this->operators.begin(),
+		this->operators.end(),
+		[op_kind](auto const &set)
+		{
+			return set.op == op_kind;
+		}
+	);
+
+	if (set_it == this->operators.end())
+	{
+		bad_tokens(
+			unary_op.get_tokens_begin(),
+			unary_op.get_tokens_pivot(),
+			unary_op.get_tokens_end(),
+			"Error: Undeclared operator"
+		);
+	}
+
+	for (auto &op : set_it->set)
+	{
+		if (
+			op.argument_types.size() == 1
+			&& op.argument_types[0] == get_expression_type(unary_op.expr)
+		)
+		{
+			return op.return_type;
+		}
+	}
+
+	bad_tokens(
+		unary_op.get_tokens_begin(),
+		unary_op.get_tokens_pivot(),
+		unary_op.get_tokens_end(),
+		"Error: Undeclared operator"
+	);
+}
+
+ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary_op)
+{
+	auto op_kind = binary_op.op->kind;
+	auto set_it = std::find_if(
+		this->operators.begin(),
+		this->operators.end(),
+		[op_kind](auto const &set)
+		{
+			return set.op == op_kind;
+		}
+	);
+
+	if (set_it == this->operators.end())
+	{
+		bad_tokens(
+			binary_op.get_tokens_begin(),
+			binary_op.get_tokens_pivot(),
+			binary_op.get_tokens_end(),
+			"Error: Undeclared operator"
+		);
+	}
+
+	for (auto &op : set_it->set)
+	{
+		if (
+			op.argument_types.size() == 2
+			&& op.argument_types[0] == get_expression_type(binary_op.lhs)
+			&& op.argument_types[1] == get_expression_type(binary_op.rhs)
+		)
+		{
+			return op.return_type;
+		}
+	}
+
+	bad_tokens(
+		binary_op.get_tokens_begin(),
+		binary_op.get_tokens_pivot(),
+		binary_op.get_tokens_end(),
+		"Error: Undeclared operator"
+	);
+}
+
+ast::typespec parse_context::get_expression_type(ast::expression const &expr)
+{
+	switch (expr.kind())
+	{
+	case ast::expression::index<ast::expr_unresolved>:
+		assert(false);
+		return ast::typespec();
+
+	case ast::expression::index<ast::expr_identifier>:
+		return get_identifier_type(expr.get<ast::expr_identifier_ptr>()->identifier);
+
+	case ast::expression::index<ast::expr_literal>:
+		assert(expr.get<ast::expr_literal_ptr>()->expr_type.kind() != ast::typespec::null);
+		return expr.get<ast::expr_literal_ptr>()->expr_type;
+
+	case ast::expression::index<ast::expr_unary_op>:
+		return get_operator_type(*expr.get<ast::expr_unary_op_ptr>());
+
+	case ast::expression::index<ast::expr_binary_op>:
+		return get_operator_type(*expr.get<ast::expr_binary_op_ptr>());
+
+	case ast::expression::index<ast::expr_function_call>:
+		return get_function_call_type(*expr.get<ast::expr_function_call_ptr>());
+
+	default:
+		assert(false);
+		return ast::typespec();
+	}
 }

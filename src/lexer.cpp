@@ -322,6 +322,7 @@ static token get_string_literal(src_file::pos &stream, src_file::pos end)
 	++stream; // '"'
 	auto begin = stream;
 	bool loop = true;
+	bz::string str = "";
 
 	while (stream != end && loop)
 	{
@@ -331,11 +332,27 @@ static token get_string_literal(src_file::pos &stream, src_file::pos end)
 			switch(++stream, *stream)
 			{
 			case '\'':
+				str += '\'';
+				++stream;
+				break;
 			case '"':
+				str += '\"';
+				++stream;
+				break;
 			case '\\':
+				str += '\\';
+				++stream;
+				break;
 			case 'b':
+				str += '\b';
+				++stream;
+				break;
 			case 'n':
+				str += '\n';
+				++stream;
+				break;
 			case 't':
+				str += '\t';
 				++stream;
 				break;
 
@@ -351,13 +368,14 @@ static token get_string_literal(src_file::pos &stream, src_file::pos end)
 			break;
 
 		default:
+			str += *stream;
 			++stream;
 			break;
 		}
 	}
 	assert(stream != end);
 
-	return { token::string_literal, bz::string(&*begin, &*stream), { begin, stream } };
+	return { token::string_literal, str, { begin, stream } };
 }
 
 static token get_character_literal(src_file::pos &stream, src_file::pos end)
@@ -367,6 +385,7 @@ static token get_character_literal(src_file::pos &stream, src_file::pos end)
 	auto begin = stream;
 	++stream; // '\''
 	assert(stream != end);
+	char c = '\0';
 
 	switch (*stream)
 	{
@@ -374,11 +393,27 @@ static token get_character_literal(src_file::pos &stream, src_file::pos end)
 		switch(++stream, assert(stream != end), *stream)
 		{
 		case '\'':
+			c = '\'';
+			++stream;
+			break;
 		case '"':
+			c = '\"';
+			++stream;
+			break;
 		case '\\':
+			c = '\\';
+			++stream;
+			break;
 		case 'b':
+			c = '\b';
+			++stream;
+			break;
 		case 'n':
+			c = '\n';
+			++stream;
+			break;
 		case 't':
+			c = '\t';
 			++stream;
 			break;
 
@@ -393,14 +428,16 @@ static token get_character_literal(src_file::pos &stream, src_file::pos end)
 		break;
 
 	default:
+		c = *stream;
 		++stream;
 		break;
 	}
 
 	assert(stream != end);
 	assert(*stream == '\'');
+	++stream;
 
-	return { token::character_literal, bz::string(&*begin, &*stream), { begin, stream } };
+	return { token::character_literal, bz::string(c), { begin, stream } };
 }
 
 static token get_number_literal(src_file::pos &stream, src_file::pos end)
