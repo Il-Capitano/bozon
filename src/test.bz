@@ -64,6 +64,11 @@ function factorial(n: int32) -> int32
 
 	let o = ((((((0))))));
 
+	let p = "test";
+	let q = p();
+	p();
+//	let factorial = 1;  // causes an unknown function call in the return statement
+
 	return factorial(n - 1) * n;
 }
 
@@ -105,7 +110,9 @@ function factorial(: float64) -> float64
 	return 0.0;
 }
 
-// let b = factorial(0.0);
+let b = factorial(0.0);
+let c = factorial(0);
+// let d = factorial;  // 'Error: identifier is ambiguous' GOOD!
 
 
 
