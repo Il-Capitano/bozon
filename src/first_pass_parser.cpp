@@ -103,6 +103,7 @@ static bz::vector<ast::variable> get_function_params(
 
 	if (stream->kind == token::paren_close)
 	{
+		++stream;
 		return params;
 	}
 
@@ -353,6 +354,78 @@ ast::statement get_ast_statement(
 		}
 
 		auto params = get_function_params(stream, end);
+
+		if (params.size() == 0)
+		{
+			if (op->kind == token::paren_open)
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					"operator () cannot take 0 arguments"
+				);
+			}
+			else if (op->kind == token::square_open)
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					"operator [] cannot take 0 arguments"
+				);
+			}
+			else
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					bz::format("operator {} cannot take 0 arguments", op->value)
+				);
+			}
+		}
+		if (params.size() == 1)
+		{
+			if (op->kind != token::paren_open && !is_unary_operator(op->kind))
+			{
+				if (op->kind == token::square_open)
+				{
+					bad_tokens(
+						op - 1, op, stream,
+						"operator [] cannot take 1 argument"
+					);
+				}
+				else
+				{
+					bad_tokens(
+						op - 1, op, stream,
+						bz::format("operator {} cannot take 1 argument", op->value)
+					);
+				}
+			}
+		}
+		else if (params.size() == 2)
+		{
+			if (op->kind != token::paren_open && !is_binary_operator(op->kind))
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					bz::format("operator {} cannot take 2 arguments", op->value)
+				);
+			}
+		}
+		else if (op->kind != token::paren_open)
+		{
+			if (op->kind == token::square_open)
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					bz::format("operator [] cannot take {} arguments", params.size())
+				);
+			}
+			else
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					bz::format("operator {} cannot take {} arguments", op->value, params.size())
+				);
+			}
+		}
 
 		assert_token(stream, token::arrow);
 		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);

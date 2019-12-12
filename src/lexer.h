@@ -229,6 +229,8 @@ token get_next_token(src_file::pos &stream, src_file::pos end);
 bz::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
+bool is_binary_operator(uint32_t kind);
+bool is_unary_operator(uint32_t kind);
 
 
 class src_tokens

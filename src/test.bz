@@ -114,7 +114,29 @@ let b = factorial(0.0);
 let c = factorial(0);
 // let d = factorial;  // 'Error: identifier is ambiguous' GOOD!
 
+	/*
 
+// operator & () -> char {}
+operator & (: char) -> *char {}
+operator & (: char, : char) -> char {}
+// operator & (: char, : char, : char) -> char {}
+
+// operator ^^ () -> bool {}
+// operator ^^ (: bool) -> bool {}
+operator ^^ (: bool, : bool) -> bool {}
+// operator ^^ (: bool, : bool, : bool) -> bool {}
+
+// operator [] () -> char {}
+// operator [] (: str) -> char {}
+operator [] (: str, : uint64) -> char {}
+// operator [] (: str, : uint64, : uint64) -> char {}
+
+// operator () () -> int32 {}
+operator () (: float32) -> int32 {}
+operator () (: float32, : float32) -> int32 {}
+operator () (: float32, : float32, : float32) -> int32 {}
+
+//	*/
 
 /*
 
