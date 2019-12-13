@@ -163,6 +163,311 @@ static ast::stmt_compound_ptr get_stmt_compound(
 	return comp_stmt;
 }
 
+ast::statement parse_if_statement(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_if);
+	auto begin_token = stream;
+	++stream; // 'if'
+
+	assert_token(stream, token::paren_open);
+	auto condition = get_expression_or_type<token::paren_close>(stream, end);
+	assert_token(stream, token::paren_close);
+
+	auto if_block = get_ast_statement(stream, end);
+
+	if (stream->kind == token::kw_else)
+	{
+		++stream; // 'else'
+		auto else_block = get_ast_statement(stream, end);
+
+		return ast::make_stmt_if(
+			token_range{ begin_token, stream },
+			ast::make_expr_unresolved(condition),
+			std::move(if_block),
+			std::move(else_block)
+		);
+	}
+	else
+	{
+		return ast::make_stmt_if(
+			token_range{ begin_token, stream },
+			ast::make_expr_unresolved(condition),
+			std::move(if_block)
+		);
+	}
+}
+
+ast::statement parse_while_statement(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_while);
+	auto const begin_token = stream;
+	++stream; // 'while'
+
+	assert_token(stream, token::paren_open);
+	auto condition = get_expression_or_type<token::paren_close>(stream, end);
+	assert_token(stream, token::paren_close);
+
+	auto while_block = get_ast_statement(stream, end);
+
+	return ast::make_stmt_while(
+		token_range{ begin_token, stream },
+		ast::make_expr_unresolved(condition),
+		std::move(while_block)
+	);
+}
+
+ast::statement parse_for_statement(src_tokens::pos &stream, src_tokens::pos)
+{
+	assert(stream->kind == token::kw_for);
+	bad_token(stream, "for statement not yet implemented");
+}
+
+ast::statement parse_return_statement(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_return);
+	auto const begin_token = stream;
+	++stream; // 'return'
+
+	auto expr = get_expression_or_type<token::semi_colon>(stream, end);
+	assert_token(stream, token::semi_colon);
+
+	return ast::make_stmt_return(
+		token_range{ begin_token, stream },
+		ast::make_expr_unresolved(expr)
+	);
+}
+
+ast::statement parse_no_op_statement(src_tokens::pos &stream, src_tokens::pos)
+{
+	assert(stream->kind == token::semi_colon);
+	auto const begin_token = stream;
+	++stream; // ';'
+	return ast::make_stmt_no_op(token_range{ begin_token, stream });
+}
+
+ast::statement parse_variable_declaration(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_let);
+	++stream; // 'let'
+	assert(stream != end);
+
+	auto id = assert_token(stream, token::identifier);
+
+	if (stream->kind == token::colon)
+	{
+		++stream; // ':'
+		auto type_tokens = get_expression_or_type<
+			token::assign, token::semi_colon
+		>(stream, end);
+
+		auto type = ast::make_ts_unresolved(type_tokens);
+
+		if (stream->kind == token::semi_colon)
+		{
+			++stream; // ';'
+			return ast::make_decl_variable(id, type);
+		}
+
+		assert_token(stream, token::assign, token::semi_colon);
+
+		auto init = get_expression_or_type<token::semi_colon>(stream, end);
+
+		assert_token(stream, token::semi_colon);
+		return ast::make_decl_variable(
+			id,
+			type,
+			ast::make_expr_unresolved(init)
+		);
+	}
+	else if (stream->kind != token::assign)
+	{
+		bad_token(stream, "Expected '=' or ':'");
+	}
+	++stream;
+
+	auto init = get_expression_or_type<token::semi_colon>(stream, end);
+
+	assert_token(stream, token::semi_colon);
+	return ast::make_decl_variable(
+		id, ast::make_expr_unresolved(init)
+	);
+}
+
+ast::statement parse_struct_definition(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_struct);
+	++stream; // 'struct'
+
+	auto parse_member_variable = [&]()
+	{
+		assert(stream->kind == token::identifier);
+		auto id = stream;
+		++stream;
+		assert_token(stream, token::colon);
+		auto type = get_expression_or_type<token::semi_colon>(stream, end);
+		assert_token(stream, token::semi_colon);
+		return ast::variable(
+			id, ast::make_ts_unresolved(type)
+		);
+	};
+
+	auto id = assert_token(stream, token::identifier);
+	assert_token(stream, token::curly_open);
+
+	bz::vector<ast::variable> member_variables = {};
+	while (stream != end && stream->kind != token::curly_close)
+	{
+		switch (stream->kind)
+		{
+		case token::identifier:
+			member_variables.push_back(parse_member_variable());
+			break;
+
+		default:
+			assert(false);
+		}
+	}
+
+	assert_token(stream, token::curly_close);
+	return ast::make_decl_struct(id, std::move(member_variables));
+}
+
+ast::statement parse_function_definition(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_function);
+	++stream; // 'function'
+	auto id = assert_token(stream, token::identifier);
+
+	auto params = get_function_params(stream, end);
+
+	assert_token(stream, token::arrow);
+	auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
+
+	return ast::make_decl_function(
+		id,
+		std::move(params),
+		ast::make_ts_unresolved(ret_type),
+		get_stmt_compound(stream, end)
+	);
+}
+
+ast::statement parse_operator_definition(src_tokens::pos &stream, src_tokens::pos end)
+{
+	assert(stream->kind == token::kw_operator);
+	++stream; // 'operator'
+	auto op = stream;
+	if (!is_overloadable_operator(op->kind))
+	{
+		bad_token(stream, "Expected overloadable operator");
+	}
+
+	++stream;
+	if (op->kind == token::paren_open)
+	{
+		assert_token(stream, token::paren_close);
+	}
+	else if (op->kind == token::square_open)
+	{
+		assert_token(stream, token::square_close);
+	}
+
+	auto params = get_function_params(stream, end);
+
+	if (params.size() == 0)
+	{
+		if (op->kind == token::paren_open)
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				"operator () cannot take 0 arguments"
+			);
+		}
+		else if (op->kind == token::square_open)
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				"operator [] cannot take 0 arguments"
+			);
+		}
+		else
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				bz::format("operator {} cannot take 0 arguments", op->value)
+			);
+		}
+	}
+	if (params.size() == 1)
+	{
+		if (op->kind != token::paren_open && !is_unary_operator(op->kind))
+		{
+			if (op->kind == token::square_open)
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					"operator [] cannot take 1 argument"
+				);
+			}
+			else
+			{
+				bad_tokens(
+					op - 1, op, stream,
+					bz::format("operator {} cannot take 1 argument", op->value)
+				);
+			}
+		}
+	}
+	else if (params.size() == 2)
+	{
+		if (op->kind != token::paren_open && !is_binary_operator(op->kind))
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				bz::format("operator {} cannot take 2 arguments", op->value)
+			);
+		}
+	}
+	else if (op->kind != token::paren_open)
+	{
+		if (op->kind == token::square_open)
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				bz::format("operator [] cannot take {} arguments", params.size())
+			);
+		}
+		else
+		{
+			bad_tokens(
+				op - 1, op, stream,
+				bz::format("operator {} cannot take {} arguments", op->value, params.size())
+			);
+		}
+	}
+
+	assert_token(stream, token::arrow);
+	auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
+
+	return ast::make_decl_operator(
+		op,
+		std::move(params),
+		ast::make_ts_unresolved(ret_type),
+		get_stmt_compound(stream, end)
+	);
+}
+
+ast::statement parse_expression_statement(src_tokens::pos &stream, src_tokens::pos end)
+{
+	auto const begin_token = stream;
+	auto expr = get_expression_or_type<token::semi_colon>(stream, end);
+	assert_token(stream, token::semi_colon);
+
+	return ast::make_stmt_expression(
+		token_range{ begin_token, stream },
+		ast::make_expr_unresolved(expr)
+	);
+}
+
 ast::statement get_ast_statement(
 	src_tokens::pos &stream,
 	src_tokens::pos  end
@@ -172,86 +477,24 @@ ast::statement get_ast_statement(
 	{
 	// if statement
 	case token::kw_if:
-	{
-		auto begin_token = stream;
-		++stream; // 'if'
-
-		assert_token(stream, token::paren_open);
-		auto condition = get_expression_or_type<token::paren_close>(stream, end);
-		assert_token(stream, token::paren_close);
-
-		auto if_block = get_ast_statement(stream, end);
-
-		if (stream->kind == token::kw_else)
-		{
-			++stream; // 'else'
-			auto else_block = get_ast_statement(stream, end);
-
-			return ast::make_stmt_if(
-				token_range{ begin_token, stream },
-				ast::make_expr_unresolved(condition),
-				std::move(if_block),
-				std::move(else_block)
-			);
-		}
-		else
-		{
-			return ast::make_stmt_if(
-				token_range{ begin_token, stream },
-				ast::make_expr_unresolved(condition),
-				std::move(if_block)
-			);
-		}
-	}
+		return parse_if_statement(stream, end);
 
 	// while statement
 	case token::kw_while:
-	{
-		auto const begin_token = stream;
-		++stream; // 'while'
-
-		assert_token(stream, token::paren_open);
-		auto condition = get_expression_or_type<token::paren_close>(stream, end);
-		assert_token(stream, token::paren_close);
-
-		auto while_block = get_ast_statement(stream, end);
-
-		return ast::make_stmt_while(
-			token_range{ begin_token, stream },
-			ast::make_expr_unresolved(condition),
-			std::move(while_block)
-		);
-	}
+		return parse_while_statement(stream, end);
 
 	// for statement
 	case token::kw_for:
-	{
 		// TODO: implement
 		assert(false);
-	}
 
 	// return statement
 	case token::kw_return:
-	{
-		auto const begin_token = stream;
-		++stream; // 'return'
-
-		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
-		assert_token(stream, token::semi_colon);
-
-		return ast::make_stmt_return(
-			token_range{ begin_token, stream },
-			ast::make_expr_unresolved(expr)
-		);
-	}
+		return parse_return_statement(stream, end);
 
 	// no-op statement
 	case token::semi_colon:
-	{
-		auto const begin_token = stream;
-		++stream; // ';'
-		return ast::make_stmt_no_op(token_range{ begin_token, stream });
-	}
+		return parse_no_op_statement(stream, end);
 
 	// compound statement
 	case token::curly_open:
@@ -261,195 +504,23 @@ ast::statement get_ast_statement(
 
 	// variable declaration
 	case token::kw_let:
-	{
-		++stream; // 'let'
-		assert(stream != end);
-
-		auto id = assert_token(stream, token::identifier);
-
-		if (stream->kind == token::colon)
-		{
-			++stream; // ':'
-			auto type_tokens = get_expression_or_type<
-				token::assign, token::semi_colon
-			>(stream, end);
-
-			auto type = ast::make_ts_unresolved(type_tokens);
-
-			if (stream->kind == token::semi_colon)
-			{
-				++stream; // ';'
-				return ast::make_decl_variable(id, type);
-			}
-
-			assert_token(stream, token::assign, token::semi_colon);
-
-			auto init = get_expression_or_type<token::semi_colon>(stream, end);
-
-			assert_token(stream, token::semi_colon);
-			return ast::make_decl_variable(
-				id,
-				type,
-				ast::make_expr_unresolved(init)
-			);
-		}
-		else if (stream->kind != token::assign)
-		{
-			bad_token(stream, "Expected '=' or ':'");
-		}
-		++stream;
-
-		auto init = get_expression_or_type<token::semi_colon>(stream, end);
-
-		assert_token(stream, token::semi_colon);
-		return ast::make_decl_variable(
-			id,
-			ast::make_expr_unresolved(init)
-		);
-	}
+		return parse_variable_declaration(stream, end);
 
 	// struct definition
 	case token::kw_struct:
-	{
-		assert(false);
-	}
+		return parse_struct_definition(stream, end);
 
 	// function definition
 	case token::kw_function:
-	{
-		++stream; // 'function'
-		auto id = assert_token(stream, token::identifier);
-
-		auto params = get_function_params(stream, end);
-
-		assert_token(stream, token::arrow);
-		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
-
-		return ast::make_decl_function(
-			id,
-			std::move(params),
-			ast::make_ts_unresolved(ret_type),
-			get_stmt_compound(stream, end)
-		);
-	}
+		return parse_function_definition(stream, end);
 
 	// operator definition
 	case token::kw_operator:
-	{
-		++stream; // 'operator'
-		auto op = stream;
-		if (!is_overloadable_operator(op->kind))
-		{
-			bad_token(stream, "Expected overloadable operator");
-		}
-
-		++stream;
-		if (op->kind == token::paren_open)
-		{
-			assert_token(stream, token::paren_close);
-		}
-		else if (op->kind == token::square_open)
-		{
-			assert_token(stream, token::square_close);
-		}
-
-		auto params = get_function_params(stream, end);
-
-		if (params.size() == 0)
-		{
-			if (op->kind == token::paren_open)
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					"operator () cannot take 0 arguments"
-				);
-			}
-			else if (op->kind == token::square_open)
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					"operator [] cannot take 0 arguments"
-				);
-			}
-			else
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					bz::format("operator {} cannot take 0 arguments", op->value)
-				);
-			}
-		}
-		if (params.size() == 1)
-		{
-			if (op->kind != token::paren_open && !is_unary_operator(op->kind))
-			{
-				if (op->kind == token::square_open)
-				{
-					bad_tokens(
-						op - 1, op, stream,
-						"operator [] cannot take 1 argument"
-					);
-				}
-				else
-				{
-					bad_tokens(
-						op - 1, op, stream,
-						bz::format("operator {} cannot take 1 argument", op->value)
-					);
-				}
-			}
-		}
-		else if (params.size() == 2)
-		{
-			if (op->kind != token::paren_open && !is_binary_operator(op->kind))
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					bz::format("operator {} cannot take 2 arguments", op->value)
-				);
-			}
-		}
-		else if (op->kind != token::paren_open)
-		{
-			if (op->kind == token::square_open)
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					bz::format("operator [] cannot take {} arguments", params.size())
-				);
-			}
-			else
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					bz::format("operator {} cannot take {} arguments", op->value, params.size())
-				);
-			}
-		}
-
-		assert_token(stream, token::arrow);
-		auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
-
-		return ast::make_decl_operator(
-			op,
-			std::move(params),
-			ast::make_ts_unresolved(ret_type),
-			get_stmt_compound(stream, end)
-		);
-	}
+		return parse_operator_definition(stream, end);
 
 	// expression statement
 	default:
-	{
-		auto const begin_token = stream;
-		auto expr = get_expression_or_type<token::semi_colon>(stream, end);
-		assert_token(stream, token::semi_colon);
-
-		return ast::make_stmt_expression(
-			token_range{ begin_token, stream },
-			ast::make_expr_unresolved(expr)
-		);
-	}
+		return parse_expression_statement(stream, end);
 	}
 }
 

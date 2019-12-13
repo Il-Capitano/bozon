@@ -138,6 +138,17 @@ operator () (: float32, : float32, : float32) -> int32 {}
 
 //	*/
 
+// let e: vec2d;
+
+struct vec2d
+{
+	x: float64;
+	y: float64;
+}
+
+let f: vec2d;
+
+
 /*
 
 a && b || c ^^ d  // ((a '&&' b) '||' (c '^^' d))

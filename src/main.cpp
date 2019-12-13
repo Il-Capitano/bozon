@@ -1113,9 +1113,9 @@ void print_statement(ast::statement const &stmt, int indent_level = 0);
 
 void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 {
-	auto indent = [indent_level]()
+	auto indent = [indent_level](int plus_level = 0)
 	{
-		for (int i = 0; i < indent_level; ++i)
+		for (int i = 0; i < indent_level + plus_level; ++i)
 		{
 			bz::print("    ");
 		}
@@ -1155,7 +1155,7 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 			{
 				put_comma = true;
 			}
-			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.type);
+			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.var_type);
 		}
 		bz::printf(") -> {}\n", fn_decl->return_type);
 
@@ -1186,7 +1186,7 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 			{
 				put_comma = true;
 			}
-			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.type);
+			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.var_type);
 		}
 		bz::printf(") -> {}\n", op_decl->return_type);
 
@@ -1202,8 +1202,21 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	}
 
 	case ast::stmt_declaration::index<ast::decl_struct>:
-		assert(false);
+	{
+		auto &struct_decl = decl.get<ast::decl_struct_ptr>();
+		indent();
+		bz::printf("struct {}\n", struct_decl->identifier->value);
+		indent();
+		bz::print("{\n");
+		for (auto &var : struct_decl->member_variables)
+		{
+			indent(1);
+			bz::printf("{}: {};\n", var.id->value, var.var_type);
+		}
+		indent();
+		bz::print("}\n");
 		return;
+	}
 
 	default:
 		assert(false);

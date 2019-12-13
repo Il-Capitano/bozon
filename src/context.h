@@ -44,6 +44,7 @@ struct parse_context
 	bool add_variable(src_tokens::pos id, ast::typespec type);
 	void add_function(ast::decl_function_ptr &func_decl);
 	void add_operator(ast::decl_operator_ptr &op_decl);
+	void add_type(ast::decl_struct_ptr &struct_decl);
 
 	bool is_variable(bz::string_view id);
 	bool is_function(bz::string_view id);

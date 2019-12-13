@@ -110,7 +110,12 @@ struct ts_tuple
 struct variable
 {
 	src_tokens::pos id;
-	typespec        type;
+	typespec        var_type;
+
+	variable(src_tokens::pos _id, typespec _var_type)
+		: id      (_id),
+		  var_type(std::move(_var_type))
+	{}
 };
 
 
@@ -126,8 +131,8 @@ struct built_in_type
 	};
 
 	uint32_t kind;
-	size_t size;
-	size_t alignment;
+	size_t   size;
+	size_t   alignment;
 };
 
 
@@ -135,6 +140,10 @@ struct user_defined_type
 {
 	// TODO: for now, only PODS's are allowed, so no ctors, dtors, and so on...
 	bz::vector<variable> members;
+
+	user_defined_type(bz::vector<variable> _members)
+		: members(std::move(_members))
+	{}
 };
 
 
@@ -146,8 +155,9 @@ struct type : bz::variant<built_in_type, user_defined_type>
 	bz::string name;
 
 	template<typename T>
-	type(T &&_type, bz::string _name)
-		: base_t(std::forward<T>(_type)), name(_name)
+	type(bz::string _name, T &&_type)
+		: base_t(std::forward<T>(_type)),
+		  name  (std::move(_name))
 	{}
 
 	auto kind(void) const
@@ -155,10 +165,10 @@ struct type : bz::variant<built_in_type, user_defined_type>
 };
 using type_ptr = std::shared_ptr<type>;
 
-#define def_built_in_type(type_name, size, alignment)              \
-inline const auto type_name##_ = std::make_shared<type>(           \
-    built_in_type{ built_in_type::type_name##_, size, alignment }, \
-    #type_name                                                     \
+#define def_built_in_type(type_name, size, alignment)             \
+inline const auto type_name##_ = std::make_shared<type>(          \
+    #type_name,                                                   \
+    built_in_type{ built_in_type::type_name##_, size, alignment } \
 )
 
 def_built_in_type(int8, 1, 1);
@@ -286,6 +296,14 @@ template<typename ...Args>
 typespec make_ts_tuple(Args &&...args)
 { return typespec(std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
 
+
+template<typename ...Args>
+type_ptr make_type_ptr(Args &&...args)
+{ return std::make_shared<type>(std::forward<Args>(args)...); }
+
+template<typename ...Args>
+type_ptr make_user_defined_type_ptr(bz::string name, Args &&...args)
+{ return std::make_shared<type>(std::move(name), user_defined_type(std::forward<Args>(args)...)); }
 
 
 } // namespace ast

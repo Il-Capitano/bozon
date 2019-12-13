@@ -282,7 +282,7 @@ bz::string get_highlighted_tokens(
 
 inline bz::string get_highlighted_tokens(src_tokens::pos t)
 {
-	return get_highlighted_tokens(t, t, t);
+	return get_highlighted_tokens(t, t, t + 1);
 }
 
 [[noreturn]] inline void bad_token(src_tokens::pos stream)

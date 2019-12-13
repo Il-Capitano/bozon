@@ -35,7 +35,7 @@ void parse_context::add_function(ast::decl_function_ptr &func_decl)
 
 	for (auto &param : func_decl->params)
 	{
-		param_types.push_back(param.type);
+		param_types.push_back(param.var_type);
 	}
 
 	ast::ts_function func_type{
@@ -90,7 +90,7 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 
 	for (auto &param : op_decl->params)
 	{
-		param_types.push_back(param.type);
+		param_types.push_back(param.var_type);
 	}
 
 	ast::ts_function op_type{
@@ -139,6 +139,29 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 	}
 }
 
+void parse_context::add_type(ast::decl_struct_ptr &struct_decl)
+{
+	auto it = std::find_if(
+		this->types.begin(),
+		this->types.end(),
+		[&](auto const &t)
+		{
+			return t->name == struct_decl->identifier->value;
+		}
+	);
+
+	if (it != this->types.end())
+	{
+		bad_token(struct_decl->identifier, "Error: Redefinition of type");
+	}
+
+	this->types.push_back(
+		ast::make_user_defined_type_ptr(
+			struct_decl->identifier->value,
+			struct_decl->member_variables
+		)
+	);
+}
 
 bool parse_context::is_variable(bz::string_view id)
 {
@@ -206,7 +229,7 @@ ast::typespec parse_context::get_identifier_type(src_tokens::pos t)
 
 		if (it != scope->rend())
 		{
-			return it->type;
+			return it->var_type;
 		}
 	}
 

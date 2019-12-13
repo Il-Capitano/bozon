@@ -56,28 +56,28 @@ void statement::resolve(void);
 
 struct stmt_if
 {
-	token_range                 tokens;
+	token_range             tokens;
 	expression              condition;
 	statement               then_block;
 	bz::optional<statement> else_block;
 
 	stmt_if(
-		token_range    _tokens,
-		expression _condition,
-		statement  _then_block
+		token_range _tokens,
+		expression  _condition,
+		statement   _then_block
 	)
-		: tokens(_tokens),
+		: tokens    (_tokens),
 		  condition (std::move(_condition)),
 		  then_block(std::move(_then_block))
 	{}
 
 	stmt_if(
-		token_range    _tokens,
-		expression _condition,
-		statement  _then_block,
-		statement  _else_block
+		token_range _tokens,
+		expression  _condition,
+		statement   _then_block,
+		statement   _else_block
 	)
-		: tokens(_tokens),
+		: tokens    (_tokens),
 		  condition (std::move(_condition)),
 		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
@@ -92,16 +92,16 @@ struct stmt_if
 
 struct stmt_while
 {
-	token_range    tokens;
-	expression condition;
-	statement  while_block;
+	token_range tokens;
+	expression  condition;
+	statement   while_block;
 
 	stmt_while(
-		token_range    _tokens,
-		expression _condition,
-		statement  _while_block
+		token_range _tokens,
+		expression  _condition,
+		statement   _while_block
 	)
-		: tokens(_tokens),
+		: tokens     (_tokens),
 		  condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
@@ -126,8 +126,8 @@ struct stmt_for
 
 struct stmt_return
 {
-	token_range    tokens;
-	expression expr;
+	token_range tokens;
+	expression  expr;
 
 	stmt_return(token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
@@ -157,7 +157,7 @@ struct stmt_no_op
 
 struct stmt_compound
 {
-	token_range               tokens;
+	token_range           tokens;
 	bz::vector<statement> statements;
 
 	stmt_compound(token_range _tokens)
@@ -177,8 +177,8 @@ struct stmt_compound
 
 struct stmt_expression
 {
-	token_range    tokens;
-	expression expr;
+	token_range tokens;
+	expression  expr;
 
 	stmt_expression(token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
@@ -287,7 +287,13 @@ struct decl_operator
 
 struct decl_struct
 {
-	// TODO
+	src_tokens::pos           identifier;
+	bz::vector<ast::variable> member_variables;
+
+	decl_struct(src_tokens::pos _id, bz::vector<ast::variable> _members)
+		: identifier      (_id),
+		  member_variables(std::move(_members))
+	{}
 
 	src_tokens::pos get_tokens_begin(void) const { assert(false); return nullptr; }
 	src_tokens::pos get_tokens_pivot(void) const { assert(false); return nullptr; }

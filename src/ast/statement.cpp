@@ -92,8 +92,8 @@ void stmt_declaration::resolve(void)
 		++context;
 		for (auto &p : fn_decl->params)
 		{
-			p.type.resolve();
-			context.add_variable(p.id, p.type);
+			p.var_type.resolve();
+			context.add_variable(p.id, p.var_type);
 		}
 		fn_decl->return_type.resolve();
 		context.add_function(fn_decl);
@@ -108,8 +108,8 @@ void stmt_declaration::resolve(void)
 		++context;
 		for (auto &p : op_decl->params)
 		{
-			p.type.resolve();
-			context.add_variable(p.id, p.type);
+			p.var_type.resolve();
+			context.add_variable(p.id, p.var_type);
 		}
 		op_decl->return_type.resolve();
 		context.add_operator(op_decl);
@@ -119,8 +119,16 @@ void stmt_declaration::resolve(void)
 	}
 
 	case index<decl_struct>:
-		assert(false);
+	{
+		auto &struct_decl = this->get<decl_struct_ptr>();
+		for (auto &var : struct_decl->member_variables)
+		{
+			var.var_type.resolve();
+		}
+
+		context.add_type(struct_decl);
 		return;
+	}
 
 	default:
 		assert(false);
