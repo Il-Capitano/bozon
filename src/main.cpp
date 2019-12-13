@@ -940,6 +940,19 @@ const end = a.end();
 more general code can be written without using helper functions
 
 
+
+
+
+struct complex
+{
+	operator float64 (&const this) {}
+	cast<float64>(&const this) {}
+	cast float64 (&const this) {}
+	operator cast float64 (&const this) {}
+	operator cast<float64>(&const this) {}
+}
+
+
 */
 
 #include "core.h"
