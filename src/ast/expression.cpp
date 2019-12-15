@@ -4,33 +4,33 @@
 namespace ast
 {
 
-src_tokens::pos expr_unary_op::get_tokens_begin(void) const
+src_file::token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
 
-src_tokens::pos expr_unary_op::get_tokens_pivot(void) const
+src_file::token_pos expr_unary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-src_tokens::pos expr_unary_op::get_tokens_end(void) const
+src_file::token_pos expr_unary_op::get_tokens_end(void) const
 { return this->expr.get_tokens_end(); }
 
 
-src_tokens::pos expr_binary_op::get_tokens_begin(void) const
+src_file::token_pos expr_binary_op::get_tokens_begin(void) const
 { return this->lhs.get_tokens_begin(); }
 
-src_tokens::pos expr_binary_op::get_tokens_pivot(void) const
+src_file::token_pos expr_binary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-src_tokens::pos expr_binary_op::get_tokens_end(void) const
+src_file::token_pos expr_binary_op::get_tokens_end(void) const
 { return this->rhs.get_tokens_end(); }
 
 
-src_tokens::pos expr_function_call::get_tokens_begin(void) const
+src_file::token_pos expr_function_call::get_tokens_begin(void) const
 { return this->called.get_tokens_begin(); }
 
-src_tokens::pos expr_function_call::get_tokens_pivot(void) const
+src_file::token_pos expr_function_call::get_tokens_pivot(void) const
 { return this->op; }
 
-src_tokens::pos expr_function_call::get_tokens_end(void) const
+src_file::token_pos expr_function_call::get_tokens_end(void) const
 {
 	if (this->params.size() == 0)
 	{
@@ -83,7 +83,7 @@ void expr_function_call::resolve(void)
 
 
 
-expr_literal::expr_literal(src_tokens::pos stream)
+expr_literal::expr_literal(src_file::token_pos stream)
 	: src_pos(stream)
 {
 	switch(stream->kind)
@@ -305,19 +305,19 @@ static precedence get_unary_precedence(uint32_t kind)
 }
 
 static expression parse_expression(
-	src_tokens::pos &stream,
-	src_tokens::pos  end,
+	src_file::token_pos &stream,
+	src_file::token_pos  end,
 	precedence       prec = precedence{}
 );
 
 static bz::vector<expression> parse_expression_comma_list(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 );
 
 static expression parse_primary_expression(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 )
 {
 	switch (stream->kind)
@@ -397,12 +397,12 @@ static expression parse_primary_expression(
 
 static expression parse_expression_helper(
 	expression   lhs,
-	src_tokens::pos &stream,
-	src_tokens::pos  end,
+	src_file::token_pos &stream,
+	src_file::token_pos  end,
 	precedence       prec
 )
 {
-	src_tokens::pos op = nullptr;
+	src_file::token_pos op = nullptr;
 	precedence op_prec;
 
 	while (
@@ -471,8 +471,8 @@ static expression parse_expression_helper(
 }
 
 static bz::vector<expression> parse_expression_comma_list(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 )
 {
 	bz::vector<expression> exprs = {};
@@ -488,8 +488,8 @@ static bz::vector<expression> parse_expression_comma_list(
 }
 
 static expression parse_expression(
-	src_tokens::pos &stream,
-	src_tokens::pos  end,
+	src_file::token_pos &stream,
+	src_file::token_pos  end,
 	precedence       prec
 )
 {

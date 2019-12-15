@@ -1318,13 +1318,10 @@ void print_statement(ast::statement const &stmt, int indent_level)
 
 int main(void)
 {
-	assert(bz::string("int32") == bz::string("int32"));
+	src_file file("src/test.bz");
 
-	lexer_init();
-	src_tokens file("src/test.bz");
-
-	auto stream = file.begin();
-	auto end    = file.end();
+	auto stream = file.tokens_begin();
+	auto end    = file.tokens_end();
 
 	auto statements = get_ast_statements(stream, end);
 	assert(stream->kind == token::eof);

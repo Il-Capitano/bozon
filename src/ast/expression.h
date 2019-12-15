@@ -41,32 +41,32 @@ struct expr_unresolved
 		: expr(_expr)
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const
+	src_file::token_pos get_tokens_begin(void) const
 	{ return this->expr.begin; }
 
-	src_tokens::pos get_tokens_pivot(void) const
+	src_file::token_pos get_tokens_pivot(void) const
 	{ return this->expr.begin; }
 
-	src_tokens::pos get_tokens_end(void) const
+	src_file::token_pos get_tokens_end(void) const
 	{ return this->expr.end; }
 };
 
 struct expr_identifier
 {
-	src_tokens::pos identifier;
+	src_file::token_pos identifier;
 	typespec        expr_type;
 
-	expr_identifier(src_tokens::pos _id)
+	expr_identifier(src_file::token_pos _id)
 		: identifier(_id)
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const
+	src_file::token_pos get_tokens_begin(void) const
 	{ return this->identifier; }
 
-	src_tokens::pos get_tokens_pivot(void) const
+	src_file::token_pos get_tokens_pivot(void) const
 	{ return this->identifier; }
 
-	src_tokens::pos get_tokens_end(void) const
+	src_file::token_pos get_tokens_end(void) const
 	{ return this->identifier + 1; }
 
 	void resolve(void);
@@ -94,18 +94,18 @@ struct expr_literal
 	};
 
 	value_t         value;
-	src_tokens::pos src_pos;
+	src_file::token_pos src_pos;
 	typespec        expr_type;
 
-	expr_literal(src_tokens::pos stream);
+	expr_literal(src_file::token_pos stream);
 
-	src_tokens::pos get_tokens_begin(void) const
+	src_file::token_pos get_tokens_begin(void) const
 	{ return this->src_pos; }
 
-	src_tokens::pos get_tokens_pivot(void) const
+	src_file::token_pos get_tokens_pivot(void) const
 	{ return this->src_pos; }
 
-	src_tokens::pos get_tokens_end(void) const
+	src_file::token_pos get_tokens_end(void) const
 	{ return this->src_pos + 1; }
 
 	void resolve(void);
@@ -113,58 +113,58 @@ struct expr_literal
 
 struct expr_unary_op
 {
-	src_tokens::pos op;
+	src_file::token_pos op;
 	expression      expr;
 	typespec        expr_type;
 
-	expr_unary_op(src_tokens::pos _op, expression _expr)
+	expr_unary_op(src_file::token_pos _op, expression _expr)
 		: op(_op),
 		  expr(std::move(_expr))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_file::token_pos get_tokens_begin(void) const;
+	src_file::token_pos get_tokens_pivot(void) const;
+	src_file::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct expr_binary_op
 {
-	src_tokens::pos op;
+	src_file::token_pos op;
 	expression      lhs;
 	expression      rhs;
 	typespec        expr_type;
 
-	expr_binary_op(src_tokens::pos _op, expression _lhs, expression _rhs)
+	expr_binary_op(src_file::token_pos _op, expression _lhs, expression _rhs)
 		: op(_op),
 		  lhs (std::move(_lhs)),
 		  rhs (std::move(_rhs))
 	{}
 
-	src_tokens::pos get_tokens_begin(void) const;
-	src_tokens::pos get_tokens_pivot(void) const;
-	src_tokens::pos get_tokens_end(void) const;
+	src_file::token_pos get_tokens_begin(void) const;
+	src_file::token_pos get_tokens_pivot(void) const;
+	src_file::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct expr_function_call
 {
-	src_tokens::pos        op;
+	src_file::token_pos        op;
 	expression             called;
 	bz::vector<expression> params;
 	typespec               expr_type;
 
-	expr_function_call(src_tokens::pos _op, expression _called, bz::vector<expression> _params)
+	expr_function_call(src_file::token_pos _op, expression _called, bz::vector<expression> _params)
 		: op(_op),
 		  called(std::move(_called)),
 		  params(std::move(_params))
 	{}
 
-	src_tokens::pos get_tokens_begin() const;
-	src_tokens::pos get_tokens_pivot() const;
-	src_tokens::pos get_tokens_end() const;
+	src_file::token_pos get_tokens_begin() const;
+	src_file::token_pos get_tokens_pivot() const;
+	src_file::token_pos get_tokens_end() const;
 
 	void resolve(void);
 };

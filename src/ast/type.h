@@ -109,10 +109,10 @@ struct ts_tuple
 
 struct variable
 {
-	src_tokens::pos id;
+	src_file::token_pos id;
 	typespec        var_type;
 
-	variable(src_tokens::pos _id, typespec _var_type)
+	variable(src_file::token_pos _id, typespec _var_type)
 		: id      (_id),
 		  var_type(std::move(_var_type))
 	{}

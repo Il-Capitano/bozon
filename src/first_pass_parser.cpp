@@ -13,8 +13,8 @@ void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 
 template<uint32_t ...end_tokens>
 static token_range get_expression_or_type(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 )
 {
 	auto begin = stream;
@@ -94,8 +94,8 @@ static token_range get_expression_or_type(
 }
 
 static bz::vector<ast::variable> get_function_params(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 )
 {
 	assert_token(stream, token::paren_open);
@@ -144,8 +144,8 @@ static bz::vector<ast::variable> get_function_params(
 
 
 static ast::stmt_compound_ptr get_stmt_compound(
-	src_tokens::pos &stream,
-	src_tokens::pos end
+	src_file::token_pos &stream,
+	src_file::token_pos end
 )
 {
 	auto const begin_token = stream;
@@ -163,7 +163,7 @@ static ast::stmt_compound_ptr get_stmt_compound(
 	return comp_stmt;
 }
 
-ast::statement parse_if_statement(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_if_statement(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_if);
 	auto begin_token = stream;
@@ -197,7 +197,7 @@ ast::statement parse_if_statement(src_tokens::pos &stream, src_tokens::pos end)
 	}
 }
 
-ast::statement parse_while_statement(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_while_statement(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_while);
 	auto const begin_token = stream;
@@ -216,13 +216,13 @@ ast::statement parse_while_statement(src_tokens::pos &stream, src_tokens::pos en
 	);
 }
 
-ast::statement parse_for_statement(src_tokens::pos &stream, src_tokens::pos)
+ast::statement parse_for_statement(src_file::token_pos &stream, src_file::token_pos)
 {
 	assert(stream->kind == token::kw_for);
 	bad_token(stream, "for statement not yet implemented");
 }
 
-ast::statement parse_return_statement(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_return_statement(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_return);
 	auto const begin_token = stream;
@@ -237,7 +237,7 @@ ast::statement parse_return_statement(src_tokens::pos &stream, src_tokens::pos e
 	);
 }
 
-ast::statement parse_no_op_statement(src_tokens::pos &stream, src_tokens::pos)
+ast::statement parse_no_op_statement(src_file::token_pos &stream, src_file::token_pos)
 {
 	assert(stream->kind == token::semi_colon);
 	auto const begin_token = stream;
@@ -245,7 +245,7 @@ ast::statement parse_no_op_statement(src_tokens::pos &stream, src_tokens::pos)
 	return ast::make_stmt_no_op(token_range{ begin_token, stream });
 }
 
-ast::statement parse_variable_declaration(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_let);
 	++stream; // 'let'
@@ -293,7 +293,7 @@ ast::statement parse_variable_declaration(src_tokens::pos &stream, src_tokens::p
 	);
 }
 
-ast::statement parse_struct_definition(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_struct_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_struct);
 	++stream; // 'struct'
@@ -332,7 +332,7 @@ ast::statement parse_struct_definition(src_tokens::pos &stream, src_tokens::pos 
 	return ast::make_decl_struct(id, std::move(member_variables));
 }
 
-ast::statement parse_function_definition(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_function_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_function);
 	++stream; // 'function'
@@ -351,7 +351,7 @@ ast::statement parse_function_definition(src_tokens::pos &stream, src_tokens::po
 	);
 }
 
-ast::statement parse_operator_definition(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_operator);
 	++stream; // 'operator'
@@ -456,7 +456,7 @@ ast::statement parse_operator_definition(src_tokens::pos &stream, src_tokens::po
 	);
 }
 
-ast::statement parse_expression_statement(src_tokens::pos &stream, src_tokens::pos end)
+ast::statement parse_expression_statement(src_file::token_pos &stream, src_file::token_pos end)
 {
 	auto const begin_token = stream;
 	auto expr = get_expression_or_type<token::semi_colon>(stream, end);
@@ -469,8 +469,8 @@ ast::statement parse_expression_statement(src_tokens::pos &stream, src_tokens::p
 }
 
 ast::statement get_ast_statement(
-	src_tokens::pos &stream,
-	src_tokens::pos  end
+	src_file::token_pos &stream,
+	src_file::token_pos  end
 )
 {
 	switch (stream->kind)
@@ -525,7 +525,7 @@ ast::statement get_ast_statement(
 }
 
 
-bz::vector<ast::statement> get_ast_statements(src_tokens::pos &stream, src_tokens::pos end)
+bz::vector<ast::statement> get_ast_statements(src_file::token_pos &stream, src_file::token_pos end)
 {
 	bz::vector<ast::statement> statements = {};
 	while (stream->kind != token::eof)

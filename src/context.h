@@ -41,7 +41,7 @@ struct parse_context
 		this->variables.pop_back();
 	}
 
-	bool add_variable(src_tokens::pos id, ast::typespec type);
+	bool add_variable(src_file::token_pos id, ast::typespec type);
 	void add_function(ast::decl_function_ptr &func_decl);
 	void add_operator(ast::decl_operator_ptr &op_decl);
 	void add_type(ast::decl_struct_ptr &struct_decl);
@@ -49,10 +49,10 @@ struct parse_context
 	bool is_variable(bz::string_view id);
 	bool is_function(bz::string_view id);
 
-	ast::type_ptr get_type(src_tokens::pos id);
-	ast::typespec get_identifier_type(src_tokens::pos t);
+	ast::type_ptr get_type(src_file::token_pos id);
+	ast::typespec get_identifier_type(src_file::token_pos t);
 	ast::typespec get_function_type(bz::string   id, bz::vector<ast::typespec> const &args);
-	ast::typespec get_operator_type(src_tokens::pos op, bz::vector<ast::typespec> const &args);
+	ast::typespec get_operator_type(src_file::token_pos op, bz::vector<ast::typespec> const &args);
 
 	ast::typespec get_expression_type(ast::expression const &expr);
 	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);

@@ -1,80 +1,165 @@
 #include "lexer.h"
 
-static std::array<
-	std::pair<bz::string, uint32_t>,
+using token_pair = std::pair<bz::string_view, uint32_t>;
+
+static constexpr std::array<
+	token_pair,
 	token::kw_if - token::plus_plus
-> multi_char_tokens;
+> multi_char_tokens = {
+	token_pair{ "<<=", token::bit_left_shift_eq  },
+	token_pair{ ">>=", token::bit_right_shift_eq },
+	token_pair{ "...", token::dot_dot_dot        },
+	token_pair{ "..=", token::dot_dot_eq         },
 
-static std::array<
-	std::pair<bz::string, uint32_t>,
+	token_pair{ "++", token::plus_plus           },
+	token_pair{ "--", token::minus_minus         },
+	token_pair{ "+=", token::plus_eq             },
+	token_pair{ "-=", token::minus_eq            },
+	token_pair{ "*=", token::multiply_eq         },
+	token_pair{ "/=", token::divide_eq           },
+	token_pair{ "%=", token::modulo_eq           },
+	token_pair{ "<<", token::bit_left_shift      },
+	token_pair{ ">>", token::bit_right_shift     },
+	token_pair{ "&=", token::bit_and_eq          },
+	token_pair{ "|=", token::bit_or_eq           },
+	token_pair{ "^=", token::bit_xor_eq          },
+
+	token_pair{ "==", token::equals              },
+	token_pair{ "!=", token::not_equals          },
+	token_pair{ "<=", token::less_than_eq        },
+	token_pair{ ">=", token::greater_than_eq     },
+	token_pair{ "&&", token::bool_and            },
+	token_pair{ "||", token::bool_or             },
+	token_pair{ "^^", token::bool_xor            },
+
+	token_pair{ "->", token::arrow               },
+	token_pair{ "::", token::scope               },
+	token_pair{ "..", token::dot_dot             }
+};
+
+static constexpr std::array<
+	token_pair,
 	token::_last - token::kw_if
-> keywords;
+> keywords = {
+	token_pair{ "namespace", token::kw_namespace },
+
+	token_pair{ "function", token::kw_function   },
+	token_pair{ "operator", token::kw_operator   },
+	token_pair{ "typename", token::kw_typename   },
+
+	token_pair{ "return", token::kw_return       },
+	token_pair{ "struct", token::kw_struct       },
+	token_pair{ "sizeof", token::kw_sizeof       },
+	token_pair{ "typeof", token::kw_typeof       },
+
+	token_pair{ "while", token::kw_while         },
+	token_pair{ "class", token::kw_class         },
+	token_pair{ "using", token::kw_using         },
+	token_pair{ "const", token::kw_const         },
+	token_pair{ "false", token::kw_false         },
+
+	token_pair{ "else", token::kw_else           },
+	token_pair{ "auto", token::kw_auto           },
+	token_pair{ "true", token::kw_true           },
+	token_pair{ "null", token::kw_null           },
+
+	token_pair{ "for", token::kw_for             },
+	token_pair{ "let", token::kw_let             },
+
+	token_pair{ "if", token::kw_if               },
+};
 
 
-void lexer_init(void)
+struct file_iterator
 {
-	multi_char_tokens =
+	src_file::char_pos it;
+	bz::string_view file;
+	size_t line;
+	size_t column;
+
+	file_iterator &operator ++ (void)
 	{
-		std::make_pair( "<<=", token::bit_left_shift_eq  ),
-		std::make_pair( ">>=", token::bit_right_shift_eq ),
-		std::make_pair( "...", token::dot_dot_dot        ),
-		std::make_pair( "..=", token::dot_dot_eq         ),
+		if (*it == '\n')
+		{
+			++this->line;
+			this->column = 0;
+		}
+		else
+		{
+			++this->column;
+		}
+		++this->it;
+		return *this;
+	}
+};
 
-		std::make_pair( "++", token::plus_plus           ),
-		std::make_pair( "--", token::minus_minus         ),
-		std::make_pair( "+=", token::plus_eq             ),
-		std::make_pair( "-=", token::minus_eq            ),
-		std::make_pair( "*=", token::multiply_eq         ),
-		std::make_pair( "/=", token::divide_eq           ),
-		std::make_pair( "%=", token::modulo_eq           ),
-		std::make_pair( "<<", token::bit_left_shift      ),
-		std::make_pair( ">>", token::bit_right_shift     ),
-		std::make_pair( "&=", token::bit_and_eq          ),
-		std::make_pair( "|=", token::bit_or_eq           ),
-		std::make_pair( "^=", token::bit_xor_eq          ),
 
-		std::make_pair( "==", token::equals              ),
-		std::make_pair( "!=", token::not_equals          ),
-		std::make_pair( "<=", token::less_than_eq        ),
-		std::make_pair( ">=", token::greater_than_eq     ),
-		std::make_pair( "&&", token::bool_and            ),
-		std::make_pair( "||", token::bool_or             ),
-		std::make_pair( "^^", token::bool_xor            ),
+bz::string read_file(std::ifstream &file)
+{
+	file.seekg(std::ios::end);
+	size_t const size = file.tellg();
+	file.seekg(std::ios::beg);
 
-		std::make_pair( "->", token::arrow               ),
-		std::make_pair( "::", token::scope               ),
-		std::make_pair( "..", token::dot_dot             ),
-	};
+	bz::string file_str = "\n";
 
-	keywords =
+	if (size == 0)
 	{
-		std::make_pair( "namespace", token::kw_namespace ),
+		return file_str;
+	}
 
-		std::make_pair( "function", token::kw_function   ),
-		std::make_pair( "operator", token::kw_operator   ),
-		std::make_pair( "typename", token::kw_typename   ),
+	file_str.reserve(size + 2);
 
-		std::make_pair( "return", token::kw_return       ),
-		std::make_pair( "struct", token::kw_struct       ),
-		std::make_pair( "sizeof", token::kw_sizeof       ),
-		std::make_pair( "typeof", token::kw_typeof       ),
+	while (true)
+	{
+		char c = file.get();
+		if (file.eof())
+		{
+			break;
+		}
 
-		std::make_pair( "while", token::kw_while         ),
-		std::make_pair( "class", token::kw_class         ),
-		std::make_pair( "using", token::kw_using         ),
-		std::make_pair( "const", token::kw_const         ),
-		std::make_pair( "false", token::kw_false         ),
+		// we use '\n' for line endings and not '\r\n' or '\r'
+		if (c == '\r')
+		{
+			if (file.peek() == '\n')
+			{
+				file.get();
+			}
 
-		std::make_pair( "else", token::kw_else           ),
-		std::make_pair( "auto", token::kw_auto           ),
-		std::make_pair( "true", token::kw_true           ),
-		std::make_pair( "null", token::kw_null           ),
+			c = '\n';
+		}
 
-		std::make_pair( "for", token::kw_for             ),
-		std::make_pair( "let", token::kw_let             ),
+		file_str.push_back(c);
+	}
 
-		std::make_pair( "if", token::kw_if               ),
-	};
+	file_str.push_back('\n');
+
+	return file_str;
+}
+
+token get_next_token(file_iterator &stream, src_file::char_pos const end);
+
+bz::vector<token> get_tokens(bz::string_view file)
+{
+	bz::vector<token> tokens = {};
+	file_iterator stream = { file.begin() + 1, file, 1, 0 };
+	auto const end = file.end();
+
+	do
+	{
+		tokens.push_back(get_next_token(stream, end));
+	} while(tokens.back().kind != token::eof);
+
+	return tokens;
+}
+
+src_file::src_file(bz::string file_name)
+	: _file(), _tokens()
+{
+	file_name.push_back('\0');
+	std::ifstream file(file_name.data());
+
+	this->_file   = read_file(file);
+	this->_tokens = get_tokens(this->_file);
 }
 
 
@@ -312,6 +397,11 @@ static constexpr bool is_alphanum_char(char c)
 	return is_num_char(c) || is_alpha_char(c);
 }
 
+static constexpr bool is_identifier_char(char c)
+{
+	return is_alphanum_char(c) || c == '_';
+}
+
 static constexpr bool is_whitespace_char(char c)
 {
 	return c == ' '
@@ -320,433 +410,478 @@ static constexpr bool is_whitespace_char(char c)
 		|| c == '\r'; // for windows line ends
 }
 
-static bool is_identifier(src_file::pos stream)
+bz::string get_highlighted_chars(
+	src_file::char_pos char_begin,
+	src_file::char_pos char_pivot,
+	src_file::char_pos char_end
+);
+
+[[noreturn]] void bad_char(src_file::char_pos it, bz::string_view message)
 {
-	return is_alpha_char(*stream) || *stream == '_';
+	bz::printf("{}{}\n", get_highlighted_chars(it, it, it + 1), message);
+	exit(1);
 }
 
-static bool is_string_literal(src_file::pos stream)
-{
-	return *stream == '"';
-}
 
-static bool is_character_literal(src_file::pos stream)
+void skip_comments_and_whitespace(file_iterator &stream, src_file::char_pos const end)
 {
-	return *stream == '\'';
-}
-
-static bool is_number_literal(src_file::pos stream)
-{
-	if (*stream == '.')
-	{
-		// we can do this because the stream is null terminated
-		return is_num_char(*++stream);
-	}
-	else
-	{
-		return is_num_char(*stream);
-	}
-}
-
-static bool is_string(src_file::pos stream, src_file::pos end, bz::string str)
-{
-	int i = 0;
-	while (stream != end && str[i] != '\0' && *stream == str[i])
-	{
-		++i;
-		++stream;
-	}
-	if (stream == end)
-	{
-		return str[i] == '\0';
-	}
-	else
-	{
-		return !is_alphanum_char(*stream) && *stream != '_' && str[i] == '\0';
-	}
-}
-
-static bz::string get_identifier_name(src_file::pos &stream, src_file::pos end)
-{
-	assert(is_identifier(stream));
-
-	auto begin = stream;
-	while (
-		stream != end
-		&& (
-			is_alphanum_char(*stream)
-			|| *stream == '_'
-		)
-	)
+	while (stream.it != end && is_whitespace_char(*stream.it))
 	{
 		++stream;
 	}
 
-	return bz::string(&*begin, &*stream);
-}
-
-static token get_string_literal(src_file::pos &stream, src_file::pos end)
-{
-	assert(is_string_literal(stream));
-
-	++stream; // '"'
-	auto begin = stream;
-	bool loop = true;
-	bz::string str = "";
-
-	while (stream != end && loop)
+	if (stream.it == end || *stream.it != '/')
 	{
-		switch (*stream)
+		return;
+	}
+
+	// line comment
+	if (stream.it + 1 != end && *(stream.it + 1) == '/')
+	{
+		++stream; ++stream; // '//'
+
+		while (stream.it != end && *stream.it != '\n')
 		{
-		case '\\':
-			switch(++stream, *stream)
+			++stream;
+		}
+
+
+		skip_comments_and_whitespace(stream, end);
+		return;
+	}
+
+	// block comment
+	if (stream.it + 1 != end && *(stream.it + 1) == '*')
+	{
+		++stream; ++stream; // '/*'
+		int comment_depth = 1;
+
+		for (; stream.it != end && comment_depth != 0; ++stream)
+		{
+			switch (*stream.it)
 			{
-			case '\'':
-				str += '\'';
-				++stream;
+			case '/':
+				if (stream.it + 1 != end && *(stream.it + 1) == '*')
+				{
+					++stream; ++stream; // '/*'
+					++comment_depth;
+				}
 				break;
-			case '"':
-				str += '\"';
-				++stream;
-				break;
-			case '\\':
-				str += '\\';
-				++stream;
-				break;
-			case 'b':
-				str += '\b';
-				++stream;
-				break;
-			case 'n':
-				str += '\n';
-				++stream;
-				break;
-			case 't':
-				str += '\t';
-				++stream;
+
+			case '*':
+				if (stream.it + 1 != end && *(stream.it + 1) == '/')
+				{
+					++stream; ++stream; // '*/'
+					--comment_depth;
+				}
 				break;
 
 			default:
-				assert(false);
 				break;
 			}
-			break;
-
-		case '"':
-			loop = false;
-			++stream;
-			break;
-
-		default:
-			str += *stream;
-			++stream;
-			break;
 		}
-	}
-	assert(stream != end);
 
-	return { token::string_literal, str, { begin, stream } };
+		skip_comments_and_whitespace(stream, end);
+		return;
+	}
 }
 
-static token get_character_literal(src_file::pos &stream, src_file::pos end)
+token get_identifier_or_keyword_token(file_iterator &stream, src_file::char_pos const end)
 {
-	assert(is_character_literal(stream));
+	assert(
+		(*stream.it >= 'a' && *stream.it <= 'z')
+		|| (*stream.it >= 'A' && *stream.it <= 'Z')
+		|| *stream.it == '_'
+	);
 
-	auto begin = stream;
-	++stream; // '\''
-	assert(stream != end);
-	char c = '\0';
+	auto const begin_it = stream.it;
+	auto const line     = stream.line;
+	auto const column   = stream.column;
 
-	switch (*stream)
+	do
+	{
+		++stream;
+	} while(stream.it != end && is_identifier_char(*stream.it));
+
+	auto const end_it = stream.it;
+
+	auto const id_value = bz::string_view(&*begin_it, &*end_it);
+
+	auto it = std::find_if(
+		keywords.begin(),
+		keywords.end(),
+		[id_value](auto const &kw)
+		{
+			return kw.first == id_value;
+		}
+	);
+
+	// identifier
+	if (it == keywords.end())
+	{
+		return token(
+			token::identifier,
+			id_value,
+			stream.file, begin_it, end_it, line, column
+		);
+	}
+	// keyword
+	else
+	{
+		return token(
+			it->second,
+			id_value,
+			stream.file, begin_it, end_it, line, column
+		);
+	}
+}
+
+token get_character_token(file_iterator &stream, src_file::char_pos const)
+{
+	assert(*stream.it == '\'');
+	auto const begin_it = stream.it;
+	auto const line     = stream.line;
+	auto const column   = stream.column;
+	++stream;
+	auto const char_begin = stream.it;
+
+	switch (*stream.it)
 	{
 	case '\\':
-		switch(++stream, assert(stream != end), *stream)
+		++stream;
+		switch (*stream.it)
 		{
-		case '\'':
-			c = '\'';
-			++stream;
-			break;
-		case '"':
-			c = '\"';
-			++stream;
-			break;
+		// TODO: decide on what is allowed here
 		case '\\':
-			c = '\\';
-			++stream;
-			break;
-		case 'b':
-			c = '\b';
-			++stream;
-			break;
+		case '\'':
+		case '\"':
 		case 'n':
-			c = '\n';
-			++stream;
-			break;
 		case 't':
-			c = '\t';
 			++stream;
 			break;
-
 		default:
-			assert(false);
-			break;
+			bad_char(stream.it, "Error: Invalid escape sequence");
 		}
-		break;
-
-	case '\'':
-		assert(false);
 		break;
 
 	default:
-		c = *stream;
 		++stream;
 		break;
 	}
 
-	assert(stream != end);
-	assert(*stream == '\'');
+	if (*stream.it != '\'')
+	{
+		bad_char(stream.it, "Error: Expected closing '");
+	}
+	auto const char_end = stream.it;
+
 	++stream;
+	auto const end_it = stream.it;
 
-	return { token::character_literal, bz::string(c), { begin, stream } };
+	return token(
+		token::character_literal,
+		bz::string_view(&*char_begin, &*char_end),
+		stream.file, begin_it, end_it, line, column
+	);
 }
 
-static token get_number_literal(src_file::pos &stream, src_file::pos end)
+token get_string_token(file_iterator &stream, src_file::char_pos const end)
 {
-	assert(is_number_literal(stream));
+	assert(*stream.it == '\"');
+	auto const begin_it = stream.it;
+	auto const line     = stream.line;
+	auto const column   = stream.column;
+	++stream;
+	auto const str_begin = stream.it;
 
-	auto begin = stream;
-	while (
-		stream != end
-		&& (
-			is_num_char(*stream)
-			|| (*stream == '.' && is_num_char(*(stream + 1)))
-			|| *stream == '\''
-		)
-	)
+	while (stream.it != end && *stream.it != '\"')
 	{
-		++stream;
-	}
-
-	return { token::number_literal, bz::string(&*begin, &*stream), { begin, stream } };
-}
-
-void skip_comments(src_file::pos &stream, src_file::pos &end)
-{
-	if (stream == end)
-	{
-		return;
-	}
-
-	while (stream != end && is_whitespace_char(*stream))
-	{
-		++stream;
-	}
-
-	switch (*stream)
-	{
-	case '/':
-	{
-		auto copy = stream;
-		++copy;
-
-		if (copy == end)
+		switch (*stream.it)
 		{
-			return;
+		case '\\':
+			++stream;
+			switch (*stream.it)
+			{
+			// TODO: decide on what is allowed here
+			case '\\':
+			case '\'':
+			case '\"':
+			case 'n':
+			case 't':
+				++stream;
+				break;
+			default:
+				bad_char(stream.it, "Error: Invalid escape sequence");
+			}
+			break;
+
+		default:
+			++stream;
+			break;
 		}
+	}
 
-		// line comment
-		if (*copy == '/')
+	if (*stream.it != '\"')
+	{
+		bad_char(stream.it, "Error: Expected closing \"");
+	}
+	auto const str_end = stream.it;
+
+	++stream;
+	auto const end_it = stream.it;
+
+	return token(
+		token::string_literal,
+		bz::string_view(&*str_begin, &*str_end),
+		stream.file, begin_it, end_it, line, column
+	);
+}
+
+token get_number_token(file_iterator &stream, src_file::char_pos const end)
+{
+	assert(is_num_char(*stream.it));
+	auto const begin_it = stream.it;
+	auto const line     = stream.line;
+	auto const column   = stream.column;
+
+	do
+	{
+		++stream;
+	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+
+	if (stream.it == end || *stream.it != '.')
+	{
+		return token(
+			token::number_literal,
+			bz::string_view(&*begin_it, &*stream.it),
+			stream.file, begin_it, stream.it, line, column
+		);
+	}
+
+	// the next char after the '.' has to be a number or '\'' to count towards the token
+	if ((stream.it + 1) == end || !(is_num_char(*(stream.it + 1)) || *(stream.it + 1) == '\''))
+	{
+		return token(
+			token::number_literal,
+			bz::string_view(&*begin_it, &*stream.it),
+			stream.file, begin_it, stream.it, line, column
+		);
+	}
+
+	do
+	{
+		++stream;
+	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+
+	auto const end_it = stream.it;
+	return token(
+		token::number_literal,
+		bz::string_view(&*begin_it, &*end_it),
+		stream.file, begin_it, end_it, line, column
+	);
+
+	// TODO: allow hex, oct and bin numbers (0x, 0o, 0b) and exponential notations (1e10)
+}
+
+token get_single_char_token(file_iterator &stream, src_file::char_pos const)
+{
+	auto const begin_it = stream.it;
+	auto const line     = stream.line;
+	auto const column   = stream.column;
+	++stream;
+	auto const end_it = stream.it;
+
+	return token(
+		static_cast<uint32_t>(*begin_it),
+		bz::string_view(&*begin_it, &*end_it),
+		stream.file, begin_it, end_it, line, column
+	);
+}
+
+bool is_str(bz::string_view str, file_iterator &stream, src_file::char_pos const end)
+{
+	auto str_it = str.begin();
+	auto const str_end = str.end();
+	auto it = stream.it;
+
+	while (it != end && str_it != str_end && *it == *str_it)
+	{
+		++it, ++str_it;
+	}
+
+	return str_it == str_end;
+}
+
+token get_next_token(file_iterator &stream, src_file::char_pos const end)
+{
+	skip_comments_and_whitespace(stream, end);
+
+	if (stream.it == end)
+	{
+		return token(
+			token::eof,
+			bz::string_view(&*end, &*end),
+			stream.file, end, end, stream.line, stream.column
+		);
+	}
+
+	switch (*stream.it)
+	{
+	// identifier or keyword
+	case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
+	case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p':
+	case 'q': case 'r': case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+	case 'y': case 'z':
+	case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H':
+	case 'I': case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
+	case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
+	case 'Y': case 'Z':
+	case '_':
+		return get_identifier_or_keyword_token(stream, end);
+
+	// character
+	case '\'':
+		return get_character_token(stream, end);
+	// string
+	case '\"':
+		return get_string_token(stream, end);
+	// number
+	case '0': case '1': case '2': case '3': case '4':
+	case '5': case '6': case '7': case '8': case '9':
+		return get_number_token(stream, end);
+
+	default:
+		break;
+	}
+
+	for (auto &t : multi_char_tokens)
+	{
+		if (is_str(t.first, stream, end))
 		{
-			// skips '//'
-			++stream;
-			++stream;
+			auto const begin_it = stream.it;
+			auto const line     = stream.line;
+			auto const column   = stream.column;
 
-			while (stream != end && *stream != '\n')
+			for (size_t i = 0; i < t.first.length(); ++i)
 			{
 				++stream;
 			}
-			skip_comments(stream, end);
-			return;
+
+			auto const end_it = stream.it;
+			return token(
+				t.second,
+				bz::string_view(&*begin_it, &*end_it),
+				stream.file, begin_it, end_it, line, column
+			);
 		}
-		// block comment
-		else if (*copy == '*')
+	}
+
+	return get_single_char_token(stream, end);
+}
+
+bz::string get_highlighted_chars(
+	src_file::char_pos char_begin,
+	src_file::char_pos char_pivot,
+	src_file::char_pos char_end
+)
+{
+	assert(char_begin < char_end);
+	assert(char_begin <= char_pivot);
+	assert(char_pivot < char_end);
+
+	auto line_begin = char_begin;
+
+	while (*(line_begin - 1) != '\n')
+	{
+		--line_begin;
+	}
+
+	auto line_end = char_end;
+
+	while (*(line_end - 1) != '\n')
+	{
+		++line_end;
+	}
+
+	bz::string file_line = "";
+	bz::string highlight_line = "";
+
+	bz::string result = "";
+
+	auto it = line_begin;
+
+	for (; it != line_end; ++it)
+	{
+		file_line = "";
+		highlight_line = "";
+
+		for (; *it != '\n'; ++it)
 		{
-			// skips '/*'
-			++stream;
-			++stream;
-
-			for (; stream != end; ++stream)
+			if (*it == '\t')
 			{
-				if (*stream == '*')
+				if (it == char_pivot)
 				{
-					auto c = stream;
-					++c;
-					if (*c == '/')
+					file_line += ' ';
+					highlight_line += '^';
+					while (file_line.size() % 4 != 0)
 					{
-						// skips '*/'
-						++stream;
-						++stream;
-
-						skip_comments(stream, end);
-						return;
+						file_line += ' ';
+						highlight_line += '~';
 					}
+				}
+				else if (it >= char_begin && it < char_end)
+				{
+					do
+					{
+						file_line += ' ';
+						highlight_line += '~';
+					} while (file_line.size() % 4 != 0);
+				}
+				else
+				{
+					do
+					{
+						file_line += ' ';
+						highlight_line += ' ';
+					} while (file_line.size() % 4 != 0);
+				}
+			}
+			else
+			{
+				file_line += *it;
+				if (it == char_pivot)
+				{
+					highlight_line += '^';
+				}
+				else if (it >= char_begin && it < char_end)
+				{
+					highlight_line += '~';
+				}
+				else
+				{
+					highlight_line += ' ';
 				}
 			}
 		}
+
+		result += file_line;
+		result += '\n';
+		result += highlight_line;
+		result += '\n';
 	}
 
-	default:
-		return;
-	}
-}
-
-token get_next_token(src_file::pos &stream, src_file::pos end)
-{
-	skip_comments(stream, end);
-
-	for (auto const &token : multi_char_tokens)
-	{
-		if (is_string(stream, end, token.first))
-		{
-			auto begin = stream;
-			for (unsigned i = 0; i < token.first.length(); ++i)
-			{
-				++stream;
-			}
-
-			return {
-				token.second,
-				token.first,
-				{ begin, stream }
-			};
-		}
-	}
-
-	if (is_identifier(stream))
-	{
-		auto begin = stream;
-		auto id = get_identifier_name(stream, end);
-		// check if the identifier is a keyword
-		for (auto keyword : keywords)
-		{
-			if (id == keyword.first)
-			{
-				return { keyword.second, id, { begin, stream } };
-			}
-		}
-		return { token::identifier, id, { begin, stream } };
-	}
-	else if (is_string_literal(stream))
-	{
-		return get_string_literal(stream, end);
-	}
-	else if (is_character_literal(stream))
-	{
-		return get_character_literal(stream, end);
-	}
-	else if (is_number_literal(stream))
-	{
-		return get_number_literal(stream, end);
-	}
-	else
-	{
-		assert(stream != end);
-
-		auto prev = stream;
-		++stream;
-		return {
-			static_cast<uint32_t>(*prev),
-			bz::string(&*prev, &*stream),
-			{ prev, stream }
-		};
-	}
+	return result;
 }
 
 bz::string get_highlighted_tokens(
-	src_tokens::pos token_begin,
-	src_tokens::pos token_pivot,
-	src_tokens::pos token_end
+	src_file::token_pos token_begin,
+	src_file::token_pos token_pivot,
+	src_file::token_pos token_end
 )
 {
-	auto src_begin = token_begin->src_pos.begin;
-	auto src_end   = token_end->src_pos.end;
-
-	auto token_begin_pos = token_begin->src_pos.begin;
-	auto token_pivot_pos = token_pivot->src_pos.begin;
-	auto token_end_pos   = (token_end - 1)->src_pos.end;
-
-	assert(*src_begin != '\0');
-	while (
-		*(src_begin - 1) != '\n'
-		&& *(src_begin - 1) != '\0'
-	)
-	{
-		--src_begin;
-	}
-
-	while (
-		*src_end != '\n'
-		&& *src_end != '\0'
-	)
-	{
-		++src_end;
-	}
-
-	bz::string res;
-
-	res.reserve((src_end - src_begin) * 2);
-
-	auto print_line = [&]()
-	{
-		auto line_begin = src_begin;
-
-		for (; src_begin != src_end && *src_begin != '\n'; ++src_begin)
-		{
-			if (*src_begin != '\r')
-			{
-				res += *src_begin;
-			}
-		}
-		if (src_begin != src_end)
-		{
-			++src_begin;
-		}
-
-		res += '\n';
-
-		for (; line_begin < token_begin_pos; ++line_begin)
-		{
-			if (*line_begin == '\t')
-			{
-				res += '\t';
-			}
-			else
-			{
-				res += ' ';
-			}
-		}
-
-		for (;
-			line_begin != token_end_pos && line_begin != src_begin;
-			++line_begin
-		)
-		{
-			if (line_begin == token_pivot_pos)
-			{
-				res += '^';
-			}
-			else
-			{
-				res += '~';
-			}
-		}
-		res += '\n';
-	};
-
-	while (src_begin != src_end)
-	{
-		print_line();
-	}
-
-	return res;
+	return get_highlighted_chars(
+		token_begin->src_pos.begin,
+		token_pivot->src_pos.begin,
+		(token_end - 1)->src_pos.end
+	);
 }

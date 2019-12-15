@@ -72,7 +72,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_begin(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> src_tokens::pos
+			[](auto const &elem) -> src_file::token_pos
 			{
 				return elem->get_tokens_begin();
 			}
@@ -83,7 +83,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_pivot(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> src_tokens::pos
+			[](auto const &elem) -> src_file::token_pos
 			{
 				return elem->get_tokens_pivot();
 			}
@@ -94,7 +94,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_end(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> src_tokens::pos
+			[](auto const &elem) -> src_file::token_pos
 			{
 				return elem->get_tokens_end();
 			}
