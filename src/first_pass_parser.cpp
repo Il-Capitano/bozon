@@ -375,46 +375,35 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 
 	if (params.size() == 0)
 	{
+		bz::string operator_name;
+
 		if (op->kind == token::paren_open)
 		{
-			bad_tokens(
-				op - 1, op, stream,
-				"Error: operator () cannot take 0 arguments"
-			);
+			operator_name = "()";
 		}
 		else if (op->kind == token::square_open)
 		{
-			bad_tokens(
-				op - 1, op, stream,
-				"Error: operator [] cannot take 0 arguments"
-			);
+			operator_name = "[]";
 		}
 		else
 		{
-			bad_tokens(
-				op - 1, op, stream,
-				bz::format("Error: operator {} cannot take 0 arguments", op->value)
-			);
+			operator_name = op->value;
 		}
+
+		bad_tokens(
+			op - 1, op, stream,
+			bz::format("Error: operator {} cannot take 0 arguments", operator_name)
+		);
 	}
 	if (params.size() == 1)
 	{
 		if (op->kind != token::paren_open && !is_unary_operator(op->kind))
 		{
-			if (op->kind == token::square_open)
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					"Error: operator [] cannot take 1 argument"
-				);
-			}
-			else
-			{
-				bad_tokens(
-					op - 1, op, stream,
-					bz::format("Error: operator {} cannot take 1 argument", op->value)
-				);
-			}
+			bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
+			bad_tokens(
+				op - 1, op, stream,
+				bz::format("Error: operator {} cannot take 1 argument", operator_name)
+			);
 		}
 	}
 	else if (params.size() == 2)
@@ -429,20 +418,11 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 	}
 	else if (op->kind != token::paren_open)
 	{
-		if (op->kind == token::square_open)
-		{
-			bad_tokens(
-				op - 1, op, stream,
-				bz::format("Error: operator [] cannot take {} arguments", params.size())
-			);
-		}
-		else
-		{
-			bad_tokens(
-				op - 1, op, stream,
-				bz::format("Error: operator {} cannot take {} arguments", op->value, params.size())
-			);
-		}
+		bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
+		bad_tokens(
+			op - 1, op, stream,
+			bz::format("Error: operator {} cannot take {} arguments", operator_name, params.size())
+		);
 	}
 
 	assert_token(stream, token::arrow);

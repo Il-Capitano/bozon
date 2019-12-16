@@ -266,7 +266,7 @@ inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t ki
 {
 	if (stream->kind != kind)
 	{
-		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
+		bad_token(stream, bz::format("Error: Expected '{}'", get_token_value(kind)));
 	}
 	auto t = stream;
 	++stream;
@@ -280,7 +280,7 @@ inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t ki
 		bad_token(
 			stream,
 			bz::format(
-				"Expected '{}' or '{}'",
+				"Error: Expected '{}' or '{}'",
 				get_token_value(kind1),
 				get_token_value(kind2)
 			)
@@ -295,7 +295,7 @@ inline void assert_token(src_file::token_pos stream, uint32_t kind, bool)
 {
 	if (stream->kind != kind)
 	{
-		bad_token(stream, bz::format("Expected '{}'", get_token_value(kind)));
+		bad_token(stream, bz::format("Error: Expected '{}'", get_token_value(kind)));
 	}
 }
 

@@ -146,7 +146,7 @@ struct vec2d
 	y: float64;
 }
 
-let f: vec2d
+let f: vec2d;
 
 struct vec3d {}
 // struct vec2d {}
