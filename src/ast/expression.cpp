@@ -362,7 +362,7 @@ static expression parse_primary_expression(
 
 		if (paren_level != 0)
 		{
-			bad_token(stream, "Expected ')'");
+			bad_token(stream, "Error: Expected ')'");
 		}
 
 		auto result = make_expr_unresolved(token_range{ paren_begin, stream });
@@ -391,7 +391,7 @@ static expression parse_primary_expression(
 	}
 
 	default:
-		bad_token(stream, "Expected primary expression");
+		bad_token(stream, "Error: Expected primary expression");
 	}
 };
 

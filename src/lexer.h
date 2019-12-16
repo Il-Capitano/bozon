@@ -138,6 +138,7 @@ struct token
 class src_file
 {
 private:
+	bz::string        _file_name;
 	bz::string        _file;
 	bz::vector<token> _tokens;
 
@@ -227,14 +228,21 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 	return get_highlighted_tokens(t, t, t + 1);
 }
 
-[[noreturn]] inline void bad_token(src_file::token_pos stream)
-{
-	fatal_error("{}Unexpected token: '{}'\n", get_highlighted_tokens(stream), stream->value);
-}
-
 [[noreturn]] inline void bad_token(src_file::token_pos stream, bz::string_view message)
 {
-	fatal_error("{}{}\n", get_highlighted_tokens(stream), message);
+	fatal_error(
+		"In file {}:{}:{}: {}\n{}",
+		stream->src_pos.file_name,
+		stream->src_pos.line,
+		stream->src_pos.column,
+		message,
+		get_highlighted_tokens(stream)
+	);
+}
+
+[[noreturn]] inline void bad_token(src_file::token_pos stream)
+{
+	bad_token(stream, bz::format("Error: Unexpected token '{}'", stream->value));
 }
 
 [[noreturn]] inline void bad_tokens(
@@ -244,7 +252,14 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 	bz::string_view message
 )
 {
-	fatal_error("{}{}\n", get_highlighted_tokens(begin, pivot, end), message);
+	fatal_error(
+		"In file {}:{}:{}: {}\n{}",
+		begin->src_pos.file_name,
+		begin->src_pos.line,
+		begin->src_pos.column,
+		message,
+		get_highlighted_tokens(begin, pivot, end)
+	);
 }
 
 inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t kind)

@@ -219,7 +219,7 @@ ast::statement parse_while_statement(src_file::token_pos &stream, src_file::toke
 ast::statement parse_for_statement(src_file::token_pos &stream, src_file::token_pos)
 {
 	assert(stream->kind == token::kw_for);
-	bad_token(stream, "for statement not yet implemented");
+	bad_token(stream, "Error: for statement not yet implemented");
 }
 
 ast::statement parse_return_statement(src_file::token_pos &stream, src_file::token_pos end)
@@ -281,7 +281,7 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 	}
 	else if (stream->kind != token::assign)
 	{
-		bad_token(stream, "Expected '=' or ':'");
+		bad_token(stream, "Error: Expected '=' or ':'");
 	}
 	++stream;
 
@@ -358,7 +358,7 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 	auto op = stream;
 	if (!is_overloadable_operator(op->kind))
 	{
-		bad_token(stream, "Expected overloadable operator");
+		bad_token(stream, "Error: Expected overloadable operator");
 	}
 
 	++stream;
@@ -379,21 +379,21 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				"operator () cannot take 0 arguments"
+				"Error: operator () cannot take 0 arguments"
 			);
 		}
 		else if (op->kind == token::square_open)
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				"operator [] cannot take 0 arguments"
+				"Error: operator [] cannot take 0 arguments"
 			);
 		}
 		else
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				bz::format("operator {} cannot take 0 arguments", op->value)
+				bz::format("Error: operator {} cannot take 0 arguments", op->value)
 			);
 		}
 	}
@@ -405,14 +405,14 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 			{
 				bad_tokens(
 					op - 1, op, stream,
-					"operator [] cannot take 1 argument"
+					"Error: operator [] cannot take 1 argument"
 				);
 			}
 			else
 			{
 				bad_tokens(
 					op - 1, op, stream,
-					bz::format("operator {} cannot take 1 argument", op->value)
+					bz::format("Error: operator {} cannot take 1 argument", op->value)
 				);
 			}
 		}
@@ -423,7 +423,7 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				bz::format("operator {} cannot take 2 arguments", op->value)
+				bz::format("Error: operator {} cannot take 2 arguments", op->value)
 			);
 		}
 	}
@@ -433,14 +433,14 @@ ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				bz::format("operator [] cannot take {} arguments", params.size())
+				bz::format("Error: operator [] cannot take {} arguments", params.size())
 			);
 		}
 		else
 		{
 			bad_tokens(
 				op - 1, op, stream,
-				bz::format("operator {} cannot take {} arguments", op->value, params.size())
+				bz::format("Error: operator {} cannot take {} arguments", op->value, params.size())
 			);
 		}
 	}

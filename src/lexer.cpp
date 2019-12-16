@@ -82,7 +82,7 @@ struct file_iterator
 		if (*it == '\n')
 		{
 			++this->line;
-			this->column = 0;
+			this->column = 1;
 		}
 		else
 		{
@@ -138,10 +138,12 @@ bz::string read_file(std::ifstream &file)
 
 token get_next_token(file_iterator &stream, src_file::char_pos const end);
 
-bz::vector<token> get_tokens(bz::string_view file)
+bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name)
 {
+	assert(file.front() == '\n');
+	assert(file.back() == '\n');
 	bz::vector<token> tokens = {};
-	file_iterator stream = { file.begin() + 1, file, 1, 0 };
+	file_iterator stream = { file.begin() + 1, file_name, 1, 1 };
 	auto const end = file.end();
 
 	do
@@ -153,13 +155,14 @@ bz::vector<token> get_tokens(bz::string_view file)
 }
 
 src_file::src_file(bz::string file_name)
-	: _file(), _tokens()
+	: _file_name(std::move(file_name)), _file(), _tokens()
 {
-	file_name.push_back('\0');
-	std::ifstream file(file_name.data());
+	this->_file_name.reserve(this->_file_name.size() + 1);
+	*(this->_file_name.end()) = '\0';
+	std::ifstream file(this->_file_name.data());
 
 	this->_file   = read_file(file);
-	this->_tokens = get_tokens(this->_file);
+	this->_tokens = get_tokens(this->_file, this->_file_name);
 }
 
 
@@ -416,10 +419,16 @@ bz::string get_highlighted_chars(
 	src_file::char_pos char_end
 );
 
-[[noreturn]] void bad_char(src_file::char_pos it, bz::string_view message)
+[[noreturn]] void bad_char(file_iterator const &stream, bz::string_view message)
 {
-	bz::printf("{}{}\n", get_highlighted_chars(it, it, it + 1), message);
-	exit(1);
+	fatal_error(
+		"In file {}:{}:{}: {}\n{}",
+		stream.file,
+		stream.line,
+		stream.column,
+		message,
+		get_highlighted_chars(stream.it, stream.it, stream.it + 1)
+	);
 }
 
 
@@ -560,7 +569,7 @@ token get_character_token(file_iterator &stream, src_file::char_pos const)
 			++stream;
 			break;
 		default:
-			bad_char(stream.it, "Error: Invalid escape sequence");
+			bad_char(stream, "Error: Invalid escape sequence");
 		}
 		break;
 
@@ -571,7 +580,7 @@ token get_character_token(file_iterator &stream, src_file::char_pos const)
 
 	if (*stream.it != '\'')
 	{
-		bad_char(stream.it, "Error: Expected closing '");
+		bad_char(stream, "Error: Expected closing '");
 	}
 	auto const char_end = stream.it;
 
@@ -611,7 +620,7 @@ token get_string_token(file_iterator &stream, src_file::char_pos const end)
 				++stream;
 				break;
 			default:
-				bad_char(stream.it, "Error: Invalid escape sequence");
+				bad_char(stream, "Error: Invalid escape sequence");
 			}
 			break;
 
@@ -623,7 +632,7 @@ token get_string_token(file_iterator &stream, src_file::char_pos const end)
 
 	if (*stream.it != '\"')
 	{
-		bad_char(stream.it, "Error: Expected closing \"");
+		bad_char(stream, "Error: Expected closing \"");
 	}
 	auto const str_end = stream.it;
 

@@ -77,7 +77,7 @@ void parse_context::add_function(ast::decl_function_ptr &func_decl)
 
 		if (set_it != it->set.end())
 		{
-			bad_token(id, "Redefinition of function");
+			bad_token(id, "Error: Redefinition of function");
 		}
 
 		it->set.emplace_back(func_type);
@@ -132,7 +132,7 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 
 		if (set_it != it->set.end())
 		{
-			bad_token(op, "Redefinition of operator");
+			bad_token(op, "Error: Redefinition of operator");
 		}
 
 		it->set.emplace_back(op_type);
