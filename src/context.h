@@ -58,6 +58,8 @@ struct parse_context
 	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);
 	ast::typespec get_operator_type(ast::expr_unary_op const &unary_op);
 	ast::typespec get_operator_type(ast::expr_binary_op const &binary_op);
+
+	bool is_convertible(ast::expression const &expr, ast::typespec const &type);
 };
 
 extern parse_context context;

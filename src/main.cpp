@@ -962,85 +962,6 @@ struct complex
 #include "parser.h"
 
 
-template<>
-struct bz::formatter<ast::typespec>
-{
-	static bz::string format(ast::typespec const &typespec, const char *, const char *)
-	{
-//		auto type_info = bz::format(" [[{}, {}]]", ast::size_of(typespec), ast::align_of(typespec));
-		auto type_info = "";
-
-		switch (typespec.kind())
-		{
-		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name, type_info);
-
-		case ast::typespec::index<ast::ts_constant>:
-			return bz::format("const {}{}", typespec.get<ast::ts_constant_ptr>()->base, type_info);
-
-		case ast::typespec::index<ast::ts_pointer>:
-			return bz::format("*{}{}", typespec.get<ast::ts_pointer_ptr>()->base, type_info);
-
-		case ast::typespec::index<ast::ts_reference>:
-			return bz::format("&{}{}", typespec.get<ast::ts_reference_ptr>()->base, type_info);
-
-		case ast::typespec::index<ast::ts_function>:
-		{
-			auto &fn = typespec.get<ast::ts_function_ptr>();
-			bz::string res = "function(";
-
-			bool put_comma = false;
-			for (auto &type : fn->argument_types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-
-			res += bz::format(") -> {}{}", fn->return_type, type_info);
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_tuple>:
-		{
-			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
-			bz::string res = "[";
-
-			bool put_comma = false;
-			for (auto &type : tuple->types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-			res += bz::format("]{}", type_info);
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_unresolved>:
-			assert(false);
-			return "";
-
-		default:
-			assert(false);
-			return "";
-		}
-	}
-};
 
 
 template<>
@@ -1357,7 +1278,7 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
-	src_file file("src/test.bz");
+	src_file file("src/ref_test.bz");
 
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();

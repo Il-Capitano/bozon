@@ -3,6 +3,8 @@
 
 parse_context context;
 
+bool is_convertible(ast::expression const &expr, ast::typespec const &type);
+
 bz::vector<operator_overload_set> get_default_operators(void)
 {
 	const ast::type_ptr types[] = {
@@ -569,7 +571,8 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 			size_t i;
 			for (i = 0; i < fn.argument_types.size(); ++i)
 			{
-				if (fn.argument_types[i] != fn_call.params[i].expr_type)
+				// if (fn.argument_types[i] != fn_call.params[i].expr_type)
+				if (!is_convertible(fn_call.params[i], fn.argument_types[i]))
 				{
 					break;
 				}
@@ -732,38 +735,23 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	);
 }
 
-/*
-ast::typespec parse_context::get_expression_type(ast::expression const &expr)
+bool parse_context::is_convertible(ast::expression const &expr, ast::typespec const &type)
 {
-	switch (expr.kind())
+	if (type.kind() == ast::typespec::index<ast::ts_reference>)
 	{
-	case ast::expression::index<ast::expr_unresolved>:
-		assert(false);
-		return ast::typespec();
-
-	case ast::expression::index<ast::expr_identifier>:
-		return get_identifier_type(expr.get<ast::expr_identifier_ptr>()->identifier);
-
-	case ast::expression::index<ast::expr_literal>:
-		assert(expr.get<ast::expr_literal_ptr>()->expr_type.kind() != ast::typespec::null);
-		return expr.get<ast::expr_literal_ptr>()->expr_type;
-
-	case ast::expression::index<ast::expr_tuple>:
-		assert(expr.get<ast::expr_tuple_ptr>()->expr_type.kind() != ast::typespec::null);
-		return expr.get<ast::expr_tuple_ptr>()->expr_type;
-
-	case ast::expression::index<ast::expr_unary_op>:
-		return get_operator_type(*expr.get<ast::expr_unary_op_ptr>());
-
-	case ast::expression::index<ast::expr_binary_op>:
-		return get_operator_type(*expr.get<ast::expr_binary_op_ptr>());
-
-	case ast::expression::index<ast::expr_function_call>:
-		return get_function_call_type(*expr.get<ast::expr_function_call_ptr>());
-
-	default:
-		assert(false);
-		return ast::typespec();
+		auto &ref_type = type.get<ast::ts_reference_ptr>()->base;
+		if (ref_type.kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			auto &const_type = ref_type.get<ast::ts_constant_ptr>()->base;
+			return decay_typespec(expr.expr_type) == const_type;
+		}
+		else
+		{
+			return expr.is_lvalue && expr.expr_type == ref_type;
+		}
+	}
+	else
+	{
+		return decay_typespec(expr.expr_type) == decay_typespec(type);
 	}
 }
-*/

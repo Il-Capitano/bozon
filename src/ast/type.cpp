@@ -4,39 +4,6 @@
 namespace ast
 {
 
-typespec decay_typespec(typespec const &ts)
-{
-	switch (ts.kind())
-	{
-	case typespec::index<ts_unresolved>:
-		assert(false);
-		return typespec();
-	case typespec::index<ts_base_type>:
-		return ts;
-	case typespec::index<ts_constant>:
-		return decay_typespec(ts.get<ts_constant_ptr>()->base);
-	case typespec::index<ts_pointer>:
-		return ts;
-	case typespec::index<ts_reference>:
-		return decay_typespec(ts.get<ts_reference_ptr>()->base);
-	case typespec::index<ts_function>:
-		return ts;
-	case typespec::index<ts_tuple>:
-	{
-		auto &tuple = ts.get<ts_tuple_ptr>();
-		bz::vector<typespec> decayed_types = {};
-		for (auto &t : tuple->types)
-		{
-			decayed_types.push_back(decay_typespec(t));
-		}
-		return make_ts_tuple(std::move(decayed_types));
-	}
-	default:
-		assert(false);
-		return typespec();
-	}
-}
-
 typespec parse_typespec(
 	src_file::token_pos &stream,
 	src_file::token_pos  end
@@ -432,6 +399,39 @@ bool operator == (typespec const &lhs, typespec const &rhs)
 	default:
 		assert(false);
 		return false;
+	}
+}
+
+typespec decay_typespec(typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case typespec::index<ts_unresolved>:
+		assert(false);
+		return typespec();
+	case typespec::index<ts_base_type>:
+		return ts;
+	case typespec::index<ts_constant>:
+		return decay_typespec(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_pointer>:
+		return ts;
+	case typespec::index<ts_reference>:
+		return decay_typespec(ts.get<ts_reference_ptr>()->base);
+	case typespec::index<ts_function>:
+		return ts;
+	case typespec::index<ts_tuple>:
+	{
+		auto &tuple = ts.get<ts_tuple_ptr>();
+		bz::vector<typespec> decayed_types = {};
+		for (auto &t : tuple->types)
+		{
+			decayed_types.push_back(decay_typespec(t));
+		}
+		return make_ts_tuple(std::move(decayed_types));
+	}
+	default:
+		assert(false);
+		return typespec();
 	}
 }
 

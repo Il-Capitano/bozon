@@ -268,6 +268,7 @@ ast::statement parse_no_op_statement(src_file::token_pos &stream, src_file::toke
 ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_let);
+	auto const tokens_begin = stream;
 	++stream; // 'let'
 	assert(stream != end);
 
@@ -285,7 +286,8 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 		if (stream->kind == token::semi_colon)
 		{
 			++stream; // ';'
-			return ast::make_decl_variable(id, type);
+			auto const tokens_end = stream;
+			return ast::make_decl_variable(token_range{tokens_begin, tokens_end}, id, type);
 		}
 
 		assert_token(stream, token::assign, token::semi_colon);
@@ -293,7 +295,9 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 		auto init = get_expression_or_type<token::semi_colon>(stream, end);
 
 		assert_token(stream, token::semi_colon);
+		auto const tokens_end = stream;
 		return ast::make_decl_variable(
+			token_range{tokens_begin, tokens_end},
 			id,
 			type,
 			ast::make_expr_unresolved(init)
@@ -308,8 +312,11 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 	auto init = get_expression_or_type<token::semi_colon>(stream, end);
 
 	assert_token(stream, token::semi_colon);
+	auto const tokens_end = stream;
 	return ast::make_decl_variable(
-		id, ast::make_expr_unresolved(init)
+		token_range{tokens_begin, tokens_end},
+		id,
+		ast::make_expr_unresolved(init)
 	);
 }
 

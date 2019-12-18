@@ -4,6 +4,16 @@
 namespace ast
 {
 
+src_file::token_pos decl_variable::get_tokens_begin(void) const
+{ return this->tokens.begin; }
+
+src_file::token_pos decl_variable::get_tokens_pivot(void) const
+{ return this->identifier; }
+
+src_file::token_pos decl_variable::get_tokens_end(void) const
+{ return this->tokens.end; }
+
+
 void stmt_if::resolve(void)
 {
 	this->condition.resolve();
@@ -68,6 +78,19 @@ void decl_variable::resolve(void)
 	else
 	{
 		this->var_type.resolve();
+		if (this->init_expr.has_value())
+		{
+			if (!context.is_convertible(this->init_expr.get(), this->var_type))
+			{
+				bad_tokens(
+					this->get_tokens_begin(),
+					this->get_tokens_pivot(),
+					this->get_tokens_end(),
+					"Error: Cannot convert initializer expression from {} to {}",
+					this->init_expr.get().expr_type, this->var_type
+				);
+			}
+		}
 	}
 
 	context.add_variable(this->identifier, this->var_type);

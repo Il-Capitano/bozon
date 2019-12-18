@@ -194,34 +194,41 @@ struct stmt_expression
 
 struct decl_variable
 {
+	token_range              tokens;
 	src_file::token_pos      identifier;
 	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
+		token_range _tokens,
 		src_file::token_pos _id,
 		typespec            _var_type,
 		expression          _init_expr
 	)
-		: identifier(_id),
+		: tokens(_tokens),
+		  identifier(_id),
 		  var_type  (std::move(_var_type)),
 		  init_expr (std::move(_init_expr))
 	{}
 
 	decl_variable(
+		token_range _tokens,
 		src_file::token_pos _id,
 		typespec            _var_type
 	)
-		: identifier(_id),
+		: tokens(_tokens),
+		  identifier(_id),
 		  var_type  (std::move(_var_type)),
 		  init_expr ()
 	{}
 
 	decl_variable(
+		token_range _tokens,
 		src_file::token_pos _id,
 		expression          _init_expr
 	)
-		: identifier(_id),
+		: tokens(_tokens),
+		  identifier(_id),
 		  var_type  (),
 		  init_expr (std::move(_init_expr))
 	{}

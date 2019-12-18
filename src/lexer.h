@@ -231,14 +231,19 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 	return get_highlighted_tokens(t, t, t + 1);
 }
 
-[[noreturn]] inline void bad_token(src_file::token_pos stream, bz::string_view message)
+template<typename ...Ts>
+[[noreturn]] inline void bad_token(
+	src_file::token_pos stream,
+	bz::string_view message,
+	Ts &&...ts
+)
 {
 	fatal_error(
 		"In file {}:{}:{}: {}\n{}",
 		stream->src_pos.file_name,
 		stream->src_pos.line,
 		stream->src_pos.column,
-		message,
+		bz::format(message, std::forward<Ts>(ts)...),
 		get_highlighted_tokens(stream)
 	);
 }
@@ -248,11 +253,13 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 	bad_token(stream, bz::format("Error: Unexpected token '{}'", stream->value));
 }
 
+template<typename ...Ts>
 [[noreturn]] inline void bad_tokens(
 	src_file::token_pos begin,
 	src_file::token_pos pivot,
 	src_file::token_pos end,
-	bz::string_view message
+	bz::string_view message,
+	Ts &&...ts
 )
 {
 	fatal_error(
@@ -260,7 +267,7 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 		pivot->src_pos.file_name,
 		pivot->src_pos.line,
 		pivot->src_pos.column,
-		message,
+		bz::format(message, std::forward<Ts>(ts)...),
 		get_highlighted_tokens(begin, pivot, end)
 	);
 }

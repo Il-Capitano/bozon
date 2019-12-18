@@ -271,4 +271,82 @@ inline typespec add_lvalue_reference(typespec ts)
 
 } // namespace ast
 
+
+template<>
+struct bz::formatter<ast::typespec>
+{
+	static bz::string format(ast::typespec const &typespec, const char *, const char *)
+	{
+		switch (typespec.kind())
+		{
+		case ast::typespec::index<ast::ts_base_type>:
+			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name);
+
+		case ast::typespec::index<ast::ts_constant>:
+			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_pointer>:
+			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_reference>:
+			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_function>:
+		{
+			auto &fn = typespec.get<ast::ts_function_ptr>();
+			bz::string res = "function(";
+
+			bool put_comma = false;
+			for (auto &type : fn->argument_types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+
+			res += bz::format(") -> {}", fn->return_type);
+
+			return res;
+		}
+
+		case ast::typespec::index<ast::ts_tuple>:
+		{
+			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
+			bz::string res = "[";
+
+			bool put_comma = false;
+			for (auto &type : tuple->types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+			res += "]";
+
+			return res;
+		}
+
+		case ast::typespec::index<ast::ts_unresolved>:
+			assert(false);
+			return "";
+
+		default:
+			assert(false);
+			return "";
+		}
+	}
+};
+
 #endif // TYPE_H
