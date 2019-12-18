@@ -143,7 +143,27 @@ static bz::vector<ast::variable> get_function_params(
 }
 
 
-static ast::stmt_compound_ptr get_stmt_compound(
+static ast::stmt_compound get_stmt_compound(
+	src_file::token_pos &stream,
+	src_file::token_pos end
+)
+{
+	auto const begin_token = stream;
+	assert_token(stream, token::curly_open);
+	auto comp_stmt = ast::stmt_compound(token_range{ begin_token, stream });
+
+	while (stream != end && stream->kind != token::curly_close)
+	{
+		comp_stmt.statements.emplace_back(get_ast_statement(stream, end));
+	}
+	assert(stream != end);
+	++stream; // '}'
+	comp_stmt.tokens.end = stream;
+
+	return comp_stmt;
+}
+
+static ast::stmt_compound_ptr get_stmt_compound_ptr(
 	src_file::token_pos &stream,
 	src_file::token_pos end
 )
@@ -315,20 +335,16 @@ ast::statement parse_struct_definition(src_file::token_pos &stream, src_file::to
 	assert_token(stream, token::curly_open);
 
 	bz::vector<ast::variable> member_variables = {};
-	while (stream != end && stream->kind != token::curly_close)
+	while (stream != end && stream->kind == token::identifier)
 	{
-		switch (stream->kind)
-		{
-		case token::identifier:
-			member_variables.push_back(parse_member_variable());
-			break;
-
-		default:
-			assert(false);
-		}
+		member_variables.push_back(parse_member_variable());
 	}
 
-	assert_token(stream, token::curly_close);
+	if (stream->kind != token::curly_close)
+	{
+		bad_token(stream, "Error: Expected '}' or member variable");
+	}
+	++stream; // '}'
 	return ast::make_decl_struct(id, std::move(member_variables));
 }
 
@@ -479,7 +495,7 @@ ast::statement get_ast_statement(
 	// compound statement
 	case token::curly_open:
 	{
-		return ast::make_statement(get_stmt_compound(stream, end));
+		return ast::make_statement(get_stmt_compound_ptr(stream, end));
 	}
 
 	// variable declaration

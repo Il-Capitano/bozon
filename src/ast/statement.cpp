@@ -48,92 +48,79 @@ void stmt_expression::resolve(void)
 template<>
 void statement::resolve(void)
 {
+	assert(this->kind() != null);
 	this->visit([](auto &stmt) { stmt->resolve(); });
 }
 
 
 void decl_variable::resolve(void)
 {
+	if (this->init_expr.has_value())
+	{
+		this->init_expr->resolve();
+	}
 
+	if (this->var_type.kind() == typespec::null)
+	{
+		assert(this->init_expr.has_value());
+		this->var_type = decay_typespec(get_typespec(this->init_expr.get()));
+	}
+	else
+	{
+		this->var_type.resolve();
+	}
+
+	context.add_variable(this->identifier, this->var_type);
+
+	return;
+}
+
+void decl_function::resolve(void)
+{
+	++context;
+	for (auto &p : this->params)
+	{
+		p.var_type.resolve();
+		context.add_variable(p.id, p.var_type);
+	}
+	this->return_type.resolve();
+	context.add_function(*this);
+	this->body.resolve();
+	--context;
+	return;
+}
+
+void decl_operator::resolve(void)
+{
+	++context;
+	for (auto &p : this->params)
+	{
+		p.var_type.resolve();
+		context.add_variable(p.id, p.var_type);
+	}
+	this->return_type.resolve();
+	context.add_operator(*this);
+	this->body.resolve();
+	--context;
+	return;
+}
+
+void decl_struct::resolve(void)
+{
+	for (auto &var : this->member_variables)
+	{
+		var.var_type.resolve();
+	}
+
+	context.add_type(*this);
+	return;
 }
 
 template<>
 void stmt_declaration::resolve(void)
 {
-	switch (this->kind())
-	{
-	case index<decl_variable>:
-	{
-		auto &var_decl = this->get<decl_variable_ptr>();
-
-		if (var_decl->init_expr.has_value())
-		{
-			var_decl->init_expr->resolve();
-		}
-
-		if (var_decl->var_type.kind() == typespec::null)
-		{
-			assert(var_decl->init_expr.has_value());
-			var_decl->var_type = get_typespec(var_decl->init_expr.get());
-		}
-		else
-		{
-			var_decl->var_type.resolve();
-		}
-
-		context.add_variable(var_decl->identifier, var_decl->var_type);
-
-		return;
-	}
-
-	case index<decl_function>:
-	{
-		auto &fn_decl = this->get<decl_function_ptr>();
-		++context;
-		for (auto &p : fn_decl->params)
-		{
-			p.var_type.resolve();
-			context.add_variable(p.id, p.var_type);
-		}
-		fn_decl->return_type.resolve();
-		context.add_function(fn_decl);
-		fn_decl->body->resolve();
-		--context;
-		return;
-	}
-
-	case index<decl_operator>:
-	{
-		auto &op_decl = this->get<decl_operator_ptr>();
-		++context;
-		for (auto &p : op_decl->params)
-		{
-			p.var_type.resolve();
-			context.add_variable(p.id, p.var_type);
-		}
-		op_decl->return_type.resolve();
-		context.add_operator(op_decl);
-		op_decl->body->resolve();
-		--context;
-		return;
-	}
-
-	case index<decl_struct>:
-	{
-		auto &struct_decl = this->get<decl_struct_ptr>();
-		for (auto &var : struct_decl->member_variables)
-		{
-			var.var_type.resolve();
-		}
-
-		context.add_type(struct_decl);
-		return;
-	}
-
-	default:
-		assert(false);
-		return;
-	}
+	assert(this->kind() != null);
+	this->visit([](auto const &decl) { decl->resolve(); });
 }
 
 } // namespace ast

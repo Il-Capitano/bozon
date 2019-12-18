@@ -3,10 +3,201 @@
 
 parse_context context;
 
+bz::vector<operator_overload_set> get_default_operators(void)
+{
+	const ast::type_ptr types[] = {
+		[ast::built_in_type::int8_]    = ast::int8_,
+		[ast::built_in_type::int16_]   = ast::int16_,
+		[ast::built_in_type::int32_]   = ast::int32_,
+		[ast::built_in_type::int64_]   = ast::int64_,
+		[ast::built_in_type::uint8_]   = ast::uint8_,
+		[ast::built_in_type::uint16_]  = ast::uint16_,
+		[ast::built_in_type::uint32_]  = ast::uint32_,
+		[ast::built_in_type::uint64_]  = ast::uint64_,
+		[ast::built_in_type::float32_] = ast::float32_,
+		[ast::built_in_type::float64_] = ast::float64_,
+		[ast::built_in_type::char_]    = ast::char_,
+		[ast::built_in_type::bool_]    = ast::bool_,
+		[ast::built_in_type::str_]     = ast::str_,
+		[ast::built_in_type::void_]    = ast::void_,
+		[ast::built_in_type::null_t_]  = ast::null_t_,
+	};
+
+	const uint32_t int_types[] = {
+		ast::built_in_type::int8_,
+		ast::built_in_type::int16_,
+		ast::built_in_type::int32_,
+		ast::built_in_type::int64_,
+		ast::built_in_type::uint8_,
+		ast::built_in_type::uint16_,
+		ast::built_in_type::uint32_,
+		ast::built_in_type::uint64_,
+	};
+
+	const uint32_t floating_point_types[] = {
+		ast::built_in_type::float32_,
+		ast::built_in_type::float64_,
+	};
+
+	bz::vector<operator_overload_set> sets;
+
+	// ==== operator + ====
+	operator_overload_set op_plus;
+	op_plus.op = token::plus;
+
+	//unary
+	for (auto t : int_types)
+	{
+		op_plus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_plus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+	// binary
+	for (auto t : int_types)
+	{
+		op_plus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_plus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+
+	// ==== operator - ====
+	operator_overload_set op_minus;
+	op_minus.op = token::minus;
+
+	//unary
+	// unsigned types should return signed
+	for (auto t : int_types)
+	{
+		op_minus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_minus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+	// binary
+	for (auto t : int_types)
+	{
+		op_minus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_minus.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+
+	// ==== operator * ====
+	operator_overload_set op_multiply;
+	op_multiply.op = token::multiply;
+
+	// binary
+	for (auto t : int_types)
+	{
+		op_multiply.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_multiply.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+
+	// ==== operator / ====
+	operator_overload_set op_divide;
+	op_divide.op = token::divide;
+
+	// binary
+	for (auto t : int_types)
+	{
+		op_divide.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+	for (auto t : floating_point_types)
+	{
+		op_divide.set.push_back(ast::ts_function(
+			ast::make_ts_base_type(types[t]),
+			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
+		));
+	}
+
+
+	// ==== operator ||, && and ^^ ====
+	operator_overload_set op_bool_or;
+	op_bool_or.op = token::bool_or;
+	op_bool_or.set.push_back(ast::ts_function(
+		ast::make_ts_base_type(ast::bool_),
+		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
+	));
+
+	operator_overload_set op_bool_and;
+	op_bool_and.op = token::bool_and;
+	op_bool_and.set.push_back(ast::ts_function(
+		ast::make_ts_base_type(ast::bool_),
+		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
+	));
+
+	operator_overload_set op_bool_xor;
+	op_bool_xor.op = token::bool_xor;
+	op_bool_xor.set.push_back(ast::ts_function(
+		ast::make_ts_base_type(ast::bool_),
+		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
+	));
+
+
+
+	sets.push_back(std::move(op_plus));
+	sets.push_back(std::move(op_minus));
+	sets.push_back(std::move(op_multiply));
+	sets.push_back(std::move(op_divide));
+
+	sets.push_back(std::move(op_bool_or));
+	sets.push_back(std::move(op_bool_and));
+	sets.push_back(std::move(op_bool_xor));
+
+	return sets;
+}
+
 parse_context::parse_context(void)
 	: variables{{}},
 	  functions{},
-	  operators{},
+	  operators(get_default_operators()),
 	  types{
 		  ast::int8_, ast::int16_, ast::int32_, ast::int64_,
 		  ast::uint8_, ast::uint16_, ast::uint32_, ast::uint64_,
@@ -29,20 +220,20 @@ bool parse_context::add_variable(
 	return true;
 }
 
-void parse_context::add_function(ast::decl_function_ptr &func_decl)
+void parse_context::add_function(ast::decl_function &func_decl)
 {
 	bz::vector<ast::typespec> param_types;
 
-	for (auto &param : func_decl->params)
+	for (auto &param : func_decl.params)
 	{
 		param_types.push_back(param.var_type);
 	}
 
 	ast::ts_function func_type{
-		func_decl->return_type,
+		func_decl.return_type,
 		std::move(param_types)
 	};
-	auto id = func_decl->identifier;
+	auto id = func_decl.identifier;
 
 	auto it = std::find_if(
 		this->functions.begin(), this->functions.end(), [&](auto const &set)
@@ -84,20 +275,20 @@ void parse_context::add_function(ast::decl_function_ptr &func_decl)
 	}
 }
 
-void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
+void parse_context::add_operator(ast::decl_operator &op_decl)
 {
 	bz::vector<ast::typespec> param_types;
 
-	for (auto &param : op_decl->params)
+	for (auto &param : op_decl.params)
 	{
 		param_types.push_back(param.var_type);
 	}
 
 	ast::ts_function op_type{
-		op_decl->return_type,
+		op_decl.return_type,
 		std::move(param_types)
 	};
-	auto op = op_decl->op;
+	auto op = op_decl.op;
 
 	auto it = std::find_if(
 		this->operators.begin(), this->operators.end(), [&](auto const &set)
@@ -139,26 +330,26 @@ void parse_context::add_operator(ast::decl_operator_ptr &op_decl)
 	}
 }
 
-void parse_context::add_type(ast::decl_struct_ptr &struct_decl)
+void parse_context::add_type(ast::decl_struct &struct_decl)
 {
 	auto it = std::find_if(
 		this->types.begin(),
 		this->types.end(),
 		[&](auto const &t)
 		{
-			return t->name == struct_decl->identifier->value;
+			return t->name == struct_decl.identifier->value;
 		}
 	);
 
 	if (it != this->types.end())
 	{
-		bad_token(struct_decl->identifier, "Error: Redefinition of type");
+		bad_token(struct_decl.identifier, "Error: Redefinition of type");
 	}
 
 	this->types.push_back(
-		ast::make_user_defined_type_ptr(
-			struct_decl->identifier->value,
-			struct_decl->member_variables
+		ast::make_aggregate_type_ptr(
+			struct_decl.identifier->value,
+			struct_decl.member_variables
 		)
 	);
 }
@@ -555,6 +746,10 @@ ast::typespec parse_context::get_expression_type(ast::expression const &expr)
 	case ast::expression::index<ast::expr_literal>:
 		assert(expr.get<ast::expr_literal_ptr>()->expr_type.kind() != ast::typespec::null);
 		return expr.get<ast::expr_literal_ptr>()->expr_type;
+
+	case ast::expression::index<ast::expr_tuple>:
+		assert(expr.get<ast::expr_tuple_ptr>()->expr_type.kind() != ast::typespec::null);
+		return expr.get<ast::expr_tuple_ptr>()->expr_type;
 
 	case ast::expression::index<ast::expr_unary_op>:
 		return get_operator_type(*expr.get<ast::expr_unary_op_ptr>());

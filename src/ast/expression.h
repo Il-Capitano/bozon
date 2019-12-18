@@ -14,6 +14,7 @@ namespace ast
 declare_node_type(expr_unresolved);
 declare_node_type(expr_identifier);
 declare_node_type(expr_literal);
+declare_node_type(expr_tuple);
 declare_node_type(expr_unary_op);
 declare_node_type(expr_binary_op);
 declare_node_type(expr_function_call);
@@ -24,6 +25,7 @@ using expression = node<
 	expr_unresolved,
 	expr_identifier,
 	expr_literal,
+	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
 	expr_function_call
@@ -54,7 +56,7 @@ struct expr_unresolved
 struct expr_identifier
 {
 	src_file::token_pos identifier;
-	typespec        expr_type;
+	typespec            expr_type;
 
 	expr_identifier(src_file::token_pos _id)
 		: identifier(_id)
@@ -93,9 +95,9 @@ struct expr_literal
 		null                  = value_t::index_of<_null>,
 	};
 
-	value_t         value;
+	value_t             value;
 	src_file::token_pos src_pos;
-	typespec        expr_type;
+	typespec            expr_type;
 
 	expr_literal(src_file::token_pos stream);
 
@@ -111,11 +113,33 @@ struct expr_literal
 	void resolve(void);
 };
 
+struct expr_tuple
+{
+	bz::vector<expression> elems;
+	token_range            tokens;
+	typespec               expr_type;
+
+	expr_tuple(bz::vector<expression> _elems, token_range _tokens)
+		: elems(std::move(_elems)), tokens(_tokens)
+	{}
+
+	src_file::token_pos get_tokens_begin(void) const
+	{ return this->tokens.begin; }
+
+	src_file::token_pos get_tokens_pivot(void) const
+	{ return this->tokens.begin; }
+
+	src_file::token_pos get_tokens_end(void) const
+	{ return this->tokens.end; }
+
+	void resolve(void);
+};
+
 struct expr_unary_op
 {
 	src_file::token_pos op;
-	expression      expr;
-	typespec        expr_type;
+	expression          expr;
+	typespec            expr_type;
 
 	expr_unary_op(src_file::token_pos _op, expression _expr)
 		: op(_op),
@@ -132,9 +156,9 @@ struct expr_unary_op
 struct expr_binary_op
 {
 	src_file::token_pos op;
-	expression      lhs;
-	expression      rhs;
-	typespec        expr_type;
+	expression          lhs;
+	expression          rhs;
+	typespec            expr_type;
 
 	expr_binary_op(src_file::token_pos _op, expression _lhs, expression _rhs)
 		: op(_op),
@@ -151,7 +175,7 @@ struct expr_binary_op
 
 struct expr_function_call
 {
-	src_file::token_pos        op;
+	src_file::token_pos    op;
 	expression             called;
 	bz::vector<expression> params;
 	typespec               expr_type;
@@ -188,6 +212,10 @@ expression make_expr_identifier(Args &&...args)
 template<typename ...Args>
 expression make_expr_literal(Args &&...args)
 { return expression(std::make_unique<expr_literal>(std::forward<Args>(args)...)); }
+
+template<typename ...Args>
+expression make_expr_tuple(Args &&...args)
+{ return expression(std::make_unique<expr_tuple>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
 expression make_expr_unary_op(Args &&...args)

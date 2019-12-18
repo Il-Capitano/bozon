@@ -51,6 +51,17 @@ void expr_identifier::resolve(void)
 void expr_literal::resolve(void)
 {}
 
+void expr_tuple::resolve(void)
+{
+	bz::vector<typespec> types = {};
+	for (auto &elem : this->elems)
+	{
+		elem.resolve();
+		types.push_back(get_typespec(elem));
+	}
+	this->expr_type = make_ts_tuple(std::move(types));
+}
+
 void expr_unary_op::resolve(void)
 {
 	this->expr.resolve();
@@ -365,8 +376,18 @@ static expression parse_primary_expression(
 			bad_token(stream, "Error: Expected ')'");
 		}
 
-		auto result = make_expr_unresolved(token_range{ paren_begin, stream });
-		return result;
+		return make_expr_unresolved(token_range{ paren_begin, stream });
+	}
+
+	// tuple
+	case token::square_open:
+	{
+		auto const begin_token = stream;
+		++stream;
+		auto elems = parse_expression_comma_list(stream, end);
+		assert_token(stream, token::square_close);
+		auto const end_token = stream;
+		return make_expr_tuple(std::move(elems), token_range{ begin_token, end_token });
 	}
 
 	// unary operators
@@ -481,6 +502,7 @@ static bz::vector<expression> parse_expression_comma_list(
 
 	while (stream != end && stream->kind == token::comma)
 	{
+		++stream; // ','
 		exprs.emplace_back(parse_expression(stream, end, no_comma));
 	}
 
@@ -523,6 +545,10 @@ void expression::resolve(void)
 		this->get<expr_literal_ptr>()->resolve();
 		break;
 
+	case index<expr_tuple>:
+		this->get<expr_tuple_ptr>()->resolve();
+		break;
+
 	case index<expr_unary_op>:
 		this->get<expr_unary_op_ptr>()->resolve();
 		break;
@@ -554,6 +580,9 @@ typespec get_typespec(expression const &expr)
 
 	case expression::index<expr_literal>:
 		return expr.get<expr_literal_ptr>()->expr_type;
+
+	case expression::index<expr_tuple>:
+		return expr.get<expr_tuple_ptr>()->expr_type;
 
 	case expression::index<expr_unary_op>:
 		return expr.get<expr_unary_op_ptr>()->expr_type;

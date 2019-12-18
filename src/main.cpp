@@ -967,19 +967,22 @@ struct bz::formatter<ast::typespec>
 {
 	static bz::string format(ast::typespec const &typespec, const char *, const char *)
 	{
+//		auto type_info = bz::format(" [[{}, {}]]", ast::size_of(typespec), ast::align_of(typespec));
+		auto type_info = "";
+
 		switch (typespec.kind())
 		{
 		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name);
+			return bz::format("{}{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name, type_info);
 
 		case ast::typespec::index<ast::ts_constant>:
-			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
+			return bz::format("const {}{}", typespec.get<ast::ts_constant_ptr>()->base, type_info);
 
 		case ast::typespec::index<ast::ts_pointer>:
-			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
+			return bz::format("*{}{}", typespec.get<ast::ts_pointer_ptr>()->base, type_info);
 
 		case ast::typespec::index<ast::ts_reference>:
-			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
+			return bz::format("&{}{}", typespec.get<ast::ts_reference_ptr>()->base, type_info);
 
 		case ast::typespec::index<ast::ts_function>:
 		{
@@ -1000,7 +1003,7 @@ struct bz::formatter<ast::typespec>
 				}
 			}
 
-			res += bz::format(") -> {}", fn->return_type);
+			res += bz::format(") -> {}{}", fn->return_type, type_info);
 
 			return res;
 		}
@@ -1023,7 +1026,7 @@ struct bz::formatter<ast::typespec>
 					put_comma = true;
 				}
 			}
-			res += "]";
+			res += bz::format("]{}", type_info);
 
 			return res;
 		}
@@ -1078,6 +1081,23 @@ struct bz::formatter<ast::expression>
 				assert(false);
 				return "";
 			}
+
+		case ast::expression::index<ast::expr_tuple>:
+		{
+			auto &tuple = expr.get<ast::expr_tuple_ptr>();
+			if (tuple->elems.size() == 0)
+			{
+				return "[]";
+			}
+
+			auto result = bz::format("[{}", tuple->elems[0]);
+			for (size_t i = 1; i < tuple->elems.size(); ++i)
+			{
+				result += bz::format(", {}", tuple->elems[i]);
+			}
+			result += "]";
+			return result;
+		}
 
 		case ast::expression::index<ast::expr_binary_op>:
 		{
@@ -1174,7 +1194,7 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 
 		indent();
 		bz::print("{\n");
-		for (auto &s : fn_decl->body->statements)
+		for (auto &s : fn_decl->body.statements)
 		{
 			print_statement(s, indent_level + 1);
 		}
@@ -1187,7 +1207,18 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	{
 		auto &op_decl = decl.get<ast::decl_operator_ptr>();
 		indent();
-		bz::printf("operator {}(", op_decl->op->value);
+		if (op_decl->op->kind == token::paren_open)
+		{
+			bz::print("operator () (");
+		}
+		else if (op_decl->op->kind == token::square_open)
+		{
+			bz::print("operator [] (");
+		}
+		else
+		{
+			bz::printf("operator {} (", op_decl->op->value);
+		}
 		bool put_comma = false;
 		for (auto &p : op_decl->params)
 		{
@@ -1205,7 +1236,7 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 
 		indent();
 		bz::print("{\n");
-		for (auto &s : op_decl->body->statements)
+		for (auto &s : op_decl->body.statements)
 		{
 			print_statement(s, indent_level + 1);
 		}
@@ -1318,6 +1349,14 @@ void print_statement(ast::statement const &stmt, int indent_level)
 
 int main(void)
 {
+	assert(ast::size_of(ast::str_) == 16);
+	assert(ast::align_of(ast::str_) == 8);
+
+	assert(
+		ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
+		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
+	);
+
 	src_file file("src/test.bz");
 
 	auto stream = file.tokens_begin();

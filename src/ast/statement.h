@@ -194,14 +194,14 @@ struct stmt_expression
 
 struct decl_variable
 {
-	src_file::token_pos          identifier;
+	src_file::token_pos      identifier;
 	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
 		src_file::token_pos _id,
-		typespec        _var_type,
-		expression      _init_expr
+		typespec            _var_type,
+		expression          _init_expr
 	)
 		: identifier(_id),
 		  var_type  (std::move(_var_type)),
@@ -210,7 +210,7 @@ struct decl_variable
 
 	decl_variable(
 		src_file::token_pos _id,
-		typespec        _var_type
+		typespec            _var_type
 	)
 		: identifier(_id),
 		  var_type  (std::move(_var_type)),
@@ -219,7 +219,7 @@ struct decl_variable
 
 	decl_variable(
 		src_file::token_pos _id,
-		expression      _init_expr
+		expression          _init_expr
 	)
 		: identifier(_id),
 		  var_type  (),
@@ -235,16 +235,16 @@ struct decl_variable
 
 struct decl_function
 {
-	src_file::token_pos      identifier;
+	src_file::token_pos  identifier;
 	bz::vector<variable> params;
 	typespec             return_type;
-	stmt_compound_ptr    body;
+	stmt_compound        body;
 
 	decl_function(
-		src_file::token_pos      _id,
+		src_file::token_pos  _id,
 		bz::vector<variable> _params,
 		typespec             _ret_type,
-		stmt_compound_ptr    _body
+		stmt_compound        _body
 	)
 		: identifier (_id),
 		  params     (std::move(_params)),
@@ -261,16 +261,16 @@ struct decl_function
 
 struct decl_operator
 {
-	src_file::token_pos      op;
+	src_file::token_pos  op;
 	bz::vector<variable> params;
 	typespec             return_type;
-	stmt_compound_ptr    body;
+	stmt_compound        body;
 
 	decl_operator(
-		src_file::token_pos      _op,
+		src_file::token_pos  _op,
 		bz::vector<variable> _params,
 		typespec             _ret_type,
-		stmt_compound_ptr    _body
+		stmt_compound        _body
 	)
 		: op         (_op),
 		  params     (std::move(_params)),
@@ -295,11 +295,11 @@ struct decl_struct
 		  member_variables(std::move(_members))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { assert(false); return nullptr; }
-	src_file::token_pos get_tokens_pivot(void) const { assert(false); return nullptr; }
-	src_file::token_pos get_tokens_end(void) const { assert(false); return nullptr; }
+	src_file::token_pos get_tokens_begin(void) const;
+	src_file::token_pos get_tokens_pivot(void) const;
+	src_file::token_pos get_tokens_end(void) const;
 
-	void resolve(void) { assert(false); }
+	void resolve(void);
 };
 
 

@@ -838,20 +838,13 @@ bz::string get_highlighted_chars(
 						highlight_line += '~';
 					}
 				}
-				else if (it >= char_begin && it < char_end)
-				{
-					do
-					{
-						file_line += ' ';
-						highlight_line += '~';
-					} while (file_line.size() % 4 != 0);
-				}
 				else
 				{
+					char highlight_char = it >= char_begin && it < char_end ? '~' : ' ';
 					do
 					{
 						file_line += ' ';
-						highlight_line += ' ';
+						highlight_line += highlight_char;
 					} while (file_line.size() % 4 != 0);
 				}
 			}
@@ -888,6 +881,11 @@ bz::string get_highlighted_tokens(
 	src_file::token_pos token_end
 )
 {
+	if (token_pivot->kind == token::eof)
+	{
+		return "\n";
+	}
+
 	return get_highlighted_chars(
 		token_begin->src_pos.begin,
 		token_pivot->src_pos.begin,

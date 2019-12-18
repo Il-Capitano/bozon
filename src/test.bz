@@ -1,25 +1,4 @@
-operator + (: int32, : int32) -> int32
-{}
-
-operator - (: int32, : int32) -> int32
-{}
-
-operator * (: int32, : int32) -> int32
-{}
-
-operator / (: int32, : int32) -> int32
-{}
-
-operator + (: float64, : float64) -> float64
-{}
-
-operator + (: float64, : int32) -> float64
-{}
-
 operator & (: int32) -> *int32
-{}
-
-operator || (: bool, : bool) -> bool
 {}
 
 operator .. (: str, : str) -> str
@@ -44,10 +23,10 @@ function factorial(n: int32) -> int32
 	let d = &c;
 
 	let e = true || false;
-	let f = e || true;
+	let f = e || true ^^ false;
 
 	let g = 0.0 + 1.0;
-	let h = 0.0 + 1;
+//	let h = 0.0 + 1;
 
 	"hello" .. " world\n";
 
@@ -68,6 +47,10 @@ function factorial(n: int32) -> int32
 	let q = p();
 	p();
 //	let factorial = 1;  // causes an unknown function call in the return statement
+
+	let r = +0;
+	let s: int8;
+	let t = +s;
 
 	return factorial(n - 1) * n;
 }
@@ -114,27 +97,34 @@ let b = factorial(0.0);
 let c = factorial(0);
 // let d = factorial;  // 'Error: identifier is ambiguous' GOOD!
 
-	/*
+//	/*
 
-// operator & () -> char {}
-operator & (: char) -> *char {}
-operator & (: char, : char) -> char {}
-// operator & (: char, : char, : char) -> char {}
+struct foo
+{
+	b1: bool;
+	b2: bool;
+	i: int32;
+}
 
-// operator ^^ () -> bool {}
-// operator ^^ (: bool) -> bool {}
-operator ^^ (: bool, : bool) -> bool {}
-// operator ^^ (: bool, : bool, : bool) -> bool {}
+// operator & () -> foo {}
+operator & (: foo) -> *foo {}
+operator & (: foo, : foo) -> foo {}
+// operator & (: foo, : foo, : foo) -> foo {}
 
-// operator [] () -> char {}
-// operator [] (: str) -> char {}
-operator [] (: str, : uint64) -> char {}
-// operator [] (: str, : uint64, : uint64) -> char {}
+// operator ^^ () -> foo {}
+// operator ^^ (: foo) -> foo {}
+operator ^^ (: foo, : foo) -> foo {}
+// operator ^^ (: foo, : foo, : foo) -> foo {}
 
-// operator () () -> int32 {}
-operator () (: float32) -> int32 {}
-operator () (: float32, : float32) -> int32 {}
-operator () (: float32, : float32, : float32) -> int32 {}
+// operator [] () -> foo {}
+// operator [] (: foo) -> foo {}
+operator [] (: foo, : foo) -> foo {}
+// operator [] (: foo, : foo, : foo) -> foo {}
+
+// operator () () -> foo {}
+operator () (: foo) -> foo {}
+operator () (: foo, : foo) -> foo {}
+operator () (: foo, : foo, : foo) -> foo {}
 
 //	*/
 
@@ -148,8 +138,38 @@ struct vec2d
 
 let f: vec2d;
 
-struct vec3d {}
+struct vec3d
+{
+	x: float64;
+	y: float64;
+	z: float64;
+}
+
+let g: vec3d;
+
 // struct vec2d {}
+
+
+
+let bar: foo;
+
+let h = [ 0 + 0, 1, 2, 3 ];
+let i = [ "test", 'a', 1.0, 12345 ];
+let j = [ i ];
+let k = [[[[ i ]]]];
+
+function tuple_test(t: [ int32, int32, float64, str ]) -> [ *int32, *int32 ]
+{}
+
+let l = ([ 0, 1, 1.5, "test" ]);
+let m = tuple_test(l);
+
+
+
+
+
+
+
 
 
 /*

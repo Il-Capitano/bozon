@@ -12,7 +12,7 @@ struct token
 		paren_open    = '(',
 		paren_close   = ')',
 		curly_open    = '{',
-		curly_close   = '}', // '
+		curly_close   = '}',
 		square_open   = '[',
 		square_close  = ']',
 		angle_open    = '<',
@@ -148,6 +148,9 @@ public:
 
 	src_file(bz::string file_name);
 
+	bz::string_view file(void) const
+	{ return this->_file; }
+
 	auto tokens_begin(void) const
 	{ return this->_tokens.begin(); }
 
@@ -254,9 +257,9 @@ inline bz::string get_highlighted_tokens(src_file::token_pos t)
 {
 	fatal_error(
 		"In file {}:{}:{}: {}\n{}",
-		begin->src_pos.file_name,
-		begin->src_pos.line,
-		begin->src_pos.column,
+		pivot->src_pos.file_name,
+		pivot->src_pos.line,
+		pivot->src_pos.column,
 		message,
 		get_highlighted_tokens(begin, pivot, end)
 	);

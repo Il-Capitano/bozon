@@ -106,11 +106,12 @@ struct ts_tuple
 	{}
 };
 
+typespec decay_typespec(typespec const &ts);
 
 struct variable
 {
 	src_file::token_pos id;
-	typespec        var_type;
+	typespec            var_type;
 
 	variable(src_file::token_pos _id, typespec _var_type)
 		: id      (_id),
@@ -133,23 +134,25 @@ struct built_in_type
 	uint32_t kind;
 	size_t   size;
 	size_t   alignment;
-};
 
-
-struct user_defined_type
-{
-	// TODO: for now, only PODS's are allowed, so no ctors, dtors, and so on...
-	bz::vector<variable> members;
-
-	user_defined_type(bz::vector<variable> _members)
-		: members(std::move(_members))
+	built_in_type(uint32_t _kind, size_t _size, size_t _alignment)
+		: kind(_kind), size(_size), alignment(_alignment)
 	{}
 };
 
-
-struct type : bz::variant<built_in_type, user_defined_type>
+struct aggregate_type
 {
-	using base_t = bz::variant<built_in_type, user_defined_type>;
+	// TODO: for now, only PODS's are allowed, so no ctors, dtors, and so on...
+	bz::vector<variable> members;
+	size_t size;
+	size_t alignment;
+
+	aggregate_type(bz::vector<variable> _members);
+};
+
+struct type : bz::variant<built_in_type, aggregate_type>
+{
+	using base_t = bz::variant<built_in_type, aggregate_type>;
 	using base_t::variant;
 
 	bz::string name;
@@ -165,107 +168,19 @@ struct type : bz::variant<built_in_type, user_defined_type>
 };
 using type_ptr = std::shared_ptr<type>;
 
-#define def_built_in_type(type_name, size, alignment)             \
-inline const auto type_name##_ = std::make_shared<type>(          \
-    #type_name,                                                   \
-    built_in_type{ built_in_type::type_name##_, size, alignment } \
-)
 
-def_built_in_type(int8, 1, 1);
-def_built_in_type(int16, 2, 2);
-def_built_in_type(int32, 4, 4);
-def_built_in_type(int64, 8, 8);
-// def_built_in_type(int128, 16, 16);
-def_built_in_type(uint8, 1, 1);
-def_built_in_type(uint16, 2, 2);
-def_built_in_type(uint32, 4, 4);
-def_built_in_type(uint64, 8, 8);
-// def_built_in_type(uint128, 16, 16);
-def_built_in_type(float32, 4, 4);
-def_built_in_type(float64, 8, 8);
-def_built_in_type(char, 4, 4);
-def_built_in_type(bool, 1, 1);
-def_built_in_type(str, 16, 8);
-def_built_in_type(void, 0, 0);
-def_built_in_type(null_t, 0, 0);
+size_t size_of(type_ptr const &t);
+size_t align_of(type_ptr const &t);
 
-#undef def_built_in_type
+size_t size_of(typespec const &t);
+size_t align_of(typespec const &t);
 
 
-
-inline bool operator == (typespec const &lhs, typespec const &rhs)
-{
-	if (lhs.kind() != rhs.kind())
-	{
-		return false;
-	}
-
-	switch (lhs.kind())
-	{
-	case typespec::index<ts_base_type>:
-		return lhs.get<ts_base_type_ptr>()->base_type->name
-			== rhs.get<ts_base_type_ptr>()->base_type->name;
-
-	case typespec::index<ts_constant>:
-		return lhs.get<ts_constant_ptr>()->base == rhs.get<ts_constant_ptr>()->base;
-
-	case typespec::index<ts_pointer>:
-		return lhs.get<ts_pointer_ptr>()->base == rhs.get<ts_pointer_ptr>()->base;
-
-	case typespec::index<ts_reference>:
-		return lhs.get<ts_reference_ptr>()->base == rhs.get<ts_reference_ptr>()->base;
-
-	case typespec::index<ts_function>:
-	{
-		auto &lhs_fn = lhs.get<ts_function_ptr>();
-		auto &rhs_fn = rhs.get<ts_function_ptr>();
-
-		if (
-			lhs_fn->argument_types.size() != rhs_fn->argument_types.size()
-			|| lhs_fn->return_type != rhs_fn->return_type
-		)
-		{
-			return false;
-		}
-
-		for (size_t i = 0; i < lhs_fn->argument_types.size(); ++i)
-		{
-			if (lhs_fn->argument_types[i] != rhs_fn->argument_types[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
-	case typespec::index<ts_tuple>:
-	{
-		auto &lhs_tp = lhs.get<ts_tuple_ptr>();
-		auto &rhs_tp = rhs.get<ts_tuple_ptr>();
-
-		if (lhs_tp->types.size() != rhs_tp->types.size())
-		{
-			return false;
-		}
-
-		for (size_t i = 0; i < lhs_tp->types.size(); ++i)
-		{
-			if (lhs_tp->types[i] != rhs_tp->types[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
-	default:
-		assert(false);
-		return false;
-	}
-}
+bool operator == (typespec const &lhs, typespec const &rhs);
 
 inline bool operator != (typespec const &lhs, typespec const &rhs)
 { return !(lhs == rhs); }
+
 
 
 template<typename ...Args>
@@ -302,9 +217,43 @@ type_ptr make_type_ptr(Args &&...args)
 { return std::make_shared<type>(std::forward<Args>(args)...); }
 
 template<typename ...Args>
-type_ptr make_user_defined_type_ptr(bz::string name, Args &&...args)
-{ return std::make_shared<type>(std::move(name), user_defined_type(std::forward<Args>(args)...)); }
+type_ptr make_built_in_type_ptr(bz::string name, Args &&...args)
+{ return std::make_shared<type>(std::move(name), built_in_type(std::forward<Args>(args)...)); }
 
+template<typename ...Args>
+type_ptr make_aggregate_type_ptr(bz::string name, Args &&...args)
+{ return std::make_shared<type>(std::move(name), aggregate_type(std::forward<Args>(args)...)); }
+
+
+#define def_built_in_type(type_name, size, alignment)        \
+inline const auto type_name##_ = make_built_in_type_ptr(     \
+    #type_name, built_in_type::type_name##_, size, alignment \
+)
+
+def_built_in_type(int8, 1, 1);
+def_built_in_type(int16, 2, 2);
+def_built_in_type(int32, 4, 4);
+def_built_in_type(int64, 8, 8);
+// def_built_in_type(int128, 16, 16);
+def_built_in_type(uint8, 1, 1);
+def_built_in_type(uint16, 2, 2);
+def_built_in_type(uint32, 4, 4);
+def_built_in_type(uint64, 8, 8);
+// def_built_in_type(uint128, 16, 16);
+def_built_in_type(float32, 4, 4);
+def_built_in_type(float64, 8, 8);
+def_built_in_type(char, 4, 4);
+def_built_in_type(bool, 1, 1);
+def_built_in_type(void, 0, 0);
+def_built_in_type(null_t, 0, 0);
+inline const auto str_ = make_aggregate_type_ptr(
+	"str", bz::vector<variable>{
+		variable(nullptr, make_ts_pointer(make_ts_base_type(void_))),
+		variable(nullptr, make_ts_pointer(make_ts_base_type(void_)))
+	}
+);
+
+#undef def_built_in_type
 
 } // namespace ast
 
