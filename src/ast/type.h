@@ -106,8 +106,6 @@ struct ts_tuple
 	{}
 };
 
-typespec decay_typespec(typespec const &ts);
-
 struct variable
 {
 	src_file::token_pos id;
@@ -254,6 +252,22 @@ inline const auto str_ = make_aggregate_type_ptr(
 );
 
 #undef def_built_in_type
+
+
+typespec decay_typespec(typespec const &ts);
+
+inline typespec add_lvalue_reference(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_reference>)
+	{
+		return ts;
+	}
+	else
+	{
+		assert(ts.kind() != typespec::null);
+		return make_ts_reference(ts);
+	}
+}
 
 } // namespace ast
 

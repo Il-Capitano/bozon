@@ -21,7 +21,7 @@ declare_node_type(expr_function_call);
 
 #undef declare_node_type
 
-using expression = node<
+struct expression : node<
 	expr_unresolved,
 	expr_identifier,
 	expr_literal,
@@ -29,10 +29,31 @@ using expression = node<
 	expr_unary_op,
 	expr_binary_op,
 	expr_function_call
->;
+>
+{
+	using base_t = node<
+		expr_unresolved,
+		expr_identifier,
+		expr_literal,
+		expr_tuple,
+		expr_unary_op,
+		expr_binary_op,
+		expr_function_call
+	>;
 
-template<>
-void expression::resolve(void);
+	using base_t::get;
+	using base_t::kind;
+	void resolve(void);
+
+	bool     is_lvalue;
+	typespec expr_type;
+
+	template<typename ...Ts>
+	expression(Ts &&...ts)
+		: base_t(std::forward<Ts>(ts)...)
+	{}
+};
+
 
 
 struct expr_unresolved
@@ -56,7 +77,6 @@ struct expr_unresolved
 struct expr_identifier
 {
 	src_file::token_pos identifier;
-	typespec            expr_type;
 
 	expr_identifier(src_file::token_pos _id)
 		: identifier(_id)
@@ -97,7 +117,6 @@ struct expr_literal
 
 	value_t             value;
 	src_file::token_pos src_pos;
-	typespec            expr_type;
 
 	expr_literal(src_file::token_pos stream);
 
@@ -117,7 +136,6 @@ struct expr_tuple
 {
 	bz::vector<expression> elems;
 	token_range            tokens;
-	typespec               expr_type;
 
 	expr_tuple(bz::vector<expression> _elems, token_range _tokens)
 		: elems(std::move(_elems)), tokens(_tokens)
@@ -139,7 +157,6 @@ struct expr_unary_op
 {
 	src_file::token_pos op;
 	expression          expr;
-	typespec            expr_type;
 
 	expr_unary_op(src_file::token_pos _op, expression _expr)
 		: op(_op),
@@ -158,7 +175,6 @@ struct expr_binary_op
 	src_file::token_pos op;
 	expression          lhs;
 	expression          rhs;
-	typespec            expr_type;
 
 	expr_binary_op(src_file::token_pos _op, expression _lhs, expression _rhs)
 		: op(_op),
@@ -178,7 +194,6 @@ struct expr_function_call
 	src_file::token_pos    op;
 	expression             called;
 	bz::vector<expression> params;
-	typespec               expr_type;
 
 	expr_function_call(src_file::token_pos _op, expression _called, bz::vector<expression> _params)
 		: op(_op),

@@ -54,7 +54,7 @@ struct parse_context
 	ast::typespec get_function_type(bz::string   id, bz::vector<ast::typespec> const &args);
 	ast::typespec get_operator_type(src_file::token_pos op, bz::vector<ast::typespec> const &args);
 
-	ast::typespec get_expression_type(ast::expression const &expr);
+//	ast::typespec get_expression_type(ast::expression const &expr);
 	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);
 	ast::typespec get_operator_type(ast::expr_unary_op const &unary_op);
 	ast::typespec get_operator_type(ast::expr_binary_op const &binary_op);

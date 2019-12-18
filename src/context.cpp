@@ -569,7 +569,7 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 			size_t i;
 			for (i = 0; i < fn.argument_types.size(); ++i)
 			{
-				if (fn.argument_types[i] != get_expression_type(fn_call.params[i]))
+				if (fn.argument_types[i] != fn_call.params[i].expr_type)
 				{
 					break;
 				}
@@ -612,10 +612,10 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 
 		bz::vector<ast::typespec> op_types = {};
 		op_types.reserve(fn_call.params.size() + 1);
-		op_types.emplace_back(get_expression_type(fn_call.called));
+		op_types.emplace_back(fn_call.called.expr_type);
 		for (auto &p : fn_call.params)
 		{
-			op_types.emplace_back(get_expression_type(p));
+			op_types.emplace_back(p.expr_type);
 		}
 
 		for (auto fn : fn_call_set->set)
@@ -675,7 +675,7 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 	{
 		if (
 			op.argument_types.size() == 1
-			&& op.argument_types[0] == get_expression_type(unary_op.expr)
+			&& op.argument_types[0] == unary_op.expr.expr_type
 		)
 		{
 			return op.return_type;
@@ -716,8 +716,8 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	{
 		if (
 			op.argument_types.size() == 2
-			&& op.argument_types[0] == get_expression_type(binary_op.lhs)
-			&& op.argument_types[1] == get_expression_type(binary_op.rhs)
+			&& op.argument_types[0] == binary_op.lhs.expr_type
+			&& op.argument_types[1] == binary_op.rhs.expr_type
 		)
 		{
 			return op.return_type;
@@ -732,6 +732,7 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	);
 }
 
+/*
 ast::typespec parse_context::get_expression_type(ast::expression const &expr)
 {
 	switch (expr.kind())
@@ -765,3 +766,4 @@ ast::typespec parse_context::get_expression_type(ast::expression const &expr)
 		return ast::typespec();
 	}
 }
+*/

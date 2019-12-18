@@ -63,7 +63,7 @@ void decl_variable::resolve(void)
 	if (this->var_type.kind() == typespec::null)
 	{
 		assert(this->init_expr.has_value());
-		this->var_type = decay_typespec(get_typespec(this->init_expr.get()));
+		this->var_type = decay_typespec(this->init_expr.get().expr_type);
 	}
 	else
 	{
@@ -120,7 +120,7 @@ template<>
 void stmt_declaration::resolve(void)
 {
 	assert(this->kind() != null);
-	this->visit([](auto const &decl) { decl->resolve(); });
+	this->visit([](auto &decl) { decl->resolve(); });
 }
 
 } // namespace ast

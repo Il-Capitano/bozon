@@ -14,15 +14,23 @@ typespec decay_typespec(typespec const &ts)
 	case typespec::index<ts_base_type>:
 		return ts;
 	case typespec::index<ts_constant>:
-		return ts.get<ts_constant_ptr>()->base;
+		return decay_typespec(ts.get<ts_constant_ptr>()->base);
 	case typespec::index<ts_pointer>:
 		return ts;
 	case typespec::index<ts_reference>:
-		return ts.get<ts_reference_ptr>()->base;
+		return decay_typespec(ts.get<ts_reference_ptr>()->base);
 	case typespec::index<ts_function>:
 		return ts;
 	case typespec::index<ts_tuple>:
-		return ts;
+	{
+		auto &tuple = ts.get<ts_tuple_ptr>();
+		bz::vector<typespec> decayed_types = {};
+		for (auto &t : tuple->types)
+		{
+			decayed_types.push_back(decay_typespec(t));
+		}
+		return make_ts_tuple(std::move(decayed_types));
+	}
 	default:
 		assert(false);
 		return typespec();
