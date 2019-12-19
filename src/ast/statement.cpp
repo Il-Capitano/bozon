@@ -75,6 +75,31 @@ void decl_variable::resolve(void)
 		assert(this->init_expr.has_value());
 		this->var_type = decay_typespec(this->init_expr.get().expr_type);
 	}
+	else if (
+		this->var_type.kind() == typespec::index<ts_constant>
+		&& this->var_type.get<ts_constant_ptr>()->base.kind() == typespec::null
+	)
+	{
+		assert(this->init_expr.has_value());
+		this->var_type = add_constant(decay_typespec(this->init_expr->expr_type));
+	}
+	else if (
+		this->var_type.kind() == typespec::index<ts_reference>
+		&& this->var_type.get<ts_reference_ptr>()->base.kind() == typespec::null
+	)
+	{
+		assert(this->init_expr.has_value());
+		if (!this->init_expr->is_lvalue)
+		{
+			bad_tokens(
+				this->get_tokens_begin(),
+				this->init_expr->get_tokens_pivot(),
+				this->get_tokens_end(),
+				"Error: Cannot bind reference to non-lvalue"
+			);
+		}
+		this->var_type = add_lvalue_reference(this->init_expr->expr_type);
+	}
 	else
 	{
 		this->var_type.resolve();

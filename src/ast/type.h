@@ -259,8 +259,31 @@ inline typespec add_lvalue_reference(typespec ts)
 	}
 	else
 	{
-		assert(ts.kind() != typespec::null);
 		return make_ts_reference(ts);
+	}
+}
+
+inline typespec add_constant(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_constant>)
+	{
+		return ts;
+	}
+	else
+	{
+		return make_ts_constant(ts);
+	}
+}
+
+inline typespec remove_lvalue_reference(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_reference>)
+	{
+		return ts.get<ts_reference_ptr>()->base;
+	}
+	else
+	{
+		return ts;
 	}
 }
 

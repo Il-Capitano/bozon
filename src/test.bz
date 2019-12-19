@@ -178,6 +178,11 @@ function reference_test() -> void
 	let c = get_const_reference() + 5;
 //	let d: &int32 = get_const_reference();
 	let e: &const int32 = get_const_reference();
+	let &f = get_reference();
+	let &g = get_const_reference();
+	const h = get_reference();
+//	const &i = h;
+	let &j = 1;
 }
 
 

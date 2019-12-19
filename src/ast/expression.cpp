@@ -562,7 +562,7 @@ void expression::resolve(void)
 		auto &id = this->get<expr_identifier_ptr>();
 		id->resolve();
 		this->is_lvalue = true;
-		this->expr_type = context.get_identifier_type(id->identifier);
+		this->expr_type = remove_lvalue_reference(context.get_identifier_type(id->identifier));
 		break;
 	}
 
@@ -588,8 +588,9 @@ void expression::resolve(void)
 	{
 		auto &unary_op = this->get<expr_unary_op_ptr>();
 		unary_op->resolve();
-		this->expr_type = context.get_operator_type(*unary_op);
-		this->is_lvalue = this->expr_type.kind() == typespec::index<ts_reference>;
+		auto expr_t = context.get_operator_type(*unary_op);
+		this->is_lvalue = expr_t.kind() == typespec::index<ts_reference>;
+		this->expr_type = remove_lvalue_reference(std::move(expr_t));
 		break;
 	}
 
@@ -597,8 +598,9 @@ void expression::resolve(void)
 	{
 		auto &binary_op = this->get<expr_binary_op_ptr>();
 		binary_op->resolve();
-		this->expr_type = context.get_operator_type(*binary_op);
-		this->is_lvalue = this->expr_type.kind() == typespec::index<ts_reference>;
+		auto expr_t = context.get_operator_type(*binary_op);
+		this->is_lvalue = expr_t.kind() == typespec::index<ts_reference>;
+		this->expr_type = remove_lvalue_reference(std::move(expr_t));
 		break;
 	}
 
@@ -606,8 +608,9 @@ void expression::resolve(void)
 	{
 		auto &fn_call = this->get<expr_function_call_ptr>();
 		fn_call->resolve();
-		this->expr_type = context.get_function_call_type(*fn_call);
-		this->is_lvalue = this->expr_type.kind() == typespec::index<ts_reference>;
+		auto expr_t = context.get_function_call_type(*fn_call);
+		this->is_lvalue = expr_t.kind() == typespec::index<ts_reference>;
+		this->expr_type = remove_lvalue_reference(std::move(expr_t));
 		break;
 	}
 

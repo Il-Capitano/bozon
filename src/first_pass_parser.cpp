@@ -267,10 +267,25 @@ ast::statement parse_no_op_statement(src_file::token_pos &stream, src_file::toke
 
 ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file::token_pos end)
 {
-	assert(stream->kind == token::kw_let);
+	assert(stream->kind == token::kw_let || stream->kind == token::kw_const);
 	auto const tokens_begin = stream;
-	++stream; // 'let'
+	bool is_const = stream->kind == token::kw_const;
+	++stream; // 'let' or 'const'
 	assert(stream != end);
+	bool is_ref = stream->kind == token::ampersand;
+	if (is_ref)
+	{
+		if (is_const)
+		{
+			bad_tokens(
+				tokens_begin,
+				stream,
+				stream + 1,
+				"Error: A reference cannot be const"
+			);
+		}
+		++stream; // '&'
+	}
 
 	auto id = assert_token(stream, token::identifier);
 
@@ -282,6 +297,14 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 		>(stream, end);
 
 		auto type = ast::make_ts_unresolved(type_tokens);
+		if (is_const)
+		{
+			type = ast::add_constant(std::move(type));
+		}
+		else if (is_ref)
+		{
+			type = ast::add_lvalue_reference(std::move(type));
+		}
 
 		if (stream->kind == token::semi_colon)
 		{
@@ -311,11 +334,22 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 
 	auto init = get_expression_or_type<token::semi_colon>(stream, end);
 
+	ast::typespec type;
+	if (is_const)
+	{
+		type = ast::make_ts_constant(ast::typespec());
+	}
+	else if (is_ref)
+	{
+		type = ast::make_ts_reference(ast::typespec());
+	}
+
 	assert_token(stream, token::semi_colon);
 	auto const tokens_end = stream;
 	return ast::make_decl_variable(
 		token_range{tokens_begin, tokens_end},
 		id,
+		type,
 		ast::make_expr_unresolved(init)
 	);
 }
@@ -501,12 +535,11 @@ ast::statement get_ast_statement(
 
 	// compound statement
 	case token::curly_open:
-	{
 		return ast::make_statement(get_stmt_compound_ptr(stream, end));
-	}
 
 	// variable declaration
 	case token::kw_let:
+	case token::kw_const:
 		return parse_variable_declaration(stream, end);
 
 	// struct definition
