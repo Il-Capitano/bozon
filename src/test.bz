@@ -165,14 +165,19 @@ let l = ([ 0, 1, 1.5, "test" ]);
 let m = tuple_test(l);
 
 
-function get_reference() -> &const int32
+function get_const_reference() -> &const int32
+{}
+
+function get_reference() -> &int32
 {}
 
 function reference_test() -> void
 {
-	let a = get_reference();
+	let a = get_const_reference();
 	let b = a + 1;
-	let c = get_reference() + 5;
+	let c = get_const_reference() + 5;
+//	let d: &int32 = get_const_reference();
+	let e: &const int32 = get_const_reference();
 }
 
 

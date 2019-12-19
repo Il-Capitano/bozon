@@ -294,6 +294,9 @@ struct bz::formatter<ast::typespec>
 	{
 		switch (typespec.kind())
 		{
+		case ast::typespec::null:
+			return "<error-type>";
+
 		case ast::typespec::index<ast::ts_base_type>:
 			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name);
 
