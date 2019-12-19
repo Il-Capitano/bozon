@@ -1,5 +1,4 @@
-
-Makefile
 *.json
 *.exe
 *.o
+.vs/*
