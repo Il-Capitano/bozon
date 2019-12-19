@@ -4,6 +4,7 @@
 parse_context context;
 
 bool is_convertible(ast::expression const &expr, ast::typespec const &type);
+bool is_built_in_convertible(ast::type_ptr from, ast::type_ptr to);
 
 bz::vector<operator_overload_set> get_default_operators(void)
 {
@@ -613,17 +614,17 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 			);
 		}
 
-		bz::vector<ast::typespec> op_types = {};
-		op_types.reserve(fn_call.params.size() + 1);
-		op_types.emplace_back(fn_call.called.expr_type);
+		bz::vector<ast::expression const *> op_exprs = {};
+		op_exprs.reserve(fn_call.params.size() + 1);
+		op_exprs.push_back(&fn_call.called);
 		for (auto &p : fn_call.params)
 		{
-			op_types.emplace_back(p.expr_type);
+			op_exprs.push_back(&p);
 		}
 
 		for (auto fn : fn_call_set->set)
 		{
-			if (fn.argument_types.size() != op_types.size())
+			if (fn.argument_types.size() != op_exprs.size())
 			{
 				continue;
 			}
@@ -631,7 +632,7 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 			size_t i;
 			for (i = 0; i < fn.argument_types.size(); ++i)
 			{
-				if (fn.argument_types[i] != op_types[i])
+				if (!is_convertible(*op_exprs[i], fn.argument_types[i]))
 				{
 					break;
 				}
@@ -678,7 +679,7 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 	{
 		if (
 			op.argument_types.size() == 1
-			&& op.argument_types[0] == unary_op.expr.expr_type
+			&& is_convertible(unary_op.expr, op.argument_types[0])
 		)
 		{
 			return op.return_type;
@@ -719,8 +720,8 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	{
 		if (
 			op.argument_types.size() == 2
-			&& op.argument_types[0] == binary_op.lhs.expr_type
-			&& op.argument_types[1] == binary_op.rhs.expr_type
+			&& is_convertible(binary_op.lhs, op.argument_types[0])
+			&& is_convertible(binary_op.rhs, op.argument_types[1])
 		)
 		{
 			return op.return_type;
@@ -737,21 +738,153 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 
 bool parse_context::is_convertible(ast::expression const &expr, ast::typespec const &type)
 {
+	auto expr_decay_type = decay_typespec(expr.expr_type);
+	auto decay_type = decay_typespec(type);
+
 	if (type.kind() == ast::typespec::index<ast::ts_reference>)
 	{
 		auto &ref_type = type.get<ast::ts_reference_ptr>()->base;
 		if (ref_type.kind() == ast::typespec::index<ast::ts_constant>)
 		{
 			auto &const_type = ref_type.get<ast::ts_constant_ptr>()->base;
-			return decay_typespec(expr.expr_type) == const_type;
+			return expr_decay_type == const_type;
 		}
 		else
 		{
 			return expr.is_lvalue && expr.expr_type == ref_type;
 		}
 	}
+	else if (
+		is_built_in_type(expr_decay_type)
+		&& is_built_in_type(decay_type)
+	)
+	{
+		return is_built_in_convertible(
+			expr_decay_type.get<ast::ts_base_type_ptr>()->base_type,
+			decay_type.get<ast::ts_base_type_ptr>()->base_type
+		);
+	}
 	else
 	{
-		return decay_typespec(expr.expr_type) == decay_typespec(type);
+		return expr_decay_type == decay_type;
 	}
+}
+
+bool is_built_in_convertible(ast::type_ptr from, ast::type_ptr to)
+{
+	auto is_int_kind = [](auto kind)
+	{
+		switch (kind)
+		{
+		case ast::built_in_type::int8_:
+		case ast::built_in_type::int16_:
+		case ast::built_in_type::int32_:
+		case ast::built_in_type::int64_:
+		case ast::built_in_type::uint8_:
+		case ast::built_in_type::uint16_:
+		case ast::built_in_type::uint32_:
+		case ast::built_in_type::uint64_:
+			return true;
+		default:
+			return false;
+		}
+	};
+
+	auto is_floating_point_kind = [](auto kind)
+	{
+		switch (kind)
+		{
+		case ast::built_in_type::float32_:
+		case ast::built_in_type::float64_:
+			return true;
+		default:
+			return false;
+		}
+	};
+
+	auto is_bigger_int = [](auto from, auto to)
+	{
+		switch (from)
+		{
+		case ast::built_in_type::int8_:
+		case ast::built_in_type::uint8_:
+			switch (to)
+			{
+			case ast::built_in_type::int16_:
+			case ast::built_in_type::int32_:
+			case ast::built_in_type::int64_:
+			case ast::built_in_type::uint16_:
+			case ast::built_in_type::uint32_:
+			case ast::built_in_type::uint64_:
+				return true;
+			default:
+				return false;
+			}
+		case ast::built_in_type::int16_:
+		case ast::built_in_type::uint16_:
+			switch (to)
+			{
+			case ast::built_in_type::int32_:
+			case ast::built_in_type::int64_:
+			case ast::built_in_type::uint32_:
+			case ast::built_in_type::uint64_:
+				return true;
+			default:
+				return false;
+			}
+		case ast::built_in_type::int32_:
+		case ast::built_in_type::uint32_:
+			switch (to)
+			{
+			case ast::built_in_type::int64_:
+			case ast::built_in_type::uint64_:
+				return true;
+			default:
+				return false;
+			}
+		case ast::built_in_type::int64_:
+		case ast::built_in_type::uint64_:
+			return false;
+		default:
+			assert(false);
+			return false;
+		}
+	};
+
+	if (
+		from->kind() == ast::type::index_of<ast::built_in_type>
+		&& to->kind() == ast::type::index_of<ast::built_in_type>
+	)
+	{
+		auto &from_built_in = from->get<ast::built_in_type>();
+		auto &to_built_in = to->get<ast::built_in_type>();
+
+		if (from_built_in.kind == to_built_in.kind)
+		{
+			return true;
+		}
+
+		if (is_floating_point_kind(from_built_in.kind))
+		{
+			static_assert(ast::built_in_type::float64_ > ast::built_in_type::float32_);
+			return is_floating_point_kind(to_built_in.kind)
+				&& to_built_in.kind >= from_built_in.kind;
+		}
+		else if (is_int_kind(from_built_in.kind))
+		{
+			if (!is_floating_point_kind(to_built_in.kind) && !is_int_kind(to_built_in.kind))
+			{
+				return false;
+			}
+
+			return is_floating_point_kind(to_built_in.kind)
+				|| is_bigger_int(from_built_in.kind, to_built_in.kind);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return false;
 }

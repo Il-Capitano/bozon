@@ -241,15 +241,10 @@ def_built_in_type(uint64, 8, 8);
 def_built_in_type(float32, 4, 4);
 def_built_in_type(float64, 8, 8);
 def_built_in_type(char, 4, 4);
+def_built_in_type(str, 16, 8);
 def_built_in_type(bool, 1, 1);
 def_built_in_type(void, 0, 0);
 def_built_in_type(null_t, 0, 0);
-inline const auto str_ = make_aggregate_type_ptr(
-	"str", bz::vector<variable>{
-		variable(nullptr, make_ts_pointer(make_ts_base_type(void_))),
-		variable(nullptr, make_ts_pointer(make_ts_base_type(void_)))
-	}
-);
 
 #undef def_built_in_type
 
@@ -267,6 +262,26 @@ inline typespec add_lvalue_reference(typespec ts)
 		assert(ts.kind() != typespec::null);
 		return make_ts_reference(ts);
 	}
+}
+
+inline bool is_built_in_type(typespec const &ts)
+{
+	if (ts.kind() != typespec::index<ts_base_type>)
+	{
+		return false;
+	}
+
+	auto &base_type = ts.get<ts_base_type_ptr>()->base_type;
+	if (base_type->kind() == type::index_of<built_in_type>)
+	{
+		return true;
+	}
+	else if (base_type->name == "str")
+	{
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace ast

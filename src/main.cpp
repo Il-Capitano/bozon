@@ -1278,7 +1278,7 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
-	src_file file("src/ref_test.bz");
+	src_file file("src/test.bz");
 
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();

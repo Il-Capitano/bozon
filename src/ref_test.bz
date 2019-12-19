@@ -16,3 +16,7 @@ let j: const int32 = i;
 let k = j;
 let l: const int32 = 3;
 // let m: int32 = 1.0;
+
+let n: float32 = 1;
+let o: float64 = n;
+// let p: uint8 = 3;
