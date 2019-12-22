@@ -182,7 +182,7 @@ function reference_test() -> void
 	let &g = get_const_reference();
 	const h = get_reference();
 //	const &i = h;
-	let &j = 1;
+//	let &j = 1;
 }
 
 

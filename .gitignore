@@ -1,3 +1,4 @@
-bin/*
-.vscode/*
-.vs/*
+Makefile
+bin
+.vs
+.vscode

@@ -21,10 +21,10 @@ BIN_INT_RELEASE := bin/release/int
 SRC := src
 
 # debug executable path
-EXE_DEBUG := $(BIN_DEBUG)/compiler.exe
+EXE_DEBUG := $(BIN_DEBUG)/bozon.exe
 
 # release executable path
-EXE_RELEASE := $(BIN_RELEASE)/compiler.exe
+EXE_RELEASE := $(BIN_RELEASE)/bozon.exe
 
 # source files
 SRCS := $(call rwildcard,$(SRC)/,*.cpp)
