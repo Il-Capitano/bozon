@@ -374,7 +374,6 @@ bool is_unary_operator(uint32_t kind)
 	case token::bool_not:           // '!'
 	case token::plus_plus:          // '++'
 	case token::minus_minus:        // '--'
-	case token::dot_dot_dot:        // '...'
 	case token::kw_sizeof:          // 'sizeof'
 	case token::kw_typeof:          // 'typeof'
 		return true;

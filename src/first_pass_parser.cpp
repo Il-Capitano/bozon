@@ -299,7 +299,7 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 		auto type = ast::make_ts_unresolved(type_tokens);
 		if (is_const)
 		{
-			type = ast::add_constant(std::move(type));
+			type = ast::add_const(std::move(type));
 		}
 		else if (is_ref)
 		{

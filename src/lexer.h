@@ -258,7 +258,7 @@ template<typename ...Ts>
 	src_file::token_pos begin,
 	src_file::token_pos pivot,
 	src_file::token_pos end,
-	bz::string_view message,
+	bz::string_view fmt,
 	Ts &&...ts
 )
 {
@@ -267,8 +267,27 @@ template<typename ...Ts>
 		pivot->src_pos.file_name,
 		pivot->src_pos.line,
 		pivot->src_pos.column,
-		bz::format(message, std::forward<Ts>(ts)...),
+		bz::format(fmt, std::forward<Ts>(ts)...),
 		get_highlighted_tokens(begin, pivot, end)
+	);
+}
+
+template<typename T>
+using void_t = void;
+
+template<typename T, typename ...Ts>
+[[noreturn]] inline void bad_tokens(
+	T const &tokens,
+	bz::string_view fmt,
+	Ts &&...ts
+)
+{
+	bad_tokens(
+		tokens.get_tokens_begin(),
+		tokens.get_tokens_pivot(),
+		tokens.get_tokens_end(),
+		fmt,
+		std::forward<Ts>(ts)...
 	);
 }
 

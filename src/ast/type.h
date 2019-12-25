@@ -251,61 +251,20 @@ def_built_in_type(null_t, 0, 0);
 
 typespec decay_typespec(typespec const &ts);
 
-inline typespec add_lvalue_reference(typespec ts)
-{
-	if (ts.kind() == typespec::index<ts_reference>)
-	{
-		return ts;
-	}
-	else
-	{
-		return make_ts_reference(ts);
-	}
-}
+typespec add_lvalue_reference(typespec ts);
+typespec add_const(typespec ts);
 
-inline typespec add_constant(typespec ts)
-{
-	if (ts.kind() == typespec::index<ts_constant>)
-	{
-		return ts;
-	}
-	else
-	{
-		return make_ts_constant(ts);
-	}
-}
+typespec remove_lvalue_reference(typespec ts);
+typespec remove_const(typespec ts);
 
-inline typespec remove_lvalue_reference(typespec ts)
-{
-	if (ts.kind() == typespec::index<ts_reference>)
-	{
-		return ts.get<ts_reference_ptr>()->base;
-	}
-	else
-	{
-		return ts;
-	}
-}
+bool is_const(typespec const &ts);
+bool is_reference(typespec const &ts);
 
-inline bool is_built_in_type(typespec const &ts)
-{
-	if (ts.kind() != typespec::index<ts_base_type>)
-	{
-		return false;
-	}
+bool is_built_in_type(typespec const &ts);
 
-	auto &base_type = ts.get<ts_base_type_ptr>()->base_type;
-	if (base_type->kind() == type::index_of<built_in_type>)
-	{
-		return true;
-	}
-	else if (base_type->name == "str")
-	{
-		return true;
-	}
+bool is_integer_type(typespec const &ts);
+bool is_arithmetic_type(ast::typespec const &ts);
 
-	return false;
-}
 
 } // namespace ast
 

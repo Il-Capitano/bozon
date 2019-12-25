@@ -1,5 +1,4 @@
-operator & (: int32) -> *int32
-{}
+/*
 
 operator .. (: str, : str) -> str
 {}
@@ -19,13 +18,10 @@ function factorial(n: int32) -> int32
 	let a = 0;
 	let b = n;
 
-	let c = 1 + 4;
+//	let c = 1 + 4;
 //	let d = &c;
 
-	let e = true || false;
-	let f = e || true ^^ false;
-
-	let g = 0.0 + 1.0;
+//	let g = 0.0 + 1.0;
 //	let h = 0.0 + 1;
 
 	"hello" .. " world\n";
@@ -48,19 +44,14 @@ function factorial(n: int32) -> int32
 	p();
 //	let factorial = 1;  // causes an unknown function call in the return statement
 
-	let r = +0;
+//	let r = +0;
 	let s: int8;
-	let t = +s;
+//	let t = +s;
 
-	return factorial(n - 1) * n;
+//	return factorial(n - 1) * n;
 }
 
 let a = factorial;
-
-/*
-operator ..= (:int32, :int32) -> range_int32
-{}
-*/
 
 operator ..= (:str, :str) -> &str
 {}
@@ -97,7 +88,7 @@ let b = factorial(0.0);
 let c = factorial(0);
 // let d = factorial;  // 'Error: identifier is ambiguous' GOOD!
 
-//	/*
+	/*
 
 struct foo
 {
@@ -126,6 +117,7 @@ operator () (: foo) -> foo {}
 operator () (: foo, : foo) -> foo {}
 operator () (: foo, : foo, : foo) -> foo {}
 
+let bar: foo;
 //	*/
 
 // let e: vec2d;
@@ -151,9 +143,8 @@ let g: vec3d;
 
 
 
-let bar: foo;
 
-let h = [ 0 + 0, 1, 2, 3 ];
+let h = [ 0, 1, 2, 3 ];
 let i = [ "test", 'a', 1.0, 12345 ];
 let j = [ i ];
 let k = [[[[ i ]]]];
@@ -188,67 +179,284 @@ function reference_test() -> void
 
 
 
+function address_of_test() -> void
+{
+	let n = 2;
+	let p = &n;
+	const p = &n;
+	const n = 1;
+	let p = &n;
+	const p = &n;
+	let &m = n;
+	let p = &m;
+}
+
+function deref_test() -> void
+{
+	{
+		let n = 3;
+		let p = &n;
+		let m = *p;
+		let &a = *p;
+	}
+	{
+		const n = 3;
+		const p = &n;
+		let m = *p;
+		let &a = *p;
+		let b = *&n;
+		let q = &p;
+		let c = *q;
+		let d = **q;
+		let &e = **q;
+	}
+	{
+		const n = 3;
+//		const m = *n;
+	}
+}
+
+function bool_not_test() -> void
+{
+	{
+		let a = !true;
+		let b = !a;
+		const c = true;
+		let d = !a;
+		let &e = d;
+		let f = !e;
+//		let &g = !e;
+	}
+	{
+//		const a = !3;
+		const b = !!!true;
+	}
+}
+
+function comma_test() -> void
+{
+	let a = 0, 1, 2, 3;
+	let b = 0, 1.0;
+	let c = "test", 'a';
+	let &d = "test", c;
+//	let &e = "test", 'a';
+//	let &f = c, "test";
+}
+
+function bool_op_test() -> void
+{
+	let   a = true || false;
+	const b = true && false;
+	let   c = true ^^ false;
+//	let &d = a || b;
+	const e = a || b;
+}
+
+*/  // line 1
+
+const i8: int8;
+const u8: uint8;
+const i16: int16;
+const u16: uint16;
+const i32: int32;
+const u32: uint32;
+const i64: int64;
+const u64: uint64;
+const f32: float32;
+const f64: float64;
+
+function op_plus_test() -> void
+{
+	// arithmetic types
+	{
+		let a = i8 + i8;
+		let b = i8 + u8;
+		let c = u8 + i8;
+		let d = u8 + u8;
+		let e = i32 + u64;
+		let f = i32 + i16;
+		let g = i32 + u16;
+		let h = i32 + u32;
+		let i = f32 + u64;
+		let j = f64 + f32;
+		let k = f64 + i8;
+		let l = i8 + u16 + i64 + f32;
+	}
+	// pointer arithmetic
+	{
+		let a = 0;
+		let p = &a + 1;
+		let q = 1 + &a;
+		let b: int8;
+		&a + b;
+		b + &a;
+	}
+	// char arithmetic
+	{
+		let c = 'a';
+		let d = 'a' + 1;
+		let e = 1 + c;
+	}
+}
+
+function op_minus_test() -> void
+{
+	// arithmetic types
+	{
+		let a = i8 - i8;
+		let b = i8 - u8;
+		let c = u8 - i8;
+		let d = u8 - u8;
+		let e = i32 - u64;
+		let f = i32 - i16;
+		let g = i32 - u16;
+		let h = i32 - u32;
+		let i = f32 - u64;
+		let j = f64 - f32;
+		let k = f64 - i8;
+		let l = i8 - u16 - i64 - f32;
+	}
+	// pointer arithmetic
+	{
+		let a = 0;
+		let p = &a - 1;
+		let b: int8;
+//		1 - &a;
+		&a - b;
+		let diff = p - &a;
+	}
+	// char arithmetic
+	{
+		let c = 'a';
+		let d = 'a' - 1;
+//		1 - 'a';
+	}
+}
+
+function op_multiply_test() -> void
+{
+	let a = i8 * i8;
+	let b = i8 * u8;
+	let c = u8 * i8;
+	let d = u8 * u8;
+	let e = i32 * u64;
+	let f = i32 * i16;
+	let g = i32 * u16;
+	let h = i32 * u32;
+	let i = f32 * u64;
+	let j = f64 * f32;
+	let k = f64 * i8;
+	let l = i8 * u16 * i64 * f32;
+}
+
+function op_divide_test() -> void
+{
+	let a = i8 / i8;
+	let b = i8 / u8;
+	let c = u8 / i8;
+	let d = u8 / u8;
+	let e = i32 / u64;
+	let f = i32 / i16;
+	let g = i32 / u16;
+	let h = i32 / u32;
+	let i = f32 / u64;
+	let j = f64 / f32;
+	let k = f64 / i8;
+	let l = i8 / u16 / i64 / f32;
+}
+
+struct tester {}
+
+function op_equals_test() -> void
+{
+	// arithmetic types
+	{
+		let a = i8 == i8;
+		let b = i8 == u8;
+		let d = u8 == u8;
+		let e = i32 == u64;
+		let f = i32 == i16;
+		let g = i32 == u16;
+		let h = i32 == u32;
+		let i = f32 == u64;
+		let j = f64 == f32;
+		let k = f64 == i8;
+	}
+	// pointers
+	{
+		let p: *int32;
+		let q: *int32;
+		let a = p == q;
+		let r: *const int32;
+		let b = r == p, p == r;
+
+		let s: **int32;
+//		let c = s == p;
+		let d = s == &p;
+		let t: *float32;
+//		let e = t == p;
+		let u: *const **const *const tester;
+		const v: ***const *tester;
+		let f = u == v;
+		let g = &u == &v;
+		let h = p == null;
+		let i = null == v;
+	}
+	// other
+	{
+		let a = true == false;
+		let b = 'a' == 'b';
+//		let c = 'a' == false;
+		let d = "hello" == "test";
+	}
+}
+
+function op_not_equals_test() -> void
+{
+	// arithmetic types
+	{
+		let a = i8 != i8;
+		let b = i8 != u8;
+		let d = u8 != u8;
+		let e = i32 != u64;
+		let f = i32 != i16;
+		let g = i32 != u16;
+		let h = i32 != u32;
+		let i = f32 != u64;
+		let j = f64 != f32;
+		let k = f64 != i8;
+	}
+	// pointers
+	{
+		let p: *int32;
+		let q: *int32;
+		let a = p != q;
+		let r: *const int32;
+		let b = r != p, p != r;
+
+		let s: **int32;
+//		let c = s != p;
+		let d = s != &p;
+		let t: *float32;
+//		let e = t != p;
+		let u: *const **const *const tester;
+		const v: ***const *tester;
+		let f = u != v;
+		let g = &u != &v;
+		let h = p != null;
+		let i = null != v;
+	}
+	// other
+	{
+		let a = true != false;
+		let b = 'a' != 'b';
+//		let c = 'a' != false;
+		let d = "hello" != "test";
+	}
+}
 
 
 /*
-
-a && b || c ^^ d  // ((a '&&' b) '||' (c '^^' d))
-a < b == c        // ((a '<' b) '==' c)
-a == b && c == d  // ((a '==' b) '&&' (c '==' d))
-
-typeof (a + b)  // ('typeof' (a '+' b))
-sizeof a + b    // (('sizeof' a) '+' b)
-++--a      // ('++' ('--' a))
-++a.b      // ('++' (a '.' b))
-
-a().b::c      // (a() '.' (b '::' c))
-a[b, c];      // (a '[' (b ',' c))
-a((b, c), d)  // a((b ',' c), d)
-a[b + c]      // (a '[' (b '+' c))
-
-(a + b) * c  // ((a '+' b) '*' c)
-a + b * c    // (a '+' (b '*' c))
-a = b = c    // (a '=' (b '=' c))
-a + b + c    // ((a '+' b) '+' c)
-a->b->c      // ((a '->' b) '->' c)
-*/
-
-/*
-if (x == 0)
-	return 0;
-if (x == 1)
-	return 1;
-return x * factorial(x - 1);
-*/
-/*
-typeof (a + b)   // (typeof (a + b))
-sizeof a + b     // ((sizeof a) + b)
-
-a/b/c     // ((a / b) / c)
-a+b+c     // ((a + b) + c)
-a=b=c     // (a = (b = c))
-a+b*c/d   // (a + ((b * c) / d))
-++++a     // (++ (++ a))
-
-a||b^^c&&d   // (a || (b ^^ (c && d)))
-a&&b||c^^d   // ((a && b) || (c ^^ d))
-a==b&&c==d   // ((a == b) && (c == d))
-
-((a|b)^c)&d   // (((a | b) ^ c) & d)
-a|b^c&d       // (a | (b ^ (c & d)))
-a&b|c^d       // ((a & b) | (c ^ d))
-
-++a->b->c.d   // ('++' (((a '->' b) '->' c) '.' d))
-&a::b         // ('&' (a '::' b))
-&(a+b+c)      // ('&' ((a '+' b) '+' c))
-*/
-
-
-
-/*
-
-
-
 struct vec3<typename T>
 {
 	static_assert(std::is_trivial<T>, "vec3 value_type must be trivial");
@@ -321,3 +529,4 @@ struct vec<uint64 N, typename T>
 using vec3<typename T> = vec<3, T>;
 
 */
+

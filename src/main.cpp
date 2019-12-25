@@ -1278,7 +1278,11 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
+	auto start = std::chrono::high_resolution_clock::now();
+
 	src_file file("src/test.bz");
+
+	auto after_tokenizing = std::chrono::high_resolution_clock::now();
 
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();
@@ -1286,15 +1290,33 @@ int main(void)
 	auto statements = get_ast_statements(stream, end);
 	assert(stream->kind == token::eof);
 
+	auto after_first_pass = std::chrono::high_resolution_clock::now();
+
 	for (auto &s : statements)
 	{
 		s.resolve();
 	}
 
+	auto after_resolving = std::chrono::high_resolution_clock::now();
+
 	for (auto &s : statements)
 	{
 		print_statement(s);
 	}
+
+	bz::print("\n\n");
+	bz::printf(
+		"Tokenization:  {:>7.3f}ms\n"
+		"First pass:    {:>7.3f}ms\n"
+		"Resolving:     {:>7.3f}ms\n"
+		"Whole parsing: {:>7.3f}ms\n"
+		"Whole runtime: {:>7.3f}ms\n",
+		(after_tokenizing - start).count() / 1'000'000.0,
+		(after_first_pass - after_tokenizing).count() / 1'000'000.0,
+		(after_resolving - after_first_pass).count() / 1'000'000.0,
+		(after_resolving - after_tokenizing).count() / 1'000'000.0,
+		(after_resolving - start).count() / 1'000'000.0
+	);
 
 	return 0;
 }

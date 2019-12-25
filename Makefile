@@ -3,8 +3,8 @@ rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst 
 
 # compiler parameters
 CXX := g++
-CXX_FLAGS_DEBUG := -c -g -Wall -Wextra -std=c++17
-CXX_FLAGS_RELEASE := -c -O2 -Wall -Wextra -std=c++17
+CXX_FLAGS_DEBUG := -c -Og -g -Wall -Wextra -std=c++17
+CXX_FLAGS_RELEASE := -c -O3 -Wall -Wextra -std=c++17
 CXX_INCLUDES := C:/dev/library/general/include
 
 # linker parameters
@@ -48,6 +48,8 @@ REBUILDABLES := $(ALL_EXE) $(ALL_OBJ)
 
 # builds the executable
 all: debug
+
+rebuild: clean all
 
 release: $(EXE_RELEASE)
 

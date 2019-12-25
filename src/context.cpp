@@ -6,201 +6,11 @@ parse_context context;
 bool is_convertible(ast::expression const &expr, ast::typespec const &type);
 bool is_built_in_convertible(ast::type_ptr from, ast::type_ptr to);
 
-bz::vector<operator_overload_set> get_default_operators(void)
-{
-	const ast::type_ptr types[] = {
-		[ast::built_in_type::int8_]    = ast::int8_,
-		[ast::built_in_type::int16_]   = ast::int16_,
-		[ast::built_in_type::int32_]   = ast::int32_,
-		[ast::built_in_type::int64_]   = ast::int64_,
-		[ast::built_in_type::uint8_]   = ast::uint8_,
-		[ast::built_in_type::uint16_]  = ast::uint16_,
-		[ast::built_in_type::uint32_]  = ast::uint32_,
-		[ast::built_in_type::uint64_]  = ast::uint64_,
-		[ast::built_in_type::float32_] = ast::float32_,
-		[ast::built_in_type::float64_] = ast::float64_,
-		[ast::built_in_type::char_]    = ast::char_,
-		[ast::built_in_type::bool_]    = ast::bool_,
-		[ast::built_in_type::str_]     = ast::str_,
-		[ast::built_in_type::void_]    = ast::void_,
-		[ast::built_in_type::null_t_]  = ast::null_t_,
-	};
-
-	const uint32_t int_types[] = {
-		ast::built_in_type::int8_,
-		ast::built_in_type::int16_,
-		ast::built_in_type::int32_,
-		ast::built_in_type::int64_,
-		ast::built_in_type::uint8_,
-		ast::built_in_type::uint16_,
-		ast::built_in_type::uint32_,
-		ast::built_in_type::uint64_,
-	};
-
-	const uint32_t floating_point_types[] = {
-		ast::built_in_type::float32_,
-		ast::built_in_type::float64_,
-	};
-
-	bz::vector<operator_overload_set> sets;
-
-	// ==== operator + ====
-	operator_overload_set op_plus;
-	op_plus.op = token::plus;
-
-	//unary
-	for (auto t : int_types)
-	{
-		op_plus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_plus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-	// binary
-	for (auto t : int_types)
-	{
-		op_plus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_plus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-
-	// ==== operator - ====
-	operator_overload_set op_minus;
-	op_minus.op = token::minus;
-
-	//unary
-	// unsigned types should return signed
-	for (auto t : int_types)
-	{
-		op_minus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_minus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-	// binary
-	for (auto t : int_types)
-	{
-		op_minus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_minus.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-
-	// ==== operator * ====
-	operator_overload_set op_multiply;
-	op_multiply.op = token::multiply;
-
-	// binary
-	for (auto t : int_types)
-	{
-		op_multiply.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_multiply.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-
-	// ==== operator / ====
-	operator_overload_set op_divide;
-	op_divide.op = token::divide;
-
-	// binary
-	for (auto t : int_types)
-	{
-		op_divide.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-	for (auto t : floating_point_types)
-	{
-		op_divide.set.push_back(ast::ts_function(
-			ast::make_ts_base_type(types[t]),
-			{ ast::make_ts_base_type(types[t]), ast::make_ts_base_type(types[t]) }
-		));
-	}
-
-
-	// ==== operator ||, && and ^^ ====
-	operator_overload_set op_bool_or;
-	op_bool_or.op = token::bool_or;
-	op_bool_or.set.push_back(ast::ts_function(
-		ast::make_ts_base_type(ast::bool_),
-		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
-	));
-
-	operator_overload_set op_bool_and;
-	op_bool_and.op = token::bool_and;
-	op_bool_and.set.push_back(ast::ts_function(
-		ast::make_ts_base_type(ast::bool_),
-		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
-	));
-
-	operator_overload_set op_bool_xor;
-	op_bool_xor.op = token::bool_xor;
-	op_bool_xor.set.push_back(ast::ts_function(
-		ast::make_ts_base_type(ast::bool_),
-		{ ast::make_ts_base_type(ast::bool_), ast::make_ts_base_type(ast::bool_) }
-	));
-
-
-
-	sets.push_back(std::move(op_plus));
-	sets.push_back(std::move(op_minus));
-	sets.push_back(std::move(op_multiply));
-	sets.push_back(std::move(op_divide));
-
-	sets.push_back(std::move(op_bool_or));
-	sets.push_back(std::move(op_bool_and));
-	sets.push_back(std::move(op_bool_xor));
-
-	return sets;
-}
 
 parse_context::parse_context(void)
 	: variables{{}},
 	  functions{},
-	  operators(get_default_operators()),
+	  operators{},
 	  types{
 		  ast::int8_, ast::int16_, ast::int32_, ast::int64_,
 		  ast::uint8_, ast::uint16_, ast::uint32_, ast::uint64_,
@@ -653,9 +463,76 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 	}
 }
 
+ast::typespec get_built_in_operator_type(ast::expr_unary_op const &unary_op)
+{
+	auto decayed_type = ast::decay_typespec(unary_op.expr.expr_type);
+	assert(ast::is_built_in_type(decayed_type));
+
+	switch (unary_op.op->kind)
+	{
+	case token::dereference:        // '*'
+		if (decayed_type.kind() != ast::typespec::index<ast::ts_pointer>)
+		{
+			break;
+		}
+		return ast::make_ts_reference(decayed_type.get<ast::ts_pointer_ptr>()->base);
+
+	case token::bool_not:           // '!'
+		if (
+			decayed_type.kind() != ast::typespec::index<ast::ts_base_type>
+			|| decayed_type.get<ast::ts_base_type_ptr>()->base_type != ast::bool_
+		)
+		{
+			break;
+		}
+		return ast::make_ts_base_type(ast::bool_);
+
+	case token::plus:               // '+'
+	case token::minus:              // '-'
+	case token::bit_not:            // '~'
+	case token::plus_plus:          // '++'
+	case token::minus_minus:        // '--'
+	default:
+		break;
+	}
+
+	return ast::typespec();
+}
+
 ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_op)
 {
 	auto op_kind = unary_op.op->kind;
+
+	// non-overloadable unary operators (&, sizeof, typeof)
+	if (op_kind == token::address_of)
+	{
+		if (!unary_op.expr.is_lvalue)
+		{
+			bad_tokens(unary_op, "Error: Cannot take address of non-lvalue");
+		}
+		return ast::make_ts_pointer(unary_op.expr.expr_type);
+	}
+	else if (op_kind == token::kw_sizeof)
+	{
+		assert(false);
+	}
+	else if (op_kind == token::kw_typeof)
+	{
+		assert(false);
+	}
+
+	if (
+		auto decayed_type = ast::decay_typespec(unary_op.expr.expr_type);
+		ast::is_built_in_type(decayed_type)
+	)
+	{
+		auto op_type = get_built_in_operator_type(unary_op);
+		if (op_type.kind() != ast::typespec::null)
+		{
+			return op_type;
+		}
+	}
+
 	auto set_it = std::find_if(
 		this->operators.begin(),
 		this->operators.end(),
@@ -668,10 +545,9 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 	if (set_it == this->operators.end())
 	{
 		bad_tokens(
-			unary_op.get_tokens_begin(),
-			unary_op.get_tokens_pivot(),
-			unary_op.get_tokens_end(),
-			"Error: Undeclared operator"
+			unary_op,
+			"Error: Undeclared unary operator '{}' with type '{}'",
+			unary_op.op->value, unary_op.expr.expr_type
 		);
 	}
 
@@ -687,15 +563,472 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 	}
 
 	bad_tokens(
-		unary_op.get_tokens_begin(),
-		unary_op.get_tokens_pivot(),
-		unary_op.get_tokens_end(),
-		"Error: Undeclared operator"
+		unary_op,
+		"Error: Undeclared unary operator '{}' with type '{}'",
+		unary_op.op->value, unary_op.expr.expr_type
 	);
+}
+
+static int get_arithmetic_rank(ast::typespec const &ts)
+{
+	assert(ts.kind() == ast::typespec::index<ast::ts_base_type>);
+	assert(
+		ts.get<ast::ts_base_type_ptr>()->base_type->kind()
+		== ast::type::index_of<ast::built_in_type>
+	);
+
+	switch (ts.get<ast::ts_base_type_ptr>()->base_type->get<ast::built_in_type>().kind)
+	{
+	case ast::built_in_type::int8_:
+		return 1;
+	case ast::built_in_type::uint8_:
+		return 2;
+	case ast::built_in_type::int16_:
+		return 3;
+	case ast::built_in_type::uint16_:
+		return 4;
+	case ast::built_in_type::int32_:
+		return 5;
+	case ast::built_in_type::uint32_:
+		return 6;
+	case ast::built_in_type::int64_:
+		return 7;
+	case ast::built_in_type::uint64_:
+		return 8;
+	case ast::built_in_type::float32_:
+		return 9;
+	case ast::built_in_type::float64_:
+		return 10;
+	default:
+		assert(false);
+		return -1;
+	}
+}
+
+ast::typespec get_built_in_op_plus(ast::expr_binary_op const &binary_op)
+{
+	assert(binary_op.op->kind == token::plus);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	auto is_built_in_integer_kind = [](uint32_t kind)
+	{
+		switch (kind)
+		{
+		case ast::built_in_type::int8_:
+		case ast::built_in_type::int16_:
+		case ast::built_in_type::int32_:
+		case ast::built_in_type::int64_:
+		case ast::built_in_type::uint8_:
+		case ast::built_in_type::uint16_:
+		case ast::built_in_type::uint32_:
+		case ast::built_in_type::uint64_:
+			return true;
+		default:
+			return false;
+		}
+	};
+
+	// arithmetic types
+	auto is_lhs_arithmetic = ast::is_arithmetic_type(lhs_decayed_type);
+	auto is_rhs_arithmetic = ast::is_arithmetic_type(rhs_decayed_type);
+
+	if (is_lhs_arithmetic && is_rhs_arithmetic)
+	{
+		auto lhs_rank = get_arithmetic_rank(lhs_decayed_type);
+		auto rhs_rank = get_arithmetic_rank(rhs_decayed_type);
+		if (lhs_rank > rhs_rank)
+		{
+			return lhs_decayed_type;
+		}
+		else
+		{
+			return rhs_decayed_type;
+		}
+	}
+
+	// pointer arithmetic
+	auto is_lhs_ptr = lhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+	auto is_rhs_ptr = rhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+
+	if (is_lhs_ptr && is_rhs_ptr)
+	{
+		return ast::typespec();
+	}
+	else if (is_lhs_ptr)
+	{
+		if (is_integer_type(rhs_decayed_type))
+		{
+			return lhs_decayed_type;
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	else if (is_rhs_ptr)
+	{
+		if (is_integer_type(lhs_decayed_type))
+		{
+			return rhs_decayed_type;
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+
+	assert(!is_lhs_ptr && !is_rhs_ptr);
+	assert(lhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>);
+	assert(rhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>);
+
+	// char arithmetic
+	auto &lhs_built_in_type =
+		lhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type->get<ast::built_in_type>();
+	auto &rhs_built_in_type =
+		rhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type->get<ast::built_in_type>();
+
+	if (
+		// char + int
+		(
+			lhs_built_in_type.kind == ast::built_in_type::char_
+			&& is_built_in_integer_kind(rhs_built_in_type.kind)
+		)
+		// int + char
+		|| (
+			is_built_in_integer_kind(lhs_built_in_type.kind)
+			&& rhs_built_in_type.kind == ast::built_in_type::char_
+		)
+	)
+	{
+		return ast::make_ts_base_type(ast::char_);
+	}
+
+	return ast::typespec();
+}
+
+ast::typespec get_built_in_op_minus(ast::expr_binary_op const &binary_op)
+{
+	assert(binary_op.op->kind == token::minus);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	auto is_built_in_integer_kind = [](uint32_t kind)
+	{
+		switch (kind)
+		{
+		case ast::built_in_type::int8_:
+		case ast::built_in_type::int16_:
+		case ast::built_in_type::int32_:
+		case ast::built_in_type::int64_:
+		case ast::built_in_type::uint8_:
+		case ast::built_in_type::uint16_:
+		case ast::built_in_type::uint32_:
+		case ast::built_in_type::uint64_:
+			return true;
+		default:
+			return false;
+		}
+	};
+
+	// arithmetic types
+	auto is_lhs_arithmetic = ast::is_arithmetic_type(lhs_decayed_type);
+	auto is_rhs_arithmetic = ast::is_arithmetic_type(rhs_decayed_type);
+
+	if (is_lhs_arithmetic && is_rhs_arithmetic)
+	{
+		auto lhs_rank = get_arithmetic_rank(lhs_decayed_type);
+		auto rhs_rank = get_arithmetic_rank(rhs_decayed_type);
+		if (lhs_rank > rhs_rank)
+		{
+			return lhs_decayed_type;
+		}
+		else
+		{
+			return rhs_decayed_type;
+		}
+	}
+
+	// pointer arithmetic
+	auto is_lhs_ptr = lhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+	auto is_rhs_ptr = rhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+
+	if (is_lhs_ptr && is_rhs_ptr)
+	{
+		auto &lhs_ptr = lhs_decayed_type.get<ast::ts_pointer_ptr>()->base;
+		auto &rhs_ptr = rhs_decayed_type.get<ast::ts_pointer_ptr>()->base;
+		if (ast::decay_typespec(lhs_ptr) == ast::decay_typespec(rhs_ptr))
+		{
+			return ast::make_ts_base_type(ast::int64_);
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	else if (is_lhs_ptr)
+	{
+		if (is_integer_type(rhs_decayed_type))
+		{
+			return lhs_decayed_type;
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	else if (is_rhs_ptr)
+	{
+		return ast::typespec();
+	}
+
+	assert(!is_lhs_ptr && !is_rhs_ptr);
+	assert(lhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>);
+	assert(rhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>);
+
+	// char arithmetic
+	auto &lhs_built_in_type =
+		lhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type->get<ast::built_in_type>();
+	auto &rhs_built_in_type =
+		rhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type->get<ast::built_in_type>();
+
+	if (
+		lhs_built_in_type.kind == ast::built_in_type::char_
+		&& is_built_in_integer_kind(rhs_built_in_type.kind)
+	)
+	{
+		return ast::make_ts_base_type(ast::char_);
+	}
+
+	return ast::typespec();
+}
+
+ast::typespec get_built_in_op_mul_div(ast::expr_binary_op const &binary_op)
+{
+	assert(
+		binary_op.op->kind == token::multiply
+		|| binary_op.op->kind == token::divide
+	);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	// arithmetic types
+	auto is_lhs_arithmetic = ast::is_arithmetic_type(lhs_decayed_type);
+	auto is_rhs_arithmetic = ast::is_arithmetic_type(rhs_decayed_type);
+
+	if (is_lhs_arithmetic && is_rhs_arithmetic)
+	{
+		auto lhs_rank = get_arithmetic_rank(lhs_decayed_type);
+		auto rhs_rank = get_arithmetic_rank(rhs_decayed_type);
+
+		if (lhs_rank > rhs_rank)
+		{
+			return lhs_decayed_type;
+		}
+		else
+		{
+			return rhs_decayed_type;
+		}
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_equality(ast::expr_binary_op const &binary_op)
+{
+	assert(
+		binary_op.op->kind == token::equals
+		|| binary_op.op->kind == token::not_equals
+	);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	// arithmetic types
+	auto is_lhs_arithmetic = ast::is_arithmetic_type(lhs_decayed_type);
+	auto is_rhs_arithmetic = ast::is_arithmetic_type(rhs_decayed_type);
+
+	if (is_lhs_arithmetic && is_rhs_arithmetic)
+	{
+		return ast::make_ts_base_type(ast::bool_);
+	}
+
+	// pointers
+	auto is_lhs_ptr = lhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+	auto is_rhs_ptr = rhs_decayed_type.kind() == ast::typespec::index<ast::ts_pointer>;
+
+	if (is_lhs_ptr && is_rhs_ptr)
+	{
+		auto lhs_base = lhs_decayed_type;
+		auto rhs_base = rhs_decayed_type;
+
+		while (
+			lhs_base.kind() == ast::typespec::index<ast::ts_pointer>
+			&& rhs_base.kind() == ast::typespec::index<ast::ts_pointer>
+		)
+		{
+			lhs_base = ast::decay_typespec(lhs_base.get<ast::ts_pointer_ptr>()->base);
+			rhs_base = ast::decay_typespec(rhs_base.get<ast::ts_pointer_ptr>()->base);
+		}
+
+		if (lhs_base == rhs_base)
+		{
+			return ast::make_ts_base_type(ast::bool_);
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	else if (is_lhs_ptr)
+	{
+		if (
+			rhs_decayed_type.get<ast::ts_base_type_ptr>()
+				->base_type->get<ast::built_in_type>().kind == ast::built_in_type::null_t_
+		)
+		{
+			return ast::make_ts_base_type(ast::bool_);
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	else if (is_rhs_ptr)
+	{
+		if (
+			lhs_decayed_type.get<ast::ts_base_type_ptr>()
+				->base_type->get<ast::built_in_type>().kind == ast::built_in_type::null_t_
+		)
+		{
+			return ast::make_ts_base_type(ast::bool_);
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+
+	if (lhs_decayed_type == rhs_decayed_type)
+	{
+		return ast::make_ts_base_type(ast::bool_);
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_operator_type(ast::expr_binary_op const &binary_op)
+{
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	auto is_base_type = [](ast::typespec const &ts, ast::type_ptr const &base_type) -> bool
+	{
+		if (ts.kind() != ast::typespec::index<ast::ts_base_type>)
+		{
+			return false;
+		}
+
+		return ts.get<ast::ts_base_type_ptr>()->base_type == base_type;
+	};
+
+	switch (binary_op.op->kind)
+	{
+	case token::plus:               // '+'
+		return get_built_in_op_plus(binary_op);
+	case token::minus:              // '-'
+		return get_built_in_op_minus(binary_op);
+
+	case token::multiply:           // '*'
+	case token::divide:             // '/'
+		return get_built_in_op_mul_div(binary_op);
+
+	case token::equals:             // '=='
+	case token::not_equals:         // '!='
+		return get_built_in_equality(binary_op);
+
+	case token::assign:             // '='
+	case token::plus_eq:            // '+='
+	case token::minus_eq:           // '-='
+	case token::multiply_eq:        // '*='
+	case token::divide_eq:          // '/='
+	case token::modulo:             // '%'
+	case token::modulo_eq:          // '%='
+	case token::less_than:          // '<'
+	case token::less_than_eq:       // '<='
+	case token::greater_than:       // '>'
+	case token::greater_than_eq:    // '>='
+	case token::bit_and:            // '&'
+	case token::bit_and_eq:         // '&='
+	case token::bit_xor:            // '^'
+	case token::bit_xor_eq:         // '^='
+	case token::bit_or:             // '|'
+	case token::bit_or_eq:          // '|='
+	case token::bit_left_shift:     // '<<'
+	case token::bit_left_shift_eq:  // '<<='
+	case token::bit_right_shift:    // '>>'
+	case token::bit_right_shift_eq: // '>>='
+		break;
+
+	case token::bool_and:           // '&&'
+	case token::bool_xor:           // '^^'
+	case token::bool_or:            // '||'
+		if (
+			is_base_type(lhs_decayed_type, ast::bool_)
+			&& is_base_type(rhs_decayed_type, ast::bool_)
+		)
+		{
+			return ast::make_ts_base_type(ast::bool_);
+		}
+		break;
+
+	case token::dot_dot:            // '..'
+	case token::dot_dot_eq:         // '..='
+	case token::square_open:        // '[]'
+	default:
+		break;
+	}
+	return ast::typespec();
 }
 
 ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary_op)
 {
+	if (binary_op.op->kind == token::comma)
+	{
+		if (binary_op.rhs.is_lvalue)
+		{
+			return ast::make_ts_reference(binary_op.rhs.expr_type);
+		}
+		else
+		{
+			return binary_op.rhs.expr_type;
+		}
+	}
+
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	if (ast::is_built_in_type(lhs_decayed_type) && ast::is_built_in_type(rhs_decayed_type))
+	{
+		auto op_type = get_built_in_operator_type(binary_op);
+		if (op_type.kind() != ast::typespec::null)
+		{
+			return op_type;
+		}
+	}
+
 	auto op_kind = binary_op.op->kind;
 	auto set_it = std::find_if(
 		this->operators.begin(),
@@ -709,10 +1042,9 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	if (set_it == this->operators.end())
 	{
 		bad_tokens(
-			binary_op.get_tokens_begin(),
-			binary_op.get_tokens_pivot(),
-			binary_op.get_tokens_end(),
-			"Error: Undeclared operator"
+			binary_op,
+			"Error: Undeclared operator with types '{}' and '{}'",
+			binary_op.lhs.expr_type, binary_op.rhs.expr_type
 		);
 	}
 
@@ -729,10 +1061,9 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	}
 
 	bad_tokens(
-		binary_op.get_tokens_begin(),
-		binary_op.get_tokens_pivot(),
-		binary_op.get_tokens_end(),
-		"Error: Undeclared operator"
+		binary_op,
+		"Error: Undeclared operator with types '{}' and '{}'",
+		binary_op.lhs.expr_type, binary_op.rhs.expr_type
 	);
 }
 

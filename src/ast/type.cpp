@@ -435,4 +435,132 @@ typespec decay_typespec(typespec const &ts)
 	}
 }
 
+typespec add_lvalue_reference(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_reference>)
+	{
+		return ts;
+	}
+	else
+	{
+		return make_ts_reference(ts);
+	}
+}
+
+typespec add_const(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_constant>)
+	{
+		return ts;
+	}
+	else
+	{
+		return make_ts_constant(ts);
+	}
+}
+
+typespec remove_lvalue_reference(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_reference>)
+	{
+		return ts.get<ts_reference_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
+typespec remove_const(typespec ts)
+{
+	if (ts.kind() == typespec::index<ts_constant>)
+	{
+		return ts.get<ts_constant_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
+bool is_const(typespec const &ts)
+{ return ts.kind() == typespec::index<ts_pointer>; }
+
+bool is_reference(typespec const &ts)
+{ return ts.kind() == typespec::index<ts_reference>; }
+
+bool is_built_in_type(typespec const &ts)
+{
+	if (ts.kind() == typespec::index<ts_pointer>)
+	{
+		return true;
+	}
+	else if (ts.kind() == typespec::index<ts_base_type>)
+	{
+		auto &base_type = ts.get<ts_base_type_ptr>()->base_type;
+		if (base_type->kind() == type::index_of<built_in_type>)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool is_integer_type(ast::typespec const &ts)
+{
+	if (ts.kind() != typespec::index<ts_base_type>)
+	{
+		return false;
+	}
+	auto &base_type = ts.get<ts_base_type_ptr>()->base_type;
+	if (base_type->kind() != type::index_of<built_in_type>)
+	{
+		return false;
+	}
+	switch (base_type->get<built_in_type>().kind)
+	{
+	case built_in_type::int8_:
+	case built_in_type::int16_:
+	case built_in_type::int32_:
+	case built_in_type::int64_:
+	case built_in_type::uint8_:
+	case built_in_type::uint16_:
+	case built_in_type::uint32_:
+	case built_in_type::uint64_:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool is_arithmetic_type(ast::typespec const &ts)
+{
+	if (ts.kind() != typespec::index<ts_base_type>)
+	{
+		return false;
+	}
+	auto &base_type = ts.get<ts_base_type_ptr>()->base_type;
+	if (base_type->kind() != type::index_of<built_in_type>)
+	{
+		return false;
+	}
+	switch (base_type->get<built_in_type>().kind)
+	{
+	case built_in_type::int8_:
+	case built_in_type::int16_:
+	case built_in_type::int32_:
+	case built_in_type::int64_:
+	case built_in_type::uint8_:
+	case built_in_type::uint16_:
+	case built_in_type::uint32_:
+	case built_in_type::uint64_:
+	case built_in_type::float32_:
+	case built_in_type::float64_:
+		return true;
+	default:
+		return false;
+	}
+}
+
 } // namespace ast

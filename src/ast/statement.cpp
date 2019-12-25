@@ -81,7 +81,7 @@ void decl_variable::resolve(void)
 	)
 	{
 		assert(this->init_expr.has_value());
-		this->var_type = add_constant(decay_typespec(this->init_expr->expr_type));
+		this->var_type = add_const(decay_typespec(this->init_expr->expr_type));
 	}
 	else if (
 		this->var_type.kind() == typespec::index<ts_reference>
