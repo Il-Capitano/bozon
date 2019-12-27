@@ -507,7 +507,7 @@ bool is_built_in_type(typespec const &ts)
 	return false;
 }
 
-bool is_integer_type(ast::typespec const &ts)
+bool is_integral_type(ast::typespec const &ts)
 {
 	if (ts.kind() != typespec::index<ts_base_type>)
 	{

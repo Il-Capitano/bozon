@@ -3,7 +3,6 @@
 
 parse_context context;
 
-bool is_convertible(ast::expression const &expr, ast::typespec const &type);
 bool is_built_in_convertible(ast::type_ptr from, ast::type_ptr to);
 
 
@@ -659,7 +658,7 @@ ast::typespec get_built_in_op_plus(ast::expr_binary_op const &binary_op)
 	}
 	else if (is_lhs_ptr)
 	{
-		if (is_integer_type(rhs_decayed_type))
+		if (is_integral_type(rhs_decayed_type))
 		{
 			return lhs_decayed_type;
 		}
@@ -670,7 +669,7 @@ ast::typespec get_built_in_op_plus(ast::expr_binary_op const &binary_op)
 	}
 	else if (is_rhs_ptr)
 	{
-		if (is_integer_type(lhs_decayed_type))
+		if (is_integral_type(lhs_decayed_type))
 		{
 			return rhs_decayed_type;
 		}
@@ -772,7 +771,7 @@ ast::typespec get_built_in_op_minus(ast::expr_binary_op const &binary_op)
 	}
 	else if (is_lhs_ptr)
 	{
-		if (is_integer_type(rhs_decayed_type))
+		if (is_integral_type(rhs_decayed_type))
 		{
 			return lhs_decayed_type;
 		}
@@ -835,6 +834,27 @@ ast::typespec get_built_in_op_mul_div(ast::expr_binary_op const &binary_op)
 		{
 			return rhs_decayed_type;
 		}
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_modulo(ast::expr_binary_op const &binary_op)
+{
+	assert(binary_op.op->kind == token::modulo);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	auto is_lhs_integral = ast::is_integral_type(lhs_decayed_type);
+	auto is_rhs_integral = ast::is_integral_type(rhs_decayed_type);
+
+	if (is_lhs_integral && is_rhs_integral)
+	{
+		return lhs_decayed_type;
 	}
 	else
 	{
@@ -928,23 +948,120 @@ ast::typespec get_built_in_equality(ast::expr_binary_op const &binary_op)
 	}
 }
 
-ast::typespec get_built_in_operator_type(ast::expr_binary_op const &binary_op)
+ast::typespec get_built_in_bit_ops(ast::expr_binary_op const &binary_op)
 {
+	assert(
+		binary_op.op->kind == token::bit_and
+		|| binary_op.op->kind == token::bit_or
+		|| binary_op.op->kind == token::bit_xor
+	);
 	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
 	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
 	assert(ast::is_built_in_type(lhs_decayed_type));
 	assert(ast::is_built_in_type(rhs_decayed_type));
 
-	auto is_base_type = [](ast::typespec const &ts, ast::type_ptr const &base_type) -> bool
+	auto is_lhs_integral = ast::is_integral_type(lhs_decayed_type);
+	auto is_rhs_integral = ast::is_integral_type(rhs_decayed_type);
+
+	if (is_lhs_integral && is_rhs_integral)
 	{
-		if (ts.kind() != ast::typespec::index<ast::ts_base_type>)
+		auto lhs_rank = get_arithmetic_rank(lhs_decayed_type);
+		auto rhs_rank = get_arithmetic_rank(rhs_decayed_type);
+
+		if (lhs_rank > rhs_rank)
 		{
-			return false;
+			return lhs_decayed_type;
 		}
+		else
+		{
+			return rhs_decayed_type;
+		}
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
 
-		return ts.get<ast::ts_base_type_ptr>()->base_type == base_type;
-	};
+ast::typespec get_built_in_bool_ops(ast::expr_binary_op const &binary_op)
+{
+	assert(
+		binary_op.op->kind == token::bool_and
+		|| binary_op.op->kind == token::bool_or
+		|| binary_op.op->kind == token::bool_xor
+	);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
 
+	auto is_lhs_bool = lhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>
+		&& lhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type == ast::bool_;
+	auto is_rhs_bool = rhs_decayed_type.kind() == ast::typespec::index<ast::ts_base_type>
+		&& rhs_decayed_type.get<ast::ts_base_type_ptr>()->base_type == ast::bool_;
+
+	if (is_lhs_bool && is_rhs_bool)
+	{
+		return ast::make_ts_base_type(ast::bool_);
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_bit_shift(ast::expr_binary_op const &binary_op)
+{
+	assert(
+		binary_op.op->kind == token::bit_left_shift
+		|| binary_op.op->kind == token::bit_right_shift
+	);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	auto is_lhs_integral = ast::is_integral_type(lhs_decayed_type);
+	auto is_rhs_integral = ast::is_integral_type(rhs_decayed_type);
+
+	if (is_lhs_integral && is_rhs_integral)
+	{
+		return lhs_decayed_type;
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_assign(ast::expr_binary_op const &binary_op)
+{
+	assert(binary_op.op->kind == token::assign);
+	auto lhs_decayed_type = ast::decay_typespec(binary_op.lhs.expr_type);
+	auto rhs_decayed_type = ast::decay_typespec(binary_op.rhs.expr_type);
+	assert(ast::is_built_in_type(lhs_decayed_type));
+	assert(ast::is_built_in_type(rhs_decayed_type));
+
+	if (
+		!binary_op.lhs.is_lvalue
+		|| binary_op.lhs.expr_type.kind() == ast::typespec::index<ast::ts_constant>
+	)
+	{
+		return ast::typespec();
+	}
+
+	if (context.is_convertible(binary_op.rhs, lhs_decayed_type))
+	{
+		return ast::make_ts_reference(lhs_decayed_type);
+	}
+	else
+	{
+		return ast::typespec();
+	}
+}
+
+ast::typespec get_built_in_operator_type(ast::expr_binary_op const &binary_op)
+{
 	switch (binary_op.op->kind)
 	{
 	case token::plus:               // '+'
@@ -956,43 +1073,46 @@ ast::typespec get_built_in_operator_type(ast::expr_binary_op const &binary_op)
 	case token::divide:             // '/'
 		return get_built_in_op_mul_div(binary_op);
 
+	case token::modulo:             // '%'
+		return get_built_in_modulo(binary_op);
+
 	case token::equals:             // '=='
 	case token::not_equals:         // '!='
 		return get_built_in_equality(binary_op);
 
-	case token::assign:             // '='
-	case token::plus_eq:            // '+='
-	case token::minus_eq:           // '-='
-	case token::multiply_eq:        // '*='
-	case token::divide_eq:          // '/='
-	case token::modulo:             // '%'
-	case token::modulo_eq:          // '%='
 	case token::less_than:          // '<'
 	case token::less_than_eq:       // '<='
 	case token::greater_than:       // '>'
 	case token::greater_than_eq:    // '>='
-	case token::bit_and:            // '&'
-	case token::bit_and_eq:         // '&='
-	case token::bit_xor:            // '^'
-	case token::bit_xor_eq:         // '^='
-	case token::bit_or:             // '|'
-	case token::bit_or_eq:          // '|='
-	case token::bit_left_shift:     // '<<'
-	case token::bit_left_shift_eq:  // '<<='
-	case token::bit_right_shift:    // '>>'
-	case token::bit_right_shift_eq: // '>>='
 		break;
+
+	case token::bit_and:            // '&'
+	case token::bit_xor:            // '^'
+	case token::bit_or:             // '|'
+		return get_built_in_bit_ops(binary_op);
 
 	case token::bool_and:           // '&&'
 	case token::bool_xor:           // '^^'
 	case token::bool_or:            // '||'
-		if (
-			is_base_type(lhs_decayed_type, ast::bool_)
-			&& is_base_type(rhs_decayed_type, ast::bool_)
-		)
-		{
-			return ast::make_ts_base_type(ast::bool_);
-		}
+		return get_built_in_bool_ops(binary_op);
+
+	case token::bit_left_shift:     // '<<'
+	case token::bit_right_shift:    // '>>'
+		return get_built_in_bit_shift(binary_op);
+
+	case token::assign:             // '='
+		return get_built_in_assign(binary_op);
+
+	case token::plus_eq:            // '+='
+	case token::minus_eq:           // '-='
+	case token::multiply_eq:        // '*='
+	case token::divide_eq:          // '/='
+	case token::modulo_eq:          // '%='
+	case token::bit_and_eq:         // '&='
+	case token::bit_xor_eq:         // '^='
+	case token::bit_or_eq:          // '|='
+	case token::bit_left_shift_eq:  // '<<='
+	case token::bit_right_shift_eq: // '>>='
 		break;
 
 	case token::dot_dot:            // '..'

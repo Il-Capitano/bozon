@@ -262,7 +262,7 @@ bool is_reference(typespec const &ts);
 
 bool is_built_in_type(typespec const &ts);
 
-bool is_integer_type(typespec const &ts);
+bool is_integral_type(typespec const &ts);
 bool is_arithmetic_type(ast::typespec const &ts);
 
 

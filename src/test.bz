@@ -455,6 +455,119 @@ function op_not_equals_test() -> void
 	}
 }
 
+function op_modulo_test() -> void
+{
+	let a = i8 % i8;
+	let b = i8 % u8;
+	let d = u8 % u8;
+	let e = i32 % u64;
+	let f = i32 % i16;
+	let g = i32 % u16;
+	let h = i32 % u32;
+//	let i = f32 % i32;
+}
+
+function op_bit_and_test() -> void
+{
+	let a = i8 & i8;
+	let b = i8 & u8;
+	let d = u8 & u8;
+	let e = i32 & u64;
+	let f = i32 & i16;
+	let g = i32 & u16;
+	let h = i32 & u32;
+//	let i = f32 & i32;
+}
+
+function op_bit_or_test() -> void
+{
+	let a = i8 | i8;
+	let b = i8 | u8;
+	let d = u8 | u8;
+	let e = i32 | u64;
+	let f = i32 | i16;
+	let g = i32 | u16;
+	let h = i32 | u32;
+//	let i = f32 | i32;
+}
+
+function op_bit_xor_test() -> void
+{
+	let a = i8 ^ i8;
+	let b = i8 ^ u8;
+	let d = u8 ^ u8;
+	let e = i32 ^ u64;
+	let f = i32 ^ i16;
+	let g = i32 ^ u16;
+	let h = i32 ^ u32;
+//	let i = f32 ^ i32;
+}
+
+function op_bool_and_test() -> void
+{
+	let a = true && false;
+//	let b = i32 && true;
+}
+
+function op_bool_or_test() -> void
+{
+	let a = true || false;
+//	let b = i32 || true;
+}
+
+function op_bool_xor_test() -> void
+{
+	let a = true ^^ false;
+//	let b = i32 ^^ true;
+}
+
+function op_bit_left_shift_test() -> void
+{
+	let a = i8 << i8;
+	let b = i8 << u8;
+	let d = u8 << u8;
+	let e = i32 << u64;
+	let f = i32 << i16;
+	let g = i32 << u16;
+	let h = i32 << u32;
+//	let i = f32 << i32;
+}
+
+function op_bit_right_shift_test() -> void
+{
+	let a = i8 >> i8;
+	let b = i8 >> u8;
+	let d = u8 >> u8;
+	let e = i32 >> u64;
+	let f = i32 >> i16;
+	let g = i32 >> u16;
+	let h = i32 >> u32;
+//	let i = f32 >> i32;
+}
+
+function op_assign_test() -> void
+{
+	let a = i8;
+	a = i8;
+	let &b = a = i8;
+//	a = u8;
+//	a = i32;
+
+	let c = i32;
+	c = i8;
+	c = u8;
+	c = u16;
+	c = i32;
+//	c = false;
+//	c = "test";
+
+	let d = true;
+	d = false;
+//	d = "hello";
+}
+
+
+
 
 /*
 struct vec3<typename T>
