@@ -950,6 +950,8 @@ struct complex
 	cast float64 (&const this) {}
 	operator cast float64 (&const this) {}
 	operator cast<float64>(&const this) {}
+
+	operator explicit cast<float64>(&const this) {}
 }
 
 
@@ -1268,6 +1270,8 @@ void print_statement(ast::statement const &stmt, int indent_level)
 	}
 }
 
+void bytecode_test(void);
+
 int main(void)
 {
 	assert(ast::size_of(ast::str_) == 16);
@@ -1278,11 +1282,11 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
-	auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::steady_clock::now();
 
 	src_file file("src/test.bz");
 
-	auto after_tokenizing = std::chrono::high_resolution_clock::now();
+	auto after_tokenizing = std::chrono::steady_clock::now();
 
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();
@@ -1290,19 +1294,24 @@ int main(void)
 	auto statements = get_ast_statements(stream, end);
 	assert(stream->kind == token::eof);
 
-	auto after_first_pass = std::chrono::high_resolution_clock::now();
+	auto after_first_pass = std::chrono::steady_clock::now();
 
 	for (auto &s : statements)
 	{
 		s.resolve();
 	}
 
-	auto after_resolving = std::chrono::high_resolution_clock::now();
+	auto after_resolving = std::chrono::steady_clock::now();
 
 	for (auto &s : statements)
 	{
 		print_statement(s);
 	}
+
+	auto in_ms = [](auto time)
+	{
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(time).count() / 1'000'000.0;
+	};
 
 	bz::print("\n\n");
 	bz::printf(
@@ -1311,12 +1320,14 @@ int main(void)
 		"Resolving:     {:>7.3f}ms\n"
 		"Whole parsing: {:>7.3f}ms\n"
 		"Whole runtime: {:>7.3f}ms\n",
-		(after_tokenizing - start).count() / 1'000'000.0,
-		(after_first_pass - after_tokenizing).count() / 1'000'000.0,
-		(after_resolving - after_first_pass).count() / 1'000'000.0,
-		(after_resolving - after_tokenizing).count() / 1'000'000.0,
-		(after_resolving - start).count() / 1'000'000.0
+		in_ms(after_tokenizing - start),
+		in_ms(after_first_pass - after_tokenizing),
+		in_ms(after_resolving - after_first_pass),
+		in_ms(after_resolving - after_tokenizing),
+		in_ms(after_resolving - start)
 	);
+
+	bytecode_test();
 
 	return 0;
 }

@@ -158,6 +158,7 @@ struct expr_unary_op
 	src_file::token_pos op;
 	expression          expr;
 
+
 	expr_unary_op(src_file::token_pos _op, expression _expr)
 		: op(_op),
 		  expr(std::move(_expr))

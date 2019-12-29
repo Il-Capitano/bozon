@@ -11,6 +11,7 @@
 #include <utility>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 
 #include <bz/variant.h>
 #include <bz/string.h>
@@ -20,16 +21,24 @@
 #include "error.h"
 #include "my_assert.h"
 
-using int8   = std::int8_t;
-using int16  = std::int16_t;
-using int32  = std::int32_t;
-using int64  = std::int64_t;
-using uint8  = std::uint8_t;
-using uint16 = std::uint16_t;
-using uint32 = std::uint32_t;
-using uint64 = std::uint64_t;
+using std::int8_t;
+using std::int16_t;
+using std::int32_t;
+using std::int64_t;
+using std::uint8_t;
+using std::uint16_t;
+using std::uint32_t;
+using std::uint64_t;
+using float32_t = float;
+using float64_t = double;
 
-using float32 = float;
-using float64 = double;
+template<typename To, typename From>
+To bit_cast(From value)
+{
+	static_assert(sizeof(To) == sizeof(From));
+	To res;
+	std::memcpy(&res, &value, sizeof(To));
+	return res;
+}
 
 #endif // CORE_H
