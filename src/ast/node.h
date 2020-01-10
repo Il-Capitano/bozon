@@ -43,7 +43,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 		emplacers[other.kind()](*this, other);
 	}
 
-	node(self_t &&) = default;
+	node(self_t &&) noexcept = default;
 
 	self_t &operator = (self_t const &rhs)
 	{

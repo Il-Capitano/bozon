@@ -3,37 +3,42 @@
 
 #include "core.h"
 
-struct stack
-{
-	bz::vector<uint8_t> stack;
-
-	void change_size(int64_t amount);
-
-	template<typename T>
-	T value_at_offset(int64_t offset)
-	{
-		assert(offset < 0);
-		assert(static_cast<size_t>(-offset) <= this->stack.size());
-		auto const end_ptr = &*this->stack.end();
-		auto const ptr = end_ptr + offset;
-		assert((int64_t)ptr % alignof(T) == 0);
-		return *(T *)ptr;
-	}
-
-	template<typename T>
-	void store_at_offset(int64_t offset, T value)
-	{
-		assert(offset < 0);
-		assert(static_cast<size_t>(-offset) <= this->stack.size());
-		auto const end_ptr = &*this->stack.end();
-		auto const ptr = end_ptr + offset;
-		assert((int64_t)ptr % alignof(T) == 0);
-		*(T *)ptr = value;
-	}
-};
-
 namespace bytecode
 {
+
+struct stack
+{
+	using stack_t = bz::vector<uint8_t>;
+	using iterator = stack_t::iterator;
+
+	stack_t  _stack;
+	iterator _base;
+	iterator _end;
+
+	stack(void)
+		: _stack(1024 * 1024, 0),
+		  _base (this->_stack.end()),
+		  _end  (this->_stack.end())
+	{}
+};
+
+struct register_value
+{
+	union
+	{
+		int8_t    _int8;
+		int16_t   _int16;
+		int32_t   _int32;
+		int64_t   _int64;
+		uint8_t   _uint8;
+		uint16_t  _uint16;
+		uint32_t  _uint32;
+		uint64_t  _uint64;
+		float32_t _float32;
+		float64_t _float64;
+		void     *_ptr;
+	};
+};
 
 enum class type_kind
 {
@@ -42,96 +47,13 @@ enum class type_kind
 	float32, float64,
 };
 
-struct move_stack_pointer
+
+struct executor
 {
-	int64_t amount;
-
-	void execute(stack &stack);
-};
-
-struct add
-{
-	int64_t res_offset;
-	int64_t lhs_offset;
-	int64_t rhs_offset;
-	type_kind type;
-
-	void execute(stack &stack);
-};
-
-struct sub
-{
-	int64_t res_offset;
-	int64_t lhs_offset;
-	int64_t rhs_offset;
-	type_kind type;
-
-	void execute(stack &stack);
-};
-
-struct mul
-{
-	int64_t res_offset;
-	int64_t lhs_offset;
-	int64_t rhs_offset;
-	type_kind type;
-
-	void execute(stack &stack);
-};
-
-struct div
-{
-	int64_t res_offset;
-	int64_t lhs_offset;
-	int64_t rhs_offset;
-	type_kind type;
-
-	void execute(stack &stack);
-};
-
-struct mod
-{
-	int64_t res_offset;
-	int64_t lhs_offset;
-	int64_t rhs_offset;
-	type_kind type;
-
-	void execute(stack &stack);
-};
-
-struct cast
-{
-	int64_t res_offset;
-	int64_t arg_offset;
-	type_kind src_type;
-	type_kind dest_type;
-
-	void execute(stack &stack);
-};
-
-struct mov
-{
-	int64_t offset;
-	type_kind type;
-	uint64_t value;
-
-	void execute(stack &stack);
+	std::array<register_value, 8> registers;
+	stack stack;
 };
 
 } // namespace bytecode
-
-
-using instruction = bz::variant<
-	bytecode::move_stack_pointer,
-	bytecode::add,
-	bytecode::sub,
-	bytecode::mul,
-	bytecode::div,
-	bytecode::mod,
-	bytecode::cast,
-	bytecode::mov
->;
-
-void execute_new(bz::vector<instruction> const &instructions);
 
 #endif // BYTECODE_H

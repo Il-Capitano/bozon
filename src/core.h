@@ -12,11 +12,12 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <vector>
 
 #include <bz/variant.h>
 #include <bz/string.h>
-#include <bz/vector.h>
 #include <bz/optional.h>
+#include <bz/format.h>
 
 #include "error.h"
 #include "my_assert.h"

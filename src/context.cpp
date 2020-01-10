@@ -431,7 +431,7 @@ ast::typespec parse_context::get_function_call_type(ast::expr_function_call cons
 			op_exprs.push_back(&p);
 		}
 
-		for (auto fn : fn_call_set->set)
+		for (auto &fn : fn_call_set->set)
 		{
 			if (fn.argument_types.size() != op_exprs.size())
 			{

@@ -45,6 +45,9 @@ struct ts_unresolved
 	ts_unresolved(token_range _tokens)
 		: tokens(_tokens)
 	{}
+
+	ts_unresolved(ts_unresolved const &) = default;
+	ts_unresolved(ts_unresolved &&) noexcept = default;
 };
 
 struct ts_base_type
@@ -54,6 +57,9 @@ struct ts_base_type
 	ts_base_type(type_ptr _base_type)
 		: base_type(_base_type)
 	{}
+
+	ts_base_type(ts_base_type const &) = default;
+	ts_base_type(ts_base_type &&) noexcept = default;
 };
 
 struct ts_constant
@@ -63,6 +69,9 @@ struct ts_constant
 	ts_constant(typespec _base)
 		: base(std::move(_base))
 	{}
+
+	ts_constant(ts_constant const &) = default;
+	ts_constant(ts_constant &&) noexcept = default;
 };
 
 struct ts_pointer
@@ -72,6 +81,9 @@ struct ts_pointer
 	ts_pointer(typespec _base)
 		: base(std::move(_base))
 	{}
+
+	ts_pointer(ts_pointer const &) = default;
+	ts_pointer(ts_pointer &&) noexcept = default;
 };
 
 struct ts_reference
@@ -81,6 +93,9 @@ struct ts_reference
 	ts_reference(typespec _base)
 		: base(std::move(_base))
 	{}
+
+	ts_reference(ts_reference const &) = default;
+	ts_reference(ts_reference &&) noexcept = default;
 };
 
 struct ts_function
@@ -95,6 +110,9 @@ struct ts_function
 		: return_type   (std::move(_ret_type)),
 		  argument_types(std::move(_arg_types))
 	{}
+
+	ts_function(ts_function const &) = default;
+	ts_function(ts_function &&) noexcept = default;
 };
 
 struct ts_tuple
@@ -104,6 +122,9 @@ struct ts_tuple
 	ts_tuple(bz::vector<typespec> _types)
 		: types(std::move(_types))
 	{}
+
+	ts_tuple(ts_tuple const &) = default;
+	ts_tuple(ts_tuple &&) noexcept = default;
 };
 
 struct variable

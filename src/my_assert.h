@@ -1,8 +1,6 @@
 #ifndef MY_ASSERT_H
 #define MY_ASSERT_H
 
-#include <iostream>
-#include <string>
 #include <bz/core.h>
 
 #ifdef assert

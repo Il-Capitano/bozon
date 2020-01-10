@@ -117,9 +117,9 @@ struct stmt_for
 {
 	// TODO
 
-	src_file::token_pos get_tokens_begin(void) const { assert(false); return nullptr; }
-	src_file::token_pos get_tokens_pivot(void) const { assert(false); return nullptr; }
-	src_file::token_pos get_tokens_end(void) const   { assert(false); return nullptr; }
+	src_file::token_pos get_tokens_begin(void) const { assert(false); exit(1); }
+	src_file::token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
+	src_file::token_pos get_tokens_end(void) const   { assert(false); exit(1); }
 
 	void resolve(void);
 };

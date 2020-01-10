@@ -7,6 +7,9 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 
+#include "parser.h"
+
+#include "function_body.h"
 
 struct function_overload_set
 {
