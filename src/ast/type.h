@@ -21,7 +21,7 @@ declare_node_type(ts_tuple);
 
 #undef declare_node_type
 
-using typespec = node<
+struct typespec : node<
 	ts_unresolved,
 	ts_base_type,
 	ts_constant,
@@ -29,10 +29,24 @@ using typespec = node<
 	ts_reference,
 	ts_function,
 	ts_tuple
->;
+>
+{
+	using base_t = node<
+		ts_unresolved,
+		ts_base_type,
+		ts_constant,
+		ts_pointer,
+		ts_reference,
+		ts_function,
+		ts_tuple
+	>;
 
-template<>
-void typespec::resolve(void);
+	using base_t::node;
+	using base_t::get;
+	using base_t::kind;
+
+	void resolve(void);
+};
 
 struct type;
 using type_ptr = std::shared_ptr<type>;

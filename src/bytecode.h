@@ -36,6 +36,13 @@ enum class type_kind
 	float32, float64, ptr
 };
 
+enum register_index : size_t
+{
+	r0 = 0,
+	r1, r2, r3, r4, r5, r6, r7,
+	rsp, rbp, _last
+};
+
 inline size_t type_size(type_kind t)
 {
 	switch (t)
@@ -56,7 +63,7 @@ inline size_t type_size(type_kind t)
 	return 0;
 }
 
-inline bool are_compatible_types(type_kind t1, type_kind t2)
+inline bool are_types_compatible(type_kind t1, type_kind t2)
 {
 	return type_size(t1) == type_size(t2);
 }
@@ -105,50 +112,25 @@ if constexpr (type_kind_of<T> == type_kind::type) \
 #undef CASE
 }
 
-struct stack
-{
-	using stack_t = bz::vector<uint8_t>;
-	using iterator = stack_t::iterator;
-
-	stack_t  _stack;
-	iterator _base_ptr;
-	iterator _stack_ptr;
-
-	void *get_base_ptr(void)
-	{
-		return &*this->_base_ptr;
-	}
-
-	void *get_stack_ptr(void)
-	{
-		return &*this->_stack_ptr;
-	}
-
-	void *get_end_ptr(void)
-	{
-		return &*this->_stack.begin();
-	}
-
-	stack(void)
-		: _stack    (1024 * 1024, 0),
-		  _base_ptr (this->_stack.end()),
-		  _stack_ptr(this->_stack.end())
-	{}
-};
-
 struct instruction;
 
 struct executor
 {
-	std::array<register_value, 8> registers;
-	std::array<type_kind, 8>      register_types;
-	stack stack;
+	static constexpr auto register_count = static_cast<size_t>(register_index::_last);
+	std::array<register_value, register_count> registers;
+	std::array<type_kind,      register_count> register_types;
+	bz::vector<uint8_t> stack;
 
 	executor(void)
 		: registers{},
 		  register_types{},
-		  stack()
-	{}
+		  stack(1024 * 1024, 0)
+	{
+		this->registers[rbp]._ptr = &*this->stack.end();
+		this->register_types[rbp] = type_kind::ptr;
+		this->registers[rsp]._ptr = &*this->stack.end();
+		this->register_types[rsp] = type_kind::ptr;
+	}
 
 	void execute(bz::vector<instruction> const &instructions);
 };
@@ -163,30 +145,29 @@ struct value_pos_t : bz::variant<void *, size_t, register_value>
 	template<typename T>
 	T get_value(executor const &exec) const
 	{
-		auto &st = exec.stack;
-#define CASE(type)                                                                          \
-if constexpr (type_kind_of<T> == type_kind::type)                                           \
-{                                                                                           \
-    switch (this->index())                                                                  \
-    {                                                                                       \
-    case index_of<void *>:                                                                  \
-    {                                                                                       \
-        auto ptr = this->get<void *>();                                                     \
-        assert((intptr_t)ptr % alignof(type##_t) == 0);                                     \
-        assert(ptr >= &*st._stack.begin());                                                 \
-        assert(ptr < &*st._stack.end());                                                    \
-        return *reinterpret_cast<type##_t *>(ptr);                                          \
-    }                                                                                       \
-    case index_of<size_t>:                                                                  \
-    {                                                                                       \
-        auto register_index = this->get<size_t>();                                          \
-        assert(are_compatible_types(exec.register_types[register_index], type_kind::type)); \
-        return exec.registers[register_index]._##type;                                      \
-    }                                                                                       \
-    case index_of<register_value>:                                                          \
-        return this->get<register_value>().get_value<type##_t>();                           \
-    default: assert(false);                                                                 \
-    }                                                                                       \
+#define CASE(type)                                                               \
+if constexpr (type_kind_of<T> == type_kind::type)                                \
+{                                                                                \
+    switch (this->index())                                                       \
+    {                                                                            \
+    case index_of<void *>:                                                       \
+    {                                                                            \
+        auto ptr = this->get<void *>();                                          \
+        assert((intptr_t)ptr % alignof(type##_t) == 0);                          \
+        assert(ptr >= &*exec.stack.begin());                                     \
+        assert(ptr < &*exec.stack.end());                                        \
+        return *reinterpret_cast<type##_t *>(ptr);                               \
+    }                                                                            \
+    case index_of<size_t>:                                                       \
+    {                                                                            \
+        auto idx = this->get<size_t>();                                          \
+        assert(are_types_compatible(exec.register_types[idx], type_kind::type)); \
+        return exec.registers[idx]._##type;                                      \
+    }                                                                            \
+    case index_of<register_value>:                                               \
+        return this->get<register_value>().get_value<type##_t>();                \
+    default: assert(false);                                                      \
+    }                                                                            \
 } else
 		CASE(int8)
 		CASE(int16)
@@ -208,30 +189,29 @@ if constexpr (type_kind_of<T> == type_kind::type)                               
 	template<typename T>
 	void store_value(T val, executor &exec) const
 	{
-		auto &st = exec.stack;
-#define CASE(type)                                             \
-if constexpr (type_kind_of<T> == type_kind::type)              \
-{                                                              \
-    switch (this->index())                                     \
-    {                                                          \
-    case index_of<void *>:                                     \
-    {                                                          \
-        auto ptr = this->get<void *>();                        \
-        assert((intptr_t)ptr % alignof(type##_t) == 0);        \
-        assert(ptr >= &*st._stack.begin());                    \
-        assert(ptr < &*st._stack.end());                       \
-        *reinterpret_cast<type##_t *>(ptr) = val;              \
-        break;                                                 \
-    }                                                          \
-    case index_of<size_t>:                                     \
-    {                                                          \
-        auto register_index = this->get<size_t>();             \
-        exec.registers[register_index]._##type = val;          \
-        exec.register_types[register_index] = type_kind::type; \
-        break;                                                 \
-    }                                                          \
-    default: assert(false); break;                             \
-    }                                                          \
+#define CASE(type)                                      \
+if constexpr (type_kind_of<T> == type_kind::type)       \
+{                                                       \
+    switch (this->index())                              \
+    {                                                   \
+    case index_of<void *>:                              \
+    {                                                   \
+        auto ptr = this->get<void *>();                 \
+        assert((intptr_t)ptr % alignof(type##_t) == 0); \
+        assert(ptr >= &*exec.stack.begin());            \
+        assert(ptr < &*exec.stack.end());               \
+        *reinterpret_cast<type##_t *>(ptr) = val;       \
+        break;                                          \
+    }                                                   \
+    case index_of<size_t>:                              \
+    {                                                   \
+        auto idx = this->get<size_t>();                 \
+        exec.registers[idx]._##type = val;              \
+        exec.register_types[idx] = type_kind::type;     \
+        break;                                          \
+    }                                                   \
+    default: assert(false); break;                      \
+    }                                                   \
 } else
 		CASE(int8)
 		CASE(int16)
@@ -300,15 +280,36 @@ struct div
 	void execute(executor &exec) const;
 };
 
+struct call
+{
+	bz::string id;
+
+	void execute(executor &exec) const;
+};
+
+struct cast
+{
+	value_pos_t src;
+	value_pos_t dest;
+	type_kind src_t;
+	type_kind dest_t;
+
+	void execute(executor &exec) const;
+};
+
 
 struct instruction : bz::variant<
 	mov,
-	add, sub, mul, div
+	add, sub, mul, div,
+	call,
+	cast
 >
 {
 	using base_t = bz::variant<
 		mov,
-		add, sub, mul, div
+		add, sub, mul, div,
+		call,
+		cast
 	>;
 
 	using base_t::variant;

@@ -338,4 +338,8 @@ void expression::resolve(void)
 	}
 }
 
+void expression::emit_bytecode(bz::vector<bytecode::instruction> &out)
+{
+}
+
 } // namespace ast

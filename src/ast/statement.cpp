@@ -55,7 +55,6 @@ void stmt_expression::resolve(void)
 	this->expr.resolve();
 }
 
-template<>
 void statement::resolve(void)
 {
 	assert(this->kind() != null);
@@ -164,7 +163,6 @@ void decl_struct::resolve(void)
 	return;
 }
 
-template<>
 void stmt_declaration::resolve(void)
 {
 	assert(this->kind() != null);

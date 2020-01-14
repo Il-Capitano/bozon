@@ -22,8 +22,6 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	using base_t::get;
 	using base_t::variant;
 
-	void resolve(void);
-
 	node(self_t const &other)
 		: base_t()
 	{

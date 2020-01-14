@@ -5,6 +5,7 @@
 
 #include "node.h"
 #include "type.h"
+#include "../bytecode.h"
 
 namespace ast
 {
@@ -44,6 +45,7 @@ struct expression : node<
 	using base_t::get;
 	using base_t::kind;
 	void resolve(void);
+	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 
 	bool     is_lvalue;
 	typespec expr_type;

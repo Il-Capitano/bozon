@@ -91,7 +91,6 @@ typespec parse_typespec(
 	}
 }
 
-template<>
 void typespec::resolve(void)
 {
 	switch (this->kind())

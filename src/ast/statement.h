@@ -6,6 +6,7 @@
 #include "node.h"
 #include "expression.h"
 #include "type.h"
+#include "../bytecode.h"
 
 namespace ast
 {
@@ -17,16 +18,27 @@ declare_node_type(decl_function);
 declare_node_type(decl_operator);
 declare_node_type(decl_struct);
 
-using stmt_declaration = node<
+struct stmt_declaration : node<
 	decl_variable,
 	decl_function,
 	decl_operator,
 	decl_struct
->;
-using stmt_declaration_ptr = std::unique_ptr<stmt_declaration>;
+>
+{
+	using base_t = node<
+		decl_variable,
+		decl_function,
+		decl_operator,
+		decl_struct
+	>;
 
-template<>
-void stmt_declaration::resolve(void);
+	using base_t::node;
+	using base_t::get;
+	using base_t::kind;
+	void resolve(void);
+	void emit_bytecode(bz::vector<bytecode::instruction> &out);
+};
+using stmt_declaration_ptr = std::unique_ptr<stmt_declaration>;
 
 declare_node_type(stmt_if);
 declare_node_type(stmt_while);
@@ -39,7 +51,7 @@ declare_node_type(stmt_expression);
 #undef declare_node_type
 
 
-using statement = node<
+struct statement : node<
 	stmt_if,
 	stmt_while,
 	stmt_for,
@@ -48,10 +60,25 @@ using statement = node<
 	stmt_compound,
 	stmt_expression,
 	stmt_declaration
->;
+>
+{
+	using base_t = node<
+		stmt_if,
+		stmt_while,
+		stmt_for,
+		stmt_return,
+		stmt_no_op,
+		stmt_compound,
+		stmt_expression,
+		stmt_declaration
+	>;
 
-template<>
-void statement::resolve(void);
+	using base_t::node;
+	using base_t::get;
+	using base_t::kind;
+	void resolve(void);
+	void emit_bytecode(bz::vector<bytecode::instruction> &out);
+};
 
 
 struct stmt_if
