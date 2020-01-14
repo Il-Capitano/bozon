@@ -566,6 +566,18 @@ function op_assign_test() -> void
 //	d = "hello";
 }
 
+function string_print_test() -> void
+{
+	"this is a test";
+	"this is another 	\t test";
+	"this is a newline
+test\n";
+	'\n';
+	'	';
+	'\'';
+	'"';
+}
+
 
 
 
@@ -594,7 +606,7 @@ struct vec3<typename T>
 	{ return (this.x * this.x + this.y * this.y + this.z * this.z); }
 
 	function abs(&const this)
-	{ return std::sqrt(this.abs()); }
+	{ return std::sqrt(this.abs_sqr()); }
 
 	function unit(&const this) -> vec3
 	{

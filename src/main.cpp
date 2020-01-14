@@ -963,6 +963,8 @@ struct complex
 #include "first_pass_parser.h"
 #include "parser.h"
 
+#include <sstream>
+
 
 
 
@@ -986,10 +988,65 @@ struct bz::formatter<ast::expression>
 				return bz::format("{}", literal->value.get<double>());
 
 			case ast::expr_literal::string:
-				return "\"(string)\"";
+			{
+				auto &str = literal->value.get<ast::expr_literal::string>();
+				bz::string res = "\"";
+				for (auto c : str)
+				{
+					switch (c)
+					{
+					case '\\':
+						res += "\\\\";
+						break;
+					case '\'':
+						res += "\\\'";
+						break;
+					case '\"':
+						res += "\\\"";
+						break;
+					case '\t':
+						res += "\\t";
+						break;
+					case '\n':
+						res += "\\n";
+						break;
+					default:
+						res += c;
+						break;
+					}
+				}
+				res += '"';
+				return res;
+			}
 
 			case ast::expr_literal::character:
-				return "'(char)'";
+			{
+				auto c = literal->value.get<ast::expr_literal::character>();
+				bz::string res = "\'";
+				switch (c)
+				{
+				case '\\':
+					res += "\\\\";
+					break;
+				case '\'':
+					res += "\\\'";
+					break;
+				case '\"':
+					res += "\\\"";
+					break;
+				case '\t':
+					res += "\\t";
+					break;
+				case '\n':
+					res += "\\n";
+					break;
+				default:
+					res += c;
+					break;
+				}
+				res += '\'';
+				return res;
+			}
 
 			case ast::expr_literal::bool_true:
 				return "true";
@@ -1065,15 +1122,15 @@ struct bz::formatter<ast::expression>
 };
 
 
-void print_statement(ast::statement const &stmt, int indent_level = 0);
+void print_statement(std::ostream &os, ast::statement const &stmt, int indent_level = 0);
 
-void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
+void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int indent_level = 0)
 {
-	auto indent = [indent_level](int plus_level = 0)
+	auto indent = [&os, indent_level](int plus_level = 0)
 	{
 		for (int i = 0; i < indent_level + plus_level; ++i)
 		{
-			bz::print("    ");
+			bz::print(os, "    ");
 		}
 	};
 
@@ -1083,14 +1140,14 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	{
 		auto &var_decl = decl.get<ast::decl_variable_ptr>();
 		indent();
-		bz::printf("let {}: {}", var_decl->identifier->value, var_decl->var_type);
+		bz::printf(os, "let {}: {}", var_decl->identifier->value, var_decl->var_type);
 		if (var_decl->init_expr.has_value())
 		{
-			bz::printf(" = {};\n", var_decl->init_expr.get());
+			bz::printf(os, " = {};\n", var_decl->init_expr.get());
 		}
 		else
 		{
-			bz::print(";\n");
+			bz::print(os, ";\n");
 		}
 		return;
 	}
@@ -1099,30 +1156,30 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	{
 		auto &fn_decl = decl.get<ast::decl_function_ptr>();
 		indent();
-		bz::printf("function {}(", fn_decl->identifier->value);
+		bz::printf(os, "function {}(", fn_decl->identifier->value);
 		bool put_comma = false;
 		for (auto &p : fn_decl->params)
 		{
 			if (put_comma)
 			{
-				bz::print(", ");
+				bz::print(os, ", ");
 			}
 			else
 			{
 				put_comma = true;
 			}
-			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
 		}
-		bz::printf(") -> {}\n", fn_decl->return_type);
+		bz::printf(os, ") -> {}\n", fn_decl->return_type);
 
 		indent();
-		bz::print("{\n");
+		bz::print(os, "{\n");
 		for (auto &s : fn_decl->body.statements)
 		{
-			print_statement(s, indent_level + 1);
+			print_statement(os, s, indent_level + 1);
 		}
 		indent();
-		bz::print("}\n");
+		bz::print(os, "}\n");
 		return;
 	}
 
@@ -1132,39 +1189,39 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 		indent();
 		if (op_decl->op->kind == token::paren_open)
 		{
-			bz::print("operator () (");
+			bz::print(os, "operator () (");
 		}
 		else if (op_decl->op->kind == token::square_open)
 		{
-			bz::print("operator [] (");
+			bz::print(os, "operator [] (");
 		}
 		else
 		{
-			bz::printf("operator {} (", op_decl->op->value);
+			bz::printf(os, "operator {} (", op_decl->op->value);
 		}
 		bool put_comma = false;
 		for (auto &p : op_decl->params)
 		{
 			if (put_comma)
 			{
-				bz::print(", ");
+				bz::print(os, ", ");
 			}
 			else
 			{
 				put_comma = true;
 			}
-			bz::printf("{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
 		}
-		bz::printf(") -> {}\n", op_decl->return_type);
+		bz::printf(os, ") -> {}\n", op_decl->return_type);
 
 		indent();
-		bz::print("{\n");
+		bz::print(os, "{\n");
 		for (auto &s : op_decl->body.statements)
 		{
-			print_statement(s, indent_level + 1);
+			print_statement(os, s, indent_level + 1);
 		}
 		indent();
-		bz::print("}\n");
+		bz::print(os, "}\n");
 		return;
 	}
 
@@ -1172,16 +1229,16 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	{
 		auto &struct_decl = decl.get<ast::decl_struct_ptr>();
 		indent();
-		bz::printf("struct {}\n", struct_decl->identifier->value);
+		bz::printf(os, "struct {}\n", struct_decl->identifier->value);
 		indent();
-		bz::print("{\n");
+		bz::print(os, "{\n");
 		for (auto &var : struct_decl->member_variables)
 		{
 			indent(1);
-			bz::printf("{}: {};\n", var.id->value, var.var_type);
+			bz::printf(os, "{}: {};\n", var.id->value, var.var_type);
 		}
 		indent();
-		bz::print("}\n");
+		bz::print(os, "}\n");
 		return;
 	}
 
@@ -1191,13 +1248,13 @@ void print_declaration(ast::stmt_declaration const &decl, int indent_level = 0)
 	}
 }
 
-void print_statement(ast::statement const &stmt, int indent_level)
+void print_statement(std::ostream &os, ast::statement const &stmt, int indent_level)
 {
-	auto indent = [indent_level]()
+	auto indent = [&os, indent_level]()
 	{
 		for (int i = 0; i < indent_level; ++i)
 		{
-			bz::print("    ");
+			bz::print(os, "    ");
 		}
 	};
 
@@ -1207,13 +1264,13 @@ void print_statement(ast::statement const &stmt, int indent_level)
 	{
 		auto &if_stmt = stmt.get<ast::stmt_if_ptr>();
 		indent();
-		bz::printf("if ({})\n", if_stmt->condition);
-		print_statement(if_stmt->then_block, indent_level);
+		bz::printf(os, "if ({})\n", if_stmt->condition);
+		print_statement(os, if_stmt->then_block, indent_level);
 		if (if_stmt->else_block.has_value())
 		{
 			indent();
-			bz::printf("else\n");
-			print_statement(if_stmt->else_block.get());
+			bz::printf(os, "else\n");
+			print_statement(os, if_stmt->else_block.get());
 		}
 		return;
 	}
@@ -1222,8 +1279,8 @@ void print_statement(ast::statement const &stmt, int indent_level)
 	{
 		auto &while_stmt = stmt.get<ast::stmt_while_ptr>();
 		indent();
-		bz::printf("while ({})\n", while_stmt->condition);
-		print_statement(while_stmt->while_block, indent_level);
+		bz::printf(os, "while ({})\n", while_stmt->condition);
+		print_statement(os, while_stmt->while_block, indent_level);
 		return;
 	}
 
@@ -1233,35 +1290,35 @@ void print_statement(ast::statement const &stmt, int indent_level)
 
 	case ast::statement::index<ast::stmt_return>:
 		indent();
-		bz::printf("return {};\n", stmt.get<ast::stmt_return_ptr>()->expr);
+		bz::printf(os, "return {};\n", stmt.get<ast::stmt_return_ptr>()->expr);
 		return;
 
 	case ast::statement::index<ast::stmt_no_op>:
 		indent();
-		bz::print(";\n");
+		bz::print(os, ";\n");
 		return;
 
 	case ast::statement::index<ast::stmt_compound>:
 	{
 		auto &cmp_stmt = stmt.get<ast::stmt_compound_ptr>();
 		indent();
-		bz::print("{\n");
+		bz::print(os, "{\n");
 		for (auto &s : cmp_stmt->statements)
 		{
-			print_statement(s, indent_level + 1);
+			print_statement(os, s, indent_level + 1);
 		}
 		indent();
-		bz::print("}\n");
+		bz::print(os, "}\n");
 		return;
 	}
 
 	case ast::statement::index<ast::stmt_expression>:
 		indent();
-		bz::printf("{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
+		bz::printf(os, "{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
 		return;
 
 	case ast::statement::index<ast::stmt_declaration>:
-		print_declaration(*stmt.get<ast::stmt_declaration_ptr>(), indent_level);
+		print_declaration(os, *stmt.get<ast::stmt_declaration_ptr>(), indent_level);
 		return;
 
 	default:
@@ -1269,8 +1326,6 @@ void print_statement(ast::statement const &stmt, int indent_level)
 		return;
 	}
 }
-
-void bytecode_test(void);
 
 int main(void)
 {
@@ -1303,10 +1358,16 @@ int main(void)
 
 	auto after_resolving = std::chrono::steady_clock::now();
 
+	std::stringstream result_ss;
+
 	for (auto &s : statements)
 	{
-		print_statement(s);
+		print_statement(result_ss, s);
 	}
+
+	std::cout << result_ss.str() << std::flush;
+
+	auto after_printing = std::chrono::steady_clock::now();
 
 	auto in_ms = [](auto time)
 	{
@@ -1319,14 +1380,17 @@ int main(void)
 		"First pass:    {:>7.3f}ms\n"
 		"Resolving:     {:>7.3f}ms\n"
 		"Whole parsing: {:>7.3f}ms\n"
-		"Whole runtime: {:>7.3f}ms\n",
+		"Whole runtime: {:>7.3f}ms\n"
+		"Printing:      {:>7.3f}ms\n",
 		in_ms(after_tokenizing - start),
 		in_ms(after_first_pass - after_tokenizing),
 		in_ms(after_resolving - after_first_pass),
 		in_ms(after_resolving - after_tokenizing),
-		in_ms(after_resolving - start)
+		in_ms(after_resolving - start),
+		in_ms(after_printing - after_resolving)
 	);
 
+	void bytecode_test(void);
 	bytecode_test();
 
 	return 0;

@@ -128,12 +128,80 @@ expr_literal::expr_literal(src_file::token_pos stream)
 	}
 
 	case token::string_literal:
-		this->value.emplace<string>(stream->value);
+	{
+		auto &str = stream->value;
+		bz::string res = "";
+		res.reserve(str.length());
+		for (auto it = str.begin(), end = str.end(); it != end; ++it)
+		{
+			switch (*it)
+			{
+			case '\\':
+				++it;
+				assert(it != end);
+				switch (*it)
+				{
+				case '\\':
+					res += '\\';
+					break;
+				case '\'':
+					res += '\'';
+					break;
+				case '\"':
+					res += '\"';
+					break;
+				case 'n':
+					res += '\n';
+					break;
+				case 't':
+					res += '\t';
+					break;
+				default:
+					assert(false);
+					break;
+				}
+				break;
+
+			default:
+				res += *it;
+				break;
+			}
+		}
+		this->value.emplace<string>(std::move(res));
 		break;
+	}
 
 	case token::character_literal:
-		assert(stream->value.length() == 1);
-		this->value.emplace<character>(stream->value[0]);
+		if (stream->value.length() == 1)
+		{
+			this->value.emplace<character>(stream->value[0]);
+		}
+		else
+		{
+			assert(stream->value.length() == 2);
+			assert(stream->value[0] == '\\');
+			switch (stream->value[1])
+			{
+			case '\\':
+				this->value.emplace<character>('\\');
+				break;
+			case '\'':
+				this->value.emplace<character>('\'');
+				break;
+			case '\"':
+				this->value.emplace<character>('\"');
+				break;
+			case 'n':
+				this->value.emplace<character>('\n');
+				break;
+			case 't':
+				this->value.emplace<character>('\t');
+				break;
+			default:
+				assert(false);
+				break;
+			}
+		}
 		break;
 
 	case token::kw_true:
