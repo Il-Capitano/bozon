@@ -338,8 +338,23 @@ void expression::resolve(void)
 	}
 }
 
-void expression::emit_bytecode(bz::vector<bytecode::instruction> &out)
+void expression::emit_bytecode(
+	bz::vector<bytecode::instruction> &out,
+	bytecode::value_pos_t ret_pos
+)
 {
+	switch (this->kind())
+	{
+	case index<expr_identifier>:
+	case index<expr_literal>:
+	case index<expr_tuple>:
+	case index<expr_unary_op>:
+	case index<expr_binary_op>:
+	case index<expr_function_call>:
+	default:
+		assert(false);
+		break;
+	}
 }
 
 } // namespace ast

@@ -45,7 +45,7 @@ struct expression : node<
 	using base_t::get;
 	using base_t::kind;
 	void resolve(void);
-	void emit_bytecode(bz::vector<bytecode::instruction> &out);
+	void emit_bytecode(bz::vector<bytecode::instruction> &out, bytecode::value_pos_t ret_pos);
 
 	bool     is_lvalue;
 	typespec expr_type;
