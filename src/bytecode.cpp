@@ -173,7 +173,7 @@ case type_kind::type:                                                  \
     }                                                                  \
     break;
 
-	switch (dest_t)
+	switch (this->dest_t)
 	{
 	CASE(int8)
 	CASE(int16)
