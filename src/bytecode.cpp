@@ -12,6 +12,12 @@ void executor::execute(bz::vector<instruction> const &instructions)
 	}
 }
 
+bool executor::is_valid_address(void *ptr) const
+{
+	return ptr >= this->registers[rsp]._ptr
+		&& ptr < &*this->stack.end();
+}
+
 void mov::execute(executor &exec) const
 {
 #define CASE(type)                                  \
@@ -216,33 +222,6 @@ case type_kind::type:                                   \
 #undef CASE
 }
 
-void deref::execute(executor &exec) const
-{
-#define CASE(type)                                                                 \
-case type_kind::type:                                                              \
-{                                                                                  \
-    auto ptr = reinterpret_cast<type##_t *>(this->src_ptr.get_value<ptr_t>(exec)); \
-    this->dest.store_value(*ptr, exec);                                            \
-    break;                                                                         \
-}
-	switch (this->type)
-	{
-	CASE(int8)
-	CASE(int16)
-	CASE(int32)
-	CASE(int64)
-	CASE(uint8)
-	CASE(uint16)
-	CASE(uint32)
-	CASE(uint64)
-	CASE(float32)
-	CASE(float64)
-	CASE(ptr)
-	default: assert(false); break;
-	}
-#undef CASE
-}
-
 
 void instruction::execute(executor &exec) const
 {
@@ -261,12 +240,12 @@ void bytecode_test(void)
 	bz::vector<instruction> instructions = {
 		sub{ rsp, rsp, register_value{._uint64 = 4}, type_kind::uint64 },
 
-		mov{ ptr_value(-4ll), register_value{._int32 = -123}, type_kind::int32 },
-		mov{ r0, ptr_value(-4ll), type_kind::int32 },
+		mov{ ptr_value(-4), register_value{._int32 = -123}, type_kind::int32 },
+		mov{ r0, ptr_value(-4), type_kind::int32 },
 
 		sub{ r1, rbp, register_value{._uint64 = 4}, type_kind::uint64 },
 		cast{ r1, r1, type_kind::uint64, type_kind::ptr },
-		deref{ r1, r2, type_kind::int32 },
+		mov{ r2, ptr_value(r1), type_kind::int32 },
 
 		add{ rsp, rsp, register_value{._uint64 = 4}, type_kind::uint64 },
 	};

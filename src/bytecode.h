@@ -133,12 +133,13 @@ struct executor
 	}
 
 	void execute(bz::vector<instruction> const &instructions);
+	bool is_valid_address(void *ptr) const;
 };
 
 
-struct ptr_value : bz::variant<int64_t, size_t>
+struct ptr_value : bz::variant<int64_t, register_index>
 {
-	using base_t = bz::variant<int64_t, size_t>;
+	using base_t = bz::variant<int64_t, register_index>;
 
 	template<typename T>
 	explicit ptr_value(T &&val)
@@ -146,59 +147,57 @@ struct ptr_value : bz::variant<int64_t, size_t>
 	{}
 };
 
-struct value_pos_t : bz::variant<ptr_value, size_t, register_value>
+struct value_pos_t : bz::variant<ptr_value, register_index, register_value>
 {
-	using base_t = bz::variant<ptr_value, size_t, register_value>;
+	using base_t = bz::variant<ptr_value, register_index, register_value>;
 
 	using base_t::variant;
 
 	template<typename T>
 	T get_value(executor const &exec) const
 	{
-#define CASE(type)                                                               \
-if constexpr (type_kind_of<T> == type_kind::type)                                \
-{                                                                                \
-    switch (this->index())                                                       \
-    {                                                                            \
-    case index_of<ptr_value>:                                                    \
-    {                                                                            \
-        auto &ptr = this->get<ptr_value>();                                      \
-        switch (ptr.index())                                                     \
-        {                                                                        \
-        case ptr_value::index_of<int64_t>:                                       \
-        {                                                                        \
-            auto const offset = ptr.get<int64_t>();                              \
-            auto const ptr_val =                                                 \
-                reinterpret_cast<uint8_t *>(exec.registers[rbp]._ptr) + offset;  \
-            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                  \
-            assert(ptr_val >= &*exec.stack.begin());                             \
-            assert(ptr_val < &*exec.stack.end());                                \
-            return *reinterpret_cast<type##_t *>(ptr_val);                       \
-        }                                                                        \
-        case ptr_value::index_of<size_t>:                                        \
-        {                                                                        \
-            auto const idx = ptr.get<size_t>();                                  \
-            assert(exec.register_types[idx] == type_kind::ptr);                  \
-            auto const ptr_val = exec.registers[idx]._ptr;                       \
-            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                  \
-            assert(ptr_val >= &*exec.stack.begin());                             \
-            assert(ptr_val < &*exec.stack.end());                                \
-            return *reinterpret_cast<type##_t *>(ptr_val);                       \
-        }                                                                        \
-        default: assert(false);                                                  \
-        }                                                                        \
-        break;                                                                   \
-    }                                                                            \
-    case index_of<size_t>:                                                       \
-    {                                                                            \
-        auto idx = this->get<size_t>();                                          \
-        assert(are_types_compatible(exec.register_types[idx], type_kind::type)); \
-        return exec.registers[idx]._##type;                                      \
-    }                                                                            \
-    case index_of<register_value>:                                               \
-        return this->get<register_value>().get_value<type##_t>();                \
-    default: assert(false);                                                      \
-    }                                                                            \
+#define CASE(type)                                                                    \
+if constexpr (type_kind_of<T> == type_kind::type)                                     \
+{                                                                                     \
+    switch (this->index())                                                            \
+    {                                                                                 \
+    case index_of<ptr_value>:                                                         \
+    {                                                                                 \
+        auto &ptr = this->get<ptr_value>();                                           \
+        switch (ptr.index())                                                          \
+        {                                                                             \
+        case ptr_value::index_of<int64_t>:                                            \
+        {                                                                             \
+            auto const offset = ptr.get<int64_t>();                                   \
+            auto const ptr_val =                                                      \
+                reinterpret_cast<uint8_t *>(exec.registers[rbp]._ptr) + offset;       \
+            assert(exec.is_valid_address(ptr_val));                                   \
+            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                       \
+            return *reinterpret_cast<type##_t *>(ptr_val);                            \
+        }                                                                             \
+        case ptr_value::index_of<register_index>:                                     \
+        {                                                                             \
+            auto const idx = ptr.get<register_index>();                               \
+            assert(exec.register_types[idx] == type_kind::ptr);                       \
+            auto const ptr_val = exec.registers[idx]._ptr;                            \
+            assert(exec.is_valid_address(ptr_val));                                   \
+            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                       \
+            return *reinterpret_cast<type##_t *>(ptr_val);                            \
+        }                                                                             \
+        default: assert(false);                                                       \
+        }                                                                             \
+        break;                                                                        \
+    }                                                                                 \
+    case index_of<register_index>:                                                    \
+    {                                                                                 \
+        auto idx = this->get<register_index>();                                       \
+        assert(are_types_compatible(exec.register_types[idx], type_kind::type));      \
+        return exec.registers[idx]._##type;                                           \
+    }                                                                                 \
+    case index_of<register_value>:                                                    \
+        return this->get<register_value>().get_value<type##_t>();                     \
+    default: assert(false);                                                           \
+    }                                                                                 \
 } else
 		CASE(int8)
 		CASE(int16)
@@ -220,51 +219,49 @@ if constexpr (type_kind_of<T> == type_kind::type)                               
 	template<typename T>
 	void store_value(T val, executor &exec) const
 	{
-#define CASE(type)                                                              \
-if constexpr (type_kind_of<T> == type_kind::type)                               \
-{                                                                               \
-    switch (this->index())                                                      \
-    {                                                                           \
-    case index_of<ptr_value>:                                                   \
-    {                                                                           \
-        auto &ptr = this->get<ptr_value>();                                     \
-        switch (ptr.index())                                                    \
-        {                                                                       \
-        case ptr_value::index_of<int64_t>:                                      \
-        {                                                                       \
-            auto const offset = ptr.get<int64_t>();                             \
-            auto const ptr_val =                                                \
-                reinterpret_cast<uint8_t *>(exec.registers[rbp]._ptr) + offset; \
-            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                 \
-            assert(ptr_val >= &*exec.stack.begin());                            \
-            assert(ptr_val < &*exec.stack.end());                               \
-            *reinterpret_cast<type##_t *>(ptr_val) = val;                       \
-            break;                                                              \
-        }                                                                       \
-        case ptr_value::index_of<size_t>:                                       \
-        {                                                                       \
-            auto const idx = ptr.get<size_t>();                                 \
-            assert(exec.register_types[idx] == type_kind::ptr);                 \
-            auto const ptr_val = exec.registers[idx]._ptr;                      \
-            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                 \
-            assert(ptr_val >= &*exec.stack.begin());                            \
-            assert(ptr_val < &*exec.stack.end());                               \
-            *reinterpret_cast<type##_t *>(ptr_val) = val;                       \
-            break;                                                              \
-        }                                                                       \
-        default: assert(false); break;                                          \
-        }                                                                       \
-        break;                                                                  \
-    }                                                                           \
-    case index_of<size_t>:                                                      \
-    {                                                                           \
-        auto idx = this->get<size_t>();                                         \
-        exec.registers[idx]._##type = val;                                      \
-        exec.register_types[idx] = type_kind::type;                             \
-        break;                                                                  \
-    }                                                                           \
-    default: assert(false); break;                                              \
-    }                                                                           \
+#define CASE(type)                                                                    \
+if constexpr (type_kind_of<T> == type_kind::type)                                     \
+{                                                                                     \
+    switch (this->index())                                                            \
+    {                                                                                 \
+    case index_of<ptr_value>:                                                         \
+    {                                                                                 \
+        auto &ptr = this->get<ptr_value>();                                           \
+        switch (ptr.index())                                                          \
+        {                                                                             \
+        case ptr_value::index_of<int64_t>:                                            \
+        {                                                                             \
+            auto const offset = ptr.get<int64_t>();                                   \
+            auto const ptr_val =                                                      \
+                reinterpret_cast<uint8_t *>(exec.registers[rbp]._ptr) + offset;       \
+            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                       \
+            assert(exec.is_valid_address(ptr_val));                                   \
+            *reinterpret_cast<type##_t *>(ptr_val) = val;                             \
+            break;                                                                    \
+        }                                                                             \
+        case ptr_value::index_of<register_index>:                                     \
+        {                                                                             \
+            auto const idx = ptr.get<register_index>();                               \
+            assert(exec.register_types[idx] == type_kind::ptr);                       \
+            auto const ptr_val = exec.registers[idx]._ptr;                            \
+            assert((uint64_t)ptr_val % alignof(type##_t) == 0);                       \
+            assert(exec.is_valid_address(ptr_val));                                   \
+            *reinterpret_cast<type##_t *>(ptr_val) = val;                             \
+            break;                                                                    \
+        }                                                                             \
+        default: assert(false); break;                                                \
+        }                                                                             \
+        break;                                                                        \
+    }                                                                                 \
+    case index_of<register_index>:                                                    \
+    {                                                                                 \
+        auto idx = this->get<register_index>();                                       \
+        exec.registers[idx]._##type = val;                                            \
+        exec.register_types[idx] = type_kind::type;                                   \
+        break;                                                                        \
+    }                                                                                 \
+    default: assert(false); break;                                                    \
+    }                                                                                 \
 } else
 		CASE(int8)
 		CASE(int16)
@@ -350,30 +347,19 @@ struct cast
 	void execute(executor &exec) const;
 };
 
-struct deref
-{
-	value_pos_t src_ptr;
-	value_pos_t dest;
-	type_kind type;
-
-	void execute(executor &exec) const;
-};
-
 
 struct instruction : bz::variant<
 	mov,
 	add, sub, mul, div,
 	call,
-	cast,
-	deref
+	cast
 >
 {
 	using base_t = bz::variant<
 		mov,
 		add, sub, mul, div,
 		call,
-		cast,
-		deref
+		cast
 	>;
 
 	using base_t::variant;

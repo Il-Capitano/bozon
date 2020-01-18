@@ -1371,7 +1371,7 @@ int main(void)
 
 	auto in_ms = [](auto time)
 	{
-		return std::chrono::duration_cast<std::chrono::nanoseconds>(time).count() / 1'000'000.0;
+		return std::chrono::duration_cast<std::chrono::microseconds>(time).count() / 1'000.0;
 	};
 
 	bz::print("\n\n");

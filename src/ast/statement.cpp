@@ -55,12 +55,6 @@ void stmt_expression::resolve(void)
 	this->expr.resolve();
 }
 
-void statement::resolve(void)
-{
-	assert(this->kind() != null);
-	this->visit([](auto &stmt) { stmt->resolve(); });
-}
-
 
 void decl_variable::resolve(void)
 {
@@ -167,6 +161,21 @@ void stmt_declaration::resolve(void)
 {
 	assert(this->kind() != null);
 	this->visit([](auto &decl) { decl->resolve(); });
+}
+
+void stmt_declaration::emit_bytecode(bz::vector<bytecode::instruction> &out)
+{
+}
+
+
+void statement::resolve(void)
+{
+	assert(this->kind() != null);
+	this->visit([](auto &stmt) { stmt->resolve(); });
+}
+
+void statement::emit_bytecode(bz::vector<bytecode::instruction> &out)
+{
 }
 
 } // namespace ast
