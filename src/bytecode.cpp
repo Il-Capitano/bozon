@@ -230,31 +230,3 @@ void instruction::execute(executor &exec) const
 
 
 } // namespace bytecode
-
-
-void bytecode_test(void)
-{
-	using namespace bytecode;
-
-	executor exec;
-	bz::vector<instruction> instructions = {
-		sub{ rsp, rsp, register_value{._uint64 = 4}, type_kind::uint64 },
-
-		mov{ ptr_value(-4), register_value{._int32 = -123}, type_kind::int32 },
-		mov{ r0, ptr_value(-4), type_kind::int32 },
-
-		sub{ r1, rbp, register_value{._uint64 = 4}, type_kind::uint64 },
-		cast{ r1, r1, type_kind::uint64, type_kind::ptr },
-		mov{ r2, ptr_value(r1), type_kind::int32 },
-
-		add{ rsp, rsp, register_value{._uint64 = 4}, type_kind::uint64 },
-	};
-
-	exec.execute(instructions);
-	assert(exec.registers[rsp]._ptr == exec.registers[rbp]._ptr);
-	assert(*reinterpret_cast<int32_t *>(
-		reinterpret_cast<uint8_t *>(exec.registers[rbp]._ptr) - 4
-	) == -123);
-	assert(exec.registers[r0]._int32 == -123);
-	assert(exec.registers[r2]._int32 == -123);
-}

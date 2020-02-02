@@ -4,6 +4,28 @@
 namespace ast
 {
 
+statement::statement(declaration decl)
+	: base_t()
+{
+	switch (decl.kind())
+	{
+	case declaration::index<decl_variable>:
+		this->assign(std::move(decl.get<decl_variable_ptr>()));
+		break;
+	case declaration::index<decl_function>:
+		this->assign(std::move(decl.get<decl_function_ptr>()));
+		break;
+	case declaration::index<decl_operator>:
+		this->assign(std::move(decl.get<decl_operator_ptr>()));
+		break;
+	case declaration::index<decl_struct>:
+		this->assign(std::move(decl.get<decl_struct_ptr>()));
+		break;
+	default:
+		break;
+	}
+}
+
 src_file::token_pos decl_variable::get_tokens_begin(void) const
 { return this->tokens.begin; }
 
@@ -116,6 +138,24 @@ void decl_variable::resolve(void)
 	return;
 }
 
+void decl_variable::emit_bytecode(bz::vector<bytecode::instruction> &out)
+{
+	using namespace bytecode;
+	auto const allocation_amount = context.get_identifier_stack_allocation_amount(this->identifier);
+	auto const stack_offset = context.get_identifier_stack_offset(this->identifier);
+	out.push_back(sub{
+		rsp,
+		rsp,
+		register_value{._int64 = allocation_amount},
+		type_kind::int64
+	});
+	auto ret_pos = value_pos_t(ptr_value(stack_offset));
+	if (this->init_expr.has_value())
+	{
+		this->init_expr->emit_bytecode(out, ret_pos);
+	}
+}
+
 void decl_function::resolve(void)
 {
 	++context;
@@ -157,16 +197,11 @@ void decl_struct::resolve(void)
 	return;
 }
 
-void stmt_declaration::resolve(void)
+void declaration::resolve(void)
 {
 	assert(this->kind() != null);
 	this->visit([](auto &decl) { decl->resolve(); });
 }
-
-void stmt_declaration::emit_bytecode(bz::vector<bytecode::instruction> &out)
-{
-}
-
 
 void statement::resolve(void)
 {
@@ -176,6 +211,26 @@ void statement::resolve(void)
 
 void statement::emit_bytecode(bz::vector<bytecode::instruction> &out)
 {
+	switch (this->kind())
+	{
+	case index<stmt_if>:
+	case index<stmt_while>:
+	case index<stmt_for>:
+	case index<stmt_return>:
+	case index<stmt_no_op>:
+	case index<stmt_compound>:
+		assert(false);
+		break;
+	case index<stmt_expression>:
+		this->get<stmt_expression_ptr>()->expr.emit_bytecode(out, {});
+		break;
+	case index<decl_variable>:
+		this->get<decl_variable_ptr>()->emit_bytecode(out);
+		break;
+	default:
+		assert(false);
+		break;
+	}
 }
 
 } // namespace ast

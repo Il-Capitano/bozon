@@ -63,6 +63,9 @@ struct parse_context
 	ast::typespec get_operator_type(ast::expr_binary_op const &binary_op);
 
 	bool is_convertible(ast::expression const &expr, ast::typespec const &type);
+
+	int64_t get_identifier_stack_offset(src_file::token_pos id) const;
+	int64_t get_identifier_stack_allocation_amount(src_file::token_pos id) const;
 };
 
 extern parse_context context;

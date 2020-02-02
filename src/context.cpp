@@ -1339,3 +1339,197 @@ bool is_built_in_convertible(ast::type_ptr from, ast::type_ptr to)
 
 	return false;
 }
+
+static size_t get_align(ast::typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case ast::typespec::index<ast::ts_base_type>:
+		return ast::align_of(ts.get<ast::ts_base_type_ptr>()->base_type);
+	case ast::typespec::index<ast::ts_constant>:
+		return get_align(ts.get<ast::ts_constant_ptr>()->base);
+	case ast::typespec::index<ast::ts_pointer>:
+		return 8;
+	case ast::typespec::index<ast::ts_reference>:
+		return 8;
+	case ast::typespec::index<ast::ts_function>:
+		return 8;
+	case ast::typespec::index<ast::ts_tuple>:
+	{
+		size_t align = 0;
+		auto &tuple = ts.get<ast::ts_tuple_ptr>();
+
+		for (auto &member : tuple->types)
+		{
+			if (auto member_align = get_align(member); member_align > align)
+			{
+				align = member_align;
+			}
+		}
+
+		return align;
+	}
+	default:
+		assert(false);
+		break;
+	}
+}
+
+static size_t get_size(ast::typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case ast::typespec::index<ast::ts_base_type>:
+		return ast::size_of(ts.get<ast::ts_base_type_ptr>()->base_type);
+	case ast::typespec::index<ast::ts_constant>:
+		return get_size(ts.get<ast::ts_constant_ptr>()->base);
+	case ast::typespec::index<ast::ts_pointer>:
+		return 8;
+	case ast::typespec::index<ast::ts_reference>:
+		return 8;
+	case ast::typespec::index<ast::ts_function>:
+		return 8;
+	case ast::typespec::index<ast::ts_tuple>:
+	{
+		size_t size  = 0;
+		size_t align = 0;
+		auto &tuple = ts.get<ast::ts_tuple_ptr>();
+
+		if (tuple->types.size() == 0)
+		{
+			return 0;
+		}
+
+		for (auto &memeber : tuple->types)
+		{
+			auto ts_size  = get_size(memeber);
+			auto ts_align = get_align(memeber);
+
+			if (ts_align == 0)
+			{
+				continue;
+			}
+
+			if (auto padding = size % ts_align; padding != 0)
+			{
+				size += ts_align - padding;
+			}
+			size += ts_size;
+
+			if (ts_align > align)
+			{
+				align = ts_align;
+			}
+		}
+
+		if (align == 0)
+		{
+			return size;
+		}
+
+		if (auto padding = size % align; padding != 0)
+		{
+			size += align - padding;
+		}
+
+		return size;
+	}
+	default:
+		assert(false);
+		break;
+	}
+}
+
+int64_t parse_context::get_identifier_stack_offset(src_file::token_pos id) const
+{
+	int64_t offset = 0;
+	ast::variable const *var = nullptr;
+	bool loop = true;
+
+	for (
+		auto scope = this->variables.rbegin();
+		loop && scope != this->variables.rend();
+		++scope
+	)
+	{
+		for (auto v = scope->rbegin(); loop && v != scope->rend(); ++v)
+		{
+			if (v->id == id)
+			{
+				loop = false;
+				var = &*v;
+			}
+		}
+	}
+	assert(var);
+
+	for (auto scope = this->variables.begin(); scope != this->variables.end(); ++scope)
+	{
+		for (auto v = scope->begin(); v != scope->end(); ++v)
+		{
+			auto size = get_size(v->var_type);
+			auto align = get_align(v->var_type);
+			if (auto padding = offset % align; padding != 0)
+			{
+				offset += align - padding;
+			}
+			offset += size;
+
+			if (var == &*v)
+			{
+				return -offset;
+			}
+		}
+	}
+
+	assert(false);
+	return 0;
+}
+
+int64_t parse_context::get_identifier_stack_allocation_amount(src_file::token_pos id) const
+{
+	int64_t offset = 0;
+	int64_t prev_offset = 0;
+	ast::variable const *var = nullptr;
+	bool loop = true;
+
+	for (
+		auto scope = this->variables.rbegin();
+		loop && scope != this->variables.rend();
+		++scope
+	)
+	{
+		for (auto v = scope->rbegin(); loop && v != scope->rend(); ++v)
+		{
+			if (v->id == id)
+			{
+				loop = false;
+				var = &*v;
+			}
+		}
+	}
+	assert(var);
+
+	for (auto scope = this->variables.begin(); scope != this->variables.end(); ++scope)
+	{
+		for (auto v = scope->begin(); v != scope->end(); ++v)
+		{
+			prev_offset = offset;
+			auto size = get_size(v->var_type);
+			auto align = get_align(v->var_type);
+			if (auto padding = offset % align; padding != 0)
+			{
+				offset += align - padding;
+			}
+			offset += size;
+
+			if (var == &*v)
+			{
+				return offset - prev_offset;
+			}
+		}
+	}
+
+	assert(false);
+	return 0;
+}

@@ -1,18 +1,19 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <iostream>
 #include <fstream>
-#include <cstdint>
-#include <cmath>
+#include <iostream>
+#include <vector>
 #include <array>
 #include <map>
-#include <memory>
 #include <utility>
+#include <memory>
 #include <algorithm>
 #include <chrono>
+
+#include <cstdint>
+#include <cmath>
 #include <cstring>
-#include <vector>
 
 #include <bz/variant.h>
 #include <bz/string.h>

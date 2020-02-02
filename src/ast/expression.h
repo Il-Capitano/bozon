@@ -45,7 +45,10 @@ struct expression : node<
 	using base_t::get;
 	using base_t::kind;
 	void resolve(void);
-	void emit_bytecode(bz::vector<bytecode::instruction> &out, bytecode::value_pos_t ret_pos);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 
 	bool     is_lvalue;
 	typespec expr_type;
@@ -94,6 +97,10 @@ struct expr_identifier
 	{ return this->identifier + 1; }
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 struct expr_literal
@@ -132,6 +139,10 @@ struct expr_literal
 	{ return this->src_pos + 1; }
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 struct expr_tuple
@@ -153,6 +164,10 @@ struct expr_tuple
 	{ return this->tokens.end; }
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 struct expr_unary_op
@@ -171,6 +186,10 @@ struct expr_unary_op
 	src_file::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 struct expr_binary_op
@@ -190,6 +209,10 @@ struct expr_binary_op
 	src_file::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 struct expr_function_call
@@ -209,6 +232,10 @@ struct expr_function_call
 	src_file::token_pos get_tokens_end() const;
 
 	void resolve(void);
+	void emit_bytecode(
+		bz::vector<bytecode::instruction> &out,
+		bz::optional<bytecode::value_pos_t> ret_pos
+	);
 };
 
 

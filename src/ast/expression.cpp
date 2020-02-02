@@ -4,6 +4,73 @@
 namespace ast
 {
 
+static bytecode::type_kind get_type_kind(ast::typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case ast::typespec::index<ast::ts_base_type>:
+	{
+		auto &base = ts.get<ast::ts_base_type_ptr>()->base_type;
+		switch (base->kind())
+		{
+		case ast::type::index_of<ast::built_in_type>:
+		{
+			auto &built_in = base->get<ast::built_in_type>();
+			switch (built_in.kind)
+			{
+			case ast::built_in_type::int8_:
+				return bytecode::type_kind::int8;
+			case ast::built_in_type::int16_:
+				return bytecode::type_kind::int16;
+			case ast::built_in_type::int32_:
+				return bytecode::type_kind::int32;
+			case ast::built_in_type::int64_:
+				return bytecode::type_kind::int64;
+			case ast::built_in_type::uint8_:
+				return bytecode::type_kind::uint8;
+			case ast::built_in_type::uint16_:
+				return bytecode::type_kind::uint16;
+			case ast::built_in_type::uint32_:
+				return bytecode::type_kind::uint32;
+			case ast::built_in_type::uint64_:
+				return bytecode::type_kind::uint64;
+			case ast::built_in_type::float32_:
+				return bytecode::type_kind::float32;
+			case ast::built_in_type::float64_:
+				return bytecode::type_kind::float64;
+			case ast::built_in_type::char_:
+				return bytecode::type_kind::uint32;
+			case ast::built_in_type::bool_:
+				return bytecode::type_kind::uint8;
+			case ast::built_in_type::null_t_:
+				return bytecode::type_kind::ptr;
+			case ast::built_in_type::str_:
+			case ast::built_in_type::void_:
+			default:
+				assert(false);
+				return bytecode::type_kind::int32;
+			}
+		}
+		case ast::type::index_of<ast::aggregate_type>:
+		default:
+			assert(false);
+			return bytecode::type_kind::int32;
+		}
+	}
+	case ast::typespec::index<ast::ts_constant>:
+		return get_type_kind(ts.get<ast::ts_constant_ptr>()->base);
+	case ast::typespec::index<ast::ts_pointer>:
+		return bytecode::type_kind::ptr;
+	case ast::typespec::index<ast::ts_reference>:
+	case ast::typespec::index<ast::ts_function>:
+	case ast::typespec::index<ast::ts_tuple>:
+	default:
+		assert(false);
+		return bytecode::type_kind::int32;
+	}
+}
+
+
 src_file::token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
 
@@ -46,8 +113,113 @@ src_file::token_pos expr_function_call::get_tokens_end(void) const
 void expr_identifier::resolve(void)
 {}
 
+void expr_identifier::emit_bytecode(
+	bz::vector<bytecode::instruction> &out,
+	bz::optional<bytecode::value_pos_t> ret_pos
+)
+{
+	if (!ret_pos.has_value())
+	{
+		return;
+	}
+
+	using namespace bytecode;
+	auto offset = context.get_identifier_stack_offset(this->identifier);
+	auto type = context.get_identifier_type(this->identifier);
+
+	if (type.kind() == ast::typespec::index<ast::ts_reference>)
+	{
+		// TODO
+		assert(false, "reference types are not yet implemented");
+	}
+	else
+	{
+		auto type_kind = get_type_kind(type);
+		out.push_back(mov{
+			*ret_pos,
+			ptr_value(offset),
+			type_kind
+		});
+	}
+}
+
 void expr_literal::resolve(void)
 {}
+
+void expr_literal::emit_bytecode(
+	bz::vector<bytecode::instruction> &out,
+	bz::optional<bytecode::value_pos_t> ret_pos
+)
+{
+	using namespace bytecode;
+
+	if (!ret_pos.has_value())
+	{
+		return;
+	}
+
+	switch (this->value.index())
+	{
+	case integer_number:
+	{
+		auto val = this->value.get<integer_number>();
+		if (val <= std::numeric_limits<int32_t>::max())
+		{
+			auto int32_val = static_cast<int32_t>(val);
+			out.push_back(mov{
+				*ret_pos,
+				value_pos_t(register_value{._int32 = int32_val}),
+				type_kind::int32
+			});
+		}
+		else
+		{
+			assert(false);
+		}
+		break;
+	}
+	case floating_point_number:
+	{
+		auto val = this->value.get<floating_point_number>();
+		out.push_back(mov{
+			*ret_pos,
+			value_pos_t(register_value{._float64 = val}),
+			type_kind::float64
+		});
+		break;
+	}
+	// TODO
+	case string:
+		assert(false);
+		break;
+	case character:
+		assert(false);
+		break;
+	case bool_true:
+		out.push_back(mov{
+			*ret_pos,
+			value_pos_t(register_value{._uint8 = 1}),
+			type_kind::uint8
+		});
+		break;
+	case bool_false:
+		out.push_back(mov{
+			*ret_pos,
+			value_pos_t(register_value{._uint8 = 0}),
+			type_kind::uint8
+		});
+		break;
+	case null:
+	{
+		out.push_back(mov{
+			*ret_pos,
+			value_pos_t(register_value{._ptr = nullptr}),
+			type_kind::ptr
+		});
+		break;
+	}
+	}
+}
 
 void expr_tuple::resolve(void)
 {
@@ -57,15 +229,42 @@ void expr_tuple::resolve(void)
 	}
 }
 
+void expr_tuple::emit_bytecode(
+	bz::vector<bytecode::instruction> & /* out */,
+	bz::optional<bytecode::value_pos_t> /* ret_pos */
+)
+{
+	// TODO
+	assert(false);
+}
+
 void expr_unary_op::resolve(void)
 {
 	this->expr.resolve();
+}
+
+void expr_unary_op::emit_bytecode(
+	bz::vector<bytecode::instruction> & /* out */,
+	bz::optional<bytecode::value_pos_t> /* ret_pos */
+)
+{
+	// TODO
+	assert(false);
 }
 
 void expr_binary_op::resolve(void)
 {
 	this->lhs.resolve();
 	this->rhs.resolve();
+}
+
+void expr_binary_op::emit_bytecode(
+	bz::vector<bytecode::instruction> &out,
+	bz::optional<bytecode::value_pos_t> ret_pos
+)
+{
+	// TODO
+	assert(false);
 }
 
 void expr_function_call::resolve(void)
@@ -81,6 +280,15 @@ void expr_function_call::resolve(void)
 	{
 		p.resolve();
 	}
+}
+
+void expr_function_call::emit_bytecode(
+	bz::vector<bytecode::instruction> & /* out */,
+	bz::optional<bytecode::value_pos_t> /* ret_pos */
+)
+{
+	// TODO
+	assert(false);
 }
 
 
@@ -340,13 +548,17 @@ void expression::resolve(void)
 
 void expression::emit_bytecode(
 	bz::vector<bytecode::instruction> &out,
-	bytecode::value_pos_t ret_pos
+	bz::optional<bytecode::value_pos_t> ret_pos
 )
 {
 	switch (this->kind())
 	{
 	case index<expr_identifier>:
+		this->get<expr_identifier_ptr>()->emit_bytecode(out, ret_pos);
+		break;
 	case index<expr_literal>:
+		this->get<expr_literal_ptr>()->emit_bytecode(out, ret_pos);
+		break;
 	case index<expr_tuple>:
 	case index<expr_unary_op>:
 	case index<expr_binary_op>:

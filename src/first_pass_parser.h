@@ -7,6 +7,15 @@
 
 
 ast::statement get_ast_statement(src_file::token_pos &stream, src_file::token_pos end);
-bz::vector<ast::statement> get_ast_statements(src_file::token_pos &stream, src_file::token_pos end);
+bz::vector<ast::statement> get_ast_statements(
+	src_file::token_pos &stream, src_file::token_pos end
+);
+
+ast::declaration get_ast_declaration(
+	src_file::token_pos &stream, src_file::token_pos end
+);
+bz::vector<ast::declaration> get_ast_declarations(
+	src_file::token_pos &stream, src_file::token_pos end
+);
 
 #endif // FIRST_PASS_PARSER_H

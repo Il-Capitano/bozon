@@ -265,7 +265,7 @@ ast::statement parse_no_op_statement(src_file::token_pos &stream, src_file::toke
 	return ast::make_stmt_no_op(token_range{ begin_token, stream });
 }
 
-ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file::token_pos end)
+ast::declaration parse_variable_declaration(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_let || stream->kind == token::kw_const);
 	auto const tokens_begin = stream;
@@ -354,7 +354,7 @@ ast::statement parse_variable_declaration(src_file::token_pos &stream, src_file:
 	);
 }
 
-ast::statement parse_struct_definition(src_file::token_pos &stream, src_file::token_pos end)
+ast::declaration parse_struct_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_struct);
 	++stream; // 'struct'
@@ -389,7 +389,7 @@ ast::statement parse_struct_definition(src_file::token_pos &stream, src_file::to
 	return ast::make_decl_struct(id, std::move(member_variables));
 }
 
-ast::statement parse_function_definition(src_file::token_pos &stream, src_file::token_pos end)
+ast::declaration parse_function_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_function);
 	++stream; // 'function'
@@ -408,7 +408,7 @@ ast::statement parse_function_definition(src_file::token_pos &stream, src_file::
 	);
 }
 
-ast::statement parse_operator_definition(src_file::token_pos &stream, src_file::token_pos end)
+ast::declaration parse_operator_definition(src_file::token_pos &stream, src_file::token_pos end)
 {
 	assert(stream->kind == token::kw_operator);
 	++stream; // 'operator'
@@ -561,7 +561,9 @@ ast::statement get_ast_statement(
 }
 
 
-bz::vector<ast::statement> get_ast_statements(src_file::token_pos &stream, src_file::token_pos end)
+bz::vector<ast::statement> get_ast_statements(
+	src_file::token_pos &stream, src_file::token_pos end
+)
 {
 	bz::vector<ast::statement> statements = {};
 	while (stream->kind != token::eof)
@@ -569,4 +571,44 @@ bz::vector<ast::statement> get_ast_statements(src_file::token_pos &stream, src_f
 		statements.emplace_back(get_ast_statement(stream, end));
 	}
 	return statements;
+}
+
+ast::declaration get_ast_declaration(
+	src_file::token_pos &stream, src_file::token_pos end
+)
+{
+	switch (stream->kind)
+	{
+	// variable declaration
+	case token::kw_let:
+	case token::kw_const:
+		return parse_variable_declaration(stream, end);
+
+	// struct definition
+	case token::kw_struct:
+		return parse_struct_definition(stream, end);
+
+	// function definition
+	case token::kw_function:
+		return parse_function_definition(stream, end);
+
+	// operator definition
+	case token::kw_operator:
+		return parse_operator_definition(stream, end);
+
+	default:
+		bad_token(stream, "Expected a declaration");
+	}
+}
+
+bz::vector<ast::declaration> get_ast_declarations(
+	src_file::token_pos &stream, src_file::token_pos end
+)
+{
+	bz::vector<ast::declaration> declarations = {};
+	while (stream->kind != token::eof)
+	{
+		declarations.emplace_back(get_ast_declaration(stream, end));
+	}
+	return declarations;
 }

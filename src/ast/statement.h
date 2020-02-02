@@ -11,6 +11,7 @@
 namespace ast
 {
 
+/*
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(decl_variable);
@@ -39,6 +40,9 @@ struct stmt_declaration : node<
 	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 };
 using stmt_declaration_ptr = std::unique_ptr<stmt_declaration>;
+*/
+
+#define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(stmt_if);
 declare_node_type(stmt_while);
@@ -48,8 +52,34 @@ declare_node_type(stmt_no_op);
 declare_node_type(stmt_compound);
 declare_node_type(stmt_expression);
 
+declare_node_type(decl_variable);
+declare_node_type(decl_function);
+declare_node_type(decl_operator);
+declare_node_type(decl_struct);
+
 #undef declare_node_type
 
+
+struct declaration : node<
+	decl_variable,
+	decl_function,
+	decl_operator,
+	decl_struct
+>
+{
+	using base_t = node<
+		decl_variable,
+		decl_function,
+		decl_operator,
+		decl_struct
+	>;
+
+	using base_t::node;
+	using base_t::get;
+	using base_t::kind;
+
+	void resolve(void);
+};
 
 struct statement : node<
 	stmt_if,
@@ -59,7 +89,10 @@ struct statement : node<
 	stmt_no_op,
 	stmt_compound,
 	stmt_expression,
-	stmt_declaration
+	decl_variable,
+	decl_function,
+	decl_operator,
+	decl_struct
 >
 {
 	using base_t = node<
@@ -70,12 +103,18 @@ struct statement : node<
 		stmt_no_op,
 		stmt_compound,
 		stmt_expression,
-		stmt_declaration
+		decl_variable,
+		decl_function,
+		decl_operator,
+		decl_struct
 	>;
 
 	using base_t::node;
 	using base_t::get;
 	using base_t::kind;
+	using base_t::emplace;
+	statement(declaration decl);
+
 	void resolve(void);
 	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 };
@@ -265,6 +304,7 @@ struct decl_variable
 	src_file::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
+	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 };
 
 struct decl_function
@@ -341,46 +381,26 @@ template<typename ...Args>
 statement make_statement(Args &&...args)
 { return statement(std::forward<Args>(args)...); }
 
+template<typename ...Args>
+declaration make_declaration(Args &&...args)
+{ return declaration(std::forward<Args>(args)...); }
+
 
 template<typename ...Args>
-statement make_decl_variable(Args &&...args)
-{
-	return statement(
-		std::make_unique<stmt_declaration>(
-			std::make_unique<decl_variable>(std::forward<Args>(args)...)
-		)
-	);
-}
+declaration make_decl_variable(Args &&...args)
+{ return declaration(std::make_unique<decl_variable>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-statement make_decl_function(Args &&...args)
-{
-	return statement(
-		std::make_unique<stmt_declaration>(
-			std::make_unique<decl_function>(std::forward<Args>(args)...)
-		)
-	);
-}
+declaration make_decl_function(Args &&...args)
+{ return declaration(std::make_unique<decl_function>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-statement make_decl_operator(Args &&...args)
-{
-	return statement(
-		std::make_unique<stmt_declaration>(
-			std::make_unique<decl_operator>(std::forward<Args>(args)...)
-		)
-	);
-}
+declaration make_decl_operator(Args &&...args)
+{ return declaration(std::make_unique<decl_operator>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-statement make_decl_struct(Args &&...args)
-{
-	return statement(
-		std::make_unique<stmt_declaration>(
-			std::make_unique<decl_struct>(std::forward<Args>(args)...)
-		)
-	);
-}
+declaration make_decl_struct(Args &&...args)
+{ return declaration(std::make_unique<decl_struct>(std::forward<Args>(args)...)); }
 
 
 template<typename ...Args>
@@ -410,10 +430,6 @@ statement make_stmt_compound(Args &&...args)
 template<typename ...Args>
 statement make_stmt_expression(Args &&...args)
 { return statement(std::make_unique<stmt_expression>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_declaration(Args &&...args)
-{ return statement(std::make_unique<stmt_declaration>(std::forward<Args>(args)...)); }
 
 } // namespace ast
 

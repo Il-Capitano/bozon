@@ -1124,11 +1124,11 @@ struct bz::formatter<ast::expression>
 
 void print_statement(std::ostream &os, ast::statement const &stmt, int indent_level = 0);
 
-void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int indent_level = 0)
+void print_declaration(std::ostream &os, ast::declaration const &decl, int indent_level = 0)
 {
-	auto indent = [&os, indent_level](int plus_level = 0)
+	auto indent = [&os, indent_level](int extra = 0)
 	{
-		for (int i = 0; i < indent_level + plus_level; ++i)
+		for (int i = 0; i < indent_level + extra; ++i)
 		{
 			bz::print(os, "    ");
 		}
@@ -1136,7 +1136,8 @@ void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int 
 
 	switch (decl.kind())
 	{
-	case ast::stmt_declaration::index<ast::decl_variable>:
+
+	case ast::declaration::index<ast::decl_variable>:
 	{
 		auto &var_decl = decl.get<ast::decl_variable_ptr>();
 		indent();
@@ -1152,7 +1153,7 @@ void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int 
 		return;
 	}
 
-	case ast::stmt_declaration::index<ast::decl_function>:
+	case ast::declaration::index<ast::decl_function>:
 	{
 		auto &fn_decl = decl.get<ast::decl_function_ptr>();
 		indent();
@@ -1183,7 +1184,7 @@ void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int 
 		return;
 	}
 
-	case ast::stmt_declaration::index<ast::decl_operator>:
+	case ast::declaration::index<ast::decl_operator>:
 	{
 		auto &op_decl = decl.get<ast::decl_operator_ptr>();
 		indent();
@@ -1225,7 +1226,7 @@ void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int 
 		return;
 	}
 
-	case ast::stmt_declaration::index<ast::decl_struct>:
+	case ast::declaration::index<ast::decl_struct>:
 	{
 		auto &struct_decl = decl.get<ast::decl_struct_ptr>();
 		indent();
@@ -1250,9 +1251,9 @@ void print_declaration(std::ostream &os, ast::stmt_declaration const &decl, int 
 
 void print_statement(std::ostream &os, ast::statement const &stmt, int indent_level)
 {
-	auto indent = [&os, indent_level]()
+	auto indent = [&os, indent_level](int extra = 0)
 	{
-		for (int i = 0; i < indent_level; ++i)
+		for (int i = 0; i < indent_level + extra; ++i)
 		{
 			bz::print(os, "    ");
 		}
@@ -1317,14 +1318,166 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		bz::printf(os, "{};\n", stmt.get<ast::stmt_expression_ptr>()->expr);
 		return;
 
-	case ast::statement::index<ast::stmt_declaration>:
-		print_declaration(os, *stmt.get<ast::stmt_declaration_ptr>(), indent_level);
+	case ast::statement::index<ast::decl_variable>:
+	{
+		auto &var_decl = stmt.get<ast::decl_variable_ptr>();
+		indent();
+		bz::printf(os, "let {}: {}", var_decl->identifier->value, var_decl->var_type);
+		if (var_decl->init_expr.has_value())
+		{
+			bz::printf(os, " = {};\n", var_decl->init_expr.get());
+		}
+		else
+		{
+			bz::print(os, ";\n");
+		}
 		return;
+	}
+
+	case ast::statement::index<ast::decl_function>:
+	{
+		auto &fn_decl = stmt.get<ast::decl_function_ptr>();
+		indent();
+		bz::printf(os, "function {}(", fn_decl->identifier->value);
+		bool put_comma = false;
+		for (auto &p : fn_decl->params)
+		{
+			if (put_comma)
+			{
+				bz::print(os, ", ");
+			}
+			else
+			{
+				put_comma = true;
+			}
+			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+		}
+		bz::printf(os, ") -> {}\n", fn_decl->return_type);
+
+		indent();
+		bz::print(os, "{\n");
+		for (auto &s : fn_decl->body.statements)
+		{
+			print_statement(os, s, indent_level + 1);
+		}
+		indent();
+		bz::print(os, "}\n");
+		return;
+	}
+
+	case ast::statement::index<ast::decl_operator>:
+	{
+		auto &op_decl = stmt.get<ast::decl_operator_ptr>();
+		indent();
+		if (op_decl->op->kind == token::paren_open)
+		{
+			bz::print(os, "operator () (");
+		}
+		else if (op_decl->op->kind == token::square_open)
+		{
+			bz::print(os, "operator [] (");
+		}
+		else
+		{
+			bz::printf(os, "operator {} (", op_decl->op->value);
+		}
+		bool put_comma = false;
+		for (auto &p : op_decl->params)
+		{
+			if (put_comma)
+			{
+				bz::print(os, ", ");
+			}
+			else
+			{
+				put_comma = true;
+			}
+			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+		}
+		bz::printf(os, ") -> {}\n", op_decl->return_type);
+
+		indent();
+		bz::print(os, "{\n");
+		for (auto &s : op_decl->body.statements)
+		{
+			print_statement(os, s, indent_level + 1);
+		}
+		indent();
+		bz::print(os, "}\n");
+		return;
+	}
+
+	case ast::statement::index<ast::decl_struct>:
+	{
+		auto &struct_decl = stmt.get<ast::decl_struct_ptr>();
+		indent();
+		bz::printf(os, "struct {}\n", struct_decl->identifier->value);
+		indent();
+		bz::print(os, "{\n");
+		for (auto &var : struct_decl->member_variables)
+		{
+			indent(1);
+			bz::printf(os, "{}: {};\n", var.id->value, var.var_type);
+		}
+		indent();
+		bz::print(os, "}\n");
+		return;
+	}
 
 	default:
 		assert(false);
 		return;
 	}
+}
+
+#include "context.h"
+
+void bytecode_test()
+{
+	context.variables.clear();
+	context.variables.push_back({});
+	context.functions.clear();
+	context.operators.clear();
+	context.types = {
+		ast::int8_, ast::int16_, ast::int32_, ast::int64_,
+		ast::uint8_, ast::uint16_, ast::uint32_, ast::uint64_,
+		ast::float32_, ast::float64_,
+		ast::char_, ast::bool_, ast::str_, ast::void_, ast::null_t_
+	};
+
+	using namespace bytecode;
+
+	src_file file("src/bytecode_test.bz");
+
+	auto stream = file.tokens_begin();
+	auto const end = file.tokens_end();
+
+	auto statements = get_ast_statements(stream, end);
+	assert(stream->kind == token::eof);
+
+	bz::vector<instruction> instructions;
+
+	bz::print("==== bytecode_test begin ====\n");
+	bz::printf("{}\n", statements.size());
+
+	for (auto &s : statements)
+	{
+		s.resolve();
+	}
+
+	for (auto &s : statements)
+	{
+		s.emit_bytecode(instructions);
+	}
+
+	bz::printf("{}\n", instructions.size());
+
+	executor exec;
+	exec.execute(instructions);
+	auto const var_pos = reinterpret_cast<int32_t *>(&*(exec.stack.end() - 4));
+	assert(*var_pos == 2);
+
+	bz::print("==== bytecode_test end ====");
 }
 
 int main(void)
@@ -1346,23 +1499,23 @@ int main(void)
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();
 
-	auto statements = get_ast_statements(stream, end);
+	auto decls = get_ast_declarations(stream, end);
 	assert(stream->kind == token::eof);
 
 	auto after_first_pass = std::chrono::steady_clock::now();
 
-	for (auto &s : statements)
+	for (auto &d : decls)
 	{
-		s.resolve();
+		d.resolve();
 	}
 
 	auto after_resolving = std::chrono::steady_clock::now();
 
 	std::stringstream result_ss;
 
-	for (auto &s : statements)
+	for (auto &d : decls)
 	{
-		print_statement(result_ss, s);
+		print_declaration(result_ss, d);
 	}
 
 	std::cout << result_ss.str() << std::flush;
@@ -1390,7 +1543,6 @@ int main(void)
 		in_ms(after_printing - after_resolving)
 	);
 
-	void bytecode_test(void);
 	bytecode_test();
 
 	return 0;
