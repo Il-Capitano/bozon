@@ -1448,6 +1448,8 @@ void bytecode_test()
 	using namespace bytecode;
 
 	src_file file("src/bytecode_test.bz");
+	file.read_file();
+	file.tokenize();
 
 	auto stream = file.tokens_begin();
 	auto const end = file.tokens_end();
@@ -1493,6 +1495,8 @@ int main(void)
 	auto start = std::chrono::steady_clock::now();
 
 	src_file file("src/test.bz");
+	file.read_file();
+	file.tokenize();
 
 	auto after_tokenizing = std::chrono::steady_clock::now();
 

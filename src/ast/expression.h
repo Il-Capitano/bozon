@@ -175,9 +175,8 @@ struct expr_unary_op
 	token_pos  op;
 	expression expr;
 
-
 	expr_unary_op(token_pos _op, expression _expr)
-		: op(_op),
+		: op  (_op),
 		  expr(std::move(_expr))
 	{}
 
@@ -199,9 +198,9 @@ struct expr_binary_op
 	expression rhs;
 
 	expr_binary_op(token_pos _op, expression _lhs, expression _rhs)
-		: op(_op),
-		  lhs (std::move(_lhs)),
-		  rhs (std::move(_rhs))
+		: op (_op),
+		  lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
 	{}
 
 	token_pos get_tokens_begin(void) const;
@@ -222,7 +221,7 @@ struct expr_function_call
 	bz::vector<expression> params;
 
 	expr_function_call(token_pos _op, expression _called, bz::vector<expression> _params)
-		: op(_op),
+		: op    (_op),
 		  called(std::move(_called)),
 		  params(std::move(_params))
 	{}

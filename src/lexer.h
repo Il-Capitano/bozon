@@ -171,20 +171,6 @@ constexpr bool is_keyword_token(token const &t)
 	}
 }
 
-constexpr bool is_identifier_token(token const &t)
-{
-	return t.kind == token::identifier;
-}
-
-constexpr bool is_literal_token(token const &t)
-{
-	return (
-		t.kind == token::number_literal
-		|| t.kind == token::string_literal
-		|| t.kind == token::character_literal
-	);
-}
-
 bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name);
 
 bz::string get_token_value(uint32_t kind);
@@ -201,6 +187,12 @@ struct token_range
 	token_pos end;
 };
 
+
+bz::string get_highlighted_chars(
+	char_pos char_begin,
+	char_pos char_pivot,
+	char_pos char_end
+);
 
 bz::string get_highlighted_tokens(
 	token_pos token_begin,

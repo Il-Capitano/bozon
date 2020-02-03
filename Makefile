@@ -59,7 +59,7 @@ clean-debug:
 
 # deletes release binary files
 clean-release:
-	rm -f $(REBUILDABLES_DEBUG)
+	rm -f $(REBUILDABLES_RELEASE)
 
 # builds and executes the exe
 exec: exec-debug
