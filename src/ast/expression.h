@@ -69,31 +69,31 @@ struct expr_unresolved
 		: expr(_expr)
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const
+	token_pos get_tokens_begin(void) const
 	{ return this->expr.begin; }
 
-	src_file::token_pos get_tokens_pivot(void) const
+	token_pos get_tokens_pivot(void) const
 	{ return this->expr.begin; }
 
-	src_file::token_pos get_tokens_end(void) const
+	token_pos get_tokens_end(void) const
 	{ return this->expr.end; }
 };
 
 struct expr_identifier
 {
-	src_file::token_pos identifier;
+	token_pos identifier;
 
-	expr_identifier(src_file::token_pos _id)
+	expr_identifier(token_pos _id)
 		: identifier(_id)
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const
+	token_pos get_tokens_begin(void) const
 	{ return this->identifier; }
 
-	src_file::token_pos get_tokens_pivot(void) const
+	token_pos get_tokens_pivot(void) const
 	{ return this->identifier; }
 
-	src_file::token_pos get_tokens_end(void) const
+	token_pos get_tokens_end(void) const
 	{ return this->identifier + 1; }
 
 	void resolve(void);
@@ -124,18 +124,18 @@ struct expr_literal
 		null                  = value_t::index_of<_null>,
 	};
 
-	value_t             value;
-	src_file::token_pos src_pos;
+	value_t   value;
+	token_pos src_pos;
 
-	expr_literal(src_file::token_pos stream);
+	expr_literal(token_pos stream);
 
-	src_file::token_pos get_tokens_begin(void) const
+	token_pos get_tokens_begin(void) const
 	{ return this->src_pos; }
 
-	src_file::token_pos get_tokens_pivot(void) const
+	token_pos get_tokens_pivot(void) const
 	{ return this->src_pos; }
 
-	src_file::token_pos get_tokens_end(void) const
+	token_pos get_tokens_end(void) const
 	{ return this->src_pos + 1; }
 
 	void resolve(void);
@@ -154,13 +154,13 @@ struct expr_tuple
 		: elems(std::move(_elems)), tokens(_tokens)
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const
+	token_pos get_tokens_begin(void) const
 	{ return this->tokens.begin; }
 
-	src_file::token_pos get_tokens_pivot(void) const
+	token_pos get_tokens_pivot(void) const
 	{ return this->tokens.begin; }
 
-	src_file::token_pos get_tokens_end(void) const
+	token_pos get_tokens_end(void) const
 	{ return this->tokens.end; }
 
 	void resolve(void);
@@ -172,18 +172,18 @@ struct expr_tuple
 
 struct expr_unary_op
 {
-	src_file::token_pos op;
-	expression          expr;
+	token_pos  op;
+	expression expr;
 
 
-	expr_unary_op(src_file::token_pos _op, expression _expr)
+	expr_unary_op(token_pos _op, expression _expr)
 		: op(_op),
 		  expr(std::move(_expr))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 	void emit_bytecode(
@@ -194,19 +194,19 @@ struct expr_unary_op
 
 struct expr_binary_op
 {
-	src_file::token_pos op;
-	expression          lhs;
-	expression          rhs;
+	token_pos  op;
+	expression lhs;
+	expression rhs;
 
-	expr_binary_op(src_file::token_pos _op, expression _lhs, expression _rhs)
+	expr_binary_op(token_pos _op, expression _lhs, expression _rhs)
 		: op(_op),
 		  lhs (std::move(_lhs)),
 		  rhs (std::move(_rhs))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 	void emit_bytecode(
@@ -217,19 +217,19 @@ struct expr_binary_op
 
 struct expr_function_call
 {
-	src_file::token_pos    op;
+	token_pos              op;
 	expression             called;
 	bz::vector<expression> params;
 
-	expr_function_call(src_file::token_pos _op, expression _called, bz::vector<expression> _params)
+	expr_function_call(token_pos _op, expression _called, bz::vector<expression> _params)
 		: op(_op),
 		  called(std::move(_called)),
 		  params(std::move(_params))
 	{}
 
-	src_file::token_pos get_tokens_begin() const;
-	src_file::token_pos get_tokens_pivot() const;
-	src_file::token_pos get_tokens_end() const;
+	token_pos get_tokens_begin() const;
+	token_pos get_tokens_pivot() const;
+	token_pos get_tokens_end() const;
 
 	void resolve(void);
 	void emit_bytecode(

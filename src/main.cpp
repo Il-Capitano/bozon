@@ -1430,7 +1430,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 	}
 }
 
-#include "context.h"
+#include "src_file.h"
 
 void bytecode_test()
 {

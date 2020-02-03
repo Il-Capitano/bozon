@@ -71,33 +71,33 @@ static bytecode::type_kind get_type_kind(ast::typespec const &ts)
 }
 
 
-src_file::token_pos expr_unary_op::get_tokens_begin(void) const
+token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
 
-src_file::token_pos expr_unary_op::get_tokens_pivot(void) const
+token_pos expr_unary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-src_file::token_pos expr_unary_op::get_tokens_end(void) const
+token_pos expr_unary_op::get_tokens_end(void) const
 { return this->expr.get_tokens_end(); }
 
 
-src_file::token_pos expr_binary_op::get_tokens_begin(void) const
+token_pos expr_binary_op::get_tokens_begin(void) const
 { return this->lhs.get_tokens_begin(); }
 
-src_file::token_pos expr_binary_op::get_tokens_pivot(void) const
+token_pos expr_binary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-src_file::token_pos expr_binary_op::get_tokens_end(void) const
+token_pos expr_binary_op::get_tokens_end(void) const
 { return this->rhs.get_tokens_end(); }
 
 
-src_file::token_pos expr_function_call::get_tokens_begin(void) const
+token_pos expr_function_call::get_tokens_begin(void) const
 { return this->called.get_tokens_begin(); }
 
-src_file::token_pos expr_function_call::get_tokens_pivot(void) const
+token_pos expr_function_call::get_tokens_pivot(void) const
 { return this->op; }
 
-src_file::token_pos expr_function_call::get_tokens_end(void) const
+token_pos expr_function_call::get_tokens_end(void) const
 {
 	if (this->params.size() == 0)
 	{
@@ -293,7 +293,7 @@ void expr_function_call::emit_bytecode(
 
 
 
-expr_literal::expr_literal(src_file::token_pos stream)
+expr_literal::expr_literal(token_pos stream)
 	: src_pos(stream)
 {
 	switch(stream->kind)

@@ -5,8 +5,8 @@ namespace ast
 {
 
 typespec parse_typespec(
-	src_file::token_pos &stream,
-	src_file::token_pos  end
+	token_pos &stream,
+	token_pos  end
 )
 {
 	if (stream == end)

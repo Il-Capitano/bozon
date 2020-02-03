@@ -72,7 +72,7 @@ static constexpr std::array<
 
 struct file_iterator
 {
-	src_file::char_pos it;
+	char_pos it;
 	bz::string_view file;
 	size_t line;
 	size_t column;
@@ -94,49 +94,7 @@ struct file_iterator
 };
 
 
-bz::string read_file(std::ifstream &file)
-{
-	file.seekg(std::ios::end);
-	size_t const size = file.tellg();
-	file.seekg(std::ios::beg);
-
-	bz::string file_str = "\n";
-
-	if (size == 0)
-	{
-		return file_str;
-	}
-
-	file_str.reserve(size + 2);
-
-	while (true)
-	{
-		char c = file.get();
-		if (file.eof())
-		{
-			break;
-		}
-
-		// we use '\n' for line endings and not '\r\n' or '\r'
-		if (c == '\r')
-		{
-			if (file.peek() == '\n')
-			{
-				file.get();
-			}
-
-			c = '\n';
-		}
-
-		file_str.push_back(c);
-	}
-
-	file_str.push_back('\n');
-
-	return file_str;
-}
-
-token get_next_token(file_iterator &stream, src_file::char_pos const end);
+token get_next_token(file_iterator &stream, char_pos const end);
 
 bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name)
 {
@@ -152,17 +110,6 @@ bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name)
 	} while(tokens.back().kind != token::eof);
 
 	return tokens;
-}
-
-src_file::src_file(bz::string file_name)
-	: _file_name(std::move(file_name)), _file(), _tokens()
-{
-	this->_file_name.reserve(this->_file_name.size() + 1);
-	*(this->_file_name.end()) = '\0';
-	std::ifstream file(this->_file_name.data());
-
-	this->_file   = read_file(file);
-	this->_tokens = get_tokens(this->_file, this->_file_name);
 }
 
 
@@ -413,9 +360,9 @@ static constexpr bool is_whitespace_char(char c)
 }
 
 bz::string get_highlighted_chars(
-	src_file::char_pos char_begin,
-	src_file::char_pos char_pivot,
-	src_file::char_pos char_end
+	char_pos char_begin,
+	char_pos char_pivot,
+	char_pos char_end
 );
 
 [[noreturn]] void bad_char(file_iterator const &stream, bz::string_view message)
@@ -431,7 +378,7 @@ bz::string get_highlighted_chars(
 }
 
 
-void skip_comments_and_whitespace(file_iterator &stream, src_file::char_pos const end)
+void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 {
 	while (stream.it != end && is_whitespace_char(*stream.it))
 	{
@@ -494,7 +441,7 @@ void skip_comments_and_whitespace(file_iterator &stream, src_file::char_pos cons
 	}
 }
 
-token get_identifier_or_keyword_token(file_iterator &stream, src_file::char_pos const end)
+token get_identifier_or_keyword_token(file_iterator &stream, char_pos const end)
 {
 	assert(
 		(*stream.it >= 'a' && *stream.it <= 'z')
@@ -544,7 +491,7 @@ token get_identifier_or_keyword_token(file_iterator &stream, src_file::char_pos 
 	}
 }
 
-token get_character_token(file_iterator &stream, src_file::char_pos const)
+token get_character_token(file_iterator &stream, char_pos const)
 {
 	assert(*stream.it == '\'');
 	auto const begin_it = stream.it;
@@ -593,7 +540,7 @@ token get_character_token(file_iterator &stream, src_file::char_pos const)
 	);
 }
 
-token get_string_token(file_iterator &stream, src_file::char_pos const end)
+token get_string_token(file_iterator &stream, char_pos const end)
 {
 	assert(*stream.it == '\"');
 	auto const begin_it = stream.it;
@@ -645,7 +592,7 @@ token get_string_token(file_iterator &stream, src_file::char_pos const end)
 	);
 }
 
-token get_number_token(file_iterator &stream, src_file::char_pos const end)
+token get_number_token(file_iterator &stream, char_pos const end)
 {
 	assert(is_num_char(*stream.it));
 	auto const begin_it = stream.it;
@@ -691,7 +638,7 @@ token get_number_token(file_iterator &stream, src_file::char_pos const end)
 	// TODO: allow hex, oct and bin numbers (0x, 0o, 0b) and exponential notations (1e10)
 }
 
-token get_single_char_token(file_iterator &stream, src_file::char_pos const)
+token get_single_char_token(file_iterator &stream, char_pos const)
 {
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
@@ -706,7 +653,7 @@ token get_single_char_token(file_iterator &stream, src_file::char_pos const)
 	);
 }
 
-bool is_str(bz::string_view str, file_iterator &stream, src_file::char_pos const end)
+bool is_str(bz::string_view str, file_iterator &stream, char_pos const end)
 {
 	auto str_it = str.begin();
 	auto const str_end = str.end();
@@ -720,7 +667,7 @@ bool is_str(bz::string_view str, file_iterator &stream, src_file::char_pos const
 	return str_it == str_end;
 }
 
-token get_next_token(file_iterator &stream, src_file::char_pos const end)
+token get_next_token(file_iterator &stream, char_pos const end)
 {
 	skip_comments_and_whitespace(stream, end);
 
@@ -788,9 +735,9 @@ token get_next_token(file_iterator &stream, src_file::char_pos const end)
 }
 
 bz::string get_highlighted_chars(
-	src_file::char_pos char_begin,
-	src_file::char_pos char_pivot,
-	src_file::char_pos char_end
+	char_pos char_begin,
+	char_pos char_pivot,
+	char_pos char_end
 )
 {
 	assert(char_begin < char_end);
@@ -875,9 +822,9 @@ bz::string get_highlighted_chars(
 }
 
 bz::string get_highlighted_tokens(
-	src_file::token_pos token_begin,
-	src_file::token_pos token_pivot,
-	src_file::token_pos token_end
+	token_pos token_begin,
+	token_pos token_pivot,
+	token_pos token_end
 )
 {
 	if (token_pivot->kind == token::eof)

@@ -149,9 +149,9 @@ struct stmt_if
 		  else_block(std::move(_else_block))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -172,9 +172,9 @@ struct stmt_while
 		  while_block(std::move(_while_block))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -183,9 +183,9 @@ struct stmt_for
 {
 	// TODO
 
-	src_file::token_pos get_tokens_begin(void) const { assert(false); exit(1); }
-	src_file::token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
-	src_file::token_pos get_tokens_end(void) const   { assert(false); exit(1); }
+	token_pos get_tokens_begin(void) const { assert(false); exit(1); }
+	token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
+	token_pos get_tokens_end(void) const   { assert(false); exit(1); }
 
 	void resolve(void);
 };
@@ -199,9 +199,9 @@ struct stmt_return
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -214,9 +214,9 @@ struct stmt_no_op
 		: tokens(_tokens)
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void) {}
 };
@@ -234,9 +234,9 @@ struct stmt_compound
 		: tokens(_tokens), statements(std::move(_stms))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -250,9 +250,9 @@ struct stmt_expression
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	src_file::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -261,17 +261,17 @@ struct stmt_expression
 struct decl_variable
 {
 	token_range              tokens;
-	src_file::token_pos      identifier;
+	token_pos                identifier;
 	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
 		token_range _tokens,
-		src_file::token_pos _id,
-		typespec            _var_type,
-		expression          _init_expr
+		token_pos   _id,
+		typespec    _var_type,
+		expression  _init_expr
 	)
-		: tokens(_tokens),
+		: tokens    (_tokens),
 		  identifier(_id),
 		  var_type  (std::move(_var_type)),
 		  init_expr (std::move(_init_expr))
@@ -279,8 +279,8 @@ struct decl_variable
 
 	decl_variable(
 		token_range _tokens,
-		src_file::token_pos _id,
-		typespec            _var_type
+		token_pos   _id,
+		typespec    _var_type
 	)
 		: tokens(_tokens),
 		  identifier(_id),
@@ -290,18 +290,18 @@ struct decl_variable
 
 	decl_variable(
 		token_range _tokens,
-		src_file::token_pos _id,
+		token_pos _id,
 		expression          _init_expr
 	)
-		: tokens(_tokens),
+		: tokens    (_tokens),
 		  identifier(_id),
 		  var_type  (),
 		  init_expr (std::move(_init_expr))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 	void emit_bytecode(bz::vector<bytecode::instruction> &out);
@@ -309,13 +309,13 @@ struct decl_variable
 
 struct decl_function
 {
-	src_file::token_pos  identifier;
+	token_pos            identifier;
 	bz::vector<variable> params;
 	typespec             return_type;
 	stmt_compound        body;
 
 	decl_function(
-		src_file::token_pos  _id,
+		token_pos            _id,
 		bz::vector<variable> _params,
 		typespec             _ret_type,
 		stmt_compound        _body
@@ -326,22 +326,22 @@ struct decl_function
 		  body       (std::move(_body))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct decl_operator
 {
-	src_file::token_pos  op;
+	token_pos            op;
 	bz::vector<variable> params;
 	typespec             return_type;
 	stmt_compound        body;
 
 	decl_operator(
-		src_file::token_pos  _op,
+		token_pos            _op,
 		bz::vector<variable> _params,
 		typespec             _ret_type,
 		stmt_compound        _body
@@ -352,26 +352,26 @@ struct decl_operator
 		  body       (std::move(_body))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct decl_struct
 {
-	src_file::token_pos           identifier;
+	token_pos                 identifier;
 	bz::vector<ast::variable> member_variables;
 
-	decl_struct(src_file::token_pos _id, bz::vector<ast::variable> _members)
+	decl_struct(token_pos _id, bz::vector<ast::variable> _members)
 		: identifier      (_id),
 		  member_variables(std::move(_members))
 	{}
 
-	src_file::token_pos get_tokens_begin(void) const;
-	src_file::token_pos get_tokens_pivot(void) const;
-	src_file::token_pos get_tokens_end(void) const;
+	token_pos get_tokens_begin(void) const;
+	token_pos get_tokens_pivot(void) const;
+	token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };

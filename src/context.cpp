@@ -19,7 +19,7 @@ parse_context::parse_context(void)
 {}
 
 bool parse_context::add_variable(
-	src_file::token_pos id,
+	token_pos       id,
 	ast::typespec   type
 )
 {
@@ -199,7 +199,7 @@ bool parse_context::is_function(bz::string_view id)
 }
 
 
-ast::type_ptr parse_context::get_type(src_file::token_pos id)
+ast::type_ptr parse_context::get_type(token_pos id)
 {
 	auto it = std::find_if(this->types.begin(), this->types.end(), [&](auto const &t)
 	{
@@ -214,7 +214,7 @@ ast::type_ptr parse_context::get_type(src_file::token_pos id)
 	return *it;
 }
 
-ast::typespec parse_context::get_identifier_type(src_file::token_pos t)
+ast::typespec parse_context::get_identifier_type(token_pos t)
 {
 	assert(t->kind == token::identifier);
 
@@ -300,7 +300,7 @@ ast::typespec parse_context::get_function_type(
 }
 
 ast::typespec parse_context::get_operator_type(
-	src_file::token_pos op,
+	token_pos op,
 	bz::vector<ast::typespec> const &args
 )
 {
@@ -1440,7 +1440,7 @@ static size_t get_size(ast::typespec const &ts)
 	}
 }
 
-int64_t parse_context::get_identifier_stack_offset(src_file::token_pos id) const
+int64_t parse_context::get_identifier_stack_offset(token_pos id) const
 {
 	int64_t offset = 0;
 	ast::variable const *var = nullptr;
@@ -1486,7 +1486,7 @@ int64_t parse_context::get_identifier_stack_offset(src_file::token_pos id) const
 	return 0;
 }
 
-int64_t parse_context::get_identifier_stack_allocation_amount(src_file::token_pos id) const
+int64_t parse_context::get_identifier_stack_allocation_amount(token_pos id) const
 {
 	int64_t offset = 0;
 	int64_t prev_offset = 0;

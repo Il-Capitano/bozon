@@ -53,9 +53,9 @@ inline bool operator <= (precedence lhs, precedence rhs)
 }
 
 ast::expression parse_expression(
-	src_file::token_pos &stream,
-	src_file::token_pos  end,
-	precedence           prec = precedence{}
+	token_pos &stream,
+	token_pos  end,
+	precedence prec = precedence{}
 );
 
 #endif // PARSER_H

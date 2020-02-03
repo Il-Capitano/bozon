@@ -103,13 +103,13 @@ static precedence get_unary_precedence(uint32_t kind)
 }
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	src_file::token_pos &stream,
-	src_file::token_pos  end
+	token_pos &stream,
+	token_pos  end
 );
 
 static ast::expression parse_primary_expression(
-	src_file::token_pos &stream,
-	src_file::token_pos  end
+	token_pos &stream,
+	token_pos  end
 )
 {
 	switch (stream->kind)
@@ -199,12 +199,12 @@ static ast::expression parse_primary_expression(
 
 static ast::expression parse_expression_helper(
 	ast::expression   lhs,
-	src_file::token_pos &stream,
-	src_file::token_pos  end,
+	token_pos &stream,
+	token_pos  end,
 	precedence       prec
 )
 {
-	src_file::token_pos op = nullptr;
+	token_pos op = nullptr;
 	precedence op_prec;
 
 	while (
@@ -273,8 +273,8 @@ static ast::expression parse_expression_helper(
 }
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	src_file::token_pos &stream,
-	src_file::token_pos  end
+	token_pos &stream,
+	token_pos  end
 )
 {
 	bz::vector<ast::expression> exprs = {};
@@ -291,8 +291,8 @@ static bz::vector<ast::expression> parse_expression_comma_list(
 }
 
 ast::expression parse_expression(
-	src_file::token_pos &stream,
-	src_file::token_pos  end,
+	token_pos &stream,
+	token_pos  end,
 	precedence           prec
 )
 {

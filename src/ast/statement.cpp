@@ -26,13 +26,13 @@ statement::statement(declaration decl)
 	}
 }
 
-src_file::token_pos decl_variable::get_tokens_begin(void) const
+token_pos decl_variable::get_tokens_begin(void) const
 { return this->tokens.begin; }
 
-src_file::token_pos decl_variable::get_tokens_pivot(void) const
+token_pos decl_variable::get_tokens_pivot(void) const
 { return this->identifier; }
 
-src_file::token_pos decl_variable::get_tokens_end(void) const
+token_pos decl_variable::get_tokens_end(void) const
 { return this->tokens.end; }
 
 

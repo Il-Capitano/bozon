@@ -44,7 +44,7 @@ struct parse_context
 		this->variables.pop_back();
 	}
 
-	bool add_variable(src_file::token_pos id, ast::typespec type);
+	bool add_variable(token_pos id, ast::typespec type);
 	void add_function(ast::decl_function &func_decl);
 	void add_operator(ast::decl_operator &op_decl);
 	void add_type(ast::decl_struct &struct_decl);
@@ -52,10 +52,10 @@ struct parse_context
 	bool is_variable(bz::string_view id);
 	bool is_function(bz::string_view id);
 
-	ast::type_ptr get_type(src_file::token_pos id);
-	ast::typespec get_identifier_type(src_file::token_pos t);
-	ast::typespec get_function_type(bz::string   id, bz::vector<ast::typespec> const &args);
-	ast::typespec get_operator_type(src_file::token_pos op, bz::vector<ast::typespec> const &args);
+	ast::type_ptr get_type(token_pos id);
+	ast::typespec get_identifier_type(token_pos t);
+	ast::typespec get_function_type(bz::string id, bz::vector<ast::typespec> const &args);
+	ast::typespec get_operator_type(token_pos op, bz::vector<ast::typespec> const &args);
 
 //	ast::typespec get_expression_type(ast::expression const &expr);
 	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);
@@ -64,8 +64,8 @@ struct parse_context
 
 	bool is_convertible(ast::expression const &expr, ast::typespec const &type);
 
-	int64_t get_identifier_stack_offset(src_file::token_pos id) const;
-	int64_t get_identifier_stack_allocation_amount(src_file::token_pos id) const;
+	int64_t get_identifier_stack_offset(token_pos id) const;
+	int64_t get_identifier_stack_allocation_amount(token_pos id) const;
 };
 
 extern parse_context context;

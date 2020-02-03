@@ -135,28 +135,8 @@ struct token
 };
 
 
-class src_file
-{
-private:
-	bz::string        _file_name;
-	bz::string        _file;
-	bz::vector<token> _tokens;
-
-public:
-	using char_pos  = bz::string_view::const_iterator;
-	using token_pos = bz::vector<token>::const_iterator;
-
-	src_file(bz::string file_name);
-
-	bz::string_view file(void) const
-	{ return this->_file; }
-
-	auto tokens_begin(void) const
-	{ return this->_tokens.begin(); }
-
-	auto tokens_end(void) const
-	{ return this->_tokens.end(); }
-};
+using char_pos  = bz::string_view::const_iterator;
+using token_pos = bz::vector<token>::const_iterator;
 
 
 
@@ -205,6 +185,8 @@ constexpr bool is_literal_token(token const &t)
 	);
 }
 
+bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name);
+
 bz::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
@@ -215,25 +197,25 @@ bool is_unary_operator(uint32_t kind);
 
 struct token_range
 {
-	src_file::token_pos begin;
-	src_file::token_pos end;
+	token_pos begin;
+	token_pos end;
 };
 
 
 bz::string get_highlighted_tokens(
-	src_file::token_pos token_begin,
-	src_file::token_pos token_pivot,
-	src_file::token_pos token_end
+	token_pos token_begin,
+	token_pos token_pivot,
+	token_pos token_end
 );
 
-inline bz::string get_highlighted_tokens(src_file::token_pos t)
+inline bz::string get_highlighted_tokens(token_pos t)
 {
 	return get_highlighted_tokens(t, t, t + 1);
 }
 
 template<typename ...Ts>
 [[noreturn]] inline void bad_token(
-	src_file::token_pos stream,
+	token_pos stream,
 	bz::string_view message,
 	Ts &&...ts
 )
@@ -248,16 +230,16 @@ template<typename ...Ts>
 	);
 }
 
-[[noreturn]] inline void bad_token(src_file::token_pos stream)
+[[noreturn]] inline void bad_token(token_pos stream)
 {
 	bad_token(stream, bz::format("Error: Unexpected token '{}'", stream->value));
 }
 
 template<typename ...Ts>
 [[noreturn]] inline void bad_tokens(
-	src_file::token_pos begin,
-	src_file::token_pos pivot,
-	src_file::token_pos end,
+	token_pos begin,
+	token_pos pivot,
+	token_pos end,
 	bz::string_view fmt,
 	Ts &&...ts
 )
@@ -291,7 +273,7 @@ template<typename T, typename ...Ts>
 	);
 }
 
-inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t kind)
+inline token_pos assert_token(token_pos &stream, uint32_t kind)
 {
 	if (stream->kind != kind)
 	{
@@ -302,7 +284,7 @@ inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t ki
 	return t;
 }
 
-inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t kind1, uint32_t kind2)
+inline token_pos assert_token(token_pos &stream, uint32_t kind1, uint32_t kind2)
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
 	{
@@ -320,7 +302,7 @@ inline src_file::token_pos assert_token(src_file::token_pos &stream, uint32_t ki
 	return t;
 }
 
-inline void assert_token(src_file::token_pos stream, uint32_t kind, bool)
+inline void assert_token(token_pos stream, uint32_t kind, bool)
 {
 	if (stream->kind != kind)
 	{
