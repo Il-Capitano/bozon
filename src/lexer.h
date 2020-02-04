@@ -237,101 +237,88 @@ inline bz::string get_highlighted_tokens(token_pos t)
 	return get_highlighted_tokens(t, t, t + 1);
 }
 
-template<typename ...Ts>
-[[noreturn]] inline void bad_token(
-	token_pos stream,
-	bz::string_view message,
-	Ts &&...ts
+[[nodiscard]] inline error bad_token(
+	token_pos it,
+	bz::string message,
+	bz::vector<note> notes = {}
 )
 {
-	fatal_error(
-		"In file {}:{}:{}: {}\n{}",
-		stream->src_pos.file_name,
-		stream->src_pos.line,
-		stream->src_pos.column,
-		bz::format(message, std::forward<Ts>(ts)...),
-		get_highlighted_tokens(stream)
-	);
+	return error{
+		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		std::move(message),
+		std::move(notes)
+	};
 }
 
-[[noreturn]] inline void bad_token(token_pos stream)
+[[nodiscard]] inline error bad_token(token_pos it)
 {
-	bad_token(stream, bz::format("Error: Unexpected token '{}'", stream->value));
+	return bad_token(it, bz::format("unexpected token '{}'", it->value));
 }
 
-template<typename ...Ts>
-[[noreturn]] inline void bad_tokens(
-	token_pos begin,
-	token_pos pivot,
-	token_pos end,
-	bz::string_view fmt,
-	Ts &&...ts
+[[nodiscard]] inline error bad_tokens(
+	token_pos begin, token_pos pivot, token_pos end,
+	bz::string message,
+	bz::vector<note> notes = {}
 )
 {
-	fatal_error(
-		"In file {}:{}:{}: {}\n{}",
-		pivot->src_pos.file_name,
-		pivot->src_pos.line,
-		pivot->src_pos.column,
-		bz::format(fmt, std::forward<Ts>(ts)...),
-		get_highlighted_tokens(begin, pivot, end)
-	);
+	return error{
+		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
+		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
+		std::move(message),
+		std::move(notes)
+	};
 }
-
-template<typename T>
-using void_t = void;
 
 template<typename T, typename ...Ts>
-[[noreturn]] inline void bad_tokens(
+[[nodiscard]] inline error bad_tokens(
 	T const &tokens,
-	bz::string_view fmt,
-	Ts &&...ts
+	bz::string message,
+	bz::vector<note> notes = {}
 )
 {
-	bad_tokens(
+	return bad_tokens(
 		tokens.get_tokens_begin(),
 		tokens.get_tokens_pivot(),
 		tokens.get_tokens_end(),
-		fmt,
-		std::forward<Ts>(ts)...
+		std::move(message),
+		std::move(notes)
 	);
 }
 
-inline token_pos assert_token(token_pos &stream, uint32_t kind)
+inline token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &errors)
 {
 	if (stream->kind != kind)
 	{
-		bad_token(stream, bz::format("Error: Expected '{}'", get_token_value(kind)));
+		errors.emplace_back(bad_token(
+			stream, bz::format("expected '{}'", get_token_value(kind))
+		));
 	}
 	auto t = stream;
 	++stream;
 	return t;
 }
 
-inline token_pos assert_token(token_pos &stream, uint32_t kind1, uint32_t kind2)
+inline token_pos assert_token(
+	token_pos &stream,
+	uint32_t kind1, uint32_t kind2,
+	bz::vector<error> &errors
+)
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
 	{
-		bad_token(
+		errors.emplace_back(bad_token(
 			stream,
 			bz::format(
-				"Error: Expected '{}' or '{}'",
+				"expected '{}' or '{}'",
 				get_token_value(kind1),
 				get_token_value(kind2)
 			)
-		);
+		));
 	}
 	auto t = stream;
 	++stream;
 	return t;
-}
-
-inline void assert_token(token_pos stream, uint32_t kind, bool)
-{
-	if (stream->kind != kind)
-	{
-		bad_token(stream, bz::format("Error: Expected '{}'", get_token_value(kind)));
-	}
 }
 
 #endif // LEXER_H

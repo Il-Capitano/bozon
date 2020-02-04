@@ -44,8 +44,6 @@ struct typespec : node<
 	using base_t::node;
 	using base_t::get;
 	using base_t::kind;
-
-	void resolve(void);
 };
 
 struct type;

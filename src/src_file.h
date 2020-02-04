@@ -37,8 +37,13 @@ public:
 	[[nodiscard]] bool tokenize(void);
 	[[nodiscard]] bool first_pass_parse(void);
 
+
+
 	bz::string const &get_file_name() const
 	{ return this->_file_name; }
+
+	size_t get_error_count() const
+	{ return this->_errors.size(); }
 
 	auto tokens_begin(void) const
 	{ assert(this->_stage >= tokenized); return this->_tokens.begin(); }

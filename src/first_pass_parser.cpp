@@ -2,7 +2,7 @@
 
 
 template<typename T>
-void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
+static void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 {
 	base.reserve(base.size() + new_elems.size());
 	for (auto &elem : new_elems)
@@ -13,8 +13,8 @@ void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 
 template<uint32_t ...end_tokens>
 static token_range get_expression_or_type(
-	token_pos &stream,
-	token_pos  end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
 	auto begin = stream;
@@ -63,24 +63,24 @@ static token_range get_expression_or_type(
 		case token::paren_open:
 		{
 			++stream; // '('
-			get_expression_or_type<token::paren_close>(stream, end);
-			assert_token(stream, token::paren_close);
+			get_expression_or_type<token::paren_close>(stream, end, errors);
+			assert_token(stream, token::paren_close, errors);
 			break;
 		}
 
 		case token::curly_open:
 		{
 			++stream; // '{'
-			get_expression_or_type<token::curly_close>(stream, end);
-			assert_token(stream, token::curly_close);
+			get_expression_or_type<token::curly_close>(stream, end, errors);
+			assert_token(stream, token::curly_close, errors);
 			break;
 		}
 
 		case token::square_open:
 		{
 			++stream; // '['
-			get_expression_or_type<token::square_close>(stream, end);
-			assert_token(stream, token::square_close);
+			get_expression_or_type<token::square_close>(stream, end, errors);
+			assert_token(stream, token::square_close, errors);
 			break;
 		}
 
@@ -94,11 +94,11 @@ static token_range get_expression_or_type(
 }
 
 static bz::vector<ast::variable> get_function_params(
-	token_pos &stream,
-	token_pos  end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
-	assert_token(stream, token::paren_open);
+	assert_token(stream, token::paren_open, errors);
 	bz::vector<ast::variable> params;
 
 	if (stream->kind == token::paren_close)
@@ -115,9 +115,9 @@ static bz::vector<ast::variable> get_function_params(
 			++stream;
 		}
 
-		assert_token(stream, token::colon);
+		assert_token(stream, token::colon, errors);
 
-		auto type = get_expression_or_type<token::paren_close, token::comma>(stream, end);
+		auto type = get_expression_or_type<token::paren_close, token::comma>(stream, end, errors);
 
 		if (id->kind == token::identifier)
 		{
@@ -137,24 +137,24 @@ static bz::vector<ast::variable> get_function_params(
 		&& (++stream, true)
 	);
 
-	assert_token(stream, token::paren_close);
+	assert_token(stream, token::paren_close, errors);
 
 	return params;
 }
 
 
 static ast::stmt_compound get_stmt_compound(
-	token_pos &stream,
-	token_pos end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
 	auto const begin_token = stream;
-	assert_token(stream, token::curly_open);
+	assert_token(stream, token::curly_open, errors);
 	auto comp_stmt = ast::stmt_compound(token_range{ begin_token, stream });
 
 	while (stream != end && stream->kind != token::curly_close)
 	{
-		comp_stmt.statements.emplace_back(get_ast_statement(stream, end));
+		comp_stmt.statements.emplace_back(parse_statement(stream, end, errors));
 	}
 	assert(stream != end);
 	++stream; // '}'
@@ -164,17 +164,17 @@ static ast::stmt_compound get_stmt_compound(
 }
 
 static ast::stmt_compound_ptr get_stmt_compound_ptr(
-	token_pos &stream,
-	token_pos end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
 	auto const begin_token = stream;
-	assert_token(stream, token::curly_open);
+	assert_token(stream, token::curly_open, errors);
 	auto comp_stmt = std::make_unique<ast::stmt_compound>(token_range{ begin_token, stream });
 
 	while (stream != end && stream->kind != token::curly_close)
 	{
-		comp_stmt->statements.emplace_back(get_ast_statement(stream, end));
+		comp_stmt->statements.emplace_back(parse_statement(stream, end, errors));
 	}
 	assert(stream != end);
 	++stream; // '}'
@@ -183,22 +183,25 @@ static ast::stmt_compound_ptr get_stmt_compound_ptr(
 	return comp_stmt;
 }
 
-ast::statement parse_if_statement(token_pos &stream, token_pos end)
+static ast::statement parse_if_statement(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_if);
 	auto begin_token = stream;
 	++stream; // 'if'
 
-	assert_token(stream, token::paren_open);
-	auto condition = get_expression_or_type<token::paren_close>(stream, end);
-	assert_token(stream, token::paren_close);
+	assert_token(stream, token::paren_open, errors);
+	auto condition = get_expression_or_type<token::paren_close>(stream, end, errors);
+	assert_token(stream, token::paren_close, errors);
 
-	auto if_block = get_ast_statement(stream, end);
+	auto if_block = parse_statement(stream, end, errors);
 
 	if (stream->kind == token::kw_else)
 	{
 		++stream; // 'else'
-		auto else_block = get_ast_statement(stream, end);
+		auto else_block = parse_statement(stream, end, errors);
 
 		return ast::make_stmt_if(
 			token_range{ begin_token, stream },
@@ -217,17 +220,20 @@ ast::statement parse_if_statement(token_pos &stream, token_pos end)
 	}
 }
 
-ast::statement parse_while_statement(token_pos &stream, token_pos end)
+static ast::statement parse_while_statement(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_while);
 	auto const begin_token = stream;
 	++stream; // 'while'
 
-	assert_token(stream, token::paren_open);
-	auto condition = get_expression_or_type<token::paren_close>(stream, end);
-	assert_token(stream, token::paren_close);
+	assert_token(stream, token::paren_open, errors);
+	auto condition = get_expression_or_type<token::paren_close>(stream, end, errors);
+	assert_token(stream, token::paren_close, errors);
 
-	auto while_block = get_ast_statement(stream, end);
+	auto while_block = parse_statement(stream, end, errors);
 
 	return ast::make_stmt_while(
 		token_range{ begin_token, stream },
@@ -236,20 +242,26 @@ ast::statement parse_while_statement(token_pos &stream, token_pos end)
 	);
 }
 
-ast::statement parse_for_statement(token_pos &stream, token_pos)
+static ast::statement parse_for_statement(
+	token_pos &stream, token_pos,
+	bz::vector<error> &
+)
 {
 	assert(stream->kind == token::kw_for);
-	bad_token(stream, "Error: for statement not yet implemented");
+	assert(false, "for statement not yet implemented");
 }
 
-ast::statement parse_return_statement(token_pos &stream, token_pos end)
+static ast::statement parse_return_statement(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_return);
 	auto const begin_token = stream;
 	++stream; // 'return'
 
-	auto expr = get_expression_or_type<token::semi_colon>(stream, end);
-	assert_token(stream, token::semi_colon);
+	auto expr = get_expression_or_type<token::semi_colon>(stream, end, errors);
+	assert_token(stream, token::semi_colon, errors);
 
 	return ast::make_stmt_return(
 		token_range{ begin_token, stream },
@@ -257,7 +269,10 @@ ast::statement parse_return_statement(token_pos &stream, token_pos end)
 	);
 }
 
-ast::statement parse_no_op_statement(token_pos &stream, token_pos)
+static ast::statement parse_no_op_statement(
+	token_pos &stream, token_pos,
+	bz::vector<error> &
+)
 {
 	assert(stream->kind == token::semi_colon);
 	auto const begin_token = stream;
@@ -265,7 +280,25 @@ ast::statement parse_no_op_statement(token_pos &stream, token_pos)
 	return ast::make_stmt_no_op(token_range{ begin_token, stream });
 }
 
-ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
+static ast::statement parse_expression_statement(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
+{
+	auto const begin_token = stream;
+	auto expr = get_expression_or_type<token::semi_colon>(stream, end, errors);
+	assert_token(stream, token::semi_colon, errors);
+
+	return ast::make_stmt_expression(
+		token_range{ begin_token, stream },
+		ast::make_expr_unresolved(expr)
+	);
+}
+
+static ast::declaration parse_variable_declaration(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_let || stream->kind == token::kw_const);
 	auto const tokens_begin = stream;
@@ -277,24 +310,24 @@ ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
 	{
 		if (is_const)
 		{
-			bad_tokens(
+			errors.emplace_back(bad_tokens(
 				tokens_begin,
 				stream,
 				stream + 1,
-				"Error: A reference cannot be const"
-			);
+				"a reference cannot be const"
+			));
 		}
 		++stream; // '&'
 	}
 
-	auto id = assert_token(stream, token::identifier);
+	auto id = assert_token(stream, token::identifier, errors);
 
 	if (stream->kind == token::colon)
 	{
 		++stream; // ':'
 		auto type_tokens = get_expression_or_type<
 			token::assign, token::semi_colon
-		>(stream, end);
+		>(stream, end, errors);
 
 		auto type = ast::make_ts_unresolved(type_tokens);
 		if (is_const)
@@ -313,11 +346,11 @@ ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
 			return ast::make_decl_variable(token_range{tokens_begin, tokens_end}, id, type);
 		}
 
-		assert_token(stream, token::assign, token::semi_colon);
+		assert_token(stream, token::assign, token::semi_colon, errors);
 
-		auto init = get_expression_or_type<token::semi_colon>(stream, end);
+		auto init = get_expression_or_type<token::semi_colon>(stream, end, errors);
 
-		assert_token(stream, token::semi_colon);
+		assert_token(stream, token::semi_colon, errors);
 		auto const tokens_end = stream;
 		return ast::make_decl_variable(
 			token_range{tokens_begin, tokens_end},
@@ -328,11 +361,11 @@ ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
 	}
 	else if (stream->kind != token::assign)
 	{
-		bad_token(stream, "Error: Expected '=' or ':'");
+		errors.emplace_back(bad_token(stream, "expected '=' or ':'"));
 	}
 	++stream;
 
-	auto init = get_expression_or_type<token::semi_colon>(stream, end);
+	auto init = get_expression_or_type<token::semi_colon>(stream, end, errors);
 
 	ast::typespec type;
 	if (is_const)
@@ -344,7 +377,7 @@ ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
 		type = ast::make_ts_reference(ast::typespec());
 	}
 
-	assert_token(stream, token::semi_colon);
+	assert_token(stream, token::semi_colon, errors);
 	auto const tokens_end = stream;
 	return ast::make_decl_variable(
 		token_range{tokens_begin, tokens_end},
@@ -354,7 +387,10 @@ ast::declaration parse_variable_declaration(token_pos &stream, token_pos end)
 	);
 }
 
-ast::declaration parse_struct_definition(token_pos &stream, token_pos end)
+static ast::declaration parse_struct_definition(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_struct);
 	++stream; // 'struct'
@@ -364,16 +400,16 @@ ast::declaration parse_struct_definition(token_pos &stream, token_pos end)
 		assert(stream->kind == token::identifier);
 		auto id = stream;
 		++stream;
-		assert_token(stream, token::colon);
-		auto type = get_expression_or_type<token::semi_colon>(stream, end);
-		assert_token(stream, token::semi_colon);
+		assert_token(stream, token::colon, errors);
+		auto type = get_expression_or_type<token::semi_colon>(stream, end, errors);
+		assert_token(stream, token::semi_colon, errors);
 		return ast::variable(
 			id, ast::make_ts_unresolved(type)
 		);
 	};
 
-	auto id = assert_token(stream, token::identifier);
-	assert_token(stream, token::curly_open);
+	auto id = assert_token(stream, token::identifier, errors);
+	assert_token(stream, token::curly_open, errors);
 
 	bz::vector<ast::variable> member_variables = {};
 	while (stream != end && stream->kind == token::identifier)
@@ -383,52 +419,58 @@ ast::declaration parse_struct_definition(token_pos &stream, token_pos end)
 
 	if (stream->kind != token::curly_close)
 	{
-		bad_token(stream, "Error: Expected '}' or member variable");
+		errors.emplace_back(bad_token(stream, "expected '}' or member variable"));
 	}
 	++stream; // '}'
 	return ast::make_decl_struct(id, std::move(member_variables));
 }
 
-ast::declaration parse_function_definition(token_pos &stream, token_pos end)
+static ast::declaration parse_function_definition(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_function);
 	++stream; // 'function'
-	auto id = assert_token(stream, token::identifier);
+	auto id = assert_token(stream, token::identifier, errors);
 
-	auto params = get_function_params(stream, end);
+	auto params = get_function_params(stream, end, errors);
 
-	assert_token(stream, token::arrow);
-	auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
+	assert_token(stream, token::arrow, errors);
+	auto ret_type = get_expression_or_type<token::curly_open>(stream, end, errors);
 
 	return ast::make_decl_function(
 		id,
 		std::move(params),
 		ast::make_ts_unresolved(ret_type),
-		get_stmt_compound(stream, end)
+		get_stmt_compound(stream, end, errors)
 	);
 }
 
-ast::declaration parse_operator_definition(token_pos &stream, token_pos end)
+static ast::declaration parse_operator_definition(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
 {
 	assert(stream->kind == token::kw_operator);
 	++stream; // 'operator'
 	auto op = stream;
 	if (!is_overloadable_operator(op->kind))
 	{
-		bad_token(stream, "Error: Expected overloadable operator");
+		errors.emplace_back(bad_token(stream, "expected overloadable operator"));
 	}
 
 	++stream;
 	if (op->kind == token::paren_open)
 	{
-		assert_token(stream, token::paren_close);
+		assert_token(stream, token::paren_close, errors);
 	}
 	else if (op->kind == token::square_open)
 	{
-		assert_token(stream, token::square_close);
+		assert_token(stream, token::square_close, errors);
 	}
 
-	auto params = get_function_params(stream, end);
+	auto params = get_function_params(stream, end, errors);
 
 	if (params.size() == 0)
 	{
@@ -447,168 +489,137 @@ ast::declaration parse_operator_definition(token_pos &stream, token_pos end)
 			operator_name = op->value;
 		}
 
-		bad_tokens(
+		errors.emplace_back(bad_tokens(
 			op - 1, op, stream,
 			bz::format("Error: operator {} cannot take 0 arguments", operator_name)
-		);
+		));
 	}
 	if (params.size() == 1)
 	{
 		if (op->kind != token::paren_open && !is_unary_operator(op->kind))
 		{
 			bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
-			bad_tokens(
+			errors.emplace_back(bad_tokens(
 				op - 1, op, stream,
 				bz::format("Error: operator {} cannot take 1 argument", operator_name)
-			);
+			));
 		}
 	}
 	else if (params.size() == 2)
 	{
 		if (op->kind != token::paren_open && !is_binary_operator(op->kind))
 		{
-			bad_tokens(
+			errors.emplace_back(bad_tokens(
 				op - 1, op, stream,
 				bz::format("Error: operator {} cannot take 2 arguments", op->value)
-			);
+			));
 		}
 	}
 	else if (op->kind != token::paren_open)
 	{
 		bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
-		bad_tokens(
+		errors.emplace_back(bad_tokens(
 			op - 1, op, stream,
 			bz::format("Error: operator {} cannot take {} arguments", operator_name, params.size())
-		);
+		));
 	}
 
-	assert_token(stream, token::arrow);
-	auto ret_type = get_expression_or_type<token::curly_open>(stream, end);
+	assert_token(stream, token::arrow, errors);
+	auto ret_type = get_expression_or_type<token::curly_open>(stream, end, errors);
 
 	return ast::make_decl_operator(
 		op,
 		std::move(params),
 		ast::make_ts_unresolved(ret_type),
-		get_stmt_compound(stream, end)
+		get_stmt_compound(stream, end, errors)
 	);
 }
 
-ast::statement parse_expression_statement(token_pos &stream, token_pos end)
+ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<error> &errors)
 {
-	auto const begin_token = stream;
-	auto expr = get_expression_or_type<token::semi_colon>(stream, end);
-	assert_token(stream, token::semi_colon);
+	switch (stream->kind)
+	{
+	// variable declaration
+	case token::kw_let:
+	case token::kw_const:
+		return parse_variable_declaration(stream, end, errors);
 
-	return ast::make_stmt_expression(
-		token_range{ begin_token, stream },
-		ast::make_expr_unresolved(expr)
-	);
+	// struct definition
+	case token::kw_struct:
+		return parse_struct_definition(stream, end, errors);
+
+	// function definition
+	case token::kw_function:
+		return parse_function_definition(stream, end, errors);
+
+	// operator definition
+	case token::kw_operator:
+		return parse_operator_definition(stream, end, errors);
+
+	default:
+		errors.emplace_back(bad_token(stream, "expected a declaration"));
+		while (
+			stream != end
+			&& stream->kind != token::kw_let
+			&& stream->kind != token::kw_const
+			&& stream->kind != token::kw_struct
+			&& stream->kind != token::kw_function
+			&& stream->kind != token::kw_operator
+		)
+		{
+			++stream;
+		}
+		return parse_declaration(stream, end, errors);
+	}
 }
 
-ast::statement get_ast_statement(
-	token_pos &stream,
-	token_pos  end
-)
+ast::statement parse_statement(token_pos &stream, token_pos end, bz::vector<error> &errors)
 {
 	switch (stream->kind)
 	{
 	// if statement
 	case token::kw_if:
-		return parse_if_statement(stream, end);
+		return parse_if_statement(stream, end, errors);
 
 	// while statement
 	case token::kw_while:
-		return parse_while_statement(stream, end);
+		return parse_while_statement(stream, end, errors);
 
 	// for statement
 	case token::kw_for:
-		// TODO: implement
-		assert(false);
+		return parse_for_statement(stream, end, errors);
 
 	// return statement
 	case token::kw_return:
-		return parse_return_statement(stream, end);
+		return parse_return_statement(stream, end, errors);
 
 	// no-op statement
 	case token::semi_colon:
-		return parse_no_op_statement(stream, end);
+		return parse_no_op_statement(stream, end, errors);
 
 	// compound statement
 	case token::curly_open:
-		return ast::make_statement(get_stmt_compound_ptr(stream, end));
+		return ast::make_statement(get_stmt_compound_ptr(stream, end, errors));
 
 	// variable declaration
 	case token::kw_let:
 	case token::kw_const:
-		return parse_variable_declaration(stream, end);
+		return parse_variable_declaration(stream, end, errors);
 
 	// struct definition
 	case token::kw_struct:
-		return parse_struct_definition(stream, end);
+		return parse_struct_definition(stream, end, errors);
 
 	// function definition
 	case token::kw_function:
-		return parse_function_definition(stream, end);
+		return parse_function_definition(stream, end, errors);
 
 	// operator definition
 	case token::kw_operator:
-		return parse_operator_definition(stream, end);
+		return parse_operator_definition(stream, end, errors);
 
 	// expression statement
 	default:
-		return parse_expression_statement(stream, end);
+		return parse_expression_statement(stream, end, errors);
 	}
-}
-
-
-bz::vector<ast::statement> get_ast_statements(
-	token_pos &stream, token_pos end
-)
-{
-	bz::vector<ast::statement> statements = {};
-	while (stream->kind != token::eof)
-	{
-		statements.emplace_back(get_ast_statement(stream, end));
-	}
-	return statements;
-}
-
-ast::declaration get_ast_declaration(
-	token_pos &stream, token_pos end
-)
-{
-	switch (stream->kind)
-	{
-	// variable declaration
-	case token::kw_let:
-	case token::kw_const:
-		return parse_variable_declaration(stream, end);
-
-	// struct definition
-	case token::kw_struct:
-		return parse_struct_definition(stream, end);
-
-	// function definition
-	case token::kw_function:
-		return parse_function_definition(stream, end);
-
-	// operator definition
-	case token::kw_operator:
-		return parse_operator_definition(stream, end);
-
-	default:
-		bad_token(stream, "Expected a declaration");
-	}
-}
-
-bz::vector<ast::declaration> get_ast_declarations(
-	token_pos &stream, token_pos end
-)
-{
-	bz::vector<ast::declaration> declarations = {};
-	while (stream->kind != token::eof)
-	{
-		declarations.emplace_back(get_ast_declaration(stream, end));
-	}
-	return declarations;
 }

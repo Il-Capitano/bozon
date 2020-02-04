@@ -95,12 +95,6 @@ struct expr_identifier
 
 	token_pos get_tokens_end(void) const
 	{ return this->identifier + 1; }
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 struct expr_literal
@@ -137,12 +131,6 @@ struct expr_literal
 
 	token_pos get_tokens_end(void) const
 	{ return this->src_pos + 1; }
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 struct expr_tuple
@@ -162,12 +150,6 @@ struct expr_tuple
 
 	token_pos get_tokens_end(void) const
 	{ return this->tokens.end; }
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 struct expr_unary_op
@@ -183,12 +165,6 @@ struct expr_unary_op
 	token_pos get_tokens_begin(void) const;
 	token_pos get_tokens_pivot(void) const;
 	token_pos get_tokens_end(void) const;
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 struct expr_binary_op
@@ -206,12 +182,6 @@ struct expr_binary_op
 	token_pos get_tokens_begin(void) const;
 	token_pos get_tokens_pivot(void) const;
 	token_pos get_tokens_end(void) const;
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 struct expr_function_call
@@ -229,12 +199,6 @@ struct expr_function_call
 	token_pos get_tokens_begin() const;
 	token_pos get_tokens_pivot() const;
 	token_pos get_tokens_end() const;
-
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 };
 
 

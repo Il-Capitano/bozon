@@ -119,3 +119,7 @@ void src_file::report_and_clear_errors(void)
 {
 	return false;
 }
+
+static void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &errors)
+{
+}

@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "context.h"
 
 // ================================================================
 // ---------------------- expression parsing ----------------------
@@ -103,13 +104,13 @@ static precedence get_unary_precedence(uint32_t kind)
 }
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	token_pos &stream,
-	token_pos  end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 );
 
 static ast::expression parse_primary_expression(
-	token_pos &stream,
-	token_pos  end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
 	switch (stream->kind)
@@ -154,7 +155,7 @@ static ast::expression parse_primary_expression(
 
 		if (paren_level != 0)
 		{
-			bad_token(stream, "Error: Expected ')'");
+			errors.emplace_back(bad_token(stream, "expected ')'"));
 		}
 
 		return ast::make_expr_unresolved(token_range{ paren_begin, stream });
@@ -165,8 +166,8 @@ static ast::expression parse_primary_expression(
 	{
 		auto const begin_token = stream;
 		++stream;
-		auto elems = parse_expression_comma_list(stream, end);
-		assert_token(stream, token::square_close);
+		auto elems = parse_expression_comma_list(stream, end, errors);
+		assert_token(stream, token::square_close, errors);
 		auto const end_token = stream;
 		return make_expr_tuple(std::move(elems), token_range{ begin_token, end_token });
 	}
@@ -186,22 +187,23 @@ static ast::expression parse_primary_expression(
 		auto op = stream;
 		++stream;
 		auto prec = get_unary_precedence(op->kind);
-		auto expr = parse_expression(stream, end, prec);
+		auto expr = parse_expression(stream, end, errors, prec);
 
 		auto result = make_expr_unary_op(op, std::move(expr));
 		return result;
 	}
 
 	default:
-		bad_token(stream, "Error: Expected primary expression");
+		errors.emplace_back(bad_token(stream, "expected primary expression"));
+		return ast::expression();
 	}
 };
 
 static ast::expression parse_expression_helper(
-	ast::expression   lhs,
-	token_pos &stream,
-	token_pos  end,
-	precedence       prec
+	ast::expression lhs,
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors,
+	precedence prec
 )
 {
 	token_pos op = nullptr;
@@ -228,8 +230,8 @@ static ast::expression parse_expression_helper(
 				break;
 			}
 
-			auto params = parse_expression_comma_list(stream, end);
-			assert_token(stream, token::paren_close);
+			auto params = parse_expression_comma_list(stream, end, errors);
+			assert_token(stream, token::paren_close, errors);
 
 			lhs = make_expr_function_call(
 				op, std::move(lhs), std::move(params)
@@ -239,8 +241,8 @@ static ast::expression parse_expression_helper(
 
 		case token::square_open:
 		{
-			auto rhs = parse_expression(stream, end);
-			assert_token(stream, token::square_close);
+			auto rhs = parse_expression(stream, end, errors);
+			assert_token(stream, token::square_close, errors);
 
 			lhs = make_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
@@ -250,7 +252,7 @@ static ast::expression parse_expression_helper(
 
 		default:
 		{
-			auto rhs = parse_primary_expression(stream, end);
+			auto rhs = parse_primary_expression(stream, end, errors);
 			precedence rhs_prec;
 
 			while (
@@ -258,7 +260,7 @@ static ast::expression parse_expression_helper(
 				&& (rhs_prec = get_binary_precedence(stream->kind)) < op_prec
 			)
 			{
-				rhs = parse_expression_helper(std::move(rhs), stream, end, rhs_prec);
+				rhs = parse_expression_helper(std::move(rhs), stream, end, errors, rhs_prec);
 			}
 
 			lhs = make_expr_binary_op(
@@ -273,34 +275,122 @@ static ast::expression parse_expression_helper(
 }
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	token_pos &stream,
-	token_pos  end
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 )
 {
 	bz::vector<ast::expression> exprs = {};
 
-	exprs.emplace_back(parse_expression(stream, end, no_comma));
+	exprs.emplace_back(parse_expression(stream, end, errors, no_comma));
 
 	while (stream != end && stream->kind == token::comma)
 	{
 		++stream; // ','
-		exprs.emplace_back(parse_expression(stream, end, no_comma));
+		exprs.emplace_back(parse_expression(stream, end, errors, no_comma));
 	}
 
 	return exprs;
 }
 
 ast::expression parse_expression(
-	token_pos &stream,
-	token_pos  end,
-	precedence           prec
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors,
+	precedence prec
 )
 {
-	auto lhs = parse_primary_expression(stream, end);
-	auto result = parse_expression_helper(std::move(lhs), stream, end, prec);
+	auto lhs = parse_primary_expression(stream, end, errors);
+	auto result = parse_expression_helper(std::move(lhs), stream, end, errors, prec);
 	return result;
 }
 
 // ================================================================
-// ---------------------- statement parsing -----------------------
+// ------------------------ type parsing --------------------------
 // ================================================================
+
+ast::typespec parse_typespec(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
+{
+	if (stream == end)
+	{
+		errors.emplace_back(bad_token(stream));
+		return ast::typespec();
+	}
+
+	switch (stream->kind)
+	{
+	case token::identifier:
+	{
+		auto id = stream;
+		++stream;
+		return ast::make_ts_base_type(context.get_type(id));
+	}
+
+	case token::kw_const:
+		++stream; // 'const'
+		return ast::make_ts_constant(parse_typespec(stream, end, errors));
+
+	case token::star:
+		++stream; // '*'
+		return ast::make_ts_pointer(parse_typespec(stream, end, errors));
+
+	case token::ampersand:
+		++stream; // '&'
+		return ast::make_ts_reference(parse_typespec(stream, end, errors));
+
+	case token::kw_function:
+	{
+		++stream; // 'function'
+		assert_token(stream, token::paren_open, errors);
+
+		bz::vector<ast::typespec> param_types = {};
+		if (stream->kind != token::paren_close) while (stream != end)
+		{
+			param_types.push_back(parse_typespec(stream, end, errors));
+			if (stream->kind != token::paren_close)
+			{
+				assert_token(stream, token::comma, errors);
+			}
+			else
+			{
+				break;
+			}
+		}
+		assert(stream != end);
+		assert_token(stream, token::paren_close, errors);
+		assert_token(stream, token::arrow, errors);
+
+		auto ret_type = parse_typespec(stream, end, errors);
+
+		return make_ts_function(std::move(ret_type), std::move(param_types));
+	}
+
+	case token::square_open:
+	{
+		++stream; // '['
+
+		bz::vector<ast::typespec> types = {};
+		if (stream->kind != token::square_close) while (stream != end)
+		{
+			types.push_back(parse_typespec(stream, end, errors));
+			if (stream->kind != token::square_close)
+			{
+				assert_token(stream, token::comma, errors);
+			}
+			else
+			{
+				break;
+			}
+		}
+		assert(stream != end);
+		assert_token(stream, token::square_close, errors);
+
+		return make_ts_tuple(std::move(types));
+	}
+
+	default:
+		assert(false);
+		return ast::typespec();
+	}
+}

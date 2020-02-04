@@ -11,37 +11,6 @@
 namespace ast
 {
 
-/*
-#define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
-
-declare_node_type(decl_variable);
-declare_node_type(decl_function);
-declare_node_type(decl_operator);
-declare_node_type(decl_struct);
-
-struct stmt_declaration : node<
-	decl_variable,
-	decl_function,
-	decl_operator,
-	decl_struct
->
-{
-	using base_t = node<
-		decl_variable,
-		decl_function,
-		decl_operator,
-		decl_struct
-	>;
-
-	using base_t::node;
-	using base_t::get;
-	using base_t::kind;
-	void resolve(void);
-	void emit_bytecode(bz::vector<bytecode::instruction> &out);
-};
-using stmt_declaration_ptr = std::unique_ptr<stmt_declaration>;
-*/
-
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(stmt_if);
@@ -77,8 +46,6 @@ struct declaration : node<
 	using base_t::node;
 	using base_t::get;
 	using base_t::kind;
-
-	void resolve(void);
 };
 
 struct statement : node<
@@ -114,9 +81,6 @@ struct statement : node<
 	using base_t::kind;
 	using base_t::emplace;
 	statement(declaration decl);
-
-	void resolve(void);
-	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 };
 
 

@@ -545,8 +545,10 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 	{
 		bad_tokens(
 			unary_op,
-			"Error: Undeclared unary operator '{}' with type '{}'",
-			unary_op.op->value, unary_op.expr.expr_type
+			bz::format(
+				"Error: Undeclared unary operator '{}' with type '{}'",
+				unary_op.op->value, unary_op.expr.expr_type
+			)
 		);
 	}
 
@@ -563,8 +565,10 @@ ast::typespec parse_context::get_operator_type(ast::expr_unary_op const &unary_o
 
 	bad_tokens(
 		unary_op,
-		"Error: Undeclared unary operator '{}' with type '{}'",
-		unary_op.op->value, unary_op.expr.expr_type
+		bz::format(
+			"Error: Undeclared unary operator '{}' with type '{}'",
+			unary_op.op->value, unary_op.expr.expr_type
+		)
 	);
 }
 
@@ -1163,8 +1167,10 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 	{
 		bad_tokens(
 			binary_op,
-			"Error: Undeclared operator with types '{}' and '{}'",
-			binary_op.lhs.expr_type, binary_op.rhs.expr_type
+			bz::format(
+				"Error: Undeclared operator with types '{}' and '{}'",
+				binary_op.lhs.expr_type, binary_op.rhs.expr_type
+			)
 		);
 	}
 
@@ -1182,8 +1188,10 @@ ast::typespec parse_context::get_operator_type(ast::expr_binary_op const &binary
 
 	bad_tokens(
 		binary_op,
-		"Error: Undeclared operator with types '{}' and '{}'",
-		binary_op.lhs.expr_type, binary_op.rhs.expr_type
+		bz::format(
+			"Error: Undeclared operator with types '{}' and '{}'",
+			binary_op.lhs.expr_type, binary_op.rhs.expr_type
+		)
 	);
 }
 

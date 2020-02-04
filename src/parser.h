@@ -53,9 +53,14 @@ inline bool operator <= (precedence lhs, precedence rhs)
 }
 
 ast::expression parse_expression(
-	token_pos &stream,
-	token_pos  end,
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors,
 	precedence prec = precedence{}
+);
+
+ast::typespec parse_typespec(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
 );
 
 #endif // PARSER_H

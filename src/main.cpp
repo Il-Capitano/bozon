@@ -1434,6 +1434,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 
 void bytecode_test()
 {
+/*
 	context.variables.clear();
 	context.variables.push_back({});
 	context.functions.clear();
@@ -1480,6 +1481,7 @@ void bytecode_test()
 	assert(*var_pos == 2);
 
 	bz::print("==== bytecode_test end ====");
+*/
 }
 
 int main(void)
@@ -1492,36 +1494,48 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
-	auto start = std::chrono::steady_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
 	src_file file("src/test.bz");
 	if (!file.read_file())
 	{
-		bz::printf("error: unable to open file {}\n", file.get_file_name());
+		bz::printf("error: unable to read file {}\n", file.get_file_name());
 		return 1;
 	}
+	else
+	{
+		bz::printf("successfully read {}\n", file.get_file_name());
+	}
+
 
 	if (!file.tokenize())
 	{
+		bz::printf("{} error(s) occurred during tokenization\n", file.get_error_count());
 		file.report_and_clear_errors();
+		return 1;
+	}
+	else
+	{
+		bz::printf("successfully tokenized {}\n", file.get_file_name());
 	}
 
-	auto after_tokenizing = std::chrono::steady_clock::now();
+	auto after_tokenizing = std::chrono::high_resolution_clock::now();
 
+/*
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();
 
 	auto decls = get_ast_declarations(stream, end);
 	assert(stream->kind == token::eof);
 
-	auto after_first_pass = std::chrono::steady_clock::now();
+	auto after_first_pass = std::chrono::high_resolution_clock::now();
 
 	for (auto &d : decls)
 	{
 		d.resolve();
 	}
 
-	auto after_resolving = std::chrono::steady_clock::now();
+	auto after_resolving = std::chrono::high_resolution_clock::now();
 
 	std::stringstream result_ss;
 
@@ -1532,7 +1546,7 @@ int main(void)
 
 	std::cout << result_ss.str() << std::flush;
 
-	auto after_printing = std::chrono::steady_clock::now();
+	auto after_printing = std::chrono::high_resolution_clock::now();
 
 	auto in_ms = [](auto time)
 	{
@@ -1556,6 +1570,7 @@ int main(void)
 	);
 
 	bytecode_test();
+*/
 
 	return 0;
 }
