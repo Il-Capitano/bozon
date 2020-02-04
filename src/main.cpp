@@ -1448,8 +1448,8 @@ void bytecode_test()
 	using namespace bytecode;
 
 	src_file file("src/bytecode_test.bz");
-	file.read_file();
-	file.tokenize();
+	assert(file.read_file());
+	assert(file.tokenize());
 
 	auto stream = file.tokens_begin();
 	auto const end = file.tokens_end();
@@ -1495,8 +1495,16 @@ int main(void)
 	auto start = std::chrono::steady_clock::now();
 
 	src_file file("src/test.bz");
-	file.read_file();
-	file.tokenize();
+	if (!file.read_file())
+	{
+		bz::printf("error: unable to open file {}\n", file.get_file_name());
+		return 1;
+	}
+
+	if (!file.tokenize())
+	{
+		file.report_and_clear_errors();
+	}
 
 	auto after_tokenizing = std::chrono::steady_clock::now();
 

@@ -6,17 +6,6 @@
 #include "lexer.h"
 #include "context.h"
 
-struct error
-{
-	bz::string file;
-	size_t line;
-	size_t column;
-	char_pos src_begin;
-	char_pos src_pivot;
-	char_pos src_end;
-	bz::string message;
-};
-
 struct src_file
 {
 	enum src_file_stage
@@ -42,11 +31,14 @@ private:
 public:
 	src_file(bz::string file_name);
 
-	void report_errors_if_any(void);
+	void report_and_clear_errors(void);
 
-	void read_file(void);
-	void tokenize(void);
-	void first_pass_parse(void);
+	[[nodiscard]] bool read_file(void);
+	[[nodiscard]] bool tokenize(void);
+	[[nodiscard]] bool first_pass_parse(void);
+
+	bz::string const &get_file_name() const
+	{ return this->_file_name; }
 
 	auto tokens_begin(void) const
 	{ assert(this->_stage >= tokenized); return this->_tokens.begin(); }

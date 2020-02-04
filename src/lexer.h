@@ -171,7 +171,6 @@ constexpr bool is_keyword_token(token const &t)
 	}
 }
 
-bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name);
 
 bz::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
@@ -180,12 +179,45 @@ bool is_binary_operator(uint32_t kind);
 bool is_unary_operator(uint32_t kind);
 
 
-
 struct token_range
 {
 	token_pos begin;
 	token_pos end;
 };
+
+struct note
+{
+	bz::string file;
+	size_t line;
+	size_t column;
+
+	char_pos src_begin;
+	char_pos src_pivot;
+	char_pos src_end;
+
+	bz::string message;
+};
+
+struct error
+{
+	bz::string file;
+	size_t line;
+	size_t column;
+
+	char_pos src_begin;
+	char_pos src_pivot;
+	char_pos src_end;
+
+	bz::string message;
+
+	bz::vector<note> notes;
+};
+
+bz::vector<token> get_tokens(
+	bz::string_view file,
+	bz::string_view file_name,
+	bz::vector<error> &errors
+);
 
 
 bz::string get_highlighted_chars(

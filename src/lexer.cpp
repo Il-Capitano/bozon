@@ -94,9 +94,17 @@ struct file_iterator
 };
 
 
-token get_next_token(file_iterator &stream, char_pos const end);
+static token get_next_token(
+	file_iterator &stream,
+	char_pos const end,
+	bz::vector<error> &errors
+);
 
-bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name)
+bz::vector<token> get_tokens(
+	bz::string_view file,
+	bz::string_view file_name,
+	bz::vector<error> &errors
+)
 {
 	assert(file.front() == '\n');
 	assert(file.back() == '\n');
@@ -106,7 +114,7 @@ bz::vector<token> get_tokens(bz::string_view file, bz::string_view file_name)
 
 	do
 	{
-		tokens.push_back(get_next_token(stream, end));
+		tokens.push_back(get_next_token(stream, end, errors));
 	} while(tokens.back().kind != token::eof);
 
 	return tokens;
@@ -365,16 +373,30 @@ bz::string get_highlighted_chars(
 	char_pos char_end
 );
 
-[[noreturn]] void bad_char(file_iterator const &stream, bz::string_view message)
+[[nodiscard]] static error bad_char(
+	file_iterator const &stream,
+	bz::string message, bz::vector<note> notes = {}
+)
 {
-	fatal_error(
-		"In file {}:{}:{}: {}\n{}",
-		stream.file,
-		stream.line,
-		stream.column,
-		message,
-		get_highlighted_chars(stream.it, stream.it, stream.it + 1)
-	);
+	return error{
+		stream.file, stream.line, stream.column,
+		stream.it, stream.it, stream.it + 1,
+		std::move(message),
+		std::move(notes)
+	};
+}
+
+[[nodiscard]] static error bad_char(
+	bz::string_view file, size_t line, size_t column,
+	bz::string message, bz::vector<note> notes = {}
+)
+{
+	return error{
+		file, line, column,
+		nullptr, nullptr, nullptr,
+		std::move(message),
+		std::move(notes)
+	};
 }
 
 
@@ -441,7 +463,11 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 	}
 }
 
-token get_identifier_or_keyword_token(file_iterator &stream, char_pos const end)
+token get_identifier_or_keyword_token(
+	file_iterator &stream,
+	char_pos const end,
+	bz::vector<error> &
+)
 {
 	assert(
 		(*stream.it >= 'a' && *stream.it <= 'z')
@@ -491,7 +517,11 @@ token get_identifier_or_keyword_token(file_iterator &stream, char_pos const end)
 	}
 }
 
-token get_character_token(file_iterator &stream, char_pos const)
+token get_character_token(
+	file_iterator &stream,
+	char_pos const,
+	bz::vector<error> &errors
+)
 {
 	assert(*stream.it == '\'');
 	auto const begin_it = stream.it;
@@ -515,7 +545,10 @@ token get_character_token(file_iterator &stream, char_pos const)
 			++stream;
 			break;
 		default:
-			bad_char(stream, "Error: Invalid escape sequence");
+			errors.emplace_back(bad_char(
+				stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
+			));
+			break;
 		}
 		break;
 
@@ -524,13 +557,22 @@ token get_character_token(file_iterator &stream, char_pos const)
 		break;
 	}
 
+	auto const char_end = stream.it;
 	if (*stream.it != '\'')
 	{
-		bad_char(stream, "Error: Expected closing '");
+		errors.emplace_back(bad_char(
+			stream, "expected closing '",
+			{ note{
+				stream.file, line, column,
+				begin_it, begin_it, begin_it + 1,
+				"to match this:"
+			} }
+		));
 	}
-	auto const char_end = stream.it;
-
-	++stream;
+	else
+	{
+		++stream;
+	}
 	auto const end_it = stream.it;
 
 	return token(
@@ -540,7 +582,11 @@ token get_character_token(file_iterator &stream, char_pos const)
 	);
 }
 
-token get_string_token(file_iterator &stream, char_pos const end)
+token get_string_token(
+	file_iterator &stream,
+	char_pos const end,
+	bz::vector<error> &errors
+)
 {
 	assert(*stream.it == '\"');
 	auto const begin_it = stream.it;
@@ -566,7 +612,10 @@ token get_string_token(file_iterator &stream, char_pos const end)
 				++stream;
 				break;
 			default:
-				bad_char(stream, "Error: Invalid escape sequence");
+				errors.emplace_back(bad_char(
+					stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
+				));
+				break;
 			}
 			break;
 
@@ -576,13 +625,23 @@ token get_string_token(file_iterator &stream, char_pos const end)
 		}
 	}
 
-	if (*stream.it != '\"')
-	{
-		bad_char(stream, "Error: Expected closing \"");
-	}
 	auto const str_end = stream.it;
-
-	++stream;
+	if (stream.it == end)
+	{
+		errors.emplace_back(bad_char(
+			stream.file, stream.line, stream.column,
+			"expected closing \" before end-of-file",
+			{ note{
+				stream.file, line, column,
+				begin_it, begin_it, begin_it + 1,
+				"to match this:"
+			} }
+		));
+	}
+	else
+	{
+		++stream;
+	}
 	auto const end_it = stream.it;
 
 	return token(
@@ -592,7 +651,11 @@ token get_string_token(file_iterator &stream, char_pos const end)
 	);
 }
 
-token get_number_token(file_iterator &stream, char_pos const end)
+token get_number_token(
+	file_iterator &stream,
+	char_pos const end,
+	bz::vector<error> &
+)
 {
 	assert(is_num_char(*stream.it));
 	auto const begin_it = stream.it;
@@ -638,7 +701,11 @@ token get_number_token(file_iterator &stream, char_pos const end)
 	// TODO: allow hex, oct and bin numbers (0x, 0o, 0b) and exponential notations (1e10)
 }
 
-token get_single_char_token(file_iterator &stream, char_pos const)
+token get_single_char_token(
+	file_iterator &stream,
+	char_pos const,
+	bz::vector<error> &
+)
 {
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
@@ -667,7 +734,11 @@ bool is_str(bz::string_view str, file_iterator &stream, char_pos const end)
 	return str_it == str_end;
 }
 
-token get_next_token(file_iterator &stream, char_pos const end)
+static token get_next_token(
+	file_iterator &stream,
+	char_pos const end,
+	bz::vector<error> &errors
+)
 {
 	skip_comments_and_whitespace(stream, end);
 
@@ -692,18 +763,18 @@ token get_next_token(file_iterator &stream, char_pos const end)
 	case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
 	case 'Y': case 'Z':
 	case '_':
-		return get_identifier_or_keyword_token(stream, end);
+		return get_identifier_or_keyword_token(stream, end, errors);
 
 	// character
 	case '\'':
-		return get_character_token(stream, end);
+		return get_character_token(stream, end, errors);
 	// string
 	case '\"':
-		return get_string_token(stream, end);
+		return get_string_token(stream, end, errors);
 	// number
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
-		return get_number_token(stream, end);
+		return get_number_token(stream, end, errors);
 
 	default:
 		break;
@@ -731,7 +802,7 @@ token get_next_token(file_iterator &stream, char_pos const end)
 		}
 	}
 
-	return get_single_char_token(stream, end);
+	return get_single_char_token(stream, end, errors);
 }
 
 bz::string get_highlighted_chars(
@@ -770,7 +841,7 @@ bz::string get_highlighted_chars(
 		file_line = "";
 		highlight_line = "";
 
-		for (; *it != '\n'; ++it)
+		while (true)
 		{
 			if (*it == '\t')
 			{
@@ -810,10 +881,15 @@ bz::string get_highlighted_chars(
 					highlight_line += ' ';
 				}
 			}
+
+			if (*it == '\n')
+			{
+				break;
+			}
+			++it;
 		}
 
 		result += file_line;
-		result += '\n';
 		result += highlight_line;
 		result += '\n';
 	}
