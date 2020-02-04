@@ -43,7 +43,7 @@ static bz::string read_text_from_file(std::ifstream &file)
 }
 
 src_file::src_file(bz::string file_name)
-	: _file_name(std::move(file_name)), _file(), _tokens(), _stage(constructed)
+	: _stage(constructed), _file_name(std::move(file_name)), _file(), _tokens()
 {}
 
 void src_file::report_errors_if_any(void)
