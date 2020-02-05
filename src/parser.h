@@ -4,6 +4,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "first_pass_parser.h"
+#include "parse_context.h"
 
 
 struct precedence
@@ -11,7 +12,7 @@ struct precedence
 	int value;
 	bool is_left_associative;
 
-	precedence(void)
+	constexpr precedence(void)
 		: value(-1), is_left_associative(true)
 	{}
 
@@ -20,7 +21,7 @@ struct precedence
 	{}
 };
 
-inline bool operator < (precedence lhs, precedence rhs)
+constexpr bool operator < (precedence lhs, precedence rhs)
 {
 	if (lhs.value == -1)
 	{
@@ -36,7 +37,7 @@ inline bool operator < (precedence lhs, precedence rhs)
 	}
 }
 
-inline bool operator <= (precedence lhs, precedence rhs)
+constexpr bool operator <= (precedence lhs, precedence rhs)
 {
 	if (lhs.value == -1)
 	{

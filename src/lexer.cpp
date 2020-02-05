@@ -74,8 +74,8 @@ struct file_iterator
 {
 	char_pos it;
 	bz::string_view file;
-	size_t line;
-	size_t column;
+	size_t line = 1;
+	size_t column = 1;
 
 	file_iterator &operator ++ (void)
 	{
@@ -109,7 +109,7 @@ bz::vector<token> get_tokens(
 	assert(file.front() == '\n');
 	assert(file.back() == '\n');
 	bz::vector<token> tokens = {};
-	file_iterator stream = { file.begin() + 1, file_name, 1, 1 };
+	file_iterator stream = { file.begin() + 1, file_name };
 	auto const end = file.end();
 
 	do
@@ -407,13 +407,13 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 		++stream;
 	}
 
-	if (stream.it == end || *stream.it != '/')
+	if (stream.it == end || stream.it + 1 == end || *stream.it != '/')
 	{
 		return;
 	}
 
 	// line comment
-	if (stream.it + 1 != end && *(stream.it + 1) == '/')
+	if (*(stream.it + 1) == '/')
 	{
 		++stream; ++stream; // '//'
 
@@ -428,12 +428,12 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 	}
 
 	// block comment
-	if (stream.it + 1 != end && *(stream.it + 1) == '*')
+	if (*(stream.it + 1) == '*')
 	{
 		++stream; ++stream; // '/*'
 		int comment_depth = 1;
 
-		for (; stream.it != end && comment_depth != 0; ++stream)
+		while (stream.it != end && comment_depth != 0)
 		{
 			switch (*stream.it)
 			{
@@ -443,6 +443,10 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 					++stream; ++stream; // '/*'
 					++comment_depth;
 				}
+				else
+				{
+					++stream;
+				}
 				break;
 
 			case '*':
@@ -451,9 +455,14 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 					++stream; ++stream; // '*/'
 					--comment_depth;
 				}
+				else
+				{
+					++stream;
+				}
 				break;
 
 			default:
+				++stream;
 				break;
 			}
 		}
@@ -519,7 +528,7 @@ token get_identifier_or_keyword_token(
 
 token get_character_token(
 	file_iterator &stream,
-	char_pos const,
+	char_pos const end,
 	bz::vector<error> &errors
 )
 {
@@ -552,13 +561,29 @@ token get_character_token(
 		}
 		break;
 
+	case '\'':
+		errors.emplace_back(bad_char(stream, "expected character before closing '"));
+		break;
+
 	default:
 		++stream;
 		break;
 	}
 
 	auto const char_end = stream.it;
-	if (*stream.it != '\'')
+	if (stream.it == end)
+	{
+		errors.emplace_back(bad_char(
+			stream.file, stream.line, stream.column,
+			"expected closing ' before end-of-file",
+			{ note{
+				stream.file, line, column,
+				begin_it, begin_it, begin_it + 1,
+				"to match this:"
+			} }
+		));
+	}
+	else if (*stream.it != '\'')
 	{
 		errors.emplace_back(bad_char(
 			stream, "expected closing '",
@@ -640,6 +665,7 @@ token get_string_token(
 	}
 	else
 	{
+		assert(*stream.it == '\"');
 		++stream;
 	}
 	auto const end_it = stream.it;

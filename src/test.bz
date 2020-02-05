@@ -577,6 +577,7 @@ test\n";
 	'\'';
 	'"';
 
+	'';
 	'    // BUG: why does expression parsing not check for a semicolon after this char?
 	"";  // output is ' '; and not ' ' "";
 
@@ -659,4 +660,3 @@ struct vec<uint64 N, typename T>
 using vec3<typename T> = vec<3, T>;
 
 */
-

@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "context.h"
+#include "parse_context.h"
 
 // ================================================================
 // ---------------------- expression parsing ----------------------
@@ -324,7 +324,9 @@ ast::typespec parse_typespec(
 	{
 		auto id = stream;
 		++stream;
-		return ast::make_ts_base_type(context.get_type(id));
+		assert(false);
+		return ast::typespec();
+//		return ast::make_ts_base_type(context.get_type(id));
 	}
 
 	case token::kw_const:

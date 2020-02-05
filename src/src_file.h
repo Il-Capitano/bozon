@@ -4,7 +4,7 @@
 #include "core.h"
 
 #include "lexer.h"
-#include "context.h"
+#include "parse_context.h"
 
 struct src_file
 {
@@ -41,6 +41,9 @@ public:
 
 	bz::string const &get_file_name() const
 	{ return this->_file_name; }
+
+	bool has_errors() const
+	{ return this->_errors.size() != 0; }
 
 	size_t get_error_count() const
 	{ return this->_errors.size(); }

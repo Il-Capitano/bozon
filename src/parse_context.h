@@ -1,5 +1,5 @@
-#ifndef CONTEXT_H
-#define CONTEXT_H
+#ifndef PARSE_CONTEXT_H
+#define PARSE_CONTEXT_H
 
 #include "core.h"
 
@@ -32,7 +32,7 @@ struct parse_context
 	bz::vector<operator_overload_set>     operators;
 	bz::vector<ast::type_ptr>             types;
 
-	parse_context(void);
+	parse_context(void) = default;
 
 	void operator ++ (void)
 	{
@@ -68,6 +68,4 @@ struct parse_context
 	int64_t get_identifier_stack_allocation_amount(token_pos id) const;
 };
 
-extern parse_context context;
-
-#endif // CONTEXT_H
+#endif // PARSE_CONTEXT_H

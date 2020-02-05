@@ -1500,6 +1500,7 @@ int main(void)
 	if (!file.read_file())
 	{
 		bz::printf("error: unable to read file {}\n", file.get_file_name());
+		bz::print("exiting...\n");
 		return 1;
 	}
 	else
@@ -1512,6 +1513,7 @@ int main(void)
 	{
 		bz::printf("{} error(s) occurred during tokenization\n", file.get_error_count());
 		file.report_and_clear_errors();
+		bz::print("exiting...\n");
 		return 1;
 	}
 	else
