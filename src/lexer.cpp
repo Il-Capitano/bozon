@@ -435,36 +435,22 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 
 		while (stream.it != end && comment_depth != 0)
 		{
-			switch (*stream.it)
+			if (stream.it + 1 != end)
 			{
-			case '/':
-				if (stream.it + 1 != end && *(stream.it + 1) == '*')
+				if (*stream.it == '/' && *(stream.it + 1) == '*')
 				{
 					++stream; ++stream; // '/*'
 					++comment_depth;
+					continue;
 				}
-				else
-				{
-					++stream;
-				}
-				break;
-
-			case '*':
-				if (stream.it + 1 != end && *(stream.it + 1) == '/')
+				else if (*stream.it == '*' && *(stream.it + 1) == '/')
 				{
 					++stream; ++stream; // '*/'
 					--comment_depth;
+					continue;
 				}
-				else
-				{
-					++stream;
-				}
-				break;
-
-			default:
-				++stream;
-				break;
 			}
+			++stream;
 		}
 
 		skip_comments_and_whitespace(stream, end);
