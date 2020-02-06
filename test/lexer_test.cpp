@@ -26,7 +26,7 @@ constexpr bool is_reverse_sorted(T const &arr)
 static_assert(is_reverse_sorted(multi_char_tokens), "multi_char_tokens is not sorted");
 static_assert(is_reverse_sorted(keywords), "keywords is not sorted");
 
-void file_iterator_test(void)
+static void file_iterator_test(void)
 {
 	bz::string_view file = "\nthis is line #2\n";
 	file_iterator it = {
@@ -47,7 +47,7 @@ void file_iterator_test(void)
 	assert_eq(it.column, 3);
 }
 
-void get_token_value_test(void)
+static void get_token_value_test(void)
 {
 	for (auto t : multi_char_tokens)
 	{
@@ -70,7 +70,7 @@ void get_token_value_test(void)
 	assert_eq(get_token_value(token::character_literal), "character literal");
 }
 
-void bad_char_test(void)
+static void bad_char_test(void)
 {
 	bz::string_view file = "\nthis is line #2\n";
 	auto it = file.begin();
@@ -103,7 +103,7 @@ void bad_char_test(void)
 	}
 }
 
-void skip_comments_and_whitespace_test(void)
+static void skip_comments_and_whitespace_test(void)
 {
 	{
 		bz::string_view file = "";
@@ -164,22 +164,274 @@ skip_comments_and_whitespace(it, file.end())
 
 	{
 		x("/* this /* is a nested */ comment */  a");
+		//                                       ^ file.end() - 1
 		assert_eq(it.it, file.end() - 1);
 	}
 
 	{
-		x("/*");
+		x("/* comment ");
 		assert_eq(it.it, file.end());
 	}
 
 	{
-		x("/ * */");
+		x("/ * not a comment */");
 		assert_eq(it.it, file.begin());
 	}
 
 	{
-		x("/* / * */ */");
+		x("/* / * comment */ not nested */");
+		//                   ^ file.end() - 13
+		assert_eq(it.it, file.end() - 13);
+	}
+
+	{
+		x("/* // */\n   a");
+		//              ^ file.end() - 1
+		assert_eq(it.it, file.end() - 1);
+	}
+
+	{
+		x("/* // \n */");
+		assert_eq(it.it, file.end());
+	}
+
+	{
+		x("// /*\n */");
+		//         ^ file.end() - 2
 		assert_eq(it.it, file.end() - 2);
+	}
+
+#undef x
+}
+
+static void get_identifier_or_keyword_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x_id(str)                                                       \
+bz::string_view const file = str;                                       \
+file_iterator it = { file.begin(), "" };                                \
+auto const t = get_identifier_or_keyword_token(it, file.end(), errors); \
+assert_true(errors.empty());                                            \
+assert_eq(t.kind, token::identifier)
+
+#define x_kw(str, kw_kind)                                              \
+bz::string_view const file = str;                                       \
+file_iterator it = { file.begin(), "" };                                \
+auto const t = get_identifier_or_keyword_token(it, file.end(), errors); \
+assert_true(errors.empty());                                            \
+assert_eq(t.kind, kw_kind)
+
+#define xx_kw(str, kw_kind) do { x_kw(str, kw_kind); } while (false)
+
+
+	{
+		x_id("asdfjkl");
+		assert_eq(it.it, file.end());
+		assert_eq(t.value, "asdfjkl");
+	}
+
+	{
+		x_id("____");
+		assert_eq(it.it, file.end());
+		assert_eq(t.value, "____");
+	}
+
+	{
+//		x_id("0123");
+	}
+
+	{
+		x_id("a0123");
+		assert_eq(it.it, file.end());
+		assert_eq(t.value, "a0123");
+	}
+
+	{
+		x_id("_0123");
+		assert_eq(it.it, file.end());
+		assert_eq(t.value, "_0123");
+	}
+
+	{
+		x_id("asdf ");
+		//        ^ file.end() - 1
+		assert_eq(it.it, file.end() - 1);
+		assert_eq(t.value, "asdf");
+	}
+
+	{
+		x_id("asdf+");
+		//        ^ file.end() - 1
+		assert_eq(it.it, file.end() - 1);
+		assert_eq(t.value, "asdf");
+	}
+
+	xx_kw("namespace", token::kw_namespace);
+	xx_kw("function", token::kw_function);
+	xx_kw("operator", token::kw_operator);
+	xx_kw("typename", token::kw_typename);
+	xx_kw("return", token::kw_return);
+	xx_kw("struct", token::kw_struct);
+	xx_kw("sizeof", token::kw_sizeof);
+	xx_kw("typeof", token::kw_typeof);
+	xx_kw("while", token::kw_while);
+	xx_kw("class", token::kw_class);
+	xx_kw("using", token::kw_using);
+	xx_kw("const", token::kw_const);
+	xx_kw("false", token::kw_false);
+	xx_kw("else", token::kw_else);
+	xx_kw("auto", token::kw_auto);
+	xx_kw("true", token::kw_true);
+	xx_kw("null", token::kw_null);
+	xx_kw("for", token::kw_for);
+	xx_kw("let", token::kw_let);
+	xx_kw("if", token::kw_if);
+
+	{
+		x_id("False");
+		assert_eq(t.value, "False");
+	}
+
+#undef x_id
+#undef x_kw
+}
+
+static void get_character_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, c, it_pos)                                       \
+do {                                                            \
+    assert_true(errors.empty());                                \
+    bz::string_view const file = str;                           \
+    file_iterator it = { file.begin(), "" };                    \
+    auto const t = get_character_token(it, file.end(), errors); \
+    assert_true(errors.empty());                                \
+    assert_eq(t.kind, token::character_literal);                \
+    assert_eq(t.value, c);                                      \
+    assert_eq(it.it, it_pos);                                   \
+} while (false)
+
+#define x_err(str, it_pos)                       \
+do {                                             \
+    assert_true(errors.empty());                 \
+    bz::string_view const file = str;            \
+    file_iterator it = { file.begin(), "" };     \
+    get_character_token(it, file.end(), errors); \
+    assert_false(errors.empty());                \
+    errors.clear();                              \
+    assert_eq(it.it, it_pos);                    \
+} while (false)
+
+	x("'a'", "a", file.end());
+	x("'0'", "0", file.end());
+	x("'a' ", "a", file.end() - 1);
+	//    ^ file.end() - 1
+	x("'\\''", "\\'", file.end());
+	x("'\"'", "\"", file.end());
+
+	x_err("'", file.end());
+	x_err("''", file.end());
+	x_err("'missing closing ' that's not at the end", file.begin() + 2);
+	//       ^ file.begin() + 2
+	x_err("'\\j'", file.end());
+	x_err("'\\", file.end());
+
+#undef x
+#undef x_err
+}
+
+static void get_string_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, c, it_pos)                                    \
+do {                                                         \
+    assert_true(errors.empty());                             \
+    bz::string_view const file = str;                        \
+    file_iterator it = { file.begin(), "" };                 \
+    auto const t = get_string_token(it, file.end(), errors); \
+    assert_true(errors.empty());                             \
+    assert_eq(t.kind, token::string_literal);                \
+    assert_eq(t.value, c);                                   \
+    assert_eq(it.it, it_pos);                                \
+} while (false)
+
+#define x_err(str, it_pos)                    \
+do {                                          \
+    assert_true(errors.empty());              \
+    bz::string_view const file = str;         \
+    file_iterator it = { file.begin(), "" };  \
+    get_string_token(it, file.end(), errors); \
+    assert_false(errors.empty());             \
+    errors.clear();                           \
+    assert_eq(it.it, it_pos);                 \
+} while (false)
+
+	x(R"("")", "", file.end());
+	x(R"("this is a string")", "this is a string", file.end());
+	x(R"("" )", "", file.end() - 1);
+	//     ^ file.end() - 1
+	x(R"("'")", "'", file.end());
+	x(R"("\'")", "\\'", file.end());
+	x(R"("this is a string" and this is not)", "this is a string", file.begin() + 18);
+	//                     ^ file.begin() + 18
+
+	x_err(R"("     )", file.end());
+	x_err(R"("\j")", file.end());
+	x_err(R"("\)", file.end());
+
+#undef x
+#undef x_err
+}
+
+void get_number_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, it_pos)                                       \
+do {                                                         \
+    assert_true(errors.empty());                             \
+    bz::string_view const file = str;                        \
+    file_iterator it = { file.begin(), "" };                 \
+    auto const t = get_number_token(it, file.end(), errors); \
+    assert_true(errors.empty());                             \
+    assert_eq(t.kind, token::number_literal);                \
+    assert_eq(it.it, it_pos);                                \
+} while (false)
+
+	x("1234", file.end());
+	x("1234 ", file.end() - 1);
+	x("1234-", file.end() - 1);
+	x("1'2'3'4", file.end());
+	x("1'''''''''2'3'4'''''''", file.end());
+	x("1'''''''''2'3'4'''' '''", file.end() - 4);
+	//                    ^ file.end() - 4
+
+	x("1.1", file.end());
+	x("1.1.1", file.end() - 2);
+	//    ^ file.end() - 2
+	x("1'''2'''2323'1'.'''''2124213''4512''", file.end());
+	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.end() - 6);
+	//                                     ^ file.end() - 6
+
+#undef x
+}
+
+void get_single_char_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+	for (unsigned char c = ' '; c != 128; ++c)
+	{
+		bz::string const _file(1, c);
+		bz::string_view const file = _file;
+		file_iterator it = { file.begin(), "" };
+		auto const t = get_single_char_token(it, file.end(), errors);
+		assert_eq(t.kind, c);
+		assert_eq(t.value, file);
+		assert_true(errors.empty());
 	}
 }
 
@@ -191,6 +443,11 @@ void lexer_test(void)
 	test(get_token_value_test);
 	test(bad_char_test);
 	test(skip_comments_and_whitespace_test);
+	test(get_identifier_or_keyword_token_test);
+	test(get_character_token_test);
+	test(get_string_token_test);
+	test(get_number_token_test);
+	test(get_single_char_token_test);
 
 	test_end();
 }

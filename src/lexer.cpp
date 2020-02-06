@@ -400,7 +400,7 @@ bz::string get_highlighted_chars(
 }
 
 
-void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
+static void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 {
 	while (stream.it != end && is_whitespace_char(*stream.it))
 	{
@@ -458,15 +458,15 @@ void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
 	}
 }
 
-token get_identifier_or_keyword_token(
+static token get_identifier_or_keyword_token(
 	file_iterator &stream,
 	char_pos const end,
 	bz::vector<error> &
 )
 {
+	assert(stream.it != end);
 	assert(
-		(*stream.it >= 'a' && *stream.it <= 'z')
-		|| (*stream.it >= 'A' && *stream.it <= 'Z')
+		is_alpha_char(*stream.it)
 		|| *stream.it == '_'
 	);
 
@@ -512,12 +512,13 @@ token get_identifier_or_keyword_token(
 	}
 }
 
-token get_character_token(
+static token get_character_token(
 	file_iterator &stream,
 	char_pos const end,
 	bz::vector<error> &errors
 )
 {
+	assert(stream.it != end);
 	assert(*stream.it == '\'');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
@@ -525,10 +526,33 @@ token get_character_token(
 	++stream;
 	auto const char_begin = stream.it;
 
+	if (stream.it == end)
+	{
+		errors.emplace_back(bad_char(
+			stream.file, stream.line, stream.column,
+			"expected closing ' before end-of-file",
+			{ note{
+				stream.file, line, column,
+				begin_it, begin_it, begin_it + 1,
+				"to match this:"
+			} }
+		));
+
+		return token(
+			token::character_literal,
+			bz::string_view(&*char_begin, &*char_begin),
+			stream.file, begin_it, char_begin, line, column
+		);
+	}
+
 	switch (*stream.it)
 	{
 	case '\\':
 		++stream;
+		if (stream.it == end)
+		{
+			break;
+		}
 		switch (*stream.it)
 		{
 		// TODO: decide on what is allowed here
@@ -543,6 +567,7 @@ token get_character_token(
 			errors.emplace_back(bad_char(
 				stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
 			));
+			++stream;
 			break;
 		}
 		break;
@@ -593,12 +618,13 @@ token get_character_token(
 	);
 }
 
-token get_string_token(
+static token get_string_token(
 	file_iterator &stream,
 	char_pos const end,
 	bz::vector<error> &errors
 )
 {
+	assert(stream.it != end);
 	assert(*stream.it == '\"');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
@@ -608,10 +634,13 @@ token get_string_token(
 
 	while (stream.it != end && *stream.it != '\"')
 	{
-		switch (*stream.it)
+		if (*stream.it == '\\')
 		{
-		case '\\':
 			++stream;
+			if (stream.it == end)
+			{
+				break;
+			}
 			switch (*stream.it)
 			{
 			// TODO: decide on what is allowed here
@@ -626,13 +655,13 @@ token get_string_token(
 				errors.emplace_back(bad_char(
 					stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
 				));
+				++stream;
 				break;
 			}
-			break;
-
-		default:
+		}
+		else
+		{
 			++stream;
-			break;
 		}
 	}
 
@@ -663,12 +692,13 @@ token get_string_token(
 	);
 }
 
-token get_number_token(
+static token get_number_token(
 	file_iterator &stream,
 	char_pos const end,
 	bz::vector<error> &
 )
 {
+	assert(stream.it != end);
 	assert(is_num_char(*stream.it));
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
@@ -713,12 +743,13 @@ token get_number_token(
 	// TODO: allow hex, oct and bin numbers (0x, 0o, 0b) and exponential notations (1e10)
 }
 
-token get_single_char_token(
+static token get_single_char_token(
 	file_iterator &stream,
-	char_pos const,
+	char_pos const end,
 	bz::vector<error> &
 )
 {
+	assert(stream.it != end);
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
 	auto const column   = stream.column;
@@ -732,7 +763,7 @@ token get_single_char_token(
 	);
 }
 
-bool is_str(bz::string_view str, file_iterator &stream, char_pos const end)
+static bool is_str(bz::string_view str, file_iterator &stream, char_pos const end)
 {
 	auto str_it = str.begin();
 	auto const str_end = str.end();

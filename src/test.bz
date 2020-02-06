@@ -580,6 +580,7 @@ test\n";
 	'';
 	'    // BUG: why does expression parsing not check for a semicolon after this char?
 	"";  // output is ' '; and not ' ' "";
+	"\j";
 
 	1 + 3 3; // same as above!
 }

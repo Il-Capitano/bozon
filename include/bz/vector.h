@@ -495,6 +495,9 @@ public:
 	auto capacity(void) const noexcept
 	{ return static_cast<size_type>(this->_alloc_end - this->_data_begin); }
 
+	auto empty(void) const noexcept
+	{ return this->_data_begin == this->_data_end; }
+
 
 public:
 	auto push_back(value_type const &val) noexcept(

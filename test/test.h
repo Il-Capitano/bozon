@@ -59,6 +59,13 @@ do { if (!(x)) {                                                                
     ));                                                                            \
 } } while (false)
 
+#define assert_false(x)                                                             \
+do { if (!!(x)) {                                                                   \
+    throw test_fail_exception(build_str(                                            \
+        "assert_false failed in " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
+    ));                                                                             \
+} } while (false)
+
 #define assert_eq(x, y)                                      \
 do { if (!((x) == (y))) {                                    \
     throw test_fail_exception(build_str(                     \
