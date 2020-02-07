@@ -386,7 +386,7 @@ do {                                          \
 #undef x_err
 }
 
-void get_number_token_test(void)
+static void get_number_token_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -419,7 +419,7 @@ do {                                                         \
 #undef x
 }
 
-void get_single_char_token_test(void)
+static void get_single_char_token_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -435,6 +435,41 @@ void get_single_char_token_test(void)
 	}
 }
 
+static void get_next_token_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, token_kind)                                 \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    file_iterator it = { file.begin(), "" };               \
+    auto const t = get_next_token(it, file.end(), errors); \
+    assert_true(errors.empty());                           \
+    assert_eq(t.kind, token_kind);                         \
+} while (false)
+
+#define x_id(str) x(str, token::identifier)
+#define x_num(str) x(str, token::number_literal)
+#define x_str(str) x(str, token::string_literal)
+#define x_char(str) x(str, token::character_literal)
+
+	x("", token::eof);
+
+	x_id("some_id");
+	x_id("_asdf");
+	x_id("_1234");
+	x_id("a1234");
+	x_id("_++-.,");
+
+	x_num("1234");
+	x_num("1.1");
+	x_num("1''''2''.''1''''''");
+
+	x_str(R"("this is a string")");
+
+#undef x
+}
+
 void lexer_test(void)
 {
 	test_begin();
@@ -448,6 +483,7 @@ void lexer_test(void)
 	test(get_string_token_test);
 	test(get_number_token_test);
 	test(get_single_char_token_test);
+	test(get_next_token_test);
 
 	test_end();
 }

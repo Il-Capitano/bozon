@@ -10,7 +10,7 @@ LD_LIBDIRS :=
 LD_LIBS :=
 
 # debug build by default
-all: debug
+default: debug
 
 # =========================
 # ======== default ========
@@ -167,7 +167,7 @@ test_rebuildables_debug := $(test_all_exe_debug) $(test_all_obj_debug)
 test_rebuildables_release := $(test_all_exe_release) $(test_all_obj_release)
 
 # deletes the binary files
-test-clean: clean-debug clean-release
+test-clean: test-clean-debug test-clean-release
 
 # deletes debug binary files
 test-clean-debug:
@@ -177,6 +177,8 @@ test-clean-debug:
 test-clean-release:
 	rm -f $(test_rebuildables_release)
 
+test: test-debug
+
 # debug build
 test-debug: $(test_exe_debug)
 
@@ -184,10 +186,10 @@ test-debug: $(test_exe_debug)
 test-release: $(test_exe_release)
 
 # debug rebuild
-test-rebuild-debug: clean-debug debug
+test-rebuild-debug: test-clean-debug test-debug
 
 # release rebuild
-test-rebuild-release: clean-release release
+test-rebuild-release: test-clean-release test-release
 
 # builds and executes the exe
 test-exec: test-exec-debug
