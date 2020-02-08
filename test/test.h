@@ -78,37 +78,34 @@ do { if (!((x) != (y))) {                                     \
     ));                                                       \
 } } while (false)
 
-inline void print_start_test(char const *fn_name)
-{
-	std::string fn_name_padded = fn_name;
-	fn_name_padded.resize(60, '.');
-	std::cout << "    " << fn_name_padded;
-}
-
 #define test_begin()     \
 size_t test_count = 0;   \
 size_t passed_count = 0; \
-std::cout << "Running " << __FUNCTION__ << '\n'
+bz::printf("Running {}\n", __FUNCTION__)
 
-#define test(fn)                                               \
-do {                                                           \
-    print_start_test(#fn);                                     \
-    try                                                        \
-    {                                                          \
-        ++test_count;                                          \
-        fn();                                                  \
-        std::cout << colors::bright_green << "OK\n" << colors::clear; \
-        ++passed_count;                                        \
-    }                                                          \
-    catch (test_fail_exception &e)                             \
-    {                                                          \
-        std::cout << colors::bright_red << "FAIL\n" << colors::clear; \
-        std::cout << e.what() << '\n';                         \
-    }                                                          \
+#define test(fn)                                                     \
+do {                                                                 \
+    bz::printf("    {:.<60}", #fn);                                       \
+    try                                                              \
+    {                                                                \
+        ++test_count;                                                \
+        fn();                                                        \
+        bz::printf("{}OK{}\n", colors::bright_green, colors::clear); \
+        ++passed_count;                                              \
+    }                                                                \
+    catch (test_fail_exception &e)                                   \
+    {                                                                \
+        bz::printf("{}FAIL{}\n", colors::bright_red, colors::clear); \
+        bz::printf("{}\n", e.what());                                \
+    }                                                                \
 } while (false)
 
-#define test_end()                                                   \
-std::cout << passed_count << '/' << test_count << " tests passed\n"; \
+#define test_end()                                       \
+bz::printf(                                              \
+    "{}/{} ({:.2f}%) tests passed\n",                    \
+    passed_count, test_count,                            \
+    100 * static_cast<double>(passed_count) / test_count \
+);                                                       \
 return test_result{ test_count, passed_count }
 
 #endif // TEST_H

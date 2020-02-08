@@ -21,7 +21,7 @@ static token_range get_expression_or_type(
 
 	auto is_valid_expr_token = [&]()
 	{
-		if ((
+		if (stream == end || stream->kind == token::eof || (
 			(stream->kind == end_tokens)
 			|| ...
 		))
@@ -29,6 +29,7 @@ static token_range get_expression_or_type(
 			return false;
 		}
 
+		/*
 		switch (stream->kind)
 		{
 		// literals
@@ -53,6 +54,9 @@ static token_range get_expression_or_type(
 		default:
 			return is_operator(stream->kind);
 		}
+		*/
+		// TODO: think about the validity of this
+		return true;
 	};
 
 

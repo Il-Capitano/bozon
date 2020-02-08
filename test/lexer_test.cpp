@@ -518,6 +518,18 @@ do {                                              \
 		token::paren_open, token::paren_close,
 		token::curly_open, token::curly_close
 	);
+	x(".....", token::dot_dot_dot, token::dot_dot);
+	x(
+		"...auto, hello",
+		token::dot_dot_dot, token::kw_auto,
+		token::comma, token::identifier
+	);
+	x(
+		"comment: /* asdfasdfasdf */asdf",
+		token::identifier, token::colon,
+		token::identifier
+	);
+	x("./**/.", token::dot, token::dot);
 
 #undef x
 }
