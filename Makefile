@@ -117,10 +117,10 @@ bin/default/debug/int/parse_context.cpp.o: ./src/parse_context.cpp ./include/bz/
 bin/default/release/int/parse_context.cpp.o: ./src/parse_context.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/type.h ./src/bytecode.h ./src/core.h ./src/error.h ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h
 	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
-bin/default/debug/int/src_file.cpp.o: ./src/src_file.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/type.h ./src/bytecode.h ./src/core.h ./src/error.h ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./src/src_file.h
+bin/default/debug/int/src_file.cpp.o: ./src/src_file.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/type.h ./src/bytecode.h ./src/colors.h ./src/core.h ./src/error.h ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./src/src_file.h
 	$(CXX) $(default_cxx_debug_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
-bin/default/release/int/src_file.cpp.o: ./src/src_file.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/type.h ./src/bytecode.h ./src/core.h ./src/error.h ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./src/src_file.h
+bin/default/release/int/src_file.cpp.o: ./src/src_file.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/type.h ./src/bytecode.h ./src/colors.h ./src/core.h ./src/error.h ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./src/src_file.h
 	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
 bin/default/debug/int/expression.cpp.o: ./src/ast/expression.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/type.h ./src/bytecode.h ./src/core.h ./src/error.h ./src/my_assert.h
@@ -147,10 +147,10 @@ bin/default/release/int/type.cpp.o: ./src/ast/type.cpp ./include/bz/allocator.h 
 
 test_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
 test_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++17
-test_cxx_include_dirs := ./src ./include 
+test_cxx_include_dirs := ./include ./src 
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
 test_cc_release_flags := -c -O3 -Wall -Wextra -std=c++17
-test_cc_include_dirs := ./src ./include 
+test_cc_include_dirs := ./include ./src 
 test_exe_debug := bin/test/debug/testbozon.exe
 test_exe_release := bin/test/release/testbozon
 
@@ -200,21 +200,27 @@ test-exec-debug: $(test_exe_debug)
 test-exec-release: $(test_exe_release)
 	$(test_exe_release)
 
-$(test_exe_debug): bin/test/debug/int/lexer_test.cpp.o bin/test/debug/int/test_main.cpp.o
+$(test_exe_debug): bin/test/debug/int/first_pass_parser_test.cpp.o bin/test/debug/int/lexer_test.cpp.o bin/test/debug/int/test_main.cpp.o
 	$(LD) $(LD_FLAGS_DEBUG) $(addprefix -L,$(LD_LIBDIRS)) $(addprefix -l,$(LD_LIBS)) $^ -o $@
 
-$(test_exe_release): bin/test/release/int/lexer_test.cpp.o bin/test/release/int/test_main.cpp.o
+$(test_exe_release): bin/test/release/int/first_pass_parser_test.cpp.o bin/test/release/int/lexer_test.cpp.o bin/test/release/int/test_main.cpp.o
 	$(LD) $(LD_FLAGS_RELEASE) $(addprefix -L,$(LD_LIBDIRS)) $(addprefix -l,$(LD_LIBS)) $^ -o $@
 
-bin/test/debug/int/lexer_test.cpp.o: ./test/lexer_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/core.h ./src/error.h ./src/lexer.cpp ./src/my_assert.h ./test/test.h
+bin/test/debug/int/first_pass_parser_test.cpp.o: ./test/first_pass_parser_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.cpp ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.cpp ./src/ast/statement.h ./src/ast/type.cpp ./src/ast/type.h ./src/bytecode.h ./src/colors.h ./src/core.h ./src/error.h ./src/first_pass_parser.cpp ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./test/test.h
 	$(CXX) $(test_cxx_debug_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
 
-bin/test/release/int/lexer_test.cpp.o: ./test/lexer_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/core.h ./src/error.h ./src/lexer.cpp ./src/my_assert.h ./test/test.h
+bin/test/release/int/first_pass_parser_test.cpp.o: ./test/first_pass_parser_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/ast/expression.cpp ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.cpp ./src/ast/statement.h ./src/ast/type.cpp ./src/ast/type.h ./src/bytecode.h ./src/colors.h ./src/core.h ./src/error.h ./src/first_pass_parser.cpp ./src/first_pass_parser.h ./src/function_body.h ./src/my_assert.h ./src/parse_context.h ./src/parser.h ./test/test.h
 	$(CXX) $(test_cxx_release_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
 
-bin/test/debug/int/test_main.cpp.o: ./test/test_main.cpp
+bin/test/debug/int/lexer_test.cpp.o: ./test/lexer_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/colors.h ./src/core.h ./src/error.h ./src/lexer.cpp ./src/my_assert.h ./test/test.h
 	$(CXX) $(test_cxx_debug_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
 
-bin/test/release/int/test_main.cpp.o: ./test/test_main.cpp
+bin/test/release/int/lexer_test.cpp.o: ./test/lexer_test.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/../lexer.h ./src/colors.h ./src/core.h ./src/error.h ./src/lexer.cpp ./src/my_assert.h ./test/test.h
+	$(CXX) $(test_cxx_release_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
+
+bin/test/debug/int/test_main.cpp.o: ./test/test_main.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/vector.h ./src/colors.h ./test/test.h
+	$(CXX) $(test_cxx_debug_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
+
+bin/test/release/int/test_main.cpp.o: ./test/test_main.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/vector.h ./src/colors.h ./test/test.h
 	$(CXX) $(test_cxx_release_flags) $(addprefix -I,$(test_cxx_include_dirs)) $< -o $@
 
