@@ -375,6 +375,7 @@ do {                                          \
 	//     ^ file.end() - 1
 	x(R"("'")", "'", file.end());
 	x(R"("\'")", "\\'", file.end());
+	x(R"("\"")", "\\\"", file.end());
 	x(R"("this is a string" and this is not)", "this is a string", file.begin() + 18);
 	//                     ^ file.begin() + 18
 
@@ -466,11 +467,62 @@ do {                                                       \
 	x_num("1''''2''.''1''''''");
 
 	x_str(R"("this is a string")");
+	x_str(R"("")");
+	x_str(R"("\"")");
+
+	x_char("'a'");
+	x_char("'\\t'");
+
+	for (auto &mc : multi_char_tokens)
+	{
+		x(mc.first, mc.second);
+	}
+
+	for (auto &kw : keywords)
+	{
+		x(kw.first, kw.second);
+	}
 
 #undef x
 }
 
-void lexer_test(void)
+void get_tokens_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define assert_eqs                                                  \
+([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
+{                                                                   \
+    assert_eq(ts.size(), kinds.size() + 1);                         \
+    for (size_t i = 0; i < kinds.size(); ++i)                       \
+    {                                                               \
+        assert_eq(ts[i].kind, kinds[i]);                            \
+    }                                                               \
+    assert_eq(ts.back().kind, token::eof);                          \
+})
+
+#define x(str, ...)                               \
+do {                                              \
+    bz::string_view const file = str;             \
+    auto const ts = get_tokens(file, "", errors); \
+    assert_true(errors.empty());                  \
+    assert_eqs(ts, { __VA_ARGS__ });  \
+} while (false)
+
+	x("");
+	x("+-+-", token::plus, token::minus, token::plus, token::minus);
+	x("+++", token::plus_plus, token::plus);
+	x(
+		"function main() {}",
+		token::kw_function, token::identifier,
+		token::paren_open, token::paren_close,
+		token::curly_open, token::curly_close
+	);
+
+#undef x
+}
+
+test_result lexer_test(void)
 {
 	test_begin();
 
@@ -484,6 +536,7 @@ void lexer_test(void)
 	test(get_number_token_test);
 	test(get_single_char_token_test);
 	test(get_next_token_test);
+	test(get_tokens_test);
 
 	test_end();
 }

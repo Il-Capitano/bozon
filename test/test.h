@@ -7,19 +7,7 @@
 #include <iostream>
 #include <bz/format.h>
 
-namespace colors
-{
-	static constexpr char const *clear = "\033[0m";
-
-	static constexpr char const *black   = "\033[30m";
-	static constexpr char const *red     = "\033[31m";
-	static constexpr char const *green   = "\033[32m";
-	static constexpr char const *yellow  = "\033[33m";
-	static constexpr char const *blue    = "\033[34m";
-	static constexpr char const *magenta = "\033[35m";
-	static constexpr char const *cyan    = "\033[36m";
-	static constexpr char const *white   = "\033[37m";
-};
+#include "colors.h"
 
 struct test_fail_exception : std::exception
 {
@@ -31,6 +19,12 @@ struct test_fail_exception : std::exception
 
 	virtual char const *what(void) const noexcept override
 	{ return this->_what.c_str(); }
+};
+
+struct test_result
+{
+	size_t test_count;
+	size_t passed_count;
 };
 
 template<typename T>
@@ -103,17 +97,18 @@ do {                                                           \
     {                                                          \
         ++test_count;                                          \
         fn();                                                  \
-        std::cout << colors::green << "OK\n" << colors::clear; \
+        std::cout << colors::bright_green << "OK\n" << colors::clear; \
         ++passed_count;                                        \
     }                                                          \
     catch (test_fail_exception &e)                             \
     {                                                          \
-        std::cout << colors::red << "FAIL\n" << colors::clear; \
+        std::cout << colors::bright_red << "FAIL\n" << colors::clear; \
         std::cout << e.what() << '\n';                         \
     }                                                          \
 } while (false)
 
-#define test_end() \
-std::cout << passed_count << '/' << test_count << " tests passed\n";
+#define test_end()                                                   \
+std::cout << passed_count << '/' << test_count << " tests passed\n"; \
+return test_result{ test_count, passed_count }
 
 #endif // TEST_H
