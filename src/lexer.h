@@ -268,6 +268,44 @@ template<typename T, typename ...Ts>
 	);
 }
 
+[[nodiscard]] inline error bad_eof(
+	token_pos it,
+	bz::string message,
+	bz::vector<note> notes = {}
+)
+{
+	return error{
+		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		nullptr, nullptr, nullptr,
+		std::move(message),
+		std::move(notes)
+	};
+}
+
+[[nodiscard]] inline note make_note(
+	token_pos it,
+	bz::string message
+)
+{
+	return note{
+		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		std::move(message)
+	};
+}
+
+[[nodiscard]] inline note make_note(
+	token_pos begin, token_pos pivot, token_pos end,
+	bz::string message
+)
+{
+	return note{
+		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
+		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		std::move(message)
+	};
+}
+
 inline token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &errors)
 {
 	if (stream->kind != kind)

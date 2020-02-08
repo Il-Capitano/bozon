@@ -110,10 +110,15 @@ bz::vector<token> get_tokens(
 	file_iterator stream = { file.begin(), file_name };
 	auto const end = file.end();
 
-	do
+	while (true)
 	{
-		tokens.push_back(get_next_token(stream, end, errors));
-	} while(tokens.back().kind != token::eof);
+		auto t = get_next_token(stream, end, errors);
+		if (t.kind == token::eof)
+		{
+			break;
+		}
+		tokens.push_back(std::move(t));
+	}
 
 	return tokens;
 }

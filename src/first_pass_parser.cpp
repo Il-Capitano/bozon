@@ -21,7 +21,7 @@ static token_range get_expression_or_type(
 
 	auto is_valid_expr_token = [&]()
 	{
-		if (stream == end || stream->kind == token::eof || (
+		if ((
 			(stream->kind == end_tokens)
 			|| ...
 		))
@@ -60,31 +60,67 @@ static token_range get_expression_or_type(
 	};
 
 
-	while (is_valid_expr_token())
+	while (stream != end && is_valid_expr_token())
 	{
 		switch (stream->kind)
 		{
 		case token::paren_open:
 		{
+			auto const paren_begin = stream;
 			++stream; // '('
 			get_expression_or_type<token::paren_close>(stream, end, errors);
-			assert_token(stream, token::paren_close, errors);
+			if (stream == end)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					"expected closing ) before end-of-file",
+					{ make_note(paren_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				assert_token(stream, token::paren_close, errors);
+			}
 			break;
 		}
 
 		case token::curly_open:
 		{
+			auto const curly_begin = stream;
 			++stream; // '{'
 			get_expression_or_type<token::curly_close>(stream, end, errors);
-			assert_token(stream, token::curly_close, errors);
+			if (stream == end)
+			{
+				errors.emplace_back(bad_eof(
+					stream,
+					"expected closing } before end-of-file",
+					{ make_note(curly_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				assert_token(stream, token::curly_close, errors);
+			}
 			break;
 		}
 
 		case token::square_open:
 		{
+			auto const square_begin = stream;
 			++stream; // '['
 			get_expression_or_type<token::square_close>(stream, end, errors);
-			assert_token(stream, token::square_close, errors);
+			if (stream == end)
+			{
+				errors.emplace_back(bad_eof(
+					stream,
+					"expected closing ] before end-of-file",
+					{ make_note(square_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				assert_token(stream, token::square_close, errors);
+			}
 			break;
 		}
 

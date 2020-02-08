@@ -493,12 +493,11 @@ void get_tokens_test(void)
 #define assert_eqs                                                  \
 ([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
 {                                                                   \
-    assert_eq(ts.size(), kinds.size() + 1);                         \
+    assert_eq(ts.size(), kinds.size());                             \
     for (size_t i = 0; i < kinds.size(); ++i)                       \
     {                                                               \
         assert_eq(ts[i].kind, kinds[i]);                            \
     }                                                               \
-    assert_eq(ts.back().kind, token::eof);                          \
 })
 
 #define x(str, ...)                               \
@@ -506,7 +505,7 @@ do {                                              \
     bz::string_view const file = str;             \
     auto const ts = get_tokens(file, "", errors); \
     assert_true(errors.empty());                  \
-    assert_eqs(ts, { __VA_ARGS__ });  \
+    assert_eqs(ts, { __VA_ARGS__ });              \
 } while (false)
 
 	x("");

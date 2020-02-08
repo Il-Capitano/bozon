@@ -34,8 +34,8 @@ do {                                                  \
 
 	x("x+3;", tokens.begin() + 3);
 	x("(asdf;++--);", tokens.begin() + 6);
-	x("() => { std::print(\"hello\"); };", tokens.end() - 2);
-	x_err("(", tokens.begin() + 2); // why +2 ???
+	x("() => { std::print(\"hello\"); };", tokens.end() - 1);
+	x_err("(", tokens.end()); // why +2 ???
 
 #undef x
 }
