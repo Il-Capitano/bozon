@@ -1,19 +1,139 @@
 #include "src_file.h"
 
+#include "colors.h"
+
+static bz::string get_highlighted_chars(
+	char_pos const file_begin,
+	char_pos const file_end,
+	char_pos const char_begin,
+	char_pos const char_pivot,
+	char_pos const char_end,
+	char const *const highlight_color
+)
+{
+	if (char_begin == char_end)
+	{
+		return "";
+	}
+
+	assert(file_begin <= char_begin);
+	assert(char_begin < char_end);
+	assert(char_begin <= char_pivot);
+	assert(char_pivot < char_end);
+	assert(char_end <= file_end);
+
+	auto line_begin = char_begin;
+
+	while (line_begin != file_begin && *(line_begin - 1) != '\n')
+	{
+		--line_begin;
+	}
+
+	auto line_end = char_end;
+
+	while (line_end != file_end && *(line_end - 1) != '\n')
+	{
+		++line_end;
+	}
+
+	bz::string file_line = "";
+	bz::string highlight_line = "";
+
+	bz::string result = "";
+
+	auto it = line_begin;
+
+	for (; it != line_end; ++it)
+	{
+		size_t file_line_size = 0;
+		file_line = "";
+		highlight_line = "";
+
+		while (true)
+		{
+			if (it == char_begin)
+			{
+				file_line += highlight_color;
+				highlight_line += highlight_color;
+			}
+			else if (it == char_end)
+			{
+				file_line += colors::clear;
+				highlight_line += colors::clear;
+			}
+
+			if (*it == '\t')
+			{
+				if (it == char_pivot)
+				{
+					file_line += ' ';
+					++file_line_size;
+					highlight_line += '^';
+					while (file_line_size % 4 != 0)
+					{
+						file_line += ' ';
+						++file_line_size;
+						highlight_line += '~';
+					}
+				}
+				else
+				{
+					char highlight_char = it >= char_begin && it < char_end ? '~' : ' ';
+					do
+					{
+						file_line += ' ';
+						++file_line_size;
+						highlight_line += highlight_char;
+					} while (file_line_size % 4 != 0);
+				}
+			}
+			else
+			{
+				file_line += *it;
+				++file_line_size;
+				if (it == char_pivot)
+				{
+					highlight_line += '^';
+				}
+				else if (it >= char_begin && it < char_end)
+				{
+					highlight_line += '~';
+				}
+				else
+				{
+					highlight_line += ' ';
+				}
+			}
+
+			if (*it == '\n')
+			{
+				break;
+			}
+			++it;
+		}
+
+		result += file_line;
+		result += highlight_line;
+		result += '\n';
+	}
+
+	return result;
+}
+
 static bz::string read_text_from_file(std::ifstream &file)
 {
 	file.seekg(std::ios::end);
 	size_t const size = file.tellg();
 	file.seekg(std::ios::beg);
 
-	bz::string file_str = "\n";
+	bz::string file_str = "";
 
 	if (size == 0)
 	{
 		return file_str;
 	}
 
-	file_str.reserve(size + 2);
+	file_str.reserve(size);
 
 	while (true)
 	{
@@ -34,10 +154,8 @@ static bz::string read_text_from_file(std::ifstream &file)
 			c = '\n';
 		}
 
-		file_str.push_back(c);
+		file_str += c;
 	}
-
-	file_str.push_back('\n');
 
 	return file_str;
 }
@@ -46,24 +164,23 @@ src_file::src_file(bz::string file_name)
 	: _stage(constructed), _file_name(std::move(file_name)), _file(), _tokens()
 {}
 
-static void print_error(error const &err)
+static void print_error(char_pos file_begin, char_pos file_end, error const &err)
 {
 	bz::printf(
-		"In file {}:{}:{}: error: {}\n",
+		"{}:{}:{}: {}error{}: {}\n{}",
 		err.file, err.line, err.column,
-		err.message
+		colors::error_color, colors::clear,
+		err.message,
+		get_highlighted_chars(file_begin, file_end, err.src_begin, err.src_pivot, err.src_end, colors::error_color)
 	);
-	if (err.src_begin != err.src_end)
-	{
-		bz::print(get_highlighted_chars(err.src_begin, err.src_pivot, err.src_end));
-	}
 	for (auto &n : err.notes)
 	{
 		bz::printf(
-			"In file {}:{}:{}: note: {}\n{}",
+			"{}:{}:{}: {}note{}: {}\n{}",
 			n.file, n.line, n.column,
+			colors::note_color, colors::clear,
 			n.message,
-			get_highlighted_chars(n.src_begin, n.src_pivot, n.src_end)
+			get_highlighted_chars(file_begin, file_end, n.src_begin, n.src_pivot, n.src_end, colors::note_color)
 		);
 	}
 }
@@ -77,7 +194,7 @@ void src_file::report_and_clear_errors(void)
 
 	for (auto &err : this->_errors)
 	{
-		print_error(err);
+		print_error(this->_file.begin(), this->_file.end(), err);
 	}
 	this->_errors.clear();
 }

@@ -106,10 +106,8 @@ bz::vector<token> get_tokens(
 	bz::vector<error> &errors
 )
 {
-	assert(file.front() == '\n');
-	assert(file.back() == '\n');
 	bz::vector<token> tokens = {};
-	file_iterator stream = { file.begin() + 1, file_name };
+	file_iterator stream = { file.begin(), file_name };
 	auto const end = file.end();
 
 	do
@@ -367,12 +365,6 @@ static constexpr bool is_whitespace_char(char c)
 		|| c == '\r'; // for windows line ends
 }
 
-bz::string get_highlighted_chars(
-	char_pos char_begin,
-	char_pos char_pivot,
-	char_pos char_end
-);
-
 [[nodiscard]] static error bad_char(
 	file_iterator const &stream,
 	bz::string message, bz::vector<note> notes = {}
@@ -573,7 +565,7 @@ static token get_character_token(
 		break;
 
 	case '\'':
-		errors.emplace_back(bad_char(stream, "expected character before closing '"));
+		errors.emplace_back(bad_char(stream, "expected a character before closing '"));
 		break;
 
 	default:
@@ -846,114 +838,4 @@ static token get_next_token(
 	}
 
 	return get_single_char_token(stream, end, errors);
-}
-
-bz::string get_highlighted_chars(
-	char_pos char_begin,
-	char_pos char_pivot,
-	char_pos char_end
-)
-{
-	assert(char_begin < char_end);
-	assert(char_begin <= char_pivot);
-	assert(char_pivot < char_end);
-
-	auto line_begin = char_begin;
-
-	while (*(line_begin - 1) != '\n')
-	{
-		--line_begin;
-	}
-
-	auto line_end = char_end;
-
-	while (*(line_end - 1) != '\n')
-	{
-		++line_end;
-	}
-
-	bz::string file_line = "";
-	bz::string highlight_line = "";
-
-	bz::string result = "";
-
-	auto it = line_begin;
-
-	for (; it != line_end; ++it)
-	{
-		file_line = "";
-		highlight_line = "";
-
-		while (true)
-		{
-			if (*it == '\t')
-			{
-				if (it == char_pivot)
-				{
-					file_line += ' ';
-					highlight_line += '^';
-					while (file_line.size() % 4 != 0)
-					{
-						file_line += ' ';
-						highlight_line += '~';
-					}
-				}
-				else
-				{
-					char highlight_char = it >= char_begin && it < char_end ? '~' : ' ';
-					do
-					{
-						file_line += ' ';
-						highlight_line += highlight_char;
-					} while (file_line.size() % 4 != 0);
-				}
-			}
-			else
-			{
-				file_line += *it;
-				if (it == char_pivot)
-				{
-					highlight_line += '^';
-				}
-				else if (it >= char_begin && it < char_end)
-				{
-					highlight_line += '~';
-				}
-				else
-				{
-					highlight_line += ' ';
-				}
-			}
-
-			if (*it == '\n')
-			{
-				break;
-			}
-			++it;
-		}
-
-		result += file_line;
-		result += highlight_line;
-		result += '\n';
-	}
-
-	return result;
-}
-
-bz::string get_highlighted_tokens(
-	token_pos token_begin,
-	token_pos token_pivot,
-	token_pos token_end
-)
-{
-	if (token_pivot->kind == token::eof)
-	{
-		return "\n";
-	}
-
-	return get_highlighted_chars(
-		token_begin->src_pos.begin,
-		token_pivot->src_pos.begin,
-		(token_end - 1)->src_pos.end
-	);
 }

@@ -219,24 +219,6 @@ bz::vector<token> get_tokens(
 	bz::vector<error> &errors
 );
 
-
-bz::string get_highlighted_chars(
-	char_pos char_begin,
-	char_pos char_pivot,
-	char_pos char_end
-);
-
-bz::string get_highlighted_tokens(
-	token_pos token_begin,
-	token_pos token_pivot,
-	token_pos token_end
-);
-
-inline bz::string get_highlighted_tokens(token_pos t)
-{
-	return get_highlighted_tokens(t, t, t + 1);
-}
-
 [[nodiscard]] inline error bad_token(
 	token_pos it,
 	bz::string message,
