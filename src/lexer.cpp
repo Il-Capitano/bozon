@@ -33,6 +33,7 @@ static constexpr std::array<
 	token_pair{ "^^", token::bool_xor            },
 
 	token_pair{ "->", token::arrow               },
+	token_pair{ "=>", token::fat_arrow           },
 	token_pair{ "::", token::scope               },
 	token_pair{ "..", token::dot_dot             }
 };
@@ -110,15 +111,10 @@ bz::vector<token> get_tokens(
 	file_iterator stream = { file.begin(), file_name };
 	auto const end = file.end();
 
-	while (true)
+	do
 	{
-		auto t = get_next_token(stream, end, errors);
-		if (t.kind == token::eof)
-		{
-			break;
-		}
-		tokens.push_back(std::move(t));
-	}
+		tokens.push_back(get_next_token(stream, end, errors));
+	} while (tokens.back().kind != token::eof);
 
 	return tokens;
 }

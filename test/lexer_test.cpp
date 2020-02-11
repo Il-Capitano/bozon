@@ -493,11 +493,12 @@ void get_tokens_test(void)
 #define assert_eqs                                                  \
 ([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
 {                                                                   \
-    assert_eq(ts.size(), kinds.size());                             \
+    assert_eq(ts.size(), kinds.size() + 1);                         \
     for (size_t i = 0; i < kinds.size(); ++i)                       \
     {                                                               \
         assert_eq(ts[i].kind, kinds[i]);                            \
     }                                                               \
+    assert_eq(ts.back().kind, token::eof);                          \
 })
 
 #define x(str, ...)                               \
@@ -530,6 +531,7 @@ do {                                              \
 	);
 	x("./**/.", token::dot, token::dot);
 
+#undef assert_eqs
 #undef x
 }
 

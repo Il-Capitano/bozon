@@ -12,74 +12,50 @@ static void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
 }
 
 template<uint32_t ...end_tokens>
-static token_range get_expression_or_type(
+static token_range get_tokens_in_curly(
 	token_pos &stream, token_pos end,
 	bz::vector<error> &errors
 )
 {
 	auto begin = stream;
 
-	auto is_valid_expr_token = [&]()
+	auto is_valid_token = [&]()
 	{
-		if ((
+		if (stream == end || stream->kind == token::eof || (
 			(stream->kind == end_tokens)
 			|| ...
 		))
 		{
 			return false;
 		}
-
-		/*
-		switch (stream->kind)
-		{
-		// literals
-		case token::identifier:
-		case token::number_literal:
-		case token::string_literal:
-		case token::character_literal:
-		case token::kw_true:
-		case token::kw_false:
-		case token::kw_null:
-		// parenthesis
-		case token::paren_open:
-		case token::curly_open:
-		case token::square_open:
-		// type specifiers that are not operators
-		case token::colon:
-		case token::kw_auto:
-		case token::kw_const:
-		case token::kw_function:
-			return true;
-
-		default:
-			return is_operator(stream->kind);
-		}
-		*/
-		// TODO: think about the validity of this
 		return true;
 	};
 
 
-	while (stream != end && is_valid_expr_token())
+	while (stream != end && is_valid_token())
 	{
 		switch (stream->kind)
 		{
 		case token::paren_open:
 		{
-			auto const paren_begin = stream;
 			++stream; // '('
-			get_expression_or_type<token::paren_close>(stream, end, errors);
-			if (stream == end)
+			get_tokens_in_curly<token::paren_close, token::curly_close>(stream, end, errors);
+			if (stream != end && stream->kind != token::eof)
 			{
-				errors.emplace_back(bad_token(
-					stream,
-					"expected closing ) before end-of-file",
-					{ make_note(paren_begin, "to match this:") }
-				));
+				assert(stream->kind == token::paren_close || stream->kind == token::curly_close);
+				++stream;
 			}
-			else
+			break;
+		}
+
+		case token::square_open:
+		{
+			++stream; // '['
+			get_tokens_in_curly<token::square_close, token::curly_close>(stream, end, errors);
+			if (stream != end && stream->kind != token::eof)
 			{
-				assert_token(stream, token::paren_close, errors);
+				assert(stream->kind == token::square_close || stream->kind == token::curly_close);
+				++stream;
 			}
 			break;
 		}
@@ -88,38 +64,20 @@ static token_range get_expression_or_type(
 		{
 			auto const curly_begin = stream;
 			++stream; // '{'
-			get_expression_or_type<token::curly_close>(stream, end, errors);
-			if (stream == end)
+			get_tokens_in_curly<token::curly_close>(stream, end, errors);
+			if (stream->kind != token::curly_close)
 			{
-				errors.emplace_back(bad_eof(
+				errors.emplace_back(bad_token(
 					stream,
-					"expected closing } before end-of-file",
+					stream->kind == token::eof
+					? bz::string("expected closing } before end-of-file")
+					: bz::format("expected closing } before '{}'", stream->value),
 					{ make_note(curly_begin, "to match this:") }
 				));
 			}
 			else
 			{
-				assert_token(stream, token::curly_close, errors);
-			}
-			break;
-		}
-
-		case token::square_open:
-		{
-			auto const square_begin = stream;
-			++stream; // '['
-			get_expression_or_type<token::square_close>(stream, end, errors);
-			if (stream == end)
-			{
-				errors.emplace_back(bad_eof(
-					stream,
-					"expected closing ] before end-of-file",
-					{ make_note(square_begin, "to match this:") }
-				));
-			}
-			else
-			{
-				assert_token(stream, token::square_close, errors);
+				++stream;
 			}
 			break;
 		}
@@ -133,17 +91,174 @@ static token_range get_expression_or_type(
 	return { begin, stream };
 }
 
-static bz::vector<ast::variable> get_function_params(
+
+template<uint32_t ...end_tokens>
+static token_range get_expression_or_type_tokens(
 	token_pos &stream, token_pos end,
 	bz::vector<error> &errors
 )
 {
-	assert_token(stream, token::paren_open, errors);
+	auto begin = stream;
+
+	auto is_valid_expr_token = [&]()
+	{
+		if (stream == end || stream->kind == token::eof || (
+			(stream->kind == end_tokens)
+			|| ...
+		))
+		{
+			return false;
+		}
+
+		switch (stream->kind)
+		{
+		// literals
+		case token::identifier:
+		case token::number_literal:
+		case token::string_literal:
+		case token::character_literal:
+		case token::kw_true:
+		case token::kw_false:
+		case token::kw_null:
+		// parenthesis/brackets
+		case token::paren_open:
+		case token::paren_close:
+		case token::curly_open:
+		case token::square_open:
+		case token::square_close:
+		// type specifiers that are not operators
+		case token::colon:
+		case token::kw_auto:
+		case token::kw_const:
+		case token::kw_function:
+		// etc
+		case token::fat_arrow:
+			return true;
+
+		default:
+			return is_operator(stream->kind);
+		}
+	};
+
+
+	while (stream != end && is_valid_expr_token())
+	{
+		switch (stream->kind)
+		{
+		case token::paren_open:
+		{
+			auto const paren_begin = stream;
+			++stream; // '('
+			get_expression_or_type_tokens<
+				token::paren_close, token::square_close
+			>(stream, end, errors);
+			if (stream->kind != token::paren_close)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					stream->kind == token::eof
+					? bz::string("expected closing ) before end-of-file")
+					: bz::format("expected closing ) before '{}'", stream->value),
+					{ make_note(paren_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				++stream;
+			}
+			break;
+		}
+
+		case token::square_open:
+		{
+			auto const square_begin = stream;
+			++stream; // '['
+			get_expression_or_type_tokens<
+				token::paren_close, token::square_close
+			>(stream, end, errors);
+			if (stream->kind != token::square_close)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					stream->kind == token::eof
+					? bz::string("expected closing ] before end-of-file")
+					: bz::format("expected closing ] before '{}'", stream->value),
+					{ make_note(square_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				++stream;
+			}
+			break;
+		}
+
+		case token::curly_open:
+		{
+			auto const curly_begin = stream;
+			++stream; // '{'
+			get_tokens_in_curly<token::curly_close>(stream, end, errors);
+			if (stream->kind != token::curly_close)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					stream->kind == token::eof
+					? bz::string("expected closing } before end-of-file")
+					: bz::format("expected closing } before '{}'", stream->value),
+					{ make_note(curly_begin, "to match this:") }
+				));
+			}
+			else
+			{
+				++stream;
+			}
+			break;
+		}
+
+		case token::paren_close:
+		{
+			errors.emplace_back(bad_token(stream, "stray )"));
+			++stream; // ')'
+			break;
+		}
+
+		case token::square_close:
+		{
+			errors.emplace_back(bad_token(stream, "stray ]"));
+			++stream; // ']'
+			break;
+		}
+
+		default:
+			++stream;
+			break;
+		}
+	}
+
+	return { begin, stream };
+}
+
+static bz::vector<ast::variable> get_function_params(
+	token_pos &in_stream, token_pos in_end,
+	bz::vector<error> &errors
+)
+{
+	assert_token(in_stream, token::paren_open, errors);
 	bz::vector<ast::variable> params;
 
-	if (stream->kind == token::paren_close)
+	if (in_stream != in_end && in_stream->kind == token::paren_close)
 	{
-		++stream;
+		++in_stream;
+		return params;
+	}
+
+	auto [stream, end] = get_expression_or_type_tokens<token::paren_close>(
+		in_stream, in_end, errors
+	);
+
+	if (stream == end)
+	{
+		assert_token(in_stream, token::paren_close, errors);
 		return params;
 	}
 
@@ -156,8 +271,7 @@ static bz::vector<ast::variable> get_function_params(
 		}
 
 		assert_token(stream, token::colon, errors);
-
-		auto type = get_expression_or_type<token::paren_close, token::comma>(stream, end, errors);
+		auto type = get_expression_or_type_tokens<token::paren_close, token::comma>(stream, end, errors);
 
 		if (id->kind == token::identifier)
 		{
@@ -177,48 +291,65 @@ static bz::vector<ast::variable> get_function_params(
 		&& (++stream, true)
 	);
 
-	assert_token(stream, token::paren_close, errors);
-
+	in_stream = stream;
+	assert_token(in_stream, token::paren_close, errors);
 	return params;
 }
 
 
 static ast::stmt_compound get_stmt_compound(
-	token_pos &stream, token_pos end,
+	token_pos &in_stream, token_pos in_end,
 	bz::vector<error> &errors
 )
 {
-	auto const begin_token = stream;
-	assert_token(stream, token::curly_open, errors);
-	auto comp_stmt = ast::stmt_compound(token_range{ begin_token, stream });
+	assert(in_stream != in_end);
+	assert(in_stream->kind == token::curly_open);
+	auto comp_stmt = ast::stmt_compound(token_range{ in_stream, in_stream });
+	++in_stream; // '{'
 
-	while (stream != end && stream->kind != token::curly_close)
+	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
+	if (in_stream->kind != token::curly_close)
+	{
+		errors.emplace_back(bad_token(
+			in_stream,
+			in_stream->kind == token::eof
+			? bz::string("expected closing } before end-of-file")
+			: bz::format("expected closing } before '{}'", in_stream->value),
+			{ make_note(comp_stmt.tokens.begin, "to match this:") }
+		));
+	}
+	else
+	{
+		++in_stream;
+	}
+
+	while (stream != end)
 	{
 		comp_stmt.statements.emplace_back(parse_statement(stream, end, errors));
 	}
-	assert(stream != end);
-	++stream; // '}'
-	comp_stmt.tokens.end = stream;
+	comp_stmt.tokens.end = in_stream;
 
 	return comp_stmt;
 }
 
 static ast::stmt_compound_ptr get_stmt_compound_ptr(
-	token_pos &stream, token_pos end,
+	token_pos &in_stream, token_pos in_end,
 	bz::vector<error> &errors
 )
 {
-	auto const begin_token = stream;
-	assert_token(stream, token::curly_open, errors);
-	auto comp_stmt = std::make_unique<ast::stmt_compound>(token_range{ begin_token, stream });
+	assert(in_stream != in_end);
+	assert(in_stream->kind == token::curly_open);
+	auto comp_stmt = std::make_unique<ast::stmt_compound>(token_range{ in_stream, in_stream });
+	++in_stream; // '{'
 
-	while (stream != end && stream->kind != token::curly_close)
+	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
+	assert_token(in_stream, token::curly_close, errors);
+
+	while (stream != end)
 	{
 		comp_stmt->statements.emplace_back(parse_statement(stream, end, errors));
 	}
-	assert(stream != end);
-	++stream; // '}'
-	comp_stmt->tokens.end = stream;
+	comp_stmt->tokens.end = in_stream;
 
 	return comp_stmt;
 }
@@ -232,9 +363,30 @@ static ast::statement parse_if_statement(
 	auto begin_token = stream;
 	++stream; // 'if'
 
-	assert_token(stream, token::paren_open, errors);
-	auto condition = get_expression_or_type<token::paren_close>(stream, end, errors);
-	assert_token(stream, token::paren_close, errors);
+	auto const condition = [&]()
+	{
+		auto const open_paren = assert_token(stream, token::paren_open, errors);
+		auto const cond = get_expression_or_type_tokens<token::paren_close>(stream, end, errors);
+		if (stream->kind == token::paren_close)
+		{
+			++stream;
+			return cond;
+		}
+		else
+		{
+			if (open_paren->kind == token::paren_open)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					stream->kind == token::eof
+					? bz::string("expected closing ) before end-of-file")
+					: bz::format("expected closing ) before '{}'", stream->value),
+					{ make_note(open_paren, "to match this:") }
+				));
+			}
+			return cond;
+		}
+	}();
 
 	auto if_block = parse_statement(stream, end, errors);
 
@@ -269,9 +421,30 @@ static ast::statement parse_while_statement(
 	auto const begin_token = stream;
 	++stream; // 'while'
 
-	assert_token(stream, token::paren_open, errors);
-	auto condition = get_expression_or_type<token::paren_close>(stream, end, errors);
-	assert_token(stream, token::paren_close, errors);
+	auto const condition = [&]()
+	{
+		auto const open_paren = assert_token(stream, token::paren_open, errors);
+		auto const cond = get_expression_or_type_tokens<token::paren_close>(stream, end, errors);
+		if (stream->kind == token::paren_close)
+		{
+			++stream;
+			return cond;
+		}
+		else
+		{
+			if (open_paren->kind == token::paren_open)
+			{
+				errors.emplace_back(bad_token(
+					stream,
+					stream->kind == token::eof
+					? bz::string("expected closing ) before end-of-file")
+					: bz::format("expected closing ) before '{}'", stream->value),
+					{ make_note(open_paren, "to match this:") }
+				));
+			}
+			return cond;
+		}
+	}();
 
 	auto while_block = parse_statement(stream, end, errors);
 
@@ -300,7 +473,7 @@ static ast::statement parse_return_statement(
 	auto const begin_token = stream;
 	++stream; // 'return'
 
-	auto expr = get_expression_or_type<token::semi_colon>(stream, end, errors);
+	auto expr = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
 	assert_token(stream, token::semi_colon, errors);
 
 	return ast::make_stmt_return(
@@ -326,7 +499,7 @@ static ast::statement parse_expression_statement(
 )
 {
 	auto const begin_token = stream;
-	auto expr = get_expression_or_type<token::semi_colon>(stream, end, errors);
+	auto const expr = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
 	assert_token(stream, token::semi_colon, errors);
 
 	return ast::make_stmt_expression(
@@ -365,7 +538,7 @@ static ast::declaration parse_variable_declaration(
 	if (stream->kind == token::colon)
 	{
 		++stream; // ':'
-		auto type_tokens = get_expression_or_type<
+		auto type_tokens = get_expression_or_type_tokens<
 			token::assign, token::semi_colon
 		>(stream, end, errors);
 
@@ -388,7 +561,7 @@ static ast::declaration parse_variable_declaration(
 
 		assert_token(stream, token::assign, token::semi_colon, errors);
 
-		auto init = get_expression_or_type<token::semi_colon>(stream, end, errors);
+		auto init = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
 
 		assert_token(stream, token::semi_colon, errors);
 		auto const tokens_end = stream;
@@ -405,7 +578,7 @@ static ast::declaration parse_variable_declaration(
 	}
 	++stream;
 
-	auto init = get_expression_or_type<token::semi_colon>(stream, end, errors);
+	auto init = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
 
 	ast::typespec type;
 	if (is_const)
@@ -441,7 +614,7 @@ static ast::declaration parse_struct_definition(
 		auto id = stream;
 		++stream;
 		assert_token(stream, token::colon, errors);
-		auto type = get_expression_or_type<token::semi_colon>(stream, end, errors);
+		auto type = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
 		assert_token(stream, token::semi_colon, errors);
 		return ast::variable(
 			id, ast::make_ts_unresolved(type)
@@ -477,7 +650,7 @@ static ast::declaration parse_function_definition(
 	auto params = get_function_params(stream, end, errors);
 
 	assert_token(stream, token::arrow, errors);
-	auto ret_type = get_expression_or_type<token::curly_open>(stream, end, errors);
+	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
 
 	return ast::make_decl_function(
 		id,
@@ -565,7 +738,7 @@ static ast::declaration parse_operator_definition(
 	}
 
 	assert_token(stream, token::arrow, errors);
-	auto ret_type = get_expression_or_type<token::curly_open>(stream, end, errors);
+	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
 
 	return ast::make_decl_operator(
 		op,

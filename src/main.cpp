@@ -1484,6 +1484,31 @@ void bytecode_test()
 */
 }
 
+#include <windows.h>
+
+struct timer
+{
+	using rep        = double;
+	using period     = std::ratio<1>;
+	using duration   = std::chrono::duration<rep, period>;
+	using time_point = std::chrono::time_point<timer>;
+	static constexpr bool is_steady = false;
+
+	static time_point now(void)
+	{
+		static long long frequency = []()
+		{
+			LARGE_INTEGER freq;
+			QueryPerformanceFrequency(&freq);
+			return freq.QuadPart;
+		}();
+		LARGE_INTEGER t;
+		QueryPerformanceCounter(&t);
+		return time_point(duration(static_cast<double>(t.QuadPart) / frequency));
+	}
+};
+
+
 int main(void)
 {
 	assert(ast::size_of(ast::str_) == 16);
@@ -1494,34 +1519,76 @@ int main(void)
 		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
 	);
 
-	auto start = std::chrono::high_resolution_clock::now();
+	auto in_ms = [](auto time)
+	{
+		return time.count() * 1000;
+	};
 
-	src_file file("src/test.bz");
-	if (!file.read_file())
-	{
-		bz::printf("error: unable to read file {}\n", file.get_file_name());
-		bz::print("exiting...\n");
-		return 1;
-	}
-	else
-	{
-		bz::printf("successfully read {}\n", file.get_file_name());
-	}
+	src_file file("./src/test.bz");
 
-
-	if (!file.tokenize())
 	{
-		bz::printf("{} error(s) occurred during tokenization\n", file.get_error_count());
-		file.report_and_clear_errors();
-		bz::print("exiting...\n");
-		return 1;
-	}
-	else
-	{
-		bz::printf("successfully tokenized {}\n", file.get_file_name());
+		auto start = timer::now();
+		if (!file.read_file())
+		{
+			bz::printf("error: unable to read file {}\n", file.get_file_name());
+			bz::print("exiting...\n");
+			return 1;
+		}
+		else
+		{
+			auto end = timer::now();
+			bz::printf(
+				"successfully read {} in {:.3f}ms\n",
+				file.get_file_name(), in_ms(end - start)
+			);
+		}
 	}
 
-	auto after_tokenizing = std::chrono::high_resolution_clock::now();
+	{
+		auto start = timer::now();
+		if (!file.tokenize())
+		{
+			auto const error_count = file.get_error_count();
+			bz::printf(
+				"{} {} occurred during tokenization\n",
+				error_count, error_count == 1 ? "error" : "errors"
+			);
+			file.report_and_clear_errors();
+			bz::print("exiting...\n");
+			return 1;
+		}
+		else
+		{
+			auto end = timer::now();
+			bz::printf(
+				"successfully tokenized {} in {:.3f}ms\n",
+				file.get_file_name(), in_ms(end - start)
+			);
+		}
+	}
+
+	{
+		auto start = timer::now();
+		if (!file.first_pass_parse())
+		{
+			auto const error_count = file.get_error_count();
+			bz::printf(
+				"{} {} occurred during the first pass of parsing\n",
+				error_count, error_count == 1 ? "error" : "errors"
+			);
+			file.report_and_clear_errors();
+			bz::print("exiting...\n");
+			return 1;
+		}
+		else
+		{
+			auto end = timer::now();
+			bz::printf(
+				"successfully first pass parsed {} in {:.3f}ms\n",
+				file.get_file_name(), in_ms(end - start)
+			);
+		}
+	}
 
 /*
 	auto stream = file.tokens_begin();
@@ -1530,14 +1597,14 @@ int main(void)
 	auto decls = get_ast_declarations(stream, end);
 	assert(stream->kind == token::eof);
 
-	auto after_first_pass = std::chrono::high_resolution_clock::now();
+	auto after_first_pass = timer::now();
 
 	for (auto &d : decls)
 	{
 		d.resolve();
 	}
 
-	auto after_resolving = std::chrono::high_resolution_clock::now();
+	auto after_resolving = timer::now();
 
 	std::stringstream result_ss;
 
@@ -1548,7 +1615,7 @@ int main(void)
 
 	std::cout << result_ss.str() << std::flush;
 
-	auto after_printing = std::chrono::high_resolution_clock::now();
+	auto after_printing = timer::now();
 
 	auto in_ms = [](auto time)
 	{

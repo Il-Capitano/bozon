@@ -14,15 +14,22 @@ int main(void)
 		passed_count += res.passed_count;
 	};
 
-	add_to_total(lexer_test());
-	add_to_total(first_pass_parser_test());
+	try
+	{
+		add_to_total(lexer_test());
+		add_to_total(first_pass_parser_test());
 
-	bz::printf(
-		"\nFinished running all tests\n"
-		"{}/{} ({:.2f}%) tests passed\n",
-		passed_count, test_count,
-		100 * (static_cast<double>(passed_count) / test_count)
-	);
+		bz::printf(
+			"\nFinished running all tests\n"
+			"{}/{} ({:.2f}%) tests passed\n",
+			passed_count, test_count,
+			100 * (static_cast<double>(passed_count) / test_count)
+		);
+	}
+	catch (std::exception &e)
+	{
+		bz::printf("\nan exception occurred: {}", e.what());
+	}
 
 	return 0;
 }

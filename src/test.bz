@@ -568,6 +568,11 @@ function op_assign_test() -> void
 
 function string_print_test() -> void
 {
+	[(1, 2, 3 + 4];
+	[a, b] = [c, d];
+	if (true)
+	{}
+	else;
 	"this is a test";
 	"this is another 	\t test";
 	"this is a newline

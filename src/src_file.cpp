@@ -201,28 +201,25 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::read_file(void)
 {
-	if (this->_stage == constructed)
+	assert(this->_stage == constructed);
+	auto file_name = this->_file_name;
+	file_name.reserve(file_name.size() + 1);
+	*(file_name.end()) = '\0';
+	std::ifstream file(file_name.data());
+
+	if (!file.good())
 	{
-		auto file_name = this->_file_name;
-		file_name.reserve(file_name.size() + 1);
-		*(file_name.end()) = '\0';
-		std::ifstream file(file_name.data());
-
-		if (!file.good())
-		{
-			return false;
-		}
-
-		this->_file = read_text_from_file(file);
-		this->_stage = file_read;
+		return false;
 	}
 
+	this->_file = read_text_from_file(file);
+	this->_stage = file_read;
 	return true;
 }
 
 [[nodiscard]] bool src_file::tokenize(void)
 {
-	assert(this->_stage >= file_read);
+	assert(this->_stage == file_read);
 	if (this->_stage == file_read)
 	{
 		this->_tokens = get_tokens(this->_file, this->_file_name, this->_errors);
@@ -234,7 +231,18 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::first_pass_parse(void)
 {
-	return false;
+	assert(this->_stage == tokenized);
+	assert(this->_tokens.size() != 0);
+	assert(this->_tokens.back().kind == token::eof);
+	auto stream = this->_tokens.cbegin();
+	auto end    = this->_tokens.cend() - 1;
+
+	while (stream != end)
+	{
+		this->_declarations.emplace_back(parse_declaration(stream, end, this->_errors));
+	}
+
+	return this->_errors.size() == 0;
 }
 
 static void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &errors)

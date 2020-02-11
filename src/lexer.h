@@ -75,6 +75,7 @@ struct token
 		bool_xor,            // ^^
 		bool_or,             // ||
 		arrow,               // ->
+		fat_arrow,           // =>
 		scope,               // ::
 		dot_dot,             // ..
 		dot_dot_eq,          // ..=
@@ -268,20 +269,6 @@ template<typename T, typename ...Ts>
 	);
 }
 
-[[nodiscard]] inline error bad_eof(
-	token_pos it,
-	bz::string message,
-	bz::vector<note> notes = {}
-)
-{
-	return error{
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
-		nullptr, nullptr, nullptr,
-		std::move(message),
-		std::move(notes)
-	};
-}
-
 [[nodiscard]] inline note make_note(
 	token_pos it,
 	bz::string message
@@ -310,13 +297,21 @@ inline token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error
 {
 	if (stream->kind != kind)
 	{
+		bz::string_view const fmt_str =
+			stream->kind == token::eof
+			? "expected '{}' before end-of-file"
+			: "expected '{}'";
 		errors.emplace_back(bad_token(
-			stream, bz::format("expected '{}'", get_token_value(kind))
+			stream, bz::format(fmt_str, get_token_value(kind))
 		));
+		return stream;
 	}
-	auto t = stream;
-	++stream;
-	return t;
+	else
+	{
+		auto t = stream;
+		++stream;
+		return t;
+	}
 }
 
 inline token_pos assert_token(
@@ -327,18 +322,22 @@ inline token_pos assert_token(
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
 	{
+		bz::string_view const fmt_str =
+			stream->kind == token::eof
+			? "expected '{}' or '{}' before end-of-file"
+			: "expected '{}' or '{}'";
 		errors.emplace_back(bad_token(
 			stream,
-			bz::format(
-				"expected '{}' or '{}'",
-				get_token_value(kind1),
-				get_token_value(kind2)
-			)
+			bz::format(fmt_str, get_token_value(kind1), get_token_value(kind2))
 		));
+		return stream;
 	}
-	auto t = stream;
-	++stream;
-	return t;
+	else
+	{
+		auto t = stream;
+		++stream;
+		return t;
+	}
 }
 
 #endif // LEXER_H

@@ -147,10 +147,10 @@ bin/default/release/int/type.cpp.o: ./src/ast/type.cpp ./include/bz/allocator.h 
 
 test_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
 test_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++17
-test_cxx_include_dirs := ./include ./src 
+test_cxx_include_dirs := ./src ./include 
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
 test_cc_release_flags := -c -O3 -Wall -Wextra -std=c++17
-test_cc_include_dirs := ./include ./src 
+test_cc_include_dirs := ./src ./include 
 test_exe_debug := bin/test/debug/testbozon.exe
 test_exe_release := bin/test/release/testbozon
 

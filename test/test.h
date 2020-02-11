@@ -85,7 +85,7 @@ bz::printf("Running {}\n", __FUNCTION__)
 
 #define test(fn)                                                     \
 do {                                                                 \
-    bz::printf("    {:.<60}", #fn);                                       \
+    bz::printf("    {:.<60}", #fn);                                  \
     try                                                              \
     {                                                                \
         ++test_count;                                                \
@@ -96,7 +96,7 @@ do {                                                                 \
     catch (test_fail_exception &e)                                   \
     {                                                                \
         bz::printf("{}FAIL{}\n", colors::bright_red, colors::clear); \
-        bz::printf("{}\n", e.what());                                \
+        bz::print(e.what());                                         \
     }                                                                \
 } while (false)
 
