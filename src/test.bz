@@ -568,11 +568,6 @@ function op_assign_test() -> void
 
 function string_print_test() -> void
 {
-	[(1, 2, 3 + 4];
-	[a, b] = [c, d];
-	if (true)
-	{}
-	else;
 	"this is a test";
 	"this is another 	\t test";
 	"this is a newline
@@ -588,6 +583,25 @@ test\n";
 	"\t";
 
 	1 + 3 3; // same as above!
+}
+
+function random() -> void
+{
+//	[(1, 2, 3 + 4];
+	[a, b] = [c, d];
+	if (true)
+	{}
+	else;
+
+	let a: int32;
+	let &a_ref = a;
+//	const &a_err = a;
+	let const b = a;
+//	let const &c = a;
+	let *d = &a;
+	const *e = d;
+	const **const *f = &c;
+//	const *const const g = 0;
 }
 
 

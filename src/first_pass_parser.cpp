@@ -43,7 +43,10 @@ static token_range get_tokens_in_curly(
 			if (stream != end && stream->kind != token::eof)
 			{
 				assert(stream->kind == token::paren_close || stream->kind == token::curly_close);
-				++stream;
+				if (stream->kind == token::paren_close)
+				{
+					++stream;
+				}
 			}
 			break;
 		}
@@ -55,7 +58,10 @@ static token_range get_tokens_in_curly(
 			if (stream != end && stream->kind != token::eof)
 			{
 				assert(stream->kind == token::square_close || stream->kind == token::curly_close);
-				++stream;
+				if (stream->kind == token::square_close)
+				{
+					++stream;
+				}
 			}
 			break;
 		}
@@ -498,8 +504,22 @@ static ast::statement parse_expression_statement(
 	bz::vector<error> &errors
 )
 {
+	assert(stream != end);
 	auto const begin_token = stream;
 	auto const expr = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
+	if (expr.begin == expr.end) // && stream->kind != token::semi_colon (should always be true)
+	{
+		errors.emplace_back(bad_token(stream));
+		++stream;
+		if (stream == end)
+		{
+			return ast::statement();
+		}
+		else
+		{
+			return parse_statement(stream, end, errors);
+		}
+	}
 	assert_token(stream, token::semi_colon, errors);
 
 	return ast::make_stmt_expression(
@@ -515,22 +535,91 @@ static ast::declaration parse_variable_declaration(
 {
 	assert(stream->kind == token::kw_let || stream->kind == token::kw_const);
 	auto const tokens_begin = stream;
-	bool is_const = stream->kind == token::kw_const;
-	++stream; // 'let' or 'const'
-	assert(stream != end);
-	bool is_ref = stream->kind == token::ampersand;
-	if (is_ref)
+	ast::typespec prototype;
+	if (stream->kind == token::kw_const)
 	{
-		if (is_const)
+		prototype = ast::make_ts_constant(ast::typespec());
+	}
+	++stream; // 'let' or 'const'
+
+	auto const get_base = [](ast::typespec *ts) -> ast::typespec *
+	{
+		switch (ts->kind())
+		{
+		case ast::typespec::index<ast::ts_constant>:
+			return &ts->get<ast::ts_constant_ptr>()->base;
+		case ast::typespec::index<ast::ts_reference>:
+			return &ts->get<ast::ts_reference_ptr>()->base;
+		case ast::typespec::index<ast::ts_pointer>:
+			return &ts->get<ast::ts_pointer_ptr>()->base;
+		default:
+			assert(false);
+		}
+	};
+
+	auto const add_to_prototype = [&](auto &&ts)
+	{
+		static_assert(
+			bz::meta::is_same<ast::typespec, bz::meta::remove_cv_reference<decltype(ts)>>
+		);
+		ast::typespec *innermost = &prototype;
+		ast::typespec *one_up = &prototype;
+		while (innermost->kind() != ast::typespec::null)
+		{
+			one_up = innermost;
+			innermost = get_base(innermost);
+		}
+		if (
+			ts.kind() == ast::typespec::index<ast::ts_reference>
+			&& innermost != &prototype
+		)
 		{
 			errors.emplace_back(bad_tokens(
-				tokens_begin,
-				stream,
-				stream + 1,
-				"a reference cannot be const"
+				tokens_begin->kind == token::kw_const
+				? tokens_begin : tokens_begin + 1,
+				stream, stream + 1,
+				"reference specifier must be at top level"
 			));
 		}
-		++stream; // '&'
+		else if (
+			ts.kind() == ast::typespec::index<ast::ts_constant>
+			&& one_up->kind() == ast::typespec::index<ast::ts_constant>
+		)
+		{
+			errors.emplace_back(bad_tokens(
+				stream - 1, stream, stream + 1,
+				"too many const specifiers"
+			));
+		}
+		else
+		{
+			*innermost = std::forward<decltype(ts)>(ts);
+		}
+	};
+
+	{
+		bool loop = true;
+		while (stream != end && loop)
+		{
+			switch (stream->kind)
+			{
+			case token::kw_const:
+				add_to_prototype(ast::make_ts_constant(ast::typespec()));
+				++stream;
+				break;
+			case token::ampersand:
+				add_to_prototype(ast::make_ts_reference(ast::typespec()));
+				++stream;
+				break;
+			case token::star:
+				add_to_prototype(ast::make_ts_pointer(ast::typespec()));
+				++stream;
+				break;
+			default:
+				loop = false;
+				break;
+			}
+		}
 	}
 
 	auto id = assert_token(stream, token::identifier, errors);
@@ -543,20 +632,14 @@ static ast::declaration parse_variable_declaration(
 		>(stream, end, errors);
 
 		auto type = ast::make_ts_unresolved(type_tokens);
-		if (is_const)
-		{
-			type = ast::add_const(std::move(type));
-		}
-		else if (is_ref)
-		{
-			type = ast::add_lvalue_reference(std::move(type));
-		}
-
 		if (stream->kind == token::semi_colon)
 		{
 			++stream; // ';'
 			auto const tokens_end = stream;
-			return ast::make_decl_variable(token_range{tokens_begin, tokens_end}, id, type);
+			return ast::make_decl_variable(
+				token_range{tokens_begin, tokens_end},
+				id, prototype, type
+			);
 		}
 
 		assert_token(stream, token::assign, token::semi_colon, errors);
@@ -568,34 +651,28 @@ static ast::declaration parse_variable_declaration(
 		return ast::make_decl_variable(
 			token_range{tokens_begin, tokens_end},
 			id,
+			prototype,
 			type,
 			ast::make_expr_unresolved(init)
 		);
 	}
-	else if (stream->kind != token::assign)
+	else if (stream->kind == token::assign)
+	{
+		++stream;
+	}
+	else
 	{
 		errors.emplace_back(bad_token(stream, "expected '=' or ':'"));
 	}
-	++stream;
 
 	auto init = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
-
-	ast::typespec type;
-	if (is_const)
-	{
-		type = ast::make_ts_constant(ast::typespec());
-	}
-	else if (is_ref)
-	{
-		type = ast::make_ts_reference(ast::typespec());
-	}
 
 	assert_token(stream, token::semi_colon, errors);
 	auto const tokens_end = stream;
 	return ast::make_decl_variable(
 		token_range{tokens_begin, tokens_end},
 		id,
-		type,
+		prototype,
 		ast::make_expr_unresolved(init)
 	);
 }

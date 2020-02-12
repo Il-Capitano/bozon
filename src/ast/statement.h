@@ -226,17 +226,20 @@ struct decl_variable
 {
 	token_range              tokens;
 	token_pos                identifier;
+	typespec                 prototype;
 	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
 		token_range _tokens,
 		token_pos   _id,
+		typespec    _prototype,
 		typespec    _var_type,
 		expression  _init_expr
 	)
 		: tokens    (_tokens),
 		  identifier(_id),
+		  prototype (std::move(_prototype)),
 		  var_type  (std::move(_var_type)),
 		  init_expr (std::move(_init_expr))
 	{}
@@ -244,21 +247,25 @@ struct decl_variable
 	decl_variable(
 		token_range _tokens,
 		token_pos   _id,
+		typespec    _prototype,
 		typespec    _var_type
 	)
 		: tokens(_tokens),
 		  identifier(_id),
+		  prototype (std::move(_prototype)),
 		  var_type  (std::move(_var_type)),
 		  init_expr ()
 	{}
 
 	decl_variable(
 		token_range _tokens,
-		token_pos _id,
-		expression          _init_expr
+		token_pos   _id,
+		typespec    _prototype,
+		expression  _init_expr
 	)
 		: tokens    (_tokens),
 		  identifier(_id),
+		  prototype (std::move(_prototype)),
 		  var_type  (),
 		  init_expr (std::move(_init_expr))
 	{}

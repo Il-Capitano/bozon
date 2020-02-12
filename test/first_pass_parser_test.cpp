@@ -47,7 +47,7 @@ do {                                                  \
 	//             ^ tokens.begin() + 3
 
 	x_err("{ a + b; return 3;", tokens.begin() + 8);
-	//                       ^ tokens.begin() + 8
+	//                       ^ tokens.begin() + 8 (eof)
 
 #undef x
 #undef x_err
@@ -164,6 +164,8 @@ void get_stmt_compound_test(void)
 	x("{ return 0; if (asdf) return 1; else return 2; } else {}", tokens.begin() + 16);
 	//                                                  ^ tokens.begin() + 16
 
+	x_err("{ (a, b; } else {}", tokens.begin() + 7);
+	//            ^ tokens.begin() + 7
 	x_err("{", tokens.begin() + 1);
 	x_err("{ a + b; return 0; function hello() { return 2; }", tokens.begin() + 17);
 	//                                                      ^ tokens.begin() + 17 (eof)
@@ -315,6 +317,41 @@ void parse_expression_statement_test(void)
 	//                     ^ tokens.begin() + 11
 	x_err("[(1, 2, 3 + 4]; [a, b] = [c, d];", tokens.begin() + 11);
 	//                     ^ tokens.begin() + 11
+	x_err("else return 3; }", tokens.begin() + 4);
+	//                    ^ tokens.begin() + 4
+
+#undef x
+#undef x_err
+}
+
+void parse_variable_declaration_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, it_pos) xx(parse_variable_declaration, str, it_pos)
+#define x_err(str, it_pos) xx_err(parse_variable_declaration, str, it_pos)
+
+	x("let a: int32; a", tokens.begin() + 5);
+	//               ^ tokens.begin() + 5
+	x("let a = 0; a", tokens.begin() + 5);
+	//            ^ tokens.begin() + 5
+	x("let a: int32 = 0; a", tokens.begin() + 7);
+	//                   ^ tokens.begin() + 7
+	x("let &a: int32 = b; a", tokens.begin() + 8);
+	//                    ^ tokens.begin() + 8
+	x("let const a = 0; a", tokens.begin() + 6);
+	//                  ^ tokens.begin() + 6
+	x("let &const **const *const a = 0; a", tokens.begin() + 12);
+	//                                  ^ tokens.begin() + 12
+
+	x_err("let a: [int32, float64 = [0, 1.3]; a", tokens.begin() + 14);
+	//                                        ^ tokens.begin() + 14
+	x_err("const &a: int32 = b; a", tokens.begin() + 8);
+	//                          ^ tokens.begin() + 8
+	x_err("let &const **&const *const a = 0; a", tokens.begin() + 13);
+	//                                       ^ tokens.begin() + 13
+	x_err("const const a = 0; a", tokens.begin() + 6);
+	//                        ^ tokens.begin() + 6
 
 #undef x
 #undef x_err
@@ -335,6 +372,7 @@ test_result first_pass_parser_test(void)
 	test(parse_return_statement_test);
 	test(parse_no_op_statement_test);
 	test(parse_expression_statement_test);
+	test(parse_variable_declaration_test);
 
 	test_end();
 }
