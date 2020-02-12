@@ -678,40 +678,58 @@ static ast::declaration parse_variable_declaration(
 }
 
 static ast::declaration parse_struct_definition(
-	token_pos &stream, token_pos end,
+	token_pos &in_stream, token_pos in_end,
 	bz::vector<error> &errors
 )
 {
-	assert(stream->kind == token::kw_struct);
-	++stream; // 'struct'
+	assert(in_stream->kind == token::kw_struct);
+	++in_stream; // 'struct'
 
-	auto parse_member_variable = [&]()
+	auto const id = assert_token(in_stream, token::identifier, errors);
+	assert_token(in_stream, token::curly_open, errors);
+	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
+
+	if (in_stream->kind == token::curly_close)
+	{
+		++in_stream;
+	}
+
+	auto parse_member_variable = [&](auto &stream, auto end)
 	{
 		assert(stream->kind == token::identifier);
-		auto id = stream;
+		auto const id = stream;
 		++stream;
 		assert_token(stream, token::colon, errors);
-		auto type = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
-		assert_token(stream, token::semi_colon, errors);
+		auto const type = token_range{stream, end};
+		stream = end;
 		return ast::variable(
 			id, ast::make_ts_unresolved(type)
 		);
 	};
 
-	auto id = assert_token(stream, token::identifier, errors);
-	assert_token(stream, token::curly_open, errors);
-
 	bz::vector<ast::variable> member_variables = {};
-	while (stream != end && stream->kind == token::identifier)
+	while (stream != end)
 	{
-		member_variables.push_back(parse_member_variable());
+		auto [inner_stream, inner_end] = get_expression_or_type_tokens<
+			token::semi_colon
+		>(stream, end, errors);
+
+		if (stream != end && stream->kind == token::semi_colon)
+		{
+			++stream;
+		}
+
+		while (inner_stream != inner_end && inner_stream->kind != token::identifier)
+		{
+			errors.emplace_back(bad_token(inner_stream));
+			++inner_stream;
+		}
+		if (inner_stream != inner_end)
+		{
+			member_variables.emplace_back(parse_member_variable(inner_stream, inner_end));
+		}
 	}
 
-	if (stream->kind != token::curly_close)
-	{
-		errors.emplace_back(bad_token(stream, "expected '}' or member variable"));
-	}
-	++stream; // '}'
 	return ast::make_decl_struct(id, std::move(member_variables));
 }
 

@@ -604,6 +604,12 @@ function random() -> void
 //	const *const const g = 0;
 }
 
+struct foo
+{
+	x: int32;
+	y: int32;
+	z: [int32, [[]]];
+}
 
 
 

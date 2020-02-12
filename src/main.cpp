@@ -955,6 +955,47 @@ struct complex
 }
 
 
+
+Let's decide on how struct should be defined!!!
+
+struct vec3
+{
+	.x: float64;
+	.y: float64;
+	.z: float64;
+	// --------
+	// I like this one better
+	x: float64;
+	y: float64;
+	z: float64;
+
+
+	constructor(_x, _y, _z)
+	[ .x = _x, .y = _y, .z = _z]
+	{}
+
+	constructor(t: [float64, float64, float64])
+	[ .x = t[0], .y = t[1], .z = t[2]]
+	{}
+
+	destructor() = default;
+
+	function abs(&const this) -> float64
+	{
+		return std::hypot(this.x, this.y, this.z);
+	}
+
+	function abs_sqr(&const this) -> float64
+	{
+		return this.x * this.x + this.y * this.y + this.z * this.z;
+	}
+
+	function dot_prod(&const this, v: &const vec3) -> float64
+	{
+		return this.x * v.x + this.y * v.y + this.z * v.z;
+	}
+}
+
 */
 
 #include "core.h"
