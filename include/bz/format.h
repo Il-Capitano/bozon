@@ -9,11 +9,152 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <algorithm>
+#ifdef _WIN32
+#include <windows.h>
+#endif // windows
 
 bz_begin_namespace
 
 template<typename ...Ts>
 string format(string_view fmt, Ts const &...ts);
+
+#if _WIN32
+namespace internal
+{
+
+inline void color_console(int32_t color)
+{
+	auto h = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (color == -1)
+	{
+		SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	}
+	else
+	{
+		SetConsoleTextAttribute(h, color & 0xffff);
+	}
+}
+
+inline int32_t get_console_color(string_view fmt)
+{
+	auto it = fmt.begin();
+	auto const end = fmt.end();
+	int32_t ret_val = 0;
+	while (it != end)
+	{
+		switch (*it)
+		{
+		case '0':
+			bz_assert(it + 1 == end);
+			return -1;
+		case '3':
+			++it; // '3'
+			bz_assert(it != end);
+			switch (*it)
+			{
+				case '0': break;
+				case '1': ret_val |= FOREGROUND_RED; break;
+				case '2': ret_val |= FOREGROUND_GREEN; break;
+				case '3': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN; break;
+				case '4': ret_val |= FOREGROUND_BLUE; break;
+				case '5': ret_val |= FOREGROUND_RED | FOREGROUND_BLUE; break;
+				case '6': ret_val |= FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+				case '7': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+			}
+			++it;
+			if (it != end)
+			{
+				bz_assert(*it == ';');
+				++it; // ';'
+			}
+			break;
+		case '9':
+			bz_assert(it + 1 != end);
+			++it; // '9'
+			ret_val |= FOREGROUND_INTENSITY;
+			switch (*it)
+			{
+				case '0': break;
+				case '1': ret_val |= FOREGROUND_RED; break;
+				case '2': ret_val |= FOREGROUND_GREEN; break;
+				case '3': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN; break;
+				case '4': ret_val |= FOREGROUND_BLUE; break;
+				case '5': ret_val |= FOREGROUND_RED | FOREGROUND_BLUE; break;
+				case '6': ret_val |= FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+				case '7': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+			}
+			++it;
+			if (it != end)
+			{
+				bz_assert(*it == ';');
+				++it; // ';'
+			}
+			break;
+		default:
+			bz_assert(false);
+			break;
+		}
+	}
+	return ret_val;
+}
+
+} // namespace internal
+
+inline void print(string_view str)
+{
+	auto begin = str.begin();
+	auto const end = str.end();
+	while (begin != end)
+	{
+		auto const coloring_char = std::find(begin, end, '\033');
+		if (coloring_char == end)
+		{
+			// we are done
+			std::cout << string_view(begin, end);
+			break;
+		}
+		auto it = coloring_char + 1;
+		if (it == end)
+		{
+			// we are done
+			std::cout << string_view(begin, end);
+			break;
+		}
+
+		if (*it != '[')
+		{
+			// invalid coloring sequence
+			// we go to the next iteration
+			std::cout << string_view(begin, it);
+			begin = it;
+			continue;
+		}
+
+		++it; // '['
+		auto const closing_m = std::find(it, end, 'm');
+		if (closing_m == end)
+		{
+			// we are done
+			std::cout << string_view(begin, end);
+			break;
+		}
+
+		auto const color = internal::get_console_color(string_view(it, closing_m));
+		std::cout << string_view(begin, coloring_char);
+		begin = closing_m + 1;
+		internal::color_console(color);
+	}
+}
+
+template<typename ...Ts>
+void printf(string_view fmt, Ts const &...ts)
+{
+	auto const str = format(fmt, ts...);
+	print(str);
+}
+
+#else
 
 template<typename ...Ts>
 void printf(string_view fmt, Ts const &...ts)
@@ -21,15 +162,17 @@ void printf(string_view fmt, Ts const &...ts)
 	std::cout << format(fmt, ts...);
 }
 
+inline void print(string_view str)
+{
+	std::cout << str;
+}
+
+#endif // windows
+
 template<typename ...Ts>
 void printf(std::ostream &os, string_view fmt, Ts const &...ts)
 {
 	os << format(fmt, ts...);
-}
-
-inline void print(string_view str)
-{
-	std::cout << str;
 }
 
 inline void print(std::ostream &os, string_view str)

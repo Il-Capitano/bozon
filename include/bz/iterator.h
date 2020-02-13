@@ -28,6 +28,9 @@ public:
 		: _data(data)
 	{}
 
+	constexpr pointer data(void) const noexcept
+	{ return this->_data; }
+
 	constexpr operator random_access_iterator<const value_type> (void) const noexcept
 	{ return { this->_data }; }
 

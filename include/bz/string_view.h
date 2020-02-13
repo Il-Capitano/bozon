@@ -25,6 +25,13 @@ public:
 	using value_type = Char;
 	using size_type  = std::size_t;
 
+	// ==== iteration ====
+	using const_iterator = ::bz::random_access_iterator<const value_type>;
+	using       iterator = const_iterator;
+
+	using const_reverse_iterator = ::bz::reverse_iterator<const_iterator>;
+	using       reverse_iterator = const_reverse_iterator;
+
 private:
 	value_type const *_data_begin;
 	value_type const *_data_end;
@@ -47,6 +54,14 @@ public:
 	) noexcept
 		: _data_begin(begin),
 		  _data_end  (end)
+	{}
+
+	constexpr explicit basic_string_view(
+		const_iterator begin,
+		const_iterator end
+	) noexcept
+		: _data_begin(begin.data()),
+		  _data_end  (end.data())
 	{}
 
 	constexpr basic_string_view(value_type const *str) noexcept
@@ -89,14 +104,6 @@ public:
 	{ return this->_data_begin; }
 
 public:
-	// ==== iteration ====
-	using const_iterator = ::bz::random_access_iterator<const value_type>;
-	using       iterator = const_iterator;
-
-	using const_reverse_iterator = ::bz::reverse_iterator<const_iterator>;
-	using       reverse_iterator = const_reverse_iterator;
-
-
 	auto begin(void) const noexcept
 	{ return const_iterator(this->_data_begin); }
 
