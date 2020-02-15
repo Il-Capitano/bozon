@@ -1,16 +1,5 @@
 #include "first_pass_parser.h"
 
-
-template<typename T>
-static void append_vector(bz::vector<T> &base, bz::vector<T> new_elems)
-{
-	base.reserve(base.size() + new_elems.size());
-	for (auto &elem : new_elems)
-	{
-		base.emplace_back(std::move(elem));
-	}
-}
-
 template<uint32_t ...end_tokens>
 static token_range get_tokens_in_curly(
 	token_pos &stream, token_pos end,
@@ -129,7 +118,6 @@ static token_range get_expression_or_type_tokens(
 		// parenthesis/brackets
 		case token::paren_open:
 		case token::paren_close:
-		case token::curly_open:
 		case token::square_open:
 		case token::square_close:
 		// type specifiers that are not operators
@@ -199,8 +187,13 @@ static token_range get_expression_or_type_tokens(
 			break;
 		}
 
-		case token::curly_open:
+		case token::fat_arrow:
 		{
+			++stream; // '=>'
+			if (stream == end || stream->kind != token::curly_open)
+			{
+				break;
+			}
 			auto const curly_begin = stream;
 			++stream; // '{'
 			get_tokens_in_curly<token::curly_close>(stream, end, errors);
@@ -276,7 +269,15 @@ static bz::vector<ast::variable> get_function_params(
 			++stream;
 		}
 
-		assert_token(stream, token::colon, errors);
+		if (stream->kind != token::colon)
+		{
+			errors.emplace_back(bad_token(stream, "expected identifier or ':'"));
+		}
+		else
+		{
+			++stream;
+		}
+
 		auto type = get_expression_or_type_tokens<token::paren_close, token::comma>(stream, end, errors);
 
 		if (id->kind == token::identifier)
@@ -302,7 +303,7 @@ static bz::vector<ast::variable> get_function_params(
 	return params;
 }
 
-
+/*
 static ast::stmt_compound get_stmt_compound(
 	token_pos &in_stream, token_pos in_end,
 	bz::vector<error> &errors
@@ -337,6 +338,7 @@ static ast::stmt_compound get_stmt_compound(
 
 	return comp_stmt;
 }
+*/
 
 static ast::stmt_compound_ptr get_stmt_compound_ptr(
 	token_pos &in_stream, token_pos in_end,
@@ -713,11 +715,7 @@ static ast::declaration parse_struct_definition(
 		auto [inner_stream, inner_end] = get_expression_or_type_tokens<
 			token::semi_colon
 		>(stream, end, errors);
-
-		if (stream != end && stream->kind == token::semi_colon)
-		{
-			++stream;
-		}
+		assert_token(stream, token::semi_colon, errors);
 
 		while (inner_stream != inner_end && inner_stream->kind != token::identifier)
 		{
@@ -746,43 +744,33 @@ static ast::declaration parse_function_definition(
 
 	assert_token(stream, token::arrow, errors);
 	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
+	assert_token(stream, token::curly_open, errors);
+
+	bz::vector<ast::statement> body = {};
+
+	auto [body_stream, body_end] = get_tokens_in_curly<token::curly_close>(stream, end, errors);
+	while (body_stream != body_end && body_stream->kind != token::curly_close)
+	{
+		body.emplace_back(parse_statement(body_stream, body_end, errors));
+	}
+	assert_token(stream, token::curly_close, errors);
 
 	return ast::make_decl_function(
 		id,
 		std::move(params),
 		ast::make_ts_unresolved(ret_type),
-		get_stmt_compound(stream, end, errors)
+		std::move(body)
 	);
 }
 
-static ast::declaration parse_operator_definition(
-	token_pos &stream, token_pos end,
+static void check_operator_param_count(
+	token_pos op, token_pos params_end, size_t param_count,
 	bz::vector<error> &errors
 )
 {
-	assert(stream->kind == token::kw_operator);
-	++stream; // 'operator'
-	auto op = stream;
-	if (!is_overloadable_operator(op->kind))
+	if (param_count == 0)
 	{
-		errors.emplace_back(bad_token(stream, "expected overloadable operator"));
-	}
-
-	++stream;
-	if (op->kind == token::paren_open)
-	{
-		assert_token(stream, token::paren_close, errors);
-	}
-	else if (op->kind == token::square_open)
-	{
-		assert_token(stream, token::square_close, errors);
-	}
-
-	auto params = get_function_params(stream, end, errors);
-
-	if (params.size() == 0)
-	{
-		bz::string operator_name;
+		bz::string_view operator_name;
 
 		if (op->kind == token::paren_open)
 		{
@@ -798,48 +786,100 @@ static ast::declaration parse_operator_definition(
 		}
 
 		errors.emplace_back(bad_tokens(
-			op - 1, op, stream,
-			bz::format("Error: operator {} cannot take 0 arguments", operator_name)
+			op - 1, op, params_end,
+			bz::format("operator {} cannot take 0 arguments", operator_name)
 		));
 	}
-	if (params.size() == 1)
+	if (param_count == 1)
 	{
 		if (op->kind != token::paren_open && !is_unary_operator(op->kind))
 		{
-			bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
+			bz::string_view const operator_name = op->kind == token::square_open ? "[]" : op->value;
 			errors.emplace_back(bad_tokens(
-				op - 1, op, stream,
-				bz::format("Error: operator {} cannot take 1 argument", operator_name)
+				op - 1, op, params_end,
+				bz::format("operator {} cannot take 1 argument", operator_name)
 			));
 		}
 	}
-	else if (params.size() == 2)
+	else if (param_count == 2)
 	{
 		if (op->kind != token::paren_open && !is_binary_operator(op->kind))
 		{
 			errors.emplace_back(bad_tokens(
-				op - 1, op, stream,
-				bz::format("Error: operator {} cannot take 2 arguments", op->value)
+				op - 1, op, params_end,
+				bz::format("operator {} cannot take 2 arguments", op->value)
 			));
 		}
 	}
 	else if (op->kind != token::paren_open)
 	{
-		bz::string operator_name = op->kind == token::square_open ? "[]" : op->value;
+		bz::string_view const operator_name = op->kind == token::square_open ? "[]" : op->value;
 		errors.emplace_back(bad_tokens(
-			op - 1, op, stream,
-			bz::format("Error: operator {} cannot take {} arguments", operator_name, params.size())
+			op - 1, op, params_end,
+			bz::format("operator {} cannot take {} arguments", operator_name, param_count)
 		));
+	}
+}
+
+static ast::declaration parse_operator_definition(
+	token_pos &stream, token_pos end,
+	bz::vector<error> &errors
+)
+{
+	assert(stream->kind == token::kw_operator);
+	++stream; // 'operator'
+	auto const op = stream;
+	bool is_valid_op = true;
+	if (!is_operator(op->kind))
+	{
+		errors.emplace_back(bad_token(stream, "expected operator"));
+		is_valid_op = false;
+	}
+	else
+	{
+		if (!is_overloadable_operator(op->kind))
+		{
+			errors.emplace_back(bad_token(
+				stream, bz::format("operator {} is note overloadable", stream->value)
+			));
+			is_valid_op = false;
+		}
+		++stream;
+		if (op->kind == token::paren_open)
+		{
+			assert_token(stream, token::paren_close, errors);
+		}
+		else if (op->kind == token::square_open)
+		{
+			assert_token(stream, token::square_close, errors);
+		}
+	}
+
+	auto params = get_function_params(stream, end, errors);
+
+	if (is_valid_op)
+	{
+		check_operator_param_count(op, stream, params.size(), errors);
 	}
 
 	assert_token(stream, token::arrow, errors);
 	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
+	assert_token(stream, token::curly_open, errors);
+
+	bz::vector<ast::statement> body = {};
+
+	auto [body_stream, body_end] = get_tokens_in_curly<token::curly_close>(stream, end, errors);
+	while (body_stream != body_end && body_stream->kind != token::curly_close)
+	{
+		body.emplace_back(parse_statement(body_stream, body_end, errors));
+	}
+	assert_token(stream, token::curly_close, errors);
 
 	return ast::make_decl_operator(
 		op,
 		std::move(params),
 		ast::make_ts_unresolved(ret_type),
-		get_stmt_compound(stream, end, errors)
+		std::move(body)
 	);
 }
 
@@ -865,7 +905,8 @@ ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<
 		return parse_operator_definition(stream, end, errors);
 
 	default:
-		errors.emplace_back(bad_token(stream, "expected a declaration"));
+	{
+		auto begin = stream;
 		while (
 			stream != end
 			&& stream->kind != token::kw_let
@@ -877,7 +918,9 @@ ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<
 		{
 			++stream;
 		}
+		errors.emplace_back(bad_tokens(begin, begin, stream, "expected a declaration"));
 		return parse_declaration(stream, end, errors);
+	}
 	}
 }
 

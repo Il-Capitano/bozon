@@ -280,16 +280,16 @@ struct decl_variable
 
 struct decl_function
 {
-	token_pos            identifier;
-	bz::vector<variable> params;
-	typespec             return_type;
-	stmt_compound        body;
+	token_pos             identifier;
+	bz::vector<variable>  params;
+	typespec              return_type;
+	bz::vector<statement> body;
 
 	decl_function(
-		token_pos            _id,
-		bz::vector<variable> _params,
-		typespec             _ret_type,
-		stmt_compound        _body
+		token_pos             _id,
+		bz::vector<variable>  _params,
+		typespec              _ret_type,
+		bz::vector<statement> _body
 	)
 		: identifier (_id),
 		  params     (std::move(_params)),
@@ -306,16 +306,16 @@ struct decl_function
 
 struct decl_operator
 {
-	token_pos            op;
-	bz::vector<variable> params;
-	typespec             return_type;
-	stmt_compound        body;
+	token_pos             op;
+	bz::vector<variable>  params;
+	typespec              return_type;
+	bz::vector<statement> body;
 
 	decl_operator(
-		token_pos            _op,
-		bz::vector<variable> _params,
-		typespec             _ret_type,
-		stmt_compound        _body
+		token_pos             _op,
+		bz::vector<variable>  _params,
+		typespec              _ret_type,
+		bz::vector<statement> _body
 	)
 		: op         (_op),
 		  params     (std::move(_params)),

@@ -1,7 +1,7 @@
 #include "first_pass_parser.cpp"
 #include "test.h"
 
-void get_tokens_in_curly_test(void)
+static void get_tokens_in_curly_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -53,7 +53,7 @@ do {                                                  \
 #undef x_err
 }
 
-void get_expression_or_type_tokens_test(void)
+static void get_expression_or_type_tokens_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -130,7 +130,7 @@ do {                                                  \
     assert_eq(it, it_pos);                            \
 } while (false)
 
-void get_function_params_test(void)
+static void get_function_params_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -144,15 +144,16 @@ void get_function_params_test(void)
 	x_err("(", tokens.end() - 1);
 	x_err("(: [[], a: int32) { return 3; }", tokens.begin() + 10);
 	//                       ^ tokens.begin() + 10
-	x_err("( -> int32 { return 0; }", tokens.begin() + 8);
-	//                             ^ tokens.begin() + 8 (eof)
+	x_err("( -> int32 { return 0; }", tokens.begin() + 3);
+	//                ^ tokens.begin() + 3
 	x_err("(: [[], a: int32)", tokens.end() - 1);
 
 #undef x
 #undef x_err
 }
 
-void get_stmt_compound_test(void)
+/*
+static void get_stmt_compound_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -173,8 +174,9 @@ void get_stmt_compound_test(void)
 #undef x
 #undef x_err
 }
+*/
 
-void get_stmt_compound_ptr_test(void)
+static void get_stmt_compound_ptr_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -194,7 +196,7 @@ void get_stmt_compound_ptr_test(void)
 #undef x_err
 }
 
-void parse_if_statement_test(void)
+static void parse_if_statement_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -219,7 +221,7 @@ void parse_if_statement_test(void)
 #undef x_err
 }
 
-void parse_while_statement_test(void)
+static void parse_while_statement_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -246,12 +248,12 @@ void parse_while_statement_test(void)
 #undef x_err
 }
 
-void parse_for_statement_test(void)
-{
-	throw test_fail_exception("");
-}
+// static void parse_for_statement_test(void)
+// {
+// 	throw test_fail_exception("");
+// }
 
-void parse_return_statement_test(void)
+static void parse_return_statement_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -274,7 +276,7 @@ void parse_return_statement_test(void)
 #undef x_err
 }
 
-void parse_no_op_statement_test(void)
+static void parse_no_op_statement_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -289,7 +291,7 @@ void parse_no_op_statement_test(void)
 #undef x_err
 }
 
-void parse_expression_statement_test(void)
+static void parse_expression_statement_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -324,7 +326,7 @@ void parse_expression_statement_test(void)
 #undef x_err
 }
 
-void parse_variable_declaration_test(void)
+static void parse_variable_declaration_test(void)
 {
 	bz::vector<error> errors = {};
 
@@ -357,6 +359,146 @@ void parse_variable_declaration_test(void)
 #undef x_err
 }
 
+static void parse_struct_definition_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, it_pos) xx(parse_struct_definition, str, it_pos)
+#define x_err(str, it_pos) xx_err(parse_struct_definition, str, it_pos)
+
+	x("struct vec2d { x: float64; y: float64; } a", tokens.begin() + 12);
+	//                                          ^ tokens.begin() + 12
+	x("struct foo {} a", tokens.begin() + 4);
+	//               ^ tokens.begin() + 4
+
+	x_err("struct foo { x: float64; y: float64 } a", tokens.begin() + 11);
+	//                                           ^ tokens.begin() + 11
+	x_err("struct foo { a int32; } a", tokens.begin() + 7);
+	//                             ^ tokens.begin() + 7
+
+#undef x
+#undef x_err
+}
+
+static void parse_function_definition_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, it_pos) xx(parse_function_definition, str, it_pos)
+#define x_err(str, it_pos) xx_err(parse_function_definition, str, it_pos)
+
+	x("function main() -> int32 { return 0; } a", tokens.begin() + 11);
+	//                                        ^ tokens.begin() + 11
+	x("function factorial(n: int32) -> int32"
+	  "{ if (n <= 1) return 1; return n * factorial(n - 1); } a", tokens.begin() + 30);
+	//                                                        ^ tokens.begin() + 30
+	x("function foo() -> { return 0; } a", tokens.begin() + 10);
+	//                                 ^ tokens.begin() + 10
+
+	x_err("function foo() { return 0; } a", tokens.begin() + 9);
+	//                                  ^ tokens.begin() + 9
+	x_err("function () -> int32 { return 0; } a", tokens.begin() + 10);
+	//                                        ^ tokens.begin() + 10
+	x_err("function foo() -> int32 { return 0;", tokens.begin() + 10);
+	//                                        ^ tokens.begin() + 10 (eof)
+	x_err("function foo() -> int32 return 0; } a", tokens.begin() + 10);
+	//                                         ^ tokens.begin() + 10
+
+#undef x
+#undef x_err
+}
+
+static void parse_operator_definition_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, it_pos) xx(parse_operator_definition, str, it_pos)
+#define x_err(str, it_pos) xx_err(parse_operator_definition, str, it_pos)
+
+	x("operator + (a: int32) -> int32 { return a; } a", tokens.begin() + 14);
+	//                                              ^ tokens.begin() + 14
+	x("operator .. (a: std::string, b: &const std::string) -> std::string"
+	  "{ if (a.empty()) return \"\"; else return a.append(b); } a", tokens.begin() + 43);
+	//                                                          ^ tokens.begin() + 43
+	x("operator << (: int32, : float32) -> void {} a", tokens.begin() + 13);
+	//                                             ^ tokens.begin() + 13
+	x("operator () (: functor, : int32, : int32) -> int32 { return 0; } a", tokens.begin() + 20);
+	//                                                                  ^ tokens.begin() + 20
+
+	x_err("operator foo() { return 0; } a", tokens.begin() + 9);
+	//                                  ^ tokens.begin() + 9
+	x_err("operator () -> int32 { return 0; } a", tokens.begin() + 10);
+	//                                        ^ tokens.begin() + 10
+	x_err("operator foo() -> int32 { return 0;", tokens.begin() + 10);
+	//                                        ^ tokens.begin() + 10 (eof)
+	x_err("operator foo() -> int32 return 0; } a", tokens.begin() + 10);
+	//                                         ^ tokens.begin() + 10
+
+#undef x
+#undef x_err
+}
+
+static void parse_declaration_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, decl_type)                                       \
+do {                                                            \
+    bz::string_view const file = str;                           \
+    auto const tokens = get_tokens(file, "", errors);           \
+    assert_true(errors.empty());                                \
+    auto it = tokens.begin();                                   \
+    auto const decl = parse_declaration(                        \
+        it, tokens.end(), errors                                \
+    );                                                          \
+    assert_true(errors.empty());                                \
+    assert_eq(decl.kind(), ast::declaration::index<decl_type>); \
+    assert_eq(it, tokens.end() - 1);                            \
+} while (false)
+
+	x("let a: int32;", ast::decl_variable);
+	x("const *a = &b;", ast::decl_variable);
+	x("struct foo {}", ast::decl_struct);
+	x("function foo() -> void {}", ast::decl_function);
+	x("operator + (: int32, : int32) -> void {}", ast::decl_operator);
+
+#undef x
+}
+
+static void parse_statement_test(void)
+{
+	bz::vector<error> errors = {};
+
+#define x(str, decl_type)                                     \
+do {                                                          \
+    bz::string_view const file = str;                         \
+    auto const tokens = get_tokens(file, "", errors);         \
+    assert_true(errors.empty());                              \
+    auto it = tokens.begin();                                 \
+    auto const stmt = parse_statement(                        \
+        it, tokens.end(), errors                              \
+    );                                                        \
+    assert_true(errors.empty());                              \
+    assert_eq(stmt.kind(), ast::statement::index<decl_type>); \
+    assert_eq(it, tokens.end() - 1);                          \
+} while (false)
+
+	x("if (a == b) {}", ast::stmt_if);
+	x("if (a == b) {} else {}", ast::stmt_if);
+	x("while (it != end) { ++it; }", ast::stmt_while);
+	x("return a + b / 2;", ast::stmt_return);
+	x(";", ast::stmt_no_op);
+	x("{ let b = 0; }", ast::stmt_compound);
+	x("let a: int32;", ast::decl_variable);
+	x("const *a = &b;", ast::decl_variable);
+	x("struct foo {}", ast::decl_struct);
+	x("function foo() -> void {}", ast::decl_function);
+	x("operator + (: int32, : int32) -> void {}", ast::decl_operator);
+	x("a = b / 2;", ast::stmt_expression);
+
+#undef x
+}
+
 test_result first_pass_parser_test(void)
 {
 	test_begin();
@@ -364,7 +506,7 @@ test_result first_pass_parser_test(void)
 	test(get_tokens_in_curly_test);
 	test(get_expression_or_type_tokens_test);
 	test(get_function_params_test);
-	test(get_stmt_compound_test);
+//	test(get_stmt_compound_test);
 	test(get_stmt_compound_ptr_test);
 	test(parse_if_statement_test);
 	test(parse_while_statement_test);
@@ -373,6 +515,11 @@ test_result first_pass_parser_test(void)
 	test(parse_no_op_statement_test);
 	test(parse_expression_statement_test);
 	test(parse_variable_declaration_test);
+	test(parse_struct_definition_test);
+	test(parse_function_definition_test);
+	test(parse_operator_definition_test);
+	test(parse_declaration_test);
+	test(parse_statement_test);
 
 	test_end();
 }

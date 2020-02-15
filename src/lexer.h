@@ -293,51 +293,16 @@ template<typename T, typename ...Ts>
 	};
 }
 
-inline token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &errors)
-{
-	if (stream->kind != kind)
-	{
-		bz::string_view const fmt_str =
-			stream->kind == token::eof
-			? "expected '{}' before end-of-file"
-			: "expected '{}'";
-		errors.emplace_back(bad_token(
-			stream, bz::format(fmt_str, get_token_value(kind))
-		));
-		return stream;
-	}
-	else
-	{
-		auto t = stream;
-		++stream;
-		return t;
-	}
-}
+token_pos assert_token(
+	token_pos &stream,
+	uint32_t kind,
+	bz::vector<error> &errors
+);
 
-inline token_pos assert_token(
+token_pos assert_token(
 	token_pos &stream,
 	uint32_t kind1, uint32_t kind2,
 	bz::vector<error> &errors
-)
-{
-	if (stream->kind != kind1 && stream->kind != kind2)
-	{
-		bz::string_view const fmt_str =
-			stream->kind == token::eof
-			? "expected '{}' or '{}' before end-of-file"
-			: "expected '{}' or '{}'";
-		errors.emplace_back(bad_token(
-			stream,
-			bz::format(fmt_str, get_token_value(kind1), get_token_value(kind2))
-		));
-		return stream;
-	}
-	else
-	{
-		auto t = stream;
-		++stream;
-		return t;
-	}
-}
+);
 
 #endif // LEXER_H

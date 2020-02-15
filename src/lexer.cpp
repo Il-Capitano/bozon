@@ -211,6 +211,8 @@ bool is_operator(uint32_t kind)
 	case token::kw_typeof:          // 'typeof' unary
 	case token::question_mark:      // '?' ternary
 	case token::colon:              // ':' ternary and types
+	case token::square_open:        // '[]'        binary
+	case token::paren_open:         // function call
 		return true;
 
 	default:
@@ -839,4 +841,71 @@ static token get_next_token(
 	}
 
 	return get_single_char_token(stream, end, errors);
+}
+
+static bz::string get_token_for_message(uint32_t kind)
+{
+	switch (kind)
+	{
+	case token::identifier:
+		return "identifier";
+	case token::number_literal:
+		return "number literal";
+	case token::string_literal:
+		return "string literal";
+	case token::character_literal:
+		return "character literal";
+	default:
+		return bz::format("'{}'", get_token_value(kind));
+	}
+}
+
+token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &errors)
+{
+	if (stream->kind != kind)
+	{
+		errors.emplace_back(bad_token(
+			stream,
+			stream->kind == token::eof
+			? bz::format("expected {} before end-of-file", get_token_for_message(kind))
+			: bz::format("expected {}", get_token_for_message(kind))
+		));
+		return stream;
+	}
+	else
+	{
+		auto t = stream;
+		++stream;
+		return t;
+	}
+}
+
+token_pos assert_token(
+	token_pos &stream,
+	uint32_t kind1, uint32_t kind2,
+	bz::vector<error> &errors
+)
+{
+	if (stream->kind != kind1 && stream->kind != kind2)
+	{
+		errors.emplace_back(bad_token(
+			stream,
+			stream->kind == token::eof
+			? bz::format(
+				"expected {} or {} before end-of-file",
+				get_token_for_message(kind1), get_token_for_message(kind2)
+			)
+			: bz::format(
+				"expected {} or {}",
+				get_token_for_message(kind1), get_token_for_message(kind2)
+			)
+		));
+		return stream;
+	}
+	else
+	{
+		auto t = stream;
+		++stream;
+		return t;
+	}
 }

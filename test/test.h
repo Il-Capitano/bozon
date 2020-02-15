@@ -100,12 +100,16 @@ do {                                                                 \
     }                                                                \
 } while (false)
 
-#define test_end()                                       \
-bz::printf(                                              \
-    "{}/{} ({:.2f}%) tests passed\n",                    \
-    passed_count, test_count,                            \
-    100 * static_cast<double>(passed_count) / test_count \
-);                                                       \
+#define test_end()                                                          \
+bz::printf(                                                                 \
+    "{}{}/{}{} ({}{:.2f}%{}) tests passed\n",                               \
+    passed_count == test_count ? colors::bright_green : colors::bright_red, \
+    passed_count, test_count,                                               \
+    colors::clear,                                                          \
+    passed_count == test_count ? colors::bright_green : colors::bright_red, \
+    100 * static_cast<double>(passed_count) / test_count,                   \
+    colors::clear                                                           \
+);                                                                          \
 return test_result{ test_count, passed_count }
 
 #endif // TEST_H

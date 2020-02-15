@@ -587,7 +587,7 @@ test\n";
 
 function random() -> void
 {
-	[(1, 2, 3 + 4;
+//	[(1, 2, 3 + 4;
 	[a, b] = [c, d];
 	if (true)
 	{}
@@ -611,7 +611,7 @@ struct foo
 	z: [int32, [[]]];
 }
 
-
+operator () (: functor, : int32, : int32) -> int32 { return 0; }
 
 /*
 struct vec3<typename T>

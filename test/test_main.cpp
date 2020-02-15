@@ -19,11 +19,21 @@ int main(void)
 		add_to_total(lexer_test());
 		add_to_total(first_pass_parser_test());
 
+		auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
+		auto const highlight_color =
+			passed_count == test_count
+			? colors::bright_green
+			: colors::bright_red;
+
 		bz::printf(
 			"\nFinished running all tests\n"
-			"{}/{} ({:.2f}%) tests passed\n",
+			"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
+			highlight_color,
 			passed_count, test_count,
-			100 * (static_cast<double>(passed_count) / test_count)
+			colors::clear,
+			highlight_color,
+			passed_percentage,
+			colors::clear
 		);
 	}
 	catch (std::exception &e)

@@ -1216,7 +1216,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body.statements)
+		for (auto &s : fn_decl->body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1258,7 +1258,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : op_decl->body.statements)
+		for (auto &s : op_decl->body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1397,7 +1397,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body.statements)
+		for (auto &s : fn_decl->body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1439,7 +1439,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : op_decl->body.statements)
+		for (auto &s : op_decl->body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1574,7 +1574,7 @@ int main(void)
 			);
 			file.report_and_clear_errors();
 			bz::print("exiting...\n");
-			return 1;
+			return 2;
 		}
 		else
 		{
@@ -1597,7 +1597,7 @@ int main(void)
 			);
 			file.report_and_clear_errors();
 			bz::print("exiting...\n");
-			return 1;
+			return 3;
 		}
 		else
 		{

@@ -8,6 +8,7 @@ static bz::string get_highlighted_chars(
 	char_pos const char_begin,
 	char_pos const char_pivot,
 	char_pos const char_end,
+	size_t const pivot_line,
 	char const *const highlight_color
 )
 {
@@ -36,18 +37,48 @@ static bz::string get_highlighted_chars(
 		++line_end;
 	}
 
+	auto const begin_line_num = [&]() {
+		auto line = pivot_line;
+		for (auto it = char_pivot; it > char_begin; --it)
+		{
+			if (*it == '\n')
+			{
+				--line;
+			}
+		}
+		return line;
+	}();
+
+	auto const max_line_size = [&]() {
+		auto line = pivot_line;
+		for (auto it = char_pivot; it < char_end; ++it)
+		{
+			if (*it == '\n')
+			{
+				++line;
+			}
+		}
+		// internal function is used here...
+		return bz::internal::lg_uint(line);
+	}();
+
 	bz::string file_line = "";
 	bz::string highlight_line = "";
+	auto line_num = begin_line_num;
 
 	bz::string result = "";
 
-	auto it = line_begin;
-
-	for (; it != line_end; ++it)
+	for (auto it = line_begin; it != line_end; ++it)
 	{
 		size_t file_line_size = 0;
 		file_line = "";
 		highlight_line = "";
+
+		if (it > char_begin && it < char_end)
+		{
+			file_line += highlight_color;
+			highlight_line += highlight_color;
+		}
 
 		while (true)
 		{
@@ -112,9 +143,14 @@ static bz::string get_highlighted_chars(
 			++it;
 		}
 
+		result += bz::format("{:>{}} | ", max_line_size, line_num);
 		result += file_line;
+		result += colors::clear;
+		result += bz::format("{:>{}} | ", max_line_size, "");
 		result += highlight_line;
+		result += colors::clear;
 		result += '\n';
+		++line_num;
 	}
 
 	return result;
@@ -167,11 +203,16 @@ src_file::src_file(bz::string file_name)
 static void print_error(char_pos file_begin, char_pos file_end, error const &err)
 {
 	bz::printf(
-		"{}:{}:{}: {}error{}: {}\n{}",
-		err.file, err.line, err.column,
+		"{}{}:{}:{}:{} {}error{}: {}\n{}",
+		colors::bright_white, err.file, err.line, err.column, colors::clear,
 		colors::error_color, colors::clear,
 		err.message,
-		get_highlighted_chars(file_begin, file_end, err.src_begin, err.src_pivot, err.src_end, colors::error_color)
+		get_highlighted_chars(
+			file_begin, file_end,
+			err.src_begin, err.src_pivot, err.src_end,
+			err.line,
+			colors::error_color
+		)
 	);
 	for (auto &n : err.notes)
 	{
@@ -180,7 +221,12 @@ static void print_error(char_pos file_begin, char_pos file_end, error const &err
 			n.file, n.line, n.column,
 			colors::note_color, colors::clear,
 			n.message,
-			get_highlighted_chars(file_begin, file_end, n.src_begin, n.src_pivot, n.src_end, colors::note_color)
+			get_highlighted_chars(
+				file_begin, file_end,
+				n.src_begin, n.src_pivot, n.src_end,
+				n.line,
+				colors::note_color
+			)
 		);
 	}
 }
