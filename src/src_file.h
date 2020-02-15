@@ -4,7 +4,9 @@
 #include "core.h"
 
 #include "lexer.h"
+#include "first_pass_parser.h"
 #include "parse_context.h"
+#include "parser.h"
 
 struct src_file
 {

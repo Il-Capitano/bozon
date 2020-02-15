@@ -50,8 +50,21 @@ struct expression : node<
 		bz::optional<bytecode::value_pos_t> ret_pos
 	);
 
-	bool     is_lvalue;
-	typespec expr_type;
+	enum expr_type_kind
+	{
+		lvalue,
+		lvalue_reference,
+		rvalue,
+		rvalue_reference,
+	};
+
+	struct expr_type_t
+	{
+		expr_type_kind type_kind;
+		typespec expr_type;
+	};
+
+	expr_type_t expr_type;
 
 	template<typename ...Ts>
 	expression(Ts &&...ts)

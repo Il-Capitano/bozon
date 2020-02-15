@@ -7,65 +7,44 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 
-#include "parser.h"
-
-#include "function_body.h"
+using ctx_variable = ast::decl_variable *;
+using ctx_function = ast::decl_function *;
+using ctx_operator = ast::decl_operator *;
 
 struct function_overload_set
 {
-	bz::string id;
-	bz::vector<ast::ts_function> set;
+	bz::string               id;
+	bz::vector<ctx_function> functions;
 };
 
 struct operator_overload_set
 {
-	uint32_t op;
-	bz::vector<ast::ts_function> set;
+	uint32_t                 op;
+	bz::vector<ctx_operator> operators;
 };
 
 struct parse_context
 {
-	bz::vector<bz::vector<ast::variable>> variables;
-	// TODO: we need to deal with scoped declarations, if they are even allowed
-	// should be at least for types
-	bz::vector<function_overload_set>     functions;
-	bz::vector<operator_overload_set>     operators;
-	bz::vector<ast::type_ptr>             types;
+	bz::vector<ctx_variable>             global_variables;
+	bz::vector<bz::vector<ctx_variable>> scope_variables;
 
-	parse_context(void) = default;
+	bz::vector<function_overload_set> global_functions;
+	bz::vector<operator_overload_set> global_operators;
 
-	void operator ++ (void)
-	{
-		this->variables.push_back({});
-	}
+	void add_scope(void);
+	void remove_scope(void);
 
-	void operator -- (void)
-	{
-		this->variables.pop_back();
-	}
+	void add_global_declaration(ast::declaration &decl, bz::vector<error> &errors);
+	void add_global_variable(ast::decl_variable &var_decl, bz::vector<error> &errors);
+	void add_global_function(ast::decl_function &func_decl, bz::vector<error> &errors);
+	void add_global_operator(ast::decl_operator &op_decl, bz::vector<error> &errors);
+	void add_global_struct(ast::decl_struct &struct_decl, bz::vector<error> &errors);
 
-	bool add_variable(token_pos id, ast::typespec type);
-	void add_function(ast::decl_function &func_decl);
-	void add_operator(ast::decl_operator &op_decl);
-	void add_type(ast::decl_struct &struct_decl);
+	void add_local_variable(ast::decl_variable &var_decl);
 
-	bool is_variable(bz::string_view id);
-	bool is_function(bz::string_view id);
-
-	ast::type_ptr get_type(token_pos id);
-	ast::typespec get_identifier_type(token_pos t);
-	ast::typespec get_function_type(bz::string id, bz::vector<ast::typespec> const &args);
-	ast::typespec get_operator_type(token_pos op, bz::vector<ast::typespec> const &args);
-
-//	ast::typespec get_expression_type(ast::expression const &expr);
-	ast::typespec get_function_call_type(ast::expr_function_call const &fn_call);
-	ast::typespec get_operator_type(ast::expr_unary_op const &unary_op);
-	ast::typespec get_operator_type(ast::expr_binary_op const &binary_op);
-
-	bool is_convertible(ast::expression const &expr, ast::typespec const &type);
-
-	int64_t get_identifier_stack_offset(token_pos id) const;
-	int64_t get_identifier_stack_allocation_amount(token_pos id) const;
+	ast::typespec get_identifier_type(token_pos id) const;
+	ast::typespec get_operation_type(ast::expr_unary_op const &unary_op);
+	ast::typespec get_operation_type(ast::expr_binary_op const &binary_op);
 };
 
 #endif // PARSE_CONTEXT_H

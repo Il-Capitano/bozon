@@ -288,9 +288,10 @@ void src_file::report_and_clear_errors(void)
 		this->_declarations.emplace_back(parse_declaration(stream, end, this->_errors));
 	}
 
-	return this->_errors.size() == 0;
-}
+	for (auto &decl : this->_declarations)
+	{
+		this->_context.add_global_declaration(decl, this->_errors);
+	}
 
-static void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &errors)
-{
+	return this->_errors.size() == 0;
 }

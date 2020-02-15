@@ -7,6 +7,7 @@
 #include <array>
 #include <map>
 #include <utility>
+#include <tuple>
 #include <memory>
 #include <algorithm>
 #include <chrono>
