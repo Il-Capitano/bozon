@@ -10,6 +10,7 @@
 using ctx_variable = ast::decl_variable *;
 using ctx_function = ast::decl_function *;
 using ctx_operator = ast::decl_operator *;
+using ctx_struct   = ast::decl_struct *;
 
 struct function_overload_set
 {
@@ -30,6 +31,16 @@ struct parse_context
 
 	bz::vector<function_overload_set> global_functions;
 	bz::vector<operator_overload_set> global_operators;
+
+	bz::vector<bz::string> built_in_types = {
+		"int8", "int16", "int32", "int64",
+		"uint8", "uint16", "uint32", "uint64",
+		"float32", "float64",
+		"char", "str",
+		"bool", "null_t",
+		"void",
+	};
+	bz::vector<ctx_struct>    global_structs;
 
 	void add_scope(void);
 	void remove_scope(void);

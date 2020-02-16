@@ -1530,14 +1530,6 @@ void bytecode_test()
 
 int main(void)
 {
-	assert(ast::size_of(ast::str_) == 16);
-	assert(ast::align_of(ast::str_) == 8);
-
-	assert(
-		ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
-		== ast::make_ts_tuple(bz::vector<ast::typespec>{ ast::make_ts_base_type(ast::int32_) })
-	);
-
 	auto in_ms = [](auto time)
 	{
 		return time.count() * 1000;

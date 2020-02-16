@@ -64,14 +64,11 @@ struct ts_unresolved
 
 struct ts_base_type
 {
-	type_ptr    base_type;
+	bz::string identifier;
 
-	ts_base_type(type_ptr _base_type)
-		: base_type(_base_type)
+	ts_base_type(bz::string _id)
+		: identifier(std::move(_id))
 	{}
-
-	ts_base_type(ts_base_type const &) = default;
-	ts_base_type(ts_base_type &&) noexcept = default;
 };
 
 struct ts_constant
@@ -151,62 +148,6 @@ struct variable
 };
 
 
-struct built_in_type
-{
-	enum : uint32_t
-	{
-		int8_, int16_, int32_, int64_, // int128_,
-		uint8_, uint16_, uint32_, uint64_, // uint128_,
-		float32_, float64_,
-		char_, bool_, str_, void_,
-		null_t_,
-	};
-
-	uint32_t kind;
-	size_t   size;
-	size_t   alignment;
-
-	built_in_type(uint32_t _kind, size_t _size, size_t _alignment)
-		: kind(_kind), size(_size), alignment(_alignment)
-	{}
-};
-
-struct aggregate_type
-{
-	// TODO: for now, only PODS's are allowed, so no ctors, dtors, and so on...
-	bz::vector<variable> members;
-	size_t size;
-	size_t alignment;
-
-	aggregate_type(bz::vector<variable> _members);
-};
-
-struct type : bz::variant<built_in_type, aggregate_type>
-{
-	using base_t = bz::variant<built_in_type, aggregate_type>;
-	using base_t::variant;
-
-	bz::string name;
-
-	template<typename T>
-	type(bz::string _name, T &&_type)
-		: base_t(std::forward<T>(_type)),
-		  name  (std::move(_name))
-	{}
-
-	auto kind(void) const
-	{ return base_t::index(); }
-};
-using type_ptr = std::shared_ptr<type>;
-
-
-size_t size_of(type_ptr const &t);
-size_t align_of(type_ptr const &t);
-
-size_t size_of(typespec const &t);
-size_t align_of(typespec const &t);
-
-
 bool operator == (typespec const &lhs, typespec const &rhs);
 
 inline bool operator != (typespec const &lhs, typespec const &rhs)
@@ -256,31 +197,6 @@ type_ptr make_aggregate_type_ptr(bz::string name, Args &&...args)
 { return std::make_shared<type>(std::move(name), aggregate_type(std::forward<Args>(args)...)); }
 
 
-#define def_built_in_type(type_name, size, alignment)        \
-inline const auto type_name##_ = make_built_in_type_ptr(     \
-    #type_name, built_in_type::type_name##_, size, alignment \
-)
-
-def_built_in_type(int8, 1, 1);
-def_built_in_type(int16, 2, 2);
-def_built_in_type(int32, 4, 4);
-def_built_in_type(int64, 8, 8);
-// def_built_in_type(int128, 16, 16);
-def_built_in_type(uint8, 1, 1);
-def_built_in_type(uint16, 2, 2);
-def_built_in_type(uint32, 4, 4);
-def_built_in_type(uint64, 8, 8);
-// def_built_in_type(uint128, 16, 16);
-def_built_in_type(float32, 4, 4);
-def_built_in_type(float64, 8, 8);
-def_built_in_type(char, 4, 4);
-def_built_in_type(str, 16, 8);
-def_built_in_type(bool, 1, 1);
-def_built_in_type(void, 0, 0);
-def_built_in_type(null_t, 0, 0);
-
-#undef def_built_in_type
-
 
 typespec decay_typespec(typespec const &ts);
 
@@ -289,14 +205,6 @@ typespec add_const(typespec ts);
 
 typespec remove_lvalue_reference(typespec ts);
 typespec remove_const(typespec ts);
-
-bool is_const(typespec const &ts);
-bool is_reference(typespec const &ts);
-
-bool is_built_in_type(typespec const &ts);
-
-bool is_integral_type(typespec const &ts);
-bool is_arithmetic_type(ast::typespec const &ts);
 
 
 } // namespace ast
@@ -313,7 +221,7 @@ struct bz::formatter<ast::typespec>
 			return "<error-type>";
 
 		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->base_type->name);
+			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->identifier);
 
 		case ast::typespec::index<ast::ts_constant>:
 			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);

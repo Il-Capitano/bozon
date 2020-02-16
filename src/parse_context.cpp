@@ -226,8 +226,8 @@ static bool are_directly_matchable_types(
 			&& from_it->kind() == ast::typespec::index<ast::ts_base_type>
 		)
 		{
-			return to_it->get<ast::ts_base_type_ptr>()->base_type
-				== from_it->get<ast::ts_base_type_ptr>()->base_type;
+			return to_it->get<ast::ts_base_type_ptr>()->identifier
+				== from_it->get<ast::ts_base_type_ptr>()->identifier;
 		}
 		else if (to_it->kind() == from_it->kind())
 		{
@@ -282,6 +282,11 @@ ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binar
 			return set.op == binary_op.op->kind;
 		}
 	);
+
+	if (set == this->global_operators.end())
+	{
+		return ast::typespec();
+	}
 
 	for (auto op : set->operators)
 	{

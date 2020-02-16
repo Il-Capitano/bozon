@@ -9,52 +9,8 @@ static bytecode::type_kind get_type_kind(ast::typespec const &ts)
 	{
 	case ast::typespec::index<ast::ts_base_type>:
 	{
-		auto &base = ts.get<ast::ts_base_type_ptr>()->base_type;
-		switch (base->kind())
-		{
-		case ast::type::index_of<ast::built_in_type>:
-		{
-			auto &built_in = base->get<ast::built_in_type>();
-			switch (built_in.kind)
-			{
-			case ast::built_in_type::int8_:
-				return bytecode::type_kind::int8;
-			case ast::built_in_type::int16_:
-				return bytecode::type_kind::int16;
-			case ast::built_in_type::int32_:
-				return bytecode::type_kind::int32;
-			case ast::built_in_type::int64_:
-				return bytecode::type_kind::int64;
-			case ast::built_in_type::uint8_:
-				return bytecode::type_kind::uint8;
-			case ast::built_in_type::uint16_:
-				return bytecode::type_kind::uint16;
-			case ast::built_in_type::uint32_:
-				return bytecode::type_kind::uint32;
-			case ast::built_in_type::uint64_:
-				return bytecode::type_kind::uint64;
-			case ast::built_in_type::float32_:
-				return bytecode::type_kind::float32;
-			case ast::built_in_type::float64_:
-				return bytecode::type_kind::float64;
-			case ast::built_in_type::char_:
-				return bytecode::type_kind::uint32;
-			case ast::built_in_type::bool_:
-				return bytecode::type_kind::uint8;
-			case ast::built_in_type::null_t_:
-				return bytecode::type_kind::ptr;
-			case ast::built_in_type::str_:
-			case ast::built_in_type::void_:
-			default:
-				assert(false);
-				return bytecode::type_kind::int32;
-			}
-		}
-		case ast::type::index_of<ast::aggregate_type>:
-		default:
-			assert(false);
-			return bytecode::type_kind::int32;
-		}
+		assert(false);
+		return bytecode::type_kind::int32;
 	}
 	case ast::typespec::index<ast::ts_constant>:
 		return get_type_kind(ts.get<ast::ts_constant_ptr>()->base);
