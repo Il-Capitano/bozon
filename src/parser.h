@@ -8,17 +8,22 @@
 
 
 void resolve(
+	ast::typespec &ts,
+	parse_context &context,
+	bz::vector<error> &errors
+);
+void resolve(
+	ast::expression &expr,
+	parse_context &context,
+	bz::vector<error> &errors
+);
+void resolve(
 	ast::declaration &decl,
 	parse_context &context,
 	bz::vector<error> &errors
 );
 void resolve(
 	ast::statement &stmt,
-	parse_context &context,
-	bz::vector<error> &errors
-);
-void resolve(
-	ast::expression &expr,
 	parse_context &context,
 	bz::vector<error> &errors
 );

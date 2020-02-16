@@ -16,9 +16,10 @@ struct src_file
 		file_read,
 		tokenized,
 		first_pass_parsed,
+		resolved,
 	};
 
-private:
+public:
 	src_file_stage _stage;
 
 	bz::vector<error> _errors;
@@ -38,7 +39,7 @@ public:
 	[[nodiscard]] bool read_file(void);
 	[[nodiscard]] bool tokenize(void);
 	[[nodiscard]] bool first_pass_parse(void);
-
+	[[nodiscard]] bool resolve(void);
 
 
 	bz::string const &get_file_name() const

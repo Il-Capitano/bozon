@@ -156,6 +156,12 @@ public:
 			return;
 		}
 
+		if (other._index == null)
+		{
+			this->clear();
+			return;
+		}
+
 		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
 		{
 			((other._index == Ns
@@ -181,6 +187,12 @@ public:
 	{
 		if (this == &other)
 		{
+			return;
+		}
+
+		if (other._index == null)
+		{
+			this->clear();
 			return;
 		}
 

@@ -611,6 +611,9 @@ struct foo
 	z: [int32, [[]]];
 }
 
+let this_is_some_var = i8 + i16;
+let &const foo: *int32 = &i32;
+
 operator () (: functor, : int32, : int32) -> int32 { return 0; }
 
 /*

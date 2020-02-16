@@ -372,8 +372,7 @@ struct bz::formatter<ast::typespec>
 		}
 
 		case ast::typespec::index<ast::ts_unresolved>:
-			assert(false);
-			return "";
+			return "<unresolved>";
 
 		default:
 			assert(false);

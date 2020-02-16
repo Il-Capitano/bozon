@@ -1609,6 +1609,37 @@ int main(void)
 		}
 	}
 
+	{
+		auto start = timer::now();
+		if (!file.resolve())
+		{
+			auto const error_count = file.get_error_count();
+			bz::printf(
+				"{} {} occurred during resolving\n",
+				error_count, error_count == 1 ? "error" : "errors"
+			);
+			file.report_and_clear_errors();
+			bz::print("exiting...\n");
+			return 4;
+		}
+		else
+		{
+			auto end = timer::now();
+			bz::printf(
+				"successfully resolved {} in {:.3f}ms\n",
+				file.get_file_name(), in_ms(end - start)
+			);
+		}
+	}
+
+	for (auto &decl : file._declarations)
+	{
+		if (decl.kind() == ast::declaration::index<ast::decl_variable>)
+		{
+			print_declaration(std::cout, decl);
+		}
+	}
+
 /*
 	auto stream = file.tokens_begin();
 	auto end    = file.tokens_end();

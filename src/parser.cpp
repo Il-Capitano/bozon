@@ -381,7 +381,6 @@ ast::typespec parse_typespec(
 	{
 		auto id = stream;
 		++stream;
-		assert(false);
 		return ast::typespec();
 //		return ast::make_ts_base_type(context.get_type(id));
 	}
@@ -458,15 +457,107 @@ ast::typespec parse_typespec(
 // -------------------------- resolving ---------------------------
 // ================================================================
 
+static ast::typespec add_prototype_to_type(
+	ast::typespec const &prototype,
+	ast::typespec const &type
+)
+{
+	ast::typespec const *proto_it = &prototype;
+	ast::typespec const *type_it = &type;
+
+	auto const advance = [](ast::typespec const *&it)
+	{
+		switch (it->kind())
+		{
+		case ast::typespec::index<ast::ts_reference>:
+			it = &it->get<ast::ts_reference_ptr>()->base;
+			break;
+		case ast::typespec::index<ast::ts_pointer>:
+			it = &it->get<ast::ts_pointer_ptr>()->base;
+			break;
+		case ast::typespec::index<ast::ts_constant>:
+			it = &it->get<ast::ts_constant_ptr>()->base;
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	};
+
+	ast::typespec ret_type;
+	ast::typespec *ret_type_it = &ret_type;
+
+	while (proto_it->kind() != ast::typespec::null)
+	{
+#define x(type)                                                                \
+if (                                                                           \
+    proto_it->kind() == ast::typespec::index<type>                             \
+    || type_it->kind() == ast::typespec::index<type>                           \
+)                                                                              \
+{                                                                              \
+    ret_type_it->emplace<type##_ptr>(std::make_unique<type>(ast::typespec())); \
+    ret_type_it = &ret_type_it->get<type##_ptr>()->base;                       \
+    if (proto_it->kind() == ast::typespec::index<type>) advance(proto_it);     \
+    if (type_it->kind() == ast::typespec::index<type>) advance(type_it);       \
+}
+
+	x(ast::ts_reference)
+	else x(ast::ts_constant)
+	else x(ast::ts_pointer)
+	else
+	{
+		assert(false);
+	}
+
+#undef x
+	}
+
+	*ret_type_it = *type_it;
+
+	return ret_type;
+}
+
 void resolve(
+	ast::typespec &ts,
+	parse_context &context,
+	bz::vector<error> &errors
+)
+{
+	switch (ts.kind())
+	{
+	case ast::typespec::index<ast::ts_unresolved>:
+	{
+		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
+		auto stream = unresolved_ts->tokens.begin;
+		auto const end = unresolved_ts->tokens.end;
+		ts = parse_typespec(stream, end, errors);
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+static void resolve(
 	ast::decl_variable &var_decl,
 	parse_context &context,
 	bz::vector<error> &errors
 )
 {
+	if (var_decl.var_type.kind() != ast::typespec::null)
+	{
+		resolve(var_decl.var_type, context, errors);
+	}
+	var_decl.var_type = add_prototype_to_type(var_decl.prototype, var_decl.var_type);
+	if (var_decl.init_expr.has_value())
+	{
+		resolve(*var_decl.init_expr, context, errors);
+	}
+
+	// TODO: check if expression is convertible to type
 }
 
-void resolve(
+static void resolve(
 	ast::decl_function &decl,
 	parse_context &context,
 	bz::vector<error> &errors
@@ -474,7 +565,7 @@ void resolve(
 {
 }
 
-void resolve(
+static void resolve(
 	ast::decl_operator &decl,
 	parse_context &context,
 	bz::vector<error> &errors
@@ -482,7 +573,7 @@ void resolve(
 {
 }
 
-void resolve(
+static void resolve(
 	ast::decl_struct &decl,
 	parse_context &context,
 	bz::vector<error> &errors
@@ -496,6 +587,17 @@ void resolve(
 	bz::vector<error> &errors
 )
 {
+	switch (decl.kind())
+	{
+	case ast::declaration::index<ast::decl_variable>:
+		resolve(*decl.get<ast::decl_variable_ptr>(), context, errors);
+		break;
+	case ast::declaration::index<ast::decl_function>:
+	case ast::declaration::index<ast::decl_operator>:
+	case ast::declaration::index<ast::decl_struct>:
+	default:
+		break;
+	}
 }
 
 void resolve(
@@ -526,7 +628,7 @@ void resolve(
 	}
 	case ast::statement::index<ast::stmt_for>:
 		assert(false);
-		break
+		break;
 	case ast::statement::index<ast::stmt_return>:
 		resolve(stmt.get<ast::stmt_return_ptr>()->expr, context, errors);
 		break;
@@ -714,7 +816,6 @@ void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &e
 	switch (expr.kind())
 	{
 	case ast::expression::index<ast::expr_unresolved>:
-		assert(false);
 		break;
 	case ast::expression::index<ast::expr_identifier>:
 	{

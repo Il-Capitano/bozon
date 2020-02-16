@@ -293,5 +293,18 @@ void src_file::report_and_clear_errors(void)
 		this->_context.add_global_declaration(decl, this->_errors);
 	}
 
+	this->_stage = first_pass_parsed;
+	return this->_errors.size() == 0;
+}
+
+[[nodiscard]] bool src_file::resolve(void)
+{
+	assert(this->_stage == first_pass_parsed);
+	for (auto &decl : this->_declarations)
+	{
+		::resolve(decl, this->_context, this->_errors);
+	}
+
+	this->_stage = resolved;
 	return this->_errors.size() == 0;
 }
