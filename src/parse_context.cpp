@@ -257,6 +257,11 @@ ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_
 		}
 	);
 
+	if (set == this->global_operators.end())
+	{
+		return ast::typespec();
+	}
+
 	for (auto op : set->operators)
 	{
 		if (op->params.size() != 1)
