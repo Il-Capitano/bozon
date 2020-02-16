@@ -167,6 +167,12 @@ static ast::expression parse_primary_expression(
 	bz::vector<error> &errors
 )
 {
+	if (stream == end)
+	{
+		errors.emplace_back(bad_token(stream, "expected primary expression"));
+		return ast::expression();
+	}
+
 	switch (stream->kind)
 	{
 	case token::identifier:
@@ -206,11 +212,7 @@ static ast::expression parse_primary_expression(
 				--paren_level;
 			}
 		}
-
-		if (paren_level != 0)
-		{
-			errors.emplace_back(bad_token(stream, "expected ')'"));
-		}
+		assert(paren_level == 0);
 
 		return ast::make_expr_unresolved(token_range{ paren_begin, stream });
 	}
@@ -239,8 +241,8 @@ static ast::expression parse_primary_expression(
 	case token::kw_typeof:
 	{
 		auto op = stream;
-		++stream;
 		auto prec = get_unary_precedence(op->kind);
+		++stream;
 		auto expr = parse_expression(stream, end, context, errors, prec);
 
 		auto result = make_expr_unary_op(op, std::move(expr));
@@ -381,8 +383,7 @@ ast::typespec parse_typespec(
 	{
 		auto id = stream;
 		++stream;
-		return ast::typespec();
-//		return ast::make_ts_base_type(context.get_type(id));
+		return ast::make_ts_base_type(id->value);
 	}
 
 	case token::kw_const:
@@ -699,23 +700,23 @@ static resolve_ret_val resolve(
 	switch (literal.value.index())
 	{
 	case ast::expr_literal::integer_number:
-		ret_val.expr_type = ast::make_ts_base_type(ast::int32_);
+		ret_val.expr_type = ast::make_ts_base_type("int32");
 		break;
 	case ast::expr_literal::floating_point_number:
-		ret_val.expr_type = ast::make_ts_base_type(ast::float64_);
+		ret_val.expr_type = ast::make_ts_base_type("float64");
 		break;
 	case ast::expr_literal::string:
-		ret_val.expr_type = ast::make_ts_base_type(ast::str_);
+		ret_val.expr_type = ast::make_ts_base_type("str");
 		break;
 	case ast::expr_literal::character:
-		ret_val.expr_type = ast::make_ts_base_type(ast::char_);
+		ret_val.expr_type = ast::make_ts_base_type("char");
 		break;
 	case ast::expr_literal::bool_true:
 	case ast::expr_literal::bool_false:
-		ret_val.expr_type = ast::make_ts_base_type(ast::bool_);
+		ret_val.expr_type = ast::make_ts_base_type("bool");
 		break;
 	case ast::expr_literal::null:
-		ret_val.expr_type = ast::make_ts_base_type(ast::null_t_);
+		ret_val.expr_type = ast::make_ts_base_type("null_t");
 		break;
 	default:
 		assert(false);
@@ -759,7 +760,7 @@ static resolve_ret_val resolve(
 	};
 	if (ret_val.expr_type.kind() == ast::typespec::null)
 	{
-		errors.emplace_back(bad_tokens(unary_op, "undeclared operation"));
+		errors.emplace_back(bad_tokens(unary_op, "undeclared operator"));
 	}
 	else if (ret_val.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 	{
@@ -785,7 +786,7 @@ static resolve_ret_val resolve(
 	};
 	if (ret_val.expr_type.kind() == ast::typespec::null)
 	{
-		errors.emplace_back(bad_tokens(binary_op, "undeclared operation"));
+		errors.emplace_back(bad_tokens(binary_op, "undeclared operator"));
 	}
 	else if (ret_val.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 	{
@@ -816,7 +817,22 @@ void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &e
 	switch (expr.kind())
 	{
 	case ast::expression::index<ast::expr_unresolved>:
+	{
+		auto unresolved_expr = *expr.get<ast::expr_unresolved_ptr>();
+		auto stream = unresolved_expr.expr.begin;
+		auto const end = unresolved_expr.expr.end;
+		auto new_expr = parse_expression(stream, end, context, errors, precedence{});
+		if (stream != end)
+		{
+			errors.emplace_back(bad_tokens(
+				stream, stream, end,
+				"expected ';'"
+			));
+		}
+		resolve(new_expr, context, errors);
+		expr = std::move(new_expr);
 		break;
+	}
 	case ast::expression::index<ast::expr_identifier>:
 	{
 		auto &id = *expr.get<ast::expr_identifier_ptr>();
