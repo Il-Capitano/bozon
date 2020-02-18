@@ -3,9 +3,30 @@
 
 #include "core.h"
 
-#include "ast/type.h"
+#include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
+
+inline std::list<ast::type_info> get_default_types(void)
+{
+	return {
+		ast::type_info{ "int8",    1,  1, {} },
+		ast::type_info{ "int16",   2,  2, {} },
+		ast::type_info{ "int32",   4,  4, {} },
+		ast::type_info{ "int64",   8,  8, {} },
+		ast::type_info{ "uint8",   1,  1, {} },
+		ast::type_info{ "uint16",  2,  2, {} },
+		ast::type_info{ "uint32",  4,  4, {} },
+		ast::type_info{ "uint64",  8,  8, {} },
+		ast::type_info{ "float32", 4,  4, {} },
+		ast::type_info{ "float64", 8,  8, {} },
+		ast::type_info{ "char",    4,  4, {} },
+		ast::type_info{ "str",     16, 8, {} },
+		ast::type_info{ "bool",    1,  1, {} },
+		ast::type_info{ "null_t",  0,  0, {} },
+		ast::type_info{ "void",    0,  0, {} },
+	};
+}
 
 using ctx_variable = ast::decl_variable *;
 using ctx_function = ast::decl_function *;
@@ -32,15 +53,7 @@ struct parse_context
 	bz::vector<function_overload_set> global_functions;
 	bz::vector<operator_overload_set> global_operators;
 
-	bz::vector<bz::string> built_in_types = {
-		"int8", "int16", "int32", "int64",
-		"uint8", "uint16", "uint32", "uint64",
-		"float32", "float64",
-		"char", "str",
-		"bool", "null_t",
-		"void",
-	};
-	bz::vector<ctx_struct>    global_structs;
+	std::list<ast::type_info> types = get_default_types();
 
 	void add_scope(void);
 	void remove_scope(void);
@@ -56,6 +69,8 @@ struct parse_context
 	ast::typespec get_identifier_type(token_pos id) const;
 	ast::typespec get_operation_type(ast::expr_unary_op const &unary_op);
 	ast::typespec get_operation_type(ast::expr_binary_op const &binary_op);
+
+	ast::type_info const *get_type_info(bz::string_view id) const;
 };
 
 #endif // PARSE_CONTEXT_H

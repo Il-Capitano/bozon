@@ -173,11 +173,59 @@ static ast::expression parse_primary_expression(
 		return ast::expression();
 	}
 
+	auto const get_paren_matched_range = [](token_pos &stream, token_pos end) -> token_range
+	{
+		auto const begin = stream;
+		size_t paren_level = 1;
+		while (stream != end && paren_level != 0)
+		{
+			if (
+				stream->kind == token::paren_open
+				|| stream->kind == token::square_open
+				|| stream->kind == token::curly_open
+			)
+			{
+				++paren_level;
+			}
+			else if (
+				stream->kind == token::paren_close
+				|| stream->kind == token::square_close
+				|| stream->kind == token::curly_close
+			)
+			{
+				--paren_level;
+			}
+		}
+		assert(stream != end);
+		assert(
+			(stream - 1)->kind == token::paren_close
+			|| (stream - 1)->kind == token::square_close
+			|| (stream - 1)->kind == token::curly_close
+		);
+		assert(paren_level == 0);
+		return { begin, stream - 1 };
+	};
+
 	switch (stream->kind)
 	{
 	case token::identifier:
 	{
 		auto id = ast::make_expr_identifier(stream);
+		id.expr_type.expr_type = context.get_identifier_type(stream);
+		if (id.expr_type.expr_type.kind() == ast::typespec::null)
+		{
+			errors.emplace_back(bad_token(stream, "undeclared identifier"));
+		}
+		else if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		{
+			id.expr_type.type_kind = ast::expression::lvalue_reference;
+			auto ref_ptr = std::move(id.expr_type.expr_type.get<ast::ts_reference_ptr>());
+			id.expr_type.expr_type = std::move(ref_ptr->base);
+		}
+		else
+		{
+			id.expr_type.type_kind = ast::expression::lvalue;
+		}
 		++stream;
 		return id;
 	}
@@ -198,23 +246,8 @@ static ast::expression parse_primary_expression(
 	case token::paren_open:
 	{
 		++stream;
-		auto paren_begin = stream;
-
-		size_t paren_level;
-		for (paren_level = 1; stream != end && paren_level != 0; ++stream)
-		{
-			if (stream->kind == token::paren_open)
-			{
-				++paren_level;
-			}
-			else if (stream->kind == token::paren_close)
-			{
-				--paren_level;
-			}
-		}
-		assert(paren_level == 0);
-
-		return ast::make_expr_unresolved(token_range{ paren_begin, stream });
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+		return parse_expression(inner_stream, inner_end, context, errors, precedence{});
 	}
 
 	// tuple
@@ -222,36 +255,47 @@ static ast::expression parse_primary_expression(
 	{
 		auto const begin_token = stream;
 		++stream;
-		auto elems = parse_expression_comma_list(stream, end, context, errors);
-		assert_token(stream, token::square_close, errors);
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+		auto elems = parse_expression_comma_list(inner_stream, inner_end, context, errors);
 		auto const end_token = stream;
 		return make_expr_tuple(std::move(elems), token_range{ begin_token, end_token });
 	}
 
 	// unary operators
-	case token::plus:
-	case token::minus:
-	case token::plus_plus:
-	case token::minus_minus:
-	case token::bit_not:
-	case token::bool_not:
-	case token::address_of:
-	case token::dereference:
-	case token::kw_sizeof:
-	case token::kw_typeof:
-	{
-		auto op = stream;
-		auto prec = get_unary_precedence(op->kind);
-		++stream;
-		auto expr = parse_expression(stream, end, context, errors, prec);
-
-		auto result = make_expr_unary_op(op, std::move(expr));
-		return result;
-	}
-
 	default:
-		errors.emplace_back(bad_token(stream, "expected primary expression"));
-		return ast::expression();
+		if (is_unary_operator(stream->kind))
+		{
+			auto op = stream;
+			auto prec = get_unary_precedence(op->kind);
+			++stream;
+			auto expr = parse_expression(stream, end, context, errors, prec);
+
+			auto result = make_expr_unary_op(op, std::move(expr));
+			result.expr_type.expr_type = context.get_operation_type(
+				*result.get<ast::expr_unary_op_ptr>()
+			);
+			if (result.expr_type.expr_type.kind() == ast::typespec::null)
+			{
+				errors.emplace_back(bad_tokens(result, "undeclared unary operator"));
+			}
+			else if (result.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+			{
+				result.expr_type.type_kind = ast::expression::lvalue_reference;
+				auto ref_ptr = std::move(result.expr_type.expr_type.get<ast::ts_reference_ptr>());
+				result.expr_type.expr_type = std::move(ref_ptr->base);
+			}
+			else
+			{
+				result.expr_type.type_kind = ast::expression::rvalue;
+			}
+
+			return result;
+		}
+		else
+		{
+			errors.emplace_back(bad_token(stream, "expected primary expression"));
+			return ast::expression();
+		}
 	}
 };
 
@@ -266,9 +310,33 @@ static ast::expression parse_expression_helper(
 	token_pos op = nullptr;
 	precedence op_prec;
 
+	auto const resolve_expr = [&context, &errors](ast::expression &expr)
+	{
+		assert(expr.kind() == ast::expression::index<ast::expr_binary_op>);
+		expr.expr_type.expr_type = context.get_operation_type(
+			*expr.get<ast::expr_binary_op_ptr>()
+		);
+		if (expr.expr_type.expr_type.kind() == ast::typespec::null)
+		{
+			errors.emplace_back(bad_tokens(expr, "undeclared binary operator"));
+		}
+		else if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		{
+			expr.expr_type.type_kind = ast::expression::lvalue_reference;
+			auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
+			expr.expr_type.expr_type = std::move(ref_ptr->base);
+		}
+		else
+		{
+			expr.expr_type.type_kind = ast::expression::rvalue;
+		}
+	};
+
 	while (
 		stream != end
-		&& (op_prec = get_binary_precedence((op = stream)->kind)) <= prec)
+		// not really clean... we assign to op and op_prec here
+		&& (op_prec = get_binary_precedence((op = stream)->kind)) <= prec
+	)
 	{
 		++stream;
 		switch (op->kind)
@@ -284,15 +352,18 @@ static ast::expression parse_expression_helper(
 				lhs = make_expr_function_call(
 					op, std::move(lhs), bz::vector<ast::expression>{}
 				);
-				break;
+				resolve_expr(lhs);
 			}
+			else
+			{
+				auto params = parse_expression_comma_list(stream, end, context, errors);
+				assert_token(stream, token::paren_close, errors);
 
-			auto params = parse_expression_comma_list(stream, end, context, errors);
-			assert_token(stream, token::paren_close, errors);
-
-			lhs = make_expr_function_call(
-				op, std::move(lhs), std::move(params)
-			);
+				lhs = make_expr_function_call(
+					op, std::move(lhs), std::move(params)
+				);
+				resolve_expr(lhs);
+			}
 			break;
 		}
 
@@ -304,6 +375,7 @@ static ast::expression parse_expression_helper(
 			lhs = make_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
 			);
+			resolve_expr(lhs);
 			break;
 		}
 
@@ -318,11 +390,13 @@ static ast::expression parse_expression_helper(
 			)
 			{
 				rhs = parse_expression_helper(std::move(rhs), stream, end, context, errors, rhs_prec);
+				resolve_expr(rhs);
 			}
 
 			lhs = make_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
 			);
+			resolve_expr(lhs);
 			break;
 		}
 		}
@@ -358,6 +432,11 @@ static ast::expression parse_expression(
 )
 {
 	auto lhs = parse_primary_expression(stream, end, context, errors);
+	if (lhs.kind() == ast::expression::null)
+	{
+		assert(errors.size() != 0);
+		return ast::expression();
+	}
 	auto result = parse_expression_helper(std::move(lhs), stream, end, context, errors, prec);
 	return result;
 }
@@ -368,6 +447,7 @@ static ast::expression parse_expression(
 
 ast::typespec parse_typespec(
 	token_pos &stream, token_pos end,
+	parse_context &context,
 	bz::vector<error> &errors
 )
 {
@@ -381,22 +461,31 @@ ast::typespec parse_typespec(
 	{
 	case token::identifier:
 	{
-		auto id = stream;
+		auto const id = stream;
 		++stream;
-		return ast::make_ts_base_type(id->value);
+		auto const info = context.get_type_info(id->value);
+		if (info)
+		{
+			return ast::make_ts_base_type(info);
+		}
+		else
+		{
+			errors.emplace_back(bad_token(id, "undeclared typename"));
+			return ast::typespec();
+		}
 	}
 
 	case token::kw_const:
 		++stream; // 'const'
-		return ast::make_ts_constant(parse_typespec(stream, end, errors));
+		return ast::make_ts_constant(parse_typespec(stream, end, context, errors));
 
 	case token::star:
 		++stream; // '*'
-		return ast::make_ts_pointer(parse_typespec(stream, end, errors));
+		return ast::make_ts_pointer(parse_typespec(stream, end, context, errors));
 
 	case token::ampersand:
 		++stream; // '&'
-		return ast::make_ts_reference(parse_typespec(stream, end, errors));
+		return ast::make_ts_reference(parse_typespec(stream, end, context, errors));
 
 	case token::kw_function:
 	{
@@ -406,7 +495,7 @@ ast::typespec parse_typespec(
 		bz::vector<ast::typespec> param_types = {};
 		if (stream->kind != token::paren_close) while (stream != end)
 		{
-			param_types.push_back(parse_typespec(stream, end, errors));
+			param_types.push_back(parse_typespec(stream, end, context, errors));
 			if (stream->kind != token::paren_close)
 			{
 				assert_token(stream, token::comma, errors);
@@ -420,7 +509,7 @@ ast::typespec parse_typespec(
 		assert_token(stream, token::paren_close, errors);
 		assert_token(stream, token::arrow, errors);
 
-		auto ret_type = parse_typespec(stream, end, errors);
+		auto ret_type = parse_typespec(stream, end, context, errors);
 
 		return make_ts_function(std::move(ret_type), std::move(param_types));
 	}
@@ -432,7 +521,7 @@ ast::typespec parse_typespec(
 		bz::vector<ast::typespec> types = {};
 		if (stream->kind != token::square_close) while (stream != end)
 		{
-			types.push_back(parse_typespec(stream, end, errors));
+			types.push_back(parse_typespec(stream, end, context, errors));
 			if (stream->kind != token::square_close)
 			{
 				assert_token(stream, token::comma, errors);
@@ -531,7 +620,7 @@ void resolve(
 		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
 		auto stream = unresolved_ts->tokens.begin;
 		auto const end = unresolved_ts->tokens.end;
-		ts = parse_typespec(stream, end, errors);
+		ts = parse_typespec(stream, end, context, errors);
 		break;
 	}
 	default:
@@ -663,32 +752,8 @@ void resolve(
 using resolve_ret_val = ast::expression::expr_type_t;
 
 static resolve_ret_val resolve(
-	ast::expr_identifier const &id,
-	parse_context &context,
-	bz::vector<error> &errors
-)
-{
-	resolve_ret_val ret_val = {
-		ast::expression::lvalue,
-		context.get_identifier_type(id.identifier)
-	};
-	if (ret_val.expr_type.kind() == ast::typespec::null)
-	{
-		errors.emplace_back(bad_token(id.identifier, "undeclared identifier"));
-	}
-	else if (ret_val.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-	{
-		ret_val.type_kind = ast::expression::lvalue_reference;
-		auto ref_ptr = std::move(ret_val.expr_type.get<ast::ts_reference_ptr>());
-		ret_val.expr_type = std::move(ref_ptr->base);
-	}
-
-	return ret_val;
-}
-
-static resolve_ret_val resolve(
 	ast::expr_literal const &literal,
-	parse_context &,
+	parse_context &context,
 	bz::vector<error> &
 )
 {
@@ -700,23 +765,35 @@ static resolve_ret_val resolve(
 	switch (literal.value.index())
 	{
 	case ast::expr_literal::integer_number:
-		ret_val.expr_type = ast::make_ts_base_type("int32");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("int32")
+		);
 		break;
 	case ast::expr_literal::floating_point_number:
-		ret_val.expr_type = ast::make_ts_base_type("float64");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("float64")
+		);
 		break;
 	case ast::expr_literal::string:
-		ret_val.expr_type = ast::make_ts_base_type("str");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("str")
+		);
 		break;
 	case ast::expr_literal::character:
-		ret_val.expr_type = ast::make_ts_base_type("char");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("char")
+		);
 		break;
 	case ast::expr_literal::bool_true:
 	case ast::expr_literal::bool_false:
-		ret_val.expr_type = ast::make_ts_base_type("bool");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("bool")
+		);
 		break;
 	case ast::expr_literal::null:
-		ret_val.expr_type = ast::make_ts_base_type("null_t");
+		ret_val.expr_type = ast::make_ts_base_type(
+			context.get_type_info("null_t")
+		);
 		break;
 	default:
 		assert(false);
@@ -748,57 +825,6 @@ static resolve_ret_val resolve(
 }
 
 static resolve_ret_val resolve(
-	ast::expr_unary_op &unary_op,
-	parse_context &context,
-	bz::vector<error> &errors
-)
-{
-	resolve(unary_op.expr, context, errors);
-	resolve_ret_val ret_val = {
-		ast::expression::rvalue,
-		context.get_operation_type(unary_op)
-	};
-	if (ret_val.expr_type.kind() == ast::typespec::null)
-	{
-		errors.emplace_back(bad_tokens(unary_op, "undeclared operator"));
-	}
-	else if (ret_val.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-	{
-		ret_val.type_kind = ast::expression::lvalue_reference;
-		auto ref_ptr = std::move(ret_val.expr_type.get<ast::ts_reference_ptr>());
-		ret_val.expr_type = std::move(ref_ptr->base);
-	}
-
-	return ret_val;
-}
-
-static resolve_ret_val resolve(
-	ast::expr_binary_op &binary_op,
-	parse_context &context,
-	bz::vector<error> &errors
-)
-{
-	resolve(binary_op.lhs, context, errors);
-	resolve(binary_op.rhs, context, errors);
-	resolve_ret_val ret_val = {
-		ast::expression::rvalue,
-		context.get_operation_type(binary_op)
-	};
-	if (ret_val.expr_type.kind() == ast::typespec::null)
-	{
-		errors.emplace_back(bad_tokens(binary_op, "undeclared operator"));
-	}
-	else if (ret_val.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-	{
-		ret_val.type_kind = ast::expression::lvalue_reference;
-		auto ref_ptr = std::move(ret_val.expr_type.get<ast::ts_reference_ptr>());
-		ret_val.expr_type = std::move(ref_ptr->base);
-	}
-
-	return ret_val;
-}
-
-static resolve_ret_val resolve(
 	ast::expr_function_call &fn_call,
 	parse_context &context,
 	bz::vector<error> &errors
@@ -814,9 +840,7 @@ static resolve_ret_val resolve(
 
 void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &errors)
 {
-	switch (expr.kind())
-	{
-	case ast::expression::index<ast::expr_unresolved>:
+	if (expr.kind() == ast::expression::index<ast::expr_unresolved>)
 	{
 		auto unresolved_expr = *expr.get<ast::expr_unresolved_ptr>();
 		auto stream = unresolved_expr.expr.begin;
@@ -829,38 +853,16 @@ void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &e
 				"expected ';'"
 			));
 		}
-		resolve(new_expr, context, errors);
 		expr = std::move(new_expr);
-		break;
 	}
-	case ast::expression::index<ast::expr_identifier>:
+	return;
+
+	switch (expr.kind())
 	{
-		auto &id = *expr.get<ast::expr_identifier_ptr>();
-		expr.expr_type = resolve(id, context, errors);
-		break;
-	}
 	case ast::expression::index<ast::expr_literal>:
 	{
 		auto &literal = *expr.get<ast::expr_literal_ptr>();
 		expr.expr_type = resolve(literal, context, errors);
-		break;
-	}
-	case ast::expression::index<ast::expr_tuple>:
-	{
-		auto &tuple = *expr.get<ast::expr_tuple_ptr>();
-		expr.expr_type = resolve(tuple, context, errors);
-		break;
-	}
-	case ast::expression::index<ast::expr_unary_op>:
-	{
-		auto &unary_op = *expr.get<ast::expr_unary_op_ptr>();
-		expr.expr_type = resolve(unary_op, context, errors);
-		break;
-	}
-	case ast::expression::index<ast::expr_binary_op>:
-	{
-		auto &binary_op = *expr.get<ast::expr_binary_op_ptr>();
-		expr.expr_type = resolve(binary_op, context, errors);
 		break;
 	}
 	case ast::expression::index<ast::expr_function_call>:
