@@ -5,7 +5,7 @@
 
 #include "node.h"
 #include "expression.h"
-#include "type.h"
+#include "typespec.h"
 #include "../bytecode.h"
 
 namespace ast

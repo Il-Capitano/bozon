@@ -4,7 +4,7 @@
 #include "../core.h"
 
 #include "node.h"
-#include "type.h"
+#include "typespec.h"
 #include "../bytecode.h"
 
 namespace ast
