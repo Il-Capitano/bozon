@@ -313,6 +313,18 @@ static ast::expression parse_expression_helper(
 	auto const resolve_expr = [&context, &errors](ast::expression &expr)
 	{
 		assert(expr.kind() == ast::expression::index<ast::expr_binary_op>);
+
+		auto &binary_expr = *expr.get<ast::expr_binary_op_ptr>();
+		if (
+			binary_expr.lhs.kind() == ast::expression::null
+			|| binary_expr.lhs.expr_type.expr_type.kind() == ast::typespec::null
+			|| binary_expr.rhs.kind() == ast::expression::null
+			|| binary_expr.rhs.expr_type.expr_type.kind() == ast::typespec::null
+		)
+		{
+			return;
+		}
+
 		expr.expr_type.expr_type = context.get_operation_type(
 			*expr.get<ast::expr_binary_op_ptr>()
 		);
