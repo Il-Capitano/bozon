@@ -715,16 +715,21 @@ static ast::declaration parse_struct_definition(
 		auto [inner_stream, inner_end] = get_expression_or_type_tokens<
 			token::semi_colon
 		>(stream, end, errors);
-		assert_token(stream, token::semi_colon, errors);
 
 		while (inner_stream != inner_end && inner_stream->kind != token::identifier)
 		{
 			errors.emplace_back(bad_token(inner_stream));
 			++inner_stream;
 		}
-		if (inner_stream != inner_end)
+		if (inner_stream == inner_end)
+		{
+			errors.emplace_back(bad_token(inner_stream));
+			++stream;
+		}
+		else
 		{
 			member_variables.emplace_back(parse_member_variable(inner_stream, inner_end));
+			assert_token(stream, token::semi_colon, errors);
 		}
 	}
 
