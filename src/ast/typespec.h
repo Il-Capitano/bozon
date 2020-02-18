@@ -9,6 +9,8 @@
 namespace ast
 {
 
+struct type_info;
+
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(ts_unresolved);
@@ -64,10 +66,10 @@ struct ts_unresolved
 
 struct ts_base_type
 {
-	bz::string identifier;
+	type_info const *info;
 
-	ts_base_type(bz::string _id)
-		: identifier(std::move(_id))
+	ts_base_type(type_info const *_info)
+		: info(_info)
 	{}
 };
 
@@ -154,6 +156,14 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 { return !(lhs == rhs); }
 
 
+struct type_info
+{
+	bz::string           identifier;
+	size_t               size;
+	size_t               alignment;
+	bz::vector<variable> member_variables;
+};
+
 
 template<typename ...Args>
 typespec make_ts_unresolved(Args &&...args)
@@ -184,20 +194,6 @@ typespec make_ts_tuple(Args &&...args)
 { return typespec(std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
 
 
-template<typename ...Args>
-type_ptr make_type_ptr(Args &&...args)
-{ return std::make_shared<type>(std::forward<Args>(args)...); }
-
-template<typename ...Args>
-type_ptr make_built_in_type_ptr(bz::string name, Args &&...args)
-{ return std::make_shared<type>(std::move(name), built_in_type(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-type_ptr make_aggregate_type_ptr(bz::string name, Args &&...args)
-{ return std::make_shared<type>(std::move(name), aggregate_type(std::forward<Args>(args)...)); }
-
-
-
 typespec decay_typespec(typespec const &ts);
 
 typespec add_lvalue_reference(typespec ts);
@@ -221,7 +217,7 @@ struct bz::formatter<ast::typespec>
 			return "<error-type>";
 
 		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->identifier);
+			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->identifier);
 
 		case ast::typespec::index<ast::ts_constant>:
 			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);

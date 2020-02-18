@@ -1,4 +1,4 @@
-#include "type.h"
+#include "typespec.h"
 #include "../parse_context.h"
 
 namespace ast
@@ -14,8 +14,8 @@ bool operator == (typespec const &lhs, typespec const &rhs)
 	switch (lhs.kind())
 	{
 	case typespec::index<ts_base_type>:
-		return lhs.get<ts_base_type_ptr>()->identifier
-			== rhs.get<ts_base_type_ptr>()->identifier;
+		return lhs.get<ts_base_type_ptr>()->info
+			== rhs.get<ts_base_type_ptr>()->info;
 
 	case typespec::index<ts_constant>:
 		return lhs.get<ts_constant_ptr>()->base == rhs.get<ts_constant_ptr>()->base;
