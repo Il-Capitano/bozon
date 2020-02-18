@@ -2,6 +2,7 @@
 
 test_result lexer_test(void);
 test_result first_pass_parser_test(void);
+test_result parser_test(void);
 
 int main(void)
 {
@@ -18,6 +19,7 @@ int main(void)
 	{
 		add_to_total(lexer_test());
 		add_to_total(first_pass_parser_test());
+		add_to_total(parser_test());
 
 		auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
 		auto const highlight_color =
