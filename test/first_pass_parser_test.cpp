@@ -375,6 +375,12 @@ static void parse_struct_definition_test(void)
 	//                                           ^ tokens.begin() + 11
 	x_err("struct foo { a int32; } a", tokens.begin() + 7);
 	//                             ^ tokens.begin() + 7
+	x_err("struct { a: int32; } a", tokens.begin() + 7);
+	//                          ^ tokens.begin() + 7
+	x_err("struct foo a: int32; } a", tokens.begin() + 7);
+	//                            ^ tokens.begin() + 7
+	x_err("struct bz::formatter<ast::expression> {} a", tokens.begin() + 12);
+	//                                               ^ tokens.begin() + 12 (eof)
 
 #undef x
 #undef x_err
