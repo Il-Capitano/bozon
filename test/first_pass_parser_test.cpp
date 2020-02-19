@@ -3,33 +3,33 @@
 
 static void get_tokens_in_curly_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
-#define x(str, it_pos)                                \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    get_tokens_in_curly<token::semi_colon>(           \
-        it, tokens.end(), errors                      \
-    );                                                \
-    assert_true(errors.empty());                      \
-    assert_eq(it, it_pos);                            \
+#define x(str, it_pos)                                     \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    get_tokens_in_curly<lex::token::semi_colon>(           \
+        it, tokens.end(), errors                           \
+    );                                                     \
+    assert_true(errors.empty());                           \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define x_err(str, it_pos)                            \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    get_tokens_in_curly<token::semi_colon>(           \
-        it, tokens.end(), errors                      \
-    );                                                \
-    assert_false(errors.empty());                     \
-    errors.clear();                                   \
-    assert_eq(it, it_pos);                            \
+#define x_err(str, it_pos)                                 \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    get_tokens_in_curly<lex::token::semi_colon>(           \
+        it, tokens.end(), errors                           \
+    );                                                     \
+    assert_false(errors.empty());                          \
+    errors.clear();                                        \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 	x("", tokens.begin());
@@ -55,33 +55,33 @@ do {                                                  \
 
 static void get_expression_or_type_tokens_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
-#define x(str, it_pos)                                \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    get_expression_or_type_tokens<token::semi_colon>( \
-        it, tokens.end(), errors                      \
-    );                                                \
-    assert_true(errors.empty());                      \
-    assert_eq(it, it_pos);                            \
+#define x(str, it_pos)                                     \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    get_expression_or_type_tokens<lex::token::semi_colon>( \
+        it, tokens.end(), errors                           \
+    );                                                     \
+    assert_true(errors.empty());                           \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define x_err(str, it_pos)                            \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    get_expression_or_type_tokens<token::semi_colon>( \
-        it, tokens.end(), errors                      \
-    );                                                \
-    assert_false(errors.empty());                     \
-    errors.clear();                                   \
-    assert_eq(it, it_pos);                            \
+#define x_err(str, it_pos)                                 \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    get_expression_or_type_tokens<lex::token::semi_colon>( \
+        it, tokens.end(), errors                           \
+    );                                                     \
+    assert_false(errors.empty());                          \
+    errors.clear();                                        \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 	x("x + 3;", tokens.begin() + 3);
@@ -107,32 +107,32 @@ do {                                                  \
 #undef x_err
 }
 
-#define xx(fn, str, it_pos)                           \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    fn(it, tokens.end(), errors);                     \
-    assert_true(errors.empty());                      \
-    assert_eq(it, it_pos);                            \
+#define xx(fn, str, it_pos)                                \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    fn(it, tokens.end(), errors);                          \
+    assert_true(errors.empty());                           \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define xx_err(fn, str, it_pos)                       \
-do {                                                  \
-    bz::string_view const file = str;                 \
-    auto const tokens = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                      \
-    auto it = tokens.begin();                         \
-    fn(it, tokens.end(), errors);                     \
-    assert_false(errors.empty());                     \
-    errors.clear();                                   \
-    assert_eq(it, it_pos);                            \
+#define xx_err(fn, str, it_pos)                            \
+do {                                                       \
+    bz::string_view const file = str;                      \
+    auto const tokens = lex::get_tokens(file, "", errors); \
+    assert_true(errors.empty());                           \
+    auto it = tokens.begin();                              \
+    fn(it, tokens.end(), errors);                          \
+    assert_false(errors.empty());                          \
+    errors.clear();                                        \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 static void get_function_params_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(get_function_params, str, it_pos)
 #define x_err(str, it_pos) xx_err(get_function_params, str, it_pos)
@@ -155,7 +155,7 @@ static void get_function_params_test(void)
 /*
 static void get_stmt_compound_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(get_stmt_compound, str, it_pos)
 #define x_err(str, it_pos) xx_err(get_stmt_compound, str, it_pos)
@@ -178,7 +178,7 @@ static void get_stmt_compound_test(void)
 
 static void get_stmt_compound_ptr_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(get_stmt_compound_ptr, str, it_pos)
 #define x_err(str, it_pos) xx_err(get_stmt_compound_ptr, str, it_pos)
@@ -198,7 +198,7 @@ static void get_stmt_compound_ptr_test(void)
 
 static void parse_if_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_if_statement, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_if_statement, str, it_pos)
@@ -223,7 +223,7 @@ static void parse_if_statement_test(void)
 
 static void parse_while_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_while_statement, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_while_statement, str, it_pos)
@@ -255,7 +255,7 @@ static void parse_while_statement_test(void)
 
 static void parse_return_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_return_statement, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_return_statement, str, it_pos)
@@ -278,7 +278,7 @@ static void parse_return_statement_test(void)
 
 static void parse_no_op_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_no_op_statement, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_no_op_statement, str, it_pos)
@@ -293,7 +293,7 @@ static void parse_no_op_statement_test(void)
 
 static void parse_expression_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_expression_statement, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_expression_statement, str, it_pos)
@@ -328,7 +328,7 @@ static void parse_expression_statement_test(void)
 
 static void parse_variable_declaration_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_variable_declaration, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_variable_declaration, str, it_pos)
@@ -361,7 +361,7 @@ static void parse_variable_declaration_test(void)
 
 static void parse_struct_definition_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_struct_definition, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_struct_definition, str, it_pos)
@@ -388,7 +388,7 @@ static void parse_struct_definition_test(void)
 
 static void parse_function_definition_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_function_definition, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_function_definition, str, it_pos)
@@ -416,7 +416,7 @@ static void parse_function_definition_test(void)
 
 static void parse_operator_definition_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_operator_definition, str, it_pos)
 #define x_err(str, it_pos) xx_err(parse_operator_definition, str, it_pos)
@@ -446,12 +446,12 @@ static void parse_operator_definition_test(void)
 
 static void parse_declaration_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, decl_type)                                       \
 do {                                                            \
     bz::string_view const file = str;                           \
-    auto const tokens = get_tokens(file, "", errors);           \
+    auto const tokens = lex::get_tokens(file, "", errors);      \
     assert_true(errors.empty());                                \
     auto it = tokens.begin();                                   \
     auto const decl = parse_declaration(                        \
@@ -473,12 +473,12 @@ do {                                                            \
 
 static void parse_statement_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, decl_type)                                     \
 do {                                                          \
     bz::string_view const file = str;                         \
-    auto const tokens = get_tokens(file, "", errors);         \
+    auto const tokens = lex::get_tokens(file, "", errors);    \
     assert_true(errors.empty());                              \
     auto it = tokens.begin();                                 \
     auto const stmt = parse_statement(                        \

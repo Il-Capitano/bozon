@@ -1,5 +1,7 @@
-#include "lexer.cpp"
+#include "lex/lexer.cpp"
 #include "test.h"
+
+using namespace lex;
 
 // multi_char_tokens and keywords arrays are sorted in terms of token length
 template<typename T>
@@ -206,7 +208,7 @@ skip_comments_and_whitespace(it, file.end())
 
 static void get_identifier_or_keyword_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x_id(str)                                                       \
 bz::string_view const file = str;                                       \
@@ -299,7 +301,7 @@ assert_eq(t.kind, kw_kind)
 
 static void get_character_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, c, it_pos)                                       \
 do {                                                            \
@@ -344,7 +346,7 @@ do {                                             \
 
 static void get_string_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, c, it_pos)                                    \
 do {                                                         \
@@ -389,7 +391,7 @@ do {                                          \
 
 static void get_number_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos)                                       \
 do {                                                         \
@@ -422,7 +424,7 @@ do {                                                         \
 
 static void get_single_char_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 	for (unsigned char c = ' '; c != 128; ++c)
 	{
@@ -438,7 +440,7 @@ static void get_single_char_token_test(void)
 
 static void get_next_token_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define x(str, token_kind)                                 \
 do {                                                       \
@@ -488,7 +490,7 @@ do {                                                       \
 
 void get_tokens_test(void)
 {
-	bz::vector<error> errors = {};
+	bz::vector<ctx::error> errors = {};
 
 #define assert_eqs                                                  \
 ([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
