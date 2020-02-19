@@ -1,5 +1,5 @@
-#ifndef TYPE_H
-#define TYPE_H
+#ifndef AST_TYPESPEC_H
+#define AST_TYPESPEC_H
 
 #include "core.h"
 #include "lex/lexer.h"
@@ -304,4 +304,4 @@ struct bz::formatter<ast::typespec>
 	}
 };
 
-#endif // TYPE_H
+#endif // AST_TYPESPEC_H

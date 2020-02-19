@@ -1,12 +1,12 @@
-#ifndef STATEMENT_H
-#define STATEMENT_H
+#ifndef AST_STATEMENT_H
+#define AST_STATEMENT_H
 
-#include "../core.h"
+#include "core.h"
+#include "bytecode.h"
 
 #include "node.h"
 #include "expression.h"
 #include "typespec.h"
-#include "../bytecode.h"
 
 namespace ast
 {
@@ -404,4 +404,4 @@ statement make_stmt_expression(Args &&...args)
 
 } // namespace ast
 
-#endif // STATEMENT_H
+#endif // AST_STATEMENT_H

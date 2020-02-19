@@ -1,11 +1,11 @@
-#ifndef EXPRESSION_H
-#define EXPRESSION_H
+#ifndef AST_EXPRESSION_H
+#define AST_EXPRESSION_H
 
-#include "../core.h"
+#include "core.h"
+#include "bytecode.h"
 
 #include "node.h"
 #include "typespec.h"
-#include "../bytecode.h"
 
 namespace ast
 {
@@ -252,4 +252,4 @@ expression make_expr_function_call(Args &&...args)
 
 } // namespace ast
 
-#endif // EXPRESSION_H
+#endif // AST_EXPRESSION_H

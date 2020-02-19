@@ -1,5 +1,5 @@
-#ifndef PARSE_CONTEXT_H
-#define PARSE_CONTEXT_H
+#ifndef CTX_PARSE_CONTEXT_H
+#define CTX_PARSE_CONTEXT_H
 
 #include "core.h"
 
@@ -84,4 +84,4 @@ struct parse_context
 
 } // namespace ctx
 
-#endif // PARSE_CONTEXT_H
+#endif // CTX_PARSE_CONTEXT_H

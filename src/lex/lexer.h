@@ -1,5 +1,5 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef LEX_LEXER_H
+#define LEX_LEXER_H
 
 #include "core.h"
 
@@ -283,4 +283,4 @@ token_pos assert_token(
 
 } // namespace lex
 
-#endif // LEXER_H
+#endif // LEX_LEXER_H

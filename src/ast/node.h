@@ -1,5 +1,5 @@
-#ifndef NODE_H
-#define NODE_H
+#ifndef AST_NODE_H
+#define AST_NODE_H
 
 #include "core.h"
 #include "lex/lexer.h"
@@ -103,4 +103,4 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 
 } // namespace ast
 
-#endif // NODE_H
+#endif // AST_NODE_H
