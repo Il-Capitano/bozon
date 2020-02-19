@@ -25,13 +25,13 @@ statement::statement(declaration decl)
 	}
 }
 
-token_pos decl_variable::get_tokens_begin(void) const
+lex::token_pos decl_variable::get_tokens_begin(void) const
 { return this->tokens.begin; }
 
-token_pos decl_variable::get_tokens_pivot(void) const
+lex::token_pos decl_variable::get_tokens_pivot(void) const
 { return this->identifier; }
 
-token_pos decl_variable::get_tokens_end(void) const
+lex::token_pos decl_variable::get_tokens_end(void) const
 { return this->tokens.end; }
 
 } // namespace ast

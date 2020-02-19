@@ -1,16 +1,16 @@
 #include "first_pass_parser.h"
 
 template<uint32_t ...end_tokens>
-static token_range get_tokens_in_curly(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+static lex::token_range get_tokens_in_curly(
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
 	auto begin = stream;
 
 	auto is_valid_token = [&]()
 	{
-		if (stream == end || stream->kind == token::eof || (
+		if (stream == end || stream->kind == lex::token::eof || (
 			(stream->kind == end_tokens)
 			|| ...
 		))
@@ -25,14 +25,14 @@ static token_range get_tokens_in_curly(
 	{
 		switch (stream->kind)
 		{
-		case token::paren_open:
+		case lex::token::paren_open:
 		{
 			++stream; // '('
-			get_tokens_in_curly<token::paren_close, token::curly_close>(stream, end, errors);
-			if (stream != end && stream->kind != token::eof)
+			get_tokens_in_curly<lex::token::paren_close, lex::token::curly_close>(stream, end, errors);
+			if (stream != end && stream->kind != lex::token::eof)
 			{
-				assert(stream->kind == token::paren_close || stream->kind == token::curly_close);
-				if (stream->kind == token::paren_close)
+				assert(stream->kind == lex::token::paren_close || stream->kind == lex::token::curly_close);
+				if (stream->kind == lex::token::paren_close)
 				{
 					++stream;
 				}
@@ -40,14 +40,14 @@ static token_range get_tokens_in_curly(
 			break;
 		}
 
-		case token::square_open:
+		case lex::token::square_open:
 		{
 			++stream; // '['
-			get_tokens_in_curly<token::square_close, token::curly_close>(stream, end, errors);
-			if (stream != end && stream->kind != token::eof)
+			get_tokens_in_curly<lex::token::square_close, lex::token::curly_close>(stream, end, errors);
+			if (stream != end && stream->kind != lex::token::eof)
 			{
-				assert(stream->kind == token::square_close || stream->kind == token::curly_close);
-				if (stream->kind == token::square_close)
+				assert(stream->kind == lex::token::square_close || stream->kind == lex::token::curly_close);
+				if (stream->kind == lex::token::square_close)
 				{
 					++stream;
 				}
@@ -55,16 +55,16 @@ static token_range get_tokens_in_curly(
 			break;
 		}
 
-		case token::curly_open:
+		case lex::token::curly_open:
 		{
 			auto const curly_begin = stream;
 			++stream; // '{'
-			get_tokens_in_curly<token::curly_close>(stream, end, errors);
-			if (stream->kind != token::curly_close)
+			get_tokens_in_curly<lex::token::curly_close>(stream, end, errors);
+			if (stream->kind != lex::token::curly_close)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing } before end-of-file")
 					: bz::format("expected closing } before '{}'", stream->value),
 					{ make_note(curly_begin, "to match this:") }
@@ -88,16 +88,16 @@ static token_range get_tokens_in_curly(
 
 
 template<uint32_t ...end_tokens>
-static token_range get_expression_or_type_tokens(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+static lex::token_range get_expression_or_type_tokens(
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
 	auto begin = stream;
 
 	auto is_valid_expr_token = [&]()
 	{
-		if (stream == end || stream->kind == token::eof || (
+		if (stream == end || stream->kind == lex::token::eof || (
 			(stream->kind == end_tokens)
 			|| ...
 		))
@@ -108,29 +108,29 @@ static token_range get_expression_or_type_tokens(
 		switch (stream->kind)
 		{
 		// literals
-		case token::identifier:
-		case token::number_literal:
-		case token::string_literal:
-		case token::character_literal:
-		case token::kw_true:
-		case token::kw_false:
-		case token::kw_null:
+		case lex::token::identifier:
+		case lex::token::number_literal:
+		case lex::token::string_literal:
+		case lex::token::character_literal:
+		case lex::token::kw_true:
+		case lex::token::kw_false:
+		case lex::token::kw_null:
 		// parenthesis/brackets
-		case token::paren_open:
-		case token::paren_close:
-		case token::square_open:
-		case token::square_close:
+		case lex::token::paren_open:
+		case lex::token::paren_close:
+		case lex::token::square_open:
+		case lex::token::square_close:
 		// type specifiers that are not operators
-		case token::colon:
-		case token::kw_auto:
-		case token::kw_const:
-		case token::kw_function:
+		case lex::token::colon:
+		case lex::token::kw_auto:
+		case lex::token::kw_const:
+		case lex::token::kw_function:
 		// etc
-		case token::fat_arrow:
+		case lex::token::fat_arrow:
 			return true;
 
 		default:
-			return is_operator(stream->kind);
+			return lex::is_operator(stream->kind);
 		}
 	};
 
@@ -139,18 +139,18 @@ static token_range get_expression_or_type_tokens(
 	{
 		switch (stream->kind)
 		{
-		case token::paren_open:
+		case lex::token::paren_open:
 		{
 			auto const paren_begin = stream;
 			++stream; // '('
 			get_expression_or_type_tokens<
-				token::paren_close, token::square_close
+				lex::token::paren_close, lex::token::square_close
 			>(stream, end, errors);
-			if (stream->kind != token::paren_close)
+			if (stream->kind != lex::token::paren_close)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ make_note(paren_begin, "to match this:") }
@@ -163,18 +163,18 @@ static token_range get_expression_or_type_tokens(
 			break;
 		}
 
-		case token::square_open:
+		case lex::token::square_open:
 		{
 			auto const square_begin = stream;
 			++stream; // '['
 			get_expression_or_type_tokens<
-				token::paren_close, token::square_close
+				lex::token::paren_close, lex::token::square_close
 			>(stream, end, errors);
-			if (stream->kind != token::square_close)
+			if (stream->kind != lex::token::square_close)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing ] before end-of-file")
 					: bz::format("expected closing ] before '{}'", stream->value),
 					{ make_note(square_begin, "to match this:") }
@@ -187,21 +187,21 @@ static token_range get_expression_or_type_tokens(
 			break;
 		}
 
-		case token::fat_arrow:
+		case lex::token::fat_arrow:
 		{
 			++stream; // '=>'
-			if (stream == end || stream->kind != token::curly_open)
+			if (stream == end || stream->kind != lex::token::curly_open)
 			{
 				break;
 			}
 			auto const curly_begin = stream;
 			++stream; // '{'
-			get_tokens_in_curly<token::curly_close>(stream, end, errors);
-			if (stream->kind != token::curly_close)
+			get_tokens_in_curly<lex::token::curly_close>(stream, end, errors);
+			if (stream->kind != lex::token::curly_close)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing } before end-of-file")
 					: bz::format("expected closing } before '{}'", stream->value),
 					{ make_note(curly_begin, "to match this:") }
@@ -214,14 +214,14 @@ static token_range get_expression_or_type_tokens(
 			break;
 		}
 
-		case token::paren_close:
+		case lex::token::paren_close:
 		{
 			errors.emplace_back(bad_token(stream, "stray )"));
 			++stream; // ')'
 			break;
 		}
 
-		case token::square_close:
+		case lex::token::square_close:
 		{
 			errors.emplace_back(bad_token(stream, "stray ]"));
 			++stream; // ']'
@@ -238,38 +238,38 @@ static token_range get_expression_or_type_tokens(
 }
 
 static bz::vector<ast::variable> get_function_params(
-	token_pos &in_stream, token_pos in_end,
-	bz::vector<error> &errors
+	lex::token_pos &in_stream, lex::token_pos in_end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert_token(in_stream, token::paren_open, errors);
+	assert_token(in_stream, lex::token::paren_open, errors);
 	bz::vector<ast::variable> params;
 
-	if (in_stream != in_end && in_stream->kind == token::paren_close)
+	if (in_stream != in_end && in_stream->kind == lex::token::paren_close)
 	{
 		++in_stream;
 		return params;
 	}
 
-	auto [stream, end] = get_expression_or_type_tokens<token::paren_close>(
+	auto [stream, end] = get_expression_or_type_tokens<lex::token::paren_close>(
 		in_stream, in_end, errors
 	);
 
 	if (stream == end)
 	{
-		assert_token(in_stream, token::paren_close, errors);
+		assert_token(in_stream, lex::token::paren_close, errors);
 		return params;
 	}
 
 	do
 	{
 		auto id = stream;
-		if (id->kind == token::identifier)
+		if (id->kind == lex::token::identifier)
 		{
 			++stream;
 		}
 
-		if (stream->kind != token::colon)
+		if (stream->kind != lex::token::colon)
 		{
 			errors.emplace_back(bad_token(stream, "expected identifier or ':'"));
 		}
@@ -278,9 +278,9 @@ static bz::vector<ast::variable> get_function_params(
 			++stream;
 		}
 
-		auto type = get_expression_or_type_tokens<token::paren_close, token::comma>(stream, end, errors);
+		auto type = get_expression_or_type_tokens<lex::token::paren_close, lex::token::comma>(stream, end, errors);
 
-		if (id->kind == token::identifier)
+		if (id->kind == lex::token::identifier)
 		{
 			params.push_back({
 				id, ast::make_ts_unresolved(type)
@@ -294,32 +294,32 @@ static bz::vector<ast::variable> get_function_params(
 		}
 	} while (
 		stream != end
-		&& stream->kind == token::comma
+		&& stream->kind == lex::token::comma
 		&& (++stream, true)
 	);
 
 	in_stream = stream;
-	assert_token(in_stream, token::paren_close, errors);
+	assert_token(in_stream, lex::token::paren_close, errors);
 	return params;
 }
 
 /*
 static ast::stmt_compound get_stmt_compound(
-	token_pos &in_stream, token_pos in_end,
-	bz::vector<error> &errors
+	lex::token_pos &in_stream, lex::token_pos in_end,
+	bz::vector<ctx::error> &errors
 )
 {
 	assert(in_stream != in_end);
-	assert(in_stream->kind == token::curly_open);
-	auto comp_stmt = ast::stmt_compound(token_range{ in_stream, in_stream });
+	assert(in_stream->kind == lex::token::curly_open);
+	auto comp_stmt = ast::stmt_compound(lex::token_range{ in_stream, in_stream });
 	++in_stream; // '{'
 
-	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
-	if (in_stream->kind != token::curly_close)
+	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, errors);
+	if (in_stream->kind != lex::token::curly_close)
 	{
 		errors.emplace_back(bad_token(
 			in_stream,
-			in_stream->kind == token::eof
+			in_stream->kind == lex::token::eof
 			? bz::string("expected closing } before end-of-file")
 			: bz::format("expected closing } before '{}'", in_stream->value),
 			{ make_note(comp_stmt.tokens.begin, "to match this:") }
@@ -341,17 +341,17 @@ static ast::stmt_compound get_stmt_compound(
 */
 
 static ast::stmt_compound_ptr get_stmt_compound_ptr(
-	token_pos &in_stream, token_pos in_end,
-	bz::vector<error> &errors
+	lex::token_pos &in_stream, lex::token_pos in_end,
+	bz::vector<ctx::error> &errors
 )
 {
 	assert(in_stream != in_end);
-	assert(in_stream->kind == token::curly_open);
-	auto comp_stmt = std::make_unique<ast::stmt_compound>(token_range{ in_stream, in_stream });
+	assert(in_stream->kind == lex::token::curly_open);
+	auto comp_stmt = std::make_unique<ast::stmt_compound>(lex::token_range{ in_stream, in_stream });
 	++in_stream; // '{'
 
-	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
-	assert_token(in_stream, token::curly_close, errors);
+	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, errors);
+	assert_token(in_stream, lex::token::curly_close, errors);
 
 	while (stream != end)
 	{
@@ -363,30 +363,30 @@ static ast::stmt_compound_ptr get_stmt_compound_ptr(
 }
 
 static ast::statement parse_if_statement(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_if);
+	assert(stream->kind == lex::token::kw_if);
 	auto begin_token = stream;
 	++stream; // 'if'
 
 	auto const condition = [&]()
 	{
-		auto const open_paren = assert_token(stream, token::paren_open, errors);
-		auto const cond = get_expression_or_type_tokens<token::paren_close>(stream, end, errors);
-		if (stream->kind == token::paren_close)
+		auto const open_paren = assert_token(stream, lex::token::paren_open, errors);
+		auto const cond = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, errors);
+		if (stream->kind == lex::token::paren_close)
 		{
 			++stream;
 			return cond;
 		}
 		else
 		{
-			if (open_paren->kind == token::paren_open)
+			if (open_paren->kind == lex::token::paren_open)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ make_note(open_paren, "to match this:") }
@@ -398,13 +398,13 @@ static ast::statement parse_if_statement(
 
 	auto if_block = parse_statement(stream, end, errors);
 
-	if (stream->kind == token::kw_else)
+	if (stream->kind == lex::token::kw_else)
 	{
 		++stream; // 'else'
 		auto else_block = parse_statement(stream, end, errors);
 
 		return ast::make_stmt_if(
-			token_range{ begin_token, stream },
+			lex::token_range{ begin_token, stream },
 			ast::make_expr_unresolved(condition),
 			std::move(if_block),
 			std::move(else_block)
@@ -413,7 +413,7 @@ static ast::statement parse_if_statement(
 	else
 	{
 		return ast::make_stmt_if(
-			token_range{ begin_token, stream },
+			lex::token_range{ begin_token, stream },
 			ast::make_expr_unresolved(condition),
 			std::move(if_block)
 		);
@@ -421,30 +421,30 @@ static ast::statement parse_if_statement(
 }
 
 static ast::statement parse_while_statement(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_while);
+	assert(stream->kind == lex::token::kw_while);
 	auto const begin_token = stream;
 	++stream; // 'while'
 
 	auto const condition = [&]()
 	{
-		auto const open_paren = assert_token(stream, token::paren_open, errors);
-		auto const cond = get_expression_or_type_tokens<token::paren_close>(stream, end, errors);
-		if (stream->kind == token::paren_close)
+		auto const open_paren = assert_token(stream, lex::token::paren_open, errors);
+		auto const cond = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, errors);
+		if (stream->kind == lex::token::paren_close)
 		{
 			++stream;
 			return cond;
 		}
 		else
 		{
-			if (open_paren->kind == token::paren_open)
+			if (open_paren->kind == lex::token::paren_open)
 			{
 				errors.emplace_back(bad_token(
 					stream,
-					stream->kind == token::eof
+					stream->kind == lex::token::eof
 					? bz::string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ make_note(open_paren, "to match this:") }
@@ -457,59 +457,59 @@ static ast::statement parse_while_statement(
 	auto while_block = parse_statement(stream, end, errors);
 
 	return ast::make_stmt_while(
-		token_range{ begin_token, stream },
+		lex::token_range{ begin_token, stream },
 		ast::make_expr_unresolved(condition),
 		std::move(while_block)
 	);
 }
 
 static ast::statement parse_for_statement(
-	token_pos &stream, token_pos,
-	bz::vector<error> &
+	lex::token_pos &stream, lex::token_pos,
+	bz::vector<ctx::error> &
 )
 {
-	assert(stream->kind == token::kw_for);
+	assert(stream->kind == lex::token::kw_for);
 	assert(false, "for statement not yet implemented");
 }
 
 static ast::statement parse_return_statement(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_return);
+	assert(stream->kind == lex::token::kw_return);
 	auto const begin_token = stream;
 	++stream; // 'return'
 
-	auto expr = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
-	assert_token(stream, token::semi_colon, errors);
+	auto expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, errors);
+	assert_token(stream, lex::token::semi_colon, errors);
 
 	return ast::make_stmt_return(
-		token_range{ begin_token, stream },
+		lex::token_range{ begin_token, stream },
 		ast::make_expr_unresolved(expr)
 	);
 }
 
 static ast::statement parse_no_op_statement(
-	token_pos &stream, token_pos,
-	bz::vector<error> &
+	lex::token_pos &stream, lex::token_pos,
+	bz::vector<ctx::error> &
 )
 {
-	assert(stream->kind == token::semi_colon);
+	assert(stream->kind == lex::token::semi_colon);
 	auto const begin_token = stream;
 	++stream; // ';'
-	return ast::make_stmt_no_op(token_range{ begin_token, stream });
+	return ast::make_stmt_no_op(lex::token_range{ begin_token, stream });
 }
 
 static ast::statement parse_expression_statement(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
 	assert(stream != end);
 	auto const begin_token = stream;
-	auto const expr = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
-	if (expr.begin == expr.end) // && stream->kind != token::semi_colon (should always be true)
+	auto const expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, errors);
+	if (expr.begin == expr.end) // && stream->kind != lex::token::semi_colon (should always be true)
 	{
 		errors.emplace_back(bad_token(stream));
 		++stream;
@@ -522,23 +522,23 @@ static ast::statement parse_expression_statement(
 			return parse_statement(stream, end, errors);
 		}
 	}
-	assert_token(stream, token::semi_colon, errors);
+	assert_token(stream, lex::token::semi_colon, errors);
 
 	return ast::make_stmt_expression(
-		token_range{ begin_token, stream },
+		lex::token_range{ begin_token, stream },
 		ast::make_expr_unresolved(expr)
 	);
 }
 
 static ast::declaration parse_variable_declaration(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_let || stream->kind == token::kw_const);
+	assert(stream->kind == lex::token::kw_let || stream->kind == lex::token::kw_const);
 	auto const tokens_begin = stream;
 	ast::typespec prototype;
-	if (stream->kind == token::kw_const)
+	if (stream->kind == lex::token::kw_const)
 	{
 		prototype = ast::make_ts_constant(ast::typespec());
 	}
@@ -577,7 +577,7 @@ static ast::declaration parse_variable_declaration(
 		)
 		{
 			errors.emplace_back(bad_tokens(
-				tokens_begin->kind == token::kw_const
+				tokens_begin->kind == lex::token::kw_const
 				? tokens_begin : tokens_begin + 1,
 				stream, stream + 1,
 				"reference specifier must be at top level"
@@ -605,15 +605,15 @@ static ast::declaration parse_variable_declaration(
 		{
 			switch (stream->kind)
 			{
-			case token::kw_const:
+			case lex::token::kw_const:
 				add_to_prototype(ast::make_ts_constant(ast::typespec()));
 				++stream;
 				break;
-			case token::ampersand:
+			case lex::token::ampersand:
 				add_to_prototype(ast::make_ts_reference(ast::typespec()));
 				++stream;
 				break;
-			case token::star:
+			case lex::token::star:
 				add_to_prototype(ast::make_ts_pointer(ast::typespec()));
 				++stream;
 				break;
@@ -624,41 +624,41 @@ static ast::declaration parse_variable_declaration(
 		}
 	}
 
-	auto id = assert_token(stream, token::identifier, errors);
+	auto id = assert_token(stream, lex::token::identifier, errors);
 
-	if (stream->kind == token::colon)
+	if (stream->kind == lex::token::colon)
 	{
 		++stream; // ':'
 		auto type_tokens = get_expression_or_type_tokens<
-			token::assign, token::semi_colon
+			lex::token::assign, lex::token::semi_colon
 		>(stream, end, errors);
 
 		auto type = ast::make_ts_unresolved(type_tokens);
-		if (stream->kind == token::semi_colon)
+		if (stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
 			auto const tokens_end = stream;
 			return ast::make_decl_variable(
-				token_range{tokens_begin, tokens_end},
+				lex::token_range{tokens_begin, tokens_end},
 				id, prototype, type
 			);
 		}
 
-		assert_token(stream, token::assign, token::semi_colon, errors);
+		assert_token(stream, lex::token::assign, lex::token::semi_colon, errors);
 
-		auto init = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
+		auto init = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, errors);
 
-		assert_token(stream, token::semi_colon, errors);
+		assert_token(stream, lex::token::semi_colon, errors);
 		auto const tokens_end = stream;
 		return ast::make_decl_variable(
-			token_range{tokens_begin, tokens_end},
+			lex::token_range{tokens_begin, tokens_end},
 			id,
 			prototype,
 			type,
 			ast::make_expr_unresolved(init)
 		);
 	}
-	else if (stream->kind == token::assign)
+	else if (stream->kind == lex::token::assign)
 	{
 		++stream;
 	}
@@ -667,12 +667,12 @@ static ast::declaration parse_variable_declaration(
 		errors.emplace_back(bad_token(stream, "expected '=' or ':'"));
 	}
 
-	auto init = get_expression_or_type_tokens<token::semi_colon>(stream, end, errors);
+	auto init = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, errors);
 
-	assert_token(stream, token::semi_colon, errors);
+	assert_token(stream, lex::token::semi_colon, errors);
 	auto const tokens_end = stream;
 	return ast::make_decl_variable(
-		token_range{tokens_begin, tokens_end},
+		lex::token_range{tokens_begin, tokens_end},
 		id,
 		prototype,
 		ast::make_expr_unresolved(init)
@@ -680,29 +680,29 @@ static ast::declaration parse_variable_declaration(
 }
 
 static ast::declaration parse_struct_definition(
-	token_pos &in_stream, token_pos in_end,
-	bz::vector<error> &errors
+	lex::token_pos &in_stream, lex::token_pos in_end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(in_stream->kind == token::kw_struct);
+	assert(in_stream->kind == lex::token::kw_struct);
 	++in_stream; // 'struct'
 
-	auto const id = assert_token(in_stream, token::identifier, errors);
-	assert_token(in_stream, token::curly_open, errors);
-	auto [stream, end] = get_tokens_in_curly<token::curly_close>(in_stream, in_end, errors);
+	auto const id = assert_token(in_stream, lex::token::identifier, errors);
+	assert_token(in_stream, lex::token::curly_open, errors);
+	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, errors);
 
-	if (in_stream->kind == token::curly_close)
+	if (in_stream->kind == lex::token::curly_close)
 	{
 		++in_stream;
 	}
 
 	auto parse_member_variable = [&](auto &stream, auto end)
 	{
-		assert(stream->kind == token::identifier);
+		assert(stream->kind == lex::token::identifier);
 		auto const id = stream;
 		++stream;
-		assert_token(stream, token::colon, errors);
-		auto const type = token_range{stream, end};
+		assert_token(stream, lex::token::colon, errors);
+		auto const type = lex::token_range{stream, end};
 		stream = end;
 		return ast::variable(
 			id, ast::make_ts_unresolved(type)
@@ -713,10 +713,10 @@ static ast::declaration parse_struct_definition(
 	while (stream != end)
 	{
 		auto [inner_stream, inner_end] = get_expression_or_type_tokens<
-			token::semi_colon
+			lex::token::semi_colon
 		>(stream, end, errors);
 
-		while (inner_stream != inner_end && inner_stream->kind != token::identifier)
+		while (inner_stream != inner_end && inner_stream->kind != lex::token::identifier)
 		{
 			errors.emplace_back(bad_token(inner_stream));
 			++inner_stream;
@@ -729,7 +729,7 @@ static ast::declaration parse_struct_definition(
 		else
 		{
 			member_variables.emplace_back(parse_member_variable(inner_stream, inner_end));
-			assert_token(stream, token::semi_colon, errors);
+			assert_token(stream, lex::token::semi_colon, errors);
 		}
 	}
 
@@ -737,28 +737,28 @@ static ast::declaration parse_struct_definition(
 }
 
 static ast::declaration parse_function_definition(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_function);
+	assert(stream->kind == lex::token::kw_function);
 	++stream; // 'function'
-	auto id = assert_token(stream, token::identifier, errors);
+	auto id = assert_token(stream, lex::token::identifier, errors);
 
 	auto params = get_function_params(stream, end, errors);
 
-	assert_token(stream, token::arrow, errors);
-	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
-	assert_token(stream, token::curly_open, errors);
+	assert_token(stream, lex::token::arrow, errors);
+	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open>(stream, end, errors);
+	assert_token(stream, lex::token::curly_open, errors);
 
 	bz::vector<ast::statement> body = {};
 
-	auto [body_stream, body_end] = get_tokens_in_curly<token::curly_close>(stream, end, errors);
-	while (body_stream != body_end && body_stream->kind != token::curly_close)
+	auto [body_stream, body_end] = get_tokens_in_curly<lex::token::curly_close>(stream, end, errors);
+	while (body_stream != body_end && body_stream->kind != lex::token::curly_close)
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, errors));
 	}
-	assert_token(stream, token::curly_close, errors);
+	assert_token(stream, lex::token::curly_close, errors);
 
 	return ast::make_decl_function(
 		id,
@@ -769,19 +769,19 @@ static ast::declaration parse_function_definition(
 }
 
 static void check_operator_param_count(
-	token_pos op, token_pos params_end, size_t param_count,
-	bz::vector<error> &errors
+	lex::token_pos op, lex::token_pos params_end, size_t param_count,
+	bz::vector<ctx::error> &errors
 )
 {
 	if (param_count == 0)
 	{
 		bz::string_view operator_name;
 
-		if (op->kind == token::paren_open)
+		if (op->kind == lex::token::paren_open)
 		{
 			operator_name = "()";
 		}
-		else if (op->kind == token::square_open)
+		else if (op->kind == lex::token::square_open)
 		{
 			operator_name = "[]";
 		}
@@ -797,9 +797,9 @@ static void check_operator_param_count(
 	}
 	if (param_count == 1)
 	{
-		if (op->kind != token::paren_open && !is_unary_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !lex::is_unary_operator(op->kind))
 		{
-			bz::string_view const operator_name = op->kind == token::square_open ? "[]" : op->value;
+			bz::string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 			errors.emplace_back(bad_tokens(
 				op - 1, op, params_end,
 				bz::format("operator {} cannot take 1 argument", operator_name)
@@ -808,7 +808,7 @@ static void check_operator_param_count(
 	}
 	else if (param_count == 2)
 	{
-		if (op->kind != token::paren_open && !is_binary_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !lex::is_binary_operator(op->kind))
 		{
 			errors.emplace_back(bad_tokens(
 				op - 1, op, params_end,
@@ -816,9 +816,9 @@ static void check_operator_param_count(
 			));
 		}
 	}
-	else if (op->kind != token::paren_open)
+	else if (op->kind != lex::token::paren_open)
 	{
-		bz::string_view const operator_name = op->kind == token::square_open ? "[]" : op->value;
+		bz::string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 		errors.emplace_back(bad_tokens(
 			op - 1, op, params_end,
 			bz::format("operator {} cannot take {} arguments", operator_name, param_count)
@@ -827,22 +827,22 @@ static void check_operator_param_count(
 }
 
 static ast::declaration parse_operator_definition(
-	token_pos &stream, token_pos end,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	bz::vector<ctx::error> &errors
 )
 {
-	assert(stream->kind == token::kw_operator);
+	assert(stream->kind == lex::token::kw_operator);
 	++stream; // 'operator'
 	auto const op = stream;
 	bool is_valid_op = true;
-	if (!is_operator(op->kind))
+	if (!lex::is_operator(op->kind))
 	{
 		errors.emplace_back(bad_token(stream, "expected operator"));
 		is_valid_op = false;
 	}
 	else
 	{
-		if (!is_overloadable_operator(op->kind))
+		if (!lex::is_overloadable_operator(op->kind))
 		{
 			errors.emplace_back(bad_token(
 				stream, bz::format("operator {} is note overloadable", stream->value)
@@ -850,13 +850,13 @@ static ast::declaration parse_operator_definition(
 			is_valid_op = false;
 		}
 		++stream;
-		if (op->kind == token::paren_open)
+		if (op->kind == lex::token::paren_open)
 		{
-			assert_token(stream, token::paren_close, errors);
+			assert_token(stream, lex::token::paren_close, errors);
 		}
-		else if (op->kind == token::square_open)
+		else if (op->kind == lex::token::square_open)
 		{
-			assert_token(stream, token::square_close, errors);
+			assert_token(stream, lex::token::square_close, errors);
 		}
 	}
 
@@ -867,18 +867,18 @@ static ast::declaration parse_operator_definition(
 		check_operator_param_count(op, stream, params.size(), errors);
 	}
 
-	assert_token(stream, token::arrow, errors);
-	auto ret_type = get_expression_or_type_tokens<token::curly_open>(stream, end, errors);
-	assert_token(stream, token::curly_open, errors);
+	assert_token(stream, lex::token::arrow, errors);
+	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open>(stream, end, errors);
+	assert_token(stream, lex::token::curly_open, errors);
 
 	bz::vector<ast::statement> body = {};
 
-	auto [body_stream, body_end] = get_tokens_in_curly<token::curly_close>(stream, end, errors);
-	while (body_stream != body_end && body_stream->kind != token::curly_close)
+	auto [body_stream, body_end] = get_tokens_in_curly<lex::token::curly_close>(stream, end, errors);
+	while (body_stream != body_end && body_stream->kind != lex::token::curly_close)
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, errors));
 	}
-	assert_token(stream, token::curly_close, errors);
+	assert_token(stream, lex::token::curly_close, errors);
 
 	return ast::make_decl_operator(
 		op,
@@ -888,25 +888,25 @@ static ast::declaration parse_operator_definition(
 	);
 }
 
-ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<error> &errors)
+ast::declaration parse_declaration(lex::token_pos &stream, lex::token_pos end, bz::vector<ctx::error> &errors)
 {
 	switch (stream->kind)
 	{
 	// variable declaration
-	case token::kw_let:
-	case token::kw_const:
+	case lex::token::kw_let:
+	case lex::token::kw_const:
 		return parse_variable_declaration(stream, end, errors);
 
 	// struct definition
-	case token::kw_struct:
+	case lex::token::kw_struct:
 		return parse_struct_definition(stream, end, errors);
 
 	// function definition
-	case token::kw_function:
+	case lex::token::kw_function:
 		return parse_function_definition(stream, end, errors);
 
 	// operator definition
-	case token::kw_operator:
+	case lex::token::kw_operator:
 		return parse_operator_definition(stream, end, errors);
 
 	default:
@@ -914,11 +914,11 @@ ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<
 		auto begin = stream;
 		while (
 			stream != end
-			&& stream->kind != token::kw_let
-			&& stream->kind != token::kw_const
-			&& stream->kind != token::kw_struct
-			&& stream->kind != token::kw_function
-			&& stream->kind != token::kw_operator
+			&& stream->kind != lex::token::kw_let
+			&& stream->kind != lex::token::kw_const
+			&& stream->kind != lex::token::kw_struct
+			&& stream->kind != lex::token::kw_function
+			&& stream->kind != lex::token::kw_operator
 		)
 		{
 			++stream;
@@ -929,49 +929,49 @@ ast::declaration parse_declaration(token_pos &stream, token_pos end, bz::vector<
 	}
 }
 
-ast::statement parse_statement(token_pos &stream, token_pos end, bz::vector<error> &errors)
+ast::statement parse_statement(lex::token_pos &stream, lex::token_pos end, bz::vector<ctx::error> &errors)
 {
 	switch (stream->kind)
 	{
 	// if statement
-	case token::kw_if:
+	case lex::token::kw_if:
 		return parse_if_statement(stream, end, errors);
 
 	// while statement
-	case token::kw_while:
+	case lex::token::kw_while:
 		return parse_while_statement(stream, end, errors);
 
 	// for statement
-	case token::kw_for:
+	case lex::token::kw_for:
 		return parse_for_statement(stream, end, errors);
 
 	// return statement
-	case token::kw_return:
+	case lex::token::kw_return:
 		return parse_return_statement(stream, end, errors);
 
 	// no-op statement
-	case token::semi_colon:
+	case lex::token::semi_colon:
 		return parse_no_op_statement(stream, end, errors);
 
 	// compound statement
-	case token::curly_open:
+	case lex::token::curly_open:
 		return ast::make_statement(get_stmt_compound_ptr(stream, end, errors));
 
 	// variable declaration
-	case token::kw_let:
-	case token::kw_const:
+	case lex::token::kw_let:
+	case lex::token::kw_const:
 		return parse_variable_declaration(stream, end, errors);
 
 	// struct definition
-	case token::kw_struct:
+	case lex::token::kw_struct:
 		return parse_struct_definition(stream, end, errors);
 
 	// function definition
-	case token::kw_function:
+	case lex::token::kw_function:
 		return parse_function_definition(stream, end, errors);
 
 	// operator definition
-	case token::kw_operator:
+	case lex::token::kw_operator:
 		return parse_operator_definition(stream, end, errors);
 
 	// expression statement

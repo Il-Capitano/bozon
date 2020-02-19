@@ -3,11 +3,11 @@
 #include "colors.h"
 
 static bz::string get_highlighted_chars(
-	char_pos const file_begin,
-	char_pos const file_end,
-	char_pos const char_begin,
-	char_pos const char_pivot,
-	char_pos const char_end,
+	ctx::char_pos const file_begin,
+	ctx::char_pos const file_end,
+	ctx::char_pos const char_begin,
+	ctx::char_pos const char_pivot,
+	ctx::char_pos const char_end,
 	size_t const pivot_line,
 	char const *const highlight_color
 )
@@ -200,10 +200,10 @@ src_file::src_file(bz::string file_name)
 	: _stage(constructed), _file_name(std::move(file_name)), _file(), _tokens()
 {}
 
-static void print_error(char_pos file_begin, char_pos file_end, error const &err)
+static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::error const &err)
 {
 	bz::printf(
-		"{}{}:{}:{}:{} {}error{}: {}\n{}",
+		"{}{}:{}:{}:{} {}error:{} {}\n{}",
 		colors::bright_white, err.file, err.line, err.column, colors::clear,
 		colors::error_color, colors::clear,
 		err.message,
@@ -217,8 +217,8 @@ static void print_error(char_pos file_begin, char_pos file_end, error const &err
 	for (auto &n : err.notes)
 	{
 		bz::printf(
-			"{}:{}:{}: {}note{}: {}\n{}",
-			n.file, n.line, n.column,
+			"{}{}:{}:{}:{} {}note:{} {}\n{}",
+			colors::bright_white, n.file, n.line, n.column, colors::clear,
 			colors::note_color, colors::clear,
 			n.message,
 			get_highlighted_chars(
@@ -268,7 +268,7 @@ void src_file::report_and_clear_errors(void)
 	assert(this->_stage == file_read);
 	if (this->_stage == file_read)
 	{
-		this->_tokens = get_tokens(this->_file, this->_file_name, this->_errors);
+		this->_tokens = lex::get_tokens(this->_file, this->_file_name, this->_errors);
 		this->_stage = tokenized;
 	}
 
@@ -279,7 +279,7 @@ void src_file::report_and_clear_errors(void)
 {
 	assert(this->_stage == tokenized);
 	assert(this->_tokens.size() != 0);
-	assert(this->_tokens.back().kind == token::eof);
+	assert(this->_tokens.back().kind == lex::token::eof);
 	auto stream = this->_tokens.cbegin();
 	auto end    = this->_tokens.cend() - 1;
 

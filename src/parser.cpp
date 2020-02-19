@@ -52,72 +52,72 @@ static bool operator <= (precedence lhs, precedence rhs)
 
 static std::map<uint32_t, precedence> binary_op_precendences =
 {
-	{ token::scope,              precedence{  1, true  } },
+	{ lex::token::scope,              precedence{  1, true  } },
 
-	{ token::paren_open,         precedence{  2, true  } },
-	{ token::square_open,        precedence{  2, true  } },
-	{ token::dot,                precedence{  2, true  } },
-	{ token::arrow,              precedence{  2, true  } },
+	{ lex::token::paren_open,         precedence{  2, true  } },
+	{ lex::token::square_open,        precedence{  2, true  } },
+	{ lex::token::dot,                precedence{  2, true  } },
+	{ lex::token::arrow,              precedence{  2, true  } },
 
-	{ token::dot_dot,            precedence{  4, true  } },
+	{ lex::token::dot_dot,            precedence{  4, true  } },
 
-	{ token::multiply,           precedence{  5, true  } },
-	{ token::divide,             precedence{  5, true  } },
-	{ token::modulo,             precedence{  5, true  } },
+	{ lex::token::multiply,           precedence{  5, true  } },
+	{ lex::token::divide,             precedence{  5, true  } },
+	{ lex::token::modulo,             precedence{  5, true  } },
 
-	{ token::plus,               precedence{  6, true  } },
-	{ token::minus,              precedence{  6, true  } },
+	{ lex::token::plus,               precedence{  6, true  } },
+	{ lex::token::minus,              precedence{  6, true  } },
 
-	{ token::bit_left_shift,     precedence{  7, true  } },
-	{ token::bit_right_shift,    precedence{  7, true  } },
+	{ lex::token::bit_left_shift,     precedence{  7, true  } },
+	{ lex::token::bit_right_shift,    precedence{  7, true  } },
 
-	{ token::bit_and,            precedence{  8, true  } },
-	{ token::bit_xor,            precedence{  9, true  } },
-	{ token::bit_or,             precedence{ 10, true  } },
+	{ lex::token::bit_and,            precedence{  8, true  } },
+	{ lex::token::bit_xor,            precedence{  9, true  } },
+	{ lex::token::bit_or,             precedence{ 10, true  } },
 
-	{ token::less_than,          precedence{ 11, true  } },
-	{ token::less_than_eq,       precedence{ 11, true  } },
-	{ token::greater_than,       precedence{ 11, true  } },
-	{ token::greater_than_eq,    precedence{ 11, true  } },
+	{ lex::token::less_than,          precedence{ 11, true  } },
+	{ lex::token::less_than_eq,       precedence{ 11, true  } },
+	{ lex::token::greater_than,       precedence{ 11, true  } },
+	{ lex::token::greater_than_eq,    precedence{ 11, true  } },
 
-	{ token::equals,             precedence{ 12, true  } },
-	{ token::not_equals,         precedence{ 12, true  } },
+	{ lex::token::equals,             precedence{ 12, true  } },
+	{ lex::token::not_equals,         precedence{ 12, true  } },
 
-	{ token::bool_and,           precedence{ 13, true  } },
-	{ token::bool_xor,           precedence{ 14, true  } },
-	{ token::bool_or,            precedence{ 15, true  } },
+	{ lex::token::bool_and,           precedence{ 13, true  } },
+	{ lex::token::bool_xor,           precedence{ 14, true  } },
+	{ lex::token::bool_or,            precedence{ 15, true  } },
 
 	// ternary ?
-	{ token::assign,             precedence{ 16, false } },
-	{ token::plus_eq,            precedence{ 16, false } },
-	{ token::minus_eq,           precedence{ 16, false } },
-	{ token::multiply_eq,        precedence{ 16, false } },
-	{ token::divide_eq,          precedence{ 16, false } },
-	{ token::modulo_eq,          precedence{ 16, false } },
-	{ token::dot_dot_eq,         precedence{ 16, false } },
-	{ token::bit_left_shift_eq,  precedence{ 16, false } },
-	{ token::bit_right_shift_eq, precedence{ 16, false } },
-	{ token::bit_and_eq,         precedence{ 16, false } },
-	{ token::bit_xor_eq,         precedence{ 16, false } },
-	{ token::bit_or_eq,          precedence{ 16, false } },
+	{ lex::token::assign,             precedence{ 16, false } },
+	{ lex::token::plus_eq,            precedence{ 16, false } },
+	{ lex::token::minus_eq,           precedence{ 16, false } },
+	{ lex::token::multiply_eq,        precedence{ 16, false } },
+	{ lex::token::divide_eq,          precedence{ 16, false } },
+	{ lex::token::modulo_eq,          precedence{ 16, false } },
+	{ lex::token::dot_dot_eq,         precedence{ 16, false } },
+	{ lex::token::bit_left_shift_eq,  precedence{ 16, false } },
+	{ lex::token::bit_right_shift_eq, precedence{ 16, false } },
+	{ lex::token::bit_and_eq,         precedence{ 16, false } },
+	{ lex::token::bit_xor_eq,         precedence{ 16, false } },
+	{ lex::token::bit_or_eq,          precedence{ 16, false } },
 
-	{ token::comma,              precedence{ 18, true  } },
+	{ lex::token::comma,              precedence{ 18, true  } },
 };
 
 constexpr precedence no_comma{ 17, true };
 
 static std::map<uint32_t, precedence> unary_op_precendences =
 {
-	{ token::plus,               precedence{  3, false } },
-	{ token::minus,              precedence{  3, false } },
-	{ token::plus_plus,          precedence{  3, false } },
-	{ token::minus_minus,        precedence{  3, false } },
-	{ token::bit_not,            precedence{  3, false } },
-	{ token::bool_not,           precedence{  3, false } },
-	{ token::address_of,         precedence{  3, false } },
-	{ token::dereference,        precedence{  3, false } },
-	{ token::kw_sizeof,          precedence{  3, false } },
-	{ token::kw_typeof,          precedence{  3, false } },
+	{ lex::token::plus,               precedence{  3, false } },
+	{ lex::token::minus,              precedence{  3, false } },
+	{ lex::token::plus_plus,          precedence{  3, false } },
+	{ lex::token::minus_minus,        precedence{  3, false } },
+	{ lex::token::bit_not,            precedence{  3, false } },
+	{ lex::token::bool_not,           precedence{  3, false } },
+	{ lex::token::address_of,         precedence{  3, false } },
+	{ lex::token::dereference,        precedence{  3, false } },
+	{ lex::token::kw_sizeof,          precedence{  3, false } },
+	{ lex::token::kw_typeof,          precedence{  3, false } },
 	// new, delete
 };
 
@@ -149,22 +149,71 @@ static precedence get_unary_precedence(uint32_t kind)
 }
 
 static ast::expression parse_expression(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors,
 	precedence prec
 );
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 
+static void resolve_literal(
+	ast::expression &expr,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &
+)
+{
+	assert(expr.kind() == ast::expression::index<ast::expr_literal>);
+	auto &literal = *expr.get<ast::expr_literal_ptr>();
+
+	expr.expr_type.type_kind = ast::expression::rvalue;
+	switch (literal.value.index())
+	{
+	case ast::expr_literal::integer_number:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("int32")
+		);
+		break;
+	case ast::expr_literal::floating_point_number:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("float64")
+		);
+		break;
+	case ast::expr_literal::string:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("str")
+		);
+		break;
+	case ast::expr_literal::character:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("char")
+		);
+		break;
+	case ast::expr_literal::bool_true:
+	case ast::expr_literal::bool_false:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("bool")
+		);
+		break;
+	case ast::expr_literal::null:
+		expr.expr_type.expr_type = ast::make_ts_base_type(
+			context.get_type_info("null_t")
+		);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+}
+
 static ast::expression parse_primary_expression(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	if (stream == end)
@@ -173,24 +222,24 @@ static ast::expression parse_primary_expression(
 		return ast::expression();
 	}
 
-	auto const get_paren_matched_range = [](token_pos &stream, token_pos end) -> token_range
+	auto const get_paren_matched_range = [](lex::token_pos &stream, lex::token_pos end) -> lex::token_range
 	{
 		auto const begin = stream;
 		size_t paren_level = 1;
 		while (stream != end && paren_level != 0)
 		{
 			if (
-				stream->kind == token::paren_open
-				|| stream->kind == token::square_open
-				|| stream->kind == token::curly_open
+				stream->kind == lex::token::paren_open
+				|| stream->kind == lex::token::square_open
+				|| stream->kind == lex::token::curly_open
 			)
 			{
 				++paren_level;
 			}
 			else if (
-				stream->kind == token::paren_close
-				|| stream->kind == token::square_close
-				|| stream->kind == token::curly_close
+				stream->kind == lex::token::paren_close
+				|| stream->kind == lex::token::square_close
+				|| stream->kind == lex::token::curly_close
 			)
 			{
 				--paren_level;
@@ -198,9 +247,9 @@ static ast::expression parse_primary_expression(
 		}
 		assert(stream != end);
 		assert(
-			(stream - 1)->kind == token::paren_close
-			|| (stream - 1)->kind == token::square_close
-			|| (stream - 1)->kind == token::curly_close
+			(stream - 1)->kind == lex::token::paren_close
+			|| (stream - 1)->kind == lex::token::square_close
+			|| (stream - 1)->kind == lex::token::curly_close
 		);
 		assert(paren_level == 0);
 		return { begin, stream - 1 };
@@ -208,7 +257,7 @@ static ast::expression parse_primary_expression(
 
 	switch (stream->kind)
 	{
-	case token::identifier:
+	case lex::token::identifier:
 	{
 		auto id = ast::make_expr_identifier(stream);
 		id.expr_type.expr_type = context.get_identifier_type(stream);
@@ -231,19 +280,20 @@ static ast::expression parse_primary_expression(
 	}
 
 	// literals
-	case token::number_literal:
-	case token::string_literal:
-	case token::character_literal:
-	case token::kw_true:
-	case token::kw_false:
-	case token::kw_null:
+	case lex::token::number_literal:
+	case lex::token::string_literal:
+	case lex::token::character_literal:
+	case lex::token::kw_true:
+	case lex::token::kw_false:
+	case lex::token::kw_null:
 	{
 		auto literal = ast::make_expr_literal(stream);
+		resolve_literal(literal, context, errors);
 		++stream;
 		return literal;
 	}
 
-	case token::paren_open:
+	case lex::token::paren_open:
 	{
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
@@ -251,19 +301,19 @@ static ast::expression parse_primary_expression(
 	}
 
 	// tuple
-	case token::square_open:
+	case lex::token::square_open:
 	{
 		auto const begin_token = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
 		auto elems = parse_expression_comma_list(inner_stream, inner_end, context, errors);
 		auto const end_token = stream;
-		return make_expr_tuple(std::move(elems), token_range{ begin_token, end_token });
+		return make_expr_tuple(std::move(elems), lex::token_range{ begin_token, end_token });
 	}
 
 	// unary operators
 	default:
-		if (is_unary_operator(stream->kind))
+		if (lex::is_unary_operator(stream->kind))
 		{
 			auto op = stream;
 			auto prec = get_unary_precedence(op->kind);
@@ -272,13 +322,9 @@ static ast::expression parse_primary_expression(
 
 			auto result = make_expr_unary_op(op, std::move(expr));
 			result.expr_type.expr_type = context.get_operation_type(
-				*result.get<ast::expr_unary_op_ptr>()
+				*result.get<ast::expr_unary_op_ptr>(), errors
 			);
-			if (result.expr_type.expr_type.kind() == ast::typespec::null)
-			{
-				errors.emplace_back(bad_tokens(result, "undeclared unary operator"));
-			}
-			else if (result.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+			if (result.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 			{
 				result.expr_type.type_kind = ast::expression::lvalue_reference;
 				auto ref_ptr = std::move(result.expr_type.expr_type.get<ast::ts_reference_ptr>());
@@ -301,13 +347,13 @@ static ast::expression parse_primary_expression(
 
 static ast::expression parse_expression_helper(
 	ast::expression lhs,
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors,
 	precedence prec
 )
 {
-	token_pos op = nullptr;
+	lex::token_pos op = nullptr;
 	precedence op_prec;
 
 	auto const resolve_expr = [&context, &errors](ast::expression &expr)
@@ -326,13 +372,9 @@ static ast::expression parse_expression_helper(
 		}
 
 		expr.expr_type.expr_type = context.get_operation_type(
-			*expr.get<ast::expr_binary_op_ptr>()
+			*expr.get<ast::expr_binary_op_ptr>(), errors
 		);
-		if (expr.expr_type.expr_type.kind() == ast::typespec::null)
-		{
-			errors.emplace_back(bad_tokens(expr, "undeclared binary operator"));
-		}
-		else if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 		{
 			expr.expr_type.type_kind = ast::expression::lvalue_reference;
 			auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
@@ -353,11 +395,11 @@ static ast::expression parse_expression_helper(
 		++stream;
 		switch (op->kind)
 		{
-		case token::paren_open:
+		case lex::token::paren_open:
 		{
 			if (
 				stream != end
-				&& stream->kind == token::paren_close
+				&& stream->kind == lex::token::paren_close
 			)
 			{
 				++stream;
@@ -369,7 +411,7 @@ static ast::expression parse_expression_helper(
 			else
 			{
 				auto params = parse_expression_comma_list(stream, end, context, errors);
-				assert_token(stream, token::paren_close, errors);
+				assert_token(stream, lex::token::paren_close, errors);
 
 				lhs = make_expr_function_call(
 					op, std::move(lhs), std::move(params)
@@ -379,10 +421,10 @@ static ast::expression parse_expression_helper(
 			break;
 		}
 
-		case token::square_open:
+		case lex::token::square_open:
 		{
 			auto rhs = parse_expression(stream, end, context, errors, precedence{});
-			assert_token(stream, token::square_close, errors);
+			assert_token(stream, lex::token::square_close, errors);
 
 			lhs = make_expr_binary_op(
 				op, std::move(lhs), std::move(rhs)
@@ -418,16 +460,16 @@ static ast::expression parse_expression_helper(
 }
 
 static bz::vector<ast::expression> parse_expression_comma_list(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	bz::vector<ast::expression> exprs = {};
 
 	exprs.emplace_back(parse_expression(stream, end, context, errors, no_comma));
 
-	while (stream != end && stream->kind == token::comma)
+	while (stream != end && stream->kind == lex::token::comma)
 	{
 		++stream; // ','
 		exprs.emplace_back(parse_expression(stream, end, context, errors, no_comma));
@@ -437,9 +479,9 @@ static bz::vector<ast::expression> parse_expression_comma_list(
 }
 
 static ast::expression parse_expression(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors,
 	precedence prec
 )
 {
@@ -458,9 +500,9 @@ static ast::expression parse_expression(
 // ================================================================
 
 ast::typespec parse_typespec(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	if (stream == end)
@@ -471,7 +513,7 @@ ast::typespec parse_typespec(
 
 	switch (stream->kind)
 	{
-	case token::identifier:
+	case lex::token::identifier:
 	{
 		auto const id = stream;
 		++stream;
@@ -487,30 +529,30 @@ ast::typespec parse_typespec(
 		}
 	}
 
-	case token::kw_const:
+	case lex::token::kw_const:
 		++stream; // 'const'
 		return ast::make_ts_constant(parse_typespec(stream, end, context, errors));
 
-	case token::star:
+	case lex::token::star:
 		++stream; // '*'
 		return ast::make_ts_pointer(parse_typespec(stream, end, context, errors));
 
-	case token::ampersand:
+	case lex::token::ampersand:
 		++stream; // '&'
 		return ast::make_ts_reference(parse_typespec(stream, end, context, errors));
 
-	case token::kw_function:
+	case lex::token::kw_function:
 	{
 		++stream; // 'function'
-		assert_token(stream, token::paren_open, errors);
+		assert_token(stream, lex::token::paren_open, errors);
 
 		bz::vector<ast::typespec> param_types = {};
-		if (stream->kind != token::paren_close) while (stream != end)
+		if (stream->kind != lex::token::paren_close) while (stream != end)
 		{
 			param_types.push_back(parse_typespec(stream, end, context, errors));
-			if (stream->kind != token::paren_close)
+			if (stream->kind != lex::token::paren_close)
 			{
-				assert_token(stream, token::comma, errors);
+				assert_token(stream, lex::token::comma, errors);
 			}
 			else
 			{
@@ -518,25 +560,25 @@ ast::typespec parse_typespec(
 			}
 		}
 		assert(stream != end);
-		assert_token(stream, token::paren_close, errors);
-		assert_token(stream, token::arrow, errors);
+		assert_token(stream, lex::token::paren_close, errors);
+		assert_token(stream, lex::token::arrow, errors);
 
 		auto ret_type = parse_typespec(stream, end, context, errors);
 
 		return make_ts_function(std::move(ret_type), std::move(param_types));
 	}
 
-	case token::square_open:
+	case lex::token::square_open:
 	{
 		++stream; // '['
 
 		bz::vector<ast::typespec> types = {};
-		if (stream->kind != token::square_close) while (stream != end)
+		if (stream->kind != lex::token::square_close) while (stream != end)
 		{
 			types.push_back(parse_typespec(stream, end, context, errors));
-			if (stream->kind != token::square_close)
+			if (stream->kind != lex::token::square_close)
 			{
-				assert_token(stream, token::comma, errors);
+				assert_token(stream, lex::token::comma, errors);
 			}
 			else
 			{
@@ -544,7 +586,7 @@ ast::typespec parse_typespec(
 			}
 		}
 		assert(stream != end);
-		assert_token(stream, token::square_close, errors);
+		assert_token(stream, lex::token::square_close, errors);
 
 		return make_ts_tuple(std::move(types));
 	}
@@ -621,8 +663,8 @@ if (                                                                           \
 
 void resolve(
 	ast::typespec &ts,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	switch (ts.kind())
@@ -642,8 +684,8 @@ void resolve(
 
 static void resolve(
 	ast::decl_variable &var_decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	if (var_decl.var_type.kind() != ast::typespec::null)
@@ -661,32 +703,32 @@ static void resolve(
 
 static void resolve(
 	ast::decl_function &decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 }
 
 static void resolve(
 	ast::decl_operator &decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 }
 
 static void resolve(
 	ast::decl_struct &decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 }
 
 void resolve(
 	ast::declaration &decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	switch (decl.kind())
@@ -704,8 +746,8 @@ void resolve(
 
 void resolve(
 	ast::statement &stmt,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	switch (stmt.kind())
@@ -765,8 +807,8 @@ using resolve_ret_val = ast::expression::expr_type_t;
 
 static resolve_ret_val resolve(
 	ast::expr_literal const &literal,
-	parse_context &context,
-	bz::vector<error> &
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &
 )
 {
 	resolve_ret_val ret_val = {
@@ -816,8 +858,8 @@ static resolve_ret_val resolve(
 
 static resolve_ret_val resolve(
 	ast::expr_tuple &tuple,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
 	resolve_ret_val ret_val = {
@@ -838,11 +880,11 @@ static resolve_ret_val resolve(
 
 static resolve_ret_val resolve(
 	ast::expr_function_call &fn_call,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 )
 {
-	errors.emplace_back(bad_tokens(fn_call, "not yet implemented"));
+	errors.emplace_back(lex::bad_tokens(fn_call, "not yet implemented"));
 	return {
 		ast::expression::rvalue,
 		ast::typespec()
@@ -850,7 +892,7 @@ static resolve_ret_val resolve(
 }
 
 
-void resolve(ast::expression &expr, parse_context &context, bz::vector<error> &errors)
+void resolve(ast::expression &expr, ctx::parse_context &context, bz::vector<ctx::error> &errors)
 {
 	if (expr.kind() == ast::expression::index<ast::expr_unresolved>)
 	{

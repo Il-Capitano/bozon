@@ -1,8 +1,8 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-#include "../core.h"
-#include "../lexer.h"
+#include "core.h"
+#include "lex/lexer.h"
 
 #include "node.h"
 
@@ -54,9 +54,9 @@ using type_ptr = std::shared_ptr<type>;
 
 struct ts_unresolved
 {
-	token_range tokens;
+	lex::token_range tokens;
 
-	ts_unresolved(token_range _tokens)
+	ts_unresolved(lex::token_range _tokens)
 		: tokens(_tokens)
 	{}
 
@@ -140,10 +140,10 @@ struct ts_tuple
 
 struct variable
 {
-	token_pos id;
-	typespec  var_type;
+	lex::token_pos id;
+	typespec       var_type;
 
-	variable(token_pos _id, typespec _var_type)
+	variable(lex::token_pos _id, typespec _var_type)
 		: id      (_id),
 		  var_type(std::move(_var_type))
 	{}
@@ -158,9 +158,28 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 
 struct type_info
 {
-	bz::string           identifier;
-	size_t               size;
-	size_t               alignment;
+	enum class type_kind
+	{
+		int8_, int16_, int32_, int64_,
+		uint8_, uint16_, uint32_, uint64_,
+		float32_, float64_,
+		char_, str_,
+		bool_, null_t_,
+		void_,
+
+		aggregate,
+	};
+
+	enum : size_t
+	{
+		built_in = 1ull,
+	};
+
+	type_kind  kind;
+	bz::string identifier;
+	size_t     size;
+	size_t     alignment;
+	size_t     flags;
 	bz::vector<variable> member_variables;
 };
 

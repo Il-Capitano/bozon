@@ -61,7 +61,7 @@ struct expression : node<
 	struct expr_type_t
 	{
 		expr_type_kind type_kind;
-		typespec expr_type;
+		typespec       expr_type;
 	};
 
 	expr_type_t expr_type;
@@ -76,37 +76,37 @@ struct expression : node<
 
 struct expr_unresolved
 {
-	token_range expr;
+	lex::token_range expr;
 
-	expr_unresolved(token_range _expr)
+	expr_unresolved(lex::token_range _expr)
 		: expr(_expr)
 	{}
 
-	token_pos get_tokens_begin(void) const
+	lex::token_pos get_tokens_begin(void) const
 	{ return this->expr.begin; }
 
-	token_pos get_tokens_pivot(void) const
+	lex::token_pos get_tokens_pivot(void) const
 	{ return this->expr.begin; }
 
-	token_pos get_tokens_end(void) const
+	lex::token_pos get_tokens_end(void) const
 	{ return this->expr.end; }
 };
 
 struct expr_identifier
 {
-	token_pos identifier;
+	lex::token_pos identifier;
 
-	expr_identifier(token_pos _id)
+	expr_identifier(lex::token_pos _id)
 		: identifier(_id)
 	{}
 
-	token_pos get_tokens_begin(void) const
+	lex::token_pos get_tokens_begin(void) const
 	{ return this->identifier; }
 
-	token_pos get_tokens_pivot(void) const
+	lex::token_pos get_tokens_pivot(void) const
 	{ return this->identifier; }
 
-	token_pos get_tokens_end(void) const
+	lex::token_pos get_tokens_end(void) const
 	{ return this->identifier + 1; }
 };
 
@@ -131,87 +131,87 @@ struct expr_literal
 		null                  = value_t::index_of<_null>,
 	};
 
-	value_t   value;
-	token_pos src_pos;
+	value_t        value;
+	lex::token_pos src_pos;
 
-	expr_literal(token_pos stream);
+	expr_literal(lex::token_pos stream);
 
-	token_pos get_tokens_begin(void) const
+	lex::token_pos get_tokens_begin(void) const
 	{ return this->src_pos; }
 
-	token_pos get_tokens_pivot(void) const
+	lex::token_pos get_tokens_pivot(void) const
 	{ return this->src_pos; }
 
-	token_pos get_tokens_end(void) const
+	lex::token_pos get_tokens_end(void) const
 	{ return this->src_pos + 1; }
 };
 
 struct expr_tuple
 {
 	bz::vector<expression> elems;
-	token_range            tokens;
+	lex::token_range       tokens;
 
-	expr_tuple(bz::vector<expression> _elems, token_range _tokens)
+	expr_tuple(bz::vector<expression> _elems, lex::token_range _tokens)
 		: elems(std::move(_elems)), tokens(_tokens)
 	{}
 
-	token_pos get_tokens_begin(void) const
+	lex::token_pos get_tokens_begin(void) const
 	{ return this->tokens.begin; }
 
-	token_pos get_tokens_pivot(void) const
+	lex::token_pos get_tokens_pivot(void) const
 	{ return this->tokens.begin; }
 
-	token_pos get_tokens_end(void) const
+	lex::token_pos get_tokens_end(void) const
 	{ return this->tokens.end; }
 };
 
 struct expr_unary_op
 {
-	token_pos  op;
-	expression expr;
+	lex::token_pos op;
+	expression     expr;
 
-	expr_unary_op(token_pos _op, expression _expr)
+	expr_unary_op(lex::token_pos _op, expression _expr)
 		: op  (_op),
 		  expr(std::move(_expr))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 };
 
 struct expr_binary_op
 {
-	token_pos  op;
-	expression lhs;
-	expression rhs;
+	lex::token_pos op;
+	expression     lhs;
+	expression     rhs;
 
-	expr_binary_op(token_pos _op, expression _lhs, expression _rhs)
+	expr_binary_op(lex::token_pos _op, expression _lhs, expression _rhs)
 		: op (_op),
 		  lhs(std::move(_lhs)),
 		  rhs(std::move(_rhs))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 };
 
 struct expr_function_call
 {
-	token_pos              op;
+	lex::token_pos         op;
 	expression             called;
 	bz::vector<expression> params;
 
-	expr_function_call(token_pos _op, expression _called, bz::vector<expression> _params)
+	expr_function_call(lex::token_pos _op, expression _called, bz::vector<expression> _params)
 		: op    (_op),
 		  called(std::move(_called)),
 		  params(std::move(_params))
 	{}
 
-	token_pos get_tokens_begin() const;
-	token_pos get_tokens_pivot() const;
-	token_pos get_tokens_end() const;
+	lex::token_pos get_tokens_begin() const;
+	lex::token_pos get_tokens_pivot() const;
+	lex::token_pos get_tokens_end() const;
 };
 
 

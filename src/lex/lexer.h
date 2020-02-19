@@ -3,6 +3,11 @@
 
 #include "core.h"
 
+#include "ctx/error.h"
+
+namespace lex
+{
+
 struct token
 {
 	enum : uint32_t
@@ -136,7 +141,6 @@ struct token
 };
 
 
-using char_pos  = bz::string_view::const_iterator;
 using token_pos = bz::vector<token>::const_iterator;
 
 
@@ -186,47 +190,19 @@ struct token_range
 	token_pos end;
 };
 
-struct note
-{
-	bz::string file;
-	size_t line;
-	size_t column;
-
-	char_pos src_begin;
-	char_pos src_pivot;
-	char_pos src_end;
-
-	bz::string message;
-};
-
-struct error
-{
-	bz::string file;
-	size_t line;
-	size_t column;
-
-	char_pos src_begin;
-	char_pos src_pivot;
-	char_pos src_end;
-
-	bz::string message;
-
-	bz::vector<note> notes;
-};
-
 bz::vector<token> get_tokens(
 	bz::string_view file,
 	bz::string_view file_name,
-	bz::vector<error> &errors
+	bz::vector<ctx::error> &errors
 );
 
-[[nodiscard]] inline error bad_token(
+[[nodiscard]] inline ctx::error bad_token(
 	token_pos it,
 	bz::string message,
-	bz::vector<note> notes = {}
+	bz::vector<ctx::note> notes = {}
 )
 {
-	return error{
+	return ctx::error{
 		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message),
@@ -234,18 +210,18 @@ bz::vector<token> get_tokens(
 	};
 }
 
-[[nodiscard]] inline error bad_token(token_pos it)
+[[nodiscard]] inline ctx::error bad_token(token_pos it)
 {
 	return bad_token(it, bz::format("unexpected token '{}'", it->value));
 }
 
-[[nodiscard]] inline error bad_tokens(
+[[nodiscard]] inline ctx::error bad_tokens(
 	token_pos begin, token_pos pivot, token_pos end,
 	bz::string message,
-	bz::vector<note> notes = {}
+	bz::vector<ctx::note> notes = {}
 )
 {
-	return error{
+	return ctx::error{
 		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message),
@@ -254,10 +230,10 @@ bz::vector<token> get_tokens(
 }
 
 template<typename T, typename ...Ts>
-[[nodiscard]] inline error bad_tokens(
+[[nodiscard]] inline ctx::error bad_tokens(
 	T const &tokens,
 	bz::string message,
-	bz::vector<note> notes = {}
+	bz::vector<ctx::note> notes = {}
 )
 {
 	return bad_tokens(
@@ -269,24 +245,24 @@ template<typename T, typename ...Ts>
 	);
 }
 
-[[nodiscard]] inline note make_note(
+[[nodiscard]] inline ctx::note make_note(
 	token_pos it,
 	bz::string message
 )
 {
-	return note{
+	return ctx::note{
 		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message)
 	};
 }
 
-[[nodiscard]] inline note make_note(
+[[nodiscard]] inline ctx::note make_note(
 	token_pos begin, token_pos pivot, token_pos end,
 	bz::string message
 )
 {
-	return note{
+	return ctx::note{
 		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
 		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
 		std::move(message)
@@ -296,13 +272,15 @@ template<typename T, typename ...Ts>
 token_pos assert_token(
 	token_pos &stream,
 	uint32_t kind,
-	bz::vector<error> &errors
+	bz::vector<ctx::error> &errors
 );
 
 token_pos assert_token(
 	token_pos &stream,
 	uint32_t kind1, uint32_t kind2,
-	bz::vector<error> &errors
+	bz::vector<ctx::error> &errors
 );
+
+} // namespace lex
 
 #endif // LEXER_H

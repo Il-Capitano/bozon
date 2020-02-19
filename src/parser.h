@@ -3,36 +3,35 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "parse_context.h"
-
+#include "ctx/parse_context.h"
 
 
 void resolve(
 	ast::typespec &ts,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 void resolve(
 	ast::expression &expr,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 void resolve(
 	ast::declaration &decl,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 void resolve(
 	ast::statement &stmt,
-	parse_context &context,
-	bz::vector<error> &errors
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 
 
 ast::typespec parse_typespec(
-	token_pos &stream, token_pos end,
-	parse_context &context,
-	bz::vector<error> &errors
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	bz::vector<ctx::error> &errors
 );
 
 #endif // PARSER_H

@@ -26,33 +26,33 @@ static bytecode::type_kind get_type_kind(ast::typespec const &ts)
 }
 
 
-token_pos expr_unary_op::get_tokens_begin(void) const
+lex::token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
 
-token_pos expr_unary_op::get_tokens_pivot(void) const
+lex::token_pos expr_unary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-token_pos expr_unary_op::get_tokens_end(void) const
+lex::token_pos expr_unary_op::get_tokens_end(void) const
 { return this->expr.get_tokens_end(); }
 
 
-token_pos expr_binary_op::get_tokens_begin(void) const
+lex::token_pos expr_binary_op::get_tokens_begin(void) const
 { return this->lhs.get_tokens_begin(); }
 
-token_pos expr_binary_op::get_tokens_pivot(void) const
+lex::token_pos expr_binary_op::get_tokens_pivot(void) const
 { return this->op; }
 
-token_pos expr_binary_op::get_tokens_end(void) const
+lex::token_pos expr_binary_op::get_tokens_end(void) const
 { return this->rhs.get_tokens_end(); }
 
 
-token_pos expr_function_call::get_tokens_begin(void) const
+lex::token_pos expr_function_call::get_tokens_begin(void) const
 { return this->called.get_tokens_begin(); }
 
-token_pos expr_function_call::get_tokens_pivot(void) const
+lex::token_pos expr_function_call::get_tokens_pivot(void) const
 { return this->op; }
 
-token_pos expr_function_call::get_tokens_end(void) const
+lex::token_pos expr_function_call::get_tokens_end(void) const
 {
 	if (this->params.size() == 0)
 	{
@@ -66,12 +66,12 @@ token_pos expr_function_call::get_tokens_end(void) const
 
 
 
-expr_literal::expr_literal(token_pos stream)
+expr_literal::expr_literal(lex::token_pos stream)
 	: src_pos(stream)
 {
 	switch(stream->kind)
 	{
-	case token::number_literal:
+	case lex::token::number_literal:
 	{
 		bz::string value = stream->value;
 		value.erase('\'');
@@ -108,7 +108,7 @@ expr_literal::expr_literal(token_pos stream)
 		break;
 	}
 
-	case token::string_literal:
+	case lex::token::string_literal:
 	{
 		auto &str = stream->value;
 		bz::string res = "";
@@ -152,7 +152,7 @@ expr_literal::expr_literal(token_pos stream)
 		break;
 	}
 
-	case token::character_literal:
+	case lex::token::character_literal:
 		if (stream->value.length() == 1)
 		{
 			this->value.emplace<character>(stream->value[0]);
@@ -185,15 +185,15 @@ expr_literal::expr_literal(token_pos stream)
 		}
 		break;
 
-	case token::kw_true:
+	case lex::token::kw_true:
 		this->value.emplace<bool_true>();
 		break;
 
-	case token::kw_false:
+	case lex::token::kw_false:
 		this->value.emplace<bool_false>();
 		break;
 
-	case token::kw_null:
+	case lex::token::kw_null:
 		this->value.emplace<null>();
 		break;
 

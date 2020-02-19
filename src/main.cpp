@@ -1000,7 +1000,7 @@ struct vec3
 
 #include "core.h"
 
-#include "lexer.h"
+#include "lex/lexer.h"
 #include "first_pass_parser.h"
 #include "parser.h"
 
@@ -1229,11 +1229,11 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 	{
 		auto &op_decl = decl.get<ast::decl_operator_ptr>();
 		indent();
-		if (op_decl->op->kind == token::paren_open)
+		if (op_decl->op->kind == lex::token::paren_open)
 		{
 			bz::print(os, "operator () (");
 		}
-		else if (op_decl->op->kind == token::square_open)
+		else if (op_decl->op->kind == lex::token::square_open)
 		{
 			bz::print(os, "operator [] (");
 		}
@@ -1410,11 +1410,11 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 	{
 		auto &op_decl = stmt.get<ast::decl_operator_ptr>();
 		indent();
-		if (op_decl->op->kind == token::paren_open)
+		if (op_decl->op->kind == lex::token::paren_open)
 		{
 			bz::print(os, "operator () (");
 		}
-		else if (op_decl->op->kind == token::square_open)
+		else if (op_decl->op->kind == lex::token::square_open)
 		{
 			bz::print(os, "operator [] (");
 		}

@@ -1,5 +1,8 @@
 #include "parse_context.h"
 
+namespace ctx
+{
+
 void parse_context::add_scope(void)
 {
 	this->scope_variables.push_back({});
@@ -132,7 +135,7 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 }
 
 
-ast::typespec parse_context::get_identifier_type(token_pos id) const
+ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
 {
 	// we go in reverse through the scopes and the variables
 	// in case there's shadowing
@@ -247,8 +250,62 @@ static bool are_directly_matchable_types(
 	return false;
 }
 
-ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_op)
+static bool is_built_in_type(ast::typespec const &ts)
 {
+	switch (ts.kind())
+	{
+	case ast::typespec::index<ast::ts_constant>:
+		return is_built_in_type(ts.get<ast::ts_constant_ptr>()->base);
+	case ast::typespec::index<ast::ts_base_type>:
+	{
+		auto &base = *ts.get<ast::ts_base_type_ptr>();
+		return (base.info->flags & ast::type_info::built_in) != 0;
+	}
+	case ast::typespec::index<ast::ts_pointer>:
+	case ast::typespec::index<ast::ts_function>:
+	case ast::typespec::index<ast::ts_tuple>:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static ast::typespec get_built_in_operation_type(
+	ast::expr_unary_op const &unary_op,
+	bz::vector<error> &errors
+)
+{
+	switch (unary_op.op->kind)
+	{
+	case lex::token::ampersand:
+		if (
+			unary_op.expr.expr_type.type_kind == ast::expression::lvalue
+			|| unary_op.expr.expr_type.type_kind == ast::expression::lvalue_reference
+		)
+		{
+			return ast::make_ts_pointer(unary_op.expr.expr_type.expr_type);
+		}
+		else
+		{
+			errors.emplace_back(lex::bad_tokens(unary_op, "cannot take address of an rvalue"));
+			return ast::typespec();
+		}
+	default:
+		assert(false);
+	}
+	return ast::typespec();
+}
+
+ast::typespec parse_context::get_operation_type(
+	ast::expr_unary_op const &unary_op,
+	bz::vector<error> &errors
+)
+{
+	if (is_built_in_type(unary_op.expr.expr_type.expr_type))
+	{
+		return get_built_in_operation_type(unary_op, errors);
+	}
+
 	auto const set = std::find_if(
 		this->global_operators.begin(),
 		this->global_operators.end(),
@@ -259,6 +316,7 @@ ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_
 
 	if (set == this->global_operators.end())
 	{
+		errors.emplace_back(lex::bad_tokens(unary_op, "undeclared unary operator"));
 		return ast::typespec();
 	}
 
@@ -275,10 +333,14 @@ ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_
 		}
 	}
 
+	errors.emplace_back(lex::bad_tokens(unary_op, "undeclared unary operator"));
 	return ast::typespec();
 }
 
-ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binary_op)
+ast::typespec parse_context::get_operation_type(
+	ast::expr_binary_op const &binary_op,
+	bz::vector<error> &errors
+)
 {
 	auto const set = std::find_if(
 		this->global_operators.begin(),
@@ -290,6 +352,7 @@ ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binar
 
 	if (set == this->global_operators.end())
 	{
+		errors.emplace_back(lex::bad_tokens(binary_op, "undeclared binary operator"));
 		return ast::typespec();
 	}
 
@@ -309,6 +372,7 @@ ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binar
 		}
 	}
 
+	errors.emplace_back(lex::bad_tokens(binary_op, "undeclared binary operator"));
 	return ast::typespec();
 }
 
@@ -325,3 +389,5 @@ ast::type_info const *parse_context::get_type_info(bz::string_view id) const
 
 	return nullptr;
 }
+
+} // namespace ctx

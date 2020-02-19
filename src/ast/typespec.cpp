@@ -1,5 +1,4 @@
 #include "typespec.h"
-#include "../parse_context.h"
 
 namespace ast
 {

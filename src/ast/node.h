@@ -1,8 +1,8 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include "../core.h"
-#include "../lexer.h"
+#include "core.h"
+#include "lex/lexer.h"
 
 namespace ast
 {
@@ -71,7 +71,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_begin(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> token_pos
+			[](auto const &elem) -> lex::token_pos
 			{
 				return elem->get_tokens_begin();
 			}
@@ -82,7 +82,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_pivot(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> token_pos
+			[](auto const &elem) -> lex::token_pos
 			{
 				return elem->get_tokens_pivot();
 			}
@@ -93,7 +93,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto get_tokens_end(void) const
 	{
 		return this->visit(
-			[](auto const &elem) -> token_pos
+			[](auto const &elem) -> lex::token_pos
 			{
 				return elem->get_tokens_end();
 			}

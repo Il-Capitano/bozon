@@ -1,5 +1,8 @@
 #include "lexer.h"
 
+namespace lex
+{
+
 using token_pair = std::pair<bz::string_view, uint32_t>;
 
 static constexpr std::array<
@@ -73,7 +76,7 @@ static constexpr std::array<
 
 struct file_iterator
 {
-	char_pos it;
+	ctx::char_pos it;
 	bz::string_view file;
 	size_t line = 1;
 	size_t column = 1;
@@ -97,14 +100,14 @@ struct file_iterator
 
 static token get_next_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &errors
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &errors
 );
 
 bz::vector<token> get_tokens(
 	bz::string_view file,
 	bz::string_view file_name,
-	bz::vector<error> &errors
+	bz::vector<ctx::error> &errors
 )
 {
 	bz::vector<token> tokens = {};
@@ -368,12 +371,12 @@ static constexpr bool is_whitespace_char(char c)
 		|| c == '\r'; // for windows line ends
 }
 
-[[nodiscard]] static error bad_char(
+[[nodiscard]] static ctx::error bad_char(
 	file_iterator const &stream,
-	bz::string message, bz::vector<note> notes = {}
+	bz::string message, bz::vector<ctx::note> notes = {}
 )
 {
-	return error{
+	return ctx::error{
 		stream.file, stream.line, stream.column,
 		stream.it, stream.it, stream.it + 1,
 		std::move(message),
@@ -381,12 +384,12 @@ static constexpr bool is_whitespace_char(char c)
 	};
 }
 
-[[nodiscard]] static error bad_char(
+[[nodiscard]] static ctx::error bad_char(
 	bz::string_view file, size_t line, size_t column,
-	bz::string message, bz::vector<note> notes = {}
+	bz::string message, bz::vector<ctx::note> notes = {}
 )
 {
-	return error{
+	return ctx::error{
 		file, line, column,
 		nullptr, nullptr, nullptr,
 		std::move(message),
@@ -395,7 +398,7 @@ static constexpr bool is_whitespace_char(char c)
 }
 
 
-static void skip_comments_and_whitespace(file_iterator &stream, char_pos const end)
+static void skip_comments_and_whitespace(file_iterator &stream, ctx::char_pos const end)
 {
 	while (stream.it != end && is_whitespace_char(*stream.it))
 	{
@@ -455,8 +458,8 @@ static void skip_comments_and_whitespace(file_iterator &stream, char_pos const e
 
 static token get_identifier_or_keyword_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &
 )
 {
 	assert(stream.it != end);
@@ -509,8 +512,8 @@ static token get_identifier_or_keyword_token(
 
 static token get_character_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &errors
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &errors
 )
 {
 	assert(stream.it != end);
@@ -526,7 +529,7 @@ static token get_character_token(
 		errors.emplace_back(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing ' before end-of-file",
-			{ note{
+			{ ctx::note{
 				stream.file, line, column,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
@@ -582,7 +585,7 @@ static token get_character_token(
 		errors.emplace_back(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing ' before end-of-file",
-			{ note{
+			{ ctx::note{
 				stream.file, line, column,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
@@ -593,7 +596,7 @@ static token get_character_token(
 	{
 		errors.emplace_back(bad_char(
 			stream, "expected closing '",
-			{ note{
+			{ ctx::note{
 				stream.file, line, column,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
@@ -615,8 +618,8 @@ static token get_character_token(
 
 static token get_string_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &errors
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &errors
 )
 {
 	assert(stream.it != end);
@@ -666,7 +669,7 @@ static token get_string_token(
 		errors.emplace_back(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing \" before end-of-file",
-			{ note{
+			{ ctx::note{
 				stream.file, line, column,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
@@ -689,8 +692,8 @@ static token get_string_token(
 
 static token get_number_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &
 )
 {
 	assert(stream.it != end);
@@ -740,8 +743,8 @@ static token get_number_token(
 
 static token get_single_char_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &
 )
 {
 	assert(stream.it != end);
@@ -758,7 +761,7 @@ static token get_single_char_token(
 	);
 }
 
-static bool is_str(bz::string_view str, file_iterator &stream, char_pos const end)
+static bool is_str(bz::string_view str, file_iterator &stream, ctx::char_pos const end)
 {
 	auto str_it = str.begin();
 	auto const str_end = str.end();
@@ -774,8 +777,8 @@ static bool is_str(bz::string_view str, file_iterator &stream, char_pos const en
 
 static token get_next_token(
 	file_iterator &stream,
-	char_pos const end,
-	bz::vector<error> &errors
+	ctx::char_pos const end,
+	bz::vector<ctx::error> &errors
 )
 {
 	skip_comments_and_whitespace(stream, end);
@@ -860,7 +863,7 @@ static bz::string get_token_for_message(uint32_t kind)
 	}
 }
 
-token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &errors)
+token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<ctx::error> &errors)
 {
 	if (stream->kind != kind)
 	{
@@ -883,7 +886,7 @@ token_pos assert_token(token_pos &stream, uint32_t kind, bz::vector<error> &erro
 token_pos assert_token(
 	token_pos &stream,
 	uint32_t kind1, uint32_t kind2,
-	bz::vector<error> &errors
+	bz::vector<ctx::error> &errors
 )
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
@@ -909,3 +912,5 @@ token_pos assert_token(
 		return t;
 	}
 }
+
+} // namespace lex

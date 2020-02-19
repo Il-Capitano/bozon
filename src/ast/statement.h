@@ -86,15 +86,15 @@ struct statement : node<
 
 struct stmt_if
 {
-	token_range             tokens;
+	lex::token_range        tokens;
 	expression              condition;
 	statement               then_block;
 	bz::optional<statement> else_block;
 
 	stmt_if(
-		token_range _tokens,
-		expression  _condition,
-		statement   _then_block
+		lex::token_range _tokens,
+		expression       _condition,
+		statement        _then_block
 	)
 		: tokens    (_tokens),
 		  condition (std::move(_condition)),
@@ -102,10 +102,10 @@ struct stmt_if
 	{}
 
 	stmt_if(
-		token_range _tokens,
-		expression  _condition,
-		statement   _then_block,
-		statement   _else_block
+		lex::token_range _tokens,
+		expression       _condition,
+		statement        _then_block,
+		statement        _else_block
 	)
 		: tokens    (_tokens),
 		  condition (std::move(_condition)),
@@ -113,32 +113,32 @@ struct stmt_if
 		  else_block(std::move(_else_block))
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct stmt_while
 {
-	token_range tokens;
-	expression  condition;
-	statement   while_block;
+	lex::token_range tokens;
+	expression       condition;
+	statement        while_block;
 
 	stmt_while(
-		token_range _tokens,
-		expression  _condition,
-		statement   _while_block
+		lex::token_range _tokens,
+		expression       _condition,
+		statement        _while_block
 	)
 		: tokens     (_tokens),
 		  condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -147,76 +147,76 @@ struct stmt_for
 {
 	// TODO
 
-	token_pos get_tokens_begin(void) const { assert(false); exit(1); }
-	token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
-	token_pos get_tokens_end(void) const   { assert(false); exit(1); }
+	lex::token_pos get_tokens_begin(void) const { assert(false); exit(1); }
+	lex::token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
+	lex::token_pos get_tokens_end(void) const   { assert(false); exit(1); }
 
 	void resolve(void);
 };
 
 struct stmt_return
 {
-	token_range tokens;
-	expression  expr;
+	lex::token_range tokens;
+	expression       expr;
 
-	stmt_return(token_range _tokens, expression _expr)
+	stmt_return(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct stmt_no_op
 {
-	token_range tokens;
+	lex::token_range tokens;
 
-	stmt_no_op(token_range _tokens)
+	stmt_no_op(lex::token_range _tokens)
 		: tokens(_tokens)
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void) {}
 };
 
 struct stmt_compound
 {
-	token_range           tokens;
+	lex::token_range      tokens;
 	bz::vector<statement> statements;
 
-	stmt_compound(token_range _tokens)
+	stmt_compound(lex::token_range _tokens)
 		: tokens(_tokens)
 	{}
 
-	stmt_compound(token_range _tokens, bz::vector<statement> _stms)
+	stmt_compound(lex::token_range _tokens, bz::vector<statement> _stms)
 		: tokens(_tokens), statements(std::move(_stms))
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
 
 struct stmt_expression
 {
-	token_range tokens;
-	expression  expr;
+	lex::token_range tokens;
+	expression       expr;
 
-	stmt_expression(token_range _tokens, expression _expr)
+	stmt_expression(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
 
-	token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	token_pos get_tokens_end(void) const   { return this->tokens.end; }
+	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
+	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 
 	void resolve(void);
 };
@@ -224,18 +224,18 @@ struct stmt_expression
 
 struct decl_variable
 {
-	token_range              tokens;
-	token_pos                identifier;
+	lex::token_range         tokens;
+	lex::token_pos           identifier;
 	typespec                 prototype;
 	typespec                 var_type;
 	bz::optional<expression> init_expr;
 
 	decl_variable(
-		token_range _tokens,
-		token_pos   _id,
-		typespec    _prototype,
-		typespec    _var_type,
-		expression  _init_expr
+		lex::token_range _tokens,
+		lex::token_pos   _id,
+		typespec         _prototype,
+		typespec         _var_type,
+		expression       _init_expr
 	)
 		: tokens    (_tokens),
 		  identifier(_id),
@@ -245,10 +245,10 @@ struct decl_variable
 	{}
 
 	decl_variable(
-		token_range _tokens,
-		token_pos   _id,
-		typespec    _prototype,
-		typespec    _var_type
+		lex::token_range _tokens,
+		lex::token_pos   _id,
+		typespec         _prototype,
+		typespec         _var_type
 	)
 		: tokens(_tokens),
 		  identifier(_id),
@@ -258,10 +258,10 @@ struct decl_variable
 	{}
 
 	decl_variable(
-		token_range _tokens,
-		token_pos   _id,
-		typespec    _prototype,
-		expression  _init_expr
+		lex::token_range _tokens,
+		lex::token_pos   _id,
+		typespec         _prototype,
+		expression       _init_expr
 	)
 		: tokens    (_tokens),
 		  identifier(_id),
@@ -270,9 +270,9 @@ struct decl_variable
 		  init_expr (std::move(_init_expr))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 	void emit_bytecode(bz::vector<bytecode::instruction> &out);
@@ -280,13 +280,13 @@ struct decl_variable
 
 struct decl_function
 {
-	token_pos             identifier;
+	lex::token_pos        identifier;
 	bz::vector<variable>  params;
 	typespec              return_type;
 	bz::vector<statement> body;
 
 	decl_function(
-		token_pos             _id,
+		lex::token_pos        _id,
 		bz::vector<variable>  _params,
 		typespec              _ret_type,
 		bz::vector<statement> _body
@@ -297,22 +297,22 @@ struct decl_function
 		  body       (std::move(_body))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct decl_operator
 {
-	token_pos             op;
+	lex::token_pos        op;
 	bz::vector<variable>  params;
 	typespec              return_type;
 	bz::vector<statement> body;
 
 	decl_operator(
-		token_pos             _op,
+		lex::token_pos        _op,
 		bz::vector<variable>  _params,
 		typespec              _ret_type,
 		bz::vector<statement> _body
@@ -323,26 +323,26 @@ struct decl_operator
 		  body       (std::move(_body))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };
 
 struct decl_struct
 {
-	token_pos                 identifier;
+	lex::token_pos            identifier;
 	bz::vector<ast::variable> member_variables;
 
-	decl_struct(token_pos _id, bz::vector<ast::variable> _members)
+	decl_struct(lex::token_pos _id, bz::vector<ast::variable> _members)
 		: identifier      (_id),
 		  member_variables(std::move(_members))
 	{}
 
-	token_pos get_tokens_begin(void) const;
-	token_pos get_tokens_pivot(void) const;
-	token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 
 	void resolve(void);
 };

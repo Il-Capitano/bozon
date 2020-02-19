@@ -3,9 +3,9 @@
 
 #include "core.h"
 
-#include "lexer.h"
+#include "lex/lexer.h"
 #include "first_pass_parser.h"
-#include "parse_context.h"
+#include "ctx/parse_context.h"
 #include "parser.h"
 
 struct src_file
@@ -22,13 +22,13 @@ struct src_file
 public:
 	src_file_stage _stage;
 
-	bz::vector<error> _errors;
+	bz::vector<ctx::error> _errors;
 
-	bz::string        _file_name;
-	bz::string        _file;
-	bz::vector<token> _tokens;
+	bz::string             _file_name;
+	bz::string             _file;
+	bz::vector<lex::token> _tokens;
 
-	parse_context                _context;
+	ctx::parse_context           _context;
 	bz::vector<ast::declaration> _declarations;
 
 public:
