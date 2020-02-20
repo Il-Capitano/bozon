@@ -1,4 +1,5 @@
 #include "test.h"
+#include "timer.h"
 
 test_result lexer_test(void);
 test_result first_pass_parser_test(void);
@@ -17,9 +18,11 @@ int main(void)
 
 	try
 	{
+		auto const begin = timer::now();
 		add_to_total(lexer_test());
 		add_to_total(first_pass_parser_test());
 		add_to_total(parser_test());
+		auto const end = timer::now();
 
 		auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
 		auto const highlight_color =
@@ -28,8 +31,9 @@ int main(void)
 			: colors::bright_red;
 
 		bz::printf(
-			"\nFinished running all tests\n"
+			"\nFinished running all tests in {:.3f}ms\n"
 			"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
+			(end - begin).count() * 1000.0,
 			highlight_color,
 			passed_count, test_count,
 			colors::clear,
