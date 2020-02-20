@@ -148,6 +148,38 @@ static precedence get_unary_precedence(uint32_t kind)
 	}
 }
 
+lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos end)
+{
+	auto const begin = stream;
+	size_t paren_level = 1;
+	for (; stream != end && paren_level != 0; ++stream)
+	{
+		if (
+			stream->kind == lex::token::paren_open
+			|| stream->kind == lex::token::square_open
+			|| stream->kind == lex::token::curly_open
+		)
+		{
+			++paren_level;
+		}
+		else if (
+			stream->kind == lex::token::paren_close
+			|| stream->kind == lex::token::square_close
+			|| stream->kind == lex::token::curly_close
+		)
+		{
+			--paren_level;
+		}
+	}
+	assert(paren_level == 0);
+	assert(
+		(stream - 1)->kind == lex::token::paren_close
+		|| (stream - 1)->kind == lex::token::square_close
+		|| (stream - 1)->kind == lex::token::curly_close
+	);
+	return { begin, stream - 1 };
+};
+
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
@@ -222,50 +254,13 @@ static ast::expression parse_primary_expression(
 		return ast::expression();
 	}
 
-	auto const get_paren_matched_range = [](lex::token_pos &stream, lex::token_pos end) -> lex::token_range
-	{
-		auto const begin = stream;
-		size_t paren_level = 1;
-		while (stream != end && paren_level != 0)
-		{
-			if (
-				stream->kind == lex::token::paren_open
-				|| stream->kind == lex::token::square_open
-				|| stream->kind == lex::token::curly_open
-			)
-			{
-				++paren_level;
-			}
-			else if (
-				stream->kind == lex::token::paren_close
-				|| stream->kind == lex::token::square_close
-				|| stream->kind == lex::token::curly_close
-			)
-			{
-				--paren_level;
-			}
-		}
-		assert(stream != end);
-		assert(
-			(stream - 1)->kind == lex::token::paren_close
-			|| (stream - 1)->kind == lex::token::square_close
-			|| (stream - 1)->kind == lex::token::curly_close
-		);
-		assert(paren_level == 0);
-		return { begin, stream - 1 };
-	};
-
 	switch (stream->kind)
 	{
 	case lex::token::identifier:
 	{
-		auto id = ast::make_expr_identifier(stream);
-		id.expr_type.expr_type = context.get_identifier_type(stream);
-		if (id.expr_type.expr_type.kind() == ast::typespec::null)
-		{
-			errors.emplace_back(bad_token(stream, "undeclared identifier"));
-		}
-		else if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream);
+		id.expr_type.expr_type = context.get_identifier_type(stream, errors);
+		if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 		{
 			id.expr_type.type_kind = ast::expression::lvalue_reference;
 			auto ref_ptr = std::move(id.expr_type.expr_type.get<ast::ts_reference_ptr>());
@@ -287,17 +282,20 @@ static ast::expression parse_primary_expression(
 	case lex::token::kw_false:
 	case lex::token::kw_null:
 	{
-		auto literal = ast::make_expr_literal(stream);
-		resolve_literal(literal, context, errors);
+		auto literal = ast::make_expr_literal({ stream, stream + 1 }, stream);
 		++stream;
+		resolve_literal(literal, context, errors);
 		return literal;
 	}
 
 	case lex::token::paren_open:
 	{
+		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-		return parse_expression(inner_stream, inner_end, context, errors, precedence{});
+		auto expr = parse_expression(inner_stream, inner_end, context, errors, precedence{});
+		expr.tokens = { paren_begin, stream };
+		return expr;
 	}
 
 	// tuple
@@ -308,7 +306,10 @@ static ast::expression parse_primary_expression(
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
 		auto elems = parse_expression_comma_list(inner_stream, inner_end, context, errors);
 		auto const end_token = stream;
-		return make_expr_tuple(std::move(elems), lex::token_range{ begin_token, end_token });
+		return make_expr_tuple(
+			{ begin_token, end_token },
+			std::move(elems)
+		);
 	}
 
 	// unary operators
@@ -320,7 +321,7 @@ static ast::expression parse_primary_expression(
 			++stream;
 			auto expr = parse_expression(stream, end, context, errors, prec);
 
-			auto result = make_expr_unary_op(op, std::move(expr));
+			auto result = make_expr_unary_op({ op, stream }, op, std::move(expr));
 			result.expr_type.expr_type = context.get_operation_type(
 				*result.get<ast::expr_unary_op_ptr>(), errors
 			);
@@ -358,31 +359,40 @@ static ast::expression parse_expression_helper(
 
 	auto const resolve_expr = [&context, &errors](ast::expression &expr)
 	{
-		assert(expr.kind() == ast::expression::index<ast::expr_binary_op>);
-
-		auto &binary_expr = *expr.get<ast::expr_binary_op_ptr>();
-		if (
-			binary_expr.lhs.kind() == ast::expression::null
-			|| binary_expr.lhs.expr_type.expr_type.kind() == ast::typespec::null
-			|| binary_expr.rhs.kind() == ast::expression::null
-			|| binary_expr.rhs.expr_type.expr_type.kind() == ast::typespec::null
-		)
+		if (expr.kind() == ast::expression::index<ast::expr_binary_op>)
 		{
-			return;
+			auto &binary_expr = *expr.get<ast::expr_binary_op_ptr>();
+			if (
+				binary_expr.lhs.kind() == ast::expression::null
+				|| binary_expr.lhs.expr_type.expr_type.kind() == ast::typespec::null
+				|| binary_expr.rhs.kind() == ast::expression::null
+				|| binary_expr.rhs.expr_type.expr_type.kind() == ast::typespec::null
+			)
+			{
+				return;
+			}
+
+			expr.expr_type.expr_type = context.get_operation_type(
+				*expr.get<ast::expr_binary_op_ptr>(), errors
+			);
+			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+			{
+				expr.expr_type.type_kind = ast::expression::lvalue_reference;
+				auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
+				expr.expr_type.expr_type = std::move(ref_ptr->base);
+			}
+			else
+			{
+				expr.expr_type.type_kind = ast::expression::rvalue;
+			}
 		}
-
-		expr.expr_type.expr_type = context.get_operation_type(
-			*expr.get<ast::expr_binary_op_ptr>(), errors
-		);
-		if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		else if (expr.kind() == ast::expression::index<ast::expr_function_call>)
 		{
-			expr.expr_type.type_kind = ast::expression::lvalue_reference;
-			auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
-			expr.expr_type.expr_type = std::move(ref_ptr->base);
+			assert(false);
 		}
 		else
 		{
-			expr.expr_type.type_kind = ast::expression::rvalue;
+			assert(false);
 		}
 	};
 
@@ -397,23 +407,26 @@ static ast::expression parse_expression_helper(
 		{
 		case lex::token::paren_open:
 		{
-			if (
-				stream != end
-				&& stream->kind == lex::token::paren_close
-			)
+			if (stream->kind == lex::token::paren_close)
 			{
 				++stream;
 				lhs = make_expr_function_call(
+					{ lhs.get_tokens_begin(), stream },
 					op, std::move(lhs), bz::vector<ast::expression>{}
 				);
 				resolve_expr(lhs);
 			}
 			else
 			{
-				auto params = parse_expression_comma_list(stream, end, context, errors);
-				assert_token(stream, lex::token::paren_close, errors);
+				auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+				auto params = parse_expression_comma_list(inner_stream, inner_end, context, errors);
+				if (inner_stream != inner_end)
+				{
+					errors.emplace_back(bad_token(inner_stream, "expected ',' or closing )"));
+				}
 
 				lhs = make_expr_function_call(
+					{ lhs.get_tokens_begin(), stream },
 					op, std::move(lhs), std::move(params)
 				);
 				resolve_expr(lhs);
@@ -423,10 +436,15 @@ static ast::expression parse_expression_helper(
 
 		case lex::token::square_open:
 		{
-			auto rhs = parse_expression(stream, end, context, errors, precedence{});
-			assert_token(stream, lex::token::square_close, errors);
+			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+			auto rhs = parse_expression(inner_stream, inner_end, context, errors, precedence{});
+			if (inner_stream != inner_end)
+			{
+				errors.emplace_back(bad_token(inner_stream, "expected closing ]"));
+			}
 
 			lhs = make_expr_binary_op(
+				{ lhs.get_tokens_begin(), stream },
 				op, std::move(lhs), std::move(rhs)
 			);
 			resolve_expr(lhs);
@@ -448,6 +466,7 @@ static ast::expression parse_expression_helper(
 			}
 
 			lhs = make_expr_binary_op(
+				{ lhs.get_tokens_begin(), stream },
 				op, std::move(lhs), std::move(rhs)
 			);
 			resolve_expr(lhs);

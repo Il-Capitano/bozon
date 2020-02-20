@@ -26,6 +26,24 @@ static bytecode::type_kind get_type_kind(ast::typespec const &ts)
 }
 
 
+lex::token_pos expression::get_tokens_begin(void) const
+{ return this->tokens.begin; }
+
+lex::token_pos expression::get_tokens_pivot(void) const
+{
+	if (this->kind() == index<expr_tuple>)
+	{
+		return this->tokens.begin;
+	}
+	else
+	{
+		return base_t::get_tokens_pivot();
+	}
+}
+
+lex::token_pos expression::get_tokens_end(void) const
+{ return this->tokens.end; }
+
 lex::token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
 
@@ -43,7 +61,16 @@ lex::token_pos expr_binary_op::get_tokens_pivot(void) const
 { return this->op; }
 
 lex::token_pos expr_binary_op::get_tokens_end(void) const
-{ return this->rhs.get_tokens_end(); }
+{
+	if (this->op->kind == lex::token::square_open)
+	{
+		return this->rhs.get_tokens_end() + 1;
+	}
+	else
+	{
+		return this->rhs.get_tokens_end();
+	}
+}
 
 
 lex::token_pos expr_function_call::get_tokens_begin(void) const

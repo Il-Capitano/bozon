@@ -405,7 +405,7 @@ static ast::statement parse_if_statement(
 
 		return ast::make_stmt_if(
 			lex::token_range{ begin_token, stream },
-			ast::make_expr_unresolved(condition),
+			ast::make_expr_unresolved(condition, condition),
 			std::move(if_block),
 			std::move(else_block)
 		);
@@ -414,7 +414,7 @@ static ast::statement parse_if_statement(
 	{
 		return ast::make_stmt_if(
 			lex::token_range{ begin_token, stream },
-			ast::make_expr_unresolved(condition),
+			ast::make_expr_unresolved(condition, condition),
 			std::move(if_block)
 		);
 	}
@@ -458,7 +458,7 @@ static ast::statement parse_while_statement(
 
 	return ast::make_stmt_while(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(condition),
+		ast::make_expr_unresolved(condition, condition),
 		std::move(while_block)
 	);
 }
@@ -486,7 +486,7 @@ static ast::statement parse_return_statement(
 
 	return ast::make_stmt_return(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(expr)
+		ast::make_expr_unresolved(expr, expr)
 	);
 }
 
@@ -526,7 +526,7 @@ static ast::statement parse_expression_statement(
 
 	return ast::make_stmt_expression(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(expr)
+		ast::make_expr_unresolved(expr, expr)
 	);
 }
 
@@ -655,7 +655,7 @@ static ast::declaration parse_variable_declaration(
 			id,
 			prototype,
 			type,
-			ast::make_expr_unresolved(init)
+			ast::make_expr_unresolved(init, init)
 		);
 	}
 	else if (stream->kind == lex::token::assign)
@@ -675,7 +675,7 @@ static ast::declaration parse_variable_declaration(
 		lex::token_range{tokens_begin, tokens_end},
 		id,
 		prototype,
-		ast::make_expr_unresolved(init)
+		ast::make_expr_unresolved(init, init)
 	);
 }
 

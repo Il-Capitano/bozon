@@ -978,6 +978,10 @@ struct vec3
 	[ .x = t[0], .y = t[1], .z = t[2]]
 	{}
 
+	explicit constructor(v2: vec2)
+	[ .x = v2.x, .y = v2.y, .z = 0 ]
+	{}
+
 	destructor() = default;
 
 	function abs(&const this) -> float64
@@ -993,6 +997,16 @@ struct vec3
 	function dot_prod(&const this, v: &const vec3) -> float64
 	{
 		return this.x * v.x + this.y * v.y + this.z * v.z;
+	}
+
+	cast<vec4>(&const this)
+	{
+		return [ this.x, this.y, this.z, 0 ];
+	}
+
+	explicit cast<vec2>(&const this)
+	{
+		return [ this.x, this.y ];
 	}
 }
 
@@ -1472,58 +1486,6 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 }
 
 #include "src_file.h"
-
-void bytecode_test()
-{
-/*
-	context.variables.clear();
-	context.variables.push_back({});
-	context.functions.clear();
-	context.operators.clear();
-	context.types = {
-		ast::int8_, ast::int16_, ast::int32_, ast::int64_,
-		ast::uint8_, ast::uint16_, ast::uint32_, ast::uint64_,
-		ast::float32_, ast::float64_,
-		ast::char_, ast::bool_, ast::str_, ast::void_, ast::null_t_
-	};
-
-	using namespace bytecode;
-
-	src_file file("src/bytecode_test.bz");
-	assert(file.read_file());
-	assert(file.tokenize());
-
-	auto stream = file.tokens_begin();
-	auto const end = file.tokens_end();
-
-	auto statements = get_ast_statements(stream, end);
-	assert(stream->kind == token::eof);
-
-	bz::vector<instruction> instructions;
-
-	bz::print("==== bytecode_test begin ====\n");
-	bz::printf("{}\n", statements.size());
-
-	for (auto &s : statements)
-	{
-		s.resolve();
-	}
-
-	for (auto &s : statements)
-	{
-		s.emit_bytecode(instructions);
-	}
-
-	bz::printf("{}\n", instructions.size());
-
-	executor exec;
-	exec.execute(instructions);
-	auto const var_pos = reinterpret_cast<int32_t *>(&*(exec.stack.end() - 4));
-	assert(*var_pos == 2);
-
-	bz::print("==== bytecode_test end ====");
-*/
-}
 
 #include "timer.h"
 

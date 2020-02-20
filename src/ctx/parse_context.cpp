@@ -135,7 +135,10 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 }
 
 
-ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
+ast::typespec parse_context::get_identifier_type(
+	lex::token_pos id,
+	bz::vector<error> &errors
+) const
 {
 	// we go in reverse through the scopes and the variables
 	// in case there's shadowing
@@ -171,6 +174,7 @@ ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
 	}
 	else
 	{
+		errors.emplace_back(lex::bad_token(id, "undeclared identifier"));
 		return ast::typespec();
 	}
 }
@@ -299,7 +303,7 @@ static ast::typespec get_built_in_operation_type(
 ast::typespec parse_context::get_operation_type(
 	ast::expr_unary_op const &unary_op,
 	bz::vector<error> &errors
-)
+) const
 {
 	if (is_built_in_type(unary_op.expr.expr_type.expr_type))
 	{
@@ -316,7 +320,10 @@ ast::typespec parse_context::get_operation_type(
 
 	if (set == this->global_operators.end())
 	{
-		errors.emplace_back(lex::bad_tokens(unary_op, "undeclared unary operator"));
+		errors.emplace_back(lex::bad_tokens(
+			unary_op,
+			bz::format("undeclared unary operator {}", unary_op.op->value)
+		));
 		return ast::typespec();
 	}
 
@@ -333,15 +340,33 @@ ast::typespec parse_context::get_operation_type(
 		}
 	}
 
-	errors.emplace_back(lex::bad_tokens(unary_op, "undeclared unary operator"));
+	errors.emplace_back(lex::bad_tokens(
+		unary_op,
+		bz::format("undeclared unary operator {}", unary_op.op->value)
+	));
 	return ast::typespec();
 }
 
 ast::typespec parse_context::get_operation_type(
 	ast::expr_binary_op const &binary_op,
 	bz::vector<error> &errors
-)
+) const
 {
+	auto const report_undeclared = [&]()
+	{
+		if (binary_op.op->kind == lex::token::square_open)
+		{
+			errors.emplace_back(lex::bad_tokens(binary_op, "undeclared binary operator []"));
+		}
+		else
+		{
+			errors.emplace_back(lex::bad_tokens(
+				binary_op,
+				bz::format("undeclared binary operator {}", binary_op.op->value)
+			));
+		}
+	};
+
 	auto const set = std::find_if(
 		this->global_operators.begin(),
 		this->global_operators.end(),
@@ -352,7 +377,7 @@ ast::typespec parse_context::get_operation_type(
 
 	if (set == this->global_operators.end())
 	{
-		errors.emplace_back(lex::bad_tokens(binary_op, "undeclared binary operator"));
+		report_undeclared();
 		return ast::typespec();
 	}
 
@@ -372,7 +397,7 @@ ast::typespec parse_context::get_operation_type(
 		}
 	}
 
-	errors.emplace_back(lex::bad_tokens(binary_op, "undeclared binary operator"));
+	report_undeclared();
 	return ast::typespec();
 }
 

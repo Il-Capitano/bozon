@@ -69,15 +69,18 @@ struct parse_context
 
 	void add_local_variable(ast::decl_variable &var_decl);
 
-	ast::typespec get_identifier_type(lex::token_pos id) const;
+	ast::typespec get_identifier_type(
+		lex::token_pos id,
+		bz::vector<error> &errors
+	) const;
 	ast::typespec get_operation_type(
 		ast::expr_unary_op const &unary_op,
 		bz::vector<error> &errors
-	);
+	) const;
 	ast::typespec get_operation_type(
 		ast::expr_binary_op const &binary_op,
 		bz::vector<error> &errors
-	);
+	) const;
 
 	ast::type_info const *get_type_info(bz::string_view id) const;
 };

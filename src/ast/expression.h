@@ -64,12 +64,25 @@ struct expression : node<
 		typespec       expr_type;
 	};
 
-	expr_type_t expr_type;
+	expr_type_t      expr_type;
+	lex::token_range tokens;
 
 	template<typename ...Ts>
-	expression(Ts &&...ts)
-		: base_t(std::forward<Ts>(ts)...)
+	expression(lex::token_range _tokens, Ts &&...ts)
+		: base_t   (std::forward<Ts>(ts)...),
+		  expr_type{},
+		  tokens   (_tokens)
 	{}
+
+	expression(void)
+		: base_t   (),
+		  expr_type{},
+		  tokens   { nullptr, nullptr }
+	{}
+
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 };
 
 
@@ -149,20 +162,19 @@ struct expr_literal
 struct expr_tuple
 {
 	bz::vector<expression> elems;
-	lex::token_range       tokens;
 
-	expr_tuple(bz::vector<expression> _elems, lex::token_range _tokens)
-		: elems(std::move(_elems)), tokens(_tokens)
+	expr_tuple(bz::vector<expression> _elems)
+		: elems(std::move(_elems))
 	{}
 
 	lex::token_pos get_tokens_begin(void) const
-	{ return this->tokens.begin; }
+	{ assert(false); return nullptr; }
 
 	lex::token_pos get_tokens_pivot(void) const
-	{ return this->tokens.begin; }
+	{ assert(false); return nullptr; }
 
 	lex::token_pos get_tokens_end(void) const
-	{ return this->tokens.end; }
+	{ assert(false); return nullptr; }
 };
 
 struct expr_unary_op
@@ -223,32 +235,32 @@ expression make_expression(Args &&...args)
 { return expression(std::forward<Args>(args)...); }
 
 template<typename ...Args>
-expression make_expr_unresolved(Args &&...args)
-{ return expression(std::make_unique<expr_unresolved>(std::forward<Args>(args)...)); }
+expression make_expr_unresolved(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_unresolved>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_identifier(Args &&...args)
-{ return expression(std::make_unique<expr_identifier>(std::forward<Args>(args)...)); }
+expression make_expr_identifier(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_identifier>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_literal(Args &&...args)
-{ return expression(std::make_unique<expr_literal>(std::forward<Args>(args)...)); }
+expression make_expr_literal(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_literal>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_tuple(Args &&...args)
-{ return expression(std::make_unique<expr_tuple>(std::forward<Args>(args)...)); }
+expression make_expr_tuple(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_tuple>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_unary_op(Args &&...args)
-{ return expression(std::make_unique<expr_unary_op>(std::forward<Args>(args)...)); }
+expression make_expr_unary_op(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_unary_op>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_binary_op(Args &&...args)
-{ return expression(std::make_unique<expr_binary_op>(std::forward<Args>(args)...)); }
+expression make_expr_binary_op(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_binary_op>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-expression make_expr_function_call(Args &&...args)
-{ return expression(std::make_unique<expr_function_call>(std::forward<Args>(args)...)); }
+expression make_expr_function_call(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_function_call>(std::forward<Args>(args)...)); }
 
 } // namespace ast
 
