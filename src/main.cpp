@@ -1012,6 +1012,8 @@ struct vec3
 
 */
 
+#include <filesystem>
+
 #include "core.h"
 
 #include "lex/lexer.h"

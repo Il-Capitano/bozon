@@ -32,7 +32,7 @@ public:
 	bz::vector<ast::declaration> _declarations;
 
 public:
-	src_file(bz::string file_name);
+	src_file(bz::string_view file_name);
 
 	void report_and_clear_errors(void);
 

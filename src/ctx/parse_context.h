@@ -3,33 +3,13 @@
 
 #include "core.h"
 
+#include "lex/lexer.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
 
 namespace ctx
 {
-
-inline std::list<ast::type_info> get_default_types(void)
-{
-	return {
-		ast::type_info{ ast::type_info::type_kind::int8_,    "int8",    1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int16_,   "int16",   2,  2, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int32_,   "int32",   4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int64_,   "int64",   8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint8_,   "uint8",   1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint16_,  "uint16",  2,  2, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint32_,  "uint32",  4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint64_,  "uint64",  8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::float32_, "float32", 4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::float64_, "float64", 8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::char_,    "char",    4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::str_,     "str",     16, 8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::bool_,    "bool",    1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::null_t_,  "null_t",  0,  0, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::void_,    "void",    0,  0, ast::type_info::built_in, {} },
-	};
-}
 
 using ctx_variable = ast::decl_variable *;
 using ctx_function = ast::decl_function *;
@@ -48,15 +28,18 @@ struct operator_overload_set
 	bz::vector<ctx_operator> operators;
 };
 
+struct global_context;
+
 struct parse_context
 {
-	bz::vector<ctx_variable>             global_variables;
+	bz::string      scope;
+	global_context *global_ctx;
+
 	bz::vector<bz::vector<ctx_variable>> scope_variables;
 
-	bz::vector<function_overload_set> global_functions;
-	bz::vector<operator_overload_set> global_operators;
-
-	std::list<ast::type_info> types = get_default_types();
+	parse_context(bz::string_view _scope, global_context *_global_ctx)
+		: scope(_scope), global_ctx(_global_ctx)
+	{}
 
 	void add_scope(void);
 	void remove_scope(void);

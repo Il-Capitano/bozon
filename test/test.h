@@ -33,11 +33,6 @@ inline std::ostream &operator << (std::ostream &os, bz::random_access_iterator<T
 	return os << static_cast<void const *>(&*it);
 }
 
-inline std::ostream &operator << (std::ostream &os, std::nullptr_t)
-{
-	return os << "0x0";
-}
-
 template<typename ...Ts>
 inline std::string build_str(Ts &&...ts)
 {

@@ -1983,7 +1983,7 @@ inline string format_impl(
 	}
 	append_char_range(res, begin, fmt);
 
-	return std::move(res);
+	return res;
 }
 
 } // namespace internal

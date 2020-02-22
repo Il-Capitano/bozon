@@ -335,6 +335,8 @@ struct decl_struct
 	lex::token_pos            identifier;
 	bz::vector<ast::variable> member_variables;
 
+	type_info *info = nullptr;
+
 	decl_struct(lex::token_pos _id, bz::vector<ast::variable> _members)
 		: identifier      (_id),
 		  member_variables(std::move(_members))

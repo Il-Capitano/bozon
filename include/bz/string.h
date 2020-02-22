@@ -46,22 +46,14 @@ private:
 private:
 	auto short_string_begin(void) noexcept
 	{
-		static_assert(
-				&static_cast<self_t *>(nullptr)->_alloc_end
-				- &static_cast<self_t *>(nullptr)->_data_end
-			== 1
-		);
+		static_assert(offsetof(self_t, _alloc_end) - offsetof(self_t, _data_end) == sizeof(value_type *));
 		static_assert(alignof(value_type *) % alignof(value_type) == 0);
 		return reinterpret_cast<value_type *>(&this->_data_end);
 	}
 
 	auto short_string_begin(void) const noexcept
 	{
-		static_assert(
-				&static_cast<self_t *>(nullptr)->_alloc_end
-				- &static_cast<self_t *>(nullptr)->_data_end
-			== 1
-		);
+		static_assert(offsetof(self_t, _alloc_end) - offsetof(self_t, _data_end) == sizeof(value_type *));
 		static_assert(alignof(value_type *) % alignof(value_type) == 0);
 		return reinterpret_cast<value_type const *>(&this->_data_end);
 	}

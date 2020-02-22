@@ -611,7 +611,7 @@ struct foo
 	z: [int32, [[]]];
 }
 
-let this_is_some_var = &((((some_var))));
+const this_is_some_var = &((((i8))));
 // let error_var: foo;
 
 operator () (: functor, : int32, : int32) -> int32 { return 0; }

@@ -49,13 +49,9 @@ private:
 				{
 					return index;
 				}
-				else if (candidate_count < 1)
-				{
-					bz_assert(false, "type is invalid");
-				}
 				else
 				{
-					bz_assert(false, "type is ambiguous");
+					return size_t(-1);
 				}
 			}
 		}();
@@ -299,8 +295,7 @@ public:
 		>
 	>
 	variant(T &&val) noexcept(
-		meta::is_nothrow_copy_constructible_v<T>
-		&& meta::is_nothrow_constructible_v<value_type_from<T>, T>
+		meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
 	{ this->no_clear_emplace<index_of<value_type_from<T>>>(std::forward<T>(val)); }
 

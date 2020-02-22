@@ -192,6 +192,18 @@ constexpr bool operator != (
 ) noexcept
 { return !(lhs == rhs); }
 
+constexpr bool operator < (
+	basic_string_view<char> lhs,
+	basic_string_view<char> rhs
+) noexcept
+{
+	auto const min_len = lhs.length() < rhs.length() ? lhs.length() : rhs.length();
+	auto const cmp_res = std::strncmp(lhs.data(), rhs.data(), min_len);
+	return cmp_res == 0
+		? lhs.length() < rhs.length()
+		: cmp_res < 0;
+}
+
 
 template<typename Char>
 ::std::basic_ostream<Char> &operator << (::std::basic_ostream<Char> &os, string_view str)

@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <utility>
+#include <cstddef>
+#include <cstring>
 
 #define bz_begin_namespace namespace bz {
 #define bz_end_namespace }
