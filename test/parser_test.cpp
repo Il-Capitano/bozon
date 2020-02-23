@@ -9,8 +9,8 @@ do {                                                       \
     auto const tokens = lex::get_tokens(file, "", errors); \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
-    fn(it, tokens.end(), context, errors);                 \
-    assert_true(errors.empty());                           \
+    fn(it, tokens.end(), context);                         \
+    assert_false(global_ctx.has_errors());                 \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -20,8 +20,8 @@ do {                                                       \
     auto const tokens = lex::get_tokens(file, "", errors); \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
-    fn(it, tokens.end(), context, errors);                 \
-    assert_false(errors.empty());                          \
+    fn(it, tokens.end(), context);                         \
+    assert_true(global_ctx.has_errors());                  \
     errors.clear();                                        \
     assert_eq(it, it_pos);                                 \
 } while (false)

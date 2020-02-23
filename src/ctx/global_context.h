@@ -33,9 +33,13 @@ struct global_context
 private:
 	std::map<bz::string, src_local_decls> _decls;
 	std::list<ast::type_info> _types;
+	bz::vector<error> _errors;
 
 public:
 	global_context(void);
+
+	void report_error(error err);
+	bool has_errors(void) const;
 
 	auto add_global_declaration(bz::string_view scope, ast::declaration &decl)
 		-> bz::result<int, error>;
@@ -60,6 +64,11 @@ public:
 	auto get_function_call_type(bz::string_view scope, ast::expr_function_call const &func_call)
 		-> bz::result<ast::typespec, error>;
 
+	bool is_convertible(
+		bz::string_view scope,
+		ast::expression::expr_type_t const &from,
+		ast::typespec const &to
+	);
 
 	ast::type_info const *get_type_info(bz::string_view scope, bz::string_view id);
 };

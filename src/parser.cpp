@@ -183,20 +183,17 @@ lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos 
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors,
 	precedence prec
 );
 
 static bz::vector<ast::expression> parse_expression_comma_list(
 	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 );
 
 static void resolve_literal(
 	ast::expression &expr,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &
+	ctx::parse_context &context
 )
 {
 	assert(expr.kind() == ast::expression::index<ast::expr_literal>);
@@ -244,13 +241,12 @@ static void resolve_literal(
 
 static ast::expression parse_primary_expression(
 	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	if (stream == end)
 	{
-		errors.emplace_back(bad_token(stream, "expected primary expression"));
+		context.report_error(bad_token(stream, "expected primary expression"));
 		return ast::expression();
 	}
 
@@ -259,7 +255,7 @@ static ast::expression parse_primary_expression(
 	case lex::token::identifier:
 	{
 		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream);
-		id.expr_type.expr_type = context.get_identifier_type(stream, errors);
+		id.expr_type.expr_type = context.get_identifier_type(stream);
 		if (
 			id.expr_type.expr_type.kind() == ast::typespec::null
 			|| id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_function>
@@ -291,7 +287,7 @@ static ast::expression parse_primary_expression(
 	{
 		auto literal = ast::make_expr_literal({ stream, stream + 1 }, stream);
 		++stream;
-		resolve_literal(literal, context, errors);
+		resolve_literal(literal, context);
 		return literal;
 	}
 
@@ -300,7 +296,7 @@ static ast::expression parse_primary_expression(
 		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-		auto expr = parse_expression(inner_stream, inner_end, context, errors, precedence{});
+		auto expr = parse_expression(inner_stream, inner_end, context, precedence{});
 		expr.tokens = { paren_begin, stream };
 		return expr;
 	}
@@ -311,7 +307,7 @@ static ast::expression parse_primary_expression(
 		auto const begin_token = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-		auto elems = parse_expression_comma_list(inner_stream, inner_end, context, errors);
+		auto elems = parse_expression_comma_list(inner_stream, inner_end, context);
 		auto const end_token = stream;
 		return make_expr_tuple(
 			{ begin_token, end_token },
@@ -326,11 +322,11 @@ static ast::expression parse_primary_expression(
 			auto op = stream;
 			auto prec = get_unary_precedence(op->kind);
 			++stream;
-			auto expr = parse_expression(stream, end, context, errors, prec);
+			auto expr = parse_expression(stream, end, context, prec);
 
 			auto result = make_expr_unary_op({ op, stream }, op, std::move(expr));
 			result.expr_type.expr_type = context.get_operation_type(
-				*result.get<ast::expr_unary_op_ptr>(), errors
+				*result.get<ast::expr_unary_op_ptr>()
 			);
 			if (result.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 			{
@@ -347,7 +343,7 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			errors.emplace_back(bad_token(stream, "expected primary expression"));
+			context.report_error(bad_token(stream, "expected primary expression"));
 			return ast::expression();
 		}
 	}
@@ -357,14 +353,13 @@ static ast::expression parse_expression_helper(
 	ast::expression lhs,
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors,
 	precedence prec
 )
 {
 	lex::token_pos op = nullptr;
 	precedence op_prec;
 
-	auto const resolve_expr = [&context, &errors](ast::expression &expr)
+	auto const resolve_expr = [&context](ast::expression &expr)
 	{
 		if (expr.kind() == ast::expression::index<ast::expr_binary_op>)
 		{
@@ -380,7 +375,7 @@ static ast::expression parse_expression_helper(
 			}
 
 			expr.expr_type.expr_type = context.get_operation_type(
-				*expr.get<ast::expr_binary_op_ptr>(), errors
+				*expr.get<ast::expr_binary_op_ptr>()
 			);
 			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 			{
@@ -396,7 +391,7 @@ static ast::expression parse_expression_helper(
 		else if (expr.kind() == ast::expression::index<ast::expr_function_call>)
 		{
 			auto &func_call = *expr.get<ast::expr_function_call_ptr>();
-			expr.expr_type.expr_type = context.get_function_call_type(func_call, errors);
+			expr.expr_type.expr_type = context.get_function_call_type(func_call);
 			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 			{
 				expr.expr_type.type_kind = ast::expression::lvalue_reference;
@@ -437,10 +432,10 @@ static ast::expression parse_expression_helper(
 			else
 			{
 				auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-				auto params = parse_expression_comma_list(inner_stream, inner_end, context, errors);
+				auto params = parse_expression_comma_list(inner_stream, inner_end, context);
 				if (inner_stream != inner_end)
 				{
-					errors.emplace_back(bad_token(inner_stream, "expected ',' or closing )"));
+					context.report_error(bad_token(inner_stream, "expected ',' or closing )"));
 				}
 
 				lhs = make_expr_function_call(
@@ -455,10 +450,10 @@ static ast::expression parse_expression_helper(
 		case lex::token::square_open:
 		{
 			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-			auto rhs = parse_expression(inner_stream, inner_end, context, errors, precedence{});
+			auto rhs = parse_expression(inner_stream, inner_end, context, precedence{});
 			if (inner_stream != inner_end)
 			{
-				errors.emplace_back(bad_token(inner_stream, "expected closing ]"));
+				context.report_error(bad_token(inner_stream, "expected closing ]"));
 			}
 
 			lhs = make_expr_binary_op(
@@ -471,7 +466,7 @@ static ast::expression parse_expression_helper(
 
 		default:
 		{
-			auto rhs = parse_primary_expression(stream, end, context, errors);
+			auto rhs = parse_primary_expression(stream, end, context);
 			precedence rhs_prec;
 
 			while (
@@ -479,7 +474,7 @@ static ast::expression parse_expression_helper(
 				&& (rhs_prec = get_binary_precedence(stream->kind)) < op_prec
 			)
 			{
-				rhs = parse_expression_helper(std::move(rhs), stream, end, context, errors, rhs_prec);
+				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
 				resolve_expr(rhs);
 			}
 
@@ -498,18 +493,17 @@ static ast::expression parse_expression_helper(
 
 static bz::vector<ast::expression> parse_expression_comma_list(
 	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	bz::vector<ast::expression> exprs = {};
 
-	exprs.emplace_back(parse_expression(stream, end, context, errors, no_comma));
+	exprs.emplace_back(parse_expression(stream, end, context, no_comma));
 
 	while (stream != end && stream->kind == lex::token::comma)
 	{
 		++stream; // ','
-		exprs.emplace_back(parse_expression(stream, end, context, errors, no_comma));
+		exprs.emplace_back(parse_expression(stream, end, context, no_comma));
 	}
 
 	return exprs;
@@ -518,17 +512,16 @@ static bz::vector<ast::expression> parse_expression_comma_list(
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors,
 	precedence prec
 )
 {
-	auto lhs = parse_primary_expression(stream, end, context, errors);
+	auto lhs = parse_primary_expression(stream, end, context);
 	if (lhs.kind() == ast::expression::null)
 	{
-		assert(errors.size() != 0);
+		assert(!context.has_errors());
 		return ast::expression();
 	}
-	auto result = parse_expression_helper(std::move(lhs), stream, end, context, errors, prec);
+	auto result = parse_expression_helper(std::move(lhs), stream, end, context, prec);
 	return result;
 }
 
@@ -538,13 +531,12 @@ static ast::expression parse_expression(
 
 ast::typespec parse_typespec(
 	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	if (stream == end)
 	{
-		errors.emplace_back(bad_token(stream));
+		context.report_error(bad_token(stream));
 		return ast::typespec();
 	}
 
@@ -561,35 +553,35 @@ ast::typespec parse_typespec(
 		}
 		else
 		{
-			errors.emplace_back(bad_token(id, "undeclared typename"));
+			context.report_error(bad_token(id, "undeclared typename"));
 			return ast::typespec();
 		}
 	}
 
 	case lex::token::kw_const:
 		++stream; // 'const'
-		return ast::make_ts_constant(parse_typespec(stream, end, context, errors));
+		return ast::make_ts_constant(parse_typespec(stream, end, context));
 
 	case lex::token::star:
 		++stream; // '*'
-		return ast::make_ts_pointer(parse_typespec(stream, end, context, errors));
+		return ast::make_ts_pointer(parse_typespec(stream, end, context));
 
 	case lex::token::ampersand:
 		++stream; // '&'
-		return ast::make_ts_reference(parse_typespec(stream, end, context, errors));
+		return ast::make_ts_reference(parse_typespec(stream, end, context));
 
 	case lex::token::kw_function:
 	{
 		++stream; // 'function'
-		assert_token(stream, lex::token::paren_open, errors);
+		context.assert_token(stream, lex::token::paren_open);
 
 		bz::vector<ast::typespec> param_types = {};
 		if (stream->kind != lex::token::paren_close) while (stream != end)
 		{
-			param_types.push_back(parse_typespec(stream, end, context, errors));
+			param_types.push_back(parse_typespec(stream, end, context));
 			if (stream->kind != lex::token::paren_close)
 			{
-				assert_token(stream, lex::token::comma, errors);
+				context.assert_token(stream, lex::token::comma);
 			}
 			else
 			{
@@ -597,10 +589,10 @@ ast::typespec parse_typespec(
 			}
 		}
 		assert(stream != end);
-		assert_token(stream, lex::token::paren_close, errors);
-		assert_token(stream, lex::token::arrow, errors);
+		context.assert_token(stream, lex::token::paren_close);
+		context.assert_token(stream, lex::token::arrow);
 
-		auto ret_type = parse_typespec(stream, end, context, errors);
+		auto ret_type = parse_typespec(stream, end, context);
 
 		return make_ts_function(std::move(ret_type), std::move(param_types));
 	}
@@ -612,10 +604,10 @@ ast::typespec parse_typespec(
 		bz::vector<ast::typespec> types = {};
 		if (stream->kind != lex::token::square_close) while (stream != end)
 		{
-			types.push_back(parse_typespec(stream, end, context, errors));
+			types.push_back(parse_typespec(stream, end, context));
 			if (stream->kind != lex::token::square_close)
 			{
-				assert_token(stream, lex::token::comma, errors);
+				context.assert_token(stream, lex::token::comma);
 			}
 			else
 			{
@@ -623,7 +615,7 @@ ast::typespec parse_typespec(
 			}
 		}
 		assert(stream != end);
-		assert_token(stream, lex::token::square_close, errors);
+		context.assert_token(stream, lex::token::square_close);
 
 		return make_ts_tuple(std::move(types));
 	}
@@ -700,8 +692,7 @@ if (                                                                           \
 
 void resolve(
 	ast::typespec &ts,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	switch (ts.kind())
@@ -711,7 +702,7 @@ void resolve(
 		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
 		auto stream = unresolved_ts->tokens.begin;
 		auto const end = unresolved_ts->tokens.end;
-		ts = parse_typespec(stream, end, context, errors);
+		ts = parse_typespec(stream, end, context);
 		break;
 	}
 	default:
@@ -719,74 +710,219 @@ void resolve(
 	}
 }
 
-static void resolve(
+static void add_expr_type(
+	ast::typespec &var_type,
+	ast::expression const &expr,
+	ctx::parse_context &context
+)
+{
+	if (
+		var_type.kind() == ast::typespec::index<ast::ts_reference>
+		&& expr.expr_type.type_kind != ast::expression::lvalue
+		&& expr.expr_type.type_kind != ast::expression::lvalue_reference
+	)
+	{
+		context.report_error(lex::bad_tokens(
+			expr,
+			bz::format(
+				"cannot bind {} to lvalue reference",
+				expr.expr_type.type_kind == ast::expression::rvalue
+				? "rvalue" : "rvalue reference"
+			)
+		));
+		return;
+	}
+
+	ast::typespec *var_it = [&]() -> ast::typespec * {
+		if (var_type.kind() == ast::typespec::index<ast::ts_reference>)
+		{
+			return &var_type.get<ast::ts_reference_ptr>()->base;
+		}
+		else if (var_type.kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			return &var_type.get<ast::ts_constant_ptr>()->base;
+		}
+		else
+		{
+			return &var_type;
+		}
+	}();
+
+	ast::typespec const *expr_it = &expr.expr_type.expr_type;
+
+	auto const advance = [](auto &it)
+	{
+		switch (it->kind())
+		{
+		case ast::typespec::index<ast::ts_pointer>:
+			it = &it->template get<ast::ts_pointer_ptr>()->base;
+			break;
+		case ast::typespec::index<ast::ts_constant>:
+			it = &it->template get<ast::ts_constant_ptr>()->base;
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	};
+
+	if (var_it->kind() == ast::typespec::index<ast::ts_base_type>)
+	{
+		if (!context.is_convertible(expr.expr_type, var_type))
+		{
+			context.report_error(lex::bad_tokens(
+				expr,
+				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
+			));
+		}
+		return;
+	}
+
+	while (var_it->kind() != ast::typespec::null)
+	{
+		if (
+			var_it->kind() == ast::typespec::index<ast::ts_base_type>
+			&& expr_it->kind() == ast::typespec::index<ast::ts_base_type>
+		)
+		{
+			if (
+				var_it->get<ast::ts_base_type_ptr>()->info
+				!= expr_it->get<ast::ts_base_type_ptr>()->info
+			)
+			{
+				context.report_error(lex::bad_tokens(
+					expr,
+					bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
+				));
+				return;
+			}
+		}
+		else if (
+			var_it->kind() == ast::typespec::index<ast::ts_base_type>
+			&& expr_it->kind() == ast::typespec::index<ast::ts_base_type>
+		)
+		{
+			context.report_error(lex::bad_tokens(
+				expr,
+				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
+			));
+			return;
+		}
+		else if (var_it->kind() == expr_it->kind())
+		{
+			advance(var_it);
+			advance(expr_it);
+		}
+		else if (var_it->kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			advance(var_it);
+		}
+		else
+		{
+			context.report_error(lex::bad_tokens(
+				expr,
+				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
+			));
+			return;
+		}
+	}
+
+	assert(var_it->kind() == ast::typespec::null);
+	*var_it = *expr_it;
+}
+
+void resolve(
 	ast::decl_variable &var_decl,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	if (var_decl.var_type.kind() != ast::typespec::null)
 	{
-		resolve(var_decl.var_type, context, errors);
+		resolve(var_decl.var_type, context);
 	}
 	var_decl.var_type = add_prototype_to_type(var_decl.prototype, var_decl.var_type);
 	if (var_decl.init_expr.has_value())
 	{
-		resolve(*var_decl.init_expr, context, errors);
+		resolve(*var_decl.init_expr, context);
+		add_expr_type(var_decl.var_type, *var_decl.init_expr, context);
 	}
-
-	// TODO: check if expression is convertible to type
 }
 
-static void resolve(
+void resolve_symbol(
 	ast::decl_function &func_decl,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	bz::string_view scope,
+	ctx::global_context *global_ctx
 )
 {
+	ctx::parse_context context(scope, global_ctx);
+	for (auto &p : func_decl.params)
+	{
+		resolve(p.var_type, context);
+	}
+	resolve(func_decl.return_type, context);
+}
+
+void resolve_symbol(
+	ast::decl_operator &decl,
+	bz::string_view scope,
+	ctx::global_context *global_ctx
+)
+{
+}
+
+void resolve(
+	ast::decl_function &func_decl,
+	bz::string_view scope,
+	ctx::global_context *global_ctx
+)
+{
+	ctx::parse_context context(scope, global_ctx);
 	context.add_scope();
 	for (auto &p : func_decl.params)
 	{
-		resolve(p.var_type, context, errors);
+		resolve(p.var_type, context);
 		context.add_local_variable(p);
 	}
-	resolve(func_decl.return_type, context, errors);
+	resolve(func_decl.return_type, context);
 	for (auto &stmt : func_decl.body)
 	{
-		resolve(stmt, context, errors);
+		resolve(stmt, context);
 	}
 	context.remove_scope();
 }
 
-static void resolve(
+void resolve(
 	ast::decl_operator &decl,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	bz::string_view scope,
+	ctx::global_context *global_ctx
 )
 {
 }
 
-static void resolve(
+void resolve(
 	ast::decl_struct &decl,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	bz::string_view scope,
+	ctx::global_context *global_ctx
 )
 {
 }
 
 void resolve(
 	ast::declaration &decl,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	bz::string_view scope,
+	ctx::global_context *global_ctx
 )
 {
 	switch (decl.kind())
 	{
 	case ast::declaration::index<ast::decl_variable>:
-		resolve(*decl.get<ast::decl_variable_ptr>(), context, errors);
+	{
+		ctx::parse_context context(scope, global_ctx);
+		resolve(*decl.get<ast::decl_variable_ptr>(), context);
 		break;
+	}
 	case ast::declaration::index<ast::decl_function>:
-		resolve(*decl.get<ast::decl_function_ptr>(), context, errors);
+		resolve(*decl.get<ast::decl_function_ptr>(), scope, global_ctx);
 		break;
 	case ast::declaration::index<ast::decl_operator>:
 	case ast::declaration::index<ast::decl_struct>:
@@ -797,8 +933,7 @@ void resolve(
 
 void resolve(
 	ast::statement &stmt,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	switch (stmt.kind())
@@ -806,26 +941,26 @@ void resolve(
 	case ast::statement::index<ast::stmt_if>:
 	{
 		auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
-		resolve(if_stmt.condition, context, errors);
-		resolve(if_stmt.then_block, context, errors);
+		resolve(if_stmt.condition, context);
+		resolve(if_stmt.then_block, context);
 		if (if_stmt.else_block.has_value())
 		{
-			resolve(*if_stmt.else_block, context, errors);
+			resolve(*if_stmt.else_block, context);
 		}
 		break;
 	}
 	case ast::statement::index<ast::stmt_while>:
 	{
 		auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
-		resolve(while_stmt.condition, context, errors);
-		resolve(while_stmt.while_block, context, errors);
+		resolve(while_stmt.condition, context);
+		resolve(while_stmt.while_block, context);
 		break;
 	}
 	case ast::statement::index<ast::stmt_for>:
 		assert(false);
 		break;
 	case ast::statement::index<ast::stmt_return>:
-		resolve(stmt.get<ast::stmt_return_ptr>()->expr, context, errors);
+		resolve(stmt.get<ast::stmt_return_ptr>()->expr, context);
 		break;
 	case ast::statement::index<ast::stmt_no_op>:
 		break;
@@ -835,15 +970,21 @@ void resolve(
 		context.add_scope();
 		for (auto &s : comp_stmt.statements)
 		{
-			resolve(s, context, errors);
+			resolve(s, context);
 		}
 		context.remove_scope();
 		break;
 	}
 	case ast::statement::index<ast::stmt_expression>:
-		resolve(stmt.get<ast::stmt_expression_ptr>()->expr, context, errors);
+		resolve(stmt.get<ast::stmt_expression_ptr>()->expr, context);
 		break;
 	case ast::statement::index<ast::decl_variable>:
+	{
+		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
+		resolve(var_decl, context);
+		context.add_local_variable({ var_decl.identifier, var_decl.var_type });
+		break;
+	}
 	case ast::statement::index<ast::decl_function>:
 	case ast::statement::index<ast::decl_operator>:
 	case ast::statement::index<ast::decl_struct>:
@@ -858,8 +999,7 @@ using resolve_ret_val = ast::expression::expr_type_t;
 
 static resolve_ret_val resolve(
 	ast::expr_literal const &literal,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &
+	ctx::parse_context &context
 )
 {
 	resolve_ret_val ret_val = {
@@ -909,8 +1049,7 @@ static resolve_ret_val resolve(
 
 static resolve_ret_val resolve(
 	ast::expr_tuple &tuple,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
 	resolve_ret_val ret_val = {
@@ -922,7 +1061,7 @@ static resolve_ret_val resolve(
 
 	for (auto &elem : tuple.elems)
 	{
-		resolve(elem, context, errors);
+		resolve(elem, context);
 		tuple_t.types.emplace_back(elem.expr_type.expr_type);
 	}
 
@@ -931,11 +1070,10 @@ static resolve_ret_val resolve(
 
 static resolve_ret_val resolve(
 	ast::expr_function_call &fn_call,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
+	ctx::parse_context &context
 )
 {
-	errors.emplace_back(lex::bad_tokens(fn_call, "not yet implemented"));
+	context.report_error(lex::bad_tokens(fn_call, "not yet implemented"));
 	return {
 		ast::expression::rvalue,
 		ast::typespec()
@@ -943,17 +1081,17 @@ static resolve_ret_val resolve(
 }
 
 
-void resolve(ast::expression &expr, ctx::parse_context &context, bz::vector<ctx::error> &errors)
+void resolve(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.kind() == ast::expression::index<ast::expr_unresolved>)
 	{
 		auto unresolved_expr = *expr.get<ast::expr_unresolved_ptr>();
 		auto stream = unresolved_expr.expr.begin;
 		auto const end = unresolved_expr.expr.end;
-		auto new_expr = parse_expression(stream, end, context, errors, precedence{});
+		auto new_expr = parse_expression(stream, end, context, precedence{});
 		if (stream != end)
 		{
-			errors.emplace_back(bad_tokens(
+			context.report_error(bad_tokens(
 				stream, stream, end,
 				"expected ';'"
 			));
@@ -967,13 +1105,13 @@ void resolve(ast::expression &expr, ctx::parse_context &context, bz::vector<ctx:
 	case ast::expression::index<ast::expr_literal>:
 	{
 		auto &literal = *expr.get<ast::expr_literal_ptr>();
-		expr.expr_type = resolve(literal, context, errors);
+		expr.expr_type = resolve(literal, context);
 		break;
 	}
 	case ast::expression::index<ast::expr_function_call>:
 	{
 		auto &fn_call = *expr.get<ast::expr_function_call_ptr>();
-		expr.expr_type = resolve(fn_call, context, errors);
+		expr.expr_type = resolve(fn_call, context);
 		break;
 	}
 	default:

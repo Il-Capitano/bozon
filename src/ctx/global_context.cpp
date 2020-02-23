@@ -1,4 +1,5 @@
 #include "global_context.h"
+#include "parser.h"
 
 namespace ctx
 {
@@ -27,6 +28,18 @@ static std::list<ast::type_info> get_default_types(void)
 global_context::global_context(void)
 	: _decls(), _types(get_default_types())
 {}
+
+
+void global_context::report_error(error err)
+{
+	this->_errors.emplace_back(std::move(err));
+}
+
+bool global_context::has_errors(void) const
+{
+	return !this->_errors.empty();
+}
+
 
 
 auto global_context::add_global_declaration(bz::string_view scope, ast::declaration &decl)
@@ -168,6 +181,7 @@ auto global_context::get_identifier_type(bz::string_view scope, lex::token_pos i
 		}
 		else if (set->func_decls.size() == 1)
 		{
+			resolve_symbol(*set->func_decls[0], scope, this);
 			auto &ret_type = set->func_decls[0]->return_type;
 			bz::vector<ast::typespec> param_types = {};
 			for (auto &p : set->func_decls[0]->params)
@@ -282,6 +296,36 @@ static bool is_built_in_type(ast::typespec const &ts)
 	}
 }
 
+static bool is_integer_kind(ast::type_info::type_kind kind)
+{
+	return kind >= ast::type_info::type_kind::int8_
+		&& kind <= ast::type_info::type_kind::uint64_;
+}
+
+static bool is_unsigned_integer_kind(ast::type_info::type_kind kind)
+{
+	return kind >= ast::type_info::type_kind::uint8_
+		&& kind <= ast::type_info::type_kind::uint64_;
+}
+
+static bool is_signed_integer_kind(ast::type_info::type_kind kind)
+{
+	return kind >= ast::type_info::type_kind::int8_
+		&& kind <= ast::type_info::type_kind::int64_;
+}
+
+static bool is_floating_point_kind(ast::type_info::type_kind kind)
+{
+	return kind == ast::type_info::type_kind::float32_
+		|| kind == ast::type_info::type_kind::float64_;
+}
+
+static bool is_arithmetic_kind(ast::type_info::type_kind kind)
+{
+	return kind >= ast::type_info::type_kind::int8_
+		&& kind <= ast::type_info::type_kind::float64_;
+}
+
 static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 	-> bz::result<ast::typespec, error>
 {
@@ -303,22 +347,16 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
 		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
 		{
-			return lex::bad_tokens(
-				unary_op,
-				bz::format("undeclared unary operator + with '{}'", unary_op.expr.expr_type.expr_type)
-			);
+			return ast::typespec();
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
-		if (kind >= ast::type_info::type_kind::int8_ && kind <= ast::type_info::type_kind::float64_)
+		if (is_arithmetic_kind(kind))
 		{
 			return t;
 		}
 		else
 		{
-			return lex::bad_tokens(
-				unary_op,
-				bz::format("undeclared unary operator + with '{}'", unary_op.expr.expr_type.expr_type)
-			);
+			return ast::typespec();
 		}
 	}
 	case lex::token::minus:
@@ -326,25 +364,16 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
 		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
 		{
-			return lex::bad_tokens(
-				unary_op,
-				bz::format("undeclared unary operator - with '{}'", unary_op.expr.expr_type.expr_type)
-			);
+			return ast::typespec();
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
-		if (
-			(kind >= ast::type_info::type_kind::int8_ && kind <= ast::type_info::type_kind::int64_)
-			|| (kind == ast::type_info::type_kind::float32_ || kind == ast::type_info::type_kind::float64_)
-		)
+		if (is_signed_integer_kind(kind) || is_floating_point_kind(kind))
 		{
 			return t;
 		}
 		else
 		{
-			return lex::bad_tokens(
-				unary_op,
-				bz::format("undeclared unary operator - with '{}'", unary_op.expr.expr_type.expr_type)
-			);
+			return ast::typespec();
 		}
 	}
 	case lex::token::dereference:
@@ -352,10 +381,7 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
 		if (t.kind() != ast::typespec::index<ast::ts_pointer>)
 		{
-			return lex::bad_tokens(
-				unary_op,
-				bz::format("undeclared unary operator * with '{}'", unary_op.expr.expr_type.expr_type)
-			);
+			return ast::typespec();
 		}
 		return ast::make_ts_reference(t.get<ast::ts_pointer_ptr>()->base);
 	}
@@ -373,7 +399,37 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		}
 	case lex::token::bit_not:
 	{
-
+		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
+		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
+		{
+			return ast::typespec();
+		}
+		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (is_unsigned_integer_kind(kind))
+		{
+			return t;
+		}
+		else
+		{
+			return ast::typespec();
+		}
+	}
+	case lex::token::bool_not:
+	{
+		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
+		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
+		{
+			return ast::typespec();
+		}
+		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (kind == ast::type_info::type_kind::bool_)
+		{
+			return t;
+		}
+		else
+		{
+			return ast::typespec();
+		}
 	}
 
 	default:
@@ -389,7 +445,11 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 
 	if (is_built_in_type(unary_op.expr.expr_type.expr_type))
 	{
-		return get_built_in_operation_type(unary_op);
+		auto type = get_built_in_operation_type(unary_op);
+		if (type.has_error() || type.get_result().kind() != ast::typespec::null)
+		{
+			return type;
+		}
 	}
 
 	auto const set = std::find_if(
@@ -403,7 +463,10 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 	{
 		return lex::bad_tokens(
 			unary_op,
-			bz::format("undeclared unary operator {}", unary_op.op->value)
+			bz::format(
+				"undeclared unary operator {} with type '{}'",
+				unary_op.op->value, unary_op.expr.expr_type.expr_type
+			)
 		);
 	}
 
@@ -486,18 +549,19 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 		if (func_call.called.expr_type.expr_type.kind() != ast::typespec::null)
 		{
 			auto &fn_t = *func_call.called.expr_type.expr_type.get<ast::ts_function_ptr>();
+			auto &func_sets = this->_decls[scope].func_sets;
+			auto original_decl_set = std::find_if(
+				func_sets.begin(), func_sets.end(), [
+					id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
+				](auto const &set) {
+					return id == set.id;
+				}
+			);
+			assert(original_decl_set != func_sets.end());
+			assert(original_decl_set->func_decls.size() == 1);
+
 			if (fn_t.argument_types.size() != func_call.params.size())
 			{
-				auto &func_sets = this->_decls[scope].func_sets;
-				auto original_decl_set = std::find_if(
-					func_sets.begin(), func_sets.end(), [
-						id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
-					](auto const &set) {
-						return id == set.id;
-					}
-				);
-				assert(original_decl_set != func_sets.end());
-				assert(original_decl_set->func_decls.size() == 1);
 				return lex::bad_tokens(
 					func_call,
 					bz::format(
@@ -512,6 +576,8 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 					}
 				);
 			}
+
+			resolve_symbol(*original_decl_set->func_decls[0], scope, this);
 			auto types_it = fn_t.argument_types.begin();
 			auto call_it  = func_call.params.begin();
 			auto const types_end = fn_t.argument_types.end();
@@ -545,6 +611,15 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 		assert(false);
 		return ast::typespec();
 	}
+}
+
+bool global_context::is_convertible(
+	bz::string_view /*scope*/,
+	ast::expression::expr_type_t const &from,
+	ast::typespec const &to
+)
+{
+	return are_directly_matchable_types(from, to);
 }
 
 

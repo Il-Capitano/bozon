@@ -28,7 +28,7 @@ public:
 	bz::string             _file;
 	bz::vector<lex::token> _tokens;
 
-	ctx::parse_context           _context;
+	ctx::global_context         *_global_ctx;
 	bz::vector<ast::declaration> _declarations;
 
 public:
