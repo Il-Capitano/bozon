@@ -3,8 +3,6 @@
 
 #include "colors.h"
 
-static ctx::global_context global_ctx;
-
 static bz::string get_highlighted_chars(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
@@ -199,8 +197,8 @@ static bz::string read_text_from_file(std::ifstream &file)
 	return file_str;
 }
 
-src_file::src_file(bz::string_view file_name)
-	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _context(file_name, &global_ctx)
+src_file::src_file(bz::string_view file_name, ctx::global_context *global_ctx)
+	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _context(file_name, global_ctx)
 {}
 
 static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::error const &err)

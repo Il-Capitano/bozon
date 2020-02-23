@@ -1,4 +1,4 @@
-/*
+/* /*
 
 operator .. (: str, : str) -> str
 {}
@@ -612,9 +612,28 @@ struct foo
 }
 
 const this_is_some_var = &((((i8))));
-// let error_var: foo;
+let error_var: asdf;
 
 operator () (: functor, : int32, : int32) -> int32 { return 0; }
+*/ // line 1
+
+function foo(: float32) -> float32
+{
+	return 0.0;
+}
+
+function factorial(n: uint32) -> int32
+{
+	foo(+n);
+	foo(-n);
+	return factorial(+n);
+}
+
+function test(p: *const int32) -> int32
+{
+	foo(*p);
+}
+
 
 /*
 struct vec3<typename T>

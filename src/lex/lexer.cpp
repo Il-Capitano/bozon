@@ -327,8 +327,8 @@ bool is_unary_operator(uint32_t kind)
 	{
 	case token::plus:               // '+'
 	case token::minus:              // '-'
-	case token::multiply:           // '*'
-	case token::bit_and:            // '&'
+	case token::dereference:        // '*'
+	case token::ampersand:          // '&'
 	case token::bit_not:            // '~'
 	case token::bool_not:           // '!'
 	case token::plus_plus:          // '++'

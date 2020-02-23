@@ -1173,6 +1173,9 @@ struct bz::formatter<ast::expression>
 			res += ')';
 			return res;
 		}
+
+		case ast::expression::index<ast::expr_unresolved>:
+			return "<unresolved-expr>";
 		}
 		return "";
 	}
@@ -1328,7 +1331,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		{
 			indent();
 			bz::printf(os, "else\n");
-			print_statement(os, if_stmt->else_block.get());
+			print_statement(os, if_stmt->else_block.get(), indent_level);
 		}
 		return;
 	}
@@ -1488,6 +1491,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 }
 
 #include "src_file.h"
+#include "ctx/src_manager.h"
 
 #include "timer.h"
 
@@ -1499,95 +1503,41 @@ int main(void)
 		return time.count() * 1000;
 	};
 
-	src_file file("./src/test.bz");
+	ctx::src_manager manager;
+	manager.add_file("./src/test.bz");
 
+	auto const begin = timer::now();
+
+	if (!manager.tokenize())
 	{
-		auto start = timer::now();
-		if (!file.read_file())
+		return 1;
+	}
+	if (!manager.first_pass_parse())
+	{
+		return 2;
+	}
+	if (!manager.resolve())
+	{
+		return 3;
+	}
+
+	auto const end = timer::now();
+
+	bz::printf("successful compilation in {}ms\n", in_ms(end - begin));
+
+	std::stringstream ss;
+
+	for (auto &file : manager.get_src_files())
+	{
+		for (auto &decl : file._declarations)
 		{
-			bz::printf("error: unable to read file {}\n", file.get_file_name());
-			bz::print("exiting...\n");
-			return 1;
-		}
-		else
-		{
-			auto end = timer::now();
-			bz::printf(
-				"successfully read {} in {:.3f}ms\n",
-				file.get_file_name(), in_ms(end - start)
-			);
+			print_declaration(ss, decl);
 		}
 	}
 
-	{
-		auto start = timer::now();
-		if (!file.tokenize())
-		{
-			auto const error_count = file.get_error_count();
-			bz::printf(
-				"{} {} occurred during tokenization\n",
-				error_count, error_count == 1 ? "error" : "errors"
-			);
-			file.report_and_clear_errors();
-			bz::print("exiting...\n");
-			return 2;
-		}
-		else
-		{
-			auto end = timer::now();
-			bz::printf(
-				"successfully tokenized {} in {:.3f}ms\n",
-				file.get_file_name(), in_ms(end - start)
-			);
-		}
-	}
+	bz::print(ss.str().c_str());
 
-	{
-		auto start = timer::now();
-		if (!file.first_pass_parse())
-		{
-			auto const error_count = file.get_error_count();
-			bz::printf(
-				"{} {} occurred during the first pass of parsing\n",
-				error_count, error_count == 1 ? "error" : "errors"
-			);
-			file.report_and_clear_errors();
-			bz::print("exiting...\n");
-			return 3;
-		}
-		else
-		{
-			auto end = timer::now();
-			bz::printf(
-				"successfully first pass parsed {} in {:.3f}ms\n",
-				file.get_file_name(), in_ms(end - start)
-			);
-		}
-	}
-
-	{
-		auto start = timer::now();
-		if (!file.resolve())
-		{
-			auto const error_count = file.get_error_count();
-			bz::printf(
-				"{} {} occurred during resolving\n",
-				error_count, error_count == 1 ? "error" : "errors"
-			);
-			file.report_and_clear_errors();
-			bz::print("exiting...\n");
-			return 4;
-		}
-		else
-		{
-			auto end = timer::now();
-			bz::printf(
-				"successfully resolved {} in {:.3f}ms\n",
-				file.get_file_name(), in_ms(end - start)
-			);
-		}
-	}
-
+/*
 	for (auto &decl : file._declarations)
 	{
 		if (decl.kind() == ast::declaration::index<ast::decl_variable>)
@@ -1595,6 +1545,7 @@ int main(void)
 			print_declaration(std::cout, decl);
 		}
 	}
+*/
 
 /*
 	auto stream = file.tokens_begin();

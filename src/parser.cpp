@@ -260,7 +260,14 @@ static ast::expression parse_primary_expression(
 	{
 		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream);
 		id.expr_type.expr_type = context.get_identifier_type(stream, errors);
-		if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+		if (
+			id.expr_type.expr_type.kind() == ast::typespec::null
+			|| id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_function>
+		)
+		{
+			id.expr_type.type_kind = ast::expression::function_name;
+		}
+		else if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
 		{
 			id.expr_type.type_kind = ast::expression::lvalue_reference;
 			auto ref_ptr = std::move(id.expr_type.expr_type.get<ast::ts_reference_ptr>());
@@ -388,7 +395,18 @@ static ast::expression parse_expression_helper(
 		}
 		else if (expr.kind() == ast::expression::index<ast::expr_function_call>)
 		{
-			assert(false);
+			auto &func_call = *expr.get<ast::expr_function_call_ptr>();
+			expr.expr_type.expr_type = context.get_function_call_type(func_call, errors);
+			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
+			{
+				expr.expr_type.type_kind = ast::expression::lvalue_reference;
+				auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
+				expr.expr_type.expr_type = std::move(ref_ptr->base);
+			}
+			else
+			{
+				expr.expr_type.type_kind = ast::expression::rvalue;
+			}
 		}
 		else
 		{
@@ -721,11 +739,23 @@ static void resolve(
 }
 
 static void resolve(
-	ast::decl_function &decl,
+	ast::decl_function &func_decl,
 	ctx::parse_context &context,
 	bz::vector<ctx::error> &errors
 )
 {
+	context.add_scope();
+	for (auto &p : func_decl.params)
+	{
+		resolve(p.var_type, context, errors);
+		context.add_local_variable(p);
+	}
+	resolve(func_decl.return_type, context, errors);
+	for (auto &stmt : func_decl.body)
+	{
+		resolve(stmt, context, errors);
+	}
+	context.remove_scope();
 }
 
 static void resolve(
@@ -756,6 +786,8 @@ void resolve(
 		resolve(*decl.get<ast::decl_variable_ptr>(), context, errors);
 		break;
 	case ast::declaration::index<ast::decl_function>:
+		resolve(*decl.get<ast::decl_function_ptr>(), context, errors);
+		break;
 	case ast::declaration::index<ast::decl_operator>:
 	case ast::declaration::index<ast::decl_struct>:
 	default:

@@ -155,7 +155,31 @@ auto global_context::get_identifier_type(bz::string_view scope, lex::token_pos i
 	);
 	if (it == var_decls.end())
 	{
-		return lex::bad_token(id, "undeclared identifier");
+		auto &func_sets = this->_decls[scope].func_sets;
+		auto set = std::find_if(
+			func_sets.begin(), func_sets.end(),
+			[id = id->value](auto const &set) {
+				return id == set.id;
+			}
+		);
+		if (set == func_sets.end())
+		{
+			return lex::bad_token(id, "undeclared identifier");
+		}
+		else if (set->func_decls.size() == 1)
+		{
+			auto &ret_type = set->func_decls[0]->return_type;
+			bz::vector<ast::typespec> param_types = {};
+			for (auto &p : set->func_decls[0]->params)
+			{
+				param_types.emplace_back(p.var_type);
+			}
+			return ast::make_ts_function(ret_type, std::move(param_types));
+		}
+		else
+		{
+			return ast::typespec();
+		}
 	}
 	else
 	{
@@ -261,8 +285,80 @@ static bool is_built_in_type(ast::typespec const &ts)
 static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 	-> bz::result<ast::typespec, error>
 {
+	auto const get_underlying_type = [](ast::typespec const &ts) -> auto const &
+	{
+		switch (ts.kind())
+		{
+		case ast::typespec::index<ast::ts_constant>:
+			return ts.get<ast::ts_constant_ptr>()->base;
+		default:
+			return ts;
+		}
+	};
+
 	switch (unary_op.op->kind)
 	{
+	case lex::token::plus:
+	{
+		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
+		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
+		{
+			return lex::bad_tokens(
+				unary_op,
+				bz::format("undeclared unary operator + with '{}'", unary_op.expr.expr_type.expr_type)
+			);
+		}
+		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (kind >= ast::type_info::type_kind::int8_ && kind <= ast::type_info::type_kind::float64_)
+		{
+			return t;
+		}
+		else
+		{
+			return lex::bad_tokens(
+				unary_op,
+				bz::format("undeclared unary operator + with '{}'", unary_op.expr.expr_type.expr_type)
+			);
+		}
+	}
+	case lex::token::minus:
+	{
+		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
+		if (t.kind() != ast::typespec::index<ast::ts_base_type>)
+		{
+			return lex::bad_tokens(
+				unary_op,
+				bz::format("undeclared unary operator - with '{}'", unary_op.expr.expr_type.expr_type)
+			);
+		}
+		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (
+			(kind >= ast::type_info::type_kind::int8_ && kind <= ast::type_info::type_kind::int64_)
+			|| (kind == ast::type_info::type_kind::float32_ || kind == ast::type_info::type_kind::float64_)
+		)
+		{
+			return t;
+		}
+		else
+		{
+			return lex::bad_tokens(
+				unary_op,
+				bz::format("undeclared unary operator - with '{}'", unary_op.expr.expr_type.expr_type)
+			);
+		}
+	}
+	case lex::token::dereference:
+	{
+		auto &t = get_underlying_type(unary_op.expr.expr_type.expr_type);
+		if (t.kind() != ast::typespec::index<ast::ts_pointer>)
+		{
+			return lex::bad_tokens(
+				unary_op,
+				bz::format("undeclared unary operator * with '{}'", unary_op.expr.expr_type.expr_type)
+			);
+		}
+		return ast::make_ts_reference(t.get<ast::ts_pointer_ptr>()->base);
+	}
 	case lex::token::ampersand:
 		if (
 			unary_op.expr.expr_type.type_kind == ast::expression::lvalue
@@ -275,6 +371,11 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		{
 			return lex::bad_tokens(unary_op, "cannot take address of an rvalue");
 		}
+	case lex::token::bit_not:
+	{
+
+	}
+
 	default:
 		assert(false);
 		return ast::typespec();
@@ -377,6 +478,75 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_
 	return get_undeclared_error();
 }
 
+auto global_context::get_function_call_type(bz::string_view scope, ast::expr_function_call const &func_call)
+	-> bz::result<ast::typespec, error>
+{
+	if (func_call.called.expr_type.type_kind == ast::expression::function_name)
+	{
+		if (func_call.called.expr_type.expr_type.kind() != ast::typespec::null)
+		{
+			auto &fn_t = *func_call.called.expr_type.expr_type.get<ast::ts_function_ptr>();
+			if (fn_t.argument_types.size() != func_call.params.size())
+			{
+				auto &func_sets = this->_decls[scope].func_sets;
+				auto original_decl_set = std::find_if(
+					func_sets.begin(), func_sets.end(), [
+						id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
+					](auto const &set) {
+						return id == set.id;
+					}
+				);
+				assert(original_decl_set != func_sets.end());
+				assert(original_decl_set->func_decls.size() == 1);
+				return lex::bad_tokens(
+					func_call,
+					bz::format(
+						"expected {} arguments for call to '{}', but was given {}",
+						fn_t.argument_types.size(), original_decl_set->id, func_call.params.size()
+					),
+					{
+						lex::make_note(
+							original_decl_set->func_decls[0]->identifier,
+							bz::format("see declaration of '{}':", original_decl_set->id)
+						)
+					}
+				);
+			}
+			auto types_it = fn_t.argument_types.begin();
+			auto call_it  = func_call.params.begin();
+			auto const types_end = fn_t.argument_types.end();
+//			auto const call_end  = func_call.params.end();
+			for (; types_it != types_end; ++call_it, ++types_it)
+			{
+				if (!are_directly_matchable_types(call_it->expr_type, *types_it))
+				{
+					return lex::bad_tokens(
+						*call_it,
+						bz::format(
+							"unable to convert argument {} from '{}' to '{}'",
+							(call_it - func_call.params.begin()) + 1,
+							call_it->expr_type.expr_type, *types_it
+						)
+					);
+				}
+			}
+			return fn_t.return_type;
+		}
+		// call to an overload set with more than one members
+		else
+		{
+			assert(false);
+			return ast::typespec();
+		}
+	}
+	else
+	{
+		// function call operator
+		assert(false);
+		return ast::typespec();
+	}
+}
+
 
 ast::type_info const *global_context::get_type_info(bz::string_view, bz::string_view id)
 {
@@ -387,7 +557,14 @@ ast::type_info const *global_context::get_type_info(bz::string_view, bz::string_
 			return id == info.identifier;
 		}
 	);
-	return it.operator->();
+	if (it == this->_types.end())
+	{
+		return nullptr;
+	}
+	else
+	{
+		return it.operator->();
+	}
 }
 
 } // namespace ctx

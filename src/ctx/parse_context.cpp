@@ -76,10 +76,10 @@ void parse_context::add_global_struct(
 }
 
 
-void parse_context::add_local_variable(ast::decl_variable &var_decl)
+void parse_context::add_local_variable(ast::variable var_decl)
 {
 	assert(this->scope_variables.size() != 0);
-	this->scope_variables.back().push_back(&var_decl);
+	this->scope_variables.back().emplace_back(std::move(var_decl));
 }
 
 
@@ -99,12 +99,12 @@ ast::typespec parse_context::get_identifier_type(
 		auto const var = std::find_if(
 			scope->rbegin(), scope->rend(),
 			[&](auto const &var) {
-				return var->identifier->value == id->value;
+				return var.id->value == id->value;
 			}
 		);
 		if (var != scope->rend())
 		{
-			return (*var)->var_type;
+			return var->var_type;
 		}
 	}
 
@@ -143,6 +143,23 @@ ast::typespec parse_context::get_operation_type(
 ) const
 {
 	auto res = this->global_ctx->get_operation_type(this->scope, binary_op);
+	if (res.has_error())
+	{
+		errors.emplace_back(std::move(res.get_error()));
+		return ast::typespec();
+	}
+	else
+	{
+		return std::move(res.get_result());
+	}
+}
+
+ast::typespec parse_context::get_function_call_type(
+	ast::expr_function_call const &func_call,
+	bz::vector<error> &errors
+) const
+{
+	auto res = this->global_ctx->get_function_call_type(this->scope, func_call);
 	if (res.has_error())
 	{
 		errors.emplace_back(std::move(res.get_error()));

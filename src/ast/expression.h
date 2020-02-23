@@ -56,6 +56,7 @@ struct expression : node<
 		lvalue_reference,
 		rvalue,
 		rvalue_reference,
+		function_name,
 	};
 
 	struct expr_type_t

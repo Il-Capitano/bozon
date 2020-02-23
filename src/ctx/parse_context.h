@@ -11,23 +11,6 @@
 namespace ctx
 {
 
-using ctx_variable = ast::decl_variable *;
-using ctx_function = ast::decl_function *;
-using ctx_operator = ast::decl_operator *;
-using ctx_struct   = ast::decl_struct *;
-
-struct function_overload_set
-{
-	bz::string               id;
-	bz::vector<ctx_function> functions;
-};
-
-struct operator_overload_set
-{
-	uint32_t                 op;
-	bz::vector<ctx_operator> operators;
-};
-
 struct global_context;
 
 struct parse_context
@@ -35,7 +18,7 @@ struct parse_context
 	bz::string      scope;
 	global_context *global_ctx;
 
-	bz::vector<bz::vector<ctx_variable>> scope_variables;
+	bz::vector<bz::vector<ast::variable>> scope_variables;
 
 	parse_context(bz::string_view _scope, global_context *_global_ctx)
 		: scope(_scope), global_ctx(_global_ctx)
@@ -50,7 +33,7 @@ struct parse_context
 	void add_global_operator(ast::decl_operator &op_decl, bz::vector<error> &errors);
 	void add_global_struct(ast::decl_struct &struct_decl, bz::vector<error> &errors);
 
-	void add_local_variable(ast::decl_variable &var_decl);
+	void add_local_variable(ast::variable var_decl);
 
 	ast::typespec get_identifier_type(
 		lex::token_pos id,
@@ -62,6 +45,10 @@ struct parse_context
 	) const;
 	ast::typespec get_operation_type(
 		ast::expr_binary_op const &binary_op,
+		bz::vector<error> &errors
+	) const;
+	ast::typespec get_function_call_type(
+		ast::expr_function_call const &func_call,
 		bz::vector<error> &errors
 	) const;
 

@@ -1,6 +1,8 @@
 #include "parser.cpp"
 #include "test.h"
 
+#include "ctx/global_context.cpp"
+
 #define xx(fn, str, it_pos)                                \
 do {                                                       \
     bz::string_view const file = str;                      \
@@ -26,14 +28,15 @@ do {                                                       \
 
 static void parse_primary_expression_test(void)
 {
-	ctx::parse_context context;
+	ctx::global_context global_ctx;
+	ctx::parse_context context("", &global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str) xx(parse_primary_expression, str, tokens.end() - 1)
 #define x_err(str, it_pos) xx_err(parse_primary_expression, str, it_pos)
 
 	x("1");
-//	x("+3");
+	x("+3");
 
 #undef x
 #undef x_err
