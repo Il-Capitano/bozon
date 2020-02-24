@@ -197,7 +197,7 @@ static bz::string read_text_from_file(std::ifstream &file)
 	return file_str;
 }
 
-src_file::src_file(bz::string_view file_name, ctx::global_context *global_ctx)
+src_file::src_file(bz::string_view file_name, ctx::global_context &global_ctx)
 	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _global_ctx(global_ctx)
 {}
 
@@ -284,14 +284,16 @@ void src_file::report_and_clear_errors(void)
 	auto stream = this->_tokens.cbegin();
 	auto end    = this->_tokens.cend() - 1;
 
+	ctx::first_pass_parse_context context(this->_global_ctx);
+
 	while (stream != end)
 	{
-		this->_declarations.emplace_back(parse_declaration(stream, end, this->_errors));
+		this->_declarations.emplace_back(parse_declaration(stream, end, context));
 	}
 
 	for (auto &decl : this->_declarations)
 	{
-		this->_global_ctx->add_global_declaration(this->_file_name, decl);
+		this->_global_ctx.add_global_declaration(this->_file_name, decl);
 	}
 
 	this->_stage = first_pass_parsed;

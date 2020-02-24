@@ -23,33 +23,33 @@ void resolve(
 void resolve_symbol(
 	ast::decl_function &func_decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 void resolve_symbol(
 	ast::decl_operator &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 void resolve(
 	ast::decl_function &func_decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 void resolve(
 	ast::decl_operator &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 void resolve(
 	ast::decl_struct &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 
 void resolve(
 	ast::declaration &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 );
 void resolve(
 	ast::statement &stmt,

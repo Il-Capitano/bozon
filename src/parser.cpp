@@ -246,7 +246,7 @@ static ast::expression parse_primary_expression(
 {
 	if (stream == end)
 	{
-		context.report_error(bad_token(stream, "expected primary expression"));
+		context.report_error(stream, "expected primary expression");
 		return ast::expression();
 	}
 
@@ -343,7 +343,7 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			context.report_error(bad_token(stream, "expected primary expression"));
+			context.report_error(stream, "expected primary expression");
 			return ast::expression();
 		}
 	}
@@ -435,7 +435,7 @@ static ast::expression parse_expression_helper(
 				auto params = parse_expression_comma_list(inner_stream, inner_end, context);
 				if (inner_stream != inner_end)
 				{
-					context.report_error(bad_token(inner_stream, "expected ',' or closing )"));
+					context.report_error(inner_stream, "expected ',' or closing )");
 				}
 
 				lhs = make_expr_function_call(
@@ -453,7 +453,7 @@ static ast::expression parse_expression_helper(
 			auto rhs = parse_expression(inner_stream, inner_end, context, precedence{});
 			if (inner_stream != inner_end)
 			{
-				context.report_error(bad_token(inner_stream, "expected closing ]"));
+				context.report_error(inner_stream, "expected closing ]");
 			}
 
 			lhs = make_expr_binary_op(
@@ -536,7 +536,7 @@ ast::typespec parse_typespec(
 {
 	if (stream == end)
 	{
-		context.report_error(bad_token(stream));
+		context.report_error(stream);
 		return ast::typespec();
 	}
 
@@ -553,7 +553,7 @@ ast::typespec parse_typespec(
 		}
 		else
 		{
-			context.report_error(bad_token(id, "undeclared typename"));
+			context.report_error(id, "undeclared typename");
 			return ast::typespec();
 		}
 	}
@@ -722,14 +722,14 @@ static void add_expr_type(
 		&& expr.expr_type.type_kind != ast::expression::lvalue_reference
 	)
 	{
-		context.report_error(lex::bad_tokens(
+		context.report_error(
 			expr,
 			bz::format(
 				"cannot bind {} to lvalue reference",
 				expr.expr_type.type_kind == ast::expression::rvalue
 				? "rvalue" : "rvalue reference"
 			)
-		));
+		);
 		return;
 	}
 
@@ -770,10 +770,10 @@ static void add_expr_type(
 	{
 		if (!context.is_convertible(expr.expr_type, var_type))
 		{
-			context.report_error(lex::bad_tokens(
+			context.report_error(
 				expr,
 				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
-			));
+			);
 		}
 		return;
 	}
@@ -790,10 +790,10 @@ static void add_expr_type(
 				!= expr_it->get<ast::ts_base_type_ptr>()->info
 			)
 			{
-				context.report_error(lex::bad_tokens(
+				context.report_error(
 					expr,
 					bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
-				));
+				);
 				return;
 			}
 		}
@@ -802,10 +802,10 @@ static void add_expr_type(
 			&& expr_it->kind() == ast::typespec::index<ast::ts_base_type>
 		)
 		{
-			context.report_error(lex::bad_tokens(
+			context.report_error(
 				expr,
 				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
-			));
+			);
 			return;
 		}
 		else if (var_it->kind() == expr_it->kind())
@@ -819,10 +819,10 @@ static void add_expr_type(
 		}
 		else
 		{
-			context.report_error(lex::bad_tokens(
+			context.report_error(
 				expr,
 				bz::format("cannot convert '{}' to '{}'", expr.expr_type.expr_type, var_type)
-			));
+			);
 			return;
 		}
 	}
@@ -851,7 +851,7 @@ void resolve(
 void resolve_symbol(
 	ast::decl_function &func_decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 	ctx::parse_context context(scope, global_ctx);
@@ -865,7 +865,7 @@ void resolve_symbol(
 void resolve_symbol(
 	ast::decl_operator &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 }
@@ -873,7 +873,7 @@ void resolve_symbol(
 void resolve(
 	ast::decl_function &func_decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 	ctx::parse_context context(scope, global_ctx);
@@ -894,7 +894,7 @@ void resolve(
 void resolve(
 	ast::decl_operator &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 }
@@ -902,7 +902,7 @@ void resolve(
 void resolve(
 	ast::decl_struct &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 }
@@ -910,7 +910,7 @@ void resolve(
 void resolve(
 	ast::declaration &decl,
 	bz::string_view scope,
-	ctx::global_context *global_ctx
+	ctx::global_context &global_ctx
 )
 {
 	switch (decl.kind())
@@ -1073,7 +1073,7 @@ static resolve_ret_val resolve(
 	ctx::parse_context &context
 )
 {
-	context.report_error(lex::bad_tokens(fn_call, "not yet implemented"));
+	context.report_error(fn_call, "not yet implemented");
 	return {
 		ast::expression::rvalue,
 		ast::typespec()
@@ -1091,31 +1091,9 @@ void resolve(ast::expression &expr, ctx::parse_context &context)
 		auto new_expr = parse_expression(stream, end, context, precedence{});
 		if (stream != end)
 		{
-			context.report_error(bad_tokens(
-				stream, stream, end,
-				"expected ';'"
-			));
+			context.report_error(stream, stream, end, "expected ';'");
 		}
 		expr = std::move(new_expr);
 	}
 	return;
-
-	switch (expr.kind())
-	{
-	case ast::expression::index<ast::expr_literal>:
-	{
-		auto &literal = *expr.get<ast::expr_literal_ptr>();
-		expr.expr_type = resolve(literal, context);
-		break;
-	}
-	case ast::expression::index<ast::expr_function_call>:
-	{
-		auto &fn_call = *expr.get<ast::expr_function_call_ptr>();
-		expr.expr_type = resolve(fn_call, context);
-		break;
-	}
-	default:
-		assert(false);
-		break;
-	}
 }
