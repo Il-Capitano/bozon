@@ -38,7 +38,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 {
 	if (stream->kind != kind)
 	{
-		this->global_ctx.report_error(lex::bad_token(
+		this->global_ctx.report_error(ctx::make_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format("expected {} before end-of-file", lex::get_token_name_for_message(kind))
@@ -58,7 +58,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
 	{
-		this->global_ctx.report_error(lex::bad_token(
+		this->global_ctx.report_error(ctx::make_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format(

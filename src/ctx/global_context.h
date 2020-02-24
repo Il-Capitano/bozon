@@ -1,7 +1,10 @@
 #ifndef CTX_GLOBAL_CONTEXT_H
 #define CTX_GLOBAL_CONTEXT_H
 
-#include "lex/lexer.h"
+#include "core.h"
+
+#include "lex/token.h"
+#include "error.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"

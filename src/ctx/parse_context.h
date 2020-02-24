@@ -4,6 +4,7 @@
 #include "core.h"
 
 #include "lex/token.h"
+#include "error.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"

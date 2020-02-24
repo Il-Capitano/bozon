@@ -5,6 +5,7 @@
 
 #include "token.h"
 #include "ctx/error.h"
+#include "ctx/lex_context.h"
 
 namespace lex
 {
@@ -14,20 +15,6 @@ bz::vector<token> get_tokens(
 	bz::string_view file_name,
 	bz::vector<ctx::error> &errors
 );
-
-[[nodiscard]] inline ctx::error bad_token(
-	token_pos it,
-	bz::string message,
-	bz::vector<ctx::note> notes = {}
-)
-{
-	return ctx::error{
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
-		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-		std::move(message),
-		std::move(notes)
-	};
-}
 
 } // namespace lex
 

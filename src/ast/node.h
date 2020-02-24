@@ -2,7 +2,7 @@
 #define AST_NODE_H
 
 #include "core.h"
-#include "lex/lexer.h"
+#include "lex/token.h"
 
 namespace ast
 {
