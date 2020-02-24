@@ -44,6 +44,10 @@ public:
 	void report_error(error &&err);
 	bool has_errors(void) const;
 	void clear_errors(void);
+	bz::vector<error> const &get_errors(void) const
+	{ return this->_errors; }
+	size_t get_error_count(void) const
+	{ return this->_errors.size(); }
 
 	auto add_global_declaration(bz::string_view scope, ast::declaration &decl)
 		-> bz::result<int, error>;
