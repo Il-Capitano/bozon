@@ -30,13 +30,13 @@ struct file_iterator
 static token get_next_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 );
 
 bz::vector<token> get_tokens(
 	bz::string_view file,
 	bz::string_view file_name,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 )
 {
 	bz::vector<token> tokens = {};
@@ -45,7 +45,7 @@ bz::vector<token> get_tokens(
 
 	do
 	{
-		tokens.push_back(get_next_token(stream, end, errors));
+		tokens.push_back(get_next_token(stream, end, context));
 	} while (tokens.back().kind != token::eof);
 
 	return tokens;
@@ -169,7 +169,7 @@ static void skip_comments_and_whitespace(file_iterator &stream, ctx::char_pos co
 static token get_identifier_or_keyword_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &
+	ctx::lex_context &
 )
 {
 	assert(stream.it != end);
@@ -223,7 +223,7 @@ static token get_identifier_or_keyword_token(
 static token get_character_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 )
 {
 	assert(stream.it != end);
@@ -236,7 +236,7 @@ static token get_character_token(
 
 	if (stream.it == end)
 	{
-		errors.emplace_back(bad_char(
+		context.report_error(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing ' before end-of-file",
 			{ ctx::note{
@@ -272,7 +272,7 @@ static token get_character_token(
 			++stream;
 			break;
 		default:
-			errors.emplace_back(bad_char(
+			context.report_error(bad_char(
 				stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
 			));
 			++stream;
@@ -281,7 +281,7 @@ static token get_character_token(
 		break;
 
 	case '\'':
-		errors.emplace_back(bad_char(stream, "expected a character before closing '"));
+		context.report_error(bad_char(stream, "expected a character before closing '"));
 		break;
 
 	default:
@@ -292,7 +292,7 @@ static token get_character_token(
 	auto const char_end = stream.it;
 	if (stream.it == end)
 	{
-		errors.emplace_back(bad_char(
+		context.report_error(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing ' before end-of-file",
 			{ ctx::note{
@@ -304,7 +304,7 @@ static token get_character_token(
 	}
 	else if (*stream.it != '\'')
 	{
-		errors.emplace_back(bad_char(
+		context.report_error(bad_char(
 			stream, "expected closing '",
 			{ ctx::note{
 				stream.file, line, column,
@@ -329,7 +329,7 @@ static token get_character_token(
 static token get_string_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 )
 {
 	assert(stream.it != end);
@@ -360,7 +360,7 @@ static token get_string_token(
 				++stream;
 				break;
 			default:
-				errors.emplace_back(bad_char(
+				context.report_error(bad_char(
 					stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
 				));
 				++stream;
@@ -376,7 +376,7 @@ static token get_string_token(
 	auto const str_end = stream.it;
 	if (stream.it == end)
 	{
-		errors.emplace_back(bad_char(
+		context.report_error(bad_char(
 			stream.file, stream.line, stream.column,
 			"expected closing \" before end-of-file",
 			{ ctx::note{
@@ -403,7 +403,7 @@ static token get_string_token(
 static token get_number_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &
+	ctx::lex_context &
 )
 {
 	assert(stream.it != end);
@@ -454,7 +454,7 @@ static token get_number_token(
 static token get_single_char_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &
+	ctx::lex_context &
 )
 {
 	assert(stream.it != end);
@@ -488,7 +488,7 @@ static bool is_str(bz::string_view str, file_iterator &stream, ctx::char_pos con
 static token get_next_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 )
 {
 	skip_comments_and_whitespace(stream, end);
@@ -514,18 +514,18 @@ static token get_next_token(
 	case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
 	case 'Y': case 'Z':
 	case '_':
-		return get_identifier_or_keyword_token(stream, end, errors);
+		return get_identifier_or_keyword_token(stream, end, context);
 
 	// character
 	case '\'':
-		return get_character_token(stream, end, errors);
+		return get_character_token(stream, end, context);
 	// string
 	case '\"':
-		return get_string_token(stream, end, errors);
+		return get_string_token(stream, end, context);
 	// number
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
-		return get_number_token(stream, end, errors);
+		return get_number_token(stream, end, context);
 
 	default:
 		break;
@@ -553,7 +553,7 @@ static token get_next_token(
 		}
 	}
 
-	return get_single_char_token(stream, end, errors);
+	return get_single_char_token(stream, end, context);
 }
 
 } // namespace lex

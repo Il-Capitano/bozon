@@ -234,16 +234,14 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 
 void src_file::report_and_clear_errors(void)
 {
-	if (this->_errors.size() == 0)
+	if (this->_global_ctx.has_errors())
 	{
-		return;
+		for (auto &err : this->_global_ctx.get_errors())
+		{
+			print_error(this->_file.begin(), this->_file.end(), err);
+		}
+		this->_global_ctx.clear_errors();
 	}
-
-	for (auto &err : this->_errors)
-	{
-		print_error(this->_file.begin(), this->_file.end(), err);
-	}
-	this->_errors.clear();
 }
 
 [[nodiscard]] bool src_file::read_file(void)
@@ -267,13 +265,12 @@ void src_file::report_and_clear_errors(void)
 [[nodiscard]] bool src_file::tokenize(void)
 {
 	assert(this->_stage == file_read);
-	if (this->_stage == file_read)
-	{
-		this->_tokens = lex::get_tokens(this->_file, this->_file_name, this->_errors);
-		this->_stage = tokenized;
-	}
 
-	return this->_errors.size() == 0;
+	ctx::lex_context context(this->_global_ctx);
+	this->_tokens = lex::get_tokens(this->_file, this->_file_name, context);
+	this->_stage = tokenized;
+
+	return !this->_global_ctx.has_errors();
 }
 
 [[nodiscard]] bool src_file::first_pass_parse(void)
@@ -297,7 +294,7 @@ void src_file::report_and_clear_errors(void)
 	}
 
 	this->_stage = first_pass_parsed;
-	return this->_errors.size() == 0;
+	return !this->_global_ctx.has_errors();
 }
 
 [[nodiscard]] bool src_file::resolve(void)
@@ -309,5 +306,5 @@ void src_file::report_and_clear_errors(void)
 	}
 
 	this->_stage = resolved;
-	return this->_errors.size() == 0;
+	return !this->_global_ctx.has_errors();
 }

@@ -13,7 +13,7 @@ namespace lex
 bz::vector<token> get_tokens(
 	bz::string_view file,
 	bz::string_view file_name,
-	bz::vector<ctx::error> &errors
+	ctx::lex_context &context
 );
 
 } // namespace lex

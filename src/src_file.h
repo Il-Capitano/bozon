@@ -3,9 +3,10 @@
 
 #include "core.h"
 
+#include "ctx/lex_context.h"
 #include "lex/lexer.h"
-#include "first_pass_parser.h"
 #include "ctx/first_pass_parse_context.h"
+#include "first_pass_parser.h"
 #include "ctx/parse_context.h"
 #include "parser.h"
 
@@ -22,8 +23,6 @@ struct src_file
 
 public:
 	src_file_stage _stage;
-
-	bz::vector<ctx::error> _errors;
 
 	bz::string             _file_name;
 	bz::string             _file;
@@ -45,12 +44,6 @@ public:
 
 	bz::string const &get_file_name() const
 	{ return this->_file_name; }
-
-	bool has_errors() const
-	{ return this->_errors.size() != 0; }
-
-	size_t get_error_count() const
-	{ return this->_errors.size(); }
 
 	auto tokens_begin(void) const
 	{ assert(this->_stage >= tokenized); return this->_tokens.begin(); }
