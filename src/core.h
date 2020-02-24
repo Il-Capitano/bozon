@@ -23,7 +23,6 @@
 #include <bz/format.h>
 #include <bz/result.h>
 
-#include "ctx/error.h"
 #include "my_assert.h"
 
 using std::int8_t;

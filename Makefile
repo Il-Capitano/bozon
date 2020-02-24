@@ -69,10 +69,10 @@ exec-debug: $(default_exe_debug)
 exec-release: $(default_exe_release)
 	$(default_exe_release)
 
-$(default_exe_debug): bin/default/debug/int/bytecode.cpp.o bin/default/debug/int/first_pass_parser.cpp.o bin/default/debug/int/main.cpp.o bin/default/debug/int/parser.cpp.o bin/default/debug/int/src_file.cpp.o bin/default/debug/int/expression.cpp.o bin/default/debug/int/statement.cpp.o bin/default/debug/int/typespec.cpp.o bin/default/debug/int/error.cpp.o bin/default/debug/int/first_pass_parse_context.cpp.o bin/default/debug/int/global_context.cpp.o bin/default/debug/int/parse_context.cpp.o bin/default/debug/int/src_manager.cpp.o bin/default/debug/int/lexer.cpp.o
+$(default_exe_debug): bin/default/debug/int/bytecode.cpp.o bin/default/debug/int/first_pass_parser.cpp.o bin/default/debug/int/main.cpp.o bin/default/debug/int/parser.cpp.o bin/default/debug/int/src_file.cpp.o bin/default/debug/int/expression.cpp.o bin/default/debug/int/statement.cpp.o bin/default/debug/int/typespec.cpp.o bin/default/debug/int/error.cpp.o bin/default/debug/int/first_pass_parse_context.cpp.o bin/default/debug/int/global_context.cpp.o bin/default/debug/int/parse_context.cpp.o bin/default/debug/int/src_manager.cpp.o bin/default/debug/int/lexer.cpp.o bin/default/debug/int/token.cpp.o
 	$(LD) $(LD_FLAGS_DEBUG) $(addprefix -L,$(LD_LIBDIRS)) $(addprefix -l,$(LD_LIBS)) $^ -o $@
 
-$(default_exe_release): bin/default/release/int/bytecode.cpp.o bin/default/release/int/first_pass_parser.cpp.o bin/default/release/int/main.cpp.o bin/default/release/int/parser.cpp.o bin/default/release/int/src_file.cpp.o bin/default/release/int/expression.cpp.o bin/default/release/int/statement.cpp.o bin/default/release/int/typespec.cpp.o bin/default/release/int/error.cpp.o bin/default/release/int/first_pass_parse_context.cpp.o bin/default/release/int/global_context.cpp.o bin/default/release/int/parse_context.cpp.o bin/default/release/int/src_manager.cpp.o bin/default/release/int/lexer.cpp.o
+$(default_exe_release): bin/default/release/int/bytecode.cpp.o bin/default/release/int/first_pass_parser.cpp.o bin/default/release/int/main.cpp.o bin/default/release/int/parser.cpp.o bin/default/release/int/src_file.cpp.o bin/default/release/int/expression.cpp.o bin/default/release/int/statement.cpp.o bin/default/release/int/typespec.cpp.o bin/default/release/int/error.cpp.o bin/default/release/int/first_pass_parse_context.cpp.o bin/default/release/int/global_context.cpp.o bin/default/release/int/parse_context.cpp.o bin/default/release/int/src_manager.cpp.o bin/default/release/int/lexer.cpp.o bin/default/release/int/token.cpp.o
 	$(LD) $(LD_FLAGS_RELEASE) $(addprefix -L,$(LD_LIBDIRS)) $(addprefix -l,$(LD_LIBS)) $^ -o $@
 
 bin/default/debug/int/bytecode.cpp.o: ./src/bytecode.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/typespec.h ./src/bytecode.h ./src/core.h ./src/ctx/error.h ./src/ctx/parse_context.h ./src/lex/lexer.h ./src/lex/token.h ./src/my_assert.h
@@ -157,6 +157,12 @@ bin/default/debug/int/lexer.cpp.o: ./src/lex/lexer.cpp ./include/bz/allocator.h 
 	$(CXX) $(default_cxx_debug_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
 bin/default/release/int/lexer.cpp.o: ./src/lex/lexer.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/core.h ./src/ctx/error.h ./src/lex/lexer.h ./src/lex/token.h ./src/my_assert.h
+	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
+
+bin/default/debug/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
+	$(CXX) $(default_cxx_debug_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
+
+bin/default/release/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
 	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
 # ======================

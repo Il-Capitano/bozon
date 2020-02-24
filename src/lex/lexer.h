@@ -29,7 +29,6 @@ bz::vector<token> get_tokens(
 	};
 }
 
-
 } // namespace lex
 
 #endif // LEX_LEXER_H

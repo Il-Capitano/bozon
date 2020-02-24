@@ -138,6 +138,76 @@ struct token
 	{}
 };
 
+using token_pair = std::pair<bz::string_view, uint32_t>;
+
+constexpr std::array<
+	token_pair,
+	token::kw_if - token::plus_plus
+> multi_char_tokens = {
+	token_pair{ "<<=", token::bit_left_shift_eq  },
+	token_pair{ ">>=", token::bit_right_shift_eq },
+	token_pair{ "...", token::dot_dot_dot        },
+	token_pair{ "..=", token::dot_dot_eq         },
+
+	token_pair{ "++", token::plus_plus           },
+	token_pair{ "--", token::minus_minus         },
+	token_pair{ "+=", token::plus_eq             },
+	token_pair{ "-=", token::minus_eq            },
+	token_pair{ "*=", token::multiply_eq         },
+	token_pair{ "/=", token::divide_eq           },
+	token_pair{ "%=", token::modulo_eq           },
+	token_pair{ "<<", token::bit_left_shift      },
+	token_pair{ ">>", token::bit_right_shift     },
+	token_pair{ "&=", token::bit_and_eq          },
+	token_pair{ "|=", token::bit_or_eq           },
+	token_pair{ "^=", token::bit_xor_eq          },
+
+	token_pair{ "==", token::equals              },
+	token_pair{ "!=", token::not_equals          },
+	token_pair{ "<=", token::less_than_eq        },
+	token_pair{ ">=", token::greater_than_eq     },
+	token_pair{ "&&", token::bool_and            },
+	token_pair{ "||", token::bool_or             },
+	token_pair{ "^^", token::bool_xor            },
+
+	token_pair{ "->", token::arrow               },
+	token_pair{ "=>", token::fat_arrow           },
+	token_pair{ "::", token::scope               },
+	token_pair{ "..", token::dot_dot             }
+};
+
+constexpr std::array<
+	token_pair,
+	token::_last - token::kw_if
+> keywords = {
+	token_pair{ "namespace", token::kw_namespace },
+
+	token_pair{ "function", token::kw_function   },
+	token_pair{ "operator", token::kw_operator   },
+	token_pair{ "typename", token::kw_typename   },
+
+	token_pair{ "return", token::kw_return       },
+	token_pair{ "struct", token::kw_struct       },
+	token_pair{ "sizeof", token::kw_sizeof       },
+	token_pair{ "typeof", token::kw_typeof       },
+
+	token_pair{ "while", token::kw_while         },
+	token_pair{ "class", token::kw_class         },
+	token_pair{ "using", token::kw_using         },
+	token_pair{ "const", token::kw_const         },
+	token_pair{ "false", token::kw_false         },
+
+	token_pair{ "else", token::kw_else           },
+	token_pair{ "auto", token::kw_auto           },
+	token_pair{ "true", token::kw_true           },
+	token_pair{ "null", token::kw_null           },
+
+	token_pair{ "for", token::kw_for             },
+	token_pair{ "let", token::kw_let             },
+
+	token_pair{ "if", token::kw_if               },
+};
+
 
 using token_pos = bz::vector<token>::const_iterator;
 

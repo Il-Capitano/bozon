@@ -2,6 +2,7 @@
 #define CTX_FIRST_PASS_PARSE_CONTEXT_H
 
 #include "core.h"
+#include "error.h"
 
 namespace ctx
 {
