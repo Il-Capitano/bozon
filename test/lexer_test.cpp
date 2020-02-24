@@ -1,5 +1,7 @@
 #include "lex/lexer.cpp"
 #include "test.h"
+#include "ctx/global_context.h"
+#include "ctx/lex_context.h"
 
 using namespace lex;
 
@@ -208,20 +210,21 @@ skip_comments_and_whitespace(it, file.end())
 
 static void get_identifier_or_keyword_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
-#define x_id(str)                                                       \
-bz::string_view const file = str;                                       \
-file_iterator it = { file.begin(), "" };                                \
-auto const t = get_identifier_or_keyword_token(it, file.end(), errors); \
-assert_true(errors.empty());                                            \
+#define x_id(str)                                                        \
+bz::string_view const file = str;                                        \
+file_iterator it = { file.begin(), "" };                                 \
+auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
+assert_false(global_ctx.has_errors());                                   \
 assert_eq(t.kind, token::identifier)
 
-#define x_kw(str, kw_kind)                                              \
-bz::string_view const file = str;                                       \
-file_iterator it = { file.begin(), "" };                                \
-auto const t = get_identifier_or_keyword_token(it, file.end(), errors); \
-assert_true(errors.empty());                                            \
+#define x_kw(str, kw_kind)                                               \
+bz::string_view const file = str;                                        \
+file_iterator it = { file.begin(), "" };                                 \
+auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
+assert_false(global_ctx.has_errors());                                   \
 assert_eq(t.kind, kw_kind)
 
 #define xx_kw(str, kw_kind) do { x_kw(str, kw_kind); } while (false)
@@ -301,29 +304,28 @@ assert_eq(t.kind, kw_kind)
 
 static void get_character_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
-#define x(str, c, it_pos)                                       \
-do {                                                            \
-    assert_true(errors.empty());                                \
-    bz::string_view const file = str;                           \
-    file_iterator it = { file.begin(), "" };                    \
-    auto const t = get_character_token(it, file.end(), errors); \
-    assert_true(errors.empty());                                \
-    assert_eq(t.kind, token::character_literal);                \
-    assert_eq(t.value, c);                                      \
-    assert_eq(it.it, it_pos);                                   \
+#define x(str, c, it_pos)                                        \
+do {                                                             \
+    bz::string_view const file = str;                            \
+    file_iterator it = { file.begin(), "" };                     \
+    auto const t = get_character_token(it, file.end(), context); \
+    assert_false(global_ctx.has_errors());                       \
+    assert_eq(t.kind, token::character_literal);                 \
+    assert_eq(t.value, c);                                       \
+    assert_eq(it.it, it_pos);                                    \
 } while (false)
 
-#define x_err(str, it_pos)                       \
-do {                                             \
-    assert_true(errors.empty());                 \
-    bz::string_view const file = str;            \
-    file_iterator it = { file.begin(), "" };     \
-    get_character_token(it, file.end(), errors); \
-    assert_false(errors.empty());                \
-    errors.clear();                              \
-    assert_eq(it.it, it_pos);                    \
+#define x_err(str, it_pos)                        \
+do {                                              \
+    bz::string_view const file = str;             \
+    file_iterator it = { file.begin(), "" };      \
+    get_character_token(it, file.end(), context); \
+    assert_true(global_ctx.has_errors());         \
+    global_ctx.clear_errors();                    \
+    assert_eq(it.it, it_pos);                     \
 } while (false)
 
 	x("'a'", "a", file.end());
@@ -346,29 +348,28 @@ do {                                             \
 
 static void get_string_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
-#define x(str, c, it_pos)                                    \
-do {                                                         \
-    assert_true(errors.empty());                             \
-    bz::string_view const file = str;                        \
-    file_iterator it = { file.begin(), "" };                 \
-    auto const t = get_string_token(it, file.end(), errors); \
-    assert_true(errors.empty());                             \
-    assert_eq(t.kind, token::string_literal);                \
-    assert_eq(t.value, c);                                   \
-    assert_eq(it.it, it_pos);                                \
+#define x(str, c, it_pos)                                     \
+do {                                                          \
+    bz::string_view const file = str;                         \
+    file_iterator it = { file.begin(), "" };                  \
+    auto const t = get_string_token(it, file.end(), context); \
+    assert_false(global_ctx.has_errors());                    \
+    assert_eq(t.kind, token::string_literal);                 \
+    assert_eq(t.value, c);                                    \
+    assert_eq(it.it, it_pos);                                 \
 } while (false)
 
-#define x_err(str, it_pos)                    \
-do {                                          \
-    assert_true(errors.empty());              \
-    bz::string_view const file = str;         \
-    file_iterator it = { file.begin(), "" };  \
-    get_string_token(it, file.end(), errors); \
-    assert_false(errors.empty());             \
-    errors.clear();                           \
-    assert_eq(it.it, it_pos);                 \
+#define x_err(str, it_pos)                     \
+do {                                           \
+    bz::string_view const file = str;          \
+    file_iterator it = { file.begin(), "" };   \
+    get_string_token(it, file.end(), context); \
+    assert_true(global_ctx.has_errors());      \
+    global_ctx.clear_errors();                 \
+    assert_eq(it.it, it_pos);                  \
 } while (false)
 
 	x(R"("")", "", file.end());
@@ -391,17 +392,17 @@ do {                                          \
 
 static void get_number_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
-#define x(str, it_pos)                                       \
-do {                                                         \
-    assert_true(errors.empty());                             \
-    bz::string_view const file = str;                        \
-    file_iterator it = { file.begin(), "" };                 \
-    auto const t = get_number_token(it, file.end(), errors); \
-    assert_true(errors.empty());                             \
-    assert_eq(t.kind, token::number_literal);                \
-    assert_eq(it.it, it_pos);                                \
+#define x(str, it_pos)                                        \
+do {                                                          \
+    bz::string_view const file = str;                         \
+    file_iterator it = { file.begin(), "" };                  \
+    auto const t = get_number_token(it, file.end(), context); \
+    assert_false(global_ctx.has_errors());                    \
+    assert_eq(t.kind, token::number_literal);                 \
+    assert_eq(it.it, it_pos);                                 \
 } while (false)
 
 	x("1234", file.end());
@@ -424,31 +425,33 @@ do {                                                         \
 
 static void get_single_char_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
 	for (unsigned char c = ' '; c != 128; ++c)
 	{
 		bz::string const _file(1, c);
 		bz::string_view const file = _file;
 		file_iterator it = { file.begin(), "" };
-		auto const t = get_single_char_token(it, file.end(), errors);
+		auto const t = get_single_char_token(it, file.end(), context);
 		assert_eq(t.kind, c);
 		assert_eq(t.value, file);
-		assert_true(errors.empty());
+		assert_false(global_ctx.has_errors());
 	}
 }
 
 static void get_next_token_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
-#define x(str, token_kind)                                 \
-do {                                                       \
-    bz::string_view const file = str;                      \
-    file_iterator it = { file.begin(), "" };               \
-    auto const t = get_next_token(it, file.end(), errors); \
-    assert_true(errors.empty());                           \
-    assert_eq(t.kind, token_kind);                         \
+#define x(str, token_kind)                                  \
+do {                                                        \
+    bz::string_view const file = str;                       \
+    file_iterator it = { file.begin(), "" };                \
+    auto const t = get_next_token(it, file.end(), context); \
+    assert_false(global_ctx.has_errors());                  \
+    assert_eq(t.kind, token_kind);                          \
 } while (false)
 
 #define x_id(str) x(str, token::identifier)
@@ -490,7 +493,8 @@ do {                                                       \
 
 void get_tokens_test(void)
 {
-	bz::vector<ctx::error> errors = {};
+	ctx::global_context global_ctx;
+	ctx::lex_context context(global_ctx);
 
 #define assert_eqs                                                  \
 ([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
@@ -503,12 +507,12 @@ void get_tokens_test(void)
     assert_eq(ts.back().kind, token::eof);                          \
 })
 
-#define x(str, ...)                               \
-do {                                              \
-    bz::string_view const file = str;             \
-    auto const ts = get_tokens(file, "", errors); \
-    assert_true(errors.empty());                  \
-    assert_eqs(ts, { __VA_ARGS__ });              \
+#define x(str, ...)                                \
+do {                                               \
+    bz::string_view const file = str;              \
+    auto const ts = get_tokens(file, "", context); \
+    assert_false(global_ctx.has_errors());         \
+    assert_eqs(ts, { __VA_ARGS__ });               \
 } while (false)
 
 	x("");
