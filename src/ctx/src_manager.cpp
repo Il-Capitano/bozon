@@ -16,7 +16,7 @@ namespace ctx
 
 		if (!file.tokenize())
 		{
-			auto const error_count = file.get_error_count();
+			auto const error_count = this->global_ctx.get_error_count();
 			bz::printf(
 				"{} {} occurred while tokenizing {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
@@ -37,7 +37,7 @@ namespace ctx
 	{
 		if (!file.first_pass_parse())
 		{
-			auto const error_count = file.get_error_count();
+			auto const error_count = this->global_ctx.get_error_count();
 			bz::printf(
 				"{} {} occurred while first pass of parsing {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
@@ -58,7 +58,7 @@ namespace ctx
 	{
 		if (!file.resolve())
 		{
-			auto const error_count = file.get_error_count();
+			auto const error_count = this->global_ctx.get_error_count();
 			bz::printf(
 				"{} {} occurred while resolving {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
