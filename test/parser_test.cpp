@@ -1,7 +1,8 @@
 #include "parser.cpp"
 #include "test.h"
 
-#include "ctx/global_context.cpp"
+#include "ctx/global_context.h"
+#include "ctx/parse_context.h"
 
 #define xx(fn, str, it_pos)                                \
 do {                                                       \
@@ -29,7 +30,7 @@ do {                                                       \
 static void parse_primary_expression_test(void)
 {
 	ctx::global_context global_ctx;
-	ctx::parse_context context("", &global_ctx);
+	ctx::parse_context context("", global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str) xx(parse_primary_expression, str, tokens.end() - 1)

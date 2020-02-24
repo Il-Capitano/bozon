@@ -3,4 +3,6 @@
 #include "ast/typespec.cpp"
 #include "ast/expression.cpp"
 #include "ast/statement.cpp"
+#include "ctx/first_pass_parse_context.cpp"
 #include "ctx/parse_context.cpp"
+#include "ctx/global_context.cpp"

@@ -1,8 +1,13 @@
 #include "first_pass_parser.cpp"
 #include "test.h"
 
+#include "ctx/global_context.h"
+#include "ctx/first_pass_parse_context.h"
+
 static void get_tokens_in_curly_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos)                                     \
@@ -12,9 +17,9 @@ do {                                                       \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
     get_tokens_in_curly<lex::token::semi_colon>(           \
-        it, tokens.end(), errors                           \
+        it, tokens.end(), context                          \
     );                                                     \
-    assert_true(errors.empty());                           \
+    assert_false(global_ctx.has_errors());                 \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -25,10 +30,10 @@ do {                                                       \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
     get_tokens_in_curly<lex::token::semi_colon>(           \
-        it, tokens.end(), errors                           \
+        it, tokens.end(), context                          \
     );                                                     \
-    assert_false(errors.empty());                          \
-    errors.clear();                                        \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors();                             \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -55,6 +60,8 @@ do {                                                       \
 
 static void get_expression_or_type_tokens_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos)                                     \
@@ -64,9 +71,9 @@ do {                                                       \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
     get_expression_or_type_tokens<lex::token::semi_colon>( \
-        it, tokens.end(), errors                           \
+        it, tokens.end(), context                          \
     );                                                     \
-    assert_true(errors.empty());                           \
+    assert_false(global_ctx.has_errors());                 \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -77,10 +84,10 @@ do {                                                       \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
     get_expression_or_type_tokens<lex::token::semi_colon>( \
-        it, tokens.end(), errors                           \
+        it, tokens.end(), context                          \
     );                                                     \
-    assert_false(errors.empty());                          \
-    errors.clear();                                        \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors();                             \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -113,8 +120,8 @@ do {                                                       \
     auto const tokens = lex::get_tokens(file, "", errors); \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
-    fn(it, tokens.end(), errors);                          \
-    assert_true(errors.empty());                           \
+    fn(it, tokens.end(), context);                         \
+    assert_false(global_ctx.has_errors());                 \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
@@ -124,14 +131,16 @@ do {                                                       \
     auto const tokens = lex::get_tokens(file, "", errors); \
     assert_true(errors.empty());                           \
     auto it = tokens.begin();                              \
-    fn(it, tokens.end(), errors);                          \
-    assert_false(errors.empty());                          \
-    errors.clear();                                        \
+    fn(it, tokens.end(), context);                         \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors();                             \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
 static void get_function_params_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(get_function_params, str, it_pos)
@@ -178,6 +187,8 @@ static void get_stmt_compound_test(void)
 
 static void get_stmt_compound_ptr_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(get_stmt_compound_ptr, str, it_pos)
@@ -198,6 +209,8 @@ static void get_stmt_compound_ptr_test(void)
 
 static void parse_if_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_if_statement, str, it_pos)
@@ -223,6 +236,8 @@ static void parse_if_statement_test(void)
 
 static void parse_while_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_while_statement, str, it_pos)
@@ -255,6 +270,8 @@ static void parse_while_statement_test(void)
 
 static void parse_return_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_return_statement, str, it_pos)
@@ -278,6 +295,8 @@ static void parse_return_statement_test(void)
 
 static void parse_no_op_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_no_op_statement, str, it_pos)
@@ -293,6 +312,8 @@ static void parse_no_op_statement_test(void)
 
 static void parse_expression_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_expression_statement, str, it_pos)
@@ -328,6 +349,8 @@ static void parse_expression_statement_test(void)
 
 static void parse_variable_declaration_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_variable_declaration, str, it_pos)
@@ -361,6 +384,8 @@ static void parse_variable_declaration_test(void)
 
 static void parse_struct_definition_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_struct_definition, str, it_pos)
@@ -388,6 +413,8 @@ static void parse_struct_definition_test(void)
 
 static void parse_function_definition_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_function_definition, str, it_pos)
@@ -416,6 +443,8 @@ static void parse_function_definition_test(void)
 
 static void parse_operator_definition_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, it_pos) xx(parse_operator_definition, str, it_pos)
@@ -446,6 +475,8 @@ static void parse_operator_definition_test(void)
 
 static void parse_declaration_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, decl_type)                                       \
@@ -455,9 +486,9 @@ do {                                                            \
     assert_true(errors.empty());                                \
     auto it = tokens.begin();                                   \
     auto const decl = parse_declaration(                        \
-        it, tokens.end(), errors                                \
+        it, tokens.end(), context                               \
     );                                                          \
-    assert_true(errors.empty());                                \
+    assert_false(global_ctx.has_errors());                      \
     assert_eq(decl.kind(), ast::declaration::index<decl_type>); \
     assert_eq(it, tokens.end() - 1);                            \
 } while (false)
@@ -473,6 +504,8 @@ do {                                                            \
 
 static void parse_statement_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::first_pass_parse_context context(global_ctx);
 	bz::vector<ctx::error> errors = {};
 
 #define x(str, decl_type)                                     \
@@ -482,9 +515,9 @@ do {                                                          \
     assert_true(errors.empty());                              \
     auto it = tokens.begin();                                 \
     auto const stmt = parse_statement(                        \
-        it, tokens.end(), errors                              \
+        it, tokens.end(), context                             \
     );                                                        \
-    assert_true(errors.empty());                              \
+    assert_false(global_ctx.has_errors());                    \
     assert_eq(stmt.kind(), ast::statement::index<decl_type>); \
     assert_eq(it, tokens.end() - 1);                          \
 } while (false)
