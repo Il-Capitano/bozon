@@ -1,6 +1,7 @@
 #include "first_pass_parser.cpp"
 #include "test.h"
 
+#include "lex/lexer.h"
 #include "ctx/global_context.h"
 #include "ctx/first_pass_parse_context.h"
 

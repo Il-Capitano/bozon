@@ -1,6 +1,7 @@
 #include "parser.cpp"
 #include "test.h"
 
+#include "lex/lexer.h"
 #include "ctx/global_context.h"
 #include "ctx/parse_context.h"
 
