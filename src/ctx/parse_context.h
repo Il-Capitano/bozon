@@ -3,7 +3,7 @@
 
 #include "core.h"
 
-#include "lex/lexer.h"
+#include "lex/token.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
@@ -16,17 +16,37 @@ struct global_context;
 struct parse_context
 {
 	bz::string      scope;
-	global_context *global_ctx;
+	global_context &global_ctx;
 
 	bz::vector<bz::vector<ast::variable>> scope_variables;
 
-	parse_context(bz::string_view _scope, global_context *_global_ctx)
+	parse_context(bz::string_view _scope, global_context &_global_ctx)
 		: scope(_scope), global_ctx(_global_ctx)
 	{}
 
-	void report_error(error err) const;
+	void report_error(lex::token_pos it) const;
+	void report_error(
+		lex::token_pos it,
+		bz::string message, bz::vector<ctx::note> notes = {}
+	) const;
+	void report_error(
+		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+		bz::string message, bz::vector<ctx::note> notes = {}
+	) const;
+	template<typename T>
+	void report_error(
+		T const &tokens,
+		bz::string message, bz::vector<ctx::note> notes = {}
+	) const
+	{
+		this->report_error(
+			tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
+			std::move(message), std::move(notes)
+		);
+	}
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
+	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 
 	void add_scope(void);
 	void remove_scope(void);

@@ -38,8 +38,9 @@ private:
 public:
 	global_context(void);
 
-	void report_error(error err);
+	void report_error(error &&err);
 	bool has_errors(void) const;
+	void clear_errors(void);
 
 	auto add_global_declaration(bz::string_view scope, ast::declaration &decl)
 		-> bz::result<int, error>;

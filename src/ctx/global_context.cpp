@@ -30,7 +30,7 @@ global_context::global_context(void)
 {}
 
 
-void global_context::report_error(error err)
+void global_context::report_error(error &&err)
 {
 	this->_errors.emplace_back(std::move(err));
 }
@@ -38,6 +38,11 @@ void global_context::report_error(error err)
 bool global_context::has_errors(void) const
 {
 	return !this->_errors.empty();
+}
+
+void global_context::clear_errors(void)
+{
+	this->_errors.clear();
 }
 
 
@@ -73,10 +78,10 @@ auto global_context::add_global_variable(bz::string_view scope, ast::decl_variab
 	);
 	if (it != var_decls.end())
 	{
-		return lex::bad_token(
+		return ctx::make_error(
 			var_decl.identifier,
 			bz::format("variable '{}' has already been declared", (*it)->identifier->value),
-			{ lex::make_note((*it)->identifier, "previous declaration:") }
+			{ ctx::make_note((*it)->identifier, "previous declaration:") }
 		);
 	}
 	else
@@ -142,10 +147,10 @@ auto global_context::add_global_struct(bz::string_view scope, ast::decl_struct &
 	);
 	if (it != struct_decls.end())
 	{
-		return lex::bad_token(
+		return ctx::make_error(
 			struct_decl.identifier,
 			bz::format("struct '{}' has already been declared", struct_decl.identifier->value),
-			{ lex::make_note((*it)->identifier, "previous declaration:") }
+			{ ctx::make_note((*it)->identifier, "previous declaration:") }
 		);
 	}
 	else
@@ -177,11 +182,11 @@ auto global_context::get_identifier_type(bz::string_view scope, lex::token_pos i
 		);
 		if (set == func_sets.end())
 		{
-			return lex::bad_token(id, "undeclared identifier");
+			return ctx::make_error(id, "undeclared identifier");
 		}
 		else if (set->func_decls.size() == 1)
 		{
-			resolve_symbol(*set->func_decls[0], scope, this);
+			resolve_symbol(*set->func_decls[0], scope, *this);
 			auto &ret_type = set->func_decls[0]->return_type;
 			bz::vector<ast::typespec> param_types = {};
 			for (auto &p : set->func_decls[0]->params)
@@ -395,7 +400,7 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		}
 		else
 		{
-			return lex::bad_tokens(unary_op, "cannot take address of an rvalue");
+			return ctx::make_error(unary_op, "cannot take address of an rvalue");
 		}
 	case lex::token::bit_not:
 	{
@@ -461,7 +466,7 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 
 	if (set == op_sets.end())
 	{
-		return lex::bad_tokens(
+		return ctx::make_error(
 			unary_op,
 			bz::format(
 				"undeclared unary operator {} with type '{}'",
@@ -483,7 +488,7 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 		}
 	}
 
-	return lex::bad_tokens(
+	return ctx::make_error(
 		unary_op,
 		bz::format("undeclared unary operator {}", unary_op.op->value)
 	);
@@ -496,11 +501,11 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_
 	{
 		if (binary_op.op->kind == lex::token::square_open)
 		{
-			return lex::bad_tokens(binary_op, "undeclared binary operator []");
+			return ctx::make_error(binary_op, "undeclared binary operator []");
 		}
 		else
 		{
-			return lex::bad_tokens(
+			return ctx::make_error(
 				binary_op,
 				bz::format("undeclared binary operator {}", binary_op.op->value)
 			);
@@ -562,14 +567,14 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 
 			if (fn_t.argument_types.size() != func_call.params.size())
 			{
-				return lex::bad_tokens(
+				return ctx::make_error(
 					func_call,
 					bz::format(
 						"expected {} arguments for call to '{}', but was given {}",
 						fn_t.argument_types.size(), original_decl_set->id, func_call.params.size()
 					),
 					{
-						lex::make_note(
+						ctx::make_note(
 							original_decl_set->func_decls[0]->identifier,
 							bz::format("see declaration of '{}':", original_decl_set->id)
 						)
@@ -577,7 +582,7 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 				);
 			}
 
-			resolve_symbol(*original_decl_set->func_decls[0], scope, this);
+			resolve_symbol(*original_decl_set->func_decls[0], scope, *this);
 			auto types_it = fn_t.argument_types.begin();
 			auto call_it  = func_call.params.begin();
 			auto const types_end = fn_t.argument_types.end();
@@ -586,7 +591,7 @@ auto global_context::get_function_call_type(bz::string_view scope, ast::expr_fun
 			{
 				if (!are_directly_matchable_types(call_it->expr_type, *types_it))
 				{
-					return lex::bad_tokens(
+					return ctx::make_error(
 						*call_it,
 						bz::format(
 							"unable to convert argument {} from '{}' to '{}'",
