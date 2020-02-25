@@ -636,6 +636,7 @@ function factorial(n: uint32) -> int32
 	let i32: int32;
 	let g = test(&i32);
 	let h = test;
+	let i = [0, b];
 	return factorial(+n);
 }
 

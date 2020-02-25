@@ -309,10 +309,23 @@ static ast::expression parse_primary_expression(
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
 		auto elems = parse_expression_comma_list(inner_stream, inner_end, context);
 		auto const end_token = stream;
-		return make_expr_tuple(
+		auto expr = make_expr_tuple(
 			{ begin_token, end_token },
 			std::move(elems)
 		);
+
+		expr.expr_type.type_kind = ast::expression::rvalue;
+		expr.expr_type.expr_type = ast::make_ts_tuple(bz::vector<ast::typespec>{});
+
+		auto &tuple = *expr.get<ast::expr_tuple_ptr>();
+		auto &tuple_t = *expr.expr_type.expr_type.get<ast::ts_tuple_ptr>();
+
+		for (auto &e : tuple.elems)
+		{
+			tuple_t.types.emplace_back(e.expr_type.expr_type);
+		}
+
+		return expr;
 	}
 
 	// unary operators
@@ -863,11 +876,17 @@ void resolve_symbol(
 }
 
 void resolve_symbol(
-	ast::decl_operator &decl,
+	ast::decl_operator &op_decl,
 	bz::string_view scope,
 	ctx::global_context &global_ctx
 )
 {
+	ctx::parse_context context(scope, global_ctx);
+	for (auto &p : op_decl.params)
+	{
+		resolve(p.var_type, context);
+	}
+	resolve(op_decl.return_type, context);
 }
 
 void resolve(
@@ -892,17 +911,30 @@ void resolve(
 }
 
 void resolve(
-	ast::decl_operator &decl,
+	ast::decl_operator &op_decl,
 	bz::string_view scope,
 	ctx::global_context &global_ctx
 )
 {
+	ctx::parse_context context(scope, global_ctx);
+	context.add_scope();
+	for (auto &p : op_decl.params)
+	{
+		resolve(p.var_type, context);
+		context.add_local_variable(p);
+	}
+	resolve(op_decl.return_type, context);
+	for (auto &stmt : op_decl.body)
+	{
+		resolve(stmt, context);
+	}
+	context.remove_scope();
 }
 
 void resolve(
-	ast::decl_struct &decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ast::decl_struct &,
+	bz::string_view,
+	ctx::global_context &
 )
 {
 }
@@ -992,92 +1024,6 @@ void resolve(
 		assert(false);
 		break;
 	}
-}
-
-
-using resolve_ret_val = ast::expression::expr_type_t;
-
-static resolve_ret_val resolve(
-	ast::expr_literal const &literal,
-	ctx::parse_context &context
-)
-{
-	resolve_ret_val ret_val = {
-		ast::expression::rvalue,
-		ast::typespec()
-	};
-
-	switch (literal.value.index())
-	{
-	case ast::expr_literal::integer_number:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("int32")
-		);
-		break;
-	case ast::expr_literal::floating_point_number:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("float64")
-		);
-		break;
-	case ast::expr_literal::string:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("str")
-		);
-		break;
-	case ast::expr_literal::character:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("char")
-		);
-		break;
-	case ast::expr_literal::bool_true:
-	case ast::expr_literal::bool_false:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("bool")
-		);
-		break;
-	case ast::expr_literal::null:
-		ret_val.expr_type = ast::make_ts_base_type(
-			context.get_type_info("null_t")
-		);
-		break;
-	default:
-		assert(false);
-		break;
-	}
-	return ret_val;
-}
-
-static resolve_ret_val resolve(
-	ast::expr_tuple &tuple,
-	ctx::parse_context &context
-)
-{
-	resolve_ret_val ret_val = {
-		ast::expression::rvalue,
-		ast::make_ts_tuple(bz::vector<ast::typespec>{})
-	};
-
-	auto &tuple_t = *ret_val.expr_type.get<ast::ts_tuple_ptr>();
-
-	for (auto &elem : tuple.elems)
-	{
-		resolve(elem, context);
-		tuple_t.types.emplace_back(elem.expr_type.expr_type);
-	}
-
-	return ret_val;
-}
-
-static resolve_ret_val resolve(
-	ast::expr_function_call &fn_call,
-	ctx::parse_context &context
-)
-{
-	context.report_error(fn_call, "not yet implemented");
-	return {
-		ast::expression::rvalue,
-		ast::typespec()
-	};
 }
 
 
