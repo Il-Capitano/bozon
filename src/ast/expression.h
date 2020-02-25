@@ -2,7 +2,6 @@
 #define AST_EXPRESSION_H
 
 #include "core.h"
-#include "bytecode.h"
 
 #include "node.h"
 #include "typespec.h"
@@ -44,11 +43,6 @@ struct expression : node<
 
 	using base_t::get;
 	using base_t::kind;
-	void resolve(void);
-	void emit_bytecode(
-		bz::vector<bytecode::instruction> &out,
-		bz::optional<bytecode::value_pos_t> ret_pos
-	);
 
 	enum expr_type_kind
 	{

@@ -2,7 +2,6 @@
 #define AST_STATEMENT_H
 
 #include "core.h"
-#include "bytecode.h"
 
 #include "node.h"
 #include "expression.h"
@@ -116,8 +115,6 @@ struct stmt_if
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void);
 };
 
 struct stmt_while
@@ -139,8 +136,6 @@ struct stmt_while
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void);
 };
 
 struct stmt_for
@@ -150,8 +145,6 @@ struct stmt_for
 	lex::token_pos get_tokens_begin(void) const { assert(false); exit(1); }
 	lex::token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
 	lex::token_pos get_tokens_end(void) const   { assert(false); exit(1); }
-
-	void resolve(void);
 };
 
 struct stmt_return
@@ -166,8 +159,6 @@ struct stmt_return
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void);
 };
 
 struct stmt_no_op
@@ -181,8 +172,6 @@ struct stmt_no_op
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void) {}
 };
 
 struct stmt_compound
@@ -201,8 +190,6 @@ struct stmt_compound
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void);
 };
 
 struct stmt_expression
@@ -217,8 +204,6 @@ struct stmt_expression
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
-
-	void resolve(void);
 };
 
 
@@ -273,9 +258,6 @@ struct decl_variable
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
-
-	void resolve(void);
-	void emit_bytecode(bz::vector<bytecode::instruction> &out);
 };
 
 struct decl_function
@@ -300,8 +282,6 @@ struct decl_function
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
-
-	void resolve(void);
 };
 
 struct decl_operator
@@ -326,8 +306,6 @@ struct decl_operator
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
-
-	void resolve(void);
 };
 
 struct decl_struct
@@ -345,8 +323,6 @@ struct decl_struct
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
-
-	void resolve(void);
 };
 
 

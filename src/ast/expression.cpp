@@ -3,29 +3,6 @@
 namespace ast
 {
 
-static bytecode::type_kind get_type_kind(ast::typespec const &ts)
-{
-	switch (ts.kind())
-	{
-	case ast::typespec::index<ast::ts_base_type>:
-	{
-		assert(false);
-		return bytecode::type_kind::int32;
-	}
-	case ast::typespec::index<ast::ts_constant>:
-		return get_type_kind(ts.get<ast::ts_constant_ptr>()->base);
-	case ast::typespec::index<ast::ts_pointer>:
-		return bytecode::type_kind::ptr;
-	case ast::typespec::index<ast::ts_reference>:
-	case ast::typespec::index<ast::ts_function>:
-	case ast::typespec::index<ast::ts_tuple>:
-	default:
-		assert(false);
-		return bytecode::type_kind::int32;
-	}
-}
-
-
 lex::token_pos expression::get_tokens_begin(void) const
 { return this->tokens.begin; }
 
@@ -41,8 +18,10 @@ lex::token_pos expression::get_tokens_pivot(void) const
 	}
 }
 
+
 lex::token_pos expression::get_tokens_end(void) const
 { return this->tokens.end; }
+
 
 lex::token_pos expr_unary_op::get_tokens_begin(void) const
 { return this->op; }
