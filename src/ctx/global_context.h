@@ -49,6 +49,8 @@ public:
 	size_t get_error_count(void) const
 	{ return this->_errors.size(); }
 
+	void report_ambiguous_id_error(bz::string_view scope, lex::token_pos id);
+
 	auto add_global_declaration(bz::string_view scope, ast::declaration &decl)
 		-> bz::result<int, error>;
 	auto add_global_variable(bz::string_view scope, ast::decl_variable &var_decl)

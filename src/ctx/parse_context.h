@@ -49,6 +49,8 @@ struct parse_context
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 
+	void report_ambiguous_id_error(lex::token_pos id) const;
+
 	void add_scope(void);
 	void remove_scope(void);
 

@@ -634,13 +634,17 @@ function factorial(n: uint32) -> int32
 //	let &e = !a;
 	let f = factorial(n);
 	let i32: int32;
-	let g = test(&i32);
+//	let g = test(&i32);
 	let h = test;
 	let i = [0, b];
 	return factorial(+n);
 }
 
-function test(p: *const int32) -> int32
+function test(p: *const int32) -> *const int32
+{
+}
+
+function test(p: *int32) -> *int32
 {
 }
 

@@ -479,6 +479,15 @@ static ast::expression parse_expression_helper(
 
 		default:
 		{
+			// overloaded function
+			if (
+				lhs.expr_type.type_kind == ast::expression::function_name
+				&& lhs.expr_type.expr_type.kind() == ast::typespec::null
+			)
+			{
+				assert(lhs.kind() == ast::expression::index<ast::expr_identifier>);
+				context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
+			}
 			auto rhs = parse_primary_expression(stream, end, context);
 			precedence rhs_prec;
 
@@ -534,8 +543,23 @@ static ast::expression parse_expression(
 		assert(!context.has_errors());
 		return ast::expression();
 	}
-	auto result = parse_expression_helper(std::move(lhs), stream, end, context, prec);
-	return result;
+	if (stream == end)
+	{
+		if (
+			lhs.expr_type.type_kind == ast::expression::function_name
+			&& lhs.expr_type.expr_type.kind() == ast::typespec::null
+		)
+		{
+			assert(lhs.kind() == ast::expression::index<ast::expr_identifier>);
+			context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
+		}
+		return lhs;
+	}
+	else
+	{
+		auto result = parse_expression_helper(std::move(lhs), stream, end, context, prec);
+		return result;
+	}
 }
 
 // ================================================================

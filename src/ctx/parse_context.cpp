@@ -80,6 +80,11 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 	}
 }
 
+void parse_context::report_ambiguous_id_error(lex::token_pos id) const
+{
+	this->global_ctx.report_ambiguous_id_error(this->scope, id);
+}
+
 
 void parse_context::add_scope(void)
 {

@@ -45,6 +45,29 @@ void global_context::clear_errors(void)
 	this->_errors.clear();
 }
 
+void global_context::report_ambiguous_id_error(bz::string_view scope, lex::token_pos id)
+{
+	auto &func_sets = this->_decls[scope].func_sets;
+
+	auto set = std::find_if(
+		func_sets.begin(), func_sets.end(),
+		[id = id->value](auto const &set) {
+			return id == set.id;
+		}
+	);
+	assert(set != func_sets.end());
+
+	bz::vector<note> notes = {};
+	for (auto &decl : set->func_decls)
+	{
+		notes.emplace_back(make_note(
+			decl->identifier, "candidate:"
+		));
+	}
+
+	this->_errors.emplace_back(make_error(id, "identifier is ambiguous", std::move(notes)));
+}
+
 
 
 auto global_context::add_global_declaration(bz::string_view scope, ast::declaration &decl)
