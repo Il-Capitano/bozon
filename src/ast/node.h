@@ -19,6 +19,10 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	auto kind(void) const noexcept
 	{ return this->base_t::index(); }
 
+	template<typename T>
+	bool is(void) const noexcept
+	{ return index<T> == this->kind(); }
+
 	using base_t::get;
 	using base_t::variant;
 	using base_t::emplace;
