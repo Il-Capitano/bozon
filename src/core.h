@@ -25,6 +25,9 @@
 
 #include "my_assert.h"
 
+#undef min
+#undef max
+
 using std::int8_t;
 using std::int16_t;
 using std::int32_t;
