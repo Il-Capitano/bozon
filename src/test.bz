@@ -651,6 +651,18 @@ function test(p: *int32) -> *int32
 {
 }
 
+function conversion_test(p: **const int32) -> **const int32
+{
+	let p: **int32;
+	let q: **const int32;
+	let a = conversion_test(p);
+	let b = conversion_test(q);
+}
+
+function conversion_test(p: *const *const int32) -> *const *const int32
+{
+}
+
 
 /*
 struct vec3<typename T>
