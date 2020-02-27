@@ -569,68 +569,328 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_
 	return get_undeclared_error();
 }
 
+struct match_level
+{
+	int min;
+	int sum;
+};
+
+static int get_type_match_level(
+	ast::typespec const &dest,
+	ast::expression::expr_type_t const &src
+)
+{
+	int result = 0;
+
+	auto dest_it = &dest;
+	auto src_it = &src.expr_type;
+
+	auto const advance = [](ast::typespec const *&ts)
+	{
+		switch (ts->kind())
+		{
+		case ast::typespec::index<ast::ts_reference>:
+			ts = &ts->get<ast::ts_reference_ptr>()->base;
+			break;
+		case ast::typespec::index<ast::ts_constant>:
+			ts = &ts->get<ast::ts_constant_ptr>()->base;
+			break;
+		case ast::typespec::index<ast::ts_pointer>:
+			ts = &ts->get<ast::ts_pointer_ptr>()->base;
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	};
+
+	if (dest_it->kind() != ast::typespec::index<ast::ts_reference>)
+	{
+		++result;
+		if (dest_it->kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			advance(dest_it);
+		}
+		if (src_it->kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			advance(src_it);
+		}
+
+		if (dest_it->kind() == ast::typespec::index<ast::ts_base_type>)
+		{
+			// TODO: use is_convertible
+			if (
+				src_it->kind() != ast::typespec::index<ast::ts_base_type>
+				|| src_it->get<ast::ts_base_type_ptr>()->info != dest_it->get<ast::ts_base_type_ptr>()->info
+			)
+			{
+				return -1;
+			}
+			else
+			{
+				return result;
+			}
+		}
+	}
+	// TODO: rvalue references...
+	else
+	{
+		if (
+			src.type_kind != ast::expression::lvalue
+			&& src.type_kind != ast::expression::lvalue_reference
+		)
+		{
+			return -1;
+		}
+		advance(dest_it);
+	}
+
+	while (true)
+	{
+		if (dest_it->kind() == ast::typespec::index<ast::ts_base_type>)
+		{
+			if (
+				src_it->kind() != ast::typespec::index<ast::ts_base_type>
+				|| src_it->get<ast::ts_base_type_ptr>()->info != dest_it->get<ast::ts_base_type_ptr>()->info
+			)
+			{
+				return -1;
+			}
+			else
+			{
+				return result;
+			}
+		}
+		else if (dest_it->kind() == src_it->kind())
+		{
+			advance(dest_it);
+			advance(src_it);
+		}
+		else if (dest_it->kind() == ast::typespec::index<ast::ts_constant>)
+		{
+			advance(dest_it);
+			++result;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+}
+
+static match_level get_function_call_match_level(
+	ast::decl_function *func,
+	ast::expr_function_call const &func_call
+)
+{
+	if (func->params.size() != func_call.params.size())
+	{
+		return { -1, -1 };
+	}
+
+	match_level result = { std::numeric_limits<int>::max(), 0 };
+
+	auto const add_to_result = [&](int match)
+	{
+		if (result.min == -1)
+		{
+			return;
+		}
+		else if (match == -1)
+		{
+			result = { -1, -1 };
+		}
+		else
+		{
+			if (match < result.min)
+			{
+				result.min = match;
+			}
+			result.sum += match;
+		}
+	};
+
+	auto params_it = func->params.begin();
+	auto call_it  = func_call.params.begin();
+	auto const types_end = func->params.end();
+	for (; params_it != types_end; ++call_it, ++params_it)
+	{
+		add_to_result(get_type_match_level(params_it->var_type, call_it->expr_type));
+	}
+	return result;
+}
+
+static error get_bad_call_error(
+	ast::decl_function *func,
+	ast::expr_function_call const &func_call
+)
+{
+	if (func->params.size() != func_call.params.size())
+	{
+		return make_error(
+			func_call,
+			bz::format(
+				"expected {} {} for call to '{}', but was given {}",
+				func->params.size(), func->params.size() == 1 ? "argument" : "arguments",
+				func->identifier->value, func_call.params.size()
+			),
+			{
+				make_note(
+					func->identifier,
+					bz::format("see declaration of '{}':", func->identifier->value)
+				)
+			}
+		);
+	}
+
+	auto params_it = func->params.begin();
+	auto call_it  = func_call.params.begin();
+	auto const types_end = func->params.end();
+//	auto const call_end  = func_call.params.end();
+	for (; params_it != types_end; ++call_it, ++params_it)
+	{
+		if (!are_directly_matchable_types(call_it->expr_type, params_it->var_type))
+		{
+			return make_error(
+				*call_it,
+				bz::format(
+					"unable to convert argument {} from '{}' to '{}'",
+					(call_it - func_call.params.begin()) + 1,
+					call_it->expr_type.expr_type, params_it->var_type
+				)
+			);
+		}
+	}
+
+	assert(false);
+	return make_error(func->identifier, "");
+}
+
+static bz::vector<note> get_bad_call_candidate_notes(
+	ast::decl_function *func,
+	ast::expr_function_call const &func_call
+)
+{
+	if (func->params.size() != func_call.params.size())
+	{
+		return {
+			make_note(
+				func_call,
+				bz::format(
+					"expected {} {} for call to '{}', but was given {}",
+					func->params.size(), func->params.size() == 1 ? "argument" : "arguments",
+					func->identifier->value, func_call.params.size()
+				)
+			),
+			make_note(
+				func->identifier,
+				bz::format("see declaration of '{}':", func->identifier->value)
+			)
+		};
+	}
+
+	auto params_it = func->params.begin();
+	auto call_it  = func_call.params.begin();
+	auto const types_end = func->params.end();
+//	auto const call_end  = func_call.params.end();
+	for (; params_it != types_end; ++call_it, ++params_it)
+	{
+		if (!are_directly_matchable_types(call_it->expr_type, params_it->var_type))
+		{
+			return { make_note(
+				*call_it,
+				bz::format(
+					"unable to convert argument {} from '{}' to '{}'",
+					(call_it - func_call.params.begin()) + 1,
+					call_it->expr_type.expr_type, params_it->var_type
+				)
+			) };
+		}
+	}
+
+	assert(false);
+	return {};
+}
+
 auto global_context::get_function_call_type(bz::string_view scope, ast::expr_function_call const &func_call)
 	-> bz::result<ast::typespec, error>
 {
 	if (func_call.called.expr_type.type_kind == ast::expression::function_name)
 	{
+		assert(func_call.called.kind() == ast::expression::index<ast::expr_identifier>);
+		auto &func_sets = this->_decls[scope].func_sets;
+		auto const set = std::find_if(
+			func_sets.begin(), func_sets.end(), [
+				id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
+			](auto const &set) {
+				return id == set.id;
+			}
+		);
+		assert(set != func_sets.end());
+
 		if (func_call.called.expr_type.expr_type.kind() != ast::typespec::null)
 		{
-			auto &fn_t = *func_call.called.expr_type.expr_type.get<ast::ts_function_ptr>();
-			auto &func_sets = this->_decls[scope].func_sets;
-			auto original_decl_set = std::find_if(
-				func_sets.begin(), func_sets.end(), [
-					id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
-				](auto const &set) {
-					return id == set.id;
-				}
-			);
-			assert(original_decl_set != func_sets.end());
-			assert(original_decl_set->func_decls.size() == 1);
+			assert(set->func_decls.size() == 1);
+			resolve_symbol(*set->func_decls[0], scope, *this);
+			auto const func = set->func_decls[0];
 
-			if (fn_t.argument_types.size() != func_call.params.size())
+			if (get_function_call_match_level(func, func_call).sum == -1)
 			{
-				return ctx::make_error(
-					func_call,
-					bz::format(
-						"expected {} arguments for call to '{}', but was given {}",
-						fn_t.argument_types.size(), original_decl_set->id, func_call.params.size()
-					),
-					{
-						ctx::make_note(
-							original_decl_set->func_decls[0]->identifier,
-							bz::format("see declaration of '{}':", original_decl_set->id)
-						)
-					}
-				);
+				return get_bad_call_error(func, func_call);
 			}
-
-			resolve_symbol(*original_decl_set->func_decls[0], scope, *this);
-			auto types_it = fn_t.argument_types.begin();
-			auto call_it  = func_call.params.begin();
-			auto const types_end = fn_t.argument_types.end();
-//			auto const call_end  = func_call.params.end();
-			for (; types_it != types_end; ++call_it, ++types_it)
+			else
 			{
-				if (!are_directly_matchable_types(call_it->expr_type, *types_it))
-				{
-					return ctx::make_error(
-						*call_it,
-						bz::format(
-							"unable to convert argument {} from '{}' to '{}'",
-							(call_it - func_call.params.begin()) + 1,
-							call_it->expr_type.expr_type, *types_it
-						)
-					);
-				}
+				return func->return_type;
 			}
-			return fn_t.return_type;
 		}
 		// call to an overload set with more than one members
 		else
 		{
-			assert(false);
-			return ast::typespec();
+			assert(set->func_decls.size() > 1);
+
+			bz::vector<std::pair<match_level, ast::decl_function *>> possible_funcs = {};
+			for (auto func : set->func_decls)
+			{
+				if (func->params.size() != func_call.params.size())
+				{
+					continue;
+				}
+
+				resolve_symbol(*func, scope, *this);
+				auto match_level = get_function_call_match_level(func, func_call);
+				if (match_level.sum != -1)
+				{
+					possible_funcs.push_back({ match_level, func });
+				}
+			}
+
+			if (possible_funcs.size() == 0)
+			{
+				return make_error(func_call, "couldn't call any of the functions in the overload set");
+			}
+			else
+			{
+				auto const min_match_it = std::min_element(
+					possible_funcs.begin(), possible_funcs.end(),
+					[](auto const &lhs, auto const &rhs) {
+						return lhs.first.min < rhs.first.min
+							|| (lhs.first.min == rhs.first.min && lhs.first.sum < rhs.first.sum);
+					}
+				);
+				if (std::count_if(
+					possible_funcs.begin(), possible_funcs.end(), [&](auto const &p) {
+						return p.first.min == min_match_it->first.min
+							&& p.first.sum == min_match_it->first.sum;
+					}
+				) == 1)
+				{
+					return min_match_it->second->return_type;
+				}
+				else
+				{
+					return make_error(func_call, "function call is ambiguous");
+				}
+			}
 		}
 	}
 	else
