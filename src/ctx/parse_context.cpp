@@ -150,7 +150,7 @@ void parse_context::add_local_variable(ast::variable var_decl)
 }
 
 
-ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
+ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos id) const
 {
 	// we go in reverse through the scopes and the variables
 	// in case there's shadowing
@@ -168,7 +168,7 @@ ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
 		);
 		if (var != scope->rend())
 		{
-			return var->var_type;
+			return { ast::expression::lvalue, var->var_type };
 		}
 	}
 
@@ -176,7 +176,7 @@ ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
-		return ast::typespec();
+		return { ast::expression::rvalue, ast::typespec() };
 	}
 	else
 	{
@@ -184,13 +184,13 @@ ast::typespec parse_context::get_identifier_type(lex::token_pos id) const
 	}
 }
 
-ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_op) const
+ast::expression::expr_type_t parse_context::get_operation_type(ast::expr_unary_op const &unary_op) const
 {
 	auto res = this->global_ctx.get_operation_type(this->scope, unary_op);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
-		return ast::typespec();
+		return { ast::expression::rvalue, ast::typespec() };
 	}
 	else
 	{
@@ -198,13 +198,13 @@ ast::typespec parse_context::get_operation_type(ast::expr_unary_op const &unary_
 	}
 }
 
-ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binary_op) const
+ast::expression::expr_type_t parse_context::get_operation_type(ast::expr_binary_op const &binary_op) const
 {
 	auto res = this->global_ctx.get_operation_type(this->scope, binary_op);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
-		return ast::typespec();
+		return { ast::expression::rvalue, ast::typespec() };
 	}
 	else
 	{
@@ -212,13 +212,13 @@ ast::typespec parse_context::get_operation_type(ast::expr_binary_op const &binar
 	}
 }
 
-ast::typespec parse_context::get_function_call_type(ast::expr_function_call const &func_call) const
+ast::expression::expr_type_t parse_context::get_function_call_type(ast::expr_function_call const &func_call) const
 {
 	auto res = this->global_ctx.get_function_call_type(this->scope, func_call);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
-		return ast::typespec();
+		return { ast::expression::rvalue, ast::typespec() };
 	}
 	else
 	{

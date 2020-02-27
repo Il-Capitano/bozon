@@ -62,10 +62,10 @@ struct parse_context
 
 	void add_local_variable(ast::variable var_decl);
 
-	ast::typespec get_identifier_type(lex::token_pos id) const;
-	ast::typespec get_operation_type(ast::expr_unary_op const &unary_op) const;
-	ast::typespec get_operation_type(ast::expr_binary_op const &binary_op) const;
-	ast::typespec get_function_call_type(ast::expr_function_call const &func_call) const;
+	ast::expression::expr_type_t get_identifier_type(lex::token_pos id) const;
+	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op) const;
+	ast::expression::expr_type_t get_operation_type(ast::expr_binary_op const &binary_op) const;
+	ast::expression::expr_type_t get_function_call_type(ast::expr_function_call const &func_call) const;
 
 	bool is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to);
 

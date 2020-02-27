@@ -255,24 +255,7 @@ static ast::expression parse_primary_expression(
 	case lex::token::identifier:
 	{
 		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream);
-		id.expr_type.expr_type = context.get_identifier_type(stream);
-		if (
-			id.expr_type.expr_type.kind() == ast::typespec::null
-			|| id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_function>
-		)
-		{
-			id.expr_type.type_kind = ast::expression::function_name;
-		}
-		else if (id.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-		{
-			id.expr_type.type_kind = ast::expression::lvalue_reference;
-			auto ref_ptr = std::move(id.expr_type.expr_type.get<ast::ts_reference_ptr>());
-			id.expr_type.expr_type = std::move(ref_ptr->base);
-		}
-		else
-		{
-			id.expr_type.type_kind = ast::expression::lvalue;
-		}
+		id.expr_type = context.get_identifier_type(stream);
 		++stream;
 		return id;
 	}
@@ -338,20 +321,9 @@ static ast::expression parse_primary_expression(
 			auto expr = parse_expression(stream, end, context, prec);
 
 			auto result = make_expr_unary_op({ op, stream }, op, std::move(expr));
-			result.expr_type.expr_type = context.get_operation_type(
+			result.expr_type = context.get_operation_type(
 				*result.get<ast::expr_unary_op_ptr>()
 			);
-			if (result.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-			{
-				result.expr_type.type_kind = ast::expression::lvalue_reference;
-				auto ref_ptr = std::move(result.expr_type.expr_type.get<ast::ts_reference_ptr>());
-				result.expr_type.expr_type = std::move(ref_ptr->base);
-			}
-			else
-			{
-				result.expr_type.type_kind = ast::expression::rvalue;
-			}
-
 			return result;
 		}
 		else
@@ -387,34 +359,14 @@ static ast::expression parse_expression_helper(
 				return;
 			}
 
-			expr.expr_type.expr_type = context.get_operation_type(
+			expr.expr_type = context.get_operation_type(
 				*expr.get<ast::expr_binary_op_ptr>()
 			);
-			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-			{
-				expr.expr_type.type_kind = ast::expression::lvalue_reference;
-				auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
-				expr.expr_type.expr_type = std::move(ref_ptr->base);
-			}
-			else
-			{
-				expr.expr_type.type_kind = ast::expression::rvalue;
-			}
 		}
 		else if (expr.kind() == ast::expression::index<ast::expr_function_call>)
 		{
 			auto &func_call = *expr.get<ast::expr_function_call_ptr>();
-			expr.expr_type.expr_type = context.get_function_call_type(func_call);
-			if (expr.expr_type.expr_type.kind() == ast::typespec::index<ast::ts_reference>)
-			{
-				expr.expr_type.type_kind = ast::expression::lvalue_reference;
-				auto ref_ptr = std::move(expr.expr_type.expr_type.get<ast::ts_reference_ptr>());
-				expr.expr_type.expr_type = std::move(ref_ptr->base);
-			}
-			else
-			{
-				expr.expr_type.type_kind = ast::expression::rvalue;
-			}
+			expr.expr_type = context.get_function_call_type(func_call);
 		}
 		else
 		{
