@@ -109,6 +109,18 @@ template<typename T>
 	};
 }
 
+template<typename T>
+[[nodiscard]] inline note make_note(
+	T const &tokens,
+	bz::string message
+)
+{
+	return make_note(
+		tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
+		std::move(message)
+	);
+}
+
 } // namespace ctx
 
 #endif // CTX_ERROR_H
