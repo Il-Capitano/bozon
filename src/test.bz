@@ -638,8 +638,8 @@ function factorial(n: uint32) -> int32
 	let g = test(&i32);
 	let h = test(&ci32);
 //	factorial(0);
-//	let h = test;
-	let i = [0, b];
+//	let i = test;
+	let j = [0, b];
 	return factorial(+n);
 }
 
