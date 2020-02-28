@@ -1010,6 +1010,12 @@ struct vec3
 	}
 }
 
+// # is universal reference
+function call_func(func, ...#args)
+{
+	return func(...std::forward<typeof args>(args));
+}
+
 */
 
 #include "core.h"
@@ -1521,8 +1527,6 @@ int main(void)
 
 	auto const end = timer::now();
 
-	bz::printf("successful compilation in {}ms\n", in_ms(end - begin));
-
 	std::stringstream ss;
 
 	for (auto &file : manager.get_src_files())
@@ -1534,67 +1538,7 @@ int main(void)
 	}
 
 	bz::print(ss.str().c_str());
-
-/*
-	for (auto &decl : file._declarations)
-	{
-		if (decl.kind() == ast::declaration::index<ast::decl_variable>)
-		{
-			print_declaration(std::cout, decl);
-		}
-	}
-*/
-
-/*
-	auto stream = file.tokens_begin();
-	auto end    = file.tokens_end();
-
-	auto decls = get_ast_declarations(stream, end);
-	assert(stream->kind == token::eof);
-
-	auto after_first_pass = timer::now();
-
-	for (auto &d : decls)
-	{
-		d.resolve();
-	}
-
-	auto after_resolving = timer::now();
-
-	std::stringstream result_ss;
-
-	for (auto &d : decls)
-	{
-		print_declaration(result_ss, d);
-	}
-
-	std::cout << result_ss.str() << std::flush;
-
-	auto after_printing = timer::now();
-
-	auto in_ms = [](auto time)
-	{
-		return std::chrono::duration_cast<std::chrono::microseconds>(time).count() / 1'000.0;
-	};
-
-	bz::print("\n\n");
-	bz::printf(
-		"Tokenization:  {:>7.3f}ms\n"
-		"First pass:    {:>7.3f}ms\n"
-		"Resolving:     {:>7.3f}ms\n"
-		"Whole parsing: {:>7.3f}ms\n"
-		"Whole runtime: {:>7.3f}ms\n"
-		"Printing:      {:>7.3f}ms\n",
-		in_ms(after_tokenizing - start),
-		in_ms(after_first_pass - after_tokenizing),
-		in_ms(after_resolving - after_first_pass),
-		in_ms(after_resolving - after_tokenizing),
-		in_ms(after_resolving - start),
-		in_ms(after_printing - after_resolving)
-	);
-
-	bytecode_test();
-*/
+	bz::printf("successful compilation in {:.3f}ms\n", in_ms(end - begin));
 
 	return 0;
 }
