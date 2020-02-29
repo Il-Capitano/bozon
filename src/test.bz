@@ -657,6 +657,10 @@ function conversion_test(p: **const int32) -> **const int32
 	let q: **const int32;
 	let a = conversion_test(p);
 	let b = conversion_test(q);
+	let &const c = ++q;
+	let &d = ++p;
+	++d;
+	let size = sizeof d;
 }
 
 function conversion_test(p: *const *const int32) -> *const *const int32
