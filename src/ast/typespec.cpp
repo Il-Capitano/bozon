@@ -131,9 +131,9 @@ typespec add_const(typespec ts)
 	}
 }
 
-typespec remove_lvalue_reference(typespec ts)
+typespec const &remove_lvalue_reference(typespec const &ts)
 {
-	if (ts.kind() == typespec::index<ts_reference>)
+	if (ts.is<ts_reference>())
 	{
 		return ts.get<ts_reference_ptr>()->base;
 	}
@@ -143,9 +143,9 @@ typespec remove_lvalue_reference(typespec ts)
 	}
 }
 
-typespec remove_const(typespec ts)
+typespec const &remove_const(typespec const &ts)
 {
-	if (ts.kind() == typespec::index<ts_constant>)
+	if (ts.is<ts_constant>())
 	{
 		return ts.get<ts_constant_ptr>()->base;
 	}

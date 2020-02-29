@@ -218,8 +218,8 @@ typespec decay_typespec(typespec const &ts);
 typespec add_lvalue_reference(typespec ts);
 typespec add_const(typespec ts);
 
-typespec remove_lvalue_reference(typespec ts);
-typespec remove_const(typespec ts);
+typespec const &remove_lvalue_reference(typespec const &ts);
+typespec const &remove_const(typespec const &ts);
 
 
 } // namespace ast
