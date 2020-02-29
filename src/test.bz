@@ -667,6 +667,34 @@ function conversion_test(p: *const *const int32) -> *const *const int32
 {
 }
 
+const i8:   int8;
+const u8:  uint8;
+const i16:  int16;
+const u16: uint16;
+const i32:  int32;
+const u32: uint32;
+const i64:  int64;
+const u64: uint64;
+const f32: float32;
+const f64: float64;
+
+function bin_op_test() -> void
+{
+	let a = i32 + i32;
+	let b = i8 + i32;
+	let c = i32 + i8;
+	let d = i16 + i16;
+	let e = i64 + i16;
+//	i32 + u32;
+//	u64 + i8;
+
+	let f = u32 + u32;
+	let g = u8 + u32;
+	let h = u32 + u8;
+	let i = u16 + u16;
+	let j = u64 + u16;
+}
+
 
 /*
 struct vec3<typename T>

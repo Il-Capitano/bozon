@@ -357,31 +357,19 @@ static bool is_arithmetic_kind(ast::type_info::type_kind kind)
 }
 
 static auto get_built_in_operation_type(
-	ast::expression::expr_type_t expr,
-	lex::token_pos op,
+	ast::expression::expr_type_t const &expr,
+	uint32_t op,
 	bz::string_view scope,
 	global_context &context
-)
-	-> bz::result<ast::expression::expr_type_t, bz::string>
+) -> bz::result<ast::expression::expr_type_t, bz::string>
 {
 	using expr_type_t = ast::expression::expr_type_t;
-
-	auto const remove_const = [](ast::typespec const &ts) -> auto const &
-	{
-		switch (ts.kind())
-		{
-		case ast::typespec::index<ast::ts_constant>:
-			return ts.get<ast::ts_constant_ptr>()->base;
-		default:
-			return ts;
-		}
-	};
 
 	expr_type_t default_ret_val = {
 		ast::expression::rvalue, ast::typespec()
 	};
 
-	switch (op->kind)
+	switch (op)
 	{
 	case lex::token::plus:
 	{
@@ -518,19 +506,111 @@ static auto get_built_in_operation_type(
 
 	default:
 		assert(false);
-		return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+		return default_ret_val;
+	}
+}
+
+static auto get_built_in_operation_type(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs,
+	uint32_t op,
+	bz::string_view scope,
+	global_context &context
+) -> bz::result<ast::expression::expr_type_t, bz::string>
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	expr_type_t default_ret_val = {
+		ast::expression::rvalue, ast::typespec()
+	};
+
+	auto &lhs_t = ast::remove_const(lhs.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	auto const get_base_kinds = [&]() -> std::pair<ast::type_info::type_kind, ast::type_info::type_kind>
+	{
+		assert(lhs_t.is<ast::ts_base_type>());
+		assert(rhs_t.is<ast::ts_base_type>());
+		return {
+			lhs_t.get<ast::ts_base_type_ptr>()->info->kind,
+			rhs_t.get<ast::ts_base_type_ptr>()->info->kind
+		};
+	};
+
+	switch (op)
+	{
+	case lex::token::plus:
+	{
+		if (
+			lhs_t.is<ast::ts_base_type>()
+			&& rhs_t.is<ast::ts_base_type>()
+		)
+		{
+			auto [lhs_kind, rhs_kind] = get_base_kinds();
+			if (
+				is_signed_integer_kind(lhs_kind)
+				&& is_signed_integer_kind(rhs_kind)
+			)
+			{
+				return lhs_kind > rhs_kind
+					? expr_type_t{ ast::expression::rvalue, lhs_t }
+					: expr_type_t{ ast::expression::rvalue, rhs_t };
+			}
+			else if (
+				is_unsigned_integer_kind(lhs_kind)
+				&& is_unsigned_integer_kind(rhs_kind)
+			)
+			{
+				return lhs_kind > rhs_kind
+					? expr_type_t{ ast::expression::rvalue, lhs_t }
+					: expr_type_t{ ast::expression::rvalue, rhs_t };
+			}
+			else if (
+				is_floating_point_kind(lhs_kind)
+				&& is_floating_point_kind(rhs_kind)
+			)
+			{
+				return lhs_kind > rhs_kind
+					? expr_type_t{ ast::expression::rvalue, lhs_t }
+					: expr_type_t{ ast::expression::rvalue, rhs_t };
+			}
+			else
+			{
+				return default_ret_val;
+			}
+		}
+		else if (
+			lhs_t.is<ast::ts_pointer>()
+			&& rhs_t.is<ast::ts_base_type>()
+		)
+		{
+			return expr_type_t{ ast::expression::rvalue, lhs_t };
+		}
+		else if (
+			lhs_t.is<ast::ts_base_type>()
+			&& rhs_t.is<ast::ts_pointer>()
+		)
+		{
+			return expr_type_t{ ast::expression::rvalue, rhs_t };
+		}
+		else
+		{
+			return default_ret_val;
+		}
+	}
+	default:
+		assert(false);
+		return default_ret_val;
 	}
 }
 
 auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_op const &unary_op)
 	-> bz::result<ast::expression::expr_type_t, error>
 {
-	auto &op_sets = this->_decls[scope].op_sets;
-
-	if (is_built_in_type(unary_op.expr.expr_type.expr_type))
+	if (is_built_in_type(ast::remove_const(unary_op.expr.expr_type.expr_type)))
 	{
 		auto type = get_built_in_operation_type(
-			unary_op.expr.expr_type, unary_op.op,
+			unary_op.expr.expr_type, unary_op.op->kind,
 			scope, *this
 		);
 		if (type.has_error())
@@ -543,6 +623,19 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 		}
 	}
 
+	auto const get_undeclared_error = [&]()
+	{
+		return ctx::make_error(
+			unary_op,
+			bz::format(
+				"undeclared unary operator {} with type '{}'",
+				unary_op.op->value,
+				unary_op.expr.expr_type.expr_type
+			)
+		);
+	};
+
+	auto &op_sets = this->_decls[scope].op_sets;
 	auto const set = std::find_if(
 		op_sets.begin(), op_sets.end(),
 		[&](auto &set) {
@@ -552,13 +645,7 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 
 	if (set == op_sets.end())
 	{
-		return ctx::make_error(
-			unary_op,
-			bz::format(
-				"undeclared unary operator {} with type '{}'",
-				unary_op.op->value, unary_op.expr.expr_type.expr_type
-			)
-		);
+		return get_undeclared_error();
 	}
 
 	for (auto op : set->op_decls)
@@ -585,32 +672,58 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 		}
 	}
 
-	return ctx::make_error(
-		unary_op,
-		bz::format("undeclared unary operator {}", unary_op.op->value)
-	);
+	return get_undeclared_error();
 }
 
 auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_op const &binary_op)
 	-> bz::result<ast::expression::expr_type_t, error>
 {
+	if (
+		is_built_in_type(ast::remove_const(binary_op.lhs.expr_type.expr_type))
+		&& is_built_in_type(ast::remove_const(binary_op.rhs.expr_type.expr_type))
+	)
+	{
+		auto type = get_built_in_operation_type(
+			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
+			binary_op.op->kind,
+			scope, *this
+		);
+		if (type.has_error())
+		{
+			return make_error(binary_op, type.get_error());
+		}
+		else if (type.get_result().expr_type.kind() != ast::typespec::null)
+		{
+			return std::move(type.get_result());
+		}
+	}
+
 	auto const get_undeclared_error = [&]()
 	{
 		if (binary_op.op->kind == lex::token::square_open)
 		{
-			return ctx::make_error(binary_op, "undeclared binary operator []");
+			return ctx::make_error(
+				binary_op,
+				bz::format(
+					"undeclared binary operator [] with types '{}' and '{}'",
+					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
+				)
+			);
 		}
 		else
 		{
 			return ctx::make_error(
 				binary_op,
-				bz::format("undeclared binary operator {}", binary_op.op->value)
+				bz::format(
+					"undeclared binary operator {} with types '{}' and '{}'",
+					binary_op.op->value,
+					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
+				)
 			);
 		}
 	};
 
 	auto &op_sets = this->_decls[scope].op_sets;
-
 	auto const set = std::find_if(
 		op_sets.begin(),
 		op_sets.end(),
