@@ -168,7 +168,14 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		);
 		if (var != scope->rend())
 		{
-			return { ast::expression::lvalue, var->var_type };
+			if (var->var_type.is<ast::ts_reference>())
+			{
+				return { ast::expression::lvalue_reference, var->var_type.get<ast::ts_reference_ptr>()->base };
+			}
+			else 
+			{
+				return { ast::expression::lvalue, var->var_type };
+			}
 		}
 	}
 
