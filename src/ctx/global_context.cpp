@@ -356,9 +356,16 @@ static bool is_arithmetic_kind(ast::type_info::type_kind kind)
 		&& kind <= ast::type_info::type_kind::float64_;
 }
 
-static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
-	-> bz::result<ast::expression::expr_type_t, error>
+static auto get_built_in_operation_type(
+	ast::expression::expr_type_t expr,
+	lex::token_pos op,
+	bz::string_view scope,
+	global_context &context
+)
+	-> bz::result<ast::expression::expr_type_t, bz::string>
 {
+	using expr_type_t = ast::expression::expr_type_t;
+
 	auto const remove_const = [](ast::typespec const &ts) -> auto const &
 	{
 		switch (ts.kind())
@@ -370,102 +377,143 @@ static auto get_built_in_operation_type(ast::expr_unary_op const &unary_op)
 		}
 	};
 
-	switch (unary_op.op->kind)
+	expr_type_t default_ret_val = {
+		ast::expression::rvalue, ast::typespec()
+	};
+
+	switch (op->kind)
 	{
 	case lex::token::plus:
 	{
-		auto &t = remove_const(unary_op.expr.expr_type.expr_type);
+		auto &t = remove_const(expr.expr_type);
 		if (!t.is<ast::ts_base_type>())
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
 		if (is_arithmetic_kind(kind))
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, t };
+			return expr_type_t{ ast::expression::rvalue, t };
 		}
 		else
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 	}
 	case lex::token::minus:
 	{
-		auto &t = remove_const(unary_op.expr.expr_type.expr_type);
+		auto &t = remove_const(expr.expr_type);
 		if (!t.is<ast::ts_base_type>())
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
 		if (is_signed_integer_kind(kind) || is_floating_point_kind(kind))
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, t };
+			return expr_type_t{ ast::expression::rvalue, t };
 		}
 		else
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 	}
 	case lex::token::dereference:
 	{
-		auto &t = remove_const(unary_op.expr.expr_type.expr_type);
+		auto &t = remove_const(expr.expr_type);
 		if (!t.is<ast::ts_pointer>())
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
-		return ast::expression::expr_type_t{
+		return expr_type_t{
 			ast::expression::lvalue_reference,
 			t.get<ast::ts_pointer_ptr>()->base
 		};
 	}
 	case lex::token::ampersand:
 		if (
-			unary_op.expr.expr_type.type_kind == ast::expression::lvalue
-			|| unary_op.expr.expr_type.type_kind == ast::expression::lvalue_reference
+			expr.type_kind == ast::expression::lvalue
+			|| expr.type_kind == ast::expression::lvalue_reference
 		)
 		{
-			return ast::expression::expr_type_t{
+			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_pointer(unary_op.expr.expr_type.expr_type)
+				ast::make_ts_pointer(expr.expr_type)
 			};
 		}
 		else
 		{
-			return ctx::make_error(unary_op, "cannot take address of an rvalue");
+			return bz::string("cannot take address of an rvalue");
 		}
 	case lex::token::bit_not:
 	{
-		auto &t = remove_const(unary_op.expr.expr_type.expr_type);
+		auto &t = remove_const(expr.expr_type);
 		if (!t.is<ast::ts_base_type>())
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
 		if (is_unsigned_integer_kind(kind))
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, t };
+			return expr_type_t{ ast::expression::rvalue, t };
 		}
 		else
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 	}
 	case lex::token::bool_not:
 	{
-		auto &t = remove_const(unary_op.expr.expr_type.expr_type);
+		auto &t = remove_const(expr.expr_type);
 		if (!t.is<ast::ts_base_type>())
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
 		auto const kind = t.get<ast::ts_base_type_ptr>()->info->kind;
 		if (kind == ast::type_info::type_kind::bool_)
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, t };
+			return expr_type_t{ ast::expression::rvalue, t };
 		}
 		else
 		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, ast::typespec() };
+			return default_ret_val;
 		}
+	}
+	case lex::token::plus_plus:
+	case lex::token::minus_minus:
+	{
+		if (
+			expr.type_kind != ast::expression::lvalue
+			&& expr.type_kind != ast::expression::lvalue_reference
+		)
+		{
+			return default_ret_val;
+		}
+
+		auto &t = expr.expr_type;
+		if (t.is<ast::ts_pointer>())
+		{
+			return expr_type_t{ ast::expression::lvalue_reference, t };
+		}
+		else if (t.is<ast::ts_base_type>())
+		{
+			auto kind = t.get<ast::ts_base_type_ptr>()->info->kind;
+			if (is_integer_kind(kind))
+			{
+				return expr_type_t{ ast::expression::lvalue_reference, t };
+			}
+			else
+			{
+				return default_ret_val;
+			}
+		}
+		else
+		{
+			return default_ret_val;
+		}
+	}
+	case lex::token::kw_sizeof:
+	{
+		return expr_type_t{ ast::expression::rvalue, ast::make_ts_base_type(context.get_type_info(scope, "uint64")) };
 	}
 
 	default:
@@ -481,10 +529,17 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 
 	if (is_built_in_type(unary_op.expr.expr_type.expr_type))
 	{
-		auto type = get_built_in_operation_type(unary_op);
-		if (type.has_error() || type.get_result().expr_type.kind() != ast::typespec::null)
+		auto type = get_built_in_operation_type(
+			unary_op.expr.expr_type, unary_op.op,
+			scope, *this
+		);
+		if (type.has_error())
 		{
-			return type;
+			return make_error(unary_op, type.get_error());
+		}
+		else if (type.get_result().expr_type.kind() != ast::typespec::null)
+		{
+			return std::move(type.get_result());
 		}
 	}
 
