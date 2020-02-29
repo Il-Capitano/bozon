@@ -196,7 +196,7 @@ static void resolve_literal(
 	ctx::parse_context &context
 )
 {
-	assert(expr.kind() == ast::expression::index<ast::expr_literal>);
+	assert(expr.is<ast::expr_literal>());
 	auto &literal = *expr.get<ast::expr_literal_ptr>();
 
 	expr.expr_type.type_kind = ast::expression::rvalue;
@@ -346,7 +346,7 @@ static ast::expression parse_expression_helper(
 
 	auto const resolve_expr = [&context](ast::expression &expr)
 	{
-		if (expr.kind() == ast::expression::index<ast::expr_binary_op>)
+		if (expr.is<ast::expr_binary_op>())
 		{
 			auto &binary_expr = *expr.get<ast::expr_binary_op_ptr>();
 			if (
@@ -363,7 +363,7 @@ static ast::expression parse_expression_helper(
 				*expr.get<ast::expr_binary_op_ptr>()
 			);
 		}
-		else if (expr.kind() == ast::expression::index<ast::expr_function_call>)
+		else if (expr.is<ast::expr_function_call>())
 		{
 			auto &func_call = *expr.get<ast::expr_function_call_ptr>();
 			expr.expr_type = context.get_function_call_type(func_call);
@@ -437,7 +437,7 @@ static ast::expression parse_expression_helper(
 				&& lhs.expr_type.expr_type.kind() == ast::typespec::null
 			)
 			{
-				assert(lhs.kind() == ast::expression::index<ast::expr_identifier>);
+				assert(lhs.is<ast::expr_identifier>());
 				context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
 			}
 			auto rhs = parse_primary_expression(stream, end, context);
@@ -502,7 +502,7 @@ static ast::expression parse_expression(
 			&& lhs.expr_type.expr_type.kind() == ast::typespec::null
 		)
 		{
-			assert(lhs.kind() == ast::expression::index<ast::expr_identifier>);
+			assert(lhs.is<ast::expr_identifier>());
 			context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
 		}
 		return lhs;
@@ -706,7 +706,7 @@ static void add_expr_type(
 )
 {
 	if (
-		var_type.kind() == ast::typespec::index<ast::ts_reference>
+		var_type.is<ast::ts_reference>()
 		&& expr.expr_type.type_kind != ast::expression::lvalue
 		&& expr.expr_type.type_kind != ast::expression::lvalue_reference
 	)
@@ -723,11 +723,11 @@ static void add_expr_type(
 	}
 
 	ast::typespec *var_it = [&]() -> ast::typespec * {
-		if (var_type.kind() == ast::typespec::index<ast::ts_reference>)
+		if (var_type.is<ast::ts_reference>())
 		{
 			return &var_type.get<ast::ts_reference_ptr>()->base;
 		}
-		else if (var_type.kind() == ast::typespec::index<ast::ts_constant>)
+		else if (var_type.is<ast::ts_constant>())
 		{
 			return &var_type.get<ast::ts_constant_ptr>()->base;
 		}
@@ -1005,7 +1005,7 @@ void resolve(
 
 void resolve(ast::expression &expr, ctx::parse_context &context)
 {
-	if (expr.kind() == ast::expression::index<ast::expr_unresolved>)
+	if (expr.is<ast::expr_unresolved>())
 	{
 		auto unresolved_expr = *expr.get<ast::expr_unresolved_ptr>();
 		auto stream = unresolved_expr.expr.begin;
