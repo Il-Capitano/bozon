@@ -356,6 +356,42 @@ static bool is_arithmetic_kind(ast::type_info::type_kind kind)
 		&& kind <= ast::type_info::type_kind::float64_;
 }
 
+static auto get_non_overloadable_operation_type(
+	ast::expression::expr_type_t const &expr,
+	uint32_t op,
+	bz::string_view scope,
+	global_context &context
+) -> bz::result<ast::expression::expr_type_t, bz::string>
+{
+	using expr_type_t = ast::expression::expr_type_t;
+	switch (op)
+	{
+	case lex::token::address_of:
+		if (
+			expr.type_kind == ast::expression::lvalue
+			|| expr.type_kind == ast::expression::lvalue_reference
+		)
+		{
+			return expr_type_t{
+				ast::expression::rvalue,
+				ast::make_ts_pointer(expr.expr_type)
+			};
+		}
+		else
+		{
+			return bz::string("cannot take address of an rvalue");
+		}
+	case lex::token::kw_sizeof:
+	{
+		return expr_type_t{ ast::expression::rvalue, ast::make_ts_base_type(context.get_type_info(scope, "uint64")) };
+	}
+
+	default:
+		assert(false);
+		return bz::string("");
+	}
+}
+
 static auto get_built_in_operation_type(
 	ast::expression::expr_type_t const &expr,
 	uint32_t op,
@@ -417,21 +453,6 @@ static auto get_built_in_operation_type(
 			t.get<ast::ts_pointer_ptr>()->base
 		};
 	}
-	case lex::token::ampersand:
-		if (
-			expr.type_kind == ast::expression::lvalue
-			|| expr.type_kind == ast::expression::lvalue_reference
-		)
-		{
-			return expr_type_t{
-				ast::expression::rvalue,
-				ast::make_ts_pointer(expr.expr_type)
-			};
-		}
-		else
-		{
-			return bz::string("cannot take address of an rvalue");
-		}
 	case lex::token::bit_not:
 	{
 		auto &t = remove_const(expr.expr_type);
@@ -498,10 +519,6 @@ static auto get_built_in_operation_type(
 		{
 			return default_ret_val;
 		}
-	}
-	case lex::token::kw_sizeof:
-	{
-		return expr_type_t{ ast::expression::rvalue, ast::make_ts_base_type(context.get_type_info(scope, "uint64")) };
 	}
 
 	default:
@@ -582,13 +599,15 @@ static auto get_built_in_operation_type(
 		else if (
 			lhs_t.is<ast::ts_pointer>()
 			&& rhs_t.is<ast::ts_base_type>()
+			&& is_integer_kind(rhs_t.get<ast::ts_base_type_ptr>()->info->kind)
 		)
 		{
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
 		}
 		else if (
-			lhs_t.is<ast::ts_base_type>()
-			&& rhs_t.is<ast::ts_pointer>()
+			rhs_t.is<ast::ts_pointer>()
+			&& lhs_t.is<ast::ts_base_type>()
+			&& is_integer_kind(lhs_t.get<ast::ts_base_type_ptr>()->info->kind)
 		)
 		{
 			return expr_type_t{ ast::expression::rvalue, rhs_t };
@@ -607,6 +626,22 @@ static auto get_built_in_operation_type(
 auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_op const &unary_op)
 	-> bz::result<ast::expression::expr_type_t, error>
 {
+	if (!lex::is_overloadable_unary_operator(unary_op.op->kind))
+	{
+		auto type = get_non_overloadable_operation_type(
+			unary_op.expr.expr_type, unary_op.op->kind,
+			scope, *this
+		);
+		if (type.has_error())
+		{
+			return make_error(unary_op, std::move(type.get_error()));
+		}
+		else
+		{
+			return std::move(type.get_result());
+		}
+	}
+
 	if (is_built_in_type(ast::remove_const(unary_op.expr.expr_type.expr_type)))
 	{
 		auto type = get_built_in_operation_type(
@@ -615,7 +650,7 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 		);
 		if (type.has_error())
 		{
-			return make_error(unary_op, type.get_error());
+			return make_error(unary_op, std::move(type.get_error()));
 		}
 		else if (type.get_result().expr_type.kind() != ast::typespec::null)
 		{

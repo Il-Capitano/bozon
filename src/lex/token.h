@@ -245,6 +245,8 @@ constexpr bool is_keyword_token(token const &t)
 
 bz::string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
+bool is_overloadable_unary_operator(uint32_t kind);
+bool is_overloadable_binary_operator(uint32_t kind);
 bool is_overloadable_operator(uint32_t kind);
 bool is_binary_operator(uint32_t kind);
 bool is_unary_operator(uint32_t kind);

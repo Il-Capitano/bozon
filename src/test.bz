@@ -693,6 +693,16 @@ function bin_op_test() -> void
 	let h = u32 + u8;
 	let i = u16 + u16;
 	let j = u64 + u16;
+
+	const p: *const int32;
+	let k = p + u8;
+	let l = p + u16;
+	let m = p + u32;
+	let n = p + u64;
+	let o = p + i8;
+	let q = p + i16;
+	let r = p + i32;
+	let s = p + i64;
 }
 
 

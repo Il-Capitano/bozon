@@ -103,6 +103,69 @@ bool is_operator(uint32_t kind)
 	}
 }
 
+bool is_overloadable_unary_operator(uint32_t kind)
+{
+	switch (kind)
+	{
+	case token::plus:               // '+'
+	case token::minus:              // '-'
+	case token::dereference:        // '*'
+	case token::bit_not:            // '~'
+	case token::bool_not:           // '!'
+	case token::plus_plus:          // '++'
+	case token::minus_minus:        // '--'
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool is_overloadable_binary_operator(uint32_t kind)
+{
+	switch (kind)
+	{
+	case token::assign:             // '='
+	case token::plus:               // '+'
+	case token::plus_eq:            // '+='
+	case token::minus:              // '-'
+	case token::minus_eq:           // '-='
+	case token::multiply:           // '*'
+	case token::multiply_eq:        // '*='
+	case token::divide:             // '/'
+	case token::divide_eq:          // '/='
+	case token::modulo:             // '%'
+	case token::modulo_eq:          // '%='
+	case token::dot_dot:            // '..'
+	case token::dot_dot_eq:         // '..='
+	case token::equals:             // '=='
+	case token::not_equals:         // '!='
+	case token::less_than:          // '<'
+	case token::less_than_eq:       // '<='
+	case token::greater_than:       // '>'
+	case token::greater_than_eq:    // '>='
+	case token::bit_and:            // '&'
+	case token::bit_and_eq:         // '&='
+	case token::bit_xor:            // '^'
+	case token::bit_xor_eq:         // '^='
+	case token::bit_or:             // '|'
+	case token::bit_or_eq:          // '|='
+	case token::bit_left_shift:     // '<<'
+	case token::bit_left_shift_eq:  // '<<='
+	case token::bit_right_shift:    // '>>'
+	case token::bit_right_shift_eq: // '>>='
+	case token::bool_and:           // '&&'
+	case token::bool_xor:           // '^^'
+	case token::bool_or:            // '||'
+	case token::arrow:              // '->' ???
+	case token::square_open:        // '[]'
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 bool is_overloadable_operator(uint32_t kind)
 {
 	switch (kind)

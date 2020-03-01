@@ -797,7 +797,7 @@ static void check_operator_param_count(
 	}
 	if (param_count == 1)
 	{
-		if (op->kind != lex::token::paren_open && !lex::is_unary_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !lex::is_overloadable_unary_operator(op->kind))
 		{
 			bz::string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 			context.report_error(
@@ -808,7 +808,7 @@ static void check_operator_param_count(
 	}
 	else if (param_count == 2)
 	{
-		if (op->kind != lex::token::paren_open && !lex::is_binary_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !lex::is_overloadable_binary_operator(op->kind))
 		{
 			context.report_error(
 				op - 1, op, params_end,
@@ -837,7 +837,7 @@ static ast::declaration parse_operator_definition(
 	bool is_valid_op = true;
 	if (!lex::is_operator(op->kind))
 	{
-		context.report_error(stream, "expected operator");
+		context.report_error(stream, "expected an operator");
 		is_valid_op = false;
 	}
 	else
@@ -845,7 +845,7 @@ static ast::declaration parse_operator_definition(
 		if (!lex::is_overloadable_operator(op->kind))
 		{
 			context.report_error(
-				stream, bz::format("operator {} is note overloadable", stream->value)
+				stream, bz::format("operator {} is not overloadable", stream->value)
 			);
 			is_valid_op = false;
 		}
