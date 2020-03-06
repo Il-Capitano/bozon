@@ -15,6 +15,7 @@ struct type_info;
 
 declare_node_type(ts_unresolved);
 declare_node_type(ts_base_type);
+declare_node_type(ts_void);
 declare_node_type(ts_constant);
 declare_node_type(ts_pointer);
 declare_node_type(ts_reference);
@@ -26,6 +27,7 @@ declare_node_type(ts_tuple);
 struct typespec : node<
 	ts_unresolved,
 	ts_base_type,
+	ts_void,
 	ts_constant,
 	ts_pointer,
 	ts_reference,
@@ -36,6 +38,7 @@ struct typespec : node<
 	using base_t = node<
 		ts_unresolved,
 		ts_base_type,
+		ts_void,
 		ts_constant,
 		ts_pointer,
 		ts_reference,
@@ -47,9 +50,6 @@ struct typespec : node<
 	using base_t::get;
 	using base_t::kind;
 };
-
-struct type;
-using type_ptr = std::shared_ptr<type>;
 
 
 struct ts_unresolved
@@ -71,6 +71,10 @@ struct ts_base_type
 	ts_base_type(type_info const *_info)
 		: info(_info)
 	{}
+};
+
+struct ts_void
+{
 };
 
 struct ts_constant
@@ -165,7 +169,6 @@ struct type_info
 		float32_, float64_,
 		char_, str_,
 		bool_, null_t_,
-		void_,
 
 		aggregate,
 	};
@@ -191,6 +194,9 @@ typespec make_ts_unresolved(Args &&...args)
 template<typename ...Args>
 typespec make_ts_base_type(Args &&...args)
 { return typespec(std::make_unique<ts_base_type>(std::forward<Args>(args)...)); }
+
+inline typespec make_ts_void(void)
+{ return typespec(ts_void_ptr(nullptr)); }
 
 template<typename ...Args>
 typespec make_ts_constant(Args &&...args)
@@ -237,6 +243,9 @@ struct bz::formatter<ast::typespec>
 
 		case ast::typespec::index<ast::ts_base_type>:
 			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->identifier);
+
+		case ast::typespec::index<ast::ts_void>:
+			return "void";
 
 		case ast::typespec::index<ast::ts_constant>:
 			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);

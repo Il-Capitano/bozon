@@ -535,15 +535,22 @@ ast::typespec parse_typespec(
 	{
 		auto const id = stream;
 		++stream;
-		auto const info = context.get_type_info(id->value);
-		if (info)
+		if (id->value == "void")
 		{
-			return ast::make_ts_base_type(info);
+			return ast::make_ts_void();
 		}
 		else
 		{
-			context.report_error(id, "undeclared typename");
-			return ast::typespec();
+			auto const info = context.get_type_info(id->value);
+			if (info)
+			{
+				return ast::make_ts_base_type(info);
+			}
+			else
+			{
+				context.report_error(id, "undeclared typename");
+				return ast::typespec();
+			}
 		}
 	}
 

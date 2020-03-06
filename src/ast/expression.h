@@ -55,7 +55,7 @@ struct expression : node<
 
 	struct expr_type_t
 	{
-		expr_type_kind type_kind;
+		expr_type_kind type_kind = rvalue;
 		typespec       expr_type;
 	};
 
