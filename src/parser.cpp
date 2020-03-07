@@ -721,7 +721,7 @@ static void add_expr_type(
 		context.report_error(
 			expr,
 			bz::format(
-				"cannot bind {} to lvalue reference",
+				"cannot bind reference to an {}",
 				expr.expr_type.type_kind == ast::expression::rvalue
 				? "rvalue" : "rvalue reference"
 			)

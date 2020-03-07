@@ -712,6 +712,13 @@ function bin_op_test() -> void
 	let q = i16 + p;
 	let r = i32 + p;
 	let s = i64 + p;
+
+
+	let a = i8 - i8;
+	let b = p - i16;
+	let c = p - u64;
+	let d = p - p;
+//	let e = u64 - p;
 }
 
 

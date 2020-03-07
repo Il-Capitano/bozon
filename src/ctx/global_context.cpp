@@ -330,11 +330,12 @@ static bool is_built_in_type(ast::typespec const &ts)
 auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_op const &unary_op)
 	-> bz::result<ast::expression::expr_type_t, error>
 {
+	parse_context parse_ctx(scope, *this);
 	if (!lex::is_overloadable_unary_operator(unary_op.op->kind))
 	{
 		auto type = get_non_overloadable_operation_type(
 			unary_op.expr.expr_type, unary_op.op->kind,
-			scope, *this
+			parse_ctx
 		);
 		if (type.has_error())
 		{
@@ -349,7 +350,8 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 	if (is_built_in_type(ast::remove_const(unary_op.expr.expr_type.expr_type)))
 	{
 		auto type = get_built_in_operation_type(
-			unary_op.expr.expr_type, unary_op.op->kind
+			unary_op.expr.expr_type, unary_op.op->kind,
+			parse_ctx
 		);
 		if (type.expr_type.kind() != ast::typespec::null)
 		{
@@ -412,6 +414,7 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_unary_o
 auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_op const &binary_op)
 	-> bz::result<ast::expression::expr_type_t, error>
 {
+	parse_context parse_ctx(scope, *this);
 	if (!lex::is_overloadable_binary_operator(binary_op.op->kind))
 	{
 		assert(false);
@@ -424,7 +427,8 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_
 	{
 		auto type = get_built_in_operation_type(
 			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
-			binary_op.op->kind
+			binary_op.op->kind,
+			parse_ctx
 		);
 		if (type.expr_type.kind() != ast::typespec::null)
 		{
