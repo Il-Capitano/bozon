@@ -33,11 +33,15 @@ lex::token_pos first_pass_parse_context::assert_token(lex::token_pos &stream, ui
 {
 	if (stream->kind != kind)
 	{
+		auto suggestions = kind == lex::token::semi_colon
+			? bz::vector<suggestion>{ make_suggestion_after(stream - 1, ";", "put ';' here:") }
+			: bz::vector<suggestion>{};
 		this->global_ctx.report_error(ctx::make_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format("expected {} before end-of-file", lex::get_token_name_for_message(kind))
-			: bz::format("expected {}", lex::get_token_name_for_message(kind))
+			: bz::format("expected {}", lex::get_token_name_for_message(kind)),
+			{}, std::move(suggestions)
 		));
 		return stream;
 	}

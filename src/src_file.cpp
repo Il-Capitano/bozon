@@ -10,7 +10,7 @@ static bz::string get_highlighted_chars(
 	ctx::char_pos const char_pivot,
 	ctx::char_pos const char_end,
 	size_t const pivot_line,
-	char const *const highlight_color
+	bz::string_view const highlight_color
 )
 {
 	if (char_begin == char_end)
@@ -142,6 +142,11 @@ static bz::string get_highlighted_chars(
 				break;
 			}
 			++it;
+			if (it == line_end)
+			{
+				highlight_line += '\n';
+				break;
+			}
 		}
 
 		result += bz::format("{:>{}} | ", max_line_size, line_num);
@@ -149,12 +154,89 @@ static bz::string get_highlighted_chars(
 		result += colors::clear;
 		result += bz::format("{:>{}} | ", max_line_size, "");
 		result += highlight_line;
-		result += colors::clear;
 		result += '\n';
+		result += colors::clear;
 		++line_num;
 	}
 
 	return result;
+}
+
+static bz::string get_highlighted_suggestion(
+	ctx::char_pos const file_begin,
+	ctx::char_pos const file_end,
+	ctx::char_pos const char_place,
+	bz::string_view const suggestion_str,
+	size_t const line
+)
+{
+	assert(file_begin < file_end);
+	assert(file_begin <= char_place);
+	assert(char_place <= file_end);
+
+	auto line_begin = char_place;
+	while (line_begin != file_begin && *(line_begin - 1) != '\n')
+	{
+		--line_begin;
+	}
+
+	auto line_end = char_place;
+	while (line_end != file_end && *line_end != '\n')
+	{
+		++line_end;
+	}
+
+	bz::string file_line = "";
+	bz::string highlight_line = "";
+
+	size_t column = 0;
+
+	auto it = line_begin;
+	while (true)
+	{
+		if (it == char_place)
+		{
+			file_line += colors::suggestion_color;
+			file_line += suggestion_str;
+			file_line += colors::clear;
+
+			highlight_line += colors::suggestion_color;
+			highlight_line += bz::string(suggestion_str.length(), '~');
+			highlight_line += colors::clear;
+
+			column += suggestion_str.length();
+		}
+
+		if (it == line_end)
+		{
+			break;
+		}
+
+		if (*it == '\t')
+		{
+			do
+			{
+				file_line += ' ';
+				highlight_line += ' ';
+				++column;
+			} while (column % 4 != 0);
+		}
+		else
+		{
+			file_line += *it;
+			highlight_line += ' ';
+			++column;
+		}
+
+		++it;
+	}
+
+	return bz::format(
+		"{} | {}\n"
+		"{:{}} | {}\n",
+		line, file_line,
+		bz::internal::lg_uint(line), "", highlight_line
+	);
 }
 
 static bz::string read_text_from_file(std::ifstream &file)
@@ -227,6 +309,19 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 				n.src_begin, n.src_pivot, n.src_end,
 				n.line,
 				colors::note_color
+			)
+		);
+	}
+	for (auto &s : err.suggestions)
+	{
+		bz::printf(
+			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
+			colors::bright_white, s.file, s.line, s.column, colors::clear,
+			colors::suggestion_color, colors::clear,
+			s.message,
+			get_highlighted_suggestion(
+				file_begin, file_end,
+				s.place, s.suggestion_str, s.line
 			)
 		);
 	}

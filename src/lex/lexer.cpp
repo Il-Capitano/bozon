@@ -78,7 +78,7 @@ static constexpr bool is_whitespace_char(char c)
 	return c == ' '
 		|| c == '\t'
 		|| c == '\n'
-		|| c == '\r'; // for windows line ends
+		|| c == '\r';
 }
 
 [[nodiscard]] static ctx::error bad_char(
@@ -90,7 +90,7 @@ static constexpr bool is_whitespace_char(char c)
 		stream.file, stream.line, stream.column,
 		stream.it, stream.it, stream.it + 1,
 		std::move(message),
-		std::move(notes)
+		std::move(notes), {}
 	};
 }
 
@@ -103,7 +103,7 @@ static constexpr bool is_whitespace_char(char c)
 		file, line, column,
 		nullptr, nullptr, nullptr,
 		std::move(message),
-		std::move(notes)
+		std::move(notes), {}
 	};
 }
 
