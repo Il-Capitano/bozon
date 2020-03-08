@@ -23,80 +23,103 @@ string format(string_view fmt, Ts const &...ts);
 namespace internal
 {
 
-inline void color_console(int32_t color)
+inline void set_console_attribute(HANDLE h, uint32_t n)
 {
-	auto h = GetStdHandle(STD_OUTPUT_HANDLE);
-	if (color == -1)
+	static WORD default_text_attribute = [=] {
+		CONSOLE_SCREEN_BUFFER_INFO info = {};
+		GetConsoleScreenBufferInfo(h, &info);
+		return info.wAttributes;
+	}();
+
+	CONSOLE_SCREEN_BUFFER_INFO info = {};
+	GetConsoleScreenBufferInfo(h, &info);
+
+	constexpr WORD foreground_bits = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+	constexpr WORD background_bits = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
+	constexpr WORD other_bits = ~(foreground_bits | background_bits);
+
+	WORD const current_foreground = info.wAttributes & foreground_bits;
+	WORD const current_background = info.wAttributes & background_bits;
+	WORD const current_other = info.wAttributes & other_bits;
+
+	WORD new_foreground = current_foreground;
+	WORD new_background = current_background;
+	WORD new_other = current_other;
+
+	switch (n)
 	{
-		SetConsoleTextAttribute(h, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	case 0:
+		new_foreground = default_text_attribute & foreground_bits;
+		new_background = default_text_attribute & background_bits;
+		new_other = default_text_attribute & other_bits;
+		break;
+
+	// foreground
+	case 31: new_foreground = FOREGROUND_RED; break;
+	case 32: new_foreground = FOREGROUND_GREEN; break;
+	case 33: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 34: new_foreground = FOREGROUND_BLUE; break;
+	case 35: new_foreground = FOREGROUND_RED | FOREGROUND_BLUE; break;
+	case 36: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 37: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+
+	// background
+	case 41: new_background = BACKGROUND_RED; break;
+	case 42: new_background = BACKGROUND_GREEN; break;
+	case 43: new_background = BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 44: new_background = BACKGROUND_BLUE; break;
+	case 45: new_background = BACKGROUND_RED | BACKGROUND_BLUE; break;
+	case 46: new_background = BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 47: new_background = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE; break;
+
+	// bright foreground
+	case 91: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED; break;
+	case 92: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_GREEN; break;
+	case 93: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 94: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_BLUE; break;
+	case 95: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE; break;
+	case 96: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 97: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+
+	// bright background
+	case 101: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED; break;
+	case 102: new_background = BACKGROUND_INTENSITY | BACKGROUND_GREEN; break;
+	case 103: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 104: new_background = BACKGROUND_INTENSITY | BACKGROUND_BLUE; break;
+	case 105: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_BLUE; break;
+	case 106: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 107: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE; break;
+
+	default: break;
 	}
-	else
-	{
-		SetConsoleTextAttribute(h, color & 0xffff);
-	}
+
+	SetConsoleTextAttribute(h, new_foreground | new_background | new_other);
 }
 
-inline int32_t get_console_color(string_view fmt)
+inline void set_console_attributes(string_view str)
 {
-	auto it = fmt.begin();
-	auto const end = fmt.end();
-	int32_t ret_val = 0;
-	while (it != end)
+	auto const h = GetStdHandle(STD_OUTPUT_HANDLE);
+	int32_t n = 0;
+	for (auto it = str.begin(); it != str.end(); ++it)
 	{
 		switch (*it)
 		{
-		case '0':
-			bz_assert(it + 1 == end);
-			return -1;
-		case '3':
-			++it; // '3'
-			bz_assert(it != end);
-			switch (*it)
-			{
-				case '0': break;
-				case '1': ret_val |= FOREGROUND_RED; break;
-				case '2': ret_val |= FOREGROUND_GREEN; break;
-				case '3': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN; break;
-				case '4': ret_val |= FOREGROUND_BLUE; break;
-				case '5': ret_val |= FOREGROUND_RED | FOREGROUND_BLUE; break;
-				case '6': ret_val |= FOREGROUND_GREEN | FOREGROUND_BLUE; break;
-				case '7': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
-			}
-			++it;
-			if (it != end)
-			{
-				bz_assert(*it == ';');
-				++it; // ';'
-			}
+		case '0': case '1': case '2': case '3': case '4':
+		case '5': case '6': case '7': case '8': case '9':
+			n *= 10;
+			n += *it - '0';
 			break;
-		case '9':
-			bz_assert(it + 1 != end);
-			++it; // '9'
-			ret_val |= FOREGROUND_INTENSITY;
-			switch (*it)
-			{
-				case '0': break;
-				case '1': ret_val |= FOREGROUND_RED; break;
-				case '2': ret_val |= FOREGROUND_GREEN; break;
-				case '3': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN; break;
-				case '4': ret_val |= FOREGROUND_BLUE; break;
-				case '5': ret_val |= FOREGROUND_RED | FOREGROUND_BLUE; break;
-				case '6': ret_val |= FOREGROUND_GREEN | FOREGROUND_BLUE; break;
-				case '7': ret_val |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
-			}
-			++it;
-			if (it != end)
-			{
-				bz_assert(*it == ';');
-				++it; // ';'
-			}
+
+		case ';':
+			set_console_attribute(h, n);
+			n = 0;
 			break;
+
 		default:
-			bz_assert(false);
 			break;
 		}
 	}
-	return ret_val;
+	set_console_attribute(h, n);
 }
 
 } // namespace internal
@@ -140,10 +163,9 @@ inline void print(string_view str)
 			break;
 		}
 
-		auto const color = internal::get_console_color(string_view(it, closing_m));
 		std::cout << string_view(begin, coloring_char);
+		internal::set_console_attributes(string_view(it, closing_m));
 		begin = closing_m + 1;
-		internal::color_console(color);
 	}
 }
 
