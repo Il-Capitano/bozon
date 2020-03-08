@@ -160,6 +160,8 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 { return !(lhs == rhs); }
 
 
+struct decl_struct;
+
 struct type_info
 {
 	enum class type_kind
@@ -175,15 +177,20 @@ struct type_info
 
 	enum : size_t
 	{
-		built_in = 1ull,
+		built_in     = 1ull << 0,
+		resolved     = 1ull << 1,
+		instantiable = 1ull << 2,
 	};
 
-	type_kind  kind;
-	bz::string identifier;
-	size_t     size;
-	size_t     alignment;
-	size_t     flags;
-	bz::vector<variable> member_variables;
+	static constexpr size_t default_built_in_flags =
+		built_in | resolved | instantiable;
+
+	type_kind    kind;
+	bz::string   identifier;
+	size_t       size;
+	size_t       alignment;
+	size_t       flags;
+	decl_struct *decl;
 };
 
 

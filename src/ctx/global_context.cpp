@@ -8,20 +8,20 @@ namespace ctx
 static std::list<ast::type_info> get_default_types(void)
 {
 	return {
-		ast::type_info{ ast::type_info::type_kind::int8_,    "int8",    1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int16_,   "int16",   2,  2, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int32_,   "int32",   4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::int64_,   "int64",   8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint8_,   "uint8",   1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint16_,  "uint16",  2,  2, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint32_,  "uint32",  4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::uint64_,  "uint64",  8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::float32_, "float32", 4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::float64_, "float64", 8,  8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::char_,    "char",    4,  4, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::str_,     "str",     16, 8, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::bool_,    "bool",    1,  1, ast::type_info::built_in, {} },
-		ast::type_info{ ast::type_info::type_kind::null_t_,  "null_t",  0,  0, ast::type_info::built_in, {} },
+		ast::type_info{ ast::type_info::type_kind::int8_,    "int8",    1,  1, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::int16_,   "int16",   2,  2, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::int32_,   "int32",   4,  4, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::int64_,   "int64",   8,  8, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::uint8_,   "uint8",   1,  1, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::uint16_,  "uint16",  2,  2, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::uint32_,  "uint32",  4,  4, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::uint64_,  "uint64",  8,  8, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::float32_, "float32", 4,  4, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::float64_, "float64", 8,  8, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::char_,    "char",    4,  4, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::str_,     "str",     16, 8, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::bool_,    "bool",    1,  1, ast::type_info::default_built_in_flags, nullptr },
+		ast::type_info{ ast::type_info::type_kind::null_t_,  "null_t",  0,  0, ast::type_info::default_built_in_flags, nullptr },
 	};
 }
 

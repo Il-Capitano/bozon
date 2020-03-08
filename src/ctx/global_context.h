@@ -35,6 +35,7 @@ struct global_context
 {
 private:
 	std::map<bz::string, src_local_decls> _decls;
+	// using a list here, so iterators aren't invalidated
 	std::list<ast::type_info> _types;
 	bz::vector<error> _errors;
 
@@ -44,8 +45,10 @@ public:
 	void report_error(error &&err);
 	bool has_errors(void) const;
 	void clear_errors(void);
+
 	bz::vector<error> const &get_errors(void) const
 	{ return this->_errors; }
+
 	size_t get_error_count(void) const
 	{ return this->_errors.size(); }
 
