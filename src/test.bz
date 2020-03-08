@@ -719,6 +719,10 @@ function bin_op_test() -> void
 	let c = p - u64;
 	let d = p - p;
 //	let e = u64 - p;
+	let f = f32 - f32;
+	let g = f64 - f32;
+	let h = f32 - f64;
+	let i = f64 - f64;
 }
 
 
@@ -752,11 +756,7 @@ struct vec3<typename T>
 	function unit(&const this) -> vec3
 	{
 		const ilen = 1 / this.abs();
-		return [
-			this.x * ilen,
-			this.y * ilen,
-			this.z * ilen
-		];
+		return this * ilen;
 	}
 }
 
