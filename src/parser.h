@@ -6,10 +6,10 @@
 #include "ctx/parse_context.h"
 
 
-void resolve(
-	ast::typespec &ts,
-	ctx::parse_context &context
-);
+// void resolve(
+// 	ast::typespec &ts,
+// 	ctx::parse_context &context
+// );
 
 void resolve(
 	ast::expression &expr,
@@ -54,13 +54,6 @@ void resolve(
 void resolve(
 	ast::statement &stmt,
 	ctx::parse_context &context
-);
-
-
-ast::typespec parse_typespec(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	bz::vector<ctx::error> &errors
 );
 
 #endif // PARSER_H

@@ -492,7 +492,7 @@ static ast::expression parse_expression(
 	auto lhs = parse_primary_expression(stream, end, context);
 	if (lhs.kind() == ast::expression::null)
 	{
-		assert(!context.has_errors());
+		assert(context.has_errors());
 		return ast::expression();
 	}
 	if (stream == end)
@@ -518,14 +518,14 @@ static ast::expression parse_expression(
 // ------------------------ type parsing --------------------------
 // ================================================================
 
-ast::typespec parse_typespec(
+static ast::typespec parse_typespec(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
 {
 	if (stream == end)
 	{
-		context.report_error(stream);
+		context.report_error(stream, "expected a type");
 		return ast::typespec();
 	}
 
@@ -572,6 +572,7 @@ ast::typespec parse_typespec(
 		context.assert_token(stream, lex::token::paren_open);
 
 		bz::vector<ast::typespec> param_types = {};
+		// not the nicest line... there's a while here: vv
 		if (stream->kind != lex::token::paren_close) while (stream != end)
 		{
 			param_types.push_back(parse_typespec(stream, end, context));
@@ -597,27 +598,28 @@ ast::typespec parse_typespec(
 	{
 		++stream; // '['
 
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+
 		bz::vector<ast::typespec> types = {};
-		if (stream->kind != lex::token::square_close) while (stream != end)
+		// not the nicest line... there's a while after the if
+		if (inner_stream != inner_end) while (inner_stream != inner_end)
 		{
-			types.push_back(parse_typespec(stream, end, context));
-			if (stream->kind != lex::token::square_close)
+			types.push_back(parse_typespec(inner_stream, inner_end, context));
+			if (inner_stream->kind != lex::token::square_close)
 			{
-				context.assert_token(stream, lex::token::comma);
+				context.assert_token(inner_stream, lex::token::comma);
 			}
 			else
 			{
 				break;
 			}
 		}
-		assert(stream != end);
-		context.assert_token(stream, lex::token::square_close);
 
 		return make_ts_tuple(std::move(types));
 	}
 
 	default:
-		assert(false);
+		context.report_error(stream, "expected a type");
 		return ast::typespec();
 	}
 }
@@ -701,6 +703,7 @@ void resolve(
 		ts = parse_typespec(stream, end, context);
 		break;
 	}
+
 	default:
 		break;
 	}
@@ -940,6 +943,8 @@ void resolve(
 		resolve(*decl.get<ast::decl_function_ptr>(), scope, global_ctx);
 		break;
 	case ast::declaration::index<ast::decl_operator>:
+		resolve(*decl.get<ast::decl_operator_ptr>(), scope, global_ctx);
+		break;
 	case ast::declaration::index<ast::decl_struct>:
 	default:
 		break;
