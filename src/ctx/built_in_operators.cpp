@@ -84,6 +84,25 @@ auto get_non_overloadable_operation_type(
 	}
 }
 
+auto get_non_overloadable_operation_type(
+	ast::expression::expr_type_t const &,
+	ast::expression::expr_type_t const &rhs,
+	uint32_t op,
+	parse_context &
+) -> bz::result<ast::expression::expr_type_t, bz::string>
+{
+//	using expr_type_t = ast::expression::expr_type_t;
+	switch (op)
+	{
+	case lex::token::comma:
+		return rhs;
+
+	default:
+		assert(false);
+		return bz::string("");
+	}
+}
+
 
 static ast::expression::expr_type_t get_built_in_unary_plus(
 	ast::expression::expr_type_t const &expr
@@ -367,7 +386,7 @@ static auto get_built_in_binary_plus(
 	}
 }
 
-auto get_built_in_binary_minus(
+static auto get_built_in_binary_minus(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
 	parse_context &context
@@ -451,6 +470,60 @@ auto get_built_in_binary_minus(
 	}
 }
 
+static auto get_built_in_binary_multiply_or_divide(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = ast::remove_const(lhs.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		lhs_t.is<ast::ts_base_type>()
+		&& rhs_t.is<ast::ts_base_type>()
+	)
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_signed_integer_kind(lhs_kind)
+			&& is_signed_integer_kind(rhs_kind)
+		)
+		{
+			return lhs_kind > rhs_kind
+				? expr_type_t{ ast::expression::rvalue, lhs_t }
+				: expr_type_t{ ast::expression::rvalue, rhs_t };
+		}
+		else if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+		)
+		{
+			return lhs_kind > rhs_kind
+				? expr_type_t{ ast::expression::rvalue, lhs_t }
+				: expr_type_t{ ast::expression::rvalue, rhs_t };
+		}
+		else if (
+			is_floating_point_kind(lhs_kind)
+			&& is_floating_point_kind(rhs_kind)
+		)
+		{
+			return lhs_kind > rhs_kind
+				? expr_type_t{ ast::expression::rvalue, lhs_t }
+				: expr_type_t{ ast::expression::rvalue, rhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		return {};
+	}
+}
+
 auto get_built_in_operation_type(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
@@ -464,13 +537,14 @@ auto get_built_in_operation_type(
 		return get_built_in_binary_plus(lhs, rhs);
 	case lex::token::minus:              // '-'
 		return get_built_in_binary_minus(lhs, rhs, context);
+	case lex::token::multiply:           // '*'
+	case lex::token::divide:             // '/'
+		return get_built_in_binary_multiply_or_divide(lhs, rhs);
 
 	case lex::token::assign:             // '='
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
-	case lex::token::multiply:           // '*'
 	case lex::token::multiply_eq:        // '*='
-	case lex::token::divide:             // '/'
 	case lex::token::divide_eq:          // '/='
 	case lex::token::modulo:             // '%'
 	case lex::token::modulo_eq:          // '%='

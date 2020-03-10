@@ -417,7 +417,19 @@ auto global_context::get_operation_type(bz::string_view scope, ast::expr_binary_
 	parse_context parse_ctx(scope, *this);
 	if (!lex::is_overloadable_binary_operator(binary_op.op->kind))
 	{
-		assert(false);
+		auto type = get_non_overloadable_operation_type(
+			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
+			binary_op.op->kind,
+			parse_ctx
+		);
+		if (type.has_error())
+		{
+			return make_error(binary_op, std::move(type.get_error()));
+		}
+		else
+		{
+			return std::move(type.get_result());
+		}
 	}
 
 	if (

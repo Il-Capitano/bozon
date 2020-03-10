@@ -723,8 +723,11 @@ function bin_op_test() -> void
 	let g = f64 - f32;
 	let h = f32 - f64;
 	let i = f64 - f64;
-}
 
+	let a = i8 * i8;
+	let b = i16 * i64;
+	let c = i64 * i16;
+}
 
 /*
 struct vec3<typename T>
