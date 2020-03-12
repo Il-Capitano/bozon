@@ -172,7 +172,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 			{
 				return { ast::expression::lvalue_reference, var->var_type.get<ast::ts_reference_ptr>()->base };
 			}
-			else 
+			else
 			{
 				return { ast::expression::lvalue, var->var_type };
 			}
