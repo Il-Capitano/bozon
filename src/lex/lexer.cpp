@@ -58,6 +58,21 @@ static constexpr bool is_num_char(char c)
 	return c >= '0' && c <= '9';
 }
 
+static constexpr bool is_hex_char(char c)
+{
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+static constexpr bool is_oct_char(char c)
+{
+	return c >= '0' && c <= '7';
+}
+
+static constexpr bool is_bin_char(char c)
+{
+	return c == '0' || c == '1';
+}
+
 static constexpr bool is_alpha_char(char c)
 {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
@@ -400,6 +415,90 @@ static token get_string_token(
 	);
 }
 
+static token get_hex_number_token(
+	file_iterator &stream,
+	ctx::char_pos const end
+)
+{
+	assert(stream.it != end);
+	assert((stream.it + 1) != end);
+	assert(*stream.it == '0');
+	assert(*(stream.it + 1) == 'x' || *(stream.it + 1) == 'X');
+
+	auto const begin_it = stream.it;
+	auto const line = stream.line;
+	auto const column = stream.column;
+
+	++stream; ++stream; // '0x' or '0X'
+
+	while (stream.it != end && (is_hex_char(*stream.it) || *stream.it == '\''))
+	{
+		++stream;
+	}
+
+	return token(
+		token::hex_literal,
+		bz::string_view(&*begin_it, &*stream.it),
+		stream.file, begin_it, stream.it, line, column
+	);
+}
+
+static token get_oct_number_token(
+	file_iterator &stream,
+	ctx::char_pos const end
+)
+{
+	assert(stream.it != end);
+	assert((stream.it + 1) != end);
+	assert(*stream.it == '0');
+	assert(*(stream.it + 1) == 'o' || *(stream.it + 1) == 'O');
+
+	auto const begin_it = stream.it;
+	auto const line = stream.line;
+	auto const column = stream.column;
+
+	++stream; ++stream; // '0o' or '0O'
+
+	while (stream.it != end && (is_oct_char(*stream.it) || *stream.it == '\''))
+	{
+		++stream;
+	}
+
+	return token(
+		token::oct_literal,
+		bz::string_view(&*begin_it, &*stream.it),
+		stream.file, begin_it, stream.it, line, column
+	);
+}
+
+static token get_bin_number_token(
+	file_iterator &stream,
+	ctx::char_pos const end
+)
+{
+	assert(stream.it != end);
+	assert((stream.it + 1) != end);
+	assert(*stream.it == '0');
+	assert(*(stream.it + 1) == 'b' || *(stream.it + 1) == 'B');
+
+	auto const begin_it = stream.it;
+	auto const line = stream.line;
+	auto const column = stream.column;
+
+	++stream; ++stream; // '0b' or '0B'
+
+	while (stream.it != end && (is_bin_char(*stream.it) || *stream.it == '\''))
+	{
+		++stream;
+	}
+
+	return token(
+		token::bin_literal,
+		bz::string_view(&*begin_it, &*stream.it),
+		stream.file, begin_it, stream.it, line, column
+	);
+}
+
 static token get_number_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
@@ -408,6 +507,29 @@ static token get_number_token(
 {
 	assert(stream.it != end);
 	assert(is_num_char(*stream.it));
+
+	if (
+		*stream.it == '0'
+		&& (stream.it + 1) != end
+	)
+	{
+		switch (*(stream.it + 1))
+		{
+		case 'x':
+		case 'X':
+			return get_hex_number_token(stream, end);
+		case 'o':
+		case 'O':
+			return get_oct_number_token(stream, end);
+		case 'b':
+		case 'B':
+			return get_bin_number_token(stream, end);
+		default:
+			break;
+		}
+	}
+
+
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
 	auto const column   = stream.column;
@@ -420,7 +542,7 @@ static token get_number_token(
 	if (stream.it == end || *stream.it != '.')
 	{
 		return token(
-			token::number_literal,
+			token::integer_literal,
 			bz::string_view(&*begin_it, &*stream.it),
 			stream.file, begin_it, stream.it, line, column
 		);
@@ -430,7 +552,7 @@ static token get_number_token(
 	if ((stream.it + 1) == end || !(is_num_char(*(stream.it + 1)) || *(stream.it + 1) == '\''))
 	{
 		return token(
-			token::number_literal,
+			token::integer_literal,
 			bz::string_view(&*begin_it, &*stream.it),
 			stream.file, begin_it, stream.it, line, column
 		);
@@ -443,12 +565,12 @@ static token get_number_token(
 
 	auto const end_it = stream.it;
 	return token(
-		token::number_literal,
+		token::floating_point_literal,
 		bz::string_view(&*begin_it, &*end_it),
 		stream.file, begin_it, end_it, line, column
 	);
 
-	// TODO: allow hex, oct and bin numbers (0x, 0o, 0b) and exponential notations (1e10)
+	// TODO: allow exponential notations (1e10)
 }
 
 static token get_single_char_token(

@@ -261,7 +261,11 @@ static ast::expression parse_primary_expression(
 	}
 
 	// literals
-	case lex::token::number_literal:
+	case lex::token::integer_literal:
+	case lex::token::floating_point_literal:
+	case lex::token::hex_literal:
+	case lex::token::oct_literal:
+	case lex::token::bin_literal:
 	case lex::token::string_literal:
 	case lex::token::character_literal:
 	case lex::token::kw_true:

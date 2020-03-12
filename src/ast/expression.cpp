@@ -77,7 +77,26 @@ expr_literal::expr_literal(lex::token_pos stream)
 {
 	switch(stream->kind)
 	{
-	case lex::token::number_literal:
+	case lex::token::integer_literal:
+	{
+		uint64_t num = 0;
+		for (auto const c : stream->value)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+			if (num > std::numeric_limits<uint64_t>::max() / 10)
+			{
+				// TODO: report error
+				assert(false);
+			}
+			num = (10 * num) + (c - '0');
+		}
+		this->value.emplace<integer_number>(num);
+		break;
+	}
+	case lex::token::floating_point_literal:
 	{
 		bz::string value = stream->value;
 		value.erase('\'');
@@ -91,26 +110,95 @@ expr_literal::expr_literal(lex::token_pos stream)
 			num += value[i] - '0';
 		}
 
-		if (i == value.length())
+		assert(value[i] == '.');
+		++i;
+
+		double level = 1;
+		while (i < value.length())
 		{
-			this->value.emplace<integer_number>(static_cast<uint64_t>(num));
-		}
-		else
-		{
-			assert(value[i] == '.');
+			assert(value[i] >= '0' && value[i] <= '9');
+			level *= 0.1;
+			num += level * (value[i] - '0');
 			++i;
-
-			double level = 1;
-			while (i < value.length())
-			{
-				assert(value[i] >= '0' && value[i] <= '9');
-				level *= 0.1;
-				num += level * (value[i] - '0');
-				++i;
-			}
-
-			this->value.emplace<floating_point_number>(num);
 		}
+
+		this->value.emplace<floating_point_number>(num);
+		break;
+	}
+	case lex::token::hex_literal:
+	{
+		assert(stream->value.length() >= 2);
+		uint64_t num = 0;
+		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		{
+			auto const c = *it;
+			if (c == '\'')
+			{
+				continue;
+			}
+			if (num > std::numeric_limits<uint64_t>::max() / 16)
+			{
+				// TODO: report error
+				assert(false);
+			}
+			num *= 16;
+			if (c >= '0' && c <= '9')
+			{
+				num += c - '0';
+			}
+			else if (c >= 'a' && c <= 'f')
+			{
+				num += c - ('a' - 10);
+			}
+			else
+			{
+				assert(c >= 'A' && c <= 'F');
+				num += c - ('A' - 10);
+			}
+		}
+		this->value.emplace<integer_number>(num);
+		break;
+	}
+	case lex::token::oct_literal:
+	{
+		assert(stream->value.length() >= 2);
+		uint64_t num = 0;
+		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		{
+			auto const c = *it;
+			if (c == '\'')
+			{
+				continue;
+			}
+			if (num > std::numeric_limits<uint64_t>::max() / 8)
+			{
+				// TODO: report error
+				assert(false);
+			}
+			num = (8 * num) + (c - '0');
+		}
+		this->value.emplace<integer_number>(num);
+		break;
+	}
+	case lex::token::bin_literal:
+	{
+		assert(stream->value.length() >= 2);
+		uint64_t num = 0;
+		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		{
+			auto const c = *it;
+			if (c == '\'')
+			{
+				continue;
+			}
+			if (num > std::numeric_limits<uint64_t>::max() / 2)
+			{
+				// TODO: report error
+				assert(false);
+			}
+			num = (2 * num) + (c - '0');
+		}
+		this->value.emplace<integer_number>(num);
 		break;
 	}
 

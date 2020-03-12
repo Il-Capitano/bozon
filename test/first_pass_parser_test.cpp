@@ -369,8 +369,12 @@ static void parse_variable_declaration_test(void)
 	//                    ^ tokens.begin() + 8
 	x("let const a = 0; a", tokens.begin() + 6);
 	//                  ^ tokens.begin() + 6
+	x("const a = 0; a", tokens.begin() + 5);
+	//              ^ tokens.begin() + 5
 	x("let &const **const *const a = 0; a", tokens.begin() + 12);
 	//                                  ^ tokens.begin() + 12
+	x("let a = 0.0; a", tokens.begin() + 5);
+	//              ^ tokens.begin() + 5
 
 	x_err("let a: [int32, float64 = [0, 1.3]; a", tokens.begin() + 14);
 	//                                        ^ tokens.begin() + 14

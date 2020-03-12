@@ -9,8 +9,16 @@ bz::string get_token_value(uint32_t kind)
 	{
 	case token::identifier:
 		return "identifier";
-	case token::number_literal:
-		return "number literal";
+	case token::integer_literal:
+		return "integer literal";
+	case token::floating_point_literal:
+		return "floating-point literal";
+	case token::hex_literal:
+		return "hexadecimal literal";
+	case token::oct_literal:
+		return "octal literal";
+	case token::bin_literal:
+		return "binary literal";
 	case token::string_literal:
 		return "string literal";
 	case token::character_literal:

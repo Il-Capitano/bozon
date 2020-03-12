@@ -109,7 +109,11 @@ static lex::token_range get_expression_or_type_tokens(
 		{
 		// literals
 		case lex::token::identifier:
-		case lex::token::number_literal:
+		case lex::token::integer_literal:
+		case lex::token::floating_point_literal:
+		case lex::token::hex_literal:
+		case lex::token::oct_literal:
+		case lex::token::bin_literal:
 		case lex::token::string_literal:
 		case lex::token::character_literal:
 		case lex::token::kw_true:

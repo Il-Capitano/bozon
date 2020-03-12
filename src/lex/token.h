@@ -51,7 +51,11 @@ struct token
 		ampersand     = '&',
 
 		identifier = 256,
-		number_literal,
+		integer_literal,
+		floating_point_literal,
+		hex_literal,
+		oct_literal,
+		bin_literal,
 		string_literal,
 		character_literal,
 
@@ -262,16 +266,24 @@ inline bz::string get_token_name_for_message(uint32_t kind)
 {
 	switch (kind)
 	{
-	case lex::token::identifier:
+	case token::identifier:
 		return "identifier";
-	case lex::token::number_literal:
-		return "number literal";
-	case lex::token::string_literal:
+	case token::integer_literal:
+		return "integer literal";
+	case token::floating_point_literal:
+		return "floating-point literal";
+	case token::hex_literal:
+		return "hexadecimal literal";
+	case token::oct_literal:
+		return "octal literal";
+	case token::bin_literal:
+		return "binary literal";
+	case token::string_literal:
 		return "string literal";
-	case lex::token::character_literal:
+	case token::character_literal:
 		return "character literal";
 	default:
-		return bz::format("'{}'", lex::get_token_value(kind));
+		return bz::format("'{}'", get_token_value(kind));
 	}
 }
 

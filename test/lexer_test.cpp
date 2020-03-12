@@ -69,7 +69,11 @@ static void get_token_value_test(void)
 	}
 
 	assert_eq(get_token_value(token::identifier), "identifier");
-	assert_eq(get_token_value(token::number_literal), "number literal");
+	assert_eq(get_token_value(token::integer_literal), "integer literal");
+	assert_eq(get_token_value(token::floating_point_literal), "floating-point literal");
+	assert_eq(get_token_value(token::hex_literal), "hexadecimal literal");
+	assert_eq(get_token_value(token::oct_literal), "octal literal");
+	assert_eq(get_token_value(token::bin_literal), "binary literal");
 	assert_eq(get_token_value(token::string_literal), "string literal");
 	assert_eq(get_token_value(token::character_literal), "character literal");
 }
@@ -401,7 +405,13 @@ do {                                                          \
     file_iterator it = { file.begin(), "" };                  \
     auto const t = get_number_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                    \
-    assert_eq(t.kind, token::number_literal);                 \
+    assert_true(                                              \
+        t.kind == token::integer_literal                      \
+        || t.kind == token::floating_point_literal            \
+        || t.kind == token::hex_literal                       \
+        || t.kind == token::oct_literal                       \
+        || t.kind == token::bin_literal                       \
+    );                                                        \
     assert_eq(it.it, it_pos);                                 \
 } while (false)
 
@@ -419,6 +429,15 @@ do {                                                          \
 	x("1'''2'''2323'1'.'''''2124213''4512''", file.end());
 	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.end() - 6);
 	//                                     ^ file.end() - 6
+
+	x("0x0123456789abcdef", file.end());
+	x("0x0123456789ABCDEF", file.end());
+	x("0X0123456789abcdef", file.end());
+	x("0X0123456789ABCDEF", file.end());
+	x("0o01234567", file.end());
+	x("0O01234567", file.end());
+	x("0b01010101", file.end());
+	x("0B01010101", file.end());
 
 #undef x
 }
@@ -455,7 +474,11 @@ do {                                                        \
 } while (false)
 
 #define x_id(str) x(str, token::identifier)
-#define x_num(str) x(str, token::number_literal)
+#define x_int(str) x(str, token::integer_literal)
+#define x_float(str) x(str, token::floating_point_literal)
+#define x_hex(str) x(str, token::hex_literal)
+#define x_oct(str) x(str, token::oct_literal)
+#define x_bin(str) x(str, token::bin_literal)
 #define x_str(str) x(str, token::string_literal)
 #define x_char(str) x(str, token::character_literal)
 
@@ -467,9 +490,12 @@ do {                                                        \
 	x_id("a1234");
 	x_id("_++-.,");
 
-	x_num("1234");
-	x_num("1.1");
-	x_num("1''''2''.''1''''''");
+	x_int("1234");
+	x_float("1.1");
+	x_float("1''''2''.''1''''''");
+	x_hex("0x0'''123''4567''''''''89abcdef");
+	x_oct("0o01'234'567");
+	x_bin("0b'0101'0101'0101");
 
 	x_str(R"("this is a string")");
 	x_str(R"("")");
