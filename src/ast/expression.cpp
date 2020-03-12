@@ -116,7 +116,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 
 	case lex::token::string_literal:
 	{
-		auto &str = stream->value;
+		auto const str = stream->value;
 		bz::string res = "";
 		res.reserve(str.length());
 		for (auto it = str.begin(), end = str.end(); it != end; ++it)
