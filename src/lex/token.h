@@ -124,7 +124,6 @@ struct token
 		bz::string_view::const_iterator begin;
 		bz::string_view::const_iterator end;
 		size_t line;
-		size_t column;
 	} src_pos;
 
 	token(
@@ -133,12 +132,11 @@ struct token
 		bz::string_view _file_name,
 		bz::string_view::const_iterator _begin,
 		bz::string_view::const_iterator _end,
-		size_t _line,
-		size_t _column
+		size_t _line
 	)
 		: kind(_kind),
 		  value(_value),
-		  src_pos{ _file_name, _begin, _end, _line, _column }
+		  src_pos{ _file_name, _begin, _end, _line }
 	{}
 };
 

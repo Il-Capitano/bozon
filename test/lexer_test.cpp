@@ -37,18 +37,14 @@ static void file_iterator_test(void)
 		file.begin(), "<source>"
 	};
 	assert_eq(it.line, 1);
-	assert_eq(it.column, 1);
 	assert_eq(it.file, "<source>");
 	assert_eq(it.it, file.begin());
 	++it;
 	assert_eq(it.line, 2);
-	assert_eq(it.column, 1);
 	++it;
 	assert_eq(it.line, 2);
-	assert_eq(it.column, 2);
 	++it;
 	assert_eq(it.line, 2);
-	assert_eq(it.column, 3);
 }
 
 static void get_token_value_test(void)
@@ -76,39 +72,6 @@ static void get_token_value_test(void)
 	assert_eq(get_token_value(token::bin_literal), "binary literal");
 	assert_eq(get_token_value(token::string_literal), "string literal");
 	assert_eq(get_token_value(token::character_literal), "character literal");
-}
-
-static void bad_char_test(void)
-{
-	bz::string_view file = "\nthis is line #2\n";
-	auto it = file.begin();
-	file_iterator file_it = {
-		it, "<source>"
-	};
-
-	{
-		auto err = bad_char(file_it, "this is an error message");
-		assert_eq(err.file, "<source>");
-		assert_eq(err.line, 1);
-		assert_eq(err.column, 1);
-		assert_eq(err.message, "this is an error message");
-		assert_eq(err.notes.size(), 0);
-		assert_eq(err.src_begin, it);
-		assert_eq(err.src_pivot, it);
-		assert_eq(err.src_end, it + 1);
-	}
-
-	{
-		auto err = bad_char("filename", 123, 456, "this is another error message");
-		assert_eq(err.file, "filename");
-		assert_eq(err.line, 123);
-		assert_eq(err.column, 456);
-		assert_eq(err.message, "this is another error message");
-		assert_eq(err.notes.size(), 0);
-		assert_eq(err.src_begin, nullptr);
-		assert_eq(err.src_pivot, nullptr);
-		assert_eq(err.src_end, nullptr);
-	}
 }
 
 static void skip_comments_and_whitespace_test(void)
@@ -573,7 +536,6 @@ test_result lexer_test(void)
 
 	test(file_iterator_test);
 	test(get_token_value_test);
-	test(bad_char_test);
 	test(skip_comments_and_whitespace_test);
 	test(get_identifier_or_keyword_token_test);
 	test(get_character_token_test);

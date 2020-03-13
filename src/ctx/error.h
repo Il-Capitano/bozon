@@ -13,7 +13,6 @@ struct note
 {
 	bz::string file;
 	size_t line;
-	size_t column;
 
 	char_pos src_begin;
 	char_pos src_pivot;
@@ -26,7 +25,6 @@ struct suggestion
 {
 	bz::string file;
 	size_t line;
-	size_t column;
 
 	char_pos place;
 	bz::string suggestion_str;
@@ -38,7 +36,6 @@ struct error
 {
 	bz::string file;
 	size_t line;
-	size_t column;
 
 	char_pos src_begin;
 	char_pos src_pivot;
@@ -55,7 +52,7 @@ struct error
 )
 {
 	return {
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		bz::format("unexpected token '{}'", it->value),
 		{}, {}
@@ -69,7 +66,7 @@ struct error
 )
 {
 	return {
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -83,7 +80,7 @@ struct error
 {
 	assert(end > begin);
 	return {
-		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
+		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -108,7 +105,7 @@ template<typename T>
 )
 {
 	return {
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column,
+		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message)
 	};
@@ -120,7 +117,7 @@ template<typename T>
 )
 {
 	return {
-		pivot->src_pos.file_name, pivot->src_pos.line, pivot->src_pos.column,
+		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
 		std::move(message)
 	};
@@ -144,7 +141,7 @@ template<typename T>
 )
 {
 	return {
-		it->src_pos.file_name, it->src_pos.line, it->src_pos.column + it->value.length(),
+		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.end, std::move(suggestion_str),
 		std::move(message)
 	};

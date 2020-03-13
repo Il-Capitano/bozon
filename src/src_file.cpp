@@ -3,6 +3,22 @@
 
 #include "colors.h"
 
+static size_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos pivot)
+{
+	size_t column = 0;
+	do
+	{
+		if (pivot == file_begin)
+		{
+			return column + 1;
+		}
+
+		--pivot;
+		++column;
+	} while (*pivot != '\n');
+	return column;
+}
+
 static bz::string get_highlighted_chars(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
@@ -69,7 +85,8 @@ static bz::string get_highlighted_chars(
 
 	bz::string result = "";
 
-	for (auto it = line_begin; it != line_end; ++it)
+	auto it = line_begin;
+	while (it != line_end)
 	{
 		size_t file_line_size = 0;
 		file_line = "";
@@ -92,6 +109,19 @@ static bz::string get_highlighted_chars(
 			{
 				file_line += colors::clear;
 				highlight_line += colors::clear;
+			}
+
+			if (it == file_end || *it == '\n')
+			{
+				if (it == char_pivot)
+				{
+					highlight_line += '^';
+				}
+				else if (it >= char_begin && it < char_end)
+				{
+					highlight_line += '~';
+				}
+				break;
 			}
 
 			if (*it == '\t')
@@ -137,25 +167,19 @@ static bz::string get_highlighted_chars(
 				}
 			}
 
-			if (*it == '\n')
-			{
-				break;
-			}
 			++it;
-			if (it == line_end)
-			{
-				highlight_line += '\n';
-				break;
-			}
 		}
 
-		result += bz::format("{:>{}} | ", max_line_size, line_num);
-		result += file_line;
-		result += colors::clear;
-		result += bz::format("{:>{}} | ", max_line_size, "");
-		result += highlight_line;
-		result += '\n';
-		result += colors::clear;
+		result += bz::format("{:>{}} | {}{}\n", max_line_size, line_num, file_line, colors::clear);
+		result += bz::format("{:>{}} | {}{}\n", max_line_size, "", highlight_line, colors::clear);
+
+		if (it == line_end)
+		{
+			break;
+		}
+
+		assert(*it == '\n');
+		++it;
 		++line_num;
 	}
 
@@ -287,7 +311,9 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 {
 	bz::printf(
 		"{}{}:{}:{}:{} {}error:{} {}\n{}",
-		colors::bright_white, err.file, err.line, err.column, colors::clear,
+		colors::bright_white,
+		err.file, err.line, get_column_number(file_begin, err.src_pivot),
+		colors::clear,
 		colors::error_color, colors::clear,
 		err.message,
 		get_highlighted_chars(
@@ -301,7 +327,9 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 	{
 		bz::printf(
 			"{}{}:{}:{}:{} {}note:{} {}\n{}",
-			colors::bright_white, n.file, n.line, n.column, colors::clear,
+			colors::bright_white,
+			n.file, n.line, get_column_number(file_begin, n.src_pivot),
+			colors::clear,
 			colors::note_color, colors::clear,
 			n.message,
 			get_highlighted_chars(
@@ -316,7 +344,9 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 	{
 		bz::printf(
 			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
-			colors::bright_white, s.file, s.line, s.column, colors::clear,
+			colors::bright_white,
+			s.file, s.line, get_column_number(file_begin, s.place),
+			colors::clear,
 			colors::suggestion_color, colors::clear,
 			s.message,
 			get_highlighted_suggestion(
