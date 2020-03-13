@@ -12,6 +12,8 @@
 #include <algorithm>
 #ifdef _WIN32
 #include <windows.h>
+#undef min
+#undef max
 #endif // windows
 
 bz_begin_namespace
@@ -55,39 +57,43 @@ inline void set_console_attribute(HANDLE h, uint32_t n)
 		break;
 
 	// foreground
+	case 30: new_foreground = 0; break;
 	case 31: new_foreground = FOREGROUND_RED; break;
 	case 32: new_foreground = FOREGROUND_GREEN; break;
 	case 33: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN; break;
 	case 34: new_foreground = FOREGROUND_BLUE; break;
 	case 35: new_foreground = FOREGROUND_RED | FOREGROUND_BLUE; break;
-	case 36: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 36: new_foreground = FOREGROUND_GREEN | FOREGROUND_BLUE; break;
 	case 37: new_foreground = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
 
 	// background
+	case 40: new_background = 0; break;
 	case 41: new_background = BACKGROUND_RED; break;
 	case 42: new_background = BACKGROUND_GREEN; break;
 	case 43: new_background = BACKGROUND_RED | BACKGROUND_GREEN; break;
 	case 44: new_background = BACKGROUND_BLUE; break;
 	case 45: new_background = BACKGROUND_RED | BACKGROUND_BLUE; break;
-	case 46: new_background = BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 46: new_background = BACKGROUND_GREEN | BACKGROUND_BLUE; break;
 	case 47: new_background = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE; break;
 
 	// bright foreground
+	case 90: new_foreground = FOREGROUND_INTENSITY; break;
 	case 91: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED; break;
 	case 92: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_GREEN; break;
 	case 93: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN; break;
 	case 94: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_BLUE; break;
 	case 95: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE; break;
-	case 96: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN; break;
+	case 96: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
 	case 97: new_foreground = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
 
 	// bright background
+	case 100: new_background = BACKGROUND_INTENSITY; break;
 	case 101: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED; break;
 	case 102: new_background = BACKGROUND_INTENSITY | BACKGROUND_GREEN; break;
 	case 103: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN; break;
 	case 104: new_background = BACKGROUND_INTENSITY | BACKGROUND_BLUE; break;
 	case 105: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_BLUE; break;
-	case 106: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN; break;
+	case 106: new_background = BACKGROUND_INTENSITY | BACKGROUND_GREEN | BACKGROUND_BLUE; break;
 	case 107: new_background = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE; break;
 
 	default: break;
