@@ -3,30 +3,6 @@
 namespace lex
 {
 
-struct file_iterator
-{
-	ctx::char_pos it;
-	bz::string_view file;
-	size_t line = 1;
-	size_t column = 1;
-
-	file_iterator &operator ++ (void)
-	{
-		if (*it == '\n')
-		{
-			++this->line;
-			this->column = 1;
-		}
-		else
-		{
-			++this->column;
-		}
-		++this->it;
-		return *this;
-	}
-};
-
-
 static token get_next_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
@@ -94,32 +70,6 @@ static constexpr bool is_whitespace_char(char c)
 		|| c == '\t'
 		|| c == '\n'
 		|| c == '\r';
-}
-
-[[nodiscard]] static ctx::error bad_char(
-	file_iterator const &stream,
-	bz::string message, bz::vector<ctx::note> notes = {}
-)
-{
-	return ctx::error{
-		stream.file, stream.line, stream.column,
-		stream.it, stream.it, stream.it + 1,
-		std::move(message),
-		std::move(notes), {}
-	};
-}
-
-[[nodiscard]] static ctx::error bad_char(
-	bz::string_view file, size_t line, size_t column,
-	bz::string message, bz::vector<ctx::note> notes = {}
-)
-{
-	return ctx::error{
-		file, line, column,
-		nullptr, nullptr, nullptr,
-		std::move(message),
-		std::move(notes), {}
-	};
 }
 
 
@@ -195,7 +145,6 @@ static token get_identifier_or_keyword_token(
 
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
-	auto const column   = stream.column;
 
 	do
 	{
@@ -221,7 +170,7 @@ static token get_identifier_or_keyword_token(
 		return token(
 			token::identifier,
 			id_value,
-			stream.file, begin_it, end_it, line, column
+			stream.file, begin_it, end_it, line
 		);
 	}
 	// keyword
@@ -230,7 +179,7 @@ static token get_identifier_or_keyword_token(
 		return token(
 			it->second,
 			id_value,
-			stream.file, begin_it, end_it, line, column
+			stream.file, begin_it, end_it, line
 		);
 	}
 }
@@ -245,26 +194,25 @@ static token get_character_token(
 	assert(*stream.it == '\'');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
-	auto const column   = stream.column;
 	++stream;
 	auto const char_begin = stream.it;
 
 	if (stream.it == end)
 	{
-		context.report_error(bad_char(
-			stream.file, stream.line, stream.column,
-			"expected closing ' before end-of-file",
+		context.bad_eof(
+			stream,
+			"expected a character and closing ' before end-of-file",
 			{ ctx::note{
-				stream.file, line, column,
+				stream.file, line,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
 			} }
-		));
+		);
 
 		return token(
 			token::character_literal,
 			bz::string_view(&*char_begin, &*char_begin),
-			stream.file, begin_it, char_begin, line, column
+			stream.file, begin_it, char_begin, line
 		);
 	}
 
@@ -287,16 +235,20 @@ static token get_character_token(
 			++stream;
 			break;
 		default:
-			context.report_error(bad_char(
-				stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
-			));
+			context.bad_chars(
+				stream.file, stream.line,
+				stream.it - 1, stream.it - 1, stream.it + 1,
+				*stream.it >= ' '
+				? bz::format("invalid escape sequence '\\{}'", *stream.it)
+				: bz::format("invalid escape sequence '\\\\{:02x}'", static_cast<uint32_t>(*stream.it))
+			);
 			++stream;
 			break;
 		}
 		break;
 
 	case '\'':
-		context.report_error(bad_char(stream, "expected a character before closing '"));
+		context.bad_char(stream, "expected a character before closing '");
 		break;
 
 	default:
@@ -307,26 +259,31 @@ static token get_character_token(
 	auto const char_end = stream.it;
 	if (stream.it == end)
 	{
-		context.report_error(bad_char(
-			stream.file, stream.line, stream.column,
+		context.bad_eof(
+			stream,
 			"expected closing ' before end-of-file",
 			{ ctx::note{
-				stream.file, line, column,
+				stream.file, line,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
 			} }
-		));
+		);
 	}
 	else if (*stream.it != '\'')
 	{
-		context.report_error(bad_char(
+		context.bad_char(
 			stream, "expected closing '",
 			{ ctx::note{
-				stream.file, line, column,
+				stream.file, line,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
+			} },
+			{ ctx::suggestion{
+				stream.file, stream.line,
+				stream.it, "'",
+				"put ' here:"
 			} }
-		));
+		);
 	}
 	else
 	{
@@ -337,7 +294,7 @@ static token get_character_token(
 	return token(
 		token::character_literal,
 		bz::string_view(&*char_begin, &*char_end),
-		stream.file, begin_it, end_it, line, column
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -351,7 +308,6 @@ static token get_string_token(
 	assert(*stream.it == '\"');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
-	auto const column   = stream.column;
 	++stream;
 	auto const str_begin = stream.it;
 
@@ -375,9 +331,13 @@ static token get_string_token(
 				++stream;
 				break;
 			default:
-				context.report_error(bad_char(
-					stream, bz::format("invalid escape sequence '\\{}'", *stream.it)
-				));
+				context.bad_chars(
+					stream.file, stream.line,
+					stream.it - 1, stream.it - 1, stream.it + 1,
+					*stream.it >= ' '
+					? bz::format("invalid escape sequence '\\{}'", *stream.it)
+					: bz::format("invalid escape sequence '\\\\{:02x}'", static_cast<uint32_t>(*stream.it))
+				);
 				++stream;
 				break;
 			}
@@ -391,15 +351,15 @@ static token get_string_token(
 	auto const str_end = stream.it;
 	if (stream.it == end)
 	{
-		context.report_error(bad_char(
-			stream.file, stream.line, stream.column,
+		context.bad_eof(
+			stream,
 			"expected closing \" before end-of-file",
 			{ ctx::note{
-				stream.file, line, column,
+				stream.file, line,
 				begin_it, begin_it, begin_it + 1,
 				"to match this:"
 			} }
-		));
+		);
 	}
 	else
 	{
@@ -411,7 +371,7 @@ static token get_string_token(
 	return token(
 		token::string_literal,
 		bz::string_view(&*str_begin, &*str_end),
-		stream.file, begin_it, end_it, line, column
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -427,7 +387,6 @@ static token get_hex_number_token(
 
 	auto const begin_it = stream.it;
 	auto const line = stream.line;
-	auto const column = stream.column;
 
 	++stream; ++stream; // '0x' or '0X'
 
@@ -439,7 +398,7 @@ static token get_hex_number_token(
 	return token(
 		token::hex_literal,
 		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line, column
+		stream.file, begin_it, stream.it, line
 	);
 }
 
@@ -455,7 +414,6 @@ static token get_oct_number_token(
 
 	auto const begin_it = stream.it;
 	auto const line = stream.line;
-	auto const column = stream.column;
 
 	++stream; ++stream; // '0o' or '0O'
 
@@ -467,7 +425,7 @@ static token get_oct_number_token(
 	return token(
 		token::oct_literal,
 		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line, column
+		stream.file, begin_it, stream.it, line
 	);
 }
 
@@ -483,7 +441,6 @@ static token get_bin_number_token(
 
 	auto const begin_it = stream.it;
 	auto const line = stream.line;
-	auto const column = stream.column;
 
 	++stream; ++stream; // '0b' or '0B'
 
@@ -495,7 +452,7 @@ static token get_bin_number_token(
 	return token(
 		token::bin_literal,
 		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line, column
+		stream.file, begin_it, stream.it, line
 	);
 }
 
@@ -532,7 +489,6 @@ static token get_number_token(
 
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
-	auto const column   = stream.column;
 
 	do
 	{
@@ -544,7 +500,7 @@ static token get_number_token(
 		return token(
 			token::integer_literal,
 			bz::string_view(&*begin_it, &*stream.it),
-			stream.file, begin_it, stream.it, line, column
+			stream.file, begin_it, stream.it, line
 		);
 	}
 
@@ -554,7 +510,7 @@ static token get_number_token(
 		return token(
 			token::integer_literal,
 			bz::string_view(&*begin_it, &*stream.it),
-			stream.file, begin_it, stream.it, line, column
+			stream.file, begin_it, stream.it, line
 		);
 	}
 
@@ -567,7 +523,7 @@ static token get_number_token(
 	return token(
 		token::floating_point_literal,
 		bz::string_view(&*begin_it, &*end_it),
-		stream.file, begin_it, end_it, line, column
+		stream.file, begin_it, end_it, line
 	);
 
 	// TODO: allow exponential notations (1e10)
@@ -582,14 +538,13 @@ static token get_single_char_token(
 	assert(stream.it != end);
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
-	auto const column   = stream.column;
 	++stream;
 	auto const end_it = stream.it;
 
 	return token(
 		static_cast<uint32_t>(*begin_it),
 		bz::string_view(&*begin_it, &*end_it),
-		stream.file, begin_it, end_it, line, column
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -620,7 +575,7 @@ static token get_next_token(
 		return token(
 			token::eof,
 			bz::string_view(&*end, &*end),
-			stream.file, end, end, stream.line, stream.column
+			stream.file, end, end, stream.line
 		);
 	}
 
@@ -659,7 +614,6 @@ static token get_next_token(
 		{
 			auto const begin_it = stream.it;
 			auto const line     = stream.line;
-			auto const column   = stream.column;
 
 			for (size_t i = 0; i < t.first.length(); ++i)
 			{
@@ -670,7 +624,7 @@ static token get_next_token(
 			return token(
 				t.second,
 				bz::string_view(&*begin_it, &*end_it),
-				stream.file, begin_it, end_it, line, column
+				stream.file, begin_it, end_it, line
 			);
 		}
 	}
