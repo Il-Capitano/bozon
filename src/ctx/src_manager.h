@@ -35,6 +35,7 @@ public:
 	[[nodiscard]] bool tokenize(void);
 	[[nodiscard]] bool first_pass_parse(void);
 	[[nodiscard]] bool resolve(void);
+	[[nodiscard]] bool emit_bitcode(void);
 
 	std::list<src_file> const &get_src_files(void) const
 	{ return this->_src_files; }

@@ -1,4 +1,5 @@
 #include "src_manager.h"
+#include "bc/emit_bitcode.h"
 
 namespace ctx
 {
@@ -68,6 +69,18 @@ namespace ctx
 			bz::print("exiting...\n");
 			return false;
 		}
+	}
+
+	return true;
+}
+
+[[nodiscard]] bool src_manager::emit_bitcode(void)
+{
+	bitcode_context context(this->global_ctx);
+
+	for (auto &file : this->_src_files)
+	{
+		assert(file.emit_bitcode(context));
 	}
 
 	return true;

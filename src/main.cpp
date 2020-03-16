@@ -1016,6 +1016,33 @@ function call_func(func, ...#args)
 	return func(...std::forward<typeof args>(args));
 }
 
+
+
+struct vec<N: uint64, T: typename>
+{
+	// ...
+}
+
+using vec2<T: typename> = vec<2, T>;
+
+function make_vec(tup: [...T: typename]) { ... }
+function make_vec(tup: [...typename T]) { ... }
+function make_vec(tup: [...typename T]) { ... }
+function make_vec(tup: [...$T]) { ... }
+
+function make_vec(tup: [N: uint64]T: typename) {}
+function make_vec(tup: [$N: uint64]$T: typename) {}
+
+function<N: uint64, T: typename> make_vec(tup: [N]T) {}
+function make_vec<N: uint64, T: typename>(tup: [N]T) {}   <- this should be reserved for explicit templates
+
+make_vec([0, 1, 2, 3]);
+make_vec<4, int32>([0, 1, 2, 3])
+
+
+
+
+
 */
 
 #include "core.h"
@@ -1233,7 +1260,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			{
 				put_comma = true;
 			}
-			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
 		bz::printf(os, ") -> {}\n", fn_decl->return_type);
 
@@ -1275,7 +1302,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			{
 				put_comma = true;
 			}
-			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
 		bz::printf(os, ") -> {}\n", op_decl->return_type);
 
@@ -1414,7 +1441,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 			{
 				put_comma = true;
 			}
-			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
 		bz::printf(os, ") -> {}\n", fn_decl->return_type);
 
@@ -1456,7 +1483,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 			{
 				put_comma = true;
 			}
-			bz::printf(os, "{}: {}", &*p.id ? p.id->value : "", p.var_type);
+			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
 		bz::printf(os, ") -> {}\n", op_decl->return_type);
 
@@ -1508,7 +1535,7 @@ int main(void)
 	};
 
 	ctx::src_manager manager;
-	manager.add_file("./src/test.bz");
+	manager.add_file("./src/bitcode_test.bz");
 
 	auto const begin = timer::now();
 
@@ -1516,29 +1543,40 @@ int main(void)
 	{
 		return 1;
 	}
+	auto const after_tokenization = timer::now();
 	if (!manager.first_pass_parse())
 	{
 		return 2;
 	}
+	auto const after_first_pass_parse = timer::now();
 	if (!manager.resolve())
 	{
 		return 3;
 	}
+	auto const after_resolve = timer::now();
+	if (!manager.emit_bitcode())
+	{
+		return 4;
+	}
 
 	auto const end = timer::now();
 
-	std::stringstream ss;
-
-	for (auto &file : manager.get_src_files())
-	{
-		for (auto &decl : file._declarations)
-		{
-			print_declaration(ss, decl);
-		}
-	}
-
-	bz::print(ss.str().c_str());
-	bz::printf("successful compilation in {:.3f}ms\n", in_ms(end - begin));
+//	std::stringstream ss;
+//
+//	for (auto &file : manager.get_src_files())
+//	{
+//		for (auto &decl : file._declarations)
+//		{
+//			print_declaration(ss, decl);
+//		}
+//	}
+//
+//	bz::print(ss.str().c_str());
+	bz::printf("successful compilation in {:7.3f}ms\n", in_ms(end - begin));
+	bz::printf("tokenization time:        {:7.3f}ms\n", in_ms(after_tokenization - begin));
+	bz::printf("first pass parse time:    {:7.3f}ms\n", in_ms(after_first_pass_parse - after_tokenization));
+	bz::printf("resolve time:             {:7.3f}ms\n", in_ms(after_resolve - after_first_pass_parse));
+	bz::printf("code emission time:       {:7.3f}ms\n", in_ms(end - after_resolve));
 
 	return 0;
 }

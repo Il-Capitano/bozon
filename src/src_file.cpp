@@ -1,11 +1,12 @@
 #include "src_file.h"
 #include "ctx/global_context.h"
+#include "bc/emit_bitcode.h"
 
 #include "colors.h"
 
-static size_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos pivot)
+static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos pivot)
 {
-	size_t column = 0;
+	uint32_t column = 0;
 	do
 	{
 		if (pivot == file_begin)
@@ -432,4 +433,18 @@ void src_file::report_and_clear_errors(void)
 
 	this->_stage = resolved;
 	return !this->_global_ctx.has_errors();
+}
+
+[[nodiscard]] bool src_file::emit_bitcode(ctx::bitcode_context &context)
+{
+	for (auto &decl : this->_declarations)
+	{
+		if (decl.is<ast::decl_function>())
+		{
+			::bc::emit_function_bitcode(*decl.get<ast::decl_function_ptr>(), context);
+		}
+	}
+
+	context.module.print(llvm::errs(), nullptr);
+	return true;
 }

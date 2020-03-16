@@ -8,6 +8,7 @@
 #include "ctx/first_pass_parse_context.h"
 #include "first_pass_parser.h"
 #include "ctx/parse_context.h"
+#include "ctx/bitcode_context.h"
 #include "parser.h"
 
 struct src_file
@@ -40,6 +41,7 @@ public:
 	[[nodiscard]] bool tokenize(void);
 	[[nodiscard]] bool first_pass_parse(void);
 	[[nodiscard]] bool resolve(void);
+	[[nodiscard]] bool emit_bitcode(ctx::bitcode_context &context);
 
 
 	bz::string const &get_file_name() const

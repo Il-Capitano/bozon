@@ -1,0 +1,9 @@
+function main() -> int32
+{
+	let a = 0;
+	let b: [int32, [float64]];
+	let c = a;
+	let d = b;
+	let e = 1.5;
+	return a;
+}
