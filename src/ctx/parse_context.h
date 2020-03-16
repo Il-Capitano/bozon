@@ -19,7 +19,7 @@ struct parse_context
 	bz::string      scope;
 	global_context &global_ctx;
 
-	bz::vector<bz::vector<ast::variable>> scope_variables;
+	bz::vector<bz::vector<ast::decl_variable const *>> scope_variables;
 
 	parse_context(bz::string_view _scope, global_context &_global_ctx)
 		: scope(_scope), global_ctx(_global_ctx)
@@ -60,7 +60,10 @@ struct parse_context
 	void add_global_operator(ast::decl_operator &op_decl);
 	void add_global_struct(ast::decl_struct &struct_decl);
 
-	void add_local_variable(ast::variable var_decl);
+	void add_local_variable(ast::decl_variable const &var_decl);
+
+	auto get_identifier_decl(lex::token_pos id) const
+		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;
 
 	ast::expression::expr_type_t get_identifier_type(lex::token_pos id) const;
 	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op) const;

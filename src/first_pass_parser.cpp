@@ -241,13 +241,13 @@ static lex::token_range get_expression_or_type_tokens(
 	return { begin, stream };
 }
 
-static bz::vector<ast::variable> get_function_params(
+static bz::vector<ast::decl_variable> get_function_params(
 	lex::token_pos &in_stream, lex::token_pos in_end,
 	ctx::first_pass_parse_context &context
 )
 {
 	context.assert_token(in_stream, lex::token::paren_open);
-	bz::vector<ast::variable> params;
+	bz::vector<ast::decl_variable> params = {};
 
 	if (in_stream != in_end && in_stream->kind == lex::token::paren_close)
 	{
@@ -286,20 +286,26 @@ static bz::vector<ast::variable> get_function_params(
 
 		if (id->kind == lex::token::identifier)
 		{
-			params.push_back({
-				id, ast::make_ts_unresolved(type)
-			});
+			params.emplace_back(
+				lex::token_range{ id, type.end },
+				id,
+				ast::typespec(),
+				ast::make_ts_unresolved(type)
+			);
 		}
 		else
 		{
-			params.push_back({
-				nullptr, ast::make_ts_unresolved(type)
-			});
+			params.emplace_back(
+				lex::token_range{ id, type.end },
+				nullptr,
+				ast::typespec(),
+				ast::make_ts_unresolved(type)
+			);
 		}
 	} while (
 		stream != end
 		&& stream->kind == lex::token::comma
-		&& (++stream, true)
+		&& (++stream, true) // skip comma
 	);
 
 	in_stream = stream;

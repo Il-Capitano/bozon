@@ -254,7 +254,8 @@ static ast::expression parse_primary_expression(
 	{
 	case lex::token::identifier:
 	{
-		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream);
+		auto const decl = context.get_identifier_decl(stream);
+		auto id = ast::make_expr_identifier({ stream, stream + 1 }, stream, decl);
 		id.expr_type = context.get_identifier_type(stream);
 		++stream;
 		return id;
@@ -860,7 +861,7 @@ void resolve_symbol(
 	ctx::parse_context context(scope, global_ctx);
 	for (auto &p : func_decl.params)
 	{
-		resolve(p.var_type, context);
+		resolve(p, context);
 	}
 	resolve(func_decl.return_type, context);
 }
@@ -874,7 +875,7 @@ void resolve_symbol(
 	ctx::parse_context context(scope, global_ctx);
 	for (auto &p : op_decl.params)
 	{
-		resolve(p.var_type, context);
+		resolve(p, context);
 	}
 	resolve(op_decl.return_type, context);
 }
@@ -889,7 +890,7 @@ void resolve(
 	context.add_scope();
 	for (auto &p : func_decl.params)
 	{
-		resolve(p.var_type, context);
+		resolve(p, context);
 		context.add_local_variable(p);
 	}
 	resolve(func_decl.return_type, context);
@@ -910,7 +911,7 @@ void resolve(
 	context.add_scope();
 	for (auto &p : op_decl.params)
 	{
-		resolve(p.var_type, context);
+		resolve(p, context);
 		context.add_local_variable(p);
 	}
 	resolve(op_decl.return_type, context);
@@ -1006,7 +1007,7 @@ void resolve(
 	{
 		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
 		resolve(var_decl, context);
-		context.add_local_variable({ var_decl.identifier, var_decl.var_type });
+		context.add_local_variable(var_decl);
 		break;
 	}
 	case ast::statement::index<ast::decl_function>:

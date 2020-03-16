@@ -143,10 +143,37 @@ void parse_context::add_global_struct(ast::decl_struct &struct_decl)
 }
 
 
-void parse_context::add_local_variable(ast::variable var_decl)
+void parse_context::add_local_variable(ast::decl_variable const &var_decl)
 {
 	assert(this->scope_variables.size() != 0);
-	this->scope_variables.back().emplace_back(std::move(var_decl));
+	this->scope_variables.back().push_back(&var_decl);
+}
+
+
+auto parse_context::get_identifier_decl(lex::token_pos id) const
+	-> bz::variant<ast::decl_variable const *, ast::decl_function const *>
+{
+	// we go in reverse through the scopes and the variables
+	// in case there's shadowing
+	for (
+		auto scope = this->scope_variables.rbegin();
+		scope != this->scope_variables.rend();
+		++scope
+	)
+	{
+		auto const var = std::find_if(
+			scope->rbegin(), scope->rend(),
+			[&](auto const &var) {
+				return var->identifier->value == id->value;
+			}
+		);
+		if (var != scope->rend())
+		{
+			return *var;
+		}
+	}
+	// TODO: get declarations for function names
+	return {};
 }
 
 
@@ -163,18 +190,19 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		auto const var = std::find_if(
 			scope->rbegin(), scope->rend(),
 			[&](auto const &var) {
-				return var.id->value == id->value;
+				return var->identifier->value == id->value;
 			}
 		);
 		if (var != scope->rend())
 		{
-			if (var->var_type.is<ast::ts_reference>())
+			auto const var_ptr = *var;
+			if (var_ptr->var_type.is<ast::ts_reference>())
 			{
-				return { ast::expression::lvalue_reference, var->var_type.get<ast::ts_reference_ptr>()->base };
+				return { ast::expression::lvalue_reference, var_ptr->var_type.get<ast::ts_reference_ptr>()->base };
 			}
 			else
 			{
-				return { ast::expression::lvalue, var->var_type };
+				return { ast::expression::lvalue, var_ptr->var_type };
 			}
 		}
 	}

@@ -100,12 +100,24 @@ struct expr_unresolved
 	{ return this->expr.end; }
 };
 
+struct decl_variable;
+struct decl_function;
+
 struct expr_identifier
 {
 	lex::token_pos identifier;
+	bz::variant<decl_variable const *, decl_function const *> decl;
 
-	expr_identifier(lex::token_pos _id)
-		: identifier(_id)
+	expr_identifier(lex::token_pos _id, decl_variable const *var_decl)
+		: identifier(_id), decl(var_decl)
+	{}
+
+	expr_identifier(lex::token_pos _id, decl_function const *func_decl)
+		: identifier(_id), decl(func_decl)
+	{}
+
+	expr_identifier(lex::token_pos _id, bz::variant<decl_variable const *, decl_function const *> _decl)
+		: identifier(_id), decl(_decl)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const

@@ -65,6 +65,8 @@ public:
 	auto add_global_struct(bz::string_view scope, ast::decl_struct &struct_decl)
 		-> bz::result<int, error>;
 
+	auto get_identifier_decl(bz::string_view scope, lex::token_pos id)
+		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;
 
 	auto get_identifier_type(bz::string_view scope, lex::token_pos id)
 		-> bz::result<ast::expression::expr_type_t, error>;
