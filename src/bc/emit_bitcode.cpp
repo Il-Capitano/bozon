@@ -110,8 +110,8 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	ast::expr_tuple const &tuple,
-	ctx::bitcode_context &context
+	[[maybe_unused]] ast::expr_tuple const &tuple,
+	[[maybe_unused]] ctx::bitcode_context &context
 )
 {
 	assert(false);
@@ -119,21 +119,118 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	ast::expr_unary_op const &expr,
+	ast::expr_unary_op const &unary_op,
 	ctx::bitcode_context &context
 )
 {
-	assert(false);
-	return {};
+	switch (unary_op.op->kind)
+	{
+	// ==== non-overloadable ====
+	case lex::token::address_of:         // '&'
+	{
+		auto const val = emit_bitcode(unary_op.expr, context);
+		assert(val.kind == val_ptr::reference);
+		return { val_ptr::value, val.val };
+	}
+	case lex::token::kw_sizeof:          // 'sizeof'
+		assert(false);
+		return {};
+
+	// ==== overloadable ====
+	case lex::token::plus:               // '+'
+	{
+		assert(unary_op.op_body == nullptr);
+		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		return { val_ptr::value, val };
+	}
+	case lex::token::minus:              // '-'
+	{
+		assert(unary_op.op_body == nullptr);
+		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const res = context.builder.CreateNeg(val, "unary_minus_tmp");
+		return { val_ptr::value, res };
+	}
+	case lex::token::dereference:        // '*'
+	{
+		assert(unary_op.op_body == nullptr);
+		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		return { val_ptr::reference, val };
+	}
+	case lex::token::bit_not:            // '~'
+	case lex::token::bool_not:           // '!'
+	{
+		assert(unary_op.op_body == nullptr);
+		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const res = context.builder.CreateNot(val, "unary_bit_not_tmp");
+		return { val_ptr::value, res };
+	}
+
+	case lex::token::plus_plus:          // '++'
+	case lex::token::minus_minus:        // '--'
+	default:
+		assert(false);
+		return {};
+	}
 }
 
 static val_ptr emit_bitcode(
-	ast::expr_binary_op const &expr,
+	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
 )
 {
-	assert(false);
-	return {};
+	switch (binary_op.op->kind)
+	{
+	// ==== non-overloadable ====
+	case lex::token::comma:              // ','
+	{
+		emit_bitcode(binary_op.lhs, context);
+		return emit_bitcode(binary_op.rhs, context);
+	}
+
+	// ==== overloadable ====
+	case lex::token::plus:               // '+'
+	{
+		assert(binary_op.op_body == nullptr);
+	}
+
+	case lex::token::assign:             // '='
+	case lex::token::plus_eq:            // '+='
+	case lex::token::minus:              // '-'
+	case lex::token::minus_eq:           // '-='
+	case lex::token::multiply:           // '*'
+	case lex::token::multiply_eq:        // '*='
+	case lex::token::divide:             // '/'
+	case lex::token::divide_eq:          // '/='
+	case lex::token::modulo:             // '%'
+	case lex::token::modulo_eq:          // '%='
+	case lex::token::dot_dot:            // '..'
+	case lex::token::dot_dot_eq:         // '..='
+	case lex::token::equals:             // '=='
+	case lex::token::not_equals:         // '!='
+	case lex::token::less_than:          // '<'
+	case lex::token::less_than_eq:       // '<='
+	case lex::token::greater_than:       // '>'
+	case lex::token::greater_than_eq:    // '>='
+	case lex::token::bit_and:            // '&'
+	case lex::token::bit_and_eq:         // '&='
+	case lex::token::bit_xor:            // '^'
+	case lex::token::bit_xor_eq:         // '^='
+	case lex::token::bit_or:             // '|'
+	case lex::token::bit_or_eq:          // '|='
+	case lex::token::bit_left_shift:     // '<<'
+	case lex::token::bit_left_shift_eq:  // '<<='
+	case lex::token::bit_right_shift:    // '>>'
+	case lex::token::bit_right_shift_eq: // '>>='
+	case lex::token::bool_and:           // '&&'
+	case lex::token::bool_xor:           // '^^'
+	case lex::token::bool_or:            // '||'
+	case lex::token::arrow:              // '->' ???
+	case lex::token::square_open:        // '[]'
+
+	default:
+		assert(false);
+		return {};
+	}
 }
 
 static val_ptr emit_bitcode(
@@ -239,8 +336,8 @@ static void emit_bitcode(
 }
 
 static void emit_bitcode(
-	ast::stmt_for const &for_stmt,
-	ctx::bitcode_context &context
+	[[maybe_unused]] ast::stmt_for const &for_stmt,
+	[[maybe_unused]] ctx::bitcode_context &context
 )
 {
 	assert(false);
@@ -357,6 +454,8 @@ static void emit_alloca(
 		}
 		break;
 	}
+	case ast::statement::index<ast::stmt_expression>:
+		break;
 	case ast::statement::index<ast::decl_variable>:
 	{
 		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
@@ -493,9 +592,9 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 
 llvm::Function *get_function_decl_bitcode(ast::decl_function &func, ctx::bitcode_context &context)
 {
-	auto const result_t = get_llvm_type(func.return_type, context);
+	auto const result_t = get_llvm_type(func.body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
-	for (auto &p : func.params)
+	for (auto &p : func.body.params)
 	{
 		args.push_back(get_llvm_type(p.var_type, context));
 	}
@@ -510,15 +609,15 @@ void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &conte
 	context.current_function = fn;
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
-	for (auto &stmt : func.body)
+	for (auto &stmt : func.body.body)
 	{
 		emit_alloca(stmt, context);
 	}
-	for (auto &stmt : func.body)
+	for (auto &stmt : func.body.body)
 	{
 		emit_bitcode(stmt, context);
 	}
-	llvm::verifyFunction(*fn);
+	assert(llvm::verifyFunction(*fn) == false);
 	context.current_function = nullptr;
 }
 

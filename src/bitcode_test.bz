@@ -1,11 +1,12 @@
 function main() -> int32
 {
-	while (false)
-	{
-		let a = 42;
-		let b = 1.5;
-	}
-	return 0;
+
+	let a = 42;
+	let p = &a;
+	let b = -*p;
+
+	return *p, 123;
+
 /*
 	let a = 0;
 
