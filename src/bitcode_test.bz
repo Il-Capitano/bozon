@@ -1,9 +1,30 @@
 function main() -> int32
 {
+	while (false)
+	{
+		let a = 42;
+		let b = 1.5;
+	}
+	return 0;
+/*
 	let a = 0;
-	let b: [int32, [float64]];
+
+	if (false)
+	{
+		if (true)
+		{
+			let c = 'a';
+		}
+		else
+		{
+			let c = 'b';
+		}
+		let b = true;
+		return a;
+	}
+
 	let c = a;
-	let d = b;
 	let e = 1.5;
 	return a;
+*/
 }

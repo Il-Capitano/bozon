@@ -76,9 +76,32 @@ static val_ptr emit_bitcode(
 			)
 		};
 	case ast::expr_literal::string:
+		assert(false);
+		return {};
 	case ast::expr_literal::character:
+		return {
+			val_ptr::value,
+			llvm::ConstantInt::get(
+				llvm::Type::getInt32Ty(context.llvm_context),
+				literal.value.get<ast::expr_literal::character>()
+			)
+		};
 	case ast::expr_literal::bool_true:
+		return {
+			val_ptr::value,
+			llvm::ConstantInt::get(
+				llvm::Type::getInt1Ty(context.llvm_context),
+				1ull
+			)
+		};
 	case ast::expr_literal::bool_false:
+		return {
+			val_ptr::value,
+			llvm::ConstantInt::get(
+				llvm::Type::getInt1Ty(context.llvm_context),
+				0ull
+			)
+		};
 	case ast::expr_literal::null:
 	default:
 		assert(false);
@@ -91,16 +114,7 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	bz::vector<llvm::Type *> types = {};
-	for (auto &e : tuple.elems)
-	{
-		types.push_back(get_llvm_type(e.expr_type.expr_type, context));
-	}
-	auto const tuple_t = llvm::StructType::get(
-		context.llvm_context,
-		llvm::ArrayRef(types.data(), types.size())
-	);
-
+	assert(false);
 	return {};
 }
 
@@ -171,7 +185,35 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	assert(false);
+	auto const condition = get_value(emit_bitcode(if_stmt.condition, context), context);
+	assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
+	auto const before_then_block_end = context.builder.GetInsertBlock();
+
+	auto const then_block = context.add_basic_block("then_block");
+	context.builder.SetInsertPoint(then_block);
+	emit_bitcode(if_stmt.then_block, context);
+	auto const then_block_end = context.builder.GetInsertBlock();
+
+	auto const else_block = if_stmt.else_block.has_value() ? context.add_basic_block("else_block") : nullptr;
+	if (else_block)
+	{
+		context.builder.SetInsertPoint(else_block);
+		emit_bitcode(*if_stmt.else_block, context);
+	}
+	auto const else_block_end = else_block ? context.builder.GetInsertBlock() : nullptr;
+
+	auto const after_if = context.add_basic_block("after_if");
+	context.builder.SetInsertPoint(before_then_block_end);
+	context.builder.CreateCondBr(condition, then_block, else_block ? else_block : after_if);
+	context.builder.SetInsertPoint(then_block_end);
+	context.builder.CreateBr(after_if);
+	if (else_block_end)
+	{
+		context.builder.SetInsertPoint(else_block_end);
+		context.builder.CreateBr(after_if);
+	}
+
+	context.builder.SetInsertPoint(after_if);
 }
 
 static void emit_bitcode(
@@ -179,7 +221,21 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	assert(false);
+	auto const condition_check = context.add_basic_block("while_condition_check");
+	context.builder.CreateBr(condition_check);
+	context.builder.SetInsertPoint(condition_check);
+	auto const condition = get_value(emit_bitcode(while_stmt.condition, context), context);
+	auto const condition_check_end = context.builder.GetInsertBlock();
+
+	auto const while_block = context.add_basic_block("while_block");
+	context.builder.SetInsertPoint(while_block);
+	emit_bitcode(while_stmt.while_block, context);
+	context.builder.CreateBr(condition_check);
+
+	auto const after_while = context.add_basic_block("after_while");
+	context.builder.SetInsertPoint(condition_check_end);
+	context.builder.CreateCondBr(condition, while_block, after_while);
+	context.builder.SetInsertPoint(after_while);
 }
 
 static void emit_bitcode(
@@ -243,18 +299,18 @@ static void emit_bitcode(
 )
 {
 	auto const val_ptr = std::find_if(
-		context.var_ids.begin(), context.var_ids.end(),
+		context.vars.begin(), context.vars.end(),
 		[ptr = &var_decl](auto const pair) {
 			return ptr == pair.first;
 		}
 	);
-	if (val_ptr == context.var_ids.end())
+	if (val_ptr == context.vars.end())
 	{
 		assert(var_decl.var_type.is<ast::ts_reference>());
 		assert(var_decl.init_expr.has_value());
 		auto const init_val = emit_bitcode(*var_decl.init_expr, context);
 		assert(init_val.kind == val_ptr::reference);
-		context.var_ids.push_back({ &var_decl, init_val.val });
+		context.vars.push_back({ &var_decl, init_val.val });
 	}
 	if (var_decl.init_expr.has_value())
 	{
@@ -273,6 +329,34 @@ static void emit_alloca(
 {
 	switch (stmt.kind())
 	{
+	case ast::statement::index<ast::stmt_if>:
+	{
+		auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
+		emit_alloca(if_stmt.then_block, context);
+		if (if_stmt.else_block.has_value())
+		{
+			emit_alloca(*if_stmt.else_block, context);
+		}
+		break;
+	}
+	case ast::statement::index<ast::stmt_while>:
+		emit_alloca(stmt.get<ast::stmt_while_ptr>()->while_block, context);
+		break;
+	case ast::statement::index<ast::stmt_for>:
+		break;
+	case ast::statement::index<ast::stmt_return>:
+		break;
+	case ast::statement::index<ast::stmt_no_op>:
+		break;
+	case ast::statement::index<ast::stmt_compound>:
+	{
+		auto &comp_stmt = *stmt.get<ast::stmt_compound_ptr>();
+		for (auto &s : comp_stmt.statements)
+		{
+			emit_alloca(s, context);
+		}
+		break;
+	}
 	case ast::statement::index<ast::decl_variable>:
 	{
 		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
@@ -283,11 +367,11 @@ static void emit_alloca(
 		auto const var_t = get_llvm_type(var_decl.var_type, context);
 		auto const name = llvm::StringRef(var_decl.identifier->value.data(), var_decl.identifier->value.length());
 		auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
-		context.var_ids.push_back({ &var_decl, alloca });
-		return;
+		context.vars.push_back({ &var_decl, alloca });
+		break;
 	}
 	default:
-		return;
+		break;
 	}
 }
 
@@ -401,15 +485,6 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 		return llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}
 	case ast::typespec::index<ast::ts_tuple>:
-	{
-		auto &tup = *ts.get<ast::ts_tuple_ptr>();
-		bz::vector<llvm::Type *> types = {};
-		for (auto &t : tup.types)
-		{
-			types.push_back(get_llvm_type(t, context));
-		}
-		return llvm::StructType::get(context.llvm_context, llvm::ArrayRef(types.data(), types.size()));
-	}
 	default:
 		assert(false);
 		return nullptr;
@@ -432,7 +507,8 @@ llvm::Function *get_function_decl_bitcode(ast::decl_function &func, ctx::bitcode
 void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &context)
 {
 	auto const fn = get_function_decl_bitcode(func, context);
-	auto const bb = llvm::BasicBlock::Create(context.llvm_context, "entry", fn);
+	context.current_function = fn;
+	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
 	for (auto &stmt : func.body)
 	{
@@ -443,6 +519,7 @@ void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &conte
 		emit_bitcode(stmt, context);
 	}
 	llvm::verifyFunction(*fn);
+	context.current_function = nullptr;
 }
 
 } // namespace bc
