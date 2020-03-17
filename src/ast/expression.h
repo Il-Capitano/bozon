@@ -81,6 +81,10 @@ struct expression : node<
 };
 
 
+struct decl_variable;
+struct decl_function;
+struct function_body;
+
 
 struct expr_unresolved
 {
@@ -99,9 +103,6 @@ struct expr_unresolved
 	lex::token_pos get_tokens_end(void) const
 	{ return this->expr.end; }
 };
-
-struct decl_variable;
-struct decl_function;
 
 struct expr_identifier
 {
@@ -188,10 +189,15 @@ struct expr_unary_op
 {
 	lex::token_pos op;
 	expression     expr;
+	function_body *op_body;
 
-	expr_unary_op(lex::token_pos _op, expression _expr)
-		: op  (_op),
-		  expr(std::move(_expr))
+	expr_unary_op(
+		lex::token_pos _op,
+		expression     _expr
+	)
+		: op     (_op),
+		  expr   (std::move(_expr)),
+		  op_body(nullptr)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -204,11 +210,17 @@ struct expr_binary_op
 	lex::token_pos op;
 	expression     lhs;
 	expression     rhs;
+	function_body *op_body;
 
-	expr_binary_op(lex::token_pos _op, expression _lhs, expression _rhs)
-		: op (_op),
-		  lhs(std::move(_lhs)),
-		  rhs(std::move(_rhs))
+	expr_binary_op(
+		lex::token_pos _op,
+		expression     _lhs,
+		expression     _rhs
+	)
+		: op     (_op),
+		  lhs    (std::move(_lhs)),
+		  rhs    (std::move(_rhs)),
+		  op_body(nullptr)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -221,11 +233,17 @@ struct expr_function_call
 	lex::token_pos         op;
 	expression             called;
 	bz::vector<expression> params;
+	function_body         *func_body;
 
-	expr_function_call(lex::token_pos _op, expression _called, bz::vector<expression> _params)
-		: op    (_op),
-		  called(std::move(_called)),
-		  params(std::move(_params))
+	expr_function_call(
+		lex::token_pos         _op,
+		expression             _called,
+		bz::vector<expression> _params
+	)
+		: op       (_op),
+		  called   (std::move(_called)),
+		  params   (std::move(_params)),
+		  func_body(nullptr)
 	{}
 
 	lex::token_pos get_tokens_begin() const;

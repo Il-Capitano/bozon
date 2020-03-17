@@ -20,16 +20,13 @@ void resolve(
 // 	ast::decl_variable &var_decl,
 // 	ctx::parse_context &context
 // );
+
 void resolve_symbol(
-	ast::decl_function &func_decl,
+	ast::function_body &func_body,
 	bz::string_view scope,
 	ctx::global_context &global_ctx
 );
-void resolve_symbol(
-	ast::decl_operator &decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
-);
+
 // void resolve(
 // 	ast::decl_function &func_decl,
 // 	bz::string_view scope,

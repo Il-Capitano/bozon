@@ -260,12 +260,17 @@ struct decl_variable
 	lex::token_pos get_tokens_end(void) const;
 };
 
-struct decl_function
+struct function_body
 {
-	lex::token_pos            identifier;
 	bz::vector<decl_variable> params;
 	typespec                  return_type;
 	bz::vector<statement>     body;
+};
+
+struct decl_function
+{
+	lex::token_pos identifier;
+	function_body  body;
 
 	decl_function(
 		lex::token_pos            _id,
@@ -274,9 +279,11 @@ struct decl_function
 		bz::vector<statement>     _body
 	)
 		: identifier (_id),
-		  params     (std::move(_params)),
-		  return_type(std::move(_ret_type)),
-		  body       (std::move(_body))
+		  body{
+			  std::move(_params),
+			  std::move(_ret_type),
+			  std::move(_body)
+		  }
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -286,10 +293,8 @@ struct decl_function
 
 struct decl_operator
 {
-	lex::token_pos            op;
-	bz::vector<decl_variable> params;
-	typespec                  return_type;
-	bz::vector<statement>     body;
+	lex::token_pos op;
+	function_body  body;
 
 	decl_operator(
 		lex::token_pos            _op,
@@ -297,10 +302,12 @@ struct decl_operator
 		typespec                  _ret_type,
 		bz::vector<statement>     _body
 	)
-		: op         (_op),
-		  params     (std::move(_params)),
-		  return_type(std::move(_ret_type)),
-		  body       (std::move(_body))
+		: op  (_op),
+		  body{
+			  std::move(_params),
+			  std::move(_ret_type),
+			  std::move(_body)
+		  }
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;

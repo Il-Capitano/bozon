@@ -1250,7 +1250,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 		indent();
 		bz::printf(os, "function {}(", fn_decl->identifier->value);
 		bool put_comma = false;
-		for (auto &p : fn_decl->params)
+		for (auto &p : fn_decl->body.params)
 		{
 			if (put_comma)
 			{
@@ -1262,11 +1262,11 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", fn_decl->return_type);
+		bz::printf(os, ") -> {}\n", fn_decl->body.return_type);
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body)
+		for (auto &s : fn_decl->body.body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1292,7 +1292,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			bz::printf(os, "operator {} (", op_decl->op->value);
 		}
 		bool put_comma = false;
-		for (auto &p : op_decl->params)
+		for (auto &p : op_decl->body.params)
 		{
 			if (put_comma)
 			{
@@ -1304,11 +1304,11 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", op_decl->return_type);
+		bz::printf(os, ") -> {}\n", op_decl->body.return_type);
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : op_decl->body)
+		for (auto &s : op_decl->body.body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1431,7 +1431,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		indent();
 		bz::printf(os, "function {}(", fn_decl->identifier->value);
 		bool put_comma = false;
-		for (auto &p : fn_decl->params)
+		for (auto &p : fn_decl->body.params)
 		{
 			if (put_comma)
 			{
@@ -1443,11 +1443,11 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", fn_decl->return_type);
+		bz::printf(os, ") -> {}\n", fn_decl->body.return_type);
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body)
+		for (auto &s : fn_decl->body.body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}
@@ -1473,7 +1473,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 			bz::printf(os, "operator {} (", op_decl->op->value);
 		}
 		bool put_comma = false;
-		for (auto &p : op_decl->params)
+		for (auto &p : op_decl->body.params)
 		{
 			if (put_comma)
 			{
@@ -1485,11 +1485,11 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", op_decl->return_type);
+		bz::printf(os, ") -> {}\n", op_decl->body.return_type);
 
 		indent();
 		bz::print(os, "{\n");
-		for (auto &s : op_decl->body)
+		for (auto &s : op_decl->body.body)
 		{
 			print_statement(os, s, indent_level + 1);
 		}

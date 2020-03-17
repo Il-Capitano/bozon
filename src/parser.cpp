@@ -326,9 +326,8 @@ static ast::expression parse_primary_expression(
 			auto expr = parse_expression(stream, end, context, prec);
 
 			auto result = make_expr_unary_op({ op, stream }, op, std::move(expr));
-			result.expr_type = context.get_operation_type(
-				*result.get<ast::expr_unary_op_ptr>()
-			);
+			auto &unary_op = *result.get<ast::expr_unary_op_ptr>();
+			std::tie(unary_op.op_body, result.expr_type) = context.get_operation_body_and_type(unary_op);
 			return result;
 		}
 		else
@@ -353,25 +352,25 @@ static ast::expression parse_expression_helper(
 	{
 		if (expr.is<ast::expr_binary_op>())
 		{
-			auto &binary_expr = *expr.get<ast::expr_binary_op_ptr>();
+			auto &binary_op = *expr.get<ast::expr_binary_op_ptr>();
 			if (
-				binary_expr.lhs.kind() == ast::expression::null
-				|| binary_expr.lhs.expr_type.expr_type.kind() == ast::typespec::null
-				|| binary_expr.rhs.kind() == ast::expression::null
-				|| binary_expr.rhs.expr_type.expr_type.kind() == ast::typespec::null
+				binary_op.lhs.kind() == ast::expression::null
+				|| binary_op.lhs.expr_type.expr_type.kind() == ast::typespec::null
+				|| binary_op.rhs.kind() == ast::expression::null
+				|| binary_op.rhs.expr_type.expr_type.kind() == ast::typespec::null
 			)
 			{
 				return;
 			}
 
-			expr.expr_type = context.get_operation_type(
-				*expr.get<ast::expr_binary_op_ptr>()
-			);
+			std::tie(binary_op.op_body, expr.expr_type)
+				= context.get_operation_body_and_type(binary_op);
 		}
 		else if (expr.is<ast::expr_function_call>())
 		{
 			auto &func_call = *expr.get<ast::expr_function_call_ptr>();
-			expr.expr_type = context.get_function_call_type(func_call);
+			std::tie(func_call.func_body, expr.expr_type)
+				= context.get_function_call_body_and_type(func_call);
 		}
 		else
 		{
@@ -381,7 +380,7 @@ static ast::expression parse_expression_helper(
 
 	while (
 		stream != end
-		// not really clean... we assign to op and op_prec here
+		// not really clean... we assign to both op and op_prec here
 		&& (op_prec = get_binary_precedence((op = stream)->kind)) <= prec
 	)
 	{
@@ -853,69 +852,34 @@ void resolve(
 }
 
 void resolve_symbol(
-	ast::decl_function &func_decl,
+	ast::function_body &func_body,
 	bz::string_view scope,
 	ctx::global_context &global_ctx
 )
 {
 	ctx::parse_context context(scope, global_ctx);
-	for (auto &p : func_decl.params)
+	for (auto &p : func_body.params)
 	{
 		resolve(p, context);
 	}
-	resolve(func_decl.return_type, context);
-}
-
-void resolve_symbol(
-	ast::decl_operator &op_decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
-)
-{
-	ctx::parse_context context(scope, global_ctx);
-	for (auto &p : op_decl.params)
-	{
-		resolve(p, context);
-	}
-	resolve(op_decl.return_type, context);
+	resolve(func_body.return_type, context);
 }
 
 void resolve(
-	ast::decl_function &func_decl,
+	ast::function_body &func_body,
 	bz::string_view scope,
 	ctx::global_context &global_ctx
 )
 {
 	ctx::parse_context context(scope, global_ctx);
 	context.add_scope();
-	for (auto &p : func_decl.params)
+	for (auto &p : func_body.params)
 	{
 		resolve(p, context);
 		context.add_local_variable(p);
 	}
-	resolve(func_decl.return_type, context);
-	for (auto &stmt : func_decl.body)
-	{
-		resolve(stmt, context);
-	}
-	context.remove_scope();
-}
-
-void resolve(
-	ast::decl_operator &op_decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
-)
-{
-	ctx::parse_context context(scope, global_ctx);
-	context.add_scope();
-	for (auto &p : op_decl.params)
-	{
-		resolve(p, context);
-		context.add_local_variable(p);
-	}
-	resolve(op_decl.return_type, context);
-	for (auto &stmt : op_decl.body)
+	resolve(func_body.return_type, context);
+	for (auto &stmt : func_body.body)
 	{
 		resolve(stmt, context);
 	}
@@ -945,10 +909,10 @@ void resolve(
 		break;
 	}
 	case ast::declaration::index<ast::decl_function>:
-		resolve(*decl.get<ast::decl_function_ptr>(), scope, global_ctx);
+		resolve(decl.get<ast::decl_function_ptr>()->body, scope, global_ctx);
 		break;
 	case ast::declaration::index<ast::decl_operator>:
-		resolve(*decl.get<ast::decl_operator_ptr>(), scope, global_ctx);
+		resolve(decl.get<ast::decl_operator_ptr>()->body, scope, global_ctx);
 		break;
 	case ast::declaration::index<ast::decl_struct>:
 	default:

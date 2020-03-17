@@ -71,19 +71,10 @@ public:
 	auto get_identifier_type(bz::string_view scope, lex::token_pos id)
 		-> bz::result<ast::expression::expr_type_t, error>;
 
-	auto get_operation_type(bz::string_view scope, ast::expr_unary_op const &unary_op)
-		-> bz::result<ast::expression::expr_type_t, error>;
-	auto get_operation_type(bz::string_view scope, ast::expr_binary_op const &binary_op)
-		-> bz::result<ast::expression::expr_type_t, error>;
-
-	auto get_function_call_type(bz::string_view scope, ast::expr_function_call const &func_call)
-		-> bz::result<ast::expression::expr_type_t, error>;
-
-	bool is_convertible(
-		bz::string_view scope,
-		ast::expression::expr_type_t const &from,
-		ast::typespec const &to
-	);
+	src_local_decls &get_local_decls(bz::string_view scope)
+	{
+		return this->_decls[scope];
+	}
 
 	ast::type_info const *get_type_info(bz::string_view scope, bz::string_view id);
 };

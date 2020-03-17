@@ -66,9 +66,17 @@ struct parse_context
 		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;
 
 	ast::expression::expr_type_t get_identifier_type(lex::token_pos id) const;
-	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op) const;
-	ast::expression::expr_type_t get_operation_type(ast::expr_binary_op const &binary_op) const;
-	ast::expression::expr_type_t get_function_call_type(ast::expr_function_call const &func_call) const;
+
+	auto get_operation_body_and_type(ast::expr_unary_op const &unary_op)
+		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
+	auto get_operation_body_and_type(ast::expr_binary_op const &binary_op)
+		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
+	auto get_function_call_body_and_type(ast::expr_function_call const &func_call)
+		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
+
+//	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op);
+//	ast::expression::expr_type_t get_operation_type(ast::expr_binary_op const &binary_op);
+//	ast::expression::expr_type_t get_function_call_type(ast::expr_function_call const &func_call) const;
 
 	bool is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to);
 
