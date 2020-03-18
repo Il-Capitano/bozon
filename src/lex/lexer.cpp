@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "colors.h"
 
 namespace lex
 {
@@ -153,7 +154,7 @@ static token get_identifier_or_keyword_token(
 
 	auto const end_it = stream.it;
 
-	auto const id_value = bz::string_view(&*begin_it, &*end_it);
+	auto const id_value = bz::string_view(begin_it, end_it);
 
 	auto it = std::find_if(
 		keywords.begin(),
@@ -211,7 +212,7 @@ static token get_character_token(
 
 		return token(
 			token::character_literal,
-			bz::string_view(&*char_begin, &*char_begin),
+			bz::string_view(char_begin, char_begin),
 			stream.file, begin_it, char_begin, line
 		);
 	}
@@ -240,7 +241,12 @@ static token get_character_token(
 				stream.it - 1, stream.it - 1, stream.it + 1,
 				*stream.it >= ' '
 				? bz::format("invalid escape sequence '\\{}'", *stream.it)
-				: bz::format("invalid escape sequence '\\\\{:02x}'", static_cast<uint32_t>(*stream.it))
+				: bz::format(
+					"invalid escape sequence '\\{}\\x{:02x}{}'",
+					colors::bright_black,
+					static_cast<uint32_t>(*stream.it),
+					colors::clear
+				)
 			);
 			++stream;
 			break;
@@ -289,11 +295,20 @@ static token get_character_token(
 	{
 		++stream;
 	}
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
 	auto const end_it = stream.it;
 
 	return token(
 		token::character_literal,
-		bz::string_view(&*char_begin, &*char_end),
+		bz::string_view(char_begin, char_end),
+		bz::string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -336,7 +351,12 @@ static token get_string_token(
 					stream.it - 1, stream.it - 1, stream.it + 1,
 					*stream.it >= ' '
 					? bz::format("invalid escape sequence '\\{}'", *stream.it)
-					: bz::format("invalid escape sequence '\\\\{:02x}'", static_cast<uint32_t>(*stream.it))
+					: bz::format(
+						"invalid escape sequence '\\{}\\x{:02x}{}'",
+						colors::bright_black,
+						static_cast<uint32_t>(*stream.it),
+						colors::clear
+					)
 				);
 				++stream;
 				break;
@@ -366,11 +386,20 @@ static token get_string_token(
 		assert(*stream.it == '\"');
 		++stream;
 	}
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
 	auto const end_it = stream.it;
 
 	return token(
 		token::string_literal,
-		bz::string_view(&*str_begin, &*str_end),
+		bz::string_view(str_begin, str_end),
+		bz::string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -386,6 +415,7 @@ static token get_hex_number_token(
 	assert(*(stream.it + 1) == 'x' || *(stream.it + 1) == 'X');
 
 	auto const begin_it = stream.it;
+	auto const num_begin = stream.it;
 	auto const line = stream.line;
 
 	++stream; ++stream; // '0x' or '0X'
@@ -395,10 +425,22 @@ static token get_hex_number_token(
 		++stream;
 	}
 
+	auto const num_end = stream.it;
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
+	auto const end_it = stream.it;
+
 	return token(
 		token::hex_literal,
-		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line
+		bz::string_view(num_begin, num_end),
+		bz::string_view(postfix_begin, postfix_end),
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -413,6 +455,7 @@ static token get_oct_number_token(
 	assert(*(stream.it + 1) == 'o' || *(stream.it + 1) == 'O');
 
 	auto const begin_it = stream.it;
+	auto const num_begin = stream.it;
 	auto const line = stream.line;
 
 	++stream; ++stream; // '0o' or '0O'
@@ -422,10 +465,22 @@ static token get_oct_number_token(
 		++stream;
 	}
 
+	auto const num_end = stream.it;
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
+	auto const end_it = stream.it;
+
 	return token(
 		token::oct_literal,
-		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line
+		bz::string_view(num_begin, num_end),
+		bz::string_view(postfix_begin, postfix_end),
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -440,6 +495,7 @@ static token get_bin_number_token(
 	assert(*(stream.it + 1) == 'b' || *(stream.it + 1) == 'B');
 
 	auto const begin_it = stream.it;
+	auto const num_begin = stream.it;
 	auto const line = stream.line;
 
 	++stream; ++stream; // '0b' or '0B'
@@ -449,10 +505,22 @@ static token get_bin_number_token(
 		++stream;
 	}
 
+	auto const num_end = stream.it;
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
+	auto const end_it = stream.it;
+
 	return token(
 		token::bin_literal,
-		bz::string_view(&*begin_it, &*stream.it),
-		stream.file, begin_it, stream.it, line
+		bz::string_view(num_begin, num_end),
+		bz::string_view(postfix_begin, postfix_end),
+		stream.file, begin_it, end_it, line
 	);
 }
 
@@ -482,47 +550,57 @@ static token get_number_token(
 		case 'B':
 			return get_bin_number_token(stream, end);
 		default:
+			// continue getting a regular decimal number
 			break;
 		}
 	}
 
 
 	auto const begin_it = stream.it;
-	auto const line     = stream.line;
+	auto const num_begin = stream.it;
+	auto const line = stream.line;
 
 	do
 	{
 		++stream;
 	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
 
-	if (stream.it == end || *stream.it != '.')
+	uint32_t token_kind = 0;
+
+	if (
+		stream.it == end
+		|| *stream.it != '.'
+		// the next char after the '.' has to be a number or '\'' to count towards the token
+		|| (stream.it + 1) == end
+		|| !(is_num_char(*(stream.it + 1)) || *(stream.it + 1) == '\'')
+	)
 	{
-		return token(
-			token::integer_literal,
-			bz::string_view(&*begin_it, &*stream.it),
-			stream.file, begin_it, stream.it, line
-		);
+		token_kind = token::integer_literal;
+	}
+	else
+	{
+		do
+		{
+			++stream;
+		} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+		token_kind = token::floating_point_literal;
 	}
 
-	// the next char after the '.' has to be a number or '\'' to count towards the token
-	if ((stream.it + 1) == end || !(is_num_char(*(stream.it + 1)) || *(stream.it + 1) == '\''))
-	{
-		return token(
-			token::integer_literal,
-			bz::string_view(&*begin_it, &*stream.it),
-			stream.file, begin_it, stream.it, line
-		);
-	}
+	auto const num_end = stream.it;
 
-	do
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
 	{
 		++stream;
-	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
 
 	auto const end_it = stream.it;
+
 	return token(
-		token::floating_point_literal,
-		bz::string_view(&*begin_it, &*end_it),
+		token_kind,
+		bz::string_view(num_begin, num_end),
+		bz::string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 
@@ -543,7 +621,7 @@ static token get_single_char_token(
 
 	return token(
 		static_cast<uint32_t>(*begin_it),
-		bz::string_view(&*begin_it, &*end_it),
+		bz::string_view(begin_it, end_it),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -574,7 +652,7 @@ static token get_next_token(
 	{
 		return token(
 			token::eof,
-			bz::string_view(&*end, &*end),
+			bz::string_view(end, end),
 			stream.file, end, end, stream.line
 		);
 	}
@@ -623,7 +701,7 @@ static token get_next_token(
 			auto const end_it = stream.it;
 			return token(
 				t.second,
-				bz::string_view(&*begin_it, &*end_it),
+				bz::string_view(begin_it, end_it),
 				stream.file, begin_it, end_it, line
 			);
 		}

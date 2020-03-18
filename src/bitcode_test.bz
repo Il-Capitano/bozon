@@ -8,6 +8,9 @@ function main() -> int32
 
 	let b = a + a;
 
+	let c = 1i32 + 2i32;
+	let d = 'a'_test;
+
 	return 0;
 
 /*

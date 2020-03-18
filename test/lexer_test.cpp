@@ -304,8 +304,9 @@ do {                                              \
 
 	x_err("'", file.end());
 	x_err("''", file.end());
-	x_err("'missing closing ' that's not at the end", file.begin() + 2);
-	//       ^ file.begin() + 2
+	x_err("'missing closing ' that's not at the end", file.begin() + 8);
+	//             ^ file.begin() + 2
+	// the 'issing' is the postfix here
 	x_err("'\\j'", file.end());
 	x_err("'\\", file.end());
 
