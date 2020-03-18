@@ -1,6 +1,5 @@
 #include "global_context.h"
 #include "parser.h"
-#include "built_in_operators.h"
 
 namespace ctx
 {
