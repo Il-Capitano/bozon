@@ -5,7 +5,8 @@ function main() -> int32
 	let p = &a;
 
 	let i16: int16;
-	*p = i16;
+
+	let b = a + a;
 
 	return 0;
 

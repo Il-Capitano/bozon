@@ -1,5 +1,7 @@
 #include "emit_bitcode.h"
-#include "llvm/IR/Verifier.h"
+#include "ctx/built_in_operators.h"
+
+#include <llvm/IR/Verifier.h>
 
 namespace bc
 {
@@ -31,16 +33,83 @@ static llvm::Value *get_value(
 	}
 }
 
-static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &context);
-
-// ================================================================
-// -------------------------- expression --------------------------
-// ================================================================
-
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
 	ctx::bitcode_context &context
 );
+
+static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &context);
+
+static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context
+)
+{
+	assert(lhs.expr_type.expr_type.is<ast::ts_base_type>());
+	assert(rhs.expr_type.expr_type.is<ast::ts_base_type>());
+
+	auto const lhs_val = get_value(emit_bitcode(lhs, context), context);
+	auto const rhs_val = get_value(emit_bitcode(rhs, context), context);
+
+	auto const lhs_kind = lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+
+	if (lhs_kind == rhs_kind)
+	{
+		return { lhs_val, rhs_val };
+	}
+	else if (lhs_kind > rhs_kind)
+	{
+		if (ctx::is_signed_integer_kind(lhs_kind))
+		{
+			auto const rhs_cast = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), true, "cast_tmp");
+			return { lhs_val, rhs_cast };
+		}
+		else if (ctx::is_unsigned_integer_kind(lhs_kind))
+		{
+			auto const rhs_cast = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false, "cast_tmp");
+			return { lhs_val, rhs_cast };
+		}
+		else if (ctx::is_floating_point_kind(lhs_kind))
+		{
+			auto const rhs_cast = context.builder.CreateFPCast(rhs_val, lhs_val->getType(), "cast_tmp");
+			return { lhs_val, rhs_cast };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	else // lhs_kind < rhs_kind
+	{
+		if (ctx::is_signed_integer_kind(lhs_kind))
+		{
+			auto const lhs_cast = context.builder.CreateIntCast(lhs_val, rhs_val->getType(), true, "cast_tmp");
+			return { lhs_cast, rhs_val };
+		}
+		else if (ctx::is_unsigned_integer_kind(lhs_kind))
+		{
+			auto const lhs_cast = context.builder.CreateIntCast(lhs_val, rhs_val->getType(), false, "cast_tmp");
+			return { lhs_cast, rhs_val };
+		}
+		else if (ctx::is_floating_point_kind(lhs_kind))
+		{
+			auto const lhs_cast = context.builder.CreateFPCast(lhs_val, rhs_val->getType(), "cast_tmp");
+			return { lhs_cast, rhs_val };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+}
+
+// ================================================================
+// -------------------------- expression --------------------------
+// ================================================================
 
 static val_ptr emit_bitcode(
 	ast::expr_identifier const &id,
@@ -237,10 +306,43 @@ static val_ptr emit_bitcode(
 		context.builder.CreateStore(rhs_val, lhs_val.val);
 		return lhs_val;
 	}
-
 	case lex::token::plus:               // '+'
-	case lex::token::plus_eq:            // '+='
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+			{
+				auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+				auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
+				return { val_ptr::value, res };
+			}
+			else
+			{
+				assert(false);
+				return {};
+			}
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
 	case lex::token::minus:              // '-'
+	{
+		assert(binary_op.op_body == nullptr);
+		auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+		auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
+		return { val_ptr::value, res };
+	}
+
+	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
 	case lex::token::multiply:           // '*'
 	case lex::token::multiply_eq:        // '*='
