@@ -193,7 +193,7 @@ static val_ptr emit_bitcode(
 		assert(binary_op.op_body == nullptr);
 		auto const lhs_val = emit_bitcode(binary_op.lhs, context);
 		assert(lhs_val.kind == val_ptr::reference);
-		auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+		auto rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
 		auto &rhs_t = ast::remove_const(binary_op.rhs.expr_type.expr_type);
 		if (rhs_t.is<ast::ts_base_type>())
 		{
@@ -203,21 +203,35 @@ static val_ptr emit_bitcode(
 				&& rhs_kind <= ast::type_info::type_kind::int64_
 			)
 			{
-				context.builder.CreateIntCast(rhs_val, lhs_val.val->getType(), true, "cast_tmp");
+				rhs_val = context.builder.CreateIntCast(
+					rhs_val,
+					lhs_val.val->getType()->getPointerElementType(),
+					true,
+					"cast_tmp"
+				);
 			}
 			else if (
 				rhs_kind >= ast::type_info::type_kind::uint8_
 				&& rhs_kind <= ast::type_info::type_kind::uint64_
 			)
 			{
-				context.builder.CreateIntCast(rhs_val, lhs_val.val->getType(), false, "cast_tmp");
+				rhs_val = context.builder.CreateIntCast(
+					rhs_val,
+					lhs_val.val->getType()->getPointerElementType(),
+					false,
+					"cast_tmp"
+				);
 			}
 			else if (
 				rhs_kind == ast::type_info::type_kind::float32_
 				|| rhs_kind == ast::type_info::type_kind::float64_
 			)
 			{
-				context.builder.CreateFPCast(rhs_val, lhs_val.val->getType(), "cast_tmp");
+				rhs_val = context.builder.CreateFPCast(
+					rhs_val,
+					lhs_val.val->getType()->getPointerElementType(),
+					"cast_tmp"
+				);
 			}
 		}
 		context.builder.CreateStore(rhs_val, lhs_val.val);
@@ -648,7 +662,10 @@ void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &conte
 	{
 		emit_bitcode(stmt, context);
 	}
-	assert(llvm::verifyFunction(*fn) == false);
+	if (llvm::verifyFunction(*fn) == true)
+	{
+		bz::print("verifyFunction failed!!!\n");
+	}
 	context.current_function = nullptr;
 }
 

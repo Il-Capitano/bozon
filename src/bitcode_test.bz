@@ -3,12 +3,11 @@ function main() -> int32
 
 	let a = 42;
 	let p = &a;
-	let b = -*p;
 
-	let c = 'a';
-	c = 'B';
+	let i16: int16;
+	*p = i16;
 
-	return *p, 123;
+	return 0;
 
 /*
 	let a = 0;
