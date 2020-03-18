@@ -5,36 +5,6 @@
 namespace ctx
 {
 
-static bool is_integer_kind(ast::type_info::type_kind kind)
-{
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::uint64_;
-}
-
-static bool is_unsigned_integer_kind(ast::type_info::type_kind kind)
-{
-	return kind >= ast::type_info::type_kind::uint8_
-		&& kind <= ast::type_info::type_kind::uint64_;
-}
-
-static bool is_signed_integer_kind(ast::type_info::type_kind kind)
-{
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::int64_;
-}
-
-static bool is_floating_point_kind(ast::type_info::type_kind kind)
-{
-	return kind == ast::type_info::type_kind::float32_
-		|| kind == ast::type_info::type_kind::float64_;
-}
-
-static bool is_arithmetic_kind(ast::type_info::type_kind kind)
-{
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::float64_;
-}
-
 static auto get_base_kinds(
 	ast::typespec const &lhs_t,
 	ast::typespec const &rhs_t
