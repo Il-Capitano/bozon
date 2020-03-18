@@ -5,6 +5,9 @@ function main() -> int32
 	let p = &a;
 	let b = -*p;
 
+	let c = 'a';
+	c = 'B';
+
 	return *p, 123;
 
 /*

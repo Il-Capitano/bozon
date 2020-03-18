@@ -188,12 +188,43 @@ static val_ptr emit_bitcode(
 	}
 
 	// ==== overloadable ====
-	case lex::token::plus:               // '+'
+	case lex::token::assign:             // '='
 	{
 		assert(binary_op.op_body == nullptr);
+		auto const lhs_val = emit_bitcode(binary_op.lhs, context);
+		assert(lhs_val.kind == val_ptr::reference);
+		auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+		auto &rhs_t = ast::remove_const(binary_op.rhs.expr_type.expr_type);
+		if (rhs_t.is<ast::ts_base_type>())
+		{
+			auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+			if (
+				rhs_kind >= ast::type_info::type_kind::int8_
+				&& rhs_kind <= ast::type_info::type_kind::int64_
+			)
+			{
+				context.builder.CreateIntCast(rhs_val, lhs_val.val->getType(), true, "cast_tmp");
+			}
+			else if (
+				rhs_kind >= ast::type_info::type_kind::uint8_
+				&& rhs_kind <= ast::type_info::type_kind::uint64_
+			)
+			{
+				context.builder.CreateIntCast(rhs_val, lhs_val.val->getType(), false, "cast_tmp");
+			}
+			else if (
+				rhs_kind == ast::type_info::type_kind::float32_
+				|| rhs_kind == ast::type_info::type_kind::float64_
+			)
+			{
+				context.builder.CreateFPCast(rhs_val, lhs_val.val->getType(), "cast_tmp");
+			}
+		}
+		context.builder.CreateStore(rhs_val, lhs_val.val);
+		return lhs_val;
 	}
 
-	case lex::token::assign:             // '='
+	case lex::token::plus:               // '+'
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus:              // '-'
 	case lex::token::minus_eq:           // '-='
@@ -224,7 +255,7 @@ static val_ptr emit_bitcode(
 	case lex::token::bool_and:           // '&&'
 	case lex::token::bool_xor:           // '^^'
 	case lex::token::bool_or:            // '||'
-	case lex::token::arrow:              // '->' ???
+//	case lex::token::arrow:              // '->' ???
 	case lex::token::square_open:        // '[]'
 
 	default:
