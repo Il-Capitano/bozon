@@ -84,24 +84,25 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 
 void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 {
-	this->global_ctx.report_ambiguous_id_error(this->scope, id);
+	this->global_ctx.report_ambiguous_id_error(this->file_id, id);
 }
 
 
 void parse_context::add_scope(void)
 {
-	this->scope_variables.push_back({});
+	this->scope_decls.push_back({});
 }
 
 void parse_context::remove_scope(void)
 {
-	this->scope_variables.pop_back();
+	assert(!this->scope_decls.empty());
+	this->scope_decls.pop_back();
 }
 
 
 void parse_context::add_global_declaration(ast::declaration &decl)
 {
-	auto res = this->global_ctx.add_global_declaration(this->scope, decl);
+	auto res = this->global_ctx.add_export_declaration(this->file_id, decl);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
@@ -110,7 +111,7 @@ void parse_context::add_global_declaration(ast::declaration &decl)
 
 void parse_context::add_global_variable(ast::decl_variable &var_decl)
 {
-	auto res = this->global_ctx.add_global_variable(this->scope, var_decl);
+	auto res = this->global_ctx.add_export_variable(this->file_id, var_decl);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
@@ -119,7 +120,7 @@ void parse_context::add_global_variable(ast::decl_variable &var_decl)
 
 void parse_context::add_global_function(ast::decl_function &func_decl)
 {
-	auto res = this->global_ctx.add_global_function(this->scope, func_decl);
+	auto res = this->global_ctx.add_export_function(this->file_id, func_decl);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
@@ -128,7 +129,7 @@ void parse_context::add_global_function(ast::decl_function &func_decl)
 
 void parse_context::add_global_operator(ast::decl_operator &op_decl)
 {
-	auto res = this->global_ctx.add_global_operator(this->scope, op_decl);
+	auto res = this->global_ctx.add_export_operator(this->file_id, op_decl);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
@@ -137,7 +138,7 @@ void parse_context::add_global_operator(ast::decl_operator &op_decl)
 
 void parse_context::add_global_struct(ast::decl_struct &struct_decl)
 {
-	auto res = this->global_ctx.add_global_struct(this->scope, struct_decl);
+	auto res = this->global_ctx.add_export_struct(this->file_id, struct_decl);
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
@@ -145,79 +146,128 @@ void parse_context::add_global_struct(ast::decl_struct &struct_decl)
 }
 
 
-void parse_context::add_local_variable(ast::decl_variable const &var_decl)
+void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
-	assert(this->scope_variables.size() != 0);
-	this->scope_variables.back().push_back(&var_decl);
+	assert(this->scope_decls.size() != 0);
+	this->scope_decls.back().var_decls.push_back(&var_decl);
 }
 
 
 auto parse_context::get_identifier_decl(lex::token_pos id) const
 	-> bz::variant<ast::decl_variable const *, ast::decl_function const *>
 {
+	// ==== local decls ====
 	// we go in reverse through the scopes and the variables
 	// in case there's shadowing
 	for (
-		auto scope = this->scope_variables.rbegin();
-		scope != this->scope_variables.rend();
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
 		++scope
 	)
 	{
 		auto const var = std::find_if(
-			scope->rbegin(), scope->rend(),
-			[&](auto const &var) {
-				return var->identifier->value == id->value;
+			scope->var_decls.rbegin(), scope->var_decls.rend(),
+			[id = id->value](auto const &var) {
+				return var->identifier->value == id;
 			}
 		);
-		if (var != scope->rend())
+		if (var != scope->var_decls.rend())
 		{
 			return *var;
 		}
+
+		auto const fn_set = std::find_if(
+			scope->func_sets.begin(), scope->func_sets.end(),
+			[id = id->value](auto const &fn_set) {
+				return fn_set.id == id;
+			}
+		);
+		if (fn_set != scope->func_sets.end())
+		{
+			if (fn_set->func_decls.size() == 1)
+			{
+				return fn_set->func_decls[0];
+			}
+			else
+			{
+				assert(!fn_set->func_decls.empty());
+				return static_cast<ast::decl_function const *>(nullptr);
+			}
+		}
 	}
-	// TODO: get declarations for function names
+
+	// ==== global decls ====
+	auto const var = std::find_if(
+		this->global_decls.var_decls.begin(), this->global_decls.var_decls.end(),
+		[id = id->value](auto const &var) {
+			return id == var->identifier->value;
+		}
+	);
+	if (var != this->global_decls.var_decls.end())
+	{
+		return *var;
+	}
+
+	auto const fn_set = std::find_if(
+		this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
+		[id = id->value](auto const &fn_set) {
+			return id == fn_set.id;
+		}
+	);
+	if (fn_set != this->global_decls.func_sets.end())
+	{
+		if (fn_set->func_decls.size() == 1)
+		{
+			return fn_set->func_decls[0];
+		}
+		else
+		{
+			assert(!fn_set->func_decls.empty());
+			return static_cast<ast::decl_function const *>(nullptr);
+		}
+	}
 	return {};
 }
 
 
 ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos id) const
 {
-	// we go in reverse through the scopes and the variables
-	// in case there's shadowing
-	for (
-		auto scope = this->scope_variables.rbegin();
-		scope != this->scope_variables.rend();
-		++scope
-	)
+	auto decl = this->get_identifier_decl(id);
+	switch (decl.index())
 	{
-		auto const var = std::find_if(
-			scope->rbegin(), scope->rend(),
-			[&](auto const &var) {
-				return var->identifier->value == id->value;
-			}
-		);
-		if (var != scope->rend())
-		{
-			auto const var_ptr = *var;
-			if (var_ptr->var_type.is<ast::ts_reference>())
-			{
-				return { ast::expression::lvalue_reference, var_ptr->var_type.get<ast::ts_reference_ptr>()->base };
-			}
-			else
-			{
-				return { ast::expression::lvalue, var_ptr->var_type };
-			}
-		}
+	case decl.index_of<ast::decl_variable const *>:
+	{
+		auto const var = decl.get<ast::decl_variable const *>();
+		return {
+			var->var_type.is<ast::ts_reference>()
+			? ast::expression::lvalue_reference
+			: ast::expression::lvalue,
+			ast::remove_lvalue_reference(var->var_type)
+		};
 	}
-
-	auto res = this->global_ctx.get_identifier_type(this->scope, id);
-	if (res.has_error())
+	case decl.index_of<ast::decl_function const *>:
 	{
-		this->global_ctx.report_error(std::move(res.get_error()));
+		auto const fn = decl.get<ast::decl_function const *>();
+		auto fn_t = [&]() -> ast::typespec {
+			if (fn == nullptr)
+			{
+				return ast::typespec();
+			}
+			bz::vector<ast::typespec> arg_types = {};
+			for (auto &p : fn->body.params)
+			{
+				arg_types.emplace_back(p.var_type);
+			}
+			return ast::make_ts_function(fn->body.return_type, arg_types);
+		}();
+		return { ast::expression::function_name, fn_t };
+	}
+	case decl.null:
+		this->report_error(id, "undeclared identifier");
 		return { ast::expression::rvalue, ast::typespec() };
-	}
-	else
-	{
-		return std::move(res.get_result());
+	default:
+		assert(false);
+		return {};
 	}
 }
 
@@ -449,11 +499,11 @@ struct match_level
 };
 
 static match_level get_function_call_match_level(
-	ast::decl_function *func,
+	ast::function_body const &func_body,
 	ast::expr_function_call const &func_call
 )
 {
-	if (func->body.params.size() != func_call.params.size())
+	if (func_body.params.size() != func_call.params.size())
 	{
 		return { -1, -1 };
 	}
@@ -480,14 +530,47 @@ static match_level get_function_call_match_level(
 		}
 	};
 
-	auto params_it = func->body.params.begin();
+	auto params_it = func_body.params.begin();
 	auto call_it  = func_call.params.begin();
-	auto const types_end = func->body.params.end();
+	auto const types_end = func_body.params.end();
 	for (; params_it != types_end; ++call_it, ++params_it)
 	{
 		add_to_result(get_type_match_level(params_it->var_type, call_it->expr_type));
 	}
 	return result;
+}
+
+static match_level get_function_call_match_level(
+	ast::function_body const &func_body,
+	ast::expr_unary_op const &unary_op
+)
+{
+	if (func_body.params.size() != 1)
+	{
+		return { -1, -1 };
+	}
+
+	auto const match_level = get_type_match_level(func_body.params[0].var_type, unary_op.expr.expr_type);
+	return { match_level, match_level };
+}
+
+static match_level get_function_call_match_level(
+	ast::function_body const &func_body,
+	ast::expr_binary_op const &binary_op
+)
+{
+	if (func_body.params.size() != 2)
+	{
+		return { -1, -1 };
+	}
+
+	auto const lhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.lhs.expr_type);
+	auto const rhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.rhs.expr_type);
+	if (lhs_level == -1 || rhs_level == -1)
+	{
+		return { -1, -1 };
+	}
+	return { std::min(lhs_level, rhs_level), lhs_level + rhs_level };
 }
 
 static error get_bad_call_error(
@@ -534,6 +617,97 @@ static error get_bad_call_error(
 
 	assert(false);
 	return make_error(func->identifier, "");
+}
+
+
+static auto find_best_match(
+	bz::vector<std::pair<match_level, ast::function_body *>> const &possible_funcs,
+	size_t scope_decl_count
+) -> std::pair<match_level, ast::function_body *>
+{
+	std::pair<match_level, ast::function_body *> min_scope_match = { { -1, -1 }, nullptr };
+	{
+		auto it = possible_funcs.begin();
+		auto const end = possible_funcs.begin() + scope_decl_count;
+		for (; it != end; ++it)
+		{
+			if (
+				min_scope_match.first.min == -1
+				|| it->first.min < min_scope_match.first.min
+				|| (it->first.min == min_scope_match.first.min && it->first.sum < min_scope_match.first.sum)
+			)
+			{
+				min_scope_match = *it;
+			}
+		}
+	}
+
+	std::pair<match_level, ast::function_body *> min_global_match = { { -1, -1 }, nullptr };
+	{
+		auto it = possible_funcs.begin() + scope_decl_count;
+		auto const end = possible_funcs.end();
+		for (; it != end; ++it)
+		{
+			if (
+				min_global_match.first.min == -1
+				|| it->first.min < min_global_match.first.min
+				|| (it->first.min == min_global_match.first.min && it->first.sum < min_global_match.first.sum)
+			)
+			{
+				min_global_match = *it;
+			}
+		}
+	}
+
+	if (min_scope_match.first.min == -1 && min_global_match.first.min == -1)
+	{
+		return { { -1, -1 }, nullptr };
+	}
+	// there's no global match
+	else if (min_global_match.first.min == -1)
+	{
+		return min_scope_match;
+	}
+	// there's a better scope match
+	else if (
+		min_scope_match.first.min != -1
+		&& (
+			min_scope_match.first.min < min_global_match.first.min
+			|| (min_scope_match.first.min == min_global_match.first.min && min_scope_match.first.sum <= min_global_match.first.sum)
+		)
+	)
+	{
+		return min_scope_match;
+	}
+	// the global match is the best
+	else
+	{
+		// we need to check for ambiguity here
+		bz::vector<std::pair<match_level, ast::function_body *>> possible_min_matches = {};
+		for (
+			auto it = possible_funcs.begin() + scope_decl_count;
+			it != possible_funcs.end();
+			++it
+		)
+		{
+			if (it->first.min == min_global_match.first.min && it->first.sum == min_global_match.first.sum)
+			{
+				possible_min_matches.push_back(*it);
+			}
+		}
+
+		assert(possible_min_matches.size() != 0);
+		if (possible_min_matches.size() == 1)
+		{
+			return min_global_match;
+		}
+		else
+		{
+			// TODO: report ambiguous call error somehow
+			assert(false);
+			return { { -1, -1 }, nullptr };
+		}
+	}
 }
 
 
@@ -585,49 +759,78 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 		);
 	};
 
-	auto &op_sets = this->global_ctx.get_local_decls(this->scope).op_sets;
-	auto const set = std::find_if(
-		op_sets.begin(), op_sets.end(),
-		[&](auto &set) {
-			return set.op == unary_op.op->kind;
+	bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+
+	// we go through the scope decls for a matching declaration
+	for (
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
+		++scope
+	)
+	{
+		auto const set = std::find_if(
+			scope->op_sets.begin(), scope->op_sets.end(),
+			[op = unary_op.op->kind](auto const &op_set) {
+				return op == op_set.op;
+			}
+		);
+		if (set != scope->op_sets.end())
+		{
+			for (auto &op : set->op_decls)
+			{
+				auto const match_level = get_function_call_match_level(op->body, unary_op);
+				if (match_level.min != -1)
+				{
+					possible_funcs.push_back({ match_level, &op->body });
+				}
+			}
+		}
+	}
+
+	auto const scope_decl_count = possible_funcs.size();
+
+	auto const global_set = std::find_if(
+		this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
+		[op = unary_op.op->kind](auto const &op_set) {
+			return op == op_set.op;
 		}
 	);
+	if (global_set != this->global_decls.op_sets.end())
+	{
+		for (auto &op : global_set->op_decls)
+		{
+			auto const match_level = get_function_call_match_level(op->body, unary_op);
+			if (match_level.min != -1)
+			{
+				possible_funcs.push_back({ match_level, &op->body });
+			}
+		}
+	}
 
-	if (set == op_sets.end())
+	auto const best = find_best_match(possible_funcs, scope_decl_count);
+	if (best.first.min == -1)
 	{
 		report_undeclared_error();
 		return error_result;
 	}
-
-	for (auto op : set->op_decls)
+	else
 	{
-		if (op->body.params.size() != 1)
+		auto &ret_t = best.second->return_type;
+		if (ret_t.is<ast::ts_reference>())
 		{
-			continue;
+			return {
+				best.second,
+				{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
+			};
 		}
-
-		if (are_directly_matchable_types(unary_op.expr.expr_type, op->body.params[0].var_type))
+		else
 		{
-			auto &t = op->body.return_type;
-			if (t.is<ast::ts_reference>())
-			{
-				return {
-					&op->body,
-					{
-						ast::expression::lvalue_reference,
-						t.get<ast::ts_reference_ptr>()->base
-					}
-				};
-			}
-			else
-			{
-				return { &op->body, { ast::expression::rvalue, t } };
-			}
+			return {
+				best.second,
+				{ ast::expression::rvalue, ast::remove_const(ret_t) }
+			};
 		}
 	}
-
-	report_undeclared_error();
-	return error_result;
 }
 
 auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binary_op)
@@ -696,53 +899,78 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 		}
 	};
 
-	auto &op_sets = this->global_ctx.get_local_decls(this->scope).op_sets;
-	auto const set = std::find_if(
-		op_sets.begin(),
-		op_sets.end(),
-		[&](auto &set) {
-			return set.op == binary_op.op->kind;
+	bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+
+	// we go through the scope decls for a matching declaration
+	for (
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
+		++scope
+	)
+	{
+		auto const set = std::find_if(
+			scope->op_sets.begin(), scope->op_sets.end(),
+			[op = binary_op.op->kind](auto const &op_set) {
+				return op == op_set.op;
+			}
+		);
+		if (set != scope->op_sets.end())
+		{
+			for (auto &op : set->op_decls)
+			{
+				auto const match_level = get_function_call_match_level(op->body, binary_op);
+				if (match_level.min != -1)
+				{
+					possible_funcs.push_back({ match_level, &op->body });
+				}
+			}
+		}
+	}
+
+	auto const scope_decl_count = possible_funcs.size();
+
+	auto const global_set = std::find_if(
+		this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
+		[op = binary_op.op->kind](auto const &op_set) {
+			return op == op_set.op;
 		}
 	);
+	if (global_set != this->global_decls.op_sets.end())
+	{
+		for (auto &op : global_set->op_decls)
+		{
+			auto const match_level = get_function_call_match_level(op->body, binary_op);
+			if (match_level.min != -1)
+			{
+				possible_funcs.push_back({ match_level, &op->body });
+			}
+		}
+	}
 
-	if (set == op_sets.end())
+	auto const best = find_best_match(possible_funcs, scope_decl_count);
+	if (best.first.min == -1)
 	{
 		report_undeclared_error();
 		return error_result;
 	}
-
-	for (auto op : set->op_decls)
+	else
 	{
-		if (op->body.params.size() != 2)
+		auto &ret_t = best.second->return_type;
+		if (ret_t.is<ast::ts_reference>())
 		{
-			continue;
+			return {
+				best.second,
+				{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
+			};
 		}
-
-		if (
-			are_directly_matchable_types(binary_op.lhs.expr_type, op->body.params[0].var_type)
-			&& are_directly_matchable_types(binary_op.rhs.expr_type, op->body.params[1].var_type)
-		)
+		else
 		{
-			auto &t = op->body.return_type;
-			if (t.is<ast::ts_reference>())
-			{
-				return {
-					&op->body,
-					{
-						ast::expression::lvalue_reference,
-						t.get<ast::ts_reference_ptr>()->base
-					}
-				};
-			}
-			else
-			{
-				return { &op->body, { ast::expression::rvalue, t } };
-			}
+			return {
+				best.second,
+				{ ast::expression::rvalue, ast::remove_const(ret_t) }
+			};
 		}
 	}
-
-	report_undeclared_error();
-	return error_result;
 }
 
 auto parse_context::get_function_call_body_and_type(ast::expr_function_call const &func_call)
@@ -752,100 +980,81 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 		nullptr, { ast::expression::rvalue, ast::typespec() }
 	};
 
-	auto const get_return_type = [](ast::decl_function *func)
-	{
-		auto &t = func->body.return_type;
-		if (t.is<ast::ts_reference>())
-		{
-			return ast::expression::expr_type_t{
-				ast::expression::lvalue_reference,
-				t.get<ast::ts_reference_ptr>()->base
-			};
-		}
-		else
-		{
-			return ast::expression::expr_type_t{ ast::expression::rvalue, t };
-		}
-	};
-
 	if (func_call.called.expr_type.type_kind == ast::expression::function_name)
 	{
 		assert(func_call.called.is<ast::expr_identifier>());
-		auto &func_sets = this->global_ctx.get_local_decls(this->scope).func_sets;
-		auto const set = std::find_if(
-			func_sets.begin(), func_sets.end(), [
-				id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value
-			](auto const &set) {
-				return id == set.id;
-			}
-		);
-		assert(set != func_sets.end());
 
-		if (func_call.called.expr_type.expr_type.kind() != ast::typespec::null)
+		auto const id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value;
+		bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+
+		// we go through the scope decls for a matching declaration
+		for (
+			auto scope = this->scope_decls.rbegin();
+			scope != this->scope_decls.rend();
+			++scope
+		)
 		{
-			assert(set->func_decls.size() == 1);
-			resolve_symbol(set->func_decls[0]->body, this->scope, this->global_ctx);
-			auto const func = set->func_decls[0];
-
-			if (get_function_call_match_level(func, func_call).sum == -1)
+			auto const set = std::find_if(
+				scope->func_sets.begin(), scope->func_sets.end(),
+				[id](auto const &fn_set) {
+					return id == fn_set.id;
+				}
+			);
+			if (set != scope->func_sets.end())
 			{
-				this->global_ctx.report_error(get_bad_call_error(func, func_call));
-				return error_result;
-			}
-			else
-			{
-				return { &func->body, get_return_type(func) };
+				for (auto &fn : set->func_decls)
+				{
+					auto const match_level = get_function_call_match_level(fn->body, func_call);
+					if (match_level.min != -1)
+					{
+						possible_funcs.push_back({ match_level, &fn->body });
+					}
+				}
 			}
 		}
-		// call to an overload set with more than one members
-		else
+
+		auto const scope_decl_count = possible_funcs.size();
+
+		auto const global_set = std::find_if(
+			this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
+			[id](auto const &fn_set) {
+				return id == fn_set.id;
+			}
+		);
+		if (global_set != this->global_decls.func_sets.end())
 		{
-			assert(set->func_decls.size() > 1);
-
-			bz::vector<std::pair<match_level, ast::decl_function *>> possible_funcs = {};
-			for (auto func : set->func_decls)
+			for (auto &fn : global_set->func_decls)
 			{
-				if (func->body.params.size() != func_call.params.size())
+				auto const match_level = get_function_call_match_level(fn->body, func_call);
+				if (match_level.min != -1)
 				{
-					continue;
-				}
-
-				resolve_symbol(func->body, scope, this->global_ctx);
-				auto match_level = get_function_call_match_level(func, func_call);
-				if (match_level.sum != -1)
-				{
-					possible_funcs.push_back({ match_level, func });
+					possible_funcs.push_back({ match_level, &fn->body });
 				}
 			}
+		}
 
-			if (possible_funcs.size() == 0)
+		auto const best = find_best_match(possible_funcs, scope_decl_count);
+		if (best.first.min == -1)
+		{
+			this->report_error(func_call, "couldn't match the function call to any of the overloads");
+			return error_result;
+		}
+		else
+		{
+			auto &ret_t = best.second->return_type;
+			if (ret_t.is<ast::ts_reference>())
 			{
-				this->report_error(func_call, "couldn't call any of the functions in the overload set");
-				return error_result;
+				return {
+					best.second,
+					{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
+				};
 			}
 			else
 			{
-				auto const min_match_it = std::min_element(
-					possible_funcs.begin(), possible_funcs.end(),
-					[](auto const &lhs, auto const &rhs) {
-						return lhs.first.min < rhs.first.min
-							|| (lhs.first.min == rhs.first.min && lhs.first.sum < rhs.first.sum);
-					}
-				);
-				if (std::count_if(
-					possible_funcs.begin(), possible_funcs.end(), [&](auto const &p) {
-						return p.first.min == min_match_it->first.min
-							&& p.first.sum == min_match_it->first.sum;
-					}
-				) == 1)
-				{
-					return { &min_match_it->second->body, get_return_type(min_match_it->second) };
-				}
-				else
-				{
-					this->report_error(func_call, "function call is ambiguous");
-					return error_result;
-				}
+				return {
+					best.second,
+					{ ast::expression::rvalue, ast::remove_const(ret_t) }
+				};
 			}
 		}
 	}
@@ -1074,7 +1283,7 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 
 ast::type_info const *parse_context::get_type_info(bz::string_view id) const
 {
-	return this->global_ctx.get_type_info(this->scope, id);
+	return this->global_ctx.get_type_info(this->file_id, id);
 }
 
 } // namespace ctx

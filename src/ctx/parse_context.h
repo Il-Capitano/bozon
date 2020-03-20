@@ -9,6 +9,8 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 
+#include "decl_set.h"
+
 namespace ctx
 {
 
@@ -16,13 +18,15 @@ struct global_context;
 
 struct parse_context
 {
-	bz::string      scope;
+	uint32_t        file_id;
 	global_context &global_ctx;
 
-	bz::vector<bz::vector<ast::decl_variable const *>> scope_variables;
+	decl_set global_decls;
 
-	parse_context(bz::string_view _scope, global_context &_global_ctx)
-		: scope(_scope), global_ctx(_global_ctx)
+	bz::vector<decl_set> scope_decls;
+
+	parse_context(uint32_t _file_id, global_context &_global_ctx)
+		: file_id(_file_id), global_ctx(_global_ctx)
 	{}
 
 	void report_error(lex::token_pos it) const;
@@ -60,7 +64,7 @@ struct parse_context
 	void add_global_operator(ast::decl_operator &op_decl);
 	void add_global_struct(ast::decl_struct &struct_decl);
 
-	void add_local_variable(ast::decl_variable const &var_decl);
+	void add_local_variable(ast::decl_variable &var_decl);
 
 	auto get_identifier_decl(lex::token_pos id) const
 		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;

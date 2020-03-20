@@ -853,11 +853,9 @@ void resolve(
 
 void resolve_symbol(
 	ast::function_body &func_body,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ctx::parse_context &context
 )
 {
-	ctx::parse_context context(scope, global_ctx);
 	for (auto &p : func_body.params)
 	{
 		resolve(p, context);
@@ -867,11 +865,9 @@ void resolve_symbol(
 
 void resolve(
 	ast::function_body &func_body,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ctx::parse_context &context
 )
 {
-	ctx::parse_context context(scope, global_ctx);
 	context.add_scope();
 	for (auto &p : func_body.params)
 	{
@@ -888,31 +884,28 @@ void resolve(
 
 void resolve(
 	ast::decl_struct &,
-	bz::string_view,
-	ctx::global_context &
+	ctx::parse_context &
 )
 {
 }
 
 void resolve(
 	ast::declaration &decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ctx::parse_context &context
 )
 {
 	switch (decl.kind())
 	{
 	case ast::declaration::index<ast::decl_variable>:
 	{
-		ctx::parse_context context(scope, global_ctx);
 		resolve(*decl.get<ast::decl_variable_ptr>(), context);
 		break;
 	}
 	case ast::declaration::index<ast::decl_function>:
-		resolve(decl.get<ast::decl_function_ptr>()->body, scope, global_ctx);
+		resolve(decl.get<ast::decl_function_ptr>()->body, context);
 		break;
 	case ast::declaration::index<ast::decl_operator>:
-		resolve(decl.get<ast::decl_operator_ptr>()->body, scope, global_ctx);
+		resolve(decl.get<ast::decl_operator_ptr>()->body, context);
 		break;
 	case ast::declaration::index<ast::decl_struct>:
 	default:

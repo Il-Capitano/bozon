@@ -9,42 +9,42 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 
+#include "decl_set.h"
+
 namespace ctx
 {
-struct function_overload_sets
-{
-	bz::string id;
-	bz::vector<ast::decl_function *> func_decls;
-};
 
-struct operator_overload_sets
+struct file_decls
 {
-	uint32_t op;
-	bz::vector<ast::decl_operator *> op_decls;
-};
-
-struct src_local_decls
-{
-	bz::vector<ast::decl_variable *>   var_decls;
-	bz::vector<function_overload_sets> func_sets;
-	bz::vector<operator_overload_sets> op_sets;
-	bz::vector<ast::decl_struct *>     struct_decls;
+	uint32_t file_id;
+	bz::string_view file_name;
+	decl_set export_decls;
+	decl_set internal_decls;
 };
 
 struct global_context
 {
 private:
-	std::map<bz::string, src_local_decls> _decls;
+	bz::vector<file_decls> _file_decls;
 	// using a list here, so iterators aren't invalidated
 	std::list<ast::type_info> _types;
 	bz::vector<error> _errors;
 
+	file_decls &get_decls(uint32_t file_id);
+
 public:
 	global_context(void);
 
-	void report_error(error &&err);
-	bool has_errors(void) const;
-	void clear_errors(void);
+	uint32_t get_file_id(bz::string_view file);
+
+	void report_error(error &&err)
+	{ this->_errors.emplace_back(std::move(err)); }
+
+	bool has_errors(void) const
+	{ return !this->_errors.empty(); }
+
+	void clear_errors(void)
+	{ this->_errors.clear(); }
 
 	bz::vector<error> const &get_errors(void) const
 	{ return this->_errors; }
@@ -52,31 +52,32 @@ public:
 	size_t get_error_count(void) const
 	{ return this->_errors.size(); }
 
-	void report_ambiguous_id_error(bz::string_view scope, lex::token_pos id);
+	void report_ambiguous_id_error(uint32_t file_id, lex::token_pos id);
 
-	auto add_global_declaration(bz::string_view scope, ast::declaration &decl)
-		-> bz::result<int, error>;
-	auto add_global_variable(bz::string_view scope, ast::decl_variable &var_decl)
-		-> bz::result<int, error>;
-	auto add_global_function(bz::string_view scope, ast::decl_function &func_decl)
-		-> bz::result<int, error>;
-	auto add_global_operator(bz::string_view scope, ast::decl_operator &op_decl)
-		-> bz::result<int, error>;
-	auto add_global_struct(bz::string_view scope, ast::decl_struct &struct_decl)
+	auto add_export_declaration(uint32_t file_id, ast::declaration &decl)
 		-> bz::result<int, error>;
 
-	auto get_identifier_decl(bz::string_view scope, lex::token_pos id)
-		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;
+	auto add_export_variable(uint32_t file_id, ast::decl_variable &var_decl)
+		-> bz::result<int, error>;
+	auto add_internal_variable(uint32_t file_id, ast::decl_variable &var_decl)
+		-> bz::result<int, error>;
 
-	auto get_identifier_type(bz::string_view scope, lex::token_pos id)
-		-> bz::result<ast::expression::expr_type_t, error>;
+	auto add_export_function(uint32_t file_id, ast::decl_function &func_decl)
+		-> bz::result<int, error>;
+	auto add_internal_function(uint32_t file_id, ast::decl_function &func_decl)
+		-> bz::result<int, error>;
 
-	src_local_decls &get_local_decls(bz::string_view scope)
-	{
-		return this->_decls[scope];
-	}
+	auto add_export_operator(uint32_t file_id, ast::decl_operator &op_decl)
+		-> bz::result<int, error>;
+	auto add_internal_operator(uint32_t file_id, ast::decl_operator &op_decl)
+		-> bz::result<int, error>;
 
-	ast::type_info const *get_type_info(bz::string_view scope, bz::string_view id);
+	auto add_export_struct(uint32_t file_id, ast::decl_struct &struct_decl)
+		-> bz::result<int, error>;
+	auto add_internal_struct(uint32_t file_id, ast::decl_struct &struct_decl)
+		-> bz::result<int, error>;
+
+	ast::type_info const *get_type_info(uint32_t file_id, bz::string_view id);
 };
 
 } // namespace ctx

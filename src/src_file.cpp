@@ -416,7 +416,7 @@ void src_file::report_and_clear_errors(void)
 
 	for (auto &decl : this->_declarations)
 	{
-		this->_global_ctx.add_global_declaration(this->_file_name, decl);
+		this->_global_ctx.add_export_declaration(this->_global_ctx.get_file_id(this->_file_name), decl);
 	}
 
 	this->_stage = first_pass_parsed;
@@ -426,9 +426,12 @@ void src_file::report_and_clear_errors(void)
 [[nodiscard]] bool src_file::resolve(void)
 {
 	assert(this->_stage == first_pass_parsed);
+
+	ctx::parse_context context(this->_global_ctx.get_file_id(this->_file_name), this->_global_ctx);
+
 	for (auto &decl : this->_declarations)
 	{
-		::resolve(decl, this->_file_name, this->_global_ctx);
+		::resolve(decl, context);
 	}
 
 	this->_stage = resolved;

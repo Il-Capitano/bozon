@@ -23,8 +23,7 @@ void resolve(
 
 void resolve_symbol(
 	ast::function_body &func_body,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ctx::parse_context &context
 );
 
 // void resolve(
@@ -45,8 +44,7 @@ void resolve_symbol(
 
 void resolve(
 	ast::declaration &decl,
-	bz::string_view scope,
-	ctx::global_context &global_ctx
+	ctx::parse_context &context
 );
 void resolve(
 	ast::statement &stmt,

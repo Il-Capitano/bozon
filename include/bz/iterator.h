@@ -41,16 +41,10 @@ public:
 	{ --this->_data; return *this; }
 
 
-	constexpr reference operator * (void) noexcept
+	constexpr reference operator * (void) const noexcept
 	{ return *this->_data; }
 
-	constexpr const_reference operator * (void) const noexcept
-	{ return *this->_data; }
-
-	constexpr pointer operator -> (void) noexcept
-	{ return this->_data; }
-
-	constexpr const_pointer operator -> (void) const noexcept
+	constexpr pointer operator -> (void) const noexcept
 	{ return this->_data; }
 
 
@@ -132,16 +126,10 @@ public:
 	{ ++this->_data; return *this; }
 
 
-	constexpr reference operator * (void) noexcept
+	constexpr reference operator * (void) const noexcept
 	{ return *this->_data; }
 
-	constexpr const_reference operator * (void) const noexcept
-	{ return *this->_data; }
-
-	constexpr pointer operator -> (void) noexcept
-	{ return this->_data; }
-
-	constexpr const_pointer operator -> (void) const noexcept
+	constexpr pointer operator -> (void) const noexcept
 	{ return this->_data; }
 
 
