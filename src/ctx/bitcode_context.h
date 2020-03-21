@@ -23,6 +23,8 @@ struct bitcode_context
 	llvm::Value *get_variable_val(ast::decl_variable const *var_decl) const;
 	llvm::BasicBlock *add_basic_block(bz::string_view name);
 	llvm::Type *get_built_in_type(ast::type_info::type_kind kind) const;
+	bool has_terminator(void) const;
+	static bool has_terminator(llvm::BasicBlock *bb);
 
 
 	global_context &global_ctx;

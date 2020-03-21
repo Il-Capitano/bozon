@@ -137,9 +137,8 @@ static val_ptr emit_bitcode(
 	case ast::expr_literal::integer_number:
 		return {
 			val_ptr::value,
-			llvm::ConstantInt::get(
-				context.get_built_in_type(ast::type_info::type_kind::int32_),
-				literal.value.get<ast::expr_literal::integer_number>()
+			context.builder.getInt32(
+				static_cast<uint32_t>(literal.value.get<ast::expr_literal::integer_number>())
 			)
 		};
 	case ast::expr_literal::floating_point_number:
@@ -178,26 +177,17 @@ static val_ptr emit_bitcode(
 	case ast::expr_literal::character:
 		return {
 			val_ptr::value,
-			llvm::ConstantInt::get(
-				context.get_built_in_type(ast::type_info::type_kind::int32_),
-				literal.value.get<ast::expr_literal::character>()
-			)
+			context.builder.getInt32(literal.value.get<ast::expr_literal::character>())
 		};
 	case ast::expr_literal::bool_true:
 		return {
 			val_ptr::value,
-			llvm::ConstantInt::get(
-				context.get_built_in_type(ast::type_info::type_kind::bool_),
-				1ull
-			)
+			context.builder.getTrue()
 		};
 	case ast::expr_literal::bool_false:
 		return {
 			val_ptr::value,
-			llvm::ConstantInt::get(
-				context.get_built_in_type(ast::type_info::type_kind::bool_),
-				0ull
-			)
+			context.builder.getFalse()
 		};
 	case ast::expr_literal::null:
 	default:
@@ -548,20 +538,32 @@ static val_ptr emit_bitcode(
 			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
-			auto const lhs_bb = context.builder.GetInsertBlock();
-			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
-			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
 
-			context.builder.CreateCondBr(lhs_val, rhs_bb, end_bb);
+			// generate computation of lhs
+			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_bb_end = context.builder.GetInsertBlock();
+
+			// generate computation of rhs
+			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
 			context.builder.SetInsertPoint(rhs_bb);
 			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
-			context.builder.CreateBr(end_bb);
-			context.builder.SetInsertPoint(end_bb);
+			auto const rhs_bb_end = context.builder.GetInsertBlock();
 
+			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
+			// generate branches for lhs_bb and rhs_bb
+			context.builder.SetInsertPoint(lhs_bb_end);
+			// if lhs_val is true we need to check rhs
+			// if lhs_val is false we are done and the result is false
+			context.builder.CreateCondBr(lhs_val, rhs_bb, end_bb);
+			context.builder.SetInsertPoint(rhs_bb_end);
+			context.builder.CreateBr(end_bb);
+
+			// create a phi node to get the final value
+			context.builder.SetInsertPoint(end_bb);
 			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_and_tmp");
-			phi->addIncoming(lhs_val, lhs_bb);
-			phi->addIncoming(rhs_val, rhs_bb);
+			// coming from lhs always gives false
+			phi->addIncoming(context.builder.getFalse(), lhs_bb_end);
+			phi->addIncoming(rhs_val, rhs_bb_end);
 
 			return { val_ptr::value, phi };
 		}
@@ -605,20 +607,32 @@ static val_ptr emit_bitcode(
 			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
-			auto const lhs_bb = context.builder.GetInsertBlock();
-			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
-			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
 
-			context.builder.CreateCondBr(lhs_val, end_bb, rhs_bb);
+			// generate computation of lhs
+			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_bb_end = context.builder.GetInsertBlock();
+
+			// generate computation of rhs
+			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
 			context.builder.SetInsertPoint(rhs_bb);
 			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
-			context.builder.CreateBr(end_bb);
-			context.builder.SetInsertPoint(end_bb);
+			auto const rhs_bb_end = context.builder.GetInsertBlock();
 
+			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
+			// generate branches for lhs_bb and rhs_bb
+			context.builder.SetInsertPoint(lhs_bb_end);
+			// if lhs_val is true we are done and the result if true
+			// if lhs_val is false we need to check rhs
+			context.builder.CreateCondBr(lhs_val, end_bb, rhs_bb);
+			context.builder.SetInsertPoint(rhs_bb_end);
+			context.builder.CreateBr(end_bb);
+
+			// create a phi node to get the final value
+			context.builder.SetInsertPoint(end_bb);
 			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_or_tmp");
-			phi->addIncoming(lhs_val, lhs_bb);
-			phi->addIncoming(rhs_val, rhs_bb);
+			// coming from lhs always gives true
+			phi->addIncoming(context.builder.getTrue(), lhs_bb_end);
+			phi->addIncoming(rhs_val, rhs_bb_end);
 
 			return { val_ptr::value, phi };
 		}
@@ -735,34 +749,53 @@ static void emit_bitcode(
 )
 {
 	auto const condition = get_value(emit_bitcode(if_stmt.condition, context), context);
+	// assert that the condition is an i1 (bool)
 	assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
-	auto const before_then_block_end = context.builder.GetInsertBlock();
+	// the original block
+	auto const entry_bb = context.builder.GetInsertBlock();
 
-	auto const then_block = context.add_basic_block("then_block");
-	context.builder.SetInsertPoint(then_block);
+	// emit code for the then block
+	auto const then_bb = context.add_basic_block("then");
+	context.builder.SetInsertPoint(then_bb);
 	emit_bitcode(if_stmt.then_block, context);
-	auto const then_block_end = context.builder.GetInsertBlock();
+	auto const then_bb_end = context.builder.GetInsertBlock();
 
-	auto const else_block = if_stmt.else_block.has_value() ? context.add_basic_block("else_block") : nullptr;
-	if (else_block)
+	// emit code for the else block if there's any
+	auto const else_bb = if_stmt.else_block.has_value() ? context.add_basic_block("else") : nullptr;
+	if (else_bb)
 	{
-		context.builder.SetInsertPoint(else_block);
+		context.builder.SetInsertPoint(else_bb);
 		emit_bitcode(*if_stmt.else_block, context);
 	}
-	auto const else_block_end = else_block ? context.builder.GetInsertBlock() : nullptr;
+	auto const else_bb_end = else_bb ? context.builder.GetInsertBlock() : nullptr;
 
-	auto const after_if = context.add_basic_block("after_if");
-	context.builder.SetInsertPoint(before_then_block_end);
-	context.builder.CreateCondBr(condition, then_block, else_block ? else_block : after_if);
-	context.builder.SetInsertPoint(then_block_end);
-	context.builder.CreateBr(after_if);
-	if (else_block_end)
+	// if both branches have a return at the end, then don't create the end block
+	if (else_bb_end && context.has_terminator(then_bb_end) && context.has_terminator(else_bb_end))
 	{
-		context.builder.SetInsertPoint(else_block_end);
-		context.builder.CreateBr(after_if);
+		context.builder.SetInsertPoint(entry_bb);
+		// else_bb must be valid here
+		context.builder.CreateCondBr(condition, then_bb, else_bb);
+		return;
 	}
 
-	context.builder.SetInsertPoint(after_if);
+	auto const end_bb = context.add_basic_block("endif");
+	// create branches for the entry block
+	context.builder.SetInsertPoint(entry_bb);
+	context.builder.CreateCondBr(condition, then_bb, else_bb ? else_bb : end_bb);
+
+	// create branches for the then and else blocks, if there's no return at the end
+	if (!context.has_terminator(then_bb_end))
+	{
+		context.builder.SetInsertPoint(then_bb_end);
+		context.builder.CreateBr(end_bb);
+	}
+	if (else_bb_end && !context.has_terminator(else_bb_end))
+	{
+		context.builder.SetInsertPoint(else_bb_end);
+		context.builder.CreateBr(end_bb);
+	}
+
+	context.builder.SetInsertPoint(end_bb);
 }
 
 static void emit_bitcode(
@@ -776,15 +809,18 @@ static void emit_bitcode(
 	auto const condition = get_value(emit_bitcode(while_stmt.condition, context), context);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
-	auto const while_block = context.add_basic_block("while_block");
-	context.builder.SetInsertPoint(while_block);
+	auto const while_bb = context.add_basic_block("while");
+	context.builder.SetInsertPoint(while_bb);
 	emit_bitcode(while_stmt.while_block, context);
-	context.builder.CreateBr(condition_check);
+	if (!context.has_terminator())
+	{
+		context.builder.CreateBr(condition_check);
+	}
 
-	auto const after_while = context.add_basic_block("after_while");
+	auto const end_bb = context.add_basic_block("endwhile");
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition, while_block, after_while);
-	context.builder.SetInsertPoint(after_while);
+	context.builder.CreateCondBr(condition, while_bb, end_bb);
+	context.builder.SetInsertPoint(end_bb);
 }
 
 static void emit_bitcode(
@@ -931,6 +967,11 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
+	if (context.has_terminator())
+	{
+		return;
+	}
+
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_if>:
@@ -1140,6 +1181,13 @@ void emit_function_bitcode(
 	for (auto &stmt : func_body.body)
 	{
 		emit_bitcode(stmt, context);
+	}
+	if (!context.has_terminator())
+	{
+//		std::string func_name = context.current_function->getName();
+//		bz::printf("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
+		assert(func_body.return_type.is<ast::ts_void>());
+		context.builder.CreateRetVoid();
 	}
 
 	if (llvm::verifyFunction(*fn) == true)

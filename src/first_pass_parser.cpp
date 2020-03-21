@@ -496,7 +496,7 @@ static ast::statement parse_return_statement(
 
 	return ast::make_stmt_return(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(expr, expr)
+		expr.begin == expr.end ? ast::expression() : ast::make_expr_unresolved(expr, expr)
 	);
 }
 

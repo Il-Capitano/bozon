@@ -58,4 +58,15 @@ llvm::Type *bitcode_context::get_built_in_type(ast::type_info::type_kind kind) c
 	return this->built_in_types[static_cast<int>(kind)];
 }
 
+bool bitcode_context::has_terminator(void) const
+{
+	auto const current_bb = this->builder.GetInsertBlock();
+	return current_bb->size() != 0 && current_bb->back().isTerminator();
+}
+
+bool bitcode_context::has_terminator(llvm::BasicBlock *bb)
+{
+	return bb->size() != 0 && bb->back().isTerminator();
+}
+
 } // namespace ctx
