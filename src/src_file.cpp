@@ -431,6 +431,11 @@ void src_file::report_and_clear_errors(void)
 
 	for (auto &decl : this->_declarations)
 	{
+		context.add_global_declaration(decl);
+	}
+
+	for (auto &decl : this->_declarations)
+	{
 		::resolve(decl, context);
 	}
 
@@ -444,7 +449,15 @@ void src_file::report_and_clear_errors(void)
 	{
 		if (decl.is<ast::decl_function>())
 		{
-			::bc::emit_function_bitcode(*decl.get<ast::decl_function_ptr>(), context);
+			auto &fn_decl = *decl.get<ast::decl_function_ptr>();
+			bc::add_function_to_module(fn_decl.body, fn_decl.identifier->value, context);
+		}
+	}
+	for (auto &decl : this->_declarations)
+	{
+		if (decl.is<ast::decl_function>())
+		{
+			bc::emit_function_bitcode(decl.get<ast::decl_function_ptr>()->body, context);
 		}
 	}
 

@@ -9,8 +9,15 @@
 namespace bc
 {
 
-llvm::Function *get_function_decl_bitcode(ast::decl_function &func, ctx::bitcode_context &context);
-void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &context);
+void add_function_to_module(
+	ast::function_body &func_body,
+	bz::string_view id,
+	ctx::bitcode_context &context
+);
+void emit_function_bitcode(
+	ast::function_body &func_body,
+	ctx::bitcode_context &context
+);
 
 } // namespace bc
 

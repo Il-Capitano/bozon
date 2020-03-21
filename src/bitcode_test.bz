@@ -1,43 +1,18 @@
+function factorial(n: int32) -> int32
+{
+	return n * factorial(n - 1);
+}
+
+function change_val(n: &int32) -> int32
+{
+	n = 3;
+	return 0;
+}
+
 function main() -> int32
 {
-
-	let a = 42;
-	let p = &a;
-
-	let i16: int16;
-
-	let num = 8 % 16;
-
-	let b = a + a;
-
-	// this doesn't do anything yet...
-	let c = 1i32 + 2i32;
-	let d = 'a'_test;
-
-	let e = a % i16 - 5;
-	let &f = e;
-
-	return 0;
-
-/*
-	let a = 0;
-
-	if (false)
-	{
-		if (true)
-		{
-			let c = 'a';
-		}
-		else
-		{
-			let c = 'b';
-		}
-		let b = true;
-		return a;
-	}
-
-	let c = a;
-	let e = 1.5;
-	return a;
-*/
+	let n: int32 = 0;
+	change_val(n);
+	let str = "hello";
+	return factorial(1);
 }

@@ -1,7 +1,9 @@
 #include "emit_bitcode.h"
 #include "ctx/built_in_operators.h"
+#include "colors.h"
 
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/Argument.h>
 
 namespace bc
 {
@@ -39,6 +41,10 @@ static val_ptr emit_bitcode(
 );
 
 static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &context);
+static llvm::Function *get_function_ptr(
+	ast::function_body &func,
+	ctx::bitcode_context &context
+);
 
 static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 	ast::expression const &lhs,
@@ -132,7 +138,7 @@ static val_ptr emit_bitcode(
 		return {
 			val_ptr::value,
 			llvm::ConstantInt::get(
-				llvm::Type::getInt32Ty(context.llvm_context),
+				context.get_built_in_type(ast::type_info::type_kind::int32_),
 				literal.value.get<ast::expr_literal::integer_number>()
 			)
 		};
@@ -140,18 +146,40 @@ static val_ptr emit_bitcode(
 		return {
 			val_ptr::value,
 			llvm::ConstantFP::get(
-				llvm::Type::getDoubleTy(context.llvm_context),
+				context.get_built_in_type(ast::type_info::type_kind::float64_),
 				literal.value.get<ast::expr_literal::floating_point_number>()
 			)
 		};
 	case ast::expr_literal::string:
-		assert(false);
-		return {};
+	{
+		auto const &str = literal.value.get<ast::expr_literal::string>();
+		auto const string_ref = llvm::StringRef(str.data(), str.length());
+		auto const string_constant = context.builder.CreateGlobalString(string_ref);
+
+		auto const begin_ptr = context.builder.CreateConstGEP1_64(string_constant, 0);
+		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
+		assert(const_begin_ptr != nullptr);
+
+		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.length());
+		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
+		assert(const_end_ptr != nullptr);
+
+		auto const str_t = llvm::dyn_cast<llvm::StructType>(
+			context.get_built_in_type(ast::type_info::type_kind::str_)
+		);
+		assert(str_t != nullptr);
+		llvm::Constant *elems[] = { string_constant, const_end_ptr };
+
+		return {
+			val_ptr::value,
+			llvm::ConstantStruct::get(str_t, elems)
+		};
+	}
 	case ast::expr_literal::character:
 		return {
 			val_ptr::value,
 			llvm::ConstantInt::get(
-				llvm::Type::getInt32Ty(context.llvm_context),
+				context.get_built_in_type(ast::type_info::type_kind::int32_),
 				literal.value.get<ast::expr_literal::character>()
 			)
 		};
@@ -159,7 +187,7 @@ static val_ptr emit_bitcode(
 		return {
 			val_ptr::value,
 			llvm::ConstantInt::get(
-				llvm::Type::getInt1Ty(context.llvm_context),
+				context.get_built_in_type(ast::type_info::type_kind::bool_),
 				1ull
 			)
 		};
@@ -167,7 +195,7 @@ static val_ptr emit_bitcode(
 		return {
 			val_ptr::value,
 			llvm::ConstantInt::get(
-				llvm::Type::getInt1Ty(context.llvm_context),
+				context.get_built_in_type(ast::type_info::type_kind::bool_),
 				0ull
 			)
 		};
@@ -509,6 +537,97 @@ static val_ptr emit_bitcode(
 			return {};
 		}
 	}
+	case lex::token::bool_and:           // '&&'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_bb = context.builder.GetInsertBlock();
+			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
+			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
+
+			context.builder.CreateCondBr(lhs_val, rhs_bb, end_bb);
+			context.builder.SetInsertPoint(rhs_bb);
+			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			context.builder.CreateBr(end_bb);
+			context.builder.SetInsertPoint(end_bb);
+
+			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_and_tmp");
+			phi->addIncoming(lhs_val, lhs_bb);
+			phi->addIncoming(rhs_val, rhs_bb);
+
+			return { val_ptr::value, phi };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	// xor doesn't have short-circuiting
+	case lex::token::bool_xor:           // '^^'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			auto const res = context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp");
+			return { val_ptr::value, res };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::bool_or:            // '||'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_bb = context.builder.GetInsertBlock();
+			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
+			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
+
+			context.builder.CreateCondBr(lhs_val, end_bb, rhs_bb);
+			context.builder.SetInsertPoint(rhs_bb);
+			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			context.builder.CreateBr(end_bb);
+			context.builder.SetInsertPoint(end_bb);
+
+			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_or_tmp");
+			phi->addIncoming(lhs_val, lhs_bb);
+			phi->addIncoming(rhs_val, rhs_bb);
+
+			return { val_ptr::value, phi };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
 
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
@@ -530,9 +649,6 @@ static val_ptr emit_bitcode(
 	case lex::token::bit_left_shift_eq:  // '<<='
 	case lex::token::bit_right_shift:    // '>>'
 	case lex::token::bit_right_shift_eq: // '>>='
-	case lex::token::bool_and:           // '&&'
-	case lex::token::bool_xor:           // '^^'
-	case lex::token::bool_or:            // '||'
 //	case lex::token::arrow:              // '->' ???
 	case lex::token::square_open:        // '[]'
 
@@ -543,12 +659,39 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	ast::expr_function_call const &expr,
+	ast::expr_function_call const &func_call,
 	ctx::bitcode_context &context
 )
 {
-	assert(false);
-	return {};
+	assert(func_call.func_body != nullptr);
+	bz::vector<llvm::Value *> params = {};
+	params.reserve(func_call.params.size());
+	for (size_t i = 0; i < func_call.params.size(); ++i)
+	{
+		auto &p = func_call.params[i];
+		auto &p_t = func_call.func_body->params[i].var_type;
+		if (p_t.is<ast::ts_reference>())
+		{
+			auto const val = emit_bitcode(p, context);
+			assert(val.kind == val_ptr::reference);
+			params.push_back(val.val);
+		}
+		else
+		{
+			auto const val = emit_bitcode(p, context);
+			params.push_back(get_value(val, context));
+		}
+	}
+	auto const fn = get_function_ptr(*func_call.func_body, context);
+	auto const res = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+	if (func_call.func_body->return_type.is<ast::ts_reference>())
+	{
+		return { val_ptr::reference, res };
+	}
+	else
+	{
+		return { val_ptr::value, res };
+	}
 }
 
 static val_ptr emit_bitcode(
@@ -832,27 +975,19 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 	{
 	case ast::type_info::type_kind::int8_:
 	case ast::type_info::type_kind::uint8_:
-		return llvm::Type::getInt8Ty(context.llvm_context);
 	case ast::type_info::type_kind::int16_:
 	case ast::type_info::type_kind::uint16_:
-		return llvm::Type::getInt16Ty(context.llvm_context);
 	case ast::type_info::type_kind::int32_:
 	case ast::type_info::type_kind::uint32_:
-		return llvm::Type::getInt32Ty(context.llvm_context);
 	case ast::type_info::type_kind::int64_:
 	case ast::type_info::type_kind::uint64_:
-		return llvm::Type::getInt64Ty(context.llvm_context);
 	case ast::type_info::type_kind::float32_:
-		return llvm::Type::getFloatTy(context.llvm_context);
 	case ast::type_info::type_kind::float64_:
-		return llvm::Type::getDoubleTy(context.llvm_context);
 	case ast::type_info::type_kind::char_:
-		return llvm::Type::getInt32Ty(context.llvm_context);
 	case ast::type_info::type_kind::str_:
-		assert(false);
-		return nullptr;
 	case ast::type_info::type_kind::bool_:
-		return llvm::Type::getInt1Ty(context.llvm_context);
+		return context.get_built_in_type(base_t.info->kind);
+
 	case ast::type_info::type_kind::null_t_:
 	case ast::type_info::type_kind::aggregate:
 	default:
@@ -899,36 +1034,117 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 	}
 }
 
-llvm::Function *get_function_decl_bitcode(ast::decl_function &func, ctx::bitcode_context &context)
+static llvm::Function *get_function_ptr(
+	ast::function_body &func_body,
+	ctx::bitcode_context &context
+)
 {
-	auto const result_t = get_llvm_type(func.body.return_type, context);
+	auto const it = std::find_if(
+		context.funcs.begin(), context.funcs.end(),
+		[body = &func_body](auto const p) {
+			return body == p.first;
+		}
+	);
+	assert(it != context.funcs.end());
+	return it->second;
+}
+
+void add_function_to_module(
+	ast::function_body &func_body,
+	bz::string_view id,
+	ctx::bitcode_context &context
+)
+{
+	auto const it = std::find_if(
+		context.funcs.begin(), context.funcs.end(),
+		[body = &func_body](auto const p) {
+			return body == p.first;
+		}
+	);
+
+	if (it != context.funcs.end())
+	{
+		return;
+	}
+
+	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
-	for (auto &p : func.body.params)
+	for (auto &p : func_body.params)
 	{
 		args.push_back(get_llvm_type(p.var_type, context));
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
-	auto const name = llvm::StringRef(func.identifier->value.data(), func.identifier->value.length());
-	return llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.module);
+	auto const name = llvm::StringRef(id.data(), id.length());
+	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.module);
+	context.funcs.push_back({ &func_body, fn });
 }
 
-void emit_function_bitcode(ast::decl_function &func, ctx::bitcode_context &context)
+void emit_function_bitcode(
+	ast::function_body &func_body,
+	ctx::bitcode_context &context
+)
 {
-	auto const fn = get_function_decl_bitcode(func, context);
+	auto const fn = get_function_ptr(func_body, context);
 	context.current_function = fn;
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
-	for (auto &stmt : func.body.body)
+
+	bz::vector<llvm::Value *> params = {};
+	params.reserve(func_body.params.size());
+	// alloca's for function paraementers
+	{
+		assert(func_body.params.size() == fn->arg_size());
+		auto p_it = func_body.params.begin();
+		auto fn_it = fn->arg_begin();
+		auto const fn_end = fn->arg_end();
+		for (; fn_it != fn_end; ++fn_it, ++p_it)
+		{
+			auto &p = *p_it;
+			if (p.var_type.is<ast::ts_reference>())
+			{
+				context.vars.push_back({ &p, fn_it });
+			}
+			else
+			{
+				auto const var_t = get_llvm_type(p.var_type, context);
+				auto const name = llvm::StringRef(p.identifier->value.data(), p.identifier->value.length());
+				auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
+				context.vars.push_back({ &p, alloca });
+			}
+		}
+	}
+	// alloca's for statements
+	for (auto &stmt : func_body.body)
 	{
 		emit_alloca(stmt, context);
 	}
-	for (auto &stmt : func.body.body)
+
+	// initialization of function parameter alloca's
+	{
+		auto p_it = func_body.params.begin();
+		auto fn_it = fn->arg_begin();
+		auto const fn_end = fn->arg_end();
+		for (; fn_it != fn_end; ++fn_it, ++p_it)
+		{
+			auto &p = *p_it;
+			if (!p.var_type.is<ast::ts_reference>())
+			{
+				auto const val = context.get_variable_val(&p);
+				auto const param_val = fn_it;
+				context.builder.CreateStore(param_val, val);
+			}
+		}
+	}
+
+	// code emission for statements
+	for (auto &stmt : func_body.body)
 	{
 		emit_bitcode(stmt, context);
 	}
+
 	if (llvm::verifyFunction(*fn) == true)
 	{
-		bz::print("verifyFunction failed!!!\n");
+		bz::printf("{}verifyFunction failed!!!\n{}", colors::bright_red, colors::clear);
 	}
 	context.current_function = nullptr;
 }
