@@ -233,6 +233,7 @@ typespec add_const(typespec ts);
 
 typespec const &remove_lvalue_reference(typespec const &ts);
 typespec const &remove_const(typespec const &ts);
+typespec const &remove_pointer(typespec const &ts);
 
 
 } // namespace ast

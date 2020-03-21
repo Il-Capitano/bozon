@@ -155,4 +155,16 @@ typespec const &remove_const(typespec const &ts)
 	}
 }
 
+typespec const &remove_pointer(typespec const &ts)
+{
+	if (ts.is<ts_pointer>())
+	{
+		return ts.get<ts_pointer_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
 } // namespace ast
