@@ -80,9 +80,11 @@ namespace ctx
 
 	for (auto &file : this->_src_files)
 	{
-		assert(file.emit_bitcode(context));
+		auto res = file.emit_bitcode(context);
+		assert(res);
 	}
 
+	context.module.print(llvm::errs(), nullptr);
 	return true;
 }
 

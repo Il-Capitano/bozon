@@ -461,6 +461,5 @@ void src_file::report_and_clear_errors(void)
 		}
 	}
 
-	context.module.print(llvm::errs(), nullptr);
 	return true;
 }
