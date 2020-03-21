@@ -234,6 +234,94 @@ typespec add_const(typespec ts);
 typespec const &remove_lvalue_reference(typespec const &ts);
 typespec const &remove_const(typespec const &ts);
 typespec const &remove_pointer(typespec const &ts);
+inline bool is_complete(typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case typespec::index<ts_base_type>:
+	case typespec::index<ts_void>:
+		return true;
+	case typespec::index<ts_constant>:
+		return is_complete(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_pointer>:
+		return is_complete(ts.get<ts_pointer_ptr>()->base);
+	case typespec::index<ts_reference>:
+		return is_complete(ts.get<ts_reference_ptr>()->base);
+	case typespec::index<ts_function>:
+	{
+		auto &fn_t = *ts.get<ts_function_ptr>();
+		for (auto &arg_t : fn_t.argument_types)
+		{
+			if (!is_complete(arg_t))
+			{
+				return false;
+			}
+		}
+		return is_complete(fn_t.return_type);
+	}
+	case typespec::index<ts_tuple>:
+	{
+		auto &tup = *ts.get<ts_tuple_ptr>();
+		for (auto &t : tup.types)
+		{
+			if (!is_complete(t))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	case typespec::null:
+		return false;
+	default:
+		assert(false);
+		return false;
+	}
+}
+
+inline bool is_instantiable(typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case typespec::index<ts_base_type>:
+		return ts.get<ts_base_type_ptr>()->info->flags & type_info::instantiable;
+	case typespec::index<ts_void>:
+		return false;
+	case typespec::index<ts_constant>:
+		return is_instantiable(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_pointer>:
+		return true;
+	case typespec::index<ts_reference>:
+	{
+		auto &base = ts.get<ts_reference_ptr>()->base;
+		if (remove_const(base).is<ts_void>())
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+	case typespec::index<ts_function>:
+		return true;
+	case typespec::index<ts_tuple>:
+	{
+		auto &tup = *ts.get<ts_tuple_ptr>();
+		for (auto &t : tup.types)
+		{
+			if (!is_instantiable(t))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	default:
+		assert(false);
+		return false;
+	}
+}
 
 
 } // namespace ast

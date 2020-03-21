@@ -848,6 +848,13 @@ void resolve(
 	{
 		resolve(*var_decl.init_expr, context);
 		add_expr_type(var_decl.var_type, *var_decl.init_expr, context);
+		if (ast::is_complete(var_decl.var_type) && !ast::is_instantiable(var_decl.var_type))
+		{
+			context.report_error(
+				var_decl,
+				bz::format("type '{}' is not instantiable", var_decl.var_type)
+			);
+		}
 	}
 }
 
