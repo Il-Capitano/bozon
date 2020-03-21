@@ -102,10 +102,23 @@ void parse_context::remove_scope(void)
 
 void parse_context::add_global_declaration(ast::declaration &decl)
 {
-	auto res = this->global_ctx.add_export_declaration(this->file_id, decl);
-	if (res.has_error())
+	switch (decl.kind())
 	{
-		this->global_ctx.report_error(std::move(res.get_error()));
+	case ast::declaration::index<ast::decl_variable>:
+		this->add_global_variable(*decl.get<ast::decl_variable_ptr>());
+		return;
+	case ast::declaration::index<ast::decl_function>:
+		this->add_global_function(*decl.get<ast::decl_function_ptr>());
+		return;
+	case ast::declaration::index<ast::decl_operator>:
+		this->add_global_operator(*decl.get<ast::decl_operator_ptr>());
+		return;
+	case ast::declaration::index<ast::decl_struct>:
+		this->add_global_struct(*decl.get<ast::decl_struct_ptr>());
+		return;
+	default:
+		assert(false);
+		return;
 	}
 }
 
@@ -116,6 +129,10 @@ void parse_context::add_global_variable(ast::decl_variable &var_decl)
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
 	}
+	else
+	{
+		this->global_decls.var_decls.push_back(&var_decl);
+	}
 }
 
 void parse_context::add_global_function(ast::decl_function &func_decl)
@@ -124,6 +141,23 @@ void parse_context::add_global_function(ast::decl_function &func_decl)
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
+	}
+	else
+	{
+		auto const set = std::find_if(
+			this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
+			[id = func_decl.identifier->value](auto const &set) {
+				return id == set.id;
+			}
+		);
+		if (set == this->global_decls.func_sets.end())
+		{
+			this->global_decls.func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
+		}
+		else
+		{
+			set->func_decls.push_back(&func_decl);
+		}
 	}
 }
 
@@ -134,6 +168,23 @@ void parse_context::add_global_operator(ast::decl_operator &op_decl)
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
 	}
+	else
+	{
+		auto const set = std::find_if(
+			this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
+			[op = op_decl.op->kind](auto const &set) {
+				return op == set.op;
+			}
+		);
+		if (set == this->global_decls.op_sets.end())
+		{
+			this->global_decls.op_sets.push_back({ op_decl.op->kind, { &op_decl } });
+		}
+		else
+		{
+			set->op_decls.push_back(&op_decl);
+		}
+	}
 }
 
 void parse_context::add_global_struct(ast::decl_struct &struct_decl)
@@ -142,6 +193,10 @@ void parse_context::add_global_struct(ast::decl_struct &struct_decl)
 	if (res.has_error())
 	{
 		this->global_ctx.report_error(std::move(res.get_error()));
+	}
+	else
+	{
+		this->global_decls.struct_decls.push_back(&struct_decl);
 	}
 }
 
@@ -226,6 +281,7 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 			return static_cast<ast::decl_function const *>(nullptr);
 		}
 	}
+	bz::printf("{} {}\n", id->value, this->global_decls.func_sets.size());
 	return {};
 }
 
@@ -373,76 +429,93 @@ static int get_type_match_level(
 {
 	int result = 0;
 
-	auto const *dest_it = dest.is<ast::ts_constant>()
-		? &dest.get<ast::ts_constant_ptr>()->base
-		: &dest;
+	auto const *dest_it = &ast::remove_const(dest);
 	auto const *src_it = &src.expr_type;
-
-	if (!dest_it->is<ast::ts_reference>())
-	{
-		++result;
-	}
 
 	if (dest_it->is<ast::ts_base_type>())
 	{
+		src_it = &ast::remove_const(*src_it);
+		// if the argument is just a base type, return 1 if there's a conversion, and -1 otherwise
 		// TODO: use is_convertible here...
 		if (
 			src_it->is<ast::ts_base_type>()
 			&& src_it->get<ast::ts_base_type_ptr>()->info == dest_it->get<ast::ts_base_type_ptr>()->info
 		)
 		{
-			return result;
+			return 1;
 		}
 		else
 		{
 			return -1;
 		}
 	}
-	else if (
-		dest_it->is<ast::ts_reference>()
-		|| dest_it->is<ast::ts_pointer>()
-	)
+	else if (dest_it->is<ast::ts_reference>())
 	{
+		// if the source is not an lvalue, return -1
 		if (
-			dest_it->is<ast::ts_reference>()
-			&& src.type_kind != ast::expression::lvalue
+			src.type_kind != ast::expression::lvalue
 			&& src.type_kind != ast::expression::lvalue_reference
 		)
 		{
 			return -1;
 		}
 
-		dest_it = dest_it->is<ast::ts_reference>()
-			? &dest_it->get<ast::ts_reference_ptr>()->base
-			: &dest_it->get<ast::ts_pointer_ptr>()->base;
-		if (dest_it->is<ast::ts_pointer>() && src_it->is<ast::ts_constant>())
+		dest_it = &ast::remove_lvalue_reference(*dest_it);
+		// if the dest is not a &const return 0 if the src and dest types match, -1 otherwise
+		if (!dest_it->is<ast::ts_constant>())
 		{
-			src_it = &src_it->get<ast::ts_constant_ptr>()->base;
+			return *dest_it == *src_it ? 0 : -1;
 		}
+		else
+		{
+			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+			// if the source is not const increment the result
+			if (src_it->is<ast::ts_constant>())
+			{
+				src_it = &src_it->get<ast::ts_constant_ptr>()->base;
+			}
+			else
+			{
+				++result;
+			}
+		}
+	}
+	else // if (dest_it->is<ast::ts_pointer>())
+	{
+		result = 1; // not a reference, so result starts at 1
+		// advance src_it if it's const
+		src_it = &ast::remove_const(*src_it);
+		// return -1 if the source is not a pointer
 		if (!src_it->is<ast::ts_pointer>())
 		{
 			return -1;
 		}
-		src_it = &src_it->get<ast::ts_pointer_ptr>()->base;
 
+		// advance src_it and dest_it
+		src_it = &src_it->get<ast::ts_pointer_ptr>()->base;
+		dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
+
+		// if the dest is not a *const return 1 if the src and dest types match, -1 otherwise
 		if (!dest_it->is<ast::ts_constant>())
 		{
+			return *dest_it == *src_it ? 0 : -1;
+		}
+		else
+		{
+			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+			// if the source is not const increment the result
 			if (src_it->is<ast::ts_constant>())
 			{
-				return -1;
+				src_it = &src_it->get<ast::ts_constant_ptr>()->base;
 			}
 			else
 			{
-				return *dest_it == *src_it ? result : -1;
+				++result;
 			}
-		}
-		else if (!src_it->is<ast::ts_constant>())
-		{
-			++result;
 		}
 	}
 
-	// we can only get here if the dest type is &const T or *const T
+	// we can only get here if the dest type is &const or *const
 	auto const advance = [](ast::typespec const *&ts)
 	{
 		switch (ts->kind())
