@@ -940,11 +940,17 @@ auto get_built_in_operation_type(
 	case lex::token::multiply_eq:        // '*='
 	case lex::token::divide_eq:          // '/='
 	case lex::token::modulo_eq:          // '%='
-	case lex::token::dot_dot:            // '..'
-	case lex::token::dot_dot_eq:         // '..='
 	case lex::token::bit_left_shift_eq:  // '<<='
 	case lex::token::bit_right_shift_eq: // '>>='
 	case lex::token::square_open:        // '[]'
+		assert(false);
+		return {};
+
+	// these have no built-in operations
+	case lex::token::dot_dot:            // '..'
+	case lex::token::dot_dot_eq:         // '..='
+		return {};
+
 	default:
 		assert(false);
 		return {};

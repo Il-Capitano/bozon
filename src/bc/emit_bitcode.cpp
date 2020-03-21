@@ -337,18 +337,183 @@ static val_ptr emit_bitcode(
 	case lex::token::minus:              // '-'
 	{
 		assert(binary_op.op_body == nullptr);
-		auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-		auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
-		return { val_ptr::value, res };
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+			{
+				auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+				auto const res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
+				return { val_ptr::value, res };
+			}
+			else
+			{
+				assert(false);
+				return {};
+			}
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::multiply:           // '*'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			auto const res = context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp");
+			return { val_ptr::value, res };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::divide:             // '/'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			if (ctx::is_signed_integer_kind(lhs_kind))
+			{
+				auto const res = context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp");
+				return { val_ptr::value, res };
+			}
+			else if (ctx::is_unsigned_integer_kind(lhs_kind))
+			{
+				auto const res = context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp");
+				return { val_ptr::value, res };
+			}
+			else // if (ctx::is_floating_point_kind(lhs_kind))
+			{
+				auto const res = context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+				return { val_ptr::value, res };
+			}
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::modulo:             // '%'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			if (ctx::is_signed_integer_kind(lhs_kind))
+			{
+				auto const res = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+				return { val_ptr::value, res };
+			}
+			else // if(ctx::is_unsigned_integer_kind(lhs_kind))
+			{
+				auto const res = context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+				return { val_ptr::value, res };
+			}
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::bit_and:            // '&'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			auto const res = context.builder.CreateAnd(lhs_val, rhs_val, "and_tmp");
+			return { val_ptr::value, res };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::bit_xor:            // '^'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			auto const res = context.builder.CreateXor(lhs_val, rhs_val, "xor_tmp");
+			return { val_ptr::value, res };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::bit_or:             // '|'
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			auto const res = context.builder.CreateOr(lhs_val, rhs_val, "or_tmp");
+			return { val_ptr::value, res };
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
 	}
 
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
-	case lex::token::multiply:           // '*'
 	case lex::token::multiply_eq:        // '*='
-	case lex::token::divide:             // '/'
 	case lex::token::divide_eq:          // '/='
-	case lex::token::modulo:             // '%'
 	case lex::token::modulo_eq:          // '%='
 	case lex::token::dot_dot:            // '..'
 	case lex::token::dot_dot_eq:         // '..='
@@ -358,11 +523,8 @@ static val_ptr emit_bitcode(
 	case lex::token::less_than_eq:       // '<='
 	case lex::token::greater_than:       // '>'
 	case lex::token::greater_than_eq:    // '>='
-	case lex::token::bit_and:            // '&'
 	case lex::token::bit_and_eq:         // '&='
-	case lex::token::bit_xor:            // '^'
 	case lex::token::bit_xor_eq:         // '^='
-	case lex::token::bit_or:             // '|'
 	case lex::token::bit_or_eq:          // '|='
 	case lex::token::bit_left_shift:     // '<<'
 	case lex::token::bit_left_shift_eq:  // '<<='
@@ -556,7 +718,7 @@ static void emit_bitcode(
 		assert(init_val.kind == val_ptr::reference);
 		context.vars.push_back({ &var_decl, init_val.val });
 	}
-	if (var_decl.init_expr.has_value())
+	else if (var_decl.init_expr.has_value())
 	{
 		auto const init_val = get_value(
 			emit_bitcode(*var_decl.init_expr, context),

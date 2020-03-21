@@ -6,10 +6,16 @@ function main() -> int32
 
 	let i16: int16;
 
+	let num = 8 % 16;
+
 	let b = a + a;
 
+	// this doesn't do anything yet...
 	let c = 1i32 + 2i32;
 	let d = 'a'_test;
+
+	let e = a % i16 - 5;
+	let &f = e;
 
 	return 0;
 
