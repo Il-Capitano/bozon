@@ -14,8 +14,11 @@ function foo(n: &const int32) -> void
 	{}
 }
 
+function print(str: str) -> void;
+
 function main() -> int32
 {
+	print("hello");
 	let n: int32 = 0;
 	change_val(n);
 	let str = "hello";

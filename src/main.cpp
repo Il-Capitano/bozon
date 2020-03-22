@@ -1262,16 +1262,24 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", fn_decl->body.return_type);
+		bz::printf(os, ") -> {}", fn_decl->body.return_type);
 
-		indent();
-		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body.body)
+		if (fn_decl->body.body.has_value())
 		{
-			print_statement(os, s, indent_level + 1);
+			bz::print(os, "\n");
+			indent();
+			bz::print(os, "{\n");
+			for (auto &s : *fn_decl->body.body)
+			{
+				print_statement(os, s, indent_level + 1);
+			}
+			indent();
+			bz::print(os, "}\n");
 		}
-		indent();
-		bz::print(os, "}\n");
+		else
+		{
+			bz::print(os, ";\n");
+		}
 		return;
 	}
 
@@ -1304,16 +1312,24 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 			}
 			bz::printf(os, "{}: {}", p.identifier.data() ? p.identifier->value : "", p.var_type);
 		}
-		bz::printf(os, ") -> {}\n", op_decl->body.return_type);
+		bz::printf(os, ") -> {}", op_decl->body.return_type);
 
-		indent();
-		bz::print(os, "{\n");
-		for (auto &s : op_decl->body.body)
+		if (op_decl->body.body.has_value())
 		{
-			print_statement(os, s, indent_level + 1);
+			bz::print(os, "\n");
+			indent();
+			bz::print(os, "{\n");
+			for (auto &s : *op_decl->body.body)
+			{
+				print_statement(os, s, indent_level + 1);
+			}
+			indent();
+			bz::print(os, "}\n");
 		}
-		indent();
-		bz::print(os, "}\n");
+		else
+		{
+			bz::print(os, ";\n");
+		}
 		return;
 	}
 
@@ -1445,14 +1461,22 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		}
 		bz::printf(os, ") -> {}\n", fn_decl->body.return_type);
 
-		indent();
-		bz::print(os, "{\n");
-		for (auto &s : fn_decl->body.body)
+		if (fn_decl->body.body.has_value())
 		{
-			print_statement(os, s, indent_level + 1);
+			bz::print(os, "\n");
+			indent();
+			bz::print(os, "{\n");
+			for (auto &s : *fn_decl->body.body)
+			{
+				print_statement(os, s, indent_level + 1);
+			}
+			indent();
+			bz::print(os, "}\n");
 		}
-		indent();
-		bz::print(os, "}\n");
+		else
+		{
+			bz::print(os, ";\n");
+		}
 		return;
 	}
 
@@ -1487,14 +1511,22 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		}
 		bz::printf(os, ") -> {}\n", op_decl->body.return_type);
 
-		indent();
-		bz::print(os, "{\n");
-		for (auto &s : op_decl->body.body)
+		if (op_decl->body.body.has_value())
 		{
-			print_statement(os, s, indent_level + 1);
+			bz::print(os, "\n");
+			indent();
+			bz::print(os, "{\n");
+			for (auto &s : *op_decl->body.body)
+			{
+				print_statement(os, s, indent_level + 1);
+			}
+			indent();
+			bz::print(os, "}\n");
 		}
-		indent();
-		bz::print(os, "}\n");
+		else
+		{
+			bz::print(os, ";\n");
+		}
 		return;
 	}
 

@@ -445,19 +445,66 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::emit_bitcode(ctx::bitcode_context &context)
 {
+	// add the declarations to the module
 	for (auto &decl : this->_declarations)
 	{
-		if (decl.is<ast::decl_function>())
+		switch (decl.kind())
 		{
-			auto &fn_decl = *decl.get<ast::decl_function_ptr>();
-			bc::add_function_to_module(fn_decl.body, fn_decl.identifier->value, context);
+		case ast::declaration::index<ast::decl_variable>:
+			assert(false);
+			break;
+		case ast::declaration::index<ast::decl_function>:
+		{
+			auto &func_decl = *decl.get<ast::decl_function_ptr>();
+			bc::add_function_to_module(func_decl.body, func_decl.identifier->value, context);
+			break;
+		}
+		case ast::declaration::index<ast::decl_operator>:
+		{
+			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
+			bc::add_function_to_module(op_decl.body, bz::format("__operator_{}", op_decl.op->kind), context);
+			break;
+		}
+		case ast::declaration::index<ast::decl_struct>:
+			assert(false);
+			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
+	// add the definitions to the module
 	for (auto &decl : this->_declarations)
 	{
-		if (decl.is<ast::decl_function>())
+		switch (decl.kind())
 		{
-			bc::emit_function_bitcode(decl.get<ast::decl_function_ptr>()->body, context);
+		case ast::declaration::index<ast::decl_variable>:
+			assert(false);
+			break;
+		case ast::declaration::index<ast::decl_function>:
+		{
+			auto &func_decl = *decl.get<ast::decl_function_ptr>();
+			if (func_decl.body.body.has_value())
+			{
+				bc::emit_function_bitcode(func_decl.body, context);
+			}
+			break;
+		}
+		case ast::declaration::index<ast::decl_operator>:
+		{
+			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
+			if (op_decl.body.body.has_value())
+			{
+				bc::emit_function_bitcode(op_decl.body, context);
+			}
+			break;
+		}
+		case ast::declaration::index<ast::decl_struct>:
+			assert(false);
+			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 

@@ -758,7 +758,14 @@ static ast::declaration parse_function_definition(
 	auto params = get_function_params(stream, end, context);
 
 	context.assert_token(stream, lex::token::arrow);
-	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open>(stream, end, context);
+	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open, lex::token::semi_colon>(stream, end, context);
+
+	if (stream->kind == lex::token::semi_colon)
+	{
+		++stream; // ';'
+		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type));
+	}
+
 	context.assert_token(stream, lex::token::curly_open);
 
 	bz::vector<ast::statement> body = {};

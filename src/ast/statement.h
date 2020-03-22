@@ -262,15 +262,28 @@ struct decl_variable
 
 struct function_body
 {
-	bz::vector<decl_variable> params;
-	typespec                  return_type;
-	bz::vector<statement>     body;
+	bz::vector<decl_variable>           params;
+	typespec                            return_type;
+	bz::optional<bz::vector<statement>> body;
 };
 
 struct decl_function
 {
 	lex::token_pos identifier;
 	function_body  body;
+
+	decl_function(
+		lex::token_pos            _id,
+		bz::vector<decl_variable> _params,
+		typespec                  _ret_type
+	)
+		: identifier (_id),
+		  body{
+			  std::move(_params),
+			  std::move(_ret_type),
+			  {}
+		  }
+	{}
 
 	decl_function(
 		lex::token_pos            _id,

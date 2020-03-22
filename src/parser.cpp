@@ -858,16 +858,72 @@ void resolve(
 	}
 }
 
+void resolve_symbol_helper(
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	assert(context.scope_decls.size() == 0);
+	for (auto &p : func_body.params)
+	{
+		resolve(p, context);
+	}
+	// we need to add local variables, so we can use them in the return type
+	context.add_scope();
+	for (auto &p : func_body.params)
+	{
+		context.add_local_variable(p);
+	}
+	resolve(func_body.return_type, context);
+	context.remove_scope();
+}
+
 void resolve_symbol(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	for (auto &p : func_body.params)
+	if (context.scope_decls.size() != 0)
 	{
-		resolve(p, context);
+		ctx::parse_context inner_context(context.file_id, context.global_ctx);
+		inner_context.global_decls = context.global_decls;
+		resolve_symbol_helper(func_body, inner_context);
 	}
-	resolve(func_body.return_type, context);
+	else
+	{
+		resolve_symbol_helper(func_body, context);
+	}
+}
+
+void resolve_helper(
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	assert(context.scope_decls.size() == 0);
+	if (func_body.body.has_value())
+	{
+		for (auto &p : func_body.params)
+		{
+			resolve(p, context);
+		}
+		// functions parameters are added seperately, after all of them have been resolved
+		context.add_scope();
+		for (auto &p : func_body.params)
+		{
+			context.add_local_variable(p);
+		}
+		resolve(func_body.return_type, context);
+		for (auto &stmt : *func_body.body)
+		{
+			resolve(stmt, context);
+		}
+		context.remove_scope();
+	}
+	else
+	{
+		resolve_symbol_helper(func_body, context);
+	}
 }
 
 void resolve(
@@ -875,18 +931,16 @@ void resolve(
 	ctx::parse_context &context
 )
 {
-	context.add_scope();
-	for (auto &p : func_body.params)
+	if (context.scope_decls.size() != 0)
 	{
-		resolve(p, context);
-		context.add_local_variable(p);
+		ctx::parse_context inner_context(context.file_id, context.global_ctx);
+		inner_context.global_decls = context.global_decls;
+		resolve_helper(func_body, inner_context);
 	}
-	resolve(func_body.return_type, context);
-	for (auto &stmt : func_body.body)
+	else
 	{
-		resolve(stmt, context);
+		resolve_helper(func_body, context);
 	}
-	context.remove_scope();
 }
 
 void resolve(

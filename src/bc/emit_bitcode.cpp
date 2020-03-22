@@ -1130,6 +1130,7 @@ void emit_function_bitcode(
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
 
+	assert(func_body.body.has_value());
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 	// alloca's for function paraementers
@@ -1155,7 +1156,7 @@ void emit_function_bitcode(
 		}
 	}
 	// alloca's for statements
-	for (auto &stmt : func_body.body)
+	for (auto &stmt : *func_body.body)
 	{
 		emit_alloca(stmt, context);
 	}
@@ -1178,7 +1179,7 @@ void emit_function_bitcode(
 	}
 
 	// code emission for statements
-	for (auto &stmt : func_body.body)
+	for (auto &stmt : *func_body.body)
 	{
 		emit_bitcode(stmt, context);
 	}
