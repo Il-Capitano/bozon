@@ -281,7 +281,6 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 			return static_cast<ast::decl_function const *>(nullptr);
 		}
 	}
-	bz::printf("{} {}\n", id->value, this->global_decls.func_sets.size());
 	return {};
 }
 
