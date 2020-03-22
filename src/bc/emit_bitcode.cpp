@@ -135,12 +135,17 @@ static val_ptr emit_bitcode(
 	switch (literal.value.index())
 	{
 	case ast::expr_literal::integer_number:
+	{
+		assert(ctx::is_integer_kind(literal.type_kind));
+		auto const type = context.get_built_in_type(literal.type_kind);
 		return {
 			val_ptr::value,
-			context.builder.getInt32(
-				static_cast<uint32_t>(literal.value.get<ast::expr_literal::integer_number>())
+			llvm::ConstantInt::get(
+				type,
+				literal.value.get<ast::expr_literal::integer_number>()
 			)
 		};
+	}
 	case ast::expr_literal::floating_point_number:
 		return {
 			val_ptr::value,

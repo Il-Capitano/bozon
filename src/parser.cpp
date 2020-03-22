@@ -203,32 +203,62 @@ static void resolve_literal(
 	switch (literal.value.index())
 	{
 	case ast::expr_literal::integer_number:
-		expr.expr_type.expr_type = ast::make_ts_base_type(
-			context.get_type_info("int32")
-		);
+	{
+#define set_type_from_postfix(pf, type)                                              \
+if (postfix == pf)                                                                   \
+{                                                                                    \
+    if (val > static_cast<uint64_t>(std::numeric_limits<type##_t>::max()))           \
+    {                                                                                \
+        context.report_error(literal, "value is too big to fit into a '" #type "'"); \
+    }                                                                                \
+    literal.type_kind = ast::type_info::type_kind::type##_;                          \
+    expr.expr_type.expr_type = ast::make_ts_base_type(                               \
+        context.get_type_info(#type)                                                 \
+    );                                                                               \
+}
+		auto const val = literal.value.get<ast::expr_literal::integer_number>();
+		auto const postfix = literal.src_pos->postfix;
+
+		set_type_from_postfix("", int32)
+		else set_type_from_postfix("i8",  int8)
+		else set_type_from_postfix("i16", int16)
+		else set_type_from_postfix("i32", int32)
+		else set_type_from_postfix("i64", int64)
+		else set_type_from_postfix("u8",  uint8)
+		else set_type_from_postfix("u16", uint16)
+		else set_type_from_postfix("u32", uint32)
+		else set_type_from_postfix("u64", uint64)
+
 		break;
+#undef set_type_from_postfix
+	}
 	case ast::expr_literal::floating_point_number:
+		literal.type_kind = ast::type_info::type_kind::float64_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			context.get_type_info("float64")
 		);
 		break;
 	case ast::expr_literal::string:
+		literal.type_kind = ast::type_info::type_kind::str_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			context.get_type_info("str")
 		);
 		break;
 	case ast::expr_literal::character:
+		literal.type_kind = ast::type_info::type_kind::char_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			context.get_type_info("char")
 		);
 		break;
 	case ast::expr_literal::bool_true:
 	case ast::expr_literal::bool_false:
+		literal.type_kind = ast::type_info::type_kind::bool_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			context.get_type_info("bool")
 		);
 		break;
 	case ast::expr_literal::null:
+		literal.type_kind = ast::type_info::type_kind::null_t_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			context.get_type_info("null_t")
 		);

@@ -152,8 +152,9 @@ struct expr_literal
 		null                  = value_t::index_of<_null>,
 	};
 
-	value_t        value;
-	lex::token_pos src_pos;
+	value_t              value;
+	lex::token_pos       src_pos;
+	type_info::type_kind type_kind = type_info::type_kind::int8_;
 
 	expr_literal(lex::token_pos stream);
 
