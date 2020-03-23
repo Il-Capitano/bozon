@@ -462,6 +462,12 @@ public:
 
 	size_t index(void) const noexcept
 	{ return this->_index; }
+
+	bool is_null(void) const noexcept
+	{ return this->_index == null; }
+
+	bool not_null(void) const noexcept
+	{ return this->_index != null; }
 };
 
 template<typename ...Ts>
