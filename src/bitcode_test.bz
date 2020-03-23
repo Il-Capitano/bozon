@@ -18,6 +18,11 @@ function print(str: str) -> void;
 
 function main() -> int32
 {
+	let bool: bool = false;
+	while (bool)
+	{
+		bool = false;
+	}
 	print("hello");
 	let n: int32 = 0;
 	change_val(n);

@@ -897,15 +897,15 @@ static void emit_bitcode(
 	if (val_ptr == context.vars.end())
 	{
 		assert(var_decl.var_type.is<ast::ts_reference>());
-		assert(var_decl.init_expr.has_value());
-		auto const init_val = emit_bitcode(*var_decl.init_expr, context);
+		assert(var_decl.init_expr.not_null());
+		auto const init_val = emit_bitcode(var_decl.init_expr, context);
 		assert(init_val.kind == val_ptr::reference);
 		context.vars.push_back({ &var_decl, init_val.val });
 	}
-	else if (var_decl.init_expr.has_value())
+	else if (var_decl.init_expr.not_null())
 	{
 		auto const init_val = get_value(
-			emit_bitcode(*var_decl.init_expr, context),
+			emit_bitcode(var_decl.init_expr, context),
 			context
 		);
 		context.builder.CreateStore(init_val, val_ptr->second);

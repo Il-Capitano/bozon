@@ -1233,9 +1233,9 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 		auto &var_decl = decl.get<ast::decl_variable_ptr>();
 		indent();
 		bz::printf(os, "let {}: {}", var_decl->identifier->value, var_decl->var_type);
-		if (var_decl->init_expr.has_value())
+		if (var_decl->init_expr.not_null())
 		{
-			bz::printf(os, " = {};\n", var_decl->init_expr.get());
+			bz::printf(os, " = {};\n", var_decl->init_expr);
 		}
 		else
 		{
@@ -1430,9 +1430,9 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		auto &var_decl = stmt.get<ast::decl_variable_ptr>();
 		indent();
 		bz::printf(os, "let {}: {}", var_decl->identifier->value, var_decl->var_type);
-		if (var_decl->init_expr.has_value())
+		if (var_decl->init_expr.not_null())
 		{
-			bz::printf(os, " = {};\n", var_decl->init_expr.get());
+			bz::printf(os, " = {};\n", var_decl->init_expr);
 		}
 		else
 		{

@@ -209,11 +209,11 @@ struct stmt_expression
 
 struct decl_variable
 {
-	lex::token_range         tokens;
-	lex::token_pos           identifier;
-	typespec                 prototype;
-	typespec                 var_type;
-	bz::optional<expression> init_expr;
+	lex::token_range tokens;
+	lex::token_pos   identifier;
+	typespec         prototype;
+	typespec         var_type;
+	expression       init_expr; // is null if there's no initializer
 
 	decl_variable(
 		lex::token_range _tokens,
