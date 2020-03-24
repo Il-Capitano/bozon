@@ -803,6 +803,13 @@ static auto get_built_in_binary_bit_and_xor_or(
 		{
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
 		}
+		else if (
+			lhs_kind == ast::type_info::type_kind::bool_
+			&& rhs_kind == ast::type_info::type_kind::bool_
+		)
+		{
+			return expr_type_t{ ast::expression::rvalue, lhs_t };
+		}
 		else
 		{
 			return {};

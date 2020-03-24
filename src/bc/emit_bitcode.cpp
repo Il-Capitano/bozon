@@ -667,9 +667,20 @@ static val_ptr emit_built_in_binary_bit_and(
 	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
-	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
-	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
-	return { val_ptr::value, context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp") };
+	if (ctx::is_unsigned_integer_kind(lhs_kind))
+	{
+		assert(lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp") };
+	}
+	else
+	{
+		assert(lhs_kind == ast::type_info::type_kind::bool_ && lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp") };
+	}
 }
 
 static val_ptr emit_built_in_binary_bit_xor(
@@ -686,9 +697,20 @@ static val_ptr emit_built_in_binary_bit_xor(
 	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
-	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
-	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
-	return { val_ptr::value, context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp") };
+	if (ctx::is_unsigned_integer_kind(lhs_kind))
+	{
+		assert(lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp") };
+	}
+	else
+	{
+		assert(lhs_kind == ast::type_info::type_kind::bool_ && lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp") };
+	}
 }
 
 static val_ptr emit_built_in_binary_bit_or(
@@ -705,9 +727,20 @@ static val_ptr emit_built_in_binary_bit_or(
 	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
-	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
-	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
-	return { val_ptr::value, context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp") };
+	if (ctx::is_unsigned_integer_kind(lhs_kind))
+	{
+		assert(lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp") };
+	}
+	else
+	{
+		assert(lhs_kind == ast::type_info::type_kind::bool_ && lhs_kind == rhs_kind);
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		return { val_ptr::value, context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp") };
+	}
 }
 
 static val_ptr emit_built_in_binary_left_shift(
@@ -925,16 +958,16 @@ static val_ptr emit_bitcode(
 	case lex::token::multiply_eq:        // '*='
 	case lex::token::divide_eq:          // '/='
 	case lex::token::modulo_eq:          // '%='
-	case lex::token::dot_dot:            // '..'
-	case lex::token::dot_dot_eq:         // '..='
 	case lex::token::bit_and_eq:         // '&='
 	case lex::token::bit_xor_eq:         // '^='
 	case lex::token::bit_or_eq:          // '|='
 	case lex::token::bit_left_shift_eq:  // '<<='
 	case lex::token::bit_right_shift_eq: // '>>='
-//	case lex::token::arrow:              // '->' ???
 	case lex::token::square_open:        // '[]'
 
+	// these have no built-in operations
+	case lex::token::dot_dot:            // '..'
+	case lex::token::dot_dot_eq:         // '..='
 	default:
 		assert(false);
 		return {};
