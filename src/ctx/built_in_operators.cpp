@@ -611,14 +611,18 @@ static auto get_built_in_binary_modulo(
 			&& is_signed_integer_kind(rhs_kind)
 		)
 		{
-			return expr_type_t{ ast::expression::rvalue, lhs_t };
+			return lhs_kind > rhs_kind
+				? expr_type_t{ ast::expression::rvalue, lhs_t }
+				: expr_type_t{ ast::expression::rvalue, rhs_t };
 		}
 		else if (
 			is_unsigned_integer_kind(lhs_kind)
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			return expr_type_t{ ast::expression::rvalue, lhs_t };
+			return lhs_kind > rhs_kind
+				? expr_type_t{ ast::expression::rvalue, lhs_t }
+				: expr_type_t{ ast::expression::rvalue, rhs_t };
 		}
 		else
 		{

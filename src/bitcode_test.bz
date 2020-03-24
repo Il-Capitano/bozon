@@ -101,4 +101,6 @@ function foo() -> void
 	{
 		println("yay");
 	}
+
+	1u32 << u64;
 }

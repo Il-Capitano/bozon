@@ -1,9 +1,9 @@
+#include <llvm/IR/Verifier.h>
+#include <llvm/IR/Argument.h>
+
 #include "emit_bitcode.h"
 #include "ctx/built_in_operators.h"
 #include "colors.h"
-
-#include <llvm/IR/Verifier.h>
-#include <llvm/IR/Argument.h>
 
 namespace bc
 {
@@ -523,6 +523,33 @@ static val_ptr emit_built_in_binary_divide(
 	}
 }
 
+static val_ptr emit_built_in_binary_modulo(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
+	if (ctx::is_signed_integer_kind(lhs_kind))
+	{
+		return { val_ptr::value, context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp") };
+	}
+	else
+	{
+		assert(ctx::is_unsigned_integer_kind(lhs_kind));
+		return { val_ptr::value, context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp") };
+	}
+}
+
 static val_ptr emit_built_in_binary_cmp(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
@@ -600,7 +627,7 @@ static val_ptr emit_built_in_binary_cmp(
 	{
 		assert(rhs_t.is<ast::ts_base_type>());
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
-		assert(lhs_kind != ast::type_info::type_kind::str_ && "str compare not yet implemented");
+		assert(lhs_kind != ast::type_info::type_kind::str_);
 		auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
 		auto const p = ctx::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
 			: ctx::is_floating_point_kind(lhs_kind) ? get_cmp_predicate(2)
@@ -624,6 +651,215 @@ static val_ptr emit_built_in_binary_cmp(
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		return { val_ptr::value, context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp") };
 	}
+}
+
+static val_ptr emit_built_in_binary_bit_and(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
+	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
+	return { val_ptr::value, context.builder.CreateAnd(lhs_val, rhs_val, "bit_and_tmp") };
+}
+
+static val_ptr emit_built_in_binary_bit_xor(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
+	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
+	return { val_ptr::value, context.builder.CreateXor(lhs_val, rhs_val, "bit_xor_tmp") };
+}
+
+static val_ptr emit_built_in_binary_bit_or(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind);
+	auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
+	return { val_ptr::value, context.builder.CreateOr(lhs_val, rhs_val, "bit_or_tmp") };
+}
+
+static val_ptr emit_built_in_binary_left_shift(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+	return { val_ptr::value, context.builder.CreateShl(lhs_val, rhs_val, "lshift_tmp") };
+}
+
+static val_ptr emit_built_in_binary_right_shift(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+	return { val_ptr::value, context.builder.CreateLShr(lhs_val, rhs_val, "rshift_tmp") };
+}
+
+static val_ptr emit_built_in_binary_bool_and(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+
+	// generate computation of lhs
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto const lhs_bb_end = context.builder.GetInsertBlock();
+
+	// generate computation of rhs
+	auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
+	context.builder.SetInsertPoint(rhs_bb);
+	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const rhs_bb_end = context.builder.GetInsertBlock();
+
+	auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
+	// generate branches for lhs_bb and rhs_bb
+	context.builder.SetInsertPoint(lhs_bb_end);
+	// if lhs_val is true we need to check rhs
+	// if lhs_val is false we are done and the result is false
+	context.builder.CreateCondBr(lhs_val, rhs_bb, end_bb);
+	context.builder.SetInsertPoint(rhs_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	// create a phi node to get the final value
+	context.builder.SetInsertPoint(end_bb);
+	auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_and_tmp");
+	// coming from lhs always gives false
+	phi->addIncoming(context.builder.getFalse(), lhs_bb_end);
+	phi->addIncoming(rhs_val, rhs_bb_end);
+
+	return { val_ptr::value, phi };
+}
+
+static val_ptr emit_built_in_binary_bool_xor(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+	return { val_ptr::value, context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp") };
+}
+
+static val_ptr emit_built_in_binary_bool_or(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
+
+	// generate computation of lhs
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto const lhs_bb_end = context.builder.GetInsertBlock();
+
+	// generate computation of rhs
+	auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
+	context.builder.SetInsertPoint(rhs_bb);
+	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const rhs_bb_end = context.builder.GetInsertBlock();
+
+	auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
+	// generate branches for lhs_bb and rhs_bb
+	context.builder.SetInsertPoint(lhs_bb_end);
+	// if lhs_val is true we are done and the result if true
+	// if lhs_val is false we need to check rhs
+	context.builder.CreateCondBr(lhs_val, end_bb, rhs_bb);
+	context.builder.SetInsertPoint(rhs_bb_end);
+	context.builder.CreateBr(end_bb);
+
+	// create a phi node to get the final value
+	context.builder.SetInsertPoint(end_bb);
+	auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_or_tmp");
+	// coming from lhs always gives true
+	phi->addIncoming(context.builder.getTrue(), lhs_bb_end);
+	phi->addIncoming(rhs_val, rhs_bb_end);
+
+	return { val_ptr::value, phi };
 }
 
 
@@ -659,228 +895,30 @@ static val_ptr emit_bitcode(
 	case lex::token::divide:             // '/'
 		return emit_built_in_binary_divide(binary_op, context);
 	case lex::token::modulo:             // '%'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
-			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-			if (ctx::is_signed_integer_kind(lhs_kind))
-			{
-				auto const res = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
-				return { val_ptr::value, res };
-			}
-			else // if(ctx::is_unsigned_integer_kind(lhs_kind))
-			{
-				auto const res = context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
-				return { val_ptr::value, res };
-			}
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	case lex::token::bit_and:            // '&'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
-			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-			auto const res = context.builder.CreateAnd(lhs_val, rhs_val, "and_tmp");
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	case lex::token::bit_xor:            // '^'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
-			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-			auto const res = context.builder.CreateXor(lhs_val, rhs_val, "xor_tmp");
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	case lex::token::bit_or:             // '|'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
-			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-			auto const res = context.builder.CreateOr(lhs_val, rhs_val, "or_tmp");
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	case lex::token::bool_and:           // '&&'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-
-			// generate computation of lhs
-			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
-			auto const lhs_bb_end = context.builder.GetInsertBlock();
-
-			// generate computation of rhs
-			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
-			context.builder.SetInsertPoint(rhs_bb);
-			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
-			auto const rhs_bb_end = context.builder.GetInsertBlock();
-
-			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
-			// generate branches for lhs_bb and rhs_bb
-			context.builder.SetInsertPoint(lhs_bb_end);
-			// if lhs_val is true we need to check rhs
-			// if lhs_val is false we are done and the result is false
-			context.builder.CreateCondBr(lhs_val, rhs_bb, end_bb);
-			context.builder.SetInsertPoint(rhs_bb_end);
-			context.builder.CreateBr(end_bb);
-
-			// create a phi node to get the final value
-			context.builder.SetInsertPoint(end_bb);
-			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_and_tmp");
-			// coming from lhs always gives false
-			phi->addIncoming(context.builder.getFalse(), lhs_bb_end);
-			phi->addIncoming(rhs_val, rhs_bb_end);
-
-			return { val_ptr::value, phi };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	// xor doesn't have short-circuiting
-	case lex::token::bool_xor:           // '^^'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
-			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
-			auto const res = context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp");
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
-	case lex::token::bool_or:            // '||'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-
-			// generate computation of lhs
-			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
-			auto const lhs_bb_end = context.builder.GetInsertBlock();
-
-			// generate computation of rhs
-			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
-			context.builder.SetInsertPoint(rhs_bb);
-			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
-			auto const rhs_bb_end = context.builder.GetInsertBlock();
-
-			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
-			// generate branches for lhs_bb and rhs_bb
-			context.builder.SetInsertPoint(lhs_bb_end);
-			// if lhs_val is true we are done and the result if true
-			// if lhs_val is false we need to check rhs
-			context.builder.CreateCondBr(lhs_val, end_bb, rhs_bb);
-			context.builder.SetInsertPoint(rhs_bb_end);
-			context.builder.CreateBr(end_bb);
-
-			// create a phi node to get the final value
-			context.builder.SetInsertPoint(end_bb);
-			auto const phi = context.builder.CreatePHI(lhs_val->getType(), 2, "bool_or_tmp");
-			// coming from lhs always gives true
-			phi->addIncoming(context.builder.getTrue(), lhs_bb_end);
-			phi->addIncoming(rhs_val, rhs_bb_end);
-
-			return { val_ptr::value, phi };
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
+		return emit_built_in_binary_modulo(binary_op, context);
 	case lex::token::equals:             // '=='
 	case lex::token::not_equals:         // '!='
 	case lex::token::less_than:          // '<'
 	case lex::token::less_than_eq:       // '<='
 	case lex::token::greater_than:       // '>'
 	case lex::token::greater_than_eq:    // '>='
-		// built-in
-		if (binary_op.op_body == nullptr)
-		{
-			return emit_built_in_binary_cmp(binary_op, context);
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
+		return emit_built_in_binary_cmp(binary_op, context);
+	case lex::token::bit_and:            // '&'
+		return emit_built_in_binary_bit_and(binary_op, context);
+	case lex::token::bit_xor:            // '^'
+		return emit_built_in_binary_bit_xor(binary_op, context);
+	case lex::token::bit_or:             // '|'
+		return emit_built_in_binary_bit_or(binary_op, context);
+	case lex::token::bit_left_shift:     // '<<'
+		return emit_built_in_binary_left_shift(binary_op, context);
+	case lex::token::bit_right_shift:    // '>>'
+		return emit_built_in_binary_right_shift(binary_op, context);
+	case lex::token::bool_and:           // '&&'
+		return emit_built_in_binary_bool_and(binary_op, context);
+	case lex::token::bool_xor:           // '^^'
+		return emit_built_in_binary_bool_xor(binary_op, context);
+	case lex::token::bool_or:            // '||'
+		return emit_built_in_binary_bool_or(binary_op, context);
 
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
@@ -892,9 +930,7 @@ static val_ptr emit_bitcode(
 	case lex::token::bit_and_eq:         // '&='
 	case lex::token::bit_xor_eq:         // '^='
 	case lex::token::bit_or_eq:          // '|='
-	case lex::token::bit_left_shift:     // '<<'
 	case lex::token::bit_left_shift_eq:  // '<<='
-	case lex::token::bit_right_shift:    // '>>'
 	case lex::token::bit_right_shift_eq: // '>>='
 //	case lex::token::arrow:              // '->' ???
 	case lex::token::square_open:        // '[]'
