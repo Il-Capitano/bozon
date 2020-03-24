@@ -647,6 +647,38 @@ static val_ptr emit_bitcode(
 			return {};
 		}
 	}
+	case lex::token::equals:             // '=='
+	{
+		assert(binary_op.op_body == nullptr);
+		if (
+			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
+			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		)
+		{
+			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			if (ctx::is_integer_kind(lhs_kind))
+			{
+				// the same instruction applies to both signed and unsigned
+				return { val_ptr::value, context.builder.CreateICmpEQ(lhs_val, rhs_val, "eq_tmp") };
+			}
+			else if (ctx::is_floating_point_kind(lhs_kind))
+			{
+				return { val_ptr::value, context.builder.CreateFCmpOEQ(lhs_val, rhs_val, "eq_tmp") };
+			}
+			else
+			{
+				assert(false);
+				return {};
+			}
+		}
+		else
+		{
+			assert(false);
+			return {};
+		}
+	}
+	case lex::token::not_equals:         // '!='
 
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
@@ -655,8 +687,6 @@ static val_ptr emit_bitcode(
 	case lex::token::modulo_eq:          // '%='
 	case lex::token::dot_dot:            // '..'
 	case lex::token::dot_dot_eq:         // '..='
-	case lex::token::equals:             // '=='
-	case lex::token::not_equals:         // '!='
 	case lex::token::less_than:          // '<'
 	case lex::token::less_than_eq:       // '<='
 	case lex::token::greater_than:       // '>'
@@ -1131,6 +1161,8 @@ void emit_function_bitcode(
 )
 {
 	auto const fn = get_function_ptr(func_body, context);
+	assert(fn->size() == 0);
+
 	context.current_function = fn;
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
