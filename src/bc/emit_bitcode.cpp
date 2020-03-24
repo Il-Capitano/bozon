@@ -17,23 +17,20 @@ struct val_ptr
 	};
 	uintptr_t kind = 0;
 	llvm::Value *val = nullptr;
-};
 
-static llvm::Value *get_value(
-	val_ptr val,
-	ctx::bitcode_context &context
-)
-{
-	if (val.kind == val_ptr::reference)
+	llvm::Value *get_value(ctx::bitcode_context &context) const
 	{
-		auto const loaded_val = context.builder.CreateLoad(val.val, "load_tmp");
-		return loaded_val;
+		if (this->kind == reference)
+		{
+			auto const loaded_val = context.builder.CreateLoad(this->val, "load_tmp");
+			return loaded_val;
+		}
+		else
+		{
+			return this->val;
+		}
 	}
-	else
-	{
-		return val.val;
-	}
-}
+};
 
 static val_ptr emit_bitcode(
 	ast::expression const &expr,
@@ -55,8 +52,8 @@ static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 	assert(lhs.expr_type.expr_type.is<ast::ts_base_type>());
 	assert(rhs.expr_type.expr_type.is<ast::ts_base_type>());
 
-	auto const lhs_val = get_value(emit_bitcode(lhs, context), context);
-	auto const rhs_val = get_value(emit_bitcode(rhs, context), context);
+	auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
 
 	auto const lhs_kind = lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 	auto const rhs_kind = rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
@@ -232,27 +229,27 @@ static val_ptr emit_bitcode(
 	case lex::token::plus:               // '+'
 	{
 		assert(unary_op.op_body == nullptr);
-		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const val = emit_bitcode(unary_op.expr, context).get_value(context);
 		return { val_ptr::value, val };
 	}
 	case lex::token::minus:              // '-'
 	{
 		assert(unary_op.op_body == nullptr);
-		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const val = emit_bitcode(unary_op.expr, context).get_value(context);
 		auto const res = context.builder.CreateNeg(val, "unary_minus_tmp");
 		return { val_ptr::value, res };
 	}
 	case lex::token::dereference:        // '*'
 	{
 		assert(unary_op.op_body == nullptr);
-		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const val = emit_bitcode(unary_op.expr, context).get_value(context);
 		return { val_ptr::reference, val };
 	}
 	case lex::token::bit_not:            // '~'
 	case lex::token::bool_not:           // '!'
 	{
 		assert(unary_op.op_body == nullptr);
-		auto const val = get_value(emit_bitcode(unary_op.expr, context), context);
+		auto const val = emit_bitcode(unary_op.expr, context).get_value(context);
 		auto const res = context.builder.CreateNot(val, "unary_bit_not_tmp");
 		return { val_ptr::value, res };
 	}
@@ -264,6 +261,113 @@ static val_ptr emit_bitcode(
 		return {};
 	}
 }
+
+static val_ptr emit_built_in_binary_cmp(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	auto const op = binary_op.op->kind;
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	assert(
+		op == lex::token::equals
+		|| op == lex::token::not_equals
+		|| op == lex::token::less_than
+		|| op == lex::token::less_than_eq
+		|| op == lex::token::greater_than
+		|| op == lex::token::greater_than_eq
+	);
+	// 0: signed int
+	// 1: unsigned int
+	// 2: float
+	auto const get_cmp_predicate = [op](int kind)
+	{
+		llvm::CmpInst::Predicate preds[3][6] = {
+			{
+				llvm::CmpInst::ICMP_EQ,
+				llvm::CmpInst::ICMP_NE,
+				llvm::CmpInst::ICMP_SLT,
+				llvm::CmpInst::ICMP_SLE,
+				llvm::CmpInst::ICMP_SGT,
+				llvm::CmpInst::ICMP_SGE
+			},
+			{
+				llvm::CmpInst::ICMP_EQ,
+				llvm::CmpInst::ICMP_NE,
+				llvm::CmpInst::ICMP_ULT,
+				llvm::CmpInst::ICMP_ULE,
+				llvm::CmpInst::ICMP_UGT,
+				llvm::CmpInst::ICMP_UGE
+			},
+			{
+				llvm::CmpInst::FCMP_OEQ,
+				llvm::CmpInst::FCMP_ONE,
+				llvm::CmpInst::FCMP_OLT,
+				llvm::CmpInst::FCMP_OLE,
+				llvm::CmpInst::FCMP_OGT,
+				llvm::CmpInst::FCMP_OGE
+			},
+		};
+		int const pred = [op]() {
+			switch (op)
+			{
+			case lex::token::equals:
+				return 0;
+			case lex::token::not_equals:
+				return 1;
+			case lex::token::less_than:
+				return 2;
+			case lex::token::less_than_eq:
+				return 3;
+			case lex::token::greater_than:
+				return 4;
+			case lex::token::greater_than_eq:
+				return 5;
+			default:
+				return -1;
+			}
+		}();
+		assert(pred != -1);
+		return preds[kind][pred];
+	};
+
+	if (
+		lhs.expr_type.expr_type.is<ast::ts_base_type>()
+		// && binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+	)
+	{
+		assert(rhs.expr_type.expr_type.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+		assert(lhs_kind != ast::type_info::type_kind::str_ && "str compare not yet implemented");
+		auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
+		auto const p = ctx::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
+			: ctx::is_floating_point_kind(lhs_kind) ? get_cmp_predicate(2)
+			: get_cmp_predicate(1); // unsigned, bool, char
+		if (ctx::is_floating_point_kind(lhs_kind))
+		{
+			return { val_ptr::value, context.builder.CreateFCmp(p, lhs_val, rhs_val) };
+		}
+		else
+		{
+			return { val_ptr::value, context.builder.CreateICmp(p, lhs_val, rhs_val) };
+		}
+	}
+	else // if pointer
+	{
+		assert(
+			lhs.expr_type.expr_type.is<ast::ts_pointer>()
+			&& rhs.expr_type.expr_type.is<ast::ts_pointer>()
+		);
+		auto const lhs_ptr_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_ptr_val = emit_bitcode(rhs, context).get_value(context);
+		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_uint64_t());
+		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_uint64_t());
+		auto const p = get_cmp_predicate(1); // unsigned compare
+		return { val_ptr::value, context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp") };
+	}
+}
+
 
 static val_ptr emit_bitcode(
 	ast::expr_binary_op const &binary_op,
@@ -285,7 +389,7 @@ static val_ptr emit_bitcode(
 		assert(binary_op.op_body == nullptr);
 		auto const lhs_val = emit_bitcode(binary_op.lhs, context);
 		assert(lhs_val.kind == val_ptr::reference);
-		auto rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+		auto rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
 		auto &rhs_t = ast::remove_const(binary_op.rhs.expr_type.expr_type);
 		if (rhs_t.is<ast::ts_base_type>())
 		{
@@ -545,13 +649,13 @@ static val_ptr emit_bitcode(
 			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
 
 			// generate computation of lhs
-			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
 			auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 			// generate computation of rhs
 			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
 			context.builder.SetInsertPoint(rhs_bb);
-			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
 			auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
@@ -590,8 +694,8 @@ static val_ptr emit_bitcode(
 			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
 			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
-			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
-			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
+			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
 			auto const res = context.builder.CreateXor(lhs_val, rhs_val, "bool_xor_tmp");
 			return { val_ptr::value, res };
 		}
@@ -614,13 +718,13 @@ static val_ptr emit_bitcode(
 			assert(lhs_kind == ast::type_info::type_kind::bool_ && rhs_kind == ast::type_info::type_kind::bool_);
 
 			// generate computation of lhs
-			auto const lhs_val = get_value(emit_bitcode(binary_op.lhs, context), context);
+			auto const lhs_val = emit_bitcode(binary_op.lhs, context).get_value(context);
 			auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 			// generate computation of rhs
 			auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
 			context.builder.SetInsertPoint(rhs_bb);
-			auto const rhs_val = get_value(emit_bitcode(binary_op.rhs, context), context);
+			auto const rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
 			auto const rhs_bb_end = context.builder.GetInsertBlock();
 
 			auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
@@ -648,37 +752,21 @@ static val_ptr emit_bitcode(
 		}
 	}
 	case lex::token::equals:             // '=='
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
+	case lex::token::not_equals:         // '!='
+	case lex::token::less_than:          // '<'
+	case lex::token::less_than_eq:       // '<='
+	case lex::token::greater_than:       // '>'
+	case lex::token::greater_than_eq:    // '>='
+		// built-in
+		if (binary_op.op_body == nullptr)
 		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-			if (ctx::is_integer_kind(lhs_kind))
-			{
-				// the same instruction applies to both signed and unsigned
-				return { val_ptr::value, context.builder.CreateICmpEQ(lhs_val, rhs_val, "eq_tmp") };
-			}
-			else if (ctx::is_floating_point_kind(lhs_kind))
-			{
-				return { val_ptr::value, context.builder.CreateFCmpOEQ(lhs_val, rhs_val, "eq_tmp") };
-			}
-			else
-			{
-				assert(false);
-				return {};
-			}
+			return emit_built_in_binary_cmp(binary_op, context);
 		}
 		else
 		{
 			assert(false);
 			return {};
 		}
-	}
-	case lex::token::not_equals:         // '!='
 
 	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
@@ -687,10 +775,6 @@ static val_ptr emit_bitcode(
 	case lex::token::modulo_eq:          // '%='
 	case lex::token::dot_dot:            // '..'
 	case lex::token::dot_dot_eq:         // '..='
-	case lex::token::less_than:          // '<'
-	case lex::token::less_than_eq:       // '<='
-	case lex::token::greater_than:       // '>'
-	case lex::token::greater_than_eq:    // '>='
 	case lex::token::bit_and_eq:         // '&='
 	case lex::token::bit_xor_eq:         // '^='
 	case lex::token::bit_or_eq:          // '|='
@@ -728,7 +812,7 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const val = emit_bitcode(p, context);
-			params.push_back(get_value(val, context));
+			params.push_back(val.get_value(context));
 		}
 	}
 	auto const fn = get_function_ptr(*func_call.func_body, context);
@@ -783,7 +867,7 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	auto const condition = get_value(emit_bitcode(if_stmt.condition, context), context);
+	auto const condition = emit_bitcode(if_stmt.condition, context).get_value(context);
 	// assert that the condition is an i1 (bool)
 	assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
 	// the original block
@@ -841,7 +925,7 @@ static void emit_bitcode(
 	auto const condition_check = context.add_basic_block("while_condition_check");
 	context.builder.CreateBr(condition_check);
 	context.builder.SetInsertPoint(condition_check);
-	auto const condition = get_value(emit_bitcode(while_stmt.condition, context), context);
+	auto const condition = emit_bitcode(while_stmt.condition, context).get_value(context);
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	auto const while_bb = context.add_basic_block("while");
@@ -877,10 +961,7 @@ static void emit_bitcode(
 	}
 	else
 	{
-		auto const ret_val = get_value(
-			emit_bitcode(ret_stmt.expr, context),
-			context
-		);
+		auto const ret_val = emit_bitcode(ret_stmt.expr, context).get_value(context);
 		context.builder.CreateRet(ret_val);
 	}
 }
@@ -934,10 +1015,7 @@ static void emit_bitcode(
 	}
 	else if (var_decl.init_expr.not_null())
 	{
-		auto const init_val = get_value(
-			emit_bitcode(var_decl.init_expr, context),
-			context
-		);
+		auto const init_val = emit_bitcode(var_decl.init_expr, context).get_value(context);
 		context.builder.CreateStore(init_val, val_ptr->second);
 	}
 }
