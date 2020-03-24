@@ -124,7 +124,6 @@ namespace ctx
 	context.module.print(llvm::errs(), nullptr);
 
 	auto const target_triple = llvm::sys::getDefaultTargetTriple();
-	bz::printf("{}\n", target_triple.c_str());
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
 	llvm::InitializeAllTargetMCs();
