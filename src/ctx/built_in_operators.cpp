@@ -440,8 +440,32 @@ static auto get_built_in_binary_minus(
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			assert(false);
-			return {};
+			switch (lhs_kind > rhs_kind ? lhs_kind : rhs_kind)
+			{
+			case ast::type_info::type_kind::uint8_:
+				return expr_type_t{
+					ast::expression::rvalue,
+					ast::make_ts_base_type(context.get_type_info("int8"))
+				};
+			case ast::type_info::type_kind::uint16_:
+				return expr_type_t{
+					ast::expression::rvalue,
+					ast::make_ts_base_type(context.get_type_info("int16"))
+				};
+			case ast::type_info::type_kind::uint32_:
+				return expr_type_t{
+					ast::expression::rvalue,
+					ast::make_ts_base_type(context.get_type_info("int32"))
+				};
+			case ast::type_info::type_kind::uint64_:
+				return expr_type_t{
+					ast::expression::rvalue,
+					ast::make_ts_base_type(context.get_type_info("int64"))
+				};
+			default:
+				assert(false);
+				return {};
+			}
 		}
 		else if (
 			is_floating_point_kind(lhs_kind)
