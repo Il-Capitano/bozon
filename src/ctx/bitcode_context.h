@@ -22,7 +22,22 @@ struct bitcode_context
 
 	llvm::Value *get_variable_val(ast::decl_variable const *var_decl) const;
 	llvm::BasicBlock *add_basic_block(bz::string_view name);
+
 	llvm::Type *get_built_in_type(ast::type_info::type_kind kind) const;
+	llvm::Type *get_int8_t(void) const;
+	llvm::Type *get_int16_t(void) const;
+	llvm::Type *get_int32_t(void) const;
+	llvm::Type *get_int64_t(void) const;
+	llvm::Type *get_uint8_t(void) const;
+	llvm::Type *get_uint16_t(void) const;
+	llvm::Type *get_uint32_t(void) const;
+	llvm::Type *get_uint64_t(void) const;
+	llvm::Type *get_float32_t(void) const;
+	llvm::Type *get_float64_t(void) const;
+	llvm::Type *get_str_t(void) const;
+	llvm::Type *get_char_t(void) const;
+	llvm::Type *get_bool_t(void) const;
+
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
 

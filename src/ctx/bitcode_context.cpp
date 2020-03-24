@@ -58,6 +58,46 @@ llvm::Type *bitcode_context::get_built_in_type(ast::type_info::type_kind kind) c
 	return this->built_in_types[static_cast<int>(kind)];
 }
 
+llvm::Type *bitcode_context::get_int8_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::int8_)]; }
+
+llvm::Type *bitcode_context::get_int16_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::int16_)]; }
+
+llvm::Type *bitcode_context::get_int32_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::int32_)]; }
+
+llvm::Type *bitcode_context::get_int64_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::int64_)]; }
+
+llvm::Type *bitcode_context::get_uint8_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::uint8_)]; }
+
+llvm::Type *bitcode_context::get_uint16_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::uint16_)]; }
+
+llvm::Type *bitcode_context::get_uint32_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::uint32_)]; }
+
+llvm::Type *bitcode_context::get_uint64_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::uint64_)]; }
+
+llvm::Type *bitcode_context::get_float32_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::float32_)]; }
+
+llvm::Type *bitcode_context::get_float64_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::float64_)]; }
+
+llvm::Type *bitcode_context::get_str_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::str_)]; }
+
+llvm::Type *bitcode_context::get_char_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::char_)]; }
+
+llvm::Type *bitcode_context::get_bool_t(void) const
+{ return this->built_in_types[static_cast<int>(ast::type_info::type_kind::bool_)]; }
+
+
 bool bitcode_context::has_terminator(void) const
 {
 	auto const current_bb = this->builder.GetInsertBlock();
