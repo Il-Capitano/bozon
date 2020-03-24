@@ -121,7 +121,7 @@ namespace ctx
 		}
 	}
 
-	context.module.print(llvm::errs(), nullptr);
+//	context.module.print(llvm::errs(), nullptr);
 
 	auto const target_triple = llvm::sys::getDefaultTargetTriple();
 	llvm::InitializeAllTargetInfos();
