@@ -262,14 +262,133 @@ static val_ptr emit_bitcode(
 	}
 }
 
+
+static val_ptr emit_built_in_binary_assign(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto const lhs_val = emit_bitcode(binary_op.lhs, context);
+	assert(lhs_val.kind == val_ptr::reference);
+	auto rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
+	auto &rhs_t = ast::remove_const(binary_op.rhs.expr_type.expr_type);
+	if (rhs_t.is<ast::ts_base_type>())
+	{
+		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (ctx::is_signed_integer_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateIntCast(
+				rhs_val,
+				lhs_val.val->getType()->getPointerElementType(),
+				true,
+				"cast_tmp"
+			);
+		}
+		else if (ctx::is_unsigned_integer_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateIntCast(
+				rhs_val,
+				lhs_val.val->getType()->getPointerElementType(),
+				false,
+				"cast_tmp"
+			);
+		}
+		else if (ctx::is_floating_point_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateFPCast(
+				rhs_val,
+				lhs_val.val->getType()->getPointerElementType(),
+				"cast_tmp"
+			);
+		}
+	}
+	context.builder.CreateStore(rhs_val, lhs_val.val);
+	return lhs_val;
+}
+
+static val_ptr emit_built_in_binary_plus(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+	if (
+		lhs_t.is<ast::ts_base_type>()
+		&& rhs_t.is<ast::ts_base_type>()
+	)
+	{
+		auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+		auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		{
+			auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
+			return { val_ptr::value, context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp") };
+		}
+		else if (lhs_kind == ast::type_info::type_kind::char_)
+		{
+			auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+			auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint32_t(), false, "cast_tmp");
+			return { val_ptr::value, context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp") };
+		}
+		else // if (rhs_kind == ast::type_info::type_kind::char_)
+		{
+			assert(rhs_kind == ast::type_info::type_kind::char_);
+			auto lhs_val = emit_bitcode(lhs, context).get_value(context);
+			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_uint32_t(), false, "cast_tmp");
+			auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+			return { val_ptr::value, context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp") };
+		}
+	}
+	else if (lhs_t.is<ast::ts_pointer>())
+	{
+		assert(rhs_t.is<ast::ts_base_type>());
+		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+		}
+		return { val_ptr::value, context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp") };
+	}
+	else if (rhs_t.is<ast::ts_pointer>())
+	{
+		assert(lhs_t.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		auto lhs_val = emit_bitcode(lhs, context).get_value(context);
+		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
+		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		if (ctx::is_unsigned_integer_kind(lhs_kind))
+		{
+			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_uint64_t(), false);
+		}
+		return { val_ptr::value, context.builder.CreateGEP(rhs_val, lhs_val, "ptr_add_tmp") };
+	}
+	else
+	{
+		assert(false);
+		return {};
+	}
+}
+
 static val_ptr emit_built_in_binary_cmp(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
 )
 {
+	assert(binary_op.op_body == nullptr);
 	auto const op = binary_op.op->kind;
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
 	assert(
 		op == lex::token::equals
 		|| op == lex::token::not_equals
@@ -333,12 +452,12 @@ static val_ptr emit_built_in_binary_cmp(
 	};
 
 	if (
-		lhs.expr_type.expr_type.is<ast::ts_base_type>()
-		// && binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
+		lhs_t.is<ast::ts_base_type>()
+		// && rhs_t.is<ast::ts_base_type>()
 	)
 	{
-		assert(rhs.expr_type.expr_type.is<ast::ts_base_type>());
-		auto const lhs_kind = lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
+		assert(rhs_t.is<ast::ts_base_type>());
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 		assert(lhs_kind != ast::type_info::type_kind::str_ && "str compare not yet implemented");
 		auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
 		auto const p = ctx::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
@@ -356,8 +475,8 @@ static val_ptr emit_built_in_binary_cmp(
 	else // if pointer
 	{
 		assert(
-			lhs.expr_type.expr_type.is<ast::ts_pointer>()
-			&& rhs.expr_type.expr_type.is<ast::ts_pointer>()
+			lhs_t.is<ast::ts_pointer>()
+			&& rhs_t.is<ast::ts_pointer>()
 		);
 		auto const lhs_ptr_val = emit_bitcode(lhs, context).get_value(context);
 		auto const rhs_ptr_val = emit_bitcode(rhs, context).get_value(context);
@@ -374,6 +493,12 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
+	if (binary_op.op_body != nullptr)
+	{
+		assert(false);
+		return {};
+	}
+
 	switch (binary_op.op->kind)
 	{
 	// ==== non-overloadable ====
@@ -385,82 +510,9 @@ static val_ptr emit_bitcode(
 
 	// ==== overloadable ====
 	case lex::token::assign:             // '='
-	{
-		assert(binary_op.op_body == nullptr);
-		auto const lhs_val = emit_bitcode(binary_op.lhs, context);
-		assert(lhs_val.kind == val_ptr::reference);
-		auto rhs_val = emit_bitcode(binary_op.rhs, context).get_value(context);
-		auto &rhs_t = ast::remove_const(binary_op.rhs.expr_type.expr_type);
-		if (rhs_t.is<ast::ts_base_type>())
-		{
-			auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
-			if (
-				rhs_kind >= ast::type_info::type_kind::int8_
-				&& rhs_kind <= ast::type_info::type_kind::int64_
-			)
-			{
-				rhs_val = context.builder.CreateIntCast(
-					rhs_val,
-					lhs_val.val->getType()->getPointerElementType(),
-					true,
-					"cast_tmp"
-				);
-			}
-			else if (
-				rhs_kind >= ast::type_info::type_kind::uint8_
-				&& rhs_kind <= ast::type_info::type_kind::uint64_
-			)
-			{
-				rhs_val = context.builder.CreateIntCast(
-					rhs_val,
-					lhs_val.val->getType()->getPointerElementType(),
-					false,
-					"cast_tmp"
-				);
-			}
-			else if (
-				rhs_kind == ast::type_info::type_kind::float32_
-				|| rhs_kind == ast::type_info::type_kind::float64_
-			)
-			{
-				rhs_val = context.builder.CreateFPCast(
-					rhs_val,
-					lhs_val.val->getType()->getPointerElementType(),
-					"cast_tmp"
-				);
-			}
-		}
-		context.builder.CreateStore(rhs_val, lhs_val.val);
-		return lhs_val;
-	}
+		return emit_built_in_binary_assign(binary_op, context);
 	case lex::token::plus:               // '+'
-	{
-		assert(binary_op.op_body == nullptr);
-		if (
-			binary_op.lhs.expr_type.expr_type.is<ast::ts_base_type>()
-			&& binary_op.rhs.expr_type.expr_type.is<ast::ts_base_type>()
-		)
-		{
-			auto const lhs_kind = binary_op.lhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			auto const rhs_kind = binary_op.rhs.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind;
-			if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
-			{
-				auto const [lhs_val, rhs_val] = get_common_type_vals(binary_op.lhs, binary_op.rhs, context);
-				auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
-				return { val_ptr::value, res };
-			}
-			else
-			{
-				assert(false);
-				return {};
-			}
-		}
-		else
-		{
-			assert(false);
-			return {};
-		}
-	}
+		return emit_built_in_binary_plus(binary_op, context);
 	case lex::token::minus:              // '-'
 	{
 		assert(binary_op.op_body == nullptr);
