@@ -34,10 +34,14 @@ function factorial(n: int32) -> int32
 
 function main() -> int32
 {
+	println("");
 	println("hello");
 	print_int32(123);
 	print_int32(factorial(5));
 	println("hello again!!!!\nand on a new line\n");
+
+	foo();
+
 	return 0;
 /*
 	let bool: bool = false;
@@ -70,4 +74,31 @@ function foo() -> void
 	i8 == i16;
 	u8 == u64;
 	u8 < u64;
+
+	let a = 'a';
+	let b = 'c' + -1i8;
+
+	if (a == 'a')
+		println("a == 'a'");
+	else
+		println("a != 'a'");
+
+
+	if (
+		'a' + 1 == 'b'
+		&& 'c' + -1 == 'b'
+		&& 'c' + -1i8 == 'b'
+		&& 'c' - 1 == 'b'
+		&& 'a' - -1 == 'b'
+		&& 'a' - -1i8 == 'b'
+	)
+		println("b == 'b'");
+	else
+		println("b != 'b'");
+
+	const a = 1.0 * 0.5;
+	if (a == 0.5)
+	{
+		println("yay");
+	}
 }
