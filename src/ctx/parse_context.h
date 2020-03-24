@@ -25,9 +25,7 @@ struct parse_context
 
 	bz::vector<decl_set> scope_decls;
 
-	parse_context(uint32_t _file_id, global_context &_global_ctx)
-		: file_id(_file_id), global_ctx(_global_ctx)
-	{}
+	parse_context(uint32_t _file_id, global_context &_global_ctx);
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -65,6 +63,9 @@ struct parse_context
 	void add_global_struct(ast::decl_struct &struct_decl);
 
 	void add_local_variable(ast::decl_variable &var_decl);
+	void add_local_function(ast::decl_function &func_decl);
+	void add_local_operator(ast::decl_operator &op_decl);
+	void add_local_struct(ast::decl_struct &struct_decl);
 
 	auto get_identifier_decl(lex::token_pos id) const
 		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;

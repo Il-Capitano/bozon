@@ -1059,7 +1059,21 @@ void resolve(
 		break;
 	}
 	case ast::statement::index<ast::decl_function>:
+	{
+		// this is a declaration inside a scope
+		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
+		resolve(func_decl.body, context);
+		context.add_local_function(func_decl);
+		break;
+	}
 	case ast::statement::index<ast::decl_operator>:
+	{
+		// this is a declaration inside a scope
+		auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
+		resolve(op_decl.body, context);
+		context.add_local_operator(op_decl);
+		break;
+	}
 	case ast::statement::index<ast::decl_struct>:
 	default:
 		assert(false);

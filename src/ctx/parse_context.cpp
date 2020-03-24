@@ -6,6 +6,12 @@
 namespace ctx
 {
 
+parse_context::parse_context(uint32_t _file_id, global_context &_global_ctx)
+	: file_id(_file_id), global_ctx(_global_ctx), global_decls{}, scope_decls{}
+{
+	this->global_decls = this->global_ctx.get_decls(this->file_id).export_decls;
+}
+
 void parse_context::report_error(lex::token_pos it) const
 {
 	this->global_ctx.report_error(ctx::make_error(it));
@@ -84,7 +90,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 
 void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 {
-	this->global_ctx.report_ambiguous_id_error(this->file_id, id);
+	this->global_ctx.report_ambiguous_id_error(id);
 }
 
 
@@ -205,6 +211,56 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
 	assert(this->scope_decls.size() != 0);
 	this->scope_decls.back().var_decls.push_back(&var_decl);
+}
+
+void parse_context::add_local_function(ast::decl_function &func_decl)
+{
+	assert(this->scope_decls.size() != 0);
+	auto &sets = this->scope_decls.back().func_sets;
+	auto const set = std::find_if(
+		sets.begin(), sets.end(),
+		[id = func_decl.identifier->value](auto const &set) {
+			return id == set.id;
+		}
+	);
+	if (set == sets.end())
+	{
+		sets.push_back({ func_decl.identifier->value, { &func_decl } });
+	}
+	else
+	{
+		// TODO: check for conflicts
+		set->func_decls.push_back(&func_decl);
+	}
+	this->global_ctx.add_compile_function(func_decl);
+}
+
+void parse_context::add_local_operator(ast::decl_operator &op_decl)
+{
+	assert(this->scope_decls.size() != 0);
+	auto &sets = this->scope_decls.back().op_sets;
+	auto const set = std::find_if(
+		sets.begin(), sets.end(),
+		[op = op_decl.op->kind](auto const &set) {
+			return op == set.op;
+		}
+	);
+	if (set == sets.end())
+	{
+		sets.push_back({ op_decl.op->kind, { &op_decl } });
+	}
+	else
+	{
+		// TODO: check for conflicts
+		set->op_decls.push_back(&op_decl);
+	}
+	this->global_ctx.add_compile_operator(op_decl);
+}
+
+void parse_context::add_local_struct(ast::decl_struct &struct_decl)
+{
+	assert(this->scope_decls.size() != 0);
+	this->scope_decls.back().struct_decls.push_back(&struct_decl);
 }
 
 
@@ -1133,7 +1189,6 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 	else
 	{
 		// function call operator
-		assert(false);
 		return error_result;
 	}
 }

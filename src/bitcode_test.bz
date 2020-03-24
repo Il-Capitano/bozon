@@ -1,3 +1,4 @@
+/*
 function factorial(n: int32) -> int32
 {
 	return n * factorial(n - 1);
@@ -13,11 +14,31 @@ function foo(n: &const int32) -> void
 	if (false && false || true)
 	{}
 }
+*/
 
 function print(str: str) -> void;
+function println(str: str) -> void;
+function print_int32(n: int32) -> void;
+
+function factorial(n: int32) -> int32
+{
+	let res = 1;
+	while (!(n == 1))
+	{
+		res = res * n;
+		n = n - 1;
+	}
+	return res;
+}
 
 function main() -> int32
 {
+	println("hello");
+	print_int32(123);
+	print_int32(factorial(6));
+	println("hello again!!!!\nand on a new line\n");
+	return 0;
+/*
 	let bool: bool = false;
 	while (bool)
 	{
@@ -29,4 +50,5 @@ function main() -> int32
 	let str = "hello";
 	let str2 = "hello";
 	return factorial(1);
+*/
 }

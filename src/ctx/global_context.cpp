@@ -45,7 +45,7 @@ uint32_t global_context::get_file_id(bz::string_view file)
 {
 	if (this->_file_decls.empty())
 	{
-		this->_file_decls.push_back({ 0, file, {}, {} });
+		this->_file_decls.push_back({ 0, file, {} });
 		return 0;
 	}
 
@@ -58,7 +58,7 @@ uint32_t global_context::get_file_id(bz::string_view file)
 	if (it == this->_file_decls.end())
 	{
 		uint32_t const new_id = this->_file_decls.size();
-		this->_file_decls.push_back({ new_id, file, {}, {} });
+		this->_file_decls.push_back({ new_id, file, {} });
 		return new_id;
 	}
 
@@ -66,47 +66,28 @@ uint32_t global_context::get_file_id(bz::string_view file)
 }
 
 
-void global_context::report_ambiguous_id_error(uint32_t file_id, lex::token_pos id)
+void global_context::report_ambiguous_id_error(lex::token_pos id)
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto export_set = std::find_if(
-		file_decls.export_decls.func_sets.begin(), file_decls.export_decls.func_sets.end(),
-		[id = id->value](auto const &set) {
-			return id == set.id;
-		}
-	);
-	auto const internal_set = std::find_if(
-		file_decls.internal_decls.func_sets.begin(), file_decls.internal_decls.func_sets.end(),
-		[id = id->value](auto const &set) {
-			return id == set.id;
-		}
-	);
-	assert(
-		(export_set != file_decls.export_decls.func_sets.end())
-		|| (internal_set != file_decls.internal_decls.func_sets.end())
-	);
-
 	bz::vector<note> notes = {};
-	if (export_set != file_decls.export_decls.func_sets.end())
+
+	for (auto &file : this->_file_decls)
 	{
-		for (auto &decl : export_set->func_decls)
+		auto const it = std::find_if(
+			file.export_decls.func_sets.begin(), file.export_decls.func_sets.end(),
+			[id = id->value](auto const &func_set) {
+				return id == func_set.id;
+			}
+		);
+		if (it != file.export_decls.func_sets.end())
 		{
-			notes.emplace_back(make_note(
-				decl->identifier, "candidate:"
-			));
-		}
-	}
-	if (internal_set != file_decls.internal_decls.func_sets.end())
-	{
-		for (auto &decl : internal_set->func_decls)
-		{
-			notes.emplace_back(make_note(
-				decl->identifier, "candidate:"
-			));
+			for (auto decl : it->func_decls)
+			{
+				notes.emplace_back(make_note(decl->identifier, "candidate:"));
+			}
 		}
 	}
 
+	assert(!notes.empty());
 	this->_errors.emplace_back(make_error(id, "identifier is ambiguous", std::move(notes)));
 }
 
@@ -134,80 +115,46 @@ auto global_context::add_export_declaration(uint32_t file_id, ast::declaration &
 static auto check_for_id_redeclaration(
 	file_decls const &file_decls,
 	lex::token_pos id,
-	bool check_all
+	bool check_funcs
 ) -> bz::result<int, error>
 {
 	// check global variables
 	{
-		auto const export_it = std::find_if(
+		auto const it = std::find_if(
 			file_decls.export_decls.var_decls.begin(), file_decls.export_decls.var_decls.end(),
 			[id = id->value](auto const &v) {
 				return id == v->identifier->value;
 			}
 		);
-		if (export_it != file_decls.export_decls.var_decls.end())
+		if (it != file_decls.export_decls.var_decls.end())
 		{
 			return make_error(
 				id,
-				bz::format("redeclaration of a global name '{}'", id->value),
-				{ make_note((*export_it)->identifier, "previous declaration:") }
-			);
-		}
-
-		auto const internal_it = std::find_if(
-			file_decls.internal_decls.var_decls.begin(), file_decls.internal_decls.var_decls.end(),
-			[id = id->value](auto const &v) {
-				return id == v->identifier->value;
-			}
-		);
-		if (internal_it != file_decls.internal_decls.var_decls.end())
-		{
-			return make_error(
-				id,
-				bz::format("redeclaration of a global name '{}'", id->value),
-				{ make_note((*internal_it)->identifier, "previous declaration:") }
+				bz::format("redeclaration of global name '{}'", id->value),
+				{ make_note((*it)->identifier, "previous declaration:") }
 			);
 		}
 	}
 
-	// check global functions if check_all is true
-	if (check_all)
+	// check global functions
+	if (check_funcs)
 	{
-		bz::vector<note> notes = {};
-
-		auto const export_it = std::find_if(
+		auto const it = std::find_if(
 			file_decls.export_decls.func_sets.begin(), file_decls.export_decls.func_sets.end(),
 			[id = id->value](auto const &v) {
 				return id == v.id;
 			}
 		);
-		if (export_it != file_decls.export_decls.func_sets.end())
+		if (it != file_decls.export_decls.func_sets.end())
 		{
-			for (auto &decl : export_it->func_decls)
+			bz::vector<note> notes = {};
+			for (auto &decl : it->func_decls)
 			{
 				notes.emplace_back(make_note(decl->identifier, "previous declaration:"));
 			}
-		}
-
-		auto const internal_it = std::find_if(
-			file_decls.internal_decls.func_sets.begin(), file_decls.internal_decls.func_sets.end(),
-			[id = id->value](auto const &v) {
-				return id == v.id;
-			}
-		);
-		if (internal_it != file_decls.internal_decls.func_sets.end())
-		{
-			for (auto &decl : internal_it->func_decls)
-			{
-				notes.emplace_back(make_note(decl->identifier, "previous declaration:"));
-			}
-		}
-
-		if (!notes.empty())
-		{
 			return make_error(
 				id,
-				bz::format("redeclaration of a global name '{}'", id->value),
+				bz::format("redeclaration of global name '{}'", id->value),
 				std::move(notes)
 			);
 		}
@@ -219,87 +166,67 @@ static auto check_for_id_redeclaration(
 auto global_context::add_export_variable(uint32_t file_id, ast::decl_variable &var_decl)
 	-> bz::result<int, error>
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto res = check_for_id_redeclaration(file_decls, var_decl.identifier, true);
-	if (!res.has_error())
+	// check every file
+	for (auto &file : this->_file_decls)
 	{
-		file_decls.export_decls.var_decls.push_back(&var_decl);
+		auto res = check_for_id_redeclaration(file, var_decl.identifier, true);
+		if (res.has_error())
+		{
+			return res;
+		}
 	}
 
-	return res;
+	auto &file_decls = this->get_decls(file_id);
+	file_decls.export_decls.var_decls.push_back(&var_decl);
+	this->_compile_decls.var_decls.push_back(&var_decl);
+
+	return 0;
 }
 
-auto global_context::add_internal_variable(uint32_t file_id, ast::decl_variable &var_decl)
-	-> bz::result<int, error>
+void global_context::add_compile_variable(ast::decl_variable &var_decl)
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto res = check_for_id_redeclaration(file_decls, var_decl.identifier, true);
-	if (!res.has_error())
-	{
-		file_decls.internal_decls.var_decls.push_back(&var_decl);
-	}
-
-	return res;
+	this->_compile_decls.var_decls.push_back(&var_decl);
 }
 
 auto global_context::add_export_function(uint32_t file_id, ast::decl_function &func_decl)
 	-> bz::result<int, error>
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto res = check_for_id_redeclaration(file_decls, func_decl.identifier, false);
-	if (!res.has_error())
+	// check every file
+	for (auto &file : this->_file_decls)
 	{
-		auto &func_sets = file_decls.export_decls.func_sets;
-		auto set = std::find_if(
-			func_sets.begin(), func_sets.end(),
-			[id = func_decl.identifier->value](auto const &overload_set) {
-				return id == overload_set.id;
-			}
-		);
-		if (set == func_sets.end())
+		auto res = check_for_id_redeclaration(file, func_decl.identifier, false);
+		if (res.has_error())
 		{
-			func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
-		}
-		else
-		{
-			// TODO: check for conflicts
-			set->func_decls.push_back(&func_decl);
+			return res;
 		}
 	}
 
-	return res;
+	auto &file_decls = this->get_decls(file_id);
+	auto &func_sets = file_decls.export_decls.func_sets;
+	auto set = std::find_if(
+		func_sets.begin(), func_sets.end(),
+		[id = func_decl.identifier->value](auto const &overload_set) {
+			return id == overload_set.id;
+		}
+	);
+	if (set == func_sets.end())
+	{
+		func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
+	}
+	else
+	{
+		// TODO: check for conflicts
+		set->func_decls.push_back(&func_decl);
+	}
+
+	this->_compile_decls.func_decls.push_back(&func_decl);
+
+	return 0;
 }
 
-auto global_context::add_internal_function(uint32_t file_id, ast::decl_function &func_decl)
-	-> bz::result<int, error>
+void global_context::add_compile_function(ast::decl_function &func_decl)
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto res = check_for_id_redeclaration(file_decls, func_decl.identifier, false);
-	if (!res.has_error())
-	{
-		auto &func_sets = file_decls.internal_decls.func_sets;
-		auto set = std::find_if(
-			func_sets.begin(), func_sets.end(),
-			[id = func_decl.identifier->value](auto const &overload_set) {
-				return id == overload_set.id;
-			}
-		);
-		if (set == func_sets.end())
-		{
-			func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
-		}
-		else
-		{
-			// TODO: check for conflicts
-			set->func_decls.push_back(&func_decl);
-		}
-	}
-
-	return res;
+	this->_compile_decls.func_decls.push_back(&func_decl);
 }
 
 auto global_context::add_export_operator(uint32_t file_id, ast::decl_operator &op_decl)
@@ -307,7 +234,6 @@ auto global_context::add_export_operator(uint32_t file_id, ast::decl_operator &o
 {
 	auto &file_decls = this->get_decls(file_id);
 
-	// TODO: check for redeclaration here
 	auto &op_sets = file_decls.export_decls.op_sets;
 	auto set = std::find_if(
 		op_sets.begin(), op_sets.end(),
@@ -325,110 +251,39 @@ auto global_context::add_export_operator(uint32_t file_id, ast::decl_operator &o
 		set->op_decls.push_back(&op_decl);
 	}
 
+	this->_compile_decls.op_decls.push_back(&op_decl);
+
 	return 0;
 }
 
-auto global_context::add_internal_operator(uint32_t file_id, ast::decl_operator &op_decl)
-	-> bz::result<int, error>
+void global_context::add_compile_operator(ast::decl_operator &op_decl)
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	// TODO: check for redeclaration here
-	auto &op_sets = file_decls.internal_decls.op_sets;
-	auto set = std::find_if(
-		op_sets.begin(), op_sets.end(),
-		[op = op_decl.op->kind](auto const &overload_set) {
-			return op == overload_set.op;
-		}
-	);
-	if (set == op_sets.end())
-	{
-		op_sets.push_back({ op_decl.op->kind, { &op_decl } });
-	}
-	else
-	{
-		// TODO: check for conflicts
-		set->op_decls.push_back(&op_decl);
-	}
-
-	return 0;
+	this->_compile_decls.op_decls.push_back(&op_decl);
 }
 
 auto global_context::add_export_struct(uint32_t file_id, ast::decl_struct &struct_decl)
 	-> bz::result<int, error>
 {
+	for (auto &file : this->_file_decls)
+	{
+		auto const it = std::find_if(
+			file.export_decls.struct_decls.begin(), file.export_decls.struct_decls.end(),
+			[id = struct_decl.identifier->value](auto const struct_decl) {
+				return id == struct_decl->identifier->value;
+			}
+		);
+		if (it != file.export_decls.struct_decls.end())
+		{
+			return make_error(
+				struct_decl.identifier,
+				bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
+				{ make_note((*it)->identifier, "previous declaration:") }
+			);
+		}
+	}
+
 	auto &file_decls = this->get_decls(file_id);
-
-	auto const export_decl = std::find_if(
-		file_decls.export_decls.struct_decls.begin(), file_decls.export_decls.struct_decls.end(),
-		[id = struct_decl.identifier->value](auto const &decl) {
-			return id == decl->identifier->value;
-		}
-	);
-	if (export_decl != file_decls.export_decls.struct_decls.end())
-	{
-		return make_error(
-			struct_decl.identifier,
-			bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
-			{ make_note((*export_decl)->identifier, "previous declaration:") }
-		);
-	}
-
-	auto const internal_decl = std::find_if(
-		file_decls.internal_decls.struct_decls.begin(), file_decls.internal_decls.struct_decls.end(),
-		[id = struct_decl.identifier->value](auto const &decl) {
-			return id == decl->identifier->value;
-		}
-	);
-	if (internal_decl != file_decls.internal_decls.struct_decls.end())
-	{
-		return make_error(
-			struct_decl.identifier,
-			bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
-			{ make_note((*internal_decl)->identifier, "previous declaration:") }
-		);
-	}
-
 	file_decls.export_decls.struct_decls.push_back(&struct_decl);
-	return 0;
-}
-
-auto global_context::add_internal_struct(uint32_t file_id, ast::decl_struct &struct_decl)
-	-> bz::result<int, error>
-{
-	auto &file_decls = this->get_decls(file_id);
-
-	auto const export_decl = std::find_if(
-		file_decls.export_decls.struct_decls.begin(), file_decls.export_decls.struct_decls.end(),
-		[id = struct_decl.identifier->value](auto const &decl) {
-			return id == decl->identifier->value;
-		}
-	);
-	if (export_decl != file_decls.export_decls.struct_decls.end())
-	{
-		return make_error(
-			struct_decl.identifier,
-			bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
-			{ make_note((*export_decl)->identifier, "previous declaration:") }
-		);
-	}
-
-	auto const internal_decl = std::find_if(
-		file_decls.internal_decls.struct_decls.begin(), file_decls.internal_decls.struct_decls.end(),
-		[id = struct_decl.identifier->value](auto const &decl) {
-			return id == decl->identifier->value;
-		}
-	);
-	if (internal_decl != file_decls.internal_decls.struct_decls.end())
-	{
-		return make_error(
-			struct_decl.identifier,
-			bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
-			{ make_note((*internal_decl)->identifier, "previous declaration:") }
-		);
-	}
-
-	file_decls.internal_decls.struct_decls.push_back(&struct_decl);
 	return 0;
 }
 

@@ -431,11 +431,6 @@ void src_file::report_and_clear_errors(void)
 
 	for (auto &decl : this->_declarations)
 	{
-		context.add_global_declaration(decl);
-	}
-
-	for (auto &decl : this->_declarations)
-	{
 		::resolve(decl, context);
 	}
 
@@ -443,6 +438,7 @@ void src_file::report_and_clear_errors(void)
 	return !this->_global_ctx.has_errors();
 }
 
+/*
 [[nodiscard]] bool src_file::emit_bitcode(ctx::bitcode_context &context)
 {
 	// add the declarations to the module
@@ -510,3 +506,4 @@ void src_file::report_and_clear_errors(void)
 
 	return true;
 }
+*/

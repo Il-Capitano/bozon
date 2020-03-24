@@ -14,25 +14,30 @@
 namespace ctx
 {
 
+struct decl_list
+{
+	bz::vector<ast::decl_variable *> var_decls;
+	bz::vector<ast::decl_function *> func_decls;
+	bz::vector<ast::decl_operator *> op_decls;
+};
+
 struct file_decls
 {
 	uint32_t file_id;
 	bz::string_view file_name;
 	decl_set export_decls;
-	decl_set internal_decls;
 };
 
 struct global_context
 {
-private:
 	bz::vector<file_decls> _file_decls;
+	decl_list _compile_decls;
 	// using a list here, so iterators aren't invalidated
 	std::list<ast::type_info> _types;
 	bz::vector<error> _errors;
 
 	file_decls &get_decls(uint32_t file_id);
 
-public:
 	global_context(void);
 
 	uint32_t get_file_id(bz::string_view file);
@@ -52,29 +57,24 @@ public:
 	size_t get_error_count(void) const
 	{ return this->_errors.size(); }
 
-	void report_ambiguous_id_error(uint32_t file_id, lex::token_pos id);
+	void report_ambiguous_id_error(lex::token_pos id);
 
 	auto add_export_declaration(uint32_t file_id, ast::declaration &decl)
 		-> bz::result<int, error>;
 
 	auto add_export_variable(uint32_t file_id, ast::decl_variable &var_decl)
 		-> bz::result<int, error>;
-	auto add_internal_variable(uint32_t file_id, ast::decl_variable &var_decl)
-		-> bz::result<int, error>;
+	void add_compile_variable(ast::decl_variable &var_decl);
 
 	auto add_export_function(uint32_t file_id, ast::decl_function &func_decl)
 		-> bz::result<int, error>;
-	auto add_internal_function(uint32_t file_id, ast::decl_function &func_decl)
-		-> bz::result<int, error>;
+	void add_compile_function(ast::decl_function &func_decl);
 
 	auto add_export_operator(uint32_t file_id, ast::decl_operator &op_decl)
 		-> bz::result<int, error>;
-	auto add_internal_operator(uint32_t file_id, ast::decl_operator &op_decl)
-		-> bz::result<int, error>;
+	void add_compile_operator(ast::decl_operator &op_decl);
 
 	auto add_export_struct(uint32_t file_id, ast::decl_struct &struct_decl)
-		-> bz::result<int, error>;
-	auto add_internal_struct(uint32_t file_id, ast::decl_struct &struct_decl)
 		-> bz::result<int, error>;
 
 	ast::type_info const *get_type_info(uint32_t file_id, bz::string_view id);
