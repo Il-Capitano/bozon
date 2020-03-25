@@ -265,10 +265,7 @@ static auto get_built_in_binary_assign(
 		return {};
 	}
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (lhs_kind == rhs_kind)
@@ -304,10 +301,7 @@ static auto get_built_in_binary_assign(
 			return {};
 		}
 	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_pointer>()
-	)
+	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>())
 	{
 		// TODO: use is_convertible here
 		if (lhs_t.get<ast::ts_pointer_ptr>()->base == rhs_t.get<ast::ts_pointer_ptr>()->base)
@@ -335,10 +329,7 @@ static auto get_built_in_binary_plus(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -409,6 +400,78 @@ static auto get_built_in_binary_plus(
 	}
 }
 
+static auto get_built_in_binary_plus_eq(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = lhs.expr_type;
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
+	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_signed_integer_kind(lhs_kind)
+			&& is_signed_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_floating_point_kind(lhs_kind)
+			&& is_floating_point_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			lhs_kind == ast::type_info::type_kind::char_
+			&& is_integer_kind(rhs_kind)
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (
+		lhs_t.is<ast::ts_pointer>()
+		&& rhs_t.is<ast::ts_base_type>()
+		&& is_integer_kind(rhs_t.get<ast::ts_base_type_ptr>()->info->kind)
+	)
+	{
+		return expr_type_t{ lhs.type_kind, lhs_t };
+	}
+	else
+	{
+		return {};
+	}
+}
+
 static auto get_built_in_binary_minus(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
@@ -420,9 +483,7 @@ static auto get_built_in_binary_minus(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>()
 	)
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
@@ -498,10 +559,7 @@ static auto get_built_in_binary_minus(
 			return {};
 		}
 	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>())
 	{
 		if (is_integer_kind(rhs_t.get<ast::ts_base_type_ptr>()->info->kind))
 		{
@@ -512,10 +570,7 @@ static auto get_built_in_binary_minus(
 			return {};
 		}
 	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_pointer>()
-	)
+	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>())
 	{
 		// TODO: use some kind of are_matchable_types here
 		if (lhs_t.get<ast::ts_pointer_ptr>()->base == rhs_t.get<ast::ts_pointer_ptr>()->base)
@@ -546,10 +601,7 @@ static auto get_built_in_binary_multiply_divide(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -600,10 +652,7 @@ static auto get_built_in_binary_modulo(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -646,10 +695,7 @@ static auto get_built_in_binary_equals_not_equals(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -686,10 +732,7 @@ static auto get_built_in_binary_equals_not_equals(
 			return {};
 		}
 	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_pointer>()
-	)
+	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>())
 	{
 		// TODO: use some kind of are_matchable_types here
 		if (lhs_t.get<ast::ts_pointer_ptr>()->base == rhs_t.get<ast::ts_pointer_ptr>()->base)
@@ -721,10 +764,7 @@ static auto get_built_in_binary_compare(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -756,10 +796,7 @@ static auto get_built_in_binary_compare(
 			return {};
 		}
 	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_pointer>()
-	)
+	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>())
 	{
 		// TODO: use some kind of are_matchable_types here
 		if (lhs_t.get<ast::ts_pointer_ptr>()->base == rhs_t.get<ast::ts_pointer_ptr>()->base)
@@ -832,12 +869,15 @@ static auto get_built_in_binary_bit_and_xor_or_eq(
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
 	if (
-		(lhs.type_kind == ast::expression::lvalue
-		|| lhs.type_kind == ast::expression::lvalue_reference)
-		&& !lhs_t.is<ast::ts_constant>()
-		&& lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
 	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -875,10 +915,7 @@ static auto get_built_in_binary_bit_shift(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -909,10 +946,7 @@ static auto get_built_in_binary_bool_and_xor_or(
 	auto &lhs_t = ast::remove_const(lhs.expr_type);
 	auto &rhs_t = ast::remove_const(rhs.expr_type);
 
-	if (
-		lhs_t.is<ast::ts_base_type>()
-		&& rhs_t.is<ast::ts_base_type>()
-	)
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
@@ -946,6 +980,8 @@ auto get_built_in_operation_type(
 		return get_built_in_binary_assign(lhs, rhs);
 	case lex::token::plus:               // '+'
 		return get_built_in_binary_plus(lhs, rhs);
+	case lex::token::plus_eq:            // '+='
+		return get_built_in_binary_plus_eq(lhs, rhs);
 	case lex::token::minus:              // '-'
 		return get_built_in_binary_minus(lhs, rhs, context);
 	case lex::token::multiply:           // '*'
@@ -977,7 +1013,6 @@ auto get_built_in_operation_type(
 	case lex::token::bool_or:            // '||'
 		return get_built_in_binary_bool_and_xor_or(lhs, rhs);
 
-	case lex::token::plus_eq:            // '+='
 	case lex::token::minus_eq:           // '-='
 	case lex::token::multiply_eq:        // '*='
 	case lex::token::divide_eq:          // '/='
