@@ -648,6 +648,45 @@ static val_ptr emit_built_in_binary_multiply(
 	}
 }
 
+static val_ptr emit_built_in_binary_multiply_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	// we calculate the right hand side first
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	auto const lhs_val = lhs_val_ref.get_value(context);
+	llvm::Value *res;
+	if (ctx::is_integer_kind(lhs_kind))
+	{
+		rhs_val = context.builder.CreateIntCast(
+			rhs_val,
+			lhs_val->getType(),
+			ctx::is_signed_integer_kind(lhs_kind)
+		);
+		res = context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp");
+	}
+	else
+	{
+		assert(ctx::is_floating_point_kind(lhs_kind));
+		rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+		res = context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp");
+	}
+	context.builder.CreateStore(res, lhs_val_ref.val);
+	return lhs_val_ref;
+}
+
 static val_ptr emit_built_in_binary_divide(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
@@ -679,6 +718,46 @@ static val_ptr emit_built_in_binary_divide(
 	}
 }
 
+static val_ptr emit_built_in_binary_divide_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	// we calculate the right hand side first
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	auto const lhs_val = lhs_val_ref.get_value(context);
+	llvm::Value *res;
+	if (ctx::is_signed_integer_kind(lhs_kind))
+	{
+		rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), true);
+		res = context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp");
+	}
+	else if (ctx::is_unsigned_integer_kind(lhs_kind))
+	{
+		rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+		res = context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp");
+	}
+	else
+	{
+		assert(ctx::is_floating_point_kind(lhs_kind));
+		rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+		res = context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
+	}
+	context.builder.CreateStore(res, lhs_val_ref.val);
+	return lhs_val_ref;
+}
+
 static val_ptr emit_built_in_binary_modulo(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
@@ -704,6 +783,41 @@ static val_ptr emit_built_in_binary_modulo(
 		assert(ctx::is_unsigned_integer_kind(lhs_kind));
 		return { val_ptr::value, context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp") };
 	}
+}
+
+static val_ptr emit_built_in_binary_modulo_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	// we calculate the right hand side first
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	auto const lhs_val = lhs_val_ref.get_value(context);
+	llvm::Value *res;
+	if (ctx::is_signed_integer_kind(lhs_kind))
+	{
+		rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), true);
+		res = context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
+	}
+	else
+	{
+		assert(ctx::is_unsigned_integer_kind(lhs_kind));
+		rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+		res = context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
+	}
+	context.builder.CreateStore(res, lhs_val_ref.val);
+	return lhs_val_ref;
 }
 
 static val_ptr emit_built_in_binary_cmp(
@@ -1154,10 +1268,16 @@ static val_ptr emit_bitcode(
 		return emit_built_in_binary_minus_eq(binary_op, context);
 	case lex::token::multiply:           // '*'
 		return emit_built_in_binary_multiply(binary_op, context);
+	case lex::token::multiply_eq:        // '*='
+		return emit_built_in_binary_multiply_eq(binary_op, context);
 	case lex::token::divide:             // '/'
 		return emit_built_in_binary_divide(binary_op, context);
+	case lex::token::divide_eq:          // '/='
+		return emit_built_in_binary_divide_eq(binary_op, context);
 	case lex::token::modulo:             // '%'
 		return emit_built_in_binary_modulo(binary_op, context);
+	case lex::token::modulo_eq:          // '%='
+		return emit_built_in_binary_modulo_eq(binary_op, context);
 	case lex::token::equals:             // '=='
 	case lex::token::not_equals:         // '!='
 	case lex::token::less_than:          // '<'
@@ -1188,9 +1308,6 @@ static val_ptr emit_bitcode(
 	case lex::token::bool_or:            // '||'
 		return emit_built_in_binary_bool_or(binary_op, context);
 
-	case lex::token::multiply_eq:        // '*='
-	case lex::token::divide_eq:          // '/='
-	case lex::token::modulo_eq:          // '%='
 	case lex::token::bit_left_shift_eq:  // '<<='
 	case lex::token::bit_right_shift_eq: // '>>='
 	case lex::token::square_open:        // '[]'
