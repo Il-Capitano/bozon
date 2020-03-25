@@ -1091,6 +1091,47 @@ static auto get_built_in_binary_bit_shift(
 	}
 }
 
+// uint <<>>= uint
+static auto get_built_in_binary_bit_shift_eq(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = lhs.expr_type; // remove_const is not needed
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
+	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		return {};
+	}
+}
+
 // bool &&^^|| bool -> bool
 static auto get_built_in_binary_bool_and_xor_or(
 	ast::expression::expr_type_t const &lhs,
@@ -1170,13 +1211,14 @@ auto get_built_in_operation_type(
 	case lex::token::bit_left_shift:     // '<<'
 	case lex::token::bit_right_shift:    // '>>'
 		return get_built_in_binary_bit_shift(lhs, rhs);
+	case lex::token::bit_left_shift_eq:  // '<<='
+	case lex::token::bit_right_shift_eq: // '>>='
+		return get_built_in_binary_bit_shift_eq(lhs, rhs);
 	case lex::token::bool_and:           // '&&'
 	case lex::token::bool_xor:           // '^^'
 	case lex::token::bool_or:            // '||'
 		return get_built_in_binary_bool_and_xor_or(lhs, rhs);
 
-	case lex::token::bit_left_shift_eq:  // '<<='
-	case lex::token::bit_right_shift_eq: // '>>='
 	case lex::token::square_open:        // '[]'
 		assert(false);
 		return {};
