@@ -320,6 +320,13 @@ static auto get_built_in_binary_assign(
 	}
 }
 
+// sint + sint -> sint
+// uint + uint -> uint
+// float + float -> float
+// char + int -> char
+// int + char -> char
+// ptr + int -> ptr
+// int + ptr -> ptr
 static auto get_built_in_binary_plus(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -401,78 +408,13 @@ static auto get_built_in_binary_plus(
 	}
 }
 
-static auto get_built_in_binary_plus_minus_eq(
-	ast::expression::expr_type_t const &lhs,
-	ast::expression::expr_type_t const &rhs
-) -> ast::expression::expr_type_t
-{
-	using expr_type_t = ast::expression::expr_type_t;
-
-	auto &lhs_t = lhs.expr_type;
-	auto &rhs_t = ast::remove_const(rhs.expr_type);
-
-	if (
-		(lhs.type_kind != ast::expression::lvalue
-		&& lhs.type_kind != ast::expression::lvalue_reference)
-		|| lhs_t.is<ast::ts_constant>()
-	)
-	{
-		return {};
-	}
-
-	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
-	{
-		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
-			&& lhs_kind >= rhs_kind
-		)
-		{
-			return expr_type_t{ lhs.type_kind, lhs_t };
-		}
-		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
-			&& lhs_kind >= rhs_kind
-		)
-		{
-			return expr_type_t{ lhs.type_kind, lhs_t };
-		}
-		else if (
-			is_floating_point_kind(lhs_kind)
-			&& is_floating_point_kind(rhs_kind)
-			&& lhs_kind >= rhs_kind
-		)
-		{
-			return expr_type_t{ lhs.type_kind, lhs_t };
-		}
-		else if (
-			lhs_kind == ast::type_info::type_kind::char_
-			&& is_integer_kind(rhs_kind)
-		)
-		{
-			return expr_type_t{ lhs.type_kind, lhs_t };
-		}
-		else
-		{
-			return {};
-		}
-	}
-	else if (
-		lhs_t.is<ast::ts_pointer>()
-		&& rhs_t.is<ast::ts_base_type>()
-		&& is_integer_kind(rhs_t.get<ast::ts_base_type_ptr>()->info->kind)
-	)
-	{
-		return expr_type_t{ lhs.type_kind, lhs_t };
-	}
-	else
-	{
-		return {};
-	}
-}
-
+// sint - sint -> sint
+// uint - uint -> sint
+// float - float -> float
+// char - int -> char
+// char - char -> int32
+// ptr - int -> ptr
+// ptr - ptr -> int64
 static auto get_built_in_binary_minus(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
@@ -592,6 +534,86 @@ static auto get_built_in_binary_minus(
 	}
 }
 
+// sint +-= sint
+// uint +-= uint
+// float +-= float
+// char +-= int
+// ptr +-= int
+static auto get_built_in_binary_plus_minus_eq(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = lhs.expr_type;
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
+	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_signed_integer_kind(lhs_kind)
+			&& is_signed_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_floating_point_kind(lhs_kind)
+			&& is_floating_point_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			lhs_kind == ast::type_info::type_kind::char_
+			&& is_integer_kind(rhs_kind)
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else if (
+		lhs_t.is<ast::ts_pointer>()
+		&& rhs_t.is<ast::ts_base_type>()
+		&& is_integer_kind(rhs_t.get<ast::ts_base_type_ptr>()->info->kind)
+	)
+	{
+		return expr_type_t{ lhs.type_kind, lhs_t };
+	}
+	else
+	{
+		return {};
+	}
+}
+
+// sint */ sint -> sint
+// uint */ uint -> uint
+// float */ float -> float
 static auto get_built_in_binary_multiply_divide(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -643,6 +665,8 @@ static auto get_built_in_binary_multiply_divide(
 	}
 }
 
+// sint % sint -> sint
+// uint % uint -> uint
 static auto get_built_in_binary_modulo(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -685,6 +709,13 @@ static auto get_built_in_binary_modulo(
 	}
 }
 
+// sint !== sint
+// uint !== uint
+// float !== float
+// char !== char
+// str !== str
+// bool !== bool
+// ptr !== ptr
 static auto get_built_in_binary_equals_not_equals(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
@@ -754,6 +785,13 @@ static auto get_built_in_binary_equals_not_equals(
 	}
 }
 
+// sint <=> sint
+// uint <=> uint
+// float <=> float
+// char <=> char
+// str <=> str
+// ptr <=> ptr
+// (no bool)
 static auto get_built_in_binary_compare(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs,
@@ -818,6 +856,8 @@ static auto get_built_in_binary_compare(
 	}
 }
 
+// uintN &^| uintN -> uintN
+// bool &^| bool -> bool      this has no short-circuiting
 static auto get_built_in_binary_bit_and_xor_or(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -859,6 +899,8 @@ static auto get_built_in_binary_bit_and_xor_or(
 	}
 }
 
+// uintN &^|= uintN
+// bool &^|= bool
 static auto get_built_in_binary_bit_and_xor_or_eq(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -906,6 +948,7 @@ static auto get_built_in_binary_bit_and_xor_or_eq(
 	}
 }
 
+// uintN <<>> uintM -> uintN
 static auto get_built_in_binary_bit_shift(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -937,6 +980,7 @@ static auto get_built_in_binary_bit_shift(
 	}
 }
 
+// bool &&^^|| bool -> bool
 static auto get_built_in_binary_bool_and_xor_or(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
