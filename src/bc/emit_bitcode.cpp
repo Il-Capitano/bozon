@@ -1103,6 +1103,32 @@ static val_ptr emit_built_in_binary_left_shift(
 	return { val_ptr::value, context.builder.CreateShl(lhs_val, rhs_val, "lshift_tmp") };
 }
 
+static val_ptr emit_built_in_binary_left_shift_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	// we calculate the right hand side first
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	assert(lhs_val_ref.kind == val_ptr::reference);
+	auto const lhs_val = lhs_val_ref.get_value(context);
+	rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+	auto const res = context.builder.CreateShl(lhs_val, rhs_val, "lshift_tmp");
+	context.builder.CreateStore(res, lhs_val_ref.val);
+	return lhs_val_ref;
+}
+
 static val_ptr emit_built_in_binary_right_shift(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context
@@ -1122,6 +1148,32 @@ static val_ptr emit_built_in_binary_right_shift(
 	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
 	rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
 	return { val_ptr::value, context.builder.CreateLShr(lhs_val, rhs_val, "rshift_tmp") };
+}
+
+static val_ptr emit_built_in_binary_right_shift_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
+	auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+	assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	// we calculate the right hand side first
+	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	assert(lhs_val_ref.kind == val_ptr::reference);
+	auto const lhs_val = lhs_val_ref.get_value(context);
+	rhs_val = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false);
+	auto const res = context.builder.CreateLShr(lhs_val, rhs_val, "rshift_tmp");
+	context.builder.CreateStore(res, lhs_val_ref.val);
+	return lhs_val_ref;
 }
 
 static val_ptr emit_built_in_binary_bool_and(
@@ -1299,8 +1351,12 @@ static val_ptr emit_bitcode(
 		return emit_built_in_binary_bit_or_eq(binary_op, context);
 	case lex::token::bit_left_shift:     // '<<'
 		return emit_built_in_binary_left_shift(binary_op, context);
+	case lex::token::bit_left_shift_eq:  // '<<='
+		return emit_built_in_binary_left_shift_eq(binary_op, context);
 	case lex::token::bit_right_shift:    // '>>'
 		return emit_built_in_binary_right_shift(binary_op, context);
+	case lex::token::bit_right_shift_eq: // '>>='
+		return emit_built_in_binary_right_shift_eq(binary_op, context);
 	case lex::token::bool_and:           // '&&'
 		return emit_built_in_binary_bool_and(binary_op, context);
 	case lex::token::bool_xor:           // '^^'
@@ -1308,8 +1364,6 @@ static val_ptr emit_bitcode(
 	case lex::token::bool_or:            // '||'
 		return emit_built_in_binary_bool_or(binary_op, context);
 
-	case lex::token::bit_left_shift_eq:  // '<<='
-	case lex::token::bit_right_shift_eq: // '>>='
 	case lex::token::square_open:        // '[]'
 
 	// these have no built-in operations
