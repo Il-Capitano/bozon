@@ -534,9 +534,9 @@ static auto get_built_in_binary_minus(
 	}
 }
 
-// sint +-= sint
-// uint +-= uint
-// float +-= float
+// sintN +-= sintM    N >= M
+// uintN +-= uintM    N >= M
+// floatN +-= floatM  N >= M
 // char +-= int
 // ptr +-= int
 static auto get_built_in_binary_plus_minus_eq(
@@ -665,8 +665,68 @@ static auto get_built_in_binary_multiply_divide(
 	}
 }
 
-// sint % sint -> sint
-// uint % uint -> uint
+// sintN */= sintM    N >= M
+// uintN */= uintM    N >= M
+// floatN */= floatM  N >= M
+static auto get_built_in_binary_multiply_divide_eq(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = lhs.expr_type;
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
+	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_signed_integer_kind(lhs_kind)
+			&& is_signed_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_floating_point_kind(lhs_kind)
+			&& is_floating_point_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		return {};
+	}
+}
+
+// sint % sint
+// uint % uint
 static auto get_built_in_binary_modulo(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -697,6 +757,57 @@ static auto get_built_in_binary_modulo(
 			return lhs_kind > rhs_kind
 				? expr_type_t{ ast::expression::rvalue, lhs_t }
 				: expr_type_t{ ast::expression::rvalue, rhs_t };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
+		return {};
+	}
+}
+
+// sintN %= sintM  N >= M
+// uintN %= uintM  N >= M
+static auto get_built_in_binary_modulo_eq(
+	ast::expression::expr_type_t const &lhs,
+	ast::expression::expr_type_t const &rhs
+) -> ast::expression::expr_type_t
+{
+	using expr_type_t = ast::expression::expr_type_t;
+
+	auto &lhs_t = lhs.expr_type;
+	auto &rhs_t = ast::remove_const(rhs.expr_type);
+
+	if (
+		(lhs.type_kind != ast::expression::lvalue
+		&& lhs.type_kind != ast::expression::lvalue_reference)
+		|| lhs_t.is<ast::ts_constant>()
+	)
+	{
+		return {};
+	}
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			is_signed_integer_kind(lhs_kind)
+			&& is_signed_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
+		}
+		else if (
+			is_unsigned_integer_kind(lhs_kind)
+			&& is_unsigned_integer_kind(rhs_kind)
+			&& lhs_kind >= rhs_kind
+		)
+		{
+			return expr_type_t{ lhs.type_kind, lhs_t };
 		}
 		else
 		{
@@ -1033,8 +1144,13 @@ auto get_built_in_operation_type(
 	case lex::token::multiply:           // '*'
 	case lex::token::divide:             // '/'
 		return get_built_in_binary_multiply_divide(lhs, rhs);
+	case lex::token::multiply_eq:        // '*='
+	case lex::token::divide_eq:          // '/='
+		return get_built_in_binary_multiply_divide_eq(lhs, rhs);
 	case lex::token::modulo:             // '%'
 		return get_built_in_binary_modulo(lhs, rhs);
+	case lex::token::modulo_eq:          // '%='
+		return get_built_in_binary_modulo_eq(lhs, rhs);
 	case lex::token::equals:             // '=='
 	case lex::token::not_equals:         // '!='
 		return get_built_in_binary_equals_not_equals(lhs, rhs, context);
@@ -1059,9 +1175,6 @@ auto get_built_in_operation_type(
 	case lex::token::bool_or:            // '||'
 		return get_built_in_binary_bool_and_xor_or(lhs, rhs);
 
-	case lex::token::multiply_eq:        // '*='
-	case lex::token::divide_eq:          // '/='
-	case lex::token::modulo_eq:          // '%='
 	case lex::token::bit_left_shift_eq:  // '<<='
 	case lex::token::bit_right_shift_eq: // '>>='
 	case lex::token::square_open:        // '[]'
