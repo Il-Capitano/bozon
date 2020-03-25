@@ -79,6 +79,21 @@ function foo() -> void
 	let p = &i8;
 	p -= u64;
 
+	u16 /= u8;
+	i16 /= i8;
+
+	i32 = -5;
+	i8 = 2i8;
+	i32 /= i8;
+	print_int32(i32);
+
+	i32 = 1234;
+	i16 = 111i16;
+	i32 %= i16;
+	print_int32(i32);
+	print_int32(1234 / 111);
+	print_int32(11 * 111 + 13);
+
 	let a = 'a';
 	let b = 'c' + -1i8;
 
