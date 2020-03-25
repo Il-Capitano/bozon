@@ -248,6 +248,7 @@ auto get_built_in_operation_type(
 	}
 }
 
+// we allow assignment of identical types and subsets (e.g. u64 = u8)
 static auto get_built_in_binary_assign(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
@@ -400,7 +401,7 @@ static auto get_built_in_binary_plus(
 	}
 }
 
-static auto get_built_in_binary_plus_eq(
+static auto get_built_in_binary_plus_minus_eq(
 	ast::expression::expr_type_t const &lhs,
 	ast::expression::expr_type_t const &rhs
 ) -> ast::expression::expr_type_t
@@ -980,10 +981,11 @@ auto get_built_in_operation_type(
 		return get_built_in_binary_assign(lhs, rhs);
 	case lex::token::plus:               // '+'
 		return get_built_in_binary_plus(lhs, rhs);
-	case lex::token::plus_eq:            // '+='
-		return get_built_in_binary_plus_eq(lhs, rhs);
 	case lex::token::minus:              // '-'
 		return get_built_in_binary_minus(lhs, rhs, context);
+	case lex::token::plus_eq:            // '+='
+	case lex::token::minus_eq:           // '-='
+		return get_built_in_binary_plus_minus_eq(lhs, rhs);
 	case lex::token::multiply:           // '*'
 	case lex::token::divide:             // '/'
 		return get_built_in_binary_multiply_divide(lhs, rhs);
@@ -1013,7 +1015,6 @@ auto get_built_in_operation_type(
 	case lex::token::bool_or:            // '||'
 		return get_built_in_binary_bool_and_xor_or(lhs, rhs);
 
-	case lex::token::minus_eq:           // '-='
 	case lex::token::multiply_eq:        // '*='
 	case lex::token::divide_eq:          // '/='
 	case lex::token::modulo_eq:          // '%='

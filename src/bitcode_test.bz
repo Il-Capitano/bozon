@@ -27,7 +27,7 @@ function factorial(n: int32) -> int32
 	while (i <= n)
 	{
 		res = res * i;
-		i += 1;
+		i -= -1;
 	}
 	return res;
 }
@@ -37,7 +37,7 @@ function main() -> int32
 	println("");
 	println("hello");
 	print_int32(123);
-	print_int32(factorial(6));
+	print_int32(factorial(5));
 	println("hello again!!!!\nand on a new line\n");
 
 	foo();
@@ -75,9 +75,9 @@ function foo() -> void
 	u8 == u64;
 	u8 < u64;
 
-	u16 += u8;
+	u16 -= u8;
 	let p = &i8;
-	p += -4;
+	p -= u64;
 
 	let a = 'a';
 	let b = 'c' + -1i8;

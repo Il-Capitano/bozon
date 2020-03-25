@@ -451,14 +451,14 @@ static val_ptr emit_built_in_binary_plus_eq(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode(rhs, context).get_value(context);
-		auto const lhs_val_ref = emit_bitcode(lhs, context);
-		assert(lhs_val_ref.kind == val_ptr::reference);
-		auto const lhs_val = lhs_val_ref.get_value(context);
 		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
 		}
+		auto const lhs_val_ref = emit_bitcode(lhs, context);
+		assert(lhs_val_ref.kind == val_ptr::reference);
+		auto const lhs_val = lhs_val_ref.get_value(context);
 		auto const res = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		return lhs_val_ref;
@@ -523,12 +523,13 @@ static val_ptr emit_built_in_binary_minus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
 		auto const lhs_val = emit_bitcode(lhs, context).get_value(context);
 		auto rhs_val = emit_bitcode(rhs, context).get_value(context);
-		// rhs needs to be cast to a 64 bit integer
-		rhs_val = context.builder.CreateIntCast(
-			rhs_val,
-			context.get_int64_t(),
-			ctx::is_signed_integer_kind(rhs_kind)
-		);
+		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+		}
+		// negate rhs_val
+		rhs_val = context.builder.CreateNeg(rhs_val);
 		return { val_ptr::value, context.builder.CreateGEP(lhs_val, rhs_val, "ptr_sub_tmp") };
 	}
 	else
@@ -538,6 +539,86 @@ static val_ptr emit_built_in_binary_minus(
 		auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
 		return { val_ptr::value, context.builder.CreatePtrDiff(lhs_val, rhs_val, "ptr_diff_tmp") };
 		return {};
+	}
+}
+
+static val_ptr emit_built_in_binary_minus_eq(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	assert(binary_op.op_body == nullptr);
+	auto &lhs = binary_op.lhs;
+	auto &rhs = binary_op.rhs;
+	auto &lhs_t = ast::remove_const(lhs.expr_type.expr_type);
+	auto &rhs_t = ast::remove_const(rhs.expr_type.expr_type);
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_kind = lhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		{
+			// we calculate the right hand side first
+			auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+			auto const lhs_val_ref = emit_bitcode(lhs, context);
+			assert(lhs_val_ref.kind == val_ptr::reference);
+			auto const lhs_val = lhs_val_ref.get_value(context);
+			llvm::Value *res;
+			if (ctx::is_integer_kind(lhs_kind))
+			{
+				rhs_val = context.builder.CreateIntCast(
+					rhs_val,
+					lhs_val->getType(),
+					ctx::is_signed_integer_kind(rhs_kind)
+				);
+				res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
+			}
+			else
+			{
+				rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+				res = context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp");
+			}
+			context.builder.CreateStore(res, lhs_val_ref.val);
+			return lhs_val_ref;
+		}
+		else
+		{
+			assert(lhs_kind == ast::type_info::type_kind::char_);
+			// we calculate the right hand side first
+			auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+			auto const lhs_val_ref = emit_bitcode(lhs, context);
+			assert(lhs_val_ref.kind == val_ptr::reference);
+			auto const lhs_val = lhs_val_ref.get_value(context);
+			rhs_val = context.builder.CreateIntCast(
+				rhs_val,
+				context.get_uint32_t(),
+				ctx::is_signed_integer_kind(rhs_kind)
+			);
+			auto const res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
+			context.builder.CreateStore(res, lhs_val_ref.val);
+			return lhs_val_ref;
+		}
+	}
+	else
+	{
+		assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_base_type>());
+		auto const rhs_kind = rhs_t.get<ast::ts_base_type_ptr>()->info->kind;
+		// we calculate the right hand side first
+		auto rhs_val = emit_bitcode(rhs, context).get_value(context);
+		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		{
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+		}
+		// negate rhs_val
+		rhs_val = context.builder.CreateNeg(rhs_val);
+		auto const lhs_val_ref = emit_bitcode(lhs, context);
+		assert(lhs_val_ref.kind == val_ptr::reference);
+		auto const lhs_val = lhs_val_ref.get_value(context);
+		auto const res = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_sub_tmp");
+		context.builder.CreateStore(res, lhs_val_ref.val);
+		return lhs_val_ref;
 	}
 }
 
@@ -1069,6 +1150,8 @@ static val_ptr emit_bitcode(
 		return emit_built_in_binary_plus_eq(binary_op, context);
 	case lex::token::minus:              // '-'
 		return emit_built_in_binary_minus(binary_op, context);
+	case lex::token::minus_eq:           // '-='
+		return emit_built_in_binary_minus_eq(binary_op, context);
 	case lex::token::multiply:           // '*'
 		return emit_built_in_binary_multiply(binary_op, context);
 	case lex::token::divide:             // '/'
@@ -1105,7 +1188,6 @@ static val_ptr emit_bitcode(
 	case lex::token::bool_or:            // '||'
 		return emit_built_in_binary_bool_or(binary_op, context);
 
-	case lex::token::minus_eq:           // '-='
 	case lex::token::multiply_eq:        // '*='
 	case lex::token::divide_eq:          // '/='
 	case lex::token::modulo_eq:          // '%='
