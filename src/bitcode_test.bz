@@ -1,24 +1,7 @@
-/*
-function factorial(n: int32) -> int32
-{
-	return n * factorial(n - 1);
-}
-
-function change_val(n: &int32) -> void
-{
-	n = 3;
-}
-
-function foo(n: &const int32) -> void
-{
-	if (false && false || true)
-	{}
-}
-*/
-
 function print(str: str) -> void;
 function println(str: str) -> void;
 function print_int32(n: int32) -> void;
+function print_uint32(n: uint32) -> void;
 
 function factorial(n: int32) -> int32
 {
@@ -32,6 +15,18 @@ function factorial(n: int32) -> int32
 	return res;
 }
 
+function factorial_recursive(n: int32) -> int32
+{
+	if (n <= 1)
+	{
+		return 1;
+	}
+	else
+	{
+		return n * factorial(n - 1);
+	}
+}
+
 function main() -> int32
 {
 	println("");
@@ -41,6 +36,26 @@ function main() -> int32
 	println("hello again!!!!\nand on a new line\n");
 
 	foo();
+
+	let good = true;
+	let i = 0;
+	while (i < 20)
+	{
+		if (factorial(i) != factorial_recursive(i))
+		{
+			good = false;
+		}
+		i += 1;
+	}
+
+	if (good)
+	{
+		println("factorial is good!!");
+	}
+	else
+	{
+		println("factorial is not good :(");
+	}
 
 	return 0;
 /*
@@ -133,4 +148,16 @@ function foo() -> void
 	(n = m = 2) = m;
 	if (n == 0 && m == 2)
 		println("yay again!");
+
+	let n = 1u32;
+	n <<= 3u8;
+	print_uint32(n);
+	n >>= 1u8;
+	print_uint32(n);
+	let m = 5u32;
+	n += m = 2u32;
+	if (n == 6u32)
+	{
+		println("yay yet again!");
+	}
 }
