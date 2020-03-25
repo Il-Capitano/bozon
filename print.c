@@ -16,3 +16,8 @@ void print_int32(int32_t n)
 {
 	fprintf(stdout, "%i\n", n);
 }
+
+void print_uint32(uint32_t n)
+{
+	fprintf(stdout, "%u\n", n);
+}
