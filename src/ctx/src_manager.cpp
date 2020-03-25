@@ -122,6 +122,12 @@ namespace ctx
 	}
 
 //	context.module.print(llvm::errs(), nullptr);
+	{
+		std::error_code ec;
+		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
+		assert(!ec);
+		context.module.print(file, nullptr);
+	}
 
 	auto const target_triple = llvm::sys::getDefaultTargetTriple();
 	llvm::InitializeAllTargetInfos();
