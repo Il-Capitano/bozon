@@ -21,3 +21,8 @@ void print_uint32(uint32_t n)
 {
 	fprintf(stdout, "%u\n", n);
 }
+
+void print_int32_ptr(int32_t const *p)
+{
+	fprintf(stdout, "0x%u\n", (uint32_t)(uint64_t)p);
+}
