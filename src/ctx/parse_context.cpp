@@ -504,6 +504,18 @@ static int get_type_match_level(
 			return -1;
 		}
 	}
+	else if (dest_it->is<ast::ts_void>())
+	{
+		assert(false);
+	}
+	else if (dest_it->is<ast::ts_tuple>())
+	{
+		assert(false);
+	}
+	else if (dest_it->is<ast::ts_function>())
+	{
+		assert(false);
+	}
 	else if (dest_it->is<ast::ts_reference>())
 	{
 		// if the source is not an lvalue, return -1
@@ -603,6 +615,18 @@ static int get_type_match_level(
 				return -1;
 			}
 		}
+		else if (dest_it->is<ast::ts_void>())
+		{
+			assert(false);
+		}
+		else if (dest_it->is<ast::ts_function>())
+		{
+			assert(false);
+		}
+		else if (dest_it->is<ast::ts_tuple>())
+		{
+			assert(false);
+		}
 		else if (dest_it->kind() == src_it->kind())
 		{
 			advance(dest_it);
@@ -627,14 +651,17 @@ struct match_level
 };
 
 static match_level get_function_call_match_level(
-	ast::function_body const &func_body,
-	ast::expr_function_call const &func_call
+	ast::function_body &func_body,
+	ast::expr_function_call const &func_call,
+	parse_context &context
 )
 {
 	if (func_body.params.size() != func_call.params.size())
 	{
 		return { -1, -1 };
 	}
+
+	resolve_symbol(func_body, context);
 
 	match_level result = { std::numeric_limits<int>::max(), 0 };
 
@@ -669,8 +696,9 @@ static match_level get_function_call_match_level(
 }
 
 static match_level get_function_call_match_level(
-	ast::function_body const &func_body,
-	ast::expr_unary_op const &unary_op
+	ast::function_body &func_body,
+	ast::expr_unary_op const &unary_op,
+	parse_context &context
 )
 {
 	if (func_body.params.size() != 1)
@@ -678,19 +706,24 @@ static match_level get_function_call_match_level(
 		return { -1, -1 };
 	}
 
+	resolve_symbol(func_body, context);
+
 	auto const match_level = get_type_match_level(func_body.params[0].var_type, unary_op.expr.expr_type);
 	return { match_level, match_level };
 }
 
 static match_level get_function_call_match_level(
-	ast::function_body const &func_body,
-	ast::expr_binary_op const &binary_op
+	ast::function_body &func_body,
+	ast::expr_binary_op const &binary_op,
+	parse_context &context
 )
 {
 	if (func_body.params.size() != 2)
 	{
 		return { -1, -1 };
 	}
+
+	resolve_symbol(func_body, context);
 
 	auto const lhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.lhs.expr_type);
 	auto const rhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.rhs.expr_type);
@@ -906,7 +939,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, unary_op);
+				auto const match_level = get_function_call_match_level(op->body, unary_op, *this);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &op->body });
@@ -927,7 +960,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, unary_op);
+			auto const match_level = get_function_call_match_level(op->body, unary_op, *this);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &op->body });
@@ -1046,7 +1079,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, binary_op);
+				auto const match_level = get_function_call_match_level(op->body, binary_op, *this);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &op->body });
@@ -1067,7 +1100,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, binary_op);
+			auto const match_level = get_function_call_match_level(op->body, binary_op, *this);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &op->body });
@@ -1132,7 +1165,7 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 			{
 				for (auto &fn : set->func_decls)
 				{
-					auto const match_level = get_function_call_match_level(fn->body, func_call);
+					auto const match_level = get_function_call_match_level(fn->body, func_call, *this);
 					if (match_level.min != -1)
 					{
 						possible_funcs.push_back({ match_level, &fn->body });
@@ -1153,7 +1186,7 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 		{
 			for (auto &fn : global_set->func_decls)
 			{
-				auto const match_level = get_function_call_match_level(fn->body, func_call);
+				auto const match_level = get_function_call_match_level(fn->body, func_call, *this);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &fn->body });
