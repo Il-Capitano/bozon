@@ -2,6 +2,7 @@ function print(str: str) -> void;
 function println(str: str) -> void;
 function print_int32(n: int32) -> void;
 function print_uint32(n: uint32) -> void;
+function print_int32_ptr(p: *const int32) -> void;
 
 function factorial(n: int32) -> int32
 {
@@ -56,6 +57,9 @@ function main() -> int32
 	{
 		println("factorial is not good :(");
 	}
+
+	println("\n==== ref_test ====");
+	ref_test();
 
 	return 0;
 /*
@@ -117,7 +121,6 @@ function foo() -> void
 	else
 		println("a != 'a'");
 
-
 	if (
 		'a' + 1 == 'b'
 		&& 'c' + -1 == 'b'
@@ -161,3 +164,26 @@ function foo() -> void
 		println("yay yet again!");
 	}
 }
+
+function ref_test() -> void
+{
+	function change_n(n: &int32) -> void
+	{
+		n = 1234;
+	}
+	let n = 0;
+	print_int32(n);
+	change_n(n);
+	print_int32(n);
+
+	function foo(n: int32) -> void { print_int32_ptr(&n); }
+	function foo_ref(n: &const int32) -> void { print_int32_ptr(&n); }
+
+	print_int32_ptr(&n);
+	foo(n);
+	foo_ref(n);
+
+//	asdfasdf([0, 1, 2, 3, 4, 5]);
+}
+
+// function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void;
