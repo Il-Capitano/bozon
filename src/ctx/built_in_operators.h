@@ -64,6 +64,12 @@ auto get_built_in_operation_type(
 	parse_context &context
 ) -> ast::expression::expr_type_t;
 
+auto get_built_in_cast_type(
+	ast::expression::expr_type_t const &expr,
+	ast::typespec const &dest,
+	parse_context &context
+) -> ast::expression::expr_type_t;
+
 } // namespace ctx
 
 #endif // CTX_BUILT_IN_OPERATORS_H

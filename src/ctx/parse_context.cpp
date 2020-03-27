@@ -369,7 +369,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 			{
 				arg_types.emplace_back(p.var_type);
 			}
-			return ast::make_ts_function(fn->body.return_type, arg_types);
+			return ast::make_ts_function({ nullptr, nullptr }, nullptr, fn->body.return_type, arg_types);
 		}();
 		return { ast::expression::function_name, fn_t };
 	}
@@ -1224,6 +1224,17 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 		// function call operator
 		return error_result;
 	}
+}
+
+auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
+	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
+{
+	auto res = get_built_in_cast_type(cast.expr.expr_type, cast.type, *this);
+	if (res.expr_type.kind() == ast::typespec::null)
+	{
+		this->report_error(cast, bz::format("invalid cast from '{}' to '{}'", cast.expr.expr_type.expr_type, cast.type));
+	}
+	return { nullptr, std::move(res) };
 }
 
 /*

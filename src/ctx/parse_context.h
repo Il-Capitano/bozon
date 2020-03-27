@@ -78,6 +78,8 @@ struct parse_context
 		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
 	auto get_function_call_body_and_type(ast::expr_function_call const &func_call)
 		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
+	auto get_cast_body_and_type(ast::expr_cast const &cast)
+		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
 
 //	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op);
 //	ast::expression::expr_type_t get_operation_type(ast::expr_binary_op const &binary_op);

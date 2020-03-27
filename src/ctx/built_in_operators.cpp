@@ -36,7 +36,7 @@ auto get_non_overloadable_operation_type(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_pointer(expr.expr_type)
+				ast::make_ts_pointer({ nullptr, nullptr }, nullptr, expr.expr_type)
 			};
 		}
 		else
@@ -45,7 +45,10 @@ auto get_non_overloadable_operation_type(
 		}
 	case lex::token::kw_sizeof:
 	{
-		return expr_type_t{ ast::expression::rvalue, ast::make_ts_base_type(context.get_type_info("uint64")) };
+		return expr_type_t{
+			ast::expression::rvalue,
+			ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("uint64"))
+		};
 	}
 
 	default:
@@ -449,22 +452,22 @@ static auto get_built_in_binary_minus(
 			case ast::type_info::type_kind::uint8_:
 				return expr_type_t{
 					ast::expression::rvalue,
-					ast::make_ts_base_type(context.get_type_info("int8"))
+					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int8"))
 				};
 			case ast::type_info::type_kind::uint16_:
 				return expr_type_t{
 					ast::expression::rvalue,
-					ast::make_ts_base_type(context.get_type_info("int16"))
+					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int16"))
 				};
 			case ast::type_info::type_kind::uint32_:
 				return expr_type_t{
 					ast::expression::rvalue,
-					ast::make_ts_base_type(context.get_type_info("int32"))
+					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int32"))
 				};
 			case ast::type_info::type_kind::uint64_:
 				return expr_type_t{
 					ast::expression::rvalue,
-					ast::make_ts_base_type(context.get_type_info("int64"))
+					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int64"))
 				};
 			default:
 				assert(false);
@@ -494,7 +497,7 @@ static auto get_built_in_binary_minus(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("int32"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int32"))
 			};
 		}
 		else
@@ -520,7 +523,7 @@ static auto get_built_in_binary_minus(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("int64"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int64"))
 			};
 		}
 		else
@@ -867,7 +870,7 @@ static auto get_built_in_binary_equals_not_equals(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("bool"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("bool"))
 			};
 		}
 		else
@@ -882,7 +885,7 @@ static auto get_built_in_binary_equals_not_equals(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("bool"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("bool"))
 			};
 		}
 		else
@@ -938,7 +941,7 @@ static auto get_built_in_binary_compare(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("bool"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("bool"))
 			};
 		}
 		else
@@ -953,7 +956,7 @@ static auto get_built_in_binary_compare(
 		{
 			return expr_type_t{
 				ast::expression::rvalue,
-				ast::make_ts_base_type(context.get_type_info("bool"))
+				ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("bool"))
 			};
 		}
 		else
@@ -1230,6 +1233,31 @@ auto get_built_in_operation_type(
 
 	default:
 		assert(false);
+		return {};
+	}
+}
+
+auto get_built_in_cast_type(
+	ast::expression::expr_type_t const &expr,
+	ast::typespec const &dest,
+	parse_context &
+) -> ast::expression::expr_type_t
+{
+	auto &expr_without_const = ast::remove_const(expr.expr_type);
+	if (expr_without_const.is<ast::ts_base_type>() && dest.is<ast::ts_base_type>())
+	{
+		auto const [expr_kind, dest_kind] = get_base_kinds(expr_without_const, dest);
+		if (is_arithmetic_kind(expr_kind) && is_arithmetic_kind(dest_kind))
+		{
+			return { ast::expression::rvalue, dest };
+		}
+		else
+		{
+			return {};
+		}
+	}
+	else
+	{
 		return {};
 	}
 }
