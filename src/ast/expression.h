@@ -18,6 +18,7 @@ declare_node_type(expr_tuple);
 declare_node_type(expr_unary_op);
 declare_node_type(expr_binary_op);
 declare_node_type(expr_function_call);
+declare_node_type(expr_cast);
 
 #undef declare_node_type
 
@@ -28,7 +29,8 @@ struct expression : node<
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
-	expr_function_call
+	expr_function_call,
+	expr_cast
 >
 {
 	using base_t = node<
@@ -38,7 +40,8 @@ struct expression : node<
 		expr_tuple,
 		expr_unary_op,
 		expr_binary_op,
-		expr_function_call
+		expr_function_call,
+		expr_cast
 	>;
 
 	using base_t::get;
@@ -252,8 +255,28 @@ struct expr_function_call
 	lex::token_pos get_tokens_end() const;
 };
 
+struct expr_cast
+{
+	lex::token_pos as_pos;
+	expression     expr;
+	typespec       type;
+	function_body *func_body;
 
-typespec get_typespec(expression const &expr);
+	expr_cast(
+		lex::token_pos _as_pos,
+		expression     _expr,
+		typespec       _type
+	)
+		: as_pos(_as_pos),
+		  expr  (std::move(_expr)),
+		  type  (std::move(_type))
+	{}
+
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
+};
+
 
 
 template<typename ...Args>
@@ -287,6 +310,10 @@ expression make_expr_binary_op(lex::token_range tokens, Args &&...args)
 template<typename ...Args>
 expression make_expr_function_call(lex::token_range tokens, Args &&...args)
 { return expression(tokens, std::make_unique<expr_function_call>(std::forward<Args>(args)...)); }
+
+template<typename ...Args>
+expression make_expr_cast(lex::token_range tokens, Args &&...args)
+{ return expression(tokens, std::make_unique<expr_cast>(std::forward<Args>(args)...)); }
 
 } // namespace ast
 

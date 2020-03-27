@@ -70,6 +70,15 @@ lex::token_pos expr_function_call::get_tokens_end(void) const
 	}
 }
 
+lex::token_pos expr_cast::get_tokens_begin(void) const
+{ return this->expr.get_tokens_begin(); }
+
+lex::token_pos expr_cast::get_tokens_pivot(void) const
+{ return this->as_pos; }
+
+lex::token_pos expr_cast::get_tokens_end(void) const
+{ return this->type.get_tokens_end(); }
+
 
 
 expr_literal::expr_literal(lex::token_pos stream)
