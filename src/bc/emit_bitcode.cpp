@@ -1,5 +1,6 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/Argument.h>
+#include <llvm/IR/Attributes.h>
 
 #include "emit_bitcode.h"
 #include "ctx/built_in_operators.h"
@@ -1197,12 +1198,12 @@ static val_ptr emit_built_in_binary_bool_and(
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 	// generate computation of rhs
-	auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_rhs", context.current_function);
+	auto const rhs_bb = context.add_basic_block("bool_and_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
 	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
-	auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_and_end", context.current_function);
+	auto const end_bb = context.add_basic_block("bool_and_end");
 	// generate branches for lhs_bb and rhs_bb
 	context.builder.SetInsertPoint(lhs_bb_end);
 	// if lhs_val is true we need to check rhs
@@ -1262,12 +1263,12 @@ static val_ptr emit_built_in_binary_bool_or(
 	auto const lhs_bb_end = context.builder.GetInsertBlock();
 
 	// generate computation of rhs
-	auto const rhs_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_rhs", context.current_function);
+	auto const rhs_bb = context.add_basic_block("bool_or_rhs");
 	context.builder.SetInsertPoint(rhs_bb);
 	auto const rhs_val = emit_bitcode(rhs, context).get_value(context);
 	auto const rhs_bb_end = context.builder.GetInsertBlock();
 
-	auto const end_bb = llvm::BasicBlock::Create(context.llvm_context, "bool_or_end", context.current_function);
+	auto const end_bb = context.add_basic_block("bool_or_end");
 	// generate branches for lhs_bb and rhs_bb
 	context.builder.SetInsertPoint(lhs_bb_end);
 	// if lhs_val is true we are done and the result if true
@@ -1412,6 +1413,69 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
+	ast::expr_cast const &cast,
+	ctx::bitcode_context &context
+)
+{
+	assert(cast.func_body == nullptr);
+
+	auto &expr_t = ast::remove_const(cast.expr.expr_type.expr_type);
+	auto &dest_t = cast.type;
+
+	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
+	{
+		auto const llvm_dest_t = get_llvm_type(dest_t, context);
+		auto const expr = emit_bitcode(cast.expr, context).get_value(context);
+		auto const expr_kind = expr_t.get<ast::ts_base_type_ptr>()->info->kind;
+		auto const dest_kind = dest_t.get<ast::ts_base_type_ptr>()->info->kind;
+
+		if (ctx::is_integer_kind(expr_kind) && ctx::is_integer_kind(dest_kind))
+		{
+			auto const res = context.builder.CreateIntCast(
+				expr,
+				llvm_dest_t,
+				ctx::is_signed_integer_kind(expr_kind),
+				"cast_tmp"
+			);
+			return { val_ptr::value, res };
+		}
+		else if (ctx::is_floating_point_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind))
+		{
+			return { val_ptr::value, context.builder.CreateFPCast(expr, llvm_dest_t, "cast_tmp") };
+		}
+		else if (ctx::is_floating_point_kind(expr_kind))
+		{
+			assert(ctx::is_integer_kind(dest_kind));
+			if (ctx::is_signed_integer_kind(dest_kind))
+			{
+				return { val_ptr::value, context.builder.CreateFPToSI(expr, llvm_dest_t, "cast_tmp") };
+			}
+			else
+			{
+				return { val_ptr::value, context.builder.CreateFPToUI(expr, llvm_dest_t, "cast_tmp") };
+			}
+		}
+		else
+		{
+			assert(ctx::is_integer_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind));
+			if (ctx::is_signed_integer_kind(dest_kind))
+			{
+				return { val_ptr::value, context.builder.CreateSIToFP(expr, llvm_dest_t, "cast_tmp") };
+			}
+			else
+			{
+				return { val_ptr::value, context.builder.CreateUIToFP(expr, llvm_dest_t, "cast_tmp") };
+			}
+		}
+	}
+	else
+	{
+		assert(false);
+		return {};
+	}
+}
+
+static val_ptr emit_bitcode(
 	ast::expression const &expr,
 	ctx::bitcode_context &context
 )
@@ -1430,6 +1494,8 @@ static val_ptr emit_bitcode(
 		return emit_bitcode(*expr.get<ast::expr_binary_op_ptr>(), context);
 	case ast::expression::index<ast::expr_function_call>:
 		return emit_bitcode(*expr.get<ast::expr_function_call_ptr>(), context);
+	case ast::expression::index<ast::expr_cast>:
+		return emit_bitcode(*expr.get<ast::expr_cast_ptr>(), context);
 
 	default:
 		assert(false);
@@ -1746,18 +1812,18 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 		return get_llvm_type(ts.get<ast::ts_constant_ptr>()->base, context);
 	case ast::typespec::index<ast::ts_pointer>:
 	{
-		auto base = get_llvm_type(ts.get<ast::ts_pointer_ptr>()->base, context);
+		auto const base = get_llvm_type(ts.get<ast::ts_pointer_ptr>()->base, context);
 		return llvm::PointerType::get(base, 0);
 	}
 	case ast::typespec::index<ast::ts_reference>:
 	{
-		auto base = get_llvm_type(ts.get<ast::ts_reference_ptr>()->base, context);
+		auto const base = get_llvm_type(ts.get<ast::ts_reference_ptr>()->base, context);
 		return llvm::PointerType::get(base, 0);
 	}
 	case ast::typespec::index<ast::ts_function>:
 	{
 		auto &fn = *ts.get<ast::ts_function_ptr>();
-		auto result_t = get_llvm_type(fn.return_type, context);
+		auto const result_t = get_llvm_type(fn.return_type, context);
 		bz::vector<llvm::Type *> args = {};
 		for (auto &a : fn.argument_types)
 		{
@@ -1766,6 +1832,18 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 		return llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}
 	case ast::typespec::index<ast::ts_tuple>:
+	{
+		auto &tuple = *ts.get<ast::ts_tuple_ptr>();
+		bz::vector<llvm::Type *> elem_types = {};
+		for (auto &e : tuple.types)
+		{
+			elem_types.push_back(get_llvm_type(e, context));
+		}
+		return llvm::StructType::get(
+			context.llvm_context,
+			llvm::ArrayRef(elem_types.data(), elem_types.size())
+		);
+	}
 	default:
 		assert(false);
 		return nullptr;
@@ -1809,11 +1887,32 @@ void add_function_to_module(
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)
 	{
-		args.push_back(get_llvm_type(p.var_type, context));
+		auto const t = get_llvm_type(p.var_type, context);
+		auto &var_t = ast::remove_const(p.var_type);
+		if (
+			!(var_t.is<ast::ts_base_type>()
+			&& var_t.get<ast::ts_base_type_ptr>()->info->kind == ast::type_info::type_kind::str_)
+			&& t->isStructTy()
+		)
+		{
+			args.push_back(llvm::PointerType::get(t, 0));
+		}
+		else
+		{
+			args.push_back(t);
+		}
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	auto const name = llvm::StringRef(id.data(), id.length());
 	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.module);
+	for (auto &arg : fn->args())
+	{
+		auto const t = arg.getType();
+		if (t->isPointerTy() && t->getPointerElementType()->isStructTy())
+		{
+			arg.addAttr(llvm::Attribute::ByVal);
+		}
+	}
 	context.funcs.push_back({ &func_body, fn });
 }
 
@@ -1892,7 +1991,12 @@ void emit_function_bitcode(
 
 	if (llvm::verifyFunction(*fn) == true)
 	{
-		bz::printf("{}verifyFunction failed!!!\n{}", colors::bright_red, colors::clear);
+		bz::printf(
+			"{}verifyFunction failed on {}!!!\n{}",
+			colors::bright_red,
+			bz::string_view(fn->getName().data(), fn->getName().data() + fn->getName().size()),
+			colors::clear
+		);
 	}
 	context.current_function = nullptr;
 }
