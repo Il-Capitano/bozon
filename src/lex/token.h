@@ -105,6 +105,8 @@ struct token
 		kw_typeof,           // typeof
 		kw_using,            // using
 
+		kw_as,               // as
+
 		kw_auto,             // auto
 		kw_let,              // let
 		kw_const,            // const
@@ -224,6 +226,7 @@ constexpr std::array<
 	token_pair{ "for", token::kw_for             },
 	token_pair{ "let", token::kw_let             },
 
+	token_pair{ "as", token::kw_as               },
 	token_pair{ "if", token::kw_if               },
 };
 
@@ -248,6 +251,7 @@ constexpr bool is_keyword_token(token const &t)
 	case token::kw_sizeof:
 	case token::kw_typeof:
 	case token::kw_using:
+	case token::kw_as:
 	case token::kw_auto:
 	case token::kw_let:
 	case token::kw_const:
