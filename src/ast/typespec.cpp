@@ -3,6 +3,13 @@
 namespace ast
 {
 
+lex::token_pos typespec::get_tokens_begin(void) const
+{ return this->tokens.begin; }
+lex::token_pos typespec::get_tokens_pivot(void) const
+{ return this->visit([](auto const &t) { return t->get_tokens_pivot(); }); }
+lex::token_pos typespec::get_tokens_end(void) const
+{ return this->tokens.end; }
+
 bool operator == (typespec const &lhs, typespec const &rhs)
 {
 	if (lhs.kind() != rhs.kind())
@@ -99,35 +106,11 @@ typespec decay_typespec(typespec const &ts)
 		{
 			decayed_types.push_back(decay_typespec(t));
 		}
-		return make_ts_tuple(std::move(decayed_types));
+		return make_ts_tuple(ts.tokens, tuple->pivot_pos, std::move(decayed_types));
 	}
 	default:
 		assert(false);
 		return typespec();
-	}
-}
-
-typespec add_lvalue_reference(typespec ts)
-{
-	if (ts.kind() == typespec::index<ts_reference>)
-	{
-		return ts;
-	}
-	else
-	{
-		return make_ts_reference(ts);
-	}
-}
-
-typespec add_const(typespec ts)
-{
-	if (ts.kind() == typespec::index<ts_constant>)
-	{
-		return ts;
-	}
-	else
-	{
-		return make_ts_constant(ts);
 	}
 }
 
