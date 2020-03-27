@@ -131,6 +131,7 @@ static lex::token_range get_expression_or_type_tokens(
 		case lex::token::kw_function:
 		// etc
 		case lex::token::fat_arrow:
+		case lex::token::kw_as:
 			return true;
 
 		default:
@@ -290,7 +291,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 				lex::token_range{ id, type.end },
 				id,
 				ast::typespec(),
-				ast::make_ts_unresolved(type)
+				ast::make_ts_unresolved(type, type)
 			);
 		}
 		else
@@ -299,7 +300,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 				lex::token_range{ id, type.end },
 				nullptr,
 				ast::typespec(),
-				ast::make_ts_unresolved(type)
+				ast::make_ts_unresolved(type, type)
 			);
 		}
 	} while (
@@ -550,7 +551,7 @@ static ast::declaration parse_variable_declaration(
 	ast::typespec prototype;
 	if (stream->kind == lex::token::kw_const)
 	{
-		prototype = ast::make_ts_constant(ast::typespec());
+		prototype = ast::make_ts_constant({ stream, stream + 1}, stream, ast::typespec());
 	}
 	++stream; // 'let' or 'const'
 
@@ -616,15 +617,15 @@ static ast::declaration parse_variable_declaration(
 			switch (stream->kind)
 			{
 			case lex::token::kw_const:
-				add_to_prototype(ast::make_ts_constant(ast::typespec()));
+				add_to_prototype(ast::make_ts_constant({ stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			case lex::token::ampersand:
-				add_to_prototype(ast::make_ts_reference(ast::typespec()));
+				add_to_prototype(ast::make_ts_reference({ stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			case lex::token::star:
-				add_to_prototype(ast::make_ts_pointer(ast::typespec()));
+				add_to_prototype(ast::make_ts_pointer({ stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			default:
@@ -643,7 +644,7 @@ static ast::declaration parse_variable_declaration(
 			lex::token::assign, lex::token::semi_colon
 		>(stream, end, context);
 
-		auto type = ast::make_ts_unresolved(type_tokens);
+		auto type = ast::make_ts_unresolved(type_tokens, type_tokens);
 		if (stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
@@ -715,7 +716,7 @@ static ast::declaration parse_struct_definition(
 		auto const type = lex::token_range{stream, end};
 		stream = end;
 		return ast::variable(
-			id, ast::make_ts_unresolved(type)
+			id, ast::make_ts_unresolved(type, type)
 		);
 	};
 
@@ -763,7 +764,7 @@ static ast::declaration parse_function_definition(
 	if (stream->kind == lex::token::semi_colon)
 	{
 		++stream; // ';'
-		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type));
+		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
 	}
 
 	context.assert_token(stream, lex::token::curly_open);
@@ -780,7 +781,7 @@ static ast::declaration parse_function_definition(
 	return ast::make_decl_function(
 		id,
 		std::move(params),
-		ast::make_ts_unresolved(ret_type),
+		ast::make_ts_unresolved(ret_type, ret_type),
 		std::move(body)
 	);
 }
@@ -900,7 +901,7 @@ static ast::declaration parse_operator_definition(
 	return ast::make_decl_operator(
 		op,
 		std::move(params),
-		ast::make_ts_unresolved(ret_type),
+		ast::make_ts_unresolved(ret_type, ret_type),
 		std::move(body)
 	);
 }

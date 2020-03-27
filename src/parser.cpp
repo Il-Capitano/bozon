@@ -1,5 +1,10 @@
 #include "parser.h"
 
+static ast::typespec parse_typespec(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 // ================================================================
 // ---------------------- expression parsing ----------------------
 // ================================================================
@@ -59,52 +64,53 @@ static std::map<uint32_t, precedence> binary_op_precendences =
 	{ lex::token::dot,                precedence{  2, true  } },
 	{ lex::token::arrow,              precedence{  2, true  } },
 
-	{ lex::token::dot_dot,            precedence{  4, true  } },
+	{ lex::token::dot_dot,            precedence{  5, true  } },
 
-	{ lex::token::multiply,           precedence{  5, true  } },
-	{ lex::token::divide,             precedence{  5, true  } },
-	{ lex::token::modulo,             precedence{  5, true  } },
+	{ lex::token::multiply,           precedence{  6, true  } },
+	{ lex::token::divide,             precedence{  6, true  } },
+	{ lex::token::modulo,             precedence{  6, true  } },
 
-	{ lex::token::plus,               precedence{  6, true  } },
-	{ lex::token::minus,              precedence{  6, true  } },
+	{ lex::token::plus,               precedence{  7, true  } },
+	{ lex::token::minus,              precedence{  7, true  } },
 
-	{ lex::token::bit_left_shift,     precedence{  7, true  } },
-	{ lex::token::bit_right_shift,    precedence{  7, true  } },
+	{ lex::token::bit_left_shift,     precedence{  8, true  } },
+	{ lex::token::bit_right_shift,    precedence{  8, true  } },
 
-	{ lex::token::bit_and,            precedence{  8, true  } },
-	{ lex::token::bit_xor,            precedence{  9, true  } },
-	{ lex::token::bit_or,             precedence{ 10, true  } },
+	{ lex::token::bit_and,            precedence{  9, true  } },
+	{ lex::token::bit_xor,            precedence{ 10, true  } },
+	{ lex::token::bit_or,             precedence{ 11, true  } },
 
-	{ lex::token::less_than,          precedence{ 11, true  } },
-	{ lex::token::less_than_eq,       precedence{ 11, true  } },
-	{ lex::token::greater_than,       precedence{ 11, true  } },
-	{ lex::token::greater_than_eq,    precedence{ 11, true  } },
+	{ lex::token::less_than,          precedence{ 12, true  } },
+	{ lex::token::less_than_eq,       precedence{ 12, true  } },
+	{ lex::token::greater_than,       precedence{ 12, true  } },
+	{ lex::token::greater_than_eq,    precedence{ 12, true  } },
 
-	{ lex::token::equals,             precedence{ 12, true  } },
-	{ lex::token::not_equals,         precedence{ 12, true  } },
+	{ lex::token::equals,             precedence{ 13, true  } },
+	{ lex::token::not_equals,         precedence{ 13, true  } },
 
-	{ lex::token::bool_and,           precedence{ 13, true  } },
-	{ lex::token::bool_xor,           precedence{ 14, true  } },
-	{ lex::token::bool_or,            precedence{ 15, true  } },
+	{ lex::token::bool_and,           precedence{ 14, true  } },
+	{ lex::token::bool_xor,           precedence{ 15, true  } },
+	{ lex::token::bool_or,            precedence{ 16, true  } },
 
 	// ternary ?
-	{ lex::token::assign,             precedence{ 16, false } },
-	{ lex::token::plus_eq,            precedence{ 16, false } },
-	{ lex::token::minus_eq,           precedence{ 16, false } },
-	{ lex::token::multiply_eq,        precedence{ 16, false } },
-	{ lex::token::divide_eq,          precedence{ 16, false } },
-	{ lex::token::modulo_eq,          precedence{ 16, false } },
-	{ lex::token::dot_dot_eq,         precedence{ 16, false } },
-	{ lex::token::bit_left_shift_eq,  precedence{ 16, false } },
-	{ lex::token::bit_right_shift_eq, precedence{ 16, false } },
-	{ lex::token::bit_and_eq,         precedence{ 16, false } },
-	{ lex::token::bit_xor_eq,         precedence{ 16, false } },
-	{ lex::token::bit_or_eq,          precedence{ 16, false } },
+	{ lex::token::assign,             precedence{ 17, false } },
+	{ lex::token::plus_eq,            precedence{ 17, false } },
+	{ lex::token::minus_eq,           precedence{ 17, false } },
+	{ lex::token::multiply_eq,        precedence{ 17, false } },
+	{ lex::token::divide_eq,          precedence{ 17, false } },
+	{ lex::token::modulo_eq,          precedence{ 17, false } },
+	{ lex::token::dot_dot_eq,         precedence{ 17, false } },
+	{ lex::token::bit_left_shift_eq,  precedence{ 17, false } },
+	{ lex::token::bit_right_shift_eq, precedence{ 17, false } },
+	{ lex::token::bit_and_eq,         precedence{ 17, false } },
+	{ lex::token::bit_xor_eq,         precedence{ 17, false } },
+	{ lex::token::bit_or_eq,          precedence{ 17, false } },
 
-	{ lex::token::comma,              precedence{ 18, true  } },
+	{ lex::token::comma,              precedence{ 19, true  } },
 };
 
-constexpr precedence no_comma{ 17, true };
+constexpr precedence no_comma{ 18, true };
+constexpr precedence as_prec {  4, true };
 
 static std::map<uint32_t, precedence> unary_op_precendences =
 {
@@ -124,6 +130,11 @@ static std::map<uint32_t, precedence> unary_op_precendences =
 
 static precedence get_binary_precedence(uint32_t kind)
 {
+	if (kind == lex::token::kw_as)
+	{
+		return as_prec;
+	}
+
 	auto it = binary_op_precendences.find(kind);
 	if (it == binary_op_precendences.end())
 	{
@@ -213,7 +224,7 @@ if (postfix == pf)                                                              
     }                                                                                \
     literal.type_kind = ast::type_info::type_kind::type##_;                          \
     expr.expr_type.expr_type = ast::make_ts_base_type(                               \
-        context.get_type_info(#type)                                                 \
+        { nullptr, nullptr }, nullptr, context.get_type_info(#type)                  \
     );                                                                               \
 }
 		auto const val = literal.value.get<ast::expr_literal::integer_number>();
@@ -235,18 +246,24 @@ if (postfix == pf)                                                              
 	case ast::expr_literal::floating_point_number:
 		literal.type_kind = ast::type_info::type_kind::float64_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
+			{ nullptr, nullptr },
+			nullptr,
 			context.get_type_info("float64")
 		);
 		break;
 	case ast::expr_literal::string:
 		literal.type_kind = ast::type_info::type_kind::str_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
+			{ nullptr, nullptr },
+			nullptr,
 			context.get_type_info("str")
 		);
 		break;
 	case ast::expr_literal::character:
 		literal.type_kind = ast::type_info::type_kind::char_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
+			{ nullptr, nullptr },
+			nullptr,
 			context.get_type_info("char")
 		);
 		break;
@@ -254,12 +271,16 @@ if (postfix == pf)                                                              
 	case ast::expr_literal::bool_false:
 		literal.type_kind = ast::type_info::type_kind::bool_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
+			{ nullptr, nullptr },
+			nullptr,
 			context.get_type_info("bool")
 		);
 		break;
 	case ast::expr_literal::null:
 		literal.type_kind = ast::type_info::type_kind::null_t_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
+			{ nullptr, nullptr },
+			nullptr,
 			context.get_type_info("null_t")
 		);
 		break;
@@ -333,7 +354,10 @@ static ast::expression parse_primary_expression(
 		);
 
 		expr.expr_type.type_kind = ast::expression::rvalue;
-		expr.expr_type.expr_type = ast::make_ts_tuple(bz::vector<ast::typespec>{});
+		expr.expr_type.expr_type = ast::make_ts_tuple(
+			{ begin_token, end_token },
+			begin_token, bz::vector<ast::typespec>{}
+		);
 
 		auto &tuple = *expr.get<ast::expr_tuple_ptr>();
 		auto &tuple_t = *expr.expr_type.expr_type.get<ast::ts_tuple_ptr>();
@@ -402,6 +426,12 @@ static ast::expression parse_expression_helper(
 			std::tie(func_call.func_body, expr.expr_type)
 				= context.get_function_call_body_and_type(func_call);
 		}
+		else if (expr.is<ast::expr_cast>())
+		{
+			auto &cast = *expr.get<ast::expr_cast_ptr>();
+			std::tie(cast.func_body, expr.expr_type)
+				= context.get_cast_body_and_type(cast);
+		}
 		else
 		{
 			assert(false);
@@ -422,7 +452,7 @@ static ast::expression parse_expression_helper(
 			if (stream->kind == lex::token::paren_close)
 			{
 				++stream;
-				lhs = make_expr_function_call(
+				lhs = ast::make_expr_function_call(
 					{ lhs.get_tokens_begin(), stream },
 					op, std::move(lhs), bz::vector<ast::expression>{}
 				);
@@ -437,7 +467,7 @@ static ast::expression parse_expression_helper(
 					context.report_error(inner_stream, "expected ',' or closing )");
 				}
 
-				lhs = make_expr_function_call(
+				lhs = ast::make_expr_function_call(
 					{ lhs.get_tokens_begin(), stream },
 					op, std::move(lhs), std::move(params)
 				);
@@ -455,9 +485,20 @@ static ast::expression parse_expression_helper(
 				context.report_error(inner_stream, "expected closing ]");
 			}
 
-			lhs = make_expr_binary_op(
+			lhs = ast::make_expr_binary_op(
 				{ lhs.get_tokens_begin(), stream },
 				op, std::move(lhs), std::move(rhs)
+			);
+			resolve_expr(lhs);
+			break;
+		}
+
+		case lex::token::kw_as:
+		{
+			auto type = parse_typespec(stream, end, context);
+			lhs = ast::make_expr_cast(
+				{ lhs.get_tokens_begin(), stream },
+				op, std::move(lhs), std::move(type)
 			);
 			resolve_expr(lhs);
 			break;
@@ -486,7 +527,7 @@ static ast::expression parse_expression_helper(
 				resolve_expr(rhs);
 			}
 
-			lhs = make_expr_binary_op(
+			lhs = ast::make_expr_binary_op(
 				{ lhs.get_tokens_begin(), stream },
 				op, std::move(lhs), std::move(rhs)
 			);
@@ -571,14 +612,14 @@ static ast::typespec parse_typespec(
 		++stream;
 		if (id->value == "void")
 		{
-			return ast::make_ts_void();
+			return ast::make_ts_void({ id, id + 1 }, id);
 		}
 		else
 		{
 			auto const info = context.get_type_info(id->value);
 			if (info)
 			{
-				return ast::make_ts_base_type(info);
+				return ast::make_ts_base_type({ id, id + 1 }, id, info);
 			}
 			else
 			{
@@ -590,18 +631,28 @@ static ast::typespec parse_typespec(
 
 	case lex::token::kw_const:
 		++stream; // 'const'
-		return ast::make_ts_constant(parse_typespec(stream, end, context));
+		return ast::make_ts_constant(
+			{ stream - 1, stream },
+			stream - 1, parse_typespec(stream, end, context)
+		);
 
 	case lex::token::star:
 		++stream; // '*'
-		return ast::make_ts_pointer(parse_typespec(stream, end, context));
+		return ast::make_ts_pointer(
+			{ stream - 1, stream },
+			stream - 1, parse_typespec(stream, end, context)
+		);
 
 	case lex::token::ampersand:
 		++stream; // '&'
-		return ast::make_ts_reference(parse_typespec(stream, end, context));
+		return ast::make_ts_reference(
+			{ stream - 1, stream },
+			stream - 1, parse_typespec(stream, end, context)
+		);
 
 	case lex::token::kw_function:
 	{
+		auto const begin_token = stream;
 		++stream; // 'function'
 		context.assert_token(stream, lex::token::paren_open);
 
@@ -625,11 +676,19 @@ static ast::typespec parse_typespec(
 
 		auto ret_type = parse_typespec(stream, end, context);
 
-		return make_ts_function(std::move(ret_type), std::move(param_types));
+		auto const end_token = stream;
+
+		return ast::make_ts_function(
+			{ begin_token, end_token },
+			begin_token,
+			std::move(ret_type),
+			std::move(param_types)
+		);
 	}
 
 	case lex::token::square_open:
 	{
+		auto const begin_token = stream;
 		++stream; // '['
 
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
@@ -649,7 +708,9 @@ static ast::typespec parse_typespec(
 			}
 		}
 
-		return make_ts_tuple(std::move(types));
+		auto const end_token = inner_end;
+
+		return ast::make_ts_tuple({ begin_token, end_token }, begin_token, std::move(types));
 	}
 
 	default:
@@ -694,16 +755,18 @@ static ast::typespec add_prototype_to_type(
 
 	while (proto_it->kind() != ast::typespec::null)
 	{
-#define x(type)                                                                \
-if (                                                                           \
-    proto_it->kind() == ast::typespec::index<type>                             \
-    || type_it->kind() == ast::typespec::index<type>                           \
-)                                                                              \
-{                                                                              \
-    ret_type_it->emplace<type##_ptr>(std::make_unique<type>(ast::typespec())); \
-    ret_type_it = &ret_type_it->get<type##_ptr>()->base;                       \
-    if (proto_it->kind() == ast::typespec::index<type>) advance(proto_it);     \
-    if (type_it->kind() == ast::typespec::index<type>) advance(type_it);       \
+#define x(type)                                                            \
+if (proto_it->is<type>() || type_it->is<type>())                           \
+{                                                                          \
+    ret_type_it->emplace<type##_ptr>(std::make_unique<type>(               \
+        type_it->is<type>()                                                \
+        ? type_it->get_tokens_pivot()                                      \
+        : proto_it->get_tokens_pivot(),                                    \
+        ast::typespec())                                                   \
+    );                                                                     \
+    ret_type_it = &ret_type_it->get<type##_ptr>()->base;                   \
+    if (proto_it->kind() == ast::typespec::index<type>) advance(proto_it); \
+    if (type_it->kind() == ast::typespec::index<type>) advance(type_it);   \
 }
 
 	x(ast::ts_reference)
