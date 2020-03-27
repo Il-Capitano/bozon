@@ -26,3 +26,8 @@ void print_int32_ptr(int32_t const *p)
 {
 	fprintf(stdout, "0x%u\n", (uint32_t)(uint64_t)p);
 }
+
+void print_float64(double x)
+{
+	fprintf(stdout, "%g\n", x);
+}
