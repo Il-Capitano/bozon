@@ -98,7 +98,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			if (num > std::numeric_limits<uint64_t>::max() / 10)
 			{
 				// TODO: report error
-				assert(false);
+				bz_assert(false);
 			}
 			num = (10 * num) + (c - '0');
 		}
@@ -114,18 +114,18 @@ expr_literal::expr_literal(lex::token_pos stream)
 		size_t i;
 		for (i = 0; i < value.length() && value[i] != '.'; ++i)
 		{
-			assert(value[i] >= '0' && value[i] <= '9');
+			bz_assert(value[i] >= '0' && value[i] <= '9');
 			num *= 10;
 			num += value[i] - '0';
 		}
 
-		assert(value[i] == '.');
+		bz_assert(value[i] == '.');
 		++i;
 
 		double level = 1;
 		while (i < value.length())
 		{
-			assert(value[i] >= '0' && value[i] <= '9');
+			bz_assert(value[i] >= '0' && value[i] <= '9');
 			level *= 0.1;
 			num += level * (value[i] - '0');
 			++i;
@@ -136,7 +136,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 	}
 	case lex::token::hex_literal:
 	{
-		assert(stream->value.length() >= 2);
+		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
 		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
 		{
@@ -148,7 +148,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			if (num > std::numeric_limits<uint64_t>::max() / 16)
 			{
 				// TODO: report error
-				assert(false);
+				bz_assert(false);
 			}
 			num *= 16;
 			if (c >= '0' && c <= '9')
@@ -161,7 +161,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			}
 			else
 			{
-				assert(c >= 'A' && c <= 'F');
+				bz_assert(c >= 'A' && c <= 'F');
 				num += c - ('A' - 10);
 			}
 		}
@@ -170,7 +170,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 	}
 	case lex::token::oct_literal:
 	{
-		assert(stream->value.length() >= 2);
+		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
 		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
 		{
@@ -182,7 +182,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			if (num > std::numeric_limits<uint64_t>::max() / 8)
 			{
 				// TODO: report error
-				assert(false);
+				bz_assert(false);
 			}
 			num = (8 * num) + (c - '0');
 		}
@@ -191,7 +191,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 	}
 	case lex::token::bin_literal:
 	{
-		assert(stream->value.length() >= 2);
+		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
 		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
 		{
@@ -203,7 +203,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			if (num > std::numeric_limits<uint64_t>::max() / 2)
 			{
 				// TODO: report error
-				assert(false);
+				bz_assert(false);
 			}
 			num = (2 * num) + (c - '0');
 		}
@@ -222,7 +222,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 			{
 			case '\\':
 				++it;
-				assert(it != end);
+				bz_assert(it != end);
 				switch (*it)
 				{
 				case '\\':
@@ -241,7 +241,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 					res += '\t';
 					break;
 				default:
-					assert(false);
+					bz_assert(false);
 					break;
 				}
 				break;
@@ -262,8 +262,8 @@ expr_literal::expr_literal(lex::token_pos stream)
 		}
 		else
 		{
-			assert(stream->value.length() == 2);
-			assert(stream->value[0] == '\\');
+			bz_assert(stream->value.length() == 2);
+			bz_assert(stream->value[0] == '\\');
 			switch (stream->value[1])
 			{
 			case '\\':
@@ -282,7 +282,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 				this->value.emplace<character>('\t');
 				break;
 			default:
-				assert(false);
+				bz_assert(false);
 				break;
 			}
 		}
@@ -301,7 +301,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 		break;
 
 	default:
-		assert(false);
+		bz_assert(false);
 		break;
 	}
 }

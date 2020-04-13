@@ -78,7 +78,7 @@ struct error
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
-	assert(end > begin);
+	bz_assert(end > begin);
 	return {
 		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,

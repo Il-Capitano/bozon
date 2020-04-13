@@ -8,10 +8,10 @@ namespace ctx
 static auto get_base_kinds(
 	ast::typespec const &lhs_t,
 	ast::typespec const &rhs_t
-) -> std::pair<ast::type_info::type_kind, ast::type_info::type_kind>
+) -> std::pair<uint32_t, uint32_t>
 {
-	assert(lhs_t.is<ast::ts_base_type>());
-	assert(rhs_t.is<ast::ts_base_type>());
+	bz_assert(lhs_t.is<ast::ts_base_type>());
+	bz_assert(rhs_t.is<ast::ts_base_type>());
 	return {
 		lhs_t.get<ast::ts_base_type_ptr>()->info->kind,
 		rhs_t.get<ast::ts_base_type_ptr>()->info->kind
@@ -52,7 +52,7 @@ auto get_non_overloadable_operation_type(
 	}
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return bz::string("");
 	}
 }
@@ -71,7 +71,7 @@ auto get_non_overloadable_operation_type(
 		return rhs;
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return bz::string("");
 	}
 }
@@ -175,7 +175,7 @@ static ast::expression::expr_type_t get_built_in_unary_bool_not(
 	}
 
 	auto const kind = expr_t.get<ast::ts_base_type_ptr>()->info->kind;
-	if (kind == ast::type_info::type_kind::bool_)
+	if (kind == ast::type_info::bool_)
 	{
 		return expr_type_t{ ast::expression::rvalue, expr_t };
 	}
@@ -203,7 +203,7 @@ static ast::expression::expr_type_t get_built_in_unary_plus_plus_minus_minus(
 		auto kind = expr_t.get<ast::ts_base_type_ptr>()->info->kind;
 		if (
 			is_integer_kind(kind)
-			|| kind == ast::type_info::type_kind::char_
+			|| kind == ast::type_info::char_
 		)
 		{
 			return expr;
@@ -246,7 +246,7 @@ auto get_built_in_operation_type(
 		return get_built_in_unary_plus_plus_minus_minus(expr);
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return {};
 	}
 }
@@ -371,7 +371,7 @@ static auto get_built_in_binary_plus(
 				: expr_type_t{ ast::expression::rvalue, rhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::char_
+			lhs_kind == ast::type_info::char_
 			&& is_integer_kind(rhs_kind)
 		)
 		{
@@ -379,7 +379,7 @@ static auto get_built_in_binary_plus(
 		}
 		else if (
 			is_integer_kind(lhs_kind)
-			&& rhs_kind == ast::type_info::type_kind::char_
+			&& rhs_kind == ast::type_info::char_
 		)
 		{
 			return { ast::expression::rvalue, rhs_t };
@@ -449,28 +449,28 @@ static auto get_built_in_binary_minus(
 		{
 			switch (lhs_kind > rhs_kind ? lhs_kind : rhs_kind)
 			{
-			case ast::type_info::type_kind::uint8_:
+			case ast::type_info::uint8_:
 				return expr_type_t{
 					ast::expression::rvalue,
 					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int8"))
 				};
-			case ast::type_info::type_kind::uint16_:
+			case ast::type_info::uint16_:
 				return expr_type_t{
 					ast::expression::rvalue,
 					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int16"))
 				};
-			case ast::type_info::type_kind::uint32_:
+			case ast::type_info::uint32_:
 				return expr_type_t{
 					ast::expression::rvalue,
 					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int32"))
 				};
-			case ast::type_info::type_kind::uint64_:
+			case ast::type_info::uint64_:
 				return expr_type_t{
 					ast::expression::rvalue,
 					ast::make_ts_base_type({ nullptr, nullptr }, nullptr, context.get_type_info("int64"))
 				};
 			default:
-				assert(false);
+				bz_assert(false);
 				return {};
 			}
 		}
@@ -484,15 +484,15 @@ static auto get_built_in_binary_minus(
 				: expr_type_t{ ast::expression::rvalue, rhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::char_
+			lhs_kind == ast::type_info::char_
 			&& is_integer_kind(rhs_kind)
 		)
 		{
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::char_
-			&& rhs_kind == ast::type_info::type_kind::char_
+			lhs_kind == ast::type_info::char_
+			&& rhs_kind == ast::type_info::char_
 		)
 		{
 			return expr_type_t{
@@ -589,7 +589,7 @@ static auto get_built_in_binary_plus_minus_eq(
 			return expr_type_t{ lhs.type_kind, lhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::char_
+			lhs_kind == ast::type_info::char_
 			&& is_integer_kind(rhs_kind)
 		)
 		{
@@ -853,18 +853,18 @@ static auto get_built_in_binary_equals_not_equals(
 			|| (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
 			// char
 			|| (
-				lhs_kind == ast::type_info::type_kind::char_
-				&& rhs_kind == ast::type_info::type_kind::char_
+				lhs_kind == ast::type_info::char_
+				&& rhs_kind == ast::type_info::char_
 			)
 			// str
 			|| (
-				lhs_kind == ast::type_info::type_kind::str_
-				&& rhs_kind == ast::type_info::type_kind::str_
+				lhs_kind == ast::type_info::str_
+				&& rhs_kind == ast::type_info::str_
 			)
 			// bool
 			|| (
-				lhs_kind == ast::type_info::type_kind::bool_
-				&& rhs_kind == ast::type_info::type_kind::bool_
+				lhs_kind == ast::type_info::bool_
+				&& rhs_kind == ast::type_info::bool_
 			)
 		)
 		{
@@ -929,13 +929,13 @@ static auto get_built_in_binary_compare(
 			|| (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
 			// char <=> char
 			|| (
-				lhs_kind == ast::type_info::type_kind::char_
-				&& rhs_kind == ast::type_info::type_kind::char_
+				lhs_kind == ast::type_info::char_
+				&& rhs_kind == ast::type_info::char_
 			)
 			// str <=> str
 			|| (
-				lhs_kind == ast::type_info::type_kind::str_
-				&& rhs_kind == ast::type_info::type_kind::str_
+				lhs_kind == ast::type_info::str_
+				&& rhs_kind == ast::type_info::str_
 			)
 		)
 		{
@@ -996,8 +996,8 @@ static auto get_built_in_binary_bit_and_xor_or(
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::bool_
-			&& rhs_kind == ast::type_info::type_kind::bool_
+			lhs_kind == ast::type_info::bool_
+			&& rhs_kind == ast::type_info::bool_
 		)
 		{
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
@@ -1045,8 +1045,8 @@ static auto get_built_in_binary_bit_and_xor_or_eq(
 			return expr_type_t{ lhs.type_kind, lhs_t };
 		}
 		else if (
-			lhs_kind == ast::type_info::type_kind::bool_
-			&& rhs_kind == ast::type_info::type_kind::bool_
+			lhs_kind == ast::type_info::bool_
+			&& rhs_kind == ast::type_info::bool_
 		)
 		{
 			return expr_type_t{ lhs.type_kind, lhs_t };
@@ -1150,8 +1150,8 @@ static auto get_built_in_binary_bool_and_xor_or(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			lhs_kind == ast::type_info::type_kind::bool_
-			&& lhs_kind == ast::type_info::type_kind::bool_
+			lhs_kind == ast::type_info::bool_
+			&& lhs_kind == ast::type_info::bool_
 		)
 		{
 			return expr_type_t{ ast::expression::rvalue, lhs_t };
@@ -1223,7 +1223,7 @@ auto get_built_in_operation_type(
 		return get_built_in_binary_bool_and_xor_or(lhs, rhs);
 
 	case lex::token::square_open:        // '[]'
-		assert(false);
+		bz_assert(false);
 		return {};
 
 	// these have no built-in operations
@@ -1232,7 +1232,7 @@ auto get_built_in_operation_type(
 		return {};
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return {};
 	}
 }

@@ -90,7 +90,7 @@ namespace ctx
 	// add declarations to the module
 	for ([[maybe_unused]] auto const var_decl : this->global_ctx._compile_decls.var_decls)
 	{
-		assert(false);
+		bz_assert(false);
 	}
 	for (auto const func_decl : this->global_ctx._compile_decls.func_decls)
 	{
@@ -104,7 +104,7 @@ namespace ctx
 	// add the definitions to the module
 	for ([[maybe_unused]] auto const var_decl : this->global_ctx._compile_decls.var_decls)
 	{
-		assert(false);
+		bz_assert(false);
 	}
 	for (auto const func_decl : this->global_ctx._compile_decls.func_decls)
 	{
@@ -125,7 +125,7 @@ namespace ctx
 	{
 		std::error_code ec;
 		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
-		assert(!ec);
+		bz_assert(!ec);
 		context.module.print(file, nullptr);
 	}
 
@@ -138,7 +138,7 @@ namespace ctx
 
 	std::string error = "";
 	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, error);
-	assert(target);
+	bz_assert(target);
 	auto const cpu = "generic";
 	auto const features = "";
 
@@ -150,12 +150,12 @@ namespace ctx
 	auto const output_file = "output.o";
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(output_file, ec, llvm::sys::fs::OF_None);
-	assert(!ec);
+	bz_assert(!ec);
 
 	llvm::legacy::PassManager pass;
 	auto const file_type = llvm::TargetMachine::CGFT_ObjectFile;
 	auto const res = target_machine->addPassesToEmitFile(pass, dest, nullptr, file_type);
-	assert(!res);
+	bz_assert(!res);
 	pass.run(context.module);
 	dest.flush();
 

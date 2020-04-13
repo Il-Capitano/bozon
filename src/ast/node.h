@@ -14,7 +14,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	using self_t = node<Ts...>;
 
 	template<typename T>
-	static constexpr auto index = base_t::template index_of<std::unique_ptr<T>>;
+	static constexpr size_t index = base_t::template index_of<std::unique_ptr<T>>;
 
 	auto kind(void) const noexcept
 	{ return this->base_t::index(); }
@@ -23,8 +23,14 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	bool is(void) const noexcept
 	{ return index<T> == this->kind(); }
 
+	node(void) = default;
+
+	template<typename T>
+	node(T &&val)
+		: base_t(std::forward<T>(val))
+	{}
+
 	using base_t::get;
-	using base_t::variant;
 	using base_t::emplace;
 
 	node(self_t const &other)

@@ -86,7 +86,7 @@ do {                                                        \
 #undef x
 }
 
-static std::ostream &operator << (std::ostream &os, ast::type_info::type_kind kind)
+static std::ostream &operator << (std::ostream &os, uint32_t kind)
 {
 	os << static_cast<uint32_t>(kind);
 	return os;
@@ -111,7 +111,7 @@ do {                                                                      \
     assert_eq(it, tokens.end() - 1);                                      \
     resolve_literal(expr, parse_ctx);                                     \
     assert_eq(                                                            \
-        ast::type_info::type_kind::kind_,                                 \
+        ast::type_info::kind_,                                 \
         expr.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind \
     );                                                                    \
 } while (false)

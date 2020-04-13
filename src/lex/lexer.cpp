@@ -138,8 +138,8 @@ static token get_identifier_or_keyword_token(
 	ctx::lex_context &
 )
 {
-	assert(stream.it != end);
-	assert(
+	bz_assert(stream.it != end);
+	bz_assert(
 		is_alpha_char(*stream.it)
 		|| *stream.it == '_'
 	);
@@ -191,8 +191,8 @@ static token get_character_token(
 	ctx::lex_context &context
 )
 {
-	assert(stream.it != end);
-	assert(*stream.it == '\'');
+	bz_assert(stream.it != end);
+	bz_assert(*stream.it == '\'');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
 	++stream;
@@ -319,8 +319,8 @@ static token get_string_token(
 	ctx::lex_context &context
 )
 {
-	assert(stream.it != end);
-	assert(*stream.it == '\"');
+	bz_assert(stream.it != end);
+	bz_assert(*stream.it == '\"');
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
 	++stream;
@@ -383,7 +383,7 @@ static token get_string_token(
 	}
 	else
 	{
-		assert(*stream.it == '\"');
+		bz_assert(*stream.it == '\"');
 		++stream;
 	}
 
@@ -409,10 +409,10 @@ static token get_hex_number_token(
 	ctx::char_pos const end
 )
 {
-	assert(stream.it != end);
-	assert((stream.it + 1) != end);
-	assert(*stream.it == '0');
-	assert(*(stream.it + 1) == 'x' || *(stream.it + 1) == 'X');
+	bz_assert(stream.it != end);
+	bz_assert((stream.it + 1) != end);
+	bz_assert(*stream.it == '0');
+	bz_assert(*(stream.it + 1) == 'x' || *(stream.it + 1) == 'X');
 
 	auto const begin_it = stream.it;
 	auto const num_begin = stream.it;
@@ -449,10 +449,10 @@ static token get_oct_number_token(
 	ctx::char_pos const end
 )
 {
-	assert(stream.it != end);
-	assert((stream.it + 1) != end);
-	assert(*stream.it == '0');
-	assert(*(stream.it + 1) == 'o' || *(stream.it + 1) == 'O');
+	bz_assert(stream.it != end);
+	bz_assert((stream.it + 1) != end);
+	bz_assert(*stream.it == '0');
+	bz_assert(*(stream.it + 1) == 'o' || *(stream.it + 1) == 'O');
 
 	auto const begin_it = stream.it;
 	auto const num_begin = stream.it;
@@ -489,10 +489,10 @@ static token get_bin_number_token(
 	ctx::char_pos const end
 )
 {
-	assert(stream.it != end);
-	assert((stream.it + 1) != end);
-	assert(*stream.it == '0');
-	assert(*(stream.it + 1) == 'b' || *(stream.it + 1) == 'B');
+	bz_assert(stream.it != end);
+	bz_assert((stream.it + 1) != end);
+	bz_assert(*stream.it == '0');
+	bz_assert(*(stream.it + 1) == 'b' || *(stream.it + 1) == 'B');
 
 	auto const begin_it = stream.it;
 	auto const num_begin = stream.it;
@@ -530,8 +530,8 @@ static token get_number_token(
 	ctx::lex_context &
 )
 {
-	assert(stream.it != end);
-	assert(is_num_char(*stream.it));
+	bz_assert(stream.it != end);
+	bz_assert(is_num_char(*stream.it));
 
 	if (
 		*stream.it == '0'
@@ -613,7 +613,7 @@ static token get_single_char_token(
 	ctx::lex_context &
 )
 {
-	assert(stream.it != end);
+	bz_assert(stream.it != end);
 	auto const begin_it = stream.it;
 	auto const line     = stream.line;
 	++stream;

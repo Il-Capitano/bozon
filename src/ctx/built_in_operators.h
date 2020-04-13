@@ -7,34 +7,34 @@
 namespace ctx
 {
 
-inline bool is_integer_kind(ast::type_info::type_kind kind)
+inline bool is_integer_kind(uint32_t kind)
 {
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::uint64_;
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::uint64_;
 }
 
-inline bool is_unsigned_integer_kind(ast::type_info::type_kind kind)
+inline bool is_unsigned_integer_kind(uint32_t kind)
 {
-	return kind >= ast::type_info::type_kind::uint8_
-		&& kind <= ast::type_info::type_kind::uint64_;
+	return kind >= ast::type_info::uint8_
+		&& kind <= ast::type_info::uint64_;
 }
 
-inline bool is_signed_integer_kind(ast::type_info::type_kind kind)
+inline bool is_signed_integer_kind(uint32_t kind)
 {
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::int64_;
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::int64_;
 }
 
-inline bool is_floating_point_kind(ast::type_info::type_kind kind)
+inline bool is_floating_point_kind(uint32_t kind)
 {
-	return kind == ast::type_info::type_kind::float32_
-		|| kind == ast::type_info::type_kind::float64_;
+	return kind == ast::type_info::float32_
+		|| kind == ast::type_info::float64_;
 }
 
-inline bool is_arithmetic_kind(ast::type_info::type_kind kind)
+inline bool is_arithmetic_kind(uint32_t kind)
 {
-	return kind >= ast::type_info::type_kind::int8_
-		&& kind <= ast::type_info::type_kind::float64_;
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::float64_;
 }
 
 auto get_non_overloadable_operation_type(

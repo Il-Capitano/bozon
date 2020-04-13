@@ -155,9 +155,9 @@ struct expr_literal
 		null                  = value_t::index_of<_null>,
 	};
 
-	value_t              value;
-	lex::token_pos       src_pos;
-	type_info::type_kind type_kind = type_info::type_kind::int8_;
+	value_t        value;
+	lex::token_pos src_pos;
+	uint32_t       type_kind = 0;
 
 	expr_literal(lex::token_pos stream);
 
@@ -180,13 +180,13 @@ struct expr_tuple
 	{}
 
 	lex::token_pos get_tokens_begin(void) const
-	{ assert(false); return nullptr; }
+	{ bz_assert(false); return nullptr; }
 
 	lex::token_pos get_tokens_pivot(void) const
-	{ assert(false); return nullptr; }
+	{ bz_assert(false); return nullptr; }
 
 	lex::token_pos get_tokens_end(void) const
-	{ assert(false); return nullptr; }
+	{ bz_assert(false); return nullptr; }
 };
 
 struct expr_unary_op
