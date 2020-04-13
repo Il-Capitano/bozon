@@ -18,14 +18,11 @@ struct global_context;
 
 struct parse_context
 {
-	uint32_t        file_id;
 	global_context &global_ctx;
-
-	decl_set global_decls;
 
 	bz::vector<decl_set> scope_decls;
 
-	parse_context(uint32_t _file_id, global_context &_global_ctx);
+	parse_context(global_context &_global_ctx);
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -56,12 +53,6 @@ struct parse_context
 	void add_scope(void);
 	void remove_scope(void);
 
-	void add_global_declaration(ast::declaration &decl);
-	void add_global_variable(ast::decl_variable &var_decl);
-	void add_global_function(ast::decl_function &func_decl);
-	void add_global_operator(ast::decl_operator &op_decl);
-	void add_global_struct(ast::decl_struct &struct_decl);
-
 	void add_local_variable(ast::decl_variable &var_decl);
 	void add_local_function(ast::decl_function &func_decl);
 	void add_local_operator(ast::decl_operator &op_decl);
@@ -87,7 +78,7 @@ struct parse_context
 
 	bool is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to);
 
-	ast::type_info const *get_type_info(bz::string_view id) const;
+	ast::type_info *get_type_info(bz::string_view id) const;
 };
 
 } // namespace ctx

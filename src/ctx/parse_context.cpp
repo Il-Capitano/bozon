@@ -6,11 +6,9 @@
 namespace ctx
 {
 
-parse_context::parse_context(uint32_t _file_id, global_context &_global_ctx)
-	: file_id(_file_id), global_ctx(_global_ctx), global_decls{}, scope_decls{}
-{
-	this->global_decls = this->global_ctx.get_decls(this->file_id).export_decls;
-}
+parse_context::parse_context(global_context &_global_ctx)
+	: global_ctx(_global_ctx), scope_decls{}
+{}
 
 void parse_context::report_error(lex::token_pos it) const
 {
@@ -90,7 +88,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 
 void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 {
-	this->global_ctx.report_ambiguous_id_error(id);
+	bz_assert(false);
 }
 
 
@@ -101,121 +99,20 @@ void parse_context::add_scope(void)
 
 void parse_context::remove_scope(void)
 {
-	assert(!this->scope_decls.empty());
+	bz_assert(!this->scope_decls.empty());
 	this->scope_decls.pop_back();
-}
-
-
-void parse_context::add_global_declaration(ast::declaration &decl)
-{
-	switch (decl.kind())
-	{
-	case ast::declaration::index<ast::decl_variable>:
-		this->add_global_variable(*decl.get<ast::decl_variable_ptr>());
-		return;
-	case ast::declaration::index<ast::decl_function>:
-		this->add_global_function(*decl.get<ast::decl_function_ptr>());
-		return;
-	case ast::declaration::index<ast::decl_operator>:
-		this->add_global_operator(*decl.get<ast::decl_operator_ptr>());
-		return;
-	case ast::declaration::index<ast::decl_struct>:
-		this->add_global_struct(*decl.get<ast::decl_struct_ptr>());
-		return;
-	default:
-		assert(false);
-		return;
-	}
-}
-
-void parse_context::add_global_variable(ast::decl_variable &var_decl)
-{
-	auto res = this->global_ctx.add_export_variable(this->file_id, var_decl);
-	if (res.has_error())
-	{
-		this->global_ctx.report_error(std::move(res.get_error()));
-	}
-	else
-	{
-		this->global_decls.var_decls.push_back(&var_decl);
-	}
-}
-
-void parse_context::add_global_function(ast::decl_function &func_decl)
-{
-	auto res = this->global_ctx.add_export_function(this->file_id, func_decl);
-	if (res.has_error())
-	{
-		this->global_ctx.report_error(std::move(res.get_error()));
-	}
-	else
-	{
-		auto const set = std::find_if(
-			this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
-			[id = func_decl.identifier->value](auto const &set) {
-				return id == set.id;
-			}
-		);
-		if (set == this->global_decls.func_sets.end())
-		{
-			this->global_decls.func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
-		}
-		else
-		{
-			set->func_decls.push_back(&func_decl);
-		}
-	}
-}
-
-void parse_context::add_global_operator(ast::decl_operator &op_decl)
-{
-	auto res = this->global_ctx.add_export_operator(this->file_id, op_decl);
-	if (res.has_error())
-	{
-		this->global_ctx.report_error(std::move(res.get_error()));
-	}
-	else
-	{
-		auto const set = std::find_if(
-			this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
-			[op = op_decl.op->kind](auto const &set) {
-				return op == set.op;
-			}
-		);
-		if (set == this->global_decls.op_sets.end())
-		{
-			this->global_decls.op_sets.push_back({ op_decl.op->kind, { &op_decl } });
-		}
-		else
-		{
-			set->op_decls.push_back(&op_decl);
-		}
-	}
-}
-
-void parse_context::add_global_struct(ast::decl_struct &struct_decl)
-{
-	auto res = this->global_ctx.add_export_struct(this->file_id, struct_decl);
-	if (res.has_error())
-	{
-		this->global_ctx.report_error(std::move(res.get_error()));
-	}
-	else
-	{
-		this->global_decls.struct_decls.push_back(&struct_decl);
-	}
 }
 
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
-	assert(this->scope_decls.size() != 0);
+	bz_assert(this->scope_decls.size() != 0);
 	this->scope_decls.back().var_decls.push_back(&var_decl);
 }
 
 void parse_context::add_local_function(ast::decl_function &func_decl)
 {
-	assert(this->scope_decls.size() != 0);
+	bz_assert(this->scope_decls.size() != 0);
 	auto &sets = this->scope_decls.back().func_sets;
 	auto const set = std::find_if(
 		sets.begin(), sets.end(),
@@ -237,7 +134,7 @@ void parse_context::add_local_function(ast::decl_function &func_decl)
 
 void parse_context::add_local_operator(ast::decl_operator &op_decl)
 {
-	assert(this->scope_decls.size() != 0);
+	bz_assert(this->scope_decls.size() != 0);
 	auto &sets = this->scope_decls.back().op_sets;
 	auto const set = std::find_if(
 		sets.begin(), sets.end(),
@@ -259,8 +156,8 @@ void parse_context::add_local_operator(ast::decl_operator &op_decl)
 
 void parse_context::add_local_struct(ast::decl_struct &struct_decl)
 {
-	assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().struct_decls.push_back(&struct_decl);
+	bz_assert(this->scope_decls.size() != 0);
+	this->scope_decls.back().type_infos.push_back({ struct_decl.identifier->value, &struct_decl.info });
 }
 
 
@@ -301,31 +198,32 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 			}
 			else
 			{
-				assert(!fn_set->func_decls.empty());
+				bz_assert(!fn_set->func_decls.empty());
 				return static_cast<ast::decl_function const *>(nullptr);
 			}
 		}
 	}
 
-	// ==== global decls ====
+	// ==== export (global) decls ====
+	auto &export_decls = this->global_ctx._export_decls;
 	auto const var = std::find_if(
-		this->global_decls.var_decls.begin(), this->global_decls.var_decls.end(),
+		export_decls.var_decls.begin(), export_decls.var_decls.end(),
 		[id = id->value](auto const &var) {
 			return id == var->identifier->value;
 		}
 	);
-	if (var != this->global_decls.var_decls.end())
+	if (var != export_decls.var_decls.end())
 	{
 		return *var;
 	}
 
 	auto const fn_set = std::find_if(
-		this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
+		export_decls.func_sets.begin(), export_decls.func_sets.end(),
 		[id = id->value](auto const &fn_set) {
 			return id == fn_set.id;
 		}
 	);
-	if (fn_set != this->global_decls.func_sets.end())
+	if (fn_set != export_decls.func_sets.end())
 	{
 		if (fn_set->func_decls.size() == 1)
 		{
@@ -333,7 +231,7 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 		}
 		else
 		{
-			assert(!fn_set->func_decls.empty());
+			bz_assert(!fn_set->func_decls.empty());
 			return static_cast<ast::decl_function const *>(nullptr);
 		}
 	}
@@ -377,7 +275,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		this->report_error(id, "undeclared identifier");
 		return { ast::expression::rvalue, ast::typespec() };
 	default:
-		assert(false);
+		bz_assert(false);
 		return {};
 	}
 }
@@ -424,7 +322,7 @@ static bool are_directly_matchable_types(
 			it = &it->get<ast::ts_constant_ptr>()->base;
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	};
@@ -506,15 +404,15 @@ static int get_type_match_level(
 	}
 	else if (dest_it->is<ast::ts_void>())
 	{
-		assert(false);
+		bz_assert(false);
 	}
 	else if (dest_it->is<ast::ts_tuple>())
 	{
-		assert(false);
+		bz_assert(false);
 	}
 	else if (dest_it->is<ast::ts_function>())
 	{
-		assert(false);
+		bz_assert(false);
 	}
 	else if (dest_it->is<ast::ts_reference>())
 	{
@@ -594,7 +492,7 @@ static int get_type_match_level(
 			ts = &ts->get<ast::ts_pointer_ptr>()->base;
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	};
@@ -617,15 +515,15 @@ static int get_type_match_level(
 		}
 		else if (dest_it->is<ast::ts_void>())
 		{
-			assert(false);
+			bz_assert(false);
 		}
 		else if (dest_it->is<ast::ts_function>())
 		{
-			assert(false);
+			bz_assert(false);
 		}
 		else if (dest_it->is<ast::ts_tuple>())
 		{
-			assert(false);
+			bz_assert(false);
 		}
 		else if (dest_it->kind() == src_it->kind())
 		{
@@ -776,7 +674,7 @@ static error get_bad_call_error(
 		}
 	}
 
-	assert(false);
+	bz_assert(false);
 	return make_error(func->identifier, "");
 }
 
@@ -857,7 +755,7 @@ static auto find_best_match(
 			}
 		}
 
-		assert(possible_min_matches.size() != 0);
+		bz_assert(possible_min_matches.size() != 0);
 		if (possible_min_matches.size() == 1)
 		{
 			return min_global_match;
@@ -865,7 +763,7 @@ static auto find_best_match(
 		else
 		{
 			// TODO: report ambiguous call error somehow
-			assert(false);
+			bz_assert(false);
 			return { { -1, -1 }, nullptr };
 		}
 	}
@@ -950,13 +848,14 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 
 	auto const scope_decl_count = possible_funcs.size();
 
+	auto &export_decls = this->global_ctx._export_decls;
 	auto const global_set = std::find_if(
-		this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
+		export_decls.op_sets.begin(), export_decls.op_sets.end(),
 		[op = unary_op.op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
-	if (global_set != this->global_decls.op_sets.end())
+	if (global_set != export_decls.op_sets.end())
 	{
 		for (auto &op : global_set->op_decls)
 		{
@@ -1090,13 +989,14 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 
 	auto const scope_decl_count = possible_funcs.size();
 
+	auto &export_decls = this->global_ctx._export_decls;
 	auto const global_set = std::find_if(
-		this->global_decls.op_sets.begin(), this->global_decls.op_sets.end(),
+		export_decls.op_sets.begin(), export_decls.op_sets.end(),
 		[op = binary_op.op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
-	if (global_set != this->global_decls.op_sets.end())
+	if (global_set != export_decls.op_sets.end())
 	{
 		for (auto &op : global_set->op_decls)
 		{
@@ -1143,7 +1043,7 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 
 	if (func_call.called.expr_type.type_kind == ast::expression::function_name)
 	{
-		assert(func_call.called.is<ast::expr_identifier>());
+		bz_assert(func_call.called.is<ast::expr_identifier>());
 
 		auto const id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value;
 		bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
@@ -1176,13 +1076,14 @@ auto parse_context::get_function_call_body_and_type(ast::expr_function_call cons
 
 		auto const scope_decl_count = possible_funcs.size();
 
+		auto &export_decls = this->global_ctx._export_decls;
 		auto const global_set = std::find_if(
-			this->global_decls.func_sets.begin(), this->global_decls.func_sets.end(),
+			export_decls.func_sets.begin(), export_decls.func_sets.end(),
 			[id](auto const &fn_set) {
 				return id == fn_set.id;
 			}
 		);
-		if (global_set != this->global_decls.func_sets.end())
+		if (global_set != export_decls.func_sets.end())
 		{
 			for (auto &fn : global_set->func_decls)
 			{
@@ -1452,9 +1353,42 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 	return are_directly_matchable_types(from, to);
 }
 
-ast::type_info const *parse_context::get_type_info(bz::string_view id) const
+ast::type_info *parse_context::get_type_info(bz::string_view id) const
 {
-	return this->global_ctx.get_type_info(this->file_id, id);
+	for (
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
+		++scope
+	)
+	{
+		auto const it = std::find_if(
+			scope->type_infos.rbegin(), scope->type_infos.rend(),
+			[id](auto const &info) {
+				return id == info.id;
+			}
+		);
+		if (it != scope->type_infos.rend())
+		{
+			return it->info;
+		}
+	}
+
+	auto &export_decls = this->global_ctx._export_decls;
+	auto const global_it = std::find_if(
+		export_decls.type_infos.begin(), export_decls.type_infos.end(),
+		[id](auto const &info) {
+			return id == info.id;
+		}
+	);
+
+	if (global_it != export_decls.type_infos.end())
+	{
+		return global_it->info;
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 } // namespace ctx

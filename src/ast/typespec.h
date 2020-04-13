@@ -87,9 +87,9 @@ struct ts_unresolved
 struct ts_base_type
 {
 	lex::token_pos   src_pos;
-	type_info const *info;
+	type_info *info;
 
-	ts_base_type(lex::token_pos _src_pos, type_info const *_info)
+	ts_base_type(lex::token_pos _src_pos, type_info *_info)
 		: src_pos(_src_pos), info(_info)
 	{}
 
@@ -214,39 +214,6 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 { return !(lhs == rhs); }
 
 
-struct decl_struct;
-
-struct type_info
-{
-	enum class type_kind
-	{
-		int8_, int16_, int32_, int64_,
-		uint8_, uint16_, uint32_, uint64_,
-		float32_, float64_,
-		char_, str_,
-		bool_, null_t_,
-
-		aggregate,
-	};
-
-	enum : size_t
-	{
-		built_in     = 1ull << 0,
-		resolved     = 1ull << 1,
-		instantiable = 1ull << 2,
-	};
-
-	static constexpr size_t default_built_in_flags =
-		built_in | resolved | instantiable;
-
-	type_kind    kind;
-	bz::string   identifier;
-	size_t       size;
-	size_t       alignment;
-	size_t       flags;
-	decl_struct *decl;
-};
-
 
 template<typename ...Args>
 typespec make_ts_unresolved(lex::token_range tokens, Args &&...args)
@@ -329,139 +296,13 @@ inline bool is_complete(typespec const &ts)
 	case typespec::null:
 		return false;
 	default:
-		assert(false);
+		bz_assert(false);
 		return false;
 	}
 }
 
-inline bool is_instantiable(typespec const &ts)
-{
-	switch (ts.kind())
-	{
-	case typespec::index<ts_base_type>:
-		return ts.get<ts_base_type_ptr>()->info->flags & type_info::instantiable;
-	case typespec::index<ts_void>:
-		return false;
-	case typespec::index<ts_constant>:
-		return is_instantiable(ts.get<ts_constant_ptr>()->base);
-	case typespec::index<ts_pointer>:
-		return true;
-	case typespec::index<ts_reference>:
-	{
-		auto &base = ts.get<ts_reference_ptr>()->base;
-		if (remove_const(base).is<ts_void>())
-		{
-			return false;
-		}
-		else
-		{
-			return true;
-		}
-	}
-	case typespec::index<ts_function>:
-		return true;
-	case typespec::index<ts_tuple>:
-	{
-		auto &tup = *ts.get<ts_tuple_ptr>();
-		for (auto &t : tup.types)
-		{
-			if (!is_instantiable(t))
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-	default:
-		assert(false);
-		return false;
-	}
-}
-
+bool is_instantiable(typespec const &ts);
 
 } // namespace ast
-
-
-template<>
-struct bz::formatter<ast::typespec>
-{
-	static bz::string format(ast::typespec const &typespec, const char *, const char *)
-	{
-		switch (typespec.kind())
-		{
-		case ast::typespec::null:
-			return "<error-type>";
-
-		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->identifier);
-
-		case ast::typespec::index<ast::ts_void>:
-			return "void";
-
-		case ast::typespec::index<ast::ts_constant>:
-			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_pointer>:
-			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_reference>:
-			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_function>:
-		{
-			auto &fn = typespec.get<ast::ts_function_ptr>();
-			bz::string res = "function(";
-
-			bool put_comma = false;
-			for (auto &type : fn->argument_types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-
-			res += bz::format(") -> {}", fn->return_type);
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_tuple>:
-		{
-			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
-			bz::string res = "[";
-
-			bool put_comma = false;
-			for (auto &type : tuple->types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-			res += "]";
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_unresolved>:
-			return "<unresolved>";
-
-		default:
-			assert(false);
-			return "";
-		}
-	}
-};
 
 #endif // AST_TYPESPEC_H

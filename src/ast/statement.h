@@ -142,9 +142,9 @@ struct stmt_for
 {
 	// TODO
 
-	lex::token_pos get_tokens_begin(void) const { assert(false); exit(1); }
-	lex::token_pos get_tokens_pivot(void) const { assert(false); exit(1); }
-	lex::token_pos get_tokens_end(void) const   { assert(false); exit(1); }
+	lex::token_pos get_tokens_begin(void) const { bz_assert(false); exit(1); }
+	lex::token_pos get_tokens_pivot(void) const { bz_assert(false); exit(1); }
+	lex::token_pos get_tokens_end(void) const   { bz_assert(false); exit(1); }
 };
 
 struct stmt_return
@@ -328,16 +328,48 @@ struct decl_operator
 	lex::token_pos get_tokens_end(void) const;
 };
 
+struct type_info
+{
+	enum : uint32_t
+	{
+		int8_, int16_, int32_, int64_,
+		uint8_, uint16_, uint32_, uint64_,
+		float32_, float64_,
+		char_, str_,
+		bool_, null_t_,
+
+		aggregate,
+	};
+
+	enum : size_t
+	{
+		built_in     = 1ull << 0,
+		resolved     = 1ull << 1,
+		instantiable = 1ull << 2,
+	};
+
+	static constexpr size_t default_built_in_flags =
+		built_in | resolved | instantiable;
+
+	uint32_t                kind;
+	size_t                  flags;
+	bz::string_view         name;
+	bz::vector<declaration> member_decls;
+};
+
 struct decl_struct
 {
-	lex::token_pos            identifier;
-	bz::vector<ast::variable> member_variables;
+	lex::token_pos identifier;
+	type_info      info;
 
-	type_info *info = nullptr;
-
-	decl_struct(lex::token_pos _id, bz::vector<ast::variable> _members)
-		: identifier      (_id),
-		  member_variables(std::move(_members))
+	decl_struct(lex::token_pos _id, bz::vector<declaration> _member_decls)
+		: identifier(_id),
+		  info{
+			  type_info::aggregate,
+			  0ull,
+			  _id->value,
+			  std::move(_member_decls)
+		  }
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -401,5 +433,87 @@ statement make_stmt_expression(Args &&...args)
 { return statement(std::make_unique<stmt_expression>(std::forward<Args>(args)...)); }
 
 } // namespace ast
+
+template<>
+struct bz::formatter<ast::typespec>
+{
+	static bz::string format(ast::typespec const &typespec, const char *, const char *)
+	{
+		switch (typespec.kind())
+		{
+		case ast::typespec::null:
+			return "<error-type>";
+
+		case ast::typespec::index<ast::ts_base_type>:
+			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->name);
+
+		case ast::typespec::index<ast::ts_void>:
+			return "void";
+
+		case ast::typespec::index<ast::ts_constant>:
+			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_pointer>:
+			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_reference>:
+			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
+
+		case ast::typespec::index<ast::ts_function>:
+		{
+			auto &fn = typespec.get<ast::ts_function_ptr>();
+			bz::string res = "function(";
+
+			bool put_comma = false;
+			for (auto &type : fn->argument_types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+
+			res += bz::format(") -> {}", fn->return_type);
+
+			return res;
+		}
+
+		case ast::typespec::index<ast::ts_tuple>:
+		{
+			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
+			bz::string res = "[";
+
+			bool put_comma = false;
+			for (auto &type : tuple->types)
+			{
+				if (put_comma)
+				{
+					res += bz::format(", {}", type);
+				}
+				else
+				{
+					res += bz::format("{}", type);
+					put_comma = true;
+				}
+			}
+			res += "]";
+
+			return res;
+		}
+
+		case ast::typespec::index<ast::ts_unresolved>:
+			return "<unresolved>";
+
+		default:
+			bz_assert(false);
+			return "";
+		}
+	}
+};
 
 #endif // AST_STATEMENT_H

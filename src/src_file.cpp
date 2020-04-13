@@ -35,11 +35,11 @@ static bz::string get_highlighted_chars(
 		return "";
 	}
 
-	assert(file_begin <= char_begin);
-	assert(char_begin < char_end);
-	assert(char_begin <= char_pivot);
-	assert(char_pivot < char_end);
-	assert(char_end <= file_end);
+	bz_assert(file_begin <= char_begin);
+	bz_assert(char_begin < char_end);
+	bz_assert(char_begin <= char_pivot);
+	bz_assert(char_pivot < char_end);
+	bz_assert(char_end <= file_end);
 
 	auto line_begin = char_begin;
 
@@ -179,7 +179,7 @@ static bz::string get_highlighted_chars(
 			break;
 		}
 
-		assert(*it == '\n');
+		bz_assert(*it == '\n');
 		++it;
 		++line_num;
 	}
@@ -195,9 +195,9 @@ static bz::string get_highlighted_suggestion(
 	size_t const line
 )
 {
-	assert(file_begin < file_end);
-	assert(file_begin <= char_place);
-	assert(char_place <= file_end);
+	bz_assert(file_begin < file_end);
+	bz_assert(file_begin <= char_place);
+	bz_assert(char_place <= file_end);
 
 	auto line_begin = char_place;
 	while (line_begin != file_begin && *(line_begin - 1) != '\n')
@@ -372,7 +372,7 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::read_file(void)
 {
-	assert(this->_stage == constructed);
+	bz_assert(this->_stage == constructed);
 	auto file_name = this->_file_name;
 	file_name.reserve(file_name.size() + 1);
 	*(file_name.end()) = '\0';
@@ -390,7 +390,7 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::tokenize(void)
 {
-	assert(this->_stage == file_read);
+	bz_assert(this->_stage == file_read);
 
 	ctx::lex_context context(this->_global_ctx);
 	this->_tokens = lex::get_tokens(this->_file, this->_file_name, context);
@@ -401,9 +401,9 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::first_pass_parse(void)
 {
-	assert(this->_stage == tokenized);
-	assert(this->_tokens.size() != 0);
-	assert(this->_tokens.back().kind == lex::token::eof);
+	bz_assert(this->_stage == tokenized);
+	bz_assert(this->_tokens.size() != 0);
+	bz_assert(this->_tokens.back().kind == lex::token::eof);
 	auto stream = this->_tokens.cbegin();
 	auto end    = this->_tokens.cend() - 1;
 
@@ -416,7 +416,7 @@ void src_file::report_and_clear_errors(void)
 
 	for (auto &decl : this->_declarations)
 	{
-		this->_global_ctx.add_export_declaration(this->_global_ctx.get_file_id(this->_file_name), decl);
+		this->_global_ctx.add_export_declaration(decl);
 	}
 
 	this->_stage = first_pass_parsed;
@@ -425,9 +425,9 @@ void src_file::report_and_clear_errors(void)
 
 [[nodiscard]] bool src_file::resolve(void)
 {
-	assert(this->_stage == first_pass_parsed);
+	bz_assert(this->_stage == first_pass_parsed);
 
-	ctx::parse_context context(this->_global_ctx.get_file_id(this->_file_name), this->_global_ctx);
+	ctx::parse_context context(this->_global_ctx);
 
 	for (auto &decl : this->_declarations)
 	{
@@ -447,7 +447,7 @@ void src_file::report_and_clear_errors(void)
 		switch (decl.kind())
 		{
 		case ast::declaration::index<ast::decl_variable>:
-			assert(false);
+			bz_assert(false);
 			break;
 		case ast::declaration::index<ast::decl_function>:
 		{
@@ -462,10 +462,10 @@ void src_file::report_and_clear_errors(void)
 			break;
 		}
 		case ast::declaration::index<ast::decl_struct>:
-			assert(false);
+			bz_assert(false);
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	}
@@ -475,7 +475,7 @@ void src_file::report_and_clear_errors(void)
 		switch (decl.kind())
 		{
 		case ast::declaration::index<ast::decl_variable>:
-			assert(false);
+			bz_assert(false);
 			break;
 		case ast::declaration::index<ast::decl_function>:
 		{
@@ -496,10 +496,10 @@ void src_file::report_and_clear_errors(void)
 			break;
 		}
 		case ast::declaration::index<ast::decl_struct>:
-			assert(false);
+			bz_assert(false);
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	}

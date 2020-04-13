@@ -1146,7 +1146,7 @@ struct bz::formatter<ast::expression>
 				return "null";
 
 			default:
-				assert(false);
+				bz_assert(false);
 				return "";
 			}
 
@@ -1340,10 +1340,9 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 		bz::printf(os, "struct {}\n", struct_decl->identifier->value);
 		indent();
 		bz::print(os, "{\n");
-		for (auto &var : struct_decl->member_variables)
+		for (auto &decl : struct_decl->info.member_decls)
 		{
-			indent(1);
-			bz::printf(os, "{}: {};\n", var.id->value, var.var_type);
+			print_declaration(os, decl, indent_level + 1);
 		}
 		indent();
 		bz::print(os, "}\n");
@@ -1351,7 +1350,7 @@ void print_declaration(std::ostream &os, ast::declaration const &decl, int inden
 	}
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return;
 	}
 }
@@ -1393,7 +1392,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 	}
 
 	case ast::statement::index<ast::stmt_for>:
-		assert(false);
+		bz_assert(false);
 		return;
 
 	case ast::statement::index<ast::stmt_return>:
@@ -1537,10 +1536,9 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		bz::printf(os, "struct {}\n", struct_decl->identifier->value);
 		indent();
 		bz::print(os, "{\n");
-		for (auto &var : struct_decl->member_variables)
+		for (auto &decl : struct_decl->info.member_decls)
 		{
-			indent(1);
-			bz::printf(os, "{}: {};\n", var.id->value, var.var_type);
+			print_declaration(os, decl, indent_level + 1);
 		}
 		indent();
 		bz::print(os, "}\n");
@@ -1548,7 +1546,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 	}
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return;
 	}
 }

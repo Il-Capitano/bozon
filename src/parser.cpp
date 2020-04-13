@@ -182,8 +182,8 @@ lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos 
 			--paren_level;
 		}
 	}
-	assert(paren_level == 0);
-	assert(
+	bz_assert(paren_level == 0);
+	bz_assert(
 		(stream - 1)->kind == lex::token::paren_close
 		|| (stream - 1)->kind == lex::token::square_close
 		|| (stream - 1)->kind == lex::token::curly_close
@@ -207,7 +207,7 @@ static void resolve_literal(
 	ctx::parse_context &context
 )
 {
-	assert(expr.is<ast::expr_literal>());
+	bz_assert(expr.is<ast::expr_literal>());
 	auto &literal = *expr.get<ast::expr_literal_ptr>();
 
 	expr.expr_type.type_kind = ast::expression::rvalue;
@@ -222,7 +222,7 @@ if (postfix == pf)                                                              
     {                                                                                \
         context.report_error(literal, "value is too big to fit into a '" #type "'"); \
     }                                                                                \
-    literal.type_kind = ast::type_info::type_kind::type##_;                          \
+    literal.type_kind = ast::type_info::type##_;                          \
     expr.expr_type.expr_type = ast::make_ts_base_type(                               \
         { nullptr, nullptr }, nullptr, context.get_type_info(#type)                  \
     );                                                                               \
@@ -244,7 +244,7 @@ if (postfix == pf)                                                              
 #undef set_type_from_postfix
 	}
 	case ast::expr_literal::floating_point_number:
-		literal.type_kind = ast::type_info::type_kind::float64_;
+		literal.type_kind = ast::type_info::float64_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			{ nullptr, nullptr },
 			nullptr,
@@ -252,7 +252,7 @@ if (postfix == pf)                                                              
 		);
 		break;
 	case ast::expr_literal::string:
-		literal.type_kind = ast::type_info::type_kind::str_;
+		literal.type_kind = ast::type_info::str_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			{ nullptr, nullptr },
 			nullptr,
@@ -260,7 +260,7 @@ if (postfix == pf)                                                              
 		);
 		break;
 	case ast::expr_literal::character:
-		literal.type_kind = ast::type_info::type_kind::char_;
+		literal.type_kind = ast::type_info::char_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			{ nullptr, nullptr },
 			nullptr,
@@ -269,7 +269,7 @@ if (postfix == pf)                                                              
 		break;
 	case ast::expr_literal::bool_true:
 	case ast::expr_literal::bool_false:
-		literal.type_kind = ast::type_info::type_kind::bool_;
+		literal.type_kind = ast::type_info::bool_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			{ nullptr, nullptr },
 			nullptr,
@@ -277,7 +277,7 @@ if (postfix == pf)                                                              
 		);
 		break;
 	case ast::expr_literal::null:
-		literal.type_kind = ast::type_info::type_kind::null_t_;
+		literal.type_kind = ast::type_info::null_t_;
 		expr.expr_type.expr_type = ast::make_ts_base_type(
 			{ nullptr, nullptr },
 			nullptr,
@@ -285,7 +285,7 @@ if (postfix == pf)                                                              
 		);
 		break;
 	default:
-		assert(false);
+		bz_assert(false);
 		break;
 	}
 }
@@ -434,7 +434,7 @@ static ast::expression parse_expression_helper(
 		}
 		else
 		{
-			assert(false);
+			bz_assert(false);
 		}
 	};
 
@@ -512,7 +512,7 @@ static ast::expression parse_expression_helper(
 				&& lhs.expr_type.expr_type.kind() == ast::typespec::null
 			)
 			{
-				assert(lhs.is<ast::expr_identifier>());
+				bz_assert(lhs.is<ast::expr_identifier>());
 				context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
 			}
 			auto rhs = parse_primary_expression(stream, end, context);
@@ -567,7 +567,7 @@ static ast::expression parse_expression(
 	auto lhs = parse_primary_expression(stream, end, context);
 	if (lhs.kind() == ast::expression::null)
 	{
-		assert(context.has_errors());
+		bz_assert(context.has_errors());
 		return ast::expression();
 	}
 	if (stream == end)
@@ -577,7 +577,7 @@ static ast::expression parse_expression(
 			&& lhs.expr_type.expr_type.kind() == ast::typespec::null
 		)
 		{
-			assert(lhs.is<ast::expr_identifier>());
+			bz_assert(lhs.is<ast::expr_identifier>());
 			context.report_ambiguous_id_error(lhs.get<ast::expr_identifier_ptr>()->identifier);
 		}
 		return lhs;
@@ -670,7 +670,7 @@ static ast::typespec parse_typespec(
 				break;
 			}
 		}
-		assert(stream != end);
+		bz_assert(stream != end);
 		context.assert_token(stream, lex::token::paren_close);
 		context.assert_token(stream, lex::token::arrow);
 
@@ -745,7 +745,7 @@ static ast::typespec add_prototype_to_type(
 			it = &it->get<ast::ts_constant_ptr>()->base;
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	};
@@ -774,7 +774,7 @@ if (proto_it->is<type>() || type_it->is<type>())                           \
 	else x(ast::ts_pointer)
 	else
 	{
-		assert(false);
+		bz_assert(false);
 	}
 
 #undef x
@@ -804,6 +804,28 @@ void resolve(
 	default:
 		break;
 	}
+}
+
+static void resolve(
+	ast::type_info &info,
+	ctx::parse_context &context
+)
+{
+	// if it's resolved we don't need to do anything
+	if ((info.flags & ast::type_info::resolved) != 0)
+	{
+		return;
+	}
+
+	context.add_scope();
+	for (auto &member_decl : info.member_decls)
+	{
+		resolve(member_decl, context);
+	}
+	context.remove_scope();
+
+	info.flags |= ast::type_info::resolved;
+	info.flags |= ast::type_info::instantiable;
 }
 
 static void add_expr_type(
@@ -857,7 +879,7 @@ static void add_expr_type(
 			it = &it->template get<ast::ts_constant_ptr>()->base;
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	};
@@ -923,7 +945,7 @@ static void add_expr_type(
 		}
 	}
 
-	assert(var_it->kind() == ast::typespec::null);
+	bz_assert(var_it->kind() == ast::typespec::null);
 	*var_it = *expr_it;
 }
 
@@ -937,17 +959,26 @@ void resolve(
 		resolve(var_decl.var_type, context);
 	}
 	var_decl.var_type = add_prototype_to_type(var_decl.prototype, var_decl.var_type);
+
+	// if the variable is a base type we need to resolve it (if it's not already resolved)
+	if (ast::remove_const(var_decl.var_type).is<ast::ts_base_type>())
+	{
+		auto &base_t = *var_decl.var_type.get<ast::ts_base_type_ptr>();
+		resolve(*base_t.info, context);
+	}
+
 	if (var_decl.init_expr.not_null())
 	{
 		resolve(var_decl.init_expr, context);
 		add_expr_type(var_decl.var_type, var_decl.init_expr, context);
-		if (ast::is_complete(var_decl.var_type) && !ast::is_instantiable(var_decl.var_type))
-		{
-			context.report_error(
-				var_decl,
-				bz::format("type '{}' is not instantiable", var_decl.var_type)
-			);
-		}
+	}
+
+	if (ast::is_complete(var_decl.var_type) && !ast::is_instantiable(var_decl.var_type))
+	{
+		context.report_error(
+			var_decl,
+			bz::format("type '{}' is not instantiable", var_decl.var_type)
+		);
 	}
 }
 
@@ -956,7 +987,7 @@ void resolve_symbol_helper(
 	ctx::parse_context &context
 )
 {
-	assert(context.scope_decls.size() == 0);
+	bz_assert(context.scope_decls.size() == 0);
 	for (auto &p : func_body.params)
 	{
 		resolve(p, context);
@@ -978,8 +1009,8 @@ void resolve_symbol(
 {
 	if (context.scope_decls.size() != 0)
 	{
-		ctx::parse_context inner_context(context.file_id, context.global_ctx);
-		inner_context.global_decls = context.global_decls;
+		ctx::parse_context inner_context(context.global_ctx);
+//		inner_context.global_decls = context.global_decls;
 		resolve_symbol_helper(func_body, inner_context);
 	}
 	else
@@ -993,7 +1024,7 @@ void resolve_helper(
 	ctx::parse_context &context
 )
 {
-	assert(context.scope_decls.size() == 0);
+	bz_assert(context.scope_decls.size() == 0);
 	if (func_body.body.has_value())
 	{
 		for (auto &p : func_body.params)
@@ -1026,8 +1057,8 @@ void resolve(
 {
 	if (context.scope_decls.size() != 0)
 	{
-		ctx::parse_context inner_context(context.file_id, context.global_ctx);
-		inner_context.global_decls = context.global_decls;
+		ctx::parse_context inner_context(context.global_ctx);
+//		inner_context.global_decls = context.global_decls;
 		resolve_helper(func_body, inner_context);
 	}
 	else
@@ -1037,10 +1068,11 @@ void resolve(
 }
 
 void resolve(
-	ast::decl_struct &,
-	ctx::parse_context &
+	ast::decl_struct &struct_decl,
+	ctx::parse_context &context
 )
 {
+	resolve(struct_decl.info, context);
 }
 
 void resolve(
@@ -1062,7 +1094,10 @@ void resolve(
 		resolve(decl.get<ast::decl_operator_ptr>()->body, context);
 		break;
 	case ast::declaration::index<ast::decl_struct>:
+		resolve(*decl.get<ast::decl_struct_ptr>(), context);
+		break;
 	default:
+		bz_assert(false);
 		break;
 	}
 }
@@ -1093,7 +1128,7 @@ void resolve(
 		break;
 	}
 	case ast::statement::index<ast::stmt_for>:
-		assert(false);
+		bz_assert(false);
 		break;
 	case ast::statement::index<ast::stmt_return>:
 		resolve(stmt.get<ast::stmt_return_ptr>()->expr, context);
@@ -1139,7 +1174,7 @@ void resolve(
 	}
 	case ast::statement::index<ast::decl_struct>:
 	default:
-		assert(false);
+		bz_assert(false);
 		break;
 	}
 }

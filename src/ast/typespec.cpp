@@ -1,12 +1,15 @@
 #include "typespec.h"
+#include "statement.h"
 
 namespace ast
 {
 
 lex::token_pos typespec::get_tokens_begin(void) const
 { return this->tokens.begin; }
+
 lex::token_pos typespec::get_tokens_pivot(void) const
 { return this->visit([](auto const &t) { return t->get_tokens_pivot(); }); }
+
 lex::token_pos typespec::get_tokens_end(void) const
 { return this->tokens.end; }
 
@@ -76,7 +79,7 @@ bool operator == (typespec const &lhs, typespec const &rhs)
 	}
 
 	default:
-		assert(false);
+		bz_assert(false);
 		return false;
 	}
 }
@@ -86,7 +89,7 @@ typespec decay_typespec(typespec const &ts)
 	switch (ts.kind())
 	{
 	case typespec::index<ts_unresolved>:
-		assert(false);
+		bz_assert(false);
 		return typespec();
 	case typespec::index<ts_base_type>:
 		return ts;
@@ -109,7 +112,7 @@ typespec decay_typespec(typespec const &ts)
 		return make_ts_tuple(ts.tokens, tuple->pivot_pos, std::move(decayed_types));
 	}
 	default:
-		assert(false);
+		bz_assert(false);
 		return typespec();
 	}
 }
@@ -147,6 +150,50 @@ typespec const &remove_pointer(typespec const &ts)
 	else
 	{
 		return ts;
+	}
+}
+
+bool is_instantiable(typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case typespec::index<ts_base_type>:
+		return ts.get<ts_base_type_ptr>()->info->flags & type_info::instantiable;
+	case typespec::index<ts_void>:
+		return false;
+	case typespec::index<ts_constant>:
+		return is_instantiable(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_pointer>:
+		return true;
+	case typespec::index<ts_reference>:
+	{
+		auto &base = ts.get<ts_reference_ptr>()->base;
+		if (remove_const(base).is<ts_void>())
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+	case typespec::index<ts_function>:
+		return true;
+	case typespec::index<ts_tuple>:
+	{
+		auto &tup = *ts.get<ts_tuple_ptr>();
+		for (auto &t : tup.types)
+		{
+			if (!is_instantiable(t))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	default:
+		bz_assert(false);
+		return false;
 	}
 }
 

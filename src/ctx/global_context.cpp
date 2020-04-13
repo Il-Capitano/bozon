@@ -4,183 +4,81 @@
 namespace ctx
 {
 
-static std::list<ast::type_info> get_default_types(void)
+static bz::vector<type_info_with_name> get_default_types(void)
 {
+	static auto int8_    = ast::type_info{ ast::type_info::int8_,    ast::type_info::default_built_in_flags, "int8",    {} };
+	static auto int16_   = ast::type_info{ ast::type_info::int16_,   ast::type_info::default_built_in_flags, "int16",   {} };
+	static auto int32_   = ast::type_info{ ast::type_info::int32_,   ast::type_info::default_built_in_flags, "int32",   {} };
+	static auto int64_   = ast::type_info{ ast::type_info::int64_,   ast::type_info::default_built_in_flags, "int64",   {} };
+	static auto uint8_   = ast::type_info{ ast::type_info::uint8_,   ast::type_info::default_built_in_flags, "uint8",   {} };
+	static auto uint16_  = ast::type_info{ ast::type_info::uint16_,  ast::type_info::default_built_in_flags, "uint16",  {} };
+	static auto uint32_  = ast::type_info{ ast::type_info::uint32_,  ast::type_info::default_built_in_flags, "uint32",  {} };
+	static auto uint64_  = ast::type_info{ ast::type_info::uint64_,  ast::type_info::default_built_in_flags, "uint64",  {} };
+	static auto float32_ = ast::type_info{ ast::type_info::float32_, ast::type_info::default_built_in_flags, "float32", {} };
+	static auto float64_ = ast::type_info{ ast::type_info::float64_, ast::type_info::default_built_in_flags, "float64", {} };
+	static auto char_    = ast::type_info{ ast::type_info::char_,    ast::type_info::default_built_in_flags, "char",    {} };
+	static auto str_     = ast::type_info{ ast::type_info::str_,     ast::type_info::default_built_in_flags, "str",     {} };
+	static auto bool_    = ast::type_info{ ast::type_info::bool_,    ast::type_info::default_built_in_flags, "bool",    {} };
+	static auto null_t_  = ast::type_info{ ast::type_info::null_t_,  ast::type_info::default_built_in_flags, "null_t",  {} };
+
+	using tiwn = type_info_with_name;
 	return {
-		ast::type_info{ ast::type_info::type_kind::int8_,    "int8",    1,  1, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::int16_,   "int16",   2,  2, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::int32_,   "int32",   4,  4, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::int64_,   "int64",   8,  8, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::uint8_,   "uint8",   1,  1, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::uint16_,  "uint16",  2,  2, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::uint32_,  "uint32",  4,  4, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::uint64_,  "uint64",  8,  8, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::float32_, "float32", 4,  4, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::float64_, "float64", 8,  8, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::char_,    "char",    4,  4, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::str_,     "str",     16, 8, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::bool_,    "bool",    1,  1, ast::type_info::default_built_in_flags, nullptr },
-		ast::type_info{ ast::type_info::type_kind::null_t_,  "null_t",  0,  0, ast::type_info::default_built_in_flags, nullptr },
+		tiwn{ "int8",    &int8_ },
+		tiwn{ "int16",   &int16_ },
+		tiwn{ "int32",   &int32_ },
+		tiwn{ "int64",   &int64_ },
+		tiwn{ "uint8",   &uint8_ },
+		tiwn{ "uint16",  &uint16_ },
+		tiwn{ "uint32",  &uint32_ },
+		tiwn{ "uint64",  &uint64_ },
+		tiwn{ "float32", &float32_ },
+		tiwn{ "float64", &float64_ },
+		tiwn{ "char",    &char_ },
+		tiwn{ "str",     &str_ },
+		tiwn{ "bool",    &bool_ },
+		tiwn{ "null_t",  &null_t_ },
 	};
 }
 
 
-file_decls &global_context::get_decls(uint32_t file_id)
-{
-	auto const it = std::find_if(
-		this->_file_decls.begin(), this->_file_decls.end(),
-		[file_id](auto const &file_decls) {
-			return file_id == file_decls.file_id;
-		}
-	);
-	assert(it != this->_file_decls.end());
-	return *it;
-}
-
 global_context::global_context(void)
-	: _file_decls(), _types(get_default_types())
+	: _export_decls{
+		  {}, // var_decls
+		  {}, // func_sets
+		  {}, // op_sets
+		  get_default_types() // type_infos
+	  },
+	  _compile_decls{},
+	  _errors{}
 {}
 
-uint32_t global_context::get_file_id(bz::string_view file)
-{
-	if (this->_file_decls.empty())
-	{
-		this->_file_decls.push_back({ 0, file, {} });
-		return 0;
-	}
 
-	auto const it = std::find_if(
-		this->_file_decls.begin(), this->_file_decls.end(),
-		[file](auto const &file_decls) {
-			return file == file_decls.file_name;
-		}
-	);
-	if (it == this->_file_decls.end())
-	{
-		uint32_t const new_id = this->_file_decls.size();
-		this->_file_decls.push_back({ new_id, file, {} });
-		return new_id;
-	}
-
-	return it->file_id;
-}
-
-
-void global_context::report_ambiguous_id_error(lex::token_pos id)
-{
-	bz::vector<note> notes = {};
-
-	for (auto &file : this->_file_decls)
-	{
-		auto const it = std::find_if(
-			file.export_decls.func_sets.begin(), file.export_decls.func_sets.end(),
-			[id = id->value](auto const &func_set) {
-				return id == func_set.id;
-			}
-		);
-		if (it != file.export_decls.func_sets.end())
-		{
-			for (auto decl : it->func_decls)
-			{
-				notes.emplace_back(make_note(decl->identifier, "candidate:"));
-			}
-		}
-	}
-
-	assert(!notes.empty());
-	this->_errors.emplace_back(make_error(id, "identifier is ambiguous", std::move(notes)));
-}
-
-
-
-auto global_context::add_export_declaration(uint32_t file_id, ast::declaration &decl)
-	-> bz::result<int, error>
+void global_context::add_export_declaration(ast::declaration &decl)
 {
 	switch (decl.kind())
 	{
 	case ast::declaration::index<ast::decl_variable>:
-		return this->add_export_variable(file_id, *decl.get<ast::decl_variable_ptr>());
+		this->add_export_variable(*decl.get<ast::decl_variable_ptr>());
+		break;
 	case ast::declaration::index<ast::decl_function>:
-		return this->add_export_function(file_id, *decl.get<ast::decl_function_ptr>());
+		this->add_export_function(*decl.get<ast::decl_function_ptr>());
+		break;
 	case ast::declaration::index<ast::decl_operator>:
-		return this->add_export_operator(file_id, *decl.get<ast::decl_operator_ptr>());
+		this->add_export_operator(*decl.get<ast::decl_operator_ptr>());
+		break;
 	case ast::declaration::index<ast::decl_struct>:
-		return this->add_export_struct(file_id, *decl.get<ast::decl_struct_ptr>());
+		this->add_export_struct(*decl.get<ast::decl_struct_ptr>());
+		break;
 	default:
-		assert(false);
-		return 1;
+		bz_assert(false);
+		break;
 	}
 }
 
-static auto check_for_id_redeclaration(
-	file_decls const &file_decls,
-	lex::token_pos id,
-	bool check_funcs
-) -> bz::result<int, error>
+void global_context::add_export_variable(ast::decl_variable &var_decl)
 {
-	// check global variables
-	{
-		auto const it = std::find_if(
-			file_decls.export_decls.var_decls.begin(), file_decls.export_decls.var_decls.end(),
-			[id = id->value](auto const &v) {
-				return id == v->identifier->value;
-			}
-		);
-		if (it != file_decls.export_decls.var_decls.end())
-		{
-			return make_error(
-				id,
-				bz::format("redeclaration of global name '{}'", id->value),
-				{ make_note((*it)->identifier, "previous declaration:") }
-			);
-		}
-	}
-
-	// check global functions
-	if (check_funcs)
-	{
-		auto const it = std::find_if(
-			file_decls.export_decls.func_sets.begin(), file_decls.export_decls.func_sets.end(),
-			[id = id->value](auto const &v) {
-				return id == v.id;
-			}
-		);
-		if (it != file_decls.export_decls.func_sets.end())
-		{
-			bz::vector<note> notes = {};
-			for (auto &decl : it->func_decls)
-			{
-				notes.emplace_back(make_note(decl->identifier, "previous declaration:"));
-			}
-			return make_error(
-				id,
-				bz::format("redeclaration of global name '{}'", id->value),
-				std::move(notes)
-			);
-		}
-	}
-
-	return 0;
-}
-
-auto global_context::add_export_variable(uint32_t file_id, ast::decl_variable &var_decl)
-	-> bz::result<int, error>
-{
-	// check every file
-	for (auto &file : this->_file_decls)
-	{
-		auto res = check_for_id_redeclaration(file, var_decl.identifier, true);
-		if (res.has_error())
-		{
-			return res;
-		}
-	}
-
-	auto &file_decls = this->get_decls(file_id);
-	file_decls.export_decls.var_decls.push_back(&var_decl);
+	this->_export_decls.var_decls.push_back(&var_decl);
 	this->_compile_decls.var_decls.push_back(&var_decl);
-
-	return 0;
 }
 
 void global_context::add_compile_variable(ast::decl_variable &var_decl)
@@ -188,21 +86,9 @@ void global_context::add_compile_variable(ast::decl_variable &var_decl)
 	this->_compile_decls.var_decls.push_back(&var_decl);
 }
 
-auto global_context::add_export_function(uint32_t file_id, ast::decl_function &func_decl)
-	-> bz::result<int, error>
+void global_context::add_export_function(ast::decl_function &func_decl)
 {
-	// check every file
-	for (auto &file : this->_file_decls)
-	{
-		auto res = check_for_id_redeclaration(file, func_decl.identifier, false);
-		if (res.has_error())
-		{
-			return res;
-		}
-	}
-
-	auto &file_decls = this->get_decls(file_id);
-	auto &func_sets = file_decls.export_decls.func_sets;
+	auto &func_sets = this->_export_decls.func_sets;
 	auto set = std::find_if(
 		func_sets.begin(), func_sets.end(),
 		[id = func_decl.identifier->value](auto const &overload_set) {
@@ -215,13 +101,13 @@ auto global_context::add_export_function(uint32_t file_id, ast::decl_function &f
 	}
 	else
 	{
-		// TODO: check for conflicts
+		// we don't check for conflicts just yet
+		// these should be added after the first pass parsing stage
+		// and resolved after, where redeclaration checks are made
 		set->func_decls.push_back(&func_decl);
 	}
 
 	this->_compile_decls.func_decls.push_back(&func_decl);
-
-	return 0;
 }
 
 void global_context::add_compile_function(ast::decl_function &func_decl)
@@ -229,12 +115,9 @@ void global_context::add_compile_function(ast::decl_function &func_decl)
 	this->_compile_decls.func_decls.push_back(&func_decl);
 }
 
-auto global_context::add_export_operator(uint32_t file_id, ast::decl_operator &op_decl)
-	-> bz::result<int, error>
+void global_context::add_export_operator(ast::decl_operator &op_decl)
 {
-	auto &file_decls = this->get_decls(file_id);
-
-	auto &op_sets = file_decls.export_decls.op_sets;
+	auto &op_sets = this->_export_decls.op_sets;
 	auto set = std::find_if(
 		op_sets.begin(), op_sets.end(),
 		[op = op_decl.op->kind](auto const &overload_set) {
@@ -247,13 +130,13 @@ auto global_context::add_export_operator(uint32_t file_id, ast::decl_operator &o
 	}
 	else
 	{
-		// TODO: check for conflicts
+		// we don't check for conflicts just yet
+		// these should be added after the first pass parsing stage
+		// and resolved after, where redeclaration checks are made
 		set->op_decls.push_back(&op_decl);
 	}
 
 	this->_compile_decls.op_decls.push_back(&op_decl);
-
-	return 0;
 }
 
 void global_context::add_compile_operator(ast::decl_operator &op_decl)
@@ -261,30 +144,15 @@ void global_context::add_compile_operator(ast::decl_operator &op_decl)
 	this->_compile_decls.op_decls.push_back(&op_decl);
 }
 
-auto global_context::add_export_struct(uint32_t file_id, ast::decl_struct &struct_decl)
-	-> bz::result<int, error>
+void global_context::add_export_struct(ast::decl_struct &struct_decl)
 {
-	for (auto &file : this->_file_decls)
-	{
-		auto const it = std::find_if(
-			file.export_decls.struct_decls.begin(), file.export_decls.struct_decls.end(),
-			[id = struct_decl.identifier->value](auto const struct_decl) {
-				return id == struct_decl->identifier->value;
-			}
-		);
-		if (it != file.export_decls.struct_decls.end())
-		{
-			return make_error(
-				struct_decl.identifier,
-				bz::format("redeclaration of type '{}'", struct_decl.identifier->value),
-				{ make_note((*it)->identifier, "previous declaration:") }
-			);
-		}
-	}
+	this->_export_decls.type_infos.push_back({ struct_decl.identifier->value, &struct_decl.info });
+	this->_compile_decls.type_infos.push_back(&struct_decl.info);
+}
 
-	auto &file_decls = this->get_decls(file_id);
-	file_decls.export_decls.struct_decls.push_back(&struct_decl);
-	return 0;
+void global_context::add_compile_struct(ast::decl_struct &struct_decl)
+{
+	this->_compile_decls.type_infos.push_back(&struct_decl.info);
 }
 
 /*
@@ -312,7 +180,7 @@ static int get_type_match_level(
 			ts = &ts->get<ast::ts_pointer_ptr>()->base;
 			break;
 		default:
-			assert(false);
+			bz_assert(false);
 			break;
 		}
 	};
@@ -391,24 +259,5 @@ static int get_type_match_level(
 	}
 }
 */
-
-ast::type_info const *global_context::get_type_info(uint32_t, bz::string_view id)
-{
-	auto const it = std::find_if(
-		this->_types.begin(),
-		this->_types.end(),
-		[id](auto const &info) {
-			return id == info.identifier;
-		}
-	);
-	if (it == this->_types.end())
-	{
-		return nullptr;
-	}
-	else
-	{
-		return it.operator->();
-	}
-}
 
 } // namespace ctx

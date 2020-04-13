@@ -1,5 +1,17 @@
 #include "first_pass_parser.h"
 
+
+static ast::declaration parse_function_definition(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+);
+
+static ast::declaration parse_operator_definition(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+);
+
+
 template<uint32_t ...end_tokens>
 static lex::token_range get_tokens_in_curly(
 	lex::token_pos &stream, lex::token_pos end,
@@ -31,7 +43,7 @@ static lex::token_range get_tokens_in_curly(
 			get_tokens_in_curly<lex::token::paren_close, lex::token::curly_close>(stream, end, context);
 			if (stream != end && stream->kind != lex::token::eof)
 			{
-				assert(stream->kind == lex::token::paren_close || stream->kind == lex::token::curly_close);
+				bz_assert(stream->kind == lex::token::paren_close || stream->kind == lex::token::curly_close);
 				if (stream->kind == lex::token::paren_close)
 				{
 					++stream;
@@ -46,7 +58,7 @@ static lex::token_range get_tokens_in_curly(
 			get_tokens_in_curly<lex::token::square_close, lex::token::curly_close>(stream, end, context);
 			if (stream != end && stream->kind != lex::token::eof)
 			{
-				assert(stream->kind == lex::token::square_close || stream->kind == lex::token::curly_close);
+				bz_assert(stream->kind == lex::token::square_close || stream->kind == lex::token::curly_close);
 				if (stream->kind == lex::token::square_close)
 				{
 					++stream;
@@ -320,8 +332,8 @@ static ast::stmt_compound get_stmt_compound(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(in_stream != in_end);
-	assert(in_stream->kind == lex::token::curly_open);
+	bz_assert(in_stream != in_end);
+	bz_assert(in_stream->kind == lex::token::curly_open);
 	auto comp_stmt = ast::stmt_compound(lex::token_range{ in_stream, in_stream });
 	++in_stream; // '{'
 
@@ -356,8 +368,8 @@ static ast::stmt_compound_ptr get_stmt_compound_ptr(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(in_stream != in_end);
-	assert(in_stream->kind == lex::token::curly_open);
+	bz_assert(in_stream != in_end);
+	bz_assert(in_stream->kind == lex::token::curly_open);
 	auto comp_stmt = std::make_unique<ast::stmt_compound>(lex::token_range{ in_stream, in_stream });
 	++in_stream; // '{'
 
@@ -378,7 +390,7 @@ static ast::statement parse_if_statement(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_if);
+	bz_assert(stream->kind == lex::token::kw_if);
 	auto begin_token = stream;
 	++stream; // 'if'
 
@@ -436,7 +448,7 @@ static ast::statement parse_while_statement(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_while);
+	bz_assert(stream->kind == lex::token::kw_while);
 	auto const begin_token = stream;
 	++stream; // 'while'
 
@@ -479,8 +491,8 @@ static ast::statement parse_for_statement(
 	ctx::first_pass_parse_context &
 )
 {
-	assert(stream->kind == lex::token::kw_for);
-	assert(false, "for statement not yet implemented");
+	bz_assert(stream->kind == lex::token::kw_for);
+	bz_assert(false, "for statement not yet implemented");
 }
 
 static ast::statement parse_return_statement(
@@ -488,7 +500,7 @@ static ast::statement parse_return_statement(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_return);
+	bz_assert(stream->kind == lex::token::kw_return);
 	auto const begin_token = stream;
 	++stream; // 'return'
 
@@ -506,7 +518,7 @@ static ast::statement parse_no_op_statement(
 	ctx::first_pass_parse_context &
 )
 {
-	assert(stream->kind == lex::token::semi_colon);
+	bz_assert(stream->kind == lex::token::semi_colon);
 	auto const begin_token = stream;
 	++stream; // ';'
 	return ast::make_stmt_no_op(lex::token_range{ begin_token, stream });
@@ -517,7 +529,7 @@ static ast::statement parse_expression_statement(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream != end);
+	bz_assert(stream != end);
 	auto const begin_token = stream;
 	auto const expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, context);
 	if (expr.begin == expr.end) // && stream->kind != lex::token::semi_colon (should always be true)
@@ -546,7 +558,7 @@ static ast::declaration parse_variable_declaration(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_let || stream->kind == lex::token::kw_const);
+	bz_assert(stream->kind == lex::token::kw_let || stream->kind == lex::token::kw_const);
 	auto const tokens_begin = stream;
 	ast::typespec prototype;
 	if (stream->kind == lex::token::kw_const)
@@ -566,7 +578,7 @@ static ast::declaration parse_variable_declaration(
 		case ast::typespec::index<ast::ts_pointer>:
 			return &ts->get<ast::ts_pointer_ptr>()->base;
 		default:
-			assert(false);
+			bz_assert(false);
 		}
 	};
 
@@ -695,7 +707,7 @@ static ast::declaration parse_struct_definition(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(in_stream->kind == lex::token::kw_struct);
+	bz_assert(in_stream->kind == lex::token::kw_struct);
 	++in_stream; // 'struct'
 
 	auto const id = context.assert_token(in_stream, lex::token::identifier);
@@ -707,44 +719,47 @@ static ast::declaration parse_struct_definition(
 		++in_stream;
 	}
 
-	auto parse_member_variable = [&](auto &stream, auto end)
+	bz::vector<ast::declaration> member_decls = {};
+
+	auto parse_member_decl = [&](auto &stream, auto end)
 	{
-		assert(stream->kind == lex::token::identifier);
-		auto const id = stream;
-		++stream;
-		context.assert_token(stream, lex::token::colon);
-		auto const type = lex::token_range{stream, end};
-		stream = end;
-		return ast::variable(
-			id, ast::make_ts_unresolved(type, type)
-		);
+		switch (stream->kind)
+		{
+		case lex::token::kw_function:
+			member_decls.emplace_back(parse_function_definition(stream, end, context));
+			return;
+		case lex::token::kw_operator:
+			member_decls.emplace_back(parse_operator_definition(stream, end, context));
+			return;
+		case lex::token::identifier:
+		{
+			auto const id = stream;
+			++stream;
+			context.assert_token(stream, lex::token::colon);
+			auto type = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, context);
+			auto const end_token = stream;
+			context.assert_token(stream, lex::token::semi_colon);
+			member_decls.emplace_back(ast::make_decl_variable(
+				lex::token_range{ id, end_token },
+				id,
+				ast::typespec(),
+				ast::make_ts_unresolved(type, type)
+			));
+			return;
+		}
+		default:
+			context.report_error(stream);
+			++stream;
+			return;
+		}
 	};
 
-	bz::vector<ast::variable> member_variables = {};
 	while (stream != end)
 	{
-		auto [inner_stream, inner_end] = get_expression_or_type_tokens<
-			lex::token::semi_colon
-		>(stream, end, context);
-
-		while (inner_stream != inner_end && inner_stream->kind != lex::token::identifier)
-		{
-			context.report_error(inner_stream);
-			++inner_stream;
-		}
-		if (inner_stream == inner_end)
-		{
-			context.report_error(inner_stream);
-			++stream;
-		}
-		else
-		{
-			member_variables.emplace_back(parse_member_variable(inner_stream, inner_end));
-			context.assert_token(stream, lex::token::semi_colon);
-		}
+		parse_member_decl(stream, end);
 	}
 
-	return ast::make_decl_struct(id, std::move(member_variables));
+	return ast::make_decl_struct(id, std::move(member_decls));
 }
 
 static ast::declaration parse_function_definition(
@@ -752,7 +767,7 @@ static ast::declaration parse_function_definition(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_function);
+	bz_assert(stream->kind == lex::token::kw_function);
 	++stream; // 'function'
 	auto id = context.assert_token(stream, lex::token::identifier);
 
@@ -849,7 +864,7 @@ static ast::declaration parse_operator_definition(
 	ctx::first_pass_parse_context &context
 )
 {
-	assert(stream->kind == lex::token::kw_operator);
+	bz_assert(stream->kind == lex::token::kw_operator);
 	++stream; // 'operator'
 	auto const op = stream;
 	bool is_valid_op = true;
