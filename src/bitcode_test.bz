@@ -3,6 +3,7 @@ function println(str: str) -> void;
 function print_int32(n: int32) -> void;
 function print_uint32(n: uint32) -> void;
 function print_int32_ptr(p: *const int32) -> void;
+function print_float64(x: float64) -> void;
 
 function factorial(n: int32) -> int32
 {
@@ -24,7 +25,7 @@ function factorial_recursive(n: int32) -> int32
 	}
 	else
 	{
-		return n * factorial(n - 1);
+		return n * factorial_recursive(n - 1);
 	}
 }
 
@@ -58,8 +59,16 @@ function main() -> int32
 		println("factorial is not good :(");
 	}
 
+	let n = 2;
+	print_int32(n);
+	set_to_zero(n);
+	print_int32(n);
+
 	println("\n==== ref_test ====");
 	ref_test();
+
+	println("\n==== cast_test ====");
+	cast_test();
 
 	return 0;
 /*
@@ -72,9 +81,14 @@ function main() -> int32
 	let n: int32 = 0;
 	change_val(n);
 	let str = "hello";
-	let str2 = "hello";
+	let str2 = "hello"; /* nested comment */
 	return factorial(1);
 */
+}
+
+function set_to_zero(n: &int32) -> void
+{
+	n = 0;
 }
 
 function foo() -> void
@@ -145,7 +159,6 @@ function foo() -> void
 	if (n == mask)
 		println("yay!!");
 
-
 	let n = 1;
 	let m = 0;
 	(n = m = 2) = m;
@@ -182,8 +195,44 @@ function ref_test() -> void
 	print_int32_ptr(&n);
 	foo(n);
 	foo_ref(n);
+	println("first and third pointers should be the same");
+
+	let &m = n;
+	if (&m != &n)
+	{
+		println("BAD");
+		return;
+	}
+	print_int32_ptr(&m);
+	foo(m);
+	foo_ref(m);
+	println("first and third pointers should be the same");
 
 //	asdfasdf([0, 1, 2, 3, 4, 5]);
 }
 
+function cast_test() -> void
+{
+	let f32: float32 = 1.5 as float32;
+	print_float64(f32 as float64);
+	print_int32(f32 as int32);
+
+//	function ref_wrapper(n: &int32) -> &int32
+//	{ return n; }
+//
+//	let n = 0;
+//
+//	print_int32(n);
+//	ref_wrapper(n) = 3;
+//	print_int32(n);
+
+//	let v: vec2;
+}
+
 // function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void;
+
+struct vec2
+{
+	x: float64;
+	y: float64;
+}
