@@ -1,9 +1,9 @@
 # compiler parameters
-CXX := g++
-CC := gcc
+CXX := clang++
+CC := clang
 
 # linker parameters
-LD := g++
+LD := clang++
 
 # debug build by default
 default: debug
@@ -12,14 +12,14 @@ default: debug
 # ======== default ========
 # =========================
 
-default_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
-default_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++17
-default_cxx_include_dirs := ./include ./src 
+default_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++2a -march=native
+default_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++2a -march=native
+default_cxx_include_dirs := ./include ./src
 default_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 default_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
-default_cc_include_dirs := ./include ./src 
-default_ld_debug_flags :=  -g 
-default_ld_release_flags :=   
+default_cc_include_dirs := ./include ./src
+default_ld_debug_flags :=  -g
+default_ld_release_flags :=
 default_ld_lib_dirs :=
 default_ld_libs := LLVM
 default_exe_debug := bin/default/debug/bozon.exe
@@ -111,10 +111,10 @@ bin/default/debug/int/statement.cpp.o: ./src/ast/statement.cpp ./include/bz/allo
 bin/default/release/int/statement.cpp.o: ./src/ast/statement.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/typespec.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
 	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
-bin/default/debug/int/typespec.cpp.o: ./src/ast/typespec.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/node.h ./src/ast/typespec.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
+bin/default/debug/int/typespec.cpp.o: ./src/ast/typespec.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/typespec.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
 	$(CXX) $(default_cxx_debug_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
-bin/default/release/int/typespec.cpp.o: ./src/ast/typespec.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/node.h ./src/ast/typespec.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
+bin/default/release/int/typespec.cpp.o: ./src/ast/typespec.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/typespec.h ./src/core.h ./src/lex/token.h ./src/my_assert.h
 	$(CXX) $(default_cxx_release_flags) $(addprefix -I,$(default_cxx_include_dirs)) $< -o $@
 
 bin/default/debug/int/emit_bitcode.cpp.o: ./src/bc/emit_bitcode.cpp ./include/bz/allocator.h ./include/bz/core.h ./include/bz/format.h ./include/bz/iterator.h ./include/bz/meta.h ./include/bz/optional.h ./include/bz/result.h ./include/bz/string.h ./include/bz/string_view.h ./include/bz/variant.h ./include/bz/vector.h ./src/ast/expression.h ./src/ast/node.h ./src/ast/statement.h ./src/ast/typespec.h ./src/bc/emit_bitcode.h ./src/colors.h ./src/core.h ./src/ctx/bitcode_context.h ./src/ctx/built_in_operators.h ./src/ctx/decl_set.h ./src/ctx/error.h ./src/ctx/parse_context.h ./src/lex/token.h ./src/my_assert.h
@@ -189,12 +189,12 @@ bin/default/release/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.
 
 test_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
 test_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++17
-test_cxx_include_dirs := ./include ./src 
+test_cxx_include_dirs := ./include ./src
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 test_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
-test_cc_include_dirs := ./include ./src 
-test_ld_debug_flags :=  -g 
-test_ld_release_flags :=   
+test_cc_include_dirs := ./include ./src
+test_ld_debug_flags :=  -g
+test_ld_release_flags :=
 test_ld_lib_dirs :=
 test_ld_libs :=
 test_exe_debug := bin/test/debug/testbozon.exe
