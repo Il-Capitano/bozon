@@ -26,8 +26,8 @@ class vector
 private:
 	using self_t = vector<T, Alloc>;
 
-	static constexpr bool nothrow_alloc   = meta::is_fn_noexcept_v<decltype(Alloc::allocate)>;
-	static constexpr bool nothrow_dealloc = meta::is_fn_noexcept_v<decltype(Alloc::deallocate)>;
+	static constexpr bool nothrow_alloc   = meta::is_fn_noexcept_v<decltype(&Alloc::allocate)>;
+	static constexpr bool nothrow_dealloc = meta::is_fn_noexcept_v<decltype(&Alloc::deallocate)>;
 
 public:
 	using value_type = T;

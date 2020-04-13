@@ -192,7 +192,7 @@ constexpr bool operator != (
 ) noexcept
 { return !(lhs == rhs); }
 
-constexpr bool operator < (
+inline bool operator < (
 	basic_string_view<char> lhs,
 	basic_string_view<char> rhs
 ) noexcept
@@ -206,7 +206,7 @@ constexpr bool operator < (
 
 
 template<typename Char>
-::std::basic_ostream<Char> &operator << (::std::basic_ostream<Char> &os, string_view str)
+::std::basic_ostream<Char> &operator << (::std::basic_ostream<Char> &os, basic_string_view<Char> str)
 {
 	return os.write(str.data(), str.length());
 }

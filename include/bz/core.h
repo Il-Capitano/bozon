@@ -18,13 +18,11 @@
 
 inline void _bz_assert_begin(const char *expr, const char *file, int line)
 {
-	std::cerr << "Assertion failed:\n"
-		"	File: " << file << "\n"
-		"	Line: " << line << "\n"
-		"	Expression: " << expr << '\n';
+	std::cerr << "assertion failed at " << file << ':' << line << "\n"
+		"    expression: " << expr << '\n';
 }
 
-inline void _bz_assert_message(std::string_view message)
+inline void _bz_assert_message(char const *message)
 {
 	std::cerr << "	Message: " << message << '\n';
 }
