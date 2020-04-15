@@ -187,8 +187,8 @@ bin/default/release/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.
 # ======== test ========
 # ======================
 
-test_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++17
-test_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++17
+test_cxx_debug_flags := -c -g -Og -Wall -Wextra -std=c++2a
+test_cxx_release_flags := -c -O3 -Wall -Wextra -std=c++2a
 test_cxx_include_dirs := ./include ./src
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 test_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
