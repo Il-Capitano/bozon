@@ -86,17 +86,11 @@ do {                                                        \
 #undef x
 }
 
-static std::ostream &operator << (std::ostream &os, uint32_t kind)
-{
-	os << static_cast<uint32_t>(kind);
-	return os;
-}
-
 static void resolve_literal_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
-	ctx::parse_context parse_ctx(0, global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str, kind_)                                                     \
 do {                                                                      \
@@ -131,7 +125,7 @@ static void parse_primary_expression_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
-	ctx::parse_context parse_ctx(0, global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str) xx_parse(parse_primary_expression, str, tokens.end() - 1, true)
 #define x_err(str, it_pos) xx_parse_err(parse_primary_expression, str, it_pos, true)
@@ -156,7 +150,7 @@ static void parse_expression_comma_list_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
-	ctx::parse_context parse_ctx(0, global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str, res_size) xx_parse(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
 
@@ -172,7 +166,7 @@ static void parse_expression_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
-	ctx::parse_context parse_ctx(0, global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str)                                                   \
 do {                                                             \
@@ -215,7 +209,7 @@ static void parse_typespec_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
-	ctx::parse_context parse_ctx(0, global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str, it_pos, kind_) xx_parse(parse_typespec, str, it_pos, res.kind() == kind_)
 #define x_err(str, it_pos, kind_) xx_parse_err(parse_typespec, str, it_pos, res.kind() == kind_)
