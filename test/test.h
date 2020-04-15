@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <bz/iterator.h>
 #include <bz/format.h>
 
 #include "colors.h"
@@ -30,14 +31,15 @@ struct test_result
 template<typename T>
 inline std::ostream &operator << (std::ostream &os, bz::random_access_iterator<T> it)
 {
-	return os << static_cast<void const *>(&*it);
+	os << static_cast<void const *>(it.data());
+	return os;
 }
 
 template<typename ...Ts>
 inline std::string build_str(Ts &&...ts)
 {
 	std::ostringstream ss;
-	(ss << ... << std::forward<Ts>(ts));
+	((ss << std::forward<Ts>(ts)), ...);
 	return ss.str();
 }
 
