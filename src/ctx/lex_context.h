@@ -36,12 +36,12 @@ struct lex_context
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 
-	static ctx::suggestion make_suggestion(
+	[[nodiscard]] static ctx::suggestion make_suggestion(
 		file_iterator const &pos,
 		bz::string suggestion_str,
 		bz::string message
 	);
-	static ctx::suggestion make_suggestion(
+	[[nodiscard]] static ctx::suggestion make_suggestion(
 		bz::string_view file, size_t line, ctx::char_pos pos,
 		bz::string suggestion_str,
 		bz::string message

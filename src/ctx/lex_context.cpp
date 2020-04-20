@@ -52,7 +52,7 @@ void lex_context::bad_eof(
 	});
 }
 
-ctx::suggestion lex_context::make_suggestion(
+[[nodiscard]] ctx::suggestion lex_context::make_suggestion(
 	file_iterator const &pos,
 	bz::string suggestion_str,
 	bz::string message
@@ -65,7 +65,7 @@ ctx::suggestion lex_context::make_suggestion(
 	};
 }
 
-ctx::suggestion lex_context::make_suggestion(
+[[nodiscard]] ctx::suggestion lex_context::make_suggestion(
 	bz::string_view file, size_t line, ctx::char_pos pos,
 	bz::string suggestion_str,
 	bz::string message
