@@ -301,6 +301,8 @@ do {                                              \
 	//    ^ file.end() - 1
 	x("'\\''", "\\'", file.end());
 	x("'\"'", "\"", file.end());
+	x("'\\x00'", "\\x00", file.end());
+	x("'\\x7f'", "\\x7f", file.end());
 
 	x_err("'", file.end());
 	x_err("''", file.end());
@@ -309,6 +311,9 @@ do {                                              \
 	// the 'issing' is the postfix here
 	x_err("'\\j'", file.end());
 	x_err("'\\", file.end());
+	x_err("'\\x'", file.end());
+	x_err("'\\x0'", file.end());
+	x_err("'\\x80'", file.end());
 
 #undef x
 #undef x_err
