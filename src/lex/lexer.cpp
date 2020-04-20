@@ -185,6 +185,101 @@ static token get_identifier_or_keyword_token(
 	}
 }
 
+static void match_character(
+	file_iterator &stream,
+	ctx::char_pos const end,
+	ctx::lex_context &context
+)
+{
+
+	switch (*stream.it)
+	{
+	case '\\':
+		++stream;
+		if (stream.it == end)
+		{
+			break;
+		}
+		switch (*stream.it)
+		{
+		// TODO: decide on what is allowed here
+		case '\\':
+		case '\'':
+		case '\"':
+		case 'n':
+		case 't':
+			++stream;
+			break;
+		case 'x':
+		{
+			++stream;
+			if (stream.it == end || !is_hex_char(*stream.it))
+			{
+				context.bad_char(stream, "\\x must be followed by two hex characters");
+				break;
+			}
+			auto const first_char = stream.it;
+			++stream;
+			if (stream.it == end || !is_hex_char(*stream.it))
+			{
+				context.bad_char(
+					stream,
+					"\\x must be followed by two hex characters",
+					{},
+					{
+						context.make_suggestion(
+							stream.file, stream.line, stream.it - 1, "0",
+							bz::format("did you mean '\\x0{}'?", *(stream.it - 1))
+						)
+					}
+				);
+				break;
+			}
+			++stream;
+
+			// we need to restrict the value to 0x7f, so it's a valid UTF-8 code point
+			if (!(*first_char >= '0' && *first_char <= '7'))
+			{
+				context.bad_chars(
+					stream.file, stream.line,
+					first_char, first_char, first_char + 2,
+					bz::format(
+						"the value 0x{}{} is too large, it must be at most 0x7f",
+						*first_char, *(first_char + 1)
+					),
+					{},
+					{
+//						context.make_suggestion()
+					}
+				);
+			}
+
+			break;
+		}
+		default:
+			context.bad_chars(
+				stream.file, stream.line,
+				stream.it - 1, stream.it - 1, stream.it + 1,
+				*stream.it >= ' '
+				? bz::format("invalid escape sequence '\\{}'", *stream.it)
+				: bz::format(
+					"invalid escape sequence '\\{}\\x{:02x}{}'",
+					colors::bright_black,
+					static_cast<uint32_t>(*stream.it),
+					colors::clear
+				)
+			);
+			++stream;
+			break;
+		}
+		break;
+
+	default:
+		++stream;
+		break;
+	}
+}
+
 static token get_character_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
@@ -217,49 +312,13 @@ static token get_character_token(
 		);
 	}
 
-	switch (*stream.it)
+	if (*stream.it == '\'')
 	{
-	case '\\':
-		++stream;
-		if (stream.it == end)
-		{
-			break;
-		}
-		switch (*stream.it)
-		{
-		// TODO: decide on what is allowed here
-		case '\\':
-		case '\'':
-		case '\"':
-		case 'n':
-		case 't':
-			++stream;
-			break;
-		default:
-			context.bad_chars(
-				stream.file, stream.line,
-				stream.it - 1, stream.it - 1, stream.it + 1,
-				*stream.it >= ' '
-				? bz::format("invalid escape sequence '\\{}'", *stream.it)
-				: bz::format(
-					"invalid escape sequence '\\{}\\x{:02x}{}'",
-					colors::bright_black,
-					static_cast<uint32_t>(*stream.it),
-					colors::clear
-				)
-			);
-			++stream;
-			break;
-		}
-		break;
-
-	case '\'':
 		context.bad_char(stream, "expected a character before closing '");
-		break;
-
-	default:
-		++stream;
-		break;
+	}
+	else
+	{
+		match_character(stream, end, context);
 	}
 
 	auto const char_end = stream.it;
@@ -328,44 +387,7 @@ static token get_string_token(
 
 	while (stream.it != end && *stream.it != '\"')
 	{
-		if (*stream.it == '\\')
-		{
-			++stream;
-			if (stream.it == end)
-			{
-				break;
-			}
-			switch (*stream.it)
-			{
-			// TODO: decide on what is allowed here
-			case '\\':
-			case '\'':
-			case '\"':
-			case 'n':
-			case 't':
-				++stream;
-				break;
-			default:
-				context.bad_chars(
-					stream.file, stream.line,
-					stream.it - 1, stream.it - 1, stream.it + 1,
-					*stream.it >= ' '
-					? bz::format("invalid escape sequence '\\{}'", *stream.it)
-					: bz::format(
-						"invalid escape sequence '\\{}\\x{:02x}{}'",
-						colors::bright_black,
-						static_cast<uint32_t>(*stream.it),
-						colors::clear
-					)
-				);
-				++stream;
-				break;
-			}
-		}
-		else
-		{
-			++stream;
-		}
+		match_character(stream, end, context);
 	}
 
 	auto const str_end = stream.it;

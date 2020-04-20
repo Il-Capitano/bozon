@@ -70,6 +70,9 @@ function main() -> int32
 	println("\n==== cast_test ====");
 	cast_test();
 
+
+	println("=== \x41 ===");
+
 	return 0;
 /*
 	let bool: bool = false;

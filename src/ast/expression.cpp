@@ -81,6 +81,60 @@ lex::token_pos expr_cast::get_tokens_end(void) const
 
 
 
+static char get_character(bz::string_view::const_iterator &it)
+{
+	switch (*it)
+	{
+	case '\\':
+		++it;
+		switch (*it)
+		{
+		case '\\':
+			++it;
+			return '\\';
+		case '\'':
+			++it;
+			return '\'';
+		case '\"':
+			++it;
+			return '\"';
+		case 'n':
+			++it;
+			return '\n';
+		case 't':
+			++it;
+			return '\t';
+		case 'x':
+		{
+			++it;
+			bz_assert(*it >= '0' && *it <= '7');
+			uint8_t val = (*it - '0') << 4;
+			++it;
+			bz_assert(
+				(*it >= '0' && *it <= '9')
+				|| (*it >= 'a' && *it <= 'f')
+				|| (*it >= 'A' && *it <= 'F')
+			);
+			val |= *it >= '0' && *it <= '9' ? *it - '0'
+				: *it >= 'a' && *it <= 'f' ? *it - 'a' + 10
+				: *it - 'A' + 10;
+			++it;
+			return static_cast<char>(val);
+		}
+		default:
+			bz_assert(false);
+			return '\0';
+		}
+
+	default:
+	{
+		auto const res = *it;
+		++it;
+		return res;
+	}
+	}
+}
+
 expr_literal::expr_literal(lex::token_pos stream)
 	: src_pos(stream)
 {
@@ -216,77 +270,25 @@ expr_literal::expr_literal(lex::token_pos stream)
 		auto const str = stream->value;
 		bz::string res = "";
 		res.reserve(str.length());
-		for (auto it = str.begin(), end = str.end(); it != end; ++it)
+		auto it = str.begin();
+		auto const end = str.end();
+		while (it != end)
 		{
-			switch (*it)
-			{
-			case '\\':
-				++it;
-				bz_assert(it != end);
-				switch (*it)
-				{
-				case '\\':
-					res += '\\';
-					break;
-				case '\'':
-					res += '\'';
-					break;
-				case '\"':
-					res += '\"';
-					break;
-				case 'n':
-					res += '\n';
-					break;
-				case 't':
-					res += '\t';
-					break;
-				default:
-					bz_assert(false);
-					break;
-				}
-				break;
-
-			default:
-				res += *it;
-				break;
-			}
+			res += get_character(it);
 		}
 		this->value.emplace<string>(std::move(res));
 		break;
 	}
 
 	case lex::token::character_literal:
-		if (stream->value.length() == 1)
-		{
-			this->value.emplace<character>(stream->value[0]);
-		}
-		else
-		{
-			bz_assert(stream->value.length() == 2);
-			bz_assert(stream->value[0] == '\\');
-			switch (stream->value[1])
-			{
-			case '\\':
-				this->value.emplace<character>('\\');
-				break;
-			case '\'':
-				this->value.emplace<character>('\'');
-				break;
-			case '\"':
-				this->value.emplace<character>('\"');
-				break;
-			case 'n':
-				this->value.emplace<character>('\n');
-				break;
-			case 't':
-				this->value.emplace<character>('\t');
-				break;
-			default:
-				bz_assert(false);
-				break;
-			}
-		}
+	{
+		auto const ch = stream->value;
+		auto it = ch.begin();
+		auto const end = ch.end();
+		this->value.emplace<character>(get_character(it));
+		bz_assert(it == end);
 		break;
+	}
 
 	case lex::token::kw_true:
 		this->value.emplace<bool_true>();

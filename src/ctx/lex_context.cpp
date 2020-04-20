@@ -52,4 +52,30 @@ void lex_context::bad_eof(
 	});
 }
 
+ctx::suggestion lex_context::make_suggestion(
+	file_iterator const &pos,
+	bz::string suggestion_str,
+	bz::string message
+)
+{
+	return ctx::suggestion{
+		pos.file, pos.line,
+		pos.it, std::move(suggestion_str),
+		std::move(message)
+	};
+}
+
+ctx::suggestion lex_context::make_suggestion(
+	bz::string_view file, size_t line, ctx::char_pos pos,
+	bz::string suggestion_str,
+	bz::string message
+)
+{
+	return ctx::suggestion{
+		file, line,
+		pos, std::move(suggestion_str),
+		std::move(message)
+	};
+}
+
 } // namespace ctx
