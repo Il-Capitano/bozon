@@ -282,41 +282,36 @@ static bz::u8string get_highlighted_suggestion(
 
 static bz::u8string read_text_from_file(std::ifstream &file)
 {
-	file.seekg(std::ios::end);
-	size_t const size = file.tellg();
-	file.seekg(std::ios::beg);
+	std::string file_content{
+		std::istreambuf_iterator<char>(file),
+		std::istreambuf_iterator<char>()
+	};
+	auto const file_content_view = bz::u8string_view(
+		file_content.data(),
+		file_content.data() + file_content.size()
+	);
 
-	bz::u8string file_str = "";
-
-	if (size == 0)
+	bz::u8string file_str;
+	file_str.reserve(file_content_view.size());
+	for (auto it = file_content_view.begin(); it != file_content_view.end();  ++it)
 	{
-		return file_str;
-	}
-
-	file_str.reserve(size);
-
-	while (true)
-	{
-		char c = file.get();
-		if (file.eof())
-		{
-			break;
-		}
-
 		// we use '\n' for line endings and not '\r\n' or '\r'
-		if (c == '\r')
+		if (*it == '\r')
 		{
-			if (file.peek() == '\n')
+			file_str += '\n';
+			if (it + 1 != file_content_view.end() && *(it + 1) == '\n')
 			{
-				file.get();
+				++it;
 			}
-
-			c = '\n';
 		}
-
-		file_str += c;
+		else
+		{
+			file_str += *it;
+		}
 	}
 
+
+	bz_assert(file_str.verify());
 	return file_str;
 }
 
