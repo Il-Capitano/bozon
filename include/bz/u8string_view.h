@@ -81,7 +81,7 @@ public:
 
 	constexpr value_type operator * (void) const noexcept
 	{
-		auto const c = static_cast<value_type>(*this->_data);
+		auto const c = static_cast<value_type>(static_cast<uint8_t>(*this->_data));
 		// single byte value
 		if (c <= 0b0111'1111) bz_likely
 		{
@@ -90,29 +90,29 @@ public:
 		// two byte value
 		else if (c <= 0b1101'1111) bz_likely
 		{
-			auto const lower = *(this->_data + 1);
+			auto const lower = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 1)));
 			return ((c & 0b0001'1111) << 6)
-				& (lower & 0b0011'1111);
+				| (lower & 0b0011'1111);
 		}
 		// three byte value
 		else if (c <= 0b1110'1111) bz_likely
 		{
-			auto const lower1 = *(this->_data + 1);
-			auto const lower2 = *(this->_data + 2);
+			auto const lower1 = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 1)));
+			auto const lower2 = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 2)));
 			return ((c & 0b0000'1111) << 12)
-				& ((lower1 & 0b0011'1111) << 6)
-				& ((lower2 & 0b0011'1111) << 0);
+				| ((lower1 & 0b0011'1111) << 6)
+				| ((lower2 & 0b0011'1111) << 0);
 		}
 		// four byte value
 		else // if (c <= 0b1111'0111) bz_likely
 		{
-			auto const lower1 = *(this->_data + 1);
-			auto const lower2 = *(this->_data + 2);
-			auto const lower3 = *(this->_data + 3);
+			auto const lower1 = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 1)));
+			auto const lower2 = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 2)));
+			auto const lower3 = static_cast<value_type>(static_cast<uint8_t>(*(this->_data + 3)));
 			return ((c & 0b0000'0111) << 18)
-				& ((lower1 & 0b0011'1111) << 12)
-				& ((lower2 & 0b0011'1111) << 6)
-				& ((lower3 & 0b0011'1111) << 0);
+				| ((lower1 & 0b0011'1111) << 12)
+				| ((lower2 & 0b0011'1111) << 6)
+				| ((lower3 & 0b0011'1111) << 0);
 		}
 		/* this is not permitted by UTF-8; the max value for a character is 21 bits (4 bytes in UTF-8)
 		else //  if (c <= 0b1111'1011) bz_likely
@@ -122,10 +122,10 @@ public:
 			auto const lower3 = *(this->_data + 3);
 			auto const lower4 = *(this->_data + 4);
 			return ((c & 0b0000'0011) << 24)
-				& ((lower1 & 0b0011'1111) << 18)
-				& ((lower2 & 0b0011'1111) << 12)
-				& ((lower3 & 0b0011'1111) << 6)
-				& ((lower4 & 0b0011'1111) << 0);
+				| ((lower1 & 0b0011'1111) << 18)
+				| ((lower2 & 0b0011'1111) << 12)
+				| ((lower3 & 0b0011'1111) << 6)
+				| ((lower4 & 0b0011'1111) << 0);
 		}
 		*/
 	}

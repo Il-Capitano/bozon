@@ -517,23 +517,23 @@ public:
 			if (c <= internal::max_two_byte_char)
 			{
 				char_size = 2;
-				encoded_char[0] = 0b1100'0000 & (c >> 6);
-				encoded_char[1] = 0b1000'0000 & ((c >> 0) & 0b0011'1111);
+				encoded_char[0] = 0b1100'0000 | (c >> 6);
+				encoded_char[1] = 0b1000'0000 | ((c >> 0) & 0b0011'1111);
 			}
 			else if (c <= internal::max_three_byte_char)
 			{
 				char_size = 3;
-				encoded_char[0] = 0b1110'0000 & (c >> 12);
-				encoded_char[1] = 0b1000'0000 & ((c >> 6) & 0b0011'1111);
-				encoded_char[2] = 0b1000'0000 & ((c >> 0) & 0b0011'1111);
+				encoded_char[0] = 0b1110'0000 | (c >> 12);
+				encoded_char[1] = 0b1000'0000 | ((c >> 6) & 0b0011'1111);
+				encoded_char[2] = 0b1000'0000 | ((c >> 0) & 0b0011'1111);
 			}
 			else
 			{
 				char_size = 4;
-				encoded_char[0] = 0b1111'0000 & (c >> 18);
-				encoded_char[1] = 0b1000'0000 & ((c >> 12) & 0b0011'1111);
-				encoded_char[2] = 0b1000'0000 & ((c >>  6) & 0b0011'1111);
-				encoded_char[3] = 0b1000'0000 & ((c >>  0) & 0b0011'1111);
+				encoded_char[0] = 0b1111'0000 | (c >> 18);
+				encoded_char[1] = 0b1000'0000 | ((c >> 12) & 0b0011'1111);
+				encoded_char[2] = 0b1000'0000 | ((c >>  6) & 0b0011'1111);
+				encoded_char[3] = 0b1000'0000 | ((c >>  0) & 0b0011'1111);
 			}
 
 			auto const is_char = [
