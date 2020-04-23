@@ -2,7 +2,9 @@
 #define _bz_format_h__
 
 #include "core.h"
-#include "string.h"
+// #include "string.h"
+#include "u8string.h"
+#include "u8string_view.h"
 #include "vector.h"
 
 #include <utility>
@@ -10,6 +12,7 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <charconv>
 #ifdef _WIN32
 #include <windows.h>
 #undef min
@@ -19,7 +22,7 @@
 bz_begin_namespace
 
 template<typename ...Ts>
-string format(string_view fmt, Ts const &...ts);
+u8string format(u8string_view fmt, Ts const &...ts);
 
 #if _WIN32
 namespace internal
@@ -102,7 +105,7 @@ inline void set_console_attribute(HANDLE h, uint32_t n)
 	SetConsoleTextAttribute(h, new_foreground | new_background | new_other);
 }
 
-inline void set_console_attributes(string_view str)
+inline void set_console_attributes(u8string_view str)
 {
 	auto const h = GetStdHandle(STD_OUTPUT_HANDLE);
 	int32_t n = 0;
@@ -130,7 +133,7 @@ inline void set_console_attributes(string_view str)
 
 } // namespace internal
 
-inline void print(string_view str)
+inline void print(u8string_view str)
 {
 	auto begin = str.begin();
 	auto const end = str.end();
@@ -140,14 +143,15 @@ inline void print(string_view str)
 		if (coloring_char == end)
 		{
 			// we are done
-			std::cout << string_view(begin, end);
+			std::cout << u8string_view(begin, end);
 			break;
 		}
-		auto it = coloring_char + 1;
+		auto it = coloring_char;
+		++it;
 		if (it == end)
 		{
 			// we are done
-			std::cout << string_view(begin, end);
+			std::cout << u8string_view(begin, end);
 			break;
 		}
 
@@ -155,7 +159,7 @@ inline void print(string_view str)
 		{
 			// invalid coloring sequence
 			// we go to the next iteration
-			std::cout << string_view(begin, it);
+			std::cout << u8string_view(begin, it);
 			begin = it;
 			continue;
 		}
@@ -165,18 +169,19 @@ inline void print(string_view str)
 		if (closing_m == end)
 		{
 			// we are done
-			std::cout << string_view(begin, end);
+			std::cout << u8string_view(begin, end);
 			break;
 		}
 
-		std::cout << string_view(begin, coloring_char);
-		internal::set_console_attributes(string_view(it, closing_m));
-		begin = closing_m + 1;
+		std::cout << u8string_view(begin, coloring_char);
+		internal::set_console_attributes(u8string_view(it, closing_m));
+		begin = closing_m;
+		++begin;
 	}
 }
 
 template<typename ...Ts>
-void printf(string_view fmt, Ts const &...ts)
+void printf(u8string_view fmt, Ts const &...ts)
 {
 	auto const str = format(fmt, ts...);
 	print(str);
@@ -185,12 +190,12 @@ void printf(string_view fmt, Ts const &...ts)
 #else
 
 template<typename ...Ts>
-void printf(string_view fmt, Ts const &...ts)
+void printf(u8string_view fmt, Ts const &...ts)
 {
 	std::cout << format(fmt, ts...);
 }
 
-inline void print(string_view str)
+inline void print(u8string_view str)
 {
 	std::cout << str;
 }
@@ -198,12 +203,12 @@ inline void print(string_view str)
 #endif // windows
 
 template<typename ...Ts>
-void printf(std::ostream &os, string_view fmt, Ts const &...ts)
+void printf(std::ostream &os, u8string_view fmt, Ts const &...ts)
 {
 	os << format(fmt, ts...);
 }
 
-inline void print(std::ostream &os, string_view str)
+inline void print(std::ostream &os, u8string_view str)
 {
 	os << str;
 }
@@ -215,7 +220,7 @@ namespace internal
 struct format_arg
 {
 	const void *arg;
-	string (*format)(const void *, const char *, const char *);
+	u8string (*format)(const void *, u8string_view);
 };
 
 using format_args = vector<format_arg>;
@@ -223,7 +228,7 @@ using format_args = vector<format_arg>;
 
 // max uint32_t value is 4'294'967'295
 // result is between 1 and 10
-inline uint32_t lg_uint(uint32_t val)
+constexpr uint32_t lg_uint(uint32_t val)
 {
 	// check for small numbers first
 	// 1 - 2
@@ -257,7 +262,7 @@ inline uint32_t lg_uint(uint32_t val)
 
 // max uint64_t value is 18'446'744'073'709'551'615
 // result is between 1 and 20
-inline uint64_t lg_uint(uint64_t val)
+constexpr uint64_t lg_uint(uint64_t val)
 {
 	// check for small numbers first
 	// 1 - 4
@@ -326,7 +331,7 @@ template<size_t base, typename Uint, typename = std::enable_if_t<
 	std::is_same_v<Uint, uint32_t>
 	|| std::is_same_v<Uint, uint64_t>
 >>
-Uint log_uint(Uint val)
+constexpr Uint log_uint(Uint val)
 {
 	if constexpr (base == 10)
 	{
@@ -479,9 +484,9 @@ public:
 
 struct format_spec
 {
-	char fill;
-	char align;
-	char sign;
+	u8char fill;
+	u8char align;
+	u8char sign;
 	bool zero_pad;
 	size_t width;
 	size_t precision;
@@ -495,9 +500,11 @@ struct format_spec
 	}
 };
 
-inline format_spec get_default_format_spec(const char *spec, const char *spec_end)
+inline format_spec get_default_format_spec(u8string_view spec)
 {
 	auto fmt_spec = format_spec::get_default();
+	auto it = spec.begin();
+	auto const end = spec.end();
 
 	auto is_valid_fill = [](char c)
 	{
@@ -522,70 +529,77 @@ inline format_spec get_default_format_spec(const char *spec, const char *spec_en
 	{
 		size_t res = 0;
 
-		while (spec != spec_end && *spec >= '0' && *spec <= '9')
+		while (it != end && *it >= '0' && *it <= '9')
 		{
 			res *= 10;
-			res += *spec - '0';
-			++spec;
+			res += *it - '0';
+			++it;
 		}
 
 		return res;
 	};
 
-	if (spec == spec_end)
+	if (it == end)
 	{
 		return fmt_spec;
 	}
 
-	// align spec with a fill char
-	if ((spec + 1) != spec_end && is_valid_fill(*spec) && is_align_spec(*(spec + 1)))
 	{
-		fmt_spec.fill = *spec;
-		++spec;
-		fmt_spec.align = *spec;
-		++spec;
-	}
-	// align spec without a fill char
-	else if (is_align_spec(*spec))
-	{
-		fmt_spec.align = *spec;
-		++spec;
+		auto const fill = it;
+		++it;
+		// align spec with a fill char
+		if (it != end && is_valid_fill(*fill) && is_align_spec(*it))
+		{
+			fmt_spec.fill = *fill;
+			fmt_spec.align = *it;
+			++it;
+		}
+		else
+		{
+			it = fill;
+			// align spec without a fill char
+			if (is_align_spec(*it))
+			{
+				fmt_spec.align = *it;
+				++it;
+			}
+		}
 	}
 
-	if (spec != spec_end && is_sign(*spec))
+	if (it != end && is_sign(*it))
 	{
-		fmt_spec.sign = *spec;
-		++spec;
+		fmt_spec.sign = *it;
+		++it;
 	}
 
-	if (spec != spec_end && *spec == '0')
+	if (it != end && *it == '0')
 	{
 		fmt_spec.zero_pad = true;
-		++spec;
+		++it;
 	}
 
 	fmt_spec.width = get_num();
 
 	// has precision modifier
-	if (spec != spec_end && *spec == '.')
+	if (it != end && *it == '.')
 	{
-		++spec;
-		bz_assert(spec != spec_end && *spec >= '0' && *spec <= '9');
+		++it;
+		bz_assert(it != end && *it >= '0' && *it <= '9');
 		fmt_spec.precision = get_num();
 	}
 
-	if (spec != spec_end)
+	if (it != end)
 	{
-		fmt_spec.type = *spec;
-		++spec;
+		fmt_spec.type = *it;
+		++it;
 	}
 
-	bz_assert(spec == spec_end);
+	bz_assert(it == end);
 	return fmt_spec;
 }
 
 
-inline string format_str(string_view str, format_spec spec)
+inline u8string format_str(u8string_view str, format_spec spec)
 {
 	if (spec.fill == '\0')
 	{
@@ -600,25 +614,166 @@ inline string format_str(string_view str, format_spec spec)
 	bz_assert(spec.precision == format_spec::precision_none);
 	bz_assert(spec.type == '\0' || spec.type == 's');
 
-	auto res = string(std::max(str.length(), spec.width), spec.fill);
+	auto const str_length = str.length();
+	auto const length = std::max(str_length, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [fill = spec.fill]() {
+		if (fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	res.reserve(str.size() + (length - str_length) * fill_char_width);
 
-	auto out = res.begin();
-	auto end = res.end();
-
-	if (spec.align == '>')
+	switch (spec.align)
 	{
-		out += res.length() - str.length();
-	}
-	else if (spec.align == '^')
+	case '>':
+		for (size_t i = 0; i < length - str_length; ++i)
+		{
+			res += spec.fill;
+		}
+		res += str;
+		break;
+
+	case '^':
 	{
 		// center alignment has left bias
-		out += (res.length() - str.length()) / 2;
+		auto const left_fill = (length - str_length) / 2;
+		auto const right_fill = (length - str_length) - left_fill;
+		for (size_t i = 0; i < left_fill; ++i)
+		{
+			res += spec.fill;
+		}
+		res += str;
+		for (size_t i = 0; i < right_fill; ++i)
+		{
+			res += spec.fill;
+		}
+		break;
 	}
 
-	for (size_t i = 0; i < str.length(); ++i, ++out)
+	case '<':
+		res += str;
+		for (size_t i = 0; i < length - str_length; ++i)
+		{
+			res += spec.fill;
+		}
+		break;
+
+	default:
+		bz_assert(false);
+		break;
+	}
+
+	return res;
+}
+
+inline u8string format_char(u8char c, format_spec spec)
+{
+	if (spec.fill == '\0')
 	{
-		bz_assert(out != end);
-		*out = str[i];
+		spec.fill = ' ';
+	}
+	if (spec.align == '\0')
+	{
+		spec.align = '<';
+	}
+	bz_assert(spec.sign == '\0');
+	bz_assert(spec.zero_pad == false);
+	bz_assert(spec.precision == format_spec::precision_none);
+	bz_assert(spec.type == 'c');
+
+	size_t const len = 1;
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [fill = spec.fill]() {
+		if (fill <= internal::max_one_byte_char)
+		{
+			return 1;
+		}
+		if (fill <= internal::max_two_byte_char)
+		{
+			return 2;
+		}
+		if (fill <= internal::max_three_byte_char)
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const char_width = [c]() {
+		if (c <= internal::max_one_byte_char)
+		{
+			return 1;
+		}
+		if (c <= internal::max_two_byte_char)
+		{
+			return 2;
+		}
+		if (c <= internal::max_three_byte_char)
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	res.reserve(char_width + (length - len) * fill_char_width);
+
+	switch (spec.align)
+	{
+	case '>':
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += spec.fill;
+		}
+		res += c;
+		break;
+
+	case '^':
+	{
+		// center alignment has left bias
+		auto const left_fill = (length - len) / 2;
+		auto const right_fill = (length - len) - left_fill;
+		for (size_t i = 0; i < left_fill; ++i)
+		{
+			res += spec.fill;
+		}
+		res += c;
+		for (size_t i = 0; i < right_fill; ++i)
+		{
+			res += spec.fill;
+		}
+		break;
+	}
+
+	case '<':
+		res += c;
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += spec.fill;
+		}
+		break;
+
+	default:
+		bz_assert(false);
+		break;
 	}
 
 	return res;
@@ -631,7 +786,7 @@ template<size_t base, typename Uint, typename = std::enable_if_t<
 	std::is_same_v<Uint, uint32_t>
 	|| std::is_same_v<Uint, uint64_t>
 >>
-string uint_to_string_base(Uint val, format_spec spec)
+u8string uint_to_string_base(Uint val, format_spec spec)
 {
 	// uints are always positive, so a - sign can't add any chars
 	size_t len = spec.sign == '-' ? 0 : 1;
@@ -646,97 +801,125 @@ string uint_to_string_base(Uint val, format_spec spec)
 		len += log_uint<base>(val);
 	}
 
-	auto res = string(std::max(len, spec.width), spec.fill);
 
-	auto out = res.rbegin();
-	auto end = res.rend();
-
-	auto put_num = [&]()
-	{
-		auto copy = val;
-		do
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [&]() {
+		if (spec.zero_pad)
 		{
-			bz_assert(out != end);
-			if (spec.type == 'X')
+			return 1;
+		}
+		if (spec.fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (spec.fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (spec.fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const fill_char = spec.zero_pad ? '0' : spec.fill;
+	res.reserve(len + (length - len) * fill_char_width);
+
+	auto const digits = spec.type == 'X' ? digits_X : digits_x;
+
+	auto const put_num = [&]()
+	{
+		if constexpr (base == 10)
+		{
+			std::array<char, lg_uint(std::numeric_limits<Uint>::max())> buffer;
+			auto const to_chars_res = std::to_chars(buffer.data(), buffer.data() + buffer.size(), val);
+			bz_assert(to_chars_res.ec == std::errc{});
+			bz_assert(to_chars_res.ptr == buffer.data() + len - (spec.sign == '-' ? 0 : 1));
+			res += u8string_view(buffer.data(), to_chars_res.ptr);
+		}
+		else
+		{
+			std::array<char, log_uint<base>(std::numeric_limits<Uint>::max())> buffer;
+			auto out = buffer.rbegin();
+			auto copy = val;
+			do
 			{
-				*out = digits_X[copy % base];
-			}
-			else
-			{
-				*out = digits_x[copy % base];
-			}
-			++out;
-			copy /= base;
-		} while (copy != 0);
+				*out = digits[copy % base];
+				++out;
+				copy /= base;
+			} while (copy != 0);
+			auto const num_len = len - (spec.sign == '-' ? 0 : 1);
+			bz_assert(out - buffer.rbegin() == static_cast<int64_t>(num_len));
+			res += u8string_view(buffer.data() + buffer.size() - num_len, buffer.data() + buffer.size());
+		}
 	};
 
 	switch (spec.align)
 	{
 	case '<':
-	case '^':
 		bz_assert(!spec.zero_pad);
-
-		if (spec.align == '<')
-		{
-			out += res.length() - len;
-		}
-		else
-		{
-			// center alignment has a right bias
-			out += (res.length() - len) / 2;
-		}
-
-		put_num();
-
 		if (spec.sign != '-')
 		{
-			bz_assert(out != end);
-			*out = spec.sign;
-			++out;
+			res += spec.sign;
 		}
-
-		if (spec.align == '<')
+		put_num();
+		for (size_t i = 0; i < (length - len); ++i)
 		{
-			bz_assert(out == end);
+			res += fill_char;
 		}
-		return res;
+		break;
+
+	case '^':
+		bz_assert(!spec.zero_pad);
+		// center alignment has a right bias
+		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		if (spec.sign != '-')
+		{
+			res += spec.sign;
+		}
+		put_num();
+		for (size_t i = 0; i < (length - len) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		break;
 
 	case '>':
-		put_num();
-
-		if (spec.sign == '-')
+		if (spec.sign != '-' && spec.zero_pad)
 		{
-			if (spec.zero_pad)
+			res += spec.sign;
+			for (size_t i = 0; i < length - len; ++i)
 			{
-				while (out != end)
-				{
-					*out = '0';
-					++out;
-				}
+				res += fill_char;
 			}
 		}
 		else
 		{
-			if (spec.zero_pad)
+			for (size_t i = 0; i < length - len; ++i)
 			{
-				bz_assert(out != end);
-				while (out + 1 != end)
-				{
-					*out = '0';
-					++out;
-				}
+				res += fill_char;
 			}
-			bz_assert(out != end);
-			*out = spec.sign;
-			++out;
+			if (spec.sign != '-')
+			{
+				res += spec.sign;
+			}
 		}
-
-		return res;
+		put_num();
+		break;
 
 	default:
 		bz_assert(false);
-		return "";
+		break;
 	}
+
+	return res;
 }
 
 // converts an unsigned integer to a string
@@ -744,8 +927,15 @@ template<typename Uint, typename = std::enable_if_t<
 	std::is_same_v<Uint, uint32_t>
 	|| std::is_same_v<Uint, uint64_t>
 >>
-string uint_to_string(Uint val, format_spec spec)
+u8string uint_to_string(Uint val, format_spec spec)
 {
+	if constexpr (std::is_same_v<Uint, uint32_t>)
+	{
+		if (spec.type == 'c')
+		{
+			return format_char(val, spec);
+		}
+	}
 	// set the defaults for spec
 	if (spec.align == '\0')
 	{
@@ -812,7 +1002,7 @@ template<typename Int, typename = std::enable_if_t<
 	std::is_same_v<Int, int32_t>
 	|| std::is_same_v<Int, int64_t>
 >>
-string int_to_string(Int val, format_spec spec)
+u8string int_to_string(Int val, format_spec spec)
 {
 	using Uint = std::conditional_t<std::is_same_v<Int, int32_t>, uint32_t, uint64_t>;
 
@@ -850,7 +1040,7 @@ string int_to_string(Int val, format_spec spec)
 		spec.sign = ' ';
 	}
 
-	bool is_negative = val < 0;
+	bool const is_negative = val < 0;
 	Uint abs_val;
 
 	if (is_negative)
@@ -878,101 +1068,117 @@ string int_to_string(Int val, format_spec spec)
 		spec.sign = '-';
 	}
 
-	bool put_sign = is_negative || spec.sign != '-';
+	bool const put_sign = is_negative || spec.sign != '-';
 
-	size_t len = lg_uint(abs_val) + (put_sign ? 1 : 0);
+	size_t const len = lg_uint(abs_val) + (put_sign ? 1 : 0);
 
-	auto res = string(std::max(len, spec.width), spec.fill);
-
-	// we output the number from right to left
-	auto out = res.rbegin();
-	auto end = res.rend();
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [&]() {
+		if (spec.zero_pad)
+		{
+			return 1;
+		}
+		if (spec.fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (spec.fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (spec.fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const fill_char = spec.zero_pad ? '0' : spec.fill;
+	res.reserve(len + (length - len) * fill_char_width);
 
 	auto put_num = [&]()
 	{
-		auto copy = abs_val;
-		do
-		{
-			bz_assert(out != end);
-			*out = copy % 10 + '0';
-			++out;
-			copy /= 10;
-		} while (copy != 0);
+		std::array<char, lg_uint(std::numeric_limits<Uint>::max())> buffer;
+		auto const to_chars_res = std::to_chars(buffer.data(), buffer.data() + buffer.size(), abs_val);
+		bz_assert(to_chars_res.ec == std::errc{});
+		bz_assert(to_chars_res.ptr == buffer.data() + len - (put_sign ? 1 : 0));
+		res += u8string_view(buffer.data(), to_chars_res.ptr);
 	};
 
 	switch (spec.align)
 	{
 	case '<':
-	case '^':
-	{
 		bz_assert(!spec.zero_pad);
-
-		if (spec.align == '<')
-		{
-			out += res.length() - len;
-		}
-		else
-		{
-			out += (res.length() - len) / 2;
-		}
-
-		put_num();
-
 		if (put_sign)
 		{
-			bz_assert(out != end);
-			*out = spec.sign;
-			++out;
+			res += spec.sign;
 		}
+		put_num();
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += fill_char;
+		}
+		break;
 
-		return res;
-	}
+	case '^':
+		bz_assert(!spec.zero_pad);
+		// center alignment has right bias
+		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		if (put_sign)
+		{
+			res += spec.sign;
+		}
+		put_num();
+		for (size_t i = 0; i < (length - len) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		break;
 
 	case '>':
-	{
-		put_num();
-
 		if (spec.zero_pad)
 		{
 			if (put_sign)
 			{
-				bz_assert(out != end);
-				while (out + 1 != end)
-				{
-					*out = '0';
-					++out;
-				}
+				res += spec.sign;
 			}
-			else
+			for (size_t i = 0; i < length - len; ++i)
 			{
-				while (out != end)
-				{
-					*out = '0';
-					++out;
-				}
-				bz_assert(out == end);
+				res += fill_char;
 			}
 		}
-		if (put_sign)
+		else
 		{
-			bz_assert(out != end);
-			*out = spec.sign;
-			++out;
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+			if (put_sign)
+			{
+				res += spec.sign;
+			}
 		}
-
-		return res;
-	}
+		put_num();
+		break;
 
 	default:
 		bz_assert(false);
-		return "";
+		break;
 	}
+
+	return res;
 }
 
 template<size_t N>
-string float_to_string_dec(
-	typename stack_vector<uint8_t, N>::reverse_iterator dig_it,
-	typename stack_vector<uint8_t, N>::reverse_iterator dig_end,
+u8string float_to_string_dec(
+	typename stack_vector<uint8_t, N>::iterator dig_it,
+	typename stack_vector<uint8_t, N>::iterator dig_end,
 	int32_t dig_exponent,
 	bool put_sign,
 	format_spec spec
@@ -985,29 +1191,156 @@ string float_to_string_dec(
 		+ (put_sign ? 1 : 0)                        // sign
 		+ (spec.type == '%' ? 1 : 0);               // %
 
-	auto print_len = dig_end - dig_it;
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [&]() {
+		if (spec.zero_pad)
+		{
+			return 1;
+		}
+		if (spec.fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (spec.fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (spec.fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const fill_char = spec.zero_pad ? '0' : spec.fill;
+	res.reserve(len + (length - len) * fill_char_width);
 
-	auto res = string(std::max(len, spec.width), spec.fill);
-
-	auto it  = res.rbegin();
-	auto end = res.rend();
-
-	auto put_digit = [&]()
+	auto const put_num = [&]()
 	{
-		bz_assert(it != end);
-		bz_assert(dig_it != dig_end);
-		*it = *dig_it + '0';
-		++dig_it;
-		++it;
+		// integer part
+		if (dig_exponent < 0)
+		{
+			res += '0';
+		}
+		else
+		{
+			for (int i = 0; i < dig_exponent + 1; ++i)
+			{
+				res += *dig_it + '0';
+				++dig_it;
+			}
+		}
+
+		// decimal part
+		if (spec.precision != 0)
+		{
+			res += '.';
+			size_t i = 0;
+			// print the leading zero digits (if any)
+			if (dig_exponent < 0)
+			{
+				auto const abs_dig_exponent = static_cast<uint32_t>(-dig_exponent);
+				for (; i < abs_dig_exponent - 1; ++i)
+				{
+					res += '0';
+				}
+			}
+			// print the non-zero digits
+			for (; i < spec.precision && dig_it != dig_end; ++i)
+			{
+				res += *dig_it + '0';
+				++dig_it;
+			}
+			// print the trailing zero digits (if any)
+			for (; i < spec.precision; ++i)
+			{
+				res += '0';
+			}
+		}
 	};
 
-	auto put_char = [&](char c)
+	switch (spec.align)
 	{
-		bz_assert(it != end);
-		*it = c;
-		++it;
-	};
+	case '<':
+		bz_assert(!spec.zero_pad);
+		if (put_sign)
+		{
+			res += spec.sign;
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += fill_char;
+		}
+		break;
 
+	case '^':
+		bz_assert(!spec.zero_pad);
+		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		if (put_sign)
+		{
+			res += spec.sign;
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		for (size_t i = 0; i < (length - len) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		break;
+
+	case '>':
+		if (spec.zero_pad)
+		{
+			if (put_sign)
+			{
+				res += spec.sign;
+			}
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+			if (put_sign)
+			{
+				res += spec.sign;
+			}
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		break;
+
+	default:
+		bz_assert(false);
+		break;
+	}
+
+	return res;
+
+
+/*
 	if (spec.align == '<')
 	{
 		it += res.length() - len;
@@ -1086,29 +1419,156 @@ string float_to_string_dec(
 	}
 
 	return res;
+*/
 }
 
 template<size_t N>
-string float_to_string_exp(
-	typename stack_vector<uint8_t, N>::reverse_iterator dig_it,
-	typename stack_vector<uint8_t, N>::reverse_iterator dig_end,
+u8string float_to_string_exp(
+	typename stack_vector<uint8_t, N>::iterator dig_it,
+	typename stack_vector<uint8_t, N>::iterator dig_end,
 	int32_t dig_exponent,
 	bool put_sign,
 	format_spec spec
 )
 {
-	auto print_len = dig_end - dig_it;
+	auto const print_len = dig_end - dig_it;
 	bz_assert(print_len != 0);
-	size_t len = print_len + 1                     // digits + .
+	size_t const len = print_len + 1               // digits + .
 		+ (put_sign ? 1 : 0)                       // sign
 		+ (std::abs(dig_exponent) >= 100 ? 5 : 4); // exponential notation
 	// the exponential notation is either e+... or e+.. (. is a digit)
 
-	auto res = string(std::max(len, spec.width), spec.fill);
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [&]() {
+		if (spec.zero_pad)
+		{
+			return 1;
+		}
+		if (spec.fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (spec.fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (spec.fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const fill_char = spec.zero_pad ? '0' : spec.fill;
+	res.reserve(len + (length - len) * fill_char_width);
 
-	auto it  = res.rbegin();
-	auto end = res.rend();
+	auto const put_num = [&]()
+	{
+		res += *dig_it + '0';
+		++dig_it;
+		res += '.';
+		for (; dig_it != dig_end; ++dig_it)
+		{
+			res += *dig_it + '0';
+		}
+		res += 'e';
+		res += dig_exponent < 0 ? '-' : '+';
+		auto abs_dig_exponent = std::abs(dig_exponent);
+		if (abs_dig_exponent >= 100)
+		{
+			auto const div_100 = abs_dig_exponent / 100;
+			auto const rem_100 = abs_dig_exponent % 100;
+			abs_dig_exponent = rem_100;
+			res += div_100 + '0';
+		}
+		auto const div_10 = abs_dig_exponent / 10;
+		auto const rem_10 = abs_dig_exponent % 10;
+		res += div_10 + '0';
+		res += rem_10 + '0';
+	};
 
+	switch (spec.align)
+	{
+	case '<':
+		bz_assert(!spec.zero_pad);
+		if (put_sign)
+		{
+			res += spec.sign;
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += fill_char;
+		}
+		break;
+
+	case '^':
+		bz_assert(!spec.zero_pad);
+		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		if (put_sign)
+		{
+			res += spec.sign;
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		for (size_t i = 0; i < (length - len) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		break;
+
+	case '>':
+		if (spec.zero_pad)
+		{
+			if (put_sign)
+			{
+				res += spec.sign;
+			}
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+			if (put_sign)
+			{
+				res += spec.sign;
+			}
+		}
+		put_num();
+		if (spec.type == '%')
+		{
+			res += '%';
+		}
+		break;
+
+	default:
+		bz_assert(false);
+		break;
+	}
+
+	return res;
+
+
+/*
 	auto put_digit = [&]()
 	{
 		bz_assert(it != end);
@@ -1206,13 +1666,14 @@ string float_to_string_exp(
 	}
 
 	return res;
+*/
 }
 
 template<typename Float, typename = std::enable_if_t<
 	std::is_same_v<Float, float>
 	|| std::is_same_v<Float, double>
 >>
-string float_to_string(Float val, format_spec spec)
+u8string float_to_string(Float val, format_spec spec)
 {
 	if (spec.align == '\0')
 	{
@@ -1262,57 +1723,129 @@ string float_to_string(Float val, format_spec spec)
 
 	if (!std::isfinite(val))
 	{
+		auto const fill_char_width = [&]() {
+			if (spec.zero_pad)
+			{
+				return 1;
+			}
+			if (spec.fill < (1u << 7))
+			{
+				return 1;
+			}
+			else if (spec.fill < (1u << 11))
+			{
+				return 2;
+			}
+			else if (spec.fill < (1u << 16))
+			{
+				return 3;
+			}
+			else
+			{
+				return 4;
+			}
+		}();
 		if (std::isinf(val))
 		{
-			size_t len = 3 + (put_sign ? 1 : 0);
-			auto res = string(std::max(len, spec.width), spec.fill);
+			size_t const len = 3 + (put_sign ? 1 : 0);
+			auto const length = std::max(len, spec.width);
+			auto res = u8string();
+			res.reserve(len + (length - len) * fill_char_width);
 
-			auto out = res.rbegin();
-
-			if (spec.align == '<')
+			switch (spec.align)
 			{
-				out += res.length() - len;
-			}
-			else if (spec.align == '^')
-			{
-				out += (res.length() - len) / 2;
-			}
+			case '<':
+				bz_assert(!spec.zero_pad);
+				if (put_sign)
+				{
+					res += spec.sign;
+				}
+				res += "inf";
+				for (size_t i = 0; i < length - len; ++i)
+				{
+					res += spec.fill;
+				}
+				break;
 
-			*out = 'f';
-			++out;
-			*out = 'n';
-			++out;
-			*out = 'i';
-			++out;
+			case '^':
+				bz_assert(!spec.zero_pad);
+				for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+				{
+					res += spec.fill;
+				}
+				if (put_sign)
+				{
+					res += spec.sign;
+				}
+				res += "inf";
+				for (size_t i = 0; i < (length - len) / 2; ++i)
+				{
+					res += spec.fill;
+				}
+				break;
 
-			if (put_sign)
-			{
-				*out = spec.sign;
+			case '>':
+				for (size_t i = 0; i < length - len; ++i)
+				{
+					res += spec.fill;
+				}
+				if (put_sign)
+				{
+					res += spec.sign;
+				}
+				res += "inf";
+				break;
+
+			default:
+				bz_assert(false);
+				break;
 			}
 
 			return res;
 		}
 		else
 		{
-			size_t len = 3;
-			auto res = string(std::max(len, spec.width), spec.fill);
+			size_t const len = 3;
+			auto const length = std::max(len, spec.width);
+			auto res = u8string();
+			res.reserve(len + (length - len) * fill_char_width);
 
-			auto out = res.rbegin();
-
-			if (spec.align == '<')
+			switch (spec.align)
 			{
-				out += res.length() - len;
-			}
-			else if (spec.align == '^')
-			{
-				out += (res.length() - len) / 2;
-			}
+			case '<':
+				bz_assert(!spec.zero_pad);
+				res += "nan";
+				for (size_t i = 0; i < length - len; ++i)
+				{
+					res += spec.fill;
+				}
+				break;
 
-			*out = 'n';
-			++out;
-			*out = 'a';
-			++out;
-			*out = 'n';
+			case '^':
+				bz_assert(!spec.zero_pad);
+				for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+				{
+					res += spec.fill;
+				}
+				res += "nan";
+				for (size_t i = 0; i < (length - len) / 2; ++i)
+				{
+					res += spec.fill;
+				}
+				break;
+
+			case '>':
+				for (size_t i = 0; i < length - len; ++i)
+				{
+					res += spec.fill;
+				}
+				res += "nan";
+				break;
+
+			default:
+				bz_assert(false);
+				break;
+			}
 
 			return res;
 		}
@@ -1627,8 +2160,8 @@ string float_to_string(Float val, format_spec spec)
 			spec.precision = print_len - out_exponent - 1;
 			spec.type = 'f';
 			return float_to_string_dec<N>(
-				out_digits.rend() - print_len,
-				out_digits.rend(),
+				out_digits.begin(),
+				out_digits.begin() + print_len,
 				out_exponent,
 				put_sign,
 				spec
@@ -1638,8 +2171,8 @@ string float_to_string(Float val, format_spec spec)
 		else
 		{
 			return float_to_string_exp<N>(
-				out_digits.rend() - print_len,
-				out_digits.rend(),
+				out_digits.begin(),
+				out_digits.begin() + print_len,
 				out_exponent,
 				put_sign,
 				spec
@@ -1649,8 +2182,8 @@ string float_to_string(Float val, format_spec spec)
 	case 'f':
 	case '%':
 		return float_to_string_dec<N>(
-			out_digits.rend() - print_len,
-			out_digits.rend(),
+			out_digits.begin(),
+			out_digits.begin() + print_len,
 			out_exponent,
 			put_sign,
 			spec
@@ -1664,7 +2197,7 @@ string float_to_string(Float val, format_spec spec)
 	return "";
 }
 
-inline string pointer_to_string(const void *ptr, format_spec spec)
+inline u8string pointer_to_string(const void *ptr, format_spec spec)
 {
 	if (spec.align == '\0')
 	{
@@ -1682,54 +2215,84 @@ inline string pointer_to_string(const void *ptr, format_spec spec)
 	bz_assert(spec.precision == format_spec::precision_none);
 	bz_assert(spec.type == '\0' || spec.type == 'p');
 
-	auto val = reinterpret_cast<uint64_t>(ptr);
-	size_t len = log_uint<16>(val) + 2;
+	auto const val = reinterpret_cast<uint64_t>(ptr);
+	size_t const len = log_uint<16>(val) + 2;
 
-	auto res = string(std::max(len, spec.width), spec.fill);
-
-	auto out = res.rbegin();
-	auto end = res.rend();
+	auto const length = std::max(len, spec.width);
+	auto res = u8string();
+	auto const fill_char_width = [&]() {
+		if (spec.zero_pad)
+		{
+			return 1;
+		}
+		if (spec.fill < (1u << 7))
+		{
+			return 1;
+		}
+		else if (spec.fill < (1u << 11))
+		{
+			return 2;
+		}
+		else if (spec.fill < (1u << 16))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+	}();
+	auto const fill_char = spec.zero_pad ? '0' : spec.fill;
+	res.reserve(len + (length - len) * fill_char_width);
 
 	auto put_num = [&]()
 	{
+		res += "0x";
 		auto copy = val;
+		auto shift_amount = len;
 		do
 		{
-			bz_assert(out != end);
-			*out = digits_x[copy % 16];
-			++out;
-			copy /= 16;
+			--shift_amount;
+			res += digits_x[(copy >> shift_amount) & 0xf];
+			copy &= shift_amount == 0 ? 0 : (1ull << shift_amount) - 1;
 		} while (copy != 0);
 	};
 
-	if (spec.align == '<')
+	switch (spec.align)
 	{
-		out += res.length() - len;
-	}
-	else if (spec.align == '^')
-	{
-		// center alignment has right bias
-		out += (res.length() - len) / 2;
-	}
-
-	put_num();
-
-	if (spec.zero_pad)
-	{
-		bz_assert(end - out >= 2);
-		while (end - out > 2)
+	case '<':
+		put_num();
+		for (size_t i = 0; i < length - len; ++i)
 		{
-			*out = '0';
-			++out;
+			res += fill_char;
 		}
-	}
+		break;
 
-	bz_assert(out != end);
-	*out = 'x';
-	++out;
-	bz_assert(out != end);
-	*out = '0';
-	++out;
+	case '^':
+		// center alignment has right bias
+		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		put_num();
+		for (size_t i = 0; i < (length - len) / 2; ++i)
+		{
+			res += fill_char;
+		}
+		break;
+
+	case '>':
+		for (size_t i = 0; i < length - len; ++i)
+		{
+			res += fill_char;
+		}
+		put_num();
+		break;
+
+	default:
+		bz_assert(false);
+		break;
+	}
 
 	return res;
 }
@@ -1747,20 +2310,20 @@ struct formatter<const T> : formatter<T>
 {};
 
 template<>
-struct formatter<string_view>
+struct formatter<u8string_view>
 {
-	static string format(string_view str, const char *spec, const char *spec_end)
+	static u8string format(u8string_view str, u8string_view spec)
 	{
-		return internal::format_str(str, internal::get_default_format_spec(spec, spec_end));
+		return internal::format_str(str, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
-struct formatter<string> : formatter<string_view>
+struct formatter<u8string> : formatter<u8string_view>
 {};
 
 template<>
-struct formatter<const char *> : formatter<string_view>
+struct formatter<const char *> : formatter<u8string_view>
 {};
 
 template<>
@@ -1779,36 +2342,36 @@ struct formatter<const char[N]> : formatter<const char *>
 template<>
 struct formatter<int32_t>
 {
-	static string format(int32_t val, const char *spec, const char *spec_end)
+	static u8string format(int32_t val, u8string_view spec)
 	{
-		return internal::int_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::int_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
 struct formatter<uint32_t>
 {
-	static string format(uint32_t val, const char *spec, const char *spec_end)
+	static u8string format(uint32_t val, u8string_view spec)
 	{
-		return internal::uint_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::uint_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
 struct formatter<int64_t>
 {
-	static string format(int64_t val, const char *spec, const char *spec_end)
+	static u8string format(int64_t val, u8string_view spec)
 	{
-		return internal::int_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::int_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
 struct formatter<uint64_t>
 {
-	static string format(uint64_t val, const char *spec, const char *spec_end)
+	static u8string format(uint64_t val, u8string_view spec)
 	{
-		return internal::uint_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::uint_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
@@ -1828,20 +2391,19 @@ formatter_int_spec(uint16_t, uint32_t)
 template<>
 struct formatter<char>
 {
-	static string format(char val, const char *spec, const char *spec_end)
+	static u8string format(char val, u8string_view spec)
 	{
-		bz_assert(spec == spec_end);
-
-		return string(1, val);
+		bz_assert(spec.size() == 0);
+		return u8string(1, val);
 	}
 };
 
 template<>
 struct formatter<bool>
 {
-	static string format(bool val, const char *spec, const char *spec_end)
+	static u8string format(bool val, u8string_view spec)
 	{
-		bz_assert(spec == spec_end);
+		bz_assert(spec.size() == 0);
 
 		if (val)
 		{
@@ -1857,27 +2419,27 @@ struct formatter<bool>
 template<>
 struct formatter<float>
 {
-	static string format(float val, const char *spec, const char *spec_end)
+	static u8string format(float val, u8string_view spec)
 	{
-		return internal::float_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::float_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
 struct formatter<double>
 {
-	static string format(double val, const char *spec, const char *spec_end)
+	static u8string format(double val, u8string_view spec)
 	{
-		return internal::float_to_string(val, internal::get_default_format_spec(spec, spec_end));
+		return internal::float_to_string(val, internal::get_default_format_spec(spec));
 	}
 };
 
 template<>
 struct formatter<const void *>
 {
-	static string format(const void *ptr, const char *spec, const char *spec_end)
+	static u8string format(const void *ptr, u8string_view spec)
 	{
-		return internal::pointer_to_string(ptr, internal::get_default_format_spec(spec, spec_end));
+		return internal::pointer_to_string(ptr, internal::get_default_format_spec(spec));
 	}
 };
 
@@ -1893,48 +2455,31 @@ struct formatter<std::nullptr_t> : formatter<const void *>
 namespace internal
 {
 
-inline void append_char_range(string &str, string_view::iterator begin, string_view::iterator end)
-{
-	if (begin == end)
-	{
-		return;
-	}
-
-	str.reserve(str.length() + static_cast<size_t>(end - begin));
-	while (begin != end)
-	{
-		str += *begin;
-		++begin;
-	}
-}
-
-
 template<typename ...Args>
 format_args make_format_args(Args const &...args)
 {
 	return {
 		format_arg{
 			&args,
-			[](const void *arg, const char *spec, const char *spec_end) -> string
+			[](const void *arg, u8string_view spec) -> u8string
 			{
 				return formatter<Args>::format(
 					*static_cast<const Args *>(arg),
-					spec,
-					spec_end
+					spec
 				);
 			}
 		}...
 	};
 }
 
-inline string format_impl(
+inline u8string format_impl(
 	size_t &current_arg,
-	string_view::iterator fmt,
-	string_view::iterator fmt_end,
+	u8string_view::iterator fmt,
+	u8string_view::iterator fmt_end,
 	format_args const &args
 )
 {
-	string res = "";
+	u8string res = "";
 	auto begin = fmt;
 
 	while (fmt != fmt_end)
@@ -1943,7 +2488,7 @@ inline string format_impl(
 		{
 		case '{':
 		{
-			append_char_range(res, begin, fmt);
+			res += u8string_view(begin, fmt);
 			++fmt; // '{'
 
 			auto spec_str_begin = fmt;
@@ -1998,7 +2543,7 @@ inline string format_impl(
 			bz_assert(arg_num < args.size());
 
 			auto &to_print = args[arg_num];
-			res += to_print.format(to_print.arg, &*spec, &*spec_end);
+			res += to_print.format(to_print.arg, u8string_view(spec, spec_end));
 
 			begin = fmt;
 			break;
@@ -2009,7 +2554,7 @@ inline string format_impl(
 			break;
 		}
 	}
-	append_char_range(res, begin, fmt);
+	res += u8string_view(begin, fmt);
 
 	return res;
 }
@@ -2017,7 +2562,7 @@ inline string format_impl(
 } // namespace internal
 
 template<typename ...Ts>
-string format(string_view fmt, Ts const &...ts)
+u8string format(u8string_view fmt, Ts const &...ts)
 {
 	size_t current_arg = 0;
 	return internal::format_impl(
