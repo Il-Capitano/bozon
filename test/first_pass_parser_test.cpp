@@ -13,7 +13,7 @@ static void get_tokens_in_curly_test(void)
 
 #define x(str, it_pos)                                      \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -26,7 +26,7 @@ do {                                                        \
 
 #define x_err(str, it_pos)                                  \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -67,7 +67,7 @@ static void get_expression_or_type_tokens_test(void)
 
 #define x(str, it_pos)                                      \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -80,7 +80,7 @@ do {                                                        \
 
 #define x_err(str, it_pos)                                  \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -117,7 +117,7 @@ do {                                                        \
 
 #define xx(fn, str, it_pos)                                 \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -128,7 +128,7 @@ do {                                                        \
 
 #define xx_err(fn, str, it_pos)                             \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -488,7 +488,7 @@ static void parse_declaration_test(void)
 
 #define x(str, decl_type)                                       \
 do {                                                            \
-    bz::string_view const file = str;                           \
+    bz::u8string_view const file = str;                           \
     auto const tokens = lex::get_tokens(file, "", lex_ctx);     \
     assert_false(global_ctx.has_errors());                      \
     auto it = tokens.begin();                                   \
@@ -517,7 +517,7 @@ static void parse_statement_test(void)
 
 #define x(str, decl_type)                                     \
 do {                                                          \
-    bz::string_view const file = str;                         \
+    bz::u8string_view const file = str;                         \
     auto const tokens = lex::get_tokens(file, "", lex_ctx);   \
     assert_false(global_ctx.has_errors());                    \
     auto it = tokens.begin();                                 \

@@ -32,7 +32,7 @@ static_assert(is_reverse_sorted(keywords), "keywords is not sorted");
 
 static void file_iterator_test(void)
 {
-	bz::string_view file = "\nthis is line #2\n";
+	bz::u8string_view file = "\nthis is line #2\n";
 	file_iterator it = {
 		file.begin(), "<source>"
 	};
@@ -61,7 +61,7 @@ static void get_token_value_test(void)
 
 	for (unsigned char c = ' '; c != 128; ++c)
 	{
-		assert_eq(bz::string(c), get_token_value(c));
+		assert_eq(bz::u8string(1, c), get_token_value(c));
 	}
 
 	assert_eq(get_token_value(token::identifier), "identifier");
@@ -77,7 +77,7 @@ static void get_token_value_test(void)
 static void skip_comments_and_whitespace_test(void)
 {
 	{
-		bz::string_view file = "";
+		bz::u8string_view file = "";
 		assert_eq(file.begin(), file.end());
 		file_iterator it = { file.begin(), "" };
 		skip_comments_and_whitespace(it, file.end());
@@ -85,7 +85,7 @@ static void skip_comments_and_whitespace_test(void)
 	}
 
 #define x(str)                           \
-bz::string_view file = str;              \
+bz::u8string_view file = str;              \
 file_iterator it = { file.begin(), "" }; \
 skip_comments_and_whitespace(it, file.end())
 
@@ -135,8 +135,8 @@ skip_comments_and_whitespace(it, file.end())
 
 	{
 		x("/* this /* is a nested */ comment */  a");
-		//                                       ^ file.end() - 1
-		assert_eq(it.it, file.end() - 1);
+		//                                       ^ file.begin() + 38
+		assert_eq(it.it, file.begin() + 38);
 	}
 
 	{
@@ -151,14 +151,14 @@ skip_comments_and_whitespace(it, file.end())
 
 	{
 		x("/* / * comment */ not nested */");
-		//                   ^ file.end() - 13
-		assert_eq(it.it, file.end() - 13);
+		//                   ^ file.begin() + 18
+		assert_eq(it.it, file.begin() + 18);
 	}
 
 	{
 		x("/* // */\n   a");
-		//              ^ file.end() - 1
-		assert_eq(it.it, file.end() - 1);
+		//              ^ file.begin() + 12
+		assert_eq(it.it, file.begin() + 12);
 	}
 
 	{
@@ -168,8 +168,8 @@ skip_comments_and_whitespace(it, file.end())
 
 	{
 		x("// /*\n */");
-		//         ^ file.end() - 2
-		assert_eq(it.it, file.end() - 2);
+		//         ^ file.begin() + 7
+		assert_eq(it.it, file.begin() + 7);
 	}
 
 #undef x
@@ -181,14 +181,14 @@ static void get_identifier_or_keyword_token_test(void)
 	ctx::lex_context context(global_ctx);
 
 #define x_id(str)                                                        \
-bz::string_view const file = str;                                        \
+bz::u8string_view const file = str;                                        \
 file_iterator it = { file.begin(), "" };                                 \
 auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
 assert_false(global_ctx.has_errors());                                   \
 assert_eq(t.kind, token::identifier)
 
 #define x_kw(str, kw_kind)                                               \
-bz::string_view const file = str;                                        \
+bz::u8string_view const file = str;                                        \
 file_iterator it = { file.begin(), "" };                                 \
 auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
 assert_false(global_ctx.has_errors());                                   \
@@ -227,15 +227,15 @@ assert_eq(t.kind, kw_kind)
 
 	{
 		x_id("asdf ");
-		//        ^ file.end() - 1
-		assert_eq(it.it, file.end() - 1);
+		//        ^ file.begin() + 4
+		assert_eq(it.it, file.begin() + 4);
 		assert_eq(t.value, "asdf");
 	}
 
 	{
 		x_id("asdf+");
-		//        ^ file.end() - 1
-		assert_eq(it.it, file.end() - 1);
+		//        ^ file.begin() + 4
+		assert_eq(it.it, file.begin() + 4);
 		assert_eq(t.value, "asdf");
 	}
 
@@ -276,7 +276,7 @@ static void get_character_token_test(void)
 
 #define x(str, c, it_pos)                                        \
 do {                                                             \
-    bz::string_view const file = str;                            \
+    bz::u8string_view const file = str;                            \
     file_iterator it = { file.begin(), "" };                     \
     auto const t = get_character_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                       \
@@ -287,7 +287,7 @@ do {                                                             \
 
 #define x_err(str, it_pos)                        \
 do {                                              \
-    bz::string_view const file = str;             \
+    bz::u8string_view const file = str;             \
     file_iterator it = { file.begin(), "" };      \
     get_character_token(it, file.end(), context); \
     assert_true(global_ctx.has_errors());         \
@@ -297,8 +297,8 @@ do {                                              \
 
 	x("'a'", "a", file.end());
 	x("'0'", "0", file.end());
-	x("'a' ", "a", file.end() - 1);
-	//    ^ file.end() - 1
+	x("'a' ", "a", file.begin() + 3);
+	//    ^ file.begin() + 3
 	x("'\\''", "\\'", file.end());
 	x("'\"'", "\"", file.end());
 	x("'\\x00'", "\\x00", file.end());
@@ -326,7 +326,7 @@ static void get_string_token_test(void)
 
 #define x(str, c, it_pos)                                     \
 do {                                                          \
-    bz::string_view const file = str;                         \
+    bz::u8string_view const file = str;                         \
     file_iterator it = { file.begin(), "" };                  \
     auto const t = get_string_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                    \
@@ -337,7 +337,7 @@ do {                                                          \
 
 #define x_err(str, it_pos)                     \
 do {                                           \
-    bz::string_view const file = str;          \
+    bz::u8string_view const file = str;          \
     file_iterator it = { file.begin(), "" };   \
     get_string_token(it, file.end(), context); \
     assert_true(global_ctx.has_errors());      \
@@ -347,8 +347,8 @@ do {                                           \
 
 	x(R"("")", "", file.end());
 	x(R"("this is a string")", "this is a string", file.end());
-	x(R"("" )", "", file.end() - 1);
-	//     ^ file.end() - 1
+	x(R"("" )", "", file.begin() + 2);
+	//     ^ file.begin() + 2
 	x(R"("'")", "'", file.end());
 	x(R"("\'")", "\\'", file.end());
 	x(R"("\"")", "\\\"", file.end());
@@ -370,7 +370,7 @@ static void get_number_token_test(void)
 
 #define x(str, it_pos)                                        \
 do {                                                          \
-    bz::string_view const file = str;                         \
+    bz::u8string_view const file = str;                         \
     file_iterator it = { file.begin(), "" };                  \
     auto const t = get_number_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                    \
@@ -385,19 +385,19 @@ do {                                                          \
 } while (false)
 
 	x("1234", file.end());
-	x("1234 ", file.end() - 1);
-	x("1234-", file.end() - 1);
+	x("1234 ", file.begin() + 4);
+	x("1234-", file.begin() + 4);
 	x("1'2'3'4", file.end());
 	x("1'''''''''2'3'4'''''''", file.end());
-	x("1'''''''''2'3'4'''' '''", file.end() - 4);
-	//                    ^ file.end() - 4
+	x("1'''''''''2'3'4'''' '''", file.begin() + 19);
+	//                    ^ file.begin() + 19
 
 	x("1.1", file.end());
-	x("1.1.1", file.end() - 2);
-	//    ^ file.end() - 2
+	x("1.1.1", file.begin() + 3);
+	//    ^ file.begin() + 3
 	x("1'''2'''2323'1'.'''''2124213''4512''", file.end());
-	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.end() - 6);
-	//                                     ^ file.end() - 6
+	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.begin() + 36);
+	//                                     ^ file.begin() + 36
 
 	x("0x0123456789abcdef", file.end());
 	x("0x0123456789ABCDEF", file.end());
@@ -418,8 +418,8 @@ static void get_single_char_token_test(void)
 
 	for (unsigned char c = ' '; c != 128; ++c)
 	{
-		bz::string const _file(1, c);
-		bz::string_view const file = _file;
+		bz::u8string const _file(1, c);
+		bz::u8string_view const file = _file;
 		file_iterator it = { file.begin(), "" };
 		auto const t = get_single_char_token(it, file.end(), context);
 		assert_eq(t.kind, c);
@@ -435,7 +435,7 @@ static void get_next_token_test(void)
 
 #define x(str, token_kind)                                  \
 do {                                                        \
-    bz::string_view const file = str;                       \
+    bz::u8string_view const file = str;                       \
     file_iterator it = { file.begin(), "" };                \
     auto const t = get_next_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                  \
@@ -504,7 +504,7 @@ void get_tokens_test(void)
 
 #define x(str, ...)                                \
 do {                                               \
-    bz::string_view const file = str;              \
+    bz::u8string_view const file = str;              \
     auto const ts = get_tokens(file, "", context); \
     assert_false(global_ctx.has_errors());         \
     assert_eqs(ts, { __VA_ARGS__ });               \

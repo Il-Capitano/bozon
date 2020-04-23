@@ -35,6 +35,12 @@ inline std::ostream &operator << (std::ostream &os, bz::random_access_iterator<T
 	return os;
 }
 
+inline std::ostream &operator << (std::ostream &os, bz::u8iterator it)
+{
+	os << static_cast<void const *>(it.data());
+	return os;
+}
+
 template<typename ...Ts>
 inline std::string build_str(Ts &&...ts)
 {
