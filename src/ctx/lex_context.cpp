@@ -11,7 +11,7 @@ namespace ctx
 
 void lex_context::bad_char(
 	file_iterator const &stream,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
@@ -24,9 +24,9 @@ void lex_context::bad_char(
 }
 
 void lex_context::bad_chars(
-	bz::string_view file, size_t line,
+	bz::u8string_view file, size_t line,
 	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
@@ -40,7 +40,7 @@ void lex_context::bad_chars(
 
 void lex_context::bad_eof(
 	file_iterator const &stream,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
@@ -54,26 +54,43 @@ void lex_context::bad_eof(
 
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
 	file_iterator const &pos,
-	bz::string suggestion_str,
-	bz::string message
+	bz::u8string suggestion_str,
+	bz::u8string message
 )
 {
 	return ctx::suggestion{
 		pos.file, pos.line,
-		pos.it, std::move(suggestion_str),
+		pos.it, ctx::char_pos(), ctx::char_pos(),
+		std::move(suggestion_str),
 		std::move(message)
 	};
 }
 
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
-	bz::string_view file, size_t line, ctx::char_pos pos,
-	bz::string suggestion_str,
-	bz::string message
+	bz::u8string_view file, size_t line, ctx::char_pos pos,
+	bz::u8string suggestion_str,
+	bz::u8string message
 )
 {
 	return ctx::suggestion{
 		file, line,
-		pos, std::move(suggestion_str),
+		pos, ctx::char_pos(), ctx::char_pos(),
+		std::move(suggestion_str),
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::suggestion lex_context::make_suggestion(
+	bz::u8string_view file, size_t line, ctx::char_pos pos,
+	ctx::char_pos erase_begin, ctx::char_pos erase_end,
+	bz::u8string suggestion_str,
+	bz::u8string message
+)
+{
+	return ctx::suggestion{
+		file, line,
+		pos, erase_begin, erase_end,
+		std::move(suggestion_str),
 		std::move(message)
 	};
 }

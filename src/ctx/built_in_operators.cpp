@@ -23,7 +23,7 @@ auto get_non_overloadable_operation_type(
 	ast::expression::expr_type_t const &expr,
 	uint32_t op,
 	parse_context &context
-) -> bz::result<ast::expression::expr_type_t, bz::string>
+) -> bz::result<ast::expression::expr_type_t, bz::u8string>
 {
 	using expr_type_t = ast::expression::expr_type_t;
 	switch (op)
@@ -41,7 +41,7 @@ auto get_non_overloadable_operation_type(
 		}
 		else
 		{
-			return bz::string("cannot take address of an rvalue");
+			return bz::u8string("cannot take address of an rvalue");
 		}
 	case lex::token::kw_sizeof:
 	{
@@ -53,7 +53,7 @@ auto get_non_overloadable_operation_type(
 
 	default:
 		bz_assert(false);
-		return bz::string("");
+		return bz::u8string("");
 	}
 }
 
@@ -62,7 +62,7 @@ auto get_non_overloadable_operation_type(
 	ast::expression::expr_type_t const &rhs,
 	uint32_t op,
 	parse_context &
-) -> bz::result<ast::expression::expr_type_t, bz::string>
+) -> bz::result<ast::expression::expr_type_t, bz::u8string>
 {
 //	using expr_type_t = ast::expression::expr_type_t;
 	switch (op)
@@ -72,7 +72,7 @@ auto get_non_overloadable_operation_type(
 
 	default:
 		bz_assert(false);
-		return bz::string("");
+		return bz::u8string("");
 	}
 }
 

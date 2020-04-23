@@ -81,7 +81,7 @@ lex::token_pos expr_cast::get_tokens_end(void) const
 
 
 
-static char get_character(bz::string_view::const_iterator &it)
+static char get_character(bz::u8string_view::const_iterator &it)
 {
 	switch (*it)
 	{
@@ -161,28 +161,32 @@ expr_literal::expr_literal(lex::token_pos stream)
 	}
 	case lex::token::floating_point_literal:
 	{
-		bz::string value = stream->value;
+		bz::u8string value = stream->value;
 		value.erase('\'');
 
+		auto it = value.begin();
+		auto const end = value.end();
+
 		double num = 0;
-		size_t i;
-		for (i = 0; i < value.length() && value[i] != '.'; ++i)
+		for (; it != end && *it != '.'; ++it)
 		{
-			bz_assert(value[i] >= '0' && value[i] <= '9');
+			auto const c = *it;
+			bz_assert(c >= '0' && c <= '9');
 			num *= 10;
-			num += value[i] - '0';
+			num += c - '0';
 		}
 
-		bz_assert(value[i] == '.');
-		++i;
+		bz_assert(it != end);
+		bz_assert(*it == '.');
+		++it;
 
 		double level = 1;
-		while (i < value.length())
+		for (; it != end; ++it)
 		{
-			bz_assert(value[i] >= '0' && value[i] <= '9');
+			auto const c = *it;
+			bz_assert(c >= '0' && c <= '9');
 			level *= 0.1;
-			num += level * (value[i] - '0');
-			++i;
+			num += level * (c - '0');
 		}
 
 		this->value.emplace<floating_point_number>(num);
@@ -192,7 +196,10 @@ expr_literal::expr_literal(lex::token_pos stream)
 	{
 		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
-		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		auto it = stream->value.begin();
+		++it, ++it;
+		auto const end = stream->value.end();
+		for (; it != end; ++it)
 		{
 			auto const c = *it;
 			if (c == '\'')
@@ -226,7 +233,10 @@ expr_literal::expr_literal(lex::token_pos stream)
 	{
 		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
-		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		auto it = stream->value.begin();
+		++it, ++it;
+		auto const end = stream->value.end();
+		for (; it != end; ++it)
 		{
 			auto const c = *it;
 			if (c == '\'')
@@ -247,7 +257,10 @@ expr_literal::expr_literal(lex::token_pos stream)
 	{
 		bz_assert(stream->value.length() >= 2);
 		uint64_t num = 0;
-		for (auto it = stream->value.begin() + 2; it != stream->value.end(); ++it)
+		auto it = stream->value.begin();
+		++it, ++it;
+		auto const end = stream->value.end();
+		for (; it != end; ++it)
 		{
 			auto const c = *it;
 			if (c == '\'')
@@ -268,7 +281,7 @@ expr_literal::expr_literal(lex::token_pos stream)
 	case lex::token::string_literal:
 	{
 		auto const str = stream->value;
-		bz::string res = "";
+		bz::u8string res = "";
 		res.reserve(str.length());
 		auto it = str.begin();
 		auto const end = str.end();

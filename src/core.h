@@ -19,6 +19,7 @@
 
 #include <bz/variant.h>
 #include <bz/string.h>
+#include <bz/u8string.h>
 #include <bz/optional.h>
 #include <bz/format.h>
 #include <bz/result.h>

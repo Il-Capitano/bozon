@@ -7,41 +7,43 @@
 namespace ctx
 {
 
-using char_pos  = bz::string_view::const_iterator;
+using char_pos  = bz::u8string_view::const_iterator;
 
 struct note
 {
-	bz::string file;
+	bz::u8string file;
 	size_t line;
 
 	char_pos src_begin;
 	char_pos src_pivot;
 	char_pos src_end;
 
-	bz::string message;
+	bz::u8string message;
 };
 
 struct suggestion
 {
-	bz::string file;
+	bz::u8string file;
 	size_t line;
 
 	char_pos place;
-	bz::string suggestion_str;
+	char_pos erase_begin;
+	char_pos erase_end;
+	bz::u8string suggestion_str;
 
-	bz::string message;
+	bz::u8string message;
 };
 
 struct error
 {
-	bz::string file;
+	bz::u8string file;
 	size_t line;
 
 	char_pos src_begin;
 	char_pos src_pivot;
 	char_pos src_end;
 
-	bz::string message;
+	bz::u8string message;
 
 	bz::vector<note> notes;
 	bz::vector<suggestion> suggestions;
@@ -61,7 +63,7 @@ struct error
 
 [[nodiscard]] inline error make_error(
 	lex::token_pos it,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
@@ -74,7 +76,7 @@ struct error
 
 [[nodiscard]] inline error make_error(
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
@@ -89,7 +91,7 @@ struct error
 template<typename T>
 [[nodiscard]] inline error make_error(
 	T const &tokens,
-	bz::string message,
+	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
@@ -101,7 +103,7 @@ template<typename T>
 
 [[nodiscard]] inline note make_note(
 	lex::token_pos it,
-	bz::string message
+	bz::u8string message
 )
 {
 	return {
@@ -113,7 +115,7 @@ template<typename T>
 
 [[nodiscard]] inline note make_note(
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::string message
+	bz::u8string message
 )
 {
 	return {
@@ -126,7 +128,7 @@ template<typename T>
 template<typename T>
 [[nodiscard]] inline note make_note(
 	T const &tokens,
-	bz::string message
+	bz::u8string message
 )
 {
 	return make_note(
@@ -136,13 +138,14 @@ template<typename T>
 }
 
 [[nodiscard]] inline suggestion make_suggestion_after(
-	lex::token_pos it, bz::string suggestion_str,
-	bz::string message
+	lex::token_pos it, bz::u8string suggestion_str,
+	bz::u8string message
 )
 {
 	return {
 		it->src_pos.file_name, it->src_pos.line,
-		it->src_pos.end, std::move(suggestion_str),
+		it->src_pos.end, char_pos(), char_pos(),
+		std::move(suggestion_str),
 		std::move(message)
 	};
 }

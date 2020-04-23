@@ -18,7 +18,7 @@ private:
 	global_context global_ctx;
 
 public:
-	void add_file(bz::string_view file_name)
+	void add_file(bz::u8string_view file_name)
 	{
 		auto const it = std::find_if(
 			this->_src_files.begin(), this->_src_files.end(),

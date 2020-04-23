@@ -55,7 +55,7 @@ void bitcode_context::add_function(ast::function_body const *func_body, llvm::Fu
 	this->funcs_.insert_or_assign(func_body, fn);
 }
 
-llvm::BasicBlock *bitcode_context::add_basic_block(bz::string_view name)
+llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(
 		this->llvm_context,

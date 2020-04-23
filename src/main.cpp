@@ -1059,7 +1059,7 @@ make_vec<4, int32>([0, 1, 2, 3])
 template<>
 struct bz::formatter<ast::expression>
 {
-	static bz::string format(ast::expression const &expr, const char *, const char *)
+	static bz::u8string format(ast::expression const &expr, bz::u8string_view)
 	{
 		switch (expr.kind())
 		{
@@ -1078,7 +1078,7 @@ struct bz::formatter<ast::expression>
 			case ast::expr_literal::string:
 			{
 				auto &str = literal->value.get<ast::expr_literal::string>();
-				bz::string res = "\"";
+				bz::u8string res = "\"";
 				for (auto c : str)
 				{
 					switch (c)
@@ -1110,7 +1110,7 @@ struct bz::formatter<ast::expression>
 			case ast::expr_literal::character:
 			{
 				auto c = literal->value.get<ast::expr_literal::character>();
-				bz::string res = "\'";
+				bz::u8string res = "\'";
 				switch (c)
 				{
 				case '\\':

@@ -155,7 +155,7 @@ static val_ptr emit_bitcode(
 	case ast::expr_literal::string:
 	{
 		auto const &str = literal.value.get<ast::expr_literal::string>();
-		auto const string_ref = llvm::StringRef(str.data(), str.length());
+		auto const string_ref = llvm::StringRef(str.data_as_char_ptr(), str.size());
 		auto const string_constant = context.builder.CreateGlobalString(string_ref);
 
 		auto const begin_ptr = context.builder.CreateConstGEP1_64(string_constant, 0);
@@ -1737,7 +1737,10 @@ static void emit_alloca(
 			return;
 		}
 		auto const var_t = get_llvm_type(var_decl.var_type, context);
-		auto const name = llvm::StringRef(var_decl.identifier->value.data(), var_decl.identifier->value.length());
+		auto const name = llvm::StringRef(
+			var_decl.identifier->value.data(),
+			var_decl.identifier->value.size()
+		);
 		auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
 		context.add_variable(&var_decl, alloca);
 		emit_alloca(var_decl.init_expr, context);
@@ -1863,7 +1866,7 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 
 void add_function_to_module(
 	ast::function_body &func_body,
-	bz::string_view id,
+	bz::u8string_view id,
 	ctx::bitcode_context &context
 )
 {
@@ -1893,7 +1896,7 @@ void add_function_to_module(
 		}
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
-	auto const name = llvm::StringRef(id.data(), id.length());
+	auto const name = llvm::StringRef(id.data(), id.size());
 	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.module);
 	for (auto &arg : fn->args())
 	{
@@ -1938,7 +1941,7 @@ void emit_function_bitcode(
 			else
 			{
 				auto const var_t = get_llvm_type(p.var_type, context);
-				auto const name = llvm::StringRef(p.identifier->value.data(), p.identifier->value.length());
+				auto const name = llvm::StringRef(p.identifier->value.data(), p.identifier->value.size());
 				auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
 				context.add_variable(&p, alloca);
 			}
@@ -1988,7 +1991,7 @@ void emit_function_bitcode(
 		bz::printf(
 			"{}verifyFunction failed on {}!!!\n{}",
 			colors::bright_red,
-			bz::string_view(fn->getName().data(), fn->getName().data() + fn->getName().size()),
+			bz::u8string_view(fn->getName().data(), fn->getName().data() + fn->getName().size()),
 			colors::clear
 		);
 	}

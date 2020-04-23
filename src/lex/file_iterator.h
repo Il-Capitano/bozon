@@ -7,7 +7,7 @@
 struct file_iterator
 {
 	ctx::char_pos it;
-	bz::string_view file;
+	bz::u8string_view file;
 	size_t line = 1;
 
 	file_iterator &operator ++ (void)

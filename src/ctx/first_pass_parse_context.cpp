@@ -11,7 +11,7 @@ void first_pass_parse_context::report_error(lex::token_pos it) const
 
 void first_pass_parse_context::report_error(
 	lex::token_pos it,
-	bz::string message, bz::vector<ctx::note> notes
+	bz::u8string message, bz::vector<ctx::note> notes
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(
@@ -21,7 +21,7 @@ void first_pass_parse_context::report_error(
 
 void first_pass_parse_context::report_error(
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::string message, bz::vector<ctx::note> notes
+	bz::u8string message, bz::vector<ctx::note> notes
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(

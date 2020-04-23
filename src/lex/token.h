@@ -119,22 +119,22 @@ struct token
 	};
 
 	uint32_t kind;
-	bz::string_view value;
-	bz::string_view postfix;
+	bz::u8string_view value;
+	bz::u8string_view postfix;
 	struct
 	{
-		bz::string_view file_name;
-		bz::string_view::const_iterator begin;
-		bz::string_view::const_iterator end;
+		bz::u8string_view file_name;
+		bz::u8string_view::const_iterator begin;
+		bz::u8string_view::const_iterator end;
 		size_t line;
 	} src_pos;
 
 	token(
 		uint32_t _kind,
-		bz::string_view _value,
-		bz::string_view _file_name,
-		bz::string_view::const_iterator _begin,
-		bz::string_view::const_iterator _end,
+		bz::u8string_view _value,
+		bz::u8string_view _file_name,
+		bz::u8string_view::const_iterator _begin,
+		bz::u8string_view::const_iterator _end,
 		size_t _line
 	)
 		: kind   (_kind),
@@ -145,11 +145,11 @@ struct token
 
 	token(
 		uint32_t _kind,
-		bz::string_view _value,
-		bz::string_view _postfix,
-		bz::string_view _file_name,
-		bz::string_view::const_iterator _begin,
-		bz::string_view::const_iterator _end,
+		bz::u8string_view _value,
+		bz::u8string_view _postfix,
+		bz::u8string_view _file_name,
+		bz::u8string_view::const_iterator _begin,
+		bz::u8string_view::const_iterator _end,
 		size_t _line
 	)
 		: kind   (_kind),
@@ -159,7 +159,7 @@ struct token
 	{}
 };
 
-using token_pair = std::pair<bz::string_view, uint32_t>;
+using token_pair = std::pair<bz::u8string_view, uint32_t>;
 
 constexpr std::array<
 	token_pair,
@@ -266,7 +266,7 @@ constexpr bool is_keyword_token(token const &t)
 }
 
 
-bz::string get_token_value(uint32_t kind);
+bz::u8string get_token_value(uint32_t kind);
 bool is_operator(uint32_t kind);
 bool is_overloadable_unary_operator(uint32_t kind);
 bool is_overloadable_binary_operator(uint32_t kind);
@@ -281,7 +281,7 @@ struct token_range
 	token_pos end;
 };
 
-inline bz::string get_token_name_for_message(uint32_t kind)
+inline bz::u8string get_token_name_for_message(uint32_t kind)
 {
 	switch (kind)
 	{

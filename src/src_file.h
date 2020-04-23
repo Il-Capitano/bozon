@@ -25,15 +25,15 @@ struct src_file
 public:
 	src_file_stage _stage;
 
-	bz::string             _file_name;
-	bz::string             _file;
+	bz::u8string             _file_name;
+	bz::u8string             _file;
 	bz::vector<lex::token> _tokens;
 
 	ctx::global_context         &_global_ctx;
 	bz::vector<ast::declaration> _declarations;
 
 public:
-	src_file(bz::string_view file_name, ctx::global_context &global_ctx);
+	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);
 
 	void report_and_clear_errors(void);
 
@@ -43,7 +43,7 @@ public:
 	[[nodiscard]] bool resolve(void);
 
 
-	bz::string const &get_file_name() const
+	bz::u8string const &get_file_name() const
 	{ return this->_file_name; }
 
 	auto tokens_begin(void) const

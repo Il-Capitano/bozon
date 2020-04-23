@@ -11,7 +11,7 @@ namespace bc
 
 void add_function_to_module(
 	ast::function_body &func_body,
-	bz::string_view id,
+	bz::u8string_view id,
 	ctx::bitcode_context &context
 );
 void emit_function_bitcode(

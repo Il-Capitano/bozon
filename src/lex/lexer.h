@@ -11,8 +11,8 @@ namespace lex
 {
 
 bz::vector<token> get_tokens(
-	bz::string_view file,
-	bz::string_view file_name,
+	bz::u8string_view file,
+	bz::u8string_view file_name,
 	ctx::lex_context &context
 );
 

@@ -27,16 +27,16 @@ struct parse_context
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it,
-		bz::string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
 	void report_error(
 		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
 	template<typename T>
 	void report_error(
 		T const &tokens,
-		bz::string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const
 	{
 		this->report_error(
@@ -78,7 +78,7 @@ struct parse_context
 
 	bool is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to);
 
-	ast::type_info *get_type_info(bz::string_view id) const;
+	ast::type_info *get_type_info(bz::u8string_view id) const;
 };
 
 } // namespace ctx

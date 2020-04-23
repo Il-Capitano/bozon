@@ -4,9 +4,10 @@
 
 #include "colors.h"
 
-static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos pivot)
+static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos const pivot)
 {
 	uint32_t column = 0;
+	auto pivot_ptr = pivot.data();
 	do
 	{
 		if (pivot == file_begin)
@@ -14,20 +15,20 @@ static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos 
 			return column + 1;
 		}
 
-		--pivot;
+		--pivot_ptr;
 		++column;
-	} while (*pivot != '\n');
+	} while (*pivot_ptr != '\n');
 	return column;
 }
 
-static bz::string get_highlighted_chars(
+static bz::u8string get_highlighted_chars(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
 	ctx::char_pos const char_begin,
 	ctx::char_pos const char_pivot,
 	ctx::char_pos const char_end,
 	size_t const pivot_line,
-	bz::string_view const highlight_color
+	bz::u8string_view const highlight_color
 )
 {
 	if (char_begin == char_end)
@@ -41,23 +42,27 @@ static bz::string get_highlighted_chars(
 	bz_assert(char_pivot < char_end);
 	bz_assert(char_end <= file_end);
 
-	auto line_begin = char_begin;
+	auto line_begin_ptr = char_begin.data();
 
-	while (line_begin != file_begin && *(line_begin - 1) != '\n')
+	while (line_begin_ptr != file_begin.data() && *(line_begin_ptr - 1) != '\n')
 	{
-		--line_begin;
+		--line_begin_ptr;
 	}
 
-	auto line_end = char_end;
+	auto const line_begin = bz::u8iterator(line_begin_ptr);
 
-	while (line_end != file_end && *(line_end - 1) != '\n')
+	auto line_end_ptr = char_end.data();
+
+	while (line_end_ptr != file_end.data() && *(line_end_ptr - 1) != '\n')
 	{
-		++line_end;
+		++line_end_ptr;
 	}
+
+	auto const line_end = bz::u8iterator(line_end_ptr);
 
 	auto const begin_line_num = [&]() {
 		auto line = pivot_line;
-		for (auto it = char_pivot; it > char_begin; --it)
+		for (auto it = char_pivot.data(); it > char_begin.data(); --it)
 		{
 			if (*it == '\n')
 			{
@@ -80,11 +85,11 @@ static bz::string get_highlighted_chars(
 		return bz::internal::lg_uint(line);
 	}();
 
-	bz::string file_line = "";
-	bz::string highlight_line = "";
+	bz::u8string file_line = "";
+	bz::u8string highlight_line = "";
 	auto line_num = begin_line_num;
 
-	bz::string result = "";
+	bz::u8string result = "";
 
 	auto it = line_begin;
 	while (it != line_end)
@@ -187,32 +192,38 @@ static bz::string get_highlighted_chars(
 	return result;
 }
 
-static bz::string get_highlighted_suggestion(
+static bz::u8string get_highlighted_suggestion(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
 	ctx::char_pos const char_place,
-	bz::string_view const suggestion_str,
+	ctx::char_pos const erase_begin,
+	ctx::char_pos const erase_end,
+	bz::u8string_view const suggestion_str,
 	size_t const line
 )
 {
 	bz_assert(file_begin < file_end);
 	bz_assert(file_begin <= char_place);
 	bz_assert(char_place <= file_end);
+	bz_assert(erase_begin <= erase_end);
+	bz_assert(erase_begin == erase_end || char_place <= erase_begin || char_place >= erase_end);
 
-	auto line_begin = char_place;
-	while (line_begin != file_begin && *(line_begin - 1) != '\n')
+	auto line_begin_ptr = char_place.data();
+	while (line_begin_ptr != file_begin.data() && *(line_begin_ptr - 1) != '\n')
 	{
-		--line_begin;
+		--line_begin_ptr;
 	}
+	auto const line_begin = bz::u8iterator(line_begin_ptr);
 
-	auto line_end = char_place;
-	while (line_end != file_end && *line_end != '\n')
+	auto line_end_ptr = char_place.data();
+	while (line_end_ptr != file_end.data() && *line_end_ptr != '\n')
 	{
-		++line_end;
+		++line_end_ptr;
 	}
+	auto const line_end = bz::u8iterator(line_end_ptr);
 
-	bz::string file_line = "";
-	bz::string highlight_line = "";
+	bz::u8string file_line = "";
+	bz::u8string highlight_line = "";
 
 	size_t column = 0;
 
@@ -226,10 +237,15 @@ static bz::string get_highlighted_suggestion(
 			file_line += colors::clear;
 
 			highlight_line += colors::suggestion_color;
-			highlight_line += bz::string(suggestion_str.length(), '~');
+			highlight_line += bz::u8string(suggestion_str.length(), '~');
 			highlight_line += colors::clear;
 
 			column += suggestion_str.length();
+		}
+
+		if (it == erase_begin)
+		{
+			it = erase_end;
 		}
 
 		if (it == line_end)
@@ -264,13 +280,13 @@ static bz::string get_highlighted_suggestion(
 	);
 }
 
-static bz::string read_text_from_file(std::ifstream &file)
+static bz::u8string read_text_from_file(std::ifstream &file)
 {
 	file.seekg(std::ios::end);
 	size_t const size = file.tellg();
 	file.seekg(std::ios::beg);
 
-	bz::string file_str = "";
+	bz::u8string file_str = "";
 
 	if (size == 0)
 	{
@@ -304,7 +320,7 @@ static bz::string read_text_from_file(std::ifstream &file)
 	return file_str;
 }
 
-src_file::src_file(bz::string_view file_name, ctx::global_context &global_ctx)
+src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
 	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _global_ctx(global_ctx)
 {}
 
@@ -343,16 +359,20 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 	}
 	for (auto &s : err.suggestions)
 	{
+		auto const column = get_column_number(file_begin, s.place);
 		bz::printf(
 			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
 			colors::bright_white,
-			s.file, s.line, get_column_number(file_begin, s.place),
+			s.file, s.line,
+			(s.place <= s.erase_begin
+				? column
+				: column - bz::u8string_view(s.erase_begin, s.erase_end).length()),
 			colors::clear,
 			colors::suggestion_color, colors::clear,
 			s.message,
 			get_highlighted_suggestion(
 				file_begin, file_end,
-				s.place, s.suggestion_str, s.line
+				s.place, s.erase_begin, s.erase_end, s.suggestion_str, s.line
 			)
 		);
 	}
@@ -374,9 +394,8 @@ void src_file::report_and_clear_errors(void)
 {
 	bz_assert(this->_stage == constructed);
 	auto file_name = this->_file_name;
-	file_name.reserve(file_name.size() + 1);
-	*(file_name.end()) = '\0';
-	std::ifstream file(file_name.data());
+	file_name += '\0';
+	std::ifstream file(reinterpret_cast<char const *>(file_name.data()));
 
 	if (!file.good())
 	{

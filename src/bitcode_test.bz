@@ -71,7 +71,8 @@ function main() -> int32
 	cast_test();
 
 
-	println("=== \x41 ===");
+	println("\n=== \x41 ===");
+//	"\xff";
 
 	return 0;
 /*

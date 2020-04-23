@@ -141,14 +141,14 @@ struct expr_literal
 	struct _null {};
 
 	using value_t = bz::variant<
-		uint64_t, double, bz::string, uint32_t,
+		uint64_t, double, bz::u8string, uint32_t,
 		_bool_true, _bool_false, _null
 	>;
 	enum : uint32_t
 	{
 		integer_number        = value_t::index_of<uint64_t>,
 		floating_point_number = value_t::index_of<double>,
-		string                = value_t::index_of<bz::string>,
+		string                = value_t::index_of<bz::u8string>,
 		character             = value_t::index_of<uint32_t>,
 		bool_true             = value_t::index_of<_bool_true>,
 		bool_false            = value_t::index_of<_bool_false>,

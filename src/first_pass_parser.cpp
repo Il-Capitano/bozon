@@ -77,7 +77,7 @@ static lex::token_range get_tokens_in_curly(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing } before end-of-file")
+					? bz::u8string("expected closing } before end-of-file")
 					: bz::format("expected closing } before '{}'", stream->value),
 					{ ctx::make_note(curly_begin, "to match this:") }
 				);
@@ -168,7 +168,7 @@ static lex::token_range get_expression_or_type_tokens(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing ) before end-of-file")
+					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ ctx::make_note(paren_begin, "to match this:") }
 				);
@@ -192,7 +192,7 @@ static lex::token_range get_expression_or_type_tokens(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing ] before end-of-file")
+					? bz::u8string("expected closing ] before end-of-file")
 					: bz::format("expected closing ] before '{}'", stream->value),
 					{ ctx::make_note(square_begin, "to match this:") }
 				);
@@ -219,7 +219,7 @@ static lex::token_range get_expression_or_type_tokens(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing } before end-of-file")
+					? bz::u8string("expected closing } before end-of-file")
 					: bz::format("expected closing } before '{}'", stream->value),
 					{ ctx::make_note(curly_begin, "to match this:") }
 				);
@@ -343,7 +343,7 @@ static ast::stmt_compound get_stmt_compound(
 		context.report_error(
 			in_stream,
 			in_stream->kind == lex::token::eof
-			? bz::string("expected closing } before end-of-file")
+			? bz::u8string("expected closing } before end-of-file")
 			: bz::format("expected closing } before '{}'", in_stream->value),
 			{ ctx::make_note(comp_stmt.tokens.begin, "to match this:") }
 		);
@@ -410,7 +410,7 @@ static ast::statement parse_if_statement(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing ) before end-of-file")
+					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ ctx::make_note(open_paren, "to match this:") }
 				);
@@ -468,7 +468,7 @@ static ast::statement parse_while_statement(
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
-					? bz::string("expected closing ) before end-of-file")
+					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
 					{ ctx::make_note(open_paren, "to match this:") }
 				);
@@ -808,7 +808,7 @@ static void check_operator_param_count(
 {
 	if (param_count == 0)
 	{
-		bz::string_view operator_name;
+		bz::u8string_view operator_name;
 
 		if (op->kind == lex::token::paren_open)
 		{
@@ -832,7 +832,7 @@ static void check_operator_param_count(
 	{
 		if (op->kind != lex::token::paren_open && !lex::is_overloadable_unary_operator(op->kind))
 		{
-			bz::string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
+			bz::u8string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 			context.report_error(
 				op - 1, op, params_end,
 				bz::format("operator {} cannot take 1 argument", operator_name)
@@ -851,7 +851,7 @@ static void check_operator_param_count(
 	}
 	else if (op->kind != lex::token::paren_open)
 	{
-		bz::string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
+		bz::u8string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 		context.report_error(
 			op - 1, op, params_end,
 			bz::format("operator {} cannot take {} arguments", operator_name, param_count)

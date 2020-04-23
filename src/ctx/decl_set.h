@@ -10,7 +10,7 @@ namespace ctx
 
 struct function_overload_set
 {
-	bz::string id;
+	bz::u8string id;
 	bz::vector<ast::decl_function *> func_decls;
 };
 
@@ -22,7 +22,7 @@ struct operator_overload_set
 
 struct type_info_with_name
 {
-	bz::string_view id;
+	bz::u8string_view id;
 	ast::type_info *info;
 };
 

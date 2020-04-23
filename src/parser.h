@@ -28,17 +28,17 @@ void resolve_symbol(
 
 // void resolve(
 // 	ast::decl_function &func_decl,
-// 	bz::string_view scope,
+// 	bz::u8string_view scope,
 // 	ctx::global_context &global_ctx
 // );
 // void resolve(
 // 	ast::decl_operator &decl,
-// 	bz::string_view scope,
+// 	bz::u8string_view scope,
 // 	ctx::global_context &global_ctx
 // );
 // void resolve(
 // 	ast::decl_struct &decl,
-// 	bz::string_view scope,
+// 	bz::u8string_view scope,
 // 	ctx::global_context &global_ctx
 // );
 

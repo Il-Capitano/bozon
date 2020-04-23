@@ -353,7 +353,7 @@ struct type_info
 
 	uint32_t                kind;
 	size_t                  flags;
-	bz::string_view         name;
+	bz::u8string_view         name;
 	bz::vector<declaration> member_decls;
 };
 
@@ -437,7 +437,7 @@ statement make_stmt_expression(Args &&...args)
 template<>
 struct bz::formatter<ast::typespec>
 {
-	static bz::string format(ast::typespec const &typespec, const char *, const char *)
+	static bz::u8string format(ast::typespec const &typespec, u8string_view)
 	{
 		switch (typespec.kind())
 		{
@@ -462,7 +462,7 @@ struct bz::formatter<ast::typespec>
 		case ast::typespec::index<ast::ts_function>:
 		{
 			auto &fn = typespec.get<ast::ts_function_ptr>();
-			bz::string res = "function(";
+			bz::u8string res = "function(";
 
 			bool put_comma = false;
 			for (auto &type : fn->argument_types)
@@ -486,7 +486,7 @@ struct bz::formatter<ast::typespec>
 		case ast::typespec::index<ast::ts_tuple>:
 		{
 			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
-			bz::string res = "[";
+			bz::u8string res = "[";
 
 			bool put_comma = false;
 			for (auto &type : tuple->types)

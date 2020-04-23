@@ -3,7 +3,7 @@
 namespace lex
 {
 
-bz::string get_token_value(uint32_t kind)
+bz::u8string get_token_value(uint32_t kind)
 {
 	switch (kind)
 	{
@@ -50,7 +50,7 @@ bz::string get_token_value(uint32_t kind)
 		return keyword_it->first;
 	}
 
-	return bz::string(1, (char)kind);
+	return bz::u8string(1, (char)kind);
 }
 
 bool is_operator(uint32_t kind)

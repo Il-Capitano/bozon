@@ -27,7 +27,7 @@ struct bitcode_context
 	llvm::Function *get_function(ast::function_body const *func_body) const;
 	void add_function(ast::function_body const *func_body, llvm::Function *fn);
 
-	llvm::BasicBlock *add_basic_block(bz::string_view name);
+	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 
 	llvm::Type *get_built_in_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;

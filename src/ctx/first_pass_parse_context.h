@@ -20,11 +20,11 @@ struct first_pass_parse_context
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it,
-		bz::string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
 	void report_error(
 		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
 
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;

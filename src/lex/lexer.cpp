@@ -11,8 +11,8 @@ static token get_next_token(
 );
 
 bz::vector<token> get_tokens(
-	bz::string_view file,
-	bz::string_view file_name,
+	bz::u8string_view file,
+	bz::u8string_view file_name,
 	ctx::lex_context &context
 )
 {
@@ -154,7 +154,7 @@ static token get_identifier_or_keyword_token(
 
 	auto const end_it = stream.it;
 
-	auto const id_value = bz::string_view(begin_it, end_it);
+	auto const id_value = bz::u8string_view(begin_it, end_it);
 
 	auto it = std::find_if(
 		keywords.begin(),
@@ -195,6 +195,8 @@ static void match_character(
 	switch (*stream.it)
 	{
 	case '\\':
+	{
+		auto const escape_char = stream.it;
 		++stream;
 		if (stream.it == end)
 		{
@@ -212,6 +214,7 @@ static void match_character(
 			break;
 		case 'x':
 		{
+			auto const x = stream.it;
 			++stream;
 			if (stream.it == end || !is_hex_char(*stream.it))
 			{
@@ -228,51 +231,63 @@ static void match_character(
 					{},
 					{
 						context.make_suggestion(
-							stream.file, stream.line, stream.it - 1, "0",
-							bz::format("did you mean '\\x0{}'?", *(stream.it - 1))
+							stream.file, stream.line, first_char, "0",
+							bz::format("did you mean '\\x0{:c}'?", *first_char)
 						)
 					}
 				);
 				break;
 			}
+			auto const second_char = stream.it;
 			++stream;
+			auto const end = stream.it;
 
 			// we need to restrict the value to 0x7f, so it's a valid UTF-8 code point
 			if (!(*first_char >= '0' && *first_char <= '7'))
 			{
 				context.bad_chars(
 					stream.file, stream.line,
-					first_char, first_char, first_char + 2,
+					first_char, first_char, end,
 					bz::format(
-						"the value 0x{}{} is too large, it must be at most 0x7f",
-						*first_char, *(first_char + 1)
+						"the value 0x{:c}{:c} is too large, it must be at most 0x7f",
+						*first_char, *second_char
 					),
 					{},
 					{
-//						context.make_suggestion()
+						context.make_suggestion(
+							stream.file, stream.line, x,
+							x, end,
+							bz::format("u00{:c}{:c}", *first_char, *second_char),
+							bz::format("use \\u00{:c}{:c} instead", *first_char, *second_char)
+						)
 					}
 				);
+				break;
 			}
 
 			break;
 		}
 		default:
+		{
+			auto const escaped_char = *stream.it;
 			context.bad_chars(
 				stream.file, stream.line,
-				stream.it - 1, stream.it - 1, stream.it + 1,
-				*stream.it >= ' '
-				? bz::format("invalid escape sequence '\\{}'", *stream.it)
+				escape_char, escape_char, stream.it + 1,
+				escaped_char >= ' '
+				? bz::format("invalid escape sequence '\\{:c}'", escaped_char)
 				: bz::format(
 					"invalid escape sequence '\\{}\\x{:02x}{}'",
 					colors::bright_black,
-					static_cast<uint32_t>(*stream.it),
+					static_cast<uint32_t>(escaped_char),
 					colors::clear
 				)
 			);
 			++stream;
 			break;
 		}
+		}
 		break;
+	}
 
 	default:
 		++stream;
@@ -307,7 +322,7 @@ static token get_character_token(
 
 		return token(
 			token::character_literal,
-			bz::string_view(char_begin, char_begin),
+			bz::u8string_view(char_begin, char_begin),
 			stream.file, begin_it, char_begin, line
 		);
 	}
@@ -338,16 +353,18 @@ static token get_character_token(
 	{
 		context.bad_char(
 			stream, "expected closing '",
-			{ ctx::note{
-				stream.file, line,
-				begin_it, begin_it, begin_it + 1,
-				"to match this:"
-			} },
-			{ ctx::suggestion{
-				stream.file, stream.line,
-				stream.it, "'",
-				"put ' here:"
-			} }
+			{
+				ctx::note{
+					stream.file, line,
+					begin_it, begin_it, begin_it + 1,
+					"to match this:"
+				}
+			},
+			{
+				context.make_suggestion(
+					stream, "'", "put ' here:"
+				)
+			}
 		);
 	}
 	else
@@ -366,8 +383,8 @@ static token get_character_token(
 
 	return token(
 		token::character_literal,
-		bz::string_view(char_begin, char_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(char_begin, char_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -420,8 +437,8 @@ static token get_string_token(
 
 	return token(
 		token::string_literal,
-		bz::string_view(str_begin, str_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(str_begin, str_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -460,8 +477,8 @@ static token get_hex_number_token(
 
 	return token(
 		token::hex_literal,
-		bz::string_view(num_begin, num_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(num_begin, num_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -500,8 +517,8 @@ static token get_oct_number_token(
 
 	return token(
 		token::oct_literal,
-		bz::string_view(num_begin, num_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(num_begin, num_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -540,8 +557,8 @@ static token get_bin_number_token(
 
 	return token(
 		token::bin_literal,
-		bz::string_view(num_begin, num_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(num_begin, num_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 }
@@ -621,8 +638,8 @@ static token get_number_token(
 
 	return token(
 		token_kind,
-		bz::string_view(num_begin, num_end),
-		bz::string_view(postfix_begin, postfix_end),
+		bz::u8string_view(num_begin, num_end),
+		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file, begin_it, end_it, line
 	);
 
@@ -643,12 +660,12 @@ static token get_single_char_token(
 
 	return token(
 		static_cast<uint32_t>(*begin_it),
-		bz::string_view(begin_it, end_it),
+		bz::u8string_view(begin_it, end_it),
 		stream.file, begin_it, end_it, line
 	);
 }
 
-static bool is_str(bz::string_view str, file_iterator &stream, ctx::char_pos const end)
+static bool is_str(bz::u8string_view str, file_iterator &stream, ctx::char_pos const end)
 {
 	auto str_it = str.begin();
 	auto const str_end = str.end();
@@ -674,7 +691,7 @@ static token get_next_token(
 	{
 		return token(
 			token::eof,
-			bz::string_view(end, end),
+			bz::u8string_view(end, end),
 			stream.file, end, end, stream.line
 		);
 	}
@@ -723,7 +740,7 @@ static token get_next_token(
 			auto const end_it = stream.it;
 			return token(
 				t.second,
-				bz::string_view(begin_it, end_it),
+				bz::u8string_view(begin_it, end_it),
 				stream.file, begin_it, end_it, line
 			);
 		}

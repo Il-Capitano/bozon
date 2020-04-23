@@ -21,30 +21,36 @@ struct lex_context
 //	void report_error(error &&err);
 	void bad_char(
 		file_iterator const &stream,
-		bz::string message,
+		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void bad_chars(
-		bz::string_view file, size_t line,
+		bz::u8string_view file, size_t line,
 		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
-		bz::string message,
+		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void bad_eof(
 		file_iterator const &stream,
-		bz::string message,
+		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 
 	[[nodiscard]] static ctx::suggestion make_suggestion(
 		file_iterator const &pos,
-		bz::string suggestion_str,
-		bz::string message
+		bz::u8string suggestion_str,
+		bz::u8string message
 	);
 	[[nodiscard]] static ctx::suggestion make_suggestion(
-		bz::string_view file, size_t line, ctx::char_pos pos,
-		bz::string suggestion_str,
-		bz::string message
+		bz::u8string_view file, size_t line, ctx::char_pos pos,
+		bz::u8string suggestion_str,
+		bz::u8string message
+	);
+	[[nodiscard]] static ctx::suggestion make_suggestion(
+		bz::u8string_view file, size_t line, ctx::char_pos pos,
+		ctx::char_pos erase_begin, ctx::char_pos erase_end,
+		bz::u8string suggestion_str,
+		bz::u8string message
 	);
 };
 

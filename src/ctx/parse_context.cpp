@@ -17,7 +17,7 @@ void parse_context::report_error(lex::token_pos it) const
 
 void parse_context::report_error(
 	lex::token_pos it,
-	bz::string message, bz::vector<ctx::note> notes
+	bz::u8string message, bz::vector<ctx::note> notes
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(
@@ -27,7 +27,7 @@ void parse_context::report_error(
 
 void parse_context::report_error(
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::string message, bz::vector<ctx::note> notes
+	bz::u8string message, bz::vector<ctx::note> notes
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(
@@ -1353,7 +1353,7 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 	return are_directly_matchable_types(from, to);
 }
 
-ast::type_info *parse_context::get_type_info(bz::string_view id) const
+ast::type_info *parse_context::get_type_info(bz::u8string_view id) const
 {
 	for (
 		auto scope = this->scope_decls.rbegin();
