@@ -8,6 +8,8 @@
 
 #define bz_begin_namespace namespace bz {
 #define bz_end_namespace }
+#define bz_likely
+#define bz_unlikely
 
 #define bz_assert(expr, ...)                                                              \
 (!!(expr)                                                                                 \
