@@ -72,9 +72,10 @@ function main() -> int32
 	cast_test();
 
 	const c = 'д';
-	print("\n");
+	print_char('\n');
 	print_uint32(c as uint32);
 	print_char(c);
+	print_char('\n');
 
 	println("\n=== \x41 ===");
 //	"\xff";
