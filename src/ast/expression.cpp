@@ -81,7 +81,7 @@ lex::token_pos expr_cast::get_tokens_end(void) const
 
 
 
-static char get_character(bz::u8string_view::const_iterator &it)
+static bz::u8char get_character(bz::u8string_view::const_iterator &it)
 {
 	switch (*it)
 	{
@@ -119,7 +119,7 @@ static char get_character(bz::u8string_view::const_iterator &it)
 				: *it >= 'a' && *it <= 'f' ? *it - 'a' + 10
 				: *it - 'A' + 10;
 			++it;
-			return static_cast<char>(val);
+			return static_cast<bz::u8char>(val);
 		}
 		default:
 			bz_assert(false);
