@@ -1454,9 +1454,8 @@ static val_ptr emit_bitcode(
 				return { val_ptr::value, context.builder.CreateFPToUI(expr, llvm_dest_t, "cast_tmp") };
 			}
 		}
-		else
+		else if (ctx::is_integer_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind))
 		{
-			bz_assert(ctx::is_integer_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind));
 			if (ctx::is_signed_integer_kind(dest_kind))
 			{
 				return { val_ptr::value, context.builder.CreateSIToFP(expr, llvm_dest_t, "cast_tmp") };
@@ -1465,6 +1464,11 @@ static val_ptr emit_bitcode(
 			{
 				return { val_ptr::value, context.builder.CreateUIToFP(expr, llvm_dest_t, "cast_tmp") };
 			}
+		}
+		else
+		{
+			bz_assert(expr_kind == ast::type_info::char_ && dest_kind == ast::type_info::uint32_);
+			return { val_ptr::value, expr };
 		}
 	}
 	else

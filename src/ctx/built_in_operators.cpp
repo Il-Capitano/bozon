@@ -1251,7 +1251,10 @@ auto get_built_in_cast_type(
 		{
 			return { ast::expression::rvalue, dest };
 		}
-		else
+		else if (expr_kind == ast::type_info::char_ && dest_kind == ast::type_info::uint32_)
+		{
+			return { ast::expression::rvalue, dest };
+		}
 		{
 			return {};
 		}
