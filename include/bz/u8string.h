@@ -263,6 +263,10 @@ public:
 
 	u8string &operator = (u8string const &rhs)
 	{
+		if (&rhs == this)
+		{
+			return;
+		}
 		this->_no_null_clear();
 		auto const [other_begin, other_end] = rhs._begin_end_pair();
 		auto const size = static_cast<size_t>(other_end - other_begin);
@@ -290,6 +294,10 @@ public:
 
 	u8string &operator = (u8string &&rhs) noexcept
 	{
+		if (&rhs == this)
+		{
+			return;
+		}
 		this->_no_null_clear();
 		this->_data_begin = rhs._data_begin;
 		this->_data_end   = rhs._data_end;
@@ -300,17 +308,15 @@ public:
 
 	u8string &operator = (u8string_view const rhs)
 	{
-		this->_no_null_clear();
 		auto const size = rhs.size();
-		if (size <= _short_string_capacity())
+		this->reserve(size);
+		if (this->_is_short_string())
 		{
 			this->_set_short_string_size(size);
 			std::memcpy(this->_short_string_begin(), rhs.data(), size);
 		}
 		else
 		{
-			this->_set_to_null();
-			this->reserve(size);
 			std::memcpy(this->_data_begin, rhs.data(), size);
 			this->_data_end = this->_data_begin + size;
 		}
