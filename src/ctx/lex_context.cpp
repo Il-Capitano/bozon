@@ -52,6 +52,46 @@ void lex_context::bad_eof(
 	});
 }
 
+
+[[nodiscard]] ctx::note lex_context::make_note(
+	file_iterator const &pos,
+	bz::u8string message
+)
+{
+	return ctx::note{
+		pos.file, pos.line,
+		pos.it, pos.it, pos.it + 1,
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note lex_context::make_note(
+	bz::u8string_view file, size_t line,
+	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+	bz::u8string message
+)
+{
+	return ctx::note{
+		file, line,
+		begin, pivot, end,
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note lex_context::make_note(
+	bz::u8string_view file, size_t line,
+	ctx::char_pos pivot,
+	bz::u8string message
+)
+{
+	return ctx::note{
+		file, line,
+		pivot, pivot, pivot + 1,
+		std::move(message)
+	};
+}
+
+
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
 	file_iterator const &pos,
 	bz::u8string suggestion_str,

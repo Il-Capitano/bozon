@@ -381,11 +381,7 @@ static token get_character_token(
 		context.bad_eof(
 			stream,
 			"expected a character and closing ' before end-of-file",
-			{ ctx::note{
-				stream.file, line,
-				begin_it, begin_it, begin_it + 1,
-				"to match this:"
-			} }
+			{ context.make_note(stream.file, line, begin_it, "to match this:") }
 		);
 
 		return token(
@@ -410,29 +406,15 @@ static token get_character_token(
 		context.bad_eof(
 			stream,
 			"expected closing ' before end-of-file",
-			{ ctx::note{
-				stream.file, line,
-				begin_it, begin_it, begin_it + 1,
-				"to match this:"
-			} }
+			{ context.make_note(stream.file, line, begin_it, "to match this:") }
 		);
 	}
 	else if (*stream.it != '\'')
 	{
 		context.bad_char(
 			stream, "expected closing '",
-			{
-				ctx::note{
-					stream.file, line,
-					begin_it, begin_it, begin_it + 1,
-					"to match this:"
-				}
-			},
-			{
-				context.make_suggestion(
-					stream, "'", "put ' here:"
-				)
-			}
+			{ context.make_note(stream.file, line, begin_it, "to match this:") },
+			{ context.make_suggestion(stream, "'", "put ' here:") }
 		);
 	}
 	else
@@ -481,11 +463,7 @@ static token get_string_token(
 		context.bad_eof(
 			stream,
 			"expected closing \" before end-of-file",
-			{ ctx::note{
-				stream.file, line,
-				begin_it, begin_it, begin_it + 1,
-				"to match this:"
-			} }
+			{ context.make_note(stream.file, line, begin_it, "to match this:") }
 		);
 	}
 	else
