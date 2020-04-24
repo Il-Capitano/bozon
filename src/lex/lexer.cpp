@@ -191,7 +191,6 @@ static void match_character(
 	ctx::lex_context &context
 )
 {
-
 	switch (*stream.it)
 	{
 	case '\\':
@@ -212,9 +211,10 @@ static void match_character(
 		case 't':
 			++stream;
 			break;
+
 		case 'x':
 		{
-			auto const x = stream.it;
+//			auto const x = stream.it;
 			++stream;
 			if (stream.it == end || !is_hex_char(*stream.it))
 			{
@@ -227,7 +227,7 @@ static void match_character(
 			{
 				context.bad_char(
 					stream,
-					"\\x must be followed by two hex characters",
+					"\\x must be followed by two hex characters (one byte)",
 					{},
 					{
 						context.make_suggestion(
@@ -255,9 +255,9 @@ static void match_character(
 					{},
 					{
 						context.make_suggestion(
-							stream.file, stream.line, x,
-							x, end,
-							bz::format("u00{:c}{:c}", *first_char, *second_char),
+							stream.file, stream.line, escape_char,
+							escape_char, end,
+							bz::format("\\u00{:c}{:c}", *first_char, *second_char),
 							bz::format("use \\u00{:c}{:c} instead", *first_char, *second_char)
 						)
 					}
@@ -267,6 +267,74 @@ static void match_character(
 
 			break;
 		}
+
+		case 'u':
+			++stream;
+			// we expect four hex characters
+			for (int i = 0; i < 4; ++i)
+			{
+				if (stream.it == end || !is_hex_char(*stream.it))
+				{
+					context.bad_char(stream, "\\u must be followed by four hex characters (two bytes)");
+					break;
+				}
+				++stream;
+			}
+			break;
+
+		case 'U':
+		{
+			auto const get_hex_value = [](bz::u8char c)
+			{
+				bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+				if (c >= '0' && c <= '9')
+				{
+					return c - '0';
+				}
+				else if (c >= 'a' && c <= 'f')
+				{
+					return c - 'a' + 10;
+				}
+				else
+				{
+					return c - 'A' + 10;
+				}
+			};
+			++stream;
+			auto const first_char = stream.it;
+			bz::u8char value = 0;
+			bool error = false;
+			// we expect four hex characters
+			for (int i = 0; i < 8; ++i)
+			{
+				auto const c = *stream.it;
+				if (stream.it == end || !is_hex_char(c))
+				{
+					context.bad_char(stream, "\\U must be followed by eight hex characters (four bytes)");
+					error = true;
+					break;
+				}
+				value <<= 4;
+				value |= get_hex_value(c);
+				++stream;
+			}
+			if (error)
+			{
+				break;
+			}
+
+			// check if the character value is a valid unicode character
+			if (value > 0x10'ff'ff)
+			{
+				context.bad_chars(
+					stream.file, stream.line,
+					first_char, first_char, stream.it,
+					bz::format("the value 0x{:08x} is too large, it must be at most 0x0010ffff", value)
+				);
+			}
+			break;
+		}
+
 		default:
 		{
 			auto const escaped_char = *stream.it;

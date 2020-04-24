@@ -76,9 +76,17 @@ function main() -> int32
 	print_uint32(c as uint32);
 	print_char(c);
 	print_char('\n');
+	print_char('\u0470');
+	print_char('\u0471');
+	print_char('\u04c1');
+	print_char('\U000004c1');
+	print_char('\n');
+	print_char('h');
+	print_char('h');
+	print_char('h');
+	print_char('h');
 
 	println("\n=== \x41 ===");
-//	"\xff";
 
 	return 0;
 /*

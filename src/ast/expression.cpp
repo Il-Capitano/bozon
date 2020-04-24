@@ -83,6 +83,22 @@ lex::token_pos expr_cast::get_tokens_end(void) const
 
 static bz::u8char get_character(bz::u8string_view::const_iterator &it)
 {
+	auto const get_hex_value = [](bz::u8char c)
+	{
+		bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+		if (c >= '0' && c <= '9')
+		{
+			return c - '0';
+		}
+		else if (c >= 'a' && c <= 'f')
+		{
+			return c - 'a' + 10;
+		}
+		else
+		{
+			return c - 'A' + 10;
+		}
+	};
 	switch (*it)
 	{
 	case '\\':
@@ -110,16 +126,31 @@ static bz::u8char get_character(bz::u8string_view::const_iterator &it)
 			bz_assert(*it >= '0' && *it <= '7');
 			uint8_t val = (*it - '0') << 4;
 			++it;
-			bz_assert(
-				(*it >= '0' && *it <= '9')
-				|| (*it >= 'a' && *it <= 'f')
-				|| (*it >= 'A' && *it <= 'F')
-			);
-			val |= *it >= '0' && *it <= '9' ? *it - '0'
-				: *it >= 'a' && *it <= 'f' ? *it - 'a' + 10
-				: *it - 'A' + 10;
+			val |= get_hex_value(*it);
 			++it;
 			return static_cast<bz::u8char>(val);
+		}
+		case 'u':
+		{
+			++it;
+			bz::u8char val = 0;
+			for (int i = 0; i < 4; ++i, ++it)
+			{
+				val <<= 4;
+				val |= get_hex_value(*it);
+			}
+			return val;
+		}
+		case 'U':
+		{
+			++it;
+			bz::u8char val = 0;
+			for (int i = 0; i < 8; ++i, ++it)
+			{
+				val <<= 4;
+				val |= get_hex_value(*it);
+			}
+			return val;
 		}
 		default:
 			bz_assert(false);
