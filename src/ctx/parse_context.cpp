@@ -17,21 +17,54 @@ void parse_context::report_error(lex::token_pos it) const
 
 void parse_context::report_error(
 	lex::token_pos it,
-	bz::u8string message, bz::vector<ctx::note> notes
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(
-		it, std::move(message), std::move(notes)
+		it, std::move(message),
+		std::move(notes), std::move(suggestions)
 	));
 }
 
 void parse_context::report_error(
-	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::u8string message, bz::vector<ctx::note> notes
+	lex::src_tokens src_tokens,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_error(ctx::make_error(
-		begin, pivot, end, std::move(message), std::move(notes)
+		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
+		std::move(notes), std::move(suggestions)
+	));
+}
+
+void parse_context::report_warning(lex::token_pos it) const
+{
+	this->global_ctx.report_warning(ctx::make_warning(it));
+}
+
+void parse_context::report_warning(
+	lex::token_pos it,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	this->global_ctx.report_warning(ctx::make_warning(
+		it, std::move(message),
+		std::move(notes), std::move(suggestions)
+	));
+}
+
+void parse_context::report_warning(
+	lex::src_tokens src_tokens,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	this->global_ctx.report_warning(ctx::make_warning(
+		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
+		std::move(notes), std::move(suggestions)
 	));
 }
 
@@ -160,7 +193,7 @@ void parse_context::add_local_struct(ast::decl_struct &struct_decl)
 	this->scope_decls.back().type_infos.push_back({ struct_decl.identifier->value, &struct_decl.info });
 }
 
-
+/*
 auto parse_context::get_identifier_decl(lex::token_pos id) const
 	-> bz::variant<ast::decl_variable const *, ast::decl_function const *>
 {
@@ -237,8 +270,8 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 	}
 	return {};
 }
-
-
+*/
+/*
 ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos id) const
 {
 	auto decl = this->get_identifier_decl(id);
@@ -279,80 +312,640 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		return {};
 	}
 }
+*/
 
-static bool are_directly_matchable_types(
-	ast::expression::expr_type_t const &from,
-	ast::typespec const &to
-)
+ast::expression parse_context::make_identifier_expression(lex::token_pos id) const
 {
-	if (
-		to.is<ast::ts_reference>()
-		&& from.type_kind != ast::expression::expr_type_kind::lvalue
-		&& from.type_kind != ast::expression::expr_type_kind::lvalue_reference
+	// ==== local decls ====
+	// we go in reverse through the scopes and the variables
+	// in case there's shadowing
+	lex::src_tokens const src_tokens = { id, id, id + 1 };
+	for (
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
+		++scope
 	)
 	{
-		return false;
+		auto const var = std::find_if(
+			scope->var_decls.rbegin(), scope->var_decls.rend(),
+			[id = id->value](auto const &var) {
+				return var->identifier->value == id;
+			}
+		);
+		if (var != scope->var_decls.rend())
+		{
+			auto id_type_kind = ast::expression_type_kind::lvalue;
+			auto const *id_type_ptr = &(*var)->var_type;
+			if ((*var)->var_type.is<ast::ts_reference>())
+			{
+				id_type_kind = ast::expression_type_kind::lvalue_reference;
+				id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
+			}
+			return ast::make_dynamic_expression(
+				src_tokens,
+				id_type_kind, *id_type_ptr,
+				ast::make_expr_identifier(id, *var)
+			);
+		}
+
+		auto const fn_set = std::find_if(
+			scope->func_sets.begin(), scope->func_sets.end(),
+			[id = id->value](auto const &fn_set) {
+				return fn_set.id == id;
+			}
+		);
+		if (fn_set != scope->func_sets.end())
+		{
+			auto const id_type_kind = ast::expression_type_kind::function_name;
+			if (fn_set->func_decls.size() == 1)
+			{
+				auto const decl = fn_set->func_decls[0];
+				auto const &return_type = decl->body.return_type;
+				bz::vector<ast::typespec> param_types;
+				param_types.reserve(decl->body.params.size());
+				for (auto &p : decl->body.params)
+				{
+					param_types.emplace_back(p.var_type);
+				}
+				return ast::make_constant_expression(
+					src_tokens,
+					id_type_kind,
+					ast::make_ts_function({}, return_type, std::move(param_types)),
+					ast::constant_value(&decl->body),
+					ast::make_expr_identifier(id, decl)
+				);
+			}
+			else
+			{
+				auto const decl = static_cast<ast::decl_function const *>(nullptr);
+				return ast::make_constant_expression(
+					src_tokens,
+					id_type_kind, ast::typespec(),
+					ast::constant_value(fn_set->id.as_string_view()),
+					ast::make_expr_identifier(id, decl)
+				);
+			}
+		}
 	}
 
-	ast::typespec const *to_it = [&]() -> ast::typespec const * {
-		if (to.is<ast::ts_reference>())
-		{
-			return &to.get<ast::ts_reference_ptr>()->base;
+	// ==== export (global) decls ====
+	auto &export_decls = this->global_ctx._export_decls;
+	auto const var = std::find_if(
+		export_decls.var_decls.begin(), export_decls.var_decls.end(),
+		[id = id->value](auto const &var) {
+			return id == var->identifier->value;
 		}
-		else if (to.is<ast::ts_constant>())
+	);
+	if (var != export_decls.var_decls.end())
+	{
+		auto id_type_kind = ast::expression_type_kind::lvalue;
+		auto const *id_type_ptr = &(*var)->var_type;
+		if ((*var)->var_type.is<ast::ts_reference>())
 		{
-			return &to.get<ast::ts_constant_ptr>()->base;
+			id_type_kind = ast::expression_type_kind::lvalue_reference;
+			id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
+		}
+		return ast::make_dynamic_expression(
+			src_tokens,
+			id_type_kind, *id_type_ptr,
+			ast::make_expr_identifier(id, *var)
+		);
+	}
+
+	auto const fn_set = std::find_if(
+		export_decls.func_sets.begin(), export_decls.func_sets.end(),
+		[id = id->value](auto const &fn_set) {
+			return id == fn_set.id;
+		}
+	);
+	if (fn_set != export_decls.func_sets.end())
+	{
+		auto const id_type_kind = ast::expression_type_kind::function_name;
+		if (fn_set->func_decls.size() == 1)
+		{
+			auto const decl = fn_set->func_decls[0];
+			auto &return_type = decl->body.return_type;
+			bz::vector<ast::typespec> param_types;
+			param_types.reserve(decl->body.params.size());
+			for (auto &p : decl->body.params)
+			{
+				param_types.emplace_back(p.var_type);
+			}
+			return ast::make_constant_expression(
+				src_tokens,
+				id_type_kind,
+				ast::make_ts_function({}, return_type, std::move(param_types)),
+				ast::constant_value(&decl->body),
+				ast::make_expr_identifier(id, decl)
+			);
 		}
 		else
 		{
-			return &to;
+			auto const decl = static_cast<ast::decl_function const *>(nullptr);
+			return ast::make_constant_expression(
+				src_tokens,
+				id_type_kind, ast::typespec(),
+				ast::constant_value(fn_set->id.as_string_view()),
+				ast::make_expr_identifier(id, decl)
+			);
 		}
-	}();
+	}
 
-	auto from_it = &from.expr_type;
+	this->report_error(id, bz::format("undeclared identifier '{}'", id->value));
+	return ast::expression(src_tokens);
+}
 
-	auto const advance = [](ast::typespec const *&it)
+static bz::u8char get_character(bz::u8string_view::const_iterator &it)
+{
+	auto const get_hex_value = [](bz::u8char c)
 	{
-		switch (it->kind())
+		bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+		if (c >= '0' && c <= '9')
 		{
-		case ast::typespec::index<ast::ts_pointer>:
-			it = &it->get<ast::ts_pointer_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_constant>:
-			it = &it->get<ast::ts_constant_ptr>()->base;
-			break;
-		default:
-			bz_assert(false);
-			break;
+			return c - '0';
+		}
+		else if (c >= 'a' && c <= 'f')
+		{
+			return c - 'a' + 10;
+		}
+		else
+		{
+			return c - 'A' + 10;
 		}
 	};
-
-	while (true)
+	switch (*it)
 	{
-		if (
-			to_it->is<ast::ts_base_type>()
-			&& from_it->is<ast::ts_base_type>()
-		)
+	case '\\':
+		++it;
+		switch (*it)
 		{
-			return to_it->get<ast::ts_base_type_ptr>()->info
-				== from_it->get<ast::ts_base_type_ptr>()->info;
+		case '\\':
+			++it;
+			return '\\';
+		case '\'':
+			++it;
+			return '\'';
+		case '\"':
+			++it;
+			return '\"';
+		case 'n':
+			++it;
+			return '\n';
+		case 't':
+			++it;
+			return '\t';
+		case 'x':
+		{
+			++it;
+			bz_assert(*it >= '0' && *it <= '7');
+			uint8_t val = (*it - '0') << 4;
+			++it;
+			val |= get_hex_value(*it);
+			++it;
+			return static_cast<bz::u8char>(val);
 		}
-		else if (to_it->kind() == from_it->kind())
+		case 'u':
 		{
-			advance(to_it);
-			advance(from_it);
+			++it;
+			bz::u8char val = 0;
+			for (int i = 0; i < 4; ++i, ++it)
+			{
+				val <<= 4;
+				val |= get_hex_value(*it);
+			}
+			return val;
 		}
-		else if (to_it->is<ast::ts_constant>())
+		case 'U':
 		{
-			advance(to_it);
+			++it;
+			bz::u8char val = 0;
+			for (int i = 0; i < 8; ++i, ++it)
+			{
+				val <<= 4;
+				val |= get_hex_value(*it);
+			}
+			return val;
+		}
+		default:
+			bz_assert(false);
+			return '\0';
+		}
+
+	default:
+	{
+		auto const res = *it;
+		++it;
+		return res;
+	}
+	}
+}
+
+ast::expression parse_context::make_literal(lex::token_pos literal) const
+{
+	lex::src_tokens const src_tokens = { literal, literal, literal + 1 };
+	auto const get_int_value_and_type_info = [this, literal]<size_t N>(
+		bz::u8string_view postfix,
+		uint64_t num,
+		bz::meta::index_constant<N>
+	) -> std::pair<ast::constant_value, ast::type_info *> {
+		constexpr auto default_type_info = static_cast<uint32_t>(N);
+		using default_type = ast::type_from_type_info_t<default_type_info>;
+		static_assert(
+			bz::meta::is_same<default_type, int32_t>
+			|| bz::meta::is_same<default_type, uint32_t>
+		);
+		using wide_default_type = ast::type_from_type_info_t<default_type_info + 1>;
+		static_assert(
+			bz::meta::is_same<wide_default_type, int64_t>
+			|| bz::meta::is_same<wide_default_type, uint64_t>
+		);
+
+		std::pair<ast::constant_value, ast::type_info *> return_value{};
+		auto &value = return_value.first;
+		auto &type_info = return_value.second;
+		if (postfix == "")
+		{
+			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
+			{
+				value = static_cast<wide_default_type>(num);
+				type_info = this->get_base_type_info(default_type_info);
+			}
+			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
+			{
+				value = static_cast<wide_default_type>(num);
+				type_info = this->get_base_type_info(default_type_info + 1);
+			}
+			else
+			{
+				value = num;
+				type_info = this->get_base_type_info(ast::type_info::uint64_);
+			}
+		}
+#define postfix_check(postfix_str, type, wide_type)                                           \
+if (postfix == postfix_str)                                                                   \
+{                                                                                             \
+    if (num > static_cast<uint64_t>(std::numeric_limits<type##_t>::max()))                    \
+    {                                                                                         \
+        this->report_error(literal, "literal value is too large to fit in type '" #type "'"); \
+    }                                                                                         \
+    value = static_cast<wide_type>(static_cast<type##_t>(num));                               \
+    type_info = this->get_base_type_info(ast::type_info::type##_);                            \
+}
+		else postfix_check("i8",  int8,   int64_t)
+		else postfix_check("i16", int16,  int64_t)
+		else postfix_check("i32", int32,  int64_t)
+		else postfix_check("i64", int64,  int64_t)
+		else postfix_check("u8",  uint8,  uint64_t)
+		else postfix_check("u16", uint16, uint64_t)
+		else postfix_check("u32", uint32, uint64_t)
+		else postfix_check("u64", uint64, uint64_t)
+#undef postfix_check
+		else
+		{
+			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
+			{
+				value = static_cast<wide_default_type>(num);
+				type_info = this->get_base_type_info(default_type_info);
+			}
+			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
+			{
+				value = static_cast<wide_default_type>(num);
+				type_info = this->get_base_type_info(default_type_info + 1);
+			}
+			else
+			{
+				value = num;
+				type_info = this->get_base_type_info(ast::type_info::uint64_);
+			}
+			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
+		}
+		return return_value;
+	};
+
+	bz_assert(literal->kind != lex::token::string_literal);
+	switch (literal->kind)
+	{
+	case lex::token::integer_literal:
+	{
+		auto const number_string = literal->value;
+		uint64_t num = 0;
+		for (auto c : number_string)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+
+			bz_assert(c >= '0' && c <= '9');
+			auto const num10 = num * 10;
+			if (
+				num > std::numeric_limits<uint64_t>::max() / 10
+				|| num10 > std::numeric_limits<uint64_t>::max() - (c - '0')
+			)
+			{
+				this->report_error(literal, "literal value is too large, even for 'uint64'");
+				break;
+			}
+			num = num10 + (c - '0');
+		}
+
+		auto const postfix = literal->postfix;
+		auto const [value, type_info] = get_int_value_and_type_info(
+			postfix,
+			num,
+			bz::meta::index_constant<ast::type_info::int32_>{}
+		);
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, type_info),
+			value,
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::floating_point_literal:
+	{
+		auto const number_string = literal->value;
+		double num = 0.0;
+		bool decimal_state = false;
+		double decimal_multiplier = 1.0;
+		for (auto const c : number_string)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+
+			if (c == '.')
+			{
+				decimal_state = true;
+				continue;
+			}
+
+			if (decimal_state)
+			{
+				bz_assert(c >= '0' && c <= '9');
+				decimal_multiplier /= 10.0;
+				num += static_cast<double>(c - '0') * decimal_multiplier;
+			}
+			else
+			{
+				bz_assert(c >= '0' && c <= '9');
+				num *= 10.0;
+				num += static_cast<double>(c - '0');
+			}
+		}
+
+		auto const postfix = literal->postfix;
+		ast::constant_value value{};
+		ast::type_info *type_info;
+		if (postfix == "" || postfix == "f64")
+		{
+			value = num;
+			type_info = this->get_base_type_info(ast::type_info::float64_);
+		}
+		else if (postfix == "f32")
+		{
+			value = static_cast<float32_t>(num);
+			type_info = this->get_base_type_info(ast::type_info::float32_);
 		}
 		else
 		{
-			return false;
+			value = num;
+			type_info = this->get_base_type_info(ast::type_info::float64_);
+			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 		}
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, type_info),
+			value,
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::hex_literal:
+	{
+		// number_string_ contains the leading 0x or 0X
+		auto const number_string_ = literal->value;
+		bz_assert(number_string_.substring(0, 2) == "0x" || number_string_.substring(0, 2) == "0X");
+		auto const number_string = number_string_.substring(2, size_t(-1));
+		uint64_t num = 0;
+		for (auto c : number_string)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+
+			bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+			auto const num16 = num * 16;
+			auto const char_value = (c >= '0' && c <= '9') ? c - '0'
+				: (c >= 'a' && c <= 'f') ? (c - 'a') + 10
+				:/* (c >= 'A' && c <= 'F') ? */(c - 'A') + 10;
+			if (
+				num > std::numeric_limits<uint64_t>::max() / 16
+				|| num16 > std::numeric_limits<uint64_t>::max() - char_value
+			)
+			{
+				this->report_error(literal, "literal value is too large, even for 'uint64'");
+				break;
+			}
+			num = num16 + char_value;
+		}
+
+		auto const postfix = literal->postfix;
+		auto const [value, type_info] = get_int_value_and_type_info(
+			postfix,
+			num,
+			bz::meta::index_constant<ast::type_info::uint32_>{}
+		);
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, type_info),
+			value,
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::oct_literal:
+	{
+		// number_string_ contains the leading 0o or 0O
+		auto const number_string_ = literal->value;
+		bz_assert(number_string_.substring(0, 2) == "0o" || number_string_.substring(0, 2) == "0O");
+		auto const number_string = number_string_.substring(2, size_t(-1));
+		uint64_t num = 0;
+		for (auto c : number_string)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+
+			bz_assert(c >= '0' && c <= '7');
+			auto const num8 = num * 8;
+			auto const char_value = c - '0';
+			if (
+				num > std::numeric_limits<uint64_t>::max() / 8
+				|| num8 > std::numeric_limits<uint64_t>::max() - char_value
+			)
+			{
+				this->report_error(literal, "literal value is too large, even for 'uint64'");
+				break;
+			}
+			num = num8 + char_value;
+		}
+
+		auto const postfix = literal->postfix;
+		auto const [value, type_info] = get_int_value_and_type_info(
+			postfix,
+			num,
+			bz::meta::index_constant<ast::type_info::uint32_>{}
+		);
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, type_info),
+			value,
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::bin_literal:
+	{
+		// number_string_ contains the leading 0b or 0B
+		auto const number_string_ = literal->value;
+		bz_assert(number_string_.substring(0, 2) == "0b" || number_string_.substring(0, 2) == "0B");
+		auto const number_string = number_string_.substring(2, size_t(-1));
+		uint64_t num = 0;
+		for (auto c : number_string)
+		{
+			if (c == '\'')
+			{
+				continue;
+			}
+
+			bz_assert(c >= '0' && c <= '1');
+			auto const num2 = num * 2;
+			auto const char_value = c - '0';
+			if (
+				num > std::numeric_limits<uint64_t>::max() / 2
+				|| num2 > std::numeric_limits<uint64_t>::max() - char_value
+			)
+			{
+				this->report_error(literal, "literal value is too large, even for 'uint64'");
+				break;
+			}
+			num = num2 + char_value;
+		}
+
+		auto const postfix = literal->postfix;
+		auto const [value, type_info] = get_int_value_and_type_info(
+			postfix,
+			num,
+			bz::meta::index_constant<ast::type_info::uint32_>{}
+		);
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, type_info),
+			value,
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::character_literal:
+	{
+		auto const char_string = literal->value;
+		auto it = char_string.begin();
+		auto const end = char_string.end();
+		auto const value = get_character(it);
+		bz_assert(it == end);
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::char_)),
+			ast::constant_value(value),
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::kw_true:
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::bool_)),
+			ast::constant_value(true),
+			ast::make_expr_literal(literal)
+		);
+	case lex::token::kw_false:
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::bool_)),
+			ast::constant_value(false),
+			ast::make_expr_literal(literal)
+		);
+	case lex::token::kw_null:
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::null_t_)),
+			ast::constant_value(ast::internal::null_t{}),
+			ast::make_expr_literal(literal)
+		);
+	default:
+		bz_assert(false);
+		break;
+	}
+}
+
+ast::expression parse_context::make_string_literal(lex::token_pos const begin, lex::token_pos const end) const
+{
+	bz_assert(end > begin);
+	auto it = begin;
+	auto const get_string_value = [](lex::token_pos token) -> bz::u8string {
+		bz::u8string result = "";
+		auto const value = token->value;
+		auto it = value.begin();
+		auto const end = value.end();
+
+		while (it != end)
+		{
+			auto const slash = value.find(it, '\\');
+			result += bz::u8string_view(it, slash);
+			if (slash == end)
+			{
+				break;
+			}
+			it = slash;
+			result += get_character(it);
+		}
+
+		return result;
+	};
+
+	bz::u8string result = "";
+	for (; it != end; ++it)
+	{
+		result += get_string_value(it);
 	}
 
-	return false;
+	return ast::make_constant_expression(
+		{ begin, end },
+		ast::expression_type_kind::rvalue,
+		ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::str_)),
+		ast::constant_value(result),
+		ast::make_expr_literal(lex::token_range{ begin, end })
+	);
+}
+
+ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
+{
+	bz_assert(false);
+	return ast::expression();
 }
 
 static bool is_built_in_type(ast::typespec const &ts)
@@ -377,13 +970,17 @@ static bool is_built_in_type(ast::typespec const &ts)
 
 static int get_type_match_level(
 	ast::typespec const &dest,
-	ast::expression::expr_type_t const &src
+	ast::expression const &expr,
+	parse_context &context
 )
 {
 	int result = 0;
 
+	bz_assert(!expr.is<ast::tuple_expression>());
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+
 	auto const *dest_it = &ast::remove_const(dest);
-	auto const *src_it = &src.expr_type;
+	auto const *src_it = &expr_type;
 
 	if (dest_it->is<ast::ts_base_type>())
 	{
@@ -418,8 +1015,8 @@ static int get_type_match_level(
 	{
 		// if the source is not an lvalue, return -1
 		if (
-			src.type_kind != ast::expression::lvalue
-			&& src.type_kind != ast::expression::lvalue_reference
+			expr_type_kind != ast::expression_type_kind::lvalue
+			&& expr_type_kind != ast::expression_type_kind::lvalue_reference
 		)
 		{
 			return -1;
@@ -550,11 +1147,11 @@ struct match_level
 
 static match_level get_function_call_match_level(
 	ast::function_body &func_body,
-	ast::expr_function_call const &func_call,
+	bz::vector<ast::expression> const &params,
 	parse_context &context
 )
 {
-	if (func_body.params.size() != func_call.params.size())
+	if (func_body.params.size() != params.size())
 	{
 		return { -1, -1 };
 	}
@@ -584,18 +1181,18 @@ static match_level get_function_call_match_level(
 	};
 
 	auto params_it = func_body.params.begin();
-	auto call_it  = func_call.params.begin();
+	auto call_it  = params.begin();
 	auto const types_end = func_body.params.end();
 	for (; params_it != types_end; ++call_it, ++params_it)
 	{
-		add_to_result(get_type_match_level(params_it->var_type, call_it->expr_type));
+		add_to_result(get_type_match_level(params_it->var_type, *call_it, context));
 	}
 	return result;
 }
 
 static match_level get_function_call_match_level(
 	ast::function_body &func_body,
-	ast::expr_unary_op const &unary_op,
+	ast::expression const &expr,
 	parse_context &context
 )
 {
@@ -606,13 +1203,14 @@ static match_level get_function_call_match_level(
 
 	resolve_symbol(func_body, context);
 
-	auto const match_level = get_type_match_level(func_body.params[0].var_type, unary_op.expr.expr_type);
+	auto const match_level = get_type_match_level(func_body.params[0].var_type, expr, context);
 	return { match_level, match_level };
 }
 
 static match_level get_function_call_match_level(
 	ast::function_body &func_body,
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	parse_context &context
 )
 {
@@ -623,8 +1221,8 @@ static match_level get_function_call_match_level(
 
 	resolve_symbol(func_body, context);
 
-	auto const lhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.lhs.expr_type);
-	auto const rhs_level = get_type_match_level(func_body.params[0].var_type, binary_op.rhs.expr_type);
+	auto const lhs_level = get_type_match_level(func_body.params[0].var_type, lhs, context);
+	auto const rhs_level = get_type_match_level(func_body.params[0].var_type, rhs, context);
 	if (lhs_level == -1 || rhs_level == -1)
 	{
 		return { -1, -1 };
@@ -632,6 +1230,7 @@ static match_level get_function_call_match_level(
 	return { std::min(lhs_level, rhs_level), lhs_level + rhs_level };
 }
 
+/*
 static error get_bad_call_error(
 	ast::decl_function *func,
 	ast::expr_function_call const &func_call
@@ -661,14 +1260,16 @@ static error get_bad_call_error(
 //	auto const call_end  = func_call.params.end();
 	for (; params_it != types_end; ++call_it, ++params_it)
 	{
-		if (get_type_match_level(params_it->var_type, call_it->expr_type) == -1)
+		bz_assert(!call_it->is<ast::tuple_expression>());
+		if (get_type_match_level(params_it->var_type, *call_it) == -1)
 		{
+			auto const [call_it_type, _] = call_it->get_expr_type_and_kind();
 			return make_error(
 				*call_it,
 				bz::format(
 					"unable to convert argument {} from '{}' to '{}'",
 					(call_it - func_call.params.begin()) + 1,
-					call_it->expr_type.expr_type, params_it->var_type
+					call_it_type, params_it->var_type
 				)
 			);
 		}
@@ -677,7 +1278,7 @@ static error get_bad_call_error(
 	bz_assert(false);
 	return make_error(func->identifier, "");
 }
-
+*/
 
 static auto find_best_match(
 	bz::vector<std::pair<match_level, ast::function_body *>> const &possible_funcs,
@@ -685,6 +1286,7 @@ static auto find_best_match(
 ) -> std::pair<match_level, ast::function_body *>
 {
 	std::pair<match_level, ast::function_body *> min_scope_match = { { -1, -1 }, nullptr };
+
 	{
 		auto it = possible_funcs.begin();
 		auto const end = possible_funcs.begin() + scope_decl_count;
@@ -769,51 +1371,37 @@ static auto find_best_match(
 	}
 }
 
-
-auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_op)
-	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
+ast::expression parse_context::make_unary_operator_expression(
+	lex::src_tokens src_tokens,
+	lex::token_pos op,
+	ast::expression expr
+)
 {
-	std::pair<ast::function_body *, ast::expression::expr_type_t> error_result = {
-		nullptr, { ast::expression::rvalue, ast::typespec() }
-	};
-
-	if (!lex::is_overloadable_unary_operator(unary_op.op->kind))
+	if (!lex::is_overloadable_unary_operator(op->kind))
 	{
-		auto type = get_non_overloadable_operation_type(
-			unary_op.expr.expr_type, unary_op.op->kind,
-			*this
-		);
-		if (type.has_error())
-		{
-			this->report_error(unary_op, std::move(type.get_error()));
-			return error_result;
-		}
-		else
-		{
-			return { nullptr, std::move(type.get_result()) };
-		}
+		auto result = make_non_overloadable_operation(op, std::move(expr), *this);
+		result.src_tokens = src_tokens;
+		return result;
 	}
 
-	if (is_built_in_type(ast::remove_const(unary_op.expr.expr_type.expr_type)))
+	bz_assert(!expr.is<ast::tuple_expression>());
+
+	auto [type, type_kind] = expr.get_expr_type_and_kind();
+
+	if (is_built_in_type(ast::remove_const(type)))
 	{
-		auto type = get_built_in_operation_type(
-			unary_op.expr.expr_type, unary_op.op->kind,
-			*this
-		);
-		if (type.expr_type.kind() != ast::typespec::null)
-		{
-			return { nullptr, type };
-		}
+		auto result = make_built_in_operation(op, std::move(expr), *this);
+		result.src_tokens = src_tokens;
+		return result;
 	}
 
-	auto const report_undeclared_error = [&, this]()
+	auto const report_undeclared_error = [&, this, type = &type]()
 	{
 		this->report_error(
-			unary_op,
+			src_tokens,
 			bz::format(
 				"undeclared unary operator {} with type '{}'",
-				unary_op.op->value,
-				unary_op.expr.expr_type.expr_type
+				op->value, *type
 			)
 		);
 	};
@@ -829,7 +1417,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 	{
 		auto const set = std::find_if(
 			scope->op_sets.begin(), scope->op_sets.end(),
-			[op = unary_op.op->kind](auto const &op_set) {
+			[op = op->kind](auto const &op_set) {
 				return op == op_set.op;
 			}
 		);
@@ -837,7 +1425,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, unary_op, *this);
+				auto const match_level = get_function_call_match_level(op->body, expr, *this);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &op->body });
@@ -851,7 +1439,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 	auto &export_decls = this->global_ctx._export_decls;
 	auto const global_set = std::find_if(
 		export_decls.op_sets.begin(), export_decls.op_sets.end(),
-		[op = unary_op.op->kind](auto const &op_set) {
+		[op = op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
@@ -859,7 +1447,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, unary_op, *this);
+			auto const match_level = get_function_call_match_level(op->body, expr, *this);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &op->body });
@@ -871,89 +1459,77 @@ auto parse_context::get_operation_body_and_type(ast::expr_unary_op const &unary_
 	if (best.first.min == -1)
 	{
 		report_undeclared_error();
-		return error_result;
+		return ast::expression(src_tokens);
 	}
 	else
 	{
 		auto &ret_t = best.second->return_type;
+		auto return_type_kind = ast::expression_type_kind::rvalue;
+		auto return_type = &ast::remove_const(ret_t);
 		if (ret_t.is<ast::ts_reference>())
 		{
-			return {
-				best.second,
-				{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
-			};
+			return_type_kind = ast::expression_type_kind::lvalue_reference;
+			return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
 		}
-		else
-		{
-			return {
-				best.second,
-				{ ast::expression::rvalue, ast::remove_const(ret_t) }
-			};
-		}
+		bz::vector<ast::expression> params = {};
+		params.emplace_back(std::move(expr));
+		return ast::make_dynamic_expression(
+			src_tokens,
+			return_type_kind, *return_type,
+			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+		);
 	}
 }
 
-auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binary_op)
-	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
+ast::expression parse_context::make_binary_operator_expression(
+	lex::src_tokens src_tokens,
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs
+)
 {
-	std::pair<ast::function_body *, ast::expression::expr_type_t> error_result = {
-		nullptr, { ast::expression::rvalue, ast::typespec() }
-	};
-
-	if (!lex::is_overloadable_binary_operator(binary_op.op->kind))
+	if (!lex::is_overloadable_binary_operator(op->kind))
 	{
-		auto type = get_non_overloadable_operation_type(
-			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
-			binary_op.op->kind,
-			*this
-		);
-		if (type.has_error())
-		{
-			this->report_error(binary_op, std::move(type.get_error()));
-			return error_result;
-		}
-		else
-		{
-			return { nullptr, std::move(type.get_result()) };
-		}
+		auto result = make_non_overloadable_operation(op, std::move(lhs), std::move(rhs), *this);
+		result.src_tokens = src_tokens;
+		return result;
 	}
+
+	bz_assert(!lhs.is<ast::tuple_expression>());
+	bz_assert(!rhs.is<ast::tuple_expression>());
+
+	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
+	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 
 	if (
-		is_built_in_type(ast::remove_const(binary_op.lhs.expr_type.expr_type))
-		&& is_built_in_type(ast::remove_const(binary_op.rhs.expr_type.expr_type))
+		is_built_in_type(ast::remove_const(lhs_type))
+		&& is_built_in_type(ast::remove_const(rhs_type))
 	)
 	{
-		auto type = get_built_in_operation_type(
-			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
-			binary_op.op->kind,
-			*this
-		);
-		if (type.expr_type.kind() != ast::typespec::null)
-		{
-			return { nullptr, type };
-		}
+		auto result = make_built_in_operation(op, std::move(lhs), std::move(rhs), *this);
+		result.src_tokens = src_tokens;
+		return result;
 	}
 
-	auto const report_undeclared_error = [&, this]()
+	auto const report_undeclared_error = [&, this, lhs_type = &lhs_type, rhs_type = &rhs_type]()
 	{
-		if (binary_op.op->kind == lex::token::square_open)
+		if (op->kind == lex::token::square_open)
 		{
 			this->report_error(
-				binary_op,
+				src_tokens,
 				bz::format(
 					"undeclared binary operator [] with types '{}' and '{}'",
-					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
+					*lhs_type, *rhs_type
 				)
 			);
 		}
 		else
 		{
 			this->report_error(
-				binary_op,
+				src_tokens,
 				bz::format(
 					"undeclared binary operator {} with types '{}' and '{}'",
-					binary_op.op->value,
-					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
+					op->value, *lhs_type, *rhs_type
 				)
 			);
 		}
@@ -970,7 +1546,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 	{
 		auto const set = std::find_if(
 			scope->op_sets.begin(), scope->op_sets.end(),
-			[op = binary_op.op->kind](auto const &op_set) {
+			[op = op->kind](auto const &op_set) {
 				return op == op_set.op;
 			}
 		);
@@ -978,7 +1554,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, binary_op, *this);
+				auto const match_level = get_function_call_match_level(op->body, lhs, rhs, *this);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &op->body });
@@ -992,7 +1568,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 	auto &export_decls = this->global_ctx._export_decls;
 	auto const global_set = std::find_if(
 		export_decls.op_sets.begin(), export_decls.op_sets.end(),
-		[op = binary_op.op->kind](auto const &op_set) {
+		[op = op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
@@ -1000,7 +1576,7 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, binary_op, *this);
+			auto const match_level = get_function_call_match_level(op->body, lhs, rhs, *this);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &op->body });
@@ -1012,121 +1588,378 @@ auto parse_context::get_operation_body_and_type(ast::expr_binary_op const &binar
 	if (best.first.min == -1)
 	{
 		report_undeclared_error();
-		return error_result;
+		return ast::expression(src_tokens);
 	}
 	else
 	{
 		auto &ret_t = best.second->return_type;
+		auto return_type_kind = ast::expression_type_kind::rvalue;
+		auto return_type = &ast::remove_const(ret_t);
 		if (ret_t.is<ast::ts_reference>())
 		{
-			return {
-				best.second,
-				{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
-			};
+			return_type_kind = ast::expression_type_kind::lvalue_reference;
+			return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
 		}
-		else
-		{
-			return {
-				best.second,
-				{ ast::expression::rvalue, ast::remove_const(ret_t) }
-			};
-		}
+		bz::vector<ast::expression> params = {};
+		params.reserve(2);
+		params.emplace_back(std::move(lhs));
+		params.emplace_back(std::move(rhs));
+		return ast::make_dynamic_expression(
+			src_tokens,
+			return_type_kind, *return_type,
+			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+		);
 	}
 }
 
-auto parse_context::get_function_call_body_and_type(ast::expr_function_call const &func_call)
-	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
+ast::expression parse_context::make_function_call_expression(
+	lex::src_tokens src_tokens,
+	ast::expression called,
+	bz::vector<ast::expression> params
+)
 {
-	std::pair<ast::function_body *, ast::expression::expr_type_t> error_result = {
-		nullptr, { ast::expression::rvalue, ast::typespec() }
-	};
-
-	if (func_call.called.expr_type.type_kind == ast::expression::function_name)
+	if (called.is<ast::tuple_expression>())
 	{
-		bz_assert(func_call.called.is<ast::expr_identifier>());
+		this->report_error(
+			src_tokens,
+			"undeclared function call operator with types '...' (not yet implemented)"
+		);
+		return ast::expression(src_tokens);
+	}
 
-		auto const id = func_call.called.get<ast::expr_identifier_ptr>()->identifier->value;
-		bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+	auto const [called_type, called_type_kind] = called.get_expr_type_and_kind();
 
-		// we go through the scope decls for a matching declaration
-		for (
-			auto scope = this->scope_decls.rbegin();
-			scope != this->scope_decls.rend();
-			++scope
-		)
+	if (called_type_kind == ast::expression_type_kind::function_name)
+	{
+		bz_assert(called.is<ast::constant_expression>());
+		auto &const_called = called.get<ast::constant_expression>();
+		if (const_called.value.kind() == ast::constant_value::function)
 		{
-			auto const set = std::find_if(
-				scope->func_sets.begin(), scope->func_sets.end(),
+			auto const func_body = const_called.value.get<ast::constant_value::function>();
+			if (get_function_call_match_level(*func_body, params, *this).sum == -1)
+			{
+				this->report_error(
+					src_tokens,
+					"couldn't match the function call to any of the overloads"
+				);
+			}
+			auto &ret_t = func_body->return_type;
+			auto return_type_kind = ast::expression_type_kind::rvalue;
+			auto return_type = &ast::remove_const(ret_t);
+			if (ret_t.is<ast::ts_reference>())
+			{
+				return_type_kind = ast::expression_type_kind::lvalue_reference;
+				return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+			}
+			return ast::make_dynamic_expression(
+				src_tokens,
+				return_type_kind, *return_type,
+				ast::make_expr_function_call(src_tokens, std::move(params), func_body)
+			);
+		}
+		else
+		{
+			bz_assert(const_called.value.kind() == ast::constant_value::function_set_id);
+			auto const id = const_called.value.get<ast::constant_value::function_set_id>();
+			bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+			// we go through the scope decls for a matching declaration
+			for (
+				auto scope = this->scope_decls.rbegin();
+				scope != this->scope_decls.rend();
+				++scope
+			)
+			{
+				auto const set = std::find_if(
+					scope->func_sets.begin(), scope->func_sets.end(),
+					[id](auto const &fn_set) {
+						return id == fn_set.id;
+					}
+				);
+				if (set != scope->func_sets.end())
+				{
+					for (auto &fn : set->func_decls)
+					{
+						auto const match_level = get_function_call_match_level(fn->body, params, *this);
+						if (match_level.min != -1)
+						{
+							possible_funcs.push_back({ match_level, &fn->body });
+						}
+					}
+				}
+			}
+
+			auto const scope_decl_count = possible_funcs.size();
+
+			auto &export_decls = this->global_ctx._export_decls;
+			auto const global_set = std::find_if(
+				export_decls.func_sets.begin(), export_decls.func_sets.end(),
 				[id](auto const &fn_set) {
 					return id == fn_set.id;
 				}
 			);
-			if (set != scope->func_sets.end())
+			if (global_set != export_decls.func_sets.end())
 			{
-				for (auto &fn : set->func_decls)
+				for (auto &fn : global_set->func_decls)
 				{
-					auto const match_level = get_function_call_match_level(fn->body, func_call, *this);
+					auto const match_level = get_function_call_match_level(fn->body, params, *this);
 					if (match_level.min != -1)
 					{
 						possible_funcs.push_back({ match_level, &fn->body });
 					}
 				}
 			}
-		}
 
-		auto const scope_decl_count = possible_funcs.size();
-
-		auto &export_decls = this->global_ctx._export_decls;
-		auto const global_set = std::find_if(
-			export_decls.func_sets.begin(), export_decls.func_sets.end(),
-			[id](auto const &fn_set) {
-				return id == fn_set.id;
-			}
-		);
-		if (global_set != export_decls.func_sets.end())
-		{
-			for (auto &fn : global_set->func_decls)
+			auto const best = find_best_match(possible_funcs, scope_decl_count);
+			if (best.first.min == -1)
 			{
-				auto const match_level = get_function_call_match_level(fn->body, func_call, *this);
-				if (match_level.min != -1)
-				{
-					possible_funcs.push_back({ match_level, &fn->body });
-				}
-			}
-		}
-
-		auto const best = find_best_match(possible_funcs, scope_decl_count);
-		if (best.first.min == -1)
-		{
-			this->report_error(func_call, "couldn't match the function call to any of the overloads");
-			return error_result;
-		}
-		else
-		{
-			auto &ret_t = best.second->return_type;
-			if (ret_t.is<ast::ts_reference>())
-			{
-				return {
-					best.second,
-					{ ast::expression::lvalue_reference, ast::remove_lvalue_reference(ret_t) }
-				};
+				this->report_error(
+					src_tokens,
+					"couldn't match the function call to any of the overloads"
+				);
+				return ast::expression(src_tokens);
 			}
 			else
 			{
-				return {
-					best.second,
-					{ ast::expression::rvalue, ast::remove_const(ret_t) }
-				};
+				auto &ret_t = best.second->return_type;
+				auto return_type_kind = ast::expression_type_kind::rvalue;
+				auto return_type = &ast::remove_const(ret_t);
+				if (ret_t.is<ast::ts_reference>())
+				{
+					return_type_kind = ast::expression_type_kind::lvalue_reference;
+					return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+				}
+				return ast::make_dynamic_expression(
+					src_tokens,
+					return_type_kind, *return_type,
+					ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+				);
 			}
 		}
 	}
 	else
 	{
 		// function call operator
-		return error_result;
+		bz_assert(false);
 	}
 }
 
+ast::expression parse_context::make_cast_expression(
+	lex::src_tokens src_tokens,
+	lex::token_pos op,
+	ast::expression expr,
+	ast::typespec type
+)
+{
+	if (expr.is<ast::tuple_expression>())
+	{
+		this->report_error(src_tokens, "invalid cast");
+		return ast::expression(src_tokens);
+	}
+
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+
+	if (is_built_in_type(expr_type))
+	{
+		auto result = make_built_in_cast(op, std::move(expr), std::move(type), *this);
+		result.src_tokens = src_tokens;
+		return result;
+	}
+	else
+	{
+		this->report_error(src_tokens, "invalid cast");
+		return ast::expression(src_tokens);
+	}
+}
+
+void parse_context::match_expression_to_type(
+	ast::expression &expr,
+	ast::typespec &dest_type
+)
+{
+	bz_assert(!expr.is<ast::tuple_expression>());
+	if (expr.is_null())
+	{
+		bz_assert(this->has_errors());
+		return;
+	}
+	auto [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	if (!ast::is_complete(expr_type))
+	{
+		return;
+	}
+	auto *expr_it = &expr_type;
+	auto *dest_it = &ast::remove_const(dest_type);
+
+	auto const strict_match = [&, &expr_type = expr_type]() {
+		bool loop = true;
+		while (loop)
+		{
+			switch (dest_it->kind())
+			{
+			case ast::typespec::index<ast::ts_base_type>:
+				if (*expr_it != *dest_it)
+				{
+					this->report_error(
+						expr,
+						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+					);
+				}
+				loop = false;
+				break;
+			case ast::typespec::index<ast::ts_constant>:
+				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+				if (!expr_it->is<ast::ts_constant>())
+				{
+					this->report_error(
+						expr,
+						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+					);
+					loop = false;
+				}
+				else
+				{
+					expr_it = &expr_it->get<ast::ts_constant_ptr>()->base;
+				}
+				break;
+			case ast::typespec::index<ast::ts_pointer>:
+				dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
+				if (!expr_it->is<ast::ts_pointer_ptr>())
+				{
+					this->report_error(
+						expr,
+						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+					);
+					loop = false;
+				}
+				else
+				{
+					expr_it = &expr_it->get<ast::ts_pointer_ptr>()->base;
+				}
+				break;
+			default:
+				*dest_it = *expr_it;
+				loop = false;
+				break;
+			}
+		}
+	};
+
+	if (dest_it->is<ast::ts_reference>())
+	{
+		if (
+			expr_type_kind != ast::expression_type_kind::lvalue
+			&& expr_type_kind != ast::expression_type_kind::lvalue_reference
+		)
+		{
+			this->report_error(expr, "cannot bind an rvalue to an lvalue reference");
+			return;
+		}
+
+		if (dest_it->is<ast::ts_constant>())
+		{
+			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+			expr_it = &ast::remove_const(*expr_it);
+		}
+		else if (expr_it->is<ast::ts_constant>())
+		{
+			this->report_error(
+				expr,
+				bz::format(
+					"cannot bind an expression of type '{}' to a reference of type '{}'",
+					*expr_it, *dest_it
+				)
+			);
+			return;
+		}
+
+		strict_match();
+	}
+	else if (dest_it->is<ast::ts_pointer>())
+	{
+		expr_it = &ast::remove_const(*expr_it);
+		dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
+		if (!expr_it->is<ast::ts_pointer>())
+		{
+			// check if expr is a null literal
+			if (
+				expr_it->is<ast::ts_base_type>()
+				&& expr_it->get<ast::ts_base_type_ptr>()->info->kind == ast::type_info::null_t_
+			)
+			{
+				bz_assert(expr.is<ast::constant_expression>());
+				if (!ast::is_complete(dest_type))
+				{
+					this->report_error(expr, "variable type cannot be deduced");
+					return;
+				}
+				else
+				{
+					expr.get<ast::constant_expression>().type = ast::remove_const(dest_type);
+					return;
+				}
+			}
+			else
+			{
+				this->report_error(
+					expr,
+					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+				);
+				return;
+			}
+		}
+		else
+		{
+			expr_it = &expr_it->get<ast::ts_pointer_ptr>()->base;
+			if (dest_it->is<ast::ts_constant>())
+			{
+				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+				expr_it = &ast::remove_const(*expr_it);
+			}
+			else if (expr_it->is<ast::ts_constant>())
+			{
+				this->report_error(
+					expr,
+					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+				);
+				return;
+			}
+		}
+
+		strict_match();
+	}
+	else if (dest_it->is<ast::ts_base_type>())
+	{
+		expr_it = &ast::remove_const(*expr_it);
+		if (!expr_it->is<ast::ts_base_type>())
+		{
+			this->report_error(
+				expr,
+				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+			);
+			return;
+		}
+
+		auto const dest_info = dest_it->get<ast::ts_base_type_ptr>()->info;
+		auto const expr_info = expr_it->get<ast::ts_base_type_ptr>()->info;
+
+		if (dest_info != expr_info)
+		{
+			this->report_error(
+				expr,
+				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+			);
+			return;
+		}
+	}
+	else
+	{
+		bz_assert(dest_it->is_null());
+		expr_it = &ast::remove_const(*expr_it);
+		*dest_it = *expr_it;
+	}
+}
+
+/*
 auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
 	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
 {
@@ -1137,221 +1970,16 @@ auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
 	}
 	return { nullptr, std::move(res) };
 }
-
-/*
-ast::expression::expr_type_t parse_context::get_operation_type(ast::expr_unary_op const &unary_op)
-{
-	if (!lex::is_overloadable_unary_operator(unary_op.op->kind))
-	{
-		auto type = get_non_overloadable_operation_type(
-			unary_op.expr.expr_type, unary_op.op->kind,
-			*this
-		);
-		if (type.has_error())
-		{
-			this->report_error(unary_op, std::move(type.get_error()));
-			return { ast::expression::rvalue, ast::typespec() };
-		}
-		else
-		{
-			return std::move(type.get_result());
-		}
-	}
-
-	if (is_built_in_type(ast::remove_const(unary_op.expr.expr_type.expr_type)))
-	{
-		auto type = get_built_in_operation_type(
-			unary_op.expr.expr_type, unary_op.op->kind,
-			*this
-		);
-		if (type.expr_type.kind() != ast::typespec::null)
-		{
-			return type;
-		}
-	}
-
-	auto const report_undeclared_error = [&, this]()
-	{
-		this->report_error(
-			unary_op,
-			bz::format(
-				"undeclared unary operator {} with type '{}'",
-				unary_op.op->value,
-				unary_op.expr.expr_type.expr_type
-			)
-		);
-	};
-
-	auto &op_sets = this->global_ctx.get_local_decls(this->scope).op_sets;
-	auto const set = std::find_if(
-		op_sets.begin(), op_sets.end(),
-		[&](auto &set) {
-			return set.op == unary_op.op->kind;
-		}
-	);
-
-	if (set == op_sets.end())
-	{
-		report_undeclared_error();
-		return { ast::expression::rvalue, ast::typespec() };
-	}
-
-	for (auto op : set->op_decls)
-	{
-		if (op->body.params.size() != 1)
-		{
-			continue;
-		}
-
-		if (are_directly_matchable_types(unary_op.expr.expr_type, op->body.params[0].var_type))
-		{
-			auto &t = op->body.return_type;
-			if (t.is<ast::ts_reference>())
-			{
-				return {
-					ast::expression::lvalue_reference,
-					t.get<ast::ts_reference_ptr>()->base
-				};
-			}
-			else
-			{
-				return { ast::expression::rvalue, t };
-			}
-		}
-	}
-
-	report_undeclared_error();
-	return { ast::expression::rvalue, ast::typespec() };
-}
-
-ast::expression::expr_type_t parse_context::get_operation_type(ast::expr_binary_op const &binary_op)
-{
-	if (!lex::is_overloadable_binary_operator(binary_op.op->kind))
-	{
-		auto type = get_non_overloadable_operation_type(
-			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
-			binary_op.op->kind,
-			*this
-		);
-		if (type.has_error())
-		{
-			this->report_error(binary_op, std::move(type.get_error()));
-			return { ast::expression::rvalue, ast::typespec() };
-		}
-		else
-		{
-			return std::move(type.get_result());
-		}
-	}
-
-	if (
-		is_built_in_type(ast::remove_const(binary_op.lhs.expr_type.expr_type))
-		&& is_built_in_type(ast::remove_const(binary_op.rhs.expr_type.expr_type))
-	)
-	{
-		auto type = get_built_in_operation_type(
-			binary_op.lhs.expr_type, binary_op.rhs.expr_type,
-			binary_op.op->kind,
-			*this
-		);
-		if (type.expr_type.kind() != ast::typespec::null)
-		{
-			return type;
-		}
-	}
-
-	auto const report_undeclared_error = [&, this]()
-	{
-		if (binary_op.op->kind == lex::token::square_open)
-		{
-			this->report_error(
-				binary_op,
-				bz::format(
-					"undeclared binary operator [] with types '{}' and '{}'",
-					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
-				)
-			);
-		}
-		else
-		{
-			this->report_error(
-				binary_op,
-				bz::format(
-					"undeclared binary operator {} with types '{}' and '{}'",
-					binary_op.op->value,
-					binary_op.lhs.expr_type.expr_type, binary_op.rhs.expr_type.expr_type
-				)
-			);
-		}
-	};
-
-	auto &op_sets = this->global_ctx.get_local_decls(this->scope).op_sets;
-	auto const set = std::find_if(
-		op_sets.begin(),
-		op_sets.end(),
-		[&](auto &set) {
-			return set.op == binary_op.op->kind;
-		}
-	);
-
-	if (set == op_sets.end())
-	{
-		report_undeclared_error();
-		return { ast::expression::rvalue, ast::typespec() };
-	}
-
-	for (auto op : set->op_decls)
-	{
-		if (op->body.params.size() != 2)
-		{
-			continue;
-		}
-
-		if (
-			are_directly_matchable_types(binary_op.lhs.expr_type, op->body.params[0].var_type)
-			&& are_directly_matchable_types(binary_op.rhs.expr_type, op->body.params[1].var_type)
-		)
-		{
-			auto &t = op->body.return_type;
-			if (t.is<ast::ts_reference>())
-			{
-				return {
-					ast::expression::lvalue_reference,
-					t.get<ast::ts_reference_ptr>()->base
-				};
-			}
-			else
-			{
-				return { ast::expression::rvalue, t };
-			}
-		}
-	}
-
-	report_undeclared_error();
-	return { ast::expression::rvalue, ast::typespec() };
-}
-
-
-
-ast::expression::expr_type_t parse_context::get_function_call_type(ast::expr_function_call const &func_call) const
-{
-	auto res = this->global_ctx.get_function_call_type(this->scope, func_call);
-	if (res.has_error())
-	{
-		this->global_ctx.report_error(std::move(res.get_error()));
-		return { ast::expression::rvalue, ast::typespec() };
-	}
-	else
-	{
-		return std::move(res.get_result());
-	}
-}
 */
-
+/*
 bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to)
 {
 	return are_directly_matchable_types(from, to);
 }
+*/
+
+ast::type_info *parse_context::get_base_type_info(uint32_t kind) const
+{ return this->global_ctx.get_base_type_info(kind); }
 
 ast::type_info *parse_context::get_type_info(bz::u8string_view id) const
 {

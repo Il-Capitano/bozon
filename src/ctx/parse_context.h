@@ -26,24 +26,52 @@ struct parse_context
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
-		lex::token_pos it,
-		bz::u8string message, bz::vector<ctx::note> notes = {}
+		lex::token_pos it, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void report_error(
-		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::u8string message, bz::vector<ctx::note> notes = {}
+		lex::src_tokens src_tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	template<typename T>
 	void report_error(
-		T const &tokens,
-		bz::u8string message, bz::vector<ctx::note> notes = {}
+		T const &tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
 	) const
 	{
 		this->report_error(
-			tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
-			std::move(message), std::move(notes)
+			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
+			std::move(message), std::move(notes), std::move(suggestions)
 		);
 	}
+
+	void report_warning(lex::token_pos it) const;
+	void report_warning(
+		lex::token_pos it, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+	void report_warning(
+		lex::src_tokens src_tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+	template<typename T>
+	void report_warning(
+		T const &tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const
+	{
+		this->report_warning(
+			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
+			std::move(message), std::move(notes), std::move(suggestions)
+		);
+	}
+
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
@@ -58,27 +86,45 @@ struct parse_context
 	void add_local_operator(ast::decl_operator &op_decl);
 	void add_local_struct(ast::decl_struct &struct_decl);
 
-	auto get_identifier_decl(lex::token_pos id) const
-		-> bz::variant<ast::decl_variable const *, ast::decl_function const *>;
+	ast::expression make_identifier_expression(lex::token_pos id) const;
+	ast::expression make_literal(lex::token_pos literal) const;
+	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
+	ast::expression make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const;
 
-	ast::expression::expr_type_t get_identifier_type(lex::token_pos id) const;
+	ast::expression make_unary_operator_expression(
+		lex::src_tokens src_tokens,
+		lex::token_pos op,
+		ast::expression expr
+	);
+	ast::expression make_binary_operator_expression(
+		lex::src_tokens src_tokens,
+		lex::token_pos op,
+		ast::expression lhs,
+		ast::expression rhs
+	);
+	ast::expression make_function_call_expression(
+		lex::src_tokens src_tokens,
+		ast::expression called,
+		bz::vector<ast::expression> params
+	);
+	ast::expression make_cast_expression(
+		lex::src_tokens src_tokens,
+		lex::token_pos op,
+		ast::expression expr,
+		ast::typespec type
+	);
 
-	auto get_operation_body_and_type(ast::expr_unary_op const &unary_op)
-		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
-	auto get_operation_body_and_type(ast::expr_binary_op const &binary_op)
-		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
-	auto get_function_call_body_and_type(ast::expr_function_call const &func_call)
-		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
-	auto get_cast_body_and_type(ast::expr_cast const &cast)
-		-> std::pair<ast::function_body *, ast::expression::expr_type_t>;
+	void match_expression_to_type(
+		ast::expression &expr,
+		ast::typespec &type
+	);
 
-//	ast::expression::expr_type_t get_operation_type(ast::expr_unary_op const &unary_op);
-//	ast::expression::expr_type_t get_operation_type(ast::expr_binary_op const &binary_op);
-//	ast::expression::expr_type_t get_function_call_type(ast::expr_function_call const &func_call) const;
-
-	bool is_convertible(ast::expression::expr_type_t const &from, ast::typespec const &to);
+	bool is_implicitly_convertible(ast::expression const &from, ast::typespec const &to);
+	bool is_explicitly_convertible(ast::expression const &from, ast::typespec const &to);
 
 	ast::type_info *get_type_info(bz::u8string_view id) const;
+
+	ast::type_info *get_base_type_info(uint32_t kind) const;
 };
 
 } // namespace ctx
