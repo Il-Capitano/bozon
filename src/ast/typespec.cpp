@@ -79,7 +79,6 @@ bool operator == (typespec const &lhs, typespec const &rhs)
 	}
 
 	default:
-		bz_assert(false);
 		return false;
 	}
 }
@@ -130,6 +129,18 @@ typespec const &remove_lvalue_reference(typespec const &ts)
 }
 
 typespec const &remove_const(typespec const &ts)
+{
+	if (ts.is<ts_constant>())
+	{
+		return ts.get<ts_constant_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
+typespec &remove_const(typespec &ts)
 {
 	if (ts.is<ts_constant>())
 	{

@@ -93,6 +93,10 @@ struct ts_base_type
 		: src_pos(_src_pos), info(_info)
 	{}
 
+	ts_base_type(type_info *_info)
+		: src_pos(nullptr), info(_info)
+	{}
+
 	lex::token_pos get_tokens_pivot(void) const
 	{ return this->src_pos; }
 };
@@ -118,6 +122,10 @@ struct ts_constant
 		: const_pos(_const_pos), base(std::move(_base))
 	{}
 
+	ts_constant(typespec _base)
+		: const_pos(nullptr), base(std::move(_base))
+	{}
+
 	ts_constant(ts_constant const &) = default;
 	ts_constant(ts_constant &&) noexcept = default;
 
@@ -130,8 +138,12 @@ struct ts_pointer
 	lex::token_pos pointer_pos;
 	typespec       base;
 
-	ts_pointer(lex::token_pos _const_pos, typespec _base)
-		: pointer_pos(_const_pos), base(std::move(_base))
+	ts_pointer(lex::token_pos _pointer_pos, typespec _base)
+		: pointer_pos(_pointer_pos), base(std::move(_base))
+	{}
+
+	ts_pointer(typespec _base)
+		: pointer_pos(nullptr), base(std::move(_base))
 	{}
 
 	ts_pointer(ts_pointer const &) = default;
@@ -148,6 +160,10 @@ struct ts_reference
 
 	ts_reference(lex::token_pos _reference_pos, typespec _base)
 		: reference_pos(_reference_pos), base(std::move(_base))
+	{}
+
+	ts_reference(typespec _base)
+		: reference_pos(nullptr), base(std::move(_base))
 	{}
 
 	ts_reference(ts_reference const &) = default;
@@ -169,6 +185,15 @@ struct ts_function
 		bz::vector<typespec> _arg_types
 	)
 		: function_pos  (_function_pos),
+		  return_type   (std::move(_ret_type)),
+		  argument_types(std::move(_arg_types))
+	{}
+
+	ts_function(
+		typespec             _ret_type,
+		bz::vector<typespec> _arg_types
+	)
+		: function_pos  (nullptr),
 		  return_type   (std::move(_ret_type)),
 		  argument_types(std::move(_arg_types))
 	{}
@@ -255,6 +280,7 @@ typespec add_const(typespec ts);
 
 typespec const &remove_lvalue_reference(typespec const &ts);
 typespec const &remove_const(typespec const &ts);
+typespec &remove_const(typespec &ts);
 typespec const &remove_pointer(typespec const &ts);
 inline bool is_complete(typespec const &ts)
 {
@@ -293,10 +319,7 @@ inline bool is_complete(typespec const &ts)
 		}
 		return true;
 	}
-	case typespec::null:
-		return false;
 	default:
-		bz_assert(false);
 		return false;
 	}
 }
