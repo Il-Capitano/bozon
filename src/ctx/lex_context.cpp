@@ -16,6 +16,7 @@ void lex_context::bad_char(
 ) const
 {
 	this->global_ctx.report_error(ctx::error{
+		false,
 		stream.file, stream.line,
 		stream.it, stream.it, stream.it + 1,
 		std::move(message),
@@ -31,6 +32,7 @@ void lex_context::bad_chars(
 ) const
 {
 	this->global_ctx.report_error(ctx::error{
+		false,
 		file, line,
 		begin, pivot, end,
 		std::move(message),
@@ -45,6 +47,7 @@ void lex_context::bad_eof(
 ) const
 {
 	this->global_ctx.report_error(ctx::error{
+		false,
 		stream.file, stream.line,
 		stream.it, stream.it, stream.it,
 		std::move(message),
