@@ -33,16 +33,25 @@ struct global_context
 	void report_error(error &&err)
 	{ this->_errors.emplace_back(std::move(err)); }
 
-	bool has_errors(void) const
+	void report_warning(error &&err)
+	{ this->_errors.emplace_back(std::move(err)); }
+
+	bool has_errors(void) const;
+	bool has_warnings(void) const;
+
+	bool has_errors_or_warnings(void) const
 	{ return !this->_errors.empty(); }
 
-	void clear_errors(void)
+	void clear_errors_and_warnings(void)
 	{ this->_errors.clear(); }
 
-	bz::vector<error> const &get_errors(void) const
+	bz::vector<error> const &get_errors_and_warnings(void) const
 	{ return this->_errors; }
 
-	size_t get_error_count(void) const
+	size_t get_error_count(void) const;
+	size_t get_warning_count(void) const;
+
+	size_t get_error_and_warning_count(void) const
 	{ return this->_errors.size(); }
 
 	void add_export_declaration(ast::declaration &decl);
@@ -58,6 +67,8 @@ struct global_context
 
 	void add_export_struct(ast::decl_struct &struct_decl);
 	void add_compile_struct(ast::decl_struct &struct_decl);
+
+	ast::type_info *get_base_type_info(uint32_t kind) const;
 };
 
 } // namespace ctx
