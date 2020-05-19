@@ -35,7 +35,7 @@ public:
 public:
 	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);
 
-	void report_and_clear_errors(void);
+	void report_and_clear_errors_and_warnings(void);
 
 	[[nodiscard]] bool read_file(void);
 	[[nodiscard]] bool tokenize(void);

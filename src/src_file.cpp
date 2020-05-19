@@ -319,20 +319,25 @@ src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
 	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _global_ctx(global_ctx)
 {}
 
-static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::error const &err)
+static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::error const &err)
 {
+	auto const error_or_warning = err.is_warning
+		? bz::format("{}warning:{}", colors::warning_color, colors::clear)
+		: bz::format("{}error:{}", colors::error_color, colors::clear);
+	auto const highlight_color = err.is_warning ? colors::warning_color : colors::error_color;
+
 	bz::printf(
-		"{}{}:{}:{}:{} {}error:{} {}\n{}",
+		"{}{}:{}:{}:{} {} {}\n{}",
 		colors::bright_white,
 		err.file, err.line, get_column_number(file_begin, err.src_pivot),
 		colors::clear,
-		colors::error_color, colors::clear,
+		error_or_warning,
 		err.message,
 		get_highlighted_chars(
 			file_begin, file_end,
 			err.src_begin, err.src_pivot, err.src_end,
 			err.line,
-			colors::error_color
+			highlight_color
 		)
 	);
 	for (auto &n : err.notes)
@@ -373,15 +378,15 @@ static void print_error(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::e
 	}
 }
 
-void src_file::report_and_clear_errors(void)
+void src_file::report_and_clear_errors_and_warnings(void)
 {
-	if (this->_global_ctx.has_errors())
+	if (this->_global_ctx.has_errors_or_warnings())
 	{
-		for (auto &err : this->_global_ctx.get_errors())
+		for (auto &err : this->_global_ctx.get_errors_and_warnings())
 		{
-			print_error(this->_file.begin(), this->_file.end(), err);
+			print_error_or_warning(this->_file.begin(), this->_file.end(), err);
 		}
-		this->_global_ctx.clear_errors();
+		this->_global_ctx.clear_errors_and_warnings();
 	}
 }
 

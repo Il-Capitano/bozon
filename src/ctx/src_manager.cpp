@@ -32,9 +32,14 @@ namespace ctx
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
 			);
-			file.report_and_clear_errors();
+			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
+		}
+		else
+		{
+			// report warnings if any
+			file.report_and_clear_errors_and_warnings();
 		}
 	}
 
@@ -53,9 +58,14 @@ namespace ctx
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
 			);
-			file.report_and_clear_errors();
+			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
+		}
+		else
+		{
+			// report warnings if any
+			file.report_and_clear_errors_and_warnings();
 		}
 	}
 
@@ -74,9 +84,14 @@ namespace ctx
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
 			);
-			file.report_and_clear_errors();
+			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
+		}
+		else
+		{
+			// report warnings if any
+			file.report_and_clear_errors_and_warnings();
 		}
 	}
 
@@ -153,7 +168,7 @@ namespace ctx
 	bz_assert(!ec);
 
 	llvm::legacy::PassManager pass;
-	auto const file_type = llvm::TargetMachine::CGFT_ObjectFile;
+	auto const file_type = llvm::CGFT_ObjectFile;
 	auto const res = target_machine->addPassesToEmitFile(pass, dest, nullptr, file_type);
 	bz_assert(!res);
 	pass.run(context.module);
