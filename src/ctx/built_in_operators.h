@@ -37,38 +37,39 @@ inline bool is_arithmetic_kind(uint32_t kind)
 		&& kind <= ast::type_info::float64_;
 }
 
-auto get_non_overloadable_operation_type(
-	ast::expression::expr_type_t const &expr,
-	uint32_t op,
+ast::expression make_non_overloadable_operation(
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs,
 	parse_context &context
-) -> bz::result<ast::expression::expr_type_t, bz::u8string>;
+);
 
-auto get_non_overloadable_operation_type(
-	ast::expression::expr_type_t const &lhs,
-	ast::expression::expr_type_t const &rhs,
-	uint32_t op,
+ast::expression make_non_overloadable_operation(
+	lex::token_pos op,
+	ast::expression expr,
 	parse_context &context
-) -> bz::result<ast::expression::expr_type_t, bz::u8string>;
+);
 
 
-auto get_built_in_operation_type(
-	ast::expression::expr_type_t const &expr,
-	uint32_t op,
+ast::expression make_built_in_operation(
+	lex::token_pos op,
+	ast::expression expr,
 	parse_context &context
-) -> ast::expression::expr_type_t;
+);
 
-auto get_built_in_operation_type(
-	ast::expression::expr_type_t const &lhs,
-	ast::expression::expr_type_t const &rhs,
-	uint32_t op,
+ast::expression make_built_in_operation(
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs,
 	parse_context &context
-) -> ast::expression::expr_type_t;
+);
 
-auto get_built_in_cast_type(
-	ast::expression::expr_type_t const &expr,
-	ast::typespec const &dest,
+ast::expression make_built_in_cast(
+	lex::token_pos as_pos,
+	ast::expression expr,
+	ast::typespec dest_type,
 	parse_context &context
-) -> ast::expression::expr_type_t;
+);
 
 } // namespace ctx
 
