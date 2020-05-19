@@ -85,7 +85,7 @@ static void skip_comments_and_whitespace_test(void)
 	}
 
 #define x(str)                           \
-bz::u8string_view file = str;              \
+bz::u8string_view file = str;            \
 file_iterator it = { file.begin(), "" }; \
 skip_comments_and_whitespace(it, file.end())
 
@@ -181,14 +181,14 @@ static void get_identifier_or_keyword_token_test(void)
 	ctx::lex_context context(global_ctx);
 
 #define x_id(str)                                                        \
-bz::u8string_view const file = str;                                        \
+bz::u8string_view const file = str;                                      \
 file_iterator it = { file.begin(), "" };                                 \
 auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
 assert_false(global_ctx.has_errors());                                   \
 assert_eq(t.kind, token::identifier)
 
 #define x_kw(str, kw_kind)                                               \
-bz::u8string_view const file = str;                                        \
+bz::u8string_view const file = str;                                      \
 file_iterator it = { file.begin(), "" };                                 \
 auto const t = get_identifier_or_keyword_token(it, file.end(), context); \
 assert_false(global_ctx.has_errors());                                   \
@@ -276,7 +276,7 @@ static void get_character_token_test(void)
 
 #define x(str, c, it_pos)                                        \
 do {                                                             \
-    bz::u8string_view const file = str;                            \
+    bz::u8string_view const file = str;                          \
     file_iterator it = { file.begin(), "" };                     \
     auto const t = get_character_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                       \
@@ -287,11 +287,11 @@ do {                                                             \
 
 #define x_err(str, it_pos)                        \
 do {                                              \
-    bz::u8string_view const file = str;             \
+    bz::u8string_view const file = str;           \
     file_iterator it = { file.begin(), "" };      \
     get_character_token(it, file.end(), context); \
     assert_true(global_ctx.has_errors());         \
-    global_ctx.clear_errors();                    \
+    global_ctx.clear_errors_and_warnings();       \
     assert_eq(it.it, it_pos);                     \
 } while (false)
 
@@ -326,7 +326,7 @@ static void get_string_token_test(void)
 
 #define x(str, c, it_pos)                                     \
 do {                                                          \
-    bz::u8string_view const file = str;                         \
+    bz::u8string_view const file = str;                       \
     file_iterator it = { file.begin(), "" };                  \
     auto const t = get_string_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                    \
@@ -337,11 +337,11 @@ do {                                                          \
 
 #define x_err(str, it_pos)                     \
 do {                                           \
-    bz::u8string_view const file = str;          \
+    bz::u8string_view const file = str;        \
     file_iterator it = { file.begin(), "" };   \
     get_string_token(it, file.end(), context); \
     assert_true(global_ctx.has_errors());      \
-    global_ctx.clear_errors();                 \
+    global_ctx.clear_errors_and_warnings();    \
     assert_eq(it.it, it_pos);                  \
 } while (false)
 
@@ -370,7 +370,7 @@ static void get_number_token_test(void)
 
 #define x(str, it_pos)                                        \
 do {                                                          \
-    bz::u8string_view const file = str;                         \
+    bz::u8string_view const file = str;                       \
     file_iterator it = { file.begin(), "" };                  \
     auto const t = get_number_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                    \
@@ -435,7 +435,7 @@ static void get_next_token_test(void)
 
 #define x(str, token_kind)                                  \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     file_iterator it = { file.begin(), "" };                \
     auto const t = get_next_token(it, file.end(), context); \
     assert_false(global_ctx.has_errors());                  \
@@ -504,7 +504,7 @@ void get_tokens_test(void)
 
 #define x(str, ...)                                \
 do {                                               \
-    bz::u8string_view const file = str;              \
+    bz::u8string_view const file = str;            \
     auto const ts = get_tokens(file, "", context); \
     assert_false(global_ctx.has_errors());         \
     assert_eqs(ts, { __VA_ARGS__ });               \

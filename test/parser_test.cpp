@@ -8,7 +8,7 @@
 
 #define xx_global(fn, str, it_pos, custom_assert)           \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -20,19 +20,19 @@ do {                                                        \
 
 #define xx_gloabal_err(fn, str, it_pos, custom_assert)      \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
     auto res = fn(it, tokens.end() - 1, global_ctx);        \
     assert_true(global_ctx.has_errors());                   \
-    global_ctx.clear_errors();                              \
+    global_ctx.clear_errors_and_warnings();                 \
     assert_eq(it, it_pos);                                  \
 } while (false)
 
 #define xx_parse(fn, str, it_pos, custom_assert)            \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -44,13 +44,13 @@ do {                                                        \
 
 #define xx_parse_err(fn, str, it_pos, custom_assert)        \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
     auto res = fn(it, tokens.end() - 1, parse_ctx);         \
     assert_true(global_ctx.has_errors());                   \
-    global_ctx.clear_errors();                              \
+    global_ctx.clear_errors_and_warnings();                 \
     assert_eq(it, it_pos);                                  \
     assert_true(custom_assert);                             \
 } while (false)
@@ -62,7 +62,7 @@ static void get_paren_matched_range_test(void)
 
 #define x(str, it_pos)                                      \
 do {                                                        \
-    bz::u8string_view const file = str;                       \
+    bz::u8string_view const file = str;                     \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
@@ -171,7 +171,7 @@ static void parse_expression_test(void)
 
 #define x(str)                                                   \
 do {                                                             \
-    bz::u8string_view const file = str;                            \
+    bz::u8string_view const file = str;                          \
     auto const tokens = lex::get_tokens(file, "", lex_ctx);      \
     assert_false(global_ctx.has_errors());                       \
     auto it = tokens.begin();                                    \
@@ -188,7 +188,7 @@ do {                                                             \
     auto it = tokens.begin();                                    \
     parse_expression(it, tokens.end(), parse_ctx, precedence{}); \
     assert_true(global_ctx.has_errors());                        \
-    global_ctx.clear_errors();                                   \
+    global_ctx.clear_errors_and_warnings();                      \
     assert_eq(it, it_pos);                                       \
 } while (false)
 
