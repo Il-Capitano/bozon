@@ -1043,6 +1043,43 @@ make_vec<4, int32>([0, 1, 2, 3])
 
 
 
+
+ -- array syntax??
+
+[10]int32    this feels familiar
+[10: int32]  this should be easier to parse
+
+[10][float64, float64]
+[10: [float64, float64]]
+
+[: float64]  size is deduced here
+[10:]        type is deduced here
+[:]          size and type are deduced here
+
+
+in templated functions, types shouldn't be named I think.
+
+e.g. instead of
+function make_vec(tup: [$N: $T]) { ... }
+we should have
+function make_vec(tup: [:]) {
+	const N = tup.size();
+	using T = std::element_type<typeof tup>;
+	using T = typeof tup[0];
+}
+
+
+
+template syntax should stay as <> and not ()
+parsing would be easier and possibly more consistent if we did it the functional way,
+but then we would lose the ability to have template deduction for types
+
+e.g.
+vec2<float64>(1.0, -3.0)  ->  vec2(1.0, -3.0)
+with ()'s we couldn't do that
+vec2(float64)(1.0, -3.0)  ->  ??
+
+
 */
 
 #include "core.h"
@@ -1055,7 +1092,7 @@ make_vec<4, int32>([0, 1, 2, 3])
 
 
 
-
+/*
 template<>
 struct bz::formatter<ast::expression>
 {
@@ -1550,6 +1587,7 @@ void print_statement(std::ostream &os, ast::statement const &stmt, int indent_le
 		return;
 	}
 }
+*/
 
 #include "src_file.h"
 #include "ctx/src_manager.h"
@@ -1574,16 +1612,22 @@ int main(void)
 		return 1;
 	}
 	auto const after_tokenization = timer::now();
+	bz::print("finished tokenization\n");
+	auto const before_first_pass_parse = timer::now();
 	if (!manager.first_pass_parse())
 	{
 		return 2;
 	}
 	auto const after_first_pass_parse = timer::now();
+	bz::print("finished first pass parsing\n");
+	auto const before_resolve = timer::now();
 	if (!manager.resolve())
 	{
 		return 3;
 	}
 	auto const after_resolve = timer::now();
+	bz::print("finished resolving\n");
+	auto const before_code_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
 		return 4;
@@ -1602,11 +1646,18 @@ int main(void)
 //	}
 //
 //	bz::print(ss.str().c_str());
-	bz::printf("successful compilation in {:7.3f}ms\n", in_ms(end - begin));
-	bz::printf("tokenization time:        {:7.3f}ms\n", in_ms(after_tokenization - begin));
-	bz::printf("first pass parse time:    {:7.3f}ms\n", in_ms(after_first_pass_parse - after_tokenization));
-	bz::printf("resolve time:             {:7.3f}ms\n", in_ms(after_resolve - after_first_pass_parse));
-	bz::printf("code emission time:       {:7.3f}ms\n", in_ms(end - after_resolve));
+
+	auto const tokenization_time = after_tokenization - begin;
+	auto const first_pass_parse_time = after_first_pass_parse - before_first_pass_parse;
+	auto const resolve_time = after_resolve - before_resolve;
+	auto const code_emission_time = end - before_code_emission;
+	auto const compilation_time = tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
+
+	bz::printf("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
+	bz::printf("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
+	bz::printf("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
+	bz::printf("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
+	bz::printf("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
 
 	return 0;
 }
