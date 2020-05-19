@@ -428,7 +428,7 @@ static ast::statement parse_if_statement(
 
 		return ast::make_stmt_if(
 			lex::token_range{ begin_token, stream },
-			ast::make_expr_unresolved(condition, condition),
+			ast::make_unresolved_expression({ condition.begin, condition.begin, condition.end }),
 			std::move(if_block),
 			std::move(else_block)
 		);
@@ -437,7 +437,7 @@ static ast::statement parse_if_statement(
 	{
 		return ast::make_stmt_if(
 			lex::token_range{ begin_token, stream },
-			ast::make_expr_unresolved(condition, condition),
+			ast::make_unresolved_expression({ condition.begin, condition.begin, condition.end }),
 			std::move(if_block)
 		);
 	}
@@ -481,7 +481,7 @@ static ast::statement parse_while_statement(
 
 	return ast::make_stmt_while(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(condition, condition),
+		ast::make_unresolved_expression({ condition.begin, condition.begin, condition.end }),
 		std::move(while_block)
 	);
 }
@@ -509,7 +509,9 @@ static ast::statement parse_return_statement(
 
 	return ast::make_stmt_return(
 		lex::token_range{ begin_token, stream },
-		expr.begin == expr.end ? ast::expression() : ast::make_expr_unresolved(expr, expr)
+		expr.begin == expr.end ? ast::expression() : ast::make_unresolved_expression({
+			expr.begin, expr.begin, expr.end
+		})
 	);
 }
 
@@ -549,7 +551,7 @@ static ast::statement parse_expression_statement(
 
 	return ast::make_stmt_expression(
 		lex::token_range{ begin_token, stream },
-		ast::make_expr_unresolved(expr, expr)
+		ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end })
 	);
 }
 
@@ -589,7 +591,7 @@ static ast::declaration parse_variable_declaration(
 		);
 		ast::typespec *innermost = &prototype;
 		ast::typespec *one_up = &prototype;
-		while (innermost->kind() != ast::typespec::null)
+		while (innermost->not_null())
 		{
 			one_up = innermost;
 			innermost = get_base(innermost);
@@ -678,7 +680,7 @@ static ast::declaration parse_variable_declaration(
 			id,
 			prototype,
 			type,
-			ast::make_expr_unresolved(init, init)
+			ast::make_unresolved_expression({ init.begin, init.begin, init.end })
 		);
 	}
 	else if (stream->kind == lex::token::assign)
@@ -698,7 +700,7 @@ static ast::declaration parse_variable_declaration(
 		lex::token_range{tokens_begin, tokens_end},
 		id,
 		prototype,
-		ast::make_expr_unresolved(init, init)
+		ast::make_unresolved_expression({ init.begin, init.begin, init.end })
 	);
 }
 
