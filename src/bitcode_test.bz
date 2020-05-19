@@ -3,8 +3,19 @@ function println(str: str) -> void;
 function print_char(c: char) -> void;
 function print_int32(n: int32) -> void;
 function print_uint32(n: uint32) -> void;
+function print_uint64(n: uint64) -> void;
 function print_int32_ptr(p: *const int32) -> void;
 function print_float64(x: float64) -> void;
+function exit(code: int32) -> void;
+
+function assert(b: bool) -> void
+{
+	if (!b)
+	{
+		println("assertion failed!");
+		exit(1);
+	}
+}
 
 function factorial(n: int32) -> int32
 {
@@ -86,8 +97,15 @@ function main() -> int32
 	print_char('h');
 	print_char('h');
 
-	println("\n=== \x41 ===");
+	assert('\u0470' == 'Ѱ');
+	assert('ѱ' - 1 == 'Ѱ');
+	assert('Ѱ' as uint32 == 0x470u32);
+//	"a" "b";
 
+	println("\n=== \x41 ===");
+//	+'b';
+
+	const_expr_test();
 	return 0;
 /*
 	let bool: bool = false;
@@ -231,18 +249,21 @@ function ref_test() -> void
 
 function cast_test() -> void
 {
-	let f32: float32 = 1.5 as float32;
+	const f32 = 1.5f32;
+//	print_float64(f32);
 	print_float64(f32 as float64);
 	print_int32(f32 as int32);
+	print_uint32('A' as uint32);
+	print_uint32(' ' as uint32);
 
-//	function ref_wrapper(n: &int32) -> &int32
-//	{ return n; }
-//
-//	let n = 0;
-//
-//	print_int32(n);
-//	ref_wrapper(n) = 3;
-//	print_int32(n);
+	function ref_wrapper(n: &int32) -> &int32
+	{ return n; }
+
+	let n = 0;
+
+	print_int32(n);
+	ref_wrapper(n) = 3;
+	print_int32(n);
 
 //	let v: vec2;
 }
@@ -253,4 +274,20 @@ struct vec2
 {
 	x: float64;
 	y: float64;
+}
+
+function const_expr_test() -> void
+{
+	const n = 9'223'372'036'854'775'807; // int64
+	const n = 9'223'372'036'854'775'808; // uint64
+
+	-(-9'223'372'036'854'775'807i64 - 1);
+
+	assert(9'223'372'036'854'775'808 == 1u64 << 63u32);
+	assert(9'223'372'036'854'775'808 as uint32 == 0u32);
+
+	let a = false || false;
+	const FALSE: bool = false;
+	let b = false && FALSE;
+	let c = true || FALSE;
 }
