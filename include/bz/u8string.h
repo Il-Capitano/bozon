@@ -265,7 +265,7 @@ public:
 	{
 		if (&rhs == this)
 		{
-			return;
+			return *this;
 		}
 		this->_no_null_clear();
 		auto const [other_begin, other_end] = rhs._begin_end_pair();
@@ -296,7 +296,7 @@ public:
 	{
 		if (&rhs == this)
 		{
-			return;
+			return *this;
 		}
 		this->_no_null_clear();
 		this->_data_begin = rhs._data_begin;
@@ -614,6 +614,12 @@ public:
 
 	const_iterator cend(void) const noexcept
 	{ return const_iterator(this->_is_short_string() ? this->_short_string_end() : this->_data_end); }
+
+	const_iterator find(u8char c) const noexcept
+	{ return this->as_string_view().find(c); }
+
+	const_iterator find(const_iterator it, u8char c) const noexcept
+	{ return this->as_string_view().find(it, c); }
 };
 
 bz_end_namespace

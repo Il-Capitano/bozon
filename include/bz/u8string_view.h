@@ -9,6 +9,8 @@ bz_begin_namespace
 class u8string_view;
 using u8char = uint32_t;
 
+constexpr u8char max_unicode_value = 0x10'ffff;
+
 namespace internal
 {
 
@@ -336,6 +338,179 @@ public:
 
 	constexpr const_iterator cend(void) const noexcept
 	{ return const_iterator(this->_data_end); }
+
+
+	u8string_view substring(size_t begin_index, size_t end_index) const noexcept
+	{
+		auto it = this->begin();
+		auto const end = this->end();
+		size_t i = 0;
+		for (; i != begin_index && it != end; ++i)
+		{
+			++it;
+		}
+		auto const substring_begin = it;
+		if (end_index > this->size())
+		{
+			return u8string_view(substring_begin, end);
+		}
+
+		for (; i != end_index && it != end; ++i)
+		{
+			++it;
+		}
+		auto const substring_end = it;
+		return u8string_view(substring_begin, substring_end);
+	}
+
+	const_iterator find(u8char c) const noexcept
+	{
+		auto it = this->_data_begin;
+		auto const end = this->_data_end;
+		if (c <= internal::max_one_byte_char)
+		{
+			while (it != end)
+			{
+				if (static_cast<uint8_t>(*it) == c)
+				{
+					return const_iterator(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		else
+		{
+			char encoded_char[4] = {};
+			int char_size = 0;
+			if (c <= internal::max_two_byte_char)
+			{
+				char_size = 2;
+				encoded_char[0] = static_cast<char>(0b1100'0000 | (c >> 6));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else if (c <= internal::max_three_byte_char)
+			{
+				char_size = 3;
+				encoded_char[0] = static_cast<char>(0b1110'0000 | (c >> 12));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 6) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else
+			{
+				char_size = 4;
+				encoded_char[0] = static_cast<char>(0b1111'0000 | (c >> 18));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 12) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >>  6) & 0b0011'1111));
+				encoded_char[3] = static_cast<char>(0b1000'0000 | ((c >>  0) & 0b0011'1111));
+			}
+
+			auto const is_char = [
+				begin = encoded_char,
+				end   = encoded_char + char_size
+			](char const *ptr)
+			{
+				for (auto it = begin; it != end; ++it, ++ptr)
+				{
+					if (*it != *ptr)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+
+			while (it != end)
+			{
+				if (is_char(it))
+				{
+					return const_iterator(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		return const_iterator(end);
+	}
+
+	const_iterator find(const_iterator it_, u8char c) const noexcept
+	{
+		auto it = it_.data();
+		bz_assert(it >= this->_data_begin && it <= this->_data_end);
+		auto const end = this->_data_end;
+		if (c <= internal::max_one_byte_char)
+		{
+			while (it != end)
+			{
+				if (static_cast<uint8_t>(*it) == c)
+				{
+					return const_iterator(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		else
+		{
+			char encoded_char[4] = {};
+			int char_size = 0;
+			if (c <= internal::max_two_byte_char)
+			{
+				char_size = 2;
+				encoded_char[0] = static_cast<char>(0b1100'0000 | (c >> 6));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else if (c <= internal::max_three_byte_char)
+			{
+				char_size = 3;
+				encoded_char[0] = static_cast<char>(0b1110'0000 | (c >> 12));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 6) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else
+			{
+				char_size = 4;
+				encoded_char[0] = static_cast<char>(0b1111'0000 | (c >> 18));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 12) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >>  6) & 0b0011'1111));
+				encoded_char[3] = static_cast<char>(0b1000'0000 | ((c >>  0) & 0b0011'1111));
+			}
+
+			auto const is_char = [
+				begin = encoded_char,
+				end   = encoded_char + char_size
+			](char const *ptr)
+			{
+				for (auto it = begin; it != end; ++it, ++ptr)
+				{
+					if (*it != *ptr)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+
+			while (it != end)
+			{
+				if (is_char(it))
+				{
+					return const_iterator(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		return const_iterator(end);
+	}
 };
 
 constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept

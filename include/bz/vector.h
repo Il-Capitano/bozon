@@ -6,6 +6,7 @@
 #include "allocator.h"
 #include "meta.h"
 #include "iterator.h"
+#include "array_view.h"
 
 bz_begin_namespace
 
@@ -587,26 +588,32 @@ public:
 	auto &operator [] (size_type n) noexcept
 	{ return *(this->_data_begin + n); }
 
-	auto &operator [] (size_type n) const noexcept
+	auto const &operator [] (size_type n) const noexcept
 	{ return *(this->_data_begin + n); }
 
 	auto &front(void) noexcept
 	{ return *this->_data_begin; }
 
-	auto &front(void) const noexcept
+	auto const &front(void) const noexcept
 	{ return *this->_data_begin; }
 
 	auto &back(void) noexcept
 	{ return *(this->_data_end - 1); }
 
-	auto &back(void) const noexcept
+	auto const &back(void) const noexcept
 	{ return *(this->_data_end - 1); }
 
-	auto data(void) noexcept
+	auto *data(void) noexcept
 	{ return this->_data_begin; }
 
-	auto data(void) const noexcept
+	auto const *data(void) const noexcept
 	{ return this->_data_begin; }
+
+	operator array_view<value_type> (void) noexcept
+	{ return array_view<value_type>(this->_data_begin, this->_data_end); }
+
+	operator array_view<value_type const> (void) const noexcept
+	{ return array_view<value_type const>(this->_data_begin, this->_data_end); }
 
 
 public:

@@ -116,9 +116,10 @@ private:
 	{ this->no_clear_emplace<N>(std::forward<Args>(args)...); }
 
 
-public:
+protected:
 	static constexpr size_t null = std::numeric_limits<size_t>::max();
 
+public:
 	template<size_t N, typename ...Args>
 	static self_t make(Args &&...args) noexcept(
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
