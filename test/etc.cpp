@@ -9,3 +9,4 @@
 #include "ctx/parse_context.cpp"
 #include "ctx/global_context.cpp"
 #include "ctx/built_in_operators.cpp"
+#include "ctx/safe_operations.cpp"

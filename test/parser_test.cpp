@@ -92,22 +92,23 @@ static void resolve_literal_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 
-#define x(str, kind_)                                                     \
-do {                                                                      \
-    bz::u8string_view const file = str;                                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx);               \
-    assert_false(global_ctx.has_errors());                                \
-    auto it = tokens.begin();                                             \
-    auto expr = parse_expression(                                         \
-        it, tokens.end(),                                                 \
-        parse_ctx, precedence{}                                           \
-    );                                                                    \
-    assert_eq(it, tokens.end() - 1);                                      \
-    resolve_literal(expr, parse_ctx);                                     \
-    assert_eq(                                                            \
-        ast::type_info::kind_,                                            \
-        expr.expr_type.expr_type.get<ast::ts_base_type_ptr>()->info->kind \
-    );                                                                    \
+#define x(str, kind_)                                                                      \
+do {                                                                                       \
+    bz::u8string_view const file = str;                                                    \
+    auto const tokens = lex::get_tokens(file, "", lex_ctx);                                \
+    assert_false(global_ctx.has_errors());                                                 \
+    auto it = tokens.begin();                                                              \
+    auto expr = parse_expression(                                                          \
+        it, tokens.end(),                                                                  \
+        parse_ctx, precedence{}                                                            \
+    );                                                                                     \
+    assert_eq(it, tokens.end() - 1);                                                       \
+    assert_true(expr.is<ast::constant_expression>());                                      \
+    assert_true(expr.get<ast::constant_expression>().type.is<ast::ts_base_type>());        \
+    assert_eq(                                                                             \
+        ast::type_info::kind_,                                                             \
+        expr.get<ast::constant_expression>().type.get<ast::ts_base_type_ptr>()->info->kind \
+    );                                                                                     \
 } while (false)
 
 	x("0", int32_);
@@ -136,7 +137,7 @@ static void parse_primary_expression_test(void)
 	x("(0)");
 	x("((((!false))))");
 	x("+ + - - 0");
-	x("sizeof 0");
+//	x("sizeof 0");
 
 	x_err("++3", tokens.begin() + 2);
 	x_err("&0", tokens.begin() + 2);
@@ -179,16 +180,16 @@ do {                                                             \
     assert_eq(it, tokens.end() - 1);                             \
 } while (false)
 
-#define x_err(str)                                               \
+#define x_err(str, it_pos)                                       \
 do {                                                             \
-    bz::u8string_view const file = str;                            \
+    bz::u8string_view const file = str;                          \
     auto const tokens = lex::get_tokens(file, "", lex_ctx);      \
     assert_false(global_ctx.has_errors());                       \
     auto it = tokens.begin();                                    \
     parse_expression(it, tokens.end(), parse_ctx, precedence{}); \
     assert_true(global_ctx.has_errors());                        \
     global_ctx.clear_errors();                                   \
-    assert_eq(it, tokens.end() - 1);                             \
+    assert_eq(it, it_pos);                                       \
 } while (false)
 
 	x("-1");
@@ -197,9 +198,11 @@ do {                                                             \
 	x("(1.0 - 2.1) / +4.5");
 	x("- - - - - -1234");
 
-	x_err("");
-	x_err("a + 3");
-	x_err("3 - * 4");
+	x_err("", tokens.begin());
+	x_err("a + 3", tokens.begin() + 1);
+	//       ^ tokens.begin() + 1
+	x_err("3 - * 4 a", tokens.begin() + 4);
+	//             ^ tokens.begin() + 3
 
 #undef x
 #undef x_err
@@ -230,8 +233,8 @@ static void parse_typespec_test(void)
 	x("function() -> void", tokens.begin() + 5, ast::typespec::index<ast::ts_function>);
 	x("function(int32, int32) -> void", tokens.begin() + 8, ast::typespec::index<ast::ts_function>);
 
-	x_err("", tokens.begin(), ast::typespec::null);
-	x_err("foo", tokens.begin() + 1, ast::typespec::null);
+	x_err("", tokens.begin(), size_t(-1));
+	x_err("foo", tokens.begin() + 1, size_t(-1));
 	x_err("*foo", tokens.begin() + 2, ast::typespec::index<ast::ts_pointer>);
 	x_err("function()", tokens.begin() + 3, ast::typespec::index<ast::ts_function>);
 	x_err("function(,) -> void", tokens.begin() + 6, ast::typespec::index<ast::ts_function>);
