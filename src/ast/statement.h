@@ -6,6 +6,7 @@
 #include "node.h"
 #include "expression.h"
 #include "typespec.h"
+#include "constant_value.h"
 
 namespace ast
 {
@@ -353,9 +354,55 @@ struct type_info
 
 	uint32_t                kind;
 	size_t                  flags;
-	bz::u8string_view         name;
+	bz::u8string_view       name;
 	bz::vector<declaration> member_decls;
 };
+
+namespace internal
+{
+
+template<uint32_t N>
+struct type_from_type_info;
+
+template<>
+struct type_from_type_info<type_info::int8_>
+{ using type = int8_t; };
+template<>
+struct type_from_type_info<type_info::int16_>
+{ using type = int16_t; };
+template<>
+struct type_from_type_info<type_info::int32_>
+{ using type = int32_t; };
+template<>
+struct type_from_type_info<type_info::int64_>
+{ using type = int64_t; };
+
+template<>
+struct type_from_type_info<type_info::uint8_>
+{ using type = uint8_t; };
+template<>
+struct type_from_type_info<type_info::uint16_>
+{ using type = uint16_t; };
+template<>
+struct type_from_type_info<type_info::uint32_>
+{ using type = uint32_t; };
+template<>
+struct type_from_type_info<type_info::uint64_>
+{ using type = uint64_t; };
+
+template<>
+struct type_from_type_info<type_info::float32_>
+{ using type = float32_t; };
+template<>
+struct type_from_type_info<type_info::float64_>
+{ using type = float64_t; };
+
+} // namespace internal
+
+template<uint32_t N>
+using type_from_type_info_t = typename internal::type_from_type_info<N>::type;
+
+
 
 struct decl_struct
 {
@@ -441,9 +488,6 @@ struct bz::formatter<ast::typespec>
 	{
 		switch (typespec.kind())
 		{
-		case ast::typespec::null:
-			return "<error-type>";
-
 		case ast::typespec::index<ast::ts_base_type>:
 			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->name);
 
@@ -510,8 +554,7 @@ struct bz::formatter<ast::typespec>
 			return "<unresolved>";
 
 		default:
-			bz_assert(false);
-			return "";
+			return "<error-type>";
 		}
 	}
 };
