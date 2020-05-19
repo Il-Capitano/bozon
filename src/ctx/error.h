@@ -36,6 +36,7 @@ struct suggestion
 
 struct error
 {
+	bool is_warning;
 	bz::u8string file;
 	size_t line;
 
@@ -54,6 +55,7 @@ struct error
 )
 {
 	return {
+		false,
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		bz::format("unexpected token '{}'", it->value),
@@ -68,6 +70,7 @@ struct error
 )
 {
 	return {
+		false,
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -82,6 +85,7 @@ struct error
 {
 	bz_assert(end > begin);
 	return {
+		false,
 		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -96,6 +100,61 @@ template<typename T>
 )
 {
 	return make_error(
+		tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
+		std::move(message), std::move(notes), std::move(suggestions)
+	);
+}
+
+[[nodiscard]] inline error make_warning(
+	lex::token_pos it
+)
+{
+	return {
+		true,
+		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		bz::format("unexpected token '{}'", it->value),
+		{}, {}
+	};
+}
+
+[[nodiscard]] inline error make_warning(
+	lex::token_pos it,
+	bz::u8string message,
+	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+)
+{
+	return {
+		true,
+		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		std::move(message), std::move(notes), std::move(suggestions)
+	};
+}
+
+[[nodiscard]] inline error make_warning(
+	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+	bz::u8string message,
+	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+)
+{
+	bz_assert(end > begin);
+	return {
+		true,
+		pivot->src_pos.file_name, pivot->src_pos.line,
+		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
+		std::move(message), std::move(notes), std::move(suggestions)
+	};
+}
+
+template<typename T>
+[[nodiscard]] inline error make_warning(
+	T const &tokens,
+	bz::u8string message,
+	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+)
+{
+	return make_warning(
 		tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
 		std::move(message), std::move(notes), std::move(suggestions)
 	);
