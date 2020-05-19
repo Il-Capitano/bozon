@@ -16,7 +16,6 @@ struct expression;
 
 declare_node_type(expr_identifier);
 declare_node_type(expr_literal);
-declare_node_type(expr_tuple);
 declare_node_type(expr_unary_op);
 declare_node_type(expr_binary_op);
 declare_node_type(expr_subscript);
@@ -28,7 +27,6 @@ declare_node_type(expr_cast);
 using expr_t = node<
 	expr_identifier,
 	expr_literal,
-	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
 	expr_subscript,
@@ -194,15 +192,6 @@ struct expr_identifier
 	expr_identifier(lex::token_pos _id, bz::variant<decl_variable const *, decl_function const *> _decl)
 		: identifier(_id), decl(_decl)
 	{}
-
-	lex::token_pos get_tokens_begin(void) const
-	{ return this->identifier; }
-
-	lex::token_pos get_tokens_pivot(void) const
-	{ return this->identifier; }
-
-	lex::token_pos get_tokens_end(void) const
-	{ return this->identifier + 1; }
 };
 
 struct expr_literal
@@ -218,24 +207,6 @@ struct expr_literal
 	{}
 };
 
-struct expr_tuple
-{
-	bz::vector<expression> elems;
-
-	expr_tuple(bz::vector<expression> _elems)
-		: elems(std::move(_elems))
-	{}
-
-	lex::token_pos get_tokens_begin(void) const
-	{ bz_assert(false); return nullptr; }
-
-	lex::token_pos get_tokens_pivot(void) const
-	{ bz_assert(false); return nullptr; }
-
-	lex::token_pos get_tokens_end(void) const
-	{ bz_assert(false); return nullptr; }
-};
-
 struct expr_unary_op
 {
 	lex::token_pos op;
@@ -248,10 +219,6 @@ struct expr_unary_op
 		: op     (_op),
 		  expr   (std::move(_expr))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->op; }
-	lex::token_pos get_tokens_pivot(void) const { return this->op; }
-	lex::token_pos get_tokens_end(void) const   { return this->expr.get_tokens_end(); }
 };
 
 struct expr_binary_op
@@ -269,10 +236,6 @@ struct expr_binary_op
 		  lhs    (std::move(_lhs)),
 		  rhs    (std::move(_rhs))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->lhs.get_tokens_begin(); }
-	lex::token_pos get_tokens_pivot(void) const { return this->op; }
-	lex::token_pos get_tokens_end(void) const   { return this->rhs.get_tokens_end(); }
 };
 
 struct expr_subscript
@@ -290,10 +253,6 @@ struct expr_subscript
 		  base      (std::move(_base)),
 		  indicies  (std::move(_indicies))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
-	lex::token_pos get_tokens_end(void) const   { return this->src_tokens.end; }
 };
 
 struct expr_function_call
@@ -311,10 +270,6 @@ struct expr_function_call
 		  params    (std::move(_params)),
 		  func_body (_func_body)
 	{}
-
-	lex::token_pos get_tokens_begin() const { return this->src_tokens.begin; }
-	lex::token_pos get_tokens_pivot() const { return this->src_tokens.pivot; }
-	lex::token_pos get_tokens_end() const   { return this->src_tokens.end; }
 };
 
 struct expr_cast
@@ -332,10 +287,6 @@ struct expr_cast
 		  expr  (std::move(_expr)),
 		  type  (std::move(_type))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
 };
 
 
@@ -362,10 +313,6 @@ expr_t make_expr_identifier(Args &&...args)
 template<typename ...Args>
 expr_t make_expr_literal(Args &&...args)
 { return expr_t(std::make_unique<expr_literal>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_tuple(Args &&...args)
-{ return expr_t(std::make_unique<expr_tuple>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
 expr_t make_expr_unary_op(Args &&...args)

@@ -1377,14 +1377,19 @@ ast::expression parse_context::make_unary_operator_expression(
 	ast::expression expr
 )
 {
+	bz_assert(!expr.is<ast::tuple_expression>());
+	if (expr.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
 	if (!lex::is_overloadable_unary_operator(op->kind))
 	{
 		auto result = make_non_overloadable_operation(op, std::move(expr), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
-
-	bz_assert(!expr.is<ast::tuple_expression>());
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 
@@ -1488,15 +1493,20 @@ ast::expression parse_context::make_binary_operator_expression(
 	ast::expression rhs
 )
 {
+	bz_assert(!lhs.is<ast::tuple_expression>());
+	bz_assert(!rhs.is<ast::tuple_expression>());
+	if (lhs.is_null() || rhs.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
 	if (!lex::is_overloadable_binary_operator(op->kind))
 	{
 		auto result = make_non_overloadable_operation(op, std::move(lhs), std::move(rhs), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
-
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();

@@ -135,15 +135,6 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	[[maybe_unused]] ast::expr_tuple const &tuple,
-	[[maybe_unused]] ctx::bitcode_context &context
-)
-{
-	bz_assert(false);
-	return {};
-}
-
-static val_ptr emit_bitcode(
 	ast::expr_unary_op const &unary_op,
 	ctx::bitcode_context &context
 )
@@ -1524,8 +1515,6 @@ static val_ptr emit_bitcode(
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_identifier_ptr>(), context);
 	case ast::expr_t::index<ast::expr_literal>:
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_literal_ptr>(), context);
-	case ast::expr_t::index<ast::expr_tuple>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_tuple_ptr>(), context);
 	case ast::expr_t::index<ast::expr_unary_op>:
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_unary_op_ptr>(), context);
 	case ast::expr_t::index<ast::expr_binary_op>:
