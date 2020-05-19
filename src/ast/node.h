@@ -56,7 +56,7 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 
 	self_t &operator = (self_t const &rhs)
 	{
-		if (rhs.kind() == base_t::null)
+		if (this == &rhs || rhs.kind() == base_t::null)
 		{
 			return *this;
 		}
