@@ -277,8 +277,15 @@ bool is_unary_operator(uint32_t kind);
 
 struct token_range
 {
-	token_pos begin;
-	token_pos end;
+	token_pos begin = nullptr;
+	token_pos end   = nullptr;
+};
+
+struct src_tokens
+{
+	token_pos begin = nullptr;
+	token_pos pivot = nullptr;
+	token_pos end   = nullptr;
 };
 
 inline bz::u8string get_token_name_for_message(uint32_t kind)
