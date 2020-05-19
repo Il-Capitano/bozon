@@ -46,6 +46,7 @@ void print_char(uint32_t c)
 	else
 	{
 		assert(0 && "invalid character in print_char");
+		buffer_size = 0;
 	}
 	fwrite(buffer, 1, buffer_size, stdout);
 }
@@ -58,6 +59,11 @@ void print_int32(int32_t n)
 void print_uint32(uint32_t n)
 {
 	fprintf(stdout, "%u\n", n);
+}
+
+void print_uint64(uint64_t n)
+{
+	fprintf(stdout, "%llu\n", n);
 }
 
 void print_int32_ptr(int32_t const *p)
