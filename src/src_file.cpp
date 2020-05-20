@@ -6,19 +6,21 @@
 
 static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos const pivot)
 {
-	uint32_t column = 0;
-	auto pivot_ptr = pivot.data();
+	if (pivot == file_begin)
+	{
+		return 1;
+	}
+
+	auto it = pivot.data();
 	do
 	{
 		if (pivot == file_begin)
 		{
-			return column + 1;
 		}
 
-		--pivot_ptr;
-		++column;
-	} while (*pivot_ptr != '\n');
-	return column;
+		--it;
+	} while (it != file_begin.data() && *it != '\n');
+	return bz::u8string_view(it, pivot.data()).length();
 }
 
 static bz::u8string get_highlighted_chars(
