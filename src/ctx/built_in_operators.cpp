@@ -3316,12 +3316,36 @@ ast::expression make_built_in_cast(
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto &expr_t = ast::remove_const(expr_type);
 	auto &dest_t = ast::remove_const(dest_type);
-	bz_assert(expr_t.is<ast::ts_base_type>());
-	bz_assert(dest_t.is<ast::ts_base_type>());
 
 	auto const src_tokens = as_pos == nullptr
 		? expr.src_tokens
 		: lex::src_tokens{ expr.get_tokens_begin(), as_pos, dest_type.get_tokens_end() };
+
+	if (
+		dest_t.is<ast::ts_pointer>()
+		&& expr.is<ast::constant_expression>()
+		&& expr.get<ast::constant_expression>().value.kind() == ast::constant_value::null
+	)
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			dest_t,
+			ast::constant_value(ast::internal::null_t{}),
+			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+		);
+	}
+	else if (!dest_t.is<ast::ts_base_type>())
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
+		);
+		return ast::expression(src_tokens);
+	}
+
+	bz_assert(expr_t.is<ast::ts_base_type>());
+	bz_assert(dest_t.is<ast::ts_base_type>());
 
 	auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
 
@@ -3375,7 +3399,7 @@ case ast::type_info::dest_t##_:                               \
 			}
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				value,
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
@@ -3384,7 +3408,7 @@ case ast::type_info::dest_t##_:                               \
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
 		}
@@ -3398,7 +3422,7 @@ case ast::type_info::dest_t##_:                               \
 			uint64_t const value = const_expr.value.get<ast::constant_value::u8char>();
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				ast::constant_value(value),
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
@@ -3407,7 +3431,7 @@ case ast::type_info::dest_t##_:                               \
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
 		}
@@ -3431,7 +3455,7 @@ case ast::type_info::dest_t##_:                               \
 			}
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				ast::constant_value(static_cast<bz::u8char>(value)),
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
@@ -3440,7 +3464,7 @@ case ast::type_info::dest_t##_:                               \
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_type,
+				ast::expression_type_kind::rvalue, dest_t,
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
 		}
