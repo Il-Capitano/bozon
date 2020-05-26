@@ -45,7 +45,7 @@ struct global_context
 	void clear_errors_and_warnings(void)
 	{ this->_errors.clear(); }
 
-	bz::vector<error> const &get_errors_and_warnings(void) const
+	bz::array_view<const error> get_errors_and_warnings(void) const
 	{ return this->_errors; }
 
 	size_t get_error_count(void) const;
