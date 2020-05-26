@@ -55,75 +55,77 @@ static bool operator <= (precedence lhs, precedence rhs)
 	}
 }
 
-static std::map<uint32_t, precedence> binary_op_precendences =
+using uint_precedence_pair_t = std::pair<uint32_t, precedence>;
+
+static constexpr std::array binary_op_precendences =
 {
-	{ lex::token::scope,              precedence{  1, true  } },
+	uint_precedence_pair_t{ lex::token::scope,              precedence{  1, true  } },
 
-	{ lex::token::paren_open,         precedence{  2, true  } },
-	{ lex::token::square_open,        precedence{  2, true  } },
-	{ lex::token::dot,                precedence{  2, true  } },
-	{ lex::token::arrow,              precedence{  2, true  } },
+	uint_precedence_pair_t{ lex::token::paren_open,         precedence{  2, true  } },
+	uint_precedence_pair_t{ lex::token::square_open,        precedence{  2, true  } },
+	uint_precedence_pair_t{ lex::token::dot,                precedence{  2, true  } },
+	uint_precedence_pair_t{ lex::token::arrow,              precedence{  2, true  } },
 
-	{ lex::token::dot_dot,            precedence{  5, true  } },
+	uint_precedence_pair_t{ lex::token::dot_dot,            precedence{  5, true  } },
 
-	{ lex::token::multiply,           precedence{  6, true  } },
-	{ lex::token::divide,             precedence{  6, true  } },
-	{ lex::token::modulo,             precedence{  6, true  } },
+	uint_precedence_pair_t{ lex::token::multiply,           precedence{  6, true  } },
+	uint_precedence_pair_t{ lex::token::divide,             precedence{  6, true  } },
+	uint_precedence_pair_t{ lex::token::modulo,             precedence{  6, true  } },
 
-	{ lex::token::plus,               precedence{  7, true  } },
-	{ lex::token::minus,              precedence{  7, true  } },
+	uint_precedence_pair_t{ lex::token::plus,               precedence{  7, true  } },
+	uint_precedence_pair_t{ lex::token::minus,              precedence{  7, true  } },
 
-	{ lex::token::bit_left_shift,     precedence{  8, true  } },
-	{ lex::token::bit_right_shift,    precedence{  8, true  } },
+	uint_precedence_pair_t{ lex::token::bit_left_shift,     precedence{  8, true  } },
+	uint_precedence_pair_t{ lex::token::bit_right_shift,    precedence{  8, true  } },
 
-	{ lex::token::bit_and,            precedence{  9, true  } },
-	{ lex::token::bit_xor,            precedence{ 10, true  } },
-	{ lex::token::bit_or,             precedence{ 11, true  } },
+	uint_precedence_pair_t{ lex::token::bit_and,            precedence{  9, true  } },
+	uint_precedence_pair_t{ lex::token::bit_xor,            precedence{ 10, true  } },
+	uint_precedence_pair_t{ lex::token::bit_or,             precedence{ 11, true  } },
 
-	{ lex::token::less_than,          precedence{ 12, true  } },
-	{ lex::token::less_than_eq,       precedence{ 12, true  } },
-	{ lex::token::greater_than,       precedence{ 12, true  } },
-	{ lex::token::greater_than_eq,    precedence{ 12, true  } },
+	uint_precedence_pair_t{ lex::token::less_than,          precedence{ 12, true  } },
+	uint_precedence_pair_t{ lex::token::less_than_eq,       precedence{ 12, true  } },
+	uint_precedence_pair_t{ lex::token::greater_than,       precedence{ 12, true  } },
+	uint_precedence_pair_t{ lex::token::greater_than_eq,    precedence{ 12, true  } },
 
-	{ lex::token::equals,             precedence{ 13, true  } },
-	{ lex::token::not_equals,         precedence{ 13, true  } },
+	uint_precedence_pair_t{ lex::token::equals,             precedence{ 13, true  } },
+	uint_precedence_pair_t{ lex::token::not_equals,         precedence{ 13, true  } },
 
-	{ lex::token::bool_and,           precedence{ 14, true  } },
-	{ lex::token::bool_xor,           precedence{ 15, true  } },
-	{ lex::token::bool_or,            precedence{ 16, true  } },
+	uint_precedence_pair_t{ lex::token::bool_and,           precedence{ 14, true  } },
+	uint_precedence_pair_t{ lex::token::bool_xor,           precedence{ 15, true  } },
+	uint_precedence_pair_t{ lex::token::bool_or,            precedence{ 16, true  } },
 
 	// ternary ?
-	{ lex::token::assign,             precedence{ 17, false } },
-	{ lex::token::plus_eq,            precedence{ 17, false } },
-	{ lex::token::minus_eq,           precedence{ 17, false } },
-	{ lex::token::multiply_eq,        precedence{ 17, false } },
-	{ lex::token::divide_eq,          precedence{ 17, false } },
-	{ lex::token::modulo_eq,          precedence{ 17, false } },
-	{ lex::token::dot_dot_eq,         precedence{ 17, false } },
-	{ lex::token::bit_left_shift_eq,  precedence{ 17, false } },
-	{ lex::token::bit_right_shift_eq, precedence{ 17, false } },
-	{ lex::token::bit_and_eq,         precedence{ 17, false } },
-	{ lex::token::bit_xor_eq,         precedence{ 17, false } },
-	{ lex::token::bit_or_eq,          precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::assign,             precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::plus_eq,            precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::minus_eq,           precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::multiply_eq,        precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::divide_eq,          precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::modulo_eq,          precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::dot_dot_eq,         precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::bit_left_shift_eq,  precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::bit_right_shift_eq, precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::bit_and_eq,         precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::bit_xor_eq,         precedence{ 17, false } },
+	uint_precedence_pair_t{ lex::token::bit_or_eq,          precedence{ 17, false } },
 
-	{ lex::token::comma,              precedence{ 19, true  } },
+	uint_precedence_pair_t{ lex::token::comma,              precedence{ 19, true  } },
 };
 
 constexpr precedence no_comma{ 18, true };
 constexpr precedence as_prec {  4, true };
 
-static std::map<uint32_t, precedence> unary_op_precendences =
+static constexpr std::array unary_op_precendences =
 {
-	{ lex::token::plus,               precedence{  3, false } },
-	{ lex::token::minus,              precedence{  3, false } },
-	{ lex::token::plus_plus,          precedence{  3, false } },
-	{ lex::token::minus_minus,        precedence{  3, false } },
-	{ lex::token::bit_not,            precedence{  3, false } },
-	{ lex::token::bool_not,           precedence{  3, false } },
-	{ lex::token::address_of,         precedence{  3, false } },
-	{ lex::token::dereference,        precedence{  3, false } },
-	{ lex::token::kw_sizeof,          precedence{  3, false } },
-	{ lex::token::kw_typeof,          precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::plus,               precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::minus,              precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::plus_plus,          precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::minus_minus,        precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::bit_not,            precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::bool_not,           precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::address_of,         precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::dereference,        precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::kw_sizeof,          precedence{  3, false } },
+	uint_precedence_pair_t{ lex::token::kw_typeof,          precedence{  3, false } },
 	// new, delete?
 };
 
@@ -135,7 +137,10 @@ static precedence get_binary_precedence(uint32_t kind)
 		return as_prec;
 	}
 
-	auto it = binary_op_precendences.find(kind);
+	auto const it = std::find_if(
+		binary_op_precendences.begin(), binary_op_precendences.end(),
+		[kind](auto const &val) { return kind == val.first; }
+	);
 	if (it == binary_op_precendences.end())
 	{
 		return precedence{};
@@ -148,7 +153,10 @@ static precedence get_binary_precedence(uint32_t kind)
 
 static precedence get_unary_precedence(uint32_t kind)
 {
-	auto it = unary_op_precendences.find(kind);
+	auto const it = std::find_if(
+		unary_op_precendences.begin(), unary_op_precendences.end(),
+		[kind](auto const &val) { return kind == val.first; }
+	);
 	if (it == unary_op_precendences.end())
 	{
 		return precedence{};
@@ -346,6 +354,7 @@ static ast::expression parse_expression_helper(
 
 		case lex::token::square_open:
 		{
+			bz_assert(false);
 			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
 			auto rhs = parse_expression(inner_stream, inner_end, context, precedence{});
 			if (inner_stream != inner_end)
@@ -392,14 +401,6 @@ static ast::expression parse_expression_helper(
 		}
 	}
 
-	if (lhs.is_overloaded_function())
-	{
-		bz_assert(lhs.is<ast::constant_expression>());
-		auto &const_expr = lhs.get<ast::constant_expression>();
-		bz_assert(const_expr.expr.is<ast::expr_identifier>());
-		context.report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier_ptr>()->identifier);
-	}
-
 	return lhs;
 }
 
@@ -433,11 +434,6 @@ static ast::expression parse_expression(
 )
 {
 	auto lhs = parse_primary_expression(stream, end, context);
-	if (lhs.is_null())
-	{
-		bz_assert(context.has_errors());
-		return lhs;
-	}
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
 
