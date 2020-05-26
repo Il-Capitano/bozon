@@ -28,7 +28,7 @@ constexpr bz::u8string_view bright_white   = "\033[97m";
 
 constexpr auto error_color      = bright_red;
 constexpr auto warning_color    = bright_magenta;
-constexpr auto note_color       = bright_cyan;
+constexpr auto note_color       = bright_black;
 constexpr auto suggestion_color = bright_green;
 
 } // namespace colors
