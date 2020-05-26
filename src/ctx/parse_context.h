@@ -19,8 +19,9 @@ struct global_context;
 struct parse_context
 {
 	global_context &global_ctx;
-
 	bz::vector<decl_set> scope_decls;
+
+	bool is_parenthesis_suppressed = false;
 
 	parse_context(global_context &_global_ctx);
 
@@ -48,7 +49,6 @@ struct parse_context
 		);
 	}
 
-	void report_warning(lex::token_pos it) const;
 	void report_warning(
 		lex::token_pos it, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
@@ -67,6 +67,33 @@ struct parse_context
 	) const
 	{
 		this->report_warning(
+			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
+			std::move(message), std::move(notes), std::move(suggestions)
+		);
+	}
+
+	void report_parenthesis_suppressed_warning(
+		lex::token_pos it, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+	void report_parenthesis_suppressed_warning(
+		lex::src_tokens src_tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+	template<typename T>
+	void report_parenthesis_suppressed_warning(
+		T const &tokens, bz::u8string message,
+		bz::vector<ctx::note> notes = {},
+		bz::vector<ctx::suggestion> suggestions = {}
+	) const
+	{
+		if (this->is_parenthesis_suppressed)
+		{
+			return;
+		}
+		this->report_parenthesis_suppressed_warning(
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
 			std::move(message), std::move(notes), std::move(suggestions)
 		);

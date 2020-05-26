@@ -289,7 +289,7 @@ static bz::u8string get_highlighted_note(
 	bz::u8string result = "";
 	size_t line = begin_line_num;
 	auto it = line_begin;
-	while (it != line_end)
+	while (true)
 	{
 		size_t column = 0;
 		bz::u8string file_line = "";
@@ -348,7 +348,7 @@ static bz::u8string get_highlighted_note(
 				it = second_erase_end;
 			}
 
-			if (it == file_end || *it == '\n')
+			if (it == line_end || *it == '\n')
 			{
 				if (it == pivot_pos)
 				{
@@ -506,7 +506,7 @@ static bz::u8string get_highlighted_suggestion(
 		bz::u8string highlight_line = "";
 		size_t column = 0;
 
-		while (it != line_end && *it != '\n')
+		while (true)
 		{
 			if (it == first_suggestion_pos)
 			{
@@ -542,7 +542,7 @@ static bz::u8string get_highlighted_suggestion(
 				it = second_erase_end;
 			}
 
-			if (it == line_end)
+			if (it == line_end || *it == '\n')
 			{
 				break;
 			}
@@ -580,60 +580,6 @@ static bz::u8string get_highlighted_suggestion(
 	}
 
 	return result;
-
-/*
-	auto it = line_begin;
-	while (true)
-	{
-		if (it == char_place)
-		{
-			file_line += colors::suggestion_color;
-			file_line += suggestion_str;
-			file_line += colors::clear;
-
-			highlight_line += colors::suggestion_color;
-			highlight_line += bz::u8string(suggestion_str.length(), '~');
-			highlight_line += colors::clear;
-
-			column += suggestion_str.length();
-		}
-
-		if (it == erase_begin)
-		{
-			it = erase_end;
-		}
-
-		if (it == line_end)
-		{
-			break;
-		}
-
-		if (*it == '\t')
-		{
-			do
-			{
-				file_line += ' ';
-				highlight_line += ' ';
-				++column;
-			} while (column % 4 != 0);
-		}
-		else
-		{
-			file_line += *it;
-			highlight_line += ' ';
-			++column;
-		}
-
-		++it;
-	}
-
-	return bz::format(
-		"{} | {}\n"
-		"{:{}} | {}\n",
-		line, file_line,
-		bz::internal::lg_uint(line), "", highlight_line
-	);
-*/
 }
 
 static bz::u8string read_text_from_file(std::ifstream &file)
@@ -665,7 +611,6 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 			file_str += *it;
 		}
 	}
-
 
 	bz_assert(file_str.verify());
 	return file_str;

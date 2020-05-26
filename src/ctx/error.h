@@ -115,19 +115,6 @@ template<typename T>
 }
 
 [[nodiscard]] inline error make_warning(
-	lex::token_pos it
-)
-{
-	return {
-		true,
-		it->src_pos.file_name, it->src_pos.line,
-		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-		bz::format("unexpected token '{}'", it->value),
-		{}, {}
-	};
-}
-
-[[nodiscard]] inline error make_warning(
 	lex::token_pos it,
 	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}

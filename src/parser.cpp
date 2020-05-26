@@ -262,7 +262,10 @@ static ast::expression parse_primary_expression(
 		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+		auto const original_suppress_value = context.is_parenthesis_suppressed;
+		context.is_parenthesis_suppressed = stream == end;
 		auto expr = parse_expression(inner_stream, inner_end, context, precedence{});
+		context.is_parenthesis_suppressed = original_suppress_value;
 		if (inner_stream != inner_end && inner_stream->kind != lex::token::paren_close)
 		{
 			context.report_error(
@@ -336,6 +339,7 @@ static ast::expression parse_expression_helper(
 
 		switch (op->kind)
 		{
+		// function call operator
 		case lex::token::paren_open:
 		{
 			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
@@ -352,6 +356,7 @@ static ast::expression parse_expression_helper(
 			break;
 		}
 
+		// subscript operator
 		case lex::token::square_open:
 		{
 			bz_assert(false);
@@ -369,6 +374,7 @@ static ast::expression parse_expression_helper(
 			break;
 		}
 
+		// type cast
 		case lex::token::kw_as:
 		{
 			auto type = parse_typespec(stream, end, context);
@@ -379,9 +385,13 @@ static ast::expression parse_expression_helper(
 			break;
 		}
 
+		// any other operator
 		default:
 		{
+			auto const original_is_paren_suppressed = context.is_parenthesis_suppressed;
+			context.is_parenthesis_suppressed = false;
 			auto rhs = parse_primary_expression(stream, end, context);
+			context.is_parenthesis_suppressed = original_is_paren_suppressed && stream == end;
 			precedence rhs_prec;
 
 			while (

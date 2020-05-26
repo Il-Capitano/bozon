@@ -39,11 +39,6 @@ void parse_context::report_error(
 	));
 }
 
-void parse_context::report_warning(lex::token_pos it) const
-{
-	this->global_ctx.report_warning(ctx::make_warning(it));
-}
-
 void parse_context::report_warning(
 	lex::token_pos it,
 	bz::u8string message,
@@ -62,6 +57,48 @@ void parse_context::report_warning(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
+	this->global_ctx.report_warning(ctx::make_warning(
+		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
+		std::move(notes), std::move(suggestions)
+	));
+}
+
+void parse_context::report_parenthesis_suppressed_warning(
+	lex::token_pos it,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	if (this->is_parenthesis_suppressed)
+	{
+		return;
+	}
+	notes.emplace_back(ctx::make_note_with_suggestion(
+		{ it, it, it + 1 },
+		it, "(", it + 1, ")",
+		"put parenthesis around the expression to suppress this warning"
+	));
+	this->global_ctx.report_warning(ctx::make_warning(
+		it, std::move(message),
+		std::move(notes), std::move(suggestions)
+	));
+}
+
+void parse_context::report_parenthesis_suppressed_warning(
+	lex::src_tokens src_tokens,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	if (this->is_parenthesis_suppressed)
+	{
+		return;
+	}
+	notes.emplace_back(ctx::make_note_with_suggestion(
+		src_tokens,
+		src_tokens.begin, "(", src_tokens.end, ")",
+		"put parenthesis around the expression to suppress this warning"
+	));
 	this->global_ctx.report_warning(ctx::make_warning(
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
