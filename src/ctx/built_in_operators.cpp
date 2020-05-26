@@ -769,6 +769,23 @@ static ast::expression get_built_in_binary_assign(
 			);
 		}
 	}
+	// pointer = null
+	else if (
+		lhs_t.is<ast::ts_pointer>()
+		&& rhs.is<ast::constant_expression>()
+		&& rhs.get<ast::constant_expression>().value.kind() == ast::constant_value::null
+	)
+	{
+		rhs = make_built_in_cast(nullptr, std::move(rhs), lhs_t, context);
+		auto result_type = lhs_t;
+		auto const result_type_kind = lhs_type_kind;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			result_type_kind,
+			std::move(result_type),
+			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+		);
+	}
 
 	context.report_error(
 		src_tokens,
@@ -1579,6 +1596,15 @@ static ast::expression get_built_in_binary_multiply_divide(
 			}
 			else
 			{
+				if (!is_multiply && rhs.is<ast::constant_expression>())
+				{
+					auto &const_rhs = rhs.get<ast::constant_expression>();
+					auto const rhs_val = const_rhs.value.get<ast::constant_value::sint>();
+					if (rhs_val == 0)
+					{
+						context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+					}
+				}
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue,
@@ -1637,6 +1663,15 @@ static ast::expression get_built_in_binary_multiply_divide(
 			}
 			else
 			{
+				if (!is_multiply && rhs.is<ast::constant_expression>())
+				{
+					auto &const_rhs = rhs.get<ast::constant_expression>();
+					auto const rhs_val = const_rhs.value.get<ast::constant_value::uint>();
+					if (rhs_val == 0)
+					{
+						context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+					}
+				}
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue,
@@ -1765,6 +1800,15 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 			{
 				rhs = make_built_in_cast(nullptr, std::move(rhs), lhs_t, context);
 			}
+			// warn if there's a division by zero
+			if (
+				op->kind == lex::token::divide_eq
+				&& rhs.is<ast::constant_expression>()
+				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
+			)
+			{
+				context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+			}
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
@@ -1780,6 +1824,15 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 			if (lhs_kind != rhs_kind)
 			{
 				rhs = make_built_in_cast(nullptr, std::move(rhs), lhs_t, context);
+			}
+			// warn if there's a division by zero
+			if (
+				op->kind == lex::token::divide_eq
+				&& rhs.is<ast::constant_expression>()
+				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
+			)
+			{
+				context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1879,6 +1932,14 @@ static ast::expression get_built_in_binary_modulo(
 			}
 			else
 			{
+				// warn if there's a modulo by zero
+				if (
+					rhs.is<ast::constant_expression>()
+					&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
+				)
+				{
+					context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+				}
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue,
@@ -1932,6 +1993,14 @@ static ast::expression get_built_in_binary_modulo(
 			}
 			else
 			{
+				// warn if there's a modulo by zero
+				if (
+					rhs.is<ast::constant_expression>()
+					&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
+				)
+				{
+					context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+				}
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue,
@@ -2000,6 +2069,14 @@ static ast::expression get_built_in_binary_modulo_eq(
 			{
 				rhs = make_built_in_cast(nullptr, std::move(rhs), lhs_t, context);
 			}
+			// warn if there's a modulo by zero
+			if (
+				rhs.is<ast::constant_expression>()
+				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
+			)
+			{
+				context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+			}
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
@@ -2015,6 +2092,14 @@ static ast::expression get_built_in_binary_modulo_eq(
 			if (lhs_kind != rhs_kind)
 			{
 				rhs = make_built_in_cast(nullptr, std::move(rhs), lhs_t, context);
+			}
+			// warn if there's a modulo by zero
+			if (
+				rhs.is<ast::constant_expression>()
+				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
+			)
+			{
+				context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
