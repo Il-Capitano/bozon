@@ -118,9 +118,7 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(id.decl.index() == id.decl.index_of<ast::decl_variable const *>);
-	auto const var_decl = id.decl.get<ast::decl_variable const *>();
-	auto const val_ptr = context.get_variable(var_decl);
+	auto const val_ptr = context.get_variable(id.decl);
 	bz_assert(val_ptr != nullptr);
 	return { val_ptr::reference, val_ptr };
 }
@@ -1497,6 +1495,19 @@ static val_ptr emit_bitcode(
 			llvm::ConstantPointerNull::get(ptr_t)
 		};
 	}
+	case ast::constant_value::function:
+	{
+		auto const decl = const_expr.value.get<ast::constant_value::function>();
+		auto const llvm_fn = context.funcs_.find(decl);
+		bz_assert(llvm_fn != context.funcs_.end());
+		return {
+			val_ptr::value,
+			llvm_fn->second
+		};
+	}
+	case ast::constant_value::function_set_id:
+		bz_assert(false);
+		return {};
 	case ast::constant_value::aggregate:
 	default:
 		bz_assert(false);
@@ -1902,7 +1913,10 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 		{
 			args.push_back(get_llvm_type(a, context));
 		}
-		return llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
+		return llvm::PointerType::get(
+			llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false),
+			0
+		);
 	}
 	case ast::typespec::index<ast::ts_tuple>:
 	default:
