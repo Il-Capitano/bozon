@@ -26,7 +26,7 @@ inline void _bz_assert_begin(const char *expr, const char *file, int line)
 
 inline void _bz_assert_message(char const *message)
 {
-	std::cerr << "	Message: " << message << '\n';
+	std::cerr << "    message: " << message << '\n';
 }
 
 inline void _bz_assert_message()
