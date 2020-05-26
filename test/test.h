@@ -52,14 +52,14 @@ inline std::string build_str(Ts &&...ts)
 #define assert_true(x)                                                             \
 do { if (!(x)) {                                                                   \
     throw test_fail_exception(build_str(                                           \
-        "assert_true failed in " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
+        "assert_true failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
     ));                                                                            \
 } } while (false)
 
 #define assert_false(x)                                                             \
 do { if (!!(x)) {                                                                   \
     throw test_fail_exception(build_str(                                            \
-        "assert_false failed in " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
+        "assert_false failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
     ));                                                                             \
 } } while (false)
 
