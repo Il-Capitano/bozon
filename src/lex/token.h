@@ -283,9 +283,17 @@ struct token_range
 
 struct src_tokens
 {
-	token_pos begin = nullptr;
-	token_pos pivot = nullptr;
-	token_pos end   = nullptr;
+	token_pos begin;
+	token_pos pivot;
+	token_pos end;
+
+	src_tokens(void) noexcept
+		: begin(nullptr), pivot(nullptr), end(nullptr)
+	{}
+
+	src_tokens(token_pos _begin, token_pos _pivot, token_pos _end) noexcept
+		: begin(_begin), pivot(_pivot), end(_end)
+	{}
 };
 
 inline bz::u8string get_token_name_for_message(uint32_t kind)
