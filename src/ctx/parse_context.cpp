@@ -121,7 +121,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 
 void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 {
-	bz_assert(false);
+	this->report_error(id, bz::format("identifier '{}' is ambiguous", id->value));
 }
 
 
@@ -314,12 +314,28 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 }
 */
 
+ast::typespec get_function_type(ast::function_body &body)
+{
+	auto const &return_type = body.return_type;
+	bz::vector<ast::typespec> param_types;
+	param_types.reserve(body.params.size());
+	for (auto &p : body.params)
+	{
+		param_types.emplace_back(p.var_type);
+	}
+	return ast::make_ts_function({}, return_type, std::move(param_types));
+}
+
 ast::expression parse_context::make_identifier_expression(lex::token_pos id) const
 {
 	// ==== local decls ====
 	// we go in reverse through the scopes and the variables
 	// in case there's shadowing
 	lex::src_tokens const src_tokens = { id, id, id + 1 };
+	auto const id_value = id->value;
+
+	bool is_function_set = false;
+
 	for (
 		auto scope = this->scope_decls.rbegin();
 		scope != this->scope_decls.rend();
@@ -328,7 +344,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	{
 		auto const var = std::find_if(
 			scope->var_decls.rbegin(), scope->var_decls.rend(),
-			[id = id->value](auto const &var) {
+			[id = id_value](auto const &var) {
 				return var->identifier->value == id;
 			}
 		);
@@ -350,41 +366,91 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 
 		auto const fn_set = std::find_if(
 			scope->func_sets.begin(), scope->func_sets.end(),
-			[id = id->value](auto const &fn_set) {
+			[id = id_value](auto const &fn_set) {
 				return fn_set.id == id;
 			}
 		);
 		if (fn_set != scope->func_sets.end())
 		{
-			auto const id_type_kind = ast::expression_type_kind::function_name;
-			if (fn_set->func_decls.size() == 1)
-			{
-				auto const decl = fn_set->func_decls[0];
-				auto const &return_type = decl->body.return_type;
-				bz::vector<ast::typespec> param_types;
-				param_types.reserve(decl->body.params.size());
-				for (auto &p : decl->body.params)
-				{
-					param_types.emplace_back(p.var_type);
+			is_function_set = true;
+			break;
+		}
+	}
+
+	if (is_function_set)
+	{
+		int fn_set_count = 0;
+		using iter_t = decltype(this->scope_decls[0].func_sets)::const_iterator;
+		iter_t final_set = nullptr;
+		for (auto &scope : this->scope_decls)
+		{
+			auto const fn_set = std::find_if(
+				scope.func_sets.begin(), scope.func_sets.end(),
+				[id = id_value](auto const &fn_set) {
+					return fn_set.id == id;
 				}
+			);
+			if (fn_set != scope.func_sets.end())
+			{
+				++fn_set_count;
+				if (fn_set_count >= 2 || fn_set->func_decls.size() >= 2)
+				{
+					static_assert(bz::meta::is_same<decltype(id_value), bz::u8string_view const>);
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::function_name, ast::typespec(),
+						ast::constant_value(id_value),
+						ast::make_expr_identifier(id)
+					);
+				}
+				final_set = fn_set;
+			}
+		}
+
+		auto &export_decls = this->global_ctx._export_decls;
+		auto const global_fn_set = std::find_if(
+			export_decls.func_sets.begin(), export_decls.func_sets.end(),
+			[id = id_value](auto const &fn_set) {
+				return id == fn_set.id;
+			}
+		);
+		if (global_fn_set != export_decls.func_sets.end())
+		{
+			++fn_set_count;
+			if (fn_set_count >= 2 || global_fn_set->func_decls.size() >= 2)
+			{
+				static_assert(bz::meta::is_same<decltype(id_value), bz::u8string_view const>);
 				return ast::make_constant_expression(
 					src_tokens,
-					id_type_kind,
-					ast::make_ts_function({}, return_type, std::move(param_types)),
-					ast::constant_value(&decl->body),
-					ast::make_expr_identifier(id, decl)
+					ast::expression_type_kind::function_name, ast::typespec(),
+					ast::constant_value(id_value),
+					ast::make_expr_identifier(id)
 				);
 			}
 			else
 			{
-				auto const decl = static_cast<ast::decl_function const *>(nullptr);
+				bz_assert(global_fn_set->func_decls.size() == 1);
+				bz_assert(final_set == nullptr);
+				auto &body = global_fn_set->func_decls[0]->body;
 				return ast::make_constant_expression(
 					src_tokens,
-					id_type_kind, ast::typespec(),
-					ast::constant_value(fn_set->id.as_string_view()),
-					ast::make_expr_identifier(id, decl)
+					ast::expression_type_kind::function_name, get_function_type(body),
+					ast::constant_value(&body),
+					ast::make_expr_identifier(id)
 				);
 			}
+		}
+		else
+		{
+			bz_assert(final_set != nullptr);
+			bz_assert(final_set->func_decls.size() == 1);
+			auto &body = final_set->func_decls[0]->body;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_name, get_function_type(body),
+				ast::constant_value(&body),
+				ast::make_expr_identifier(id)
+			);
 		}
 	}
 
@@ -392,7 +458,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	auto &export_decls = this->global_ctx._export_decls;
 	auto const var = std::find_if(
 		export_decls.var_decls.begin(), export_decls.var_decls.end(),
-		[id = id->value](auto const &var) {
+		[id = id_value](auto const &var) {
 			return id == var->identifier->value;
 		}
 	);
@@ -414,7 +480,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 
 	auto const fn_set = std::find_if(
 		export_decls.func_sets.begin(), export_decls.func_sets.end(),
-		[id = id->value](auto const &fn_set) {
+		[id = id_value](auto const &fn_set) {
 			return id == fn_set.id;
 		}
 	);
@@ -424,34 +490,25 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		if (fn_set->func_decls.size() == 1)
 		{
 			auto const decl = fn_set->func_decls[0];
-			auto &return_type = decl->body.return_type;
-			bz::vector<ast::typespec> param_types;
-			param_types.reserve(decl->body.params.size());
-			for (auto &p : decl->body.params)
-			{
-				param_types.emplace_back(p.var_type);
-			}
 			return ast::make_constant_expression(
 				src_tokens,
-				id_type_kind,
-				ast::make_ts_function({}, return_type, std::move(param_types)),
+				id_type_kind, get_function_type(decl->body),
 				ast::constant_value(&decl->body),
-				ast::make_expr_identifier(id, decl)
+				ast::make_expr_identifier(id)
 			);
 		}
 		else
 		{
-			auto const decl = static_cast<ast::decl_function const *>(nullptr);
 			return ast::make_constant_expression(
 				src_tokens,
 				id_type_kind, ast::typespec(),
 				ast::constant_value(fn_set->id.as_string_view()),
-				ast::make_expr_identifier(id, decl)
+				ast::make_expr_identifier(id)
 			);
 		}
 	}
 
-	this->report_error(id, bz::format("undeclared identifier '{}'", id->value));
+	this->report_error(id, bz::format("undeclared identifier '{}'", id_value));
 	return ast::expression(src_tokens);
 }
 
@@ -864,6 +921,23 @@ if (postfix == postfix_str)                                                     
 		auto const value = get_character(it);
 		bz_assert(it == end);
 
+		if (value > bz::max_unicode_value)
+		{
+			this->report_error(
+				literal,
+				bz::format(
+					"the value \\U{:8x} is not a valid character, maximum value is \\U0010ffff",
+					value
+				)
+			);
+		}
+
+		auto const postfix = literal->postfix;
+		if (postfix != "")
+		{
+			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
+		}
+
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
@@ -934,7 +1008,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	}
 
 	return ast::make_constant_expression(
-		{ begin, end },
+		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
 		ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::str_)),
 		ast::constant_value(result),
@@ -1147,7 +1221,7 @@ struct match_level
 
 static match_level get_function_call_match_level(
 	ast::function_body &func_body,
-	bz::vector<ast::expression> const &params,
+	bz::array_view<const ast::expression> params,
 	parse_context &context
 )
 {
@@ -1637,6 +1711,21 @@ ast::expression parse_context::make_function_call_expression(
 		return ast::expression(src_tokens);
 	}
 
+	if (called.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
+	for (auto &p : params)
+	{
+		if (p.is_null())
+		{
+			bz_assert(this->has_errors());
+			return ast::expression(src_tokens);
+		}
+	}
+
 	auto const [called_type, called_type_kind] = called.get_expr_type_and_kind();
 
 	if (called_type_kind == ast::expression_type_kind::function_name)
@@ -1766,6 +1855,12 @@ ast::expression parse_context::make_cast_expression(
 		return ast::expression(src_tokens);
 	}
 
+	if (expr.is_null() || type.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 
 	if (is_built_in_type(expr_type))
@@ -1792,6 +1887,22 @@ void parse_context::match_expression_to_type(
 		bz_assert(this->has_errors());
 		return;
 	}
+
+	// check for an overloaded function
+	if (
+		auto const const_expr = expr.get_if<ast::constant_expression>();
+		const_expr
+//		&& const_expr->kind == ast::expression_type_kind::function_name
+		&& const_expr->value.kind() == ast::constant_value::function_set_id
+	)
+	{
+		bz_assert(const_expr->kind == ast::expression_type_kind::function_name);
+//		bz_assert(false, "overloaded function not handled in match_expresstion_to_type");
+		bz_assert(const_expr->expr.is<ast::expr_identifier>());
+		this->report_ambiguous_id_error(const_expr->expr.get<ast::expr_identifier_ptr>()->identifier);
+		return;
+	}
+
 	auto [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	if (!ast::is_complete(expr_type))
 	{
@@ -1864,6 +1975,8 @@ void parse_context::match_expression_to_type(
 			this->report_error(expr, "cannot bind an rvalue to an lvalue reference");
 			return;
 		}
+
+		dest_it = &dest_it->get<ast::ts_reference_ptr>()->base;
 
 		if (dest_it->is<ast::ts_constant>())
 		{
