@@ -249,7 +249,7 @@ static void match_character(
 					stream.file, stream.line,
 					first_char, first_char, end,
 					bz::format(
-						"the value 0x{:c}{:c} is too large, it must be at most 0x7f",
+						"the value 0x{:c}{:c} is too large for a character, it must be at most 0x7f",
 						*first_char, *second_char
 					),
 					{},
@@ -329,7 +329,7 @@ static void match_character(
 				context.bad_chars(
 					stream.file, stream.line,
 					first_char, first_char, stream.it,
-					bz::format("the value 0x{:08x} is too large, it must be at most 0x0010ffff", value)
+					bz::format("the value 0x{:08x} is too large for a character, it must be at most 0x0010ffff", value)
 				);
 			}
 			break;

@@ -155,7 +155,7 @@ bz::u8char safe_add(
 		context.report_error(
 			src_tokens,
 			bz::format(
-				"the result of 0x{:x} in a constant expression is not a valid character (maximum value is 0x10ffff)",
+				"the result of 0x{:x} in a constant expression is not a valid character, maximum value is 0x10ffff",
 				result
 			)
 		);
