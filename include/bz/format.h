@@ -1027,7 +1027,7 @@ u8string int_to_string(Int val, format_spec spec)
 	}
 	else
 	{
-		// only allow decimal printing for unsigned numbers
+		// only allow decimal printing for signed numbers
 		// could change later
 		bz_assert(spec.type == 'd');
 	}
