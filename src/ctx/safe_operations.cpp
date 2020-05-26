@@ -196,6 +196,40 @@ bz::u8char safe_add(
 	return result;
 }
 
+// float32 + float32
+float32_t safe_add(
+	float32_t a, float32_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a + b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+// float64 + float64
+float64_t safe_add(
+	float64_t a, float64_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a + b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
 
 // int - int
 int64_t safe_subtract(
@@ -356,6 +390,41 @@ int32_t safe_subtract(
 	return static_cast<int32_t>(a) - static_cast<int32_t>(b);
 }
 
+// float32 - float32
+float32_t safe_subtract(
+	float32_t a, float32_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a - b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+// float64 - float64
+float64_t safe_subtract(
+	float64_t a, float64_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a - b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+
 // int * int
 int64_t safe_multiply(
 	int64_t a, int64_t b, uint32_t type_kind,
@@ -448,6 +517,41 @@ case ast::type_info::type##_:                                                   
 #undef x
 }
 
+// float32 * float32
+float32_t safe_multiply(
+	float32_t a, float32_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a * b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+// float64 * float64
+float64_t safe_multiply(
+	float64_t a, float64_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a * b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+
 // int / int
 int64_t safe_divide(
 	int64_t a, int64_t b, uint32_t,
@@ -482,6 +586,41 @@ uint64_t safe_divide(
 
 	return a / b;
 }
+
+// float32 / float32
+float32_t safe_divide(
+	float32_t a, float32_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a / b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
+// float64 / float64
+float64_t safe_divide(
+	float64_t a, float64_t b,
+	lex::src_tokens src_tokens, parse_context &context
+)
+{
+	auto const result = a / b;
+	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	{
+		context.report_parenthesis_suppressed_warning(
+			src_tokens,
+			bz::format("result of floating point arithmetic in constant expression is {}", result)
+		);
+	}
+	return result;
+}
+
 
 // int % int
 int64_t safe_modulo(

@@ -939,23 +939,18 @@ static ast::expression get_built_in_binary_plus(
 			auto result_type = lhs_t;
 			if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
 			{
-				auto &const_lhs = lhs.get<ast::constant_expression>();
-				auto &const_rhs = rhs.get<ast::constant_expression>();
-				bz_assert(const_lhs.value.kind() == const_rhs.value.kind());
 				ast::constant_value value{};
-				switch (const_lhs.value.kind())
+				if (lhs_kind == ast::type_info::float32_)
 				{
-				case ast::constant_value::float32:
-					value = const_lhs.value.get<ast::constant_value::float32>()
-						+ const_rhs.value.get<ast::constant_value::float32>();
-					break;
-				case ast::constant_value::float64:
-					value = const_lhs.value.get<ast::constant_value::float64>()
-						+ const_rhs.value.get<ast::constant_value::float64>();
-					break;
-				default:
-					bz_assert(false);
-					break;
+					auto const [lhs_val, rhs_val] =
+						get_constant_expression_values<ast::constant_value::float32>(lhs, rhs);
+					value = safe_add(lhs_val, rhs_val, src_tokens, context);
+				}
+				else
+				{
+					auto const [lhs_val, rhs_val] =
+						get_constant_expression_values<ast::constant_value::float64>(lhs, rhs);
+					value = safe_add(lhs_val, rhs_val, src_tokens, context);
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -1247,23 +1242,18 @@ static ast::expression get_built_in_binary_minus(
 			auto result_type = lhs_t;
 			if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
 			{
-				auto &const_lhs = lhs.get<ast::constant_expression>();
-				auto &const_rhs = rhs.get<ast::constant_expression>();
-				bz_assert(const_lhs.value.kind() == const_rhs.value.kind());
 				ast::constant_value value{};
-				switch (const_lhs.value.kind())
+				if (lhs_kind == ast::type_info::float32_)
 				{
-				case ast::constant_value::float32:
-					value = const_lhs.value.get<ast::constant_value::float32>()
-						- const_rhs.value.get<ast::constant_value::float32>();
-					break;
-				case ast::constant_value::float64:
-					value = const_lhs.value.get<ast::constant_value::float64>()
-						- const_rhs.value.get<ast::constant_value::float64>();
-					break;
-				default:
-					bz_assert(false);
-					break;
+					auto const [lhs_val, rhs_val] =
+						get_constant_expression_values<ast::constant_value::float32>(lhs, rhs);
+					value = safe_subtract(lhs_val, rhs_val, src_tokens, context);
+				}
+				else
+				{
+					auto const [lhs_val, rhs_val] =
+						get_constant_expression_values<ast::constant_value::float64>(lhs, rhs);
+					value = safe_subtract(lhs_val, rhs_val, src_tokens, context);
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -1690,39 +1680,21 @@ static ast::expression get_built_in_binary_multiply_divide(
 			if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
 			{
 				ast::constant_value value{};
-				switch (lhs_kind)
-				{
-				case ast::type_info::float32_:
+				if (lhs_kind == ast::type_info::float32_)
 				{
 					auto const [lhs_val, rhs_val] =
 						get_constant_expression_values<ast::constant_value::float32>(lhs, rhs);
-					if (is_multiply)
-					{
-						value = lhs_val * rhs_val;
-					}
-					else
-					{
-						value = lhs_val / rhs_val;
-					}
-					break;
+					value = is_multiply
+						? safe_multiply(lhs_val, rhs_val, src_tokens, context)
+						: safe_divide(lhs_val, rhs_val, src_tokens, context);
 				}
-				case ast::type_info::float64_:
+				else
 				{
 					auto const [lhs_val, rhs_val] =
 						get_constant_expression_values<ast::constant_value::float64>(lhs, rhs);
-					if (is_multiply)
-					{
-						value = lhs_val * rhs_val;
-					}
-					else
-					{
-						value = lhs_val / rhs_val;
-					}
-					break;
-				}
-				default:
-					bz_assert(false);
-					break;
+					value = is_multiply
+						? safe_multiply(lhs_val, rhs_val, src_tokens, context)
+						: safe_divide(lhs_val, rhs_val, src_tokens, context);
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -1733,6 +1705,19 @@ static ast::expression get_built_in_binary_multiply_divide(
 			}
 			else
 			{
+				if (!is_multiply && rhs.is<ast::constant_expression>())
+				{
+					auto &const_rhs = rhs.get<ast::constant_expression>();
+					auto const is_zero = rhs_kind == ast::type_info::float32_
+						? const_rhs.value.get<ast::constant_value::float32>() == 0.0f
+						: const_rhs.value.get<ast::constant_value::float64>() == 0.0;
+					if (is_zero)
+					{
+						context.report_parenthesis_suppressed_warning(
+							src_tokens, "dividing by zero in floating point arithmetic"
+						);
+					}
+				}
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue, std::move(result_type),
@@ -2000,11 +1985,7 @@ static ast::expression get_built_in_binary_modulo(
 				)
 				{
 					context.report_warning(
-						src_tokens, "modulo by zero in integer arithmetic",
-						{ ctx::make_note_with_suggestion(
-							src_tokens, src_tokens.begin, "(", src_tokens.end, ")",
-							"put parenthesis around the expression to suppress this warning"
-						) }
+						src_tokens, "modulo by zero in integer arithmetic"
 					);
 				}
 				return ast::make_dynamic_expression(
