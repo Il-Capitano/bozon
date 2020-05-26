@@ -23,8 +23,8 @@ function factorial(n: int32) -> int32
 	let res = 1;
 	while (i <= n)
 	{
-		res = res * i;
-		i -= -1;
+		res *= i;
+		++i;
 	}
 	return res;
 }
@@ -105,7 +105,10 @@ function main() -> int32
 	println("\n=== \x41 ===");
 //	+'b';
 
+	println("\n==== const_expr_test ====");
 	const_expr_test();
+	println("\n==== scope_test ====");
+	scope_test();
 	return 0;
 /*
 	let bool: bool = false;
@@ -234,11 +237,7 @@ function ref_test() -> void
 	println("first and third pointers should be the same");
 
 	let &m = n;
-	if (&m != &n)
-	{
-		println("BAD");
-		return;
-	}
+	assert(&m == &n);
 	print_int32_ptr(&m);
 	foo(m);
 	foo_ref(m);
@@ -281,7 +280,7 @@ function const_expr_test() -> void
 	const n = 9'223'372'036'854'775'807; // int64
 	const n = 9'223'372'036'854'775'808; // uint64
 
-	-(-9'223'372'036'854'775'807i64 - 1);
+//	-(-9'223'372'036'854'775'807i64 - 1);
 
 	assert(9'223'372'036'854'775'808 == 1u64 << 63u32);
 	assert(9'223'372'036'854'775'808 as uint32 == 0u32);
@@ -290,4 +289,61 @@ function const_expr_test() -> void
 	const FALSE: bool = false;
 	let b = false && FALSE;
 	let c = true || FALSE;
+
+	const p = null as *int32;
+	assert(p == null);
+
+	const *const p = &n;
+	assert(p != null);
+
+//	*(null as *int32) = 2;
+	println("hello" " again" ", and again!");
+}
+
+function scope_test() -> void
+{
+	function foo() -> void { println("foo1"); }
+
+	{
+		function foo() -> void { println("foo2"); }
+//		const f = foo;
+		foo();
+	}
+
+//	const f = foo;
+
+	foo();
+
+	function foo(n: const int32) -> void { println("foo(n: const int32)"); }
+	const n = 0;
+
+	{
+		function foo(n: &const int32) -> void { println("foo(n: &const int32)"); }
+		foo(n);
+		foo(3);
+	}
+
+	foo(n);
+
+	function ambiguous_test_in_scope() -> void { println("test1"); }
+
+	const f = ambiguous_test_in_scope;
+	{
+		function ambiguous_test_in_scope() -> void { println("test2"); }
+//		const f = ambiguous_test_in_scope;
+		ambiguous_test_in_scope();
+	}
+	const f = ambiguous_test_in_scope;
+
+	let n = 40 + 2;
+
+	let n = 0 - -2147483648;
+//	255 / 0;
+//	n / 0;
+//	n /= 0;
+//	n % 0;
+//	n %= 0;
+
+	let p: *int32;
+	p = null;
 }
