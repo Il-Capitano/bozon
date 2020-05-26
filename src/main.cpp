@@ -1080,6 +1080,76 @@ with ()'s we couldn't do that
 vec2(float64)(1.0, -3.0)  ->  ??
 
 
+
+
+
+
+
+// only member variables in struct definition
+struct vec2
+{
+	x: float64,
+	y: float64,
+}
+
+// allow forward declarations for external libraries
+struct FILE;
+
+// member functions, constructors and destructors are seperate
+// this allows to add member functions to incomplete types
+implement vec2
+{
+	constructor() = default;
+	destructor(&const this) = default;
+
+	// should constructors return an instance??
+	constructor(x, y)
+	{
+		// syntax ??
+		return vec2([ .x = x, .y = y ]);
+	}
+
+	constructor(arr: #const [2: auto])
+	{
+		return vec2[ .x = arr[0], .y = arr[1] ];
+	}
+
+	constructor(tup: [#const auto, #const auto])
+	{
+		return vec2[ .x = tup[0], .y = tup[1] ];
+	}
+
+	function norm(#const this)
+	{
+		return std::hypot(this.x, this.y);
+	}
+
+	function abs(#const this)
+	{
+		return this.norm();
+	}
+}
+
+
+implement FILE
+{
+	function close(#this)
+	{
+		std::libc::fclose(&this);
+	}
+}
+
+
+// ...
+let f = std::libc::fopen("data.txt");
+
+process_data(f);
+
+f->close();
+f = null;
+
+
+
 */
 
 #include "core.h"
