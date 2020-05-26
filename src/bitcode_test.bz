@@ -339,10 +339,13 @@ function scope_test() -> void
 
 	let n = 0 - -2147483648;
 //	255 / 0;
-//	n / 0;
+	n / 0;
 //	n /= 0;
 //	n % 0;
 //	n %= 0;
+
+	const u32 = 0u32;
+	u32 % 0u8;
 
 	let p: *int32;
 	p = null;
