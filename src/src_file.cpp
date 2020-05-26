@@ -194,41 +194,394 @@ static bz::u8string get_highlighted_chars(
 	return result;
 }
 
-static bz::u8string get_highlighted_suggestion(
+static bz::u8string get_highlighted_note(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
-	ctx::char_pos const char_place,
-	ctx::char_pos const erase_begin,
-	ctx::char_pos const erase_end,
-	bz::u8string_view const suggestion_str,
-	size_t const line
+	ctx::note const &note
 )
 {
-	bz_assert(file_begin < file_end);
-	bz_assert(file_begin <= char_place);
-	bz_assert(char_place <= file_end);
-	bz_assert(erase_begin <= erase_end);
-	bz_assert(erase_begin == erase_end || char_place <= erase_begin || char_place >= erase_end);
+	auto const pivot_pos = note.src_pivot;
+	auto const begin_pos = note.src_begin;
+	auto const end_pos   = note.src_end;
 
-	auto line_begin_ptr = char_place.data();
+	bz_assert(begin_pos <= pivot_pos);
+	bz_assert(pivot_pos < end_pos);
+
+	auto const first_suggestion_pos = note.first_suggestion.suggestion_pos;
+	auto const first_erase_begin = note.first_suggestion.erase_begin;
+	auto const first_erase_end = note.first_suggestion.erase_end;
+	auto const second_suggestion_pos = note.second_suggestion.suggestion_pos;
+	auto const second_erase_begin = note.second_suggestion.erase_begin;
+	auto const second_erase_end = note.second_suggestion.erase_end;
+
+	auto const first_suggestion_str = note.first_suggestion.suggestion_str.as_string_view();
+	auto const second_suggestion_str = note.second_suggestion.suggestion_str.as_string_view();
+
+	bz_assert(first_erase_begin <= first_erase_end);
+	bz_assert(second_erase_begin <= second_erase_end);
+	bz_assert(first_erase_begin.data() == nullptr || first_erase_begin <= begin_pos || first_erase_begin >= end_pos);
+	bz_assert(second_erase_begin.data() == nullptr || second_erase_begin <= begin_pos || second_erase_begin >= end_pos);
+	bz_assert(second_suggestion_pos.data() == nullptr || first_suggestion_pos <= second_suggestion_pos);
+	bz_assert(second_suggestion_pos.data() != nullptr ? first_suggestion_pos.data() != nullptr : true);
+
+	bz_assert(second_erase_begin.data() == nullptr || first_erase_end <= second_erase_begin);
+	bz_assert(second_erase_begin.data() == nullptr || first_suggestion_pos <= second_erase_begin);
+	bz_assert(second_suggestion_pos.data() == nullptr || second_suggestion_pos >= first_erase_end);
+
+	auto const smallest_pos = first_suggestion_pos.data() == nullptr
+		? begin_pos
+		: (
+			first_erase_begin.data() == nullptr
+			? std::min(begin_pos, first_suggestion_pos)
+			: std::min(begin_pos, std::min(first_suggestion_pos, first_erase_begin))
+		);
+
+	auto const largest_pos = std::max(
+		end_pos,
+		std::max(
+			std::max(first_suggestion_pos, first_erase_end),
+			std::max(second_suggestion_pos, second_erase_end)
+		)
+	);
+
+	bz_assert(smallest_pos >= file_begin);
+	bz_assert(largest_pos <= file_end);
+
+	auto line_begin_ptr = smallest_pos.data();
 	while (line_begin_ptr != file_begin.data() && *(line_begin_ptr - 1) != '\n')
 	{
 		--line_begin_ptr;
 	}
 	auto const line_begin = bz::u8iterator(line_begin_ptr);
 
-	auto line_end_ptr = char_place.data();
+	auto line_end_ptr = largest_pos.data();
 	while (line_end_ptr != file_end.data() && *line_end_ptr != '\n')
 	{
 		++line_end_ptr;
 	}
 	auto const line_end = bz::u8iterator(line_end_ptr);
 
-	bz::u8string file_line = "";
-	bz::u8string highlight_line = "";
+	auto const begin_line_num = [&]() {
+		auto line = note.line;
+		for (auto it = first_suggestion_pos.data(); it > line_begin.data(); --it)
+		{
+			if (*it == '\n')
+			{
+				--line;
+			}
+		}
+		return line;
+	}();
 
-	size_t column = 0;
+	auto const max_line_size = [&]() {
+		auto line = note.line;
+		for (auto it = first_suggestion_pos.data(); it < line_end.data(); ++it)
+		{
+			if (*it == '\n')
+			{
+				++line;
+			}
+		}
+		// internal function is used here...
+		return bz::internal::lg_uint(line);
+	}();
 
+	bz::u8string result = "";
+	size_t line = begin_line_num;
+	auto it = line_begin;
+	while (it != line_end)
+	{
+		size_t column = 0;
+		bz::u8string file_line = "";
+		bz::u8string highlight_line = "";
+
+		if (it > begin_pos && it < end_pos)
+		{
+			file_line += colors::note_color;
+			highlight_line += colors::note_color;
+		}
+
+		while (true)
+		{
+			if (it == first_suggestion_pos)
+			{
+				file_line += colors::suggestion_color;
+				file_line += first_suggestion_str;
+				file_line += colors::clear;
+
+				highlight_line += colors::suggestion_color;
+				highlight_line += bz::u8string(first_suggestion_str.length(), '~');
+				highlight_line += colors::clear;
+
+				column += first_suggestion_str.length();
+			}
+			else if (it == second_suggestion_pos)
+			{
+				file_line += colors::suggestion_color;
+				file_line += second_suggestion_str;
+				file_line += colors::clear;
+
+				highlight_line += colors::suggestion_color;
+				highlight_line += bz::u8string(second_suggestion_str.length(), '~');
+				highlight_line += colors::clear;
+
+				column += second_suggestion_str.length();
+			}
+
+			if (it == begin_pos)
+			{
+				file_line += colors::note_color;
+				highlight_line += colors::note_color;
+			}
+			else if (it == end_pos)
+			{
+				file_line += colors::clear;
+				highlight_line += colors::clear;
+			}
+
+			if (it == first_erase_begin)
+			{
+				it = first_erase_end;
+			}
+			else if (it == second_erase_begin)
+			{
+				it = second_erase_end;
+			}
+
+			if (it == file_end || *it == '\n')
+			{
+				if (it == pivot_pos)
+				{
+					highlight_line += '^';
+				}
+				else if (it >= begin_pos && it < end_pos)
+				{
+					highlight_line += '~';
+				}
+				break;
+			}
+
+			if (*it == '\t')
+			{
+				if (it == pivot_pos)
+				{
+					file_line += ' ';
+					++column;
+					highlight_line += '^';
+					while (column % 4 != 0)
+					{
+						file_line += ' ';
+						++column;
+						highlight_line += '~';
+					}
+				}
+				else
+				{
+					char highlight_char = it >= begin_pos && it < end_pos ? '~' : ' ';
+					do
+					{
+						file_line += ' ';
+						++column;
+						highlight_line += highlight_char;
+					} while (column % 4 != 0);
+				}
+			}
+			else
+			{
+				file_line += *it;
+				++column;
+				if (it == pivot_pos)
+				{
+					highlight_line += '^';
+				}
+				else if (it >= begin_pos && it < end_pos)
+				{
+					highlight_line += '~';
+				}
+				else
+				{
+					highlight_line += ' ';
+				}
+			}
+
+			++it;
+		}
+
+		result += bz::format("{:>{}} | {}{}\n", max_line_size, line, file_line, colors::clear);
+		result += bz::format("{:>{}} | {}{}\n", max_line_size, "", highlight_line, colors::clear);
+
+		if (it == line_end)
+		{
+			break;
+		}
+
+		bz_assert(*it == '\n');
+		++it;
+		++line;
+	}
+
+	return result;
+}
+
+static bz::u8string get_highlighted_suggestion(
+	ctx::char_pos const file_begin,
+	ctx::char_pos const file_end,
+	ctx::suggestion const &suggestion
+)
+{
+	auto const first_suggestion_pos = suggestion.first_suggestion.suggestion_pos;
+	auto const first_erase_begin = suggestion.first_suggestion.erase_begin;
+	auto const first_erase_end = suggestion.first_suggestion.erase_end;
+	auto const second_suggestion_pos = suggestion.second_suggestion.suggestion_pos;
+	auto const second_erase_begin = suggestion.second_suggestion.erase_begin;
+	auto const second_erase_end = suggestion.second_suggestion.erase_end;
+
+	auto const first_suggestion_str = suggestion.first_suggestion.suggestion_str.as_string_view();
+	auto const second_suggestion_str = suggestion.second_suggestion.suggestion_str.as_string_view();
+
+	bz_assert(first_erase_begin <= first_erase_end);
+	bz_assert(second_erase_begin <= second_erase_end);
+	bz_assert(second_suggestion_pos.data() == nullptr || first_suggestion_pos <= second_suggestion_pos);
+
+	bz_assert(second_erase_begin.data() == nullptr || first_erase_end <= second_erase_begin);
+	bz_assert(second_erase_begin.data() == nullptr || first_suggestion_pos <= second_erase_begin);
+	bz_assert(second_suggestion_pos.data() == nullptr || second_suggestion_pos >= first_erase_end);
+	bz_assert(second_suggestion_pos.data() != nullptr ? first_suggestion_pos.data() != nullptr : true);
+
+	auto const smallest_pos = first_erase_begin.data() == nullptr
+		? first_suggestion_pos
+		: std::min(first_suggestion_pos, first_erase_begin);
+	auto const largest_pos = second_suggestion_pos.data() == nullptr
+		? std::max(first_suggestion_pos, first_erase_end)
+		: std::max(second_suggestion_pos, second_erase_end);
+
+	bz_assert(smallest_pos >= file_begin);
+	bz_assert(largest_pos <= file_end);
+
+	auto line_begin_ptr = smallest_pos.data();
+	while (line_begin_ptr != file_begin.data() && *(line_begin_ptr - 1) != '\n')
+	{
+		--line_begin_ptr;
+	}
+	auto const line_begin = bz::u8iterator(line_begin_ptr);
+
+	auto line_end_ptr = largest_pos.data();
+	while (line_end_ptr != file_end.data() && *line_end_ptr != '\n')
+	{
+		++line_end_ptr;
+	}
+	auto const line_end = bz::u8iterator(line_end_ptr);
+
+	auto const begin_line_num = [&]() {
+		auto line = suggestion.line;
+		for (auto it = first_suggestion_pos.data(); it > line_begin.data(); --it)
+		{
+			if (*it == '\n')
+			{
+				--line;
+			}
+		}
+		return line;
+	}();
+
+	auto const max_line_size = [&]() {
+		auto line = suggestion.line;
+		for (auto it = first_suggestion_pos.data(); it < line_end.data(); ++it)
+		{
+			if (*it == '\n')
+			{
+				++line;
+			}
+		}
+		// internal function is used here...
+		return bz::internal::lg_uint(line);
+	}();
+
+	bz::u8string result = "";
+	size_t line = begin_line_num;
+	auto it = line_begin;
+	while (true)
+	{
+		bz::u8string file_line = "";
+		bz::u8string highlight_line = "";
+		size_t column = 0;
+
+		while (it != line_end && *it != '\n')
+		{
+			if (it == first_suggestion_pos)
+			{
+				file_line += colors::suggestion_color;
+				file_line += first_suggestion_str;
+				file_line += colors::clear;
+
+				highlight_line += colors::suggestion_color;
+				highlight_line += bz::u8string(first_suggestion_str.length(), '~');
+				highlight_line += colors::clear;
+
+				column += first_suggestion_str.length();
+			}
+			else if (it == second_suggestion_pos)
+			{
+				file_line += colors::suggestion_color;
+				file_line += second_suggestion_str;
+				file_line += colors::clear;
+
+				highlight_line += colors::suggestion_color;
+				highlight_line += bz::u8string(second_suggestion_str.length(), '~');
+				highlight_line += colors::clear;
+
+				column += second_suggestion_str.length();
+			}
+
+			if (it == first_erase_begin)
+			{
+				it = first_erase_end;
+			}
+			else if (it == second_erase_begin)
+			{
+				it = second_erase_end;
+			}
+
+			if (it == line_end)
+			{
+				break;
+			}
+
+			if (*it == '\t')
+			{
+				do
+				{
+					file_line += ' ';
+					highlight_line += ' ';
+					++column;
+				} while (column % 4 != 0);
+			}
+			else
+			{
+				file_line += *it;
+				highlight_line += ' ';
+				++column;
+			}
+			++it;
+		}
+
+		result += bz::format("{:>{}} | {}\n", max_line_size, line, file_line);
+		result += bz::format("{:>{}} | {}\n", max_line_size, "", highlight_line);
+
+		if (it == line_end)
+		{
+			break;
+		}
+		else
+		{
+			++it;
+			++line;
+		}
+	}
+
+	return result;
+
+/*
 	auto it = line_begin;
 	while (true)
 	{
@@ -280,6 +633,7 @@ static bz::u8string get_highlighted_suggestion(
 		line, file_line,
 		bz::internal::lg_uint(line), "", highlight_line
 	);
+*/
 }
 
 static bz::u8string read_text_from_file(std::ifstream &file)
@@ -351,31 +705,27 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 			colors::clear,
 			colors::note_color, colors::clear,
 			n.message,
-			get_highlighted_chars(
-				file_begin, file_end,
-				n.src_begin, n.src_pivot, n.src_end,
-				n.line,
-				colors::note_color
-			)
+			get_highlighted_note(file_begin, file_end, n)
 		);
 	}
 	for (auto &s : err.suggestions)
 	{
-		auto const column = get_column_number(file_begin, s.place);
+		auto const report_pos = s.first_suggestion.suggestion_pos;
+		auto const report_pos_erase_begin = s.first_suggestion.erase_begin;
+		auto const report_pos_erase_end = s.first_suggestion.erase_end;
+		auto const column = get_column_number(file_begin, report_pos);
+		auto const actual_column = report_pos <= report_pos_erase_begin
+			? column
+			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
+
 		bz::printf(
 			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
 			colors::bright_white,
-			s.file, s.line,
-			(s.place <= s.erase_begin
-				? column
-				: column - bz::u8string_view(s.erase_begin, s.erase_end).length()),
+			s.file, s.line, actual_column,
 			colors::clear,
 			colors::suggestion_color, colors::clear,
 			s.message,
-			get_highlighted_suggestion(
-				file_begin, file_end,
-				s.place, s.erase_begin, s.erase_end, s.suggestion_str, s.line
-			)
+			get_highlighted_suggestion(file_begin, file_end, s)
 		);
 	}
 }

@@ -9,6 +9,14 @@ namespace ctx
 
 using char_pos  = bz::u8string_view::const_iterator;
 
+struct suggestion_range
+{
+	char_pos      erase_begin    = char_pos();
+	char_pos      erase_end      = char_pos();
+	char_pos      suggestion_pos = char_pos();
+	bz::u8string  suggestion_str = {};
+};
+
 struct note
 {
 	bz::u8string file;
@@ -18,6 +26,9 @@ struct note
 	char_pos src_pivot;
 	char_pos src_end;
 
+	suggestion_range first_suggestion;
+	suggestion_range second_suggestion;
+
 	bz::u8string message;
 };
 
@@ -26,10 +37,8 @@ struct suggestion
 	bz::u8string file;
 	size_t line;
 
-	char_pos place;
-	char_pos erase_begin;
-	char_pos erase_end;
-	bz::u8string suggestion_str;
+	suggestion_range first_suggestion;
+	suggestion_range second_suggestion;
 
 	bz::u8string message;
 };
@@ -168,18 +177,20 @@ template<typename T>
 	return {
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		{}, {},
 		std::move(message)
 	};
 }
 
 [[nodiscard]] inline note make_note(
-	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+	lex::src_tokens tokens,
 	bz::u8string message
 )
 {
 	return {
-		pivot->src_pos.file_name, pivot->src_pos.line,
-		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
+		{}, {},
 		std::move(message)
 	};
 }
@@ -196,15 +207,60 @@ template<typename T>
 	);
 }
 
+[[nodiscard]] inline note make_note_with_suggestion(
+	lex::src_tokens tokens,
+	lex::token_pos begin, bz::u8string begin_suggestion_str,
+	lex::token_pos end, bz::u8string end_suggestion_str,
+	bz::u8string message
+)
+{
+	return {
+		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
+		{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
+		{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
+		std::move(message)
+	};
+}
+
 [[nodiscard]] inline suggestion make_suggestion_after(
 	lex::token_pos it, bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
+	bz_assert(it != nullptr);
 	return {
 		it->src_pos.file_name, it->src_pos.line,
-		it->src_pos.end, char_pos(), char_pos(),
-		std::move(suggestion_str),
+		{ char_pos(), char_pos(), it->src_pos.end, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] inline suggestion make_suggestion_before(
+	lex::token_pos it, bz::u8string suggestion_str,
+	bz::u8string message
+)
+{
+	bz_assert(it != nullptr);
+	return {
+		it->src_pos.file_name, it->src_pos.line,
+		{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] inline suggestion make_suggestion_around(
+	lex::token_pos begin, bz::u8string begin_suggestion_str,
+	lex::token_pos end, bz::u8string end_suggestion_str,
+	bz::u8string message
+)
+{
+	return {
+		begin->src_pos.file_name, begin->src_pos.line,
+		{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
+		{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
 		std::move(message)
 	};
 }

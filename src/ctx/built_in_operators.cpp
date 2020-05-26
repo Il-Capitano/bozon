@@ -1999,7 +1999,13 @@ static ast::expression get_built_in_binary_modulo(
 					&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
 				)
 				{
-					context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+					context.report_warning(
+						src_tokens, "modulo by zero in integer arithmetic",
+						{ ctx::make_note_with_suggestion(
+							src_tokens, src_tokens.begin, "(", src_tokens.end, ")",
+							"put parenthesis around the expression to suppress this warning"
+						) }
+					);
 				}
 				return ast::make_dynamic_expression(
 					src_tokens,

@@ -64,6 +64,7 @@ void lex_context::bad_eof(
 	return ctx::note{
 		pos.file, pos.line,
 		pos.it, pos.it, pos.it + 1,
+		{}, {},
 		std::move(message)
 	};
 }
@@ -77,6 +78,7 @@ void lex_context::bad_eof(
 	return ctx::note{
 		file, line,
 		begin, pivot, end,
+		{}, {},
 		std::move(message)
 	};
 }
@@ -90,6 +92,7 @@ void lex_context::bad_eof(
 	return ctx::note{
 		file, line,
 		pivot, pivot, pivot + 1,
+		{}, {},
 		std::move(message)
 	};
 }
@@ -103,8 +106,8 @@ void lex_context::bad_eof(
 {
 	return ctx::suggestion{
 		pos.file, pos.line,
-		pos.it, ctx::char_pos(), ctx::char_pos(),
-		std::move(suggestion_str),
+		{ char_pos(), char_pos(), pos.it, std::move(suggestion_str) },
+		{},
 		std::move(message)
 	};
 }
@@ -117,8 +120,8 @@ void lex_context::bad_eof(
 {
 	return ctx::suggestion{
 		file, line,
-		pos, ctx::char_pos(), ctx::char_pos(),
-		std::move(suggestion_str),
+		{ ctx::char_pos(), ctx::char_pos(), pos, std::move(suggestion_str) },
+		{},
 		std::move(message)
 	};
 }
@@ -132,8 +135,8 @@ void lex_context::bad_eof(
 {
 	return ctx::suggestion{
 		file, line,
-		pos, erase_begin, erase_end,
-		std::move(suggestion_str),
+		{ erase_begin, erase_end, pos, std::move(suggestion_str) },
+		{},
 		std::move(message)
 	};
 }
