@@ -7,31 +7,31 @@
 namespace ctx
 {
 
-inline bool is_integer_kind(uint32_t kind)
+constexpr bool is_integer_kind(uint32_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::uint64_;
 }
 
-inline bool is_unsigned_integer_kind(uint32_t kind)
+constexpr bool is_unsigned_integer_kind(uint32_t kind)
 {
 	return kind >= ast::type_info::uint8_
 		&& kind <= ast::type_info::uint64_;
 }
 
-inline bool is_signed_integer_kind(uint32_t kind)
+constexpr bool is_signed_integer_kind(uint32_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::int64_;
 }
 
-inline bool is_floating_point_kind(uint32_t kind)
+constexpr bool is_floating_point_kind(uint32_t kind)
 {
 	return kind == ast::type_info::float32_
 		|| kind == ast::type_info::float64_;
 }
 
-inline bool is_arithmetic_kind(uint32_t kind)
+constexpr bool is_arithmetic_kind(uint32_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::float64_;

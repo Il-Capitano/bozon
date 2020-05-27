@@ -3028,10 +3028,10 @@ static ast::expression get_built_in_binary_bit_shift(
 				}();
 				if (rhs_val >= lhs_bit_width)
 				{
-					context.report_warning(
+					context.report_parenthesis_suppressed_warning(
 						src_tokens,
 						bz::format(
-							"{} shift value of {} is too large for type '{}'; will result in undefined behaviour",
+							"{} shift value of {} is too large for type '{}'",
 							op->kind == lex::token::bit_left_shift_eq ? "left" : "right",
 							rhs_val, lhs_type_str
 						)
@@ -3376,6 +3376,7 @@ ast::expression make_built_in_operation(
 	}
 }
 
+
 ast::expression make_built_in_cast(
 	lex::token_pos as_pos,
 	ast::expression expr,
@@ -3421,12 +3422,73 @@ ast::expression make_built_in_cast(
 
 	auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
 
-	auto const do_arithmetic_cast = [dest_kind = dest_kind](auto value) -> ast::constant_value {
+	auto const do_arithmetic_cast = [dest_kind = dest_kind, &context, &src_tokens](
+		auto value
+	) -> ast::constant_value {
 		switch (dest_kind)
 		{
-#define CASE(ret_t, dest_t)                                   \
-case ast::type_info::dest_t##_:                               \
-    return static_cast<ret_t>(static_cast<dest_t##_t>(value))
+#define CASE(ret_t, dest_t)                                                                         \
+case ast::type_info::dest_t##_:                                                                     \
+    if constexpr (                                                                                  \
+        is_signed_integer_kind(ast::type_info_from_type_v<decltype(value)>)                         \
+        && is_signed_integer_kind(ast::type_info::dest_t##_)                                        \
+    )                                                                                               \
+    {                                                                                               \
+        auto const result = static_cast<ret_t>(static_cast<dest_t##_t>(value));                     \
+        if (!is_in_range<dest_t##_t>(value))                                                        \
+        {                                                                                           \
+            context.report_parenthesis_suppressed_warning(                                          \
+                src_tokens, bz::format("truncation in cast to '" #dest_t "' results in {}", result) \
+            );                                                                                      \
+        }                                                                                           \
+        return result;                                                                              \
+    }                                                                                               \
+    else if constexpr (                                                                             \
+        is_unsigned_integer_kind(ast::type_info_from_type_v<decltype(value)>)                       \
+        && is_unsigned_integer_kind(ast::type_info::dest_t##_)                                      \
+    )                                                                                               \
+    {                                                                                               \
+        auto const result = static_cast<ret_t>(static_cast<dest_t##_t>(value));                     \
+        if (!is_in_range<dest_t##_t>(value))                                                        \
+        {                                                                                           \
+            context.report_parenthesis_suppressed_warning(                                          \
+                src_tokens, bz::format("truncation in cast to '" #dest_t "' results in {}", result) \
+            );                                                                                      \
+        }                                                                                           \
+        return result;                                                                              \
+    }                                                                                               \
+    else if constexpr (                                                                             \
+        is_signed_integer_kind(ast::type_info_from_type_v<decltype(value)>)                         \
+        && is_unsigned_integer_kind(ast::type_info::dest_t##_)                                      \
+    )                                                                                               \
+    {                                                                                               \
+        auto const result = static_cast<ret_t>(static_cast<dest_t##_t>(value));                     \
+        if (value < 0)                                                                              \
+        {                                                                                           \
+            context.report_parenthesis_suppressed_warning(                                          \
+                src_tokens, bz::format("truncation in cast to '" #dest_t "' results in {}", result) \
+            );                                                                                      \
+        }                                                                                           \
+        return result;                                                                              \
+    }                                                                                               \
+    else if constexpr (                                                                             \
+        is_unsigned_integer_kind(ast::type_info_from_type_v<decltype(value)>)                       \
+        && is_signed_integer_kind(ast::type_info::dest_t##_)                                        \
+    )                                                                                               \
+    {                                                                                               \
+        auto const result = static_cast<ret_t>(static_cast<dest_t##_t>(value));                     \
+        if (value > static_cast<uint64_t>(std::numeric_limits<dest_t##_t>::max()))                  \
+        {                                                                                           \
+            context.report_parenthesis_suppressed_warning(                                          \
+                src_tokens, bz::format("truncation in cast to '" #dest_t "' results in {}", result) \
+            );                                                                                      \
+        }                                                                                           \
+        return result;                                                                              \
+    }                                                                                               \
+    else                                                                                            \
+    {                                                                                               \
+        return static_cast<ret_t>(static_cast<dest_t##_t>(value));                                  \
+    }
 
 		CASE(int64_t, int8);
 		CASE(int64_t, int16);
