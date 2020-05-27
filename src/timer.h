@@ -12,14 +12,15 @@ struct timer
 	using time_point = std::chrono::time_point<timer>;
 	static constexpr bool is_steady = false;
 
+	static inline long long frequency = []()
+	{
+		LARGE_INTEGER freq;
+		QueryPerformanceFrequency(&freq);
+		return freq.QuadPart;
+	}();
+
 	static time_point now(void)
 	{
-		static long long frequency = []()
-		{
-			LARGE_INTEGER freq;
-			QueryPerformanceFrequency(&freq);
-			return freq.QuadPart;
-		}();
 		LARGE_INTEGER t;
 		QueryPerformanceCounter(&t);
 		return time_point(duration(static_cast<double>(t.QuadPart) / frequency));
