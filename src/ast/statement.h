@@ -397,10 +397,49 @@ template<>
 struct type_from_type_info<type_info::float64_>
 { using type = float64_t; };
 
+
+template<typename T>
+struct type_info_from_type;
+
+template<>
+struct type_info_from_type<int8_t>
+{ static constexpr auto value = ast::type_info::int8_; };
+template<>
+struct type_info_from_type<int16_t>
+{ static constexpr auto value = ast::type_info::int16_; };
+template<>
+struct type_info_from_type<int32_t>
+{ static constexpr auto value = ast::type_info::int32_; };
+template<>
+struct type_info_from_type<int64_t>
+{ static constexpr auto value = ast::type_info::int64_; };
+
+template<>
+struct type_info_from_type<uint8_t>
+{ static constexpr auto value = ast::type_info::uint8_; };
+template<>
+struct type_info_from_type<uint16_t>
+{ static constexpr auto value = ast::type_info::uint16_; };
+template<>
+struct type_info_from_type<uint32_t>
+{ static constexpr auto value = ast::type_info::uint32_; };
+template<>
+struct type_info_from_type<uint64_t>
+{ static constexpr auto value = ast::type_info::uint64_; };
+
+template<>
+struct type_info_from_type<float32_t>
+{ static constexpr auto value = ast::type_info::float32_; };
+template<>
+struct type_info_from_type<float64_t>
+{ static constexpr auto value = ast::type_info::float64_; };
+
 } // namespace internal
 
 template<uint32_t N>
 using type_from_type_info_t = typename internal::type_from_type_info<N>::type;
+template<typename T>
+constexpr auto type_info_from_type_v = internal::type_info_from_type<T>::value;
 
 
 
