@@ -6,6 +6,12 @@
 namespace ctx
 {
 
+template<typename T, typename U>
+static constexpr bool is_in_range(U val) noexcept
+{
+	return val >= std::numeric_limits<T>::min() && val <= std::numeric_limits<T>::max();
+}
+
 // int + int
 int64_t safe_add(
 	int64_t a, int64_t b, uint32_t type_kind,

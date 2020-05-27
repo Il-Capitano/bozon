@@ -3,12 +3,6 @@
 namespace ctx
 {
 
-template<typename T, typename U>
-static bool is_in_range(U val) noexcept
-{
-	return val >= std::numeric_limits<T>::min() && val <= std::numeric_limits<T>::max();
-}
-
 static bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {
 	switch (kind)
@@ -43,7 +37,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -64,7 +58,7 @@ case ast::type_info::type##_:                                                   
 			|| (a < 0 && b < 0 && a < std::numeric_limits<int64_t>::min() - b)
 		)
 		{
-			context.report_warning(
+			context.report_parenthesis_suppressed_warning(
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'int64' results in {}",
@@ -92,7 +86,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -110,7 +104,7 @@ case ast::type_info::type##_:                                                   
 	case ast::type_info::uint64_:
 		if (a > std::numeric_limits<uint64_t>::max() - b)
 		{
-			context.report_warning(
+			context.report_parenthesis_suppressed_warning(
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'uint64' results in {}",
@@ -140,7 +134,7 @@ bz::u8char safe_add(
 	)
 	{
 		auto const result_str = bz::format("0x{:x}", result);
-		context.report_warning(
+		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				reversed
@@ -173,7 +167,7 @@ bz::u8char safe_add(
 	if (b > static_cast<uint64_t>(std::numeric_limits<bz::u8char>::max() - a))
 	{
 		auto const result_str = bz::format("0x{:x}", result);
-		context.report_warning(
+		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				reversed
@@ -244,7 +238,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -265,7 +259,7 @@ case ast::type_info::type##_:                                                   
 			|| (a >= 0 && b < 0 && a > std::numeric_limits<int64_t>::max() + b)
 		)
 		{
-			context.report_warning(
+			context.report_parenthesis_suppressed_warning(
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'int64' results in {}",
@@ -293,7 +287,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (b > a)                                                                         \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -329,7 +323,7 @@ bz::u8char safe_subtract(
 	)
 	{
 		auto const result_str = bz::format("0x{:x}", result);
-		context.report_warning(
+		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				"overflow in constant expression with types 'char' and '{}' results in {}",
@@ -359,7 +353,7 @@ bz::u8char safe_subtract(
 	if (b > static_cast<uint64_t>(a))
 	{
 		auto const result_str = bz::format("0x{:x}", result);
-		context.report_warning(
+		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				"overflow in constant expression with types 'char' and '{}' results in {}",
@@ -438,7 +432,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -461,7 +455,7 @@ case ast::type_info::type##_:                                                   
 			|| (a > 0 && b < 0 && a > std::numeric_limits<int64_t>::min() / b)
 		)
 		{
-			context.report_warning(
+			context.report_parenthesis_suppressed_warning(
 				src_tokens,
 				bz::format("overflow in constant expression with type 'int64' results in {}", result)
 			);
@@ -486,7 +480,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
-        context.report_warning(                                                        \
+        context.report_parenthesis_suppressed_warning(                                 \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -504,7 +498,7 @@ case ast::type_info::type##_:                                                   
 	case ast::type_info::uint64_:
 		if (b != 0 && a > std::numeric_limits<int64_t>::max() / b)
 		{
-			context.report_warning(
+			context.report_parenthesis_suppressed_warning(
 				src_tokens,
 				bz::format("overflow in constant expression with type 'uint64' results in {}", result)
 			);
