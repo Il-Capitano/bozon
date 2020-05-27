@@ -283,7 +283,7 @@ function const_expr_test() -> void
 //	-(-9'223'372'036'854'775'807i64 - 1);
 
 	assert(9'223'372'036'854'775'808 == 1u64 << 63u32);
-	assert(9'223'372'036'854'775'808 as uint32 == 0u32);
+	assert(((9'223'372'036'854'775'808 as uint32)) == 0u32);
 
 	let a = false || false;
 	const FALSE: bool = false;
@@ -349,8 +349,11 @@ function scope_test() -> void
 //	((u32 % 0u32)) * 3u32;
 //	(u32 * 1u32 % 0u32);
 
+	const n = 1u64;
+	n << 99u8	;
+
 	(-1.0 / 0.0);
-	((1.0 / 0.0) + 3.0);
+	(((1.0 / 0.0)) + 3.0);
 
 	let p: *int32;
 	p = null;
