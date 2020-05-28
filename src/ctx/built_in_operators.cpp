@@ -276,7 +276,7 @@ static ast::expression get_built_in_unary_minus(
 					value = static_cast<int64_t>(static_cast<int8_t>(-val));
 					if (val == std::numeric_limits<int8_t>::min())
 					{
-						context.report_warning(
+						context.report_parenthesis_suppressed_warning(
 							src_tokens,
 							bz::format("overflow in constant expression with type 'int8' results in {}", -val)
 						);
@@ -286,7 +286,7 @@ static ast::expression get_built_in_unary_minus(
 					value = static_cast<int64_t>(static_cast<int16_t>(-val));
 					if (val == std::numeric_limits<int16_t>::min())
 					{
-						context.report_warning(
+						context.report_parenthesis_suppressed_warning(
 							src_tokens,
 							bz::format("overflow in constant expression with type 'int16' results in {}", -val)
 						);
@@ -296,7 +296,7 @@ static ast::expression get_built_in_unary_minus(
 					value = static_cast<int64_t>(static_cast<int32_t>(-val));
 					if (val == std::numeric_limits<int32_t>::min())
 					{
-						context.report_warning(
+						context.report_parenthesis_suppressed_warning(
 							src_tokens,
 							bz::format("overflow in constant expression with type 'int32' results in {}", -val)
 						);
@@ -306,7 +306,7 @@ static ast::expression get_built_in_unary_minus(
 					value = static_cast<int64_t>(static_cast<int64_t>(-val));
 					if (val == std::numeric_limits<int64_t>::min())
 					{
-						context.report_warning(
+						context.report_parenthesis_suppressed_warning(
 							src_tokens,
 							bz::format("overflow in constant expression with type 'int64' results in {}", -val)
 						);
@@ -393,7 +393,7 @@ static ast::expression get_built_in_unary_dereference(
 	{
 		auto &const_expr = expr.get<ast::constant_expression>();
 		bz_assert(const_expr.value.kind() == ast::constant_value::null);
-		context.report_warning(
+		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			"operator * dereferences a null pointer"
 		);
@@ -1592,7 +1592,9 @@ static ast::expression get_built_in_binary_multiply_divide(
 					auto const rhs_val = const_rhs.value.get<ast::constant_value::sint>();
 					if (rhs_val == 0)
 					{
-						context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+						context.report_parenthesis_suppressed_warning(
+							src_tokens, "dividing by zero in integer arithmetic"
+						);
 					}
 				}
 				return ast::make_dynamic_expression(
@@ -1659,7 +1661,9 @@ static ast::expression get_built_in_binary_multiply_divide(
 					auto const rhs_val = const_rhs.value.get<ast::constant_value::uint>();
 					if (rhs_val == 0)
 					{
-						context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+						context.report_parenthesis_suppressed_warning(
+							src_tokens, "dividing by zero in integer arithmetic"
+						);
 					}
 				}
 				return ast::make_dynamic_expression(
@@ -1792,7 +1796,9 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
 			)
 			{
-				context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+				context.report_parenthesis_suppressed_warning(
+					src_tokens, "dividing by zero in integer arithmetic"
+				);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1817,7 +1823,9 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
 			)
 			{
-				context.report_warning(src_tokens, "dividing by zero in integer arithmetic");
+				context.report_parenthesis_suppressed_warning(
+					src_tokens, "dividing by zero in integer arithmetic"
+				);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1827,10 +1835,24 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 		}
 		else if (
 			is_floating_point_kind(lhs_kind)
-			&& is_floating_point_kind(rhs_kind)
-			&& lhs_kind >= rhs_kind
+//			&& is_floating_point_kind(rhs_kind)
+			&& lhs_kind == rhs_kind
 		)
 		{
+			// warn if there's a division by zero
+			if (op->kind == lex::token::divide_eq && rhs.is<ast::constant_expression>())
+			{
+				auto &const_rhs = rhs.get<ast::constant_expression>();
+				auto const is_zero = rhs_kind == ast::type_info::float32_
+					? const_rhs.value.get<ast::constant_value::float32>() == 0.0f
+					: const_rhs.value.get<ast::constant_value::float64>() == 0.0;
+				if (is_zero)
+				{
+					context.report_parenthesis_suppressed_warning(
+						src_tokens, "dividing by zero in floating point arithmetic"
+					);
+				}
+			}
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
@@ -1923,7 +1945,9 @@ static ast::expression get_built_in_binary_modulo(
 					&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
 				)
 				{
-					context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+					context.report_parenthesis_suppressed_warning(
+						src_tokens, "modulo by zero in integer arithmetic"
+					);
 				}
 				return ast::make_dynamic_expression(
 					src_tokens,
@@ -1984,7 +2008,7 @@ static ast::expression get_built_in_binary_modulo(
 					&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
 				)
 				{
-					context.report_warning(
+					context.report_parenthesis_suppressed_warning(
 						src_tokens, "modulo by zero in integer arithmetic"
 					);
 				}
@@ -2062,7 +2086,9 @@ static ast::expression get_built_in_binary_modulo_eq(
 				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::sint>() == 0
 			)
 			{
-				context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+				context.report_parenthesis_suppressed_warning(
+					src_tokens, "modulo by zero in integer arithmetic"
+				);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -2086,7 +2112,9 @@ static ast::expression get_built_in_binary_modulo_eq(
 				&& rhs.get<ast::constant_expression>().value.get<ast::constant_value::uint>() == 0
 			)
 			{
-				context.report_warning(src_tokens, "modulo by zero in integer arithmetic");
+				context.report_parenthesis_suppressed_warning(
+					src_tokens, "modulo by zero in integer arithmetic"
+				);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -3135,10 +3163,10 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 				}();
 				if (rhs_val >= lhs_bit_width)
 				{
-					context.report_warning(
+					context.report_parenthesis_suppressed_warning(
 						src_tokens,
 						bz::format(
-							"{} shift value of {} is too large for type '{}'; will result in undefined behaviour",
+							"{} shift value of {} is too large for type '{}'",
 							op->kind == lex::token::bit_left_shift_eq ? "left" : "right",
 							rhs_val, lhs_type_str
 						)
