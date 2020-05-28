@@ -307,44 +307,51 @@ static void parse_expression_test(void)
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
 
-#define x_const_expr(str, _type, const_expr_kind, const_expr_value)                                   \
-xx_compiles(                                                                                          \
-    parse_expression_alt,                                                                             \
-    str,                                                                                              \
-    tokens.end() - 1,                                                                                 \
-    (                                                                                                 \
-        res.is<ast::constant_expression>()                                                            \
-        && res.get<ast::constant_expression>().type.is<ast::ts_base_type>()                           \
-        && res.get<ast::constant_expression>().type.get<ast::ts_base_type_ptr>()->info->kind == _type \
-        && res.get<ast::constant_expression>().value.kind() == const_expr_kind                        \
-        && (res.get<ast::constant_expression>().value.get<const_expr_kind>()) == (const_expr_value)   \
-    )                                                                                                 \
+#define x_base_t(str, type_kind)                                              \
+xx(                                                                           \
+    parse_expression_alt,                                                     \
+    str,                                                                      \
+    tokens.end() - 1,                                                         \
+    ([&]() {                                                                  \
+        if (res.is<ast::constant_expression>())                               \
+        {                                                                     \
+            auto &const_expr = res.get<ast::constant_expression>();           \
+            auto base_type = const_expr.type.get_if<ast::ts_base_type_ptr>(); \
+            return base_type && (*base_type)->info->kind == (type_kind);      \
+        }                                                                     \
+        else if (res.is<ast::dynamic_expression>())                           \
+        {                                                                     \
+            auto &dyn_expr = res.get<ast::dynamic_expression>();              \
+            auto base_type = dyn_expr.type.get_if<ast::ts_base_type_ptr>();   \
+            return base_type && (*base_type)->info->kind == (type_kind);      \
+        }                                                                     \
+        else                                                                  \
+        {                                                                     \
+            return false;                                                     \
+        }                                                                     \
+    }())                                                                      \
 )
 
-#define x_base_t(str, type_kind)                                                          \
-xx(                                                                                       \
-    parse_expression_alt,                                                                 \
-    str,                                                                                  \
-    tokens.end() - 1,                                                                     \
-    ([&res]() {                                                                           \
-        if (res.is<ast::constant_expression>())                                           \
-        {                                                                                 \
-            auto &const_expr = res.get<ast::constant_expression>();                       \
-            auto base_type = const_expr.type.get_if<ast::ts_base_type_ptr>();             \
-            return base_type && (*base_type)->info->kind == ast::type_info::type_kind##_; \
-        }                                                                                 \
-        else if (res.is<ast::dynamic_expression>())                                       \
-        {                                                                                 \
-            auto &dyn_expr = res.get<ast::dynamic_expression>();                          \
-            auto base_type = dyn_expr.type.get_if<ast::ts_base_type_ptr>();               \
-            return base_type && (*base_type)->info->kind == ast::type_info::type_kind##_; \
-        }                                                                                 \
-        else                                                                              \
-        {                                                                                 \
-            return false;                                                                 \
-        }                                                                                 \
-    }())                                                                                  \
-)
+	using pair_t = std::pair<bz::u8string_view, uint32_t>;
+	std::array signed_vars = {
+		pair_t{ "i8",  ast::type_info::int8_  },
+		pair_t{ "i16", ast::type_info::int16_ },
+		pair_t{ "i32", ast::type_info::int32_ },
+		pair_t{ "i64", ast::type_info::int64_ },
+	};
+	std::array unsigned_vars = {
+		pair_t{ "u8",  ast::type_info::uint8_  },
+		pair_t{ "u16", ast::type_info::uint16_ },
+		pair_t{ "u32", ast::type_info::uint32_ },
+		pair_t{ "u64", ast::type_info::uint64_ },
+	};
+	std::array floating_point_vars = {
+		pair_t{ "f32", ast::type_info::float32_ },
+		pair_t{ "f64", ast::type_info::float64_ },
+	};
+	std::array char_vars = {
+		pair_t{ "c", ast::type_info::char_ },
+	};
 
 
 	// add scope to allow variables
@@ -366,152 +373,652 @@ xx(                                                                             
 
 	x_err("");
 
-	x_const_expr("42", ast::type_info::int32_, ast::constant_value::sint, 42);
-	x_const_expr("40 + 2", ast::type_info::int32_, ast::constant_value::sint, 42);
-	x_const_expr("40 as uint32", ast::type_info::uint32_, ast::constant_value::uint, 40);
-	x_const_expr("257 as uint8", ast::type_info::uint8_, ast::constant_value::uint, 1);
+#define test_vars(var1, var2, op, cmp, result_kind)                             \
+do {                                                                            \
+    for (auto &a : var1)                                                        \
+    {                                                                           \
+        for (auto &b : var2)                                                    \
+        {                                                                       \
+            auto const test_str = bz::format("{} " op " {}", a.first, b.first); \
+            if (cmp)                                                            \
+            {                                                                   \
+                x_base_t(test_str, result_kind);                                \
+            }                                                                   \
+            else                                                                \
+            {                                                                   \
+                x_err(test_str);                                                \
+            }                                                                   \
+        }                                                                       \
+    }                                                                           \
+} while (false)
 
-	x_base_t("i8 = i8", int8);
-	x_base_t("i16 = i8", int16);
-	x_base_t("f32 = f32", float32);
-	x_err("i32 = i64");
-	x_err("f64 = f32");
-	x_base_t("c = 'a'", char);
+#define x_ii(op, cmp, result_kind) test_vars(signed_vars,         signed_vars, op, cmp, result_kind)
+#define x_iu(op, cmp, result_kind) test_vars(signed_vars,       unsigned_vars, op, cmp, result_kind)
+#define x_if(op, cmp, result_kind) test_vars(signed_vars, floating_point_vars, op, cmp, result_kind)
+#define x_ic(op, cmp, result_kind) test_vars(signed_vars,           char_vars, op, cmp, result_kind)
+
+#define x_ui(op, cmp, result_kind) test_vars(unsigned_vars,         signed_vars, op, cmp, result_kind)
+#define x_uu(op, cmp, result_kind) test_vars(unsigned_vars,       unsigned_vars, op, cmp, result_kind)
+#define x_uf(op, cmp, result_kind) test_vars(unsigned_vars, floating_point_vars, op, cmp, result_kind)
+#define x_uc(op, cmp, result_kind) test_vars(unsigned_vars,           char_vars, op, cmp, result_kind)
+
+#define x_fi(op, cmp, result_kind) test_vars(floating_point_vars,         signed_vars, op, cmp, result_kind)
+#define x_fu(op, cmp, result_kind) test_vars(floating_point_vars,       unsigned_vars, op, cmp, result_kind)
+#define x_ff(op, cmp, result_kind) test_vars(floating_point_vars, floating_point_vars, op, cmp, result_kind)
+#define x_fc(op, cmp, result_kind) test_vars(floating_point_vars,           char_vars, op, cmp, result_kind)
+
+#define x_ci(op, cmp, result_kind) test_vars(char_vars,         signed_vars, op, cmp, result_kind)
+#define x_cu(op, cmp, result_kind) test_vars(char_vars,       unsigned_vars, op, cmp, result_kind)
+#define x_cf(op, cmp, result_kind) test_vars(char_vars, floating_point_vars, op, cmp, result_kind)
+#define x_cc(op, cmp, result_kind) test_vars(char_vars,           char_vars, op, cmp, result_kind)
+
+	x_ii("=", a.second >= b.second, a.second);
+	x_iu("=", false, 0);
+	x_if("=", false, 0);
+	x_ic("=", false, 0);
+	x_ui("=", false, 0);
+	x_uu("=", a.second >= b.second, a.second);
+	x_uf("=", false, 0);
+	x_uc("=", false, 0);
+	x_fi("=", false, 0);
+	x_fu("=", false, 0);
+	x_ff("=", a.second == b.second, a.second);
+	x_fc("=", false, 0);
+	x_ci("=", false, 0);
+	x_cu("=", false, 0);
+	x_cf("=", false, 0);
+	x_cc("=", true, a.second);
+
+
+	x_base_t("c = 'a'", ast::type_info::char_);
 	x("p = null");
 
-	x_base_t("i8  + i8", int8);
-	x_base_t("i16 + i8", int16);
-	x_base_t("i8  + i16", int16);
-	x_base_t("i32 + i32", int32);
-	x_base_t("i16 + i64", int64);
-	x_base_t("u8  + u8", uint8);
-	x_base_t("u16 + u8", uint16);
-	x_base_t("u8  + u16", uint16);
-	x_base_t("u32 + u32", uint32);
-	x_base_t("u16 + u64", uint64);
-	x_base_t("f32 + f32", float32);
-	x_base_t("f64 + f64", float64);
-	x_err("i32 + u32");
-	x_err("f64 + f32");
-	x_err("f64 + i32");
-	x_err("c + c");
-	x_base_t("c + i32", char);
-	x_base_t("c + u32", char);
-	x_base_t("c + i64", char);
-	x_base_t("c + u64", char);
-	x("p + i32");
-	x_err("p + c");
-	x_warn("255u8 + 1u8");
-	x_const_expr("255u8 + 1u16", ast::type_info::uint16_, ast::constant_value::uint, 256);
+	x_ii("+", true, std::max(a.second, b.second));
+	x_iu("+", false, 0);
+	x_if("+", false, 0);
+	x_ic("+", true, b.second);
+	x_ui("+", false, 0);
+	x_uu("+", true, std::max(a.second, b.second));
+	x_uf("+", false, 0);
+	x_uc("+", true, b.second);
+	x_fi("+", false, 0);
+	x_fu("+", false, 0);
+	x_ff("+", a.second == b.second, a.second);
+	x_fc("+", false, 0);
+	x_ci("+", true, a.second);
+	x_cu("+", true, a.second);
+	x_cf("+", false, 0);
+	x_cc("+", false, 0);
 
-	x_base_t("i8 += i8", int8);
-	x_err("i8 += i16");
-	x_base_t("i32 += i16", int32);
-	x_err("i32 += u16");
-	x_base_t("f32 += f32", float32);
-	x_err("f64 += f32");
-	x_base_t("c += i64", char);
-	x_base_t("c += u64", char);
-	x("p += i32");
-	x("p += u32");
-	x_err("p += c");
+	x_ii("+=", a.second >= b.second, a.second);
+	x_iu("+=", false, 0);
+	x_if("+=", false, 0);
+	x_ic("+=", false, 0);
+	x_ui("+=", false, 0);
+	x_uu("+=", a.second >= b.second, a.second);
+	x_uf("+=", false, 0);
+	x_uc("+=", false, 0);
+	x_fi("+=", false, 0);
+	x_fu("+=", false, 0);
+	x_ff("+=", a.second == b.second, a.second);
+	x_fc("+=", false, 0);
+	x_ci("+=", true, a.second);
+	x_cu("+=", true, a.second);
+	x_cf("+=", false, 0);
+	x_cc("+=", false, 0);
 
-	x_base_t("i8  - i8", int8);
-	x_base_t("i16 - i8", int16);
-	x_base_t("i8  - i16", int16);
-	x_base_t("i32 - i32", int32);
-	x_base_t("i16 - i64", int64);
-	x_base_t("u8  - u8", uint8);
-	x_base_t("u16 - u8", uint16);
-	x_base_t("u8  - u16", uint16);
-	x_base_t("u32 - u32", uint32);
-	x_base_t("u16 - u64", uint64);
-	x_base_t("f32 - f32", float32);
-	x_base_t("f64 - f64", float64);
-	x_err("i32 - u32");
-	x_err("f64 - f32");
-	x_err("f64 - i32");
-	x_warn("0u8 - 1u8");
-	auto const str = bz::format("0i32 - {} as int32", std::numeric_limits<int32_t>::min());
-	x_warn(str);
-	x_base_t("c - c", int32);
-	x_base_t("c - i32", char);
-	x_base_t("c - u32", char);
-	x_base_t("c - i64", char);
-	x_base_t("c - u64", char);
-	x_err("i32 - c");
-	x_base_t("p - p", int64);
-	x("p - i32");
-	x("p - u32");
+	x_ii("-", true, std::max(a.second, b.second));
+	x_iu("-", false, 0);
+	x_if("-", false, 0);
+	x_ic("-", false, 0);
+	x_ui("-", false, 0);
+	x_uu("-", true, std::max(a.second, b.second));
+	x_uf("-", false, 0);
+	x_uc("-", false, 0);
+	x_fi("-", false, 0);
+	x_fu("-", false, 0);
+	x_ff("-", a.second == b.second, a.second);
+	x_fc("-", false, 0);
+	x_ci("-", true, a.second);
+	x_cu("-", true, a.second);
+	x_cf("-", false, 0);
+	x_cc("-", true, ast::type_info::int32_);
 
-	x_base_t("i8 -= i8", int8);
-	x_err("i8 -= i16");
-	x_base_t("i32 -= i16", int32);
-	x_err("i32 -= u16");
-	x_base_t("f32 -= f32", float32);
-	x_err("f64 -= f32");
-	x_base_t("c -= i64", char);
-	x_base_t("c -= u64", char);
-	x("p -= i32");
-	x("p -= u32");
-	x_err("p -= c");
+	x_ii("-=", a.second >= b.second, a.second);
+	x_iu("-=", false, 0);
+	x_if("-=", false, 0);
+	x_ic("-=", false, 0);
+	x_ui("-=", false, 0);
+	x_uu("-=", a.second >= b.second, a.second);
+	x_uf("-=", false, 0);
+	x_uc("-=", false, 0);
+	x_fi("-=", false, 0);
+	x_fu("-=", false, 0);
+	x_ff("-=", a.second == b.second, a.second);
+	x_fc("-=", false, 0);
+	x_ci("-=", true, a.second);
+	x_cu("-=", true, a.second);
+	x_cf("-=", false, 0);
+	x_cc("-=", false, 0);
 
-	x_const_expr("500 * 500", ast::type_info::int32_, ast::constant_value::sint, 250'000);
-	x_const_expr("500u32 * 100u8", ast::type_info::uint32_, ast::constant_value::uint, 50'000);
-	x_const_expr("100u8 * 500u32", ast::type_info::uint32_, ast::constant_value::uint, 50'000);
-	x_base_t("i8  * i8", int8);
-	x_base_t("i16 * i8", int16);
-	x_base_t("i8  * i16", int16);
-	x_base_t("i32 * i32", int32);
-	x_base_t("i16 * i64", int64);
-	x_base_t("u8  * u8", uint8);
-	x_base_t("u16 * u8", uint16);
-	x_base_t("u8  * u16", uint16);
-	x_base_t("u32 * u32", uint32);
-	x_base_t("u16 * u64", uint64);
-	x_base_t("f32 * f32", float32);
-	x_base_t("f64 * f64", float64);
-	x_err("i32 * u32");
-	x_err("f64 * f32");
-	x_err("f64 * i32");
-	x_warn("255u8 * 2u8");
+	x_ii("*", true, std::max(a.second, b.second));
+	x_iu("*", false, 0);
+	x_if("*", false, 0);
+	x_ic("*", false, 0);
+	x_ui("*", false, 0);
+	x_uu("*", true, std::max(a.second, b.second));
+	x_uf("*", false, 0);
+	x_uc("*", false, 0);
+	x_fi("*", false, 0);
+	x_fu("*", false, 0);
+	x_ff("*", a.second == b.second, a.second);
+	x_fc("*", false, 0);
+	x_ci("*", false, 0);
+	x_cu("*", false, 0);
+	x_cf("*", false, 0);
+	x_cc("*", false, 0);
 
-	x_const_expr("500 / 500", ast::type_info::int32_, ast::constant_value::sint, 1);
-	x_const_expr("500u32 / 100u8", ast::type_info::uint32_, ast::constant_value::uint, 5);
-	x_const_expr("100u8 / 500u32", ast::type_info::uint32_, ast::constant_value::uint, 0);
-	x_base_t("i8  / i8", int8);
-	x_base_t("i16 / i8", int16);
-	x_base_t("i8  / i16", int16);
-	x_base_t("i32 / i32", int32);
-	x_base_t("i16 / i64", int64);
-	x_base_t("u8  / u8", uint8);
-	x_base_t("u16 / u8", uint16);
-	x_base_t("u8  / u16", uint16);
-	x_base_t("u32 / u32", uint32);
-	x_base_t("u16 / u64", uint64);
-	x_base_t("f32 / f32", float32);
-	x_base_t("f64 / f64", float64);
-	x_err("i32 / u32");
-	x_err("f64 / f32");
-	x_err("f64 / i32");
-	x_err("255u8 / 0u8");
-	x_warn("i32 / 0");
-	x_warn("u32 / 0u32");
+	x_ii("*=", a.second >= b.second, a.second);
+	x_iu("*=", false, 0);
+	x_if("*=", false, 0);
+	x_ic("*=", false, 0);
+	x_ui("*=", false, 0);
+	x_uu("*=", a.second >= b.second, a.second);
+	x_uf("*=", false, 0);
+	x_uc("*=", false, 0);
+	x_fi("*=", false, 0);
+	x_fu("*=", false, 0);
+	x_ff("*=", a.second == b.second, a.second);
+	x_fc("*=", false, 0);
+	x_ci("*=", false, 0);
+	x_cu("*=", false, 0);
+	x_cf("*=", false, 0);
+	x_cc("*=", false, 0);
 
+	x_ii("/", true, std::max(a.second, b.second));
+	x_iu("/", false, 0);
+	x_if("/", false, 0);
+	x_ic("/", false, 0);
+	x_ui("/", false, 0);
+	x_uu("/", true, std::max(a.second, b.second));
+	x_uf("/", false, 0);
+	x_uc("/", false, 0);
+	x_fi("/", false, 0);
+	x_fu("/", false, 0);
+	x_ff("/", a.second == b.second, a.second);
+	x_fc("/", false, 0);
+	x_ci("/", false, 0);
+	x_cu("/", false, 0);
+	x_cf("/", false, 0);
+	x_cc("/", false, 0);
 
+	x_ii("/=", a.second >= b.second, a.second);
+	x_iu("/=", false, 0);
+	x_if("/=", false, 0);
+	x_ic("/=", false, 0);
+	x_ui("/=", false, 0);
+	x_uu("/=", a.second >= b.second, a.second);
+	x_uf("/=", false, 0);
+	x_uc("/=", false, 0);
+	x_fi("/=", false, 0);
+	x_fu("/=", false, 0);
+	x_ff("/=", a.second == b.second, a.second);
+	x_fc("/=", false, 0);
+	x_ci("/=", false, 0);
+	x_cu("/=", false, 0);
+	x_cf("/=", false, 0);
+	x_cc("/=", false, 0);
+
+	x_ii("%", true, std::max(a.second, b.second));
+	x_iu("%", false, 0);
+	x_if("%", false, 0);
+	x_ic("%", false, 0);
+	x_ui("%", false, 0);
+	x_uu("%", true, std::max(a.second, b.second));
+	x_uf("%", false, 0);
+	x_uc("%", false, 0);
+	x_fi("%", false, 0);
+	x_fu("%", false, 0);
+	x_ff("%", false, 0);
+	x_fc("%", false, 0);
+	x_ci("%", false, 0);
+	x_cu("%", false, 0);
+	x_cf("%", false, 0);
+	x_cc("%", false, 0);
+
+	x_ii("%=", a.second >= b.second, a.second);
+	x_iu("%=", false, 0);
+	x_if("%=", false, 0);
+	x_ic("%=", false, 0);
+	x_ui("%=", false, 0);
+	x_uu("%=", a.second >= b.second, a.second);
+	x_uf("%=", false, 0);
+	x_uc("%=", false, 0);
+	x_fi("%=", false, 0);
+	x_fu("%=", false, 0);
+	x_ff("%=", false, 0);
+	x_fc("%=", false, 0);
+	x_ci("%=", false, 0);
+	x_cu("%=", false, 0);
+	x_cf("%=", false, 0);
+	x_cc("%=", false, 0);
+
+	x_ii("==", true, ast::type_info::bool_);
+	x_iu("==", false, 0);
+	x_if("==", false, 0);
+	x_ic("==", false, 0);
+	x_ui("==", false, 0);
+	x_uu("==", true, ast::type_info::bool_);
+	x_uf("==", false, 0);
+	x_uc("==", false, 0);
+	x_fi("==", false, 0);
+	x_fu("==", false, 0);
+	x_ff("==", a.second == b.second, ast::type_info::bool_);
+	x_fc("==", false, 0);
+	x_ci("==", false, 0);
+	x_cu("==", false, 0);
+	x_cf("==", false, 0);
+	x_cc("==", true, ast::type_info::bool_);
+
+	x_ii("!=", true, ast::type_info::bool_);
+	x_iu("!=", false, 0);
+	x_if("!=", false, 0);
+	x_ic("!=", false, 0);
+	x_ui("!=", false, 0);
+	x_uu("!=", true, ast::type_info::bool_);
+	x_uf("!=", false, 0);
+	x_uc("!=", false, 0);
+	x_fi("!=", false, 0);
+	x_fu("!=", false, 0);
+	x_ff("!=", a.second == b.second, ast::type_info::bool_);
+	x_fc("!=", false, 0);
+	x_ci("!=", false, 0);
+	x_cu("!=", false, 0);
+	x_cf("!=", false, 0);
+	x_cc("!=", true, ast::type_info::bool_);
+
+	x_ii("<", true, ast::type_info::bool_);
+	x_iu("<", false, 0);
+	x_if("<", false, 0);
+	x_ic("<", false, 0);
+	x_ui("<", false, 0);
+	x_uu("<", true, ast::type_info::bool_);
+	x_uf("<", false, 0);
+	x_uc("<", false, 0);
+	x_fi("<", false, 0);
+	x_fu("<", false, 0);
+	x_ff("<", a.second == b.second, ast::type_info::bool_);
+	x_fc("<", false, 0);
+	x_ci("<", false, 0);
+	x_cu("<", false, 0);
+	x_cf("<", false, 0);
+	x_cc("<", true, ast::type_info::bool_);
+
+	x_ii("<=", true, ast::type_info::bool_);
+	x_iu("<=", false, 0);
+	x_if("<=", false, 0);
+	x_ic("<=", false, 0);
+	x_ui("<=", false, 0);
+	x_uu("<=", true, ast::type_info::bool_);
+	x_uf("<=", false, 0);
+	x_uc("<=", false, 0);
+	x_fi("<=", false, 0);
+	x_fu("<=", false, 0);
+	x_ff("<=", a.second == b.second, ast::type_info::bool_);
+	x_fc("<=", false, 0);
+	x_ci("<=", false, 0);
+	x_cu("<=", false, 0);
+	x_cf("<=", false, 0);
+	x_cc("<=", true, ast::type_info::bool_);
+
+	x_ii(">", true, ast::type_info::bool_);
+	x_iu(">", false, 0);
+	x_if(">", false, 0);
+	x_ic(">", false, 0);
+	x_ui(">", false, 0);
+	x_uu(">", true, ast::type_info::bool_);
+	x_uf(">", false, 0);
+	x_uc(">", false, 0);
+	x_fi(">", false, 0);
+	x_fu(">", false, 0);
+	x_ff(">", a.second == b.second, ast::type_info::bool_);
+	x_fc(">", false, 0);
+	x_ci(">", false, 0);
+	x_cu(">", false, 0);
+	x_cf(">", false, 0);
+	x_cc(">", true, ast::type_info::bool_);
+
+	x_ii(">=", true, ast::type_info::bool_);
+	x_iu(">=", false, 0);
+	x_if(">=", false, 0);
+	x_ic(">=", false, 0);
+	x_ui(">=", false, 0);
+	x_uu(">=", true, ast::type_info::bool_);
+	x_uf(">=", false, 0);
+	x_uc(">=", false, 0);
+	x_fi(">=", false, 0);
+	x_fu(">=", false, 0);
+	x_ff(">=", a.second == b.second, ast::type_info::bool_);
+	x_fc(">=", false, 0);
+	x_ci(">=", false, 0);
+	x_cu(">=", false, 0);
+	x_cf(">=", false, 0);
+	x_cc(">=", true, ast::type_info::bool_);
+
+	x_ii("&", false, 0);
+	x_iu("&", false, 0);
+	x_if("&", false, 0);
+	x_ic("&", false, 0);
+	x_ui("&", false, 0);
+	x_uu("&", a.second == b.second, a.second);
+	x_uf("&", false, 0);
+	x_uc("&", false, 0);
+	x_fi("&", false, 0);
+	x_fu("&", false, 0);
+	x_ff("&", false, 0);
+	x_fc("&", false, 0);
+	x_ci("&", false, 0);
+	x_cu("&", false, 0);
+	x_cf("&", false, 0);
+	x_cc("&", false, 0);
+
+	x_ii("^", false, 0);
+	x_iu("^", false, 0);
+	x_if("^", false, 0);
+	x_ic("^", false, 0);
+	x_ui("^", false, 0);
+	x_uu("^", a.second == b.second, a.second);
+	x_uf("^", false, 0);
+	x_uc("^", false, 0);
+	x_fi("^", false, 0);
+	x_fu("^", false, 0);
+	x_ff("^", false, 0);
+	x_fc("^", false, 0);
+	x_ci("^", false, 0);
+	x_cu("^", false, 0);
+	x_cf("^", false, 0);
+	x_cc("^", false, 0);
+
+	x_ii("|", false, 0);
+	x_iu("|", false, 0);
+	x_if("|", false, 0);
+	x_ic("|", false, 0);
+	x_ui("|", false, 0);
+	x_uu("|", a.second == b.second, a.second);
+	x_uf("|", false, 0);
+	x_uc("|", false, 0);
+	x_fi("|", false, 0);
+	x_fu("|", false, 0);
+	x_ff("|", false, 0);
+	x_fc("|", false, 0);
+	x_ci("|", false, 0);
+	x_cu("|", false, 0);
+	x_cf("|", false, 0);
+	x_cc("|", false, 0);
+
+	x_ii("&=", false, 0);
+	x_iu("&=", false, 0);
+	x_if("&=", false, 0);
+	x_ic("&=", false, 0);
+	x_ui("&=", false, 0);
+	x_uu("&=", a.second == b.second, a.second);
+	x_uf("&=", false, 0);
+	x_uc("&=", false, 0);
+	x_fi("&=", false, 0);
+	x_fu("&=", false, 0);
+	x_ff("&=", false, 0);
+	x_fc("&=", false, 0);
+	x_ci("&=", false, 0);
+	x_cu("&=", false, 0);
+	x_cf("&=", false, 0);
+	x_cc("&=", false, 0);
+
+	x_ii("^=", false, 0);
+	x_iu("^=", false, 0);
+	x_if("^=", false, 0);
+	x_ic("^=", false, 0);
+	x_ui("^=", false, 0);
+	x_uu("^=", a.second == b.second, a.second);
+	x_uf("^=", false, 0);
+	x_uc("^=", false, 0);
+	x_fi("^=", false, 0);
+	x_fu("^=", false, 0);
+	x_ff("^=", false, 0);
+	x_fc("^=", false, 0);
+	x_ci("^=", false, 0);
+	x_cu("^=", false, 0);
+	x_cf("^=", false, 0);
+	x_cc("^=", false, 0);
+
+	x_ii("|=", false, 0);
+	x_iu("|=", false, 0);
+	x_if("|=", false, 0);
+	x_ic("|=", false, 0);
+	x_ui("|=", false, 0);
+	x_uu("|=", a.second == b.second, a.second);
+	x_uf("|=", false, 0);
+	x_uc("|=", false, 0);
+	x_fi("|=", false, 0);
+	x_fu("|=", false, 0);
+	x_ff("|=", false, 0);
+	x_fc("|=", false, 0);
+	x_ci("|=", false, 0);
+	x_cu("|=", false, 0);
+	x_cf("|=", false, 0);
+	x_cc("|=", false, 0);
+
+	x_ii("<<", false, 0);
+	x_iu("<<", false, 0);
+	x_if("<<", false, 0);
+	x_ic("<<", false, 0);
+	x_ui("<<", false, 0);
+	x_uu("<<", true, a.second);
+	x_uf("<<", false, 0);
+	x_uc("<<", false, 0);
+	x_fi("<<", false, 0);
+	x_fu("<<", false, 0);
+	x_ff("<<", false, 0);
+	x_fc("<<", false, 0);
+	x_ci("<<", false, 0);
+	x_cu("<<", false, 0);
+	x_cf("<<", false, 0);
+	x_cc("<<", false, 0);
+
+	x_ii(">>", false, 0);
+	x_iu(">>", false, 0);
+	x_if(">>", false, 0);
+	x_ic(">>", false, 0);
+	x_ui(">>", false, 0);
+	x_uu(">>", true, a.second);
+	x_uf(">>", false, 0);
+	x_uc(">>", false, 0);
+	x_fi(">>", false, 0);
+	x_fu(">>", false, 0);
+	x_ff(">>", false, 0);
+	x_fc(">>", false, 0);
+	x_ci(">>", false, 0);
+	x_cu(">>", false, 0);
+	x_cf(">>", false, 0);
+	x_cc(">>", false, 0);
+
+	x_ii("<<=", false, 0);
+	x_iu("<<=", false, 0);
+	x_if("<<=", false, 0);
+	x_ic("<<=", false, 0);
+	x_ui("<<=", false, 0);
+	x_uu("<<=", true, a.second);
+	x_uf("<<=", false, 0);
+	x_uc("<<=", false, 0);
+	x_fi("<<=", false, 0);
+	x_fu("<<=", false, 0);
+	x_ff("<<=", false, 0);
+	x_fc("<<=", false, 0);
+	x_ci("<<=", false, 0);
+	x_cu("<<=", false, 0);
+	x_cf("<<=", false, 0);
+	x_cc("<<=", false, 0);
+
+	x_ii(">>=", false, 0);
+	x_iu(">>=", false, 0);
+	x_if(">>=", false, 0);
+	x_ic(">>=", false, 0);
+	x_ui(">>=", false, 0);
+	x_uu(">>=", true, a.second);
+	x_uf(">>=", false, 0);
+	x_uc(">>=", false, 0);
+	x_fi(">>=", false, 0);
+	x_fu(">>=", false, 0);
+	x_ff(">>=", false, 0);
+	x_fc(">>=", false, 0);
+	x_ci(">>=", false, 0);
+	x_cu(">>=", false, 0);
+	x_cf(">>=", false, 0);
+	x_cc(">>=", false, 0);
+
+	x_ii("&&", false, 0);
+	x_iu("&&", false, 0);
+	x_if("&&", false, 0);
+	x_ic("&&", false, 0);
+	x_ui("&&", false, 0);
+	x_uu("&&", false, 0);
+	x_uf("&&", false, 0);
+	x_uc("&&", false, 0);
+	x_fi("&&", false, 0);
+	x_fu("&&", false, 0);
+	x_ff("&&", false, 0);
+	x_fc("&&", false, 0);
+	x_ci("&&", false, 0);
+	x_cu("&&", false, 0);
+	x_cf("&&", false, 0);
+	x_cc("&&", false, 0);
+
+	x_ii("^^", false, 0);
+	x_iu("^^", false, 0);
+	x_if("^^", false, 0);
+	x_ic("^^", false, 0);
+	x_ui("^^", false, 0);
+	x_uu("^^", false, 0);
+	x_uf("^^", false, 0);
+	x_uc("^^", false, 0);
+	x_fi("^^", false, 0);
+	x_fu("^^", false, 0);
+	x_ff("^^", false, 0);
+	x_fc("^^", false, 0);
+	x_ci("^^", false, 0);
+	x_cu("^^", false, 0);
+	x_cf("^^", false, 0);
+	x_cc("^^", false, 0);
+
+	x_ii("||", false, 0);
+	x_iu("||", false, 0);
+	x_if("||", false, 0);
+	x_ic("||", false, 0);
+	x_ui("||", false, 0);
+	x_uu("||", false, 0);
+	x_uf("||", false, 0);
+	x_uc("||", false, 0);
+	x_fi("||", false, 0);
+	x_fu("||", false, 0);
+	x_ff("||", false, 0);
+	x_fc("||", false, 0);
+	x_ci("||", false, 0);
+	x_cu("||", false, 0);
+	x_cf("||", false, 0);
+	x_cc("||", false, 0);
+
+/*
 	x("-1");
 	x("(((0)))");
 	x("1 + 2 + 4 * 7 / 1");
 	x("(1.0 - 2.1) / +4.5");
 	x("- - - - - -1234");
+	x_warn("256 as int8");
 
 	x_err("a + 3");
-
+*/
 #undef x
 #undef x_err
 #undef x_warn
 #undef x_const_expr
+#undef x_const_expr_bool
 #undef x_base_t
+}
+
+static void constant_expression_test(void)
+{
+	ctx::global_context global_ctx;
+	ctx::lex_context lex_ctx(global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
+
+#define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
+#define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
+
+#define x_const_expr(str, const_expr_kind, const_expr_value)                                        \
+xx_compiles(                                                                                        \
+    parse_expression_alt,                                                                           \
+    str,                                                                                            \
+    tokens.end() - 1,                                                                               \
+    (                                                                                               \
+        res.is<ast::constant_expression>()                                                          \
+        && res.get<ast::constant_expression>().value.kind() == const_expr_kind                      \
+        && (res.get<ast::constant_expression>().value.get<const_expr_kind>()) == (const_expr_value) \
+    )                                                                                               \
+)
+
+#define x_const_expr_bool(str, value)                                         \
+x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
+
+
+	x_const_expr("40 + 2", ast::constant_value::sint, 42);
+	x_const_expr("40u32 + 2u32", ast::constant_value::uint, 42u);
+	x_const_expr("255u8 + 3u8", ast::constant_value::uint, uint8_t(258));
+	x_warn("255u8 + 3u8");
+
+/*
+	x_const_expr("42", ast::type_info::int32_, ast::constant_value::sint, 42);
+	x_const_expr("40 + 2", ast::type_info::int32_, ast::constant_value::sint, 42);
+	x_const_expr("40 as uint32", ast::type_info::uint32_, ast::constant_value::uint, 40);
+	x_const_expr("257 as uint8", ast::type_info::uint8_, ast::constant_value::uint, 1);
+
+	x_const_expr("255u8 + 1u16", ast::type_info::uint16_, ast::constant_value::uint, 256);
+	x_const_expr("500 * 500", ast::type_info::int32_, ast::constant_value::sint, 250'000);
+	x_const_expr("500u32 * 100u8", ast::type_info::uint32_, ast::constant_value::uint, 50'000);
+	x_const_expr("100u8 * 500u32", ast::type_info::uint32_, ast::constant_value::uint, 50'000);
+	x_const_expr("500 / 500", ast::type_info::int32_, ast::constant_value::sint, 1);
+	x_const_expr("500u32 / 100u8", ast::type_info::uint32_, ast::constant_value::uint, 5);
+	x_const_expr("100u8 / 500u32", ast::type_info::uint32_, ast::constant_value::uint, 0);
+	x_const_expr("500 % 500", ast::type_info::int32_, ast::constant_value::sint, 0);
+	x_const_expr("13 % 9", ast::type_info::int32_, ast::constant_value::sint, 4);
+	x_const_expr("500u32 % 100u8", ast::type_info::uint32_, ast::constant_value::uint, 0);
+	x_const_expr("100u8 % 500u32", ast::type_info::uint32_, ast::constant_value::uint, 100);
+	x_const_expr_bool("0 == 0", true);
+	x_const_expr_bool("0 == 1", false);
+	x_const_expr_bool("0u8 == 300u16", false);
+	x_const_expr_bool("-127 == (0i8 - 127i8)", true);
+	x_const_expr_bool("1.5 == 3.0 / 2.0", true);
+	x_const_expr_bool("0.1f32 == 0.1f32", true);
+	x_const_expr_bool("1.0 == 5.1 / 123.4", false);
+	x_const_expr_bool("-1.0 == 1.0", false);
+	x_const_expr_bool("-0.0 == 0.0", true);
+	x_const_expr_bool("'a' == 'a'", true);
+	x_const_expr_bool("'a' == 'b'", false);
+	x_const_expr_bool("0 != 0", false);
+	x_const_expr_bool("0 != 1", true);
+	x_const_expr_bool("0u8 != 300u16", true);
+	x_const_expr_bool("-127 != (0i8 - 127i8)", false);
+	x_const_expr_bool("1.5 != 3.0 / 2.0", false);
+	x_const_expr_bool("0.1f32 != 0.1f32", false);
+	x_const_expr_bool("1.0 != 5.1 / 123.4", true);
+	x_const_expr_bool("-1.0 != 1.0", true);
+	x_const_expr_bool("-0.0 != 0.0", false);
+	x_const_expr_bool("'a' != 'a'", false);
+	x_const_expr_bool("'a' != 'b'", true);
+*/
+#undef x
+#undef x_err
+#undef x_warn
+#undef x_const_expr
+#undef x_const_expr_bool
 }
 
 static void parse_typespec_test(void)
@@ -558,6 +1065,7 @@ test_result parser_test(void)
 	test(parse_primary_expression_test);
 	test(parse_expression_comma_list_test);
 	test(parse_expression_test);
+	test(constant_expression_test);
 	test(parse_typespec_test);
 
 	test_end();
