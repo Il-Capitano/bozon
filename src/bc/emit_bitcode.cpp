@@ -73,11 +73,6 @@ static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 			auto const rhs_cast = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false, "cast_tmp");
 			return { lhs_val, rhs_cast };
 		}
-		else if (ctx::is_floating_point_kind(lhs_kind))
-		{
-			auto const rhs_cast = context.builder.CreateFPCast(rhs_val, lhs_val->getType(), "cast_tmp");
-			return { lhs_val, rhs_cast };
-		}
 		else
 		{
 			bz_assert(false);
@@ -254,13 +249,6 @@ static val_ptr emit_built_in_binary_assign(
 				false
 			);
 		}
-		else if (ctx::is_floating_point_kind(rhs_kind))
-		{
-			rhs_val = context.builder.CreateFPCast(
-				rhs_val,
-				lhs_val.val->getType()->getPointerElementType()
-			);
-		}
 	}
 	context.builder.CreateStore(rhs_val, lhs_val.val);
 	return lhs_val;
@@ -377,7 +365,8 @@ static val_ptr emit_built_in_binary_plus_eq(
 			}
 			else
 			{
-				rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+				bz_assert(ctx::is_floating_point_kind(lhs_kind));
+				bz_assert(lhs_kind == rhs_kind);
 				res = context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp");
 			}
 			context.builder.CreateStore(res, lhs_val_ref.val);
@@ -530,7 +519,8 @@ static val_ptr emit_built_in_binary_minus_eq(
 			}
 			else
 			{
-				rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+				bz_assert(ctx::is_floating_point_kind(lhs_kind));
+				bz_assert(lhs_kind == rhs_kind);
 				res = context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp");
 			}
 			context.builder.CreateStore(res, lhs_val_ref.val);
@@ -632,7 +622,7 @@ static val_ptr emit_built_in_binary_multiply_eq(
 	else
 	{
 		bz_assert(ctx::is_floating_point_kind(lhs_kind));
-		rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+		bz_assert(lhs_kind == rhs_kind);
 		res = context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp");
 	}
 	context.builder.CreateStore(res, lhs_val_ref.val);
@@ -701,7 +691,7 @@ static val_ptr emit_built_in_binary_divide_eq(
 	else
 	{
 		bz_assert(ctx::is_floating_point_kind(lhs_kind));
-		rhs_val = context.builder.CreateFPCast(rhs_val, lhs_val->getType());
+		bz_assert(lhs_kind == rhs_kind);
 		res = context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
 	}
 	context.builder.CreateStore(res, lhs_val_ref.val);
