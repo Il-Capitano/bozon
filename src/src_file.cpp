@@ -204,37 +204,68 @@ static bz::u8string get_highlighted_note(
 	auto const begin_pos = note.src_begin;
 	auto const end_pos   = note.src_end;
 
-	bz_assert(begin_pos <= pivot_pos);
-	bz_assert(pivot_pos < end_pos);
+	bz_assert(
+		(begin_pos.data() != nullptr && pivot_pos.data() != nullptr && end_pos.data() != nullptr)
+		|| (begin_pos.data() == nullptr && pivot_pos.data() == nullptr && end_pos.data() == nullptr)
+	);
+	auto const has_highlight = begin_pos.data() != nullptr;
 
 	auto const first_suggestion_pos = note.first_suggestion.suggestion_pos;
 	auto const first_erase_begin = note.first_suggestion.erase_begin;
 	auto const first_erase_end = note.first_suggestion.erase_end;
+
+	bz_assert(
+		(first_erase_begin.data() == nullptr && first_erase_begin.data() == nullptr)
+		|| (
+			first_erase_end.data() != nullptr
+			&& first_erase_end.data() != nullptr
+			&& first_erase_begin < first_erase_end
+		)
+	);
+	auto const has_first_suggestion = first_suggestion_pos.data() != nullptr || first_erase_begin.data() != nullptr;
+
 	auto const second_suggestion_pos = note.second_suggestion.suggestion_pos;
 	auto const second_erase_begin = note.second_suggestion.erase_begin;
 	auto const second_erase_end = note.second_suggestion.erase_end;
 
+	bz_assert(
+		(second_erase_begin.data() == nullptr && second_erase_begin.data() == nullptr)
+		|| (
+			second_erase_end.data() != nullptr
+			&& second_erase_end.data() != nullptr
+			&& second_erase_begin < second_erase_end
+		)
+	);
+	auto const has_second_suggestion = first_suggestion_pos.data() != nullptr || first_erase_begin.data() != nullptr;
+
 	auto const first_suggestion_str = note.first_suggestion.suggestion_str.as_string_view();
 	auto const second_suggestion_str = note.second_suggestion.suggestion_str.as_string_view();
 
-	bz_assert(first_erase_begin <= first_erase_end);
-	bz_assert(second_erase_begin <= second_erase_end);
-	bz_assert(first_erase_begin.data() == nullptr || first_erase_begin <= begin_pos || first_erase_begin >= end_pos);
-	bz_assert(second_erase_begin.data() == nullptr || second_erase_begin <= begin_pos || second_erase_begin >= end_pos);
-	bz_assert(second_suggestion_pos.data() == nullptr || first_suggestion_pos <= second_suggestion_pos);
-	bz_assert(second_suggestion_pos.data() != nullptr ? first_suggestion_pos.data() != nullptr : true);
+	bz_assert(has_highlight || has_first_suggestion);
+	bz_assert(
+		!(has_first_suggestion && has_second_suggestion)
+		|| (first_suggestion_pos < second_suggestion_pos)
+	);
 
-	bz_assert(second_erase_begin.data() == nullptr || first_erase_end <= second_erase_begin);
-	bz_assert(second_erase_begin.data() == nullptr || first_suggestion_pos <= second_erase_begin);
-	bz_assert(second_suggestion_pos.data() == nullptr || second_suggestion_pos >= first_erase_end);
-
-	auto const smallest_pos = first_suggestion_pos.data() == nullptr
-		? begin_pos
-		: (
-			first_erase_begin.data() == nullptr
-			? std::min(begin_pos, first_suggestion_pos)
-			: std::min(begin_pos, std::min(first_suggestion_pos, first_erase_begin))
-		);
+	auto const smallest_pos = [&]() {
+		if (has_highlight && has_first_suggestion)
+		{
+			return first_erase_begin.data() == nullptr
+				? std::min(begin_pos, first_suggestion_pos)
+				: std::min(begin_pos, std::min(first_suggestion_pos, first_erase_begin));
+		}
+		else if (has_highlight)
+		{
+			return begin_pos;
+		}
+		else
+		{
+			bz_assert(has_first_suggestion);
+			return first_erase_begin.data() == nullptr
+				? first_suggestion_pos
+				: std::min(first_suggestion_pos, first_erase_begin);
+		}
+	}();
 
 	auto const largest_pos = std::max(
 		end_pos,
@@ -246,6 +277,7 @@ static bz::u8string get_highlighted_note(
 
 	bz_assert(smallest_pos >= file_begin);
 	bz_assert(largest_pos <= file_end);
+	bz_assert(smallest_pos <= largest_pos);
 
 	auto line_begin_ptr = smallest_pos.data();
 	while (line_begin_ptr != file_begin.data() && *(line_begin_ptr - 1) != '\n')
@@ -643,10 +675,13 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 	);
 	for (auto &n : err.notes)
 	{
+		auto const column = n.src_pivot.data() == nullptr
+			? get_column_number(file_begin, n.first_suggestion.suggestion_pos)
+			: get_column_number(file_begin, n.src_pivot);
 		bz::printf(
 			"{}{}:{}:{}:{} {}note:{} {}\n{}",
 			colors::bright_white,
-			n.file, n.line, get_column_number(file_begin, n.src_pivot),
+			n.file, n.line, column,
 			colors::clear,
 			colors::note_color, colors::clear,
 			n.message,

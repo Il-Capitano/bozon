@@ -74,7 +74,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 		return;
 	}
 	notes.emplace_back(ctx::make_note_with_suggestion(
-		{ it, it, it + 1 },
+		{},
 		it, "(", it + 1, ")",
 		"put parenthesis around the expression to suppress this warning"
 	));
@@ -95,7 +95,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 		return;
 	}
 	notes.emplace_back(ctx::make_note_with_suggestion(
-		src_tokens,
+		{},
 		src_tokens.begin, "(", src_tokens.end, ")",
 		"put parenthesis around the expression to suppress this warning"
 	));

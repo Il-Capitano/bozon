@@ -201,13 +201,27 @@ template<typename T>
 	bz::u8string message
 )
 {
-	return {
-		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
-		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
-		{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
-		{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
-		std::move(message)
-	};
+	bz_assert(begin != nullptr && end != nullptr);
+	if (tokens.pivot == nullptr)
+	{
+		return {
+			begin->src_pos.file_name, begin->src_pos.line,
+			char_pos(), char_pos(), char_pos(),
+			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
+			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
+			std::move(message)
+		};
+	}
+	else
+	{
+		return {
+			tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+			tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
+			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
+			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
+			std::move(message)
+		};
+	}
 }
 
 [[nodiscard]] inline suggestion make_suggestion_after(
