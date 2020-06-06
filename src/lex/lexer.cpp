@@ -249,7 +249,7 @@ static void match_character(
 					stream.file, stream.line,
 					first_char, first_char, end,
 					bz::format(
-						"the value 0x{:c}{:c} is too large for a character, it must be at most 0x7f",
+						"the value 0x{:c}{:c} is too large for a hex character, it must be at most 0x7f",
 						*first_char, *second_char
 					),
 					{},
@@ -337,18 +337,32 @@ static void match_character(
 
 		default:
 		{
+			auto const get_char = [](bz::u8char c) -> bz::u8string{
+				if (c >= ' ')
+				{
+					return bz::u8string(1, c);
+				}
+				else
+				{
+					switch (c)
+					{
+					case '\t': return bz::format("{}\\t{}", colors::bright_black, colors::clear);
+					case '\n': return bz::format("{}\\n{}", colors::bright_black, colors::clear);
+					default:
+						return bz::format(
+							"{}\\x{:02x}{}",
+							colors::bright_black,
+							static_cast<uint32_t>(c),
+							colors::clear
+						);
+					}
+				}
+			};
 			auto const escaped_char = *stream.it;
 			context.bad_chars(
 				stream.file, stream.line,
 				escape_char, escape_char, stream.it + 1,
-				escaped_char >= ' '
-				? bz::format("invalid escape sequence '\\{:c}'", escaped_char)
-				: bz::format(
-					"invalid escape sequence '\\{}\\x{:02x}{}'",
-					colors::bright_black,
-					static_cast<uint32_t>(escaped_char),
-					colors::clear
-				)
+				bz::format("invalid escape sequence '\\{}'", get_char(escaped_char))
 			);
 			++stream;
 			break;

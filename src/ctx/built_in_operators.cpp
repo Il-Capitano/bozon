@@ -3059,7 +3059,7 @@ static ast::expression get_built_in_binary_bit_shift(
 					context.report_parenthesis_suppressed_warning(
 						src_tokens,
 						bz::format(
-							"{} shift value of {} is too large for type '{}'",
+							"{} shift amount of {} is too large for type '{}'",
 							op->kind == lex::token::bit_left_shift_eq ? "left" : "right",
 							rhs_val, lhs_type_str
 						)
@@ -3166,7 +3166,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 					context.report_parenthesis_suppressed_warning(
 						src_tokens,
 						bz::format(
-							"{} shift value of {} is too large for type '{}'",
+							"{} shift amount of {} is too large for type '{}'",
 							op->kind == lex::token::bit_left_shift_eq ? "left" : "right",
 							rhs_val, lhs_type_str
 						)
