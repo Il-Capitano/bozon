@@ -297,6 +297,7 @@ static auto parse_expression_alt(
 	return parse_expression(stream, end, context, precedence{});
 }
 
+//	/*
 static void parse_expression_test(void)
 {
 	ctx::global_context global_ctx;
@@ -926,16 +927,6 @@ do {                                                                            
 	x_cf("||", false, 0);
 	x_cc("||", false, 0);
 
-/*
-	x("-1");
-	x("(((0)))");
-	x("1 + 2 + 4 * 7 / 1");
-	x("(1.0 - 2.1) / +4.5");
-	x("- - - - - -1234");
-	x_warn("256 as int8");
-
-	x_err("a + 3");
-*/
 #undef x
 #undef x_err
 #undef x_warn
@@ -943,6 +934,7 @@ do {                                                                            
 #undef x_const_expr_bool
 #undef x_base_t
 }
+//	*/
 
 static void constant_expression_test(void)
 {
@@ -950,6 +942,7 @@ static void constant_expression_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 
+#define x(str) xx(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
 
@@ -973,6 +966,7 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 	x_const_expr("40u32 + 2u32", ast::constant_value::uint, 42u);
 	x_const_expr("255u8 + 3u8", ast::constant_value::uint, uint8_t(258));
 	x_warn("255u8 + 3u8");
+	x("(255u8 + 3u8)");
 
 /*
 	x_const_expr("42", ast::type_info::int32_, ast::constant_value::sint, 42);
