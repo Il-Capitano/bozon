@@ -657,8 +657,10 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		std::pair<ast::constant_value, ast::type_info *> return_value{};
 		auto &value = return_value.first;
 		auto &type_info = return_value.second;
-		if (postfix == "")
+		if (postfix == "" || postfix == "u" || postfix == "i")
 		{
+			bz_assert(postfix != "u" || (bz::meta::is_same<default_type, uint32_t>));
+			bz_assert(postfix != "i" || (bz::meta::is_same<default_type,  int32_t>));
 			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
 			{
 				value = static_cast<wide_default_type>(num);
@@ -744,11 +746,24 @@ if (postfix == postfix_str)                                                     
 		}
 
 		auto const postfix = literal->postfix;
-		auto const [value, type_info] = get_int_value_and_type_info(
-			postfix,
-			num,
-			bz::meta::index_constant<ast::type_info::int32_>{}
-		);
+		auto const [value, type_info] = [&]() {
+			if (postfix == "u")
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::uint32_>{}
+				);
+			}
+			else
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::int32_>{}
+				);
+			}
+		}();
 
 		return ast::make_constant_expression(
 			src_tokens,
@@ -850,11 +865,24 @@ if (postfix == postfix_str)                                                     
 		}
 
 		auto const postfix = literal->postfix;
-		auto const [value, type_info] = get_int_value_and_type_info(
-			postfix,
-			num,
-			bz::meta::index_constant<ast::type_info::uint32_>{}
-		);
+		auto const [value, type_info] = [&]() {
+			if (postfix == "i")
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::int32_>{}
+				);
+			}
+			else
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::uint32_>{}
+				);
+			}
+		}();
 
 		return ast::make_constant_expression(
 			src_tokens,
@@ -893,11 +921,24 @@ if (postfix == postfix_str)                                                     
 		}
 
 		auto const postfix = literal->postfix;
-		auto const [value, type_info] = get_int_value_and_type_info(
-			postfix,
-			num,
-			bz::meta::index_constant<ast::type_info::uint32_>{}
-		);
+		auto const [value, type_info] = [&]() {
+			if (postfix == "i")
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::int32_>{}
+				);
+			}
+			else
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::uint32_>{}
+				);
+			}
+		}();
 
 		return ast::make_constant_expression(
 			src_tokens,
@@ -936,11 +977,24 @@ if (postfix == postfix_str)                                                     
 		}
 
 		auto const postfix = literal->postfix;
-		auto const [value, type_info] = get_int_value_and_type_info(
-			postfix,
-			num,
-			bz::meta::index_constant<ast::type_info::uint32_>{}
-		);
+		auto const [value, type_info] = [&]() {
+			if (postfix == "i")
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::int32_>{}
+				);
+			}
+			else
+			{
+				return get_int_value_and_type_info(
+					postfix,
+					num,
+					bz::meta::index_constant<ast::type_info::uint32_>{}
+				);
+			}
+		}();
 
 		return ast::make_constant_expression(
 			src_tokens,
