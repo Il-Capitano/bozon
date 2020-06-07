@@ -493,6 +493,7 @@ static ast::statement parse_for_statement(
 {
 	bz_assert(stream->kind == lex::token::kw_for);
 	bz_assert(false, "for statement not yet implemented");
+	return {};
 }
 
 static ast::statement parse_return_statement(
@@ -581,6 +582,7 @@ static ast::declaration parse_variable_declaration(
 			return &ts->get<ast::ts_pointer_ptr>()->base;
 		default:
 			bz_assert(false);
+			return nullptr;
 		}
 	};
 
