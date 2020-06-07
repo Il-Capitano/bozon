@@ -86,6 +86,7 @@ function main() -> int32
 	print_char('\n');
 	print_uint32(c as uint32);
 	print_char(c);
+	print_char(1076u32 as char);
 	print_char('\n');
 	print_char('\u0470');
 	print_char('\u0471');
@@ -93,13 +94,11 @@ function main() -> int32
 	print_char('\U000004c1');
 	print_char('\n');
 	print_char('h');
-	print_char('h');
-	print_char('h');
-	print_char('h');
 
 	assert('\u0470' == 'Ѱ');
+	assert('\U00000470' == 'Ѱ');
 	assert('ѱ' - 1 == 'Ѱ');
-	assert('Ѱ' as uint32 == 0x470u32);
+	assert('Ѱ' as uint32 == 0x470);
 //	"a" "b";
 
 	println("\n=== \x41 ===");
@@ -282,8 +281,8 @@ function const_expr_test() -> void
 
 //	-(-9'223'372'036'854'775'807i64 - 1);
 
-	assert(9'223'372'036'854'775'808 == 1u64 << 63u32);
-	assert(((9'223'372'036'854'775'808 as uint32)) == 0u32);
+	assert(9'223'372'036'854'775'808 == 1u64 << 63u);
+	assert(((9'223'372'036'854'775'808 as uint32)) == 0u);
 
 	let a = false || false;
 	const FALSE: bool = false;
@@ -344,16 +343,24 @@ function scope_test() -> void
 //	n % 0;
 //	n %= 0;
 
-//	const u32 = 0u32;
+	const u32 = 0u;
 //	u32 % 0u32 + 3u8;
 //	((u32 % 0u32)) * 3u32;
-//	(u32 * 1u32 % 0u32);
+	1u + ((u32 * 1u % 0u));
+	((u32 * 1u % 0u)) + 1u;
 
 	const n = 1u64;
-	n << 99u8	;
+	(n << 99u);
 
-	(-1.0 / 0.0);
-	(((1.0 / 0.0)) + 3.0);
+//	1u << 99u;
+
+//	-1.0 / 0.0;
+//	((1.0 / 0.0)) + 3.0;
+
+	const f = 1.0;
+	((f / 0.0)) + 1.0;
+
+	(-1 as uint64);
 
 	let p: *int32;
 	p = null;
