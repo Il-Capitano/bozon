@@ -250,7 +250,7 @@ static ast::expression parse_primary_expression(
 	{
 		// consecutive string literals are concatenated
 		auto const first = stream;
-		while (stream != end && stream->kind == lex::token::string_literal)
+		while (stream != end && stream->kind == lex::token::string_literal && stream->postfix == "")
 		{
 			++stream;
 		}
@@ -262,10 +262,16 @@ static ast::expression parse_primary_expression(
 		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-		auto const original_suppress_value = context.is_parenthesis_suppressed;
-		context.is_parenthesis_suppressed = stream == end;
+		if (stream == end)
+		{
+			context.parenthesis_suppressed_value = std::min(context.parenthesis_suppressed_value + 1, 2);
+		}
+		else
+		{
+			context.parenthesis_suppressed_value = 1;
+		}
 		auto expr = parse_expression(inner_stream, inner_end, context, precedence{});
-		context.is_parenthesis_suppressed = original_suppress_value;
+		context.parenthesis_suppressed_value = 0;
 		if (inner_stream != inner_end && inner_stream->kind != lex::token::paren_close)
 		{
 			context.report_error(
@@ -388,10 +394,9 @@ static ast::expression parse_expression_helper(
 		// any other operator
 		default:
 		{
-			auto const original_is_paren_suppressed = context.is_parenthesis_suppressed;
-			context.is_parenthesis_suppressed = false;
+			auto const original_suppress_value = context.parenthesis_suppressed_value;
+			context.parenthesis_suppressed_value = 0;
 			auto rhs = parse_primary_expression(stream, end, context);
-			context.is_parenthesis_suppressed = original_is_paren_suppressed && stream == end;
 			precedence rhs_prec;
 
 			while (
@@ -402,10 +407,12 @@ static ast::expression parse_expression_helper(
 				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
 			}
 
+			context.parenthesis_suppressed_value = stream == end ? original_suppress_value : 0;
 			lhs = context.make_binary_operator_expression(
 				{ lhs.get_tokens_begin(), op, stream },
 				op, std::move(lhs), std::move(rhs)
 			);
+			context.parenthesis_suppressed_value = original_suppress_value;
 			break;
 		}
 		}
@@ -443,6 +450,7 @@ static ast::expression parse_expression(
 	precedence prec
 )
 {
+	context.parenthesis_suppressed_value = std::max(context.parenthesis_suppressed_value, 1);
 	auto lhs = parse_primary_expression(stream, end, context);
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }

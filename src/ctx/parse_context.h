@@ -21,7 +21,7 @@ struct parse_context
 	global_context &global_ctx;
 	bz::vector<decl_set> scope_decls;
 
-	bool is_parenthesis_suppressed = false;
+	int parenthesis_suppressed_value = 0;
 
 	parse_context(global_context &_global_ctx);
 
@@ -89,7 +89,7 @@ struct parse_context
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const
 	{
-		if (this->is_parenthesis_suppressed)
+		if (this->parenthesis_suppressed_value == 2)
 		{
 			return;
 		}

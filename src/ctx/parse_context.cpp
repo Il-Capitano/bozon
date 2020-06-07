@@ -69,15 +69,19 @@ void parse_context::report_parenthesis_suppressed_warning(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	if (this->is_parenthesis_suppressed)
+	if (this->parenthesis_suppressed_value == 2)
 	{
 		return;
 	}
+
+	bz::u8string_view const open_paren  = this->parenthesis_suppressed_value == 0 ? "((" : "(";
+	bz::u8string_view const close_paren = this->parenthesis_suppressed_value == 0 ? "))" : ")";
 	notes.emplace_back(ctx::make_note_with_suggestion(
 		{},
-		it, "(", it + 1, ")",
+		it, open_paren, it + 1, close_paren,
 		"put parenthesis around the expression to suppress this warning"
 	));
+
 	this->global_ctx.report_warning(ctx::make_warning(
 		it, std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -90,15 +94,19 @@ void parse_context::report_parenthesis_suppressed_warning(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	if (this->is_parenthesis_suppressed)
+	if (this->parenthesis_suppressed_value == 2)
 	{
 		return;
 	}
+
+	bz::u8string_view const open_paren  = this->parenthesis_suppressed_value == 0 ? "((" : "(";
+	bz::u8string_view const close_paren = this->parenthesis_suppressed_value == 0 ? "))" : ")";
 	notes.emplace_back(ctx::make_note_with_suggestion(
 		{},
-		src_tokens.begin, "(", src_tokens.end, ")",
+		src_tokens.begin, open_paren, src_tokens.end, close_paren,
 		"put parenthesis around the expression to suppress this warning"
 	));
+
 	this->global_ctx.report_warning(ctx::make_warning(
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
