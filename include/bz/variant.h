@@ -331,27 +331,15 @@ public:
 	template<size_t N>
 	value_type<N> &get(void) noexcept
 	{
-		if (this->_index == N)
-		{
-			return this->no_check_get<N>();
-		}
-		else
-		{
-			bz_assert(false);
-		}
+		bz_assert(this->_index == N);
+		return this->no_check_get<N>();
 	}
 
 	template<size_t N>
 	value_type<N> const &get(void) const noexcept
 	{
-		if (this->_index == N)
-		{
-			return this->no_check_get<N>();
-		}
-		else
-		{
-			bz_assert(false);
-		}
+		bz_assert(this->_index == N);
+		return this->no_check_get<N>();
 	}
 
 	template<typename T>
