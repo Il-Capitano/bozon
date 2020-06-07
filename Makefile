@@ -6,7 +6,7 @@ default: debug
 # =========================
 
 default_cxx := clang++
-default_cxx_debug_flags := -c -g -Og -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
+default_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
 default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
 default_cxx_include_dirs := ./include ./src 
 default_cc := clang
