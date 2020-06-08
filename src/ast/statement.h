@@ -324,6 +324,19 @@ struct decl_operator
 		  }
 	{}
 
+	decl_operator(
+		lex::token_pos            _op,
+		bz::vector<decl_variable> _params,
+		typespec                  _ret_type
+	)
+		: op  (_op),
+		  body{
+			  std::move(_params),
+			  std::move(_ret_type),
+			  {}
+		  }
+	{}
+
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
