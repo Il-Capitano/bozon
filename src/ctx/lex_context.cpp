@@ -97,6 +97,21 @@ void lex_context::bad_eof(
 	};
 }
 
+[[nodiscard]] ctx::note lex_context::make_note(
+	bz::u8string_view file, size_t line,
+	ctx::char_pos pivot, bz::u8string message,
+	ctx::char_pos suggesetion_pos, bz::u8string suggestion_str
+)
+{
+	return ctx::note{
+		file, line,
+		pivot, pivot, pivot + 1,
+		{ char_pos(), char_pos(), suggesetion_pos, suggestion_str },
+		{},
+		std::move(message)
+	};
+}
+
 
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
 	file_iterator const &pos,

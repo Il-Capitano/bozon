@@ -50,6 +50,11 @@ struct lex_context
 		ctx::char_pos pivot,
 		bz::u8string message
 	);
+	[[nodiscard]] static ctx::note make_note(
+		bz::u8string_view file, size_t line,
+		ctx::char_pos pivot, bz::u8string message,
+		ctx::char_pos suggesetion_pos, bz::u8string suggestion_str
+	);
 
 	[[nodiscard]] static ctx::suggestion make_suggestion(
 		file_iterator const &pos,
