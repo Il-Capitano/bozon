@@ -17,7 +17,8 @@ do {                                                        \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
-    get_tokens_in_curly<lex::token::semi_colon>(            \
+    ++it;                                                   \
+    get_tokens_in_curly<lex::token::curly_close>(           \
         it, tokens.end(), context                           \
     );                                                      \
     assert_false(global_ctx.has_errors());                  \
@@ -30,7 +31,8 @@ do {                                                        \
     auto const tokens = lex::get_tokens(file, "", lex_ctx); \
     assert_false(global_ctx.has_errors());                  \
     auto it = tokens.begin();                               \
-    get_tokens_in_curly<lex::token::semi_colon>(            \
+    ++it;                                                   \
+    get_tokens_in_curly<lex::token::curly_close>(           \
         it, tokens.end(), context                           \
     );                                                      \
     assert_true(global_ctx.has_errors());                   \
@@ -38,22 +40,41 @@ do {                                                        \
     assert_eq(it, it_pos);                                  \
 } while (false)
 
-	x("", tokens.begin());
-	x("x + 3;", tokens.begin() + 3);
+	x("{}", tokens.end() - 1);
+	x("{ x += 3; }", tokens.end() - 1);
+	x("{ i can write anything here... as long as it's' tokenizable. ;; +-+3++-- }", tokens.end() - 1);
+	x("{ { } }", tokens.end() - 1);
+	x("{ { } { } }", tokens.end() - 1);
+	x("{ =>=>=> }", tokens.end() - 1);
+	x("{ ([[(]) }", tokens.end() - 1);
+
+	x_err("{", tokens.end() - 1);
+	x_err("{{   }", tokens.end() - 1);
+	x_err("{{{", tokens.end() - 1);
+
+//	x("", tokens.end() - 1);
+//	x("", tokens.end() - 1);
+//	x("", tokens.end() - 1);
+//	x("", tokens.end() - 1);
+
+/*
+	x("{ }", tokens.begin() + 2);
+	x("{x + 3;", tokens.begin() + 3);
 	//      ^ tokens.begin() + 3
-	x("(asdf++--);", tokens.begin() + 5);
+	x("{(asdf++--);", tokens.begin() + 5);
 	//           ^ tokens.begin() + 6
-	x("() => { std::print(\"hello\"); };", tokens.begin() + 12);
+	x("{() => { std::print(\"hello\"); };", tokens.begin() + 12);
 	//                                 ^ tokens.begin() + 12
-	x("((((;);)));", tokens.begin() + 10);
+	x("{((((;);)));", tokens.begin() + 10);
 	//           ^ tokens.begin() + 10
-	x("[0, 1, 2];", tokens.begin() + 7);
+	x("{[0, 1, 2];", tokens.begin() + 7);
 	//          ^ tokens.begin() + 7
-	x("&const int32;", tokens.begin() + 3);
+	x("{&const int32;", tokens.begin() + 3);
 	//             ^ tokens.begin() + 3
 
 	x_err("{ a + b; return 3;", tokens.begin() + 8);
 	//                       ^ tokens.begin() + 8 (eof)
+*/
 
 #undef x
 #undef x_err
@@ -441,8 +462,8 @@ static void parse_function_definition_test(void)
 	//                                        ^ tokens.begin() + 10
 	x_err("function foo() -> int32 { return 0;", tokens.begin() + 10);
 	//                                        ^ tokens.begin() + 10 (eof)
-	x_err("function foo() -> int32 return 0; } a", tokens.begin() + 10);
-	//                                         ^ tokens.begin() + 10
+	x_err("function foo() -> int32 return 0; } a", tokens.begin() + 6);
+	//                             ^ tokens.begin() + 6
 
 #undef x
 #undef x_err
@@ -460,8 +481,8 @@ static void parse_operator_definition_test(void)
 	x("operator + (a: int32) -> int32 { return a; } a", tokens.begin() + 14);
 	//                                              ^ tokens.begin() + 14
 	x("operator .. (a: std::string, b: &const std::string) -> std::string"
-	  "{ if (a.empty()) return \"\"; else return a.append(b); } a", tokens.begin() + 43);
-	//                                                          ^ tokens.begin() + 43
+	  "{ if (a.empty()) return b; else return a.append(b); } a", tokens.begin() + 43);
+	//                                                       ^ tokens.begin() + 43
 	x("operator << (: int32, : float32) -> void {} a", tokens.begin() + 13);
 	//                                             ^ tokens.begin() + 13
 	x("operator () (: functor, : int32, : int32) -> int32 { return 0; } a", tokens.begin() + 20);
@@ -473,8 +494,8 @@ static void parse_operator_definition_test(void)
 	//                                        ^ tokens.begin() + 10
 	x_err("operator foo() -> int32 { return 0;", tokens.begin() + 10);
 	//                                        ^ tokens.begin() + 10 (eof)
-	x_err("operator foo() -> int32 return 0; } a", tokens.begin() + 10);
-	//                                         ^ tokens.begin() + 10
+	x_err("operator foo() -> int32 return 0; } a", tokens.begin() + 6);
+	//                             ^ tokens.begin() + 6
 
 #undef x
 #undef x_err
@@ -561,7 +582,7 @@ test_result first_pass_parser_test(void)
 	test(parse_no_op_statement_test);
 	test(parse_expression_statement_test);
 	test(parse_variable_declaration_test);
-	test(parse_struct_definition_test);
+//	test(parse_struct_definition_test);
 	test(parse_function_definition_test);
 	test(parse_operator_definition_test);
 	test(parse_declaration_test);
