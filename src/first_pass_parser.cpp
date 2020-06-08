@@ -18,7 +18,9 @@ static lex::token_range get_tokens_in_curly(
 	ctx::first_pass_parse_context &context
 )
 {
-	auto begin = stream;
+	bz_assert((stream - 1)->kind == lex::token::curly_open);
+	auto const curly_begin = stream - 1;
+	auto const begin = stream;
 
 	auto is_valid_token = [&]()
 	{
@@ -35,67 +37,34 @@ static lex::token_range get_tokens_in_curly(
 
 	while (stream != end && is_valid_token())
 	{
-		switch (stream->kind)
+		if (stream->kind == lex::token::curly_open)
 		{
-		case lex::token::paren_open:
-		{
-			++stream; // '('
-			get_tokens_in_curly<lex::token::paren_close, lex::token::curly_close>(stream, end, context);
-			if (stream != end && stream->kind != lex::token::eof)
-			{
-				bz_assert(stream->kind == lex::token::paren_close || stream->kind == lex::token::curly_close);
-				if (stream->kind == lex::token::paren_close)
-				{
-					++stream;
-				}
-			}
-			break;
-		}
-
-		case lex::token::square_open:
-		{
-			++stream; // '['
-			get_tokens_in_curly<lex::token::square_close, lex::token::curly_close>(stream, end, context);
-			if (stream != end && stream->kind != lex::token::eof)
-			{
-				bz_assert(stream->kind == lex::token::square_close || stream->kind == lex::token::curly_close);
-				if (stream->kind == lex::token::square_close)
-				{
-					++stream;
-				}
-			}
-			break;
-		}
-
-		case lex::token::curly_open:
-		{
-			auto const curly_begin = stream;
 			++stream; // '{'
 			get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
-			if (stream->kind != lex::token::curly_close)
-			{
-				context.report_error(
-					stream,
-					stream->kind == lex::token::eof
-					? bz::u8string("expected closing } before end-of-file")
-					: bz::format("expected closing } before '{}'", stream->value),
-					{ ctx::make_note(curly_begin, "to match this:") }
-				);
-			}
-			else
-			{
-				++stream;
-			}
-			break;
 		}
-
-		default:
+		else
+		{
 			++stream;
-			break;
 		}
 	}
 
-	return { begin, stream };
+	auto const curly_end = stream;
+	if (curly_end == end || curly_end->kind != lex::token::curly_close)
+	{
+		context.report_error(
+			stream,
+			stream->kind == lex::token::eof
+			? bz::u8string("expected closing } before end-of-file")
+			: bz::format("expected closing } before '{}'", stream->value),
+			{ ctx::make_note(curly_begin, "to match this:") }
+		);
+	}
+	else
+	{
+		++stream;
+	}
+
+	return { begin, curly_end };
 }
 
 
@@ -165,12 +134,22 @@ static lex::token_range get_expression_or_type_tokens(
 			>(stream, end, context);
 			if (stream->kind != lex::token::paren_close)
 			{
+				auto const suggested_paren_pos = [&]() {
+					switch (stream->kind)
+					{
+					case lex::token::square_close:
+					case lex::token::semi_colon:
+						return stream->src_pos.begin;
+					default:
+						return (stream - 1)->src_pos.end;
+					}
+				}();
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
-					{ ctx::make_note(paren_begin, "to match this:") }
+					{ context.make_note(paren_begin, "to match this:", suggested_paren_pos, ")") }
 				);
 			}
 			else
@@ -189,12 +168,22 @@ static lex::token_range get_expression_or_type_tokens(
 			>(stream, end, context);
 			if (stream->kind != lex::token::square_close)
 			{
+				auto const suggested_square_pos = [&]() {
+					switch (stream->kind)
+					{
+					case lex::token::paren_close:
+					case lex::token::semi_colon:
+						return stream->src_pos.begin;
+					default:
+						return (stream - 1)->src_pos.end;
+					}
+				}();
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ] before end-of-file")
 					: bz::format("expected closing ] before '{}'", stream->value),
-					{ ctx::make_note(square_begin, "to match this:") }
+					{ context.make_note(square_begin, "to match this:", suggested_square_pos, "]") }
 				);
 			}
 			else
@@ -211,23 +200,8 @@ static lex::token_range get_expression_or_type_tokens(
 			{
 				break;
 			}
-			auto const curly_begin = stream;
 			++stream; // '{'
 			get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
-			if (stream->kind != lex::token::curly_close)
-			{
-				context.report_error(
-					stream,
-					stream->kind == lex::token::eof
-					? bz::u8string("expected closing } before end-of-file")
-					: bz::format("expected closing } before '{}'", stream->value),
-					{ ctx::make_note(curly_begin, "to match this:") }
-				);
-			}
-			else
-			{
-				++stream;
-			}
 			break;
 		}
 
@@ -338,20 +312,6 @@ static ast::stmt_compound get_stmt_compound(
 	++in_stream; // '{'
 
 	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, context);
-	if (in_stream->kind != lex::token::curly_close)
-	{
-		context.report_error(
-			in_stream,
-			in_stream->kind == lex::token::eof
-			? bz::u8string("expected closing } before end-of-file")
-			: bz::format("expected closing } before '{}'", in_stream->value),
-			{ ctx::make_note(comp_stmt.tokens.begin, "to match this:") }
-		);
-	}
-	else
-	{
-		++in_stream;
-	}
 
 	while (stream != end)
 	{
@@ -374,7 +334,6 @@ static ast::stmt_compound_ptr get_stmt_compound_ptr(
 	++in_stream; // '{'
 
 	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, context);
-	context.assert_token(in_stream, lex::token::curly_close);
 
 	while (stream != end)
 	{
@@ -718,11 +677,6 @@ static ast::declaration parse_struct_definition(
 	context.assert_token(in_stream, lex::token::curly_open);
 	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, context);
 
-	if (in_stream->kind == lex::token::curly_close)
-	{
-		++in_stream;
-	}
-
 	bz::vector<ast::declaration> member_decls = {};
 
 	auto parse_member_decl = [&](auto &stream, auto end)
@@ -786,7 +740,14 @@ static ast::declaration parse_function_definition(
 		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
 	}
 
-	context.assert_token(stream, lex::token::curly_open);
+	if (stream->kind != lex::token::curly_open)
+	{
+		// if there's no opening curly bracket, we assume it was meant as a function declaration
+		context.report_error(stream, "expected opening { or ';'");
+		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+	}
+
+	++stream; // '{'
 
 	bz::vector<ast::statement> body = {};
 
@@ -795,7 +756,6 @@ static ast::declaration parse_function_definition(
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, context));
 	}
-	context.assert_token(stream, lex::token::curly_close);
 
 	return ast::make_decl_function(
 		id,
@@ -905,8 +865,22 @@ static ast::declaration parse_operator_definition(
 	}
 
 	context.assert_token(stream, lex::token::arrow);
-	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open>(stream, end, context);
-	context.assert_token(stream, lex::token::curly_open);
+	auto ret_type = get_expression_or_type_tokens<lex::token::curly_open, lex::token::semi_colon>(stream, end, context);
+
+	if (stream->kind == lex::token::semi_colon)
+	{
+		++stream; // ';'
+		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+	}
+
+	if (stream->kind != lex::token::curly_open)
+	{
+		// if there's no opening curly bracket, we assume it was meant as a function declaration
+		context.report_error(stream, "expected opening { or ';'");
+		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+	}
+
+	++stream; // '{'
 
 	bz::vector<ast::statement> body = {};
 
@@ -915,7 +889,6 @@ static ast::declaration parse_operator_definition(
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, context));
 	}
-	context.assert_token(stream, lex::token::curly_close);
 
 	return ast::make_decl_operator(
 		op,
