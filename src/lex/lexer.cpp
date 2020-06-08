@@ -427,8 +427,7 @@ static token get_character_token(
 	{
 		context.bad_char(
 			stream, "expected closing '",
-			{ context.make_note(stream.file, line, begin_it, "to match this:") },
-			{ context.make_suggestion(stream, "'", "put ' here:") }
+			{ context.make_note(stream.file, line, begin_it, "to match this:", stream.it, "'") }
 		);
 	}
 	else
