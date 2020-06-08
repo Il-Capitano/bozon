@@ -29,6 +29,59 @@ void first_pass_parse_context::report_error(
 	));
 }
 
+[[nodiscard]] ctx::note first_pass_parse_context::make_note(
+	lex::token_pos it, bz::u8string message
+)
+{
+	return ctx::note{
+		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note first_pass_parse_context::make_note(
+	lex::src_tokens tokens, bz::u8string message
+)
+{
+	return ctx::note{
+		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note first_pass_parse_context::make_note(
+	lex::token_pos it, bz::u8string message,
+	ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+)
+{
+	return ctx::note{
+		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note first_pass_parse_context::make_note(
+	lex::src_tokens tokens, bz::u8string message,
+	ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+)
+{
+	return ctx::note{
+		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
+		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+
 lex::token_pos first_pass_parse_context::assert_token(lex::token_pos &stream, uint32_t kind) const
 {
 	if (stream->kind != kind)

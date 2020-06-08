@@ -27,6 +27,21 @@ struct first_pass_parse_context
 		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
 
+	[[nodiscard]] static ctx::note make_note(
+		lex::token_pos it, bz::u8string message
+	);
+	[[nodiscard]] static ctx::note make_note(
+		lex::src_tokens tokens, bz::u8string message
+	);
+	[[nodiscard]] static ctx::note make_note(
+		lex::token_pos it, bz::u8string message,
+		ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+	);
+	[[nodiscard]] static ctx::note make_note(
+		lex::src_tokens tokens, bz::u8string message,
+		ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+	);
+
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 };
