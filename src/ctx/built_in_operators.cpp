@@ -273,45 +273,69 @@ static ast::expression get_built_in_unary_minus(
 				switch (kind)
 				{
 				case ast::type_info::int8_:
-					value = static_cast<int64_t>(static_cast<int8_t>(-val));
+				{
+					auto const result = static_cast<int64_t>(static_cast<int8_t>(-val));
+					value = result;
 					if (val == std::numeric_limits<int8_t>::min())
 					{
 						context.report_parenthesis_suppressed_warning(
 							src_tokens,
-							bz::format("overflow in constant expression with type 'int8' results in {}", -val)
+							bz::format(
+								"overflow in constant expression with type 'int8' results in {}",
+								result
+							)
 						);
 					}
 					break;
+				}
 				case ast::type_info::int16_:
-					value = static_cast<int64_t>(static_cast<int16_t>(-val));
+				{
+					auto const result = static_cast<int64_t>(static_cast<int16_t>(-val));
+					value = result;
 					if (val == std::numeric_limits<int16_t>::min())
 					{
 						context.report_parenthesis_suppressed_warning(
 							src_tokens,
-							bz::format("overflow in constant expression with type 'int16' results in {}", -val)
+							bz::format(
+								"overflow in constant expression with type 'int16' results in {}",
+								result
+							)
 						);
 					}
 					break;
+				}
 				case ast::type_info::int32_:
-					value = static_cast<int64_t>(static_cast<int32_t>(-val));
+				{
+					auto const result = static_cast<int64_t>(static_cast<int32_t>(-val));
+					value = result;
 					if (val == std::numeric_limits<int32_t>::min())
 					{
 						context.report_parenthesis_suppressed_warning(
 							src_tokens,
-							bz::format("overflow in constant expression with type 'int32' results in {}", -val)
+							bz::format(
+								"overflow in constant expression with type 'int32' results in {}",
+								result
+							)
 						);
 					}
 					break;
+				}
 				case ast::type_info::int64_:
-					value = static_cast<int64_t>(static_cast<int64_t>(-val));
+				{
+					auto const result = static_cast<int64_t>(static_cast<int64_t>(-val));
+					value = result;
 					if (val == std::numeric_limits<int64_t>::min())
 					{
 						context.report_parenthesis_suppressed_warning(
 							src_tokens,
-							bz::format("overflow in constant expression with type 'int64' results in {}", -val)
+							bz::format(
+								"overflow in constant expression with type 'int64' results in {}",
+								result
+							)
 						);
 					}
 					break;
+				}
 
 				default:
 					bz_assert(false);
