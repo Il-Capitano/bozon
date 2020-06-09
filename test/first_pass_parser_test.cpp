@@ -353,6 +353,8 @@ static void parse_expression_statement_test(void)
 	//              ^ tokens.begin() + 7
 	x("1 + 3 3; a", tokens.begin() + 5);
 	//          ^ tokens.begin() + 5
+	x("() => { std::print(\"hello\"); return 0; }; a", tokens.begin() + 16);
+	//                                             ^ tokens.begin() + 16
 
 	x_err("y = x }", tokens.begin() + 3);
 	//           ^ tokens.begin() + 3
