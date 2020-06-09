@@ -202,7 +202,8 @@ lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos 
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	precedence prec
+	precedence prec,
+	bool set_parenthesis_suppress_value = true
 );
 
 static bz::vector<ast::expression> parse_expression_comma_list(
@@ -313,8 +314,11 @@ static ast::expression parse_primary_expression(
 			auto const op = stream;
 			auto const prec = get_unary_precedence(op->kind);
 			++stream;
-			auto expr = parse_expression(stream, end, context, prec);
+			auto const original_paren_suppress_value = context.parenthesis_suppressed_value;
+			context.parenthesis_suppressed_value = 0;
+			auto expr = parse_expression(stream, end, context, prec, false);
 
+			context.parenthesis_suppressed_value = original_paren_suppress_value;
 			return context.make_unary_operator_expression({ op, op, stream }, op, std::move(expr));
 		}
 		else
@@ -447,10 +451,14 @@ static bz::vector<ast::expression> parse_expression_comma_list(
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	precedence prec
+	precedence prec,
+	bool set_parenthesis_suppress_value
 )
 {
-	context.parenthesis_suppressed_value = std::max(context.parenthesis_suppressed_value, 1);
+	if (set_parenthesis_suppress_value)
+	{
+		context.parenthesis_suppressed_value = std::max(context.parenthesis_suppressed_value, 1);
+	}
 	auto lhs = parse_primary_expression(stream, end, context);
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
