@@ -61,6 +61,10 @@ static bz::u8string get_highlighted_error_or_warning(
 	}();
 
 	auto const line_end = [&]() {
+		// the minus one is needed, because end_pos is a one-past-the-end iterator,
+		// which means if the end of the range is a newline character, the iterator
+		// will point to the first character on the next line
+		// the minus one will make sure we don't highlight that line
 		auto end_ptr = end_pos.data() - 1;
 		while (end_ptr != file_end.data() && *end_ptr != '\n')
 		{
@@ -389,33 +393,43 @@ static bz::u8string get_highlighted_note(
 	bz_assert(line_begin.data() != nullptr);
 
 	auto const line_end = [&]() {
+		// one-past-the-end iterators are mixed with regular iterators here,
+		// which means we should have end_pos.data() - 1 for one-past-the-end,
+		// and first_str_pos.data() for regular iterators
+		// therefore max_pos is calculated to be a pointer and not a ctx::char_pos
+		// for a more detailed explanation regarding the -1, see
+		// get_highlighted_error_or_warning's line_end calculation
 		auto const max_pos = [&]() {
+			auto const minus_one = [](ctx::char_pos it) -> decltype(it.data()) {
+				return it.data() == nullptr ? nullptr : it.data() - 1;
+			};
 			if (end_pos.data() == nullptr)
 			{
 				if (second_str_pos.data() == nullptr)
 				{
-					return std::max(first_str_pos, first_erase_end_pos);
+					return std::max(first_str_pos.data(), minus_one(first_erase_end_pos));
 				}
 				else
 				{
-					return std::max(second_str_pos, second_erase_end_pos);
+					return std::max(second_str_pos.data(), minus_one(second_erase_end_pos));
 				}
 			}
 			else if (first_str_pos.data() == nullptr)
 			{
-				return end_pos;
+				bz_assert(end_pos.data() != nullptr);
+				return end_pos.data() - 1;
 			}
 			else if (second_str_pos.data() == nullptr)
 			{
-				return std::max(end_pos, std::max(first_str_pos, first_erase_end_pos));
+				return std::max(minus_one(end_pos), std::max(first_str_pos.data(), minus_one(first_erase_end_pos)));
 			}
 			else
 			{
-				return std::max(end_pos, std::max(second_str_pos, second_erase_end_pos));
+				return std::max(minus_one(end_pos), std::max(second_str_pos.data(), minus_one(second_erase_end_pos)));
 			}
 		}();
 
-		auto end_ptr = max_pos.data() - 1;
+		auto end_ptr = max_pos;
 		while (end_ptr != file_end.data() && *end_ptr != '\n')
 		{
 			++end_ptr;
