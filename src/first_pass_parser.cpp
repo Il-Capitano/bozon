@@ -134,22 +134,28 @@ static lex::token_range get_expression_or_type_tokens(
 			>(stream, end, context);
 			if (stream->kind != lex::token::paren_close)
 			{
-				auto const suggested_paren_pos = [&]() {
+				auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
 					switch (stream->kind)
 					{
 					case lex::token::square_close:
 					case lex::token::semi_colon:
-						return stream->src_pos.begin;
+						return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
 					default:
-						return (stream - 1)->src_pos.end;
+						return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
 					}
 				}();
+				auto const paren_open_line = paren_begin->src_pos.line;
+				bz_assert(paren_open_line <= suggested_paren_line);
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
-					{ context.make_note(paren_begin, "to match this:", suggested_paren_pos, ")") }
+					{
+						(suggested_paren_line - paren_open_line > 1)
+						? context.make_note(paren_begin, "to match this:")
+						: context.make_note(paren_begin, "to match this:", suggested_paren_pos, ")")
+					}
 				);
 			}
 			else
@@ -168,22 +174,28 @@ static lex::token_range get_expression_or_type_tokens(
 			>(stream, end, context);
 			if (stream->kind != lex::token::square_close)
 			{
-				auto const suggested_square_pos = [&]() {
+				auto const [suggested_square_pos, suggested_square_line] = [&]() {
 					switch (stream->kind)
 					{
-					case lex::token::paren_close:
+					case lex::token::square_close:
 					case lex::token::semi_colon:
-						return stream->src_pos.begin;
+						return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
 					default:
-						return (stream - 1)->src_pos.end;
+						return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
 					}
 				}();
+				auto const square_open_line = square_begin->src_pos.line;
+				bz_assert(square_open_line <= suggested_square_line);
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ] before end-of-file")
 					: bz::format("expected closing ] before '{}'", stream->value),
-					{ context.make_note(square_begin, "to match this:", suggested_square_pos, "]") }
+					{
+						(suggested_square_line - square_open_line > 1)
+						? context.make_note(square_begin, "to match this:")
+						: context.make_note(square_begin, "to match this:", suggested_square_pos, "]")
+					}
 				);
 			}
 			else
@@ -366,12 +378,28 @@ static ast::statement parse_if_statement(
 		{
 			if (open_paren->kind == lex::token::paren_open)
 			{
+				auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
+					switch (stream->kind)
+					{
+					case lex::token::square_close:
+					case lex::token::semi_colon:
+						return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
+					default:
+						return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
+					}
+				}();
+				auto const open_paren_line = open_paren->src_pos.line;
+				bz_assert(open_paren_line <= suggested_paren_line);
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
-					{ ctx::make_note(open_paren, "to match this:") }
+					{
+						(suggested_paren_line - open_paren_line > 1)
+						? context.make_note(open_paren, "to match this:")
+						: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
+					}
 				);
 			}
 			return cond;
@@ -424,12 +452,28 @@ static ast::statement parse_while_statement(
 		{
 			if (open_paren->kind == lex::token::paren_open)
 			{
+				auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
+					switch (stream->kind)
+					{
+					case lex::token::square_close:
+					case lex::token::semi_colon:
+						return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
+					default:
+						return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
+					}
+				}();
+				auto const open_paren_line = open_paren->src_pos.line;
+				bz_assert(open_paren_line <= suggested_paren_line);
 				context.report_error(
 					stream,
 					stream->kind == lex::token::eof
 					? bz::u8string("expected closing ) before end-of-file")
 					: bz::format("expected closing ) before '{}'", stream->value),
-					{ ctx::make_note(open_paren, "to match this:") }
+					{
+						(suggested_paren_line - open_paren_line > 1)
+						? context.make_note(open_paren, "to match this:")
+						: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
+					}
 				);
 			}
 			return cond;
