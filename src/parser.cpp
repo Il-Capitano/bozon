@@ -459,7 +459,13 @@ static ast::expression parse_expression(
 	{
 		context.parenthesis_suppressed_value = std::max(context.parenthesis_suppressed_value, 1);
 	}
+	else
+	{
+		context.parenthesis_suppressed_value = 0;
+	}
+	auto const original_paren_suppress_value = context.parenthesis_suppressed_value;
 	auto lhs = parse_primary_expression(stream, end, context);
+	context.parenthesis_suppressed_value = original_paren_suppress_value;
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
 
