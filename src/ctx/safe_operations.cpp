@@ -548,7 +548,7 @@ float64_t safe_multiply(
 
 // int / int
 int64_t safe_divide(
-	int64_t a, int64_t b, uint32_t,
+	int64_t a, int64_t b, uint32_t type_kind,
 	lex::src_tokens src_tokens, parse_context &context
 )
 {
@@ -561,7 +561,35 @@ int64_t safe_divide(
 		return 0;
 	}
 
-	return a / b;
+	auto const result = a / b;
+
+	// with signed integers overflow can happen if a == int_min && b == -1
+#define x(type)                                                                        \
+case ast::type_info::type##_:                                                          \
+    bz_assert(is_in_range<type##_t>(a));                                               \
+    bz_assert(is_in_range<type##_t>(b));                                               \
+    if (a == std::numeric_limits<type##_t>::min() && b == -1)                          \
+    {                                                                                  \
+        context.report_parenthesis_suppressed_warning(                                 \
+            src_tokens,                                                                \
+            bz::format(                                                                \
+                "overflow in constant expression with type '" #type "' results in {}", \
+                static_cast<type##_t>(result)                                          \
+            )                                                                          \
+        );                                                                             \
+    }                                                                                  \
+    return static_cast<int64_t>(static_cast<type##_t>(result));
+
+	switch (type_kind)
+	{
+	x(int8)
+	x(int16)
+	x(int32)
+	x(int64)
+	default:
+		bz_assert(false);
+		return result;
+	}
 }
 
 uint64_t safe_divide(
