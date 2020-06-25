@@ -85,41 +85,11 @@ static lex::token_range get_expression_or_type_tokens(
 		{
 			return false;
 		}
-
-		switch (stream->kind)
+		else
 		{
-		// literals
-		case lex::token::identifier:
-		case lex::token::integer_literal:
-		case lex::token::floating_point_literal:
-		case lex::token::hex_literal:
-		case lex::token::oct_literal:
-		case lex::token::bin_literal:
-		case lex::token::string_literal:
-		case lex::token::character_literal:
-		case lex::token::kw_true:
-		case lex::token::kw_false:
-		case lex::token::kw_null:
-		// parenthesis/brackets
-		case lex::token::paren_open:
-		case lex::token::paren_close:
-		case lex::token::square_open:
-		case lex::token::square_close:
-		// type specifiers that are not operators
-		case lex::token::colon:
-		case lex::token::kw_auto:
-		case lex::token::kw_const:
-		case lex::token::kw_function:
-		// etc
-		case lex::token::fat_arrow:
-		case lex::token::kw_as:
-			return true;
-
-		default:
-			return lex::is_operator(stream->kind);
+			return lex::is_valid_expression_or_type_token(stream->kind);
 		}
 	};
-
 
 	while (stream != end && is_valid_expr_token())
 	{
