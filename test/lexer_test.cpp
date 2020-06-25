@@ -59,10 +59,10 @@ static void get_token_value_test(void)
 		assert_eq(kw.first, get_token_value(kw.second));
 	}
 
-	for (unsigned char c = ' '; c != 128; ++c)
-	{
-		assert_eq(bz::u8string(1, c), get_token_value(c));
-	}
+//	for (unsigned char c = ' '; c != 128; ++c)
+//	{
+//		assert_eq(bz::u8string(1, c), get_token_value(c));
+//	}
 
 	assert_eq(get_token_value(token::identifier), "identifier");
 	assert_eq(get_token_value(token::integer_literal), "integer literal");

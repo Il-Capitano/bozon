@@ -125,6 +125,8 @@ do {                                                        \
 	//          ^ tokens.begin() + 7
 	x("&const int32;", tokens.begin() + 3);
 	//             ^ tokens.begin() + 3
+	x("stream->kind == token::eof;", tokens.begin() + 7);
+	//                           ^ tokens.begin() + 7
 
 	x_err("(", tokens.begin() + 1);
 	x_err("[1, 2, [asdf, x];", tokens.begin() + 10);
@@ -171,6 +173,7 @@ static void get_function_params_test(void)
 	x("()", tokens.end() - 1);
 	x("(a: int32, b: [int32, [[]], std::string])", tokens.end() - 1);
 	x("(: [..]float64)", tokens.end() - 1);
+	x("(: functor, : int32, : int32)", tokens.end() - 1);
 
 	x_err("(", tokens.end() - 1);
 	x_err("(: [[], a: int32) { return 3; }", tokens.begin() + 10);
