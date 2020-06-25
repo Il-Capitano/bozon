@@ -654,23 +654,23 @@ anonymous structs?
 
 function make_person() // auto return type required
 {
-	// first_name as last::name deduced as str
+	// first_name and last_name deduced as str
 	return [
 		.first_name = "John",
-		.last::name  = "Doe"
+		.last_name  = "Doe"
 	];
 
 	// explicit types
 	return [
 		.first_name: std::string = "John",
-		.last::name:  std::string = "Doe"
+		.last_name:  std::string = "Doe"
 	];
 }
 
 function main()
 {
 	let person = make_person();
-	std::print("{} {}\n".format(person.first_name, person.last::name));
+	std::print("{} {}\n".format(person.first_name, person.last_name));
 
 	// can work like a tuple, so person[0] == person.first_name
 	let [first, last] = make_person();
@@ -1147,6 +1147,122 @@ process_data(f);
 
 f->close();
 f = null;
+
+
+
+
+
+
+
+==== metafunctions ====
+
+// in "std/meta/ast.bz"
+export using expression = __built_in_expression_t;
+export using expression_src_pos = __built_in_expression_src_pos_t;
+
+export for expression
+consteval function get_src_pos(expr: &const expression) -> &const expression_src_pos
+{
+	return __built_in_expression_get_src_pos(expr);
+}
+
+export for expression_src_pos
+consteval function get_file_name(src_pos: &const expression_src_pos) -> str
+{
+	return __built_in_expression_src_pos_get_file_name(src_pos);
+}
+
+export for expression_src_pos
+consteval function get_line_number(src_pos: &const expression_src_pos) -> usize
+{
+	return __built_in_expression_src_pos_get_line_number(src_pos);
+}
+
+export metafunction create_expression(expr: &const expression)
+{
+	-> (__built_in_create_expression(expr));
+}
+
+export consteval function is_debug() -> bool
+{
+	return __built_in_is_debug();
+}
+
+
+// in "assert.bz"
+import std::meta::expression;
+
+export metafunction assert(expr: &const std::meta::expression)
+requires std::is_implicitly_convertible<expr.get_type(), bool>
+{
+	// use `->` to insert instructions
+	-> {
+		const predicate = std::meta::create_expression(expr) as bool;
+		if (!predicate)
+		{
+			if consteval (std::meta::is_debug())
+			{
+				std::print(
+					"assertion failed at {}:{}\n"
+					"    expression: {}\n".format(
+						std::meta::create_constant(expr.get_src_pos().get_file_name()),
+						std::meta::create_constant(expr.get_src_pos().get_line_number()),
+						std::meta::expression_as_string(expr)
+					)
+				);
+				std::abort();
+			}
+			else
+			{
+				unreachable;
+			}
+		}
+	};
+}
+
+export for std::result metafunction unwrap(expr: &const std::meta::expression)
+requires std::is_result_type<std::remove_reference_const<expr.get_type()>>
+{
+	-> {
+		const value = std::meta::create_expression(expr);
+		if (value.has_error())
+		{
+			return value.get_error();
+		}
+
+		value.get_result()
+	};
+}
+
+
+
+
+==== more general expressions ====
+
+// instead of ternary
+const a = if (condition) value1 else value2;
+const a = { std::print("hello"); 3 }
+//                                ^ missing semicolon means that is the evaluated value
+
+const value = switch (c) {
+	'0' => 0,
+	'1' => 1,
+	'2' => 2,
+	// ...
+	'a', 'A' => {
+		std::print("hex number!\n");
+		10
+	},
+};
+
+this would be similar to immediately invoked lambdas in c++
+
+auto const value = [&]() {
+	switch (c)
+	{
+		// ...
+	}
+}();
 
 
 
