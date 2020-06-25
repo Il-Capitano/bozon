@@ -49,4 +49,27 @@ To bit_cast(From value)
 	return res;
 }
 
+template<typename Array, typename Cmp, typename Swap>
+constexpr void constexpr_bubble_sort(Array &arr, Cmp cmp, Swap swap)
+{
+	auto const size = arr.size();
+	using size_type = decltype(arr.size());
+	for (size_type i = 0; i < size; ++i)
+	{
+		for (size_type j = 0; j < size - 1; ++j)
+		{
+			auto &lhs = arr[j];
+			auto &rhs = arr[j + 1];
+			if (cmp(lhs, rhs))
+			{
+				// nothing
+			}
+			else
+			{
+				swap(lhs, rhs);
+			}
+		}
+	}
+}
+
 #endif // CORE_H
