@@ -387,7 +387,10 @@ static ast::expression parse_expression_helper(
 		// type cast
 		case lex::token::kw_as:
 		{
+			auto const original_suppress_value = context.parenthesis_suppressed_value;
+			context.parenthesis_suppressed_value = 0;
 			auto type = parse_typespec(stream, end, context);
+			context.parenthesis_suppressed_value = stream == end ? original_suppress_value : 0;
 			lhs = context.make_cast_expression(
 				{ lhs.get_tokens_begin(), op, stream },
 				op, std::move(lhs), std::move(type)
