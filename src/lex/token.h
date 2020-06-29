@@ -185,17 +185,17 @@ namespace token_info_flags
 
 enum : uint64_t
 {
-	keyword             = bit_at<0>,
-	unary_operator      = bit_at<1>,
-	binary_operator     = bit_at<2>,
-	operator_           = bit_at<3>,
-	unary_overloadable  = bit_at<4>,
-	binary_overloadable = bit_at<5>,
-	overloadable        = bit_at<6>,
-	valid_expression_or_type_token = bit_at<7>,
-	has_built_in_unary_operation = bit_at<8>,
-	has_built_in_binary_operation = bit_at<9>,
-	has_built_in_operation = bit_at<10>,
+	keyword                          = bit_at< 0>,
+	unary_operator                   = bit_at< 1>,
+	binary_operator                  = bit_at< 2>,
+	operator_                        = bit_at< 3>,
+	unary_overloadable               = bit_at< 4>,
+	binary_overloadable              = bit_at< 5>,
+	overloadable                     = bit_at< 6>,
+	valid_expression_or_type_token   = bit_at< 7>,
+	unary_built_in                   = bit_at< 8>,
+	binary_built_in                  = bit_at< 9>,
+	built_in                         = bit_at<10>,
 };
 
 } // namespace token_info_flags
@@ -217,69 +217,69 @@ constexpr auto token_info = []() {
 	constexpr uint64_t binary_overloadable_flags = binary_operator_flags | binary_overloadable | overloadable;
 	constexpr uint64_t both_overloadable_flags   = unary_overloadable_flags | binary_overloadable_flags;
 
-	constexpr uint64_t built_in_flags        = operator_flags | has_built_in_operation;
-	constexpr uint64_t unary_built_in_flags  = built_in_flags | unary_operator_flags  | has_built_in_unary_operation;
-	constexpr uint64_t binary_built_in_flags = built_in_flags | binary_operator_flags | has_built_in_binary_operation;
+	constexpr uint64_t built_in_flags        = operator_flags | built_in;
+	constexpr uint64_t unary_built_in_flags  = built_in_flags | unary_operator_flags  | unary_built_in;
+	constexpr uint64_t binary_built_in_flags = built_in_flags | binary_operator_flags | binary_built_in;
 	constexpr uint64_t both_built_in_flags   = unary_built_in_flags | binary_built_in_flags;
 
 	result[token::eof]         = { token::eof, "", "end-of-file", 0 };
 
-	result[token::paren_open]    = { token::paren_open,    "(", "", overloadable_flags                  };
-	result[token::paren_close]   = { token::paren_close,   ")", "", expr_type_flags                     };
-	result[token::curly_open]    = { token::curly_open,    "{", "", 0                                   };
-	result[token::curly_close]   = { token::curly_close,   "}", "", 0                                   };
-	result[token::square_open]   = { token::square_open,   "[", "", overloadable_flags | built_in_flags };
-	result[token::square_close]  = { token::square_close,  "]", "", expr_type_flags                     };
-	result[token::semi_colon]    = { token::semi_colon,    ";", "", 0                                   };
-	result[token::colon]         = { token::colon,         ":", "", expr_type_flags                     };
-	result[token::question_mark] = { token::question_mark, "?", "", expr_type_flags                     };
+	result[token::paren_open]    = { token::paren_open,    "(", "", overloadable_flags };
+	result[token::paren_close]   = { token::paren_close,   ")", "", expr_type_flags    };
+	result[token::curly_open]    = { token::curly_open,    "{", "", 0                  };
+	result[token::curly_close]   = { token::curly_close,   "}", "", 0                  };
+	result[token::square_open]   = { token::square_open,   "[", "", overloadable_flags };
+	result[token::square_close]  = { token::square_close,  "]", "", expr_type_flags    };
+	result[token::semi_colon]    = { token::semi_colon,    ";", "", 0                  };
+	result[token::colon]         = { token::colon,         ":", "", expr_type_flags    };
+	result[token::question_mark] = { token::question_mark, "?", "", expr_type_flags    };
 
 
-	result[token::assign]       = { token::assign,      "=",  "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::plus]         = { token::plus,        "+",  "", both_overloadable_flags   | both_built_in_flags   };
-	result[token::plus_plus]    = { token::plus_plus,   "++", "", unary_overloadable_flags  | unary_built_in_flags  };
-	result[token::plus_eq]      = { token::plus_eq,     "+=", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::minus]        = { token::minus,       "-",  "", both_overloadable_flags   | both_built_in_flags   };
-	result[token::minus_minus]  = { token::minus_minus, "--", "", unary_overloadable_flags  | unary_built_in_flags  };
-	result[token::minus_eq]     = { token::minus_eq,    "-=", "", binary_overloadable_flags | binary_built_in_flags };
+	result[token::assign]       = { token::assign,      "=",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::plus]         = { token::plus,        "+",  "", both_built_in_flags   | both_overloadable_flags   };
+	result[token::plus_plus]    = { token::plus_plus,   "++", "", unary_built_in_flags  | unary_overloadable_flags  };
+	result[token::plus_eq]      = { token::plus_eq,     "+=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::minus]        = { token::minus,       "-",  "", both_built_in_flags   | both_overloadable_flags   };
+	result[token::minus_minus]  = { token::minus_minus, "--", "", unary_built_in_flags  | unary_overloadable_flags  };
+	result[token::minus_eq]     = { token::minus_eq,    "-=", "", binary_built_in_flags | binary_overloadable_flags };
 	// dereference
-	result[token::multiply]     = { token::multiply,    "*",  "", both_overloadable_flags   | both_built_in_flags   };
-	result[token::multiply_eq]  = { token::multiply_eq, "*=", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::divide]       = { token::divide,      "/",  "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::divide_eq]    = { token::divide_eq,   "/=", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::modulo]       = { token::modulo,      "%",  "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::modulo_eq]    = { token::modulo_eq,   "%=", "", binary_overloadable_flags | binary_built_in_flags };
+	result[token::multiply]     = { token::multiply,    "*",  "", both_built_in_flags   | both_overloadable_flags   };
+	result[token::multiply_eq]  = { token::multiply_eq, "*=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::divide]       = { token::divide,      "/",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::divide_eq]    = { token::divide_eq,   "/=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::modulo]       = { token::modulo,      "%",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::modulo_eq]    = { token::modulo_eq,   "%=", "", binary_built_in_flags | binary_overloadable_flags };
 
 	// bit_and, address_of
-	result[token::ampersand]          = { token::ampersand,          "&",   "", binary_overloadable_flags | unary_operator_flags | both_built_in_flags   };
-	result[token::bit_and_eq]         = { token::bit_and_eq,         "&=",  "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_xor]            = { token::bit_xor,            "^",   "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_xor_eq]         = { token::bit_xor_eq,         "^=",  "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_or]             = { token::bit_or,             "|",   "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_or_eq]          = { token::bit_or_eq,          "|=",  "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_left_shift]     = { token::bit_left_shift,     "<<",  "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_left_shift_eq]  = { token::bit_left_shift_eq,  "<<=", "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_right_shift]    = { token::bit_right_shift,    ">>",  "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_right_shift_eq] = { token::bit_right_shift_eq, ">>=", "", binary_overloadable_flags                        | binary_built_in_flags };
-	result[token::bit_not]            = { token::bit_not,            "~",   "", unary_overloadable_flags                         | unary_built_in_flags  };
+	result[token::ampersand]          = { token::ampersand,          "&",   "", both_built_in_flags   | binary_overloadable_flags };
+	result[token::bit_and_eq]         = { token::bit_and_eq,         "&=",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_xor]            = { token::bit_xor,            "^",   "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_xor_eq]         = { token::bit_xor_eq,         "^=",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_or]             = { token::bit_or,             "|",   "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_or_eq]          = { token::bit_or_eq,          "|=",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_left_shift]     = { token::bit_left_shift,     "<<",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_left_shift_eq]  = { token::bit_left_shift_eq,  "<<=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_right_shift]    = { token::bit_right_shift,    ">>",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_right_shift_eq] = { token::bit_right_shift_eq, ">>=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bit_not]            = { token::bit_not,            "~",   "", unary_built_in_flags  | unary_overloadable_flags  };
 
-	result[token::equals]          = { token::equals,          "==", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::not_equals]      = { token::not_equals,      "!=", "", binary_overloadable_flags | binary_built_in_flags };
+	result[token::equals]          = { token::equals,          "==", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::not_equals]      = { token::not_equals,      "!=", "", binary_built_in_flags | binary_overloadable_flags };
 	// angle_open
-	result[token::less_than]       = { token::less_than,       "<",  "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::less_than_eq]    = { token::less_than_eq,    "<=", "", binary_overloadable_flags | binary_built_in_flags };
+	result[token::less_than]       = { token::less_than,       "<",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::less_than_eq]    = { token::less_than_eq,    "<=", "", binary_built_in_flags | binary_overloadable_flags };
 	// angle_close
-	result[token::greater_than]    = { token::greater_than,    ">",  "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::greater_than_eq] = { token::greater_than_eq, ">=", "", binary_overloadable_flags | binary_built_in_flags };
+	result[token::greater_than]    = { token::greater_than,    ">",  "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::greater_than_eq] = { token::greater_than_eq, ">=", "", binary_built_in_flags | binary_overloadable_flags };
 
-	result[token::bool_and] = { token::bool_and, "&&", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::bool_xor] = { token::bool_xor, "^^", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::bool_or]  = { token::bool_or,  "||", "", binary_overloadable_flags | binary_built_in_flags };
-	result[token::bool_not] = { token::bool_not, "!",  "", unary_overloadable_flags  | unary_built_in_flags  };
+	result[token::bool_and] = { token::bool_and, "&&", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bool_xor] = { token::bool_xor, "^^", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bool_or]  = { token::bool_or,  "||", "", binary_built_in_flags | binary_overloadable_flags };
+	result[token::bool_not] = { token::bool_not, "!",  "", unary_built_in_flags  | unary_overloadable_flags  };
 
-	result[token::comma]      = { token::comma,      ",",   "", binary_operator_flags | binary_built_in_flags };
-	result[token::dot_dot]    = { token::dot_dot,    "..",  "", binary_overloadable_flags                     };
-	result[token::dot_dot_eq] = { token::dot_dot_eq, "..=", "", binary_overloadable_flags                     };
+	result[token::comma]      = { token::comma,      ",",   "", binary_built_in_flags     };
+	result[token::dot_dot]    = { token::dot_dot,    "..",  "", binary_overloadable_flags };
+	result[token::dot_dot_eq] = { token::dot_dot_eq, "..=", "", binary_overloadable_flags };
 
 	result[token::dot]         = { token::dot,         ".",   "", expr_type_flags };
 	result[token::arrow]       = { token::arrow,       "->",  "", expr_type_flags };
@@ -455,40 +455,25 @@ inline bz::u8string get_token_name_for_message(uint32_t kind)
 }
 
 
-constexpr bool is_unary_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::unary_operator) != 0;
+#define def_token_flag_query(fn_name, flag)                        \
+constexpr bool fn_name(uint32_t kind)                              \
+{                                                                  \
+    return (token_info[kind].flags & token_info_flags::flag) != 0; \
 }
 
-constexpr bool is_binary_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::binary_operator) != 0;
-}
+def_token_flag_query(is_keyword, keyword)
+def_token_flag_query(is_unary_operator,  unary_operator)
+def_token_flag_query(is_binary_operator, binary_operator)
+def_token_flag_query(is_operator,        operator_)
+def_token_flag_query(is_unary_overloadable_operator,  unary_overloadable)
+def_token_flag_query(is_binary_overloadable_operator, binary_overloadable)
+def_token_flag_query(is_overloadable_operator,        overloadable)
+def_token_flag_query(is_valid_expression_or_type_token, valid_expression_or_type_token)
+def_token_flag_query(is_unary_built_in_operator,  unary_built_in)
+def_token_flag_query(is_binary_built_in_operator, binary_built_in)
+def_token_flag_query(is_built_in_operator,        built_in)
 
-constexpr bool is_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::operator_) != 0;
-}
 
-constexpr bool is_overloadable_unary_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::unary_overloadable) != 0;
-}
-
-constexpr bool is_overloadable_binary_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::binary_overloadable) != 0;
-}
-
-constexpr bool is_overloadable_operator(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::overloadable) != 0;
-}
-
-constexpr bool is_valid_expression_or_type_token(uint32_t kind)
-{
-	return (token_info[kind].flags & token_info_flags::valid_expression_or_type_token) != 0;
-}
 
 
 using token_pos = bz::vector<token>::const_iterator;
