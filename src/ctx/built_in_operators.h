@@ -37,19 +37,6 @@ constexpr bool is_arithmetic_kind(uint32_t kind)
 		&& kind <= ast::type_info::float64_;
 }
 
-ast::expression make_non_overloadable_operation(
-	lex::token_pos op,
-	ast::expression lhs,
-	ast::expression rhs,
-	parse_context &context
-);
-
-ast::expression make_non_overloadable_operation(
-	lex::token_pos op,
-	ast::expression expr,
-	parse_context &context
-);
-
 
 ast::expression make_built_in_operation(
 	lex::token_pos op,
