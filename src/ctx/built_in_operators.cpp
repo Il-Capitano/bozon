@@ -46,87 +46,6 @@ static auto get_constant_expression_values(
 	}
 }
 
-
-ast::expression make_non_overloadable_operation(
-	lex::token_pos op,
-	ast::expression lhs,
-	ast::expression rhs,
-	[[maybe_unused]] parse_context &context
-)
-{
-	bz_assert(op->kind == lex::token::comma);
-	// TODO add warning if lhs has no side effects
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
-	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
-	auto result_type = type;
-	if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
-	{
-		auto value = rhs.get<ast::constant_expression>().value;
-		return ast::make_constant_expression(
-			src_tokens,
-			type_kind,
-			std::move(result_type),
-			std::move(value),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
-		);
-	}
-	else
-	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			type_kind,
-			std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
-		);
-	}
-}
-
-ast::expression make_non_overloadable_operation(
-	lex::token_pos op,
-	ast::expression expr,
-	parse_context &context
-)
-{
-	switch (op->kind)
-	{
-	case lex::token::address_of:
-	{
-		auto [type, type_kind] = expr.get_expr_type_and_kind();
-		lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
-		auto result_type = ast::make_ts_pointer({}, type);
-		if (
-			type_kind == ast::expression_type_kind::lvalue
-			|| type_kind == ast::expression_type_kind::lvalue_reference
-		)
-		{
-			return ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::rvalue,
-				std::move(result_type),
-				ast::make_expr_unary_op(op, std::move(expr))
-			);
-		}
-		else
-		{
-			context.report_error(src_tokens, "cannot take address of an rvalue");
-			return ast::make_dynamic_expression(
-				src_tokens,
-				ast::expression_type_kind::rvalue,
-				std::move(result_type),
-				ast::make_expr_unary_op(op, std::move(expr))
-			);
-		}
-	}
-	case lex::token::kw_sizeof:
-		bz_assert(false);
-		return ast::expression();
-
-	default:
-		bz_assert(false);
-		return ast::expression();
-	}
-}
-
 #define undeclared_unary_message(op) "undeclared unary operator " op " with type '{}'"
 
 ast::type_info *get_narrowest_type_info(uint64_t val, parse_context &context)
@@ -661,36 +580,63 @@ static ast::expression get_built_in_unary_plus_plus_minus_minus(
 	return ast::expression(src_tokens);
 }
 
-
-ast::expression make_built_in_operation(
+// &T -> *T
+static ast::expression get_built_in_unary_address_of(
 	lex::token_pos op,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	switch (op->kind)
+	auto [type, type_kind] = expr.get_expr_type_and_kind();
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto result_type = ast::make_ts_pointer({}, type);
+	if (
+		type_kind == ast::expression_type_kind::lvalue
+		|| type_kind == ast::expression_type_kind::lvalue_reference
+	)
 	{
-	case lex::token::plus:
-		return get_built_in_unary_plus(op, expr, context);
-	case lex::token::minus:
-		return get_built_in_unary_minus(op, expr, context);
-	case lex::token::dereference:
-		return get_built_in_unary_dereference(op, expr, context);
-	case lex::token::bit_not:
-		return get_built_in_unary_bit_not(op, expr, context);
-	case lex::token::bool_not:
-		return get_built_in_unary_bool_not(op, expr, context);
-	case lex::token::plus_plus:
-	case lex::token::minus_minus:
-		return get_built_in_unary_plus_plus_minus_minus(op, expr, context);
-
-	default:
-		bz_assert(false);
-		return ast::expression();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			std::move(result_type),
+			ast::make_expr_unary_op(op, std::move(expr))
+		);
+	}
+	else
+	{
+		context.report_error(src_tokens, "cannot take address of an rvalue");
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			std::move(result_type),
+			ast::make_expr_unary_op(op, std::move(expr))
+		);
 	}
 }
 
+static ast::expression get_built_in_unary_sizeof(
+	lex::token_pos,
+	ast::expression,
+	parse_context &
+)
+{
+	bz_assert(false);
+	return ast::expression();
+}
+
+static ast::expression get_built_in_unary_typeof(
+	lex::token_pos,
+	ast::expression,
+	parse_context &
+)
+{
+	bz_assert(false);
+	return ast::expression();
+}
+
 #undef undeclared_unary_message
+
+
 #define undeclared_binary_message(op) "undeclared binary operator " op " with types '{}' and '{}'"
 
 // sintN = sintM -> &sintN   where M <= N
@@ -3346,85 +3292,38 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 	return ast::expression(src_tokens);
 }
 
-
-
-ast::expression make_built_in_operation(
+// T, U -> U
+static ast::expression get_built_in_binary_comma(
 	lex::token_pos op,
 	ast::expression lhs,
 	ast::expression rhs,
-	parse_context &context
+	[[maybe_unused]] parse_context &context
 )
 {
-	switch (op->kind)
+	bz_assert(op->kind == lex::token::comma);
+	// TODO add warning if lhs has no side effects
+	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
+	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
+	auto result_type = type;
+	if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
 	{
-	case lex::token::assign:             // '='
-		return get_built_in_binary_assign(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::plus:               // '+'
-		return get_built_in_binary_plus(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::minus:              // '-'
-		return get_built_in_binary_minus(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::plus_eq:            // '+='
-	case lex::token::minus_eq:           // '-='
-		return get_built_in_binary_plus_minus_eq(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::multiply:           // '*'
-	case lex::token::divide:             // '/'
-		return get_built_in_binary_multiply_divide(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::multiply_eq:        // '*='
-	case lex::token::divide_eq:          // '/='
-		return get_built_in_binary_multiply_divide_eq(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::modulo:             // '%'
-		return get_built_in_binary_modulo(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::modulo_eq:          // '%='
-		return get_built_in_binary_modulo_eq(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::equals:             // '=='
-	case lex::token::not_equals:         // '!='
-		return get_built_in_binary_equals_not_equals(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::less_than:          // '<'
-	case lex::token::less_than_eq:       // '<='
-	case lex::token::greater_than:       // '>'
-	case lex::token::greater_than_eq:    // '>='
-		return get_built_in_binary_compare(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::bit_and:            // '&'
-	case lex::token::bit_xor:            // '^'
-	case lex::token::bit_or:             // '|'
-		return get_built_in_binary_bit_and_xor_or(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::bit_and_eq:         // '&='
-	case lex::token::bit_xor_eq:         // '^='
-	case lex::token::bit_or_eq:          // '|='
-		return get_built_in_binary_bit_and_xor_or_eq(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::bit_left_shift:     // '<<'
-	case lex::token::bit_right_shift:    // '>>'
-		return get_built_in_binary_bit_shift(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::bit_left_shift_eq:  // '<<='
-	case lex::token::bit_right_shift_eq: // '>>='
-		return get_built_in_binary_bit_shift_eq(op, std::move(lhs), std::move(rhs), context);
-	case lex::token::bool_and:           // '&&'
-	case lex::token::bool_xor:           // '^^'
-	case lex::token::bool_or:            // '||'
-		return get_built_in_binary_bool_and_xor_or(op, std::move(lhs), std::move(rhs), context);
-
-	case lex::token::square_open:        // '[]'
-		bz_assert(false);
-		return ast::expression();
-
-	// these have no built-in operations
-	case lex::token::dot_dot:            // '..'
-	case lex::token::dot_dot_eq:         // '..='
-	{
-		bz::u8string_view const op_str = op->kind == lex::token::dot_dot ? ".." : "..=";
-		auto &lhs_type = lhs.get_expr_type_and_kind().first;
-		auto &rhs_type = rhs.get_expr_type_and_kind().first;
-		lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
-		context.report_error(
+		auto value = rhs.get<ast::constant_expression>().value;
+		return ast::make_constant_expression(
 			src_tokens,
-			bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type)
+			type_kind,
+			std::move(result_type),
+			std::move(value),
+			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
 		);
-		return ast::expression(src_tokens);
 	}
-
-	default:
-		bz_assert(false);
-		return ast::expression();
+	else
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			type_kind,
+			std::move(result_type),
+			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+		);
 	}
 }
 
@@ -3661,6 +3560,259 @@ case ast::type_info::dest_t##_:                                                 
 		bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
 	);
 	return ast::expression(src_tokens);
+}
+
+struct unary_operator_parse_function_t
+{
+	using fn_t = ast::expression (*)(lex::token_pos, ast::expression, parse_context &);
+
+	uint32_t kind;
+	fn_t     parse_function;
+};
+
+constexpr auto built_in_unary_operators = []() {
+	using T = unary_operator_parse_function_t;
+	auto result = std::array{
+		T{ lex::token::plus,        &get_built_in_unary_plus                  }, // +
+		T{ lex::token::minus,       &get_built_in_unary_minus                 }, // -
+		T{ lex::token::dereference, &get_built_in_unary_dereference           }, // *
+		T{ lex::token::bit_not,     &get_built_in_unary_bit_not               }, // ~
+		T{ lex::token::bool_not,    &get_built_in_unary_bool_not              }, // !
+		T{ lex::token::plus_plus,   &get_built_in_unary_plus_plus_minus_minus }, // ++
+		T{ lex::token::minus_minus, &get_built_in_unary_plus_plus_minus_minus }, // --
+
+		T{ lex::token::address_of,  &get_built_in_unary_address_of            }, // &
+		T{ lex::token::kw_sizeof,   &get_built_in_unary_sizeof                }, // sizeof
+		T{ lex::token::kw_typeof,   &get_built_in_unary_typeof                }, // typeof
+	};
+
+	auto const built_in_unary_count = []() {
+		size_t count = 0;
+		for (auto &ti : lex::token_info)
+		{
+			if (ti.kind < lex::token_info.size() && lex::is_unary_built_in_operator(ti.kind))
+			{
+				++count;
+			}
+		}
+		return count;
+	}();
+
+	if (built_in_unary_count != result.size())
+	{
+		exit(1);
+	}
+
+	constexpr_bubble_sort(
+		result,
+		[](auto lhs, auto rhs) {
+			return lhs.kind < rhs.kind;
+		},
+		[](auto &lhs, auto &rhs) {
+			auto const tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
+	);
+
+	return result;
+}();
+
+struct binary_operator_parse_function_t
+{
+	using fn_t = ast::expression (*)(lex::token_pos, ast::expression, ast::expression, parse_context &);
+
+	uint32_t kind;
+	fn_t     parse_function;
+};
+
+constexpr auto built_in_binary_operators = []() {
+	using T = binary_operator_parse_function_t;
+	auto result = std::array{
+		T{ lex::token::assign,             &get_built_in_binary_assign             }, // =
+		T{ lex::token::plus,               &get_built_in_binary_plus               }, // +
+		T{ lex::token::plus_eq,            &get_built_in_binary_plus_minus_eq      }, // +=
+		T{ lex::token::minus,              &get_built_in_binary_minus              }, // -
+		T{ lex::token::minus_eq,           &get_built_in_binary_plus_minus_eq      }, // -=
+		T{ lex::token::multiply,           &get_built_in_binary_multiply_divide    }, // *
+		T{ lex::token::multiply_eq,        &get_built_in_binary_multiply_divide_eq }, // *=
+		T{ lex::token::divide,             &get_built_in_binary_multiply_divide    }, // /
+		T{ lex::token::divide_eq,          &get_built_in_binary_multiply_divide_eq }, // /=
+		T{ lex::token::modulo,             &get_built_in_binary_modulo             }, // %
+		T{ lex::token::modulo_eq,          &get_built_in_binary_modulo_eq          }, // %=
+		T{ lex::token::equals,             &get_built_in_binary_equals_not_equals  }, // ==
+		T{ lex::token::not_equals,         &get_built_in_binary_equals_not_equals  }, // !=
+		T{ lex::token::less_than,          &get_built_in_binary_compare            }, // <
+		T{ lex::token::less_than_eq,       &get_built_in_binary_compare            }, // <=
+		T{ lex::token::greater_than,       &get_built_in_binary_compare            }, // >
+		T{ lex::token::greater_than_eq,    &get_built_in_binary_compare            }, // >=
+		T{ lex::token::bit_and,            &get_built_in_binary_bit_and_xor_or     }, // &
+		T{ lex::token::bit_and_eq,         &get_built_in_binary_bit_and_xor_or_eq  }, // &=
+		T{ lex::token::bit_xor,            &get_built_in_binary_bit_and_xor_or     }, // ^
+		T{ lex::token::bit_xor_eq,         &get_built_in_binary_bit_and_xor_or_eq  }, // ^=
+		T{ lex::token::bit_or,             &get_built_in_binary_bit_and_xor_or     }, // |
+		T{ lex::token::bit_or_eq,          &get_built_in_binary_bit_and_xor_or_eq  }, // |=
+		T{ lex::token::bit_left_shift,     &get_built_in_binary_bit_shift          }, // <<
+		T{ lex::token::bit_left_shift_eq,  &get_built_in_binary_bit_shift_eq       }, // <<=
+		T{ lex::token::bit_right_shift,    &get_built_in_binary_bit_shift          }, // >>
+		T{ lex::token::bit_right_shift_eq, &get_built_in_binary_bit_shift_eq       }, // >>=
+		T{ lex::token::bool_and,           &get_built_in_binary_bool_and_xor_or    }, // &&
+		T{ lex::token::bool_xor,           &get_built_in_binary_bool_and_xor_or    }, // ^^
+		T{ lex::token::bool_or,            &get_built_in_binary_bool_and_xor_or    }, // ||
+
+		T{ lex::token::comma,              &get_built_in_binary_comma              }, // ,
+	};
+
+	auto const built_in_binary_count = []() {
+		size_t count = 0;
+		for (auto &ti : lex::token_info)
+		{
+			if (ti.kind < lex::token_info.size() && lex::is_binary_built_in_operator(ti.kind))
+			{
+				++count;
+			}
+		}
+		return count;
+	}();
+
+	if (built_in_binary_count != result.size())
+	{
+		exit(1);
+	}
+
+	constexpr_bubble_sort(
+		result,
+		[](auto lhs, auto rhs) {
+			return lhs.kind < rhs.kind;
+		},
+		[](auto &lhs, auto &rhs) {
+			auto const tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
+	);
+
+	return result;
+}();
+
+// this functions creates a binary search tree at compile time,
+// so we can avoid an indirect call
+// it's slightly faster this way (I measured)
+template<int low_index, int high_index>
+ast::expression make_unary_built_in_operation_impl(
+	uint32_t kind,
+	lex::token_pos op,
+	ast::expression &&expr,
+	parse_context &context
+)
+{
+	if constexpr (low_index > high_index)
+	{
+		bz_assert(false);
+		return ast::expression();
+	}
+	else if constexpr (low_index == high_index)
+	{
+		constexpr auto unary_operator_parser = built_in_unary_operators[low_index];
+		if (kind == unary_operator_parser.kind)
+		{
+			return unary_operator_parser.parse_function(op, std::move(expr), context);
+		}
+		else
+		{
+			bz_assert(false);
+			return ast::expression();
+		}
+	}
+	else
+	{
+		constexpr auto midpoint = (low_index + high_index) / 2;
+		constexpr auto unary_operator_parser = built_in_unary_operators[midpoint];
+		if (kind == unary_operator_parser.kind)
+		{
+			return unary_operator_parser.parse_function(op, std::move(expr), context);
+		}
+		else if (kind < unary_operator_parser.kind)
+		{
+			return make_unary_built_in_operation_impl<low_index, midpoint - 1>(kind, op, std::move(expr), context);
+		}
+		else
+		{
+			return make_unary_built_in_operation_impl<midpoint + 1, high_index>(kind, op, std::move(expr), context);
+		}
+	}
+}
+
+ast::expression make_built_in_operation(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	return make_unary_built_in_operation_impl<
+		0, built_in_unary_operators.size() - 1
+	>(op->kind, op, std::move(expr), context);
+}
+
+// this functions creates a binary search tree at compile time,
+// so we can avoid an indirect call
+// it's slightly faster this way (I measured)
+template<int low_index, int high_index>
+ast::expression make_binary_built_in_operation_impl(
+	uint32_t kind,
+	lex::token_pos op,
+	ast::expression &&lhs,
+	ast::expression &&rhs,
+	parse_context &context
+)
+{
+	if constexpr (low_index > high_index)
+	{
+		bz_assert(false);
+		return ast::expression();
+	}
+	else if constexpr (low_index == high_index)
+	{
+		constexpr auto binary_operator_parser = built_in_binary_operators[low_index];
+		if (kind == binary_operator_parser.kind)
+		{
+			return binary_operator_parser.parse_function(op, std::move(lhs), std::move(rhs), context);
+		}
+		else
+		{
+			bz_assert(false);
+			return ast::expression();
+		}
+	}
+	else
+	{
+		constexpr auto midpoint = (low_index + high_index) / 2;
+		constexpr auto binary_operator_parser = built_in_binary_operators[midpoint];
+		if (kind == binary_operator_parser.kind)
+		{
+			return binary_operator_parser.parse_function(op, std::move(lhs), std::move(rhs), context);
+		}
+		else if (kind < binary_operator_parser.kind)
+		{
+			return make_binary_built_in_operation_impl<low_index, midpoint - 1>(kind, op, std::move(lhs), std::move(rhs), context);
+		}
+		else
+		{
+			return make_binary_built_in_operation_impl<midpoint + 1, high_index>(kind, op, std::move(lhs), std::move(rhs), context);
+		}
+	}
+}
+
+ast::expression make_built_in_operation(
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	return make_binary_built_in_operation_impl<
+		0, built_in_binary_operators.size() - 1
+	>(op->kind, op, std::move(lhs), std::move(rhs), context);
 }
 
 } // namespace ctx

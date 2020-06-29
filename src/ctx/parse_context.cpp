@@ -1557,16 +1557,14 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
-	if (!lex::is_overloadable_unary_operator(op->kind))
-	{
-		auto result = make_non_overloadable_operation(op, std::move(expr), *this);
-		result.src_tokens = src_tokens;
-		return result;
-	}
-
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 
-	if (is_built_in_type(ast::remove_const(type)))
+	// if it's a non-overloadable operator or a built-in with a built-in type operand,
+	// user-defined operators shouldn't be looked at
+	if (
+		!lex::is_unary_overloadable_operator(op->kind)
+		|| (is_built_in_type(ast::remove_const(type)) && lex::is_unary_built_in_operator(op->kind))
+	)
 	{
 		auto result = make_built_in_operation(op, std::move(expr), *this);
 		result.src_tokens = src_tokens;
@@ -1674,19 +1672,18 @@ ast::expression parse_context::make_binary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
-	if (!lex::is_overloadable_binary_operator(op->kind))
-	{
-		auto result = make_non_overloadable_operation(op, std::move(lhs), std::move(rhs), *this);
-		result.src_tokens = src_tokens;
-		return result;
-	}
-
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 
+	// if it's a non-overloadable operator or a built-in with a built-in type operand,
+	// user-defined operators shouldn't be looked at
 	if (
-		is_built_in_type(ast::remove_const(lhs_type))
-		&& is_built_in_type(ast::remove_const(rhs_type))
+		!lex::is_binary_overloadable_operator(op->kind)
+		|| (
+			is_built_in_type(ast::remove_const(lhs_type))
+			&& is_built_in_type(ast::remove_const(rhs_type))
+			&& lex::is_binary_built_in_operator(op->kind)
+		)
 	)
 	{
 		auto result = make_built_in_operation(op, std::move(lhs), std::move(rhs), *this);
