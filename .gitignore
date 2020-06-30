@@ -4,3 +4,4 @@ bin
 .cppbuild
 *.o
 *.exe
+*.ll
