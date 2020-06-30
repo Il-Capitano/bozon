@@ -2,6 +2,7 @@
 #include "global_context.h"
 #include "parse_context.h"
 #include "safe_operations.h"
+#include "token_info.h"
 
 namespace ctx
 {
@@ -3588,9 +3589,9 @@ constexpr auto built_in_unary_operators = []() {
 
 	auto const built_in_unary_count = []() {
 		size_t count = 0;
-		for (auto &ti : lex::token_info)
+		for (auto &ti : token_info)
 		{
-			if (ti.kind < lex::token_info.size() && lex::is_unary_built_in_operator(ti.kind))
+			if (ti.kind < token_info.size() && is_unary_built_in_operator(ti.kind))
 			{
 				++count;
 			}
@@ -3665,9 +3666,9 @@ constexpr auto built_in_binary_operators = []() {
 
 	auto const built_in_binary_count = []() {
 		size_t count = 0;
-		for (auto &ti : lex::token_info)
+		for (auto &ti : token_info)
 		{
-			if (ti.kind < lex::token_info.size() && lex::is_binary_built_in_operator(ti.kind))
+			if (ti.kind < token_info.size() && is_binary_built_in_operator(ti.kind))
 			{
 				++count;
 			}

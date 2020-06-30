@@ -1,5 +1,6 @@
 #include "first_pass_parse_context.h"
 #include "global_context.h"
+#include "lex/lexer.h"
 
 namespace ctx
 {

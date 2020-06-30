@@ -2,6 +2,7 @@
 #include "global_context.h"
 #include "built_in_operators.h"
 #include "parser.h"
+#include "lex/lexer.h"
 
 namespace ctx
 {
@@ -1106,6 +1107,12 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 		result += get_string_value(it);
 	}
 
+	auto const postfix = (end - 1)->postfix;
+	if (postfix != "")
+	{
+		this->report_error({ begin, begin, end }, bz::format("unknown postfix '{}'", postfix));
+	}
+
 	return ast::make_constant_expression(
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
@@ -1562,8 +1569,8 @@ ast::expression parse_context::make_unary_operator_expression(
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
-		!lex::is_unary_overloadable_operator(op->kind)
-		|| (is_built_in_type(ast::remove_const(type)) && lex::is_unary_built_in_operator(op->kind))
+		!is_unary_overloadable_operator(op->kind)
+		|| (is_built_in_type(ast::remove_const(type)) && is_unary_built_in_operator(op->kind))
 	)
 	{
 		auto result = make_built_in_operation(op, std::move(expr), *this);
@@ -1678,11 +1685,11 @@ ast::expression parse_context::make_binary_operator_expression(
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
-		!lex::is_binary_overloadable_operator(op->kind)
+		!is_binary_overloadable_operator(op->kind)
 		|| (
 			is_built_in_type(ast::remove_const(lhs_type))
 			&& is_built_in_type(ast::remove_const(rhs_type))
-			&& lex::is_binary_built_in_operator(op->kind)
+			&& is_binary_built_in_operator(op->kind)
 		)
 	)
 	{

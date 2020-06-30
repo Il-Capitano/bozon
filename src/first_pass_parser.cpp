@@ -1,5 +1,5 @@
 #include "first_pass_parser.h"
-
+#include "token_info.h"
 
 static ast::declaration parse_function_definition(
 	lex::token_pos &stream, lex::token_pos end,
@@ -87,7 +87,7 @@ static lex::token_range get_expression_or_type_tokens(
 		}
 		else
 		{
-			return lex::is_valid_expression_or_type_token(stream->kind);
+			return is_valid_expression_or_type_token(stream->kind);
 		}
 	};
 
@@ -808,7 +808,7 @@ static void check_operator_param_count(
 	}
 	if (param_count == 1)
 	{
-		if (op->kind != lex::token::paren_open && !lex::is_unary_overloadable_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !is_unary_overloadable_operator(op->kind))
 		{
 			bz::u8string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 			context.report_error(
@@ -819,7 +819,7 @@ static void check_operator_param_count(
 	}
 	else if (param_count == 2)
 	{
-		if (op->kind != lex::token::paren_open && !lex::is_binary_overloadable_operator(op->kind))
+		if (op->kind != lex::token::paren_open && !is_binary_overloadable_operator(op->kind))
 		{
 			context.report_error(
 				op - 1, op, params_end,
@@ -846,14 +846,14 @@ static ast::declaration parse_operator_definition(
 	++stream; // 'operator'
 	auto const op = stream;
 	bool is_valid_op = true;
-	if (!lex::is_operator(op->kind))
+	if (!is_operator(op->kind))
 	{
 		context.report_error(stream, "expected an operator");
 		is_valid_op = false;
 	}
 	else
 	{
-		if (!lex::is_overloadable_operator(op->kind))
+		if (!is_overloadable_operator(op->kind))
 		{
 			context.report_error(
 				stream, bz::format("operator {} is not overloadable", stream->value)
