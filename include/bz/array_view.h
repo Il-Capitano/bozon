@@ -14,10 +14,12 @@ private:
 	using self_t = array_view<T>;
 
 public:
-	using value_type = T;
-	using size_type = size_t;
-	using iterator = random_access_iterator<T>;
-	using const_iterator = random_access_iterator<const T>;
+	using value_type             = T;
+	using size_type              = size_t;
+	using iterator               = random_access_iterator<T>;
+	using const_iterator         = random_access_iterator<const T>;
+	using reverse_iterator       = ::bz::reverse_iterator<iterator>;
+	using const_reverse_iterator = ::bz::reverse_iterator<const_iterator>;
 
 private:
 	value_type *_data_begin;
@@ -77,6 +79,18 @@ public:
 
 	constexpr const_iterator cend(void) const noexcept
 	{ return const_iterator(this->_data_end); }
+
+	constexpr reverse_iterator rbegin(void) const noexcept
+	{ return reverse_iterator(this->_data_end - 1); }
+
+	constexpr reverse_iterator rend(void) const noexcept
+	{ return reverse_iterator(this->_data_begin - 1); }
+
+	constexpr const_reverse_iterator crbegin(void) const noexcept
+	{ return const_reverse_iterator(this->_data_end - 1); }
+
+	constexpr const_reverse_iterator crend(void) const noexcept
+	{ return const_reverse_iterator(this->_data_begin - 1); }
 };
 
 template<typename T>
