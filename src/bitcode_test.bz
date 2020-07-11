@@ -343,7 +343,7 @@ function scope_test() -> void
 //	n % 0;
 //	n %= 0;
 
-	const u32 = 0u;
+	let u32 = 0u;
 //	u32 % 0u32 + 3u8;
 //	((u32 % 0u32)) * 3u32;
 	1u + ((u32 * 1u % 0u));
@@ -355,7 +355,7 @@ function scope_test() -> void
 //	1u << 99u;
 
 //	-1.0 / 0.0;
-//	((1.0 / 0.0)) + 3.0;
+	((1.0 / 0.0)) + 3.0;
 
 	const f = 1.0;
 	((f / 0.0)) + 1.0;
@@ -364,4 +364,18 @@ function scope_test() -> void
 
 	let p: *int32;
 	p = null;
+
+	(-((1i8 + 127i8)));
+
+//	-1 as uint64;
+
+	let f: float64;
+//	f = 3;
+//	u32 = 1.0;
+	f = 1.0;
+//	f = 1.0f32;
+
+	let b: bool;
+	b = false;
+	b = 3;
 }

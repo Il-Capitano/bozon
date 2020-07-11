@@ -1220,7 +1220,7 @@ requires std::is_implicitly_convertible<expr.get_type(), bool>
 	};
 }
 
-export for std::result metafunction unwrap(expr: &const std::meta::expression)
+export for std::result metafunction unwrap(expr: std::meta::expression)
 requires std::is_result_type<std::remove_reference_const<expr.get_type()>>
 {
 	-> {
@@ -1236,6 +1236,40 @@ requires std::is_result_type<std::remove_reference_const<expr.get_type()>>
 
 
 
+maybe metafunctions should return an expression or statement or declaration:
+
+metafunction unwrap(expr: std::meta::expression) -> std::meta::expression
+requires std::is_result_type<std::remove_reference_const<expr.get_type()>>
+{
+	return {
+		const value = expr;
+		if (value.has_error())
+		{
+			return value.get_error();
+		}
+		value.get_result()
+	};
+}
+
+metafunction assert(expr: std::meta::expression) -> std::meta::statement
+requries std::remove_reference_const<expr.get_type()> == bool
+{
+	return {
+		const expr_result = expr;
+		if (!expr_result)
+		{
+			std::print(
+				std::stderr,
+				"assertion failed at {expr.get_file_name()}:{expr.get_line_number()}\n"
+				"    expression: {expr.as_string()}\n"f
+			);
+		}
+	} // no semicolon?
+
+	return const std::meta::make_identifier("tmp{expr.get_line_number()}"f) = tmp;
+}
+
+
 
 ==== more general expressions ====
 
@@ -1243,6 +1277,7 @@ requires std::is_result_type<std::remove_reference_const<expr.get_type()>>
 const a = if (condition) value1 else value2;
 const a = { std::print("hello"); 3 }
 //                                ^ missing semicolon means that is the evaluated value
+// similar to const a = (std::print("hello"), 3);
 
 const value = switch (c) {
 	'0' => 0,
