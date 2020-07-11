@@ -5,6 +5,7 @@
 #include "u8string_view.h"
 #include <tuple>
 #include <cstring>
+#include <algorithm>
 
 bz_begin_namespace
 
@@ -620,6 +621,37 @@ public:
 
 	const_iterator find(const_iterator it, u8char c) const noexcept
 	{ return this->as_string_view().find(it, c); }
+
+
+	void reverse(void) noexcept
+	{
+		auto const [begin_ptr, end_ptr] = this->_begin_end_pair();
+		std::reverse(begin_ptr, end_ptr);
+		for (auto it = begin_ptr; it != end_ptr;)
+		{
+			if ((*it & 0b1000'0000) != 0)
+			{
+				auto code_point_end = it;
+				while (code_point_end != end_ptr && (*code_point_end & 0b1000'0000) != 0)
+				{
+					++code_point_end;
+				}
+				std::reverse(it, code_point_end);
+				it = code_point_end;
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+
+	u8string reversed(void) const noexcept
+	{
+		auto copy = *this;
+		copy.reverse();
+		return copy;
+	}
 };
 
 bz_end_namespace
