@@ -35,6 +35,12 @@ public:
 	using allocator_type = Alloc;
 	using size_type = typename allocator_type::size_type;
 
+	using       iterator = ::bz::random_access_iterator<      value_type>;
+	using const_iterator = ::bz::random_access_iterator<const value_type>;
+
+	using       reverse_iterator = ::bz::reverse_iterator<      iterator>;
+	using const_reverse_iterator = ::bz::reverse_iterator<const_iterator>;
+
 private:
 	value_type *_data_begin;
 	value_type *_data_end;
@@ -348,6 +354,22 @@ public:
 		this->resize(size, val);
 	}
 
+	vector(const_iterator begin, const_iterator end) noexcept(
+		nothrow_alloc
+		&& meta::is_nothrow_copy_constructible_v<value_type>
+	)
+		: self_t()
+	{
+		this->reserve(end - begin);
+		auto it = begin;
+		auto insert_it = this->_data_begin;
+		for (; it != end; ++it, ++insert_it)
+		{
+			this->_allocator.construct(insert_it, *it);
+		}
+		this->_data_end = insert_it;
+	}
+
 public:
 	// ==== size modifiers ====
 	void resize(size_type new_size) noexcept(
@@ -618,13 +640,6 @@ public:
 
 public:
 	// ==== iteration ====
-	using       iterator = ::bz::random_access_iterator<      value_type>;
-	using const_iterator = ::bz::random_access_iterator<const value_type>;
-
-	using       reverse_iterator = ::bz::reverse_iterator<      iterator>;
-	using const_reverse_iterator = ::bz::reverse_iterator<const_iterator>;
-
-
 	iterator begin(void) noexcept
 	{ return this->_data_begin; }
 

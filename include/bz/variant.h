@@ -55,6 +55,7 @@ private:
 				}
 			}
 		}();
+		static_assert(index < sizeof... (Ts), "cannot decide which value type should be used");
 
 		using type = meta::nth_type<index, Ts...>;
 	};
