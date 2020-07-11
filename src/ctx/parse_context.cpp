@@ -114,6 +114,36 @@ void parse_context::report_parenthesis_suppressed_warning(
 	));
 }
 
+note parse_context::make_note(bz::u8string file_name, size_t line, bz::u8string message)
+{
+	return note{
+		std::move(file_name), line,
+		char_pos(), char_pos(), char_pos(),
+		{}, {},
+		std::move(message)
+	};
+}
+
+note parse_context::make_note(lex::token_pos it, bz::u8string message)
+{
+	return note{
+		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
+note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+{
+	return note{
+		src_tokens.pivot->src_pos.file_name, src_tokens.pivot->src_pos.line,
+		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+		{}, {},
+		std::move(message)
+	};
+}
+
 bool parse_context::has_errors(void) const
 {
 	return this->global_ctx.has_errors();

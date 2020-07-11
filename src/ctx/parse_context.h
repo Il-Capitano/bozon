@@ -99,6 +99,18 @@ struct parse_context
 		);
 	}
 
+	static note make_note(bz::u8string file_name, size_t line, bz::u8string message);
+	static note make_note(lex::token_pos it, bz::u8string message);
+	static note make_note(lex::src_tokens src_tokens, bz::u8string message);
+	template<typename T>
+	static note make_note(T const &tokens, bz::u8string message)
+	{
+		return make_note(
+			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
+			std::move(message)
+		);
+	}
+
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
