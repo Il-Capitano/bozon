@@ -994,32 +994,62 @@ src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
 
 static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_end, ctx::error const &err)
 {
+	auto const src_pos = err.src_begin == err.src_end
+		? bz::format(
+			"{}{}:{}{}",
+			colors::bright_white,
+			err.file, err.line,
+			colors::clear
+		)
+		: bz::format(
+			"{}{}:{}:{}{}",
+			colors::bright_white,
+			err.file, err.line,get_column_number(file_begin, err.src_pivot),
+			colors::clear
+		);
 	auto const error_or_warning = err.is_warning
 		? bz::format("{}warning:{}", colors::warning_color, colors::clear)
 		: bz::format("{}error:{}", colors::error_color, colors::clear);
 
 	bz::printf(
-		"{}{}:{}:{}:{} {} {}\n{}",
-		colors::bright_white,
-		err.file, err.line, get_column_number(file_begin, err.src_pivot),
-		colors::clear,
-		error_or_warning,
-		err.message,
-		get_highlighted_error_or_warning(
-			file_begin, file_end, err
-		)
+		"{}: {} {}\n{}",
+		src_pos, error_or_warning, err.message,
+		get_highlighted_error_or_warning(file_begin, file_end, err)
 	);
+
 	for (auto &n : err.notes)
 	{
-		auto const column = n.src_pivot.data() == nullptr
-			? get_column_number(file_begin, n.first_suggestion.suggestion_pos)
-			: get_column_number(file_begin, n.src_pivot);
+		auto const is_empty = n.src_begin == n.src_end
+			&& n.first_suggestion.erase_begin == n.first_suggestion.erase_end
+			&& n.first_suggestion.suggestion_pos.data() == nullptr;
+		auto const column = [&]() -> size_t {
+			if (is_empty)
+			{
+				return 0;
+			}
+			else
+			{
+				return n.src_pivot.data() == nullptr
+					? get_column_number(file_begin, n.first_suggestion.suggestion_pos)
+					: get_column_number(file_begin, n.src_pivot);
+			}
+		}();
+		auto const note_src_pos = is_empty
+			? bz::format(
+				"{}{}:{}{}",
+				colors::bright_white,
+				n.file, n.line,
+				colors::clear
+			)
+			: bz::format(
+				"{}{}:{}:{}{}",
+				colors::bright_white,
+				n.file, n.line, column,
+				colors::clear
+			);
 		bz::printf(
-			"{}{}:{}:{}:{} {}note:{} {}\n{}",
-			colors::bright_white,
-			n.file, n.line, column,
-			colors::clear,
-			colors::note_color, colors::clear,
+			"{}: {}note:{} {}\n{}",
+			note_src_pos, colors::note_color, colors::clear,
 			n.message,
 			get_highlighted_note(file_begin, file_end, n)
 		);
