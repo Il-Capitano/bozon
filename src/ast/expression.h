@@ -41,6 +41,7 @@ enum class expression_type_kind
 	rvalue,
 	rvalue_reference,
 	function_name,
+	type_name,
 };
 
 struct unresolved_expression
@@ -120,6 +121,24 @@ struct expression : bz::variant<
 		return const_expr
 			&& const_expr->kind == expression_type_kind::function_name
 			&& const_expr->type.is_null();
+	}
+
+	bool is_typename(void) const noexcept
+	{
+		return this->is<constant_expression>()
+			&& this->get<constant_expression>().kind == expression_type_kind::type_name;
+	}
+
+	ast::typespec &get_typename(void) noexcept
+	{
+		bz_assert(this->is_typename());
+		return this->get<constant_expression>().value.get<constant_value::type>();
+	}
+
+	ast::typespec const &get_typename(void) const noexcept
+	{
+		bz_assert(this->is_typename());
+		return this->get<constant_expression>().value.get<constant_value::type>();
 	}
 
 	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const

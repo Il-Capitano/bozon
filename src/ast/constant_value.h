@@ -28,6 +28,8 @@ struct constant_value : bz::variant<
 	function_body *,
 	bz::u8string_view,
 
+	ast::typespec,
+
 	bz::vector<constant_value>
 >
 {
@@ -39,6 +41,8 @@ struct constant_value : bz::variant<
 
 		function_body *,
 		bz::u8string_view,
+
+		ast::typespec,
 
 		bz::vector<constant_value>
 	>;
@@ -55,6 +59,7 @@ struct constant_value : bz::variant<
 		null            = base_t::index_of<internal::null_t>,
 		function        = base_t::index_of<function_body *>,
 		function_set_id = base_t::index_of<bz::u8string_view>,
+		type            = base_t::index_of<ast::typespec>,
 		aggregate       = base_t::index_of<bz::vector<constant_value>>,
 	};
 
