@@ -8,13 +8,13 @@ default: debug
 default_cxx := clang++
 default_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
 default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
-default_cxx_include_dirs := ./include ./src 
+default_cxx_include_dirs := ./include ./src
 default_cc := clang
 default_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 default_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
-default_cc_include_dirs := ./include ./src 
+default_cc_include_dirs := ./include ./src
 default_ld_debug_flags := -g
-default_ld_release_flags := 
+default_ld_release_flags :=
 default_ld_lib_dirs :=
 default_ld_libs := LLVM
 default_exe_debug := bin/default/debug/bozon.exe
@@ -197,15 +197,15 @@ bin/default/release/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.
 test_cxx := clang++
 test_cxx_debug_flags := -c -g -Og -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
 test_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
-test_cxx_include_dirs := ./include ./src 
+test_cxx_include_dirs := ./include ./src
 test_cc := clang
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 test_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
-test_cc_include_dirs := ./include ./src 
+test_cc_include_dirs := ./include ./src
 test_ld_debug_flags := -g
-test_ld_release_flags := 
+test_ld_release_flags :=
 test_ld_lib_dirs :=
-test_ld_libs :=
+test_ld_libs := LLVM
 test_exe_debug := bin/test/debug/testbozon.exe
 test_exe_release := bin/test/release/test_bozon.exe
 
