@@ -125,8 +125,9 @@ struct expression : bz::variant<
 
 	bool is_typename(void) const noexcept
 	{
-		return this->is<constant_expression>()
-			&& this->get<constant_expression>().kind == expression_type_kind::type_name;
+		auto const const_expr = this->get_if<constant_expression>();
+		return const_expr
+			&& const_expr->kind == expression_type_kind::type_name;
 	}
 
 	ast::typespec &get_typename(void) noexcept
