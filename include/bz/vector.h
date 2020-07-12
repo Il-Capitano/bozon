@@ -46,7 +46,7 @@ private:
 	value_type *_data_end;
 	value_type *_alloc_end;
 
-	allocator_type _allocator;
+	[[no_unique_address]] allocator_type _allocator;
 
 private:
 	auto alloc_new(size_type n) noexcept(
