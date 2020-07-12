@@ -377,5 +377,13 @@ function scope_test() -> void
 
 	let b: bool;
 	b = false;
-	b = 3;
+//	b = 3;
+
+	const f32 = 1.23464234 as typeof 1.0f32;
+	const f32: typeof f32 = 0.0f32;
+}
+
+function square(n: int32) -> typeof (n * n)
+{
+	return n * n;
 }
