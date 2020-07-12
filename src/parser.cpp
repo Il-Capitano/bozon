@@ -527,7 +527,22 @@ void resolve(
 		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
 		auto stream = unresolved_ts->tokens.begin;
 		auto const end = unresolved_ts->tokens.end;
-		ts = parse_typespec(stream, end, context);
+		auto expr = parse_expression(stream, end, context, precedence{});
+		if (!expr.is<ast::constant_expression>())
+		{
+			context.report_error(expr, "expected a type");
+			ts = ast::typespec();
+			break;
+		}
+		auto &const_expr = expr.get<ast::constant_expression>();
+		if (const_expr.kind != ast::expression_type_kind::type_name)
+		{
+			context.report_error(expr, "expected a type");
+			ts = ast::typespec();
+			break;
+		}
+		bz_assert(const_expr.value.kind() == ast::constant_value::type);
+		ts = std::move(const_expr.value.get<ast::constant_value::type>());
 		break;
 	}
 

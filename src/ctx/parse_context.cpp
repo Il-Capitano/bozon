@@ -451,6 +451,23 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			is_function_set = true;
 			break;
 		}
+
+		auto const type = std::find_if(
+			scope->type_infos.rbegin(), scope->type_infos.rend(),
+			[id = id_value](auto const &type_info) {
+				return type_info.id == id;
+			}
+		);
+		if (type != scope->type_infos.rend())
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::type_name,
+				ast::typespec(),
+				ast::make_ts_base_type(src_tokens, type->info),
+				ast::make_expr_identifier(id)
+			);
+		}
 	}
 
 	if (is_function_set)
@@ -582,6 +599,35 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 				ast::make_expr_identifier(id)
 			);
 		}
+	}
+
+	auto const type = std::find_if(
+		export_decls.type_infos.begin(), export_decls.type_infos.end(),
+		[id = id_value](auto const &type_info) {
+			return type_info.id == id;
+		}
+	);
+	if (type != export_decls.type_infos.end())
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_ts_base_type(src_tokens, id, type->info),
+			ast::make_expr_identifier(id)
+		);
+	}
+
+	// special case for void type
+	if (id_value == "void")
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_ts_void(src_tokens, id),
+			ast::make_expr_identifier(id)
+		);
 	}
 
 	this->report_error(id, bz::format("undeclared identifier '{}'", id_value));
@@ -1192,6 +1238,12 @@ static int get_type_match_level(
 	auto const *dest_it = &ast::remove_const(dest);
 	auto const *src_it = &expr_type;
 
+	if (dest_it->is_null() || src_it->is_null())
+	{
+		bz_assert(context.has_errors());
+		return -1;
+	}
+
 	if (dest_it->is<ast::ts_base_type>())
 	{
 		src_it = &ast::remove_const(*src_it);
@@ -1601,6 +1653,7 @@ ast::expression parse_context::make_unary_operator_expression(
 	if (
 		!is_unary_overloadable_operator(op->kind)
 		|| (is_built_in_type(ast::remove_const(type)) && is_unary_built_in_operator(op->kind))
+		|| (expr.is_typename() && is_unary_built_in_operator(op->kind))
 	)
 	{
 		auto result = make_built_in_operation(op, std::move(expr), *this);
