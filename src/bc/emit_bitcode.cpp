@@ -1881,7 +1881,7 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 	case ast::typespec::index<ast::ts_base_type>:
 		return get_llvm_base_type(*ts.get<ast::ts_base_type_ptr>(), context);
 	case ast::typespec::index<ast::ts_void>:
-		return llvm::Type::getVoidTy(context.llvm_context);
+		return llvm::Type::getVoidTy(context.get_llvm_context());
 	case ast::typespec::index<ast::ts_constant>:
 		return get_llvm_type(ts.get<ast::ts_constant_ptr>()->base, context);
 	case ast::typespec::index<ast::ts_pointer>:
@@ -1948,7 +1948,7 @@ void add_function_to_module(
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	auto const name = llvm::StringRef(id.data(), id.size());
-	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.module);
+	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.get_module());
 	for (auto &arg : fn->args())
 	{
 		auto const t = arg.getType();

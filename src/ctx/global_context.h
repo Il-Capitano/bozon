@@ -1,6 +1,13 @@
 #ifndef CTX_GLOBAL_CONTEXT_H
 #define CTX_GLOBAL_CONTEXT_H
 
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
+#include <llvm/Target/TargetMachine.h>
+
 #include "core.h"
 
 #include "lex/token.h"
@@ -27,6 +34,10 @@ struct global_context
 	decl_set  _export_decls;
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
+
+	llvm::LLVMContext _llvm_context;
+	llvm::Module _module;
+	llvm::TargetMachine *_target_machine;
 
 	global_context(void);
 
@@ -69,6 +80,9 @@ struct global_context
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
+
+	llvm::DataLayout const &get_data_layout(void) const
+	{ return this->_module.getDataLayout(); }
 };
 
 } // namespace ctx

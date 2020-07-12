@@ -27,6 +27,9 @@ struct bitcode_context
 	llvm::Function *get_function(ast::function_body const *func_body) const;
 	void add_function(ast::function_body const *func_body, llvm::Function *fn);
 
+	llvm::LLVMContext &get_llvm_context(void) const noexcept;
+	llvm::Module &get_module(void) const noexcept;
+
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 
 	llvm::Type *get_built_in_type(uint32_t kind) const;
@@ -56,11 +59,9 @@ struct bitcode_context
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function;
 
-	llvm::LLVMContext llvm_context;
-	llvm::Module module;
 	llvm::IRBuilder<> builder;
 
-	llvm::Type *built_in_types[static_cast<int>(ast::type_info::bool_) + 1];
+	std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1> built_in_types;
 };
 
 } // namespace ctx

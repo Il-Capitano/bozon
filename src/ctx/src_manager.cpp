@@ -137,45 +137,30 @@ namespace ctx
 	}
 
 //	context.module.print(llvm::errs(), nullptr);
+	auto &module = this->global_ctx._module;
+
 	{
 		std::error_code ec;
 		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
 		bz_assert(!ec);
-		context.module.print(file, nullptr);
+		module.print(file, nullptr);
 	}
 
-	auto const target_triple = llvm::sys::getDefaultTargetTriple();
-	llvm::InitializeAllTargetInfos();
-	llvm::InitializeAllTargets();
-	llvm::InitializeAllTargetMCs();
-	llvm::InitializeAllAsmParsers();
-	llvm::InitializeAllAsmPrinters();
-
-	std::string error = "";
-	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, error);
-	bz_assert(target);
-	auto const cpu = "generic";
-	auto const features = "";
-
-	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	auto const target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
-	context.module.setDataLayout(target_machine->createDataLayout());
-	context.module.setTargetTriple(target_triple);
 	auto const output_file = "output.o";
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(output_file, ec, llvm::sys::fs::OF_None);
 	bz_assert(!ec);
 
+	auto const target_machine = this->global_ctx._target_machine;
+
 	llvm::legacy::PassManager pass;
 	auto const file_type = llvm::CGFT_ObjectFile;
 	auto const res = target_machine->addPassesToEmitFile(pass, dest, nullptr, file_type);
 	bz_assert(!res);
-	pass.run(context.module);
+	pass.run(module);
 	dest.flush();
 
 	return true;
 }
-
 
 } // namespace ctx

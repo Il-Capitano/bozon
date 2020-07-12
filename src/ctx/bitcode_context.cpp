@@ -4,33 +4,37 @@
 namespace ctx
 {
 
+static std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1>
+get_built_in_types(global_context &context)
+{
+	return {
+		llvm::Type::getInt8Ty(context._llvm_context),   // int8_
+		llvm::Type::getInt16Ty(context._llvm_context),  // int16_
+		llvm::Type::getInt32Ty(context._llvm_context),  // int32_
+		llvm::Type::getInt64Ty(context._llvm_context),  // int64_
+		llvm::Type::getInt8Ty(context._llvm_context),   // uint8_
+		llvm::Type::getInt16Ty(context._llvm_context),  // uint16_
+		llvm::Type::getInt32Ty(context._llvm_context),  // uint32_
+		llvm::Type::getInt64Ty(context._llvm_context),  // uint64_
+		llvm::Type::getFloatTy(context._llvm_context),  // float32_
+		llvm::Type::getDoubleTy(context._llvm_context), // float64_
+		llvm::Type::getInt32Ty(context._llvm_context),  // char_
+		llvm::StructType::get(
+			llvm::Type::getInt8PtrTy(context._llvm_context),
+			llvm::Type::getInt8PtrTy(context._llvm_context)
+		),                                              // str_
+		llvm::Type::getInt1Ty(context._llvm_context),   // bool_
+	};
+}
+
 bitcode_context::bitcode_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
 	  vars_{},
 	  funcs_{},
 	  types_{},
 	  current_function{ nullptr, nullptr },
-	  llvm_context(),
-	  module("test", this->llvm_context),
-	  builder(this->llvm_context),
-	  built_in_types{
-		  llvm::Type::getInt8Ty(this->llvm_context),   // int8_
-		  llvm::Type::getInt16Ty(this->llvm_context),  // int16_
-		  llvm::Type::getInt32Ty(this->llvm_context),  // int32_
-		  llvm::Type::getInt64Ty(this->llvm_context),  // int64_
-		  llvm::Type::getInt8Ty(this->llvm_context),   // uint8_
-		  llvm::Type::getInt16Ty(this->llvm_context),  // uint16_
-		  llvm::Type::getInt32Ty(this->llvm_context),  // uint32_
-		  llvm::Type::getInt64Ty(this->llvm_context),  // uint64_
-		  llvm::Type::getFloatTy(this->llvm_context),  // float32_
-		  llvm::Type::getDoubleTy(this->llvm_context), // float64_
-		  llvm::Type::getInt32Ty(this->llvm_context),  // char_
-		  llvm::StructType::get(
-			  llvm::Type::getInt8PtrTy(this->llvm_context),
-			  llvm::Type::getInt8PtrTy(this->llvm_context)
-		  ),                                           // str_
-		  llvm::Type::getInt1Ty(this->llvm_context),   // bool_
-	  }
+	  builder(_global_ctx._llvm_context),
+	  built_in_types(get_built_in_types(_global_ctx))
 {}
 
 llvm::Value *bitcode_context::get_variable(ast::decl_variable const *var_decl) const
@@ -55,10 +59,20 @@ void bitcode_context::add_function(ast::function_body const *func_body, llvm::Fu
 	this->funcs_.insert_or_assign(func_body, fn);
 }
 
+llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
+{
+	return this->global_ctx._llvm_context;
+}
+
+llvm::Module &bitcode_context::get_module(void) const noexcept
+{
+	return this->global_ctx._module;
+}
+
 llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(
-		this->llvm_context,
+		this->global_ctx._llvm_context,
 		llvm::StringRef(name.data(), name.length()),
 		this->current_function.second
 	);

@@ -1,6 +1,15 @@
 #include "global_context.h"
 #include "parser.h"
 
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/IR/LegacyPassManager.h>
+
 namespace ctx
 {
 
@@ -72,8 +81,31 @@ global_context::global_context(void)
 		  get_default_types() // type_infos
 	  },
 	  _compile_decls{},
-	  _errors{}
-{}
+	  _errors{},
+	  _llvm_context(),
+	  _module("test", this->_llvm_context),
+	  _target_machine(nullptr)
+{
+	auto const target_triple = llvm::sys::getDefaultTargetTriple();
+	llvm::InitializeAllTargetInfos();
+	llvm::InitializeAllTargets();
+	llvm::InitializeAllTargetMCs();
+	llvm::InitializeAllAsmParsers();
+	llvm::InitializeAllAsmPrinters();
+
+	std::string error = "";
+	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+	bz_assert(target);
+	auto const cpu = "generic";
+	auto const features = "";
+
+	llvm::TargetOptions options;
+	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	this->_target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
+	bz_assert(this->_target_machine);
+	this->_module.setDataLayout(this->_target_machine->createDataLayout());
+	this->_module.setTargetTriple(target_triple);
+}
 
 
 bool global_context::has_errors(void) const
