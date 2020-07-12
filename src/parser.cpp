@@ -342,14 +342,14 @@ static ast::typespec parse_typespec(
 		++stream;
 		if (id->value == "void")
 		{
-			return ast::make_ts_void({ id, id + 1 }, id);
+			return ast::make_ts_void({ id, id, id + 1 }, id);
 		}
 		else
 		{
 			auto const info = context.get_type_info(id->value);
 			if (info)
 			{
-				return ast::make_ts_base_type({ id, id + 1 }, id, info);
+				return ast::make_ts_base_type({ id, id, id + 1 }, id, info);
 			}
 			else
 			{
@@ -362,21 +362,21 @@ static ast::typespec parse_typespec(
 	case lex::token::kw_const:
 		++stream; // 'const'
 		return ast::make_ts_constant(
-			{ stream - 1, stream },
+			{ stream - 1, stream - 1, stream },
 			stream - 1, parse_typespec(stream, end, context)
 		);
 
 	case lex::token::star:
 		++stream; // '*'
 		return ast::make_ts_pointer(
-			{ stream - 1, stream },
+			{ stream - 1, stream - 1, stream },
 			stream - 1, parse_typespec(stream, end, context)
 		);
 
 	case lex::token::ampersand:
 		++stream; // '&'
 		return ast::make_ts_reference(
-			{ stream - 1, stream },
+			{ stream - 1, stream - 1, stream },
 			stream - 1, parse_typespec(stream, end, context)
 		);
 
@@ -409,7 +409,7 @@ static ast::typespec parse_typespec(
 		auto const end_token = stream;
 
 		return ast::make_ts_function(
-			{ begin_token, end_token },
+			{ begin_token, begin_token, end_token },
 			begin_token,
 			std::move(ret_type),
 			std::move(param_types)
@@ -440,7 +440,7 @@ static ast::typespec parse_typespec(
 
 		auto const end_token = inner_end;
 
-		return ast::make_ts_tuple({ begin_token, end_token }, begin_token, std::move(types));
+		return ast::make_ts_tuple({ begin_token, begin_token, end_token }, begin_token, std::move(types));
 	}
 
 	default:

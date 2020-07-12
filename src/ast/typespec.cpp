@@ -4,15 +4,6 @@
 namespace ast
 {
 
-lex::token_pos typespec::get_tokens_begin(void) const
-{ return this->tokens.begin; }
-
-lex::token_pos typespec::get_tokens_pivot(void) const
-{ return this->visit([](auto const &t) { return t->get_tokens_pivot(); }); }
-
-lex::token_pos typespec::get_tokens_end(void) const
-{ return this->tokens.end; }
-
 bool operator == (typespec const &lhs, typespec const &rhs)
 {
 	if (lhs.kind() != rhs.kind())
@@ -108,7 +99,7 @@ typespec decay_typespec(typespec const &ts)
 		{
 			decayed_types.push_back(decay_typespec(t));
 		}
-		return make_ts_tuple(ts.tokens, tuple->pivot_pos, std::move(decayed_types));
+		return make_ts_tuple(ts.src_tokens, tuple->pivot_pos, std::move(decayed_types));
 	}
 	default:
 		bz_assert(false);

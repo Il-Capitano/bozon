@@ -259,7 +259,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 				lex::token_range{ id, type.end },
 				id,
 				ast::typespec(),
-				ast::make_ts_unresolved(type, type)
+				ast::make_ts_unresolved({ type.begin, type.begin, type.end }, type)
 			);
 		}
 		else
@@ -268,7 +268,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 				lex::token_range{ id, type.end },
 				nullptr,
 				ast::typespec(),
-				ast::make_ts_unresolved(type, type)
+				ast::make_ts_unresolved({ type.begin, type.begin, type.end }, type)
 			);
 		}
 	} while (
@@ -539,7 +539,7 @@ static ast::declaration parse_variable_declaration(
 	ast::typespec prototype;
 	if (stream->kind == lex::token::kw_const)
 	{
-		prototype = ast::make_ts_constant({ stream, stream + 1}, stream, ast::typespec());
+		prototype = ast::make_ts_constant({ stream, stream, stream + 1}, stream, ast::typespec());
 	}
 	++stream; // 'let' or 'const'
 
@@ -606,15 +606,15 @@ static ast::declaration parse_variable_declaration(
 			switch (stream->kind)
 			{
 			case lex::token::kw_const:
-				add_to_prototype(ast::make_ts_constant({ stream, stream + 1}, stream, ast::typespec()));
+				add_to_prototype(ast::make_ts_constant({ stream, stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			case lex::token::ampersand:
-				add_to_prototype(ast::make_ts_reference({ stream, stream + 1}, stream, ast::typespec()));
+				add_to_prototype(ast::make_ts_reference({ stream, stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			case lex::token::star:
-				add_to_prototype(ast::make_ts_pointer({ stream, stream + 1}, stream, ast::typespec()));
+				add_to_prototype(ast::make_ts_pointer({ stream, stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			default:
@@ -633,7 +633,7 @@ static ast::declaration parse_variable_declaration(
 			lex::token::assign, lex::token::semi_colon
 		>(stream, end, context);
 
-		auto type = ast::make_ts_unresolved(type_tokens, type_tokens);
+		auto type = ast::make_ts_unresolved({ type_tokens.begin, type_tokens.begin, type_tokens.end }, type_tokens);
 		if (stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
@@ -715,7 +715,7 @@ static ast::declaration parse_struct_definition(
 				lex::token_range{ id, end_token },
 				id,
 				ast::typespec(),
-				ast::make_ts_unresolved(type, type)
+				ast::make_ts_unresolved({ type.begin, type.begin, type.end }, type)
 			));
 			return;
 		}
@@ -751,14 +751,14 @@ static ast::declaration parse_function_definition(
 	if (stream->kind == lex::token::semi_colon)
 	{
 		++stream; // ';'
-		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type));
 	}
 
 	if (stream->kind != lex::token::curly_open)
 	{
 		// if there's no opening curly bracket, we assume it was meant as a function declaration
 		context.report_error(stream, "expected opening { or ';'");
-		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+		return ast::make_decl_function(id, std::move(params), ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type));
 	}
 
 	++stream; // '{'
@@ -774,7 +774,7 @@ static ast::declaration parse_function_definition(
 	return ast::make_decl_function(
 		id,
 		std::move(params),
-		ast::make_ts_unresolved(ret_type, ret_type),
+		ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type),
 		std::move(body)
 	);
 }
@@ -884,14 +884,14 @@ static ast::declaration parse_operator_definition(
 	if (stream->kind == lex::token::semi_colon)
 	{
 		++stream; // ';'
-		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type));
 	}
 
 	if (stream->kind != lex::token::curly_open)
 	{
 		// if there's no opening curly bracket, we assume it was meant as a function declaration
 		context.report_error(stream, "expected opening { or ';'");
-		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved(ret_type, ret_type));
+		return ast::make_decl_operator(op, std::move(params), ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type));
 	}
 
 	++stream; // '{'
@@ -907,7 +907,7 @@ static ast::declaration parse_operator_definition(
 	return ast::make_decl_operator(
 		op,
 		std::move(params),
-		ast::make_ts_unresolved(ret_type, ret_type),
+		ast::make_ts_unresolved({ ret_type.begin, ret_type.begin, ret_type.end }, ret_type),
 		std::move(body)
 	);
 }

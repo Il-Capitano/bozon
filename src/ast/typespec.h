@@ -21,6 +21,7 @@ declare_node_type(ts_pointer);
 declare_node_type(ts_reference);
 declare_node_type(ts_function);
 declare_node_type(ts_tuple);
+declare_node_type(ts_type);
 
 #undef declare_node_type
 
@@ -32,7 +33,8 @@ struct typespec : node<
 	ts_pointer,
 	ts_reference,
 	ts_function,
-	ts_tuple
+	ts_tuple,
+	ts_type
 >
 {
 	using base_t = node<
@@ -43,29 +45,30 @@ struct typespec : node<
 		ts_pointer,
 		ts_reference,
 		ts_function,
-		ts_tuple
+		ts_tuple,
+		ts_type
 	>;
 
 	using base_t::node;
 	using base_t::get;
 	using base_t::kind;
 
-	lex::token_range tokens;
+	lex::src_tokens src_tokens;
 
 	template<typename ...Ts>
-	typespec(lex::token_range _tokens, Ts &&...ts)
+	typespec(lex::src_tokens _src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
-		  tokens(_tokens)
+		  src_tokens(_src_tokens)
 	{}
 
-	typespec(void)
+	typespec()
 		: base_t(),
-		  tokens{ nullptr, nullptr }
+		  src_tokens{}
 	{}
 
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
+	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
+	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
+	lex::token_pos get_tokens_end(void)   const { return this->src_tokens.end;   }
 };
 
 
@@ -221,6 +224,19 @@ struct ts_tuple
 	{ return this->pivot_pos; }
 };
 
+struct ts_type
+{
+	lex::token_pos pivot_pos;
+	typespec       type;
+
+	ts_type(lex::token_pos _pivot_pos, typespec _type)
+		: pivot_pos(_pivot_pos), type(std::move(_type))
+	{}
+
+	lex::token_pos get_tokens_pivot(void) const
+	{ return this->pivot_pos; }
+};
+
 struct variable
 {
 	lex::token_pos id;
@@ -241,36 +257,40 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 
 
 template<typename ...Args>
-typespec make_ts_unresolved(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_unresolved>(std::forward<Args>(args)...)); }
+typespec make_ts_unresolved(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_unresolved>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_base_type(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_base_type>(std::forward<Args>(args)...)); }
+typespec make_ts_base_type(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_base_type>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_void(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_void>(std::forward<Args>(args)...)); }
+typespec make_ts_void(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_void>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_constant(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_constant>(std::forward<Args>(args)...)); }
+typespec make_ts_constant(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_constant>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_pointer(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_pointer>(std::forward<Args>(args)...)); }
+typespec make_ts_pointer(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_pointer>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_reference(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_reference>(std::forward<Args>(args)...)); }
+typespec make_ts_reference(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_reference>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_function(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_function>(std::forward<Args>(args)...)); }
+typespec make_ts_function(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_function>(std::forward<Args>(args)...)); }
 
 template<typename ...Args>
-typespec make_ts_tuple(lex::token_range tokens, Args &&...args)
-{ return typespec(tokens, std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
+typespec make_ts_tuple(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
+
+template<typename ...Args>
+typespec make_ts_type(lex::src_tokens src_tokens, Args &&...args)
+{ return typespec(src_tokens, std::make_unique<ts_type>(std::forward<Args>(args)...)); }
 
 
 typespec decay_typespec(typespec const &ts);
