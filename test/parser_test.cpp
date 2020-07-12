@@ -1055,12 +1055,12 @@ test_result parser_test(void)
 {
 	test_begin();
 
-	test(get_paren_matched_range_test);
-	test(parse_primary_expression_test);
-	test(parse_expression_comma_list_test);
-	test(parse_expression_test);
-	test(constant_expression_test);
-	test(parse_typespec_test);
+	test_fn(get_paren_matched_range_test);
+	test_fn(parse_primary_expression_test);
+	test_fn(parse_expression_comma_list_test);
+	test_fn(parse_expression_test);
+	test_fn(constant_expression_test);
+	test_fn(parse_typespec_test);
 
 	test_end();
 }

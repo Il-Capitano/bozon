@@ -540,16 +540,16 @@ test_result lexer_test(void)
 {
 	test_begin();
 
-	test(file_iterator_test);
-	test(get_token_value_test);
-	test(skip_comments_and_whitespace_test);
-	test(get_identifier_or_keyword_token_test);
-	test(get_character_token_test);
-	test(get_string_token_test);
-	test(get_number_token_test);
-	test(get_single_char_token_test);
-	test(get_next_token_test);
-	test(get_tokens_test);
+	test_fn(file_iterator_test);
+	test_fn(get_token_value_test);
+	test_fn(skip_comments_and_whitespace_test);
+	test_fn(get_identifier_or_keyword_token_test);
+	test_fn(get_character_token_test);
+	test_fn(get_string_token_test);
+	test_fn(get_number_token_test);
+	test_fn(get_single_char_token_test);
+	test_fn(get_next_token_test);
+	test_fn(get_tokens_test);
 
 	test_end();
 }

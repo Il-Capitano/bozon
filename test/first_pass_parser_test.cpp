@@ -575,23 +575,23 @@ test_result first_pass_parser_test(void)
 {
 	test_begin();
 
-	test(get_tokens_in_curly_test);
-	test(get_expression_or_type_tokens_test);
-	test(get_function_params_test);
-//	test(get_stmt_compound_test);
-	test(get_stmt_compound_ptr_test);
-	test(parse_if_statement_test);
-	test(parse_while_statement_test);
-//	test(parse_for_statement_test);
-	test(parse_return_statement_test);
-	test(parse_no_op_statement_test);
-	test(parse_expression_statement_test);
-	test(parse_variable_declaration_test);
-//	test(parse_struct_definition_test);
-	test(parse_function_definition_test);
-	test(parse_operator_definition_test);
-	test(parse_declaration_test);
-	test(parse_statement_test);
+	test_fn(get_tokens_in_curly_test);
+	test_fn(get_expression_or_type_tokens_test);
+	test_fn(get_function_params_test);
+//	test_fn(get_stmt_compound_test);
+	test_fn(get_stmt_compound_ptr_test);
+	test_fn(parse_if_statement_test);
+	test_fn(parse_while_statement_test);
+//	test_fn(parse_for_statement_test);
+	test_fn(parse_return_statement_test);
+	test_fn(parse_no_op_statement_test);
+	test_fn(parse_expression_statement_test);
+	test_fn(parse_variable_declaration_test);
+//	test_fn(parse_struct_definition_test);
+	test_fn(parse_function_definition_test);
+	test_fn(parse_operator_definition_test);
+	test_fn(parse_declaration_test);
+	test_fn(parse_statement_test);
 
 	test_end();
 }

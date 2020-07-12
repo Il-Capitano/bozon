@@ -86,7 +86,7 @@ size_t test_count = 0;   \
 size_t passed_count = 0; \
 bz::printf("Running {}\n", __FUNCTION__)
 
-#define test(fn)                                                     \
+#define test_fn(fn)                                                  \
 do {                                                                 \
     bz::printf("    {:.<60}", #fn);                                  \
     try                                                              \
