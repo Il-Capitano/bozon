@@ -21,7 +21,6 @@ declare_node_type(ts_pointer);
 declare_node_type(ts_reference);
 declare_node_type(ts_function);
 declare_node_type(ts_tuple);
-declare_node_type(ts_type);
 
 #undef declare_node_type
 
@@ -33,8 +32,7 @@ struct typespec : node<
 	ts_pointer,
 	ts_reference,
 	ts_function,
-	ts_tuple,
-	ts_type
+	ts_tuple
 >
 {
 	using base_t = node<
@@ -45,8 +43,7 @@ struct typespec : node<
 		ts_pointer,
 		ts_reference,
 		ts_function,
-		ts_tuple,
-		ts_type
+		ts_tuple
 	>;
 
 	using base_t::node;
@@ -224,19 +221,6 @@ struct ts_tuple
 	{ return this->pivot_pos; }
 };
 
-struct ts_type
-{
-	lex::token_pos pivot_pos;
-	typespec       type;
-
-	ts_type(lex::token_pos _pivot_pos, typespec _type)
-		: pivot_pos(_pivot_pos), type(std::move(_type))
-	{}
-
-	lex::token_pos get_tokens_pivot(void) const
-	{ return this->pivot_pos; }
-};
-
 struct variable
 {
 	lex::token_pos id;
@@ -287,10 +271,6 @@ typespec make_ts_function(lex::src_tokens src_tokens, Args &&...args)
 template<typename ...Args>
 typespec make_ts_tuple(lex::src_tokens src_tokens, Args &&...args)
 { return typespec(src_tokens, std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_type(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_type>(std::forward<Args>(args)...)); }
 
 
 typespec decay_typespec(typespec const &ts);
