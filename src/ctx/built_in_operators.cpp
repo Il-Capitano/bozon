@@ -701,14 +701,41 @@ static ast::expression get_built_in_unary_sizeof(
 	return ast::expression();
 }
 
+// typeof (val) -> (typeof val)
 static ast::expression get_built_in_unary_typeof(
-	lex::token_pos,
-	ast::expression,
-	parse_context &
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
 )
 {
-	bz_assert(false);
-	return ast::expression();
+	bz_assert(op->kind == lex::token::kw_typeof);
+	bz_assert(expr.not_null());
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto const [type, kind] = expr.get_expr_type_and_kind();
+	if (expr.is_overloaded_function())
+	{
+		context.report_error(src_tokens, "type of an overloaded function is ambiguous");
+		return ast::expression(src_tokens);
+	}
+	else if (expr.is_typename())
+	{
+		context.report_error(src_tokens, "cannot take 'typeof' of a type");
+		return ast::expression(src_tokens);
+	}
+
+	auto res_type = type;
+	bz_assert(type.not_null());
+	if (kind == ast::expression_type_kind::lvalue_reference)
+	{
+		res_type = ast::make_ts_reference(src_tokens, std::move(res_type));
+	}
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::typespec(),
+		std::move(res_type),
+		ast::make_expr_unary_op(op, std::move(expr))
+	);
 }
 
 #undef undeclared_unary_message
@@ -3659,7 +3686,7 @@ static ast::expression get_built_in_binary_as(
 		return ast::expression(src_tokens);
 	}
 
-	return make_built_in_cast(op, std::move(lhs), std::move(rhs.get_typename()), context);
+	return context.make_cast_expression(src_tokens, op, std::move(lhs), std::move(rhs.get_typename()));
 }
 
 struct unary_operator_parse_function_t
