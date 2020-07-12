@@ -311,6 +311,7 @@ static ast::expression get_built_in_unary_minus(
 }
 
 // *ptr -> &typeof *ptr
+// *(typename) -> (*typename)
 static ast::expression get_built_in_unary_dereference(
 	lex::token_pos op,
 	ast::expression expr,
@@ -320,9 +321,27 @@ static ast::expression get_built_in_unary_dereference(
 	bz_assert(op->kind == lex::token::dereference);
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+
+	if (expr.is_typename())
+	{
+		auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
+		if (const_expr_type.is<ast::ts_reference>())
+		{
+			context.report_error(src_tokens, "pointer to reference is not a valid type");
+			return ast::expression(src_tokens);
+		}
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_ts_pointer(src_tokens, std::move(const_expr_type)),
+			ast::make_expr_unary_op(op, std::move(expr))
+		);
+	}
+
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto &expr_t = remove_const(type);
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_pointer>())
 	{
@@ -581,15 +600,31 @@ static ast::expression get_built_in_unary_plus_plus_minus_minus(
 	return ast::expression(src_tokens);
 }
 
-// &T -> *T
+// &val -> *typeof val
+// &(typename) -> (&typename)
 static ast::expression get_built_in_unary_address_of(
 	lex::token_pos op,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	auto [type, type_kind] = expr.get_expr_type_and_kind();
+	bz_assert(op->kind == lex::token::address_of);
+	bz_assert(expr.not_null());
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+
+	if (expr.is_typename())
+	{
+		auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_ts_reference(src_tokens, std::move(const_expr_type)),
+			ast::make_expr_unary_op(op, std::move(expr))
+		);
+	}
+
+	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	auto result_type = ast::make_ts_pointer({}, type);
 	if (
 		type_kind == ast::expression_type_kind::lvalue
@@ -613,6 +648,47 @@ static ast::expression get_built_in_unary_address_of(
 			ast::make_expr_unary_op(op, std::move(expr))
 		);
 	}
+}
+
+// const (typename) -> (const typename)
+static ast::expression get_built_in_unary_const(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	if (
+		!expr.is<ast::constant_expression>()
+		|| expr.get<ast::constant_expression>().kind != ast::expression_type_kind::type_name
+	)
+	{
+		context.report_error(src_tokens, "expected a type");
+	}
+
+	auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
+	if (const_expr_type.is<ast::ts_reference>())
+	{
+		context.report_error(src_tokens, "a reference type cannot be 'const'");
+		return ast::expression(src_tokens);
+	}
+
+	if (!const_expr_type.is<ast::ts_constant>())
+	{
+		const_expr_type = ast::make_ts_constant(src_tokens, std::move(const_expr_type));
+	}
+	else
+	{
+		const_expr_type.src_tokens = src_tokens;
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::typespec(),
+		std::move(const_expr_type),
+		ast::make_expr_unary_op(op, std::move(expr))
+	);
 }
 
 static ast::expression get_built_in_unary_sizeof(
@@ -3563,6 +3639,29 @@ case ast::type_info::dest_t##_:                                                 
 	return ast::expression(src_tokens);
 }
 
+// val as T -> T
+static ast::expression get_built_in_binary_as(
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+)
+{
+	bz_assert(op->kind == lex::token::kw_as);
+	bz_assert(lhs.not_null());
+	bz_assert(rhs.not_null());
+
+	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
+
+	if (!rhs.is_typename())
+	{
+		context.report_error(rhs, "expected a type");
+		return ast::expression(src_tokens);
+	}
+
+	return make_built_in_cast(op, std::move(lhs), std::move(rhs.get_typename()), context);
+}
+
 struct unary_operator_parse_function_t
 {
 	using fn_t = ast::expression (*)(lex::token_pos, ast::expression, parse_context &);
@@ -3583,6 +3682,7 @@ constexpr auto built_in_unary_operators = []() {
 		T{ lex::token::minus_minus, &get_built_in_unary_plus_plus_minus_minus }, // --
 
 		T{ lex::token::address_of,  &get_built_in_unary_address_of            }, // &
+		T{ lex::token::kw_const,    &get_built_in_unary_const                 }, // const
 		T{ lex::token::kw_sizeof,   &get_built_in_unary_sizeof                }, // sizeof
 		T{ lex::token::kw_typeof,   &get_built_in_unary_typeof                }, // typeof
 	};
@@ -3662,6 +3762,7 @@ constexpr auto built_in_binary_operators = []() {
 		T{ lex::token::bool_or,            &get_built_in_binary_bool_and_xor_or    }, // ||
 
 		T{ lex::token::comma,              &get_built_in_binary_comma              }, // ,
+		T{ lex::token::kw_as,              &get_built_in_binary_as                 }, // as
 	};
 
 	auto const built_in_binary_count = []() {

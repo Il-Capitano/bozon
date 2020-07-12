@@ -108,8 +108,11 @@ constexpr std::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::bool_not,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::address_of,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dereference,        {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::kw_const,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_sizeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_typeof,          {  3, false } },
+
+	prec_t{ prec_t::binary, lex::token::kw_as,              {  4, true  } },
 
 	prec_t{ prec_t::binary, lex::token::dot_dot,            {  5, true  } },
 
@@ -156,7 +159,6 @@ constexpr std::array operator_precedences = {
 };
 
 constexpr precedence no_comma      { 18, true };
-constexpr precedence as_prec       {  4, true };
 constexpr precedence call_prec     {  2, true };
 constexpr precedence subscript_prec{  2, true };
 
@@ -280,9 +282,9 @@ constexpr auto token_info = []() {
 
 	result[lex::token::kw_auto]  = { lex::token::kw_auto,  "auto",  "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_let]   = { lex::token::kw_let,   "let",   "", keyword_flags                   };
-	result[lex::token::kw_const] = { lex::token::kw_const, "const", "", keyword_flags | expr_type_flags };
 
-	result[lex::token::kw_as]    = { lex::token::kw_as,    "as",    "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_const] = { lex::token::kw_const, "const", "", keyword_flags | unary_built_in_flags  };
+	result[lex::token::kw_as]    = { lex::token::kw_as,    "as",    "", keyword_flags | binary_built_in_flags };
 
 
 	for (auto p : operator_precedences)
@@ -459,10 +461,6 @@ constexpr precedence get_binary_or_call_precedence(uint32_t kind)
 	else if (kind == lex::token::square_open)
 	{
 		return subscript_prec;
-	}
-	else if (kind == lex::token::kw_as)
-	{
-		return as_prec;
 	}
 	else
 	{
