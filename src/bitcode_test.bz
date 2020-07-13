@@ -38,6 +38,7 @@ function println(p: *const int32) -> void { println_int32_ptr(p); }
 function println(x: float32) -> void { println_float32(x); }
 function println(x: float64) -> void { println_float64(x); }
 
+
 function assert(b: bool) -> void
 {
 	if (!b)
@@ -47,10 +48,10 @@ function assert(b: bool) -> void
 	}
 }
 
-function factorial(n: int32) -> int32
+function factorial(n: int32) -> typeof n
 {
-	let i = 1;
-	let res = 1;
+	let i: typeof n = 1;
+	let res: typeof n = 1;
 	while (i <= n)
 	{
 		res *= i;
@@ -139,8 +140,6 @@ function main() -> int32
 	const_expr_test();
 	println("\n==== scope_test ====");
 	scope_test();
-	println("\n==== pointer_test ====");
-	pointer_test();
 	return 0;
 /*
 	let bool: bool = false;
@@ -261,8 +260,8 @@ function ref_test() -> void
 	println(n);
 	assert(n == 1234);
 
-	function foo(n: int32) -> void { print_int32_ptr(&n); }
-	function foo_ref(n: &const int32) -> void { print_int32_ptr(&n); }
+	function foo(n: int32) -> void { println(&n); }
+	function foo_ref(n: &const int32) -> void { println(&n); }
 
 	println(&n);
 	foo(n);
@@ -385,6 +384,10 @@ function scope_test() -> void
 
 	const n = 1u64;
 	(n << 99u);
+	const num = 65;
+	println(num as char);
+	println('A' as int32);
+//	-1 as char;
 
 //	1u << 99u;
 
@@ -417,27 +420,14 @@ function scope_test() -> void
 	const f32: typeof f32 = 0.0f32;
 
 	println((0x8000'0000 as int32));
+
+	println(multiply(123i64, 123i8));
+	println(123 * 123);
 }
 
 function square(n: int32) -> typeof (n * n)
 {
 	return n * n;
-}
-
-function pointer_test() -> void
-{
-	function change_val(p: *int32) -> void
-	{ *p = 3; }
-
-	let n = 0;
-	println(n);
-	change_val(&n);
-	println(n);
-	let res = multiply(
-		12i64,
-		12i8
-	);
-	println(res as int32);
 }
 
 function multiply(a: int64, b: int8) -> typeof (a * b) { return a * b; }
