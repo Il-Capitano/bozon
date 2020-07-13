@@ -2249,49 +2249,56 @@ inline u8string pointer_to_string(const void *ptr, format_spec spec)
 	{
 		res += "0x";
 		auto copy = val;
-		auto shift_amount = len;
+		auto shift_amount = (len - 2) * 4;
 		do
 		{
-			--shift_amount;
+			shift_amount -= 4;
 			res += digits_x[(copy >> shift_amount) & 0xf];
 			copy &= shift_amount == 0 ? 0 : (1ull << shift_amount) - 1;
-		} while (copy != 0);
+		} while (shift_amount != 0);
 	};
 
-	switch (spec.align)
+	if (spec.zero_pad)
 	{
-	case '<':
 		put_num();
-		for (size_t i = 0; i < length - len; ++i)
+	}
+	else
+	{
+		switch (spec.align)
 		{
-			res += fill_char;
-		}
-		break;
+		case '<':
+			put_num();
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+			break;
 
-	case '^':
-		// center alignment has right bias
-		for (size_t i = 0; i < (length - len + 1) / 2; ++i)
-		{
-			res += fill_char;
-		}
-		put_num();
-		for (size_t i = 0; i < (length - len) / 2; ++i)
-		{
-			res += fill_char;
-		}
-		break;
+		case '^':
+			// center alignment has right bias
+			for (size_t i = 0; i < (length - len + 1) / 2; ++i)
+			{
+				res += fill_char;
+			}
+			put_num();
+			for (size_t i = 0; i < (length - len) / 2; ++i)
+			{
+				res += fill_char;
+			}
+			break;
 
-	case '>':
-		for (size_t i = 0; i < length - len; ++i)
-		{
-			res += fill_char;
-		}
-		put_num();
-		break;
+		case '>':
+			for (size_t i = 0; i < length - len; ++i)
+			{
+				res += fill_char;
+			}
+			put_num();
+			break;
 
-	default:
-		bz_assert(false);
-		break;
+		default:
+			bz_assert(false);
+			break;
+		}
 	}
 
 	return res;
