@@ -2241,7 +2241,6 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			&& is_signed_integer_kind(rhs_kind)
 		)
 		{
-			auto common_kind = lhs_kind;
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
@@ -2253,7 +2252,6 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			}
 			else if (lhs_kind < rhs_kind)
 			{
-				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
 					nullptr,
 					std::move(lhs),
@@ -2290,7 +2288,6 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			auto common_kind = lhs_kind;
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
@@ -2303,7 +2300,6 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			}
 			else if (lhs_kind < rhs_kind)
 			{
-				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
 					nullptr,
 					std::move(lhs),
@@ -2635,7 +2631,6 @@ static ast::expression get_built_in_binary_compare(
 			&& is_signed_integer_kind(rhs_kind)
 		)
 		{
-			auto common_kind = lhs_kind;
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
@@ -2647,7 +2642,6 @@ static ast::expression get_built_in_binary_compare(
 			}
 			else if (lhs_kind < rhs_kind)
 			{
-				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
 					nullptr,
 					std::move(lhs),
@@ -2684,7 +2678,6 @@ static ast::expression get_built_in_binary_compare(
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			auto common_kind = lhs_kind;
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
@@ -2696,7 +2689,6 @@ static ast::expression get_built_in_binary_compare(
 			}
 			else if (lhs_kind < rhs_kind)
 			{
-				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
 					nullptr,
 					std::move(lhs),
