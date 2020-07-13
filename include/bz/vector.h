@@ -52,12 +52,7 @@ private:
 	auto alloc_new(size_type n) noexcept(
 		nothrow_alloc
 	)
-	{ return this->_allocator.allocate(n, this->_data_begin); }
-
-	auto alloc_new(size_type n, value_type *p) noexcept(
-		nothrow_alloc
-	)
-	{ return this->_allocator.allocate(n, p); }
+	{ return this->_allocator.allocate(n); }
 
 	void set_to_null(void) noexcept
 	{
@@ -75,7 +70,8 @@ private:
 		{
 			while (this->_data_end != this->_data_begin)
 			{
-				this->_allocator.destroy(--this->_data_end);
+				--this->_data_end;
+				this->_data_end->~value_type();
 			}
 			this->_allocator.deallocate(this->_data_begin, this->capacity());
 		}
@@ -88,17 +84,17 @@ private:
 	{
 		if constexpr (meta::is_nothrow_constructible_v<value_type, Args...>)
 		{
-			this->_allocator.construct(p, std::forward<Args>(args)...);
+			new (p) value_type(std::forward<Args>(args)...);
 		}
 		else
 		{
 			try
 			{
-				this->_allocator.construct(p, std::forward<Args>(args)...);
+				new (p) value_type(std::forward<Args>(args)...);
 			}
 			catch (...)
 			{
-				this->_allocator.destroy(p);
+				p->~value_type();
 				throw;
 			}
 		}
@@ -126,7 +122,7 @@ private:
 		}
 		else
 		{
-			this->_data_begin = this->alloc_new(other_cap, nullptr);
+			this->_data_begin = this->alloc_new(other_cap);
 			this->_data_end   = this->_data_begin;
 			this->_alloc_end  = this->_data_begin + other_cap;
 		}
@@ -365,7 +361,7 @@ public:
 		auto insert_it = this->_data_begin;
 		for (; it != end; ++it, ++insert_it)
 		{
-			this->_allocator.construct(insert_it, *it);
+			new (insert_it) value_type(*it);
 		}
 		this->_data_end = insert_it;
 	}
@@ -391,7 +387,7 @@ public:
 			{
 				--current_size;
 				--this->_data_end;
-				this->_allocator.destroy(this->_data_end);
+				this->_data_end->~value_type();
 			}
 			this->shrink_to_fit();
 		}
@@ -423,7 +419,7 @@ public:
 			{
 				--current_size;
 				--this->_data_end;
-				this->_allocator.destroy(this->_data_end);
+				this->_data_end->~value_type();
 			}
 			this->shrink_to_fit();
 		}
@@ -601,7 +597,8 @@ public:
 		{
 			return;
 		}
-		this->_allocator.destroy(--this->_data_end);
+		--this->_data_end;
+		this->_data_end->~value_type();
 	}
 
 

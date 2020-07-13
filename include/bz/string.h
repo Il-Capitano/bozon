@@ -117,10 +117,7 @@ private:
 	}
 
 	auto alloc_new(size_type n) noexcept(nothrow_alloc)
-	{ return this->_allocator.allocate(n, this->_data_begin); }
-
-	auto alloc_new(size_type n, value_type *p) noexcept(nothrow_alloc)
-	{ return this->_allocator.allocate(n, p); }
+	{ return this->_allocator.allocate(n); }
 
 	void set_to_null(void) noexcept
 	{
@@ -160,7 +157,7 @@ private:
 		else
 		{
 			auto other_cap = other.capacity();
-			this->_data_begin = this->alloc_new(other_cap, nullptr);
+			this->_data_begin = this->alloc_new(other_cap);
 			this->_data_end   = this->_data_begin;
 			this->_alloc_end  = this->_data_begin + other_cap;
 
