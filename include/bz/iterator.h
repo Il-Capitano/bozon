@@ -2,6 +2,8 @@
 #define _bz_iterator_h__
 
 #include "core.h"
+#include "meta.h"
+#include <tuple>
 
 bz_begin_namespace
 
