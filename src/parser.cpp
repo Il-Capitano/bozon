@@ -514,6 +514,12 @@ void resolve(
 		auto stream = unresolved_ts->tokens.begin;
 		auto const end = unresolved_ts->tokens.end;
 		auto expr = parse_expression(stream, end, context, precedence{});
+		if (expr.is_null())
+		{
+			bz_assert(context.has_errors());
+			ts = ast::typespec();
+			break;
+		}
 		if (!expr.is<ast::constant_expression>())
 		{
 			context.report_error(expr, "expected a type");

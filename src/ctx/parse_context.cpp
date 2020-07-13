@@ -428,16 +428,25 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		{
 			auto id_type_kind = ast::expression_type_kind::lvalue;
 			auto const *id_type_ptr = &(*var)->var_type;
-			if ((*var)->var_type.is<ast::ts_reference>())
+			if (id_type_ptr->is<ast::ts_reference>())
 			{
 				id_type_kind = ast::expression_type_kind::lvalue_reference;
 				id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
 			}
-			return ast::make_dynamic_expression(
-				src_tokens,
-				id_type_kind, *id_type_ptr,
-				ast::make_expr_identifier(id, *var)
-			);
+
+			if (id_type_ptr->is_null())
+			{
+				bz_assert(this->has_errors());
+				return ast::expression(src_tokens);
+			}
+			else
+			{
+				return ast::make_dynamic_expression(
+					src_tokens,
+					id_type_kind, *id_type_ptr,
+					ast::make_expr_identifier(id, *var)
+				);
+			}
 		}
 
 		auto const fn_set = std::find_if(
@@ -559,16 +568,25 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	{
 		auto id_type_kind = ast::expression_type_kind::lvalue;
 		auto const *id_type_ptr = &(*var)->var_type;
-		if ((*var)->var_type.is<ast::ts_reference>())
+		if (id_type_ptr->is<ast::ts_reference>())
 		{
 			id_type_kind = ast::expression_type_kind::lvalue_reference;
 			id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
 		}
-		return ast::make_dynamic_expression(
-			src_tokens,
-			id_type_kind, *id_type_ptr,
-			ast::make_expr_identifier(id, *var)
-		);
+
+		if (id_type_ptr->is_null())
+		{
+			bz_assert(this->has_errors());
+			return ast::expression(src_tokens);
+		}
+		else
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				id_type_kind, *id_type_ptr,
+				ast::make_expr_identifier(id, *var)
+			);
+		}
 	}
 
 	auto const fn_set = std::find_if(
