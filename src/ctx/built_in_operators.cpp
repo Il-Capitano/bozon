@@ -3602,17 +3602,22 @@ case ast::type_info::dest_t##_:                                                 
 			);
 		}
 	}
-	else if (expr_kind == ast::type_info::char_ && dest_kind == ast::type_info::uint32_)
+	else if (
+		expr_kind == ast::type_info::char_
+		&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
+	)
 	{
 		if (expr.is<ast::constant_expression>())
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
 			bz_assert(const_expr.value.kind() == ast::constant_value::u8char);
-			uint64_t const value = const_expr.value.get<ast::constant_value::u8char>();
+			auto const value = const_expr.value.get<ast::constant_value::u8char>();
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, dest_t,
-				ast::constant_value(value),
+				dest_kind == ast::type_info::uint32_
+					? ast::constant_value(static_cast<uint64_t>(value))
+					: ast::constant_value(static_cast<int64_t>(value)),
 				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 			);
 		}
@@ -3625,13 +3630,21 @@ case ast::type_info::dest_t##_:                                                 
 			);
 		}
 	}
-	else if (expr_kind == ast::type_info::uint32_ && dest_kind == ast::type_info::char_)
+	else if (
+		(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
+		&& dest_kind == ast::type_info::char_
+	)
 	{
 		if (expr.is<ast::constant_expression>())
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
-			bz_assert(const_expr.value.kind() == ast::constant_value::uint);
-			auto const value = const_expr.value.get<ast::constant_value::uint>();
+			bz_assert(
+				const_expr.value.kind() == ast::constant_value::uint
+				|| const_expr.value.kind() == ast::constant_value::sint
+			);
+			auto const value = expr_kind == ast::type_info::uint32_
+				? static_cast<uint32_t>(const_expr.value.get<ast::constant_value::uint>())
+				: static_cast<uint32_t>(const_expr.value.get<ast::constant_value::sint>());
 			if (value > bz::max_unicode_value)
 			{
 				context.report_error(

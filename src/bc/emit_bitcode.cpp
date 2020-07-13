@@ -1384,7 +1384,17 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			bz_assert(expr_kind == ast::type_info::char_ && dest_kind == ast::type_info::uint32_);
+			// this is a cast from i32 to i32 in IR, so we return the original value
+			bz_assert(
+				(
+					expr_kind == ast::type_info::char_
+					&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
+				)
+				|| (
+					(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
+					&& dest_kind == ast::type_info::char_
+				)
+			);
 			return { val_ptr::value, expr };
 		}
 	}
