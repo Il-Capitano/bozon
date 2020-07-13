@@ -1,12 +1,42 @@
 function print(str: str) -> void;
 function println(str: str) -> void;
 function print_char(c: char) -> void;
+function println_char(c: char) -> void;
 function print_int32(n: int32) -> void;
+function println_int32(n: int32) -> void;
+function print_int64(n: int64) -> void;
+function println_int64(n: int64) -> void;
 function print_uint32(n: uint32) -> void;
+function println_uint32(n: uint32) -> void;
 function print_uint64(n: uint64) -> void;
+function println_uint64(n: uint64) -> void;
 function print_int32_ptr(p: *const int32) -> void;
+function println_int32_ptr(p: *const int32) -> void;
+function print_float32(x: float32) -> void;
+function println_float32(x: float32) -> void;
 function print_float64(x: float64) -> void;
+function println_float64(x: float64) -> void;
+
 function exit(code: int32) -> void;
+
+
+function print(c: char) -> void { print_char(c); }
+function print(n: int32) -> void { print_int32(n); }
+function print(n: int64) -> void { print_int64(n); }
+function print(n: uint32) -> void { print_uint32(n); }
+function print(n: uint64) -> void { print_uint64(n); }
+function print(p: *const int32) -> void { print_int32_ptr(p); }
+function print(x: float32) -> void { print_float32(x); }
+function print(x: float64) -> void { print_float64(x); }
+
+function println(c: char) -> void { println_char(c); }
+function println(n: int32) -> void { println_int32(n); }
+function println(n: int64) -> void { println_int64(n); }
+function println(n: uint32) -> void { println_uint32(n); }
+function println(n: uint64) -> void { println_uint64(n); }
+function println(p: *const int32) -> void { println_int32_ptr(p); }
+function println(x: float32) -> void { println_float32(x); }
+function println(x: float64) -> void { println_float64(x); }
 
 function assert(b: bool) -> void
 {
@@ -45,8 +75,8 @@ function main() -> int32
 {
 	println("");
 	println("hello");
-	print_int32(123);
-	print_int32(factorial(5));
+	println(123);
+	println(factorial(5));
 	println("hello again!!!!\nand on a new line\n");
 
 	foo();
@@ -72,9 +102,10 @@ function main() -> int32
 	}
 
 	let n = 2;
-	print_int32(n);
+	println(n);
 	set_to_zero(n);
-	print_int32(n);
+	println(n);
+	assert(n == 0);
 
 	println("\n==== ref_test ====");
 	ref_test();
@@ -83,17 +114,17 @@ function main() -> int32
 	cast_test();
 
 	const c = 'д';
-	print_char('\n');
-	print_uint32(c as uint32);
-	print_char(c);
-	print_char(1076u32 as char);
-	print_char('\n');
-	print_char('\u0470');
-	print_char('\u0471');
-	print_char('\u04c1');
-	print_char('\U000004c1');
-	print_char('\n');
-	print_char('h');
+	print('\n');
+	println(c as uint32);
+	print(c);
+	print(1076u32 as char);
+	print('\n');
+	print('\u0470');
+	print('\u0471');
+	print('\u04c1');
+	print('\U000004c1');
+	print('\n');
+	print('h');
 
 	assert('\u0470' == 'Ѱ');
 	assert('\U00000470' == 'Ѱ');
@@ -108,6 +139,8 @@ function main() -> int32
 	const_expr_test();
 	println("\n==== scope_test ====");
 	scope_test();
+	println("\n==== pointer_test ====");
+	pointer_test();
 	return 0;
 /*
 	let bool: bool = false;
@@ -161,9 +194,9 @@ function foo() -> void
 	i32 = 1234;
 	i16 = 111i16;
 	i32 %= i16;
-	print_int32(i32);
-	print_int32(1234 / 111);
-	print_int32(11 * 111 + 13);
+	println(i32);
+	println(1234 / 111);
+	println(11 * 111 + 13);
 
 	let a = 'a';
 	let b = 'c' + -1i8;
@@ -205,9 +238,9 @@ function foo() -> void
 
 	let n = 1u32;
 	n <<= 3u8;
-	print_uint32(n);
+	println(n);
 	n >>= 1u8;
-	print_uint32(n);
+	println(n);
 	let m = 5u32;
 	n += m = 2u32;
 	if (n == 6u32)
@@ -223,21 +256,22 @@ function ref_test() -> void
 		n = 1234;
 	}
 	let n = 0;
-	print_int32(n);
+	println(n);
 	change_n(n);
-	print_int32(n);
+	println(n);
+	assert(n == 1234);
 
 	function foo(n: int32) -> void { print_int32_ptr(&n); }
 	function foo_ref(n: &const int32) -> void { print_int32_ptr(&n); }
 
-	print_int32_ptr(&n);
+	println(&n);
 	foo(n);
 	foo_ref(n);
 	println("first and third pointers should be the same");
 
 	let &m = n;
 	assert(&m == &n);
-	print_int32_ptr(&m);
+	println(&m);
 	foo(m);
 	foo_ref(m);
 	println("first and third pointers should be the same");
@@ -248,20 +282,20 @@ function ref_test() -> void
 function cast_test() -> void
 {
 	const f32 = 1.5f32;
-//	print_float64(f32);
-	print_float64(f32 as float64);
-	print_int32(f32 as int32);
-	print_uint32('A' as uint32);
-	print_uint32(' ' as uint32);
+//	println(f32);
+	println(f32 as float64);
+	println(f32 as int32);
+	println('A' as uint32);
+	println(' ' as uint32);
 
 	function ref_wrapper(n: &int32) -> &int32
 	{ return n; }
 
 	let n = 0;
 
-	print_int32(n);
+	println(n);
 	ref_wrapper(n) = 3;
-	print_int32(n);
+	println(n);
 
 //	let v: vec2;
 }
@@ -381,9 +415,29 @@ function scope_test() -> void
 
 	const f32 = 1.23464234 as typeof 1.0f32;
 	const f32: typeof f32 = 0.0f32;
+
+	println((0x8000'0000 as int32));
 }
 
 function square(n: int32) -> typeof (n * n)
 {
 	return n * n;
 }
+
+function pointer_test() -> void
+{
+	function change_val(p: *int32) -> void
+	{ *p = 3; }
+
+	let n = 0;
+	println(n);
+	change_val(&n);
+	println(n);
+	let res = multiply(
+		12i64,
+		12i8
+	);
+	println(res as int32);
+}
+
+function multiply(a: int64, b: int8) -> typeof (a * b) { return a * b; }
