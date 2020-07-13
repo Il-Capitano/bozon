@@ -235,6 +235,102 @@ constexpr reverse_iterator<random_access_iterator<const T>> crend(const T (&arr)
 { return &arr[N - 1] - N; }
 
 
+namespace internal
+{
+
+template<typename ...Iter>
+struct tuple_iterator
+{
+	using self_t = tuple_iterator<Iter...>;
+	using tuple_t = std::tuple<Iter...>;
+	static constexpr size_t iter_count = sizeof... (Iter);
+
+	template<typename It>
+	using value_type_of = decltype(*std::declval<It>());
+	using deref_t = std::tuple<value_type_of<Iter> &...>;
+
+	tuple_t _data;
+
+	constexpr self_t &operator ++ (void) noexcept((noexcept(++std::declval<Iter &>()) && ...))
+	{
+		[this]<size_t ...Ns>(meta::index_sequence<Ns...>) {
+			((++std::get<Ns>(this->_data)), ...);
+		}(meta::make_index_sequence<iter_count>{});
+		return *this;
+	}
+
+	constexpr deref_t operator * (void) noexcept((noexcept(*std::declval<Iter>()) && ...))
+	{
+		return [this]<size_t ...Ns>(meta::index_sequence<Ns...>) {
+			return deref_t{ (*std::get<Ns>(this->_data))... };
+		}(meta::make_index_sequence<iter_count>{});
+	}
+};
+
+template<typename ...Iter>
+constexpr bool operator == (tuple_iterator<Iter...> const &lhs, tuple_iterator<Iter...> const &rhs) noexcept((noexcept(std::declval<Iter>() == std::declval<Iter>()) && ...))
+{
+	return [&lhs, &rhs]<size_t ...Ns>(meta::index_sequence<Ns...>) {
+		return ((std::get<Ns>(lhs._data) == std::get<Ns>(rhs._data)) && ...);
+	}(meta::make_index_sequence<sizeof... (Iter)>{});
+}
+
+template<typename ...Iter>
+constexpr bool operator != (tuple_iterator<Iter...> const &lhs, tuple_iterator<Iter...> const &rhs) noexcept((noexcept(std::declval<Iter>() != std::declval<Iter>()) && ...))
+{
+	// && has to used for iteration, so it stops when any one of the iterators
+	// reaches the end
+	return [&lhs, &rhs]<size_t ...Ns>(meta::index_sequence<Ns...>) {
+		return ((std::get<Ns>(lhs._data) != std::get<Ns>(rhs._data)) && ...);
+	}(meta::make_index_sequence<sizeof... (Iter)>{});
+}
+
+template<typename ...Iter>
+struct zipped_iterators
+{
+	using tuple_t = std::tuple<Iter...>;
+	using iterator = tuple_iterator<Iter...>;
+
+	tuple_t _begin;
+	tuple_t _end;
+
+	constexpr zipped_iterators(tuple_t begin, tuple_t end) noexcept(meta::is_nothrow_copy_constructible_v<tuple_t>)
+		: _begin(std::move(begin)), _end(std::move(end))
+	{}
+
+	constexpr iterator begin(void) const noexcept(meta::is_nothrow_copy_constructible_v<tuple_t>)
+	{ return iterator{this->_begin}; }
+
+	constexpr iterator end(void) const noexcept(meta::is_nothrow_copy_constructible_v<tuple_t>)
+	{ return iterator{this->_end}; }
+};
+
+} // namespace internal
+
+template<typename T, typename U>
+constexpr auto zip(T const &t, U const &u) noexcept(
+	noexcept(t.begin()) && noexcept(t.end())
+	&& noexcept(u.begin()) && noexcept(u.end())
+	&& meta::is_nothrow_constructible_v<
+		internal::zipped_iterators<
+			meta::remove_cv_reference<decltype(t.begin())>,
+			meta::remove_cv_reference<decltype(u.begin())>
+		>,
+		decltype(std::make_tuple(t.begin(), u.begin())),
+		decltype(std::make_tuple(t.end(), u.end()))
+	>
+) -> internal::zipped_iterators<
+	meta::remove_cv_reference<decltype(t.begin())>,
+	meta::remove_cv_reference<decltype(u.begin())>
+>
+{
+	using ret_t = internal::zipped_iterators<
+		meta::remove_cv_reference<decltype(t.begin())>,
+		meta::remove_cv_reference<decltype(u.begin())>
+	>;
+	return ret_t(std::make_tuple(t.begin(), u.begin()), std::make_tuple(t.end(), u.end()));
+}
+
 bz_end_namespace
 
 #endif // _bz_iterator_h__
