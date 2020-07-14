@@ -8,6 +8,8 @@
 #include "typespec.h"
 #include "constant_value.h"
 
+#include <llvm/IR/Function.h>
+
 namespace ast
 {
 
@@ -266,6 +268,8 @@ struct function_body
 	bz::vector<decl_variable>           params;
 	typespec                            return_type;
 	bz::optional<bz::vector<statement>> body;
+	bz::u8string                        symbol_name;
+	llvm::Function                     *llvm_func;
 };
 
 struct decl_function
@@ -282,7 +286,9 @@ struct decl_function
 		  body{
 			  std::move(_params),
 			  std::move(_ret_type),
-			  {}
+			  {},
+			  _id->value,
+			  nullptr
 		  }
 	{}
 
@@ -296,7 +302,9 @@ struct decl_function
 		  body{
 			  std::move(_params),
 			  std::move(_ret_type),
-			  std::move(_body)
+			  std::move(_body),
+			  _id->value,
+			  nullptr
 		  }
 	{}
 
@@ -320,7 +328,9 @@ struct decl_operator
 		  body{
 			  std::move(_params),
 			  std::move(_ret_type),
-			  std::move(_body)
+			  std::move(_body),
+			  "",
+			  nullptr
 		  }
 	{}
 
@@ -333,7 +343,9 @@ struct decl_operator
 		  body{
 			  std::move(_params),
 			  std::move(_ret_type),
-			  {}
+			  {},
+			  "",
+			  nullptr
 		  }
 	{}
 

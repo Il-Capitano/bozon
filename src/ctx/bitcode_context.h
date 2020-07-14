@@ -25,7 +25,6 @@ struct bitcode_context
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
 
 	llvm::Function *get_function(ast::function_body const *func_body) const;
-	void add_function(ast::function_body const *func_body, llvm::Function *fn);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::Module &get_module(void) const noexcept;
@@ -54,14 +53,11 @@ struct bitcode_context
 	global_context &global_ctx;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
-	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
 
-	std::pair<ast::function_body const *, llvm::Function *> current_function;
+	ast::function_body const *current_function;
 
 	llvm::IRBuilder<> builder;
-
-	std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1> built_in_types;
 };
 
 } // namespace ctx

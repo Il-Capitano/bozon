@@ -38,6 +38,7 @@ struct global_context
 	llvm::LLVMContext _llvm_context;
 	llvm::Module _module;
 	llvm::TargetMachine *_target_machine;
+	std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1> _llvm_built_in_types;
 
 	global_context(void);
 

@@ -72,6 +72,28 @@ static bz::vector<type_info_with_name> get_default_types(void)
 	};
 }
 
+static std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1>
+get_llvm_built_in_types(llvm::LLVMContext &context)
+{
+	return {
+		llvm::Type::getInt8Ty(context),   // int8_
+		llvm::Type::getInt16Ty(context),  // int16_
+		llvm::Type::getInt32Ty(context),  // int32_
+		llvm::Type::getInt64Ty(context),  // int64_
+		llvm::Type::getInt8Ty(context),   // uint8_
+		llvm::Type::getInt16Ty(context),  // uint16_
+		llvm::Type::getInt32Ty(context),  // uint32_
+		llvm::Type::getInt64Ty(context),  // uint64_
+		llvm::Type::getFloatTy(context),  // float32_
+		llvm::Type::getDoubleTy(context), // float64_
+		llvm::Type::getInt32Ty(context),  // char_
+		llvm::StructType::get(
+			llvm::Type::getInt8PtrTy(context),
+			llvm::Type::getInt8PtrTy(context)
+		),                                // str_
+		llvm::Type::getInt1Ty(context),   // bool_
+	};
+}
 
 global_context::global_context(void)
 	: _export_decls{
@@ -84,7 +106,8 @@ global_context::global_context(void)
 	  _errors{},
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
-	  _target_machine(nullptr)
+	  _target_machine(nullptr),
+	  _llvm_built_in_types(get_llvm_built_in_types(this->_llvm_context))
 {
 	auto const target_triple = llvm::sys::getDefaultTargetTriple();
 	llvm::InitializeAllTargetInfos();

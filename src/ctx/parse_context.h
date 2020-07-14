@@ -22,6 +22,8 @@ struct parse_context
 	bz::vector<decl_set> scope_decls;
 
 	int parenthesis_suppressed_value = 0;
+	mutable bool _has_errors = false;
+
 
 	parse_context(global_context &_global_ctx);
 
@@ -111,7 +113,7 @@ struct parse_context
 		);
 	}
 
-	bool has_errors(void) const;
+	bool has_errors(void) const { return this->_has_errors; }
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 
@@ -164,6 +166,9 @@ struct parse_context
 	ast::type_info *get_type_info(bz::u8string_view id) const;
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
+
+
+	llvm::Function *make_llvm_func_for_symbol(ast::function_body &func_body, bz::u8string_view id) const;
 };
 
 } // namespace ctx

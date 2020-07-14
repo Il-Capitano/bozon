@@ -1,17 +1,9 @@
 #include "parser.h"
 #include "token_info.h"
 
-static ast::typespec parse_typespec(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-);
-
 // ================================================================
 // ---------------------- expression parsing ----------------------
 // ================================================================
-
-
-
 
 lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos end)
 {
@@ -305,135 +297,6 @@ static ast::expression parse_expression(
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
 
-// ================================================================
-// ------------------------ type parsing --------------------------
-// ================================================================
-
-static ast::typespec parse_typespec(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-)
-{
-	if (stream == end)
-	{
-		context.report_error(stream, "expected a type");
-		return ast::typespec();
-	}
-
-	switch (stream->kind)
-	{
-	case lex::token::identifier:
-	{
-		auto const id = stream;
-		++stream;
-		if (id->value == "void")
-		{
-			return ast::make_ts_void({ id, id, id + 1 }, id);
-		}
-		else
-		{
-			auto const info = context.get_type_info(id->value);
-			if (info)
-			{
-				return ast::make_ts_base_type({ id, id, id + 1 }, id, info);
-			}
-			else
-			{
-				context.report_error(id, "undeclared typename");
-				return ast::typespec();
-			}
-		}
-	}
-
-	case lex::token::kw_const:
-		++stream; // 'const'
-		return ast::make_ts_constant(
-			{ stream - 1, stream - 1, stream },
-			stream - 1, parse_typespec(stream, end, context)
-		);
-
-	case lex::token::star:
-		++stream; // '*'
-		return ast::make_ts_pointer(
-			{ stream - 1, stream - 1, stream },
-			stream - 1, parse_typespec(stream, end, context)
-		);
-
-	case lex::token::ampersand:
-		++stream; // '&'
-		return ast::make_ts_reference(
-			{ stream - 1, stream - 1, stream },
-			stream - 1, parse_typespec(stream, end, context)
-		);
-
-	case lex::token::kw_function:
-	{
-		auto const begin_token = stream;
-		++stream; // 'function'
-		context.assert_token(stream, lex::token::paren_open);
-
-		bz::vector<ast::typespec> param_types = {};
-		// not the nicest line... there's a while here: vv
-		if (stream->kind != lex::token::paren_close) while (stream != end)
-		{
-			param_types.push_back(parse_typespec(stream, end, context));
-			if (stream->kind != lex::token::paren_close)
-			{
-				context.assert_token(stream, lex::token::comma);
-			}
-			else
-			{
-				break;
-			}
-		}
-		bz_assert(stream != end);
-		context.assert_token(stream, lex::token::paren_close);
-		context.assert_token(stream, lex::token::arrow);
-
-		auto ret_type = parse_typespec(stream, end, context);
-
-		auto const end_token = stream;
-
-		return ast::make_ts_function(
-			{ begin_token, begin_token, end_token },
-			begin_token,
-			std::move(ret_type),
-			std::move(param_types)
-		);
-	}
-
-	case lex::token::square_open:
-	{
-		auto const begin_token = stream;
-		++stream; // '['
-
-		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-
-		bz::vector<ast::typespec> types = {};
-		// not the nicest line... there's a while after the if
-		if (inner_stream != inner_end) while (inner_stream != inner_end)
-		{
-			types.push_back(parse_typespec(inner_stream, inner_end, context));
-			if (inner_stream->kind != lex::token::square_close)
-			{
-				context.assert_token(inner_stream, lex::token::comma);
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		auto const end_token = inner_end;
-
-		return ast::make_ts_tuple({ begin_token, begin_token, end_token }, begin_token, std::move(types));
-	}
-
-	default:
-		context.report_error(stream, "expected a type");
-		return ast::typespec();
-	}
-}
 
 // ================================================================
 // -------------------------- resolving ---------------------------
@@ -607,6 +470,14 @@ void resolve_symbol_helper(
 )
 {
 	bz_assert(context.scope_decls.size() == 0);
+	// if llvm_func is set, the symbol has already been resolved
+	if (func_body.llvm_func != nullptr)
+	{
+		return;
+	}
+
+	// reset has_errors
+	context._has_errors = false;
 	for (auto &p : func_body.params)
 	{
 		resolve(p, context);
@@ -619,6 +490,8 @@ void resolve_symbol_helper(
 	}
 	resolve(func_body.return_type, context);
 	context.remove_scope();
+
+	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
 }
 
 void resolve_symbol(
@@ -657,6 +530,8 @@ void resolve_helper(
 			context.add_local_variable(p);
 		}
 		resolve(func_body.return_type, context);
+
+		func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
 		for (auto &stmt : *func_body.body)
 		{
 			resolve(stmt, context);

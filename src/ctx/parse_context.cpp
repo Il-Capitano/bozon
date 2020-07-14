@@ -3,6 +3,8 @@
 #include "built_in_operators.h"
 #include "parser.h"
 #include "lex/lexer.h"
+#include "bitcode_context.h"
+#include "bc/emit_bitcode.h"
 
 namespace ctx
 {
@@ -13,6 +15,7 @@ parse_context::parse_context(global_context &_global_ctx)
 
 void parse_context::report_error(lex::token_pos it) const
 {
+	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(it));
 }
 
@@ -22,6 +25,7 @@ void parse_context::report_error(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
+	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(
 		it, std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -34,6 +38,7 @@ void parse_context::report_error(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
+	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -142,11 +147,6 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 		{}, {},
 		std::move(message)
 	};
-}
-
-bool parse_context::has_errors(void) const
-{
-	return this->global_ctx.has_errors();
 }
 
 lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind) const
@@ -2344,6 +2344,17 @@ ast::type_info *parse_context::get_type_info(bz::u8string_view id) const
 	{
 		return nullptr;
 	}
+}
+
+llvm::Function *parse_context::make_llvm_func_for_symbol(ast::function_body &func_body, bz::u8string_view id) const
+{
+	if (this->has_errors())
+	{
+		return nullptr;
+	}
+
+	bitcode_context bitcode_ctx(this->global_ctx);
+	return bc::create_function_from_symbol(func_body, id, bitcode_ctx);
 }
 
 } // namespace ctx

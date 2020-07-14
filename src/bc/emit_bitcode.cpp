@@ -1496,11 +1496,9 @@ static val_ptr emit_bitcode(
 	case ast::constant_value::function:
 	{
 		auto const decl = const_expr.value.get<ast::constant_value::function>();
-		auto const llvm_fn = context.funcs_.find(decl);
-		bz_assert(llvm_fn != context.funcs_.end());
 		return {
 			val_ptr::value,
-			llvm_fn->second
+			context.get_function(decl)
 		};
 	}
 	case ast::constant_value::function_set_id:
@@ -1667,7 +1665,7 @@ static void emit_bitcode(
 	else
 	{
 		auto const ret_val = emit_bitcode(ret_stmt.expr, context);
-		if (context.current_function.first->return_type.is<ast::ts_reference>())
+		if (context.current_function->return_type.is<ast::ts_reference>())
 		{
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
@@ -1923,18 +1921,12 @@ static llvm::Type *get_llvm_type(ast::typespec const &ts, ctx::bitcode_context &
 	}
 }
 
-void add_function_to_module(
+llvm::Function *create_function_from_symbol(
 	ast::function_body &func_body,
 	bz::u8string_view id,
 	ctx::bitcode_context &context
 )
 {
-	// if it's already in the module we don't need to add it
-	if (context.get_function(&func_body) != nullptr)
-	{
-		return;
-	}
-
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)
@@ -1965,7 +1957,7 @@ void add_function_to_module(
 			arg.addAttr(llvm::Attribute::ByVal);
 		}
 	}
-	context.add_function(&func_body, fn);
+	return fn;
 }
 
 void emit_function_bitcode(
@@ -1977,7 +1969,7 @@ void emit_function_bitcode(
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
 
-	context.current_function = { &func_body, fn };
+	context.current_function = &func_body;
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
 
