@@ -1650,11 +1650,16 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	emit_bitcode(for_stmt.init, context);
+	if (for_stmt.init.not_null())
+	{
+		emit_bitcode(for_stmt.init, context);
+	}
 	auto const condition_check = context.add_basic_block("for_condition_check");
 	context.builder.CreateBr(condition_check);
 	context.builder.SetInsertPoint(condition_check);
-	auto const condition = emit_bitcode(for_stmt.condition, context).get_value(context);
+	auto const condition = for_stmt.condition.not_null()
+		? emit_bitcode(for_stmt.condition, context).get_value(context)
+		: llvm::ConstantInt::getTrue(context.get_llvm_context());
 	auto const condition_check_end = context.builder.GetInsertBlock();
 
 	auto const for_bb = context.add_basic_block("for");
@@ -1662,7 +1667,10 @@ static void emit_bitcode(
 	emit_bitcode(for_stmt.for_block, context);
 	if (!context.has_terminator())
 	{
-		emit_bitcode(for_stmt.iteration, context);
+		if (for_stmt.iteration.not_null())
+		{
+			emit_bitcode(for_stmt.iteration, context);
+		}
 		context.builder.CreateBr(condition_check);
 	}
 

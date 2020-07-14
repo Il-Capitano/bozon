@@ -467,7 +467,7 @@ static ast::statement parse_for_statement(
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	if (stream == end)
 	{
-		context.report_error(stream, "expected initialization statement");
+		context.report_error(stream, "expected initialization statement or ';'");
 		return ast::statement();
 	}
 	auto init = stream->kind == lex::token::semi_colon
@@ -475,7 +475,7 @@ static ast::statement parse_for_statement(
 		: parse_statement(stream, end, context);
 	if (stream == end)
 	{
-		context.report_error(stream, "expected loop condition");
+		context.report_error(stream, "expected loop condition or ';'");
 		return ast::statement();
 	}
 	auto condition = stream->kind == lex::token::semi_colon
@@ -487,36 +487,37 @@ static ast::statement parse_for_statement(
 		}();
 	if (stream == end)
 	{
-		context.report_error(stream, "expected iteration expression");
+		context.report_error(stream, "expected iteration expression or closing )");
 		return ast::statement();
 	}
 	auto iteration = stream->kind == lex::token::paren_close
 		? ast::expression({})
 		: [&]() {
 			auto const expr = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, context);
-			if (stream->kind == lex::token::paren_close)
-			{
-				++stream;
-			}
-			else if (open_paren->kind == lex::token::paren_open)
-			{
-				auto const suggested_paren_pos = (stream - 1)->src_pos.end;
-				auto const suggested_paren_line = (stream - 1)->src_pos.line;
-				auto const open_paren_line = open_paren->src_pos.line;
-				context.report_error(
-					stream,
-					stream->kind == lex::token::eof
-					? bz::u8string("expected closing ) before end-of-file")
-					: bz::format("expected closing ) before '{}'", stream->value),
-					{
-						(suggested_paren_line - open_paren_line > 1)
-						? context.make_note(open_paren, "to match this:")
-						: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
-					}
-				);
-			}
 			return ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end });
 		}();
+
+	if (stream->kind == lex::token::paren_close)
+	{
+		++stream;
+	}
+	else if (open_paren->kind == lex::token::paren_open)
+	{
+		auto const suggested_paren_pos = (stream - 1)->src_pos.end;
+		auto const suggested_paren_line = (stream - 1)->src_pos.line;
+		auto const open_paren_line = open_paren->src_pos.line;
+		context.report_error(
+			stream,
+			stream->kind == lex::token::eof
+			? bz::u8string("expected closing ) before end-of-file")
+			: bz::format("expected closing ) before '{}'", stream->value),
+			{
+				(suggested_paren_line - open_paren_line > 1)
+				? context.make_note(open_paren, "to match this:")
+				: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
+			}
+		);
+	}
 
 	auto for_body = parse_statement(stream, end, context);
 
