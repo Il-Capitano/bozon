@@ -26,6 +26,9 @@ struct first_pass_parse_context
 		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
 		bz::u8string message, bz::vector<ctx::note> notes = {}
 	) const;
+	void report_paren_match_error(
+		lex::token_pos it, lex::token_pos open_paren_it
+	) const;
 
 	[[nodiscard]] static ctx::note make_note(
 		lex::token_pos it, bz::u8string message
@@ -40,6 +43,10 @@ struct first_pass_parse_context
 	[[nodiscard]] static ctx::note make_note(
 		lex::src_tokens tokens, bz::u8string message,
 		ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+	);
+
+	[[nodiscard]] static ctx::note make_paren_match_note(
+		lex::token_pos it, lex::token_pos open_paren_it
 	);
 
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;

@@ -30,6 +30,36 @@ void first_pass_parse_context::report_error(
 	));
 }
 
+void first_pass_parse_context::report_paren_match_error(
+	lex::token_pos it, lex::token_pos open_paren_it
+) const
+{
+	auto const message = [&]() {
+		switch (open_paren_it->kind)
+		{
+		case lex::token::paren_open:
+			return it->kind == lex::token::eof
+				? bz::u8string("expected closing ) before end-of-file")
+				: bz::format("expected closing ) before '{}'", it->value);
+		case lex::token::square_open:
+			return it->kind == lex::token::eof
+				? bz::u8string("expected closing ] before end-of-file")
+				: bz::format("expected closing ] before '{}'", it->value);
+		case lex::token::curly_open:
+			return it->kind == lex::token::eof
+				? bz::u8string("expected closing } before end-of-file")
+				: bz::format("expected closing } before '{}'", it->value);
+		default:
+			bz_assert(false);
+			return bz::u8string();
+		}
+	}();
+	this->report_error(
+		it, message,
+		{ this->make_paren_match_note(it, open_paren_it) }
+	);
+}
+
 [[nodiscard]] ctx::note first_pass_parse_context::make_note(
 	lex::token_pos it, bz::u8string message
 )
@@ -80,6 +110,56 @@ void first_pass_parse_context::report_error(
 		{},
 		std::move(message)
 	};
+}
+
+[[nodiscard]] ctx::note first_pass_parse_context::make_paren_match_note(
+	lex::token_pos it, lex::token_pos open_paren_it
+)
+{
+	if (open_paren_it->kind == lex::token::curly_open)
+	{
+		return make_note(open_paren_it, "to match this:");
+	}
+
+	bz_assert(open_paren_it->kind == lex::token::paren_open || open_paren_it->kind == lex::token::square_open);
+	auto const suggestion_str = open_paren_it->kind == lex::token::paren_open ? ")" : "]";
+	auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
+		switch (it->kind)
+		{
+		case lex::token::paren_close:
+			if ((open_paren_it - 1)->kind == lex::token::paren_open && (open_paren_it - 1)->src_pos.end == open_paren_it->src_pos.begin)
+			{
+				return std::make_pair(it->src_pos.begin, it->src_pos.line);
+			}
+			else
+			{
+				return std::make_pair((it - 1)->src_pos.end, (it - 1)->src_pos.line);
+			}
+		case lex::token::square_close:
+			if ((open_paren_it - 1)->kind == lex::token::square_open && (open_paren_it - 1)->src_pos.end == open_paren_it->src_pos.begin)
+			{
+				return std::make_pair(it->src_pos.begin, it->src_pos.line);
+			}
+			else
+			{
+				return std::make_pair((it - 1)->src_pos.end, (it - 1)->src_pos.line);
+			}
+		case lex::token::semi_colon:
+			return std::make_pair(it->src_pos.begin, it->src_pos.line);
+		default:
+			return std::make_pair((it - 1)->src_pos.end, (it - 1)->src_pos.line);
+		}
+	}();
+	auto const open_paren_line = open_paren_it->src_pos.line;
+	bz_assert(open_paren_line <= suggested_paren_line);
+	if (suggested_paren_line - open_paren_line > 1)
+	{
+		return make_note(open_paren_it, "to match this:");
+	}
+	else
+	{
+		return make_note(open_paren_it, "to match this:", suggested_paren_pos, suggestion_str);
+	}
 }
 
 
