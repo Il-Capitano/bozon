@@ -43,12 +43,21 @@ do {                                                                           \
     auto const id = name_tokens.begin();                                       \
     var_tokens.emplace_back(lex::get_tokens(type_str, "", lex_ctx));           \
     auto const &type_tokens = var_tokens.back();                               \
-    auto type_stream = type_tokens.begin();                                    \
-    auto type = parse_typespec(type_stream, type_tokens.end() - 1, parse_ctx); \
     assert_false(global_ctx.has_errors());                                     \
-    assert_eq(type_stream, type_tokens.end() - 1);                             \
+    lex::src_tokens type_src_tokens = {                                        \
+        type_tokens.begin(),                                                   \
+        type_tokens.begin(),                                                   \
+        type_tokens.end() - 1,                                                 \
+    };                                                                         \
+    lex::token_range type_token_range = {                                      \
+        type_src_tokens.begin,                                                 \
+        type_src_tokens.end,                                                   \
+    };                                                                         \
     auto decl = ast::make_decl_variable(                                       \
-        lex::token_range{id, id + 1}, id, ast::typespec{}, std::move(type)     \
+        lex::token_range{id, id + 1},                                          \
+        id,                                                                    \
+        ast::typespec{},                                                       \
+        ast::make_ts_unresolved(type_src_tokens, type_token_range)             \
     );                                                                         \
     resolve(decl, parse_ctx);                                                  \
     var_decls.emplace_back(std::move(decl.get<ast::decl_variable_ptr>()));     \
@@ -1014,7 +1023,7 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 #undef x_const_expr
 #undef x_const_expr_bool
 }
-
+/*
 static void parse_typespec_test(void)
 {
 	ctx::global_context global_ctx;
@@ -1050,6 +1059,7 @@ static void parse_typespec_test(void)
 #undef x
 #undef x_err
 }
+*/
 
 test_result parser_test(void)
 {
@@ -1060,7 +1070,7 @@ test_result parser_test(void)
 	test_fn(parse_expression_comma_list_test);
 	test_fn(parse_expression_test);
 	test_fn(constant_expression_test);
-	test_fn(parse_typespec_test);
+//	test_fn(parse_typespec_test);
 
 	test_end();
 }
