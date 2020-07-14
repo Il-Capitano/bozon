@@ -140,6 +140,10 @@ function main() -> int32
 	const_expr_test();
 	println("\n==== scope_test ====");
 	scope_test();
+
+	println("\n============");
+	christmas_tree(4);
+
 	return 0;
 /*
 	let bool: bool = false;
@@ -423,6 +427,7 @@ function scope_test() -> void
 
 	println(multiply(123i64, 123i8));
 	println(123 * 123);
+	assert(multiply(123i64, 123i8) == 123 * 123);
 }
 
 function square(n: int32) -> typeof (n * n)
@@ -431,3 +436,42 @@ function square(n: int32) -> typeof (n * n)
 }
 
 function multiply(a: int64, b: int8) -> typeof (a * b) { return a * b; }
+
+function christmas_tree(height: int32) -> void
+{
+	let i = 0;
+	while (i < height)
+	{
+		const spaces = height - 1 - i;
+		const stars = 2 * i;
+
+		let j = 0;
+		while (j < spaces)
+		{
+			print(' ');
+			++j;
+		}
+
+		print('/');
+
+		let j = 0;
+		while (j < stars)
+		{
+			print('*');
+			++j;
+		}
+
+		print('\\');
+
+		print('\n');
+		++i;
+	}
+
+	let i = 0;
+	while (i < height - 1)
+	{
+		print(' ');
+		++i;
+	}
+	print("||\n");
+}
