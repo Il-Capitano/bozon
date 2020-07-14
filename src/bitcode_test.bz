@@ -136,11 +136,15 @@ function main() -> int32
 
 	println("\n==== const_expr_test ====");
 	const_expr_test();
+
 	println("\n==== scope_test ====");
 	scope_test();
 
 	println("\n==== christmas_tree ====");
 	christmas_tree(4);
+
+	println("\n==== for_test ====");
+	for_test();
 
 	return 0;
 /*
@@ -461,4 +465,57 @@ function christmas_tree(height: int32) -> void
 		print(' ');
 	}
 	print("||\n");
+}
+
+function for_test() -> void
+{
+	for (let i = 0; i < 10; ++i)
+	{
+		print(i);
+		print(' ');
+	}
+//	print(i);
+	print('\n');
+
+	let i: int32;
+	for (i = 0; i < 10; ++i)
+	{
+		print(i);
+		print(' ');
+	}
+	print(i);
+	print('\n');
+
+	let i: int32;
+	let j: int32;
+	for (i = 0, j = 0; i < 10; ++i, ++j)
+	{
+		print('('), print(i), print(", "), print(j), print(')');
+		print(' ');
+	}
+	print('\n');
+
+	let i = 0;
+	for (; i < 10; ++i)
+	{
+		print(i), print(' ');
+	}
+	print('\n');
+
+	function infinite_loop() -> void
+	{
+		println("entered infinite_loop");
+		let i = 0;
+		for (;; ++i)
+		{
+			if (i == 10)
+			{
+				return;
+			}
+			print(i), print(' ');
+		}
+		print('\n');
+	}
+
+	infinite_loop();
 }
