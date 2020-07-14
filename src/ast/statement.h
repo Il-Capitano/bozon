@@ -143,7 +143,22 @@ struct stmt_while
 
 struct stmt_for
 {
-	// TODO
+	statement  init;
+	expression condition;
+	expression iteration;
+	statement  for_block;
+
+	stmt_for(
+		statement  _init,
+		expression _condition,
+		expression _iteration,
+		statement  _for_block
+	)
+		: init     (std::move(_init)),
+		  condition(std::move(_condition)),
+		  iteration(std::move(_iteration)),
+		  for_block(std::move(_for_block))
+	{}
 
 	lex::token_pos get_tokens_begin(void) const { bz_assert(false); exit(1); }
 	lex::token_pos get_tokens_pivot(void) const { bz_assert(false); exit(1); }

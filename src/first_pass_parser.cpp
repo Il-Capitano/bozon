@@ -418,36 +418,33 @@ static ast::statement parse_while_statement(
 			++stream;
 			return cond;
 		}
-		else
+		else if (open_paren->kind == lex::token::paren_open)
 		{
-			if (open_paren->kind == lex::token::paren_open)
-			{
-				auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
-					switch (stream->kind)
-					{
-					case lex::token::square_close:
-					case lex::token::semi_colon:
-						return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
-					default:
-						return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
-					}
-				}();
-				auto const open_paren_line = open_paren->src_pos.line;
-				bz_assert(open_paren_line <= suggested_paren_line);
-				context.report_error(
-					stream,
-					stream->kind == lex::token::eof
-					? bz::u8string("expected closing ) before end-of-file")
-					: bz::format("expected closing ) before '{}'", stream->value),
-					{
-						(suggested_paren_line - open_paren_line > 1)
-						? context.make_note(open_paren, "to match this:")
-						: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
-					}
-				);
-			}
-			return cond;
+			auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
+				switch (stream->kind)
+				{
+				case lex::token::square_close:
+				case lex::token::semi_colon:
+					return std::make_pair(stream->src_pos.begin, stream->src_pos.line);
+				default:
+					return std::make_pair((stream - 1)->src_pos.end, (stream - 1)->src_pos.line);
+				}
+			}();
+			auto const open_paren_line = open_paren->src_pos.line;
+			bz_assert(open_paren_line <= suggested_paren_line);
+			context.report_error(
+				stream,
+				stream->kind == lex::token::eof
+				? bz::u8string("expected closing ) before end-of-file")
+				: bz::format("expected closing ) before '{}'", stream->value),
+				{
+					(suggested_paren_line - open_paren_line > 1)
+					? context.make_note(open_paren, "to match this:")
+					: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
+				}
+			);
 		}
+		return cond;
 	}();
 
 	auto while_block = parse_statement(stream, end, context);
@@ -460,13 +457,75 @@ static ast::statement parse_while_statement(
 }
 
 static ast::statement parse_for_statement(
-	lex::token_pos &stream, lex::token_pos,
-	ctx::first_pass_parse_context &
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
 )
 {
 	bz_assert(stream->kind == lex::token::kw_for);
-	bz_assert(false, "for statement not yet implemented");
-	return {};
+
+	++stream; // 'for'
+	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
+	if (stream == end)
+	{
+		context.report_error(stream, "expected initialization statement");
+		return ast::statement();
+	}
+	auto init = stream->kind == lex::token::semi_colon
+		? (++stream, ast::statement())
+		: parse_statement(stream, end, context);
+	if (stream == end)
+	{
+		context.report_error(stream, "expected loop condition");
+		return ast::statement();
+	}
+	auto condition = stream->kind == lex::token::semi_colon
+		? (++stream, ast::expression({}))
+		: [&]() {
+			auto const expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, context);
+			context.assert_token(stream, lex::token::semi_colon);
+			return ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end });
+		}();
+	if (stream == end)
+	{
+		context.report_error(stream, "expected iteration expression");
+		return ast::statement();
+	}
+	auto iteration = stream->kind == lex::token::paren_close
+		? ast::expression({})
+		: [&]() {
+			auto const expr = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, context);
+			if (stream->kind == lex::token::paren_close)
+			{
+				++stream;
+			}
+			else if (open_paren->kind == lex::token::paren_open)
+			{
+				auto const suggested_paren_pos = (stream - 1)->src_pos.end;
+				auto const suggested_paren_line = (stream - 1)->src_pos.line;
+				auto const open_paren_line = open_paren->src_pos.line;
+				context.report_error(
+					stream,
+					stream->kind == lex::token::eof
+					? bz::u8string("expected closing ) before end-of-file")
+					: bz::format("expected closing ) before '{}'", stream->value),
+					{
+						(suggested_paren_line - open_paren_line > 1)
+						? context.make_note(open_paren, "to match this:")
+						: context.make_note(open_paren, "to match this:", suggested_paren_pos, ")")
+					}
+				);
+			}
+			return ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end });
+		}();
+
+	auto for_body = parse_statement(stream, end, context);
+
+	return ast::make_stmt_for(
+		std::move(init),
+		std::move(condition),
+		std::move(iteration),
+		std::move(for_body)
+	);
 }
 
 static ast::statement parse_return_statement(
@@ -955,6 +1014,11 @@ ast::declaration parse_declaration(lex::token_pos &stream, lex::token_pos end, c
 
 ast::statement parse_statement(lex::token_pos &stream, lex::token_pos end, ctx::first_pass_parse_context &context)
 {
+	if (stream == end)
+	{
+		context.report_error(stream, "expected a statement");
+		return ast::statement();
+	}
 	switch (stream->kind)
 	{
 	// if statement

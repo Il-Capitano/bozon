@@ -622,8 +622,25 @@ void resolve(
 		break;
 	}
 	case ast::statement::index<ast::stmt_for>:
-		bz_assert(false);
+	{
+		auto &for_stmt = *stmt.get<ast::stmt_for_ptr>();
+		context.add_scope();
+		if (for_stmt.init.not_null())
+		{
+			resolve(for_stmt.init, context);
+		}
+		if (for_stmt.condition.not_null())
+		{
+			resolve(for_stmt.condition, context);
+		}
+		if (for_stmt.iteration.not_null())
+		{
+			resolve(for_stmt.iteration, context);
+		}
+		resolve(for_stmt.for_block, context);
+		context.remove_scope();
 		break;
+	}
 	case ast::statement::index<ast::stmt_return>:
 	{
 		auto &ret_expr = stmt.get<ast::stmt_return_ptr>()->expr;

@@ -1646,11 +1646,30 @@ static void emit_bitcode(
 }
 
 static void emit_bitcode(
-	[[maybe_unused]] ast::stmt_for const &for_stmt,
-	[[maybe_unused]] ctx::bitcode_context &context
+	ast::stmt_for const &for_stmt,
+	ctx::bitcode_context &context
 )
 {
-	bz_assert(false);
+	emit_bitcode(for_stmt.init, context);
+	auto const condition_check = context.add_basic_block("for_condition_check");
+	context.builder.CreateBr(condition_check);
+	context.builder.SetInsertPoint(condition_check);
+	auto const condition = emit_bitcode(for_stmt.condition, context).get_value(context);
+	auto const condition_check_end = context.builder.GetInsertBlock();
+
+	auto const for_bb = context.add_basic_block("for");
+	context.builder.SetInsertPoint(for_bb);
+	emit_bitcode(for_stmt.for_block, context);
+	if (!context.has_terminator())
+	{
+		emit_bitcode(for_stmt.iteration, context);
+		context.builder.CreateBr(condition_check);
+	}
+
+	auto const end_bb = context.add_basic_block("endfor");
+	context.builder.SetInsertPoint(condition_check_end);
+	context.builder.CreateCondBr(condition, for_bb, end_bb);
+	context.builder.SetInsertPoint(end_bb);
 }
 
 static void emit_bitcode(
@@ -1764,8 +1783,14 @@ static void emit_alloca(
 		break;
 	}
 	case ast::statement::index<ast::stmt_for>:
-		bz_assert(false);
+	{
+		auto &for_stmt = *stmt.get<ast::stmt_for_ptr>();
+		emit_alloca(for_stmt.init, context);
+		emit_alloca(for_stmt.condition, context);
+		emit_alloca(for_stmt.iteration, context);
+		emit_alloca(for_stmt.for_block, context);
 		break;
+	}
 	case ast::statement::index<ast::stmt_return>:
 		emit_alloca(stmt.get<ast::stmt_return_ptr>()->expr, context);
 		break;
