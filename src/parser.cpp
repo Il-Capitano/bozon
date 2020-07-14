@@ -531,7 +531,10 @@ void resolve_helper(
 		}
 		resolve(func_body.return_type, context);
 
-		func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
+		if (func_body.llvm_func == nullptr)
+		{
+			func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
+		}
 		for (auto &stmt : *func_body.body)
 		{
 			resolve(stmt, context);
