@@ -510,6 +510,7 @@ function for_test() -> void
 		{
 			if (i == 10)
 			{
+				println("\nexiting infinite_loop");
 				return;
 			}
 			print(i), print(' ');
@@ -518,4 +519,19 @@ function for_test() -> void
 	}
 
 	infinite_loop();
+}
+
+function declaration_leak() -> void
+{
+	if (false) let i = 0;
+//	i;
+	while (false) let i = 0;
+//	i;
+
+	if (false) let i = 0;
+//	else i;
+
+	if (false);
+	else let i = 0;
+//	i;
 }
