@@ -608,20 +608,26 @@ void resolve(
 	{
 	case ast::statement::index<ast::stmt_if>:
 	{
+		context.add_scope();
 		auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
 		resolve(if_stmt.condition, context);
 		resolve(if_stmt.then_block, context);
+		context.remove_scope();
 		if (if_stmt.else_block.has_value())
 		{
+			context.add_scope();
 			resolve(*if_stmt.else_block, context);
+			context.remove_scope();
 		}
 		break;
 	}
 	case ast::statement::index<ast::stmt_while>:
 	{
+		context.add_scope();
 		auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
 		resolve(while_stmt.condition, context);
 		resolve(while_stmt.while_block, context);
+		context.remove_scope();
 		break;
 	}
 	case ast::statement::index<ast::stmt_for>:
