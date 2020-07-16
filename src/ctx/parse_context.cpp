@@ -843,7 +843,7 @@ if (postfix == postfix_str)                                                     
 			)
 			{
 				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				break;
+				return ast::expression(src_tokens);
 			}
 			num = num10 + (c - '0');
 		}
