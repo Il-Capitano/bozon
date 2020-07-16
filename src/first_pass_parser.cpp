@@ -293,12 +293,9 @@ static ast::statement parse_if_statement(
 		{
 			++stream;
 		}
-		else
+		else if (open_paren->kind == lex::token::paren_open)
 		{
-			if (open_paren->kind == lex::token::paren_open)
-			{
-				context.report_paren_match_error(stream, open_paren);
-			}
+			context.report_paren_match_error(stream, open_paren);
 		}
 		return cond;
 	}();
@@ -449,6 +446,29 @@ static ast::statement parse_no_op_statement(
 	auto const begin_token = stream;
 	++stream; // ';'
 	return ast::make_stmt_no_op(lex::token_range{ begin_token, stream });
+}
+
+static ast::statement parse_static_assert_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::kw_static_assert);
+	++stream;
+
+	auto const paren_begin = context.assert_token(stream, lex::token::paren_open);
+	auto const args_range = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, context);
+	if (stream != end && stream->kind == lex::token::paren_close)
+	{
+		++stream;
+	}
+	else if (paren_begin->kind == lex::token::paren_open)
+	{
+		context.report_paren_match_error(stream, paren_begin);
+	}
+	context.assert_token(stream, lex::token::semi_colon);
+
+	return ast::make_stmt_static_assert(args_range);
 }
 
 static ast::statement parse_expression_statement(
@@ -936,6 +956,10 @@ ast::statement parse_statement(lex::token_pos &stream, lex::token_pos end, ctx::
 	// compound statement
 	case lex::token::curly_open:
 		return ast::make_statement(get_stmt_compound_ptr(stream, end, context));
+
+	// static assertion
+	case lex::token::kw_static_assert:
+		return parse_static_assert_statement(stream, end, context);
 
 	// variable declaration
 	case lex::token::kw_let:

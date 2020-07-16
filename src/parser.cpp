@@ -675,6 +675,126 @@ void resolve(
 	case ast::statement::index<ast::stmt_expression>:
 		resolve(stmt.get<ast::stmt_expression_ptr>()->expr, context);
 		break;
+	case ast::statement::index<ast::stmt_static_assert>:
+	{
+		auto &static_assert_stmt = *stmt.get<ast::stmt_static_assert_ptr>();
+		auto const begin = static_assert_stmt.arg_tokens.begin;
+		auto const end = static_assert_stmt.arg_tokens.end;
+		if (begin == end)
+		{
+			context.report_error(begin, "static_assert expects 1 or 2 arguments, but got 0");
+			break;
+		}
+		auto stream = begin;
+		auto args = parse_expression_comma_list(stream, end, context);
+		if (stream != end)
+		{
+			context.report_error({ stream, stream, end }, "expected ',' or closing )");
+		}
+		if (args.size() != 1 && args.size() != 2)
+		{
+			context.report_error(
+				{ begin, begin, end },
+				bz::format("static_assert expects 1 or 2 arguments, but got {}", args.size())
+			);
+			break;
+		}
+		else
+		{
+			auto const verify_condition = [&]() {
+				auto &condition = args[0];
+				if (condition.is_null())
+				{
+					bz_assert(context.has_errors());
+					return false;
+				}
+				else if (!condition.is<ast::constant_expression>())
+				{
+					context.report_error(
+						condition,
+						"condition for static assertion must be a constant expression"
+					);
+					return false;
+				}
+				else
+				{
+					auto &const_expr = condition.get<ast::constant_expression>();
+					if (const_expr.value.kind() != ast::constant_value::boolean)
+					{
+						context.report_error(
+							condition,
+							bz::format(
+								"condition for static assertion must be of type 'bool', but got '{}'",
+								const_expr.type
+							)
+						);
+					}
+					static_assert_stmt.condition = std::move(condition);
+					return true;
+				}
+			};
+
+			auto const verify_message = [&]() {
+				bz_assert(args.size() == 2);
+				auto &message = args[1];
+				if (message.is_null())
+				{
+					bz_assert(context.has_errors());
+					return false;
+				}
+				else if (!message.is<ast::constant_expression>())
+				{
+					context.report_error(
+						message,
+						"message for static assertion must be a constant expression"
+					);
+					return false;
+				}
+				else
+				{
+					auto &const_expr = message.get<ast::constant_expression>();
+					if (const_expr.value.kind() != ast::constant_value::string)
+					{
+						context.report_error(
+							message,
+							bz::format(
+								"condition for static assertion must be of type 'str', but got '{}'",
+								const_expr.type
+							)
+						);
+					}
+					static_assert_stmt.message = std::move(message);
+					return true;
+				}
+			};
+
+			auto const condition_good = verify_condition();
+			auto const message_good = args.size() != 2 || verify_message();
+
+			if (!condition_good)
+			{
+				bz_assert(context.has_errors());
+				break;
+			}
+
+			auto const condition_value = static_assert_stmt.condition.get<ast::constant_expression>()
+				.value.get<ast::constant_value::boolean>();
+			if (!condition_value)
+			{
+				if (args.size() == 1 || !message_good)
+				{
+					context.report_error(args[0], "static assertion failed");
+				}
+				else
+				{
+					auto const message = static_assert_stmt.message.get<ast::constant_expression>()
+						.value.get<ast::constant_value::string>().as_string_view();
+					context.report_error(args[0], bz::format("static assertion failed, message: {}", message));
+				}
+			}
+		}
+		break;
+	}
 	case ast::statement::index<ast::decl_variable>:
 	{
 		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();

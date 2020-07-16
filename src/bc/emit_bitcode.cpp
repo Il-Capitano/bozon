@@ -1871,6 +1871,9 @@ static void emit_bitcode(
 	case ast::statement::index<ast::stmt_expression>:
 		emit_bitcode(*stmt.get<ast::stmt_expression_ptr>(), context);
 		break;
+	case ast::statement::index<ast::stmt_static_assert>:
+		// nothing
+		break;
 
 	case ast::statement::index<ast::decl_variable>:
 		emit_bitcode(*stmt.get<ast::decl_variable_ptr>(), context);
@@ -1960,6 +1963,7 @@ llvm::Function *create_function_from_symbol(
 	ctx::bitcode_context &context
 )
 {
+	bz_assert(func_body.llvm_func == nullptr);
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)

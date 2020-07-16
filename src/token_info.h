@@ -264,18 +264,19 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_null]  = { lex::token::kw_null,  "null",  "", keyword_flags | expr_type_flags };
 
 
-	result[lex::token::kw_if]        = { lex::token::kw_if,        "if",        "", keyword_flags };
-	result[lex::token::kw_else]      = { lex::token::kw_else,      "else",      "", keyword_flags };
-	result[lex::token::kw_while]     = { lex::token::kw_while,     "while",     "", keyword_flags };
-	result[lex::token::kw_for]       = { lex::token::kw_for,       "for",       "", keyword_flags };
-	result[lex::token::kw_return]    = { lex::token::kw_return,    "return",    "", keyword_flags };
-	result[lex::token::kw_function]  = { lex::token::kw_function,  "function",  "", keyword_flags };
-	result[lex::token::kw_operator]  = { lex::token::kw_operator,  "operator",  "", keyword_flags };
-	result[lex::token::kw_class]     = { lex::token::kw_class,     "class",     "", keyword_flags };
-	result[lex::token::kw_struct]    = { lex::token::kw_struct,    "struct",    "", keyword_flags };
-	result[lex::token::kw_typename]  = { lex::token::kw_typename,  "typename",  "", keyword_flags };
-	result[lex::token::kw_namespace] = { lex::token::kw_namespace, "namespace", "", keyword_flags };
-	result[lex::token::kw_using]     = { lex::token::kw_using,     "using",     "", keyword_flags };
+	result[lex::token::kw_if]            = { lex::token::kw_if,            "if",            "", keyword_flags };
+	result[lex::token::kw_else]          = { lex::token::kw_else,          "else",          "", keyword_flags };
+	result[lex::token::kw_while]         = { lex::token::kw_while,         "while",         "", keyword_flags };
+	result[lex::token::kw_for]           = { lex::token::kw_for,           "for",           "", keyword_flags };
+	result[lex::token::kw_return]        = { lex::token::kw_return,        "return",        "", keyword_flags };
+	result[lex::token::kw_function]      = { lex::token::kw_function,      "function",      "", keyword_flags };
+	result[lex::token::kw_operator]      = { lex::token::kw_operator,      "operator",      "", keyword_flags };
+	result[lex::token::kw_class]         = { lex::token::kw_class,         "class",         "", keyword_flags };
+	result[lex::token::kw_struct]        = { lex::token::kw_struct,        "struct",        "", keyword_flags };
+	result[lex::token::kw_typename]      = { lex::token::kw_typename,      "typename",      "", keyword_flags };
+	result[lex::token::kw_namespace]     = { lex::token::kw_namespace,     "namespace",     "", keyword_flags };
+	result[lex::token::kw_using]         = { lex::token::kw_using,         "using",         "", keyword_flags };
+	result[lex::token::kw_static_assert] = { lex::token::kw_static_assert, "static_assert", "", keyword_flags };
 
 	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_operator_flags | unary_built_in_flags };
 	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_operator_flags | unary_built_in_flags };

@@ -21,6 +21,7 @@ declare_node_type(stmt_for);
 declare_node_type(stmt_return);
 declare_node_type(stmt_no_op);
 declare_node_type(stmt_compound);
+declare_node_type(stmt_static_assert);
 declare_node_type(stmt_expression);
 
 declare_node_type(decl_variable);
@@ -58,6 +59,7 @@ struct statement : node<
 	stmt_no_op,
 	stmt_compound,
 	stmt_expression,
+	stmt_static_assert,
 	decl_variable,
 	decl_function,
 	decl_operator,
@@ -72,6 +74,7 @@ struct statement : node<
 		stmt_no_op,
 		stmt_compound,
 		stmt_expression,
+		stmt_static_assert,
 		decl_variable,
 		decl_function,
 		decl_operator,
@@ -222,6 +225,23 @@ struct stmt_expression
 	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
 	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
+};
+
+struct stmt_static_assert
+{
+	lex::token_range arg_tokens;
+	expression condition;
+	expression message;
+
+	stmt_static_assert(lex::token_range _arg_tokens)
+		: arg_tokens(_arg_tokens),
+		  condition(),
+		  message()
+	{}
+
+	lex::token_pos get_tokens_begin(void) const;
+	lex::token_pos get_tokens_pivot(void) const;
+	lex::token_pos get_tokens_end(void) const;
 };
 
 
@@ -513,50 +533,26 @@ declaration make_declaration(Args &&...args)
 { return declaration(std::forward<Args>(args)...); }
 
 
-template<typename ...Args>
-declaration make_decl_variable(Args &&...args)
-{ return declaration(std::make_unique<decl_variable>(std::forward<Args>(args)...)); }
+#define def_make_fn(ret_type, node_type)                                       \
+template<typename ...Args>                                                     \
+ret_type make_ ## node_type (Args &&...args)                                   \
+{ return ret_type(std::make_unique<node_type>(std::forward<Args>(args)...)); }
 
-template<typename ...Args>
-declaration make_decl_function(Args &&...args)
-{ return declaration(std::make_unique<decl_function>(std::forward<Args>(args)...)); }
+def_make_fn(declaration, decl_variable)
+def_make_fn(declaration, decl_function)
+def_make_fn(declaration, decl_operator)
+def_make_fn(declaration, decl_struct)
 
-template<typename ...Args>
-declaration make_decl_operator(Args &&...args)
-{ return declaration(std::make_unique<decl_operator>(std::forward<Args>(args)...)); }
+def_make_fn(statement, stmt_if)
+def_make_fn(statement, stmt_while)
+def_make_fn(statement, stmt_for)
+def_make_fn(statement, stmt_return)
+def_make_fn(statement, stmt_no_op)
+def_make_fn(statement, stmt_compound)
+def_make_fn(statement, stmt_expression)
+def_make_fn(statement, stmt_static_assert)
 
-template<typename ...Args>
-declaration make_decl_struct(Args &&...args)
-{ return declaration(std::make_unique<decl_struct>(std::forward<Args>(args)...)); }
-
-
-template<typename ...Args>
-statement make_stmt_if(Args &&...args)
-{ return statement(std::make_unique<stmt_if>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_while(Args &&...args)
-{ return statement(std::make_unique<stmt_while>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_for(Args &&...args)
-{ return statement(std::make_unique<stmt_for>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_return(Args &&...args)
-{ return statement(std::make_unique<stmt_return>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_no_op(Args &&...args)
-{ return statement(std::make_unique<stmt_no_op>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_compound(Args &&...args)
-{ return statement(std::make_unique<stmt_compound>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-statement make_stmt_expression(Args &&...args)
-{ return statement(std::make_unique<stmt_expression>(std::forward<Args>(args)...)); }
+#undef def_make_fn
 
 } // namespace ast
 

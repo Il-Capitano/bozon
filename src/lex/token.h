@@ -111,9 +111,11 @@ struct token
 		kw_let,              // let
 		kw_const,            // const
 
-		kw_true,
-		kw_false,
-		kw_null,
+		kw_true,             // true
+		kw_false,            // false
+		kw_null,             // null
+
+		kw_static_assert,    // static_assert
 
 		_last
 	};
