@@ -1046,7 +1046,7 @@ if (postfix == postfix_str)                                                     
 		auto const value = get_character(it);
 		bz_assert(it == end);
 
-		if (value > bz::max_unicode_value)
+		if (!bz::is_valid_unicode_value(value))
 		{
 			this->report_error(
 				literal,

@@ -133,23 +133,22 @@ bz::u8char safe_add(
 		|| b < -static_cast<int64_t>(a)
 	)
 	{
-		auto const result_str = bz::format("0x{:x}", result);
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				reversed
-				? "overflow in constant expression with types '{}' and 'char' results in {}"
-				: "overflow in constant expression with types 'char' and '{}' results in {}",
-				get_type_name_from_kind(type_kind), result_str
+				? "overflow in constant expression with types '{}' and 'char' results in U+{:04X}"
+				: "overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
+				get_type_name_from_kind(type_kind), result
 			)
 		);
 	}
-	if (result > bz::max_unicode_value)
+	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
 			src_tokens,
 			bz::format(
-				"the result of 0x{:x} in a constant expression is not a valid character, maximum value is 0x10ffff",
+				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
 			)
 		);
@@ -166,23 +165,22 @@ bz::u8char safe_add(
 	auto const result = a + static_cast<uint32_t>(b);
 	if (b > static_cast<uint64_t>(std::numeric_limits<bz::u8char>::max() - a))
 	{
-		auto const result_str = bz::format("0x{:x}", result);
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
 				reversed
-				? "overflow in constant expression with types '{}' and 'char' results in {}"
-				: "overflow in constant expression with types 'char' and '{}' results in {}",
-				get_type_name_from_kind(type_kind), result_str
+				? "overflow in constant expression with types '{}' and 'char' results in U+{:04X}"
+				: "overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
+				get_type_name_from_kind(type_kind), result
 			)
 		);
 	}
-	if (result > bz::max_unicode_value)
+	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
 			src_tokens,
 			bz::format(
-				"the result of 0x{:x} in a constant expression is not a valid character (maximum value is 0x10ffff)",
+				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
 			)
 		);
@@ -322,21 +320,20 @@ bz::u8char safe_subtract(
 		|| (b < 0 && static_cast<int64_t>(a) > static_cast<int64_t>(std::numeric_limits<bz::u8char>::max()) + b)
 	)
 	{
-		auto const result_str = bz::format("0x{:x}", result);
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
-				"overflow in constant expression with types 'char' and '{}' results in {}",
-				get_type_name_from_kind(type_kind), result_str
+				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
+				get_type_name_from_kind(type_kind), result
 			)
 		);
 	}
-	if (result > bz::max_unicode_value)
+	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
 			src_tokens,
 			bz::format(
-				"the result of 0x{:x} in a constant expression is not a valid character (maximum value is 0x10ffff)",
+				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
 			)
 		);
@@ -352,21 +349,20 @@ bz::u8char safe_subtract(
 	auto const result = a - static_cast<uint32_t>(b);
 	if (b > static_cast<uint64_t>(a))
 	{
-		auto const result_str = bz::format("0x{:x}", result);
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
 			bz::format(
-				"overflow in constant expression with types 'char' and '{}' results in {}",
-				get_type_name_from_kind(type_kind), result_str
+				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
+				get_type_name_from_kind(type_kind), result
 			)
 		);
 	}
-	if (result > bz::max_unicode_value)
+	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
 			src_tokens,
 			bz::format(
-				"the result of 0x{:x} in a constant expression is not a valid character (maximum value is 0x10ffff)",
+				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
 			)
 		);

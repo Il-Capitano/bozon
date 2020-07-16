@@ -185,15 +185,28 @@ inline void verify_unicode_small(file_iterator &stream, ctx::char_pos end, ctx::
 	bz_assert(stream.it != end);
 	bz_assert(*stream.it == 'u');
 	++stream; // u
+	auto const first_char = stream.it;
 
+	bz::u8char val = 0;
 	// we expect four hex characters
 	for (int i = 0; i < 4; ++i, ++stream)
 	{
-		if (stream.it == end || !is_hex_char(*stream.it))
+		auto const c = *stream.it;
+		if (stream.it == end || !is_hex_char(c))
 		{
 			context.bad_char(stream, "\\u must be followed by four hex characters (two bytes)");
 			break;
 		}
+		val <<= 4;
+		val |= get_hex_value(c);
+	}
+	if (!bz::is_valid_unicode_value(val))
+	{
+		context.bad_chars(
+			stream.file, stream.line,
+			first_char, first_char, stream.it,
+			bz::format("U+{:04X} is not a valid unicode codepoint", val)
+		);
 	}
 }
 
@@ -233,12 +246,12 @@ inline void verify_unicode_big(file_iterator &stream, ctx::char_pos end, ctx::le
 		val <<= 4;
 		val |= get_hex_value(c);
 	}
-	if (val > bz::max_unicode_value)
+	if (!bz::is_valid_unicode_value(val))
 	{
 		context.bad_chars(
 			stream.file, stream.line,
 			first_char, first_char, stream.it,
-			bz::format("the value 0x{:08x} is too large for a character, it must be at most 0x0010ffff", val)
+			bz::format("U+{:04X} is not a valid unicode codepoint", val)
 		);
 	}
 }

@@ -3637,12 +3637,12 @@ case ast::type_info::dest_t##_:                                                 
 			auto const value = expr_kind == ast::type_info::uint32_
 				? static_cast<uint32_t>(const_expr.value.get<ast::constant_value::uint>())
 				: static_cast<uint32_t>(const_expr.value.get<ast::constant_value::sint>());
-			if (value > bz::max_unicode_value)
+			if (!bz::is_valid_unicode_value(value))
 			{
 				context.report_error(
 					src_tokens,
 					bz::format(
-						"the result of 0x{:x} in a constant expression is not a valid character (maximum value is 0x10ffff)",
+						"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 						value
 					)
 				);
