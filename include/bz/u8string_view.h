@@ -11,6 +11,16 @@ using u8char = uint32_t;
 
 constexpr u8char max_unicode_value = 0x10'ffff;
 
+constexpr bool is_in_unicode_surrogate_range(u8char c)
+{
+	return c >= 0xd800 && c <= 0xdfff;
+}
+
+constexpr bool is_valid_unicode_value(u8char c)
+{
+	return c <= max_unicode_value && !is_in_unicode_surrogate_range(c);
+}
+
 namespace internal
 {
 
