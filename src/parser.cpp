@@ -728,6 +728,7 @@ void resolve(
 								const_expr.type
 							)
 						);
+						return false;
 					}
 					static_assert_stmt.condition = std::move(condition);
 					return true;
@@ -758,10 +759,11 @@ void resolve(
 						context.report_error(
 							message,
 							bz::format(
-								"condition for static assertion must be of type 'str', but got '{}'",
+								"message for static assertion must be of type 'str', but got '{}'",
 								const_expr.type
 							)
 						);
+						return false;
 					}
 					static_assert_stmt.message = std::move(message);
 					return true;
