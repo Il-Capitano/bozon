@@ -519,6 +519,17 @@ function for_test() -> void
 	}
 
 	infinite_loop();
+
+	static_assert((((0x8000'0000 - 1u) as int32 + 1)) < 0);
+	const int32_max = (0x8000'0000 - 1u) as int32;
+	println(int32_max);
+
+	for (let i = 0; i <= 10'000; ++i)
+	{
+		print(i);
+		print('\x0d');
+	}
+	print('\n');
 }
 
 function declaration_leak() -> void
@@ -534,4 +545,22 @@ function declaration_leak() -> void
 	if (false);
 	else let i = 0;
 //	i;
+
+	for (let i = 0; i < 10; ++i);
+//	i;
+}
+
+function static_assert_test() -> void
+{
+//	static_assert(false);
+//	static_assert(0);
+//	static_assert(true, 0);
+	static_assert('A' as int32 == 65);
+	static_assert('A' - 'a' == -32);
+	static_assert('a' - 'A' == 32);
+	static_assert('\u1234' as uint32 == 0x1234);
+//	static_assert(0.1 + 0.2 == 0.4);
+	static_assert(((127i8 + 1i8)) == -128 as int8);
+	static_assert(((-1 as uint64)) == 18446744073709551615);
+	static_assert(((-1 as uint64)) == ~0u64);
 }
