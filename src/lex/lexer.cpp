@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "colors.h"
+#include "escape_sequences.h"
 
 namespace lex
 {
@@ -29,15 +30,9 @@ bz::vector<token> get_tokens(
 }
 
 
-
 static constexpr bool is_num_char(char c)
 {
 	return c >= '0' && c <= '9';
-}
-
-static constexpr bool is_hex_char(char c)
-{
-	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
 static constexpr bool is_oct_char(char c)
@@ -191,189 +186,15 @@ static void match_character(
 	ctx::lex_context &context
 )
 {
-	switch (*stream.it)
+	bz_assert(stream.it != end);
+	if (*stream.it == '\\')
 	{
-	case '\\':
-	{
-		auto const escape_char = stream.it;
 		++stream;
-		if (stream.it == end)
-		{
-			break;
-		}
-		switch (*stream.it)
-		{
-		// TODO: decide on what is allowed here
-		case '\\':
-		case '\'':
-		case '\"':
-		case 'n':
-		case 't':
-			++stream;
-			break;
-
-		case 'x':
-		{
-//			auto const x = stream.it;
-			++stream;
-			if (stream.it == end || !is_hex_char(*stream.it))
-			{
-				context.bad_char(stream, "\\x must be followed by two hex characters");
-				break;
-			}
-			auto const first_char = stream.it;
-			++stream;
-			if (stream.it == end || !is_hex_char(*stream.it))
-			{
-				context.bad_char(
-					stream,
-					"\\x must be followed by two hex characters (one byte)",
-					{},
-					{
-						context.make_suggestion(
-							stream.file, stream.line, first_char, "0",
-							bz::format("did you mean '\\x0{:c}'?", *first_char)
-						)
-					}
-				);
-				break;
-			}
-			auto const second_char = stream.it;
-			++stream;
-			auto const end = stream.it;
-
-			// we need to restrict the value to 0x7f, so it's a valid UTF-8 code point
-			if (!(*first_char >= '0' && *first_char <= '7'))
-			{
-				context.bad_chars(
-					stream.file, stream.line,
-					first_char, first_char, end,
-					bz::format(
-						"the value 0x{:c}{:c} is too large for a hex character, it must be at most 0x7f",
-						*first_char, *second_char
-					),
-					{},
-					{
-						context.make_suggestion(
-							stream.file, stream.line, escape_char,
-							escape_char, end,
-							bz::format("\\u00{:c}{:c}", *first_char, *second_char),
-							bz::format("use \\u00{:c}{:c} instead", *first_char, *second_char)
-						)
-					}
-				);
-				break;
-			}
-
-			break;
-		}
-
-		case 'u':
-			++stream;
-			// we expect four hex characters
-			for (int i = 0; i < 4; ++i)
-			{
-				if (stream.it == end || !is_hex_char(*stream.it))
-				{
-					context.bad_char(stream, "\\u must be followed by four hex characters (two bytes)");
-					break;
-				}
-				++stream;
-			}
-			break;
-
-		case 'U':
-		{
-			auto const get_hex_value = [](bz::u8char c)
-			{
-				bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
-				if (c >= '0' && c <= '9')
-				{
-					return c - '0';
-				}
-				else if (c >= 'a' && c <= 'f')
-				{
-					return c - 'a' + 10;
-				}
-				else
-				{
-					return c - 'A' + 10;
-				}
-			};
-			++stream;
-			auto const first_char = stream.it;
-			bz::u8char value = 0;
-			bool error = false;
-			// we expect four hex characters
-			for (int i = 0; i < 8; ++i)
-			{
-				auto const c = *stream.it;
-				if (stream.it == end || !is_hex_char(c))
-				{
-					context.bad_char(stream, "\\U must be followed by eight hex characters (four bytes)");
-					error = true;
-					break;
-				}
-				value <<= 4;
-				value |= get_hex_value(c);
-				++stream;
-			}
-			if (error)
-			{
-				break;
-			}
-
-			// check if the character value is a valid unicode character
-			if (value > 0x10'ff'ff)
-			{
-				context.bad_chars(
-					stream.file, stream.line,
-					first_char, first_char, stream.it,
-					bz::format("the value 0x{:08x} is too large for a character, it must be at most 0x0010ffff", value)
-				);
-			}
-			break;
-		}
-
-		default:
-		{
-			auto const get_char = [](bz::u8char c) -> bz::u8string{
-				if (c >= ' ')
-				{
-					return bz::u8string(1, c);
-				}
-				else
-				{
-					switch (c)
-					{
-					case '\t': return bz::format("{}\\t{}", colors::bright_black, colors::clear);
-					case '\n': return bz::format("{}\\n{}", colors::bright_black, colors::clear);
-					default:
-						return bz::format(
-							"{}\\x{:02x}{}",
-							colors::bright_black,
-							static_cast<uint32_t>(c),
-							colors::clear
-						);
-					}
-				}
-			};
-			auto const escaped_char = *stream.it;
-			context.bad_chars(
-				stream.file, stream.line,
-				escape_char, escape_char, stream.it + 1,
-				bz::format("invalid escape sequence '\\{}'", get_char(escaped_char))
-			);
-			++stream;
-			break;
-		}
-		}
-		break;
+		verify_escape_sequence(stream, end, context);
 	}
-
-	default:
+	else
+	{
 		++stream;
-		break;
 	}
 }
 
