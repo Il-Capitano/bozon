@@ -3829,112 +3829,22 @@ constexpr auto built_in_binary_operators = []() {
 	return result;
 }();
 
-// this functions creates a binary search tree at compile time,
-// so we can avoid an indirect call
-// it's slightly faster this way (I measured)
-template<int low_index, int high_index>
-ast::expression make_unary_built_in_operation_impl(
-	uint32_t kind,
-	lex::token_pos op,
-	ast::expression &&expr,
-	parse_context &context
-)
-{
-	if constexpr (low_index > high_index)
-	{
-		bz_assert(false);
-		return ast::expression();
-	}
-	else if constexpr (low_index == high_index)
-	{
-		constexpr auto unary_operator_parser = built_in_unary_operators[low_index];
-		if (kind == unary_operator_parser.kind)
-		{
-			return unary_operator_parser.parse_function(op, std::move(expr), context);
-		}
-		else
-		{
-			bz_assert(false);
-			return ast::expression();
-		}
-	}
-	else
-	{
-		constexpr auto midpoint = (low_index + high_index) / 2;
-		constexpr auto unary_operator_parser = built_in_unary_operators[midpoint];
-		if (kind == unary_operator_parser.kind)
-		{
-			return unary_operator_parser.parse_function(op, std::move(expr), context);
-		}
-		else if (kind < unary_operator_parser.kind)
-		{
-			return make_unary_built_in_operation_impl<low_index, midpoint - 1>(kind, op, std::move(expr), context);
-		}
-		else
-		{
-			return make_unary_built_in_operation_impl<midpoint + 1, high_index>(kind, op, std::move(expr), context);
-		}
-	}
-}
-
 ast::expression make_built_in_operation(
 	lex::token_pos op,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	return make_unary_built_in_operation_impl<
-		0, built_in_unary_operators.size() - 1
-	>(op->kind, op, std::move(expr), context);
-}
-
-// this functions creates a binary search tree at compile time,
-// so we can avoid an indirect call
-// it's slightly faster this way (I measured)
-template<int low_index, int high_index>
-ast::expression make_binary_built_in_operation_impl(
-	uint32_t kind,
-	lex::token_pos op,
-	ast::expression &&lhs,
-	ast::expression &&rhs,
-	parse_context &context
-)
-{
-	if constexpr (low_index > high_index)
-	{
-		bz_assert(false);
-		return ast::expression();
-	}
-	else if constexpr (low_index == high_index)
-	{
-		constexpr auto binary_operator_parser = built_in_binary_operators[low_index];
-		if (kind == binary_operator_parser.kind)
-		{
-			return binary_operator_parser.parse_function(op, std::move(lhs), std::move(rhs), context);
-		}
-		else
-		{
-			bz_assert(false);
-			return ast::expression();
-		}
-	}
-	else
-	{
-		constexpr auto midpoint = (low_index + high_index) / 2;
-		constexpr auto binary_operator_parser = built_in_binary_operators[midpoint];
-		if (kind == binary_operator_parser.kind)
-		{
-			return binary_operator_parser.parse_function(op, std::move(lhs), std::move(rhs), context);
-		}
-		else if (kind < binary_operator_parser.kind)
-		{
-			return make_binary_built_in_operation_impl<low_index, midpoint - 1>(kind, op, std::move(lhs), std::move(rhs), context);
-		}
-		else
-		{
-			return make_binary_built_in_operation_impl<midpoint + 1, high_index>(kind, op, std::move(lhs), std::move(rhs), context);
-		}
-	}
+	auto const op_kind = op->kind;
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		ast::expression result;
+		((
+			op_kind == built_in_unary_operators[Ns].kind
+			? (void)(result = built_in_unary_operators[Ns].parse_function(op, std::move(expr), context))
+			: (void)0
+		), ...);
+		return result;
+	}(bz::meta::make_index_sequence<built_in_unary_operators.size()>{});
 }
 
 ast::expression make_built_in_operation(
@@ -3944,9 +3854,16 @@ ast::expression make_built_in_operation(
 	parse_context &context
 )
 {
-	return make_binary_built_in_operation_impl<
-		0, built_in_binary_operators.size() - 1
-	>(op->kind, op, std::move(lhs), std::move(rhs), context);
+	auto const op_kind = op->kind;
+	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		ast::expression result;
+		((
+			op_kind == built_in_binary_operators[Ns].kind
+			? (void)(result = built_in_binary_operators[Ns].parse_function(op, std::move(lhs), std::move(rhs), context))
+			: (void)0
+		), ...);
+		return result;
+	}(bz::meta::make_index_sequence<built_in_binary_operators.size()>{});
 }
 
 } // namespace ctx
