@@ -159,3 +159,15 @@ void println_float64(double x)
 {
 	fprintf(stdout, "%g", x);
 }
+
+void print_bool(_Bool b)
+{
+	char const *const str = b ? "true" : "false";
+	fprintf(stdout, str);
+}
+
+void println_bool(_Bool b)
+{
+	char const *const str = b ? "true\n" : "false\n";
+	fprintf(stdout, str);
+}
