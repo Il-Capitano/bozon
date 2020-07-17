@@ -105,6 +105,20 @@ inline bz::u8char get_tab(bz::u8iterator &it)
 	return '\t';
 }
 
+inline void verify_carriage_return(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
+{
+	bz_assert(stream.it != end);
+	bz_assert(*stream.it == 'r');
+	++stream;
+}
+
+inline bz::u8char get_carriage_return(bz::u8iterator &it)
+{
+	bz_assert(*it == 'r');
+	++it;
+	return '\r';
+}
+
 inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context)
 {
 	bz_assert(stream.it != end);
@@ -274,14 +288,15 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 
 
 constexpr std::array escape_sequence_parsers = {
-	escape_sequence_parser{ '\\', &verify_backslash,     &get_backslash     },
-	escape_sequence_parser{ '\'', &verify_single_quote,  &get_single_quote  },
-	escape_sequence_parser{ '\"', &verify_double_quote,  &get_double_quote  },
-	escape_sequence_parser{ 'n',  &verify_new_line,      &get_new_line      },
-	escape_sequence_parser{ 't',  &verify_tab,           &get_tab           },
-	escape_sequence_parser{ 'x',  &verify_hex_char,      &get_hex_char      },
-	escape_sequence_parser{ 'u',  &verify_unicode_small, &get_unicode_small },
-	escape_sequence_parser{ 'U',  &verify_unicode_big,   &get_unicode_big   },
+	escape_sequence_parser{ '\\', &verify_backslash,       &get_backslash       },
+	escape_sequence_parser{ '\'', &verify_single_quote,    &get_single_quote    },
+	escape_sequence_parser{ '\"', &verify_double_quote,    &get_double_quote    },
+	escape_sequence_parser{ 'n',  &verify_new_line,        &get_new_line        },
+	escape_sequence_parser{ 't',  &verify_tab,             &get_tab             },
+	escape_sequence_parser{ 'r',  &verify_carriage_return, &get_carriage_return },
+	escape_sequence_parser{ 'x',  &verify_hex_char,        &get_hex_char        },
+	escape_sequence_parser{ 'u',  &verify_unicode_small,   &get_unicode_small   },
+	escape_sequence_parser{ 'U',  &verify_unicode_big,     &get_unicode_big     },
 };
 
 inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context)
@@ -318,6 +333,7 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 				{
 				case '\t': return bz::format("{}\\t{}", colors::bright_black, colors::clear);
 				case '\n': return bz::format("{}\\n{}", colors::bright_black, colors::clear);
+				case '\r': return bz::format("{}\\r{}", colors::bright_black, colors::clear);
 				default:
 					return bz::format(
 						"{}\\x{:02x}{}",
@@ -352,6 +368,7 @@ inline bz::u8char get_escape_sequence(bz::u8iterator &it)
 		), ...);
 		return result;
 	}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
+	// no error reporting needed here
 }
 
 #endif // ESCAPE_SEQUENCES_H
