@@ -3401,6 +3401,12 @@ static ast::expression get_built_in_binary_comma(
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
 	auto result_type = type;
+
+	if (lhs.is<ast::constant_expression>())
+	{
+		context.report_warning(lhs, "left-hand-side of comma operator has no effect");
+	}
+
 	if (lhs.is<ast::constant_expression>() && rhs.is<ast::constant_expression>())
 	{
 		auto value = rhs.get<ast::constant_expression>().value;
