@@ -573,33 +573,6 @@ void resolve(
 }
 
 void resolve(
-	ast::declaration &decl,
-	ctx::parse_context &context
-)
-{
-	switch (decl.kind())
-	{
-	case ast::declaration::index<ast::decl_variable>:
-	{
-		resolve(*decl.get<ast::decl_variable_ptr>(), context);
-		break;
-	}
-	case ast::declaration::index<ast::decl_function>:
-		resolve(decl.get<ast::decl_function_ptr>()->body, context);
-		break;
-	case ast::declaration::index<ast::decl_operator>:
-		resolve(decl.get<ast::decl_operator_ptr>()->body, context);
-		break;
-	case ast::declaration::index<ast::decl_struct>:
-		resolve(*decl.get<ast::decl_struct_ptr>(), context);
-		break;
-	default:
-		bz_assert(false);
-		break;
-	}
-}
-
-void resolve(
 	ast::statement &stmt,
 	ctx::parse_context &context
 )
@@ -801,7 +774,10 @@ void resolve(
 	{
 		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
 		resolve(var_decl, context);
-		context.add_local_variable(var_decl);
+		if (context.scope_decls.size() != 0)
+		{
+			context.add_local_variable(var_decl);
+		}
 		break;
 	}
 	case ast::statement::index<ast::decl_function>:
@@ -809,7 +785,10 @@ void resolve(
 		// this is a declaration inside a scope
 		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
 		resolve(func_decl.body, context);
-		context.add_local_function(func_decl);
+		if (context.scope_decls.size() != 0)
+		{
+			context.add_local_function(func_decl);
+		}
 		break;
 	}
 	case ast::statement::index<ast::decl_operator>:
@@ -817,7 +796,10 @@ void resolve(
 		// this is a declaration inside a scope
 		auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
 		resolve(op_decl.body, context);
-		context.add_local_operator(op_decl);
+		if (context.scope_decls.size() != 0)
+		{
+			context.add_local_operator(op_decl);
+		}
 		break;
 	}
 	case ast::statement::index<ast::decl_struct>:

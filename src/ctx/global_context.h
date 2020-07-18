@@ -66,7 +66,7 @@ struct global_context
 	size_t get_error_and_warning_count(void) const
 	{ return this->_errors.size(); }
 
-	void add_export_declaration(ast::declaration &decl);
+	void add_export_declaration(ast::statement &decl);
 
 	void add_export_variable(ast::decl_variable &var_decl);
 	void add_compile_variable(ast::decl_variable &var_decl);

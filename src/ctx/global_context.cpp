@@ -181,21 +181,23 @@ size_t global_context::get_warning_count(void) const
 	return count;
 }
 
-void global_context::add_export_declaration(ast::declaration &decl)
+void global_context::add_export_declaration(ast::statement &decl)
 {
 	switch (decl.kind())
 	{
-	case ast::declaration::index<ast::decl_variable>:
+	case ast::statement::index<ast::decl_variable>:
 		this->add_export_variable(*decl.get<ast::decl_variable_ptr>());
 		break;
-	case ast::declaration::index<ast::decl_function>:
+	case ast::statement::index<ast::decl_function>:
 		this->add_export_function(*decl.get<ast::decl_function_ptr>());
 		break;
-	case ast::declaration::index<ast::decl_operator>:
+	case ast::statement::index<ast::decl_operator>:
 		this->add_export_operator(*decl.get<ast::decl_operator_ptr>());
 		break;
-	case ast::declaration::index<ast::decl_struct>:
+	case ast::statement::index<ast::decl_struct>:
 		this->add_export_struct(*decl.get<ast::decl_struct_ptr>());
+		break;
+	case ast::statement::index<ast::stmt_static_assert>:
 		break;
 	default:
 		bz_assert(false);

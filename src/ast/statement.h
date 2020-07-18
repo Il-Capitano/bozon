@@ -31,61 +31,79 @@ declare_node_type(decl_struct);
 
 #undef declare_node_type
 
-
-struct declaration : node<
-	decl_variable,
-	decl_function,
-	decl_operator,
-	decl_struct
->
-{
-	using base_t = node<
-		decl_variable,
-		decl_function,
-		decl_operator,
-		decl_struct
-	>;
-
-	using base_t::node;
-	using base_t::get;
-	using base_t::kind;
-};
-
-struct statement : node<
+using statement_types = bz::meta::type_pack<
 	stmt_if,
 	stmt_while,
 	stmt_for,
 	stmt_return,
 	stmt_no_op,
 	stmt_compound,
+	stmt_static_assert,
 	stmt_expression,
+	decl_variable,
+	decl_function,
+	decl_operator,
+	decl_struct
+>;
+
+using top_level_statement_types = bz::meta::type_pack<
 	stmt_static_assert,
 	decl_variable,
 	decl_function,
 	decl_operator,
 	decl_struct
->
+>;
+
+using declaration_types = bz::meta::type_pack<
+	decl_variable,
+	decl_function,
+	decl_operator,
+	decl_struct
+>;
+
+template<typename T>
+constexpr bool is_top_level_statement_type = []<typename ...Ts, typename ...Us>(
+	bz::meta::type_pack<Ts...>,
+	bz::meta::type_pack<Us...>
+) {
+	static_assert(bz::meta::is_in_types<T, Us...>);
+	return bz::meta::is_in_types<T, Ts...>;
+}(top_level_statement_types{}, statement_types{});
+
+template<typename T>
+constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
+	bz::meta::type_pack<Ts...>,
+	bz::meta::type_pack<Us...>
+) {
+	static_assert(bz::meta::is_in_types<T, Us...>);
+	return bz::meta::is_in_types<T, Ts...>;
+}(declaration_types{}, statement_types{});
+
+
+namespace internal
 {
-	using base_t = node<
-		stmt_if,
-		stmt_while,
-		stmt_for,
-		stmt_return,
-		stmt_no_op,
-		stmt_compound,
-		stmt_expression,
-		stmt_static_assert,
-		decl_variable,
-		decl_function,
-		decl_operator,
-		decl_struct
-	>;
+
+template<typename>
+struct node_from_type_pack;
+
+template<typename ...Ts>
+struct node_from_type_pack<bz::meta::type_pack<Ts...>>
+{
+	using type = node<Ts...>;
+};
+
+} // namespace internal
+
+using statement_node_t = typename internal::node_from_type_pack<statement_types>::type;
+
+struct statement : statement_node_t
+{
+	using base_t = statement_node_t;
 
 	using base_t::node;
 	using base_t::get;
 	using base_t::kind;
 	using base_t::emplace;
-	statement(declaration decl);
 };
 
 
@@ -117,10 +135,6 @@ struct stmt_if
 		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_while
@@ -138,10 +152,6 @@ struct stmt_while
 		  condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_for
@@ -162,10 +172,6 @@ struct stmt_for
 		  iteration(std::move(_iteration)),
 		  for_block(std::move(_for_block))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { bz_assert(false); exit(1); }
-	lex::token_pos get_tokens_pivot(void) const { bz_assert(false); exit(1); }
-	lex::token_pos get_tokens_end(void) const   { bz_assert(false); exit(1); }
 };
 
 struct stmt_return
@@ -176,10 +182,6 @@ struct stmt_return
 	stmt_return(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_no_op
@@ -189,10 +191,6 @@ struct stmt_no_op
 	stmt_no_op(lex::token_range _tokens)
 		: tokens(_tokens)
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_compound
@@ -207,10 +205,6 @@ struct stmt_compound
 	stmt_compound(lex::token_range _tokens, bz::vector<statement> _stms)
 		: tokens(_tokens), statements(std::move(_stms))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_expression
@@ -221,10 +215,6 @@ struct stmt_expression
 	stmt_expression(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
-
-	lex::token_pos get_tokens_begin(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_pivot(void) const { return this->tokens.begin; }
-	lex::token_pos get_tokens_end(void) const   { return this->tokens.end; }
 };
 
 struct stmt_static_assert
@@ -238,10 +228,6 @@ struct stmt_static_assert
 		  condition(),
 		  message()
 	{}
-
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
 };
 
 
@@ -342,10 +328,6 @@ struct decl_function
 			  nullptr
 		  }
 	{}
-
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
 };
 
 struct decl_operator
@@ -383,10 +365,6 @@ struct decl_operator
 			  nullptr
 		  }
 	{}
-
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
 };
 
 struct type_info
@@ -412,10 +390,10 @@ struct type_info
 	static constexpr size_t default_built_in_flags =
 		built_in | resolved | instantiable;
 
-	uint32_t                kind;
-	size_t                  flags;
-	bz::u8string_view       name;
-	bz::vector<declaration> member_decls;
+	uint32_t              kind;
+	size_t                flags;
+	bz::u8string_view     name;
+	bz::vector<statement> member_decls;
 };
 
 namespace internal
@@ -508,7 +486,7 @@ struct decl_struct
 	lex::token_pos identifier;
 	type_info      info;
 
-	decl_struct(lex::token_pos _id, bz::vector<declaration> _member_decls)
+	decl_struct(lex::token_pos _id, bz::vector<statement> _member_decls)
 		: identifier(_id),
 		  info{
 			  type_info::aggregate,
@@ -528,20 +506,16 @@ template<typename ...Args>
 statement make_statement(Args &&...args)
 { return statement(std::forward<Args>(args)...); }
 
-template<typename ...Args>
-declaration make_declaration(Args &&...args)
-{ return declaration(std::forward<Args>(args)...); }
-
 
 #define def_make_fn(ret_type, node_type)                                       \
 template<typename ...Args>                                                     \
 ret_type make_ ## node_type (Args &&...args)                                   \
 { return ret_type(std::make_unique<node_type>(std::forward<Args>(args)...)); }
 
-def_make_fn(declaration, decl_variable)
-def_make_fn(declaration, decl_function)
-def_make_fn(declaration, decl_operator)
-def_make_fn(declaration, decl_struct)
+def_make_fn(statement, decl_variable)
+def_make_fn(statement, decl_function)
+def_make_fn(statement, decl_operator)
+def_make_fn(statement, decl_struct)
 
 def_make_fn(statement, stmt_if)
 def_make_fn(statement, stmt_while)

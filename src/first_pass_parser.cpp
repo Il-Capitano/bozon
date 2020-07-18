@@ -1,12 +1,12 @@
 #include "first_pass_parser.h"
 #include "token_info.h"
 
-static ast::declaration parse_function_definition(
+static ast::statement parse_function_definition(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
 );
 
-static ast::declaration parse_operator_definition(
+static ast::statement parse_operator_definition(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
 );
@@ -448,6 +448,15 @@ static ast::statement parse_no_op_statement(
 	return ast::make_stmt_no_op(lex::token_range{ begin_token, stream });
 }
 
+static ast::statement parse_compound_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::curly_open);
+	return ast::make_statement(get_stmt_compound_ptr(stream, end, context));
+}
+
 static ast::statement parse_static_assert_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
@@ -500,7 +509,7 @@ static ast::statement parse_expression_statement(
 	);
 }
 
-static ast::declaration parse_variable_declaration(
+static ast::statement parse_variable_declaration(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
 )
@@ -650,7 +659,7 @@ static ast::declaration parse_variable_declaration(
 	);
 }
 
-static ast::declaration parse_struct_definition(
+static ast::statement parse_struct_definition(
 	lex::token_pos &in_stream, lex::token_pos in_end,
 	ctx::first_pass_parse_context &context
 )
@@ -662,7 +671,7 @@ static ast::declaration parse_struct_definition(
 	context.assert_token(in_stream, lex::token::curly_open);
 	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, context);
 
-	bz::vector<ast::declaration> member_decls = {};
+	bz::vector<ast::statement> member_decls = {};
 
 	auto parse_member_decl = [&](auto &stream, auto end)
 	{
@@ -705,7 +714,7 @@ static ast::declaration parse_struct_definition(
 	return ast::make_decl_struct(id, std::move(member_decls));
 }
 
-static ast::declaration parse_function_definition(
+static ast::statement parse_function_definition(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
 )
@@ -808,7 +817,7 @@ static void check_operator_param_count(
 	}
 }
 
-static ast::declaration parse_operator_definition(
+static ast::statement parse_operator_definition(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
 )
@@ -883,103 +892,155 @@ static ast::declaration parse_operator_definition(
 	);
 }
 
-ast::declaration parse_declaration(lex::token_pos &stream, lex::token_pos end, ctx::first_pass_parse_context &context)
+static ast::statement default_top_level_parser(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+);
+
+using statement_parse_fn_t = ast::statement (*)(lex::token_pos &stream, lex::token_pos end, ctx::first_pass_parse_context &context);
+
+struct statement_parser
 {
-	switch (stream->kind)
-	{
-	// variable declaration
-	case lex::token::kw_let:
-	case lex::token::kw_const:
-		return parse_variable_declaration(stream, end, context);
+	uint32_t kind;
+	statement_parse_fn_t parse_fn;
+	bool is_top_level;
+	bool is_declaration;
+};
 
-	// struct definition
-	case lex::token::kw_struct:
-		return parse_struct_definition(stream, end, context);
+constexpr std::array statement_parsers = {
+	statement_parser{ lex::token::kw_if,            &parse_if_statement,            ast::is_top_level_statement_type<ast::stmt_if>,            ast::is_declaration_type<ast::stmt_if>            },
+	statement_parser{ lex::token::kw_while,         &parse_while_statement,         ast::is_top_level_statement_type<ast::stmt_while>,         ast::is_declaration_type<ast::stmt_while>         },
+	statement_parser{ lex::token::kw_for,           &parse_for_statement,           ast::is_top_level_statement_type<ast::stmt_for>,           ast::is_declaration_type<ast::stmt_for>           },
+	statement_parser{ lex::token::kw_return,        &parse_return_statement,        ast::is_top_level_statement_type<ast::stmt_return>,        ast::is_declaration_type<ast::stmt_return>        },
+	statement_parser{ lex::token::semi_colon,       &parse_no_op_statement,         ast::is_top_level_statement_type<ast::stmt_no_op>,         ast::is_declaration_type<ast::stmt_no_op>         },
+	statement_parser{ lex::token::curly_open,       &parse_compound_statement,      ast::is_top_level_statement_type<ast::stmt_compound>,      ast::is_declaration_type<ast::stmt_compound>      },
+	statement_parser{ lex::token::kw_static_assert, &parse_static_assert_statement, ast::is_top_level_statement_type<ast::stmt_static_assert>, ast::is_declaration_type<ast::stmt_static_assert> },
+	statement_parser{ lex::token::kw_let,           &parse_variable_declaration,    ast::is_top_level_statement_type<ast::decl_variable>,      ast::is_declaration_type<ast::decl_variable>      },
+	statement_parser{ lex::token::kw_const,         &parse_variable_declaration,    ast::is_top_level_statement_type<ast::decl_variable>,      ast::is_declaration_type<ast::decl_variable>      },
+//	statement_parser{ lex::token::kw_struct,        &parse_struct_definition,       ast::is_top_level_statement_type<ast::decl_struct>,        ast::is_declaration_type<ast::decl_struct>        },
+	statement_parser{ lex::token::kw_function,      &parse_function_definition,     ast::is_top_level_statement_type<ast::decl_function>,      ast::is_declaration_type<ast::decl_function>      },
+	statement_parser{ lex::token::kw_operator,      &parse_operator_definition,     ast::is_top_level_statement_type<ast::decl_operator>,      ast::is_declaration_type<ast::decl_operator>      },
+	statement_parser{ lex::token::_last,            &parse_expression_statement,    ast::is_top_level_statement_type<ast::stmt_expression>,    ast::is_declaration_type<ast::stmt_expression>    },
+};
 
-	// function definition
-	case lex::token::kw_function:
-		return parse_function_definition(stream, end, context);
-
-	// operator definition
-	case lex::token::kw_operator:
-		return parse_operator_definition(stream, end, context);
-
-	default:
-	{
-		auto begin = stream;
-		while (
-			stream != end
-			&& stream->kind != lex::token::kw_let
-			&& stream->kind != lex::token::kw_const
-			&& stream->kind != lex::token::kw_struct
-			&& stream->kind != lex::token::kw_function
-			&& stream->kind != lex::token::kw_operator
-		)
+constexpr auto top_level_statement_parsers = []() {
+	auto const get_count = []() {
+		size_t count = 0;
+		for (auto &parser : statement_parsers)
 		{
-			++stream;
+			if (parser.is_top_level)
+			{
+				++count;
+			}
 		}
-		context.report_error(begin, begin, stream, "expected a declaration");
-		return parse_declaration(stream, end, context);
+		return count;
+	};
+	using result_t = std::array<statement_parser, get_count() + 1>;
+
+	result_t result{};
+
+	size_t i = 0;
+	for (auto &parser : statement_parsers)
+	{
+		if (parser.is_top_level)
+		{
+			result[i] = parser;
+			++i;
+		}
 	}
+	result[i] = { lex::token::_last, &default_top_level_parser, true, false };
+	++i;
+	bz_assert(i == result.size());
+
+	return result;
+}();
+
+static ast::statement default_top_level_parser(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(
+		[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+			return ((
+				!statement_parsers[Ns].is_top_level
+				|| stream->kind != statement_parsers[Ns].kind
+			) && ...);
+		}(bz::meta::make_index_sequence<statement_parsers.size()>{})
+	);
+	auto begin = stream;
+	while (
+		stream != end
+		&& [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+			return ((
+				!statement_parsers[Ns].is_top_level
+				|| stream->kind != statement_parsers[Ns].kind
+			) && ...);
+		}(bz::meta::make_index_sequence<statement_parsers.size()>{})
+	)
+	{
+		++stream;
 	}
+	context.report_error(begin, begin, stream, "expected a declaration");
+	return parse_top_level_statement(stream, end, context);
 }
 
-ast::statement parse_statement(lex::token_pos &stream, lex::token_pos end, ctx::first_pass_parse_context &context)
+
+ast::statement parse_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
 {
 	if (stream == end)
 	{
 		context.report_error(stream, "expected a statement");
 		return ast::statement();
 	}
-	switch (stream->kind)
+	ast::statement result;
+	auto const stream_kind = stream->kind;
+	[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		bool good = false;
+		((
+			// lex::token::_last represents the default statement parser
+			stream_kind == statement_parsers[Ns].kind
+			? (void)((result = statement_parsers[Ns].parse_fn(stream, end, context)), good = true)
+			: (void)0
+		), ...);
+		if (!good)
+		{
+			constexpr auto parse_fn = statement_parsers.back().parse_fn;
+			result = parse_fn(stream, end, context);
+		}
+	}(bz::meta::make_index_sequence<statement_parsers.size() - 1>{}); // - 1 because of the default parser function
+	return result;
+}
+
+ast::statement parse_top_level_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	if (stream == end)
 	{
-	// if statement
-	case lex::token::kw_if:
-		return parse_if_statement(stream, end, context);
-
-	// while statement
-	case lex::token::kw_while:
-		return parse_while_statement(stream, end, context);
-
-	// for statement
-	case lex::token::kw_for:
-		return parse_for_statement(stream, end, context);
-
-	// return statement
-	case lex::token::kw_return:
-		return parse_return_statement(stream, end, context);
-
-	// no-op statement
-	case lex::token::semi_colon:
-		return parse_no_op_statement(stream, end, context);
-
-	// compound statement
-	case lex::token::curly_open:
-		return ast::make_statement(get_stmt_compound_ptr(stream, end, context));
-
-	// static assertion
-	case lex::token::kw_static_assert:
-		return parse_static_assert_statement(stream, end, context);
-
-	// variable declaration
-	case lex::token::kw_let:
-	case lex::token::kw_const:
-		return parse_variable_declaration(stream, end, context);
-
-	// struct definition
-	case lex::token::kw_struct:
-		return parse_struct_definition(stream, end, context);
-
-	// function definition
-	case lex::token::kw_function:
-		return parse_function_definition(stream, end, context);
-
-	// operator definition
-	case lex::token::kw_operator:
-		return parse_operator_definition(stream, end, context);
-
-	// expression statement
-	default:
-		return parse_expression_statement(stream, end, context);
+		context.report_error(stream, "expected a top level statement");
+		return ast::statement();
 	}
+	ast::statement result;
+	auto const stream_kind = stream->kind;
+	[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		bool good = false;
+		((
+			// lex::token::_last represents the default statement parser
+			stream_kind == top_level_statement_parsers[Ns].kind
+			? (void)((result = top_level_statement_parsers[Ns].parse_fn(stream, end, context)), good = true)
+			: (void)0
+		), ...);
+		if (!good)
+		{
+			constexpr auto parse_fn = top_level_statement_parsers.back().parse_fn;
+			result = parse_fn(stream, end, context);
+		}
+	}(bz::meta::make_index_sequence<top_level_statement_parsers.size() - 1>{}); // - 1 because of the default parser function
+	return result;
 }

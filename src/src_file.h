@@ -30,7 +30,7 @@ public:
 	bz::vector<lex::token> _tokens;
 
 	ctx::global_context         &_global_ctx;
-	bz::vector<ast::declaration> _declarations;
+	bz::vector<ast::statement> _declarations;
 
 public:
 	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);

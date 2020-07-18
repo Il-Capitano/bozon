@@ -1128,7 +1128,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 
 	while (stream != end)
 	{
-		this->_declarations.emplace_back(parse_declaration(stream, end, context));
+		this->_declarations.emplace_back(parse_top_level_statement(stream, end, context));
 	}
 
 	for (auto &decl : this->_declarations)
