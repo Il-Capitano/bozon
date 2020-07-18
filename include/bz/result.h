@@ -26,7 +26,7 @@ public:
 	using error_type = Err;
 
 private:
-	alignas(meta::lcd_index<alignof(result_type), alignof(error_type)>)
+	alignas(meta::lcm_index<alignof(result_type), alignof(error_type)>)
 	uint8_t _data[meta::max_index<sizeof (result_type), sizeof (error_type)>];
 	bool _has_error;
 

@@ -70,8 +70,42 @@ public:
 	static constexpr size_t index_of = meta::type_index<T, Ts...>;
 
 private:
-	alignas(meta::lcd_index<alignof (Ts)...>) uint8_t _data[meta::max_index<sizeof (Ts)...>];
-	size_t _index;
+	static constexpr auto data_align = meta::lcm_index<alignof (Ts)...>;
+	static constexpr auto data_size  = meta::max_index<sizeof (Ts)...>;
+
+	static constexpr auto _index_type_dummy = []()
+	{
+		constexpr auto elem_count = sizeof... (Ts);
+		static_assert(alignof(std::max_align_t) == 16);
+		static_assert(elem_count < std::numeric_limits<uint64_t>::max());
+		static_assert(
+			data_align == 1
+			|| data_align == 2
+			|| data_align == 4
+			|| data_align == 8
+			|| data_align == 16
+		);
+		if constexpr (data_align <= 1 && elem_count < std::numeric_limits<uint8_t>::max())
+		{
+			return uint8_t();
+		}
+		else if constexpr (data_align <= 2 && elem_count < std::numeric_limits<uint16_t>::max())
+		{
+			return uint16_t();
+		}
+		else if constexpr (data_align <= 4 && elem_count < std::numeric_limits<uint32_t>::max())
+		{
+			return uint32_t();
+		}
+		else if constexpr (data_align <= 16 && elem_count < std::numeric_limits<uint64_t>::max())
+		{
+			return uint64_t();
+		}
+	}();
+	using index_t = meta::remove_cv_reference<decltype(_index_type_dummy)>;
+
+	alignas(data_align) uint8_t _data[data_size];
+	index_t _index;
 
 
 	template<size_t N>

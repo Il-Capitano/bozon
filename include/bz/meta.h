@@ -169,7 +169,7 @@ constexpr T min = []
 template<size_t N, size_t ...Ns>
 constexpr size_t min_index = min<size_t, N, Ns...>;
 
-
+// greatest common divisor
 template<typename T, T N, T ...Ns>
 constexpr T gcd = gcd<T, N, gcd<T, Ns...>>;
 
@@ -191,15 +191,15 @@ constexpr T gcd<T, N, M> = []
 template<size_t N, size_t ...Ns>
 constexpr size_t gcd_index = gcd<size_t, N, Ns...>;
 
-
+// lowest common multiple
 template<typename T, T N, T ...Ns>
-constexpr T lcd = lcd<T, N, lcd<T, Ns...>>;
+constexpr T lcm = lcm<T, N, lcm<T, Ns...>>;
 
 template<typename T, T N, T M>
-constexpr T lcd<T, N, M> = (N * M) / gcd<T, N, M>;
+constexpr T lcm<T, N, M> = (N * M) / gcd<T, N, M>;
 
 template<size_t N, size_t ...Ns>
-constexpr size_t lcd_index = lcd<size_t, N, Ns...>;
+constexpr size_t lcm_index = lcm<size_t, N, Ns...>;
 
 
 namespace internal
@@ -270,9 +270,12 @@ template<size_t N>
 using make_index_sequence = make_number_sequence<size_t, N>;
 
 
-template<typename ...>
+template<typename ...Ts>
 struct type_pack
-{};
+{
+	static constexpr size_t size(void) noexcept
+	{ return sizeof... (Ts); }
+};
 
 
 namespace internal
