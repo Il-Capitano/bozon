@@ -506,7 +506,7 @@ static void parse_operator_definition_test(void)
 #undef x_err
 }
 
-static void parse_declaration_test(void)
+static void parse_top_level_statement_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
@@ -518,17 +518,17 @@ do {                                                            \
     auto const tokens = lex::get_tokens(file, "", lex_ctx);     \
     assert_false(global_ctx.has_errors());                      \
     auto it = tokens.begin();                                   \
-    auto const decl = parse_declaration(                        \
+    auto const decl = parse_statement(                          \
         it, tokens.end(), context                               \
     );                                                          \
     assert_false(global_ctx.has_errors());                      \
-    assert_eq(decl.kind(), ast::declaration::index<decl_type>); \
+    assert_eq(decl.kind(), ast::statement::index<decl_type>); \
     assert_eq(it, tokens.end() - 1);                            \
 } while (false)
 
 	x("let a: int32;", ast::decl_variable);
 	x("const *a = &b;", ast::decl_variable);
-	x("struct foo {}", ast::decl_struct);
+//	x("struct foo {}", ast::decl_struct);
 	x("function foo() -> void {}", ast::decl_function);
 	x("operator + (: int32, : int32) -> void {}", ast::decl_operator);
 
@@ -563,7 +563,7 @@ do {                                                          \
 	x("{ let b = 0; }", ast::stmt_compound);
 	x("let a: int32;", ast::decl_variable);
 	x("const *a = &b;", ast::decl_variable);
-	x("struct foo {}", ast::decl_struct);
+//	x("struct foo {}", ast::decl_struct);
 	x("function foo() -> void {}", ast::decl_function);
 	x("operator + (: int32, : int32) -> void {}", ast::decl_operator);
 	x("a = b / 2;", ast::stmt_expression);
@@ -590,7 +590,7 @@ test_result first_pass_parser_test(void)
 //	test_fn(parse_struct_definition_test);
 	test_fn(parse_function_definition_test);
 	test_fn(parse_operator_definition_test);
-	test_fn(parse_declaration_test);
+	test_fn(parse_top_level_statement_test);
 	test_fn(parse_statement_test);
 
 	test_end();

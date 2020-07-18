@@ -289,12 +289,15 @@ static void parse_expression_comma_list_test(void)
 	ctx::parse_context parse_ctx(global_ctx);
 
 #define x(str, res_size) xx(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
+#define x_warn(str, res_size) xx_warn(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
 
 	x("0, 1, 2, \"hello\"", 4);
-	x("(0, 0, 0), 1, 2", 3);
-	x("('a', 'b', 0, 1.5), 'a'", 2);
+	// there's a warning because the lhs of a comma expression has no effect
+	x_warn("(0, 0, 0), 1, 2", 3);
+	x_warn("('a', 'b', 0, 1.5), 'a'", 2);
 
 #undef x
+#undef x_warn
 #undef x_err
 }
 
