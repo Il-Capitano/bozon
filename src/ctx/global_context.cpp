@@ -72,7 +72,7 @@ static bz::vector<type_info_with_name> get_default_types(void)
 	};
 }
 
-static std::array<llvm::Type *, static_cast<int>(ast::type_info::bool_) + 1>
+static std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_built_in_types(llvm::LLVMContext &context)
 {
 	return {
@@ -92,6 +92,7 @@ get_llvm_built_in_types(llvm::LLVMContext &context)
 			llvm::Type::getInt8PtrTy(context)
 		),                                // str_
 		llvm::Type::getInt1Ty(context),   // bool_
+		llvm::StructType::get(context),   // null_t_
 	};
 }
 

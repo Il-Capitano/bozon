@@ -3507,8 +3507,18 @@ ast::expression make_built_in_cast(
 
 	if (
 		dest_t.is<ast::ts_pointer>()
-		&& expr.is<ast::constant_expression>()
-		&& expr.get<ast::constant_expression>().value.kind() == ast::constant_value::null
+		&& ((
+			expr.is<ast::constant_expression>()
+			&& expr.get<ast::constant_expression>().value.kind() == ast::constant_value::null
+		)
+		|| (
+			expr.is<ast::dynamic_expression>()
+			&& [&]() {
+				auto &type = ast::remove_const_or_consteval(expr.get<ast::dynamic_expression>().type);
+				return type.is<ast::ts_base_type>()
+					&& type.get<ast::ts_base_type_ptr>()->info->kind == ast::type_info::null_t_;
+			}()
+		))
 	)
 	{
 		return ast::make_constant_expression(

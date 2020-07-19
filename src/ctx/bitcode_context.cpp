@@ -49,7 +49,7 @@ llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
 {
-	bz_assert(kind <= ast::type_info::bool_);
+	bz_assert(kind <= ast::type_info::null_t_);
 	return this->global_ctx._llvm_built_in_types[static_cast<int>(kind)];
 }
 

@@ -1500,9 +1500,18 @@ static val_ptr emit_bitcode(
 		break;
 	case ast::constant_value::null:
 	{
-		auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(type);
-		bz_assert(ptr_t != nullptr);
-		result.consteval_val = llvm::ConstantPointerNull::get(ptr_t);
+		if (ast::remove_const_or_consteval(const_expr.type).is<ast::ts_pointer>())
+		{
+			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(type);
+			bz_assert(ptr_t != nullptr);
+			result.consteval_val = llvm::ConstantPointerNull::get(ptr_t);
+		}
+		else
+		{
+			auto const struct_t = llvm::dyn_cast<llvm::StructType>(type);
+			bz_assert(struct_t != nullptr);
+			result.consteval_val = llvm::ConstantStruct::get(struct_t);
+		}
 		break;
 	}
 	case ast::constant_value::function:
@@ -1917,9 +1926,9 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 	case ast::type_info::char_:
 	case ast::type_info::str_:
 	case ast::type_info::bool_:
+	case ast::type_info::null_t_:
 		return context.get_built_in_type(base_t.info->kind);
 
-	case ast::type_info::null_t_:
 	case ast::type_info::aggregate:
 	default:
 		bz_assert(false);
