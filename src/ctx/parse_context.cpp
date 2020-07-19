@@ -150,6 +150,47 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 	};
 }
 
+
+[[nodiscard]] suggestion parse_context::make_suggestion_before(
+	lex::token_pos it, bz::u8string suggestion_str,
+	bz::u8string message
+)
+{
+	return suggestion{
+		it->src_pos.file_name, it->src_pos.line,
+		{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] suggestion parse_context::make_suggestion_after(
+	lex::token_pos it, bz::u8string suggestion_str,
+	bz::u8string message
+)
+{
+	return suggestion{
+		it->src_pos.file_name, it->src_pos.line,
+		{ char_pos(), char_pos(), it->src_pos.end, std::move(suggestion_str) },
+		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] suggestion parse_context::make_suggestion_around(
+	lex::token_pos first, bz::u8string first_suggestion_str,
+	lex::token_pos last, bz::u8string last_suggestion_str,
+	bz::u8string message
+)
+{
+	return suggestion{
+		first->src_pos.file_name, first->src_pos.line,
+		{ char_pos(), char_pos(), first->src_pos.begin, std::move(first_suggestion_str) },
+		{ char_pos(), char_pos(), last->src_pos.end, std::move(last_suggestion_str) },
+		std::move(message)
+	};
+}
+
 lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind) const
 {
 	if (stream->kind != kind)
@@ -440,6 +481,17 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 				bz_assert(this->has_errors());
 				return ast::expression(src_tokens);
 			}
+			else if (id_type_ptr->is<ast::ts_consteval>())
+			{
+				auto &init_expr = (*var)->init_expr;
+				bz_assert(init_expr.is<ast::constant_expression>());
+				return ast::make_constant_expression(
+					src_tokens,
+					id_type_kind, *id_type_ptr,
+					init_expr.get<ast::constant_expression>().value,
+					ast::make_expr_identifier(id, *var)
+				);
+			}
 			else
 			{
 				return ast::make_dynamic_expression(
@@ -579,6 +631,17 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		{
 			bz_assert(this->has_errors());
 			return ast::expression(src_tokens);
+		}
+		else if (id_type_ptr->is<ast::ts_consteval>())
+		{
+			auto &init_expr = (*var)->init_expr;
+			bz_assert(init_expr.is<ast::constant_expression>());
+			return ast::make_constant_expression(
+				src_tokens,
+				id_type_kind, *id_type_ptr,
+				init_expr.get<ast::constant_expression>().value,
+				ast::make_expr_identifier(id, *var)
+			);
 		}
 		else
 		{
@@ -1184,7 +1247,7 @@ static int get_type_match_level(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 
-	auto const *dest_it = &ast::remove_const(dest);
+	auto const *dest_it = &ast::remove_const_or_consteval(dest);
 	auto const *src_it = &expr_type;
 
 	if (dest_it->is_null() || src_it->is_null())
@@ -1195,7 +1258,7 @@ static int get_type_match_level(
 
 	if (dest_it->is<ast::ts_base_type>())
 	{
-		src_it = &ast::remove_const(*src_it);
+		src_it = &ast::remove_const_or_consteval(*src_it);
 		// if the argument is just a base type, return 1 if there's a conversion, and -1 otherwise
 		// TODO: use is_convertible here...
 		if (
@@ -1257,7 +1320,7 @@ static int get_type_match_level(
 	{
 		result = 1; // not a reference, so result starts at 1
 		// advance src_it if it's const
-		src_it = &ast::remove_const(*src_it);
+		src_it = &ast::remove_const_or_consteval(*src_it);
 		// return -1 if the source is not a pointer
 		if (!src_it->is<ast::ts_pointer>())
 		{
@@ -1601,7 +1664,7 @@ ast::expression parse_context::make_unary_operator_expression(
 	// user-defined operators shouldn't be looked at
 	if (
 		!is_unary_overloadable_operator(op->kind)
-		|| (is_built_in_type(ast::remove_const(type)) && is_unary_built_in_operator(op->kind))
+		|| (is_built_in_type(ast::remove_const_or_consteval(type)) && is_unary_built_in_operator(op->kind))
 		|| (expr.is_typename() && is_unary_built_in_operator(op->kind))
 	)
 	{
@@ -1680,7 +1743,7 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		auto &ret_t = best.second->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = &ast::remove_const(ret_t);
+		auto return_type = &ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_reference>())
 		{
 			return_type_kind = ast::expression_type_kind::lvalue_reference;
@@ -1719,8 +1782,8 @@ ast::expression parse_context::make_binary_operator_expression(
 	if (
 		!is_binary_overloadable_operator(op->kind)
 		|| (
-			is_built_in_type(ast::remove_const(lhs_type))
-			&& is_built_in_type(ast::remove_const(rhs_type))
+			is_built_in_type(ast::remove_const_or_consteval(lhs_type))
+			&& is_built_in_type(ast::remove_const_or_consteval(rhs_type))
 			&& is_binary_built_in_operator(op->kind)
 		)
 	)
@@ -1813,7 +1876,7 @@ ast::expression parse_context::make_binary_operator_expression(
 	{
 		auto &ret_t = best.second->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = &ast::remove_const(ret_t);
+		auto return_type = &ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_reference>())
 		{
 			return_type_kind = ast::expression_type_kind::lvalue_reference;
@@ -1879,7 +1942,7 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			auto &ret_t = func_body->return_type;
 			auto return_type_kind = ast::expression_type_kind::rvalue;
-			auto return_type = &ast::remove_const(ret_t);
+			auto return_type = &ast::remove_const_or_consteval(ret_t);
 			if (ret_t.is<ast::ts_reference>())
 			{
 				return_type_kind = ast::expression_type_kind::lvalue_reference;
@@ -1956,7 +2019,7 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				auto &ret_t = best.second->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
-				auto return_type = &ast::remove_const(ret_t);
+				auto return_type = &ast::remove_const_or_consteval(ret_t);
 				if (ret_t.is<ast::ts_reference>())
 				{
 					return_type_kind = ast::expression_type_kind::lvalue_reference;
@@ -2024,17 +2087,21 @@ void parse_context::match_expression_to_type(
 	}
 
 	// check for an overloaded function
-	if (
-		auto const const_expr = expr.get_if<ast::constant_expression>();
-		const_expr
-//		&& const_expr->kind == ast::expression_type_kind::function_name
-		&& const_expr->value.kind() == ast::constant_value::function_set_id
-	)
+	if (expr.is_overloaded_function())
 	{
-		bz_assert(const_expr->kind == ast::expression_type_kind::function_name);
+		bz_assert(expr.is<ast::constant_expression>());
+		auto &const_expr = expr.get<ast::constant_expression>();
+		bz_assert(const_expr.kind == ast::expression_type_kind::function_name);
 //		bz_assert(false, "overloaded function not handled in match_expresstion_to_type");
-		bz_assert(const_expr->expr.is<ast::expr_identifier>());
-		this->report_ambiguous_id_error(const_expr->expr.get<ast::expr_identifier_ptr>()->identifier);
+		bz_assert(const_expr.expr.is<ast::expr_identifier>());
+		this->report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier_ptr>()->identifier);
+		return;
+	}
+
+	if (dest_type.is<ast::ts_consteval>() && !expr.is<ast::constant_expression>())
+	{
+		this->report_error(expr, "expression must be a constant expression");
+		dest_type.clear();
 		return;
 	}
 
@@ -2044,7 +2111,7 @@ void parse_context::match_expression_to_type(
 		return;
 	}
 	auto *expr_it = &expr_type;
-	auto *dest_it = &ast::remove_const(dest_type);
+	auto *dest_it = &ast::remove_const_or_consteval(dest_type);
 
 	auto const strict_match = [&, &expr_type = expr_type]() {
 		bool loop = true;
@@ -2092,9 +2159,12 @@ void parse_context::match_expression_to_type(
 					expr_it = &expr_it->get<ast::ts_pointer_ptr>()->base;
 				}
 				break;
-			default:
+			case ast::typespec::index<ast::ts_auto>:
 				*dest_it = *expr_it;
 				loop = false;
+				break;
+			default:
+				bz_assert(false);
 				break;
 			}
 		}
@@ -2116,7 +2186,7 @@ void parse_context::match_expression_to_type(
 		if (dest_it->is<ast::ts_constant>())
 		{
 			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-			expr_it = &ast::remove_const(*expr_it);
+			expr_it = &ast::remove_const_or_consteval(*expr_it);
 		}
 		else if (expr_it->is<ast::ts_constant>())
 		{
@@ -2134,7 +2204,7 @@ void parse_context::match_expression_to_type(
 	}
 	else if (dest_it->is<ast::ts_pointer>())
 	{
-		expr_it = &ast::remove_const(*expr_it);
+		expr_it = &ast::remove_const_or_consteval(*expr_it);
 		dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
 		if (!expr_it->is<ast::ts_pointer>())
 		{
@@ -2152,7 +2222,7 @@ void parse_context::match_expression_to_type(
 				}
 				else
 				{
-					expr.get<ast::constant_expression>().type = ast::remove_const(dest_type);
+					expr.get<ast::constant_expression>().type = ast::remove_const_or_consteval(dest_type);
 					return;
 				}
 			}
@@ -2171,7 +2241,7 @@ void parse_context::match_expression_to_type(
 			if (dest_it->is<ast::ts_constant>())
 			{
 				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-				expr_it = &ast::remove_const(*expr_it);
+				expr_it = &ast::remove_const_or_consteval(*expr_it);
 			}
 			else if (expr_it->is<ast::ts_constant>())
 			{
@@ -2187,7 +2257,7 @@ void parse_context::match_expression_to_type(
 	}
 	else if (dest_it->is<ast::ts_base_type>())
 	{
-		expr_it = &ast::remove_const(*expr_it);
+		expr_it = &ast::remove_const_or_consteval(*expr_it);
 		if (!expr_it->is<ast::ts_base_type>())
 		{
 			this->report_error(
@@ -2211,8 +2281,8 @@ void parse_context::match_expression_to_type(
 	}
 	else
 	{
-		bz_assert(dest_it->is_null());
-		expr_it = &ast::remove_const(*expr_it);
+		bz_assert(dest_it->is<ast::ts_auto>());
+		expr_it = &ast::remove_const_or_consteval(*expr_it);
 		*dest_it = *expr_it;
 	}
 }

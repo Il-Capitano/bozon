@@ -109,6 +109,7 @@ constexpr std::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::address_of,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dereference,        {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_const,           {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::kw_consteval,       {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_sizeof,          {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_typeof,          {  3, false } },
 
@@ -284,8 +285,9 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_auto]  = { lex::token::kw_auto,  "auto",  "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_let]   = { lex::token::kw_let,   "let",   "", keyword_flags                   };
 
-	result[lex::token::kw_const] = { lex::token::kw_const, "const", "", keyword_flags | unary_built_in_flags  };
-	result[lex::token::kw_as]    = { lex::token::kw_as,    "as",    "", keyword_flags | binary_built_in_flags };
+	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_built_in_flags  };
+	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_built_in_flags  };
+	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | binary_built_in_flags };
 
 
 	for (auto p : operator_precedences)

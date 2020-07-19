@@ -143,6 +143,38 @@ typespec &remove_const(typespec &ts)
 	}
 }
 
+typespec const &remove_const_or_consteval(typespec const &ts)
+{
+	if (ts.is<ts_constant>())
+	{
+		return ts.get<ts_constant_ptr>()->base;
+	}
+	else if (ts.is<ts_consteval>())
+	{
+		return ts.get<ts_consteval_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
+typespec &remove_const_or_consteval(typespec &ts)
+{
+	if (ts.is<ts_constant>())
+	{
+		return ts.get<ts_constant_ptr>()->base;
+	}
+	else if (ts.is<ts_consteval>())
+	{
+		return ts.get<ts_consteval_ptr>()->base;
+	}
+	else
+	{
+		return ts;
+	}
+}
+
 typespec const &remove_pointer(typespec const &ts)
 {
 	if (ts.is<ts_pointer>())
@@ -165,12 +197,14 @@ bool is_instantiable(typespec const &ts)
 		return false;
 	case typespec::index<ts_constant>:
 		return is_instantiable(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_consteval>:
+		return is_instantiable(ts.get<ts_consteval_ptr>()->base);
 	case typespec::index<ts_pointer>:
 		return true;
 	case typespec::index<ts_reference>:
 	{
 		auto &base = ts.get<ts_reference_ptr>()->base;
-		if (remove_const(base).is<ts_void>())
+		if (remove_const_or_consteval(base).is<ts_void>())
 		{
 			return false;
 		}

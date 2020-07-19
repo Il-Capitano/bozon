@@ -17,34 +17,33 @@ declare_node_type(ts_unresolved);
 declare_node_type(ts_base_type);
 declare_node_type(ts_void);
 declare_node_type(ts_constant);
+declare_node_type(ts_consteval);
 declare_node_type(ts_pointer);
 declare_node_type(ts_reference);
 declare_node_type(ts_function);
 declare_node_type(ts_tuple);
+declare_node_type(ts_auto);
 
 #undef declare_node_type
 
-struct typespec : node<
+using typespec_types = bz::meta::type_pack<
 	ts_unresolved,
 	ts_base_type,
 	ts_void,
 	ts_constant,
+	ts_consteval,
 	ts_pointer,
 	ts_reference,
 	ts_function,
-	ts_tuple
->
+	ts_tuple,
+	ts_auto
+>;
+
+using typespec_node_t = typename internal::node_from_type_pack<typespec_types>::type;
+
+struct typespec : typespec_node_t
 {
-	using base_t = node<
-		ts_unresolved,
-		ts_base_type,
-		ts_void,
-		ts_constant,
-		ts_pointer,
-		ts_reference,
-		ts_function,
-		ts_tuple
-	>;
+	using base_t = typespec_node_t;
 
 	using base_t::node;
 	using base_t::get;
@@ -131,6 +130,26 @@ struct ts_constant
 
 	lex::token_pos get_tokens_pivot(void) const
 	{ return this->const_pos; }
+};
+
+struct ts_consteval
+{
+	lex::token_pos consteval_pos;
+	typespec       base;
+
+	ts_consteval(lex::token_pos _consteval_pos, typespec _base)
+		: consteval_pos(_consteval_pos), base(std::move(_base))
+	{}
+
+	ts_consteval(typespec _base)
+		: consteval_pos(nullptr), base(std::move(_base))
+	{}
+
+	ts_consteval(ts_consteval const &) = default;
+	ts_consteval(ts_consteval &&) noexcept = default;
+
+	lex::token_pos get_tokens_pivot(void) const
+	{ return this->consteval_pos; }
 };
 
 struct ts_pointer
@@ -221,6 +240,22 @@ struct ts_tuple
 	{ return this->pivot_pos; }
 };
 
+struct ts_auto
+{
+	lex::token_pos auto_pos;
+
+	ts_auto(lex::token_pos _auto_pos)
+		: auto_pos(_auto_pos)
+	{}
+
+	ts_auto(ts_auto const &) = default;
+	ts_auto(ts_auto &&) noexcept = default;
+
+	lex::token_pos get_tokens_pivot(void) const
+	{ return this->auto_pos; }
+};
+
+
 struct variable
 {
 	lex::token_pos id;
@@ -240,37 +275,23 @@ inline bool operator != (typespec const &lhs, typespec const &rhs)
 
 
 
-template<typename ...Args>
-typespec make_ts_unresolved(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_unresolved>(std::forward<Args>(args)...)); }
+#define def_make_fn(node_type)                                                             \
+template<typename ...Args>                                                                 \
+typespec make_ ## node_type (lex::src_tokens src_tokens, Args &&...args)                   \
+{ return typespec(src_tokens, std::make_unique<node_type>(std::forward<Args>(args)...)); }
 
-template<typename ...Args>
-typespec make_ts_base_type(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_base_type>(std::forward<Args>(args)...)); }
+def_make_fn(ts_unresolved)
+def_make_fn(ts_base_type)
+def_make_fn(ts_void)
+def_make_fn(ts_constant)
+def_make_fn(ts_consteval)
+def_make_fn(ts_pointer)
+def_make_fn(ts_reference)
+def_make_fn(ts_function)
+def_make_fn(ts_tuple)
+def_make_fn(ts_auto)
 
-template<typename ...Args>
-typespec make_ts_void(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_void>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_constant(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_constant>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_pointer(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_pointer>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_reference(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_reference>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_function(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_function>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-typespec make_ts_tuple(lex::src_tokens src_tokens, Args &&...args)
-{ return typespec(src_tokens, std::make_unique<ts_tuple>(std::forward<Args>(args)...)); }
+#undef def_make_fn
 
 
 typespec decay_typespec(typespec const &ts);
@@ -281,6 +302,8 @@ typespec add_const(typespec ts);
 typespec const &remove_lvalue_reference(typespec const &ts);
 typespec const &remove_const(typespec const &ts);
 typespec &remove_const(typespec &ts);
+typespec const &remove_const_or_consteval(typespec const &ts);
+typespec &remove_const_or_consteval(typespec &ts);
 typespec const &remove_pointer(typespec const &ts);
 inline bool is_complete(typespec const &ts)
 {
@@ -291,6 +314,8 @@ inline bool is_complete(typespec const &ts)
 		return true;
 	case typespec::index<ts_constant>:
 		return is_complete(ts.get<ts_constant_ptr>()->base);
+	case typespec::index<ts_consteval>:
+		return is_complete(ts.get<ts_consteval_ptr>()->base);
 	case typespec::index<ts_pointer>:
 		return is_complete(ts.get<ts_pointer_ptr>()->base);
 	case typespec::index<ts_reference>:
@@ -319,6 +344,8 @@ inline bool is_complete(typespec const &ts)
 		}
 		return true;
 	}
+	case typespec::index<ts_auto>:
+		return false;
 	default:
 		return false;
 	}

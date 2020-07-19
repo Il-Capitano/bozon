@@ -112,7 +112,7 @@ static ast::expression get_built_in_unary_plus(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
-	auto &expr_t = ast::remove_const(type);
+	auto &expr_t = ast::remove_const_or_consteval(type);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
@@ -163,7 +163,7 @@ static ast::expression get_built_in_unary_minus(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
-	auto &expr_t = remove_const(type);
+	auto &expr_t = ast::remove_const_or_consteval(type);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
@@ -325,11 +325,15 @@ static ast::expression get_built_in_unary_dereference(
 
 	if (expr.is_typename())
 	{
-		auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
+		auto &const_expr_type = expr.get_typename();
 		if (const_expr_type.is<ast::ts_reference>())
 		{
 			context.report_error(src_tokens, "pointer to reference is not a valid type");
 			return ast::expression(src_tokens);
+		}
+		else if (const_expr_type.is<ast::ts_consteval>())
+		{
+			context.report_error(src_tokens, "pointer to consteval is not a valid type");
 		}
 		return ast::make_constant_expression(
 			src_tokens,
@@ -341,7 +345,7 @@ static ast::expression get_built_in_unary_dereference(
 	}
 
 	auto const [type, _] = expr.get_expr_type_and_kind();
-	auto &expr_t = remove_const(type);
+	auto &expr_t = ast::remove_const_or_consteval(type);
 
 	if (!expr_t.is<ast::ts_pointer>())
 	{
@@ -383,7 +387,7 @@ static ast::expression get_built_in_unary_bit_not(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
-	auto &expr_t = remove_const(type);
+	auto &expr_t = ast::remove_const_or_consteval(type);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
@@ -470,7 +474,7 @@ static ast::expression get_built_in_unary_bool_not(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
-	auto &expr_t = remove_const(type);
+	auto &expr_t = ast::remove_const_or_consteval(type);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
@@ -614,6 +618,11 @@ static ast::expression get_built_in_unary_address_of(
 
 	if (expr.is_typename())
 	{
+		if (expr.get_typename().is<ast::ts_consteval>())
+		{
+			context.report_error(src_tokens, "reference to consteval type is not a valid type");
+			return ast::expression(src_tokens);
+		}
 		auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
 		return ast::make_constant_expression(
 			src_tokens,
@@ -673,13 +682,61 @@ static ast::expression get_built_in_unary_const(
 		return ast::expression(src_tokens);
 	}
 
-	if (!const_expr_type.is<ast::ts_constant>())
+	if (const_expr_type.is<ast::ts_constant>() || const_expr_type.is<ast::ts_consteval>())
 	{
-		const_expr_type = ast::make_ts_constant(src_tokens, std::move(const_expr_type));
+		const_expr_type.src_tokens = src_tokens;
 	}
 	else
 	{
+		const_expr_type = ast::make_ts_constant(src_tokens, std::move(const_expr_type));
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::typespec(),
+		std::move(const_expr_type),
+		ast::make_expr_unary_op(op, std::move(expr))
+	);
+}
+
+// consteval (typename) -> (consteval typename)
+static ast::expression get_built_in_unary_consteval(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	if (
+		!expr.is<ast::constant_expression>()
+		|| expr.get<ast::constant_expression>().kind != ast::expression_type_kind::type_name
+	)
+	{
+		context.report_error(src_tokens, "expected a type");
+	}
+
+	auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
+	if (const_expr_type.is<ast::ts_reference>())
+	{
+		context.report_error(src_tokens, "a reference type cannot be 'consteval'");
+		return ast::expression(src_tokens);
+	}
+
+	if (const_expr_type.is<ast::ts_constant>())
+	{
+		const_expr_type = ast::make_ts_consteval(
+			src_tokens,
+			std::move(const_expr_type.get<ast::ts_constant_ptr>()->base)
+		);
+	}
+	else if (const_expr_type.is<ast::ts_consteval>())
+	{
 		const_expr_type.src_tokens = src_tokens;
+	}
+	else
+	{
+		const_expr_type = ast::make_ts_consteval(src_tokens, std::move(const_expr_type));
 	}
 
 	return ast::make_constant_expression(
@@ -765,7 +822,7 @@ static ast::expression get_built_in_binary_assign(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
@@ -889,8 +946,8 @@ static ast::expression get_built_in_binary_plus(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
@@ -1192,8 +1249,8 @@ static ast::expression get_built_in_binary_minus(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
@@ -1478,7 +1535,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
@@ -1601,8 +1658,8 @@ static ast::expression get_built_in_binary_multiply_divide(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const is_multiply = op->kind == lex::token::multiply;
@@ -1830,7 +1887,7 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
@@ -1961,8 +2018,8 @@ static ast::expression get_built_in_binary_modulo(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
@@ -2120,7 +2177,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
@@ -2226,8 +2283,8 @@ static ast::expression get_built_in_binary_equals_not_equals(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	const auto is_equals = op->kind == lex::token::equals;
@@ -2584,8 +2641,8 @@ static ast::expression get_built_in_binary_compare(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const do_compare = [op_kind = op->kind](auto lhs, auto rhs) {
@@ -2852,8 +2909,8 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const op_str = [op_kind = op->kind]() -> bz::u8char {
@@ -2988,7 +3045,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const op_str = [op_kind = op->kind]() -> bz::u8string_view {
@@ -3061,8 +3118,8 @@ static ast::expression get_built_in_binary_bit_shift(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const is_left_shift = op->kind == lex::token::bit_left_shift;
@@ -3176,7 +3233,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
@@ -3277,8 +3334,8 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	auto &lhs_t = ast::remove_const(lhs_type);
-	auto &rhs_t = ast::remove_const(rhs_type);
+	auto &lhs_t = ast::remove_const_or_consteval(lhs_type);
+	auto &rhs_t = ast::remove_const_or_consteval(rhs_type);
 	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	auto const op_str = [op_kind = op->kind]() -> bz::u8string_view {
@@ -3440,8 +3497,8 @@ ast::expression make_built_in_cast(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	auto &expr_t = ast::remove_const(expr_type);
-	auto &dest_t = ast::remove_const(dest_type);
+	auto &expr_t = ast::remove_const_or_consteval(expr_type);
+	auto &dest_t = ast::remove_const_or_consteval(dest_type);
 
 	auto const src_tokens = as_pos == nullptr
 		? expr.src_tokens
@@ -3711,18 +3768,19 @@ struct unary_operator_parse_function_t
 constexpr auto built_in_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
 	auto result = std::array{
-		T{ lex::token::plus,        &get_built_in_unary_plus                  }, // +
-		T{ lex::token::minus,       &get_built_in_unary_minus                 }, // -
-		T{ lex::token::dereference, &get_built_in_unary_dereference           }, // *
-		T{ lex::token::bit_not,     &get_built_in_unary_bit_not               }, // ~
-		T{ lex::token::bool_not,    &get_built_in_unary_bool_not              }, // !
-		T{ lex::token::plus_plus,   &get_built_in_unary_plus_plus_minus_minus }, // ++
-		T{ lex::token::minus_minus, &get_built_in_unary_plus_plus_minus_minus }, // --
+		T{ lex::token::plus,         &get_built_in_unary_plus                  }, // +
+		T{ lex::token::minus,        &get_built_in_unary_minus                 }, // -
+		T{ lex::token::dereference,  &get_built_in_unary_dereference           }, // *
+		T{ lex::token::bit_not,      &get_built_in_unary_bit_not               }, // ~
+		T{ lex::token::bool_not,     &get_built_in_unary_bool_not              }, // !
+		T{ lex::token::plus_plus,    &get_built_in_unary_plus_plus_minus_minus }, // ++
+		T{ lex::token::minus_minus,  &get_built_in_unary_plus_plus_minus_minus }, // --
 
-		T{ lex::token::address_of,  &get_built_in_unary_address_of            }, // &
-		T{ lex::token::kw_const,    &get_built_in_unary_const                 }, // const
-		T{ lex::token::kw_sizeof,   &get_built_in_unary_sizeof                }, // sizeof
-		T{ lex::token::kw_typeof,   &get_built_in_unary_typeof                }, // typeof
+		T{ lex::token::address_of,   &get_built_in_unary_address_of            }, // &
+		T{ lex::token::kw_const,     &get_built_in_unary_const                 }, // const
+		T{ lex::token::kw_consteval, &get_built_in_unary_consteval             }, // consteval
+		T{ lex::token::kw_sizeof,    &get_built_in_unary_sizeof                }, // sizeof
+		T{ lex::token::kw_typeof,    &get_built_in_unary_typeof                }, // typeof
 	};
 
 	auto const built_in_unary_count = []() {

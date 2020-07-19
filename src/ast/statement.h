@@ -79,21 +79,6 @@ constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
 	return bz::meta::is_in_types<T, Ts...>;
 }(declaration_types{}, statement_types{});
 
-
-namespace internal
-{
-
-template<typename>
-struct node_from_type_pack;
-
-template<typename ...Ts>
-struct node_from_type_pack<bz::meta::type_pack<Ts...>>
-{
-	using type = node<Ts...>;
-};
-
-} // namespace internal
-
 using statement_node_t = typename internal::node_from_type_pack<statement_types>::type;
 
 struct statement : statement_node_t
@@ -235,48 +220,48 @@ struct decl_variable
 {
 	lex::token_range tokens;
 	lex::token_pos   identifier;
-	typespec         prototype;
+	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
 
 	decl_variable(
 		lex::token_range _tokens,
 		lex::token_pos   _id,
-		typespec         _prototype,
+		lex::token_range _prototype_range,
 		typespec         _var_type,
 		expression       _init_expr
 	)
-		: tokens    (_tokens),
-		  identifier(_id),
-		  prototype (std::move(_prototype)),
-		  var_type  (std::move(_var_type)),
-		  init_expr (std::move(_init_expr))
+		: tokens         (_tokens),
+		  identifier     (_id),
+		  prototype_range(_prototype_range),
+		  var_type       (std::move(_var_type)),
+		  init_expr      (std::move(_init_expr))
 	{}
 
 	decl_variable(
 		lex::token_range _tokens,
 		lex::token_pos   _id,
-		typespec         _prototype,
+		lex::token_range _prototype_range,
 		typespec         _var_type
 	)
-		: tokens(_tokens),
-		  identifier(_id),
-		  prototype (std::move(_prototype)),
-		  var_type  (std::move(_var_type)),
-		  init_expr ()
+		: tokens         (_tokens),
+		  identifier     (_id),
+		  prototype_range(_prototype_range),
+		  var_type       (std::move(_var_type)),
+		  init_expr      ()
 	{}
 
 	decl_variable(
 		lex::token_range _tokens,
 		lex::token_pos   _id,
-		typespec         _prototype,
+		lex::token_range _prototype_range,
 		expression       _init_expr
 	)
-		: tokens    (_tokens),
-		  identifier(_id),
-		  prototype (std::move(_prototype)),
-		  var_type  (),
-		  init_expr (std::move(_init_expr))
+		: tokens         (_tokens),
+		  identifier     (_id),
+		  prototype_range(_prototype_range),
+		  var_type       (make_ts_auto({}, nullptr)),
+		  init_expr      (std::move(_init_expr))
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -546,6 +531,9 @@ struct bz::formatter<ast::typespec>
 		case ast::typespec::index<ast::ts_constant>:
 			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
 
+		case ast::typespec::index<ast::ts_consteval>:
+			return bz::format("consteval {}", typespec.get<ast::ts_consteval_ptr>()->base);
+
 		case ast::typespec::index<ast::ts_pointer>:
 			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
 
@@ -598,6 +586,9 @@ struct bz::formatter<ast::typespec>
 
 			return res;
 		}
+
+		case ast::typespec::index<ast::ts_auto>:
+			return "auto";
 
 		case ast::typespec::index<ast::ts_unresolved>:
 			return "<unresolved>";

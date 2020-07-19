@@ -110,6 +110,7 @@ struct token
 		kw_auto,             // auto
 		kw_let,              // let
 		kw_const,            // const
+		kw_consteval,        // consteval
 
 		kw_true,             // true
 		kw_false,            // false

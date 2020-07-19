@@ -101,17 +101,31 @@ struct parse_context
 		);
 	}
 
-	static note make_note(bz::u8string file_name, size_t line, bz::u8string message);
-	static note make_note(lex::token_pos it, bz::u8string message);
-	static note make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static note make_note(bz::u8string file_name, size_t line, bz::u8string message);
+	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);
+	[[nodiscard]] static note make_note(lex::src_tokens src_tokens, bz::u8string message);
 	template<typename T>
-	static note make_note(T const &tokens, bz::u8string message)
+	[[nodiscard]] static note make_note(T const &tokens, bz::u8string message)
 	{
 		return make_note(
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
 			std::move(message)
 		);
 	}
+
+	[[nodiscard]] static suggestion make_suggestion_before(
+		lex::token_pos it, bz::u8string suggestion_str,
+		bz::u8string message
+	);
+	[[nodiscard]] static suggestion make_suggestion_after(
+		lex::token_pos it, bz::u8string suggestion_str,
+		bz::u8string message
+	);
+	[[nodiscard]] static suggestion make_suggestion_around(
+		lex::token_pos first, bz::u8string first_suggestion_str,
+		lex::token_pos last, bz::u8string last_suggestion_str,
+		bz::u8string message
+	);
 
 	bool has_errors(void) const { return this->_has_errors; }
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;

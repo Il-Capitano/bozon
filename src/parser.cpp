@@ -97,6 +97,20 @@ static ast::expression parse_primary_expression(
 		return context.make_string_literal(first, stream);
 	}
 
+	case lex::token::kw_auto:
+	{
+		auto const auto_pos = stream;
+		auto const src_tokens = lex::src_tokens{ auto_pos, auto_pos, stream };
+		++stream; // auto
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_ts_auto(src_tokens, auto_pos),
+			ast::make_expr_identifier(auto_pos)
+		);
+	}
+
 	case lex::token::paren_open:
 	{
 		auto const paren_begin = stream;
@@ -303,65 +317,35 @@ static ast::expression parse_expression(
 // ================================================================
 
 static ast::typespec add_prototype_to_type(
-	ast::typespec const &prototype,
-	ast::typespec const &type
+	lex::token_range prototype_range,
+	ast::typespec const &type,
+	ctx::parse_context &context
 )
 {
-	ast::typespec const *proto_it = &prototype;
-	ast::typespec const *type_it = &type;
-
-	auto const advance = [](ast::typespec const *&it)
+	ast::expression result_expr = ast::make_constant_expression(
+		type.src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::typespec(),
+		type,
+		ast::expr_t{}
+	);
+	for (auto it = prototype_range.end; it != prototype_range.begin;)
 	{
-		switch (it->kind())
-		{
-		case ast::typespec::index<ast::ts_reference>:
-			it = &it->get<ast::ts_reference_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_pointer>:
-			it = &it->get<ast::ts_pointer_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_constant>:
-			it = &it->get<ast::ts_constant_ptr>()->base;
-			break;
-		default:
-			bz_assert(false);
-			break;
-		}
-	};
+		--it;
+		auto const src_tokens = lex::src_tokens{ it, it, result_expr.src_tokens.end };
+		result_expr = context.make_unary_operator_expression(
+			src_tokens, it, std::move(result_expr)
+		);
+	}
 
-	ast::typespec ret_type;
-	ast::typespec *ret_type_it = &ret_type;
-
-	while (proto_it->not_null())
+	if (!result_expr.is_typename())
 	{
-#define x(type)                                                            \
-if (proto_it->is<type>() || type_it->is<type>())                           \
-{                                                                          \
-    ret_type_it->emplace<type##_ptr>(std::make_unique<type>(               \
-        type_it->is<type>()                                                \
-        ? type_it->get_tokens_pivot()                                      \
-        : proto_it->get_tokens_pivot(),                                    \
-        ast::typespec())                                                   \
-    );                                                                     \
-    ret_type_it = &ret_type_it->get<type##_ptr>()->base;                   \
-    if (proto_it->kind() == ast::typespec::index<type>) advance(proto_it); \
-    if (type_it->kind() == ast::typespec::index<type>) advance(type_it);   \
-}
-
-	x(ast::ts_reference)
-	else x(ast::ts_constant)
-	else x(ast::ts_pointer)
+		return ast::typespec(result_expr.src_tokens);
+	}
 	else
 	{
-		bz_assert(false);
+		return std::move(result_expr.get_typename());
 	}
-
-#undef x
-	}
-
-	*ret_type_it = *type_it;
-
-	return ret_type;
 }
 
 void resolve(
@@ -437,11 +421,11 @@ void resolve(
 	{
 		resolve(var_decl.var_type, context);
 	}
-	var_decl.var_type = add_prototype_to_type(var_decl.prototype, var_decl.var_type);
+	var_decl.var_type = add_prototype_to_type(var_decl.prototype_range, var_decl.var_type, context);
 
 	// if the variable is a base type we need to resolve it (if it's not already resolved)
 	if (
-		auto &var_type_without_const = ast::remove_const(var_decl.var_type);
+		auto &var_type_without_const = ast::remove_const_or_consteval(var_decl.var_type);
 		var_type_without_const.is<ast::ts_base_type>()
 	)
 	{
@@ -451,8 +435,40 @@ void resolve(
 
 	if (var_decl.init_expr.is<ast::unresolved_expression>())
 	{
-		resolve(var_decl.init_expr, context);
-		context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
+		auto const begin = var_decl.init_expr.src_tokens.begin;
+		auto const end   = var_decl.init_expr.src_tokens.end;
+		auto stream = begin;
+		context.parenthesis_suppressed_value = 0;
+		var_decl.init_expr = parse_expression(stream, end, context, no_comma, false);
+		if (stream == end)
+		{
+			context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
+		}
+		else if (stream->kind == lex::token::comma)
+		{
+			var_decl.init_expr.clear();
+			var_decl.var_type.clear();
+			context.report_error(
+				{ stream, stream, end },
+				"expected ';' at the end of an expression",
+				{ context.make_note(stream, "operator , is not allowed in variable declaration") },
+				{ context.make_suggestion_around(
+					begin, "(", end - 1, ")",
+					"put parenthesis around the expression"
+				) }
+			);
+		}
+		else
+		{
+			var_decl.init_expr.clear();
+			var_decl.var_type.clear();
+			context.report_error(
+				{ stream, stream, end },
+				"expected ';' at the end of an expression",
+				{},
+				{ context.make_suggestion_after(stream - 1, ";", "put ';' here:") }
+			);
+		}
 	}
 
 	if (ast::is_complete(var_decl.var_type) && !ast::is_instantiable(var_decl.var_type))
@@ -821,8 +837,8 @@ void resolve(ast::expression &expr, ctx::parse_context &context)
 		if (stream != end)
 		{
 			context.report_error(
-				{ stream, stream, end }, "expected ';'",
-				{}, { ctx::make_suggestion_after(stream - 1, ";", "add ';' here:") }
+				{ stream, stream, end }, "expected ';' at the end of an expression",
+				{}, { context.make_suggestion_after(stream - 1, ";", "add ';' here:") }
 			);
 		}
 		expr = std::move(new_expr);

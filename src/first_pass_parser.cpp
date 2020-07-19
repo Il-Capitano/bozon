@@ -208,7 +208,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 			params.emplace_back(
 				lex::token_range{ id, type.end },
 				id,
-				ast::typespec(),
+				lex::token_range{},
 				ast::make_ts_unresolved({ type.begin, type.begin, type.end }, type)
 			);
 		}
@@ -217,7 +217,7 @@ static bz::vector<ast::decl_variable> get_function_params(
 			params.emplace_back(
 				lex::token_range{ id, type.end },
 				nullptr,
-				ast::typespec(),
+				lex::token_range{},
 				ast::make_ts_unresolved({ type.begin, type.begin, type.end }, type)
 			);
 		}
@@ -514,70 +514,18 @@ static ast::statement parse_variable_declaration(
 	ctx::first_pass_parse_context &context
 )
 {
-	bz_assert(stream->kind == lex::token::kw_let || stream->kind == lex::token::kw_const);
+	bz_assert(
+		stream->kind == lex::token::kw_let
+		|| stream->kind == lex::token::kw_const
+		|| stream->kind == lex::token::kw_consteval
+	);
 	auto const tokens_begin = stream;
-	ast::typespec prototype;
-	if (stream->kind == lex::token::kw_const)
+	if (stream->kind == lex::token::kw_let)
 	{
-		prototype = ast::make_ts_constant({ stream, stream, stream + 1}, stream, ast::typespec());
+		++stream; // 'let'
 	}
-	++stream; // 'let' or 'const'
 
-	auto const get_base = [](ast::typespec *ts) -> ast::typespec *
-	{
-		switch (ts->kind())
-		{
-		case ast::typespec::index<ast::ts_constant>:
-			return &ts->get<ast::ts_constant_ptr>()->base;
-		case ast::typespec::index<ast::ts_reference>:
-			return &ts->get<ast::ts_reference_ptr>()->base;
-		case ast::typespec::index<ast::ts_pointer>:
-			return &ts->get<ast::ts_pointer_ptr>()->base;
-		default:
-			bz_assert(false);
-			return nullptr;
-		}
-	};
-
-	auto const add_to_prototype = [&](auto &&ts)
-	{
-		static_assert(
-			bz::meta::is_same<ast::typespec, bz::meta::remove_cv_reference<decltype(ts)>>
-		);
-		ast::typespec *innermost = &prototype;
-		ast::typespec *one_up = &prototype;
-		while (innermost->not_null())
-		{
-			one_up = innermost;
-			innermost = get_base(innermost);
-		}
-		if (
-			ts.kind() == ast::typespec::index<ast::ts_reference>
-			&& innermost != &prototype
-		)
-		{
-			context.report_error(
-				tokens_begin->kind == lex::token::kw_const
-				? tokens_begin : tokens_begin + 1,
-				stream, stream + 1,
-				"reference specifier must be at top level"
-			);
-		}
-		else if (
-			ts.kind() == ast::typespec::index<ast::ts_constant>
-			&& one_up->kind() == ast::typespec::index<ast::ts_constant>
-		)
-		{
-			context.report_error(
-				stream - 1, stream, stream + 1,
-				"too many const specifiers"
-			);
-		}
-		else
-		{
-			*innermost = std::forward<decltype(ts)>(ts);
-		}
-	};
+	auto const prototype_begin = stream;
 
 	{
 		bool loop = true;
@@ -586,15 +534,9 @@ static ast::statement parse_variable_declaration(
 			switch (stream->kind)
 			{
 			case lex::token::kw_const:
-				add_to_prototype(ast::make_ts_constant({ stream, stream, stream + 1}, stream, ast::typespec()));
-				++stream;
-				break;
+			case lex::token::kw_consteval:
 			case lex::token::ampersand:
-				add_to_prototype(ast::make_ts_reference({ stream, stream, stream + 1}, stream, ast::typespec()));
-				++stream;
-				break;
 			case lex::token::star:
-				add_to_prototype(ast::make_ts_pointer({ stream, stream, stream + 1}, stream, ast::typespec()));
 				++stream;
 				break;
 			default:
@@ -603,6 +545,8 @@ static ast::statement parse_variable_declaration(
 			}
 		}
 	}
+
+	auto const prototype = lex::token_range{ prototype_begin, stream };
 
 	auto id = context.assert_token(stream, lex::token::identifier);
 
@@ -659,6 +603,7 @@ static ast::statement parse_variable_declaration(
 	);
 }
 
+/*
 static ast::statement parse_struct_definition(
 	lex::token_pos &in_stream, lex::token_pos in_end,
 	ctx::first_pass_parse_context &context
@@ -713,6 +658,7 @@ static ast::statement parse_struct_definition(
 
 	return ast::make_decl_struct(id, std::move(member_decls));
 }
+*/
 
 static ast::statement parse_function_definition(
 	lex::token_pos &stream, lex::token_pos end,
@@ -892,6 +838,22 @@ static ast::statement parse_operator_definition(
 	);
 }
 
+static ast::statement parse_const_declaration(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	return parse_variable_declaration(stream, end, context);
+}
+
+static ast::statement parse_consteval_declaration(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	return parse_variable_declaration(stream, end, context);
+}
+
 static ast::statement default_top_level_parser(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
@@ -907,21 +869,38 @@ struct statement_parser
 	bool is_declaration;
 };
 
-constexpr std::array statement_parsers = {
-	statement_parser{ lex::token::kw_if,            &parse_if_statement,            ast::is_top_level_statement_type<ast::stmt_if>,            ast::is_declaration_type<ast::stmt_if>            },
-	statement_parser{ lex::token::kw_while,         &parse_while_statement,         ast::is_top_level_statement_type<ast::stmt_while>,         ast::is_declaration_type<ast::stmt_while>         },
-	statement_parser{ lex::token::kw_for,           &parse_for_statement,           ast::is_top_level_statement_type<ast::stmt_for>,           ast::is_declaration_type<ast::stmt_for>           },
-	statement_parser{ lex::token::kw_return,        &parse_return_statement,        ast::is_top_level_statement_type<ast::stmt_return>,        ast::is_declaration_type<ast::stmt_return>        },
-	statement_parser{ lex::token::semi_colon,       &parse_no_op_statement,         ast::is_top_level_statement_type<ast::stmt_no_op>,         ast::is_declaration_type<ast::stmt_no_op>         },
-	statement_parser{ lex::token::curly_open,       &parse_compound_statement,      ast::is_top_level_statement_type<ast::stmt_compound>,      ast::is_declaration_type<ast::stmt_compound>      },
-	statement_parser{ lex::token::kw_static_assert, &parse_static_assert_statement, ast::is_top_level_statement_type<ast::stmt_static_assert>, ast::is_declaration_type<ast::stmt_static_assert> },
-	statement_parser{ lex::token::kw_let,           &parse_variable_declaration,    ast::is_top_level_statement_type<ast::decl_variable>,      ast::is_declaration_type<ast::decl_variable>      },
-	statement_parser{ lex::token::kw_const,         &parse_variable_declaration,    ast::is_top_level_statement_type<ast::decl_variable>,      ast::is_declaration_type<ast::decl_variable>      },
-//	statement_parser{ lex::token::kw_struct,        &parse_struct_definition,       ast::is_top_level_statement_type<ast::decl_struct>,        ast::is_declaration_type<ast::decl_struct>        },
-	statement_parser{ lex::token::kw_function,      &parse_function_definition,     ast::is_top_level_statement_type<ast::decl_function>,      ast::is_declaration_type<ast::decl_function>      },
-	statement_parser{ lex::token::kw_operator,      &parse_operator_definition,     ast::is_top_level_statement_type<ast::decl_operator>,      ast::is_declaration_type<ast::decl_operator>      },
-	statement_parser{ lex::token::_last,            &parse_expression_statement,    ast::is_top_level_statement_type<ast::stmt_expression>,    ast::is_declaration_type<ast::stmt_expression>    },
-};
+constexpr auto statement_parsers = []() {
+	std::array result = {
+		statement_parser{ lex::token::kw_if,            &parse_if_statement,            ast::is_top_level_statement_type<ast::stmt_if>,            ast::is_declaration_type<ast::stmt_if>            },
+		statement_parser{ lex::token::kw_while,         &parse_while_statement,         ast::is_top_level_statement_type<ast::stmt_while>,         ast::is_declaration_type<ast::stmt_while>         },
+		statement_parser{ lex::token::kw_for,           &parse_for_statement,           ast::is_top_level_statement_type<ast::stmt_for>,           ast::is_declaration_type<ast::stmt_for>           },
+		statement_parser{ lex::token::kw_return,        &parse_return_statement,        ast::is_top_level_statement_type<ast::stmt_return>,        ast::is_declaration_type<ast::stmt_return>        },
+		statement_parser{ lex::token::semi_colon,       &parse_no_op_statement,         ast::is_top_level_statement_type<ast::stmt_no_op>,         ast::is_declaration_type<ast::stmt_no_op>         },
+		statement_parser{ lex::token::curly_open,       &parse_compound_statement,      ast::is_top_level_statement_type<ast::stmt_compound>,      ast::is_declaration_type<ast::stmt_compound>      },
+		statement_parser{ lex::token::kw_static_assert, &parse_static_assert_statement, ast::is_top_level_statement_type<ast::stmt_static_assert>, ast::is_declaration_type<ast::stmt_static_assert> },
+		statement_parser{ lex::token::kw_let,           &parse_variable_declaration,    ast::is_top_level_statement_type<ast::decl_variable>,      ast::is_declaration_type<ast::decl_variable>      },
+	//	statement_parser{ lex::token::kw_struct,        &parse_struct_definition,       ast::is_top_level_statement_type<ast::decl_struct>,        ast::is_declaration_type<ast::decl_struct>        },
+		statement_parser{ lex::token::kw_function,      &parse_function_definition,     ast::is_top_level_statement_type<ast::decl_function>,      ast::is_declaration_type<ast::decl_function>      },
+		statement_parser{ lex::token::kw_operator,      &parse_operator_definition,     ast::is_top_level_statement_type<ast::decl_operator>,      ast::is_declaration_type<ast::decl_operator>      },
+		statement_parser{ lex::token::_last,            &parse_expression_statement,    ast::is_top_level_statement_type<ast::stmt_expression>,    ast::is_declaration_type<ast::stmt_expression>    },
+
+		statement_parser{ lex::token::kw_const,     &parse_const_declaration,     true, true },
+		statement_parser{ lex::token::kw_consteval, &parse_consteval_declaration, true, true },
+	};
+
+	constexpr_bubble_sort(
+		result,
+		[](auto const &lhs, auto const rhs) {
+			return lhs.kind < rhs.kind;
+		},
+		[](auto &lhs, auto &rhs) {
+			auto const tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
+	);
+	return result;
+}();
 
 constexpr auto top_level_statement_parsers = []() {
 	auto const get_count = []() {
