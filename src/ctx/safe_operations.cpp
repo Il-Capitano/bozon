@@ -492,7 +492,7 @@ case ast::type_info::type##_:                                                   
 	x(uint16)
 	x(uint32)
 	case ast::type_info::uint64_:
-		if (b != 0 && a > std::numeric_limits<int64_t>::max() / b)
+		if (b != 0 && a > std::numeric_limits<uint64_t>::max() / b)
 		{
 			context.report_parenthesis_suppressed_warning(
 				src_tokens,
