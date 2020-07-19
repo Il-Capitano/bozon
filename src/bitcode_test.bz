@@ -311,12 +311,6 @@ function cast_test() -> void
 
 // function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void;
 
-struct vec2
-{
-	x: float64;
-	y: float64;
-}
-
 function const_expr_test() -> void
 {
 	const n = 9'223'372'036'854'775'807; // int64
@@ -555,14 +549,19 @@ function for_test() -> void
 		return true;
 	}
 
-	for (let i = 0; i < 1000; ++i)
+//	0 + 4, 1;
+
+	for (let i = 0; i < 1'000; ++i)
 	{
 		if (is_prime(i))
 		{
 			print(i), print(",");
 		}
 	}
+	print('\n');
 }
+
+// static_assert(false);
 
 function declaration_leak() -> void
 {
@@ -596,5 +595,9 @@ function static_assert_test() -> void
 	static_assert(((-1 as uint64)) == 18446744073709551615);
 	static_assert(((-1 as uint64)) == ~0u64);
 
-//	'\ud7ff' + 1;
+	consteval int64_max = (~0u64 >> 1u) as int64;
+	consteval int64_min = (((~0u64 >> 1u) as int64 + 1));
+	static_assert(int64_max > 0);
+	static_assert(int64_min < 0);
+	static_assert(((int64_min - 1)) == int64_max);
 }
