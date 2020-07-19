@@ -18,9 +18,15 @@ struct val_ptr
 	};
 	uintptr_t kind = 0;
 	llvm::Value *val = nullptr;
+	llvm::Value *consteval_val = nullptr;
 
 	llvm::Value *get_value(ctx::bitcode_context &context) const
 	{
+		if (this->consteval_val)
+		{
+			return this->consteval_val;
+		}
+
 		if (this->kind == reference)
 		{
 			auto const loaded_val = context.builder.CreateLoad(this->val, "load_tmp");
@@ -608,6 +614,7 @@ static val_ptr emit_built_in_binary_multiply_eq(
 	// we calculate the right hand side first
 	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
 	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context);
 	llvm::Value *res;
 	if (ctx::is_integer_kind(lhs_kind))
@@ -676,6 +683,7 @@ static val_ptr emit_built_in_binary_divide_eq(
 	// we calculate the right hand side first
 	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
 	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context);
 	llvm::Value *res;
 	if (ctx::is_signed_integer_kind(lhs_kind))
@@ -741,6 +749,7 @@ static val_ptr emit_built_in_binary_modulo_eq(
 	// we calculate the right hand side first
 	auto rhs_val = emit_bitcode(rhs, context).get_value(context);
 	auto const lhs_val_ref = emit_bitcode(lhs, context);
+	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context);
 	llvm::Value *res;
 	if (ctx::is_signed_integer_kind(lhs_kind))
@@ -1412,51 +1421,56 @@ static val_ptr emit_bitcode(
 	{
 		return {};
 	}
+	// consteval variable
+
+	val_ptr result;
+
+	if (const_expr.kind == ast::expression_type_kind::lvalue)
+	{
+		bz_assert(const_expr.expr.is<ast::expr_identifier>());
+		result = emit_bitcode(*const_expr.expr.get<ast::expr_identifier_ptr>(), context);
+	}
+	else
+	{
+		result.kind = val_ptr::value;
+	}
+
 	auto const type = get_llvm_type(const_expr.type, context);
+
 	switch (const_expr.value.kind())
 	{
 	case ast::constant_value::sint:
-		return {
-			val_ptr::value,
-			llvm::ConstantInt::get(
-				type,
-				bit_cast<uint64_t>(const_expr.value.get<ast::constant_value::sint>()),
-				true
-			)
-		};
+		result.consteval_val = llvm::ConstantInt::get(
+			type,
+			bit_cast<uint64_t>(const_expr.value.get<ast::constant_value::sint>()),
+			true
+		);
+		break;
 	case ast::constant_value::uint:
-		return {
-			val_ptr::value,
-			llvm::ConstantInt::get(
-				type,
-				const_expr.value.get<ast::constant_value::uint>(),
-				false
-			)
-		};
+		result.consteval_val = llvm::ConstantInt::get(
+			type,
+			const_expr.value.get<ast::constant_value::uint>(),
+			false
+		);
+		break;
 	case ast::constant_value::float32:
-		return {
-			val_ptr::value,
-			llvm::ConstantFP::get(
-				type,
-				const_expr.value.get<ast::constant_value::float32>()
-			)
-		};
+		result.consteval_val = llvm::ConstantFP::get(
+			type,
+			const_expr.value.get<ast::constant_value::float32>()
+		);
+		break;
 	case ast::constant_value::float64:
-		return {
-			val_ptr::value,
-			llvm::ConstantFP::get(
-				type,
-				const_expr.value.get<ast::constant_value::float64>()
-			)
-		};
+		result.consteval_val = llvm::ConstantFP::get(
+			type,
+			const_expr.value.get<ast::constant_value::float64>()
+		);
+		break;
 	case ast::constant_value::u8char:
-		return {
-			val_ptr::value,
-			llvm::ConstantInt::get(
-				type,
-				const_expr.value.get<ast::constant_value::u8char>()
-			)
-		};
+		result.consteval_val = llvm::ConstantInt::get(
+			type,
+			const_expr.value.get<ast::constant_value::u8char>()
+		);
+		break;
 	case ast::constant_value::string:
 	{
 		auto const &str = const_expr.value.get<ast::constant_value::string>();
@@ -1475,35 +1489,27 @@ static val_ptr emit_bitcode(
 		bz_assert(str_t != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
-		return {
-			val_ptr::value,
-			llvm::ConstantStruct::get(str_t, elems)
-		};
+		result.consteval_val = llvm::ConstantStruct::get(str_t, elems);
+		break;
 	}
 	case ast::constant_value::boolean:
-		return {
-			val_ptr::value,
-			llvm::ConstantInt::get(
-				type,
-				static_cast<uint64_t>(const_expr.value.get<ast::constant_value::boolean>())
-			)
-		};
+		result.consteval_val = llvm::ConstantInt::get(
+			type,
+			static_cast<uint64_t>(const_expr.value.get<ast::constant_value::boolean>())
+		);
+		break;
 	case ast::constant_value::null:
 	{
-		auto ptr_t = llvm::dyn_cast<llvm::PointerType>(type);
+		auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(type);
 		bz_assert(ptr_t != nullptr);
-		return {
-			val_ptr::value,
-			llvm::ConstantPointerNull::get(ptr_t)
-		};
+		result.consteval_val = llvm::ConstantPointerNull::get(ptr_t);
+		break;
 	}
 	case ast::constant_value::function:
 	{
 		auto const decl = const_expr.value.get<ast::constant_value::function>();
-		return {
-			val_ptr::value,
-			context.get_function(decl)
-		};
+		result.consteval_val = context.get_function(decl);
+		break;
 	}
 	case ast::constant_value::function_set_id:
 		bz_assert(false);
@@ -1513,6 +1519,7 @@ static val_ptr emit_bitcode(
 		bz_assert(false);
 		return {};
 	}
+	return result;
 }
 
 static val_ptr emit_bitcode(

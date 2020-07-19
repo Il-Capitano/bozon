@@ -487,7 +487,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 				bz_assert(init_expr.is<ast::constant_expression>());
 				return ast::make_constant_expression(
 					src_tokens,
-					id_type_kind, *id_type_ptr,
+					id_type_kind, ast::make_ts_constant({}, id_type_ptr->get<ast::ts_consteval_ptr>()->base),
 					init_expr.get<ast::constant_expression>().value,
 					ast::make_expr_identifier(id, *var)
 				);
@@ -638,7 +638,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			bz_assert(init_expr.is<ast::constant_expression>());
 			return ast::make_constant_expression(
 				src_tokens,
-				id_type_kind, *id_type_ptr,
+				id_type_kind, ast::make_ts_constant({}, id_type_ptr->get<ast::ts_consteval_ptr>()->base),
 				init_expr.get<ast::constant_expression>().value,
 				ast::make_expr_identifier(id, *var)
 			);
@@ -2080,7 +2080,7 @@ void parse_context::match_expression_to_type(
 )
 {
 	bz_assert(!expr.is<ast::tuple_expression>());
-	if (expr.is_null())
+	if (expr.is_null() || dest_type.is_null())
 	{
 		bz_assert(this->has_errors());
 		return;
@@ -2095,6 +2095,7 @@ void parse_context::match_expression_to_type(
 //		bz_assert(false, "overloaded function not handled in match_expresstion_to_type");
 		bz_assert(const_expr.expr.is<ast::expr_identifier>());
 		this->report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier_ptr>()->identifier);
+		dest_type.clear();
 		return;
 	}
 
@@ -2126,23 +2127,28 @@ void parse_context::match_expression_to_type(
 						expr,
 						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 					);
+					dest_type.clear();
 				}
 				loop = false;
 				break;
 			case ast::typespec::index<ast::ts_constant>:
 				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-				if (!expr_it->is<ast::ts_constant>())
+				if (!(expr_it->is<ast::ts_constant>() || expr_it->is<ast::ts_consteval>()))
 				{
 					this->report_error(
 						expr,
 						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 					);
+					dest_type.clear();
 					loop = false;
 				}
 				else
 				{
-					expr_it = &expr_it->get<ast::ts_constant_ptr>()->base;
+					expr_it = &ast::remove_const_or_consteval(*expr_it);
 				}
+				break;
+			case ast::typespec::index<ast::ts_consteval>:
+				bz_assert(false);
 				break;
 			case ast::typespec::index<ast::ts_pointer>:
 				dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
@@ -2152,6 +2158,7 @@ void parse_context::match_expression_to_type(
 						expr,
 						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 					);
+					dest_type.clear();
 					loop = false;
 				}
 				else
@@ -2178,6 +2185,7 @@ void parse_context::match_expression_to_type(
 		)
 		{
 			this->report_error(expr, "cannot bind an rvalue to an lvalue reference");
+			dest_type.clear();
 			return;
 		}
 
@@ -2197,6 +2205,7 @@ void parse_context::match_expression_to_type(
 					*expr_it, *dest_it
 				)
 			);
+			dest_type.clear();
 			return;
 		}
 
@@ -2218,6 +2227,7 @@ void parse_context::match_expression_to_type(
 				if (!ast::is_complete(dest_type))
 				{
 					this->report_error(expr, "variable type cannot be deduced");
+					dest_type.clear();
 					return;
 				}
 				else
@@ -2232,6 +2242,7 @@ void parse_context::match_expression_to_type(
 					expr,
 					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 				);
+				dest_type.clear();
 				return;
 			}
 		}
@@ -2249,6 +2260,7 @@ void parse_context::match_expression_to_type(
 					expr,
 					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 				);
+				dest_type.clear();
 				return;
 			}
 		}
@@ -2264,6 +2276,7 @@ void parse_context::match_expression_to_type(
 				expr,
 				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 			);
+			dest_type.clear();
 			return;
 		}
 
@@ -2276,6 +2289,7 @@ void parse_context::match_expression_to_type(
 				expr,
 				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 			);
+			dest_type.clear();
 			return;
 		}
 	}

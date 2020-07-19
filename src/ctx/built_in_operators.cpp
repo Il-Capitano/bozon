@@ -334,6 +334,7 @@ static ast::expression get_built_in_unary_dereference(
 		else if (const_expr_type.is<ast::ts_consteval>())
 		{
 			context.report_error(src_tokens, "pointer to consteval is not a valid type");
+			return ast::expression(src_tokens);
 		}
 		return ast::make_constant_expression(
 			src_tokens,
@@ -555,7 +556,7 @@ static ast::expression get_built_in_unary_plus_plus_minus_minus(
 		return ast::expression(src_tokens);
 	}
 
-	if (type.is<ast::ts_constant>())
+	if (type.is<ast::ts_constant>() || type.is<ast::ts_consteval>())
 	{
 		context.report_error(
 			src_tokens,
@@ -833,7 +834,7 @@ static ast::expression get_built_in_binary_assign(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
@@ -1546,7 +1547,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
@@ -1898,7 +1899,7 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
@@ -2189,7 +2190,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
@@ -3071,7 +3072,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
@@ -3244,7 +3245,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 		context.report_error(src_tokens, "cannot assign to an rvalue");
 		return ast::expression(src_tokens);
 	}
-	else if (lhs_t.is<ast::ts_constant>())
+	else if (lhs_t.is<ast::ts_constant>() || lhs_t.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "cannot assign to a constant");
 		return ast::expression(src_tokens);
