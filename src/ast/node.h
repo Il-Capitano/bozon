@@ -111,6 +111,21 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	}
 };
 
+
+namespace internal
+{
+
+template<typename>
+struct node_from_type_pack;
+
+template<typename ...Ts>
+struct node_from_type_pack<bz::meta::type_pack<Ts...>>
+{
+	using type = node<Ts...>;
+};
+
+} // namespace internal
+
 } // namespace ast
 
 #endif // AST_NODE_H
