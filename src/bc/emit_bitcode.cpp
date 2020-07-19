@@ -1408,6 +1408,10 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
+	if (const_expr.kind == ast::expression_type_kind::type_name)
+	{
+		return {};
+	}
 	auto const type = get_llvm_type(const_expr.type, context);
 	switch (const_expr.value.kind())
 	{
@@ -2068,7 +2072,7 @@ void emit_function_bitcode(
 	if (!context.has_terminator())
 	{
 //		std::string func_name = context.current_function->getName();
-//		bz::printf("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
+//		bz::print("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
 		bz_assert(func_body.return_type.is<ast::ts_void>());
 		context.builder.CreateRetVoid();
 	}
@@ -2076,7 +2080,7 @@ void emit_function_bitcode(
 	// true means it failed
 	if (llvm::verifyFunction(*fn) == true)
 	{
-		bz::printf(
+		bz::print(
 			"{}verifyFunction failed on {}!!!\n{}",
 			colors::bright_red,
 			bz::u8string_view(fn->getName().data(), fn->getName().data() + fn->getName().size()),

@@ -30,7 +30,7 @@ int main(void)
 			? colors::bright_green
 			: colors::bright_red;
 
-		bz::printf(
+		bz::print(
 			"\nFinished running all tests in {:.3f}ms\n"
 			"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
 			(end - begin).count() * 1000.0,
@@ -44,7 +44,7 @@ int main(void)
 	}
 	catch (std::exception &e)
 	{
-		bz::printf("\nan exception occurred: {}", e.what());
+		bz::print("\nan exception occurred: {}", e.what());
 	}
 
 	return 0;

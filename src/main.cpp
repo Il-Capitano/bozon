@@ -1301,6 +1301,42 @@ auto const value = [&]() {
 
 
 
+==== array type syntax ====
+
+[10]int32 is ambiguous
+[10: int32] I like this, but we can't have operator : with this syntax
+[10 of int32] maybe?   [10, 20 of float64]
+^^ this needs another keyword, which may not be for the best
+
+[10 :: int32] maybe? a bit ambiguous with ::int32
+[10, 20 :: float64]
+
+also would be nice, if there was an array slice type
+[: int32]
+function print_arr(arr: [: const int32])
+{
+	for (const elem in arr)
+	{
+		print(elem);
+		print(", ");
+	}
+	print('\n');
+}
+
+instead of
+function print_arr(arr: std::slice<const int32>)
+{
+	for (const elem in arr)
+	{
+		print(elem);
+		print(", ");
+	}
+	print('\n');
+}
+
+maybe this is just useless feature bloat
+
+
 */
 
 #include "ctx/src_manager.h"
@@ -1324,21 +1360,21 @@ int main(void)
 		return 1;
 	}
 	auto const after_tokenization = timer::now();
-	bz::print("finished tokenization\n");
+//	bz::print("finished tokenization\n");
 	auto const before_first_pass_parse = timer::now();
 	if (!manager.first_pass_parse())
 	{
 		return 2;
 	}
 	auto const after_first_pass_parse = timer::now();
-	bz::print("finished first pass parsing\n");
+//	bz::print("finished first pass parsing\n");
 	auto const before_resolve = timer::now();
 	if (!manager.resolve())
 	{
 		return 3;
 	}
 	auto const after_resolve = timer::now();
-	bz::print("finished resolving\n");
+//	bz::print("finished resolving\n");
 	auto const before_code_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
@@ -1353,11 +1389,11 @@ int main(void)
 	auto const code_emission_time    = end - before_code_emission;
 	auto const compilation_time      = tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
 
-	bz::printf("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
-	bz::printf("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
-	bz::printf("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
-	bz::printf("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
-	bz::printf("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
+	bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
+//	bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
+//	bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
+//	bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
+//	bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
 
 	return 0;
 }

@@ -84,27 +84,27 @@ do { if (!((x) != (y))) {                                     \
 #define test_begin()     \
 size_t test_count = 0;   \
 size_t passed_count = 0; \
-bz::printf("Running {}\n", __FUNCTION__)
+bz::print("Running {}\n", __FUNCTION__)
 
-#define test_fn(fn)                                                  \
-do {                                                                 \
-    bz::printf("    {:.<60}", #fn);                                  \
-    try                                                              \
-    {                                                                \
-        ++test_count;                                                \
-        fn();                                                        \
-        bz::printf("{}OK{}\n", colors::bright_green, colors::clear); \
-        ++passed_count;                                              \
-    }                                                                \
-    catch (test_fail_exception &e)                                   \
-    {                                                                \
-        bz::printf("{}FAIL{}\n", colors::bright_red, colors::clear); \
-        bz::print(e.what());                                         \
-    }                                                                \
+#define test_fn(fn)                                                 \
+do {                                                                \
+    bz::print("    {:.<60}", #fn);                                  \
+    try                                                             \
+    {                                                               \
+        ++test_count;                                               \
+        fn();                                                       \
+        bz::print("{}OK{}\n", colors::bright_green, colors::clear); \
+        ++passed_count;                                             \
+    }                                                               \
+    catch (test_fail_exception &e)                                  \
+    {                                                               \
+        bz::print("{}FAIL{}\n", colors::bright_red, colors::clear); \
+        bz::print(e.what());                                        \
+    }                                                               \
 } while (false)
 
 #define test_end()                                                          \
-bz::printf(                                                                 \
+bz::print(                                                                  \
     "{}{}/{}{} ({}{:.2f}%{}) tests passed\n",                               \
     passed_count == test_count ? colors::bright_green : colors::bright_red, \
     passed_count, test_count,                                               \

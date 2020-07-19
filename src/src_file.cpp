@@ -905,7 +905,7 @@ static bz::u8string get_highlighted_suggestion(
 					colors::suggestion_color, second_str, colors::clear
 				);
 				highlight_line += bz::format(
-					"{}{:~{}}{}",
+					"{}{:~<{}}{}",
 					colors::suggestion_color, second_str_len, "", colors::clear
 				);
 				column += second_str_len;
@@ -1011,7 +1011,7 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 		? bz::format("{}warning:{}", colors::warning_color, colors::clear)
 		: bz::format("{}error:{}", colors::error_color, colors::clear);
 
-	bz::printf(
+	bz::print(
 		"{}: {} {}\n{}",
 		src_pos, error_or_warning, err.message,
 		get_highlighted_error_or_warning(file_begin, file_end, err)
@@ -1047,7 +1047,7 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 				n.file, n.line, column,
 				colors::clear
 			);
-		bz::printf(
+		bz::print(
 			"{}: {}note:{} {}\n{}",
 			note_src_pos, colors::note_color, colors::clear,
 			n.message,
@@ -1064,7 +1064,7 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 			? column
 			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
 
-		bz::printf(
+		bz::print(
 			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
 			colors::bright_white,
 			s.file, s.line, actual_column,

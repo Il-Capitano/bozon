@@ -10,7 +10,8 @@
 #include <utility>
 #include <cassert>
 #include <cmath>
-#include <iostream>
+#include <cstdio>
+#include <ostream>
 #include <algorithm>
 #include <charconv>
 #ifdef _WIN32
@@ -131,9 +132,12 @@ inline void set_console_attributes(u8string_view str)
 	set_console_attribute(h, n);
 }
 
-} // namespace internal
+inline void fprint_string_view(u8string_view str, std::FILE *file)
+{
+	std::fwrite(str.data(), sizeof (uint8_t), str.size(), file);
+}
 
-inline void print(u8string_view str)
+inline void fprint(u8string_view str, std::FILE *file)
 {
 	auto begin = str.begin();
 	auto const end = str.end();
@@ -143,7 +147,7 @@ inline void print(u8string_view str)
 		if (coloring_char == end)
 		{
 			// we are done
-			std::cout << u8string_view(begin, end);
+			fprint_string_view(u8string_view(begin, end), file);
 			break;
 		}
 		auto it = coloring_char;
@@ -151,7 +155,7 @@ inline void print(u8string_view str)
 		if (it == end)
 		{
 			// we are done
-			std::cout << u8string_view(begin, end);
+			fprint_string_view(u8string_view(begin, end), file);
 			break;
 		}
 
@@ -159,7 +163,7 @@ inline void print(u8string_view str)
 		{
 			// invalid coloring sequence
 			// we go to the next iteration
-			std::cout << u8string_view(begin, it);
+			fprint_string_view(u8string_view(begin, it), file);
 			begin = it;
 			continue;
 		}
@@ -169,48 +173,90 @@ inline void print(u8string_view str)
 		if (closing_m == end)
 		{
 			// we are done
-			std::cout << u8string_view(begin, end);
+			fprint_string_view(u8string_view(begin, end), file);
 			break;
 		}
 
-		std::cout << u8string_view(begin, coloring_char);
+		fprint_string_view(u8string_view(begin, coloring_char), file);
 		internal::set_console_attributes(u8string_view(it, closing_m));
 		begin = closing_m;
 		++begin;
 	}
 }
 
+} // namespace internal
+
 template<typename ...Ts>
-void printf(u8string_view fmt, Ts const &...ts)
+void print(u8string_view fmt, Ts const &...ts)
 {
-	auto const str = format(fmt, ts...);
-	print(str);
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		internal::fprint(fmt, stdout);
+	}
+	else
+	{
+		auto const str = format(fmt, ts...);
+		internal::fprint(str, stdout);
+	}
+}
+
+template<typename ...Ts>
+void log(u8string_view fmt, Ts const &...ts)
+{
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		internal::fprint(fmt, stderr);
+	}
+	else
+	{
+		auto const str = format(fmt, ts...);
+		internal::fprint(str, stderr);
+	}
 }
 
 #else
 
 template<typename ...Ts>
-void printf(u8string_view fmt, Ts const &...ts)
+void print(u8string_view fmt, Ts const &...ts)
 {
-	std::cout << format(fmt, ts...);
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		fwrite(fmt.data(), sizeof (char), fmt.size(), stdout);
+	}
+	else
+	{
+		auto const str = format(fmt, ts...);
+		fwrite(str.data(), sizeof (char), str.size(), stdout);
+	}
 }
 
-inline void print(u8string_view str)
+template<typename ...Ts>
+void log(u8string_view fmt, Ts const &...ts)
 {
-	std::cout << str;
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		fwrite(fmt.data(), sizeof (char), fmt.size(), stderr);
+	}
+	else
+	{
+		auto const str = format(fmt, ts...);
+		fwrite(str.data(), sizeof (char), str.size(), stderr);
+	}
 }
 
 #endif // windows
 
 template<typename ...Ts>
-void printf(std::ostream &os, u8string_view fmt, Ts const &...ts)
+void print(std::ostream &os, u8string_view fmt, Ts const &...ts)
 {
-	os << format(fmt, ts...);
-}
-
-inline void print(std::ostream &os, u8string_view str)
-{
-	os << str;
+	if constexpr (sizeof... (Ts) == 0)
+	{
+		os << fmt;
+	}
+	else
+	{
+		os << format(fmt, ts...);
+	}
 }
 
 

@@ -19,7 +19,7 @@ namespace ctx
 	{
 		if (!file.read_file())
 		{
-			bz::printf("error: unable to read file {}\n", file.get_file_name());
+			bz::print("error: unable to read file {}\n", file.get_file_name());
 			bz::print("exiting...\n");
 			return false;
 		}
@@ -27,7 +27,7 @@ namespace ctx
 		if (!file.tokenize())
 		{
 			auto const error_count = this->global_ctx.get_error_count();
-			bz::printf(
+			bz::print(
 				"{} {} occurred while tokenizing {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
@@ -53,7 +53,7 @@ namespace ctx
 		if (!file.first_pass_parse())
 		{
 			auto const error_count = this->global_ctx.get_error_count();
-			bz::printf(
+			bz::print(
 				"{} {} occurred while first pass of parsing {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
@@ -79,7 +79,7 @@ namespace ctx
 		if (!file.resolve())
 		{
 			auto const error_count = this->global_ctx.get_error_count();
-			bz::printf(
+			bz::print(
 				"{} {} occurred while resolving {}\n",
 				error_count, error_count == 1 ? "error" : "errors",
 				file.get_file_name()
