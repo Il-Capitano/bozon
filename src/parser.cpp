@@ -387,7 +387,7 @@ void resolve(
 			}
 			else
 			{
-				context.report_error({ stream, stream, end }, "unexpected tokens");
+				context.report_error({ stream, stream, end }, bz::format("unexpected token{}", end - stream == 1 ? "" : "s"));
 			}
 			expr.clear();
 		}
