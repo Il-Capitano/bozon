@@ -94,6 +94,9 @@ template<bool cond, typename TrueT, typename FalseT>
 using conditional = typename internal::conditional_impl<cond, TrueT, FalseT>::type;
 
 
+template<typename T, typename ...Ts>
+constexpr bool is_constructible_v = std::is_constructible_v<T, Ts...>;
+
 template<typename T>
 constexpr bool is_copy_constructible_v = std::is_copy_constructible_v<T>;
 

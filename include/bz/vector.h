@@ -84,13 +84,31 @@ private:
 	{
 		if constexpr (meta::is_nothrow_constructible_v<value_type, Args...>)
 		{
-			new (p) value_type(std::forward<Args>(args)...);
+			// if it's not constructible with the provided args, we try to use
+			// value_type{ args... } syntax instead
+			if constexpr (meta::is_constructible_v<value_type, Args...>)
+			{
+				new (p) value_type(std::forward<Args>(args)...);
+			}
+			else
+			{
+				new (p) value_type{ std::forward<Args>(args)... };
+			}
 		}
 		else
 		{
 			try
 			{
-				new (p) value_type(std::forward<Args>(args)...);
+				// if it's not constructible with the provided args, we try to use
+				// value_type{ args... } syntax instead
+				if constexpr (meta::is_constructible_v<value_type, Args...>)
+				{
+					new (p) value_type(std::forward<Args>(args)...);
+				}
+				else
+				{
+					new (p) value_type{ std::forward<Args>(args)... };
+				}
 			}
 			catch (...)
 			{
