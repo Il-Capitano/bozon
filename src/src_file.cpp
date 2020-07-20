@@ -1133,7 +1133,10 @@ void src_file::report_and_clear_errors_and_warnings(void)
 
 	for (auto &decl : this->_declarations)
 	{
-		this->_global_ctx.add_export_declaration(decl);
+		if (decl.not_null())
+		{
+			this->_global_ctx.add_export_declaration(decl);
+		}
 	}
 
 	this->_stage = first_pass_parsed;
