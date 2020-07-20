@@ -197,6 +197,7 @@ constexpr auto token_info = []() {
 	result[lex::token::semi_colon]    = { lex::token::semi_colon,    ";", "", 0                  };
 	result[lex::token::colon]         = { lex::token::colon,         ":", "", expr_type_flags    };
 	result[lex::token::question_mark] = { lex::token::question_mark, "?", "", expr_type_flags    };
+	result[lex::token::at]            = { lex::token::at,            "@", "", 0                  };
 
 
 	result[lex::token::assign]       = { lex::token::assign,      "=",  "", binary_built_in_flags | binary_overloadable_flags };

@@ -50,6 +50,8 @@ struct token
 		star          = '*',
 		ampersand     = '&',
 
+		at            = '@',
+
 		identifier = 256,
 		integer_literal,
 		floating_point_literal,
