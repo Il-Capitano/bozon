@@ -949,9 +949,16 @@ void resolve(
 	{
 		// this is a declaration inside a scope
 		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
-		if (func_decl.body.symbol_name == "" && func_decl.identifier->value == "main")
+		if (func_decl.body.symbol_name == "")
 		{
-			func_decl.body.symbol_name = "main";
+			if (func_decl.identifier->value == "main")
+			{
+				func_decl.body.symbol_name = "main";
+			}
+			else
+			{
+				func_decl.body.symbol_name = bz::format("func.{}", func_decl.identifier->value);
+			}
 		}
 		resolve(func_decl.body, context);
 		if (context.scope_decls.size() != 0)
