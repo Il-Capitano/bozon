@@ -19,8 +19,8 @@ void print_char(uint32_t c)
 	size_t buffer_size;
 	if (c < (1u << 7))
 	{
-		buffer[0] = (uint8_t)c;
-		buffer_size = 1;
+		fputc((char)c, stdout);
+		return;
 	}
 	else if (c < (1u << 11))
 	{
@@ -147,7 +147,7 @@ void print_float32(float x)
 
 void println_float32(float x)
 {
-	fprintf(stdout, "%g", x);
+	fprintf(stdout, "%g\n", x);
 }
 
 void print_float64(double x)
@@ -157,7 +157,7 @@ void print_float64(double x)
 
 void println_float64(double x)
 {
-	fprintf(stdout, "%g", x);
+	fprintf(stdout, "%g\n", x);
 }
 
 void print_bool(_Bool b)
