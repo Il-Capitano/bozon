@@ -656,20 +656,25 @@ static bool check_attribute(
 	case ast::statement::index<ast::decl_function>:
 		if (atr.name->value == "extern")
 		{
+			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
+			if (func_body.body.has_value())
+			{
+				context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
+				return true;
+			}
 			if (atr.args.size() != 1)
 			{
-				context.report_error(atr.name, "extern expects exactly one argument");
+				context.report_error(atr.name, "'extern' expects exactly one argument");
 				return true;
 			}
 			bz_assert(atr.args[0].is<ast::constant_expression>());
 			auto &arg = atr.args[0].get<ast::constant_expression>();
 			if (arg.value.kind() != ast::constant_value::string)
 			{
-				context.report_error(atr.args[0], "argument of extern must be of type 'str'");
+				context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
 				return true;
 			}
 			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
-			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
 			func_body.symbol_name = extern_name;
 			return true;
 		}
@@ -677,20 +682,25 @@ static bool check_attribute(
 	case ast::statement::index<ast::decl_operator>:
 		if (atr.name->value == "extern")
 		{
+			auto &func_body = stmt.get<ast::decl_operator_ptr>()->body;
+			if (func_body.body.has_value())
+			{
+				context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
+				return true;
+			}
 			if (atr.args.size() != 1)
 			{
-				context.report_error(atr.name, "extern expects exactly one argument");
+				context.report_error(atr.name, "'extern' expects exactly one argument");
 				return true;
 			}
 			bz_assert(atr.args[0].is<ast::constant_expression>());
 			auto &arg = atr.args[0].get<ast::constant_expression>();
 			if (arg.value.kind() != ast::constant_value::string)
 			{
-				context.report_error(atr.args[0], "argument of extern must be of type 'str'");
+				context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
 				return true;
 			}
 			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
-			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
 			func_body.symbol_name = extern_name;
 			return true;
 		}
@@ -707,8 +717,36 @@ static void resolve_attributes(
 	ctx::parse_context &context
 )
 {
-	for (auto &atr : stmt.get_attributes())
+	auto &attributes = stmt.get_attributes();
+
+	auto const begin = attributes.begin();
+	auto const end   = attributes.end();
+	for (auto it = begin; it != end; ++it)
 	{
+		auto &atr = *it;
+
+		// check if it's a duplicate
+		bool duplicate = false;
+		auto const name = atr.name->value;
+		for (auto inner_it = begin; inner_it != it; ++inner_it)
+		{
+			auto const inner_name = inner_it->name->value;
+			if (name == inner_name)
+			{
+				context.report_error(
+					atr.name,
+					bz::format("duplicate attribute '{}'", name),
+					{ context.make_note(inner_it->name, "previous instance here:") }
+				);
+				duplicate = true;
+				break;
+			}
+		}
+		if (duplicate)
+		{
+			continue;
+		}
+
 		auto [stream, end] = atr.arg_tokens;
 		atr.args = parse_expression_comma_list(stream, end, context);
 		bool good = true;
@@ -721,7 +759,11 @@ static void resolve_attributes(
 
 		for (auto &arg : atr.args)
 		{
-			if (!arg.is<ast::constant_expression>())
+			if (arg.is_null())
+			{
+				good = false;
+			}
+			else if (!arg.is<ast::constant_expression>())
 			{
 				context.report_error(arg, "argument of attribute must be a constant expression");
 				good = false;
