@@ -100,7 +100,7 @@ static ast::expression parse_primary_expression(
 	case lex::token::kw_auto:
 	{
 		auto const auto_pos = stream;
-		auto const src_tokens = lex::src_tokens{ auto_pos, auto_pos, stream };
+		auto const src_tokens = lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
 		++stream; // auto
 		return ast::make_constant_expression(
 			src_tokens,
