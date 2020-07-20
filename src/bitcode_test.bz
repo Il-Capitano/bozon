@@ -1,25 +1,25 @@
-function print(str: str) -> void;
-function println(str: str) -> void;
-function print_char(c: char) -> void;
-function println_char(c: char) -> void;
-function print_int32(n: int32) -> void;
-function println_int32(n: int32) -> void;
-function print_int64(n: int64) -> void;
-function println_int64(n: int64) -> void;
-function print_uint32(n: uint32) -> void;
-function println_uint32(n: uint32) -> void;
-function print_uint64(n: uint64) -> void;
-function println_uint64(n: uint64) -> void;
-function print_int32_ptr(p: *const int32) -> void;
-function println_int32_ptr(p: *const int32) -> void;
-function print_float32(x: float32) -> void;
-function println_float32(x: float32) -> void;
-function print_float64(x: float64) -> void;
-function println_float64(x: float64) -> void;
-function println_bool(b: bool) -> void;
-function print_bool(b: bool) -> void;
+@extern("print")             function print(str: str) -> void;
+@extern("println")           function println(str: str) -> void;
+@extern("print_char")        function print_char(c: char) -> void;
+@extern("println_char")      function println_char(c: char) -> void;
+@extern("print_int32")       function print_int32(n: int32) -> void;
+@extern("println_int32")     function println_int32(n: int32) -> void;
+@extern("print_int64")       function print_int64(n: int64) -> void;
+@extern("println_int64")     function println_int64(n: int64) -> void;
+@extern("print_uint32")      function print_uint32(n: uint32) -> void;
+@extern("println_uint32")    function println_uint32(n: uint32) -> void;
+@extern("print_uint64")      function print_uint64(n: uint64) -> void;
+@extern("println_uint64")    function println_uint64(n: uint64) -> void;
+@extern("print_int32_ptr")   function print_int32_ptr(p: *const int32) -> void;
+@extern("println_int32_ptr") function println_int32_ptr(p: *const int32) -> void;
+@extern("print_float32")     function print_float32(x: float32) -> void;
+@extern("println_float32")   function println_float32(x: float32) -> void;
+@extern("print_float64")     function print_float64(x: float64) -> void;
+@extern("println_float64")   function println_float64(x: float64) -> void;
+@extern("print_bool")        function print_bool(b: bool) -> void;
+@extern("println_bool")      function println_bool(b: bool) -> void;
 
-function exit(code: int32) -> void;
+@extern("exit")              function exit(code: int32) -> void;
 
 
 function print(c: char) -> void { print_char(c); }
@@ -559,6 +559,10 @@ function for_test() -> void
 		}
 	}
 	print('\n');
+
+	consteval inf = ((1.0 / 0.0));
+	println(inf);
+	println(((inf - inf)) + 1.0);
 }
 
 // static_assert(false);
@@ -600,4 +604,20 @@ function static_assert_test() -> void
 	static_assert(int64_max > 0);
 	static_assert(int64_min < 0);
 	static_assert(((int64_min - 1)) == int64_max);
+
+	consteval uint64_max = ((-1 as uint64));
+	static_assert(((uint64_max + 1u)) == 0u);
+	static_assert(int64_max as uint64 * 2u + 1u == uint64_max);
+
+	consteval c = '\ud7ff';
+//	c + 1;
+
+	consteval s = "Hello!";
+	static_assert(s != "Hello!!");
+
+	let a = s;
+	let b = s;
+	let c = s;
 }
+
+// function square_consteval(n: consteval int32) -> int32 { return n * n; }
