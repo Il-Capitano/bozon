@@ -125,10 +125,11 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
-	ast::expr_literal const &literal,
-	ctx::bitcode_context &context
+	ast::expr_literal const &,
+	ctx::bitcode_context &
 )
 {
+	// this should never be called, as a literal will always be an rvalue constant expression
 	bz_assert(false);
 	return {};
 }
@@ -1775,7 +1776,7 @@ static void emit_bitcode(
 
 static void emit_alloca(
 	ast::expression const &expr,
-	ctx::bitcode_context &context
+	ctx::bitcode_context &
 )
 {
 	switch (expr.kind())
