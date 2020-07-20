@@ -2358,6 +2358,32 @@ inline u8string pointer_to_string(const void *ptr, format_spec spec)
 template<typename T>
 struct formatter;
 
+namespace internal
+{
+
+template<typename T>
+struct has_formatter_impl
+{
+	using yes = int;
+	using no  = unsigned;
+	static_assert(!meta::is_same<yes, no>);
+
+	template<typename U>
+	static decltype(
+		formatter<U>::format(std::declval<T>(), std::declval<u8string_view>()),
+		yes{}
+	) test(U const &u);
+
+	static no test(...);
+
+	static constexpr bool value = meta::is_same<decltype(test(std::declval<T const &>())), yes>;
+};
+
+} // namespace internal
+
+template<typename T>
+constexpr bool has_formatter = internal::has_formatter_impl<T>::value;
+
 template<typename T>
 struct formatter<const T> : formatter<T>
 {};
@@ -2617,13 +2643,21 @@ inline u8string format_impl(
 template<typename ...Ts>
 u8string format(u8string_view fmt, Ts const &...ts)
 {
-	size_t current_arg = 0;
-	return internal::format_impl(
-		current_arg,
-		fmt.begin(),
-		fmt.end(),
-		internal::make_format_args(ts...)
-	);
+	static_assert((has_formatter<Ts> && ...), "one or more arguments don't have a bz::formatter specialization");
+	if constexpr ((has_formatter<Ts> && ...))
+	{
+		size_t current_arg = 0;
+		return internal::format_impl(
+			current_arg,
+			fmt.begin(),
+			fmt.end(),
+			internal::make_format_args(ts...)
+		);
+	}
+	else
+	{
+		return "";
+	}
 }
 
 bz_end_namespace
