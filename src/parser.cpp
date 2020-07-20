@@ -520,6 +520,8 @@ void resolve_symbol_helper(
 	// if llvm_func is set, the symbol has already been resolved
 	if (func_body.llvm_func != nullptr)
 	{
+		auto const symbol_name = func_body.symbol_name.as_string_view();
+		func_body.llvm_func->setName(llvm::StringRef(symbol_name.data(), symbol_name.size()));
 		return;
 	}
 
@@ -538,7 +540,7 @@ void resolve_symbol_helper(
 	resolve(func_body.return_type, precedence{}, context);
 	context.remove_scope();
 
-	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
+	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, "");
 }
 
 void resolve_symbol(
@@ -582,6 +584,11 @@ void resolve_helper(
 		{
 			func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
 		}
+		else
+		{
+			auto const symbol_name = func_body.symbol_name.as_string_view();
+			func_body.llvm_func->setName(llvm::StringRef(symbol_name.data(), symbol_name.size()));
+		}
 		for (auto &stmt : *func_body.body)
 		{
 			resolve(stmt, context);
@@ -619,7 +626,83 @@ void resolve(
 	resolve(struct_decl.info, context);
 }
 
-void resolve(
+// returns true, if the attribute was consumed
+static bool check_attribute(
+	ast::statement &stmt,
+	ast::attribute const &atr,
+	ctx::parse_context &context
+)
+{
+	switch (stmt.kind())
+	{
+	case ast::statement::index<ast::stmt_if>:
+		return false;
+	case ast::statement::index<ast::stmt_while>:
+		return false;
+	case ast::statement::index<ast::stmt_for>:
+		return false;
+	case ast::statement::index<ast::stmt_return>:
+		return false;
+	case ast::statement::index<ast::stmt_no_op>:
+		return false;
+	case ast::statement::index<ast::stmt_compound>:
+		return false;
+	case ast::statement::index<ast::stmt_static_assert>:
+		return false;
+	case ast::statement::index<ast::stmt_expression>:
+		return false;
+	case ast::statement::index<ast::decl_variable>:
+		return false;
+	case ast::statement::index<ast::decl_function>:
+		if (atr.name->value == "extern")
+		{
+			if (atr.args.size() != 1)
+			{
+				context.report_error(atr.name, "extern expects exactly one argument");
+				return true;
+			}
+			bz_assert(atr.args[0].is<ast::constant_expression>());
+			auto &arg = atr.args[0].get<ast::constant_expression>();
+			if (arg.value.kind() != ast::constant_value::string)
+			{
+				context.report_error(atr.args[0], "argument of extern must be of type 'str'");
+				return true;
+			}
+			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
+			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
+			func_body.symbol_name = extern_name;
+			return true;
+		}
+		return false;
+	case ast::statement::index<ast::decl_operator>:
+		if (atr.name->value == "extern")
+		{
+			if (atr.args.size() != 1)
+			{
+				context.report_error(atr.name, "extern expects exactly one argument");
+				return true;
+			}
+			bz_assert(atr.args[0].is<ast::constant_expression>());
+			auto &arg = atr.args[0].get<ast::constant_expression>();
+			if (arg.value.kind() != ast::constant_value::string)
+			{
+				context.report_error(atr.args[0], "argument of extern must be of type 'str'");
+				return true;
+			}
+			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
+			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
+			func_body.symbol_name = extern_name;
+			return true;
+		}
+		return false;
+	case ast::statement::index<ast::decl_struct>:
+		return false;
+	default:
+		return false;
+	}
+}
+
+static void resolve_attributes(
 	ast::statement &stmt,
 	ctx::parse_context &context
 )
@@ -628,11 +711,36 @@ void resolve(
 	{
 		auto [stream, end] = atr.arg_tokens;
 		atr.args = parse_expression_comma_list(stream, end, context);
+		bool good = true;
+
 		if (stream != end)
 		{
 			context.report_error({ stream, stream, end }, "expected ',' or closing )");
+			good = false;
+		}
+
+		for (auto &arg : atr.args)
+		{
+			if (!arg.is<ast::constant_expression>())
+			{
+				context.report_error(arg, "argument of attribute must be a constant expression");
+				good = false;
+			}
+		}
+
+		if (good && !check_attribute(stmt, atr, context))
+		{
+			context.report_warning(atr.name, bz::format("unknown attribute '{}'", atr.name->value));
 		}
 	}
+}
+
+void resolve(
+	ast::statement &stmt,
+	ctx::parse_context &context
+)
+{
+	resolve_attributes(stmt, context);
 
 	switch (stmt.kind())
 	{
@@ -841,6 +949,10 @@ void resolve(
 	{
 		// this is a declaration inside a scope
 		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
+		if (func_decl.body.symbol_name == "" && func_decl.identifier->value == "main")
+		{
+			func_decl.body.symbol_name = "main";
+		}
 		resolve(func_decl.body, context);
 		if (context.scope_decls.size() != 0)
 		{

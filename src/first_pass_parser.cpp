@@ -865,7 +865,7 @@ static ast::statement parse_statement_with_attribute(
 	while (stream != end && stream->kind == lex::token::at)
 	{
 		++stream; // '@'
-		auto const attribute_name = context.assert_token(stream, lex::token::identifier)->value;
+		auto const name = context.assert_token(stream, lex::token::identifier);
 		if (stream->kind == lex::token::paren_open)
 		{
 			auto const paren_open = stream;
@@ -879,11 +879,11 @@ static ast::statement parse_statement_with_attribute(
 			{
 				context.report_paren_match_error(stream, paren_open);
 			}
-			attributes.emplace_back(attribute_name, args_range, bz::vector<ast::expression>{});
+			attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
 		}
 		else
 		{
-			attributes.emplace_back(attribute_name, lex::token_range{}, bz::vector<ast::expression>{});
+			attributes.emplace_back(name, lex::token_range{}, bz::vector<ast::expression>{});
 		}
 	}
 
@@ -923,10 +923,10 @@ constexpr auto statement_parsers = []() {
 		statement_parser{ lex::token::kw_operator,      &parse_operator_definition,     ast::is_top_level_statement_type<ast::decl_operator>,      ast::is_declaration_type<ast::decl_operator>      },
 		statement_parser{ lex::token::_last,            &parse_expression_statement,    ast::is_top_level_statement_type<ast::stmt_expression>,    ast::is_declaration_type<ast::stmt_expression>    },
 
-		statement_parser{ lex::token::kw_const,     &parse_const_declaration,        true, true },
-		statement_parser{ lex::token::kw_consteval, &parse_consteval_declaration,    true, true },
+		statement_parser{ lex::token::kw_const,         &parse_const_declaration,     true, true },
+		statement_parser{ lex::token::kw_consteval,     &parse_consteval_declaration, true, true },
 
-		statement_parser{ lex::token::at,           &parse_statement_with_attribute<false>, false, false },
+		statement_parser{ lex::token::at,               &parse_statement_with_attribute<false>, false, false },
 	};
 
 	constexpr_bubble_sort(

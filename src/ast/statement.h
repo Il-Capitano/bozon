@@ -15,8 +15,8 @@ namespace ast
 
 struct attribute
 {
-	bz::u8string attribute_name;
-	lex::token_range arg_tokens;
+	lex::token_pos              name;
+	lex::token_range            arg_tokens;
 	bz::vector<ast::expression> args;
 };
 
@@ -313,7 +313,7 @@ struct decl_function
 			  std::move(_params),
 			  std::move(_ret_type),
 			  {},
-			  _id->value,
+			  "",
 			  nullptr
 		  }
 	{}
@@ -329,7 +329,7 @@ struct decl_function
 			  std::move(_params),
 			  std::move(_ret_type),
 			  std::move(_body),
-			  _id->value,
+			  "",
 			  nullptr
 		  }
 	{}
