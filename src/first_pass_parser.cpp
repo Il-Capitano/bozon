@@ -854,6 +854,45 @@ static ast::statement parse_consteval_declaration(
 	return parse_variable_declaration(stream, end, context);
 }
 
+template<bool is_top_level>
+static ast::statement parse_statement_with_attribute(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::first_pass_parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::at);
+	bz::vector<ast::attribute> attributes = {};
+	while (stream != end && stream->kind == lex::token::at)
+	{
+		++stream; // '@'
+		auto const attribute_name = context.assert_token(stream, lex::token::identifier)->value;
+		if (stream->kind == lex::token::paren_open)
+		{
+			auto const paren_open = stream;
+			++stream;
+			auto const args_range = get_expression_or_type_tokens<lex::token::paren_close>(stream, end, context);
+			if (stream != end && stream->kind == lex::token::paren_close)
+			{
+				++stream;
+			}
+			else
+			{
+				context.report_paren_match_error(stream, paren_open);
+			}
+			attributes.emplace_back(attribute_name, args_range, bz::vector<ast::expression>{});
+		}
+		else
+		{
+			attributes.emplace_back(attribute_name, lex::token_range{}, bz::vector<ast::expression>{});
+		}
+	}
+
+	constexpr auto parse_fn = is_top_level ? parse_top_level_statement : parse_statement;
+	auto stmt = parse_fn(stream, end, context);
+	stmt.set_attributes(std::move(attributes));
+	return stmt;
+}
+
 static ast::statement default_top_level_parser(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::first_pass_parse_context &context
@@ -884,8 +923,10 @@ constexpr auto statement_parsers = []() {
 		statement_parser{ lex::token::kw_operator,      &parse_operator_definition,     ast::is_top_level_statement_type<ast::decl_operator>,      ast::is_declaration_type<ast::decl_operator>      },
 		statement_parser{ lex::token::_last,            &parse_expression_statement,    ast::is_top_level_statement_type<ast::stmt_expression>,    ast::is_declaration_type<ast::stmt_expression>    },
 
-		statement_parser{ lex::token::kw_const,     &parse_const_declaration,     true, true },
-		statement_parser{ lex::token::kw_consteval, &parse_consteval_declaration, true, true },
+		statement_parser{ lex::token::kw_const,     &parse_const_declaration,        true, true },
+		statement_parser{ lex::token::kw_consteval, &parse_consteval_declaration,    true, true },
+
+		statement_parser{ lex::token::at,           &parse_statement_with_attribute<false>, false, false },
 	};
 
 	constexpr_bubble_sort(
@@ -914,7 +955,8 @@ constexpr auto top_level_statement_parsers = []() {
 		}
 		return count;
 	};
-	using result_t = std::array<statement_parser, get_count() + 1>;
+	// + 2 because of the deafult parser and the attribute parser
+	using result_t = std::array<statement_parser, get_count() + 2>;
 
 	result_t result{};
 
@@ -927,10 +969,23 @@ constexpr auto top_level_statement_parsers = []() {
 			++i;
 		}
 	}
+	result[i] = { lex::token::at, &parse_statement_with_attribute<true>, true, true };
+	++i;
 	result[i] = { lex::token::_last, &default_top_level_parser, true, false };
 	++i;
 	bz_assert(i == result.size());
 
+	constexpr_bubble_sort(
+		result,
+		[](auto const &lhs, auto const rhs) {
+			return lhs.kind < rhs.kind;
+		},
+		[](auto &lhs, auto &rhs) {
+			auto const tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
+	);
 	return result;
 }();
 
@@ -961,8 +1016,15 @@ static ast::statement default_top_level_parser(
 	{
 		++stream;
 	}
-	context.report_error(begin, begin, stream, "expected a declaration");
-	return parse_top_level_statement(stream, end, context);
+	context.report_error(begin, begin, stream, "expected a top level statement");
+	if (stream == end)
+	{
+		return ast::statement();
+	}
+	else
+	{
+		return parse_top_level_statement(stream, end, context);
+	}
 }
 
 
@@ -1017,8 +1079,8 @@ ast::statement parse_top_level_statement(
 		), ...);
 		if (!good)
 		{
-			constexpr auto parse_fn = top_level_statement_parsers.back().parse_fn;
-			result = parse_fn(stream, end, context);
+			constexpr auto default_parse_fn = top_level_statement_parsers.back().parse_fn;
+			result = default_parse_fn(stream, end, context);
 		}
 	}(bz::meta::make_index_sequence<top_level_statement_parsers.size() - 1>{}); // - 1 because of the default parser function
 	return result;

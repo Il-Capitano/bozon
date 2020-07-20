@@ -624,6 +624,16 @@ void resolve(
 	ctx::parse_context &context
 )
 {
+	for (auto &atr : stmt.get_attributes())
+	{
+		auto [stream, end] = atr.arg_tokens;
+		atr.args = parse_expression_comma_list(stream, end, context);
+		if (stream != end)
+		{
+			context.report_error({ stream, stream, end }, "expected ',' or closing )");
+		}
+	}
+
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_if>:

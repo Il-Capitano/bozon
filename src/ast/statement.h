@@ -13,6 +13,13 @@
 namespace ast
 {
 
+struct attribute
+{
+	bz::u8string attribute_name;
+	lex::token_range arg_tokens;
+	bz::vector<ast::expression> args;
+};
+
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(stmt_if);
@@ -79,6 +86,7 @@ constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
 	return bz::meta::is_in_types<T, Ts...>;
 }(declaration_types{}, statement_types{});
 
+
 using statement_node_t = typename internal::node_from_type_pack<statement_types>::type;
 
 struct statement : statement_node_t
@@ -89,6 +97,18 @@ struct statement : statement_node_t
 	using base_t::get;
 	using base_t::kind;
 	using base_t::emplace;
+
+	bz::vector<attribute> _attributes;
+	void set_attributes(bz::vector<attribute> attributes) noexcept
+	{
+		this->_attributes = std::move(attributes);
+	}
+
+	auto &get_attributes(void) noexcept
+	{ return this->_attributes; }
+
+	auto const &get_attributes(void) const noexcept
+	{ return this->_attributes; }
 };
 
 
