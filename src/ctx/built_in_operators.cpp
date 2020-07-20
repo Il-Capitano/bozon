@@ -3504,6 +3504,7 @@ ast::expression make_built_in_cast(
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto &expr_t = ast::remove_const_or_consteval(expr_type);
 	auto &dest_t = ast::remove_const_or_consteval(dest_type);
+	bz_assert(ast::is_complete(dest_t));
 
 	auto const src_tokens = as_pos == nullptr
 		? expr.src_tokens
@@ -3768,8 +3769,14 @@ static ast::expression get_built_in_binary_as(
 		context.report_error(rhs, "expected a type");
 		return ast::expression(src_tokens);
 	}
+	auto &dest_type = rhs.get_typename();
+	if (!ast::is_complete(dest_type))
+	{
+		context.report_error(rhs, "type must be a complete type");
+		return ast::expression(src_tokens);
+	}
 
-	return context.make_cast_expression(src_tokens, op, std::move(lhs), std::move(rhs.get_typename()));
+	return context.make_cast_expression(src_tokens, op, std::move(lhs), std::move(dest_type));
 }
 
 struct unary_operator_parse_function_t
