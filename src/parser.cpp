@@ -443,9 +443,10 @@ static void resolve(
 	info.flags |= ast::type_info::instantiable;
 }
 
-void resolve(
+static void resolve(
 	ast::decl_variable &var_decl,
-	ctx::parse_context &context
+	ctx::parse_context &context,
+	bool is_func_param = false
 )
 {
 	if (var_decl.var_type.not_null())
@@ -464,7 +465,33 @@ void resolve(
 		resolve(*base_t.info, context);
 	}
 
-	if (var_decl.init_expr.is<ast::unresolved_expression>())
+	if (!is_func_param && var_decl.init_expr.is_null())
+	{
+		if (
+			var_decl.var_type.is<ast::ts_constant>()
+			|| var_decl.var_type.is<ast::ts_consteval>()
+			|| var_decl.var_type.is<ast::ts_reference>()
+		)
+		{
+			auto const var_type = [&]() -> bz::u8string_view {
+				switch (var_decl.var_type.kind())
+				{
+				case ast::typespec::index<ast::ts_constant>:
+					return "'const'";
+				case ast::typespec::index<ast::ts_consteval>:
+					return "'consteval'";
+				case ast::typespec::index<ast::ts_reference>:
+					return "reference";
+				default:
+					bz_assert(false);
+					return "";
+				}
+			}();
+			context.report_error(var_decl, bz::format("a {} variable must be initialized", var_type));
+			var_decl.var_type.clear();
+		}
+	}
+	else if (var_decl.init_expr.is<ast::unresolved_expression>())
 	{
 		auto const begin = var_decl.init_expr.src_tokens.begin;
 		auto const end   = var_decl.init_expr.src_tokens.end;
@@ -529,7 +556,7 @@ void resolve_symbol_helper(
 	context._has_errors = false;
 	for (auto &p : func_body.params)
 	{
-		resolve(p, context);
+		resolve(p, context, true);
 	}
 	// we need to add local variables, so we can use them in the return type
 	context.add_scope();
@@ -570,7 +597,7 @@ void resolve_helper(
 	{
 		for (auto &p : func_body.params)
 		{
-			resolve(p, context);
+			resolve(p, context, true);
 		}
 		// functions parameters are added seperately, after all of them have been resolved
 		context.add_scope();

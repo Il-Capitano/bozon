@@ -110,6 +110,75 @@ static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 	}
 }
 
+static llvm::Value *get_constant_zero(
+	ast::typespec const &type,
+	llvm::Type *llvm_type,
+	ctx::bitcode_context &context
+)
+{
+	switch (type.kind())
+	{
+	case ast::typespec::index<ast::ts_base_type>:
+	{
+		auto const type_kind = type.get<ast::ts_base_type_ptr>()->info->kind;
+		switch (type_kind)
+		{
+		case ast::type_info::int8_:
+		case ast::type_info::int16_:
+		case ast::type_info::int32_:
+		case ast::type_info::int64_:
+		case ast::type_info::uint8_:
+		case ast::type_info::uint16_:
+		case ast::type_info::uint32_:
+		case ast::type_info::uint64_:
+		case ast::type_info::char_:
+		case ast::type_info::bool_:
+			return llvm::ConstantInt::get(llvm_type, 0);
+		case ast::type_info::float32_:
+		case ast::type_info::float64_:
+			return llvm::ConstantFP::get(llvm_type, 0.0);
+		case ast::type_info::str_:
+		case ast::type_info::null_t_:
+		case ast::type_info::aggregate:
+		{
+			auto const struct_type = llvm::dyn_cast<llvm::StructType>(llvm_type);
+			bz_assert(struct_type != nullptr);
+			return llvm::ConstantStruct::get(struct_type);
+		}
+		default:
+			bz_assert(false);
+		}
+	}
+	case ast::typespec::index<ast::ts_constant>:
+		return get_constant_zero(type.get<ast::ts_constant_ptr>()->base, llvm_type, context);
+	case ast::typespec::index<ast::ts_consteval>:
+		return get_constant_zero(type.get<ast::ts_consteval_ptr>()->base, llvm_type, context);
+	case ast::typespec::index<ast::ts_pointer>:
+	{
+		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
+		bz_assert(ptr_type != nullptr);
+		return llvm::ConstantPointerNull::get(ptr_type);
+	}
+	case ast::typespec::index<ast::ts_function>:
+	{
+		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
+		bz_assert(ptr_type != nullptr);
+		return llvm::ConstantPointerNull::get(ptr_type);
+	}
+
+	case ast::typespec::index<ast::ts_tuple>:
+		bz_assert(false);
+		return nullptr;
+	case ast::typespec::index<ast::ts_unresolved>:
+	case ast::typespec::index<ast::ts_void>:
+	case ast::typespec::index<ast::ts_reference>:
+	case ast::typespec::index<ast::ts_auto>:
+	default:
+		bz_assert(false);
+		return nullptr;
+	}
+}
+
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
@@ -1770,6 +1839,14 @@ static void emit_bitcode(
 	else if (var_decl.init_expr.not_null())
 	{
 		auto const init_val = emit_bitcode(var_decl.init_expr, context).get_value(context);
+		context.builder.CreateStore(init_val, val_ptr);
+	}
+	else
+	{
+		auto const ptr_type = val_ptr->getType();
+		auto const type = llvm::dyn_cast<llvm::PointerType>(ptr_type);
+		bz_assert(type != nullptr);
+		auto const init_val = get_constant_zero(var_decl.var_type, type->getElementType(), context);
 		context.builder.CreateStore(init_val, val_ptr);
 	}
 }

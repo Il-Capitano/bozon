@@ -13,25 +13,25 @@
 namespace ctx
 {
 
-static_assert(ast::type_info::int8_    == 0);
-static_assert(ast::type_info::int16_   == 1);
-static_assert(ast::type_info::int32_   == 2);
-static_assert(ast::type_info::int64_   == 3);
-static_assert(ast::type_info::uint8_   == 4);
-static_assert(ast::type_info::uint16_  == 5);
-static_assert(ast::type_info::uint32_  == 6);
-static_assert(ast::type_info::uint64_  == 7);
-static_assert(ast::type_info::float32_ == 8);
-static_assert(ast::type_info::float64_ == 9);
+static_assert(ast::type_info::int8_    ==  0);
+static_assert(ast::type_info::int16_   ==  1);
+static_assert(ast::type_info::int32_   ==  2);
+static_assert(ast::type_info::int64_   ==  3);
+static_assert(ast::type_info::uint8_   ==  4);
+static_assert(ast::type_info::uint16_  ==  5);
+static_assert(ast::type_info::uint32_  ==  6);
+static_assert(ast::type_info::uint64_  ==  7);
+static_assert(ast::type_info::float32_ ==  8);
+static_assert(ast::type_info::float64_ ==  9);
 static_assert(ast::type_info::char_    == 10);
 static_assert(ast::type_info::str_     == 11);
 static_assert(ast::type_info::bool_    == 12);
 static_assert(ast::type_info::null_t_  == 13);
 
 
-std::array<ast::type_info, ast::type_info::null_t_ + 1> get_default_type_infos(void)
+auto get_default_type_infos(void)
 {
-	return {
+	return std::array{
 		ast::type_info{ ast::type_info::int8_,    ast::type_info::default_built_in_flags, "int8",    {} },
 		ast::type_info{ ast::type_info::int16_,   ast::type_info::default_built_in_flags, "int16",   {} },
 		ast::type_info{ ast::type_info::int32_,   ast::type_info::default_built_in_flags, "int32",   {} },
@@ -53,28 +53,30 @@ static auto default_type_infos = get_default_type_infos();
 
 static bz::vector<type_info_with_name> get_default_types(void)
 {
-	using tiwn = type_info_with_name;
 	return {
-		tiwn{ "int8",    &default_type_infos[ast::type_info::int8_]    },
-		tiwn{ "int16",   &default_type_infos[ast::type_info::int16_]   },
-		tiwn{ "int32",   &default_type_infos[ast::type_info::int32_]   },
-		tiwn{ "int64",   &default_type_infos[ast::type_info::int64_]   },
-		tiwn{ "uint8",   &default_type_infos[ast::type_info::uint8_]   },
-		tiwn{ "uint16",  &default_type_infos[ast::type_info::uint16_]  },
-		tiwn{ "uint32",  &default_type_infos[ast::type_info::uint32_]  },
-		tiwn{ "uint64",  &default_type_infos[ast::type_info::uint64_]  },
-		tiwn{ "float32", &default_type_infos[ast::type_info::float32_] },
-		tiwn{ "float64", &default_type_infos[ast::type_info::float64_] },
-		tiwn{ "char",    &default_type_infos[ast::type_info::char_]    },
-		tiwn{ "str",     &default_type_infos[ast::type_info::str_]     },
-		tiwn{ "bool",    &default_type_infos[ast::type_info::bool_]    },
-		tiwn{ "null_t",  &default_type_infos[ast::type_info::null_t_]  },
+		{ "int8",    &default_type_infos[ast::type_info::int8_]    },
+		{ "int16",   &default_type_infos[ast::type_info::int16_]   },
+		{ "int32",   &default_type_infos[ast::type_info::int32_]   },
+		{ "int64",   &default_type_infos[ast::type_info::int64_]   },
+		{ "uint8",   &default_type_infos[ast::type_info::uint8_]   },
+		{ "uint16",  &default_type_infos[ast::type_info::uint16_]  },
+		{ "uint32",  &default_type_infos[ast::type_info::uint32_]  },
+		{ "uint64",  &default_type_infos[ast::type_info::uint64_]  },
+		{ "float32", &default_type_infos[ast::type_info::float32_] },
+		{ "float64", &default_type_infos[ast::type_info::float64_] },
+		{ "char",    &default_type_infos[ast::type_info::char_]    },
+		{ "str",     &default_type_infos[ast::type_info::str_]     },
+		{ "bool",    &default_type_infos[ast::type_info::bool_]    },
+		{ "null_t",  &default_type_infos[ast::type_info::null_t_]  },
 	};
 }
 
 static std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_built_in_types(llvm::LLVMContext &context)
 {
+	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
+	auto const str_t = llvm::StructType::create("built_in.str", i8_ptr, i8_ptr);
+	auto const null_t = llvm::StructType::create(context, {}, "built_in.null_t");
 	return {
 		llvm::Type::getInt8Ty(context),   // int8_
 		llvm::Type::getInt16Ty(context),  // int16_
@@ -87,12 +89,9 @@ get_llvm_built_in_types(llvm::LLVMContext &context)
 		llvm::Type::getFloatTy(context),  // float32_
 		llvm::Type::getDoubleTy(context), // float64_
 		llvm::Type::getInt32Ty(context),  // char_
-		llvm::StructType::get(
-			llvm::Type::getInt8PtrTy(context),
-			llvm::Type::getInt8PtrTy(context)
-		),                                // str_
+		str_t,                            // str_
 		llvm::Type::getInt1Ty(context),   // bool_
-		llvm::StructType::get(context),   // null_t_
+		null_t,                           // null_t_
 	};
 }
 
