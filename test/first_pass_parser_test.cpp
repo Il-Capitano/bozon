@@ -382,39 +382,45 @@ static void parse_variable_declaration_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::first_pass_parse_context context(global_ctx);
 
-#define x(str, it_pos) xx(parse_variable_declaration, str, it_pos)
-#define x_err(str, it_pos) xx_err(parse_variable_declaration, str, it_pos)
+#define x(str, it_offset) xx(parse_variable_declaration, str, tokens.begin() + it_offset)
+#define x_err(str, it_offset) xx_err(parse_variable_declaration, str, tokens.begin() + it_offset)
 
-	x("let a: int32; a", tokens.begin() + 5);
-	//               ^ tokens.begin() + 5
-	x("let a = 0; a", tokens.begin() + 5);
-	//            ^ tokens.begin() + 5
-	x("let a: int32 = 0; a", tokens.begin() + 7);
-	//                   ^ tokens.begin() + 7
-	x("let &a: int32 = b; a", tokens.begin() + 8);
-	//                    ^ tokens.begin() + 8
-	x("let const a = 0; a", tokens.begin() + 6);
-	//                  ^ tokens.begin() + 6
-	x("const a = 0; a", tokens.begin() + 5);
-	//              ^ tokens.begin() + 5
-	x("let &const **const *const a = 0; a", tokens.begin() + 12);
-	//                                  ^ tokens.begin() + 12
-	x("let a = 0.0; a", tokens.begin() + 5);
-	//              ^ tokens.begin() + 5
+	x("let a: int32; a", 5);
+	//               ^
+	x("let a = 0; a", 5);
+	//            ^
+	x("let a: int32 = 0; a", 7);
+	//                   ^
+	x("let &a: int32 = b; a", 8);
+	//                    ^
+	x("let const a = 0; a", 6);
+	//                  ^
+	x("const a = 0; a", 5);
+	//              ^
+	x("let &const **const *const a = 0; a", 12);
+	//                                  ^
+	x("let a = 0.0; a", 5);
+	//              ^
+	x("const const a = 0; a", 6);
+	//                    ^
+	x("consteval a = 0; a", 5);
+	//                  ^
 
-	x_err("let a: [int32, float64 = [0, 1.3]; a", tokens.begin() + 14);
-	//                                        ^ tokens.begin() + 14
-	x_err("const &a: int32 = b; a", tokens.begin() + 8);
-	//                          ^ tokens.begin() + 8
-	x_err("let &const **&const *const a = 0; a", tokens.begin() + 13);
-	//                                       ^ tokens.begin() + 13
-	x_err("const const a = 0; a", tokens.begin() + 6);
-	//                        ^ tokens.begin() + 6
+	// these are not errors at the first-pass-parsing stage
+	// the reason is, that the prototype is applied while resolving
+	x("const &a: int32 = b; a", 8);
+	//                      ^
+	x("let &const **&const *const a = 0; a", 13);
+	//                                   ^
+
+	x_err("let a: [int32, float64 = [0, 1.3]; a", 14);
+	//                                        ^
 
 #undef x
 #undef x_err
 }
 
+/*
 static void parse_struct_definition_test(void)
 {
 	ctx::global_context global_ctx;
@@ -443,6 +449,7 @@ static void parse_struct_definition_test(void)
 #undef x
 #undef x_err
 }
+*/
 
 static void parse_function_definition_test(void)
 {

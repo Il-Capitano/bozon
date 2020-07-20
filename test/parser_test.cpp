@@ -56,7 +56,7 @@ do {                                                                           \
     auto decl = ast::make_decl_variable(                                       \
         lex::token_range{id, id + 1},                                          \
         id,                                                                    \
-        ast::typespec{},                                                       \
+        lex::token_range{},                                                    \
         ast::make_ts_unresolved(type_src_tokens, type_token_range)             \
     );                                                                         \
     resolve(decl, parse_ctx);                                                  \
