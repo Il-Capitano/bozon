@@ -332,7 +332,13 @@ static ast::typespec add_prototype_to_type(
 	for (auto it = prototype_range.end; it != prototype_range.begin;)
 	{
 		--it;
-		auto const src_tokens = lex::src_tokens{ it, it, result_expr.src_tokens.end };
+		auto const src_tokens = result_expr.get_tokens_end() == nullptr
+			? lex::src_tokens{ it, it, it + 1 }
+			: lex::src_tokens{ it, it, result_expr.get_tokens_end() };
+		if (result_expr.get_tokens_end() == nullptr)
+		{
+			result_expr.src_tokens = src_tokens;
+		}
 		result_expr = context.make_unary_operator_expression(
 			src_tokens, it, std::move(result_expr)
 		);
@@ -350,6 +356,7 @@ static ast::typespec add_prototype_to_type(
 
 void resolve(
 	ast::typespec &ts,
+	precedence prec,
 	ctx::parse_context &context
 )
 {
@@ -360,24 +367,48 @@ void resolve(
 		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
 		auto stream = unresolved_ts->tokens.begin;
 		auto const end = unresolved_ts->tokens.end;
-		auto expr = parse_expression(stream, end, context, precedence{});
+		auto expr = parse_expression(stream, end, context, prec);
+
+		if (expr.not_null() && stream != end)
+		{
+			bz_assert(stream < end);
+			if (is_binary_operator(stream->kind))
+			{
+				bz_assert(stream->kind != lex::token::assign);
+				bz_assert(prec.value != precedence{}.value);
+				context.report_error(
+					{ stream, stream, end },
+					"expected ';' or '=' at the end of a type",
+					{ context.make_note(
+						stream,
+						bz::format("operator {} is not allowed in a variable declaration's type", stream->value)
+					) }
+				);
+			}
+			else
+			{
+				context.report_error({ stream, stream, end }, "unexpected tokens");
+			}
+			expr.clear();
+		}
+
 		if (expr.is_null())
 		{
 			bz_assert(context.has_errors());
-			ts = ast::typespec();
+			ts = ast::typespec(expr.src_tokens);
 			break;
 		}
 		if (!expr.is<ast::constant_expression>())
 		{
 			context.report_error(expr, "expected a type");
-			ts = ast::typespec();
+			ts = ast::typespec(expr.src_tokens);
 			break;
 		}
 		auto &const_expr = expr.get<ast::constant_expression>();
 		if (const_expr.kind != ast::expression_type_kind::type_name)
 		{
 			context.report_error(expr, "expected a type");
-			ts = ast::typespec();
+			ts = ast::typespec(expr.src_tokens);
 			break;
 		}
 		bz_assert(const_expr.value.kind() == ast::constant_value::type);
@@ -419,7 +450,7 @@ void resolve(
 {
 	if (var_decl.var_type.not_null())
 	{
-		resolve(var_decl.var_type, context);
+		resolve(var_decl.var_type, no_assign, context);
 	}
 	var_decl.var_type = add_prototype_to_type(var_decl.prototype_range, var_decl.var_type, context);
 
@@ -504,7 +535,7 @@ void resolve_symbol_helper(
 	{
 		context.add_local_variable(p);
 	}
-	resolve(func_body.return_type, context);
+	resolve(func_body.return_type, precedence{}, context);
 	context.remove_scope();
 
 	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
@@ -545,7 +576,7 @@ void resolve_helper(
 		{
 			context.add_local_variable(p);
 		}
-		resolve(func_body.return_type, context);
+		resolve(func_body.return_type, precedence{}, context);
 
 		if (func_body.llvm_func == nullptr)
 		{

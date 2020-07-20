@@ -143,23 +143,24 @@ constexpr std::array operator_precedences = {
 	prec_t{ prec_t::binary, lex::token::bool_xor,           { 15, true  } },
 	prec_t{ prec_t::binary, lex::token::bool_or,            { 16, true  } },
 
-	prec_t{ prec_t::binary, lex::token::assign,             { 17, false } },
-	prec_t{ prec_t::binary, lex::token::plus_eq,            { 17, false } },
-	prec_t{ prec_t::binary, lex::token::minus_eq,           { 17, false } },
-	prec_t{ prec_t::binary, lex::token::multiply_eq,        { 17, false } },
-	prec_t{ prec_t::binary, lex::token::divide_eq,          { 17, false } },
-	prec_t{ prec_t::binary, lex::token::modulo_eq,          { 17, false } },
-	prec_t{ prec_t::binary, lex::token::dot_dot_eq,         { 17, false } },
-	prec_t{ prec_t::binary, lex::token::bit_left_shift_eq,  { 17, false } },
-	prec_t{ prec_t::binary, lex::token::bit_right_shift_eq, { 17, false } },
-	prec_t{ prec_t::binary, lex::token::bit_and_eq,         { 17, false } },
-	prec_t{ prec_t::binary, lex::token::bit_xor_eq,         { 17, false } },
-	prec_t{ prec_t::binary, lex::token::bit_or_eq,          { 17, false } },
+	prec_t{ prec_t::binary, lex::token::assign,             { 18, false } },
+	prec_t{ prec_t::binary, lex::token::plus_eq,            { 18, false } },
+	prec_t{ prec_t::binary, lex::token::minus_eq,           { 18, false } },
+	prec_t{ prec_t::binary, lex::token::multiply_eq,        { 18, false } },
+	prec_t{ prec_t::binary, lex::token::divide_eq,          { 18, false } },
+	prec_t{ prec_t::binary, lex::token::modulo_eq,          { 18, false } },
+	prec_t{ prec_t::binary, lex::token::dot_dot_eq,         { 18, false } },
+	prec_t{ prec_t::binary, lex::token::bit_left_shift_eq,  { 18, false } },
+	prec_t{ prec_t::binary, lex::token::bit_right_shift_eq, { 18, false } },
+	prec_t{ prec_t::binary, lex::token::bit_and_eq,         { 18, false } },
+	prec_t{ prec_t::binary, lex::token::bit_xor_eq,         { 18, false } },
+	prec_t{ prec_t::binary, lex::token::bit_or_eq,          { 18, false } },
 
-	prec_t{ prec_t::binary, lex::token::comma,              { 19, true  } },
+	prec_t{ prec_t::binary, lex::token::comma,              { 20, true  } },
 };
 
-constexpr precedence no_comma      { 18, true };
+constexpr precedence no_assign     { 17, true };
+constexpr precedence no_comma      { 19, true };
 constexpr precedence call_prec     {  2, true };
 constexpr precedence subscript_prec{  2, true };
 
