@@ -667,11 +667,12 @@ static ast::expression get_built_in_unary_const(
 	parse_context &context
 )
 {
+	bz_assert(op->kind == lex::token::kw_const);
+	bz_assert(expr.not_null());
+	bz_assert(expr.get_tokens_end() != nullptr);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
-	if (
-		!expr.is<ast::constant_expression>()
-		|| expr.get<ast::constant_expression>().kind != ast::expression_type_kind::type_name
-	)
+
+	if (!expr.is_typename())
 	{
 		context.report_error(src_tokens, "expected a type");
 	}
@@ -708,6 +709,9 @@ static ast::expression get_built_in_unary_consteval(
 	parse_context &context
 )
 {
+	bz_assert(op->kind == lex::token::kw_consteval);
+	bz_assert(expr.not_null());
+	bz_assert(expr.get_tokens_end() != nullptr);
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 	if (
 		!expr.is<ast::constant_expression>()
