@@ -195,7 +195,10 @@ float32_t safe_add(
 )
 {
 	auto const result = a + b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -212,7 +215,10 @@ float64_t safe_add(
 )
 {
 	auto const result = a + b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -387,7 +393,10 @@ float32_t safe_subtract(
 )
 {
 	auto const result = a - b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -404,7 +413,10 @@ float64_t safe_subtract(
 )
 {
 	auto const result = a - b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -514,7 +526,10 @@ float32_t safe_multiply(
 )
 {
 	auto const result = a * b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -531,7 +546,10 @@ float64_t safe_multiply(
 )
 {
 	auto const result = a * b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -612,7 +630,10 @@ float32_t safe_divide(
 )
 {
 	auto const result = a / b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
@@ -629,7 +650,10 @@ float64_t safe_divide(
 )
 {
 	auto const result = a / b;
-	if (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	if (
+		(!std::isnan(a) && !std::isnan(b) && std::isnan(result))
+		|| (std::isfinite(a) && std::isfinite(b) && !std::isfinite(result))
+	)
 	{
 		context.report_parenthesis_suppressed_warning(
 			src_tokens,
