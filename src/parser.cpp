@@ -858,247 +858,304 @@ static void resolve_attributes(
 	}
 }
 
-void resolve(
-	ast::statement &stmt,
-	ctx::parse_context &context
-)
-{
-	resolve_attributes(stmt, context);
 
-	switch (stmt.kind())
-	{
-	case ast::statement::index<ast::stmt_if>:
-	{
-		context.add_scope();
-		auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
-		resolve(if_stmt.condition, context);
-		resolve(if_stmt.then_block, context);
-		context.remove_scope();
-		if (if_stmt.else_block.has_value())
-		{
-			context.add_scope();
-			resolve(*if_stmt.else_block, context);
-			context.remove_scope();
-		}
-		break;
-	}
-	case ast::statement::index<ast::stmt_while>:
+static void resolve_stmt_if(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_if>);
+	context.add_scope();
+	auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
+	resolve(if_stmt.condition, context);
+	resolve(if_stmt.then_block, context);
+	context.remove_scope();
+	if (if_stmt.else_block.has_value())
 	{
 		context.add_scope();
-		auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
-		resolve(while_stmt.condition, context);
-		resolve(while_stmt.while_block, context);
+		resolve(*if_stmt.else_block, context);
 		context.remove_scope();
-		break;
 	}
-	case ast::statement::index<ast::stmt_for>:
+}
+
+static void resolve_stmt_while(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_while>);
+	context.add_scope();
+	auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
+	resolve(while_stmt.condition, context);
+	resolve(while_stmt.while_block, context);
+	context.remove_scope();
+}
+
+static void resolve_stmt_for(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_for>);
+	auto &for_stmt = *stmt.get<ast::stmt_for_ptr>();
+	context.add_scope();
+	if (for_stmt.init.not_null())
 	{
-		auto &for_stmt = *stmt.get<ast::stmt_for_ptr>();
-		context.add_scope();
-		if (for_stmt.init.not_null())
-		{
-			resolve(for_stmt.init, context);
-		}
-		if (for_stmt.condition.not_null())
-		{
-			resolve(for_stmt.condition, context);
-		}
-		if (for_stmt.iteration.not_null())
-		{
-			resolve(for_stmt.iteration, context);
-		}
-		resolve(for_stmt.for_block, context);
-		context.remove_scope();
-		break;
+		resolve(for_stmt.init, context);
 	}
-	case ast::statement::index<ast::stmt_return>:
+	if (for_stmt.condition.not_null())
 	{
-		auto &ret_expr = stmt.get<ast::stmt_return_ptr>()->expr;
-		if (ret_expr.not_null())
-		{
-			resolve(ret_expr, context);
-		}
-		break;
+		resolve(for_stmt.condition, context);
 	}
-	case ast::statement::index<ast::stmt_no_op>:
-		break;
-	case ast::statement::index<ast::stmt_compound>:
+	if (for_stmt.iteration.not_null())
 	{
-		auto &comp_stmt = *stmt.get<ast::stmt_compound_ptr>();
-		context.add_scope();
-		for (auto &s : comp_stmt.statements)
-		{
-			resolve(s, context);
-		}
-		context.remove_scope();
-		break;
+		resolve(for_stmt.iteration, context);
 	}
-	case ast::statement::index<ast::stmt_expression>:
-		resolve(stmt.get<ast::stmt_expression_ptr>()->expr, context);
-		break;
-	case ast::statement::index<ast::stmt_static_assert>:
+	resolve(for_stmt.for_block, context);
+	context.remove_scope();
+}
+
+static void resolve_stmt_return(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_return>);
+	auto &ret_expr = stmt.get<ast::stmt_return_ptr>()->expr;
+	if (ret_expr.not_null())
 	{
-		auto &static_assert_stmt = *stmt.get<ast::stmt_static_assert_ptr>();
-		auto const begin = static_assert_stmt.arg_tokens.begin;
-		auto const end = static_assert_stmt.arg_tokens.end;
-		if (begin == end)
-		{
-			context.report_error(begin, "static_assert expects 1 or 2 arguments, but got 0");
-			break;
-		}
-		auto stream = begin;
-		auto args = parse_expression_comma_list(stream, end, context);
-		if (stream != end)
-		{
-			context.report_error({ stream, stream, end }, "expected ',' or closing )");
-		}
-		if (args.size() != 1 && args.size() != 2)
-		{
-			context.report_error(
-				{ begin, begin, end },
-				bz::format("static_assert expects 1 or 2 arguments, but got {}", args.size())
-			);
-			break;
-		}
-		else
-		{
-			auto const verify_condition = [&]() {
-				auto &condition = args[0];
-				if (condition.is_null())
-				{
-					bz_assert(context.has_errors());
-					return false;
-				}
-				else if (!condition.is<ast::constant_expression>())
+		resolve(ret_expr, context);
+	}
+}
+
+static void resolve_stmt_no_op(ast::statement &, ctx::parse_context &)
+{}
+
+static void resolve_stmt_compound(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_compound>);
+	auto &comp_stmt = *stmt.get<ast::stmt_compound_ptr>();
+	context.add_scope();
+	for (auto &s : comp_stmt.statements)
+	{
+		resolve(s, context);
+	}
+	context.remove_scope();
+}
+
+static void resolve_stmt_static_assert(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_static_assert>);
+	auto &static_assert_stmt = *stmt.get<ast::stmt_static_assert_ptr>();
+	auto const begin = static_assert_stmt.arg_tokens.begin;
+	auto const end = static_assert_stmt.arg_tokens.end;
+	if (begin == end)
+	{
+		context.report_error(begin, "static_assert expects 1 or 2 arguments, but got 0");
+		return;
+	}
+	auto stream = begin;
+	auto args = parse_expression_comma_list(stream, end, context);
+	if (stream != end)
+	{
+		context.report_error({ stream, stream, end }, "expected ',' or closing )");
+	}
+	if (args.size() != 1 && args.size() != 2)
+	{
+		context.report_error(
+			{ begin, begin, end },
+			bz::format("static_assert expects 1 or 2 arguments, but got {}", args.size())
+		);
+		return;
+	}
+	else
+	{
+		auto const verify_condition = [&]() {
+			auto &condition = args[0];
+			if (condition.is_null())
+			{
+				bz_assert(context.has_errors());
+				return false;
+			}
+			else if (!condition.is<ast::constant_expression>())
+			{
+				context.report_error(
+					condition,
+					"condition for static assertion must be a constant expression"
+				);
+				return false;
+			}
+			else
+			{
+				auto &const_expr = condition.get<ast::constant_expression>();
+				if (const_expr.value.kind() != ast::constant_value::boolean)
 				{
 					context.report_error(
 						condition,
-						"condition for static assertion must be a constant expression"
+						bz::format(
+							"condition for static assertion must be of type 'bool', but got '{}'",
+							const_expr.type
+						)
 					);
 					return false;
 				}
-				else
-				{
-					auto &const_expr = condition.get<ast::constant_expression>();
-					if (const_expr.value.kind() != ast::constant_value::boolean)
-					{
-						context.report_error(
-							condition,
-							bz::format(
-								"condition for static assertion must be of type 'bool', but got '{}'",
-								const_expr.type
-							)
-						);
-						return false;
-					}
-					static_assert_stmt.condition = std::move(condition);
-					return true;
-				}
-			};
+				static_assert_stmt.condition = std::move(condition);
+				return true;
+			}
+		};
 
-			auto const verify_message = [&]() {
-				bz_assert(args.size() == 2);
-				auto &message = args[1];
-				if (message.is_null())
-				{
-					bz_assert(context.has_errors());
-					return false;
-				}
-				else if (!message.is<ast::constant_expression>())
+		auto const verify_message = [&]() {
+			bz_assert(args.size() == 2);
+			auto &message = args[1];
+			if (message.is_null())
+			{
+				bz_assert(context.has_errors());
+				return false;
+			}
+			else if (!message.is<ast::constant_expression>())
+			{
+				context.report_error(
+					message,
+					"message for static assertion must be a constant expression"
+				);
+				return false;
+			}
+			else
+			{
+				auto &const_expr = message.get<ast::constant_expression>();
+				if (const_expr.value.kind() != ast::constant_value::string)
 				{
 					context.report_error(
 						message,
-						"message for static assertion must be a constant expression"
+						bz::format(
+							"message for static assertion must be of type 'str', but got '{}'",
+							const_expr.type
+						)
 					);
 					return false;
 				}
-				else
-				{
-					auto &const_expr = message.get<ast::constant_expression>();
-					if (const_expr.value.kind() != ast::constant_value::string)
-					{
-						context.report_error(
-							message,
-							bz::format(
-								"message for static assertion must be of type 'str', but got '{}'",
-								const_expr.type
-							)
-						);
-						return false;
-					}
-					static_assert_stmt.message = std::move(message);
-					return true;
-				}
-			};
-
-			auto const condition_good = verify_condition();
-			auto const message_good = args.size() != 2 || verify_message();
-
-			if (!condition_good)
-			{
-				bz_assert(context.has_errors());
-				break;
+				static_assert_stmt.message = std::move(message);
+				return true;
 			}
+		};
 
-			auto const condition_value = static_assert_stmt.condition.get<ast::constant_expression>()
-				.value.get<ast::constant_value::boolean>();
-			if (!condition_value)
+		auto const condition_good = verify_condition();
+		auto const message_good = args.size() != 2 || verify_message();
+
+		if (!condition_good)
+		{
+			bz_assert(context.has_errors());
+			return;
+		}
+
+		auto const condition_value = static_assert_stmt.condition.get<ast::constant_expression>()
+			.value.get<ast::constant_value::boolean>();
+		if (!condition_value)
+		{
+			if (args.size() == 1 || !message_good)
 			{
-				if (args.size() == 1 || !message_good)
-				{
-					context.report_error(args[0], "static assertion failed");
-				}
-				else
-				{
-					auto const message = static_assert_stmt.message.get<ast::constant_expression>()
-						.value.get<ast::constant_value::string>().as_string_view();
-					context.report_error(args[0], bz::format("static assertion failed, message: {}", message));
-				}
+				context.report_error(args[0], "static assertion failed");
+			}
+			else
+			{
+				auto const message = static_assert_stmt.message.get<ast::constant_expression>()
+					.value.get<ast::constant_value::string>().as_string_view();
+				context.report_error(args[0], bz::format("static assertion failed, message: {}", message));
 			}
 		}
-		break;
 	}
-	case ast::statement::index<ast::decl_variable>:
+}
+
+static void resolve_stmt_expression(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::stmt_expression>);
+	resolve(stmt.get<ast::stmt_expression_ptr>()->expr, context);
+}
+
+static void resolve_decl_variable(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::decl_variable>);
+	auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
+	resolve(var_decl, context);
+	if (context.scope_decls.size() != 0)
 	{
-		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
-		resolve(var_decl, context);
-		if (context.scope_decls.size() != 0)
-		{
-			context.add_local_variable(var_decl);
-		}
-		break;
+		context.add_local_variable(var_decl);
 	}
-	case ast::statement::index<ast::decl_function>:
+}
+
+static void resolve_decl_function(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::decl_function>);
+	auto &func_decl = *stmt.get<ast::decl_function_ptr>();
+	if (func_decl.body.symbol_name == "" && func_decl.body.function_name == "main")
 	{
-		// this is a declaration inside a scope
-		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
-		if (func_decl.body.symbol_name == "" && func_decl.body.function_name == "main")
-		{
-			func_decl.body.symbol_name = "main";
-		}
-		resolve(func_decl.body, context);
-		if (context.scope_decls.size() != 0)
-		{
-			context.add_local_function(func_decl);
-		}
-		break;
+		func_decl.body.symbol_name = "main";
 	}
-	case ast::statement::index<ast::decl_operator>:
+	resolve(func_decl.body, context);
+	if (context.scope_decls.size() != 0)
 	{
-		// this is a declaration inside a scope
-		auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
-		resolve(op_decl.body, context);
-		if (context.scope_decls.size() != 0)
-		{
-			context.add_local_operator(op_decl);
+		context.add_local_function(func_decl);
+	}
+}
+
+static void resolve_decl_operator(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(stmt.kind() == ast::statement::index<ast::decl_operator>);
+	auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
+	resolve(op_decl.body, context);
+	if (context.scope_decls.size() != 0)
+	{
+		context.add_local_operator(op_decl);
+	}
+}
+
+static void resolve_decl_struct(ast::statement &stmt, ctx::parse_context &context)
+{
+	bz_assert(false);
+}
+
+
+using resolver_fn_t = void (*)(ast::statement &stmt, ctx::parse_context &context);
+
+struct statement_resolver
+{
+	size_t        kind;
+	resolver_fn_t resolve_fn;
+};
+
+constexpr auto statement_resolvers = []() {
+	std::array result = {
+		statement_resolver{ ast::statement::index<ast::stmt_if>,            &resolve_stmt_if            },
+		statement_resolver{ ast::statement::index<ast::stmt_while>,         &resolve_stmt_while         },
+		statement_resolver{ ast::statement::index<ast::stmt_for>,           &resolve_stmt_for           },
+		statement_resolver{ ast::statement::index<ast::stmt_return>,        &resolve_stmt_return        },
+		statement_resolver{ ast::statement::index<ast::stmt_no_op>,         &resolve_stmt_no_op         },
+		statement_resolver{ ast::statement::index<ast::stmt_compound>,      &resolve_stmt_compound      },
+		statement_resolver{ ast::statement::index<ast::stmt_static_assert>, &resolve_stmt_static_assert },
+		statement_resolver{ ast::statement::index<ast::stmt_expression>,    &resolve_stmt_expression    },
+		statement_resolver{ ast::statement::index<ast::decl_variable>,      &resolve_decl_variable      },
+		statement_resolver{ ast::statement::index<ast::decl_function>,      &resolve_decl_function      },
+		statement_resolver{ ast::statement::index<ast::decl_operator>,      &resolve_decl_operator      },
+		statement_resolver{ ast::statement::index<ast::decl_struct>,        &resolve_decl_struct        },
+	};
+
+	constexpr_bubble_sort(
+		result,
+		[](auto const &lhs, auto const &rhs) {
+			return lhs.kind < rhs.kind;
+		},
+		[](auto &lhs, auto &rhs) {
+			auto const tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
 		}
-		break;
-	}
-	case ast::statement::index<ast::decl_struct>:
-	default:
-		bz_assert(false);
-		break;
-	}
+	);
+
+	return result;
+}();
+
+static_assert(statement_resolvers.size() == ast::statement_types::size());
+
+void resolve(ast::statement &stmt, ctx::parse_context &context)
+{
+	resolve_attributes(stmt, context);
+
+	[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+		auto const kind = stmt.kind();
+		((
+			statement_resolvers[Ns].kind == kind
+			? (void)(statement_resolvers[Ns].resolve_fn(stmt, context))
+			: (void)0
+		), ...);
+	}(bz::meta::make_index_sequence<statement_resolvers.size()>{});
 }
 
 
