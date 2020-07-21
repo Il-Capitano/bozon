@@ -59,7 +59,8 @@ do {                                                                           \
         lex::token_range{},                                                    \
         ast::make_ts_unresolved(type_src_tokens, type_token_range)             \
     );                                                                         \
-    resolve(decl, parse_ctx);                                                  \
+    auto &var_decl = *decl.get<ast::decl_variable_ptr>();                      \
+    resolve(var_decl, parse_ctx, true);                                        \
     var_decls.emplace_back(std::move(decl.get<ast::decl_variable_ptr>()));     \
     assert_false(global_ctx.has_errors());                                     \
     parse_ctx.add_local_variable(*var_decls.back());                           \
@@ -979,6 +980,7 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 	x_const_expr("255u8 + 3u8", ast::constant_value::uint, uint8_t(258));
 	x_warn("255u8 + 3u8");
 	x("(255u8 + 3u8)");
+	x_const_expr("~0u64", ast::constant_value::uint, std::numeric_limits<uint64_t>::max());
 
 /*
 	x_const_expr("42", ast::type_info::int32_, ast::constant_value::sint, 42);
