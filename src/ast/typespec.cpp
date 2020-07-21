@@ -233,4 +233,34 @@ bool is_instantiable(typespec const &ts)
 	}
 }
 
+
+bz::u8string get_symbol_name_for_type(typespec const &ts)
+{
+	switch (ts.kind())
+	{
+	case typespec::index<ts_base_type>:
+		return ts.get<ast::ts_base_type_ptr>()->info->name;
+	case typespec::index<ts_void>:
+		return "void";
+	case typespec::index<ts_constant>:
+		return bz::format("const.{}", get_symbol_name_for_type(ts.get<ast::ts_constant_ptr>()->base));
+	case typespec::index<ts_consteval>:
+		return bz::format("consteval.{}", get_symbol_name_for_type(ts.get<ast::ts_consteval_ptr>()->base));
+	case typespec::index<ts_pointer>:
+		return bz::format("0P.{}", get_symbol_name_for_type(ts.get<ast::ts_pointer_ptr>()->base));
+	case typespec::index<ts_reference>:
+		return bz::format("0R.{}", get_symbol_name_for_type(ts.get<ast::ts_reference_ptr>()->base));
+	case typespec::index<ts_function>:
+	case typespec::index<ts_tuple>:
+		bz_assert(false);
+		return "";
+	case typespec::index<ts_auto>:
+		bz_assert(false);
+		return "";
+	default:
+		// null case shouldn't assert
+		return "";
+	}
+}
+
 } // namespace ast

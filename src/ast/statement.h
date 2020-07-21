@@ -294,8 +294,15 @@ struct function_body
 	bz::vector<decl_variable>           params;
 	typespec                            return_type;
 	bz::optional<bz::vector<statement>> body;
+	bz::u8string                        function_name;
 	bz::u8string                        symbol_name;
 	llvm::Function                     *llvm_func;
+
+	bool is_symbol_resolved(void) const noexcept
+	{ return this->llvm_func != nullptr; }
+
+	bool not_symbol_resolved(void) const noexcept
+	{ return this->llvm_func == nullptr; }
 };
 
 struct decl_function
@@ -313,6 +320,7 @@ struct decl_function
 			  std::move(_params),
 			  std::move(_ret_type),
 			  {},
+			  _id->value,
 			  "",
 			  nullptr
 		  }
@@ -329,6 +337,7 @@ struct decl_function
 			  std::move(_params),
 			  std::move(_ret_type),
 			  std::move(_body),
+			  _id->value,
 			  "",
 			  nullptr
 		  }
@@ -351,6 +360,7 @@ struct decl_operator
 			  std::move(_params),
 			  std::move(_ret_type),
 			  std::move(_body),
+			  bz::format("{}", _op->kind),
 			  "",
 			  nullptr
 		  }
@@ -366,6 +376,7 @@ struct decl_operator
 			  std::move(_params),
 			  std::move(_ret_type),
 			  {},
+			  bz::format("{}", _op->kind),
 			  "",
 			  nullptr
 		  }

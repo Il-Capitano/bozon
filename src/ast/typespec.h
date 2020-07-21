@@ -353,6 +353,8 @@ inline bool is_complete(typespec const &ts)
 
 bool is_instantiable(typespec const &ts);
 
+bz::u8string get_symbol_name_for_type(typespec const &ts);
+
 } // namespace ast
 
 #endif // AST_TYPESPEC_H

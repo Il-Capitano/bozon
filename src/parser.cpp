@@ -538,19 +538,13 @@ static void resolve(
 	}
 }
 
-void resolve_symbol_helper(
+static void resolve_symbol_helper(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
 	bz_assert(context.scope_decls.size() == 0);
-	// if llvm_func is set, the symbol has already been resolved
-	if (func_body.llvm_func != nullptr)
-	{
-		auto const symbol_name = func_body.symbol_name.as_string_view();
-		func_body.llvm_func->setName(llvm::StringRef(symbol_name.data(), symbol_name.size()));
-		return;
-	}
+	bz_assert(func_body.llvm_func == nullptr);
 
 	// reset has_errors
 	context._has_errors = false;
@@ -565,9 +559,27 @@ void resolve_symbol_helper(
 		context.add_local_variable(p);
 	}
 	resolve(func_body.return_type, precedence{}, context);
-	context.remove_scope();
 
-	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, "");
+	if (func_body.symbol_name == "")
+	{
+		bz_assert(func_body.function_name.size() != 0);
+		auto const first_char = *func_body.function_name.begin();
+		auto const is_op = first_char >= '1' && first_char <= '9';
+		auto symbol_name = bz::format("{}.{}", is_op ? "op" : "func", func_body.function_name);
+		symbol_name += bz::format("..{}", func_body.params.size());
+		for (auto &p : func_body.params)
+		{
+			symbol_name += '.';
+			symbol_name += ast::get_symbol_name_for_type(p.var_type);
+		}
+		symbol_name += '.';
+		symbol_name += ast::get_symbol_name_for_type(func_body.return_type);
+
+		func_body.symbol_name = std::move(symbol_name);
+	}
+
+	func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
+	context.remove_scope();
 }
 
 void resolve_symbol(
@@ -575,6 +587,11 @@ void resolve_symbol(
 	ctx::parse_context &context
 )
 {
+	if (func_body.is_symbol_resolved())
+	{
+		return;
+	}
+
 	if (context.scope_decls.size() != 0)
 	{
 		ctx::parse_context inner_context(context.global_ctx);
@@ -587,7 +604,7 @@ void resolve_symbol(
 	}
 }
 
-void resolve_helper(
+static void resolve_helper(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
@@ -595,9 +612,12 @@ void resolve_helper(
 	bz_assert(context.scope_decls.size() == 0);
 	if (func_body.body.has_value())
 	{
-		for (auto &p : func_body.params)
+		if (func_body.not_symbol_resolved())
 		{
-			resolve(p, context, true);
+			for (auto &p : func_body.params)
+			{
+				resolve(p, context, true);
+			}
 		}
 		// functions parameters are added seperately, after all of them have been resolved
 		context.add_scope();
@@ -605,30 +625,55 @@ void resolve_helper(
 		{
 			context.add_local_variable(p);
 		}
-		resolve(func_body.return_type, precedence{}, context);
+		if (func_body.not_symbol_resolved())
+		{
+			resolve(func_body.return_type, precedence{}, context);
+		}
 
-		if (func_body.llvm_func == nullptr)
+		if (func_body.not_symbol_resolved() && func_body.symbol_name == "")
+		{
+			bz_assert(func_body.function_name.size() != 0);
+			auto const first_char = *func_body.function_name.begin();
+			auto const is_op = first_char >= '1' && first_char <= '9';
+			auto symbol_name = bz::format("{}.{}", is_op ? "op" : "func", func_body.function_name);
+			symbol_name += bz::format("..{}", func_body.params.size());
+			for (auto &p : func_body.params)
+			{
+				symbol_name += '.';
+				symbol_name += ast::get_symbol_name_for_type(p.var_type);
+			}
+			symbol_name += '.';
+			symbol_name += ast::get_symbol_name_for_type(func_body.return_type);
+
+			func_body.symbol_name = std::move(symbol_name);
+		}
+
+		if (func_body.not_symbol_resolved())
 		{
 			func_body.llvm_func = context.make_llvm_func_for_symbol(func_body, func_body.symbol_name);
 		}
 		else
 		{
-			auto const symbol_name = func_body.symbol_name.as_string_view();
-			func_body.llvm_func->setName(llvm::StringRef(symbol_name.data(), symbol_name.size()));
+			bz_assert(([&]() {
+				auto const symbol_name = func_body.symbol_name.as_string_view();
+				return func_body.llvm_func->getName()
+					== llvm::StringRef(symbol_name.data(), symbol_name.size());
+			}()));
 		}
+
 		for (auto &stmt : *func_body.body)
 		{
 			resolve(stmt, context);
 		}
 		context.remove_scope();
 	}
-	else
+	else if (func_body.not_symbol_resolved())
 	{
 		resolve_symbol_helper(func_body, context);
 	}
 }
 
-void resolve(
+static void resolve(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
@@ -703,6 +748,10 @@ static bool check_attribute(
 			}
 			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
 			func_body.symbol_name = extern_name;
+			if (func_body.llvm_func != nullptr)
+			{
+				func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
+			}
 			return true;
 		}
 		return false;
@@ -729,6 +778,10 @@ static bool check_attribute(
 			}
 			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
 			func_body.symbol_name = extern_name;
+			if (func_body.llvm_func != nullptr)
+			{
+				func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
+			}
 			return true;
 		}
 		return false;
@@ -775,6 +828,7 @@ static void resolve_attributes(
 		}
 
 		auto [stream, end] = atr.arg_tokens;
+		// stream == end is handled in parse_expression_comma_list
 		atr.args = parse_expression_comma_list(stream, end, context);
 		bool good = true;
 
@@ -1018,16 +1072,9 @@ void resolve(
 	{
 		// this is a declaration inside a scope
 		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
-		if (func_decl.body.symbol_name == "")
+		if (func_decl.body.symbol_name == "" && func_decl.body.function_name == "main")
 		{
-			if (func_decl.identifier->value == "main")
-			{
-				func_decl.body.symbol_name = "main";
-			}
-			else
-			{
-				func_decl.body.symbol_name = bz::format("func.{}", func_decl.identifier->value);
-			}
+			func_decl.body.symbol_name = "main";
 		}
 		resolve(func_decl.body, context);
 		if (context.scope_decls.size() != 0)
