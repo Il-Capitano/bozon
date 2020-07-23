@@ -76,18 +76,21 @@ static void get_token_value_test(void)
 
 static void skip_comments_and_whitespace_test(void)
 {
+	ctx::global_context global_ctx;
+	ctx::lex_context lex_ctx(global_ctx);
+
 	{
 		bz::u8string_view file = "";
 		assert_eq(file.begin(), file.end());
 		file_iterator it = { file.begin(), "" };
-		skip_comments_and_whitespace(it, file.end());
+		skip_comments_and_whitespace(it, file.end(), lex_ctx);
 		assert_eq(it.it, file.end());
 	}
 
-#define x(str)                           \
-bz::u8string_view file = str;            \
-file_iterator it = { file.begin(), "" }; \
-skip_comments_and_whitespace(it, file.end())
+#define x(str)                                        \
+bz::u8string_view file = str;                         \
+file_iterator it = { file.begin(), "" };              \
+skip_comments_and_whitespace(it, file.end(), lex_ctx)
 
 	{
 		x("this is not whitespace");
@@ -142,6 +145,7 @@ skip_comments_and_whitespace(it, file.end())
 	{
 		x("/* comment ");
 		assert_eq(it.it, file.end());
+		assert_true(global_ctx.has_warnings());
 	}
 
 	{
