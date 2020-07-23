@@ -120,7 +120,7 @@ struct expression : bz::variant<
 		auto const const_expr = this->get_if<constant_expression>();
 		return const_expr
 			&& const_expr->kind == expression_type_kind::function_name
-			&& const_expr->type.nodes.is_empty();
+			&& const_expr->type.is_empty();
 	}
 
 	bool is_typename(void) const noexcept
