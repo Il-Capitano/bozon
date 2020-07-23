@@ -57,7 +57,7 @@ do {                                                                           \
         lex::token_range{id, id + 1},                                          \
         id,                                                                    \
         lex::token_range{},                                                    \
-        ast::make_ts_unresolved(type_src_tokens, type_token_range)             \
+        ast::make_unresolved_typespec(type_token_range)                        \
     );                                                                         \
     auto &var_decl = *decl.get<ast::decl_variable_ptr>();                      \
     resolve(var_decl, parse_ctx, true);                                        \
@@ -115,18 +115,18 @@ static void parse_primary_expression_test(void)
 #define x_warn(str) xx_warn(parse_primary_expression, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_primary_expression, str, tokens.end() - 1, true)
 
-#define x_const_expr(str, _type, const_expr_kind, const_expr_value)                                   \
-xx_compiles(                                                                                          \
-    parse_primary_expression,                                                                         \
-    str,                                                                                              \
-    tokens.end() - 1,                                                                                 \
-    (                                                                                                 \
-        res.is<ast::constant_expression>()                                                            \
-        && res.get<ast::constant_expression>().type.is<ast::ts_base_type>()                           \
-        && res.get<ast::constant_expression>().type.get<ast::ts_base_type_ptr>()->info->kind == _type \
-        && res.get<ast::constant_expression>().value.kind() == const_expr_kind                        \
-        && (res.get<ast::constant_expression>().value.get<const_expr_kind>()) == (const_expr_value)   \
-    )                                                                                                 \
+#define x_const_expr(str, _type, const_expr_kind, const_expr_value)                                 \
+xx_compiles(                                                                                        \
+    parse_primary_expression,                                                                       \
+    str,                                                                                            \
+    tokens.end() - 1,                                                                               \
+    (                                                                                               \
+        res.is<ast::constant_expression>()                                                          \
+        && res.get<ast::constant_expression>().type.is<ast::ts_base_type>()                         \
+        && res.get<ast::constant_expression>().type.get<ast::ts_base_type>().info->kind == _type    \
+        && res.get<ast::constant_expression>().value.kind() == const_expr_kind                      \
+        && (res.get<ast::constant_expression>().value.get<const_expr_kind>()) == (const_expr_value) \
+    )                                                                                               \
 )
 
 	// add scope to allow variables
@@ -321,29 +321,29 @@ static void parse_expression_test(void)
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
 
-#define x_base_t(str, type_kind)                                              \
-xx(                                                                           \
-    parse_expression_alt,                                                     \
-    str,                                                                      \
-    tokens.end() - 1,                                                         \
-    ([&]() {                                                                  \
-        if (res.is<ast::constant_expression>())                               \
-        {                                                                     \
-            auto &const_expr = res.get<ast::constant_expression>();           \
-            auto base_type = const_expr.type.get_if<ast::ts_base_type_ptr>(); \
-            return base_type && (*base_type)->info->kind == (type_kind);      \
-        }                                                                     \
-        else if (res.is<ast::dynamic_expression>())                           \
-        {                                                                     \
-            auto &dyn_expr = res.get<ast::dynamic_expression>();              \
-            auto base_type = dyn_expr.type.get_if<ast::ts_base_type_ptr>();   \
-            return base_type && (*base_type)->info->kind == (type_kind);      \
-        }                                                                     \
-        else                                                                  \
-        {                                                                     \
-            return false;                                                     \
-        }                                                                     \
-    }())                                                                      \
+#define x_base_t(str, type_kind)                                                       \
+xx(                                                                                    \
+    parse_expression_alt,                                                              \
+    str,                                                                               \
+    tokens.end() - 1,                                                                  \
+    ([&]() {                                                                           \
+        if (res.is<ast::constant_expression>())                                        \
+        {                                                                              \
+            auto &const_expr = res.get<ast::constant_expression>();                    \
+            return const_expr.type.is<ast::ts_base_type>()                             \
+                && const_expr.type.get<ast::ts_base_type>().info->kind == (type_kind); \
+        }                                                                              \
+        else if (res.is<ast::dynamic_expression>())                                    \
+        {                                                                              \
+            auto &dyn_expr = res.get<ast::dynamic_expression>();                       \
+            return dyn_expr.type.is<ast::ts_base_type>()                               \
+                && dyn_expr.type.get<ast::ts_base_type>().info->kind == (type_kind);   \
+        }                                                                              \
+        else                                                                           \
+        {                                                                              \
+            return false;                                                              \
+        }                                                                              \
+    }())                                                                               \
 )
 
 	using pair_t = std::pair<bz::u8string_view, uint32_t>;
