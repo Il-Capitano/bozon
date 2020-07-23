@@ -21,6 +21,7 @@ static constexpr auto warning_infos = []() {
 		T{ warning_kind::unknown_attribute,        "unknown-attribute"        },
 		T{ warning_kind::null_pointer_dereference, "null-pointer-dereference" },
 		T{ warning_kind::no_side_effect,           "no-side-effect"           },
+		T{ warning_kind::no_comment_end,           "no-comment-end"           },
 	};
 
 	constexpr_bubble_sort(

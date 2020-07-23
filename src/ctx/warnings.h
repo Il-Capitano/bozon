@@ -15,6 +15,7 @@ enum class warning_kind
 	unknown_attribute,
 	null_pointer_dereference,
 	no_side_effect,
+	no_comment_end,
 
 	_last,
 };

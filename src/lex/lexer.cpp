@@ -69,7 +69,55 @@ static constexpr bool is_whitespace_char(char c)
 }
 
 
-static void skip_comments_and_whitespace(file_iterator &stream, ctx::char_pos const end)
+static void skip_block_comment(
+	file_iterator &stream, ctx::char_pos const end,
+	ctx::lex_context &context
+)
+{
+	auto const comment_begin = stream.it;
+	auto const comment_begin_line = stream.line;
+	bz_assert(*stream.it == '/');
+	bz_assert(*(stream.it + 1) == '*');
+	++stream; ++stream; // '/*'
+	auto const comment_begin_end = stream.it;
+
+	while (stream.it != end)
+	{
+		if (stream.it + 1 != end)
+		{
+			if (*stream.it == '/' && *(stream.it + 1) == '*')
+			{
+				skip_block_comment(stream, end, context);
+				continue;
+			}
+			else if (*stream.it == '*' && *(stream.it + 1) == '/')
+			{
+				break;
+			}
+		}
+		++stream;
+	}
+
+	if (stream.it == end)
+	{
+		// report warning
+		context.report_warning(
+			ctx::warning_kind::no_comment_end,
+			stream.file, comment_begin_line,
+			comment_begin, comment_begin, comment_begin_end,
+			"block comment has no end"
+		);
+	}
+	else
+	{
+		++stream; ++stream; // '*/'
+	}
+}
+
+static void skip_comments_and_whitespace(
+	file_iterator &stream, ctx::char_pos const end,
+	ctx::lex_context &context
+)
 {
 	while (stream.it != end && is_whitespace_char(*stream.it))
 	{
@@ -92,37 +140,15 @@ static void skip_comments_and_whitespace(file_iterator &stream, ctx::char_pos co
 		}
 
 
-		skip_comments_and_whitespace(stream, end);
+		skip_comments_and_whitespace(stream, end, context);
 		return;
 	}
 
 	// block comment
 	if (*(stream.it + 1) == '*')
 	{
-		++stream; ++stream; // '/*'
-		int comment_depth = 1;
-
-		while (stream.it != end && comment_depth != 0)
-		{
-			if (stream.it + 1 != end)
-			{
-				if (*stream.it == '/' && *(stream.it + 1) == '*')
-				{
-					++stream; ++stream; // '/*'
-					++comment_depth;
-					continue;
-				}
-				else if (*stream.it == '*' && *(stream.it + 1) == '/')
-				{
-					++stream; ++stream; // '*/'
-					--comment_depth;
-					continue;
-				}
-			}
-			++stream;
-		}
-
-		skip_comments_and_whitespace(stream, end);
+		skip_block_comment(stream, end, context);
+		skip_comments_and_whitespace(stream, end, context);
 		return;
 	}
 }
@@ -565,7 +591,7 @@ static token get_next_token(
 	ctx::lex_context &context
 )
 {
-	skip_comments_and_whitespace(stream, end);
+	skip_comments_and_whitespace(stream, end, context);
 
 	if (stream.it == end)
 	{

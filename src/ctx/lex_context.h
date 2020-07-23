@@ -36,6 +36,14 @@ struct lex_context
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 
+	void report_warning(
+		warning_kind kind,
+		bz::u8string_view file, size_t line,
+		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+		bz::u8string message,
+		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+
 	[[nodiscard]] static ctx::note make_note(
 		file_iterator const &pos,
 		bz::u8string message
