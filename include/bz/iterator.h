@@ -333,6 +333,35 @@ constexpr auto zip(T const &t, U const &u) noexcept(
 	return ret_t(std::make_tuple(t.begin(), u.begin()), std::make_tuple(t.end(), u.end()));
 }
 
+
+namespace internal
+{
+
+template<typename It>
+struct reverse_iteration_range
+{
+	It _begin;
+	It _end;
+
+	constexpr It begin(void) const
+	{ return this->_begin; }
+
+	constexpr It end(void) const
+	{ return this->_end; }
+};
+
+} // namespace internal
+
+template<typename Range>
+constexpr auto reversed(Range &&range)
+{
+	using ret_t = internal::reverse_iteration_range<decltype(std::forward<Range>(range).rbegin())>;
+	return ret_t{
+		std::forward<Range>(range).rbegin(),
+		std::forward<Range>(range).rend(),
+	};
+}
+
 bz_end_namespace
 
 #endif // _bz_iterator_h__

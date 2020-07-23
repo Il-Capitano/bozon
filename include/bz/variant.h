@@ -492,6 +492,10 @@ public:
 
 	bool not_null(void) const noexcept
 	{ return this->_index != null; }
+
+	template<typename T>
+	bool is(void) const noexcept
+	{ return this->_index == index_of<T>; }
 };
 
 template<typename ...Ts>

@@ -17,6 +17,16 @@ struct integral_constant
 template<size_t N>
 using index_constant = integral_constant<size_t, N>;
 
+template<typename T>
+constexpr bool always_false = false;
+
+template<typename ...Ts>
+struct type_pack
+{
+	static constexpr size_t size(void) noexcept
+	{ return sizeof... (Ts); }
+};
+
 
 template<typename T, typename U, typename ...Ts>
 constexpr bool is_same = is_same<T, U> && (is_same<T, Ts> && ...);
@@ -239,6 +249,15 @@ constexpr size_t type_index<T, U, Ts...> = type_index<T, Ts...> + 1;
 template<typename T, typename ...Ts>
 constexpr bool is_in_types = (false || ... || is_same<T, Ts> );
 
+template<typename T, typename TypePack>
+constexpr bool is_in_type_pack = []() {
+	static_assert(always_false<T>, "bz::meta::is_in_type_pack expects a type_pack as a second argument");
+	return false;
+}();
+
+template<typename T, typename ...Ts>
+constexpr bool is_in_type_pack<T, type_pack<Ts...>> = is_in_types<T, Ts...>;
+
 
 template<typename T, T ...>
 struct number_sequence
@@ -271,14 +290,6 @@ using index_sequence = number_sequence<size_t, Ns...>;
 
 template<size_t N>
 using make_index_sequence = make_number_sequence<size_t, N>;
-
-
-template<typename ...Ts>
-struct type_pack
-{
-	static constexpr size_t size(void) noexcept
-	{ return sizeof... (Ts); }
-};
 
 
 namespace internal
@@ -509,6 +520,24 @@ struct fn_param_types_impl<Ret (*)(Params...)>
 template<typename Ret, typename ...Params>
 struct fn_param_types_impl<Ret (*)(Params...) noexcept>
 { using type = type_pack<Params...>; };
+
+
+namespace internal
+{
+
+template<template<typename ...> typename T, typename TypePack>
+struct apply_type_pack_impl;
+
+template<template<typename ...> typename T, typename ...Ts>
+struct apply_type_pack_impl<T, type_pack<Ts...>>
+{
+	using type = T<Ts...>;
+};
+
+} // namespace internal
+
+template<template<typename ...> typename T, typename Pack>
+using apply_type_pack = typename internal::apply_type_pack_impl<T, Pack>::type;
 
 } // namespace meta
 

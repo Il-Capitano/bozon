@@ -67,6 +67,15 @@ public:
 	constexpr value_type *data(void) const noexcept
 	{ return this->_data_begin; }
 
+	constexpr value_type &front(void) const noexcept
+	{ bz_assert(this->size() != 0); return *this->_data_begin; }
+
+	constexpr value_type &back(void) const noexcept
+	{ bz_assert(this->size() != 0); return *(this->_data_end - 1); }
+
+	constexpr bool empty(void) const noexcept
+	{ return this->_data_begin == this->_data_end; }
+
 
 	constexpr iterator begin(void) const noexcept
 	{ return iterator(this->_data_begin); }

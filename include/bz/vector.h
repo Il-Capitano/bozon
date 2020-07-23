@@ -384,6 +384,24 @@ public:
 		this->_data_end = insert_it;
 	}
 
+	template<typename U>
+	vector(array_view<U> arr_view) noexcept(
+		nothrow_alloc
+		&& meta::is_nothrow_constructible_v<value_type, U const &>
+	)
+		: self_t()
+	{
+		this->reserve(arr_view.size());
+		auto it = arr_view.begin();
+		auto const end = arr_view.end();
+		auto insert_it = this->_data_begin;
+		for (; it != end; ++it, ++insert_it)
+		{
+			new (insert_it) value_type(*it);
+		}
+		this->_data_end = insert_it;
+	}
+
 public:
 	// ==== size modifiers ====
 	void resize(size_type new_size) noexcept(
@@ -585,6 +603,112 @@ public:
 		return *end;
 	}
 
+	auto push_front(value_type const &val) noexcept(
+		nothrow_alloc  // reserve
+		&& nothrow_dealloc
+		&& meta::is_nothrow_destructible_v<value_type>
+		&& (
+			meta::is_nothrow_move_constructible_v<value_type>
+			|| meta::is_nothrow_copy_constructible_v<value_type>
+		)
+		&& meta::is_nothrow_copy_constructible_v<value_type>  // val construction
+	) -> value_type &
+	{
+		if (this->_data_end == this->_alloc_end)
+		{
+			this->reserve(this->capacity() + 1);
+		}
+		// shift every element by one
+		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		{
+			auto move_from_it = this->_data_end;
+			auto end_it = move_from_it;
+			auto const begin = this->_data_begin;
+			for (; move_from_it != begin; --end_it)
+			{
+				--move_from_it;
+				this->try_emplace(end_it, std::move(*move_from_it));
+				move_from_it->~value_type();
+			}
+			this->try_emplace(begin, val);
+			++this->_data_end;
+			return *begin;
+		}
+		else
+		{
+			auto copy_from_it = this->_data_end;
+			auto end_it = copy_from_it;
+			auto const begin = this->_data_begin;
+			if (copy_from_it != begin)
+			{
+				--copy_from_it;
+				this->try_emplace(end_it, *copy_from_it);
+				--end_it;
+				for (; copy_from_it != begin; --end_it)
+				{
+					--copy_from_it;
+					*end_it = *copy_from_it;
+				}
+			}
+			*begin = val;
+			++this->_data_end;
+			return *begin;
+		}
+	}
+
+	auto push_front(value_type &&val) noexcept(
+		nothrow_alloc  // reserve
+		&& nothrow_dealloc
+		&& meta::is_nothrow_destructible_v<value_type>
+		&& (
+			meta::is_nothrow_move_constructible_v<value_type>
+			|| meta::is_nothrow_copy_constructible_v<value_type>
+		)
+		&& meta::is_nothrow_copy_constructible_v<value_type>  // val construction
+	) -> value_type &
+	{
+		if (this->_data_end == this->_alloc_end)
+		{
+			this->reserve(this->capacity() + 1);
+		}
+		// shift every element by one
+		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		{
+			auto move_from_it = this->_data_end;
+			auto end_it = move_from_it;
+			auto const begin = this->_data_begin;
+			for (; move_from_it != begin; --end_it)
+			{
+				--move_from_it;
+				this->try_emplace(end_it, std::move(*move_from_it));
+				move_from_it->~value_type();
+			}
+			this->try_emplace(begin, std::move(val));
+			++this->_data_end;
+			return *begin;
+		}
+		else
+		{
+			auto copy_from_it = this->_data_end;
+			auto end_it = copy_from_it;
+			auto const begin = this->_data_begin;
+			if (copy_from_it != begin)
+			{
+				--copy_from_it;
+				this->try_emplace(end_it, *copy_from_it);
+				--end_it;
+				for (; copy_from_it != begin; --end_it)
+				{
+					--copy_from_it;
+					*end_it = *copy_from_it;
+				}
+			}
+			*begin = std::move(val);
+			++this->_data_end;
+			return *begin;
+		}
+	}
+
 	template<typename ...Args>
 	auto emplace_back(Args &&...args) noexcept(
 		nothrow_alloc  // reserve
@@ -605,6 +729,61 @@ public:
 		auto end = this->_data_end;
 		++this->_data_end;
 		return *end;
+	}
+
+	template<typename ...Args>
+	auto emplace_front(Args &&...args) noexcept(
+		nothrow_alloc  // reserve
+		&& nothrow_dealloc
+		&& meta::is_nothrow_destructible_v<value_type>
+		&& (
+			meta::is_nothrow_move_constructible_v<value_type>
+			|| meta::is_nothrow_copy_constructible_v<value_type>
+		)
+		&& meta::is_nothrow_constructible_v<value_type, Args...>  // val construction
+	) -> value_type &
+	{
+		if (this->_data_end == this->_alloc_end)
+		{
+			this->reserve(this->capacity() + 1);
+		}
+		// shift every element by one
+		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		{
+			auto move_from_it = this->_data_end;
+			auto end_it = move_from_it;
+			auto const begin = this->_data_begin;
+			for (; move_from_it != begin; --end_it)
+			{
+				--move_from_it;
+				this->try_emplace(end_it, std::move(*move_from_it));
+				move_from_it->~value_type();
+			}
+			this->try_emplace(begin, std::forward<Args>(args)...);
+			++this->_data_end;
+			return *begin;
+		}
+		else
+		{
+			auto copy_from_it = this->_data_end;
+			auto end_it = copy_from_it;
+			auto const begin = this->_data_begin;
+			if (copy_from_it != begin)
+			{
+				--copy_from_it;
+				this->try_emplace(end_it, *copy_from_it);
+				--end_it;
+				for (; copy_from_it != begin; --end_it)
+				{
+					--copy_from_it;
+					*end_it = *copy_from_it;
+				}
+			}
+			begin->~value_type();
+			this->try_emplace(begin, std::forward<Args>(args)...);
+			++this->_data_end;
+			return *begin;
+		}
 	}
 
 	void pop_back(void) noexcept(
