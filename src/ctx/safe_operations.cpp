@@ -30,7 +30,7 @@ int64_t safe_add(
 	lex::src_tokens src_tokens, parse_context &context
 )
 {
-	auto const result = a + b;
+	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) + bit_cast<uint64_t>(b));
 #define x(type)                                                                        \
 case ast::type_info::type##_:                                                          \
     bz_assert(is_in_range<type##_t>(a));                                               \
@@ -243,7 +243,7 @@ int64_t safe_subtract(
 	lex::src_tokens src_tokens, parse_context &context
 )
 {
-	auto const result = a - b;
+	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) - bit_cast<uint64_t>(b));
 #define x(type)                                                                        \
 case ast::type_info::type##_:                                                          \
     bz_assert(is_in_range<type##_t>(a));                                               \
@@ -448,7 +448,7 @@ int64_t safe_multiply(
 	lex::src_tokens src_tokens, parse_context &context
 )
 {
-	auto const result = a * b;
+	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) * bit_cast<uint64_t>(b));
 #define x(type)                                                                        \
 case ast::type_info::type##_:                                                          \
     bz_assert(is_in_range<type##_t>(a));                                               \
@@ -596,7 +596,7 @@ int64_t safe_divide(
 		return 0;
 	}
 
-	auto const result = a / b;
+	int64_t result;
 
 	// with signed integers overflow can happen if a == int_min && b == -1
 #define x(type)                                                                        \
@@ -605,6 +605,7 @@ case ast::type_info::type##_:                                                   
     bz_assert(is_in_range<type##_t>(b));                                               \
     if (a == std::numeric_limits<type##_t>::min() && b == -1)                          \
     {                                                                                  \
+        result = std::numeric_limits<type##_t>::min();                                 \
         context.report_parenthesis_suppressed_warning(                                 \
             warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
@@ -613,6 +614,10 @@ case ast::type_info::type##_:                                                   
                 static_cast<type##_t>(result)                                          \
             )                                                                          \
         );                                                                             \
+    }                                                                                  \
+    else                                                                               \
+    {                                                                                  \
+        result = a / b;                                                                \
     }                                                                                  \
     return static_cast<int64_t>(static_cast<type##_t>(result));
 
@@ -624,7 +629,7 @@ case ast::type_info::type##_:                                                   
 	x(int64)
 	default:
 		bz_assert(false);
-		return result;
+		return 0;
 	}
 }
 
