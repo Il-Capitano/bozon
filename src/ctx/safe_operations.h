@@ -7,7 +7,7 @@ namespace ctx
 {
 
 template<typename T, typename U>
-static constexpr bool is_in_range(U val) noexcept
+constexpr bool is_in_range(U val) noexcept
 {
 	return val >= std::numeric_limits<T>::min() && val <= std::numeric_limits<T>::max();
 }

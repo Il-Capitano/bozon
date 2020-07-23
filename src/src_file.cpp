@@ -49,7 +49,7 @@ static bz::u8string get_highlighted_error_or_warning(
 	bz_assert(begin_pos <= pivot_pos);
 	bz_assert(pivot_pos < end_pos);
 
-	auto const highlight_color = err.is_warning ? colors::warning_color : colors::error_color;
+	auto const highlight_color = err.is_error() ? colors::error_color : colors::warning_color;
 
 	auto const line_begin = [&]() {
 		auto begin_ptr = begin_pos.data();
@@ -1007,13 +1007,21 @@ static void print_error_or_warning(ctx::char_pos file_begin, ctx::char_pos file_
 			err.file, err.line,get_column_number(file_begin, err.src_pivot),
 			colors::clear
 		);
-	auto const error_or_warning = err.is_warning
-		? bz::format("{}warning:{}", colors::warning_color, colors::clear)
-		: bz::format("{}error:{}", colors::error_color, colors::clear);
+	auto const error_or_warning_line = err.is_error()
+		? bz::format(
+			"{}error:{} {}",
+			colors::error_color, colors::clear, err.message
+		)
+		: bz::format(
+			"{}warning:{} {} {}[-W{}]{}",
+			colors::warning_color, colors::clear,
+			err.message,
+			colors::bright_white, ctx::get_warning_name(err.kind), colors::clear
+		);
 
 	bz::print(
-		"{}: {} {}\n{}",
-		src_pos, error_or_warning, err.message,
+		"{}: {}\n{}",
+		src_pos, error_or_warning_line,
 		get_highlighted_error_or_warning(file_begin, file_end, err)
 	);
 

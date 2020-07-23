@@ -38,6 +38,7 @@ case ast::type_info::type##_:                                                   
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -59,6 +60,7 @@ case ast::type_info::type##_:                                                   
 		)
 		{
 			context.report_parenthesis_suppressed_warning(
+				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'int64' results in {}",
@@ -87,6 +89,7 @@ case ast::type_info::type##_:                                                   
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -105,6 +108,7 @@ case ast::type_info::type##_:                                                   
 		if (a > std::numeric_limits<uint64_t>::max() - b)
 		{
 			context.report_parenthesis_suppressed_warning(
+				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'uint64' results in {}",
@@ -134,6 +138,7 @@ bz::u8char safe_add(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
 			src_tokens,
 			bz::format(
 				reversed
@@ -166,6 +171,7 @@ bz::u8char safe_add(
 	if (b > static_cast<uint64_t>(std::numeric_limits<bz::u8char>::max() - a))
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
 			src_tokens,
 			bz::format(
 				reversed
@@ -201,6 +207,7 @@ float32_t safe_add(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -221,6 +228,7 @@ float64_t safe_add(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -243,6 +251,7 @@ case ast::type_info::type##_:                                                   
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -264,6 +273,7 @@ case ast::type_info::type##_:                                                   
 		)
 		{
 			context.report_parenthesis_suppressed_warning(
+				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
 					"overflow in constant expression with type 'int64' results in {}",
@@ -292,6 +302,7 @@ case ast::type_info::type##_:                                                   
     if (b > a)                                                                         \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -327,6 +338,7 @@ bz::u8char safe_subtract(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
 			src_tokens,
 			bz::format(
 				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
@@ -356,6 +368,7 @@ bz::u8char safe_subtract(
 	if (b > static_cast<uint64_t>(a))
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
 			src_tokens,
 			bz::format(
 				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
@@ -399,6 +412,7 @@ float32_t safe_subtract(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -419,6 +433,7 @@ float64_t safe_subtract(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -441,6 +456,7 @@ case ast::type_info::type##_:                                                   
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -464,6 +480,7 @@ case ast::type_info::type##_:                                                   
 		)
 		{
 			context.report_parenthesis_suppressed_warning(
+				warning_kind::int_overflow,
 				src_tokens,
 				bz::format("overflow in constant expression with type 'int64' results in {}", result)
 			);
@@ -489,6 +506,7 @@ case ast::type_info::type##_:                                                   
     if (!is_in_range<type##_t>(result))                                                \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -507,6 +525,7 @@ case ast::type_info::type##_:                                                   
 		if (b != 0 && a > std::numeric_limits<uint64_t>::max() / b)
 		{
 			context.report_parenthesis_suppressed_warning(
+				warning_kind::int_overflow,
 				src_tokens,
 				bz::format("overflow in constant expression with type 'uint64' results in {}", result)
 			);
@@ -532,6 +551,7 @@ float32_t safe_multiply(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -552,6 +572,7 @@ float64_t safe_multiply(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -585,6 +606,7 @@ case ast::type_info::type##_:                                                   
     if (a == std::numeric_limits<type##_t>::min() && b == -1)                          \
     {                                                                                  \
         context.report_parenthesis_suppressed_warning(                                 \
+            warning_kind::int_overflow,                                                \
             src_tokens,                                                                \
             bz::format(                                                                \
                 "overflow in constant expression with type '" #type "' results in {}", \
@@ -636,6 +658,7 @@ float32_t safe_divide(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);
@@ -656,6 +679,7 @@ float64_t safe_divide(
 	)
 	{
 		context.report_parenthesis_suppressed_warning(
+			warning_kind::float_overflow,
 			src_tokens,
 			bz::format("result of floating point arithmetic in constant expression is {}", result)
 		);

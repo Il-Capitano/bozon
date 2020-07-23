@@ -135,7 +135,7 @@ bool global_context::has_errors(void) const
 {
 	for (auto &err : this->_errors)
 	{
-		if (!err.is_warning)
+		if (err.is_error())
 		{
 			return true;
 		}
@@ -147,7 +147,7 @@ bool global_context::has_warnings(void) const
 {
 	for (auto &err : this->_errors)
 	{
-		if (err.is_warning)
+		if (err.is_warning())
 		{
 			return true;
 		}
@@ -160,7 +160,7 @@ size_t global_context::get_error_count(void) const
 	size_t count = 0;
 	for (auto &err : this->_errors)
 	{
-		if (!err.is_warning)
+		if (err.is_error())
 		{
 			++count;
 		}
@@ -173,7 +173,7 @@ size_t global_context::get_warning_count(void) const
 	size_t count = 0;
 	for (auto &err : this->_errors)
 	{
-		if (err.is_warning)
+		if (err.is_warning())
 		{
 			++count;
 		}

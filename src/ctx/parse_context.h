@@ -52,40 +52,47 @@ struct parse_context
 	}
 
 	void report_warning(
+		warning_kind kind,
 		lex::token_pos it, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void report_warning(
+		warning_kind kind,
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	template<typename T>
 	void report_warning(
+		warning_kind kind,
 		T const &tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const
 	{
 		this->report_warning(
+			kind,
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
 			std::move(message), std::move(notes), std::move(suggestions)
 		);
 	}
 
 	void report_parenthesis_suppressed_warning(
+		warning_kind kind,
 		lex::token_pos it, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void report_parenthesis_suppressed_warning(
+		warning_kind kind,
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	template<typename T>
 	void report_parenthesis_suppressed_warning(
+		warning_kind kind,
 		T const &tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
@@ -96,6 +103,7 @@ struct parse_context
 			return;
 		}
 		this->report_parenthesis_suppressed_warning(
+			kind,
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
 			std::move(message), std::move(notes), std::move(suggestions)
 		);

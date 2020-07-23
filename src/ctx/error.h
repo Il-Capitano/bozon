@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "lex/token.h"
+#include "warnings.h"
 
 namespace ctx
 {
@@ -45,7 +46,8 @@ struct suggestion
 
 struct error
 {
-	bool is_warning;
+	// equals warning_kind::_last if it's an error
+	warning_kind kind;
 	bz::u8string file;
 	size_t line;
 
@@ -57,6 +59,12 @@ struct error
 
 	bz::vector<note> notes;
 	bz::vector<suggestion> suggestions;
+
+	bool is_error(void) const noexcept
+	{ return this->kind == warning_kind::_last; }
+
+	bool is_warning(void) const noexcept
+	{ return this->kind != warning_kind::_last; }
 };
 
 [[nodiscard]] inline error make_error(
@@ -64,7 +72,7 @@ struct error
 )
 {
 	return {
-		false,
+		warning_kind::_last,
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		bz::format("unexpected token '{}'", it->value),
@@ -79,7 +87,7 @@ struct error
 )
 {
 	return {
-		false,
+		warning_kind::_last,
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -94,7 +102,7 @@ struct error
 {
 	bz_assert(end > begin);
 	return {
-		false,
+		warning_kind::_last,
 		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -115,13 +123,14 @@ template<typename T>
 }
 
 [[nodiscard]] inline error make_warning(
+	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
 	return {
-		true,
+		kind,
 		it->src_pos.file_name, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -129,6 +138,7 @@ template<typename T>
 }
 
 [[nodiscard]] inline error make_warning(
+	warning_kind kind,
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
 	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
@@ -136,7 +146,7 @@ template<typename T>
 {
 	bz_assert(end > begin);
 	return {
-		true,
+		kind,
 		pivot->src_pos.file_name, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
@@ -145,12 +155,14 @@ template<typename T>
 
 template<typename T>
 [[nodiscard]] inline error make_warning(
+	warning_kind kind,
 	T const &tokens,
 	bz::u8string message,
 	bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 )
 {
 	return make_warning(
+		kind,
 		tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end(),
 		std::move(message), std::move(notes), std::move(suggestions)
 	);
