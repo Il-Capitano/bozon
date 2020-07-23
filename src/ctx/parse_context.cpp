@@ -47,30 +47,35 @@ void parse_context::report_error(
 }
 
 void parse_context::report_warning(
+	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_warning(ctx::make_warning(
+		kind,
 		it, std::move(message),
 		std::move(notes), std::move(suggestions)
 	));
 }
 
 void parse_context::report_warning(
+	warning_kind kind,
 	lex::src_tokens src_tokens,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_warning(ctx::make_warning(
+		kind,
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
 	));
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
+	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
@@ -90,12 +95,14 @@ void parse_context::report_parenthesis_suppressed_warning(
 	));
 
 	this->global_ctx.report_warning(ctx::make_warning(
+		kind,
 		it, std::move(message),
 		std::move(notes), std::move(suggestions)
 	));
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
+	warning_kind kind,
 	lex::src_tokens src_tokens,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
@@ -115,6 +122,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 	));
 
 	this->global_ctx.report_warning(ctx::make_warning(
+		kind,
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
 	));
@@ -399,7 +407,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 	{
 		auto const var = decl.get<ast::decl_variable const *>();
 		return {
-			var->var_type.is<ast::ts_reference>()
+			var->var_type.is<ast::ts_lvalue_reference>()
 			? ast::expression::lvalue_reference
 			: ast::expression::lvalue,
 			ast::remove_lvalue_reference(var->var_type)
@@ -441,7 +449,7 @@ ast::typespec get_function_type(ast::function_body &body)
 	{
 		param_types.emplace_back(p.var_type);
 	}
-	return ast::make_ts_function({}, return_type, std::move(param_types));
+	return ast::typespec({ ast::ts_function{ {}, std::move(param_types), return_type } });
 }
 
 ast::expression parse_context::make_identifier_expression(lex::token_pos id) const
@@ -469,25 +477,27 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		if (var != scope->var_decls.rend())
 		{
 			auto id_type_kind = ast::expression_type_kind::lvalue;
-			auto const *id_type_ptr = &(*var)->var_type;
-			if (id_type_ptr->is<ast::ts_reference>())
+			ast::typespec_view id_type = (*var)->var_type;
+			if (id_type.is<ast::ts_lvalue_reference>())
 			{
 				id_type_kind = ast::expression_type_kind::lvalue_reference;
-				id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
+				id_type = (*var)->var_type.get<ast::ts_lvalue_reference>();
 			}
 
-			if (id_type_ptr->is_null())
+			if (id_type.is_empty())
 			{
 				bz_assert(this->has_errors());
 				return ast::expression(src_tokens);
 			}
-			else if (id_type_ptr->is<ast::ts_consteval>())
+			else if (id_type.is<ast::ts_consteval>())
 			{
 				auto &init_expr = (*var)->init_expr;
 				bz_assert(init_expr.is<ast::constant_expression>());
+				ast::typespec result_type = id_type.get<ast::ts_consteval>();
+				result_type.add_layer<ast::ts_const>(nullptr);
 				return ast::make_constant_expression(
 					src_tokens,
-					id_type_kind, ast::make_ts_constant({}, id_type_ptr->get<ast::ts_consteval_ptr>()->base),
+					id_type_kind, std::move(result_type),
 					init_expr.get<ast::constant_expression>().value,
 					ast::make_expr_identifier(id, *var)
 				);
@@ -496,7 +506,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			{
 				return ast::make_dynamic_expression(
 					src_tokens,
-					id_type_kind, *id_type_ptr,
+					id_type_kind, id_type,
 					ast::make_expr_identifier(id, *var)
 				);
 			}
@@ -526,7 +536,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::typespec(),
-				ast::make_ts_base_type(src_tokens, type->info),
+				ast::typespec({ ast::ts_base_type{ src_tokens, type->info } }),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -620,25 +630,27 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	if (var != export_decls.var_decls.end())
 	{
 		auto id_type_kind = ast::expression_type_kind::lvalue;
-		auto const *id_type_ptr = &(*var)->var_type;
-		if (id_type_ptr->is<ast::ts_reference>())
+		ast::typespec_view id_type = (*var)->var_type;
+		if (id_type.is<ast::ts_lvalue_reference>())
 		{
 			id_type_kind = ast::expression_type_kind::lvalue_reference;
-			id_type_ptr = &(*var)->var_type.get<ast::ts_reference_ptr>()->base;
+			id_type = (*var)->var_type.get<ast::ts_lvalue_reference>();
 		}
 
-		if (id_type_ptr->is_null())
+		if (id_type.is_empty())
 		{
 			bz_assert(this->has_errors());
 			return ast::expression(src_tokens);
 		}
-		else if (id_type_ptr->is<ast::ts_consteval>())
+		else if (id_type.is<ast::ts_consteval>())
 		{
 			auto &init_expr = (*var)->init_expr;
 			bz_assert(init_expr.is<ast::constant_expression>());
+			ast::typespec result_type = id_type.get<ast::ts_consteval>();
+			result_type.add_layer<ast::ts_const>(nullptr);
 			return ast::make_constant_expression(
 				src_tokens,
-				id_type_kind, ast::make_ts_constant({}, id_type_ptr->get<ast::ts_consteval_ptr>()->base),
+				id_type_kind, std::move(result_type),
 				init_expr.get<ast::constant_expression>().value,
 				ast::make_expr_identifier(id, *var)
 			);
@@ -647,7 +659,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				id_type_kind, *id_type_ptr,
+				id_type_kind, id_type,
 				ast::make_expr_identifier(id, *var)
 			);
 		}
@@ -695,7 +707,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::make_ts_base_type(src_tokens, id, type->info),
+			ast::typespec({ ast::ts_base_type{ src_tokens, type->info } }),
 			ast::make_expr_identifier(id)
 		);
 	}
@@ -707,7 +719,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::make_ts_void(src_tokens, id),
+			ast::typespec({ ast::ts_void{ id } }),
 			ast::make_expr_identifier(id)
 		);
 	}
@@ -865,7 +877,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, type_info),
+			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -926,7 +938,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, type_info),
+			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -984,7 +996,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, type_info),
+			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1040,7 +1052,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, type_info),
+			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1096,7 +1108,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, type_info),
+			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1129,7 +1141,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::char_)),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_base_type_info(ast::type_info::char_) } }),
 			ast::constant_value(value),
 			ast::make_expr_literal(literal)
 		);
@@ -1138,7 +1150,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::bool_)),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_base_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(true),
 			ast::make_expr_literal(literal)
 		);
@@ -1146,7 +1158,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::bool_)),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_base_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(false),
 			ast::make_expr_literal(literal)
 		);
@@ -1154,7 +1166,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::null_t_)),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_base_type_info(ast::type_info::null_t_) } }),
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_literal(literal)
 		);
@@ -1204,7 +1216,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	return ast::make_constant_expression(
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
-		ast::make_ts_base_type({}, this->get_base_type_info(ast::type_info::str_)),
+		ast::typespec({ ast::ts_base_type{ {}, this->get_base_type_info(ast::type_info::str_) } }),
 		ast::constant_value(result),
 		ast::make_expr_literal(lex::token_range{ begin, end })
 	);
@@ -1216,20 +1228,20 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 	return ast::expression();
 }
 
-static bool is_built_in_type(ast::typespec const &ts)
+static bool is_built_in_type(ast::typespec_view ts)
 {
 	switch (ts.kind())
 	{
-	case ast::typespec::index<ast::ts_constant>:
-		return is_built_in_type(ts.get<ast::ts_constant_ptr>()->base);
-	case ast::typespec::index<ast::ts_base_type>:
+	case ast::typespec_node_t::index_of<ast::ts_const>:
+		return is_built_in_type(ts.get<ast::ts_const>());
+	case ast::typespec_node_t::index_of<ast::ts_base_type>:
 	{
-		auto &base = *ts.get<ast::ts_base_type_ptr>();
+		auto &base = ts.get<ast::ts_base_type>();
 		return (base.info->flags & ast::type_info::built_in) != 0;
 	}
-	case ast::typespec::index<ast::ts_pointer>:
-	case ast::typespec::index<ast::ts_function>:
-	case ast::typespec::index<ast::ts_tuple>:
+	case ast::typespec_node_t::index_of<ast::ts_pointer>:
+	case ast::typespec_node_t::index_of<ast::ts_function>:
+	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		return true;
 	default:
 		return false;
@@ -1237,7 +1249,7 @@ static bool is_built_in_type(ast::typespec const &ts)
 }
 
 static int get_type_match_level(
-	ast::typespec const &dest,
+	ast::typespec_view dest,
 	ast::expression const &expr,
 	parse_context &context
 )
@@ -1247,23 +1259,23 @@ static int get_type_match_level(
 	bz_assert(!expr.is<ast::tuple_expression>());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 
-	auto const *dest_it = &ast::remove_const_or_consteval(dest);
-	auto const *src_it = &expr_type;
+	auto dest_it = ast::remove_const_or_consteval(dest);
+	auto src_it = expr_type.as_typespec_view();
 
-	if (dest_it->is_null() || src_it->is_null())
+	if (dest_it.is_empty() || src_it.is_empty())
 	{
 		bz_assert(context.has_errors());
 		return -1;
 	}
 
-	if (dest_it->is<ast::ts_base_type>())
+	if (dest_it.is<ast::ts_base_type>())
 	{
-		src_it = &ast::remove_const_or_consteval(*src_it);
+		src_it = ast::remove_const_or_consteval(src_it);
 		// if the argument is just a base type, return 1 if there's a conversion, and -1 otherwise
 		// TODO: use is_convertible here...
 		if (
-			src_it->is<ast::ts_base_type>()
-			&& src_it->get<ast::ts_base_type_ptr>()->info == dest_it->get<ast::ts_base_type_ptr>()->info
+			src_it.is<ast::ts_base_type>()
+			&& src_it.get<ast::ts_base_type>().info == dest_it.get<ast::ts_base_type>().info
 		)
 		{
 			return 1;
@@ -1273,19 +1285,19 @@ static int get_type_match_level(
 			return -1;
 		}
 	}
-	else if (dest_it->is<ast::ts_void>())
+	else if (dest_it.is<ast::ts_void>())
 	{
 		bz_assert(false);
 	}
-	else if (dest_it->is<ast::ts_tuple>())
+	else if (dest_it.is<ast::ts_tuple>())
 	{
 		bz_assert(false);
 	}
-	else if (dest_it->is<ast::ts_function>())
+	else if (dest_it.is<ast::ts_function>())
 	{
 		bz_assert(false);
 	}
-	else if (dest_it->is<ast::ts_reference>())
+	else if (dest_it.is<ast::ts_lvalue_reference>())
 	{
 		// if the source is not an lvalue, return -1
 		if (
@@ -1296,19 +1308,19 @@ static int get_type_match_level(
 			return -1;
 		}
 
-		dest_it = &ast::remove_lvalue_reference(*dest_it);
+		dest_it = ast::remove_lvalue_reference(dest_it);
 		// if the dest is not a &const return 0 if the src and dest types match, -1 otherwise
-		if (!dest_it->is<ast::ts_constant>())
+		if (!dest_it.is<ast::ts_const>())
 		{
-			return *dest_it == *src_it ? 0 : -1;
+			return dest_it == src_it ? 0 : -1;
 		}
 		else
 		{
-			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+			dest_it = dest_it.get<ast::ts_const>();
 			// if the source is not const increment the result
-			if (src_it->is<ast::ts_constant>())
+			if (src_it.is<ast::ts_const>())
 			{
-				src_it = &src_it->get<ast::ts_constant_ptr>()->base;
+				src_it = src_it.get<ast::ts_const>();
 			}
 			else
 			{
@@ -1316,33 +1328,33 @@ static int get_type_match_level(
 			}
 		}
 	}
-	else // if (dest_it->is<ast::ts_pointer>())
+	else // if (dest_it.is<ast::ts_pointer>())
 	{
 		result = 1; // not a reference, so result starts at 1
 		// advance src_it if it's const
-		src_it = &ast::remove_const_or_consteval(*src_it);
+		src_it = ast::remove_const_or_consteval(src_it);
 		// return -1 if the source is not a pointer
-		if (!src_it->is<ast::ts_pointer>())
+		if (!src_it.is<ast::ts_pointer>())
 		{
 			return -1;
 		}
 
 		// advance src_it and dest_it
-		src_it = &src_it->get<ast::ts_pointer_ptr>()->base;
-		dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
+		src_it = src_it.get<ast::ts_pointer>();
+		dest_it = dest_it.get<ast::ts_pointer>();
 
 		// if the dest is not a *const return 1 if the src and dest types match, -1 otherwise
-		if (!dest_it->is<ast::ts_constant>())
+		if (!dest_it.is<ast::ts_const>())
 		{
-			return *dest_it == *src_it ? 0 : -1;
+			return dest_it == src_it ? 0 : -1;
 		}
 		else
 		{
-			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
+			dest_it = dest_it.get<ast::ts_const>();
 			// if the source is not const increment the result
-			if (src_it->is<ast::ts_constant>())
+			if (src_it.is<ast::ts_const>())
 			{
-				src_it = &src_it->get<ast::ts_constant_ptr>()->base;
+				src_it = src_it.get<ast::ts_const>();
 			}
 			else
 			{
@@ -1352,29 +1364,19 @@ static int get_type_match_level(
 	}
 
 	// we can only get here if the dest type is &const or *const
-	auto const advance = [](ast::typespec const *&ts)
+	auto const advance = [](ast::typespec_view &ts)
 	{
-		switch (ts->kind())
-		{
-		case ast::typespec::index<ast::ts_constant>:
-			ts = &ts->get<ast::ts_constant_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_pointer>:
-			ts = &ts->get<ast::ts_pointer_ptr>()->base;
-			break;
-		default:
-			bz_assert(false);
-			break;
-		}
+		bz_assert(ts.is<ast::ts_const>() || ts.is<ast::ts_pointer>());
+		ts = ts.blind_get();
 	};
 
 	while (true)
 	{
-		if (dest_it->is<ast::ts_base_type>())
+		if (dest_it.is<ast::ts_base_type>())
 		{
 			if (
-				src_it->is<ast::ts_base_type>()
-				&& src_it->get<ast::ts_base_type_ptr>()->info == dest_it->get<ast::ts_base_type_ptr>()->info
+				src_it.is<ast::ts_base_type>()
+				&& src_it.get<ast::ts_base_type>().info == dest_it.get<ast::ts_base_type>().info
 			)
 			{
 				return result;
@@ -1384,24 +1386,24 @@ static int get_type_match_level(
 				return -1;
 			}
 		}
-		else if (dest_it->is<ast::ts_void>())
+		else if (dest_it.is<ast::ts_void>())
 		{
 			bz_assert(false);
 		}
-		else if (dest_it->is<ast::ts_function>())
+		else if (dest_it.is<ast::ts_function>())
 		{
 			bz_assert(false);
 		}
-		else if (dest_it->is<ast::ts_tuple>())
+		else if (dest_it.is<ast::ts_tuple>())
 		{
 			bz_assert(false);
 		}
-		else if (dest_it->kind() == src_it->kind())
+		else if (dest_it.kind() == src_it.kind())
 		{
 			advance(dest_it);
 			advance(src_it);
 		}
-		else if (dest_it->is<ast::ts_constant>())
+		else if (dest_it.is<ast::ts_const>())
 		{
 			++result;
 			advance(dest_it);
@@ -1743,17 +1745,17 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		auto &ret_t = best.second->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = &ast::remove_const_or_consteval(ret_t);
-		if (ret_t.is<ast::ts_reference>())
+		auto return_type = ast::remove_const_or_consteval(ret_t);
+		if (ret_t.is<ast::ts_lvalue_reference>())
 		{
 			return_type_kind = ast::expression_type_kind::lvalue_reference;
-			return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+			return_type = ret_t.get<ast::ts_lvalue_reference>();
 		}
 		bz::vector<ast::expression> params = {};
 		params.emplace_back(std::move(expr));
 		return ast::make_dynamic_expression(
 			src_tokens,
-			return_type_kind, *return_type,
+			return_type_kind, return_type,
 			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
 		);
 	}
@@ -1876,11 +1878,11 @@ ast::expression parse_context::make_binary_operator_expression(
 	{
 		auto &ret_t = best.second->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = &ast::remove_const_or_consteval(ret_t);
-		if (ret_t.is<ast::ts_reference>())
+		auto return_type = ast::remove_const_or_consteval(ret_t);
+		if (ret_t.is<ast::ts_lvalue_reference>())
 		{
 			return_type_kind = ast::expression_type_kind::lvalue_reference;
-			return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+			return_type = ret_t.get<ast::ts_lvalue_reference>();
 		}
 		bz::vector<ast::expression> params = {};
 		params.reserve(2);
@@ -1888,7 +1890,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		params.emplace_back(std::move(rhs));
 		return ast::make_dynamic_expression(
 			src_tokens,
-			return_type_kind, *return_type,
+			return_type_kind, return_type,
 			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
 		);
 	}
@@ -1942,15 +1944,15 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			auto &ret_t = func_body->return_type;
 			auto return_type_kind = ast::expression_type_kind::rvalue;
-			auto return_type = &ast::remove_const_or_consteval(ret_t);
-			if (ret_t.is<ast::ts_reference>())
+			auto return_type = ast::remove_const_or_consteval(ret_t);
+			if (ret_t.is<ast::ts_lvalue_reference>())
 			{
 				return_type_kind = ast::expression_type_kind::lvalue_reference;
-				return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+				return_type = ret_t.get<ast::ts_lvalue_reference>();
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
-				return_type_kind, *return_type,
+				return_type_kind, return_type,
 				ast::make_expr_function_call(src_tokens, std::move(params), func_body)
 			);
 		}
@@ -2019,15 +2021,15 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				auto &ret_t = best.second->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
-				auto return_type = &ast::remove_const_or_consteval(ret_t);
-				if (ret_t.is<ast::ts_reference>())
+				auto return_type = ast::remove_const_or_consteval(ret_t);
+				if (ret_t.is<ast::ts_lvalue_reference>())
 				{
 					return_type_kind = ast::expression_type_kind::lvalue_reference;
-					return_type = &ret_t.get<ast::ts_reference_ptr>()->base;
+					return_type = ret_t.get<ast::ts_lvalue_reference>();
 				}
 				return ast::make_dynamic_expression(
 					src_tokens,
-					return_type_kind, *return_type,
+					return_type_kind, return_type,
 					ast::make_expr_function_call(src_tokens, std::move(params), best.second)
 				);
 			}
@@ -2053,7 +2055,7 @@ ast::expression parse_context::make_cast_expression(
 		return ast::expression(src_tokens);
 	}
 
-	if (expr.is_null() || type.is_null())
+	if (expr.is_null() || type.is_empty())
 	{
 		bz_assert(this->has_errors());
 		return ast::expression(src_tokens);
@@ -2080,7 +2082,7 @@ void parse_context::match_expression_to_type(
 )
 {
 	bz_assert(!expr.is<ast::tuple_expression>());
-	if (expr.is_null() || dest_type.is_null())
+	if (expr.is_null() || dest_type.is_empty())
 	{
 		bz_assert(this->has_errors());
 		return;
@@ -2098,6 +2100,10 @@ void parse_context::match_expression_to_type(
 		dest_type.clear();
 		return;
 	}
+	else if (expr.is_typename())
+	{
+		bz_assert(false);
+	}
 
 	if (dest_type.is<ast::ts_consteval>() && !expr.is<ast::constant_expression>())
 	{
@@ -2109,50 +2115,60 @@ void parse_context::match_expression_to_type(
 	auto [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	if (!ast::is_complete(expr_type))
 	{
+		if (!ast::is_complete(dest_type))
+		{
+			dest_type.clear();
+		}
 		return;
 	}
-	auto *expr_it = &expr_type;
-	auto *dest_it = &ast::remove_const_or_consteval(dest_type);
+	auto expr_it = expr_type.as_typespec_view();
+	auto dest_it = ast::remove_const_or_consteval(dest_type);
 
 	auto const strict_match = [&, &expr_type = expr_type]() {
 		bool loop = true;
 		while (loop)
 		{
-			switch (dest_it->kind())
+			switch (dest_it.kind())
 			{
-			case ast::typespec::index<ast::ts_base_type>:
-				if (*expr_it != *dest_it)
+			case ast::typespec_node_t::index_of<ast::ts_base_type>:
+				if (expr_it != dest_it)
 				{
 					this->report_error(
 						expr,
 						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 					);
-					dest_type.clear();
+					if (!ast::is_complete(dest_type))
+					{
+						dest_type.clear();
+					}
 				}
 				loop = false;
 				break;
-			case ast::typespec::index<ast::ts_constant>:
-				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-				if (!(expr_it->is<ast::ts_constant>() || expr_it->is<ast::ts_consteval>()))
+			case ast::typespec_node_t::index_of<ast::ts_const>:
+				dest_it = dest_it.get<ast::ts_const>();
+				if (!(expr_it.is<ast::ts_const>() || expr_it.is<ast::ts_consteval>()))
 				{
 					this->report_error(
 						expr,
 						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
 					);
-					dest_type.clear();
+					if (!ast::is_complete(dest_type))
+					{
+						dest_type.clear();
+					}
 					loop = false;
 				}
 				else
 				{
-					expr_it = &ast::remove_const_or_consteval(*expr_it);
+					expr_it = ast::remove_const_or_consteval(expr_it);
 				}
 				break;
-			case ast::typespec::index<ast::ts_consteval>:
+			case ast::typespec_node_t::index_of<ast::ts_consteval>:
 				bz_assert(false);
 				break;
-			case ast::typespec::index<ast::ts_pointer>:
-				dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
-				if (!expr_it->is<ast::ts_pointer_ptr>())
+			case ast::typespec_node_t::index_of<ast::ts_pointer>:
+				dest_it = dest_it.get<ast::ts_pointer>();
+				if (!expr_it.is<ast::ts_pointer>())
 				{
 					this->report_error(
 						expr,
@@ -2163,12 +2179,15 @@ void parse_context::match_expression_to_type(
 				}
 				else
 				{
-					expr_it = &expr_it->get<ast::ts_pointer_ptr>()->base;
+					expr_it = expr_it.get<ast::ts_pointer>();
 				}
 				break;
-			case ast::typespec::index<ast::ts_auto>:
-				*dest_it = *expr_it;
+			case ast::typespec_node_t::index_of<ast::ts_auto>:
+				dest_type.copy_from(dest_it, expr_it);
 				loop = false;
+				break;
+			case ast::typespec_node_t::index_of<ast::ts_typename>:
+				bz_assert(false);
 				break;
 			default:
 				bz_assert(false);
@@ -2177,7 +2196,7 @@ void parse_context::match_expression_to_type(
 		}
 	};
 
-	if (dest_it->is<ast::ts_reference>())
+	if (dest_it.is<ast::ts_lvalue_reference>())
 	{
 		if (
 			expr_type_kind != ast::expression_type_kind::lvalue
@@ -2189,20 +2208,20 @@ void parse_context::match_expression_to_type(
 			return;
 		}
 
-		dest_it = &dest_it->get<ast::ts_reference_ptr>()->base;
+		dest_it = dest_it.get<ast::ts_lvalue_reference>();
 
-		if (dest_it->is<ast::ts_constant>())
+		if (dest_it.is<ast::ts_const>())
 		{
-			dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-			expr_it = &ast::remove_const_or_consteval(*expr_it);
+			dest_it = dest_it.get<ast::ts_const>();
+			expr_it = ast::remove_const_or_consteval(expr_it);
 		}
-		else if (expr_it->is<ast::ts_constant>())
+		else if (expr_it.is<ast::ts_const>())
 		{
 			this->report_error(
 				expr,
 				bz::format(
 					"cannot bind an expression of type '{}' to a reference of type '{}'",
-					*expr_it, *dest_it
+					expr_it, dest_it
 				)
 			);
 			dest_type.clear();
@@ -2211,16 +2230,16 @@ void parse_context::match_expression_to_type(
 
 		strict_match();
 	}
-	else if (dest_it->is<ast::ts_pointer>())
+	else if (dest_it.is<ast::ts_pointer>())
 	{
-		expr_it = &ast::remove_const_or_consteval(*expr_it);
-		dest_it = &dest_it->get<ast::ts_pointer_ptr>()->base;
-		if (!expr_it->is<ast::ts_pointer>())
+		expr_it = ast::remove_const_or_consteval(expr_it);
+		dest_it = dest_it.get<ast::ts_pointer>();
+		if (!expr_it.is<ast::ts_pointer>())
 		{
 			// check if expr is a null literal
 			if (
-				expr_it->is<ast::ts_base_type>()
-				&& expr_it->get<ast::ts_base_type_ptr>()->info->kind == ast::type_info::null_t_
+				expr_it.is<ast::ts_base_type>()
+				&& expr_it.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
 			)
 			{
 				bz_assert(expr.is<ast::constant_expression>());
@@ -2248,13 +2267,13 @@ void parse_context::match_expression_to_type(
 		}
 		else
 		{
-			expr_it = &expr_it->get<ast::ts_pointer_ptr>()->base;
-			if (dest_it->is<ast::ts_constant>())
+			expr_it = expr_it.get<ast::ts_pointer>();
+			if (dest_it.is<ast::ts_const>())
 			{
-				dest_it = &dest_it->get<ast::ts_constant_ptr>()->base;
-				expr_it = &ast::remove_const_or_consteval(*expr_it);
+				dest_it = dest_it.get<ast::ts_const>();
+				expr_it = ast::remove_const_or_consteval(expr_it);
 			}
-			else if (expr_it->is<ast::ts_constant>())
+			else if (expr_it.is<ast::ts_const>())
 			{
 				this->report_error(
 					expr,
@@ -2267,10 +2286,10 @@ void parse_context::match_expression_to_type(
 
 		strict_match();
 	}
-	else if (dest_it->is<ast::ts_base_type>())
+	else if (dest_it.is<ast::ts_base_type>())
 	{
-		expr_it = &ast::remove_const_or_consteval(*expr_it);
-		if (!expr_it->is<ast::ts_base_type>())
+		expr_it = ast::remove_const_or_consteval(expr_it);
+		if (!expr_it.is<ast::ts_base_type>())
 		{
 			this->report_error(
 				expr,
@@ -2280,8 +2299,8 @@ void parse_context::match_expression_to_type(
 			return;
 		}
 
-		auto const dest_info = dest_it->get<ast::ts_base_type_ptr>()->info;
-		auto const expr_info = expr_it->get<ast::ts_base_type_ptr>()->info;
+		auto const dest_info = dest_it.get<ast::ts_base_type>().info;
+		auto const expr_info = expr_it.get<ast::ts_base_type>().info;
 
 		if (dest_info != expr_info)
 		{
@@ -2295,9 +2314,9 @@ void parse_context::match_expression_to_type(
 	}
 	else
 	{
-		bz_assert(dest_it->is<ast::ts_auto>());
-		expr_it = &ast::remove_const_or_consteval(*expr_it);
-		*dest_it = *expr_it;
+		bz_assert(dest_it.is<ast::ts_auto>());
+		expr_it = ast::remove_const_or_consteval(expr_it);
+		dest_type.copy_from(dest_it, expr_it);
 	}
 }
 

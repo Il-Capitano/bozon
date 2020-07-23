@@ -101,13 +101,27 @@ static ast::expression parse_primary_expression(
 	{
 		auto const auto_pos = stream;
 		auto const src_tokens = lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
-		++stream; // auto
+		++stream; // 'auto'
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::make_ts_auto(src_tokens, auto_pos),
+			ast::make_auto_typespec(auto_pos),
 			ast::make_expr_identifier(auto_pos)
+		);
+	}
+
+	case lex::token::kw_typename:
+	{
+		auto const typename_pos = stream;
+		auto const src_tokens = lex::src_tokens{ typename_pos, typename_pos, typename_pos + 1 };
+		++stream; // 'typename'
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::make_typename_typespec(typename_pos),
+			ast::make_expr_identifier(typename_pos)
 		);
 	}
 
@@ -318,15 +332,15 @@ static ast::expression parse_expression(
 
 static ast::typespec add_prototype_to_type(
 	lex::token_range prototype_range,
-	ast::typespec const &type,
+	ast::typespec type,
 	ctx::parse_context &context
 )
 {
 	ast::expression result_expr = ast::make_constant_expression(
-		type.src_tokens,
+		type.get_src_tokens(),
 		ast::expression_type_kind::type_name,
 		ast::typespec(),
-		type,
+		std::move(type),
 		ast::expr_t{}
 	);
 	for (auto it = prototype_range.end; it != prototype_range.begin;)
@@ -346,7 +360,7 @@ static ast::typespec add_prototype_to_type(
 
 	if (!result_expr.is_typename())
 	{
-		return ast::typespec(result_expr.src_tokens);
+		return ast::typespec();
 	}
 	else
 	{
@@ -360,65 +374,55 @@ void resolve(
 	ctx::parse_context &context
 )
 {
-	switch (ts.kind())
+	if (!ts.is_unresolved())
 	{
-	case ast::typespec::index<ast::ts_unresolved>:
-	{
-		auto &unresolved_ts = ts.get<ast::ts_unresolved_ptr>();
-		auto stream = unresolved_ts->tokens.begin;
-		auto const end = unresolved_ts->tokens.end;
-		auto expr = parse_expression(stream, end, context, prec);
-
-		if (expr.not_null() && stream != end)
-		{
-			bz_assert(stream < end);
-			if (is_binary_operator(stream->kind))
-			{
-				bz_assert(stream->kind != lex::token::assign);
-				bz_assert(prec.value != precedence{}.value);
-				context.report_error(
-					{ stream, stream, end },
-					"expected ';' or '=' at the end of a type",
-					{ context.make_note(
-						stream,
-						bz::format("operator {} is not allowed in a variable declaration's type", stream->value)
-					) }
-				);
-			}
-			else
-			{
-				context.report_error({ stream, stream, end }, bz::format("unexpected token{}", end - stream == 1 ? "" : "s"));
-			}
-			expr.clear();
-		}
-
-		if (expr.is_null())
-		{
-			bz_assert(context.has_errors());
-			ts = ast::typespec(expr.src_tokens);
-			break;
-		}
-		if (!expr.is<ast::constant_expression>())
-		{
-			context.report_error(expr, "expected a type");
-			ts = ast::typespec(expr.src_tokens);
-			break;
-		}
-		auto &const_expr = expr.get<ast::constant_expression>();
-		if (const_expr.kind != ast::expression_type_kind::type_name)
-		{
-			context.report_error(expr, "expected a type");
-			ts = ast::typespec(expr.src_tokens);
-			break;
-		}
-		bz_assert(const_expr.value.kind() == ast::constant_value::type);
-		ts = std::move(const_expr.value.get<ast::constant_value::type>());
-		break;
+		return;
 	}
 
-	default:
-		break;
+	auto &unresolved_ts = ts.nodes.front().get<ast::ts_unresolved>();
+	auto stream = unresolved_ts.tokens.begin;
+	auto const end = unresolved_ts.tokens.end;
+	auto expr = parse_expression(stream, end, context, prec);
+
+	if (expr.not_null() && stream != end)
+	{
+		bz_assert(stream < end);
+		if (is_binary_operator(stream->kind))
+		{
+			bz_assert(stream->kind != lex::token::assign);
+			bz_assert(prec.value != precedence{}.value);
+			context.report_error(
+				{ stream, stream, end },
+				"expected ';' or '=' at the end of a type",
+				{ context.make_note(
+					stream,
+					bz::format("operator {} is not allowed in a variable declaration's type", stream->value)
+				) }
+			);
+		}
+		else
+		{
+			context.report_error({ stream, stream, end }, bz::format("unexpected token{}", end - stream == 1 ? "" : "s"));
+		}
+		expr.clear();
 	}
+
+	if (expr.is_null())
+	{
+		bz_assert(context.has_errors());
+		ts.clear();
+		return;
+	}
+	if (!expr.is_typename())
+	{
+		context.report_error(expr, "expected a type");
+		ts.clear();
+		return;
+	}
+
+	auto &const_expr = expr.get<ast::constant_expression>();
+	bz_assert(const_expr.value.kind() == ast::constant_value::type);
+	ts = std::move(const_expr.value.get<ast::constant_value::type>());
 }
 
 static void resolve(
@@ -449,7 +453,7 @@ static void resolve(
 	bool is_func_param = false
 )
 {
-	if (var_decl.var_type.not_null())
+	if (var_decl.var_type.has_value())
 	{
 		resolve(var_decl.var_type, no_assign, context);
 	}
@@ -457,30 +461,30 @@ static void resolve(
 
 	// if the variable is a base type we need to resolve it (if it's not already resolved)
 	if (
-		auto &var_type_without_const = ast::remove_const_or_consteval(var_decl.var_type);
+		auto const var_type_without_const = ast::remove_const_or_consteval(var_decl.var_type);
 		var_type_without_const.is<ast::ts_base_type>()
 	)
 	{
-		auto &base_t = *var_type_without_const.get<ast::ts_base_type_ptr>();
+		auto &base_t = var_type_without_const.get<ast::ts_base_type>();
 		resolve(*base_t.info, context);
 	}
 
 	if (!is_func_param && var_decl.init_expr.is_null())
 	{
 		if (
-			var_decl.var_type.is<ast::ts_constant>()
+			var_decl.var_type.is<ast::ts_const>()
 			|| var_decl.var_type.is<ast::ts_consteval>()
-			|| var_decl.var_type.is<ast::ts_reference>()
+			|| var_decl.var_type.is<ast::ts_lvalue_reference>()
 		)
 		{
 			auto const var_type = [&]() -> bz::u8string_view {
 				switch (var_decl.var_type.kind())
 				{
-				case ast::typespec::index<ast::ts_constant>:
+				case ast::typespec_node_t::index_of<ast::ts_const>:
 					return "'const'";
-				case ast::typespec::index<ast::ts_consteval>:
+				case ast::typespec_node_t::index_of<ast::ts_consteval>:
 					return "'consteval'";
-				case ast::typespec::index<ast::ts_reference>:
+				case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 					return "reference";
 				default:
 					bz_assert(false);
@@ -853,7 +857,11 @@ static void resolve_attributes(
 
 		if (good && !check_attribute(stmt, atr, context))
 		{
-			context.report_warning(atr.name, bz::format("unknown attribute '{}'", atr.name->value));
+			context.report_warning(
+				ctx::warning_kind::unknown_attribute,
+				atr.name,
+				bz::format("unknown attribute '{}'", atr.name->value)
+			);
 		}
 	}
 }
@@ -1097,7 +1105,7 @@ static void resolve_decl_operator(ast::statement &stmt, ctx::parse_context &cont
 	}
 }
 
-static void resolve_decl_struct(ast::statement &stmt, ctx::parse_context &context)
+static void resolve_decl_struct(ast::statement &, ctx::parse_context &)
 {
 	bz_assert(false);
 }

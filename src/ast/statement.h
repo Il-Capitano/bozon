@@ -280,7 +280,7 @@ struct decl_variable
 		: tokens         (_tokens),
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
-		  var_type       (make_ts_auto({}, nullptr)),
+		  var_type       (make_auto_typespec(nullptr)),
 		  init_expr      (std::move(_init_expr))
 	{}
 
@@ -545,89 +545,5 @@ def_make_fn(statement, stmt_static_assert)
 #undef def_make_fn
 
 } // namespace ast
-
-template<>
-struct bz::formatter<ast::typespec>
-{
-	static bz::u8string format(ast::typespec const &typespec, u8string_view)
-	{
-		switch (typespec.kind())
-		{
-		case ast::typespec::index<ast::ts_base_type>:
-			return bz::format("{}", typespec.get<ast::ts_base_type_ptr>()->info->name);
-
-		case ast::typespec::index<ast::ts_void>:
-			return "void";
-
-		case ast::typespec::index<ast::ts_constant>:
-			return bz::format("const {}", typespec.get<ast::ts_constant_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_consteval>:
-			return bz::format("consteval {}", typespec.get<ast::ts_consteval_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_pointer>:
-			return bz::format("*{}", typespec.get<ast::ts_pointer_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_reference>:
-			return bz::format("&{}", typespec.get<ast::ts_reference_ptr>()->base);
-
-		case ast::typespec::index<ast::ts_function>:
-		{
-			auto &fn = typespec.get<ast::ts_function_ptr>();
-			bz::u8string res = "function(";
-
-			bool put_comma = false;
-			for (auto &type : fn->argument_types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-
-			res += bz::format(") -> {}", fn->return_type);
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_tuple>:
-		{
-			auto &tuple = typespec.get<ast::ts_tuple_ptr>();
-			bz::u8string res = "[";
-
-			bool put_comma = false;
-			for (auto &type : tuple->types)
-			{
-				if (put_comma)
-				{
-					res += bz::format(", {}", type);
-				}
-				else
-				{
-					res += bz::format("{}", type);
-					put_comma = true;
-				}
-			}
-			res += "]";
-
-			return res;
-		}
-
-		case ast::typespec::index<ast::ts_auto>:
-			return "auto";
-
-		case ast::typespec::index<ast::ts_unresolved>:
-			return "<unresolved>";
-
-		default:
-			return "<error-type>";
-		}
-	}
-};
 
 #endif // AST_STATEMENT_H
