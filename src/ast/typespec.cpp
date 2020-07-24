@@ -9,114 +9,86 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 	lex::src_tokens src_tokens = {};
 	for (auto &node : bz::reversed(this->nodes))
 	{
-		switch (node.index())
-		{
-		case typespec_node_t::index_of<ts_unresolved>:
-		{
-			auto const tokens = node.get<ts_unresolved>().tokens;
-			src_tokens = { tokens.begin, tokens.begin, tokens.end };
-			break;
-		}
-		case typespec_node_t::index_of<ts_base_type>:
-			src_tokens = node.get<ts_base_type>().src_tokens;
-			break;
-		case typespec_node_t::index_of<ts_void>:
-		{
-			auto const void_pos = node.get<ts_void>().void_pos;
-			if (void_pos != nullptr)
-			{
-				src_tokens = { void_pos, void_pos, void_pos + 1 };
+		node.visit(bz::overload{
+			[&](ts_unresolved const &unresolved) {
+				src_tokens = { unresolved.tokens.begin, unresolved.tokens.begin, unresolved.tokens.end };
+			},
+			[&](ts_base_type const &base_type) {
+				src_tokens = base_type.src_tokens;
+			},
+			[&](ts_void const &void_) {
+				if (void_.void_pos != nullptr)
+				{
+					src_tokens = { void_.void_pos, void_.void_pos, void_.void_pos + 1 };
+				}
+			},
+			[&](ts_function const &func_t) {
+				src_tokens = func_t.src_tokens;
+			},
+			[&](ts_tuple const &tuple) {
+				src_tokens = tuple.src_tokens;
+			},
+			[&](ts_auto const &auto_) {
+				if (auto_.auto_pos != nullptr)
+				{
+					src_tokens = { auto_.auto_pos, auto_.auto_pos, auto_.auto_pos + 1 };
+				}
+			},
+			[&](ts_typename const &typename_) {
+				if (typename_.typename_pos != nullptr)
+				{
+					src_tokens = { typename_.typename_pos, typename_.typename_pos, typename_.typename_pos + 1 };
+				}
+			},
+			[&](ts_const const &const_) {
+				if (src_tokens.begin == nullptr && const_.const_pos != nullptr)
+				{
+					src_tokens = { const_.const_pos, const_.const_pos, const_.const_pos + 1 };
+				}
+				else if (const_.const_pos != nullptr)
+				{
+					bz_assert(const_.const_pos < src_tokens.begin);
+					src_tokens.begin = const_.const_pos;
+					src_tokens.pivot = const_.const_pos;
+				}
+			},
+			[&](ts_consteval const &consteval_) {
+				if (src_tokens.begin == nullptr && consteval_.consteval_pos != nullptr)
+				{
+					src_tokens = { consteval_.consteval_pos, consteval_.consteval_pos, consteval_.consteval_pos + 1 };
+				}
+				else if (consteval_.consteval_pos != nullptr)
+				{
+					bz_assert(consteval_.consteval_pos < src_tokens.begin);
+					src_tokens.begin = consteval_.consteval_pos;
+					src_tokens.pivot = consteval_.consteval_pos;
+				}
+			},
+			[&](ts_pointer const &pointer) {
+				if (src_tokens.begin == nullptr && pointer.pointer_pos != nullptr)
+				{
+					src_tokens = { pointer.pointer_pos, pointer.pointer_pos, pointer.pointer_pos + 1 };
+				}
+				else if (pointer.pointer_pos != nullptr)
+				{
+					bz_assert(pointer.pointer_pos < src_tokens.begin);
+					src_tokens.begin = pointer.pointer_pos;
+					src_tokens.pivot = pointer.pointer_pos;
+				}
+			},
+			[&](ts_lvalue_reference const &reference) {
+				if (src_tokens.begin == nullptr && reference.reference_pos != nullptr)
+				{
+					src_tokens = { reference.reference_pos, reference.reference_pos, reference.reference_pos + 1 };
+				}
+				else if (reference.reference_pos != nullptr)
+				{
+					bz_assert(reference.reference_pos < src_tokens.begin);
+					src_tokens.begin = reference.reference_pos;
+					src_tokens.pivot = reference.reference_pos;
+				}
 			}
-			break;
-		}
-		case typespec_node_t::index_of<ts_function>:
-			src_tokens = node.get<ts_function>().src_tokens;
-			break;
-		case typespec_node_t::index_of<ts_tuple>:
-			src_tokens = node.get<ts_tuple>().src_tokens;
-			break;
-		case typespec_node_t::index_of<ts_auto>:
-		{
-			auto const auto_pos = node.get<ts_auto>().auto_pos;
-			if (auto_pos != nullptr)
-			{
-				src_tokens = { auto_pos, auto_pos, auto_pos + 1 };
-			}
-			break;
-		}
-		case ast::typespec_node_t::index_of<ast::ts_typename>:
-		{
-			auto const typename_pos = node.get<ts_typename>().typename_pos;
-			if (typename_pos != nullptr)
-			{
-				src_tokens = { typename_pos, typename_pos, typename_pos + 1 };
-			}
-			break;
-		}
-		case ast::typespec_node_t::index_of<ast::ts_const>:
-		{
-			auto const const_pos = node.get<ts_const>().const_pos;
-			if (src_tokens.begin == nullptr && const_pos != nullptr)
-			{
-				src_tokens = { const_pos, const_pos, const_pos + 1 };
-			}
-			else if (const_pos != nullptr)
-			{
-				bz_assert(const_pos < src_tokens.begin);
-				src_tokens.begin = const_pos;
-				src_tokens.pivot = const_pos;
-			}
-			break;
-		}
-		case ast::typespec_node_t::index_of<ast::ts_consteval>:
-		{
-			auto const consteval_pos = node.get<ts_consteval>().consteval_pos;
-			if (src_tokens.begin == nullptr && consteval_pos != nullptr)
-			{
-				src_tokens = { consteval_pos, consteval_pos, consteval_pos + 1 };
-			}
-			else if (consteval_pos != nullptr)
-			{
-				bz_assert(consteval_pos < src_tokens.begin);
-				src_tokens.begin = consteval_pos;
-				src_tokens.pivot = consteval_pos;
-			}
-			break;
-		}
-		case ast::typespec_node_t::index_of<ast::ts_pointer>:
-		{
-			auto const pointer_pos = node.get<ts_pointer>().pointer_pos;
-			if (src_tokens.begin == nullptr && pointer_pos != nullptr)
-			{
-				src_tokens = { pointer_pos, pointer_pos, pointer_pos + 1 };
-			}
-			else if (pointer_pos != nullptr)
-			{
-				bz_assert(pointer_pos < src_tokens.begin);
-				src_tokens.begin = pointer_pos;
-				src_tokens.pivot = pointer_pos;
-			}
-			break;
-		}
-		case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-		{
-			auto const reference_pos = node.get<ts_lvalue_reference>().reference_pos;
-			if (src_tokens.begin == nullptr && reference_pos != nullptr)
-			{
-				src_tokens = { reference_pos, reference_pos, reference_pos + 1 };
-			}
-			else if (reference_pos != nullptr)
-			{
-				bz_assert(reference_pos < src_tokens.begin);
-				src_tokens.begin = reference_pos;
-				src_tokens.pivot = reference_pos;
-			}
-			break;
-		}
-		default:
-			bz_assert(false);
-			break;
-		}
+		});
 	}
 	return src_tokens;
 }
@@ -201,42 +173,37 @@ bool is_complete(typespec_view ts) noexcept
 		return false;
 	}
 
-	auto &last = ts.nodes.back();
-	switch (last.index())
-	{
-	case typespec_node_t::index_of<ts_base_type>:
-	case typespec_node_t::index_of<ts_void>:
-		return true;
-	case typespec_node_t::index_of<ts_function>:
-	{
-		auto &fn_t = last.get<ts_function>();
-		for (auto &param : fn_t.param_types)
-		{
-			if (!is_complete(param))
+	return ts.nodes.back().visit(bz::overload{
+		[](ts_base_type const &) {
+			return true;
+		},
+		[](ts_void const &) {
+			return true;
+		},
+		[](ts_function const &fn_t) {
+			for (auto &param : fn_t.param_types)
 			{
-				return false;
+				if (!is_complete(param))
+				{
+					return false;
+				}
 			}
-		}
-		return is_complete(fn_t.return_type);
-	}
-	case typespec_node_t::index_of<ts_tuple>:
-	{
-		auto &tuple_t = last.get<ts_tuple>();
-		for (auto &t : tuple_t.types)
-		{
-			if (!is_complete(t))
+			return is_complete(fn_t.return_type);
+		},
+		[](ts_tuple const &tuple_t) {
+			for (auto &t : tuple_t.types)
 			{
-				return false;
+				if (!is_complete(t))
+				{
+					return false;
+				}
 			}
+			return true;
+		},
+		[](auto const &) {
+			return false;
 		}
-		return true;
-	}
-	case typespec_node_t::index_of<ts_auto>:
-	case typespec_node_t::index_of<ts_typename>:
-		return false;
-	default:
-		return false;
-	}
+	});
 }
 
 bool is_instantiable(typespec_view ts) noexcept
@@ -246,43 +213,37 @@ bool is_instantiable(typespec_view ts) noexcept
 		return false;
 	}
 
-	auto &last = ts.nodes.back();
-	switch (last.index())
-	{
-	case typespec_node_t::index_of<ts_base_type>:
-		return (last.get<ts_base_type>().info->flags & type_info::instantiable) != 0;
-	case typespec_node_t::index_of<ts_void>:
-		return false;
-	case typespec_node_t::index_of<ts_function>:
-	{
-		auto &fn_t = last.get<ts_function>();
-		for (auto &param : fn_t.param_types)
-		{
-			if (!is_instantiable(param))
+	return ts.nodes.back().visit(bz::overload{
+		[](ts_base_type const &base_type) {
+			return (base_type.info->flags & type_info::instantiable) != 0;
+		},
+		[](ts_void const &) {
+			return false;
+		},
+		[](ts_function const &fn_t) {
+			for (auto &param : fn_t.param_types)
 			{
-				return false;
+				if (!is_instantiable(param))
+				{
+					return false;
+				}
 			}
-		}
-		return fn_t.return_type.is<ts_void>() || is_instantiable(fn_t.return_type);
-	}
-	case typespec_node_t::index_of<ts_tuple>:
-	{
-		auto &tuple_t = last.get<ts_tuple>();
-		for (auto &t : tuple_t.types)
-		{
-			if (!is_instantiable(t))
+			return fn_t.return_type.is<ts_void>() || is_instantiable(fn_t.return_type);
+		},
+		[](ts_tuple const &tuple_t) {
+			for (auto &t : tuple_t.types)
 			{
-				return false;
+				if (!is_instantiable(t))
+				{
+					return false;
+				}
 			}
+			return true;
+		},
+		[](auto const &) {
+			return false;
 		}
-		return true;
-	}
-	case typespec_node_t::index_of<ts_auto>:
-	case typespec_node_t::index_of<ts_typename>:
-		return false;
-	default:
-		return false;
-	}
+	});
 }
 
 bz::u8string get_symbol_name_for_type(typespec_view ts)
@@ -290,44 +251,29 @@ bz::u8string get_symbol_name_for_type(typespec_view ts)
 	bz::u8string result = "";
 	for (auto &node : ts.nodes)
 	{
-		switch (node.index())
-		{
-		case typespec_node_t::index_of<ts_unresolved>:
-			bz_assert(false);
-			break;
-		case typespec_node_t::index_of<ts_base_type>:
-			result += node.get<ts_base_type>().info->name;
-			break;
-		case typespec_node_t::index_of<ts_void>:
-			result += "void";
-			break;
-		case typespec_node_t::index_of<ts_function>:
-			bz_assert(false);
-			break;
-		case typespec_node_t::index_of<ts_tuple>:
-			bz_assert(false);
-			break;
-		case typespec_node_t::index_of<ts_auto>:
-			bz_assert(false);
-			break;
-		case typespec_node_t::index_of<ts_typename>:
-			bz_assert(false);
-			break;
-		case typespec_node_t::index_of<ts_const>:
-			result += "const.";
-			break;
-		case typespec_node_t::index_of<ts_consteval>:
-			result += "consteval.";
-			break;
-		case typespec_node_t::index_of<ts_pointer>:
-			result += "0P.";
-			break;
-		case typespec_node_t::index_of<ts_lvalue_reference>:
-			result += "0R.";
-			break;
-		default:
-			break;
-		}
+		node.visit(bz::overload{
+			[&](ts_base_type const &base_type) {
+				result += base_type.info->name;
+			},
+			[&](ts_void const &) {
+				result += "void";
+			},
+			[&](ts_const const &) {
+				result += "const.";
+			},
+			[&](ts_consteval const &) {
+				result += "consteval.";
+			},
+			[&](ts_pointer const &) {
+				result += "0P.";
+			},
+			[&](ts_lvalue_reference const &) {
+				result += "0R.";
+			},
+			[](auto const &) {
+				bz_assert(false);
+			}
+		});
 	}
 	return result;
 }
@@ -420,43 +366,44 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 	bz::u8string result = "";
 	for (auto &node : typespec.nodes)
 	{
-		switch (node.index())
-		{
-		case ast::typespec_node_t::index_of<ast::ts_unresolved>:
-			result += "<unresolved>";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_base_type>:
-			result += node.get<ast::ts_base_type>().info->name;
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_void>:
-			result += "void";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_function>:
-		case ast::typespec_node_t::index_of<ast::ts_tuple>:
-			bz_assert(false);
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_auto>:
-			result += "auto";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_typename>:
-			result += "typename";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_const>:
-			result += "const ";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_consteval>:
-			result += "consteval ";
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_pointer>:
-			result += '*';
-			break;
-		case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
-			result += '&';
-			break;
-		default:
-			result += "<error-type>";
-			break;
-		}
+		node.visit(bz::overload{
+			[&](ast::ts_unresolved const &) {
+				result += "<unresolved>";
+			},
+			[&](ast::ts_base_type const &base_type) {
+				result += base_type.info->name;
+			},
+			[&](ast::ts_void const &) {
+				result += "void";
+			},
+			[&](ast::ts_function const &) {
+				bz_assert(false);
+			},
+			[&](ast::ts_tuple const &) {
+				bz_assert(false);
+			},
+			[&](ast::ts_auto const &) {
+				result += "auto";
+			},
+			[&](ast::ts_typename const &) {
+				result += "typename";
+			},
+			[&](ast::ts_const const &) {
+				result += "const ";
+			},
+			[&](ast::ts_consteval const &) {
+				result += "consteval ";
+			},
+			[&](ast::ts_pointer const &) {
+				result += '*';
+			},
+			[&](ast::ts_lvalue_reference const &) {
+				result += '&';
+			},
+			[&](auto const &) {
+				result += "<error-type>";
+			}
+		});
 	}
 	return result;
 }

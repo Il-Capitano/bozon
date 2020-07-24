@@ -87,7 +87,7 @@ constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
 }(declaration_types{}, statement_types{});
 
 
-using statement_node_t = typename internal::node_from_type_pack<statement_types>::type;
+using statement_node_t = bz::meta::apply_type_pack<node, statement_types>;
 
 struct statement : statement_node_t
 {

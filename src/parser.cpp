@@ -477,20 +477,22 @@ static void resolve(
 			|| var_decl.var_type.is<ast::ts_lvalue_reference>()
 		)
 		{
-			auto const var_type = [&]() -> bz::u8string_view {
-				switch (var_decl.var_type.kind())
-				{
-				case ast::typespec_node_t::index_of<ast::ts_const>:
+			auto const var_type = var_decl.var_type.visit(bz::overload{
+				[](ast::ts_const const &) -> bz::u8string_view {
 					return "'const'";
-				case ast::typespec_node_t::index_of<ast::ts_consteval>:
+				},
+				[](ast::ts_consteval const &) -> bz::u8string_view {
 					return "'consteval'";
-				case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
+				},
+				[](ast::ts_lvalue_reference const &) -> bz::u8string_view {
 					return "reference";
-				default:
+				},
+				[](auto const &) -> bz::u8string_view {
 					bz_assert(false);
 					return "";
 				}
-			}();
+			});
+
 			context.report_error(var_decl, bz::format("a {} variable must be initialized", var_type));
 			var_decl.var_type.clear();
 		}
@@ -709,91 +711,73 @@ static bool check_attribute(
 	ctx::parse_context &context
 )
 {
-	switch (stmt.kind())
-	{
-	case ast::statement::index<ast::stmt_if>:
-		return false;
-	case ast::statement::index<ast::stmt_while>:
-		return false;
-	case ast::statement::index<ast::stmt_for>:
-		return false;
-	case ast::statement::index<ast::stmt_return>:
-		return false;
-	case ast::statement::index<ast::stmt_no_op>:
-		return false;
-	case ast::statement::index<ast::stmt_compound>:
-		return false;
-	case ast::statement::index<ast::stmt_static_assert>:
-		return false;
-	case ast::statement::index<ast::stmt_expression>:
-		return false;
-	case ast::statement::index<ast::decl_variable>:
-		return false;
-	case ast::statement::index<ast::decl_function>:
-		if (atr.name->value == "extern")
-		{
-			auto &func_body = stmt.get<ast::decl_function_ptr>()->body;
-			if (func_body.body.has_value())
+	return stmt.visit(bz::overload{
+		[&](ast::decl_function &func_decl) {
+			if (atr.name->value == "extern")
 			{
-				context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
+				auto &func_body = func_decl.body;
+				if (func_body.body.has_value())
+				{
+					context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
+					return true;
+				}
+				if (atr.args.size() != 1)
+				{
+					context.report_error(atr.name, "'extern' expects exactly one argument");
+					return true;
+				}
+				bz_assert(atr.args[0].is<ast::constant_expression>());
+				auto &arg = atr.args[0].get<ast::constant_expression>();
+				if (arg.value.kind() != ast::constant_value::string)
+				{
+					context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
+					return true;
+				}
+				auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
+				func_body.symbol_name = extern_name;
+				if (func_body.llvm_func != nullptr)
+				{
+					func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
+				}
 				return true;
 			}
-			if (atr.args.size() != 1)
+			return false;
+		},
+		[&](ast::decl_operator &op_decl) {
+			if (atr.name->value == "extern")
 			{
-				context.report_error(atr.name, "'extern' expects exactly one argument");
+				auto &func_body = op_decl.body;
+				if (func_body.body.has_value())
+				{
+					context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
+					return true;
+				}
+				if (atr.args.size() != 1)
+				{
+					context.report_error(atr.name, "'extern' expects exactly one argument");
+					return true;
+				}
+				bz_assert(atr.args[0].is<ast::constant_expression>());
+				auto &arg = atr.args[0].get<ast::constant_expression>();
+				if (arg.value.kind() != ast::constant_value::string)
+				{
+					context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
+					return true;
+				}
+				auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
+				func_body.symbol_name = extern_name;
+				if (func_body.llvm_func != nullptr)
+				{
+					func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
+				}
 				return true;
 			}
-			bz_assert(atr.args[0].is<ast::constant_expression>());
-			auto &arg = atr.args[0].get<ast::constant_expression>();
-			if (arg.value.kind() != ast::constant_value::string)
-			{
-				context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
-				return true;
-			}
-			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
-			func_body.symbol_name = extern_name;
-			if (func_body.llvm_func != nullptr)
-			{
-				func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
-			}
-			return true;
+			return false;
+		},
+		[](auto const &) {
+			return false;
 		}
-		return false;
-	case ast::statement::index<ast::decl_operator>:
-		if (atr.name->value == "extern")
-		{
-			auto &func_body = stmt.get<ast::decl_operator_ptr>()->body;
-			if (func_body.body.has_value())
-			{
-				context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
-				return true;
-			}
-			if (atr.args.size() != 1)
-			{
-				context.report_error(atr.name, "'extern' expects exactly one argument");
-				return true;
-			}
-			bz_assert(atr.args[0].is<ast::constant_expression>());
-			auto &arg = atr.args[0].get<ast::constant_expression>();
-			if (arg.value.kind() != ast::constant_value::string)
-			{
-				context.report_error(atr.args[0], "argument of 'extern' must be of type 'str'");
-				return true;
-			}
-			auto const extern_name = arg.value.get<ast::constant_value::string>().as_string_view();
-			func_body.symbol_name = extern_name;
-			if (func_body.llvm_func != nullptr)
-			{
-				func_body.llvm_func->setName(llvm::StringRef(extern_name.data(), extern_name.size()));
-			}
-			return true;
-		}
-		return false;
-	case ast::statement::index<ast::decl_struct>:
-		return false;
-	default:
-		return false;
-	}
+	});
 }
 
 static void resolve_attributes(

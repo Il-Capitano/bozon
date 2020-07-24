@@ -1222,7 +1222,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	);
 }
 
-ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
+ast::expression parse_context::make_tuple(lex::src_tokens, bz::vector<ast::expression>) const
 {
 	bz_assert(false);
 	return ast::expression();

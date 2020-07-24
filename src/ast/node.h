@@ -109,6 +109,22 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 			}
 		);
 	}
+
+	template<typename Fn>
+	decltype(auto) visit(Fn &&fn)
+	{
+		return this->base_t::visit([&fn](auto &node) -> decltype(auto) {
+			return std::forward<Fn>(fn)(*node.get());
+		});
+	}
+
+	template<typename Fn>
+	decltype(auto) visit(Fn &&fn) const
+	{
+		return this->base_t::visit([&fn](auto &node) -> decltype(auto) {
+			return std::forward<Fn>(fn)(*node.get());
+		});
+	}
 };
 
 

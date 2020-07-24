@@ -70,6 +70,9 @@ struct typespec_view
 	auto get(void) const noexcept -> bz::meta::conditional<is_terminator_typespec<T>, T const &, typespec_view>;
 
 	typespec_view blind_get(void) const noexcept;
+
+	template<typename Fn>
+	decltype(auto) visit(Fn &&fn) const;
 };
 
 struct typespec
@@ -113,6 +116,10 @@ struct typespec
 
 	uint64_t kind(void) const noexcept
 	{ return this->as_typespec_view().kind(); }
+
+	template<typename Fn>
+	decltype(auto) visit(Fn &&fn) const
+	{ return this->as_typespec_view().visit(std::forward<Fn>(fn)); }
 
 	void clear(void) noexcept;
 
@@ -229,6 +236,13 @@ auto typespec_view::get(void) const noexcept -> bz::meta::conditional<is_termina
 	{
 		return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
 	}
+}
+
+template<typename Fn>
+decltype(auto) typespec_view::visit(Fn &&fn) const
+{
+	bz_assert(this->nodes.size() != 0);
+	return this->nodes.front().visit(std::forward<Fn>(fn));
 }
 
 template<typename T, typename ...Args>
