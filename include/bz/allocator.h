@@ -6,11 +6,7 @@
 bz_begin_namespace
 
 template<typename T>
-struct allocator : public ::std::allocator<T>
-{
-	using base_t = ::std::allocator<T>;
-	using base_t::allocator;
-};
+using allocator = ::std::allocator<T>;
 
 bz_end_namespace
 

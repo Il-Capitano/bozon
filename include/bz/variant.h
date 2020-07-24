@@ -439,7 +439,7 @@ public:
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void *);
 
-		fn_t calls[] = {
+		constexpr fn_t calls[] = {
 			[](visitor_t visitor, void *ptr) -> ret_t
 			{
 				return std::forward<visitor_t>(visitor)(*reinterpret_cast<Ts *>(ptr));
@@ -470,7 +470,7 @@ public:
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void const *);
 
-		fn_t calls[] = {
+		constexpr fn_t calls[] = {
 			[](visitor_t visitor, void const *ptr) -> ret_t
 			{
 				return std::forward<visitor_t>(visitor)(*reinterpret_cast<Ts const *>(ptr));
@@ -590,6 +590,16 @@ void swap(variant<Ts...> &v1, variant<Ts...> &v2) noexcept(std::is_nothrow_invoc
 	variant<Ts...>::swap, variant<Ts...>, variant<Ts...>
 >)
 { v1.swap(v2); }
+
+
+template<typename ...Ts>
+struct overload : Ts...
+{
+	using Ts::operator()...;
+};
+
+template<typename ...Ts>
+overload(Ts...) -> overload<Ts...>;
 
 bz_end_namespace
 

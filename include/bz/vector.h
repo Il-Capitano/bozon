@@ -30,6 +30,12 @@ private:
 	static constexpr bool nothrow_alloc   = meta::is_fn_noexcept_v<decltype(&Alloc::allocate)>;
 	static constexpr bool nothrow_dealloc = meta::is_fn_noexcept_v<decltype(&Alloc::deallocate)>;
 
+	static constexpr bool nothrow_move_value     = meta::is_nothrow_move_constructible_v<T>;
+	static constexpr bool nothrow_copy_value     = meta::is_nothrow_copy_constructible_v<T>;
+	static constexpr bool nothrow_destruct_value = meta::is_nothrow_destructible_v<T>;
+
+	static constexpr bool trivial_alloc = std::is_trivial_v<Alloc>;
+
 public:
 	using value_type = T;
 	using allocator_type = Alloc;
@@ -63,16 +69,19 @@ private:
 
 	void no_null_clear(void) noexcept(
 		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
+		&& nothrow_destruct_value
 	)
 	{
 		if (this->_data_begin != nullptr)
 		{
-			while (this->_data_end != this->_data_begin)
+			auto it = this->_data_end;
+			auto const begin = this->_data_begin;
+			while (it != begin)
 			{
-				--this->_data_end;
-				this->_data_end->~value_type();
+				--it;
+				it->~value_type();
 			}
+			this->_data_end = it;
 			this->_allocator.deallocate(this->_data_begin, this->capacity());
 		}
 	}
@@ -154,7 +163,7 @@ private:
 	template<bool assign_alloc = true>
 	void no_clear_assign(self_t &&other) noexcept(
 		!assign_alloc
-		|| meta::is_nothrow_move_assignable_v<allocator_type>
+		|| (trivial_alloc || meta::is_nothrow_move_assignable_v<allocator_type>)
 	)
 	{
 		if constexpr (assign_alloc)
@@ -261,7 +270,7 @@ public:
 	void assign(self_t &&other) noexcept(
 		nothrow_dealloc
 		&& meta::is_nothrow_destructible_v<value_type>
-		&& meta::is_nothrow_move_assignable_v<allocator_type>
+		&& (trivial_alloc || meta::is_nothrow_move_assignable_v<allocator_type>)
 	)
 	{
 		if (this == &other)
@@ -274,7 +283,7 @@ public:
 
 public:
 	vector(void) noexcept(
-		meta::is_nothrow_default_constructible_v<allocator_type>
+		trivial_alloc || meta::is_nothrow_default_constructible_v<allocator_type>
 	)
 		: _data_begin(nullptr),
 		  _data_end  (nullptr),
@@ -283,13 +292,13 @@ public:
 	{}
 
 	vector(self_t const &other) noexcept(
-		meta::is_nothrow_copy_constructible_v<allocator_type>
+		trivial_alloc || meta::is_nothrow_copy_constructible_v<allocator_type>
 	)
 		: _allocator(other._allocator)
 	{ this->no_clear_assign<false>(other); }
 
 	vector(self_t &&other) noexcept(
-		meta::is_nothrow_move_constructible_v<allocator_type>
+		trivial_alloc || meta::is_nothrow_move_constructible_v<allocator_type>
 	)
 		: _data_begin(other._data_begin),
 		  _data_end  (other._data_end),
@@ -297,10 +306,7 @@ public:
 		  _allocator (std::move(other._allocator))
 	{ other.set_to_null(); }
 
-	~vector(void) noexcept(
-		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-	)
+	~vector(void) noexcept
 	{ this->no_null_clear(); }
 
 	self_t &operator = (self_t const &other) noexcept(
