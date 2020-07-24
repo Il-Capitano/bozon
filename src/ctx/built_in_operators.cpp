@@ -378,7 +378,7 @@ static ast::expression get_built_in_unary_dereference(
 	auto result_type = expr_t.get<ast::ts_pointer>();
 	return ast::make_dynamic_expression(
 		src_tokens,
-		ast::expression_type_kind::lvalue_reference,
+		ast::expression_type_kind::lvalue,
 		result_type,
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
