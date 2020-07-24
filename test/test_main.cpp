@@ -1,5 +1,6 @@
 #include "test.h"
 #include "timer.h"
+#include "global_data.h"
 
 test_result lexer_test(void);
 test_result first_pass_parser_test(void);
@@ -7,6 +8,8 @@ test_result parser_test(void);
 
 int main(void)
 {
+	enable_Wall();
+
 	size_t test_count = 0;
 	size_t passed_count = 0;
 

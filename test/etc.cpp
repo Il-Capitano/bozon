@@ -1,5 +1,7 @@
 // cpp files that are needed for compilation,
 // but have no tests yet are included here
+#include "global_data.cpp"
+
 #include "lex/token.cpp"
 
 #include "ast/typespec.cpp"
