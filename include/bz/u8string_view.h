@@ -350,7 +350,7 @@ public:
 	{ return const_iterator(this->_data_end); }
 
 
-	u8string_view substring(size_t begin_index, size_t end_index) const noexcept
+	constexpr u8string_view substring(size_t begin_index, size_t end_index) const noexcept
 	{
 		auto it = this->begin();
 		auto const end = this->end();
@@ -373,7 +373,19 @@ public:
 		return u8string_view(substring_begin, substring_end);
 	}
 
-	const_iterator find(u8char c) const noexcept
+	constexpr u8string_view substring(size_t begin_index) const noexcept
+	{
+		auto it = this->begin();
+		auto const end =this->end();
+		for (size_t i = 0; i != begin_index && it != end; ++i)
+		{
+			++it;
+		}
+
+		return u8string_view(it, end);
+	}
+
+	constexpr const_iterator find(u8char c) const noexcept
 	{
 		auto it = this->_data_begin;
 		auto const end = this->_data_end;
@@ -447,7 +459,7 @@ public:
 		return const_iterator(end);
 	}
 
-	const_iterator find(const_iterator it_, u8char c) const noexcept
+	constexpr const_iterator find(const_iterator it_, u8char c) const noexcept
 	{
 		auto it = it_.data();
 		bz_assert(it >= this->_data_begin && it <= this->_data_end);
@@ -523,7 +535,7 @@ public:
 	}
 };
 
-constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept
+inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 {
 	if (lhs.size() != rhs.size())
 	{
@@ -535,7 +547,21 @@ constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 	{
 		return true;
 	}
+
+	return std::memcmp(lhs_it, rhs_it, lhs.size()) == 0;
+}
+
+constexpr bool constexpr_equals(u8string_view lhs, u8string_view rhs) noexcept
+{
+	if (lhs.size() != rhs.size())
+	{
+		return false;
+	}
+
+	auto lhs_it = lhs.data();
+	auto rhs_it = rhs.data();
 	auto const lhs_end = lhs.data() + lhs.size();
+
 	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
 	{
 		if (*lhs_it != *rhs_it)
@@ -546,8 +572,11 @@ constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 	return true;
 }
 
-constexpr bool operator != (u8string_view lhs, u8string_view rhs) noexcept
+inline bool operator != (u8string_view lhs, u8string_view rhs) noexcept
 { return !(lhs == rhs); }
+
+constexpr bool constexpr_not_equals(u8string_view lhs, u8string_view rhs) noexcept
+{ return !constexpr_equals(lhs, rhs); }
 
 inline std::ostream &operator << (std::ostream &os, u8string_view sv)
 {
