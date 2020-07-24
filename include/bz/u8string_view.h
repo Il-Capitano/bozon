@@ -533,6 +533,47 @@ public:
 		}
 		return const_iterator(end);
 	}
+
+	constexpr bool starts_with(u8string_view str) const noexcept
+	{
+		if (str.size() > this->size())
+		{
+			return false;
+		}
+
+		auto self_it = this->_data_begin;
+		auto str_it  = str._data_begin;
+		auto const str_end = str._data_end;
+		for (; str_it != str_end; ++str_it, ++self_it)
+		{
+			if (*self_it != *str_it)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	constexpr bool ends_with(u8string_view str) const noexcept
+	{
+		auto const str_size = str.size();
+		if (str_size > this->size())
+		{
+			return false;
+		}
+
+		auto self_it = this->_data_begin + str_size;
+		auto str_it  = str._data_begin;
+		auto const str_end = str._data_end;
+		for (; str_it != str_end; ++str_it, ++self_it)
+		{
+			if (*self_it != *str_it)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 };
 
 inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept
