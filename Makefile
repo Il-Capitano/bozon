@@ -59,10 +59,10 @@ rebuild-release: clean-release release
 exec: exec-debug
 
 exec-debug: $(default_exe_debug)
-	$(default_exe_debug) -Wall
+	$(default_exe_debug) -Wall ./src/bitcode_test.bz
 
 exec-release: $(default_exe_release)
-	$(default_exe_release) -Wall
+	$(default_exe_release) -Wall ./src/bitcode_test.bz
 
 $(default_exe_debug): bin/default/debug/int/first_pass_parser.cpp.o bin/default/debug/int/global_data.cpp.o bin/default/debug/int/main.cpp.o bin/default/debug/int/parser.cpp.o bin/default/debug/int/src_file.cpp.o bin/default/debug/int/constant_value.cpp.o bin/default/debug/int/expression.cpp.o bin/default/debug/int/statement.cpp.o bin/default/debug/int/typespec.cpp.o bin/default/debug/int/emit_bitcode.cpp.o bin/default/debug/int/clparser.cpp.o bin/default/debug/int/bitcode_context.cpp.o bin/default/debug/int/built_in_operators.cpp.o bin/default/debug/int/command_parse_context.cpp.o bin/default/debug/int/error.cpp.o bin/default/debug/int/first_pass_parse_context.cpp.o bin/default/debug/int/global_context.cpp.o bin/default/debug/int/lex_context.cpp.o bin/default/debug/int/parse_context.cpp.o bin/default/debug/int/safe_operations.cpp.o bin/default/debug/int/src_manager.cpp.o bin/default/debug/int/warnings.cpp.o bin/default/debug/int/lexer.cpp.o bin/default/debug/int/token.cpp.o
 	$(default_cxx) $(default_ld_debug_flags) $^ -o $@ $(addprefix -L,$(default_ld_lib_dirs)) $(addprefix -l,$(default_ld_libs))

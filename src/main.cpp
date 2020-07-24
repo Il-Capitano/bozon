@@ -1361,7 +1361,12 @@ int main(int argc, char const **argv)
 	}
 	auto const after_command_line_parsing = timer::now();
 //	bz::print("finished command line parsing");
-	manager.add_file("./src/bitcode_test.bz");
+
+	if (!manager.has_files_to_compile())
+	{
+		return 0;
+	}
+
 	auto const before_tokenization = timer::now();
 	if (!manager.tokenize())
 	{

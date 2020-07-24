@@ -26,9 +26,12 @@ namespace ctx
 		print_error_or_warning(char_pos(), char_pos(), err);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
-	if (!good)
+	if (good)
 	{
-		bz::print("exiting...\n");
+		for (auto &file : files_to_compile)
+		{
+			this->add_file(file);
+		}
 	}
 	return good;
 }
@@ -40,14 +43,12 @@ namespace ctx
 		if (!file.read_file())
 		{
 			bz::print("error: unable to read file {}\n", file.get_file_name());
-			bz::print("exiting...\n");
 			return false;
 		}
 
 		if (!file.tokenize())
 		{
 			file.report_and_clear_errors_and_warnings();
-			bz::print("exiting...\n");
 			return false;
 		}
 		else
@@ -67,7 +68,6 @@ namespace ctx
 		if (!file.first_pass_parse())
 		{
 			file.report_and_clear_errors_and_warnings();
-			bz::print("exiting...\n");
 			return false;
 		}
 		else
@@ -87,7 +87,6 @@ namespace ctx
 		if (!file.resolve())
 		{
 			file.report_and_clear_errors_and_warnings();
-			bz::print("exiting...\n");
 			return false;
 		}
 		else

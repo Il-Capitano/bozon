@@ -373,9 +373,14 @@ static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context
 		}(), true))), ...);
 	}(bz::meta::make_index_sequence<command_line_parsers.size()>{});
 
-	if (!good)
+	if (!good && it->starts_with("-"))
 	{
 		context.report_error(it, bz::format("unknown command line option '{}'", *it));
+		++it;
+	}
+	else if (!good)
+	{
+		files_to_compile.emplace_back(*it);
 		++it;
 	}
 }
@@ -510,7 +515,7 @@ static bz::u8string build_help_string()
 	constexpr bz::u8string_view initial_indent = "  ";
 	constexpr size_t pad_to = 24;
 
-	bz::u8string result = "";
+	bz::u8string result = "Usage: bozon.exe [options] file\nOptions:\n";
 
 	for (auto const &parser : sorted_command_line_parsers)
 	{
