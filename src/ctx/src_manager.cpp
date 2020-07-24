@@ -150,9 +150,12 @@ namespace ctx
 		module.print(file, nullptr);
 	}
 
-	auto const output_file = "output.o";
+	auto const output_file = output_file_name.as_string_view();
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(output_file, ec, llvm::sys::fs::OF_None);
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
 	bz_assert(!ec);
 
 	auto const target_machine = this->_global_ctx._target_machine;
