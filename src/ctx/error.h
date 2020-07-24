@@ -278,6 +278,11 @@ template<typename T>
 	};
 }
 
+void print_error_or_warning(
+	char_pos file_begin, char_pos file_end,
+	error const &err
+);
+
 } // namespace ctx
 
 #endif // CTX_ERROR_H

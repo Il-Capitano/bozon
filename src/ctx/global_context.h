@@ -45,13 +45,13 @@ struct global_context
 
 	void report_error(error &&err)
 	{
-		bz_assert(err.kind == warning_kind::_last);
+		bz_assert(err.is_error());
 		this->_errors.emplace_back(std::move(err));
 	}
 
 	void report_warning(error &&err)
 	{
-		bz_assert(err.kind != warning_kind::_last);
+		bz_assert(err.is_warning());
 		if (is_warning_enabled(err.kind))
 		{
 			this->_errors.emplace_back(std::move(err));

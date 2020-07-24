@@ -1351,52 +1351,59 @@ int main(int argc, char const **argv)
 		return time.count() * 1000;
 	};
 
-	cl::parse_command_line(cl::get_args(argc, argv));
-
 	ctx::src_manager manager;
-	manager.add_file("./src/bitcode_test.bz");
 
 	auto const begin = timer::now();
 
-	if (!manager.tokenize())
+	if (!manager.parse_command_line(argc, argv))
 	{
 		return 1;
+	}
+	auto const after_command_line_parsing = timer::now();
+//	bz::print("finished command line parsing");
+	manager.add_file("./src/bitcode_test.bz");
+	auto const before_tokenization = timer::now();
+	if (!manager.tokenize())
+	{
+		return 2;
 	}
 	auto const after_tokenization = timer::now();
 //	bz::print("finished tokenization\n");
 	auto const before_first_pass_parse = timer::now();
 	if (!manager.first_pass_parse())
 	{
-		return 2;
+		return 3;
 	}
 	auto const after_first_pass_parse = timer::now();
 //	bz::print("finished first pass parsing\n");
 	auto const before_resolve = timer::now();
 	if (!manager.resolve())
 	{
-		return 3;
+		return 4;
 	}
 	auto const after_resolve = timer::now();
 //	bz::print("finished resolving\n");
 	auto const before_code_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
-		return 4;
+		return 5;
 	}
 
 	auto const end = timer::now();
 
-	auto const tokenization_time     = after_tokenization - begin;
-	auto const first_pass_parse_time = after_first_pass_parse - before_first_pass_parse;
-	auto const resolve_time          = after_resolve - before_resolve;
-	auto const code_emission_time    = end - before_code_emission;
-	auto const compilation_time      = tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
+	auto const command_line_parsing_time = after_command_line_parsing - begin;
+	auto const tokenization_time         = after_tokenization - before_tokenization;
+	auto const first_pass_parse_time     = after_first_pass_parse - before_first_pass_parse;
+	auto const resolve_time              = after_resolve - before_resolve;
+	auto const code_emission_time        = end - before_code_emission;
+	auto const compilation_time          = command_line_parsing_time + tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
 
 	bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
-//	bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
-//	bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
-//	bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
-//	bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
+	bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
+	bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
+	bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
+	bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
+	bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
 
 	return 0;
 }

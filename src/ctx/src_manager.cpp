@@ -1,5 +1,7 @@
 #include "src_manager.h"
+#include "command_parse_context.h"
 #include "bc/emit_bitcode.h"
+#include "cl/clparser.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
@@ -12,6 +14,24 @@
 
 namespace ctx
 {
+
+[[nodiscard]] bool src_manager::parse_command_line(int argc, char const **argv)
+{
+	auto const args = cl::get_args(argc, argv);
+	command_parse_context context(args, this->_global_ctx);
+	cl::parse_command_line(context);
+	auto const good = !this->_global_ctx.has_errors();
+	for (auto &err : this->_global_ctx.get_errors_and_warnings())
+	{
+		print_error_or_warning(char_pos(), char_pos(), err);
+	}
+	this->_global_ctx.clear_errors_and_warnings();
+	if (!good)
+	{
+		bz::print("exiting...\n");
+	}
+	return good;
+}
 
 [[nodiscard]] bool src_manager::tokenize(void)
 {
@@ -26,12 +46,6 @@ namespace ctx
 
 		if (!file.tokenize())
 		{
-			auto const error_count = this->global_ctx.get_error_count();
-			bz::print(
-				"{} {} occurred while tokenizing {}\n",
-				error_count, error_count == 1 ? "error" : "errors",
-				file.get_file_name()
-			);
 			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
@@ -52,12 +66,6 @@ namespace ctx
 	{
 		if (!file.first_pass_parse())
 		{
-			auto const error_count = this->global_ctx.get_error_count();
-			bz::print(
-				"{} {} occurred while first pass of parsing {}\n",
-				error_count, error_count == 1 ? "error" : "errors",
-				file.get_file_name()
-			);
 			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
@@ -78,12 +86,6 @@ namespace ctx
 	{
 		if (!file.resolve())
 		{
-			auto const error_count = this->global_ctx.get_error_count();
-			bz::print(
-				"{} {} occurred while resolving {}\n",
-				error_count, error_count == 1 ? "error" : "errors",
-				file.get_file_name()
-			);
 			file.report_and_clear_errors_and_warnings();
 			bz::print("exiting...\n");
 			return false;
@@ -100,37 +102,37 @@ namespace ctx
 
 [[nodiscard]] bool src_manager::emit_bitcode(void)
 {
-	bitcode_context context(this->global_ctx);
+	bitcode_context context(this->_global_ctx);
 
 	// add declarations to the module
-	for ([[maybe_unused]] auto const var_decl : this->global_ctx._compile_decls.var_decls)
+	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
 	{
 		bz_assert(false);
 	}
 	/*
-	for (auto const func_decl : this->global_ctx._compile_decls.func_decls)
+	for (auto const func_decl : this->_global_ctx._compile_decls.func_decls)
 	{
 		bc::add_function_to_module(func_decl->body, func_decl->identifier->value, context);
 	}
-	for (auto const op_decl : this->global_ctx._compile_decls.op_decls)
+	for (auto const op_decl : this->_global_ctx._compile_decls.op_decls)
 	{
 		bc::add_function_to_module(op_decl->body, bz::format("__operator_{}", op_decl->op->kind), context);
 	}
 	*/
 
 	// add the definitions to the module
-	for ([[maybe_unused]] auto const var_decl : this->global_ctx._compile_decls.var_decls)
+	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
 	{
 		bz_assert(false);
 	}
-	for (auto const func_decl : this->global_ctx._compile_decls.func_decls)
+	for (auto const func_decl : this->_global_ctx._compile_decls.func_decls)
 	{
 		if (func_decl->body.body.has_value())
 		{
 			bc::emit_function_bitcode(func_decl->body, context);
 		}
 	}
-	for (auto const op_decl : this->global_ctx._compile_decls.op_decls)
+	for (auto const op_decl : this->_global_ctx._compile_decls.op_decls)
 	{
 		if (op_decl->body.body.has_value())
 		{
@@ -139,7 +141,7 @@ namespace ctx
 	}
 
 //	context.module.print(llvm::errs(), nullptr);
-	auto &module = this->global_ctx._module;
+	auto &module = this->_global_ctx._module;
 
 	{
 		std::error_code ec;
@@ -153,7 +155,7 @@ namespace ctx
 	llvm::raw_fd_ostream dest(output_file, ec, llvm::sys::fs::OF_None);
 	bz_assert(!ec);
 
-	auto const target_machine = this->global_ctx._target_machine;
+	auto const target_machine = this->_global_ctx._target_machine;
 
 	llvm::legacy::PassManager pass;
 	auto const file_type = llvm::CGFT_ObjectFile;

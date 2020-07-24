@@ -15,7 +15,7 @@ struct src_manager
 {
 private:
 	std::list<src_file> _src_files;
-	global_context global_ctx;
+	global_context _global_ctx;
 
 public:
 	void add_file(bz::u8string_view file_name)
@@ -28,10 +28,11 @@ public:
 		);
 		if (it == this->_src_files.end())
 		{
-			this->_src_files.push_back(src_file(file_name, this->global_ctx));
+			this->_src_files.push_back(src_file(file_name, this->_global_ctx));
 		}
 	}
 
+	[[nodiscard]] bool parse_command_line(int argc, char const **argv);
 	[[nodiscard]] bool tokenize(void);
 	[[nodiscard]] bool first_pass_parse(void);
 	[[nodiscard]] bool resolve(void);
