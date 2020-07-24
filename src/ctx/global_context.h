@@ -10,6 +10,7 @@
 
 #include "core.h"
 
+#include "global_data.h"
 #include "lex/token.h"
 #include "error.h"
 #include "ast/typespec.h"
@@ -43,10 +44,19 @@ struct global_context
 	global_context(void);
 
 	void report_error(error &&err)
-	{ this->_errors.emplace_back(std::move(err)); }
+	{
+		bz_assert(err.kind == warning_kind::_last);
+		this->_errors.emplace_back(std::move(err));
+	}
 
 	void report_warning(error &&err)
-	{ this->_errors.emplace_back(std::move(err)); }
+	{
+		bz_assert(err.kind != warning_kind::_last);
+		if (is_warning_enabled(err.kind))
+		{
+			this->_errors.emplace_back(std::move(err));
+		}
+	}
 
 	bool has_errors(void) const;
 	bool has_warnings(void) const;

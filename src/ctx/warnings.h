@@ -21,6 +21,7 @@ enum class warning_kind
 };
 
 bz::u8string_view get_warning_name(warning_kind kind);
+warning_kind get_warning_kind(bz::u8string_view name);
 
 } // namespace ctx
 

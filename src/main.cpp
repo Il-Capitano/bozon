@@ -1339,16 +1339,19 @@ maybe this is just useless feature bloat
 
 */
 
+#include "cl/clparser.h"
 #include "ctx/src_manager.h"
 #include "timer.h"
 
 
-int main(void)
+int main(int argc, char const **argv)
 {
 	auto in_ms = [](auto time)
 	{
 		return time.count() * 1000;
 	};
+
+	cl::parse_command_line(cl::get_args(argc, argv));
 
 	ctx::src_manager manager;
 	manager.add_file("./src/bitcode_test.bz");

@@ -56,4 +56,16 @@ bz::u8string_view get_warning_name(warning_kind kind)
 	return warning_infos[static_cast<size_t>(kind)].name;
 }
 
+warning_kind get_warning_kind(bz::u8string_view name)
+{
+	for (auto &info : warning_infos)
+	{
+		if (info.name == name)
+		{
+			return info.kind;
+		}
+	}
+	return warning_kind::_last;
+}
+
 } // namespace ctx
