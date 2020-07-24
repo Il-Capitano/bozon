@@ -6,7 +6,7 @@
 namespace colors
 {
 
-constexpr char const *clear = "\033[0m";
+constexpr bz::u8string_view clear = "\033[0m";
 
 constexpr bz::u8string_view black   = "\033[30m";
 constexpr bz::u8string_view red     = "\033[31m";
