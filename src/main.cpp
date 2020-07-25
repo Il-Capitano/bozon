@@ -1337,9 +1337,33 @@ function print_arr(arr: std::slice<const int32>)
 maybe this is just useless feature bloat
 
 
+
+
+
+
+==== template syntax ====
+
+struct vec<N: uint64, T: typename>
+{
+	c: [N: T],
+}
+
+specialization:
+this wouldn't allow operator : to be a thing,
+as N: uint64 would be ambiguous
+maybe specializations should have parenthesis around the template parameter
+
+struct vec<2 as uint64, T: typename> { ... }
+struct vec<(2 as uint64), T: typename> { ... }
+
+struct vec<N: uint64, T: &typename> = delete;
+
+struct some_type<T: std::vector<typename>>
+struct some_type<T: std::vector> // should this be allowed???
+
+
 */
 
-#include "cl/clparser.h"
 #include "ctx/src_manager.h"
 #include "timer.h"
 
