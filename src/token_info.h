@@ -64,9 +64,6 @@ struct token_info_t
 	precedence binary_prec = precedence{};
 };
 
-template<size_t N>
-constexpr uint64_t bit_at = uint64_t(1) << N;
-
 namespace token_info_flags
 {
 

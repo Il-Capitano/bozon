@@ -40,6 +40,9 @@ using std::uint64_t;
 using float32_t = float;
 using float64_t = double;
 
+template<size_t N>
+constexpr uint64_t bit_at = uint64_t(1) << N;
+
 template<typename To, typename From>
 To bit_cast(From value)
 {
