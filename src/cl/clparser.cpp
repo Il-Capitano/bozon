@@ -102,6 +102,14 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 	}
 }
 
+static void check_source_file_name(iter_t it, ctx::command_parse_context &context)
+{
+	if (!it->ends_with(".bz"))
+	{
+		context.report_error(it, "source files must end in '.bz'");
+	}
+}
+
 
 using parse_fn_t = void (*)(iter_t &it, iter_t end, ctx::command_parse_context &context);
 
@@ -380,7 +388,15 @@ static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context
 	}
 	else if (!good)
 	{
-		files_to_compile.emplace_back(*it);
+		check_source_file_name(it, context);
+		if (source_file != "")
+		{
+			context.report_error(it, "only one source file can be provided");
+		}
+		else
+		{
+			source_file = *it;
+		}
 		++it;
 	}
 }

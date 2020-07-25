@@ -28,9 +28,21 @@ namespace ctx
 	this->_global_ctx.clear_errors_and_warnings();
 	if (good)
 	{
-		for (auto &file : files_to_compile)
+		this->add_file(source_file);
+		if (output_file_name == "")
 		{
-			this->add_file(file);
+			auto const source_file_name = source_file.substring(0, source_file.length() - 2);
+			auto const rightmost_slash = std::max(source_file_name.rfind('/'), source_file_name.rfind('\\'));
+			if (rightmost_slash.data() == nullptr)
+			{
+				output_file_name = source_file_name;
+			}
+			else
+			{
+				output_file_name = bz::u8string_view(rightmost_slash + 1, source_file_name.end());
+			}
+
+			output_file_name += 'o';
 		}
 	}
 	return good;
