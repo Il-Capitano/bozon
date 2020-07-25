@@ -430,21 +430,11 @@ static void resolve(
 	ctx::parse_context &context
 )
 {
-	// if it's resolved we don't need to do anything
-	if ((info.flags & ast::type_info::resolved) != 0)
+	if (info.resolve == ast::resolve_state::all)
 	{
 		return;
 	}
-
-	context.add_scope();
-	for (auto &member_decl : info.member_decls)
-	{
-		resolve(member_decl, context);
-	}
-	context.remove_scope();
-
-	info.flags |= ast::type_info::resolved;
-	info.flags |= ast::type_info::instantiable;
+	bz_assert(false);
 }
 
 static void resolve(

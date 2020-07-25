@@ -215,7 +215,7 @@ bool is_instantiable(typespec_view ts) noexcept
 
 	return ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &base_type) {
-			return (base_type.info->flags & type_info::instantiable) != 0;
+			return (base_type.info->flags & type_info_flags::instantiable) != 0;
 		},
 		[](ts_void const &) {
 			return false;
@@ -253,7 +253,7 @@ bz::u8string get_symbol_name_for_type(typespec_view ts)
 	{
 		node.visit(bz::overload{
 			[&](ts_base_type const &base_type) {
-				result += base_type.info->name;
+				result += base_type.info->symbol_name;
 			},
 			[&](ts_void const &) {
 				result += "void";
@@ -371,7 +371,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				result += "<unresolved>";
 			},
 			[&](ast::ts_base_type const &base_type) {
-				result += base_type.info->name;
+				result += ast::type_info::decode_symbol_name(base_type.info->symbol_name);
 			},
 			[&](ast::ts_void const &) {
 				result += "void";

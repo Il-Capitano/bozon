@@ -32,43 +32,36 @@ static_assert(ast::type_info::null_t_  == 13);
 auto get_default_type_infos(void)
 {
 	return std::array{
-		ast::type_info{ ast::type_info::int8_,    ast::type_info::default_built_in_flags, "int8",    {} },
-		ast::type_info{ ast::type_info::int16_,   ast::type_info::default_built_in_flags, "int16",   {} },
-		ast::type_info{ ast::type_info::int32_,   ast::type_info::default_built_in_flags, "int32",   {} },
-		ast::type_info{ ast::type_info::int64_,   ast::type_info::default_built_in_flags, "int64",   {} },
-		ast::type_info{ ast::type_info::uint8_,   ast::type_info::default_built_in_flags, "uint8",   {} },
-		ast::type_info{ ast::type_info::uint16_,  ast::type_info::default_built_in_flags, "uint16",  {} },
-		ast::type_info{ ast::type_info::uint32_,  ast::type_info::default_built_in_flags, "uint32",  {} },
-		ast::type_info{ ast::type_info::uint64_,  ast::type_info::default_built_in_flags, "uint64",  {} },
-		ast::type_info{ ast::type_info::float32_, ast::type_info::default_built_in_flags, "float32", {} },
-		ast::type_info{ ast::type_info::float64_, ast::type_info::default_built_in_flags, "float64", {} },
-		ast::type_info{ ast::type_info::char_,    ast::type_info::default_built_in_flags, "char",    {} },
-		ast::type_info{ ast::type_info::str_,     ast::type_info::default_built_in_flags, "str",     {} },
-		ast::type_info{ ast::type_info::bool_,    ast::type_info::default_built_in_flags, "bool",    {} },
-		ast::type_info{ ast::type_info::null_t_,  ast::type_info::default_built_in_flags, "null_t",  {} },
+		ast::type_info::make_built_in("int8",     ast::type_info::int8_),
+		ast::type_info::make_built_in("int16",    ast::type_info::int16_),
+		ast::type_info::make_built_in("int32",    ast::type_info::int32_),
+		ast::type_info::make_built_in("int64",    ast::type_info::int64_),
+		ast::type_info::make_built_in("uint8",    ast::type_info::uint8_),
+		ast::type_info::make_built_in("uint16",   ast::type_info::uint16_),
+		ast::type_info::make_built_in("uint32",   ast::type_info::uint32_),
+		ast::type_info::make_built_in("uint64",   ast::type_info::uint64_),
+		ast::type_info::make_built_in("float32",  ast::type_info::float32_),
+		ast::type_info::make_built_in("float64",  ast::type_info::float64_),
+		ast::type_info::make_built_in("char",     ast::type_info::char_),
+		ast::type_info::make_built_in("str",      ast::type_info::str_),
+		ast::type_info::make_built_in("bool",     ast::type_info::bool_),
+		ast::type_info::make_built_in("__null_t", ast::type_info::null_t_),
 	};
 }
 
 static auto default_type_infos = get_default_type_infos();
 
-static bz::vector<type_info_with_name> get_default_types(void)
+static bz::vector<typespec_with_name> get_default_types(void)
 {
-	return {
-		{ "int8",    &default_type_infos[ast::type_info::int8_]    },
-		{ "int16",   &default_type_infos[ast::type_info::int16_]   },
-		{ "int32",   &default_type_infos[ast::type_info::int32_]   },
-		{ "int64",   &default_type_infos[ast::type_info::int64_]   },
-		{ "uint8",   &default_type_infos[ast::type_info::uint8_]   },
-		{ "uint16",  &default_type_infos[ast::type_info::uint16_]  },
-		{ "uint32",  &default_type_infos[ast::type_info::uint32_]  },
-		{ "uint64",  &default_type_infos[ast::type_info::uint64_]  },
-		{ "float32", &default_type_infos[ast::type_info::float32_] },
-		{ "float64", &default_type_infos[ast::type_info::float64_] },
-		{ "char",    &default_type_infos[ast::type_info::char_]    },
-		{ "str",     &default_type_infos[ast::type_info::str_]     },
-		{ "bool",    &default_type_infos[ast::type_info::bool_]    },
-		{ "null_t",  &default_type_infos[ast::type_info::null_t_]  },
-	};
+	bz::vector<typespec_with_name> result;
+	result.reserve(ast::type_info::null_t_);
+	for (size_t i = 0; i < ast::type_info::null_t_; ++i)
+	{
+		auto &type_info = default_type_infos[i];
+		auto const name = ast::type_info::decode_symbol_name(type_info.symbol_name);
+		result.emplace_back(name, ast::make_base_type_typespec({}, &type_info));
+	}
+	return result;
 }
 
 static std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
@@ -195,7 +188,7 @@ void global_context::add_export_declaration(ast::statement &decl)
 		this->add_export_operator(*decl.get<ast::decl_operator_ptr>());
 		break;
 	case ast::statement::index<ast::decl_struct>:
-		this->add_export_struct(*decl.get<ast::decl_struct_ptr>());
+		bz_assert(false);
 		break;
 	case ast::statement::index<ast::stmt_static_assert>:
 		break;
@@ -274,16 +267,18 @@ void global_context::add_compile_operator(ast::decl_operator &op_decl)
 	this->_compile_decls.op_decls.push_back(&op_decl);
 }
 
+/*
 void global_context::add_export_struct(ast::decl_struct &struct_decl)
 {
-	this->_export_decls.type_infos.push_back({ struct_decl.identifier->value, &struct_decl.info });
-	this->_compile_decls.type_infos.push_back(&struct_decl.info);
+	this->_export_decls.types.push_back({ struct_decl.identifier->value, &struct_decl.info });
+	this->_compile_decls.types.push_back(&struct_decl.info);
 }
 
 void global_context::add_compile_struct(ast::decl_struct &struct_decl)
 {
 	this->_compile_decls.type_infos.push_back(&struct_decl.info);
 }
+*/
 
 ast::type_info *global_context::get_base_type_info(uint32_t kind) const
 {

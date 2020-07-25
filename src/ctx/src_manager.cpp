@@ -28,6 +28,18 @@ namespace ctx
 	this->_global_ctx.clear_errors_and_warnings();
 	if (good)
 	{
+		if (source_file == "")
+		{
+			auto const err = error{
+				warning_kind::_last,
+				"", 0,
+				char_pos(), char_pos(), char_pos(),
+				"no source file was provided",
+				{}, {}
+			};
+			print_error_or_warning(char_pos(), char_pos(), err);
+			return false;
+		}
 		this->add_file(source_file);
 		if (output_file_name == "")
 		{
@@ -54,7 +66,14 @@ namespace ctx
 	{
 		if (!file.read_file())
 		{
-			bz::print("error: unable to read file {}\n", file.get_file_name());
+			auto const err = error{
+				warning_kind::_last,
+				"", 0,
+				char_pos(), char_pos(), char_pos(),
+				bz::format("unable to read file '{}'", file.get_file_name()),
+				{}, {}
+			};
+			print_error_or_warning(char_pos(), char_pos(), err);
 			return false;
 		}
 

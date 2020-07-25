@@ -313,13 +313,13 @@ void parse_context::add_local_operator(ast::decl_operator &op_decl)
 	this->global_ctx.add_compile_operator(op_decl);
 }
 
+/*
 void parse_context::add_local_struct(ast::decl_struct &struct_decl)
 {
 	bz_assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().type_infos.push_back({ struct_decl.identifier->value, &struct_decl.info });
+	this->scope_decls.back().types.push_back({ struct_decl.identifier->value, &struct_decl.info });
 }
 
-/*
 auto parse_context::get_identifier_decl(lex::token_pos id) const
 	-> bz::variant<ast::decl_variable const *, ast::decl_function const *>
 {
@@ -525,18 +525,18 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		}
 
 		auto const type = std::find_if(
-			scope->type_infos.rbegin(), scope->type_infos.rend(),
+			scope->types.rbegin(), scope->types.rend(),
 			[id = id_value](auto const &type_info) {
 				return type_info.id == id;
 			}
 		);
-		if (type != scope->type_infos.rend())
+		if (type != scope->types.rend())
 		{
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::typespec(),
-				ast::typespec({ ast::ts_base_type{ src_tokens, type->info } }),
+				type->ts,
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -696,18 +696,18 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	}
 
 	auto const type = std::find_if(
-		export_decls.type_infos.begin(), export_decls.type_infos.end(),
+		export_decls.types.begin(), export_decls.types.end(),
 		[id = id_value](auto const &type_info) {
 			return type_info.id == id;
 		}
 	);
-	if (type != export_decls.type_infos.end())
+	if (type != export_decls.types.end())
 	{
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
-			ast::typespec({ ast::ts_base_type{ src_tokens, type->info } }),
+			type->ts,
 			ast::make_expr_identifier(id)
 		);
 	}
@@ -1237,7 +1237,7 @@ static bool is_built_in_type(ast::typespec_view ts)
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
 	{
 		auto &base = ts.get<ast::ts_base_type>();
-		return (base.info->flags & ast::type_info::built_in) != 0;
+		return (base.info->flags & ast::type_info_flags::built_in) != 0;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
 	case ast::typespec_node_t::index_of<ast::ts_function>:
@@ -2342,7 +2342,7 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 ast::type_info *parse_context::get_base_type_info(uint32_t kind) const
 { return this->global_ctx.get_base_type_info(kind); }
 
-ast::type_info *parse_context::get_type_info(bz::u8string_view id) const
+ast::typespec parse_context::get_type(bz::u8string_view id) const
 {
 	for (
 		auto scope = this->scope_decls.rbegin();
@@ -2351,32 +2351,32 @@ ast::type_info *parse_context::get_type_info(bz::u8string_view id) const
 	)
 	{
 		auto const it = std::find_if(
-			scope->type_infos.rbegin(), scope->type_infos.rend(),
+			scope->types.rbegin(), scope->types.rend(),
 			[id](auto const &info) {
 				return id == info.id;
 			}
 		);
-		if (it != scope->type_infos.rend())
+		if (it != scope->types.rend())
 		{
-			return it->info;
+			return it->ts;
 		}
 	}
 
 	auto &export_decls = this->global_ctx._export_decls;
 	auto const global_it = std::find_if(
-		export_decls.type_infos.begin(), export_decls.type_infos.end(),
+		export_decls.types.begin(), export_decls.types.end(),
 		[id](auto const &info) {
 			return id == info.id;
 		}
 	);
 
-	if (global_it != export_decls.type_infos.end())
+	if (global_it != export_decls.types.end())
 	{
-		return global_it->info;
+		return global_it->ts;
 	}
 	else
 	{
-		return nullptr;
+		return ast::typespec();
 	}
 }
 

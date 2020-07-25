@@ -217,6 +217,11 @@ inline typespec make_unresolved_typespec(lex::token_range range)
 	return typespec{ { ts_unresolved{ range } } };
 }
 
+inline typespec make_base_type_typespec(lex::src_tokens src_tokens, type_info *info)
+{
+	return typespec{ { ts_base_type{ src_tokens, info } } };
+}
+
 
 template<typename T>
 bool typespec_view::is(void) const noexcept

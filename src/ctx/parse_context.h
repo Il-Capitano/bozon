@@ -185,7 +185,7 @@ struct parse_context
 	bool is_implicitly_convertible(ast::expression const &from, ast::typespec const &to);
 	bool is_explicitly_convertible(ast::expression const &from, ast::typespec const &to);
 
-	ast::type_info *get_type_info(bz::u8string_view id) const;
+	ast::typespec get_type(bz::u8string_view id) const;
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
 

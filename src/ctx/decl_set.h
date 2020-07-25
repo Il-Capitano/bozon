@@ -20,10 +20,10 @@ struct operator_overload_set
 	bz::vector<ast::decl_operator *> op_decls;
 };
 
-struct type_info_with_name
+struct typespec_with_name
 {
 	bz::u8string_view id;
-	ast::type_info *info;
+	ast::typespec     ts;
 };
 
 struct decl_set
@@ -31,7 +31,7 @@ struct decl_set
 	bz::vector<ast::decl_variable *>  var_decls;
 	bz::vector<function_overload_set> func_sets;
 	bz::vector<operator_overload_set> op_sets;
-	bz::vector<type_info_with_name>   type_infos;
+	bz::vector<typespec_with_name>    types;
 };
 
 } // namespace ctx

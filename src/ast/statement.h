@@ -20,6 +20,13 @@ struct attribute
 	bz::vector<ast::expression> args;
 };
 
+enum class resolve_state : uint8_t
+{
+	none,
+	symbol,
+	all,
+};
+
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
 declare_node_type(stmt_if);
@@ -383,9 +390,30 @@ struct decl_operator
 	{}
 };
 
+namespace type_info_flags
+{
+
+enum : uint32_t
+{
+	built_in     = bit_at<0>,
+	resolved     = bit_at<1>,
+	instantiable = bit_at<2>,
+
+	default_zero_initialize = bit_at<3>,
+	trivially_copyable      = bit_at<4>,
+	trivially_movable       = bit_at<5>,
+	trivially_destructible  = bit_at<6>,
+};
+
+static constexpr size_t default_built_in_flags =
+	built_in | resolved | instantiable
+	| default_zero_initialize | trivially_copyable | trivially_movable;
+
+} // namespace type_info_flags
+
 struct type_info
 {
-	enum : uint32_t
+	enum : uint8_t
 	{
 		int8_, int16_, int32_, int64_,
 		uint8_, uint16_, uint32_, uint64_,
@@ -396,20 +424,43 @@ struct type_info
 		aggregate,
 	};
 
-	enum : size_t
+	uint8_t       kind;
+	resolve_state resolve;
+	uint32_t      flags;
+	bz::u8string  symbol_name;
+
+	bz::vector<function_body *> constructors;
+
+	function_body *default_constructor;
+	function_body *copy_constructor;
+	function_body *move_constructor;
+	function_body *destructor;
+	function_body *move_destructor;
+
+	static type_info make_built_in(bz::u8string_view name, uint8_t kind)
 	{
-		built_in     = 1ull << 0,
-		resolved     = 1ull << 1,
-		instantiable = 1ull << 2,
-	};
+		return type_info{
+			kind, resolve_state::all,
+			type_info_flags::default_built_in_flags,
+			bz::format("built_in.{}", name),
+			{}, nullptr, nullptr, nullptr, nullptr, nullptr
+		};
+	}
 
-	static constexpr size_t default_built_in_flags =
-		built_in | resolved | instantiable;
-
-	uint32_t              kind;
-	size_t                flags;
-	bz::u8string_view     name;
-	bz::vector<statement> member_decls;
+	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
+	{
+		constexpr bz::u8string_view built_in = "built_in.";
+		constexpr bz::u8string_view struct_  = "struct.";
+		if (symbol_name.starts_with(built_in))
+		{
+			return symbol_name.substring(built_in.length());
+		}
+		else
+		{
+			bz_assert(symbol_name.starts_with(struct_));
+			return symbol_name.substring(struct_.length());
+		}
+	}
 };
 
 namespace internal
@@ -501,17 +552,17 @@ struct decl_struct
 {
 	lex::token_pos identifier;
 	type_info      info;
-
-	decl_struct(lex::token_pos _id, bz::vector<statement> _member_decls)
+/*
+	decl_struct(lex::token_pos _id)
 		: identifier(_id),
 		  info{
 			  type_info::aggregate,
+			  resolve_state::none,
 			  0ull,
 			  _id->value,
-			  std::move(_member_decls)
 		  }
 	{}
-
+*/
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
