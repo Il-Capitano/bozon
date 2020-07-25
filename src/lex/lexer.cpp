@@ -102,10 +102,10 @@ static void skip_block_comment(
 	{
 		// report warning
 		context.report_warning(
-			ctx::warning_kind::no_comment_end,
+			ctx::warning_kind::unclosed_comment,
 			stream.file, comment_begin_line,
 			comment_begin, comment_begin, comment_begin_end,
-			"block comment has no end"
+			"block comment is never closed"
 		);
 	}
 	else

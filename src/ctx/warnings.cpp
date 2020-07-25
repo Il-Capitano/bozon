@@ -20,8 +20,8 @@ static constexpr auto warning_infos = []() {
 
 		T{ warning_kind::unknown_attribute,        "unknown-attribute"        },
 		T{ warning_kind::null_pointer_dereference, "null-pointer-dereference" },
-		T{ warning_kind::no_side_effect,           "no-side-effect"           },
-		T{ warning_kind::no_comment_end,           "no-comment-end"           },
+		T{ warning_kind::unused_value,             "unused-value"             },
+		T{ warning_kind::unclosed_comment,         "unclosed-comment"         },
 	};
 
 	constexpr_bubble_sort(
@@ -38,6 +38,17 @@ static constexpr auto warning_infos = []() {
 
 	return result;
 }();
+
+static_assert([]() {
+	for (auto const &info : warning_infos)
+	{
+		if (info.name.starts_with("no-"))
+		{
+			return false;
+		}
+	}
+	return true;
+}(), "a warning name starts with 'no-'");
 
 static_assert([]() {
 	for (size_t i = 0; i < warning_infos.size(); ++i)

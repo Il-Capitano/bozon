@@ -3491,8 +3491,8 @@ static ast::expression get_built_in_binary_comma(
 	if (lhs.is<ast::constant_expression>())
 	{
 		context.report_warning(
-			warning_kind::no_side_effect,
-			lhs, "left-hand-side of comma operator has no effect"
+			warning_kind::unused_value,
+			lhs, "value of left-hand-side of comma operator is never used"
 		);
 	}
 

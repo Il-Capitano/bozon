@@ -14,8 +14,8 @@ enum class warning_kind
 	float_divide_by_zero,
 	unknown_attribute,
 	null_pointer_dereference,
-	no_side_effect,
-	no_comment_end,
+	unused_value,
+	unclosed_comment,
 
 	_last,
 };
