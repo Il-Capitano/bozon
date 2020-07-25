@@ -534,6 +534,74 @@ public:
 		return const_iterator(end);
 	}
 
+	constexpr const_iterator rfind(u8char c) const noexcept
+	{
+		auto it = this->_data_end;
+		auto const begin = this->_data_begin;
+		if (c <= internal::max_one_byte_char)
+		{
+			while (it != begin)
+			{
+				--it;
+				if (static_cast<uint8_t>(*it) == c)
+				{
+					return const_iterator(it);
+				}
+			}
+		}
+		else
+		{
+			char encoded_char[4] = {};
+			int char_size = 0;
+			if (c <= internal::max_two_byte_char)
+			{
+				char_size = 2;
+				encoded_char[0] = static_cast<char>(0b1100'0000 | (c >> 6));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else if (c <= internal::max_three_byte_char)
+			{
+				char_size = 3;
+				encoded_char[0] = static_cast<char>(0b1110'0000 | (c >> 12));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 6) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+			}
+			else
+			{
+				char_size = 4;
+				encoded_char[0] = static_cast<char>(0b1111'0000 | (c >> 18));
+				encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 12) & 0b0011'1111));
+				encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >>  6) & 0b0011'1111));
+				encoded_char[3] = static_cast<char>(0b1000'0000 | ((c >>  0) & 0b0011'1111));
+			}
+
+			auto const is_char = [
+				begin = encoded_char,
+				end   = encoded_char + char_size
+			](char const *ptr)
+			{
+				for (auto it = begin; it != end; ++it, ++ptr)
+				{
+					if (*it != *ptr)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+
+			while (it != begin)
+			{
+				--it;
+				if (is_char(it))
+				{
+					return const_iterator(it);
+				}
+			}
+		}
+		return const_iterator(static_cast<char const *>(nullptr));
+	}
+
 	constexpr bool starts_with(u8string_view str) const noexcept
 	{
 		if (str.size() > this->size())
@@ -562,7 +630,7 @@ public:
 			return false;
 		}
 
-		auto self_it = this->_data_begin + str_size;
+		auto self_it = this->_data_end - str_size;
 		auto str_it  = str._data_begin;
 		auto const str_end = str._data_end;
 		for (; str_it != str_end; ++str_it, ++self_it)

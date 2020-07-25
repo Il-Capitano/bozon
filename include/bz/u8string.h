@@ -652,6 +652,18 @@ public:
 		copy.reverse();
 		return copy;
 	}
+
+	u8string_view substring(size_t start_index, size_t end_index) const noexcept
+	{ return this->as_string_view().substring(start_index, end_index); }
+
+	u8string_view substring(size_t start_index) const noexcept
+	{ return this->as_string_view().substring(start_index); }
+
+	bool starts_with(u8string_view str) const noexcept
+	{ return this->as_string_view().starts_with(str); }
+
+	bool ends_with(u8string_view str) const noexcept
+	{ return this->as_string_view().ends_with(str); }
 };
 
 bz_end_namespace
