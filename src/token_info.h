@@ -80,6 +80,9 @@ enum : uint64_t
 	unary_built_in                   = bit_at< 8>,
 	binary_built_in                  = bit_at< 9>,
 	built_in                         = bit_at<10>,
+	unary_type_op                    = bit_at<11>,
+	binary_type_op                   = bit_at<12>,
+	type_op                          = bit_at<13>,
 };
 
 } // namespace token_info_flags
@@ -183,6 +186,11 @@ constexpr auto token_info = []() {
 	constexpr uint64_t binary_built_in_flags = built_in_flags | binary_operator_flags | binary_built_in;
 	constexpr uint64_t both_built_in_flags   = unary_built_in_flags | binary_built_in_flags;
 
+	constexpr uint64_t type_op_flags        = operator_flags | type_op;
+	constexpr uint64_t unary_type_op_flags  = type_op_flags | unary_operator_flags  | unary_type_op;
+	constexpr uint64_t binary_type_op_flags = type_op_flags | binary_operator_flags | binary_type_op;
+//	constexpr uint64_t both_type_op_flags   = unary_type_op_flags | binary_type_op_flags;
+
 	result[lex::token::eof]         = { lex::token::eof, "", "end-of-file", 0 };
 
 	result[lex::token::paren_open]    = { lex::token::paren_open,    "(", "", overloadable_flags };
@@ -205,7 +213,7 @@ constexpr auto token_info = []() {
 	result[lex::token::minus_minus]  = { lex::token::minus_minus, "--", "", unary_built_in_flags  | unary_overloadable_flags  };
 	result[lex::token::minus_eq]     = { lex::token::minus_eq,    "-=", "", binary_built_in_flags | binary_overloadable_flags };
 	// dereference
-	result[lex::token::multiply]     = { lex::token::multiply,    "*",  "", both_built_in_flags   | both_overloadable_flags   };
+	result[lex::token::multiply]     = { lex::token::multiply,    "*",  "", both_built_in_flags   | both_overloadable_flags   | unary_type_op_flags };
 	result[lex::token::multiply_eq]  = { lex::token::multiply_eq, "*=", "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::divide]       = { lex::token::divide,      "/",  "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::divide_eq]    = { lex::token::divide_eq,   "/=", "", binary_built_in_flags | binary_overloadable_flags };
@@ -213,7 +221,7 @@ constexpr auto token_info = []() {
 	result[lex::token::modulo_eq]    = { lex::token::modulo_eq,   "%=", "", binary_built_in_flags | binary_overloadable_flags };
 
 	// bit_and, address_of
-	result[lex::token::ampersand]          = { lex::token::ampersand,          "&",   "", both_built_in_flags   | binary_overloadable_flags };
+	result[lex::token::ampersand]          = { lex::token::ampersand,          "&",   "", both_built_in_flags   | binary_overloadable_flags | unary_type_op_flags };
 	result[lex::token::bit_and_eq]         = { lex::token::bit_and_eq,         "&=",  "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::bit_xor]            = { lex::token::bit_xor,            "^",   "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::bit_xor_eq]         = { lex::token::bit_xor_eq,         "^=",  "", binary_built_in_flags | binary_overloadable_flags };
@@ -225,8 +233,8 @@ constexpr auto token_info = []() {
 	result[lex::token::bit_right_shift_eq] = { lex::token::bit_right_shift_eq, ">>=", "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::bit_not]            = { lex::token::bit_not,            "~",   "", unary_built_in_flags  | unary_overloadable_flags  };
 
-	result[lex::token::equals]          = { lex::token::equals,          "==", "", binary_built_in_flags | binary_overloadable_flags };
-	result[lex::token::not_equals]      = { lex::token::not_equals,      "!=", "", binary_built_in_flags | binary_overloadable_flags };
+	result[lex::token::equals]          = { lex::token::equals,          "==", "", binary_built_in_flags | binary_overloadable_flags | binary_type_op_flags };
+	result[lex::token::not_equals]      = { lex::token::not_equals,      "!=", "", binary_built_in_flags | binary_overloadable_flags | binary_type_op_flags };
 	// angle_open
 	result[lex::token::less_than]       = { lex::token::less_than,       "<",  "", binary_built_in_flags | binary_overloadable_flags };
 	result[lex::token::less_than_eq]    = { lex::token::less_than_eq,    "<=", "", binary_built_in_flags | binary_overloadable_flags };
@@ -284,9 +292,10 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_typename] = { lex::token::kw_typename, "typename", "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_let]      = { lex::token::kw_let,      "let",      "", keyword_flags                   };
 
-	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_built_in_flags  };
-	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_built_in_flags  };
-	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | binary_built_in_flags };
+	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_type_op_flags                  };
+	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_type_op_flags                  };
+	// the flags for 'as' are not ideal, as it's hard to express that it takes a non-type lhs and a type rhs
+	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | overloadable_flags | binary_operator };
 
 
 	for (auto p : operator_precedences)
@@ -441,6 +450,9 @@ def_token_flag_query(is_valid_expression_or_type_token, valid_expression_or_type
 def_token_flag_query(is_unary_built_in_operator,  unary_built_in)
 def_token_flag_query(is_binary_built_in_operator, binary_built_in)
 def_token_flag_query(is_built_in_operator,        built_in)
+def_token_flag_query(is_unary_type_op,  unary_type_op)
+def_token_flag_query(is_binary_type_op, binary_type_op)
+def_token_flag_query(is_type_op,        type_op)
 
 #undef def_token_flag_query
 

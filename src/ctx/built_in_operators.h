@@ -44,7 +44,20 @@ ast::expression make_built_in_operation(
 	parse_context &context
 );
 
+ast::expression make_built_in_type_operation(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+);
+
 ast::expression make_built_in_operation(
+	lex::token_pos op,
+	ast::expression lhs,
+	ast::expression rhs,
+	parse_context &context
+);
+
+ast::expression make_built_in_type_operation(
 	lex::token_pos op,
 	ast::expression lhs,
 	ast::expression rhs,

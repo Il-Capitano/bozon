@@ -427,7 +427,7 @@ void resolve(
 
 static void resolve(
 	ast::type_info &info,
-	ctx::parse_context &context
+	ctx::parse_context &
 )
 {
 	if (info.resolve == ast::resolve_state::all)

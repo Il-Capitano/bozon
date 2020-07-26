@@ -1660,14 +1660,24 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
-	auto [type, type_kind] = expr.get_expr_type_and_kind();
+	if (is_unary_type_op(op->kind) && expr.is_typename())
+	{
+		auto result = make_built_in_type_operation(op, std::move(expr), *this);
+		result.src_tokens = src_tokens;
+		return result;
+	}
+	else if (is_unary_type_op(op->kind) && !is_unary_built_in_operator(op->kind))
+	{
+		bz_assert(!is_overloadable_operator(op->kind));
+		this->report_error(expr, bz::format("expected a type after '{}'", op->value));
+	}
 
+	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
 		!is_unary_overloadable_operator(op->kind)
 		|| (is_built_in_type(ast::remove_const_or_consteval(type)) && is_unary_built_in_operator(op->kind))
-		|| (expr.is_typename() && is_unary_built_in_operator(op->kind))
 	)
 	{
 		auto result = make_built_in_operation(op, std::move(expr), *this);
@@ -1776,9 +1786,41 @@ ast::expression parse_context::make_binary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
+	if (op->kind == lex::token::kw_as)
+	{
+		bool good = true;
+		if (lhs.is_typename())
+		{
+			this->report_error(lhs, "left-hand-side of type cast must not be a type");
+			good = false;
+		}
+		if (!rhs.is_typename())
+		{
+			this->report_error(rhs, "right-hand-side of type cast must be a type");
+			good = false;
+		}
+		if (!good)
+		{
+			return ast::expression(src_tokens);
+		}
+
+		return this->make_cast_expression(src_tokens, op, std::move(lhs), std::move(rhs.get_typename()));
+	}
+
+	if (is_binary_type_op(op->kind) && lhs.is_typename() && rhs.is_typename())
+	{
+		auto result = make_built_in_type_operation(op, std::move(lhs), std::move(rhs), *this);
+		result.src_tokens = src_tokens;
+		return result;
+	}
+	else if (is_binary_type_op(op->kind) && !is_binary_built_in_operator(op->kind))
+	{
+		// there's no operator such as this ('as' is handled earlier)
+		bz_assert(false);
+	}
+
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
