@@ -656,7 +656,7 @@ static ast::expression get_type_op_unary_reference(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(result_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
@@ -692,7 +692,7 @@ static ast::expression get_type_op_unary_pointer(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(result_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
@@ -734,7 +734,7 @@ static ast::expression get_type_op_unary_const(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(result_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
@@ -776,7 +776,7 @@ static ast::expression get_type_op_unary_consteval(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(const_expr_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
@@ -823,7 +823,7 @@ static ast::expression get_built_in_unary_typeof(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(res_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);

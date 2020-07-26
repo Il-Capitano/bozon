@@ -105,7 +105,7 @@ static ast::expression parse_primary_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
-			ast::typespec(),
+			ast::make_typename_typespec(nullptr),
 			ast::make_auto_typespec(auto_pos),
 			ast::make_expr_identifier(auto_pos)
 		);
@@ -119,7 +119,7 @@ static ast::expression parse_primary_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
-			ast::typespec(),
+			ast::make_typename_typespec(nullptr),
 			ast::make_typename_typespec(typename_pos),
 			ast::make_expr_identifier(typename_pos)
 		);
@@ -339,7 +339,7 @@ static ast::typespec add_prototype_to_type(
 	ast::expression result_expr = ast::make_constant_expression(
 		type.get_src_tokens(),
 		ast::expression_type_kind::type_name,
-		ast::typespec(),
+		ast::make_typename_typespec(nullptr),
 		std::move(type),
 		ast::expr_t{}
 	);

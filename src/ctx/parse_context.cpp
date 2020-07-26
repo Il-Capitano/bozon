@@ -535,7 +535,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
-				ast::typespec(),
+				ast::make_typename_typespec(nullptr),
 				type->ts,
 				ast::make_expr_identifier(id)
 			);
@@ -706,7 +706,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
-			ast::typespec(),
+			ast::make_typename_typespec(nullptr),
 			type->ts,
 			ast::make_expr_identifier(id)
 		);
@@ -718,7 +718,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
-			ast::typespec(),
+			ast::make_typename_typespec(nullptr),
 			ast::typespec({ ast::ts_void{ id } }),
 			ast::make_expr_identifier(id)
 		);
