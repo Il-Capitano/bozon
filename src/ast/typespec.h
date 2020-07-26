@@ -12,6 +12,7 @@ struct ts_unresolved;
 struct ts_base_type;
 struct ts_void;
 struct ts_function;
+struct ts_array;
 struct ts_tuple;
 struct ts_auto;
 struct ts_typename;
@@ -26,6 +27,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_base_type,
 	ts_void,
 	ts_function,
+	ts_array,
 	ts_tuple,
 	ts_auto,
 	ts_typename,
@@ -39,6 +41,7 @@ using terminator_typespec_types = bz::meta::type_pack<
 	ts_base_type,
 	ts_void,
 	ts_function,
+	ts_array,
 	ts_tuple,
 	ts_auto,
 	ts_typename
@@ -152,6 +155,13 @@ struct ts_function
 	typespec return_type;
 };
 
+struct ts_array
+{
+	lex::src_tokens      src_tokens;
+	bz::vector<uint64_t> sizes;
+	typespec             elem_type;
+};
+
 struct ts_tuple
 {
 	lex::src_tokens src_tokens;
@@ -220,6 +230,15 @@ inline typespec make_unresolved_typespec(lex::token_range range)
 inline typespec make_base_type_typespec(lex::src_tokens src_tokens, type_info *info)
 {
 	return typespec{ { ts_base_type{ src_tokens, info } } };
+}
+
+inline typespec make_array_typespec(
+	lex::src_tokens src_tokens,
+	bz::vector<uint64_t> sizes,
+	typespec elem_type
+)
+{
+	return typespec{ { ts_array{ src_tokens, std::move(sizes), std::move(elem_type) } } };
 }
 
 

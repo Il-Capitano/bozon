@@ -155,19 +155,117 @@ static ast::expression parse_primary_expression(
 		return expr;
 	}
 
-	// tuple
+	// tuple or array type
 	case lex::token::square_open:
 	{
 		auto const begin_token = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
 		auto elems = parse_expression_comma_list(inner_stream, inner_end, context);
-		if (inner_stream != inner_end)
+		if (inner_stream != inner_end && inner_stream->kind == lex::token::colon)
 		{
-			context.report_error(
-				inner_stream, "expected closing ]",
-				{ ctx::make_note(begin_token, "to match this:") }
+			++inner_stream;
+			auto type = parse_expression(inner_stream, inner_end, context, no_comma);
+			bool good = true;
+			if (inner_stream != inner_end)
+			{
+				good = false;
+				if (inner_stream->kind == lex::token::comma)
+				{
+					context.report_paren_match_error(
+						inner_stream, begin_token,
+						{ context.make_note(inner_stream, "operator , is not allowed in array type expression") }
+					);
+				}
+				else
+				{
+					context.report_paren_match_error(inner_stream, begin_token);
+				}
+			}
+
+			if (!type.is_typename())
+			{
+				good = false;
+				context.report_error(type, "expected a type as the array element type");
+			}
+
+			bz::vector<uint64_t> sizes = {};
+			for (auto &size_expr : elems)
+			{
+				if (size_expr.is_null())
+				{
+					continue;
+				}
+				auto const report_error = [&size_expr, &context, &good](bz::u8string message) {
+					good = false;
+					context.report_error(size_expr, std::move(message));
+				};
+
+				if (!size_expr.is<ast::constant_expression>())
+				{
+					report_error("array size must be a constant expression");
+				}
+				else
+				{
+					auto &size_const_expr = size_expr.get<ast::constant_expression>();
+					switch (size_const_expr.value.kind())
+					{
+					case ast::constant_value::sint:
+					{
+						auto const size = size_const_expr.value.get<ast::constant_value::sint>();
+						if (size <= 0)
+						{
+							report_error(bz::format(
+								"array size must be a positive integer, the given size {} is invalid",
+								size
+							));
+						}
+						else
+						{
+							sizes.push_back(static_cast<uint64_t>(size));
+						}
+						break;
+					}
+					case ast::constant_value::uint:
+					{
+						auto const size = size_const_expr.value.get<ast::constant_value::uint>();
+						if (size == 0)
+						{
+							report_error(bz::format(
+								"array size must be a positive integer, the given size {} is invalid",
+								size
+							));
+						}
+						else
+						{
+							sizes.push_back(size);
+						}
+						break;
+					}
+					default:
+						report_error("array size must be an integer");
+						break;
+					}
+				}
+			}
+
+			lex::src_tokens const src_tokens = { begin_token, begin_token, inner_end };
+			if (!good)
+			{
+				return ast::expression(src_tokens);
+			}
+
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::type_name,
+				ast::make_typename_typespec(nullptr),
+				ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename())),
+				ast::expr_t{}
 			);
+		}
+		else if (inner_stream != inner_end)
+		{
+			context.report_paren_match_error(inner_stream, begin_token);
 		}
 		auto const end_token = stream;
 

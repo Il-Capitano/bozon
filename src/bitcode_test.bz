@@ -633,6 +633,13 @@ function static_assert_test() -> void
 	static_assert(&int32 == & &int32);
 	static_assert(typeof int64_max == const int64);
 	static_assert(typeof int64_max != consteval int64);
+
+	static_assert(typeof static_assert_test() == void);
+
+	let arr: [10: int32];
+	let arr: [(10, 10): float32];
+
+//	arr[0] = 3;
 }
 
 // function square_consteval(n: consteval int32) -> int32 { return n * n; }

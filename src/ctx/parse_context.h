@@ -108,6 +108,10 @@ struct parse_context
 			std::move(message), std::move(notes), std::move(suggestions)
 		);
 	}
+	void report_paren_match_error(
+		lex::token_pos it, lex::token_pos open_paren_it,
+		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+	) const;
 
 	[[nodiscard]] static note make_note(bz::u8string file_name, size_t line, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);
@@ -120,6 +124,14 @@ struct parse_context
 			std::move(message)
 		);
 	}
+
+	[[nodiscard]] static ctx::note make_note(
+		lex::token_pos it, bz::u8string message,
+		ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+	);
+	[[nodiscard]] static ctx::note make_paren_match_note(
+		lex::token_pos it, lex::token_pos open_paren_it
+	);
 
 	[[nodiscard]] static suggestion make_suggestion_before(
 		lex::token_pos it, bz::u8string suggestion_str,

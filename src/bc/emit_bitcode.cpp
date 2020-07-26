@@ -143,7 +143,7 @@ static llvm::Value *get_constant_zero(
 		{
 			auto const struct_type = llvm::dyn_cast<llvm::StructType>(llvm_type);
 			bz_assert(struct_type != nullptr);
-			return llvm::ConstantStruct::get(struct_type);
+			return llvm::ConstantStruct::getNullValue(struct_type);
 		}
 		default:
 			bz_assert(false);
@@ -165,6 +165,8 @@ static llvm::Value *get_constant_zero(
 		bz_assert(ptr_type != nullptr);
 		return llvm::ConstantPointerNull::get(ptr_type);
 	}
+	case ast::typespec_node_t::index_of<ast::ts_array>:
+		return llvm::ConstantArray::getNullValue(llvm_type);
 
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		bz_assert(false);
@@ -2049,6 +2051,17 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 			llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false),
 			0
 		);
+	}
+	case ast::typespec_node_t::index_of<ast::ts_array>:
+	{
+		auto &arr_t = ts.get<ast::ts_array>();
+		auto elem_t = get_llvm_type(arr_t.elem_type, context);
+		for (auto const size : arr_t.sizes)
+		{
+			elem_t = llvm::ArrayType::get(elem_t, size);
+		}
+
+		return elem_t;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		bz_assert(false);

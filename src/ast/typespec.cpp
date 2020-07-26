@@ -25,6 +25,9 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 			[&](ts_function const &func_t) {
 				src_tokens = func_t.src_tokens;
 			},
+			[&](ts_array const &array_t) {
+				src_tokens = array_t.src_tokens;
+			},
 			[&](ts_tuple const &tuple) {
 				src_tokens = tuple.src_tokens;
 			},
@@ -190,6 +193,9 @@ bool is_complete(typespec_view ts) noexcept
 			}
 			return is_complete(fn_t.return_type);
 		},
+		[](ts_array const &array_t) {
+			return is_complete(array_t.elem_type);
+		},
 		[](ts_tuple const &tuple_t) {
 			for (auto &t : tuple_t.types)
 			{
@@ -230,6 +236,9 @@ bool is_instantiable(typespec_view ts) noexcept
 			}
 			return fn_t.return_type.is<ts_void>() || is_instantiable(fn_t.return_type);
 		},
+		[](ts_array const &array_t) {
+			return is_instantiable(array_t.elem_type);
+		},
 		[](ts_tuple const &tuple_t) {
 			for (auto &t : tuple_t.types)
 			{
@@ -254,6 +263,14 @@ bz::u8string get_symbol_name_for_type(typespec_view ts)
 		node.visit(bz::overload{
 			[&](ts_base_type const &base_type) {
 				result += base_type.info->symbol_name;
+			},
+			[&](ts_array const &array_t) {
+				result += bz::format("0A.{}.", array_t.sizes.size());
+				for (auto const size : array_t.sizes)
+				{
+					result += bz::format("{}.", size);
+				}
+				result += get_symbol_name_for_type(array_t.elem_type);
 			},
 			[&](ts_void const &) {
 				result += "void";
@@ -327,6 +344,25 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		}
 		return lhs_fn_t.return_type == rhs_fn_t.return_type;
 	}
+	case typespec_node_t::index_of<ts_array>:
+	{
+		auto const &lhs_array_t = lhs_last.get<ts_array>();
+		auto const &rhs_array_t = rhs_last.get<ts_array>();
+
+		if (lhs_array_t.sizes.size() != rhs_array_t.sizes.size())
+		{
+			return false;
+		}
+
+		for (auto const [lhs_size, rhs_size] : bz::zip(lhs_array_t.sizes, rhs_array_t.sizes))
+		{
+			if (lhs_size != rhs_size)
+			{
+				return false;
+			}
+		}
+		return lhs_array_t.elem_type == rhs_array_t.elem_type;
+	}
 	case typespec_node_t::index_of<ts_tuple>:
 	{
 		auto const &lhs_tuple_t = lhs_last.get<ts_tuple>();
@@ -378,6 +414,15 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_function const &) {
 				bz_assert(false);
+			},
+			[&](ast::ts_array const &array_t) {
+				result += "[";
+				bz_assert(array_t.sizes.size() != 0);
+				for (auto const size : bz::array_view{ array_t.sizes.begin(), array_t.sizes.end() - 1 })
+				{
+					result += bz::format("{}, ", size);
+				}
+				result += bz::format("{}: {}]", array_t.sizes.back(), array_t.elem_type);
 			},
 			[&](ast::ts_tuple const &) {
 				bz_assert(false);
