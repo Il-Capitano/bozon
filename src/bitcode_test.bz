@@ -47,7 +47,7 @@ function assert(b: bool) -> void
 {
 	if (!b)
 	{
-		println("assertion failed!");
+		println("\x1b[91massertion failed!\x1b[0m");
 		exit(1);
 	}
 }
@@ -428,6 +428,8 @@ function scope_test() -> void
 	println(multiply(123i64, 123i8));
 	println(123 * 123);
 	assert(multiply(123i64, 123i8) == 123 * 123);
+
+//	const t = int32;
 }
 
 function square(n: int32) -> typeof (n * n)
@@ -539,7 +541,7 @@ function for_test() -> void
 			return false;
 		}
 
-		for (let i = 2; i < n ; ++i)
+		for (let i = 2; i <= n / 2; ++i)
 		{
 			if (n % i == 0)
 			{
@@ -615,9 +617,22 @@ function static_assert_test() -> void
 	consteval s = "Hello!";
 	static_assert(s != "Hello!!");
 
-	let a = s;
-	let b = s;
-	let c = s;
+	let n = null;
+	let i: int32;
+	let p: *int32;
+//	const p: *int32;
+//	let ref: &int32;
+	consteval p: *int32 = null;
+	static_assert(p == null);
+
+	let &i_ref = i;
+//	let i_ref_: typeof i_ref;
+	let i_ref_: typeof *&i_ref;
+
+	static_assert(const int32 == const const int32);
+	static_assert(&int32 == & &int32);
+	static_assert(typeof int64_max == const int64);
+	static_assert(typeof int64_max != consteval int64);
 }
 
 // function square_consteval(n: consteval int32) -> int32 { return n * n; }
