@@ -102,6 +102,14 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 	}
 }
 
+template<bool *dest, bool value>
+void default_flag_parser(iter_t &it, iter_t end, ctx::command_parse_context &)
+{
+	bz_assert(it != end);
+	*dest = value;
+	++it;
+}
+
 static void check_source_file_name(iter_t it, ctx::command_parse_context &context)
 {
 	if (!it->ends_with(".bz"))
@@ -181,7 +189,8 @@ constexpr auto argument_parsers = []() {
 constexpr auto flag_parsers = []() {
 	using T = flag_parser;
 
-	std::array<T, 0> result = {
+	std::array result = {
+		T{ "--profile", "Measure time for compilation steps", &default_flag_parser<&do_profile, true>}
 	};
 
 	return result;
@@ -266,9 +275,9 @@ enum class parser_kind
 
 struct parser_variants_t
 {
-	prefix_parser   prefix                         = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	argument_parser argument                       = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	flag_parser     flag                           = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
+	prefix_parser              prefix              = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
+	argument_parser            argument            = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
+	flag_parser                flag                = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
 	flag_with_alternate_parser flag_with_alternate = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
 };
 
@@ -351,7 +360,7 @@ static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context
 			}
 			else if constexpr (parser.kind == parser_kind::flag)
 			{
-				constexpr auto flag     = parser.variants.flag.flag;
+				constexpr auto flag     = parser.variants.flag.flag_name;
 				constexpr auto parse_fn = parser.variants.flag.parse_fn;
 
 				if (*it == flag)

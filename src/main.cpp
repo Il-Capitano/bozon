@@ -1420,19 +1420,22 @@ int main(int argc, char const **argv)
 
 	auto const end = timer::now();
 
-	auto const command_line_parsing_time = after_command_line_parsing - begin;
-	auto const tokenization_time         = after_tokenization - before_tokenization;
-	auto const first_pass_parse_time     = after_first_pass_parse - before_first_pass_parse;
-	auto const resolve_time              = after_resolve - before_resolve;
-	auto const code_emission_time        = end - before_code_emission;
-	auto const compilation_time          = command_line_parsing_time + tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
+	if (do_profile)
+	{
+		auto const command_line_parsing_time = after_command_line_parsing - begin;
+		auto const tokenization_time         = after_tokenization - before_tokenization;
+		auto const first_pass_parse_time     = after_first_pass_parse - before_first_pass_parse;
+		auto const resolve_time              = after_resolve - before_resolve;
+		auto const code_emission_time        = end - before_code_emission;
+		auto const compilation_time          = command_line_parsing_time + tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
 
-	bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
-//	bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
-//	bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
-//	bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
-//	bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
-//	bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
+		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
+		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
+		bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
+		bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
+		bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
+		bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
+	}
 
 	return 0;
 }

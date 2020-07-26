@@ -7,6 +7,7 @@
 inline bz::u8string output_file_name;
 inline std::array<bool, static_cast<size_t>(ctx::warning_kind::_last)> warnings{};
 inline bz::u8string source_file;
+inline bool do_profile = false;
 
 
 void enable_warning(ctx::warning_kind kind);
