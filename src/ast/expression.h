@@ -53,6 +53,8 @@ struct constant_expression
 	typespec             type;
 	constant_value       value;
 	expr_t               expr;
+
+	declare_default_5(constant_expression)
 };
 
 struct dynamic_expression
@@ -60,12 +62,15 @@ struct dynamic_expression
 	expression_type_kind kind;
 	typespec             type;
 	expr_t               expr;
+
+	declare_default_5(dynamic_expression)
 };
 
 struct tuple_expression
 {
 	bz::vector<expression> elems;
-	~tuple_expression(void) noexcept = default;
+
+	declare_default_5(tuple_expression)
 };
 
 struct expression : bz::variant<
@@ -93,15 +98,12 @@ struct expression : bz::variant<
 
 	lex::src_tokens src_tokens;
 
+	declare_default_5(expression)
+
 	template<typename ...Ts>
 	expression(lex::src_tokens _src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
 		  src_tokens(_src_tokens)
-	{}
-
-	expression(void)
-		: base_t(),
-		  src_tokens{}
 	{}
 
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
@@ -201,6 +203,8 @@ struct expr_identifier
 	lex::token_pos identifier;
 	decl_variable const *decl;
 
+	declare_default_5(expr_identifier)
+
 	expr_identifier(lex::token_pos _id, decl_variable const *var_decl)
 		: identifier(_id), decl(var_decl)
 	{}
@@ -213,6 +217,8 @@ struct expr_identifier
 struct expr_literal
 {
 	lex::token_range tokens;
+
+	declare_default_5(expr_literal)
 
 	expr_literal(lex::token_range _tokens)
 		: tokens(_tokens)
@@ -228,6 +234,8 @@ struct expr_unary_op
 	lex::token_pos op;
 	expression     expr;
 
+	declare_default_5(expr_unary_op)
+
 	expr_unary_op(
 		lex::token_pos _op,
 		expression     _expr
@@ -242,6 +250,8 @@ struct expr_binary_op
 	lex::token_pos op;
 	expression     lhs;
 	expression     rhs;
+
+	declare_default_5(expr_binary_op)
 
 	expr_binary_op(
 		lex::token_pos _op,
@@ -259,6 +269,8 @@ struct expr_subscript
 	expression             base;
 	bz::vector<expression> indicies;
 
+	declare_default_5(expr_subscript)
+
 	expr_subscript(
 		expression             _base,
 		bz::vector<expression> _indicies
@@ -273,6 +285,8 @@ struct expr_function_call
 	lex::src_tokens        src_tokens;
 	bz::vector<expression> params;
 	function_body         *func_body;
+
+	declare_default_5(expr_function_call)
 
 	expr_function_call(
 		lex::src_tokens        _src_tokens,
@@ -290,6 +304,8 @@ struct expr_cast
 	lex::token_pos as_pos;
 	expression     expr;
 	typespec       type;
+
+	declare_default_5(expr_cast)
 
 	expr_cast(
 		lex::token_pos _as_pos,

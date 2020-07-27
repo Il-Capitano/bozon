@@ -34,7 +34,7 @@ private:
 	static constexpr bool nothrow_copy_value     = meta::is_nothrow_copy_constructible_v<T>;
 	static constexpr bool nothrow_destruct_value = meta::is_nothrow_destructible_v<T>;
 
-	static constexpr bool trivial_alloc = std::is_trivial_v<Alloc>;
+	static constexpr bool trivial_alloc = std::is_trivial_v<Alloc> || std::is_empty_v<Alloc>;
 
 public:
 	using value_type = T;

@@ -4,13 +4,6 @@
 #include "core.h"
 #include "typespec.h"
 
-namespace ctx
-{
-
-struct function_overload_set;
-
-} // namespace ctx
-
 namespace ast
 {
 
@@ -81,11 +74,7 @@ struct constant_value : bz::variant<
 	size_t kind(void) const noexcept
 	{ return this->base_t::index(); }
 
-	~constant_value(void) noexcept = default;
-	constant_value(constant_value const &)     = default;
-	constant_value(constant_value &&) noexcept = default;
-	constant_value &operator = (constant_value const &)     = default;
-	constant_value &operator = (constant_value &&) noexcept = default;
+	declare_default_5(constant_value)
 };
 
 } // namespace ast

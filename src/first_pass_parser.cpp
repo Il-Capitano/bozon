@@ -431,9 +431,9 @@ static ast::statement parse_return_statement(
 
 	return ast::make_stmt_return(
 		lex::token_range{ begin_token, stream },
-		expr.begin == expr.end ? ast::expression() : ast::make_unresolved_expression({
-			expr.begin, expr.begin, expr.end
-		})
+		expr.begin == expr.end
+			? ast::expression({ expr.begin, expr.begin, expr.end})
+			: ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end })
 	);
 }
 
@@ -527,23 +527,9 @@ static ast::statement parse_variable_declaration(
 
 	auto const prototype_begin = stream;
 
+	while (stream != end && is_unary_type_op(stream->kind))
 	{
-		bool loop = true;
-		while (stream != end && loop)
-		{
-			switch (stream->kind)
-			{
-			case lex::token::kw_const:
-			case lex::token::kw_consteval:
-			case lex::token::ampersand:
-			case lex::token::star:
-				++stream;
-				break;
-			default:
-				loop = false;
-				break;
-			}
-		}
+		++stream;
 	}
 
 	auto const prototype = lex::token_range{ prototype_begin, stream };

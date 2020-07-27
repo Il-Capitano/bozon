@@ -75,4 +75,12 @@ constexpr void constexpr_bubble_sort(Array &arr, Cmp cmp, Swap swap)
 	}
 }
 
+#define declare_default_5(type)            \
+type(void)                      = default; \
+type(type const &)              = default; \
+type(type &&)                   = default; \
+type &operator = (type const &) = default; \
+type &operator = (type &&)      = default; \
+~type(void) noexcept            = default;
+
 #endif // CORE_H

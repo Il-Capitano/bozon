@@ -214,7 +214,9 @@ public:
 	}
 
 	void assign(self_t &&other) noexcept(
-		(meta::is_nothrow_move_constructible_v<Ts> && ...)
+		(meta::is_nothrow_destructible_v<Ts> && ...)
+		&& (meta::is_nothrow_move_constructible_v<Ts> && ...)
+		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
 	)
 	{
 		if (this == &other)

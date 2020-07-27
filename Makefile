@@ -6,8 +6,8 @@ default: debug
 # =========================
 
 default_cxx := clang++
-default_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
-default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
+default_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -std=c++17
+default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -std=c++17
 default_cxx_include_dirs := ./include ./src 
 default_cc := clang
 default_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
@@ -219,8 +219,8 @@ bin/default/release/int/token.cpp.o: ./src/lex/token.cpp ./include/bz/allocator.
 # ======================
 
 test_cxx := clang++
-test_cxx_debug_flags := -c -g -Og -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
-test_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -march=native -ferror-limit=2 -std=c++17
+test_cxx_debug_flags := -c -g -Og -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -std=c++17
+test_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -std=c++17
 test_cxx_include_dirs := ./include ./src 
 test_cc := clang
 test_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11

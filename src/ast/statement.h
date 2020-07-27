@@ -18,6 +18,8 @@ struct attribute
 	lex::token_pos              name;
 	lex::token_range            arg_tokens;
 	bz::vector<ast::expression> args;
+
+	declare_default_5(attribute)
 };
 
 enum class resolve_state : uint8_t
@@ -105,6 +107,8 @@ struct statement : statement_node_t
 	using base_t::kind;
 	using base_t::emplace;
 
+	declare_default_5(statement)
+
 	bz::vector<attribute> _attributes;
 	void set_attributes(bz::vector<attribute> attributes) noexcept
 	{
@@ -125,6 +129,8 @@ struct stmt_if
 	expression              condition;
 	statement               then_block;
 	bz::optional<statement> else_block;
+
+	declare_default_5(stmt_if)
 
 	stmt_if(
 		lex::token_range _tokens,
@@ -155,6 +161,8 @@ struct stmt_while
 	expression       condition;
 	statement        while_block;
 
+	declare_default_5(stmt_while)
+
 	stmt_while(
 		lex::token_range _tokens,
 		expression       _condition,
@@ -172,6 +180,8 @@ struct stmt_for
 	expression condition;
 	expression iteration;
 	statement  for_block;
+
+	declare_default_5(stmt_for)
 
 	stmt_for(
 		statement  _init,
@@ -191,6 +201,8 @@ struct stmt_return
 	lex::token_range tokens;
 	expression       expr;
 
+	declare_default_5(stmt_return)
+
 	stmt_return(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
@@ -199,6 +211,8 @@ struct stmt_return
 struct stmt_no_op
 {
 	lex::token_range tokens;
+
+	declare_default_5(stmt_no_op)
 
 	stmt_no_op(lex::token_range _tokens)
 		: tokens(_tokens)
@@ -209,6 +223,8 @@ struct stmt_compound
 {
 	lex::token_range      tokens;
 	bz::vector<statement> statements;
+
+	declare_default_5(stmt_compound)
 
 	stmt_compound(lex::token_range _tokens)
 		: tokens(_tokens)
@@ -224,6 +240,8 @@ struct stmt_expression
 	lex::token_range tokens;
 	expression       expr;
 
+	declare_default_5(stmt_expression)
+
 	stmt_expression(lex::token_range _tokens, expression _expr)
 		: tokens(_tokens), expr(std::move(_expr))
 	{}
@@ -234,6 +252,8 @@ struct stmt_static_assert
 	lex::token_range arg_tokens;
 	expression condition;
 	expression message;
+
+	declare_default_5(stmt_static_assert)
 
 	stmt_static_assert(lex::token_range _arg_tokens)
 		: arg_tokens(_arg_tokens),
@@ -250,6 +270,8 @@ struct decl_variable
 	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
+
+	declare_default_5(decl_variable)
 
 	decl_variable(
 		lex::token_range _tokens,
@@ -305,6 +327,8 @@ struct function_body
 	bz::u8string                        symbol_name;
 	llvm::Function                     *llvm_func;
 
+	declare_default_5(function_body)
+
 	bool is_symbol_resolved(void) const noexcept
 	{ return this->llvm_func != nullptr; }
 
@@ -316,6 +340,8 @@ struct decl_function
 {
 	lex::token_pos identifier;
 	function_body  body;
+
+	declare_default_5(decl_function)
 
 	decl_function(
 		lex::token_pos            _id,
@@ -355,6 +381,8 @@ struct decl_operator
 {
 	lex::token_pos op;
 	function_body  body;
+
+	declare_default_5(decl_operator)
 
 	decl_operator(
 		lex::token_pos            _op,
@@ -436,6 +464,8 @@ struct type_info
 	function_body *move_constructor;
 	function_body *destructor;
 	function_body *move_destructor;
+
+	declare_default_5(type_info)
 
 	static type_info make_built_in(bz::u8string_view name, uint8_t kind)
 	{
@@ -552,6 +582,8 @@ struct decl_struct
 {
 	lex::token_pos identifier;
 	type_info      info;
+
+	declare_default_5(decl_struct)
 /*
 	decl_struct(lex::token_pos _id)
 		: identifier(_id),

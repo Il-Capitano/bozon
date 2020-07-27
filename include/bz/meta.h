@@ -201,6 +201,9 @@ constexpr T gcd<T, N, M> = []
 	return b;
 }();
 
+template<typename T, T N>
+constexpr T gcd<T, N> = N;
+
 template<size_t N, size_t ...Ns>
 constexpr size_t gcd_index = gcd<size_t, N, Ns...>;
 
@@ -210,6 +213,9 @@ constexpr T lcm = lcm<T, N, lcm<T, Ns...>>;
 
 template<typename T, T N, T M>
 constexpr T lcm<T, N, M> = (N * M) / gcd<T, N, M>;
+
+template<typename T, T N>
+constexpr T lcm<T, N> = N;
 
 template<size_t N, size_t ...Ns>
 constexpr size_t lcm_index = lcm<size_t, N, Ns...>;
