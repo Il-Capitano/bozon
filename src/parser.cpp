@@ -37,6 +37,34 @@ lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos 
 	return { begin, stream - 1 };
 };
 
+lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::token_pos end)
+{
+	size_t paren_level = 0;
+	for (auto it = begin; it != end; ++it)
+	{
+		if (paren_level == 0 && it->kind == kind)
+		{
+			return it;
+		}
+		switch (it->kind)
+		{
+		case lex::token::paren_open:
+		case lex::token::square_open:
+		case lex::token::curly_open:
+			++paren_level;
+			break;
+		case lex::token::paren_close:
+		case lex::token::square_close:
+		case lex::token::curly_close:
+			++paren_level;
+			break;
+		default:
+			break;
+		}
+	}
+	return end;
+}
+
 static ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
@@ -49,6 +77,127 @@ static bz::vector<ast::expression> parse_expression_comma_list(
 	ctx::parse_context &context
 );
 
+static ast::expression parse_array_type(
+	lex::token_pos stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert((stream - 1)->kind == lex::token::square_open);
+	auto const begin_token = stream - 1;
+	auto elems = parse_expression_comma_list(stream, end, context);
+
+	bz_assert(stream != end);
+	if (stream->kind != lex::token::colon)
+	{
+		context.report_error(stream, "expected ',' or ':'");
+		stream = search_token(lex::token::colon, stream, end);
+		bz_assert(stream != end);
+	}
+
+	++stream; // ':'
+	auto type = parse_expression(stream, end, context, no_comma);
+	bool good = true;
+	if (stream != end)
+	{
+		good = false;
+		if (stream->kind == lex::token::comma)
+		{
+			context.report_paren_match_error(
+				stream, begin_token,
+				{ context.make_note(stream, "operator , is not allowed in array element type") }
+			);
+		}
+		else
+		{
+			context.report_paren_match_error(stream, begin_token);
+		}
+	}
+
+	if (type.is_null())
+	{
+		good = false;
+	}
+	else if (!type.is_typename())
+	{
+		good = false;
+		context.report_error(type, "expected a type as the array element type");
+	}
+
+	bz::vector<uint64_t> sizes = {};
+	for (auto &size_expr : elems)
+	{
+		if (size_expr.is_null())
+		{
+			continue;
+		}
+		auto const report_error = [&size_expr, &context, &good](bz::u8string message) {
+			good = false;
+			context.report_error(size_expr, std::move(message));
+		};
+
+		if (!size_expr.is<ast::constant_expression>())
+		{
+			report_error("array size must be a constant expression");
+		}
+		else
+		{
+			auto &size_const_expr = size_expr.get<ast::constant_expression>();
+			switch (size_const_expr.value.kind())
+			{
+			case ast::constant_value::sint:
+			{
+				auto const size = size_const_expr.value.get<ast::constant_value::sint>();
+				if (size <= 0)
+				{
+					report_error(bz::format(
+						"array size must be a positive integer, the given size {} is invalid",
+						size
+					));
+				}
+				else
+				{
+					sizes.push_back(static_cast<uint64_t>(size));
+				}
+				break;
+			}
+			case ast::constant_value::uint:
+			{
+				auto const size = size_const_expr.value.get<ast::constant_value::uint>();
+				if (size == 0)
+				{
+					report_error(bz::format(
+						"array size must be a positive integer, the given size {} is invalid",
+						size
+					));
+				}
+				else
+				{
+					sizes.push_back(size);
+				}
+				break;
+			}
+			default:
+				report_error("array size must be an integer");
+				break;
+			}
+		}
+	}
+
+	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
+	if (!good)
+	{
+		return ast::expression(src_tokens);
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename())),
+		ast::expr_t{}
+	);
+}
+
 static ast::expression parse_primary_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -56,7 +205,7 @@ static ast::expression parse_primary_expression(
 {
 	if (stream == end)
 	{
-		context.report_error(stream, "expected primary expression");
+		context.report_error(stream, "expected a primary expression");
 		return ast::expression({ stream, stream, stream + 1});
 	}
 
@@ -159,117 +308,24 @@ static ast::expression parse_primary_expression(
 	case lex::token::square_open:
 	{
 		auto const begin_token = stream;
-		++stream;
+		++stream; // '['
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-		auto elems = parse_expression_comma_list(inner_stream, inner_end, context);
-		if (inner_stream != inner_end && inner_stream->kind == lex::token::colon)
+		auto const colon_or_end = search_token(lex::token::colon, inner_stream, inner_end);
+		if (colon_or_end != inner_end)
 		{
-			++inner_stream;
-			auto type = parse_expression(inner_stream, inner_end, context, no_comma);
-			bool good = true;
+			return parse_array_type(inner_stream, inner_end, context);
+		}
+		else
+		{
+			auto const elems = parse_expression_comma_list(inner_stream, inner_end, context);
+			auto const end_token = stream;
 			if (inner_stream != inner_end)
 			{
-				good = false;
-				if (inner_stream->kind == lex::token::comma)
-				{
-					context.report_paren_match_error(
-						inner_stream, begin_token,
-						{ context.make_note(inner_stream, "operator , is not allowed in array type expression") }
-					);
-				}
-				else
-				{
-					context.report_paren_match_error(inner_stream, begin_token);
-				}
+				context.report_paren_match_error(inner_stream, begin_token);
+				return ast::expression({ begin_token, begin_token, end_token });
 			}
-
-			if (!type.is_typename())
-			{
-				good = false;
-				context.report_error(type, "expected a type as the array element type");
-			}
-
-			bz::vector<uint64_t> sizes = {};
-			for (auto &size_expr : elems)
-			{
-				if (size_expr.is_null())
-				{
-					continue;
-				}
-				auto const report_error = [&size_expr, &context, &good](bz::u8string message) {
-					good = false;
-					context.report_error(size_expr, std::move(message));
-				};
-
-				if (!size_expr.is<ast::constant_expression>())
-				{
-					report_error("array size must be a constant expression");
-				}
-				else
-				{
-					auto &size_const_expr = size_expr.get<ast::constant_expression>();
-					switch (size_const_expr.value.kind())
-					{
-					case ast::constant_value::sint:
-					{
-						auto const size = size_const_expr.value.get<ast::constant_value::sint>();
-						if (size <= 0)
-						{
-							report_error(bz::format(
-								"array size must be a positive integer, the given size {} is invalid",
-								size
-							));
-						}
-						else
-						{
-							sizes.push_back(static_cast<uint64_t>(size));
-						}
-						break;
-					}
-					case ast::constant_value::uint:
-					{
-						auto const size = size_const_expr.value.get<ast::constant_value::uint>();
-						if (size == 0)
-						{
-							report_error(bz::format(
-								"array size must be a positive integer, the given size {} is invalid",
-								size
-							));
-						}
-						else
-						{
-							sizes.push_back(size);
-						}
-						break;
-					}
-					default:
-						report_error("array size must be an integer");
-						break;
-					}
-				}
-			}
-
-			lex::src_tokens const src_tokens = { begin_token, begin_token, inner_end };
-			if (!good)
-			{
-				return ast::expression(src_tokens);
-			}
-
-			return ast::make_constant_expression(
-				src_tokens,
-				ast::expression_type_kind::type_name,
-				ast::make_typename_typespec(nullptr),
-				ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename())),
-				ast::expr_t{}
-			);
+			return context.make_tuple({ begin_token, begin_token, end_token }, std::move(elems));
 		}
-		else if (inner_stream != inner_end)
-		{
-			context.report_paren_match_error(inner_stream, begin_token);
-		}
-		auto const end_token = stream;
-
-		return context.make_tuple({ begin_token, begin_token, end_token }, std::move(elems));
 	}
 
 	// unary operators
@@ -334,17 +390,20 @@ static ast::expression parse_expression_helper(
 		// subscript operator
 		case lex::token::square_open:
 		{
-			bz_assert(false);
 			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
-			auto rhs = parse_expression(inner_stream, inner_end, context, precedence{});
+			auto args = parse_expression_comma_list(inner_stream, inner_end, context);
 			if (inner_stream != inner_end)
 			{
-				context.report_error(inner_stream, "expected closing ]", { ctx::make_note(op, "to match this:") });
+				context.report_paren_match_error(inner_stream, op);
+			}
+			else if (args.size() == 0)
+			{
+				context.report_error(inner_end, "subscript expression expects at least one index");
 			}
 
-			lhs = context.make_binary_operator_expression(
+			lhs = context.make_subscript_operator_expression(
 				{ lhs.get_tokens_begin(), op, stream },
-				op, std::move(lhs), std::move(rhs)
+				std::move(lhs), std::move(args)
 			);
 			break;
 		}

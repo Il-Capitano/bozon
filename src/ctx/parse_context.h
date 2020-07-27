@@ -182,6 +182,11 @@ struct parse_context
 		ast::expression called,
 		bz::vector<ast::expression> params
 	);
+	ast::expression make_subscript_operator_expression(
+		lex::src_tokens src_tokens,
+		ast::expression called,
+		bz::vector<ast::expression> params
+	);
 	ast::expression make_cast_expression(
 		lex::src_tokens src_tokens,
 		lex::token_pos op,

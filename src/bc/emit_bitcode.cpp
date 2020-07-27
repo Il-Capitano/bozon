@@ -1412,6 +1412,36 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
+	ast::expr_subscript const &subscript,
+	ctx::bitcode_context &context
+)
+{
+	auto const array = emit_bitcode(subscript.base, context);
+	bz::vector<llvm::Value *> indicies = {};
+	for (auto &index : subscript.indicies)
+	{
+		indicies.push_back(emit_bitcode(index, context).get_value(context));
+	}
+
+	if (array.kind == val_ptr::reference)
+	{
+		indicies.push_front(llvm::ConstantInt::get(context.get_uint64_t(), 0));
+		return {
+			val_ptr::reference,
+			context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()))
+		};
+	}
+	else
+	{
+		bz_assert(array.kind == val_ptr::value);
+		return {
+			val_ptr::value,
+			context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()))
+		};
+	}
+}
+
+static val_ptr emit_bitcode(
 	ast::expr_cast const &cast,
 	ctx::bitcode_context &context
 )
@@ -1620,6 +1650,8 @@ static val_ptr emit_bitcode(
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_binary_op_ptr>(), context);
 	case ast::expr_t::index<ast::expr_function_call>:
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_function_call_ptr>(), context);
+	case ast::expr_t::index<ast::expr_subscript>:
+		return emit_bitcode(*dyn_expr.expr.get<ast::expr_subscript_ptr>(), context);
 	case ast::expr_t::index<ast::expr_cast>:
 		return emit_bitcode(*dyn_expr.expr.get<ast::expr_cast_ptr>(), context);
 

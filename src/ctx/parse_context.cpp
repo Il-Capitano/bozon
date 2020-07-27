@@ -2176,8 +2176,40 @@ ast::expression parse_context::make_function_call_expression(
 	else
 	{
 		// function call operator
-		bz_assert(false);
+		this->report_error(src_tokens, "operator () not yet implemented");
+		return ast::expression(src_tokens);
 	}
+}
+
+ast::expression parse_context::make_subscript_operator_expression(
+	lex::src_tokens src_tokens,
+	ast::expression called,
+	bz::vector<ast::expression> args
+)
+{
+	if (called.is_null() || args.size() == 0)
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
+	for (auto &arg : args)
+	{
+		if (arg.is_null())
+		{
+			bz_assert(this->has_errors());
+			return ast::expression(src_tokens);
+		}
+	}
+
+	auto const [type, kind] = called.get_expr_type_and_kind();
+	if (ast::remove_const_or_consteval(type).is<ast::ts_array>())
+	{
+		return make_built_in_subscript_operator(src_tokens, std::move(called), std::move(args), *this);
+	}
+
+	this->report_error(src_tokens, "operator [] not yet implemented");
+	return ast::expression(src_tokens);
 }
 
 ast::expression parse_context::make_cast_expression(

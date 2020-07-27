@@ -71,6 +71,13 @@ ast::expression make_built_in_cast(
 	parse_context &context
 );
 
+ast::expression make_built_in_subscript_operator(
+	lex::src_tokens src_tokens,
+	ast::expression called,
+	bz::vector<ast::expression> args,
+	parse_context &context
+);
+
 } // namespace ctx
 
 #endif // CTX_BUILT_IN_OPERATORS_H

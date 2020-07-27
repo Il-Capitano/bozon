@@ -256,18 +256,15 @@ struct expr_binary_op
 
 struct expr_subscript
 {
-	lex::src_tokens        src_tokens;
 	expression             base;
 	bz::vector<expression> indicies;
 
 	expr_subscript(
-		lex::src_tokens        _src_tokens,
 		expression             _base,
 		bz::vector<expression> _indicies
 	)
-		: src_tokens(_src_tokens),
-		  base      (std::move(_base)),
-		  indicies  (std::move(_indicies))
+		: base    (std::move(_base)),
+		  indicies(std::move(_indicies))
 	{}
 };
 
