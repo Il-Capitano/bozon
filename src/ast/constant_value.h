@@ -25,11 +25,15 @@ struct constant_value : bz::variant<
 	bz::u8char, bz::u8string,
 	bool, internal::null_t,
 
+	// arrays
+	bz::vector<constant_value>,
+
 	function_body *,
 	bz::u8string_view,
 
 	ast::typespec,
 
+	// structs
 	bz::vector<constant_value>
 >
 {
@@ -39,11 +43,15 @@ struct constant_value : bz::variant<
 		bz::u8char, bz::u8string,
 		bool, internal::null_t,
 
+		// arrays
+		bz::vector<constant_value>,
+
 		function_body *,
 		bz::u8string_view,
 
 		ast::typespec,
 
+		// structs
 		bz::vector<constant_value>
 	>;
 
@@ -57,11 +65,15 @@ struct constant_value : bz::variant<
 		string          = base_t::index_of<bz::u8string>,
 		boolean         = base_t::index_of<bool>,
 		null            = base_t::index_of<internal::null_t>,
+		array,
 		function        = base_t::index_of<function_body *>,
 		function_set_id = base_t::index_of<bz::u8string_view>,
 		type            = base_t::index_of<ast::typespec>,
-		aggregate       = base_t::index_of<bz::vector<constant_value>>,
+		aggregate,
 	};
+
+	static_assert(bz::meta::is_same<base_t::value_type<array>, bz::vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, bz::vector<constant_value>>);
 
 	using base_t::variant;
 	using base_t::operator =;
