@@ -1,5 +1,6 @@
 #include "error.h"
 #include "colors.h"
+#include "global_context.h"
 
 namespace ctx
 {
@@ -955,11 +956,12 @@ static bz::u8string get_highlighted_suggestion(
 
 void print_error_or_warning(
 	char_pos file_begin, char_pos file_end,
-	error const &err
+	error const &err,
+	global_context &context
 )
 {
 	auto const src_pos = [&]() {
-		if (err.file == "")
+		if (err.file_id == global_context::compiler_file_id)
 		{
 			return bz::format("{}bozon:{}", colors::bright_white, colors::clear);
 		}
@@ -968,16 +970,17 @@ void print_error_or_warning(
 			return bz::format(
 				"{}{}:{}:{}",
 				colors::bright_white,
-				err.file, err.line,
+				context.get_file_name(err.file_id), err.line,
 				colors::clear
 			);
 		}
 		else
 		{
+			auto const file_name = context.get_file_name(err.file_id);
 			return bz::format(
 				"{}{}:{}:{}:{}",
 				colors::bright_white,
-				err.file, err.line, get_column_number(file_begin, err.src_pivot),
+				file_name, err.line, get_column_number(file_begin, err.src_pivot),
 				colors::clear
 			);
 		}
@@ -1021,13 +1024,13 @@ void print_error_or_warning(
 			? bz::format(
 				"{}{}:{}{}",
 				colors::bright_white,
-				n.file, n.line,
+				context.get_file_name(n.file_id), n.line,
 				colors::clear
 			)
 			: bz::format(
 				"{}{}:{}:{}{}",
 				colors::bright_white,
-				n.file, n.line, column,
+				context.get_file_name(n.file_id), n.line, column,
 				colors::clear
 			);
 		bz::print(
@@ -1050,7 +1053,7 @@ void print_error_or_warning(
 		bz::print(
 			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
 			colors::bright_white,
-			s.file, s.line, actual_column,
+			context.get_file_name(s.file_id), s.line, actual_column,
 			colors::clear,
 			colors::suggestion_color, colors::clear,
 			s.message,

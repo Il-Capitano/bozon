@@ -128,39 +128,39 @@ struct token
 	bz::u8string_view postfix;
 	struct
 	{
-		bz::u8string_view file_name;
+		uint32_t file_id;
+		uint32_t line;
 		bz::u8string_view::const_iterator begin;
 		bz::u8string_view::const_iterator end;
-		size_t line;
 	} src_pos;
 
 	token(
 		uint32_t _kind,
 		bz::u8string_view _value,
-		bz::u8string_view _file_name,
+		uint32_t _file_id,
+		uint32_t _line,
 		bz::u8string_view::const_iterator _begin,
-		bz::u8string_view::const_iterator _end,
-		size_t _line
+		bz::u8string_view::const_iterator _end
 	)
 		: kind   (_kind),
 		  value  (_value),
 		  postfix(""),
-		  src_pos{ _file_name, _begin, _end, _line }
+		  src_pos{ _file_id, _line, _begin, _end }
 	{}
 
 	token(
 		uint32_t _kind,
 		bz::u8string_view _value,
 		bz::u8string_view _postfix,
-		bz::u8string_view _file_name,
+		uint32_t _file_id,
+		uint32_t _line,
 		bz::u8string_view::const_iterator _begin,
-		bz::u8string_view::const_iterator _end,
-		size_t _line
+		bz::u8string_view::const_iterator _end
 	)
 		: kind   (_kind),
 		  value  (_value),
 		  postfix(_postfix),
-		  src_pos{ _file_name, _begin, _end, _line }
+		  src_pos{ _file_id, _line, _begin, _end }
 	{}
 };
 

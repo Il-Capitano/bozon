@@ -1386,7 +1386,7 @@ int main(int argc, char const **argv)
 	auto const after_command_line_parsing = timer::now();
 //	bz::print("finished command line parsing");
 
-	if (!manager.has_files_to_compile())
+	if (compile_until <= compilation_phase::parse_command_line)
 	{
 		return 0;
 	}
@@ -1398,6 +1398,12 @@ int main(int argc, char const **argv)
 	}
 	auto const after_tokenization = timer::now();
 //	bz::print("finished tokenization\n");
+
+	if (compile_until <= compilation_phase::lex)
+	{
+		return 0;
+	}
+
 	auto const before_first_pass_parse = timer::now();
 	if (!manager.first_pass_parse())
 	{
@@ -1405,6 +1411,12 @@ int main(int argc, char const **argv)
 	}
 	auto const after_first_pass_parse = timer::now();
 //	bz::print("finished first pass parsing\n");
+
+	if (compile_until <= compilation_phase::first_pass_parse)
+	{
+		return 0;
+	}
+
 	auto const before_resolve = timer::now();
 	if (!manager.resolve())
 	{
@@ -1412,13 +1424,24 @@ int main(int argc, char const **argv)
 	}
 	auto const after_resolve = timer::now();
 //	bz::print("finished resolving\n");
+
+	if (compile_until <= compilation_phase::resolve)
+	{
+		return 0;
+	}
+
 	auto const before_code_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
 		return 5;
 	}
-
 	auto const end = timer::now();
+
+	if (compile_until <= compilation_phase::emit_bitcode)
+	{
+		return 0;
+	}
+
 
 	if (do_profile)
 	{

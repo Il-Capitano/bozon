@@ -17,7 +17,7 @@ void lex_context::bad_char(
 {
 	this->global_ctx.report_error(ctx::error{
 		warning_kind::_last,
-		stream.file, stream.line,
+		stream.file_id, stream.line,
 		stream.it, stream.it, stream.it + 1,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -25,7 +25,7 @@ void lex_context::bad_char(
 }
 
 void lex_context::bad_chars(
-	bz::u8string_view file, size_t line,
+	uint32_t file_id, uint32_t line,
 	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
@@ -33,7 +33,7 @@ void lex_context::bad_chars(
 {
 	this->global_ctx.report_error(ctx::error{
 		warning_kind::_last,
-		file, line,
+		file_id, line,
 		begin, pivot, end,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -48,7 +48,7 @@ void lex_context::bad_eof(
 {
 	this->global_ctx.report_error(ctx::error{
 		warning_kind::_last,
-		stream.file, stream.line,
+		stream.file_id, stream.line,
 		stream.it, stream.it, stream.it,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -57,7 +57,7 @@ void lex_context::bad_eof(
 
 void lex_context::report_warning(
 	warning_kind kind,
-	bz::u8string_view file, size_t line,
+	uint32_t file_id, uint32_t line,
 	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
@@ -65,7 +65,7 @@ void lex_context::report_warning(
 {
 	this->global_ctx.report_warning(ctx::error{
 		kind,
-		file, line,
+		file_id, line,
 		begin, pivot, end,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -79,7 +79,7 @@ void lex_context::report_warning(
 )
 {
 	return ctx::note{
-		pos.file, pos.line,
+		pos.file_id, pos.line,
 		pos.it, pos.it, pos.it + 1,
 		{}, {},
 		std::move(message)
@@ -87,13 +87,13 @@ void lex_context::report_warning(
 }
 
 [[nodiscard]] ctx::note lex_context::make_note(
-	bz::u8string_view file, size_t line,
+	uint32_t file_id, uint32_t line,
 	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 	bz::u8string message
 )
 {
 	return ctx::note{
-		file, line,
+		file_id, line,
 		begin, pivot, end,
 		{}, {},
 		std::move(message)
@@ -101,13 +101,13 @@ void lex_context::report_warning(
 }
 
 [[nodiscard]] ctx::note lex_context::make_note(
-	bz::u8string_view file, size_t line,
+	uint32_t file_id, uint32_t line,
 	ctx::char_pos pivot,
 	bz::u8string message
 )
 {
 	return ctx::note{
-		file, line,
+		file_id, line,
 		pivot, pivot, pivot + 1,
 		{}, {},
 		std::move(message)
@@ -115,13 +115,13 @@ void lex_context::report_warning(
 }
 
 [[nodiscard]] ctx::note lex_context::make_note(
-	bz::u8string_view file, size_t line,
+	uint32_t file_id, uint32_t line,
 	ctx::char_pos pivot, bz::u8string message,
 	ctx::char_pos suggesetion_pos, bz::u8string suggestion_str
 )
 {
 	return ctx::note{
-		file, line,
+		file_id, line,
 		pivot, pivot, pivot + 1,
 		{ char_pos(), char_pos(), suggesetion_pos, suggestion_str },
 		{},
@@ -137,7 +137,7 @@ void lex_context::report_warning(
 )
 {
 	return ctx::suggestion{
-		pos.file, pos.line,
+		pos.file_id, pos.line,
 		{ char_pos(), char_pos(), pos.it, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -145,13 +145,13 @@ void lex_context::report_warning(
 }
 
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
-	bz::u8string_view file, size_t line, ctx::char_pos pos,
+	uint32_t file_id, uint32_t line, ctx::char_pos pos,
 	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
 	return ctx::suggestion{
-		file, line,
+		file_id, line,
 		{ ctx::char_pos(), ctx::char_pos(), pos, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -159,14 +159,14 @@ void lex_context::report_warning(
 }
 
 [[nodiscard]] ctx::suggestion lex_context::make_suggestion(
-	bz::u8string_view file, size_t line, ctx::char_pos pos,
+	uint32_t file_id, uint32_t line, ctx::char_pos pos,
 	ctx::char_pos erase_begin, ctx::char_pos erase_end,
 	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
 	return ctx::suggestion{
-		file, line,
+		file_id, line,
 		{ erase_begin, erase_end, pos, std::move(suggestion_str) },
 		{},
 		std::move(message)

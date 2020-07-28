@@ -25,7 +25,7 @@ struct lex_context
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void bad_chars(
-		bz::u8string_view file, size_t line,
+		uint32_t file_id, uint32_t line,
 		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
@@ -38,7 +38,7 @@ struct lex_context
 
 	void report_warning(
 		warning_kind kind,
-		bz::u8string_view file, size_t line,
+		uint32_t file_id, uint32_t line,
 		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
@@ -49,17 +49,17 @@ struct lex_context
 		bz::u8string message
 	);
 	[[nodiscard]] static ctx::note make_note(
-		bz::u8string_view file, size_t line,
+		uint32_t file_id, uint32_t line,
 		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 		bz::u8string message
 	);
 	[[nodiscard]] static ctx::note make_note(
-		bz::u8string_view file, size_t line,
+		uint32_t file_id, uint32_t line,
 		ctx::char_pos pivot,
 		bz::u8string message
 	);
 	[[nodiscard]] static ctx::note make_note(
-		bz::u8string_view file, size_t line,
+		uint32_t file_id, uint32_t line,
 		ctx::char_pos pivot, bz::u8string message,
 		ctx::char_pos suggesetion_pos, bz::u8string suggestion_str
 	);
@@ -70,12 +70,12 @@ struct lex_context
 		bz::u8string message
 	);
 	[[nodiscard]] static ctx::suggestion make_suggestion(
-		bz::u8string_view file, size_t line, ctx::char_pos pos,
+		uint32_t file_id, uint32_t line, ctx::char_pos pos,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
 	[[nodiscard]] static ctx::suggestion make_suggestion(
-		bz::u8string_view file, size_t line, ctx::char_pos pos,
+		uint32_t file_id, uint32_t line, ctx::char_pos pos,
 		ctx::char_pos erase_begin, ctx::char_pos erase_end,
 		bz::u8string suggestion_str,
 		bz::u8string message

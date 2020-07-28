@@ -144,7 +144,7 @@ inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_c
 			{},
 			{
 				context.make_suggestion(
-					stream.file, stream.line, first_char, "0",
+					stream.file_id, stream.line, first_char, "0",
 					bz::format("did you mean '\\x0{:c}'?", first_char_val)
 				)
 			}
@@ -159,7 +159,7 @@ inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_c
 	if (!(first_char_val >= '0' && first_char_val <= '7'))
 	{
 		context.bad_chars(
-			stream.file, stream.line,
+			stream.file_id, stream.line,
 			first_char, first_char, hex_end,
 			bz::format(
 				"the value 0x{:c}{:c} is too large for a hex character, it must be at most 0x7f",
@@ -168,7 +168,7 @@ inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_c
 			{},
 			{
 				context.make_suggestion(
-					stream.file, stream.line, escape_char,
+					stream.file_id, stream.line, escape_char,
 					escape_char, hex_end,
 					bz::format("\\u00{:c}{:c}", first_char_val, second_char_val),
 					bz::format("use \\u00{:c}{:c} instead", first_char_val, second_char_val)
@@ -217,7 +217,7 @@ inline void verify_unicode_small(file_iterator &stream, ctx::char_pos end, ctx::
 	if (!bz::is_valid_unicode_value(val))
 	{
 		context.bad_chars(
-			stream.file, stream.line,
+			stream.file_id, stream.line,
 			first_char, first_char, stream.it,
 			bz::format("U+{:04X} is not a valid unicode codepoint", val)
 		);
@@ -263,7 +263,7 @@ inline void verify_unicode_big(file_iterator &stream, ctx::char_pos end, ctx::le
 	if (!bz::is_valid_unicode_value(val))
 	{
 		context.bad_chars(
-			stream.file, stream.line,
+			stream.file_id, stream.line,
 			first_char, first_char, stream.it,
 			bz::format("U+{:04X} is not a valid unicode codepoint", val)
 		);
@@ -346,7 +346,7 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 		};
 		auto const escaped_char = *stream.it;
 		context.bad_chars(
-			stream.file, stream.line,
+			stream.file_id, stream.line,
 			escape_char, escape_char, stream.it + 1,
 			bz::format("invalid escape sequence '\\{}'", get_char(escaped_char))
 		);

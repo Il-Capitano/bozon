@@ -113,7 +113,7 @@ struct parse_context
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 
-	[[nodiscard]] static note make_note(bz::u8string file_name, size_t line, bz::u8string message);
+	[[nodiscard]] static note make_note(uint32_t file_id, uint32_t line, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::src_tokens src_tokens, bz::u8string message);
 	template<typename T>

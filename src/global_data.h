@@ -4,10 +4,22 @@
 #include "core.h"
 #include "ctx/warnings.h"
 
+enum class compilation_phase
+{
+	parse_command_line,
+	lex,
+	first_pass_parse,
+	resolve,
+	emit_bitcode,
+	compile,
+	link,
+};
+
 inline bz::u8string output_file_name;
 inline std::array<bool, static_cast<size_t>(ctx::warning_kind::_last)> warnings{};
 inline bz::u8string source_file;
 inline bool do_profile = false;
+inline compilation_phase compile_until = compilation_phase::link;
 
 
 void enable_warning(ctx::warning_kind kind);

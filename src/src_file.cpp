@@ -38,8 +38,14 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 
 
 src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
-	: _stage(constructed), _file_name(file_name), _file(), _tokens(), _global_ctx(global_ctx)
-{}
+	: _stage(constructed),
+	  _file_id(static_cast<uint32_t>(global_ctx.src_files.size())),
+	  _file_name(file_name),
+	  _file(), _tokens(),
+	  _global_ctx(global_ctx)
+{
+	global_ctx.src_files.push_back(this);
+}
 
 
 void src_file::report_and_clear_errors_and_warnings(void)
@@ -48,7 +54,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 	{
 		for (auto &err : this->_global_ctx.get_errors_and_warnings())
 		{
-			print_error_or_warning(this->_file.begin(), this->_file.end(), err);
+			print_error_or_warning(this->_file.begin(), this->_file.end(), err, this->_global_ctx);
 		}
 		this->_global_ctx.clear_errors_and_warnings();
 	}
@@ -76,7 +82,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 	bz_assert(this->_stage == file_read);
 
 	ctx::lex_context context(this->_global_ctx);
-	this->_tokens = lex::get_tokens(this->_file, this->_file_name, context);
+	this->_tokens = lex::get_tokens(this->_file, this->_file_id, context);
 	this->_stage = tokenized;
 
 	return !this->_global_ctx.has_errors();

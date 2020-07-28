@@ -8,8 +8,8 @@
 #include "ctx/first_pass_parse_context.h"
 #include "first_pass_parser.h"
 #include "ctx/parse_context.h"
-#include "ctx/bitcode_context.h"
 #include "parser.h"
+#include "ctx/bitcode_context.h"
 
 struct src_file
 {
@@ -25,11 +25,12 @@ struct src_file
 public:
 	src_file_stage _stage;
 
-	bz::u8string             _file_name;
-	bz::u8string             _file;
+	uint32_t               _file_id;
+	bz::u8string           _file_name;
+	bz::u8string           _file;
 	bz::vector<lex::token> _tokens;
 
-	ctx::global_context         &_global_ctx;
+	ctx::global_context       &_global_ctx;
 	bz::vector<ast::statement> _declarations;
 
 public:
@@ -43,14 +44,14 @@ public:
 	[[nodiscard]] bool resolve(void);
 
 
-	bz::u8string const &get_file_name() const
+	bz::u8string_view get_file_name() const
 	{ return this->_file_name; }
 
 	auto tokens_begin(void) const
-	{ assert(this->_stage >= tokenized); return this->_tokens.begin(); }
+	{ bz_assert(this->_stage >= tokenized); return this->_tokens.begin(); }
 
 	auto tokens_end(void) const
-	{ assert(this->_stage >= tokenized); return this->_tokens.end(); }
+	{ bz_assert(this->_stage >= tokenized); return this->_tokens.end(); }
 };
 
 #endif // SRC_FILE_H

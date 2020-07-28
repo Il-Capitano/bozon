@@ -16,6 +16,7 @@
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
+#include "src_file.h"
 
 #include "decl_set.h"
 
@@ -32,9 +33,14 @@ struct decl_list
 
 struct global_context
 {
+	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();
+	static constexpr uint32_t command_line_file_id = std::numeric_limits<uint32_t>::max() - 1;
+
 	decl_set  _export_decls;
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
+
+	bz::vector<src_file const *> src_files;
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module _module;
@@ -56,6 +62,16 @@ struct global_context
 		{
 			this->_errors.emplace_back(std::move(err));
 		}
+	}
+
+	bz::u8string_view get_file_name(uint32_t file_id) const noexcept
+	{
+		if (file_id == command_line_file_id)
+		{
+			return "<command-line>";
+		}
+		bz_assert(file_id < this->src_files.size());
+		return this->src_files[file_id]->get_file_name();
 	}
 
 	bool has_errors(void) const;

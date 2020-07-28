@@ -70,6 +70,7 @@ static void display_help_screen(iter_t &it, iter_t end, ctx::command_parse_conte
 	bz::print(help_string);
 
 	++it;
+	compile_until = compilation_phase::parse_command_line;
 }
 
 static void check_output_file_name(iter_t it, ctx::command_parse_context &context)

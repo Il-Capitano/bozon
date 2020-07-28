@@ -160,10 +160,10 @@ void parse_context::report_parenthesis_suppressed_warning(
 	));
 }
 
-note parse_context::make_note(bz::u8string file_name, size_t line, bz::u8string message)
+note parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string message)
 {
 	return note{
-		std::move(file_name), line,
+		file_id, line,
 		char_pos(), char_pos(), char_pos(),
 		{}, {},
 		std::move(message)
@@ -173,7 +173,7 @@ note parse_context::make_note(bz::u8string file_name, size_t line, bz::u8string 
 note parse_context::make_note(lex::token_pos it, bz::u8string message)
 {
 	return note{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -183,7 +183,7 @@ note parse_context::make_note(lex::token_pos it, bz::u8string message)
 note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 {
 	return note{
-		src_tokens.pivot->src_pos.file_name, src_tokens.pivot->src_pos.line,
+		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -196,7 +196,7 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 )
 {
 	return ctx::note{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
 		{},
@@ -261,7 +261,7 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 )
 {
 	return suggestion{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -274,7 +274,7 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 )
 {
 	return suggestion{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		{ char_pos(), char_pos(), it->src_pos.end, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -288,7 +288,7 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 )
 {
 	return suggestion{
-		first->src_pos.file_name, first->src_pos.line,
+		first->src_pos.file_id, first->src_pos.line,
 		{ char_pos(), char_pos(), first->src_pos.begin, std::move(first_suggestion_str) },
 		{ char_pos(), char_pos(), last->src_pos.end, std::move(last_suggestion_str) },
 		std::move(message)
@@ -1481,6 +1481,27 @@ static int get_type_match_level(
 			{
 				return -1;
 			}
+		}
+		else if (dest_it.is<ast::ts_array>())
+		{
+			if (!src_it.is<ast::ts_array>())
+			{
+				return -1;
+			}
+			auto &dest_arr = dest_it.get<ast::ts_array>();
+			auto &src_arr  = src_it.get<ast::ts_array>();
+			if (
+				dest_arr.sizes.size() != src_arr.sizes.size()
+				|| !std::equal(
+					dest_arr.sizes.begin(), dest_arr.sizes.end(),
+					src_arr.sizes.begin()
+				)
+			)
+			{
+				return -1;
+			}
+
+			return dest_arr.elem_type == src_arr.elem_type ? result : -1;
 		}
 		else if (dest_it.is<ast::ts_void>())
 		{

@@ -20,8 +20,8 @@ struct suggestion_range
 
 struct note
 {
-	bz::u8string file;
-	size_t line;
+	uint32_t file_id;
+	uint32_t line;
 
 	char_pos src_begin;
 	char_pos src_pivot;
@@ -35,8 +35,8 @@ struct note
 
 struct suggestion
 {
-	bz::u8string file;
-	size_t line;
+	uint32_t file_id;
+	uint32_t line;
 
 	suggestion_range first_suggestion;
 	suggestion_range second_suggestion;
@@ -48,8 +48,8 @@ struct error
 {
 	// equals warning_kind::_last if it's an error
 	warning_kind kind;
-	bz::u8string file;
-	size_t line;
+	uint32_t file_id;
+	uint32_t line;
 
 	char_pos src_begin;
 	char_pos src_pivot;
@@ -73,7 +73,7 @@ struct error
 {
 	return {
 		warning_kind::_last,
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		bz::format("unexpected token '{}'", it->value),
 		{}, {}
@@ -88,7 +88,7 @@ struct error
 {
 	return {
 		warning_kind::_last,
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -103,7 +103,7 @@ struct error
 	bz_assert(end > begin);
 	return {
 		warning_kind::_last,
-		pivot->src_pos.file_name, pivot->src_pos.line,
+		pivot->src_pos.file_id, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -131,7 +131,7 @@ template<typename T>
 {
 	return {
 		kind,
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -147,7 +147,7 @@ template<typename T>
 	bz_assert(end > begin);
 	return {
 		kind,
-		pivot->src_pos.file_name, pivot->src_pos.line,
+		pivot->src_pos.file_id, pivot->src_pos.line,
 		begin->src_pos.begin, pivot->src_pos.begin, (end - 1)->src_pos.end,
 		std::move(message), std::move(notes), std::move(suggestions)
 	};
@@ -174,7 +174,7 @@ template<typename T>
 )
 {
 	return {
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -187,7 +187,7 @@ template<typename T>
 )
 {
 	return {
-		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
 		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -217,7 +217,7 @@ template<typename T>
 	if (tokens.pivot == nullptr)
 	{
 		return {
-			begin->src_pos.file_name, begin->src_pos.line,
+			begin->src_pos.file_id, begin->src_pos.line,
 			char_pos(), char_pos(), char_pos(),
 			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
 			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
@@ -227,7 +227,7 @@ template<typename T>
 	else
 	{
 		return {
-			tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+			tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
 			tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
 			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
@@ -243,7 +243,7 @@ template<typename T>
 {
 	bz_assert(it != nullptr);
 	return {
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		{ char_pos(), char_pos(), it->src_pos.end, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -257,7 +257,7 @@ template<typename T>
 {
 	bz_assert(it != nullptr);
 	return {
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion_str) },
 		{},
 		std::move(message)
@@ -271,16 +271,19 @@ template<typename T>
 )
 {
 	return {
-		begin->src_pos.file_name, begin->src_pos.line,
+		begin->src_pos.file_id, begin->src_pos.line,
 		{ char_pos(), char_pos(), begin->src_pos.begin, std::move(begin_suggestion_str) },
 		{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(end_suggestion_str) },
 		std::move(message)
 	};
 }
 
+struct global_context;
+
 void print_error_or_warning(
 	char_pos file_begin, char_pos file_end,
-	error const &err
+	error const &err,
+	global_context &context
 );
 
 } // namespace ctx

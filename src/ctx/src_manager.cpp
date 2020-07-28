@@ -23,57 +23,55 @@ namespace ctx
 	auto const good = !this->_global_ctx.has_errors();
 	for (auto &err : this->_global_ctx.get_errors_and_warnings())
 	{
-		print_error_or_warning(char_pos(), char_pos(), err);
+		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
-	if (good)
-	{
-		if (source_file == "")
-		{
-			auto const err = error{
-				warning_kind::_last,
-				"", 0,
-				char_pos(), char_pos(), char_pos(),
-				"no source file was provided",
-				{}, {}
-			};
-			print_error_or_warning(char_pos(), char_pos(), err);
-			return false;
-		}
-		this->add_file(source_file);
-		if (output_file_name == "")
-		{
-			auto const source_file_name = source_file.substring(0, source_file.length() - 2);
-			auto const rightmost_slash = std::max(source_file_name.rfind('/'), source_file_name.rfind('\\'));
-			if (rightmost_slash.data() == nullptr)
-			{
-				output_file_name = source_file_name;
-			}
-			else
-			{
-				output_file_name = bz::u8string_view(rightmost_slash + 1, source_file_name.end());
-			}
-
-			output_file_name += 'o';
-		}
-	}
 	return good;
 }
 
 [[nodiscard]] bool src_manager::tokenize(void)
 {
+	if (source_file == "")
+	{
+		auto const err = error{
+			warning_kind::_last,
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			"no source file was provided",
+			{}, {}
+		};
+		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
+		return false;
+	}
+	this->add_file(source_file);
+	if (output_file_name == "")
+	{
+		auto const source_file_name = source_file.substring(0, source_file.length() - 2);
+		auto const rightmost_slash = std::max(source_file_name.rfind('/'), source_file_name.rfind('\\'));
+		if (rightmost_slash.data() == nullptr)
+		{
+			output_file_name = source_file_name;
+		}
+		else
+		{
+			output_file_name = bz::u8string_view(rightmost_slash + 1, source_file_name.end());
+		}
+
+		output_file_name += 'o';
+	}
+
 	for (auto &file : this->_src_files)
 	{
 		if (!file.read_file())
 		{
 			auto const err = error{
 				warning_kind::_last,
-				"", 0,
+				global_context::compiler_file_id, 0,
 				char_pos(), char_pos(), char_pos(),
 				bz::format("unable to read file '{}'", file.get_file_name()),
 				{}, {}
 			};
-			print_error_or_warning(char_pos(), char_pos(), err);
+			print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
 			return false;
 		}
 

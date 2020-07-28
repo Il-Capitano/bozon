@@ -22,9 +22,11 @@ struct command_parse_context
 	void report_error(iter_t it, bz::u8string message);
 	void report_warning(warning_kind kind, iter_t it, bz::u8string message);
 
-	size_t get_arg_position(bz::array_view<bz::u8string_view const>::const_iterator it)
+	uint32_t get_arg_position(bz::array_view<bz::u8string_view const>::const_iterator it)
 	{
-		return it - this->args.begin() + 1;
+		auto const result = it - this->args.begin() + 1;
+		bz_assert(result < std::numeric_limits<uint32_t>::max());
+		return static_cast<uint32_t>(result);
 	}
 };
 

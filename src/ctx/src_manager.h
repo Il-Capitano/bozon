@@ -28,7 +28,7 @@ public:
 		);
 		if (it == this->_src_files.end())
 		{
-			this->_src_files.push_back(src_file(file_name, this->_global_ctx));
+			this->_src_files.emplace_back(file_name, this->_global_ctx);
 		}
 	}
 

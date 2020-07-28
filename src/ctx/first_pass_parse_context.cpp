@@ -65,7 +65,7 @@ void first_pass_parse_context::report_paren_match_error(
 )
 {
 	return ctx::note{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -77,7 +77,7 @@ void first_pass_parse_context::report_paren_match_error(
 )
 {
 	return ctx::note{
-		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
 		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 		{}, {},
 		std::move(message)
@@ -90,7 +90,7 @@ void first_pass_parse_context::report_paren_match_error(
 )
 {
 	return ctx::note{
-		it->src_pos.file_name, it->src_pos.line,
+		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
 		{},
@@ -104,7 +104,7 @@ void first_pass_parse_context::report_paren_match_error(
 )
 {
 	return ctx::note{
-		tokens.pivot->src_pos.file_name, tokens.pivot->src_pos.line,
+		tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
 		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
 		{},

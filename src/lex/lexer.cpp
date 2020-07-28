@@ -13,12 +13,12 @@ static token get_next_token(
 
 bz::vector<token> get_tokens(
 	bz::u8string_view file,
-	bz::u8string_view file_name,
+	uint32_t file_id,
 	ctx::lex_context &context
 )
 {
 	bz::vector<token> tokens = {};
-	file_iterator stream = { file.begin(), file_name };
+	file_iterator stream = { file.begin(), file_id };
 	auto const end = file.end();
 
 	do
@@ -103,7 +103,7 @@ static void skip_block_comment(
 		// report warning
 		context.report_warning(
 			ctx::warning_kind::unclosed_comment,
-			stream.file, comment_begin_line,
+			stream.file_id, comment_begin_line,
 			comment_begin, comment_begin, comment_begin_end,
 			"block comment is never closed"
 		);
@@ -192,7 +192,7 @@ static token get_identifier_or_keyword_token(
 		return token(
 			token::identifier,
 			id_value,
-			stream.file, begin_it, end_it, line
+			stream.file_id, line, begin_it, end_it
 		);
 	}
 	// keyword
@@ -201,7 +201,7 @@ static token get_identifier_or_keyword_token(
 		return token(
 			it->second,
 			id_value,
-			stream.file, begin_it, end_it, line
+			stream.file_id, line, begin_it, end_it
 		);
 	}
 }
@@ -242,13 +242,13 @@ static token get_character_token(
 		context.bad_eof(
 			stream,
 			"expected a character and closing ' before end-of-file",
-			{ context.make_note(stream.file, line, begin_it, "to match this:") }
+			{ context.make_note(stream.file_id, line, begin_it, "to match this:") }
 		);
 
 		return token(
 			token::character_literal,
 			bz::u8string_view(char_begin, char_begin),
-			stream.file, begin_it, char_begin, line
+			stream.file_id, line, begin_it, char_begin
 		);
 	}
 
@@ -267,14 +267,14 @@ static token get_character_token(
 		context.bad_eof(
 			stream,
 			"expected closing ' before end-of-file",
-			{ context.make_note(stream.file, line, begin_it, "to match this:") }
+			{ context.make_note(stream.file_id, line, begin_it, "to match this:") }
 		);
 	}
 	else if (*stream.it != '\'')
 	{
 		context.bad_char(
 			stream, "expected closing '",
-			{ context.make_note(stream.file, line, begin_it, "to match this:", stream.it, "'") }
+			{ context.make_note(stream.file_id, line, begin_it, "to match this:", stream.it, "'") }
 		);
 	}
 	else
@@ -295,7 +295,7 @@ static token get_character_token(
 		token::character_literal,
 		bz::u8string_view(char_begin, char_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -323,7 +323,7 @@ static token get_string_token(
 		context.bad_eof(
 			stream,
 			"expected closing \" before end-of-file",
-			{ context.make_note(stream.file, line, begin_it, "to match this:") }
+			{ context.make_note(stream.file_id, line, begin_it, "to match this:") }
 		);
 	}
 	else
@@ -345,7 +345,7 @@ static token get_string_token(
 		token::string_literal,
 		bz::u8string_view(str_begin, str_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -385,7 +385,7 @@ static token get_hex_number_token(
 		token::hex_literal,
 		bz::u8string_view(num_begin, num_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -425,7 +425,7 @@ static token get_oct_number_token(
 		token::oct_literal,
 		bz::u8string_view(num_begin, num_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -465,7 +465,7 @@ static token get_bin_number_token(
 		token::bin_literal,
 		bz::u8string_view(num_begin, num_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -546,7 +546,7 @@ static token get_number_token(
 		token_kind,
 		bz::u8string_view(num_begin, num_end),
 		bz::u8string_view(postfix_begin, postfix_end),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 
 	// TODO: allow exponential notations (1e10)
@@ -567,7 +567,7 @@ static token get_single_char_token(
 	return token(
 		static_cast<uint32_t>(*begin_it),
 		bz::u8string_view(begin_it, end_it),
-		stream.file, begin_it, end_it, line
+		stream.file_id, line, begin_it, end_it
 	);
 }
 
@@ -598,7 +598,7 @@ static token get_next_token(
 		return token(
 			token::eof,
 			bz::u8string_view(end, end),
-			stream.file, end, end, stream.line
+			stream.file_id, stream.line, end, end
 		);
 	}
 
@@ -647,7 +647,7 @@ static token get_next_token(
 			return token(
 				t.second,
 				bz::u8string_view(begin_it, end_it),
-				stream.file, begin_it, end_it, line
+				stream.file_id, line, begin_it, end_it
 			);
 		}
 	}

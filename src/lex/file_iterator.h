@@ -7,13 +7,14 @@
 struct file_iterator
 {
 	ctx::char_pos it;
-	bz::u8string_view file;
-	size_t line = 1;
+	uint32_t file_id;
+	uint32_t line = 1;
 
 	file_iterator &operator ++ (void)
 	{
 		if (*it == '\n')
 		{
+			bz_assert(this->line != std::numeric_limits<uint32_t>::max());
 			++this->line;
 		}
 		++this->it;
