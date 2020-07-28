@@ -11,33 +11,33 @@ static void get_tokens_in_curly_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::first_pass_parse_context context(global_ctx);
 
-#define x(str, it_pos)                                      \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    ++it;                                                   \
-    get_tokens_in_curly<lex::token::curly_close>(           \
-        it, tokens.end(), context                           \
-    );                                                      \
-    assert_false(global_ctx.has_errors());                  \
-    assert_eq(it, it_pos);                                  \
+#define x(str, it_pos)                                     \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    ++it;                                                  \
+    get_tokens_in_curly<lex::token::curly_close>(          \
+        it, tokens.end(), context                          \
+    );                                                     \
+    assert_false(global_ctx.has_errors());                 \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define x_err(str, it_pos)                                  \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    ++it;                                                   \
-    get_tokens_in_curly<lex::token::curly_close>(           \
-        it, tokens.end(), context                           \
-    );                                                      \
-    assert_true(global_ctx.has_errors());                   \
-    global_ctx.clear_errors_and_warnings();                 \
-    assert_eq(it, it_pos);                                  \
+#define x_err(str, it_pos)                                 \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    ++it;                                                  \
+    get_tokens_in_curly<lex::token::curly_close>(          \
+        it, tokens.end(), context                          \
+    );                                                     \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors_and_warnings();                \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 	x("{}", tokens.end() - 1);
@@ -86,31 +86,31 @@ static void get_expression_or_type_tokens_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::first_pass_parse_context context(global_ctx);
 
-#define x(str, it_pos)                                      \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    get_expression_or_type_tokens<lex::token::semi_colon>(  \
-        it, tokens.end(), context                           \
-    );                                                      \
-    assert_false(global_ctx.has_errors());                  \
-    assert_eq(it, it_pos);                                  \
+#define x(str, it_pos)                                     \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    get_expression_or_type_tokens<lex::token::semi_colon>( \
+        it, tokens.end(), context                          \
+    );                                                     \
+    assert_false(global_ctx.has_errors());                 \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define x_err(str, it_pos)                                  \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    get_expression_or_type_tokens<lex::token::semi_colon>(  \
-        it, tokens.end(), context                           \
-    );                                                      \
-    assert_true(global_ctx.has_errors());                   \
-    global_ctx.clear_errors_and_warnings();                 \
-    assert_eq(it, it_pos);                                  \
+#define x_err(str, it_pos)                                 \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    get_expression_or_type_tokens<lex::token::semi_colon>( \
+        it, tokens.end(), context                          \
+    );                                                     \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors_and_warnings();                \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 	x("x + 3;", tokens.begin() + 3);
@@ -138,27 +138,27 @@ do {                                                        \
 #undef x_err
 }
 
-#define xx(fn, str, it_pos)                                 \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    fn(it, tokens.end(), context);                          \
-    assert_false(global_ctx.has_errors());                  \
-    assert_eq(it, it_pos);                                  \
+#define xx(fn, str, it_pos)                                \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    fn(it, tokens.end(), context);                         \
+    assert_false(global_ctx.has_errors());                 \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
-#define xx_err(fn, str, it_pos)                             \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    fn(it, tokens.end(), context);                          \
-    assert_true(global_ctx.has_errors());                   \
-    global_ctx.clear_errors_and_warnings();                 \
-    assert_eq(it, it_pos);                                  \
+#define xx_err(fn, str, it_pos)                            \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    fn(it, tokens.end(), context);                         \
+    assert_true(global_ctx.has_errors());                  \
+    global_ctx.clear_errors_and_warnings();                \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 static void get_function_params_test(void)
@@ -519,18 +519,18 @@ static void parse_top_level_statement_test(void)
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::first_pass_parse_context context(global_ctx);
 
-#define x(str, decl_type)                                       \
-do {                                                            \
-    bz::u8string_view const file = str;                         \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx);     \
-    assert_false(global_ctx.has_errors());                      \
-    auto it = tokens.begin();                                   \
-    auto const decl = parse_statement(                          \
-        it, tokens.end(), context                               \
-    );                                                          \
-    assert_false(global_ctx.has_errors());                      \
+#define x(str, decl_type)                                     \
+do {                                                          \
+    bz::u8string_view const file = str;                       \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx);    \
+    assert_false(global_ctx.has_errors());                    \
+    auto it = tokens.begin();                                 \
+    auto const decl = parse_statement(                        \
+        it, tokens.end(), context                             \
+    );                                                        \
+    assert_false(global_ctx.has_errors());                    \
     assert_eq(decl.kind(), ast::statement::index<decl_type>); \
-    assert_eq(it, tokens.end() - 1);                            \
+    assert_eq(it, tokens.end() - 1);                          \
 } while (false)
 
 	x("let a: int32;", ast::decl_variable);
@@ -551,7 +551,7 @@ static void parse_statement_test(void)
 #define x(str, decl_type)                                     \
 do {                                                          \
     bz::u8string_view const file = str;                       \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx);   \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx);    \
     assert_false(global_ctx.has_errors());                    \
     auto it = tokens.begin();                                 \
     auto const stmt = parse_statement(                        \

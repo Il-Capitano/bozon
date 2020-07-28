@@ -6,17 +6,17 @@
 #include "ctx/lex_context.h"
 #include "ctx/parse_context.h"
 
-#define xxx(fn, str, it_pos, error_assert, custom_assert)   \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors_or_warnings());      \
-    auto it = tokens.begin();                               \
-    auto res = fn(it, tokens.end() - 1, parse_ctx);         \
-    assert_eq(it, it_pos);                                  \
-    assert_true(error_assert);                              \
-    assert_true(custom_assert);                             \
-    global_ctx.clear_errors_and_warnings();                 \
+#define xxx(fn, str, it_pos, error_assert, custom_assert)  \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors_or_warnings());     \
+    auto it = tokens.begin();                              \
+    auto res = fn(it, tokens.end() - 1, parse_ctx);        \
+    assert_eq(it, it_pos);                                 \
+    assert_true(error_assert);                             \
+    assert_true(custom_assert);                            \
+    global_ctx.clear_errors_and_warnings();                \
 } while (false)
 
 #define xx(fn, str, it_pos, custom_assert)                                \
@@ -34,37 +34,37 @@ xxx(fn, str, it_pos, global_ctx.has_errors(), custom_assert)
 std::list<bz::vector<lex::token>> var_tokens = {};
 bz::vector<ast::decl_variable_ptr> var_decls = {};
 
-#define declare_var(id_str, type_str)                                          \
-do {                                                                           \
-    var_tokens.emplace_back(lex::get_tokens(id_str, "", lex_ctx));             \
-    auto const &name_tokens = var_tokens.back();                               \
-    assert_eq(name_tokens.size(), 2);                                          \
-    assert_eq(name_tokens[0].kind, lex::token::identifier);                    \
-    auto const id = name_tokens.begin();                                       \
-    var_tokens.emplace_back(lex::get_tokens(type_str, "", lex_ctx));           \
-    auto const &type_tokens = var_tokens.back();                               \
-    assert_false(global_ctx.has_errors());                                     \
-    lex::src_tokens type_src_tokens = {                                        \
-        type_tokens.begin(),                                                   \
-        type_tokens.begin(),                                                   \
-        type_tokens.end() - 1,                                                 \
-    };                                                                         \
-    lex::token_range type_token_range = {                                      \
-        type_src_tokens.begin,                                                 \
-        type_src_tokens.end,                                                   \
-    };                                                                         \
-    auto decl = ast::make_decl_variable(                                       \
-        lex::token_range{id, id + 1},                                          \
-        id,                                                                    \
-        lex::token_range{},                                                    \
-        ast::make_unresolved_typespec(type_token_range)                        \
-    );                                                                         \
-    auto &var_decl = *decl.get<ast::decl_variable_ptr>();                      \
-    resolve(var_decl, parse_ctx, true);                                        \
-    var_decls.emplace_back(std::move(decl.get<ast::decl_variable_ptr>()));     \
-    assert_false(global_ctx.has_errors());                                     \
-    parse_ctx.add_local_variable(*var_decls.back());                           \
-    assert_false(global_ctx.has_errors());                                     \
+#define declare_var(id_str, type_str)                                      \
+do {                                                                       \
+    var_tokens.emplace_back(lex::get_tokens(id_str, 0, lex_ctx));          \
+    auto const &name_tokens = var_tokens.back();                           \
+    assert_eq(name_tokens.size(), 2);                                      \
+    assert_eq(name_tokens[0].kind, lex::token::identifier);                \
+    auto const id = name_tokens.begin();                                   \
+    var_tokens.emplace_back(lex::get_tokens(type_str, 0, lex_ctx));        \
+    auto const &type_tokens = var_tokens.back();                           \
+    assert_false(global_ctx.has_errors());                                 \
+    lex::src_tokens type_src_tokens = {                                    \
+        type_tokens.begin(),                                               \
+        type_tokens.begin(),                                               \
+        type_tokens.end() - 1,                                             \
+    };                                                                     \
+    lex::token_range type_token_range = {                                  \
+        type_src_tokens.begin,                                             \
+        type_src_tokens.end,                                               \
+    };                                                                     \
+    auto decl = ast::make_decl_variable(                                   \
+        lex::token_range{id, id + 1},                                      \
+        id,                                                                \
+        lex::token_range{},                                                \
+        ast::make_unresolved_typespec(type_token_range)                    \
+    );                                                                     \
+    auto &var_decl = *decl.get<ast::decl_variable_ptr>();                  \
+    resolve(var_decl, parse_ctx, true);                                    \
+    var_decls.emplace_back(std::move(decl.get<ast::decl_variable_ptr>())); \
+    assert_false(global_ctx.has_errors());                                 \
+    parse_ctx.add_local_variable(*var_decls.back());                       \
+    assert_false(global_ctx.has_errors());                                 \
 } while (false)
 
 
@@ -76,14 +76,14 @@ static void get_paren_matched_range_test(void)
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
 
-#define x(str, it_pos)                                      \
-do {                                                        \
-    bz::u8string_view const file = str;                     \
-    auto const tokens = lex::get_tokens(file, "", lex_ctx); \
-    assert_false(global_ctx.has_errors());                  \
-    auto it = tokens.begin();                               \
-    get_paren_matched_range(it, tokens.end());              \
-    assert_eq(it, it_pos);                                  \
+#define x(str, it_pos)                                     \
+do {                                                       \
+    bz::u8string_view const file = str;                    \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
+    assert_false(global_ctx.has_errors());                 \
+    auto it = tokens.begin();                              \
+    get_paren_matched_range(it, tokens.end());             \
+    assert_eq(it, it_pos);                                 \
 } while (false)
 
 	// the function expects that the leading parenthesis has been consumed
