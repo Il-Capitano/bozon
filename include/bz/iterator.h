@@ -362,6 +362,129 @@ constexpr auto reversed(Range &&range)
 	};
 }
 
+namespace internal
+{
+
+template<typename Int>
+struct range_iterator
+{
+	static_assert(std::is_integral_v<Int>);
+
+	Int value;
+	Int stride;
+
+	constexpr Int operator * (void) const noexcept
+	{ return this->value; }
+
+	constexpr range_iterator<Int> &operator -- (void) noexcept
+	{
+		this->value -= this->stride;
+		return *this;
+	}
+
+	constexpr range_iterator<Int> &operator ++ (void) noexcept
+	{
+		this->value += this->stride;
+		return *this;
+	}
+
+	constexpr range_iterator<Int> &operator += (Int rhs) noexcept
+	{
+		this->value += rhs * this->stride;
+		return *this;
+	}
+
+	constexpr range_iterator<Int> &operator -= (Int rhs) noexcept
+	{
+		this->value -= rhs * this->stride;
+		return *this;
+	}
+};
+
+template<typename Int>
+constexpr range_iterator<Int> operator + (range_iterator<Int> lhs, Int rhs) noexcept
+{ return { lhs.value + rhs * lhs.stride, lhs.stride }; }
+
+template<typename Int>
+constexpr range_iterator<Int> operator + (Int lhs, range_iterator<Int> rhs) noexcept
+{ return { lhs * rhs.stride + rhs.value, rhs.stride }; }
+
+template<typename Int>
+constexpr range_iterator<Int> operator - (range_iterator<Int> lhs, Int rhs) noexcept
+{ return { lhs.value - rhs * lhs.stride, lhs.stride }; }
+
+template<typename Int>
+constexpr Int operator - (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value - rhs.value; }
+
+
+template<typename Int>
+constexpr bool operator == (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value == rhs.value; }
+
+template<typename Int>
+constexpr bool operator != (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value != rhs.value; }
+
+template<typename Int>
+constexpr bool operator < (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value < rhs.value; }
+
+template<typename Int>
+constexpr bool operator <= (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value <= rhs.value; }
+
+template<typename Int>
+constexpr bool operator > (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value > rhs.value; }
+
+template<typename Int>
+constexpr bool operator >= (range_iterator<Int> lhs, range_iterator<Int> rhs) noexcept
+{ return lhs.value >= rhs.value; }
+
+} // namespace internal
+
+template<typename Int>
+struct range
+{
+	static_assert(std::is_integral_v<Int>, "value type of bz::range must be an integer");
+
+private:
+	Int _begin;
+	Int _end;
+	Int _stride;
+
+public:
+	constexpr range(Int begin, Int end, Int stride) noexcept
+		: _begin(begin), _end(end), _stride(stride)
+	{}
+
+	constexpr range(Int begin, Int end) noexcept
+		: _begin(begin), _end(end), _stride(1)
+	{}
+
+	constexpr range(Int end) noexcept
+		: _begin(0), _end(end), _stride(1)
+	{}
+
+	using iterator = internal::range_iterator<Int>;
+
+	constexpr iterator begin(void) const noexcept
+	{ return iterator{ this->_begin, this->_stride }; }
+
+	constexpr iterator end(void) const noexcept
+	{ return iterator{ this->_end, this->_stride }; }
+};
+
+template<typename T>
+range(T, T, T) -> range<T>;
+
+template<typename T>
+range(T, T) -> range<T>;
+
+template<typename T>
+range(T) -> range<T>;
+
 bz_end_namespace
 
 #endif // _bz_iterator_h__
