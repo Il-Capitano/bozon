@@ -73,6 +73,17 @@ static void display_help_screen(iter_t &it, iter_t end, ctx::command_parse_conte
 	compile_until = compilation_phase::parse_command_line;
 }
 
+static void print_version_info(iter_t &it, iter_t end, ctx::command_parse_context &)
+{
+	bz_assert(it != end);
+
+	constexpr bz::u8string_view version_info = "bozon 0.0.0";
+	bz::print("{}\n", version_info);
+
+	++it;
+	compile_until = compilation_phase::parse_command_line;
+}
+
 static void check_output_file_name(iter_t it, ctx::command_parse_context &context)
 {
 	if (!it->ends_with(".o"))
@@ -154,14 +165,32 @@ struct flag_with_alternate_parser
 	parse_fn_t        parse_fn;
 };
 
+constexpr std::pair<bz::u8string_view, bz::u8string_view> get_both_names(
+	flag_with_alternate_parser const &flag
+)
+{
+	auto const comma = flag.both_names.find(',');
+	bz_assert(comma != flag.both_names.end());
+	bz_assert(comma + 1 != flag.both_names.end());
+	bz_assert(*(comma + 1) == ' ');
+	bz_assert(comma + 2 != flag.both_names.end());
+	bz_assert(*(comma + 2) == '-');
+	return {
+		bz::u8string_view(flag.both_names.begin(), comma),
+		bz::u8string_view(comma + 2, flag.both_names.end())
+	};
+}
+
+
 constexpr auto prefix_parsers = []() {
 	using T = prefix_parser;
 
 	std::array result = {
-		T{ "-Wno-", "-Wno-<warning>", "Disable the specified warning", &parse_warnings },
 		T{ "-W",    "-W<warning>",    "Enable the specified warning",  &parse_warnings },
+		T{ "-Wno-", "-Wno-<warning>", "Disable the specified warning", &parse_warnings },
 	};
 
+	// need to sort the array, so longer prefixes are checked first
 	constexpr_bubble_sort(
 		result,
 		[](auto const &lhs, auto const &rhs) {
@@ -201,11 +230,14 @@ constexpr auto flag_with_alternate_parsers = []() {
 	using T = flag_with_alternate_parser;
 
 	std::array result = {
-		T{ "-h --help", "Show this help page", &display_help_screen }
+		T{ "-h, --help",    "Display this help page", &display_help_screen },
+		T{ "-V, --version", "Print compiler version", &print_version_info  },
 	};
 
 	return result;
 }();
+
+
 
 static_assert([]() {
 	for (auto const &prefix : prefix_parsers)
@@ -240,18 +272,6 @@ static_assert([]() {
 	return true;
 }(), "a flag doesn't start with '-'");
 
-constexpr std::pair<bz::u8string_view, bz::u8string_view> get_both_names(
-	flag_with_alternate_parser const &flag
-)
-{
-	auto const space = flag.both_names.find(' ');
-	bz_assert(space != flag.both_names.end());
-	return {
-		bz::u8string_view(flag.both_names.begin(), space),
-		bz::u8string_view(space + 1, flag.both_names.end())
-	};
-}
-
 static_assert([]() {
 	for (auto const &flag : flag_with_alternate_parsers)
 	{
@@ -263,6 +283,19 @@ static_assert([]() {
 	}
 	return true;
 }(), "a flag doesn't start with '-'");
+
+static_assert([]() {
+	for (auto const &flag : flag_with_alternate_parsers)
+	{
+		auto const [first, second] = get_both_names(flag);
+		if (!(first.starts_with("-") && !first.starts_with("--") && second.starts_with("--")))
+		{
+			return false;
+		}
+	}
+	return true;
+}(), "flag with alternate form doesn't follow the form of '-x, --long-x'");
+
 
 
 enum class parser_kind
@@ -441,6 +474,22 @@ constexpr bz::u8string_view get_usage_string(command_line_parser const &parser)
 	}
 }
 
+bz::u8string get_indented_usage_string(command_line_parser const &parser)
+{
+	auto const usage_string = get_usage_string(parser);
+	if (usage_string.starts_with("--"))
+	{
+		// four spaces to pad '-x, ' strings in flags having alternatives
+		bz::u8string result = "    ";
+		result += usage_string;
+		return result;
+	}
+	else
+	{
+		return usage_string;
+	}
+}
+
 constexpr bz::u8string_view get_help_string(command_line_parser const &parser)
 {
 	switch (parser.kind)
@@ -541,18 +590,18 @@ static bz::u8string build_help_string()
 	constexpr bz::u8string_view initial_indent = "  ";
 	constexpr size_t pad_to = 24;
 
-	bz::u8string result = "Usage: bozon.exe [options] file\nOptions:\n";
+	bz::u8string result = "Usage: bozon [options] file\nOptions:\n";
 
 	for (auto const &parser : sorted_command_line_parsers)
 	{
-		auto const usage = get_usage_string(parser);
+		auto const usage = get_indented_usage_string(parser);
 		auto const help = get_help_string(parser);
 
 		if (usage.length() >= pad_to)
 		{
 			result += initial_indent;
 			result += usage;
-			result += bz::format("\n{:{}}{}\n", pad_to + initial_indent.size(), "", help);
+			result += bz::format("\n{:{}}{}\n", pad_to + initial_indent.length(), "", help);
 		}
 		else
 		{
