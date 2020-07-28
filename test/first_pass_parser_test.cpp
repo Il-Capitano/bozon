@@ -18,7 +18,7 @@ do {                                                       \
     assert_false(global_ctx.has_errors());                 \
     auto it = tokens.begin();                              \
     ++it;                                                  \
-    get_tokens_in_curly<lex::token::curly_close>(          \
+    get_tokens_in_curly<true, lex::token::curly_close>(    \
         it, tokens.end(), context                          \
     );                                                     \
     assert_false(global_ctx.has_errors());                 \
@@ -32,7 +32,7 @@ do {                                                       \
     assert_false(global_ctx.has_errors());                 \
     auto it = tokens.begin();                              \
     ++it;                                                  \
-    get_tokens_in_curly<lex::token::curly_close>(          \
+    get_tokens_in_curly<true, lex::token::curly_close>(    \
         it, tokens.end(), context                          \
     );                                                     \
     assert_true(global_ctx.has_errors());                  \

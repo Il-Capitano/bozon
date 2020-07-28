@@ -25,15 +25,15 @@ void first_pass_parse_context::report_error(
 }
 
 void first_pass_parse_context::report_error(
-	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+	lex::src_tokens tokens,
 	bz::u8string message,
 	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_error(error{
 		warning_kind::_last,
-		pivot->src_pos.file_id, pivot->src_pos.line,
-		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
 	});
@@ -86,15 +86,15 @@ void first_pass_parse_context::report_warning(
 
 void first_pass_parse_context::report_warning(
 	warning_kind kind,
-	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+	lex::src_tokens tokens,
 	bz::u8string message,
 	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {
 	this->global_ctx.report_warning(error{
 		kind,
-		pivot->src_pos.file_id, pivot->src_pos.line,
-		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		tokens.pivot->src_pos.file_id, tokens.pivot->src_pos.line,
+		tokens.begin->src_pos.begin, tokens.pivot->src_pos.begin, (tokens.end - 1)->src_pos.end,
 		std::move(message),
 		std::move(notes), std::move(suggestions)
 	});
@@ -237,7 +237,7 @@ void first_pass_parse_context::check_curly_indent(lex::token_pos open, lex::toke
 
 	auto open_it = open_line_begin;
 	auto c = *open_it;
-	while (c == '\t' || c == ' ')
+	while (c == '\t' /* || c == ' ' */)
 	{
 		++open_it;
 		c = *open_it;
@@ -256,7 +256,7 @@ void first_pass_parse_context::check_curly_indent(lex::token_pos open, lex::toke
 
 	auto close_it = close_line_begin;
 	c = *close_it;
-	while (c == '\t' || c == ' ')
+	while (c == '\t' /* || c == ' ' */)
 	{
 		++close_it;
 		c = *close_it;
