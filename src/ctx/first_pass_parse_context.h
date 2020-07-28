@@ -19,15 +19,28 @@ struct first_pass_parse_context
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
-		lex::token_pos it,
-		bz::u8string message, bz::vector<ctx::note> notes = {}
+		lex::token_pos it, bz::u8string message,
+		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 	void report_error(
 		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::u8string message, bz::vector<ctx::note> notes = {}
+		bz::u8string message,
+		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 	void report_paren_match_error(
 		lex::token_pos it, lex::token_pos open_paren_it
+	) const;
+
+	void report_warning(
+		warning_kind kind,
+		lex::token_pos it, bz::u8string message,
+		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+	) const;
+	void report_warning(
+		warning_kind kind,
+		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+		bz::u8string message,
+		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 
 	[[nodiscard]] static ctx::note make_note(
@@ -48,6 +61,8 @@ struct first_pass_parse_context
 	[[nodiscard]] static ctx::note make_paren_match_note(
 		lex::token_pos it, lex::token_pos open_paren_it
 	);
+
+	void check_curly_indent(lex::token_pos open, lex::token_pos close) const;
 
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;

@@ -132,8 +132,13 @@ static lex::token_range get_expression_or_type_tokens(
 			{
 				break;
 			}
+			auto const curly_begin = stream;
 			++stream; // '{'
-			get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
+			auto const [_, curly_end] = get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
+			if (curly_end != stream && curly_end->kind == lex::token::curly_close)
+			{
+				context.check_curly_indent(curly_begin, curly_end);
+			}
 			break;
 		}
 
@@ -262,10 +267,16 @@ static ast::stmt_compound_ptr get_stmt_compound_ptr(
 {
 	bz_assert(in_stream != in_end);
 	bz_assert(in_stream->kind == lex::token::curly_open);
+	auto const curly_begin = in_stream;
 	auto comp_stmt = std::make_unique<ast::stmt_compound>(lex::token_range{ in_stream, in_stream });
 	++in_stream; // '{'
 
 	auto [stream, end] = get_tokens_in_curly<lex::token::curly_close>(in_stream, in_end, context);
+
+	if (end != in_end && end->kind == lex::token::curly_close)
+	{
+		context.check_curly_indent(curly_begin, end);
+	}
 
 	while (stream != end)
 	{
@@ -666,18 +677,24 @@ static ast::statement parse_function_definition(
 		return ast::make_decl_function(id, std::move(params), ast::make_unresolved_typespec(ret_type));
 	}
 
-	if (stream->kind != lex::token::curly_open)
+	if (stream == end || stream->kind != lex::token::curly_open)
 	{
 		// if there's no opening curly bracket, we assume it was meant as a function declaration
 		context.report_error(stream, "expected opening { or ';'");
 		return ast::make_decl_function(id, std::move(params), ast::make_unresolved_typespec(ret_type));
 	}
 
+	auto const curly_begin = stream;
 	++stream; // '{'
 
 	bz::vector<ast::statement> body = {};
 
 	auto [body_stream, body_end] = get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
+	if (body_end != end && body_end->kind == lex::token::curly_close)
+	{
+		context.check_curly_indent(curly_begin, body_end);
+	}
+
 	while (body_stream != body_end && body_stream->kind != lex::token::curly_close)
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, context));
@@ -799,18 +816,24 @@ static ast::statement parse_operator_definition(
 		return ast::make_decl_operator(op, std::move(params), ast::make_unresolved_typespec(ret_type));
 	}
 
-	if (stream->kind != lex::token::curly_open)
+	if (stream == end || stream->kind != lex::token::curly_open)
 	{
 		// if there's no opening curly bracket, we assume it was meant as a function declaration
 		context.report_error(stream, "expected opening { or ';'");
 		return ast::make_decl_operator(op, std::move(params), ast::make_unresolved_typespec(ret_type));
 	}
 
+	auto const curly_begin = stream;
 	++stream; // '{'
 
 	bz::vector<ast::statement> body = {};
 
 	auto [body_stream, body_end] = get_tokens_in_curly<lex::token::curly_close>(stream, end, context);
+	if (body_end != end && body_end->kind == lex::token::curly_close)
+	{
+		context.check_curly_indent(curly_begin, body_end);
+	}
+
 	while (body_stream != body_end && body_stream->kind != lex::token::curly_close)
 	{
 		body.emplace_back(parse_statement(body_stream, body_end, context));

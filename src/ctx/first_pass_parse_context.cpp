@@ -11,23 +11,32 @@ void first_pass_parse_context::report_error(lex::token_pos it) const
 }
 
 void first_pass_parse_context::report_error(
-	lex::token_pos it,
-	bz::u8string message, bz::vector<ctx::note> notes
+	lex::token_pos it, bz::u8string message,
+	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {
-	this->global_ctx.report_error(ctx::make_error(
-		it, std::move(message), std::move(notes)
-	));
+	this->global_ctx.report_error(error{
+		warning_kind::_last,
+		it->src_pos.file_id, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
 }
 
 void first_pass_parse_context::report_error(
 	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-	bz::u8string message, bz::vector<ctx::note> notes
+	bz::u8string message,
+	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {
-	this->global_ctx.report_error(ctx::make_error(
-		begin, pivot, end, std::move(message), std::move(notes)
-	));
+	this->global_ctx.report_error(error{
+		warning_kind::_last,
+		pivot->src_pos.file_id, pivot->src_pos.line,
+		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
 }
 
 void first_pass_parse_context::report_paren_match_error(
@@ -58,6 +67,37 @@ void first_pass_parse_context::report_paren_match_error(
 		it, message,
 		{ this->make_paren_match_note(it, open_paren_it) }
 	);
+}
+
+void first_pass_parse_context::report_warning(
+	warning_kind kind,
+	lex::token_pos it, bz::u8string message,
+	bz::vector<note> notes, bz::vector<suggestion> suggestions
+) const
+{
+	this->global_ctx.report_warning(error{
+		kind,
+		it->src_pos.file_id, it->src_pos.line,
+		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
+}
+
+void first_pass_parse_context::report_warning(
+	warning_kind kind,
+	lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
+	bz::u8string message,
+	bz::vector<note> notes, bz::vector<suggestion> suggestions
+) const
+{
+	this->global_ctx.report_warning(error{
+		kind,
+		pivot->src_pos.file_id, pivot->src_pos.line,
+		begin->src_pos.begin, pivot->src_pos.begin, end->src_pos.end,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
 }
 
 [[nodiscard]] ctx::note first_pass_parse_context::make_note(
@@ -159,6 +199,78 @@ void first_pass_parse_context::report_paren_match_error(
 	else
 	{
 		return make_note(open_paren_it, "to match this:", suggested_paren_pos, suggestion_str);
+	}
+}
+
+
+void first_pass_parse_context::check_curly_indent(lex::token_pos open, lex::token_pos close) const
+{
+	if (!is_warning_enabled(warning_kind::mismatched_brace_indent))
+	{
+		return;
+	}
+
+	bz_assert(open->kind == lex::token::curly_open);
+	bz_assert(close->kind == lex::token::curly_close);
+	bz_assert(open < close);
+
+	if (open->src_pos.line == close->src_pos.line)
+	{
+		return;
+	}
+
+	auto const open_line_begin = [&]() {
+		if (open->src_pos.line == 1)
+		{
+			return this->global_ctx.get_file_begin(open->src_pos.file_id);
+		}
+		else
+		{
+			auto it = open->src_pos.begin.data();
+			while (*(it - 1) != '\n')
+			{
+				--it;
+			}
+			return char_pos(it);
+		}
+	}();
+
+	auto open_it = open_line_begin;
+	auto c = *open_it;
+	while (c == '\t' || c == ' ')
+	{
+		++open_it;
+		c = *open_it;
+	}
+
+	auto const open_indent = bz::u8string_view(open_line_begin, open_it);
+
+	auto const close_line_begin = [&]() {
+		auto it = close->src_pos.begin.data();
+		while (*(it - 1) != '\n')
+		{
+			--it;
+		}
+		return char_pos(it);
+	}();
+
+	auto close_it = close_line_begin;
+	c = *close_it;
+	while (c == '\t' || c == ' ')
+	{
+		++close_it;
+		c = *close_it;
+	}
+
+	auto const close_indent = bz::u8string_view(close_line_begin, close_it);
+
+	if (open_indent != close_indent)
+	{
+		this->report_warning(
+			warning_kind::mismatched_brace_indent,
+			close, "mismatched indentation of braces",
+			{ make_note(open, "opening brace is here:") }
+		);
 	}
 }
 

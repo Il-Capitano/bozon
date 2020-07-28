@@ -16,6 +16,7 @@ enum class warning_kind
 	null_pointer_dereference,
 	unused_value,
 	unclosed_comment,
+	mismatched_brace_indent,
 
 	_last,
 };

@@ -74,6 +74,16 @@ struct global_context
 		return this->src_files[file_id]->get_file_name();
 	}
 
+	char_pos get_file_begin(uint32_t file_id) const noexcept
+	{
+		if (file_id == command_line_file_id)
+		{
+			return char_pos();
+		}
+		bz_assert(file_id < this->src_files.size());
+		return this->src_files[file_id]->_file.begin();
+	}
+
 	bool has_errors(void) const;
 	bool has_warnings(void) const;
 
