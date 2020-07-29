@@ -23,8 +23,7 @@ struct first_pass_parse_context
 		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 	void report_error(
-		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::u8string message,
+		lex::src_tokens tokens, bz::u8string message,
 		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 	void report_paren_match_error(
@@ -38,8 +37,7 @@ struct first_pass_parse_context
 	) const;
 	void report_warning(
 		warning_kind kind,
-		lex::token_pos begin, lex::token_pos pivot, lex::token_pos end,
-		bz::u8string message,
+		lex::src_tokens tokens, bz::u8string message,
 		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	) const;
 

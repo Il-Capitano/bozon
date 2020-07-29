@@ -25,8 +25,7 @@ void first_pass_parse_context::report_error(
 }
 
 void first_pass_parse_context::report_error(
-	lex::src_tokens tokens,
-	bz::u8string message,
+	lex::src_tokens tokens, bz::u8string message,
 	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {
@@ -86,8 +85,7 @@ void first_pass_parse_context::report_warning(
 
 void first_pass_parse_context::report_warning(
 	warning_kind kind,
-	lex::src_tokens tokens,
-	bz::u8string message,
+	lex::src_tokens tokens, bz::u8string message,
 	bz::vector<note> notes, bz::vector<suggestion> suggestions
 ) const
 {

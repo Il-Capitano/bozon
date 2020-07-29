@@ -718,7 +718,7 @@ static void check_operator_param_count(
 		}
 
 		context.report_error(
-			op - 1, op, params_end,
+			{ op - 1, op, params_end },
 			bz::format("operator {} cannot take 0 arguments", operator_name)
 		);
 	}
@@ -728,7 +728,7 @@ static void check_operator_param_count(
 		{
 			bz::u8string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 			context.report_error(
-				op - 1, op, params_end,
+				{ op - 1, op, params_end },
 				bz::format("operator {} cannot take 1 argument", operator_name)
 			);
 		}
@@ -738,7 +738,7 @@ static void check_operator_param_count(
 		if (op->kind != lex::token::paren_open && !is_binary_overloadable_operator(op->kind))
 		{
 			context.report_error(
-				op - 1, op, params_end,
+				{ op - 1, op, params_end },
 				bz::format("operator {} cannot take 2 arguments", op->value)
 			);
 		}
@@ -747,7 +747,7 @@ static void check_operator_param_count(
 	{
 		bz::u8string_view const operator_name = op->kind == lex::token::square_open ? "[]" : op->value;
 		context.report_error(
-			op - 1, op, params_end,
+			{ op - 1, op, params_end },
 			bz::format("operator {} cannot take {} arguments", operator_name, param_count)
 		);
 	}
@@ -1006,7 +1006,7 @@ static ast::statement default_top_level_parser(
 	{
 		++stream;
 	}
-	context.report_error(begin, begin, stream, "expected a top level statement");
+	context.report_error({ begin, begin, stream }, "expected a top level statement");
 	if (stream == end)
 	{
 		return ast::statement();
