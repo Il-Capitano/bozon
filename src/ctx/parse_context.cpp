@@ -567,7 +567,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		auto const var = std::find_if(
 			scope->var_decls.rbegin(), scope->var_decls.rend(),
 			[id = id_value](auto const &var) {
-				return var->identifier->value == id;
+				return var->identifier != nullptr && var->identifier->value == id;
 			}
 		);
 		if (var != scope->var_decls.rend())
@@ -720,7 +720,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	auto const var = std::find_if(
 		export_decls.var_decls.begin(), export_decls.var_decls.end(),
 		[id = id_value](auto const &var) {
-			return id == var->identifier->value;
+			return var->identifier != nullptr && id == var->identifier->value;
 		}
 	);
 	if (var != export_decls.var_decls.end())
@@ -1392,6 +1392,29 @@ static int get_type_match_level(
 	else if (dest_it.is<ast::ts_function>())
 	{
 		bz_assert(false);
+	}
+	else if (dest_it.is<ast::ts_array>())
+	{
+		src_it = ast::remove_const_or_consteval(src_it);
+		if (!src_it.is<ast::ts_array>())
+		{
+			return -1;
+		}
+		auto &dest_arr = dest_it.get<ast::ts_array>();
+		auto &src_arr  = src_it.get<ast::ts_array>();
+		if (
+			dest_arr.sizes.size() != src_arr.sizes.size()
+			|| !std::equal(
+				dest_arr.sizes.begin(), dest_arr.sizes.end(),
+				src_arr.sizes.begin()
+			)
+		)
+		{
+			return -1;
+		}
+
+		// TODO: use is_convertible here...
+		return dest_arr.elem_type == src_arr.elem_type ? 1 : -1;
 	}
 	else if (dest_it.is<ast::ts_lvalue_reference>())
 	{
