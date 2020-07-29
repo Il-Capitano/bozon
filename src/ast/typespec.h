@@ -78,6 +78,9 @@ struct typespec_view
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
+
+
+	bz::u8string get_symbol_name(void) const;
 };
 
 struct typespec
@@ -129,6 +132,15 @@ struct typespec
 	void clear(void) noexcept;
 
 	void copy_from(typespec_view pos, typespec_view source);
+
+
+	bz::u8string get_symbol_name(void) const
+	{ return this->as_typespec_view().get_symbol_name(); }
+
+	static bz::u8string decode_symbol_name(
+		bz::u8string_view::const_iterator &it,
+		bz::u8string_view::const_iterator end
+	);
 };
 
 
@@ -212,8 +224,6 @@ typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 
 bool is_complete(typespec_view ts) noexcept;
 bool is_instantiable(typespec_view ts) noexcept;
-
-bz::u8string get_symbol_name_for_type(typespec_view ts);
 
 bool operator == (typespec_view lhs, typespec_view rhs);
 inline bool operator != (typespec_view lhs, typespec_view rhs)

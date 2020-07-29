@@ -334,6 +334,18 @@ struct function_body
 
 	bool not_symbol_resolved(void) const noexcept
 	{ return this->llvm_func == nullptr; }
+
+	bz::u8string get_symbol_name(void) const;
+	static bz::u8string decode_symbol_name(
+		bz::u8string_view::const_iterator &it,
+		bz::u8string_view::const_iterator end
+	);
+	static bz::u8string decode_symbol_name(bz::u8string_view name)
+	{
+		auto it = name.begin();
+		auto const end = name.end();
+		return decode_symbol_name(it, end);
+	}
 };
 
 struct decl_function
@@ -489,6 +501,33 @@ struct type_info
 		{
 			bz_assert(symbol_name.starts_with(struct_));
 			return symbol_name.substring(struct_.length());
+		}
+	}
+
+	static bz::u8string decode_symbol_name(
+		bz::u8string_view::const_iterator &it,
+		bz::u8string_view::const_iterator end
+	)
+	{
+		auto const whole_str = bz::u8string_view(it, end);
+		constexpr bz::u8string_view built_in = "built_in.";
+		constexpr bz::u8string_view struct_  = "struct.";
+		if (whole_str.starts_with(built_in))
+		{
+			static_assert(built_in.length() == built_in.size());
+			auto const begin = bz::u8string_view::const_iterator(it.data() + built_in.size());
+			auto const end = whole_str.find(begin, '.');
+			it = end;
+			return bz::u8string(begin, end);
+		}
+		else
+		{
+			bz_assert(whole_str.starts_with(struct_));
+			static_assert(struct_.length() == struct_.size());
+			auto const begin = bz::u8string_view::const_iterator(it.data() + struct_.size());
+			auto const end = whole_str.find(begin, '.');
+			it = end;
+			return bz::u8string(begin, end);
 		}
 	}
 };

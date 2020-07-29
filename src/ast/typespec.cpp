@@ -255,10 +255,10 @@ bool is_instantiable(typespec_view ts) noexcept
 	});
 }
 
-bz::u8string get_symbol_name_for_type(typespec_view ts)
+bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz::u8string result = "";
-	for (auto &node : ts.nodes)
+	for (auto &node : this->nodes)
 	{
 		node.visit(bz::overload{
 			[&](ts_base_type const &base_type) {
@@ -270,7 +270,7 @@ bz::u8string get_symbol_name_for_type(typespec_view ts)
 				{
 					result += bz::format("{}.", size);
 				}
-				result += get_symbol_name_for_type(array_t.elem_type);
+				result += array_t.elem_type.get_symbol_name();
 			},
 			[&](ts_void const &) {
 				result += "void";
@@ -292,6 +292,99 @@ bz::u8string get_symbol_name_for_type(typespec_view ts)
 			}
 		});
 	}
+	return result;
+}
+
+bz::u8string typespec::decode_symbol_name(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end
+)
+{
+	constexpr bz::u8string_view pointer    = "0P.";
+	constexpr bz::u8string_view reference  = "0R.";
+	constexpr bz::u8string_view const_     = "const.";
+	constexpr bz::u8string_view consteval_ = "consteval.";
+
+	constexpr bz::u8string_view void_ = "void";
+	constexpr bz::u8string_view array = "0A.";
+
+	auto const parse_int = [](bz::u8string_view str) {
+		uint64_t result = 0;
+		for (auto const c : str)
+		{
+			bz_assert(c >= '0' && c <= '9');
+			result *= 10;
+			result += c - '0';
+		}
+		return result;
+	};
+
+	bz::u8string result = "";
+
+	while (it != end)
+	{
+		auto const symbol_name = bz::u8string_view(it, end);
+		if (symbol_name.starts_with(pointer))
+		{
+			result += "*";
+			it = bz::u8string_view::const_iterator(it.data() + pointer.size());
+		}
+		else if (symbol_name.starts_with(reference))
+		{
+			result += "&";
+			it = bz::u8string_view::const_iterator(it.data() + reference.size());
+		}
+		else if (symbol_name.starts_with(const_))
+		{
+			result += "const ";
+			it = bz::u8string_view::const_iterator(it.data() + const_.size());
+		}
+		else if (symbol_name.starts_with(consteval_))
+		{
+			result += "consteval ";
+			it = bz::u8string_view::const_iterator(it.data() + consteval_.size());
+		}
+		else if (symbol_name.starts_with(array))
+		{
+			result += "[";
+			auto const dim_begin = bz::u8string_view::const_iterator(it.data() + array.size());
+			auto const dim_end = symbol_name.find(dim_begin, '.');
+			auto const dim = parse_int(bz::u8string_view(dim_begin, dim_end));
+
+			auto size_begin = dim_end + 1;
+			for (uint64_t i = 0; i < dim; ++i)
+			{
+				auto const size_end = symbol_name.find(size_begin, '.');
+				auto const size = parse_int(bz::u8string_view(size_begin, size_end));
+				if (i == 0)
+				{
+					result += bz::format("{}", size);
+				}
+				else
+				{
+					result += bz::format(", {}", size);
+				}
+				size_begin = size_end + 1;
+			}
+			it = size_begin;
+			result += ": ";
+			result += decode_symbol_name(it, end);
+			result += "]";
+			return result;
+		}
+		else if (symbol_name.starts_with(void_))
+		{
+			result += "void";
+			it = bz::u8string_view::const_iterator(it.data() + void_.size());
+			return result;
+		}
+		else
+		{
+			result += type_info::decode_symbol_name(it, end);
+			return result;
+		}
+	}
+
 	return result;
 }
 

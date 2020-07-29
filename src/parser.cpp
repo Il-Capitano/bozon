@@ -723,10 +723,10 @@ static void resolve_symbol_helper(
 		for (auto &p : func_body.params)
 		{
 			symbol_name += '.';
-			symbol_name += ast::get_symbol_name_for_type(p.var_type);
+			symbol_name += p.var_type.get_symbol_name();
 		}
 		symbol_name += '.';
-		symbol_name += ast::get_symbol_name_for_type(func_body.return_type);
+		symbol_name += func_body.return_type.get_symbol_name();
 
 		func_body.symbol_name = std::move(symbol_name);
 	}
@@ -785,20 +785,7 @@ static void resolve_helper(
 
 		if (func_body.not_symbol_resolved() && func_body.symbol_name == "")
 		{
-			bz_assert(func_body.function_name.size() != 0);
-			auto const first_char = *func_body.function_name.begin();
-			auto const is_op = first_char >= '1' && first_char <= '9';
-			auto symbol_name = bz::format("{}.{}", is_op ? "op" : "func", func_body.function_name);
-			symbol_name += bz::format("..{}", func_body.params.size());
-			for (auto &p : func_body.params)
-			{
-				symbol_name += '.';
-				symbol_name += ast::get_symbol_name_for_type(p.var_type);
-			}
-			symbol_name += '.';
-			symbol_name += ast::get_symbol_name_for_type(func_body.return_type);
-
-			func_body.symbol_name = std::move(symbol_name);
+			func_body.symbol_name = func_body.get_symbol_name();
 		}
 
 		if (func_body.not_symbol_resolved())
