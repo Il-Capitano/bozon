@@ -262,6 +262,10 @@ public:
 		}
 	}
 
+	u8string(u8iterator begin, u8iterator end)
+		: u8string(u8string_view(begin, end))
+	{}
+
 	u8string &operator = (u8string const &rhs)
 	{
 		if (&rhs == this)
@@ -621,6 +625,12 @@ public:
 
 	const_iterator find(const_iterator it, u8char c) const noexcept
 	{ return this->as_string_view().find(it, c); }
+
+	const_iterator find(u8string_view str) const noexcept
+	{ return this->as_string_view().find(str); }
+
+	const_iterator find(const_iterator it, u8string_view str) const noexcept
+	{ return this->as_string_view().find(it, str); }
 
 
 	void reverse(void) noexcept

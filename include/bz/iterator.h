@@ -455,15 +455,15 @@ private:
 	Int _stride;
 
 public:
-	constexpr range(Int begin, Int end, Int stride) noexcept
+	constexpr explicit range(Int begin, Int end, Int stride) noexcept
 		: _begin(begin), _end(end), _stride(stride)
 	{}
 
-	constexpr range(Int begin, Int end) noexcept
+	constexpr explicit range(Int begin, Int end) noexcept
 		: _begin(begin), _end(end), _stride(1)
 	{}
 
-	constexpr range(Int end) noexcept
+	constexpr explicit range(Int end) noexcept
 		: _begin(0), _end(end), _stride(1)
 	{}
 
