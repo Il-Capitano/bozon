@@ -26,6 +26,18 @@ namespace ctx
 		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
+
+	if (display_help)
+	{
+		cl::display_help_screen();
+		compile_until = compilation_phase::parse_command_line;
+	}
+	else if (display_version)
+	{
+		cl::print_version_info();
+		compile_until = compilation_phase::parse_command_line;
+	}
+
 	return good;
 }
 

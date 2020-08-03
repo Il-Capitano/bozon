@@ -60,30 +60,6 @@ static void parse_warnings(iter_t &it, iter_t end, ctx::command_parse_context &c
 	++it;
 }
 
-static bz::u8string build_help_string();
-
-static void display_help_screen(iter_t &it, iter_t end, ctx::command_parse_context &)
-{
-	bz_assert(it != end);
-
-	auto const help_string = build_help_string();
-	bz::print(help_string);
-
-	++it;
-	compile_until = compilation_phase::parse_command_line;
-}
-
-static void print_version_info(iter_t &it, iter_t end, ctx::command_parse_context &)
-{
-	bz_assert(it != end);
-
-	constexpr bz::u8string_view version_info = "bozon 0.0.0";
-	bz::print("{}\n", version_info);
-
-	++it;
-	compile_until = compilation_phase::parse_command_line;
-}
-
 static void check_output_file_name(iter_t it, ctx::command_parse_context &context)
 {
 	if (!it->ends_with(".o"))
@@ -220,7 +196,8 @@ constexpr auto flag_parsers = []() {
 	using T = flag_parser;
 
 	std::array result = {
-		T{ "--profile", "Measure time for compilation steps", &default_flag_parser<&do_profile, true>}
+		T{ "--profile",        "Measure time for compilation steps", &default_flag_parser<&do_profile,       true> },
+//		T{ "--verbose-errors", "Print more verbose error messages",  &default_flag_parser<&do_verbose_error, true> },
 	};
 
 	return result;
@@ -230,8 +207,8 @@ constexpr auto flag_with_alternate_parsers = []() {
 	using T = flag_with_alternate_parser;
 
 	std::array result = {
-		T{ "-h, --help",    "Display this help page", &display_help_screen },
-		T{ "-V, --version", "Print compiler version", &print_version_info  },
+		T{ "-h, --help",    "Display this help page", &default_flag_parser<&display_help,    true> },
+		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true> },
 	};
 
 	return result;
@@ -610,6 +587,18 @@ static bz::u8string build_help_string()
 	}
 
 	return result;
+}
+
+void display_help_screen(void)
+{
+	auto const help_string = build_help_string();
+	bz::print(help_string);
+}
+
+void print_version_info(void)
+{
+	constexpr bz::u8string_view version_info = "bozon 0.0.0";
+	bz::print("{}\n", version_info);
 }
 
 } // namespace cl
