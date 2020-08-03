@@ -198,6 +198,7 @@ constexpr auto flag_parsers = []() {
 	std::array result = {
 		T{ "--profile",        "Measure time for compilation steps", &default_flag_parser<&do_profile,       true> },
 //		T{ "--verbose-errors", "Print more verbose error messages",  &default_flag_parser<&do_verbose_error, true> },
+//		T{ "--some-dummy-flag-that-might-or-might-not-be-long", "Some long help message to help you use this dummy flag, that might or might no be long, meaning that this help message might be longer than the limit", nullptr },
 	};
 
 	return result;
@@ -562,27 +563,148 @@ constexpr auto sorted_command_line_parsers = []() {
 	return result;
 }();
 
+template<size_t N>
+struct spaces_t
+{
+	std::array<char, N> data;
+
+	constexpr spaces_t(void) noexcept
+		: data{}
+	{
+		for (auto &d : this->data)
+		{
+			d = ' ';
+		}
+	}
+
+	constexpr operator bz::u8string_view (void) const noexcept
+	{ return bz::u8string_view(this->data.data(), this->data.data() + this->data.size()); }
+};
+
+template<size_t N>
+constexpr auto spaces = spaces_t<N>();
+
+} // namespace cl
+
+template<size_t N>
+struct bz::formatter<cl::spaces_t<N>> : bz::formatter<bz::u8string_view>
+{};
+
+namespace cl
+{
+
+
+
+constexpr size_t initial_indent_width = 2;
+constexpr size_t command_usage_width = 24;
+constexpr size_t column_limit = 80;
+
+static bz::vector<bz::u8string_view> split_words(bz::u8string_view str)
+{
+	bz::vector<bz::u8string_view> result = {};
+	auto it = str.begin();
+	auto const end = str.end();
+	while (it != end)
+	{
+		auto const next_space = str.find(it, ' ');
+		result.emplace_back(it, next_space);
+		if (next_space == end)
+		{
+			break;
+		}
+
+		it = next_space + 1;
+	}
+
+	return result;
+}
+
+static bz::u8string format_long_help_string(bz::u8string_view help_str)
+{
+	constexpr auto next_line_indent_width = initial_indent_width + command_usage_width;
+	constexpr auto help_str_width = column_limit - next_line_indent_width;
+	constexpr bz::u8string_view indentation = spaces<next_line_indent_width>;
+	bz_assert(help_str.length() > help_str_width);
+	auto const words = split_words(help_str);
+
+	bz::u8string result = "";
+	size_t column = 0;
+	bool first = true;
+	for (auto const word : words)
+	{
+		bz_assert(column <= help_str_width);
+		auto const len = word.length();
+		// -1 because of the space in the front
+		if (column != 0 && len + column > help_str_width - 1)
+		{
+			result += '\n';
+			result += indentation;
+			column = 0;
+		}
+		else if (!first)
+		{
+			result += ' ';
+			column += 1;
+		}
+
+		if (len > help_str_width)
+		{
+			auto const lines_count = len / help_str_width + 1;
+			auto const last_column = len % help_str_width;
+			column = last_column;
+			for (size_t i = 0; i < lines_count; ++i)
+			{
+				if (i != 0)
+				{
+					result += '\n';
+					result += indentation;
+				}
+				result += word.substring(i * help_str_width, (i + 1) * help_str_width);
+			}
+		}
+		else
+		{
+			result += word;
+			column += len;
+		}
+
+		first = false;
+	}
+
+	return result;
+}
+
 static bz::u8string build_help_string()
 {
-	constexpr bz::u8string_view initial_indent = "  ";
-	constexpr size_t pad_to = 24;
+	constexpr bz::u8string_view initial_indent = spaces<initial_indent_width>;
 
 	bz::u8string result = "Usage: bozon [options] file\nOptions:\n";
 
 	for (auto const &parser : sorted_command_line_parsers)
 	{
 		auto const usage = get_indented_usage_string(parser);
-		auto const help = get_help_string(parser);
+		auto const help_str = get_help_string(parser);
 
-		if (usage.length() >= pad_to)
+		auto const help = [&]() -> bz::u8string {
+			if (help_str.length() > column_limit - command_usage_width - initial_indent_width)
+			{
+				return format_long_help_string(help_str);
+			}
+			else
+			{
+				return help_str;
+			}
+		}();
+
+		if (usage.length() >= command_usage_width)
 		{
 			result += initial_indent;
 			result += usage;
-			result += bz::format("\n{:{}}{}\n", pad_to + initial_indent.length(), "", help);
+			result += bz::format("\n{}{}\n", spaces<initial_indent_width + command_usage_width>, help);
 		}
 		else
 		{
-			result += bz::format("{}{:{}}{}\n", initial_indent, pad_to, usage, help);
+			result += bz::format("{}{:{}}{}\n", initial_indent, command_usage_width, usage, help);
 		}
 	}
 
