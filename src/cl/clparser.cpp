@@ -564,34 +564,17 @@ constexpr auto sorted_command_line_parsers = []() {
 }();
 
 template<size_t N>
-struct spaces_t
-{
-	std::array<char, N> data;
-
-	constexpr spaces_t(void) noexcept
-		: data{}
+constexpr auto spaces_impl = []() -> std::array<char, N> {
+	std::array<char, N> result{};
+	for (auto &c : result)
 	{
-		for (auto &d : this->data)
-		{
-			d = ' ';
-		}
+		c = ' ';
 	}
-
-	constexpr operator bz::u8string_view (void) const noexcept
-	{ return bz::u8string_view(this->data.data(), this->data.data() + this->data.size()); }
-};
+	return result;
+}();
 
 template<size_t N>
-constexpr auto spaces = spaces_t<N>();
-
-} // namespace cl
-
-template<size_t N>
-struct bz::formatter<cl::spaces_t<N>> : bz::formatter<bz::u8string_view>
-{};
-
-namespace cl
-{
+constexpr bz::u8string_view spaces = bz::u8string_view(spaces_impl<N>.data(), spaces_impl<N>.data() + spaces_impl<N>.size());
 
 
 
@@ -623,7 +606,7 @@ static bz::u8string format_long_help_string(bz::u8string_view help_str)
 {
 	constexpr auto next_line_indent_width = initial_indent_width + command_usage_width;
 	constexpr auto help_str_width = column_limit - next_line_indent_width;
-	constexpr bz::u8string_view indentation = spaces<next_line_indent_width>;
+	constexpr auto indentation = spaces<next_line_indent_width>;
 	bz_assert(help_str.length() > help_str_width);
 	auto const words = split_words(help_str);
 
