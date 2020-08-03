@@ -336,6 +336,19 @@ public:
 		return true;
 	}
 
+	constexpr bool is_ascii(void) const noexcept
+	{
+		auto const end = this->_data_end;
+		for (auto it = this->_data_begin; it != end; ++it)
+		{
+			if ((static_cast<uint8_t>(*it) & 0b1000'0000) != 0)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 
 	constexpr const_iterator begin(void) const noexcept
 	{ return const_iterator(this->_data_begin); }
@@ -504,6 +517,49 @@ public:
 
 	constexpr const_iterator find(u8string_view str) const noexcept
 	{ return this->find(this->begin(), str); }
+
+	constexpr const_iterator find_any(const_iterator it_, u8string_view str) const noexcept
+	{
+		bz_assert(it_ >= this->begin() && it_ <= this->end());
+		if (str.is_ascii())
+		{
+			auto it = it_.data();
+			auto const end = this->_data_end;
+			auto const str_begin = str._data_begin;
+			auto const str_end   = str._data_end;
+
+			for (; it != end; ++it)
+			{
+				for (auto str_it = str_begin; str_it != str_end; ++str_it)
+				{
+					if (*it == *str_it)
+					{
+						return const_iterator(it);
+					}
+				}
+			}
+			return const_iterator(end);
+		}
+		else
+		{
+			auto it = it_;
+			auto const end = this->end();
+			auto const str_begin = str.begin();
+			auto const str_end   = str.end();
+
+			for (; it != end; ++it)
+			{
+				for (auto str_it = str_begin; str_it != str_end; ++str_it)
+				{
+					if (*it == *str_it)
+					{
+						return it;
+					}
+				}
+			}
+			return end;
+		}
+	}
 
 	constexpr const_iterator rfind(u8char c) const noexcept
 	{
