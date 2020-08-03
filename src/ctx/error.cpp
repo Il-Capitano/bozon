@@ -1062,4 +1062,41 @@ void print_error_or_warning(
 	}
 }
 
+bz::u8string convert_string_for_message(bz::u8string_view str)
+{
+	bz::u8string result = "";
+
+	auto it = str.begin();
+	auto const end = str.end();
+
+	auto begin = it;
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		if (c < ' ')
+		{
+			result += bz::u8string_view(begin, it);
+			switch (c)
+			{
+			case '\t':
+				result += bz::format("{}\\t{}", colors::bright_black, colors::clear);
+				break;
+			case '\n':
+				result += bz::format("{}\\n{}", colors::bright_black, colors::clear);
+				break;
+			case '\r':
+				result += bz::format("{}\\r{}", colors::bright_black, colors::clear);
+				break;
+			default:
+				result += bz::format("{}\\{:02x}{}", colors::bright_black, c, colors::clear);
+				break;
+			}
+			begin = it + 1;
+		}
+	}
+	result += bz::u8string_view(begin, it);
+
+	return result;
+}
+
 } // namespace ctx

@@ -286,6 +286,8 @@ void print_error_or_warning(
 	global_context &context
 );
 
+bz::u8string convert_string_for_message(bz::u8string_view str);
+
 } // namespace ctx
 
 #endif // CTX_ERROR_H
