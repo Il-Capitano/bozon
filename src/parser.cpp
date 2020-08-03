@@ -113,16 +113,6 @@ static ast::expression parse_array_type(
 		}
 	}
 
-	if (type.is_null())
-	{
-		good = false;
-	}
-	else if (!type.is_typename())
-	{
-		good = false;
-		context.report_error(type, "expected a type as the array element type");
-	}
-
 	bz::vector<uint64_t> sizes = {};
 	for (auto &size_expr : elems)
 	{
@@ -180,6 +170,56 @@ static ast::expression parse_array_type(
 				report_error("array size must be an integer");
 				break;
 			}
+		}
+	}
+
+	if (type.is_null())
+	{
+		good = false;
+	}
+	else if (!type.is_typename())
+	{
+		good = false;
+		context.report_error(type, "expected a type as the array element type");
+	}
+	else
+	{
+		auto &elem_type = type.get_typename();
+		if (elem_type.is<ast::ts_const>())
+		{
+			good = false;
+			auto const const_pos = type.src_tokens.pivot != nullptr
+				&& type.src_tokens.pivot->kind == lex::token::kw_const
+					? type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [const_begin, const_end] = const_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(const_pos->src_pos.begin, (const_pos + 1)->src_pos.begin);
+			context.report_error(
+				type, "array element type cannot be 'const'",
+				{}, { context.make_suggestion_before(
+					begin_token, const_begin, const_end,
+					"const ", "make the array type 'const'"
+				) }
+			);
+		}
+		else if (elem_type.is<ast::ts_consteval>())
+		{
+			good = false;
+			auto const consteval_pos = type.src_tokens.pivot != nullptr
+				&& type.src_tokens.pivot->kind == lex::token::kw_consteval
+					? type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(consteval_pos->src_pos.begin, (consteval_pos + 1)->src_pos.begin);
+			context.report_error(
+				type, "array element type cannot be 'consteval'",
+				{}, { context.make_suggestion_before(
+					begin_token, consteval_begin, consteval_end,
+					"consteval ", "make the array type 'consteval'"
+				) }
+			);
 		}
 	}
 
@@ -1174,7 +1214,13 @@ static void resolve_stmt_static_assert(ast::statement &stmt, ctx::parse_context 
 			{
 				auto const message = static_assert_stmt.message.get<ast::constant_expression>()
 					.value.get<ast::constant_value::string>().as_string_view();
-				context.report_error(args[0], bz::format("static assertion failed, message: {}", message));
+				context.report_error(
+					args[0],
+					bz::format(
+						"static assertion failed, message: '{}'",
+						ctx::convert_string_for_message(message)
+					)
+				);
 			}
 		}
 	}
