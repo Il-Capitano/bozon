@@ -134,18 +134,61 @@ struct parse_context
 	);
 
 	[[nodiscard]] static suggestion make_suggestion_before(
-		lex::token_pos it, bz::u8string suggestion_str,
+		lex::token_pos it,
+		char_pos erase_begin, char_pos erase_end,
+		bz::u8string suggestion_str,
 		bz::u8string message
 	);
 	[[nodiscard]] static suggestion make_suggestion_after(
-		lex::token_pos it, bz::u8string suggestion_str,
+		lex::token_pos it,
+		char_pos erase_begin, char_pos erase_end,
+		bz::u8string suggestion_str,
 		bz::u8string message
 	);
+	[[nodiscard]] static suggestion make_suggestion_around(
+		lex::token_pos first,
+		char_pos first_erase_begin, char_pos first_erase_end,
+		bz::u8string first_suggestion_str,
+		lex::token_pos last,
+		char_pos second_erase_begin, char_pos second_erase_end,
+		bz::u8string last_suggestion_str,
+		bz::u8string message
+	);
+
+	[[nodiscard]] static suggestion make_suggestion_before(
+		lex::token_pos it, bz::u8string suggestion_str,
+		bz::u8string message
+	)
+	{
+		return make_suggestion_before(
+			it, char_pos(), char_pos(),
+			std::move(suggestion_str), std::move(message)
+		);
+	}
+
+	[[nodiscard]] static suggestion make_suggestion_after(
+		lex::token_pos it, bz::u8string suggestion_str,
+		bz::u8string message
+	)
+	{
+		return make_suggestion_after(
+			it, char_pos(), char_pos(),
+			std::move(suggestion_str), std::move(message)
+		);
+	}
+
 	[[nodiscard]] static suggestion make_suggestion_around(
 		lex::token_pos first, bz::u8string first_suggestion_str,
 		lex::token_pos last, bz::u8string last_suggestion_str,
 		bz::u8string message
-	);
+	)
+	{
+		return make_suggestion_around(
+			first, char_pos(), char_pos(), std::move(first_suggestion_str),
+			last,  char_pos(), char_pos(), std::move(last_suggestion_str),
+			std::move(message)
+		);
+	}
 
 	bool has_errors(void) const { return this->_has_errors; }
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;

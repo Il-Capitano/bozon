@@ -256,41 +256,49 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 
 
 [[nodiscard]] suggestion parse_context::make_suggestion_before(
-	lex::token_pos it, bz::u8string suggestion_str,
+	lex::token_pos it,
+	char_pos erase_begin, char_pos erase_end,
+	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
 	return suggestion{
 		it->src_pos.file_id, it->src_pos.line,
-		{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion_str) },
+		{ erase_begin, erase_end, it->src_pos.begin, std::move(suggestion_str) },
 		{},
 		std::move(message)
 	};
 }
 
 [[nodiscard]] suggestion parse_context::make_suggestion_after(
-	lex::token_pos it, bz::u8string suggestion_str,
+	lex::token_pos it,
+	char_pos erase_begin, char_pos erase_end,
+	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
 	return suggestion{
 		it->src_pos.file_id, it->src_pos.line,
-		{ char_pos(), char_pos(), it->src_pos.end, std::move(suggestion_str) },
+		{ erase_begin, erase_end, it->src_pos.end, std::move(suggestion_str) },
 		{},
 		std::move(message)
 	};
 }
 
 [[nodiscard]] suggestion parse_context::make_suggestion_around(
-	lex::token_pos first, bz::u8string first_suggestion_str,
-	lex::token_pos last, bz::u8string last_suggestion_str,
+	lex::token_pos first,
+	char_pos first_erase_begin, char_pos first_erase_end,
+	bz::u8string first_suggestion_str,
+	lex::token_pos last,
+	char_pos second_erase_begin, char_pos second_erase_end,
+	bz::u8string last_suggestion_str,
 	bz::u8string message
 )
 {
 	return suggestion{
 		first->src_pos.file_id, first->src_pos.line,
-		{ char_pos(), char_pos(), first->src_pos.begin, std::move(first_suggestion_str) },
-		{ char_pos(), char_pos(), last->src_pos.end, std::move(last_suggestion_str) },
+		{ first_erase_begin, first_erase_end, first->src_pos.begin, std::move(first_suggestion_str) },
+		{ second_erase_begin, second_erase_end, last->src_pos.end, std::move(last_suggestion_str) },
 		std::move(message)
 	};
 }
