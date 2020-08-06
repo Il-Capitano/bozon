@@ -6,10 +6,10 @@
 #include "ctx/lex_context.h"
 #include "lex/lexer.h"
 #include "ctx/first_pass_parse_context.h"
-#include "first_pass_parser.h"
 #include "ctx/parse_context.h"
 #include "parser.h"
 #include "ctx/bitcode_context.h"
+#include "ctx/decl_set.h"
 
 struct src_file
 {
@@ -18,8 +18,8 @@ struct src_file
 		constructed,
 		file_read,
 		tokenized,
-		first_pass_parsed,
-		resolved,
+		parsed_global_symbols,
+		parsed,
 	};
 
 public:
@@ -32,6 +32,7 @@ public:
 
 	ctx::global_context       &_global_ctx;
 	bz::vector<ast::statement> _declarations;
+	ctx::decl_set              _global_decls;
 
 public:
 	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);
@@ -40,8 +41,8 @@ public:
 
 	[[nodiscard]] bool read_file(void);
 	[[nodiscard]] bool tokenize(void);
-	[[nodiscard]] bool first_pass_parse(void);
-	[[nodiscard]] bool resolve(void);
+	[[nodiscard]] bool parse_global_symbols(void);
+	[[nodiscard]] bool parse(void);
 
 
 	bz::u8string_view get_file_name() const

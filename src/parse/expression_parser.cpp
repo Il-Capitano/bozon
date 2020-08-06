@@ -335,7 +335,7 @@ static ast::expression parse_primary_expression(
 	{
 		auto const paren_begin = stream;
 		++stream;
-		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
 		if (stream == end)
 		{
 			context.parenthesis_suppressed_value = std::min(context.parenthesis_suppressed_value + 1, 2);
@@ -348,10 +348,7 @@ static ast::expression parse_primary_expression(
 		context.parenthesis_suppressed_value = 0;
 		if (inner_stream != inner_end && inner_stream->kind != lex::token::paren_close)
 		{
-			context.report_error(
-				inner_stream, "expected closing )",
-				{ ctx::make_note(paren_begin, "to match this:") }
-			);
+			context.report_paren_match_error(inner_stream, paren_begin);
 		}
 		if (expr.src_tokens.begin != nullptr)
 		{
@@ -366,7 +363,7 @@ static ast::expression parse_primary_expression(
 	{
 		auto const begin_token = stream;
 		++stream; // '['
-		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
 		auto const colon_or_end = search_token(lex::token::colon, inner_stream, inner_end);
 		if (colon_or_end != inner_end)
 		{
@@ -433,7 +430,7 @@ static ast::expression parse_expression_helper(
 		// function call operator
 		case lex::token::paren_open:
 		{
-			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
 			auto params = parse_expression_comma_list(inner_stream, inner_end, context);
 			if (inner_stream != inner_end)
 			{
@@ -450,7 +447,7 @@ static ast::expression parse_expression_helper(
 		// subscript operator
 		case lex::token::square_open:
 		{
-			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end);
+			auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
 			auto args = parse_expression_comma_list(inner_stream, inner_end, context);
 			if (inner_stream != inner_end)
 			{

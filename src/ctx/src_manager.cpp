@@ -107,11 +107,11 @@ namespace ctx
 	return true;
 }
 
-[[nodiscard]] bool src_manager::first_pass_parse(void)
+[[nodiscard]] bool src_manager::parse_global_symbols(void)
 {
 	for (auto &file : this->_src_files)
 	{
-		if (!file.first_pass_parse())
+		if (!file.parse_global_symbols())
 		{
 			file.report_and_clear_errors_and_warnings();
 			return false;
@@ -126,11 +126,11 @@ namespace ctx
 	return true;
 }
 
-[[nodiscard]] bool src_manager::resolve(void)
+[[nodiscard]] bool src_manager::parse(void)
 {
 	for (auto &file : this->_src_files)
 	{
-		if (!file.resolve())
+		if (!file.parse())
 		{
 			file.report_and_clear_errors_and_warnings();
 			return false;

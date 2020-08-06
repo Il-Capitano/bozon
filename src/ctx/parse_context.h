@@ -24,8 +24,9 @@ struct parse_context
 		bz::variant<ast::function_body *> requested;
 	};
 
-	global_context &global_ctx;
-	bz::vector<decl_set> scope_decls;
+	global_context             &global_ctx;
+	decl_set                   *global_decls;
+	bz::vector<decl_set>        scope_decls;
 	bz::vector<resolve_queue_t> resolve_queue;
 
 	int parenthesis_suppressed_value = 0;
@@ -57,6 +58,13 @@ struct parse_context
 			std::move(message), std::move(notes), std::move(suggestions)
 		);
 	}
+
+	void report_paren_match_error(
+		lex::token_pos it, lex::token_pos open_paren_it,
+		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+	) const;
+
+	void report_circular_dependency_error(ast::function_body &func_body) const;
 
 	void report_warning(
 		warning_kind kind,
@@ -115,10 +123,6 @@ struct parse_context
 			std::move(message), std::move(notes), std::move(suggestions)
 		);
 	}
-	void report_paren_match_error(
-		lex::token_pos it, lex::token_pos open_paren_it,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
-	) const;
 
 	[[nodiscard]] static note make_note(uint32_t file_id, uint32_t line, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);

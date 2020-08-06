@@ -31,6 +31,8 @@ struct decl_list
 	bz::vector<ast::type_info     *> type_infos;
 };
 
+decl_set get_default_decls(void);
+
 struct global_context
 {
 	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();

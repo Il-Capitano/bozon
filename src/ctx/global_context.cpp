@@ -88,12 +88,22 @@ get_llvm_built_in_types(llvm::LLVMContext &context)
 	};
 }
 
+decl_set get_default_decls(void)
+{
+	return {
+		{}, // var_decls
+		{}, // func_sets
+		{}, // op_sets
+		get_default_types() // types
+	};
+}
+
 global_context::global_context(void)
 	: _export_decls{
 		  {}, // var_decls
 		  {}, // func_sets
 		  {}, // op_sets
-		  get_default_types() // type_infos
+		  get_default_types() // types
 	  },
 	  _compile_decls{},
 	  _errors{},

@@ -126,15 +126,157 @@ ast::statement parse_decl_variable(
 	}
 }
 
+static void resolve_typespec(
+	ast::typespec &ts,
+	ctx::parse_context &context,
+	precedence prec
+)
+{
+	bz_assert(ts.is<ast::ts_unresolved>());
+	auto [stream, end] = ts.get<ast::ts_unresolved>().tokens;
+	auto type = parse_expression(stream, end, context, prec, true);
+	if (stream != end)
+	{
+		context.report_error(
+			{ stream, stream, end },
+			end - stream == 1
+			? "unexpected token"
+			: "unexpected tokens"
+		);
+	}
+	if (type.not_null() && !type.is_typename())
+	{
+		ts.clear();
+		context.report_error(type, "expected a type");
+	}
+	else if (type.is_typename())
+	{
+		ts = std::move(type.get_typename());
+	}
+	else
+	{
+		ts.clear();
+	}
+}
+
+static void resolve_var_decl_type(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	bz_assert(var_decl.var_type.is<ast::ts_unresolved>());
+	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
+	auto type = parse_expression(stream, end, context, no_assign, true);
+	if (type.not_null() && !type.is_typename())
+	{
+		bz_assert(stream < end);
+		if (is_binary_operator(stream->kind))
+		{
+			bz_assert(stream->kind != lex::token::assign);
+			context.report_error(
+				{ stream, stream, end },
+				"expected ';' or '=' at the end of a type",
+				{ context.make_note(
+					stream,
+					bz::format("operator {} is not allowed in a variable declaration's type", stream->value)
+				) }
+			);
+		}
+		else
+		{
+			context.report_error(
+				{ stream, stream, end },
+				end - stream == 1
+				? "unexpected token"
+				: "unexpected tokens"
+			);
+		}
+		var_decl.var_type.clear();
+	}
+	else if (type.is_typename())
+	{
+		auto const prototype = var_decl.prototype_range;
+		for (auto op = prototype.end; op != prototype.begin;)
+		{
+			--op;
+			auto const src_tokens = lex::src_tokens{ op, op, type.src_tokens.end };
+			type = context.make_unary_operator_expression(src_tokens, op, std::move(type));
+		}
+		if (type.is_typename())
+		{
+			var_decl.var_type = std::move(type.get_typename());
+		}
+		else
+		{
+			var_decl.var_type.clear();
+		}
+	}
+	else
+	{
+		var_decl.var_type.clear();
+	}
+}
+
+// resolves the function symbol, but doesn't modify scope
+static bool resolve_function_symbol_helper(
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
+	bool good = true;
+	for (auto &p : func_body.params)
+	{
+		resolve_var_decl_type(p, context);
+		if (p.var_type.is_empty())
+		{
+			good = false;
+		}
+	}
+	for (auto &p : func_body.params)
+	{
+		context.add_local_variable(p);
+	}
+
+	resolve_typespec(func_body.return_type, context, precedence{});
+	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
+	if (func_body.return_type.is_empty())
+	{
+		good = false;
+	}
+	if (good && func_body.symbol_name == "")
+	{
+		func_body.symbol_name = func_body.get_symbol_name();
+	}
+	return good;
+}
+
 void resolve_function_symbol(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	if (func_body.state >= ast::resolve_state::symbol)
+	if (func_body.state >= ast::resolve_state::symbol || func_body.state == ast::resolve_state::error)
 	{
 		return;
 	}
+	else if (func_body.state == ast::resolve_state::resolving_symbol)
+	{
+		context.report_circular_dependency_error(func_body);
+		return;
+	}
+
+	func_body.state = ast::resolve_state::resolving_symbol;
+	context.add_scope();
+	if (resolve_function_symbol_helper(func_body, context))
+	{
+		func_body.state = ast::resolve_state::symbol;
+	}
+	else
+	{
+		func_body.state = ast::resolve_state::error;
+	}
+	context.remove_scope();
 }
 
 void resolve_function(
@@ -142,13 +284,62 @@ void resolve_function(
 	ctx::parse_context &context
 )
 {
-	if (func_body.state >= ast::resolve_state::all)
+	if (func_body.state >= ast::resolve_state::all || func_body.state == ast::resolve_state::error)
 	{
 		return;
 	}
+	else if (
+		func_body.state == ast::resolve_state::resolving_symbol
+		|| func_body.state == ast::resolve_state::resolving_all
+	)
+	{
+		context.report_circular_dependency_error(func_body);
+		return;
+	}
+
+	if (func_body.state == ast::resolve_state::none)
+	{
+		func_body.state = ast::resolve_state::resolving_symbol;
+		context.add_scope();
+		if (!resolve_function_symbol_helper(func_body, context))
+		{
+			func_body.state = ast::resolve_state::error;
+			context.remove_scope();
+			return;
+		}
+	}
+	else if (func_body.body.is_null())
+	{
+		return;
+	}
+	else
+	{
+		context.add_scope();
+		for (auto &p : func_body.params)
+		{
+			context.add_local_variable(p);
+		}
+	}
+
+	if (func_body.body.is_null())
+	{
+		func_body.state = ast::resolve_state::symbol;
+		context.remove_scope();
+		return;
+	}
+
+	func_body.state = ast::resolve_state::resolving_all;
+
+	bz_assert(func_body.body.is<lex::token_range>());
+	auto [stream, end] = func_body.body.get<lex::token_range>();
+	func_body.body = parse_local_statements(stream, end, context);
+
+	context.remove_scope();
 }
 
 static ast::function_body parse_function_body(
+	lex::src_tokens src_tokens,
+	bz::u8string function_name,
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -168,6 +359,8 @@ static ast::function_body parse_function_body(
 	}
 
 	ast::function_body result = {};
+	result.src_tokens = src_tokens;
+	result.function_name = std::move(function_name);
 	while (param_stream != param_end)
 	{
 		auto const begin = param_stream;
@@ -225,8 +418,13 @@ ast::statement parse_decl_function(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_function);
+	auto const begin = stream;
+	++stream; // 'function'
 	auto const id = context.assert_token(stream, lex::token::identifier);
-	auto body = parse_function_body(stream, end, context);
+	auto const src_tokens = id->kind == lex::token::identifier
+		? lex::src_tokens{ begin, id, stream }
+		: lex::src_tokens{ begin, begin, stream };
+	auto body = parse_function_body(src_tokens, id->value, stream, end, context);
 
 	return ast::make_decl_function(id, std::move(body));
 }
@@ -238,6 +436,8 @@ ast::statement parse_decl_operator(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_operator);
+	auto const begin = stream;
+	++stream; // 'operator'
 	auto const op = stream;
 	if (!is_overloadable_operator(op->kind))
 	{
@@ -262,7 +462,11 @@ ast::statement parse_decl_operator(
 		context.assert_token(stream, lex::token::square_close);
 	}
 
-	auto body = parse_function_body(stream, end, context);
+	auto const src_tokens = is_operator(op->kind)
+		? lex::src_tokens{ begin, op, stream }
+		: lex::src_tokens{ begin, begin, begin + 1 };
+
+	auto body = parse_function_body(src_tokens, bz::format("{}", op->kind), stream, end, context);
 
 	return ast::make_decl_operator(op, std::move(body));
 }
@@ -442,6 +646,7 @@ ast::statement parse_stmt_expression_without_semi_colon(
 	// top level compound expression
 	case lex::token::curly_open:
 		return ast::make_stmt_expression(parse_compound_expression(stream, end, context));
+	// top level if expression
 	case lex::token::kw_if:
 		bz_assert(false);
 		return {};
@@ -459,6 +664,7 @@ void consume_semi_colon_at_end_of_expression(
 	if (!expression.is_constant_or_dynamic())
 	{
 		context.assert_token(stream, lex::token::semi_colon);
+		return;
 	}
 
 	auto &expr = expression.get_expr();
@@ -594,6 +800,39 @@ bz::vector<ast::statement> parse_global_statements(
 		result.emplace_back(parse_global_statement(stream, end, context));
 	}
 	return result;
+}
+
+bz::vector<ast::statement> parse_local_statements(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz::vector<ast::statement> result = {};
+	while (stream != end)
+	{
+		result.emplace_back(parse_local_statement(stream, end, context));
+	}
+	return result;
+}
+
+void resolve_global_statement(
+	ast::statement &stmt,
+	ctx::parse_context &context
+)
+{
+	stmt.visit(bz::overload{
+		[&](ast::decl_function &func_decl) {
+			context.add_to_resolve_queue({}, func_decl.body);
+			resolve_function(func_decl.body, context);
+		},
+		[&](ast::decl_operator &op_decl) {
+			context.add_to_resolve_queue({}, op_decl.body);
+			resolve_function(op_decl.body, context);
+		},
+		[&](auto &) {
+			bz_assert(false);
+		}
+	});
 }
 
 } // namespace parse

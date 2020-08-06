@@ -22,8 +22,9 @@ struct attribute
 	declare_default_5(attribute)
 };
 
-enum class resolve_state : uint8_t
+enum class resolve_state : int8_t
 {
+	error = -1,
 	none,
 	resolving_symbol,
 	symbol,
@@ -322,15 +323,10 @@ struct function_body
 	bz::u8string              function_name;
 	bz::u8string              symbol_name;
 	llvm::Function           *llvm_func;
+	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
 
 	declare_default_5(function_body)
-
-	bool is_symbol_resolved(void) const noexcept
-	{ return this->llvm_func != nullptr; }
-
-	bool not_symbol_resolved(void) const noexcept
-	{ return this->llvm_func == nullptr; }
 
 	bz::vector<statement> &get_statements(void) noexcept
 	{
@@ -344,7 +340,9 @@ struct function_body
 		return this->body.get<bz::vector<ast::statement>>();
 	}
 
+	bz::u8string get_signature(void) const;
 	bz::u8string get_symbol_name(void) const;
+
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end
@@ -365,41 +363,6 @@ struct decl_function
 	declare_default_5(decl_function)
 
 	decl_function(
-		lex::token_pos            _id,
-		bz::vector<decl_variable> _params,
-		typespec                  _ret_type
-	)
-		: identifier (_id),
-		  body{
-			  std::move(_params),
-			  std::move(_ret_type),
-			  {},
-			  _id->value,
-			  "",
-			  nullptr,
-			  resolve_state::none,
-		  }
-	{}
-
-	decl_function(
-		lex::token_pos            _id,
-		bz::vector<decl_variable> _params,
-		typespec                  _ret_type,
-		bz::vector<statement>     _body
-	)
-		: identifier (_id),
-		  body{
-			  std::move(_params),
-			  std::move(_ret_type),
-			  std::move(_body),
-			  _id->value,
-			  "",
-			  nullptr,
-			  resolve_state::none,
-		  }
-	{}
-
-	decl_function(
 		lex::token_pos _id,
 		function_body  _body
 	)
@@ -414,41 +377,6 @@ struct decl_operator
 	function_body  body;
 
 	declare_default_5(decl_operator)
-
-	decl_operator(
-		lex::token_pos            _op,
-		bz::vector<decl_variable> _params,
-		typespec                  _ret_type,
-		bz::vector<statement>     _body
-	)
-		: op  (_op),
-		  body{
-			  std::move(_params),
-			  std::move(_ret_type),
-			  std::move(_body),
-			  bz::format("{}", _op->kind),
-			  "",
-			  nullptr,
-			  resolve_state::none,
-		  }
-	{}
-
-	decl_operator(
-		lex::token_pos            _op,
-		bz::vector<decl_variable> _params,
-		typespec                  _ret_type
-	)
-		: op  (_op),
-		  body{
-			  std::move(_params),
-			  std::move(_ret_type),
-			  {},
-			  bz::format("{}", _op->kind),
-			  "",
-			  nullptr,
-			  resolve_state::none,
-		  }
-	{}
 
 	decl_operator(
 		lex::token_pos _op,

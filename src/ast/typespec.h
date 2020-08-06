@@ -38,6 +38,7 @@ using typespec_types = bz::meta::type_pack<
 >;
 
 using terminator_typespec_types = bz::meta::type_pack<
+	ts_unresolved,
 	ts_base_type,
 	ts_void,
 	ts_function,

@@ -78,7 +78,7 @@ inline lex::token_range get_expression_tokens(
 		{
 			auto const open_paren = stream;
 			++stream; // '('
-			get_expression_tokens<>(stream, end, context);
+			get_expression_tokens<lex::token::paren_close>(stream, end, context);
 			if (stream == end || stream->kind != lex::token::paren_close)
 			{
 				context.report_paren_match_error(stream, open_paren);
@@ -93,7 +93,7 @@ inline lex::token_range get_expression_tokens(
 		{
 			auto const open_square = stream;
 			++stream; // '['
-			get_expression_tokens<>(stream, end, context);
+			get_expression_tokens<lex::token::square_close>(stream, end, context);
 			if (stream == end || stream->kind != lex::token::square_close)
 			{
 				context.report_paren_match_error(stream, open_square);
@@ -125,36 +125,52 @@ inline lex::token_range get_expression_tokens(
 	return { begin, stream };
 }
 
-inline lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos end)
+inline lex::token_range get_paren_matched_range(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
 {
-	auto const begin = stream;
-	size_t paren_level = 1;
-	for (; stream != end && paren_level != 0; ++stream)
+	auto const open = stream - 1;
+	switch (open->kind)
 	{
-		if (
-			stream->kind == lex::token::paren_open
-			|| stream->kind == lex::token::square_open
-			|| stream->kind == lex::token::curly_open
-		)
+	case lex::token::paren_open:
+	{
+		auto range = get_expression_tokens<
+			lex::token::paren_close,
+			lex::token::square_close
+		>(stream, end, context);
+
+		if (stream != end && stream->kind == lex::token::paren_close)
 		{
-			++paren_level;
+			++stream;
 		}
-		else if (
-			stream->kind == lex::token::paren_close
-			|| stream->kind == lex::token::square_close
-			|| stream->kind == lex::token::curly_close
-		)
+		else
 		{
-			--paren_level;
+			context.report_paren_match_error(stream, open);
 		}
+		return range;
 	}
-	bz_assert(paren_level == 0);
-	bz_assert(
-		(stream - 1)->kind == lex::token::paren_close
-		|| (stream - 1)->kind == lex::token::square_close
-		|| (stream - 1)->kind == lex::token::curly_close
-	);
-	return { begin, stream - 1 };
+	case lex::token::square_open:
+	{
+		auto range = get_expression_tokens<
+			lex::token::paren_close,
+			lex::token::square_close
+		>(stream, end, context);
+
+		if (stream != end && stream->kind == lex::token::square_close)
+		{
+			++stream;
+		}
+		else
+		{
+			context.report_paren_match_error(stream, open);
+		}
+		return range;
+	}
+	default:
+		bz_assert(false);
+		return {};
+	}
 }
 
 inline lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::token_pos end)

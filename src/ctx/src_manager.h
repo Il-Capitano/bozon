@@ -37,8 +37,8 @@ public:
 
 	[[nodiscard]] bool parse_command_line(int argc, char const **argv);
 	[[nodiscard]] bool tokenize(void);
-	[[nodiscard]] bool first_pass_parse(void);
-	[[nodiscard]] bool resolve(void);
+	[[nodiscard]] bool parse_global_symbols(void);
+	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool emit_bitcode(void);
 
 	std::list<src_file> const &get_src_files(void) const

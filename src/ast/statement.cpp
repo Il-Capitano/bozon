@@ -13,6 +13,64 @@ lex::token_pos decl_variable::get_tokens_pivot(void) const
 lex::token_pos decl_variable::get_tokens_end(void) const
 { return this->tokens.end; }
 
+bz::u8string function_body::get_signature(void) const
+{
+	auto const parse_int = [](bz::u8string_view str) {
+		uint64_t result = 0;
+		for (auto const c : str)
+		{
+			bz_assert(c >= '0' && c <= '9');
+			result *= 10;
+			result += c - '0';
+		}
+		return result;
+	};
+
+	auto const first_char = *this->function_name.begin();
+	auto const is_op = first_char >= '1' && first_char <= '9';
+	bz::u8string result = "";
+
+	if (is_op)
+	{
+		result += "operator ";
+		auto const kind = parse_int(this->function_name);
+		if (kind == lex::token::paren_open)
+		{
+			result += "() (";
+		}
+		else if (kind == lex::token::square_open)
+		{
+			result += "[] (";
+		}
+		else
+		{
+			result += token_info[kind].token_value;
+			result += " (";
+		}
+	}
+	else
+	{
+		result += "function ";
+		result += this->function_name;
+		result += '(';
+	}
+	bool first = true;
+	for (auto &p : this->params)
+	{
+		if (first)
+		{
+			result += bz::format(": {}", p.var_type);
+		}
+		else
+		{
+			result += bz::format(", : {}", p.var_type);
+		}
+	}
+	result += ") -> ";
+	result += bz::format("{}", this->return_type);
+	return result;
+}
+
 bz::u8string function_body::get_symbol_name(void) const
 {
 	bz_assert(this->function_name.size() != 0);
