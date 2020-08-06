@@ -2,6 +2,7 @@
 #include "ctx/warnings.h"
 #include "global_data.h"
 #include "ctx/command_parse_context.h"
+#include "ctx/error.h"
 
 namespace cl
 {
@@ -37,7 +38,10 @@ static void parse_warnings(iter_t &it, iter_t end, ctx::command_parse_context &c
 		auto const warning_kind = ctx::get_warning_kind(warning_name);
 		if (warning_kind == ctx::warning_kind::_last)
 		{
-			context.report_error(it, bz::format("unknown warning '{}'", warning_name));
+			context.report_error(
+				it,
+				bz::format("unknown warning '{}'", ctx::convert_string_for_message(warning_name))
+			);
 		}
 		else
 		{
@@ -50,7 +54,10 @@ static void parse_warnings(iter_t &it, iter_t end, ctx::command_parse_context &c
 		auto const warning_kind = ctx::get_warning_kind(warning_name);
 		if (warning_kind == ctx::warning_kind::_last)
 		{
-			context.report_error(it, bz::format("unknown warning '{}'", warning_name));
+			context.report_error(
+				it,
+				bz::format("unknown warning '{}'", ctx::convert_string_for_message(warning_name))
+			);
 		}
 		else
 		{
@@ -80,7 +87,10 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 
 	if (it == end)
 	{
-		context.report_error(it, bz::format("expected an argument after '{}'", arg));
+		context.report_error(
+			it,
+			bz::format("expected an argument after '{}'", ctx::convert_string_for_message(arg))
+		);
 	}
 	else
 	{
@@ -90,11 +100,34 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 	}
 }
 
+// we need the seperate flag function to check if *dest has been set or not
+// with only dest being the template argument, we can use a static variable in the function
+template<bool *dest>
+void set_flag(iter_t it, bool value, ctx::command_parse_context &context)
+{
+	static uint32_t setter_arg_pos = 0;
+	if (setter_arg_pos == 0)
+	{
+		setter_arg_pos = context.get_arg_position(it);
+		*dest = value;
+	}
+	else
+	{
+		context.report_error(
+			it,
+			bz::format(
+				"flag has already been set by argument {} '{}'",
+				setter_arg_pos, context.get_arg_value(setter_arg_pos)
+			)
+		);
+	}
+}
+
 template<bool *dest, bool value>
-void default_flag_parser(iter_t &it, iter_t end, ctx::command_parse_context &)
+void default_flag_parser(iter_t &it, iter_t end, ctx::command_parse_context &context)
 {
 	bz_assert(it != end);
-	*dest = value;
+	set_flag<dest>(it, value, context);
 	++it;
 }
 
@@ -404,7 +437,10 @@ static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context
 
 	if (!good && it->starts_with("-"))
 	{
-		context.report_error(it, bz::format("unknown command line option '{}'", *it));
+		context.report_error(
+			it,
+			bz::format("unknown command line option '{}'", ctx::convert_string_for_message(*it))
+		);
 		++it;
 	}
 	else if (!good)
@@ -657,11 +693,11 @@ static bz::u8string format_long_help_string(bz::u8string_view help_str)
 	return result;
 }
 
-static bz::u8string build_help_string()
+static bz::u8string build_help_string(void)
 {
 	constexpr bz::u8string_view initial_indent = spaces<initial_indent_width>;
 
-	bz::u8string result = "Usage: bozon [options] file\nOptions:\n";
+	bz::u8string result = "Usage: bozon [options] file\n\nOptions:\n";
 
 	for (auto const &parser : sorted_command_line_parsers)
 	{
