@@ -2167,7 +2167,7 @@ ast::expression parse_context::make_function_call_expression(
 			auto const func_body = const_called.value.get<ast::constant_value::function>();
 			if (get_function_call_match_level(*func_body, params, *this, src_tokens).sum == -1)
 			{
-				if (func_body->state != ast::resolve_state::error)
+				if (func_body->state >= ast::resolve_state::symbol)
 				{
 					this->report_error(
 						src_tokens,
