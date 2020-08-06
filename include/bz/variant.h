@@ -526,6 +526,18 @@ bool operator == (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 	}(std::make_index_sequence<sizeof... (Ts)>());
 }
 
+template<typename ...Ts, typename Rhs, meta::enable_if<meta::is_in_types<Rhs, Ts...>, int> = 0>
+bool operator == (variant<Ts...> const &lhs, Rhs const &rhs)
+{
+	return lhs.template is<Rhs>() && lhs.template get<Rhs>() == rhs;
+}
+
+template<typename Lhs, typename ...Ts, meta::enable_if<meta::is_in_types<Lhs, Ts...>, int> = 0>
+bool operator == (Lhs const &lhs, variant<Ts...> const &rhs)
+{
+	return rhs.template is<Lhs>() && lhs == rhs.template get<Lhs>();
+}
+
 template<typename ...Ts>
 bool operator != (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 {
@@ -550,6 +562,18 @@ bool operator != (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 			return result;
 		}
 	}(std::make_index_sequence<sizeof... (Ts)>());
+}
+
+template<typename ...Ts, typename Rhs, meta::enable_if<meta::is_in_types<Rhs, Ts...>, int> = 0>
+bool operator != (variant<Ts...> const &lhs, Rhs const &rhs)
+{
+	return !(lhs == rhs);
+}
+
+template<typename Lhs, typename ...Ts, meta::enable_if<meta::is_in_types<Lhs, Ts...>, int> = 0>
+bool operator != (Lhs const &lhs, variant<Ts...> const &rhs)
+{
+	return !(lhs == rhs);
 }
 
 
