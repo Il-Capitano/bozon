@@ -1088,7 +1088,7 @@ bz::u8string convert_string_for_message(bz::u8string_view str)
 				result += bz::format("{}\\r{}", colors::bright_black, colors::clear);
 				break;
 			default:
-				result += bz::format("{}\\{:02x}{}", colors::bright_black, c, colors::clear);
+				result += bz::format("{}\\x{:02x}{}", colors::bright_black, c, colors::clear);
 				break;
 			}
 			begin = it + 1;
