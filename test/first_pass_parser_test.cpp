@@ -178,8 +178,8 @@ static void get_function_params_test(void)
 	x_err("(", tokens.end() - 1);
 	x_err("(: [[], a: int32) { return 3; }", tokens.begin() + 10);
 	//                       ^ tokens.begin() + 10
-	x_err("( -> int32 { return 0; }", tokens.begin() + 3);
-	//                ^ tokens.begin() + 3
+	x_err("( -> int32 { return 0; }", tokens.begin() + 4);
+	//                  ^ tokens.begin() + 4
 	x_err("(: [[], a: int32)", tokens.end() - 1);
 
 #undef x
@@ -500,12 +500,12 @@ static void parse_operator_definition_test(void)
 	x("operator () (: functor, : int32, : int32) -> int32 { return 0; } a", tokens.begin() + 20);
 	//                                                                  ^ tokens.begin() + 20
 
-	x_err("operator foo() { return 0; } a", tokens.begin() + 9);
-	//                                  ^ tokens.begin() + 9
-	x_err("operator () -> int32 { return 0; } a", tokens.begin() + 10);
-	//                                        ^ tokens.begin() + 10
-	x_err("operator foo() -> int32 { return 0;", tokens.begin() + 10);
-	//                                        ^ tokens.begin() + 10 (eof)
+	x_err("operator foo() { return 0; } a", tokens.begin() + 5);
+	//                      ^ tokens.begin() + 5
+	x_err("operator () -> int32 { return 0; } a", tokens.begin() + 6);
+	//                            ^ tokens.begin() + 6
+	x_err("operator foo() -> int32 { return 0;", tokens.begin() + 7);
+	//                               ^ tokens.begin() + 7
 	x_err("operator foo() -> int32 return 0; } a", tokens.begin() + 6);
 	//                             ^ tokens.begin() + 6
 
