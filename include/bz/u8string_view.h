@@ -213,34 +213,18 @@ public:
 
 	constexpr size_t length(void) const noexcept
 	{
-		size_t multi_byte_vals = 0;
+		size_t extension_byte_count = 0;
 		auto it = this->_data_begin;
 		auto const end = this->_data_end;
 		for (; it != end; ++it)
 		{
 			auto const c = static_cast<uint8_t>(*it);
-			// single byte value
-			if (c <= 0b1011'1111) bz_likely
+			if ((c & 0b1100'0000) == 0b1000'0000)
 			{
-				continue;
-			}
-			// two byte value
-			else if (c <= 0b1101'1111) bz_likely
-			{
-				multi_byte_vals += 1;
-			}
-			// three byte value
-			else if (c <= 0b1110'1111) bz_likely
-			{
-				multi_byte_vals += 2;
-			}
-			// four byte value
-			else // if (c <= 0b1111'01111) bz_likely
-			{
-				multi_byte_vals += 3;
+				++extension_byte_count;
 			}
 		}
-		return static_cast<size_t>(this->size() - multi_byte_vals);
+		return static_cast<size_t>(this->size() - extension_byte_count);
 	}
 
 	// returns false if the string is invalid UTF-8
@@ -318,7 +302,7 @@ public:
 					return false;
 				}
 
-				// verify the third byte
+				// verify the fourth byte
 				++it;
 				if (
 					it == end                              // the byte must be part of the string
@@ -560,6 +544,9 @@ public:
 			return end;
 		}
 	}
+
+	constexpr const_iterator find_any(u8string_view str) const noexcept
+	{ return this->find_any(this->begin(), str); }
 
 	constexpr const_iterator rfind(u8char c) const noexcept
 	{

@@ -417,32 +417,31 @@ using copy_cv_reference = copy_reference<
 	T, copy_cv<remove_reference<T>, U>
 >;
 
+namespace internal
+{
 
 template<typename>
-struct fn_return_type;
-
-template<typename Fn>
-using fn_return_type_t = typename fn_return_type<Fn>::type;
+struct fn_return_type_impl;
 
 template<typename Ret, typename ...Params>
-struct fn_return_type<Ret(Params...)>
+struct fn_return_type_impl<Ret(Params...)>
 { using type = Ret; };
 
 template<typename Ret, typename ...Params>
-struct fn_return_type<Ret(Params...) noexcept>
+struct fn_return_type_impl<Ret(Params...) noexcept>
 { using type = Ret; };
 
 template<typename Ret, typename ...Params>
-struct fn_return_type<Ret (*)(Params...)>
+struct fn_return_type_impl<Ret (*)(Params...)>
 { using type = Ret; };
 
 template<typename Ret, typename ...Params>
-struct fn_return_type<Ret (*)(Params...) noexcept>
+struct fn_return_type_impl<Ret (*)(Params...) noexcept>
 { using type = Ret; };
 
-#define _fn_ret_type(fn_suffix)                           \
-template<typename Ret, typename Base, typename ...Params> \
-struct fn_return_type<Ret (Base::*)(Params...) fn_suffix> \
+#define _fn_ret_type(fn_suffix)                                \
+template<typename Ret, typename Base, typename ...Params>      \
+struct fn_return_type_impl<Ret (Base::*)(Params...) fn_suffix> \
 { using type = Ret; };
 
 _fn_ret_type()
@@ -460,32 +459,37 @@ _fn_ret_type(const && noexcept)
 
 #undef _fn_ret_type
 
-
-template<typename>
-struct is_fn_noexcept;
+} // namespace internal
 
 template<typename Fn>
-constexpr bool is_fn_noexcept_v = is_fn_noexcept<Fn>::value;
+using fn_return_type = typename internal::fn_return_type_impl<Fn>::type;
+
+
+namespace internal
+{
+
+template<typename>
+struct is_fn_noexcept_impl;
 
 template<typename Ret, typename ...Params>
-struct is_fn_noexcept<Ret(Params...)>
+struct is_fn_noexcept_impl<Ret(Params...)>
 { static constexpr bool value = false; };
 
 template<typename Ret, typename ...Params>
-struct is_fn_noexcept<Ret(Params...) noexcept>
+struct is_fn_noexcept_impl<Ret(Params...) noexcept>
 { static constexpr bool value = true; };
 
 template<typename Ret, typename ...Params>
-struct is_fn_noexcept<Ret (*)(Params...)>
+struct is_fn_noexcept_impl<Ret (*)(Params...)>
 { static constexpr bool value = false; };
 
 template<typename Ret, typename ...Params>
-struct is_fn_noexcept<Ret (*)(Params...) noexcept>
+struct is_fn_noexcept_impl<Ret (*)(Params...) noexcept>
 { static constexpr bool value = true; };
 
-#define _is_fn_noexcept(b, fn_suffix)                     \
-template<typename Ret, typename Base, typename ...Params> \
-struct is_fn_noexcept<Ret (Base::*)(Params...) fn_suffix> \
+#define _is_fn_noexcept(b, fn_suffix)                          \
+template<typename Ret, typename Base, typename ...Params>      \
+struct is_fn_noexcept_impl<Ret (Base::*)(Params...) fn_suffix> \
 { static constexpr bool value = b; };
 
 _is_fn_noexcept(false, )
@@ -504,12 +508,17 @@ _is_fn_noexcept(true, const && noexcept)
 
 #undef _is_fn_noexcept
 
+} // namespace internal
+
+template<typename Fn>
+constexpr bool is_fn_noexcept = internal::is_fn_noexcept_impl<Fn>::value;
+
+
+namespace internal
+{
 
 template<typename>
 struct fn_param_types_impl;
-
-template<typename Fn>
-using fn_param_types = typename fn_param_types_impl<Fn>::type;
 
 template<typename Ret, typename ...Params>
 struct fn_param_types_impl<Ret(Params...)>
@@ -526,6 +535,11 @@ struct fn_param_types_impl<Ret (*)(Params...)>
 template<typename Ret, typename ...Params>
 struct fn_param_types_impl<Ret (*)(Params...) noexcept>
 { using type = type_pack<Params...>; };
+
+} // namespace internal
+
+template<typename Fn>
+using fn_param_types = typename internal::fn_param_types_impl<Fn>::type;
 
 
 namespace internal
