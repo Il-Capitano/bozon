@@ -5,7 +5,7 @@
 // ---------------------- expression parsing ----------------------
 // ================================================================
 
-lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos end)
+static lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos end)
 {
 	auto const begin = stream;
 	size_t paren_level = 1;
@@ -35,9 +35,9 @@ lex::token_range get_paren_matched_range(lex::token_pos &stream, lex::token_pos 
 		|| (stream - 1)->kind == lex::token::curly_close
 	);
 	return { begin, stream - 1 };
-};
+}
 
-lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::token_pos end)
+static lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::token_pos end)
 {
 	size_t paren_level = 0;
 	for (auto it = begin; it != end; ++it)
@@ -388,7 +388,7 @@ static ast::expression parse_primary_expression(
 			return ast::expression({ stream, stream, stream + 1 });
 		}
 	}
-};
+}
 
 static ast::expression parse_expression_helper(
 	ast::expression lhs,
@@ -803,8 +803,9 @@ static void resolve_helper(
 )
 {
 	bz_assert(context.scope_decls.size() == 0);
-	if (func_body.body.has_value())
+	if (func_body.body.not_null())
 	{
+		bz_assert(func_body.body.is<bz::vector<ast::statement>>());
 		if (func_body.not_symbol_resolved())
 		{
 			for (auto &p : func_body.params)
@@ -841,7 +842,7 @@ static void resolve_helper(
 			}()));
 		}
 
-		for (auto &stmt : *func_body.body)
+		for (auto &stmt : func_body.get_statements())
 		{
 			resolve(stmt, context);
 		}
@@ -890,7 +891,7 @@ static bool check_attribute(
 			if (atr.name->value == "extern")
 			{
 				auto &func_body = func_decl.body;
-				if (func_body.body.has_value())
+				if (func_body.body.not_null())
 				{
 					context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
 					return true;
@@ -921,7 +922,7 @@ static bool check_attribute(
 			if (atr.name->value == "extern")
 			{
 				auto &func_body = op_decl.body;
-				if (func_body.body.has_value())
+				if (func_body.body.not_null())
 				{
 					context.report_error(atr.name, "a functions marked as 'extern' can't have a definition");
 					return true;

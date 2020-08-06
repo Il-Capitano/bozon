@@ -109,7 +109,6 @@ static ast::expression get_built_in_unary_plus(
 )
 {
 	bz_assert(op->kind == lex::token::plus);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
@@ -160,7 +159,6 @@ static ast::expression get_built_in_unary_minus(
 )
 {
 	bz_assert(op->kind == lex::token::minus);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
@@ -360,7 +358,6 @@ static ast::expression get_built_in_unary_dereference(
 )
 {
 	bz_assert(op->kind == lex::token::dereference);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
@@ -405,7 +402,6 @@ static ast::expression get_built_in_unary_bit_not(
 )
 {
 	bz_assert(op->kind == lex::token::bit_not);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
@@ -492,7 +488,6 @@ static ast::expression get_built_in_unary_bool_not(
 )
 {
 	bz_assert(op->kind == lex::token::bool_not);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
@@ -556,7 +551,6 @@ static ast::expression get_built_in_unary_plus_plus_minus_minus(
 )
 {
 	bz_assert(op->kind == lex::token::plus_plus || op->kind == lex::token::minus_minus);
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [type, type_kind] = expr.get_expr_type_and_kind();
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
@@ -849,8 +843,6 @@ static ast::expression get_built_in_binary_assign(
 )
 {
 	bz_assert(op->kind == lex::token::assign);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -974,8 +966,6 @@ static ast::expression get_built_in_binary_plus(
 )
 {
 	bz_assert(op->kind == lex::token::plus);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -1277,8 +1267,6 @@ static ast::expression get_built_in_binary_minus(
 )
 {
 	bz_assert(op->kind == lex::token::minus);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -1562,8 +1550,6 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 )
 {
 	bz_assert(op->kind == lex::token::plus_eq || op->kind == lex::token::minus_eq);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -1686,8 +1672,6 @@ static ast::expression get_built_in_binary_multiply_divide(
 )
 {
 	bz_assert(op->kind == lex::token::multiply || op->kind == lex::token::divide);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -1917,8 +1901,6 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 )
 {
 	bz_assert(op->kind == lex::token::multiply_eq || op->kind == lex::token::divide_eq);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2052,8 +2034,6 @@ static ast::expression get_built_in_binary_modulo(
 )
 {
 	bz_assert(op->kind == lex::token::modulo);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2212,8 +2192,6 @@ static ast::expression get_built_in_binary_modulo_eq(
 )
 {
 	bz_assert(op->kind == lex::token::modulo_eq);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2321,8 +2299,6 @@ static ast::expression get_built_in_binary_equals_not_equals(
 )
 {
 	bz_assert(op->kind == lex::token::equals || op->kind == lex::token::not_equals);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2679,8 +2655,6 @@ static ast::expression get_built_in_binary_compare(
 		|| op->kind == lex::token::greater_than
 		|| op->kind == lex::token::greater_than_eq
 	);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2947,8 +2921,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 		|| op->kind == lex::token::bit_xor
 		|| op->kind == lex::token::bit_or
 	);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -3082,8 +3054,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 		|| op->kind == lex::token::bit_xor_eq
 		|| op->kind == lex::token::bit_or_eq
 	);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -3156,8 +3126,6 @@ static ast::expression get_built_in_binary_bit_shift(
 )
 {
 	bz_assert(op->kind == lex::token::bit_left_shift || op->kind == lex::token::bit_right_shift);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -3271,8 +3239,6 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 )
 {
 	bz_assert(op->kind == lex::token::bit_left_shift_eq || op->kind == lex::token::bit_right_shift_eq);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -3374,8 +3340,6 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 		|| op->kind == lex::token::bool_xor
 		|| op->kind == lex::token::bool_or
 	);
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -3543,7 +3507,6 @@ ast::expression make_built_in_cast(
 	parse_context &context
 )
 {
-	bz_assert(!expr.is<ast::tuple_expression>());
 	bz_assert(expr.not_null());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(expr_type);

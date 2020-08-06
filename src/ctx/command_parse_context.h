@@ -28,6 +28,12 @@ struct command_parse_context
 		bz_assert(result < std::numeric_limits<uint32_t>::max());
 		return static_cast<uint32_t>(result);
 	}
+
+	bz::u8string_view get_arg_value(uint32_t index)
+	{
+		bz_assert(index > 0 && index - 1 < this->args.size());
+		return this->args[index - 1];
+	}
 };
 
 } // namespace ctx

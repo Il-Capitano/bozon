@@ -618,6 +618,7 @@ function static_assert_test() -> void
 	static_assert(typeof int64_max != consteval int64);
 
 	static_assert(typeof static_assert_test() == void);
+	static_assert(consteval [10: int32] == consteval [10: int32]);
 }
 
 function array_test() -> void
@@ -660,6 +661,10 @@ function array_test() -> void
 	}
 	println("====");
 	print_matrix(multi_d_array);
+
+//	consteval T = int32;
+
+//	let arr: [10: consteval int32];
 }
 
 function print_matrix(arr: [4, 4: float64]) -> void
@@ -673,6 +678,14 @@ function print_matrix(arr: [4, 4: float64]) -> void
 		}
 		print("]\n");
 	}
+}
+
+function circle1() -> typeof circle2()
+{
+}
+
+function circle2() -> typeof circle1()
+{
 }
 
 // function square_consteval(n: consteval int32) -> int32 { return n * n; }

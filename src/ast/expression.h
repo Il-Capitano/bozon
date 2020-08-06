@@ -16,22 +16,27 @@ struct expression;
 
 declare_node_type(expr_identifier);
 declare_node_type(expr_literal);
+declare_node_type(expr_tuple);
 declare_node_type(expr_unary_op);
 declare_node_type(expr_binary_op);
 declare_node_type(expr_subscript);
 declare_node_type(expr_function_call);
 declare_node_type(expr_cast);
+declare_node_type(expr_compound);
+declare_node_type(expr_if);
 
 #undef declare_node_type
 
 using expr_t = node<
 	expr_identifier,
 	expr_literal,
+	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
 	expr_subscript,
 	expr_function_call,
-	expr_cast
+	expr_cast,
+	expr_compound
 >;
 
 enum class expression_type_kind
@@ -42,6 +47,8 @@ enum class expression_type_kind
 	rvalue_reference,
 	function_name,
 	type_name,
+	tuple,
+	none,
 };
 
 struct unresolved_expression
@@ -66,25 +73,16 @@ struct dynamic_expression
 	declare_default_5(dynamic_expression)
 };
 
-struct tuple_expression
-{
-	bz::vector<expression> elems;
-
-	declare_default_5(tuple_expression)
-};
-
 struct expression : bz::variant<
 	unresolved_expression,
 	constant_expression,
-	dynamic_expression,
-	tuple_expression
+	dynamic_expression
 >
 {
 	using base_t = bz::variant<
 		unresolved_expression,
 		constant_expression,
-		dynamic_expression,
-		tuple_expression
+		dynamic_expression
 	>;
 
 	using base_t::get;
@@ -144,7 +142,7 @@ struct expression : bz::variant<
 		return this->get<constant_expression>().value.get<constant_value::type>();
 	}
 
-	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const
+	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const noexcept
 	{
 		switch (this->kind())
 		{
@@ -158,15 +156,13 @@ struct expression : bz::variant<
 			auto &dyn_expr = this->get<ast::dynamic_expression>();
 			return { dyn_expr.type, dyn_expr.kind };
 		}
-
-		case ast::expression::index_of<ast::tuple_expression>:
-			bz_assert(false);
 		default:
+			bz_assert(false);
 			return { ast::typespec(), static_cast<ast::expression_type_kind>(0) };
 		}
 	}
 
-	std::pair<typespec &, expression_type_kind> get_expr_type_and_kind(void)
+	std::pair<typespec &, expression_type_kind> get_expr_type_and_kind(void) noexcept
 	{
 		switch (this->kind())
 		{
@@ -180,14 +176,49 @@ struct expression : bz::variant<
 			auto &dyn_expr = this->get<ast::dynamic_expression>();
 			return { dyn_expr.type, dyn_expr.kind };
 		}
-
-		case ast::expression::index_of<ast::tuple_expression>:
 		default:
 		{
 			bz_assert(false);
 			auto t = ast::typespec();
 			return { t, static_cast<expression_type_kind>(0) };
 		}
+		}
+	}
+
+	bool is_constant_or_dynamic(void) const noexcept
+	{
+		return this->is<constant_expression>() || this->is<dynamic_expression>();
+	}
+
+	bool is_none(void) const noexcept
+	{
+		return this->is_constant_or_dynamic()
+			&& this->get_expr_type_and_kind().second == expression_type_kind::none;
+	}
+
+	expr_t &get_expr(void)
+	{
+		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr;
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr;
+		}
+	}
+
+	expr_t const &get_expr(void) const
+	{
+		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr;
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr;
 		}
 	}
 };
@@ -226,6 +257,17 @@ struct expr_literal
 
 	expr_literal(lex::token_pos it)
 		: tokens{ it, it + 1 }
+	{}
+};
+
+struct expr_tuple
+{
+	bz::vector<expression> elems;
+
+	declare_default_5(expr_tuple)
+
+	expr_tuple(bz::vector<expression> _elems)
+		: elems(std::move(_elems))
 	{}
 };
 
@@ -318,6 +360,40 @@ struct expr_cast
 	{}
 };
 
+struct statement;
+
+struct expr_compound
+{
+	bz::vector<statement> statements;
+	expression            final_expr;
+
+	declare_default_5(expr_compound)
+
+	expr_compound(
+		bz::vector<statement> _statements,
+		expression            _final_expr
+	);
+};
+
+struct expr_if
+{
+	expression condition;
+	expression if_block;
+	expression else_block;
+
+	declare_default_5(expr_if)
+
+	expr_if(
+		expression _condition,
+		expression _if_block,
+		expression _else_block
+	)
+		: condition (std::move(_condition)),
+		  if_block  (std::move(_if_block)),
+		  else_block(std::move(_else_block))
+	{}
+};
+
 
 inline expression make_unresolved_expression(lex::src_tokens tokens)
 { return expression(tokens, unresolved_expression()); }
@@ -330,40 +406,24 @@ template<typename ...Args>
 expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
 
-template<typename ...Args>
-expression make_tuple_expression(lex::src_tokens tokens, Args &&...args)
-{ return expression(tokens, tuple_expression{ std::forward<Args>(args)... }); }
 
+#define def_make_fn(ret_type, node_type)                                       \
+template<typename ...Args>                                                     \
+ret_type make_ ## node_type (Args &&...args)                                   \
+{ return ret_type(std::make_unique<node_type>(std::forward<Args>(args)...)); }
 
-template<typename ...Args>
-expr_t make_expr_identifier(Args &&...args)
-{ return expr_t(std::make_unique<expr_identifier>(std::forward<Args>(args)...)); }
+def_make_fn(expr_t, expr_identifier)
+def_make_fn(expr_t, expr_literal)
+def_make_fn(expr_t, expr_tuple)
+def_make_fn(expr_t, expr_unary_op)
+def_make_fn(expr_t, expr_binary_op)
+def_make_fn(expr_t, expr_subscript)
+def_make_fn(expr_t, expr_function_call)
+def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_compound)
+def_make_fn(expr_t, expr_if)
 
-template<typename ...Args>
-expr_t make_expr_literal(Args &&...args)
-{ return expr_t(std::make_unique<expr_literal>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_unary_op(Args &&...args)
-{ return expr_t(std::make_unique<expr_unary_op>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_binary_op(Args &&...args)
-{ return expr_t(std::make_unique<expr_binary_op>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_subscript(Args &&...args)
-{ return expr_t(std::make_unique<expr_subscript>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_function_call(Args &&...args)
-{ return expr_t(std::make_unique<expr_function_call>(std::forward<Args>(args)...)); }
-
-template<typename ...Args>
-expr_t make_expr_cast(Args &&...args)
-{ return expr_t(std::make_unique<expr_cast>(std::forward<Args>(args)...)); }
-
-
+#undef def_make_fn
 
 } // namespace ast
 

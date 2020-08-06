@@ -1576,6 +1576,17 @@ static val_ptr emit_bitcode(
 	case ast::constant_value::string:
 	{
 		auto const str = const_expr.value.get<ast::constant_value::string>().as_string_view();
+		auto const str_t = llvm::dyn_cast<llvm::StructType>(type);
+		bz_assert(str_t != nullptr);
+
+		// if the string is empty, we make a zero initialized string, so
+		// structs with a default value of "" get to be zero initialized
+		if (str == "")
+		{
+			result.consteval_val = llvm::ConstantStruct::getNullValue(str_t);
+			break;
+		}
+
 		auto const string_ref = llvm::StringRef(str.data(), str.size());
 		auto const string_constant = context.builder.CreateGlobalString(string_ref);
 
@@ -1586,9 +1597,6 @@ static val_ptr emit_bitcode(
 		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.length());
 		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
 		bz_assert(const_end_ptr != nullptr);
-
-		auto const str_t = llvm::dyn_cast<llvm::StructType>(type);
-		bz_assert(str_t != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
 		result.consteval_val = llvm::ConstantStruct::get(str_t, elems);
@@ -1673,7 +1681,6 @@ static val_ptr emit_bitcode(
 	case ast::expression::index_of<ast::dynamic_expression>:
 		return emit_bitcode(expr.get<ast::dynamic_expression>(), context);
 
-	case ast::expression::index_of<ast::tuple_expression>:
 	default:
 		bz_assert(false);
 		return {};
@@ -2160,7 +2167,7 @@ void emit_function_bitcode(
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
 
-	bz_assert(func_body.body.has_value());
+	bz_assert(func_body.body.is<bz::vector<ast::statement>>());
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 	// alloca's for function paraementers
@@ -2186,7 +2193,7 @@ void emit_function_bitcode(
 		}
 	}
 	// alloca's for statements
-	for (auto &stmt : *func_body.body)
+	for (auto &stmt : func_body.get_statements())
 	{
 		emit_alloca(stmt, context);
 	}
@@ -2210,7 +2217,7 @@ void emit_function_bitcode(
 	}
 
 	// code emission for statements
-	for (auto &stmt : *func_body.body)
+	for (auto &stmt : func_body.get_statements())
 	{
 		emit_bitcode(stmt, context);
 	}
@@ -2226,10 +2233,14 @@ void emit_function_bitcode(
 	// true means it failed
 	if (llvm::verifyFunction(*fn) == true)
 	{
+		auto const fn_name = bz::u8string_view(
+			fn->getName().data(),
+			fn->getName().data() + fn->getName().size()
+		);
 		bz::print(
 			"{}verifyFunction failed on {}!!!\n{}",
 			colors::bright_red,
-			bz::u8string_view(fn->getName().data(), fn->getName().data() + fn->getName().size()),
+			ast::function_body::decode_symbol_name(fn_name),
 			colors::clear
 		);
 	}

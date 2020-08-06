@@ -72,6 +72,7 @@ static lex::token_range get_expression_or_type_tokens(
 	ctx::first_pass_parse_context &context
 )
 {
+	bz_assert(stream != end);
 	auto begin = stream;
 
 	auto is_valid_expr_token = [&]()
@@ -427,14 +428,12 @@ static ast::statement parse_return_statement(
 )
 {
 	bz_assert(stream->kind == lex::token::kw_return);
-	auto const begin_token = stream;
 	++stream; // 'return'
 
 	auto expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, context);
 	context.assert_token(stream, lex::token::semi_colon);
 
 	return ast::make_stmt_return(
-		lex::token_range{ begin_token, stream },
 		expr.begin == expr.end
 			? ast::expression({ expr.begin, expr.begin, expr.end})
 			: ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end })
@@ -447,9 +446,8 @@ static ast::statement parse_no_op_statement(
 )
 {
 	bz_assert(stream->kind == lex::token::semi_colon);
-	auto const begin_token = stream;
 	++stream; // ';'
-	return ast::make_stmt_no_op(lex::token_range{ begin_token, stream });
+	return ast::make_stmt_no_op();
 }
 
 static ast::statement parse_compound_statement(
@@ -490,7 +488,6 @@ static ast::statement parse_expression_statement(
 )
 {
 	bz_assert(stream != end);
-	auto const begin_token = stream;
 	auto const expr = get_expression_or_type_tokens<lex::token::semi_colon>(stream, end, context);
 	if (expr.begin == expr.end) // && stream->kind != lex::token::semi_colon (should always be true)
 	{
@@ -508,7 +505,6 @@ static ast::statement parse_expression_statement(
 	context.assert_token(stream, lex::token::semi_colon);
 
 	return ast::make_stmt_expression(
-		lex::token_range{ begin_token, stream },
 		ast::make_unresolved_expression({ expr.begin, expr.begin, expr.end })
 	);
 }
@@ -877,7 +873,7 @@ static ast::statement parse_statement_with_attribute(
 		}
 	}
 
-	constexpr auto parse_fn = is_top_level ? parse_top_level_statement : parse_statement;
+	constexpr auto parse_fn = is_top_level ? &parse_top_level_statement : &parse_statement;
 	auto stmt = parse_fn(stream, end, context);
 	stmt.set_attributes(std::move(attributes));
 	return stmt;

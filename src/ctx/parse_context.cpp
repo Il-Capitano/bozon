@@ -1360,7 +1360,6 @@ static int get_type_match_level(
 {
 	int result = 0;
 
-	bz_assert(!expr.is<ast::tuple_expression>());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 
 	auto dest_it = ast::remove_const_or_consteval(dest);
@@ -1801,7 +1800,6 @@ ast::expression parse_context::make_unary_operator_expression(
 	ast::expression expr
 )
 {
-	bz_assert(!expr.is<ast::tuple_expression>());
 	if (expr.is_null())
 	{
 		bz_assert(this->has_errors());
@@ -1926,8 +1924,6 @@ ast::expression parse_context::make_binary_operator_expression(
 	ast::expression rhs
 )
 {
-	bz_assert(!lhs.is<ast::tuple_expression>());
-	bz_assert(!rhs.is<ast::tuple_expression>());
 	if (lhs.is_null() || rhs.is_null())
 	{
 		bz_assert(this->has_errors());
@@ -2092,15 +2088,6 @@ ast::expression parse_context::make_function_call_expression(
 	bz::vector<ast::expression> params
 )
 {
-	if (called.is<ast::tuple_expression>())
-	{
-		this->report_error(
-			src_tokens,
-			"undeclared function call operator with types '...' (not yet implemented)"
-		);
-		return ast::expression(src_tokens);
-	}
-
 	if (called.is_null())
 	{
 		bz_assert(this->has_errors());
@@ -2271,12 +2258,6 @@ ast::expression parse_context::make_cast_expression(
 	ast::typespec type
 )
 {
-	if (expr.is<ast::tuple_expression>())
-	{
-		this->report_error(src_tokens, "invalid cast");
-		return ast::expression(src_tokens);
-	}
-
 	if (expr.is_null() || type.is_empty())
 	{
 		bz_assert(this->has_errors());
@@ -2303,7 +2284,6 @@ void parse_context::match_expression_to_type(
 	ast::typespec &dest_type
 )
 {
-	bz_assert(!expr.is<ast::tuple_expression>());
 	if (expr.is_null() || dest_type.is_empty())
 	{
 		bz_assert(this->has_errors());
@@ -2563,44 +2543,6 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 
 ast::type_info *parse_context::get_base_type_info(uint32_t kind) const
 { return this->global_ctx.get_base_type_info(kind); }
-
-ast::typespec parse_context::get_type(bz::u8string_view id) const
-{
-	for (
-		auto scope = this->scope_decls.rbegin();
-		scope != this->scope_decls.rend();
-		++scope
-	)
-	{
-		auto const it = std::find_if(
-			scope->types.rbegin(), scope->types.rend(),
-			[id](auto const &info) {
-				return id == info.id;
-			}
-		);
-		if (it != scope->types.rend())
-		{
-			return it->ts;
-		}
-	}
-
-	auto &export_decls = this->global_ctx._export_decls;
-	auto const global_it = std::find_if(
-		export_decls.types.begin(), export_decls.types.end(),
-		[id](auto const &info) {
-			return id == info.id;
-		}
-	);
-
-	if (global_it != export_decls.types.end())
-	{
-		return global_it->ts;
-	}
-	else
-	{
-		return ast::typespec();
-	}
-}
 
 llvm::Function *parse_context::make_llvm_func_for_symbol(ast::function_body &func_body, bz::u8string_view id) const
 {

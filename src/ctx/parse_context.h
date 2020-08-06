@@ -18,8 +18,15 @@ struct global_context;
 
 struct parse_context
 {
+	struct resolve_queue_t
+	{
+		lex::src_tokens requester;
+		bz::variant<ast::function_body *> requested;
+	};
+
 	global_context &global_ctx;
 	bz::vector<decl_set> scope_decls;
+	bz::vector<resolve_queue_t> resolve_queue;
 
 	int parenthesis_suppressed_value = 0;
 	mutable bool _has_errors = false;
@@ -245,7 +252,11 @@ struct parse_context
 	bool is_implicitly_convertible(ast::expression const &from, ast::typespec const &to);
 	bool is_explicitly_convertible(ast::expression const &from, ast::typespec const &to);
 
-	ast::typespec get_type(bz::u8string_view id) const;
+	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
+	{ this->resolve_queue.emplace_back(tokens, &func_body); }
+
+	void pop_resolve_queue(void)
+	{ this->resolve_queue.pop_back(); }
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
 

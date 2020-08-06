@@ -195,7 +195,7 @@ constexpr auto token_info = []() {
 
 	result[lex::token::paren_open]    = { lex::token::paren_open,    "(", "", overloadable_flags };
 	result[lex::token::paren_close]   = { lex::token::paren_close,   ")", "", expr_type_flags    };
-	result[lex::token::curly_open]    = { lex::token::curly_open,    "{", "", 0                  };
+	result[lex::token::curly_open]    = { lex::token::curly_open,    "{", "", expr_type_flags    };
 	result[lex::token::curly_close]   = { lex::token::curly_close,   "}", "", 0                  };
 	result[lex::token::square_open]   = { lex::token::square_open,   "[", "", overloadable_flags };
 	result[lex::token::square_close]  = { lex::token::square_close,  "]", "", expr_type_flags    };

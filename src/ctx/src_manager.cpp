@@ -26,19 +26,24 @@ namespace ctx
 		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
-
-	if (display_help)
+	if (!good)
 	{
-		cl::display_help_screen();
-		compile_until = compilation_phase::parse_command_line;
+		return false;
 	}
-	else if (display_version)
+	else
 	{
-		cl::print_version_info();
-		compile_until = compilation_phase::parse_command_line;
+		if (display_help)
+		{
+			cl::display_help_screen();
+			compile_until = compilation_phase::parse_command_line;
+		}
+		else if (display_version)
+		{
+			cl::print_version_info();
+			compile_until = compilation_phase::parse_command_line;
+		}
+		return true;
 	}
-
-	return good;
 }
 
 [[nodiscard]] bool src_manager::tokenize(void)
@@ -167,14 +172,14 @@ namespace ctx
 	}
 	for (auto const func_decl : this->_global_ctx._compile_decls.func_decls)
 	{
-		if (func_decl->body.body.has_value())
+		if (func_decl->body.body.not_null())
 		{
 			bc::emit_function_bitcode(func_decl->body, context);
 		}
 	}
 	for (auto const op_decl : this->_global_ctx._compile_decls.op_decls)
 	{
-		if (op_decl->body.body.has_value())
+		if (op_decl->body.body.not_null())
 		{
 			bc::emit_function_bitcode(op_decl->body, context);
 		}

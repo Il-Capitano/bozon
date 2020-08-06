@@ -25,7 +25,9 @@ struct attribute
 enum class resolve_state : uint8_t
 {
 	none,
+	resolving_symbol,
 	symbol,
+	resolving_all,
 	all,
 };
 
@@ -198,25 +200,18 @@ struct stmt_for
 
 struct stmt_return
 {
-	lex::token_range tokens;
-	expression       expr;
+	expression expr;
 
 	declare_default_5(stmt_return)
 
-	stmt_return(lex::token_range _tokens, expression _expr)
-		: tokens(_tokens), expr(std::move(_expr))
+	stmt_return(expression _expr)
+		: expr(std::move(_expr))
 	{}
 };
 
 struct stmt_no_op
 {
-	lex::token_range tokens;
-
 	declare_default_5(stmt_no_op)
-
-	stmt_no_op(lex::token_range _tokens)
-		: tokens(_tokens)
-	{}
 };
 
 struct stmt_compound
@@ -237,13 +232,12 @@ struct stmt_compound
 
 struct stmt_expression
 {
-	lex::token_range tokens;
-	expression       expr;
+	expression expr;
 
 	declare_default_5(stmt_expression)
 
-	stmt_expression(lex::token_range _tokens, expression _expr)
-		: tokens(_tokens), expr(std::move(_expr))
+	stmt_expression(expression _expr)
+		: expr(std::move(_expr))
 	{}
 };
 
@@ -320,12 +314,15 @@ struct decl_variable
 
 struct function_body
 {
-	bz::vector<decl_variable>           params;
-	typespec                            return_type;
-	bz::optional<bz::vector<statement>> body;
-	bz::u8string                        function_name;
-	bz::u8string                        symbol_name;
-	llvm::Function                     *llvm_func;
+	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
+
+	bz::vector<decl_variable> params;
+	typespec                  return_type;
+	body_t                    body;
+	bz::u8string              function_name;
+	bz::u8string              symbol_name;
+	llvm::Function           *llvm_func;
+	resolve_state             state = resolve_state::none;
 
 	declare_default_5(function_body)
 
@@ -334,6 +331,18 @@ struct function_body
 
 	bool not_symbol_resolved(void) const noexcept
 	{ return this->llvm_func == nullptr; }
+
+	bz::vector<statement> &get_statements(void) noexcept
+	{
+		bz_assert(this->body.is<bz::vector<ast::statement>>());
+		return this->body.get<bz::vector<ast::statement>>();
+	}
+
+	bz::vector<statement> const &get_statements(void) const noexcept
+	{
+		bz_assert(this->body.is<bz::vector<ast::statement>>());
+		return this->body.get<bz::vector<ast::statement>>();
+	}
 
 	bz::u8string get_symbol_name(void) const;
 	static bz::u8string decode_symbol_name(
@@ -367,7 +376,8 @@ struct decl_function
 			  {},
 			  _id->value,
 			  "",
-			  nullptr
+			  nullptr,
+			  resolve_state::none,
 		  }
 	{}
 
@@ -384,8 +394,17 @@ struct decl_function
 			  std::move(_body),
 			  _id->value,
 			  "",
-			  nullptr
+			  nullptr,
+			  resolve_state::none,
 		  }
+	{}
+
+	decl_function(
+		lex::token_pos _id,
+		function_body  _body
+	)
+		: identifier(_id),
+		  body      (std::move(_body))
 	{}
 };
 
@@ -409,7 +428,8 @@ struct decl_operator
 			  std::move(_body),
 			  bz::format("{}", _op->kind),
 			  "",
-			  nullptr
+			  nullptr,
+			  resolve_state::none,
 		  }
 	{}
 
@@ -425,8 +445,17 @@ struct decl_operator
 			  {},
 			  bz::format("{}", _op->kind),
 			  "",
-			  nullptr
+			  nullptr,
+			  resolve_state::none,
 		  }
+	{}
+
+	decl_operator(
+		lex::token_pos _op,
+		function_body  _body
+	)
+		: op  (_op),
+		  body(std::move(_body))
 	{}
 };
 
