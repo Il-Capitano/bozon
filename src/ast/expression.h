@@ -36,7 +36,8 @@ using expr_t = node<
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
-	expr_compound
+	expr_compound,
+	expr_if
 >;
 
 enum class expression_type_kind
@@ -50,6 +51,19 @@ enum class expression_type_kind
 	tuple,
 	none,
 };
+
+
+constexpr bool is_lvalue(expression_type_kind kind)
+{
+	return kind == expression_type_kind::lvalue
+		|| kind == expression_type_kind::lvalue_reference;
+}
+
+constexpr bool is_rvalue(expression_type_kind kind)
+{
+	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::rvalue_reference;
+}
 
 struct unresolved_expression
 {};
@@ -391,6 +405,15 @@ struct expr_if
 		: condition (std::move(_condition)),
 		  if_block  (std::move(_if_block)),
 		  else_block(std::move(_else_block))
+	{}
+
+	expr_if(
+		expression _condition,
+		expression _if_block
+	)
+		: condition (std::move(_condition)),
+		  if_block  (std::move(_if_block)),
+		  else_block()
 	{}
 };
 

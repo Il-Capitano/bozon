@@ -1695,7 +1695,7 @@ static void emit_bitcode(
 	ast::statement const &stmt,
 	ctx::bitcode_context &context
 );
-
+/*
 static void emit_bitcode(
 	ast::stmt_if const &if_stmt,
 	ctx::bitcode_context &context
@@ -1750,7 +1750,7 @@ static void emit_bitcode(
 
 	context.builder.SetInsertPoint(end_bb);
 }
-
+*/
 static void emit_bitcode(
 	ast::stmt_while const &while_stmt,
 	ctx::bitcode_context &context
@@ -1844,6 +1844,7 @@ static void emit_bitcode(
 	return;
 }
 
+/*
 static void emit_bitcode(
 	ast::stmt_compound const &comp_stmt,
 	ctx::bitcode_context &context
@@ -1854,6 +1855,7 @@ static void emit_bitcode(
 		emit_bitcode(stmt, context);
 	}
 }
+*/
 
 static void emit_bitcode(
 	ast::stmt_expression const &expr_stmt,
@@ -1911,17 +1913,6 @@ static void emit_alloca(
 {
 	switch (stmt.kind())
 	{
-	case ast::statement::index<ast::stmt_if>:
-	{
-		auto &if_stmt = *stmt.get<ast::stmt_if_ptr>();
-		emit_alloca(if_stmt.condition, context);
-		emit_alloca(if_stmt.then_block, context);
-		if (if_stmt.else_block.has_value())
-		{
-			emit_alloca(*if_stmt.else_block, context);
-		}
-		break;
-	}
 	case ast::statement::index<ast::stmt_while>:
 	{
 		auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
@@ -1943,15 +1934,6 @@ static void emit_alloca(
 		break;
 	case ast::statement::index<ast::stmt_no_op>:
 		break;
-	case ast::statement::index<ast::stmt_compound>:
-	{
-		auto &comp_stmt = *stmt.get<ast::stmt_compound_ptr>();
-		for (auto &s : comp_stmt.statements)
-		{
-			emit_alloca(s, context);
-		}
-		break;
-	}
 	case ast::statement::index<ast::stmt_expression>:
 		emit_alloca(stmt.get<ast::stmt_expression_ptr>()->expr, context);
 		break;
@@ -1989,9 +1971,6 @@ static void emit_bitcode(
 
 	switch (stmt.kind())
 	{
-	case ast::statement::index<ast::stmt_if>:
-		emit_bitcode(*stmt.get<ast::stmt_if_ptr>(), context);
-		break;
 	case ast::statement::index<ast::stmt_while>:
 		emit_bitcode(*stmt.get<ast::stmt_while_ptr>(), context);
 		break;
@@ -2003,9 +1982,6 @@ static void emit_bitcode(
 		break;
 	case ast::statement::index<ast::stmt_no_op>:
 		emit_bitcode(*stmt.get<ast::stmt_no_op_ptr>(), context);
-		break;
-	case ast::statement::index<ast::stmt_compound>:
-		emit_bitcode(*stmt.get<ast::stmt_compound_ptr>(), context);
 		break;
 	case ast::statement::index<ast::stmt_expression>:
 		emit_bitcode(*stmt.get<ast::stmt_expression_ptr>(), context);

@@ -34,12 +34,10 @@ enum class resolve_state : int8_t
 
 #define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
 
-declare_node_type(stmt_if);
 declare_node_type(stmt_while);
 declare_node_type(stmt_for);
 declare_node_type(stmt_return);
 declare_node_type(stmt_no_op);
-declare_node_type(stmt_compound);
 declare_node_type(stmt_static_assert);
 declare_node_type(stmt_expression);
 
@@ -51,12 +49,10 @@ declare_node_type(decl_struct);
 #undef declare_node_type
 
 using statement_types = bz::meta::type_pack<
-	stmt_if,
 	stmt_while,
 	stmt_for,
 	stmt_return,
 	stmt_no_op,
-	stmt_compound,
 	stmt_static_assert,
 	stmt_expression,
 	decl_variable,
@@ -126,38 +122,6 @@ struct statement : statement_node_t
 };
 
 
-struct stmt_if
-{
-	lex::token_range        tokens;
-	expression              condition;
-	statement               then_block;
-	bz::optional<statement> else_block;
-
-	declare_default_5(stmt_if)
-
-	stmt_if(
-		lex::token_range _tokens,
-		expression       _condition,
-		statement        _then_block
-	)
-		: tokens    (_tokens),
-		  condition (std::move(_condition)),
-		  then_block(std::move(_then_block))
-	{}
-
-	stmt_if(
-		lex::token_range _tokens,
-		expression       _condition,
-		statement        _then_block,
-		statement        _else_block
-	)
-		: tokens    (_tokens),
-		  condition (std::move(_condition)),
-		  then_block(std::move(_then_block)),
-		  else_block(std::move(_else_block))
-	{}
-};
-
 struct stmt_while
 {
 	lex::token_range tokens;
@@ -213,22 +177,6 @@ struct stmt_return
 struct stmt_no_op
 {
 	declare_default_5(stmt_no_op)
-};
-
-struct stmt_compound
-{
-	lex::token_range      tokens;
-	bz::vector<statement> statements;
-
-	declare_default_5(stmt_compound)
-
-	stmt_compound(lex::token_range _tokens)
-		: tokens(_tokens)
-	{}
-
-	stmt_compound(lex::token_range _tokens, bz::vector<statement> _stms)
-		: tokens(_tokens), statements(std::move(_stms))
-	{}
 };
 
 struct stmt_expression
@@ -612,12 +560,10 @@ def_make_fn(statement, decl_function)
 def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_struct)
 
-def_make_fn(statement, stmt_if)
 def_make_fn(statement, stmt_while)
 def_make_fn(statement, stmt_for)
 def_make_fn(statement, stmt_return)
 def_make_fn(statement, stmt_no_op)
-def_make_fn(statement, stmt_compound)
 def_make_fn(statement, stmt_expression)
 def_make_fn(statement, stmt_static_assert)
 

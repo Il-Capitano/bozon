@@ -5,6 +5,97 @@
 namespace parse
 {
 
+ast::expression parse_expression_without_semi_colon(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	switch (stream->kind)
+	{
+	// top level compound expression
+	case lex::token::curly_open:
+		return parse_compound_expression(stream, end, context);
+	// top level if expression
+	case lex::token::kw_if:
+		return parse_if_expression(stream, end, context);
+	default:
+		return parse_expression(stream, end, context, precedence{}, true);
+	}
+}
+
+void consume_semi_colon_at_end_of_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	ast::expression const &expression
+)
+{
+	if (!expression.is_constant_or_dynamic())
+	{
+		context.assert_token(stream, lex::token::semi_colon);
+		return;
+	}
+
+	auto &expr = expression.get_expr();
+	expr.visit(bz::overload{
+		[&](ast::expr_compound const &compound_expr) {
+			if (compound_expr.final_expr.src_tokens.begin == nullptr)
+			{
+				return;
+			}
+
+			if (expression.src_tokens.begin->kind == lex::token::curly_open)
+			{
+				auto dummy_stream = compound_expr.final_expr.src_tokens.end;
+				consume_semi_colon_at_end_of_expression(
+					dummy_stream, end, context,
+					compound_expr.final_expr
+				);
+			}
+			else
+			{
+				auto dummy_stream = expression.src_tokens.end;
+				context.assert_token(dummy_stream, lex::token::semi_colon);
+			}
+		},
+		[&](ast::expr_if const &if_expr) {
+			if (expression.src_tokens.begin->kind == lex::token::kw_if)
+			{
+				auto if_dummy_stream = if_expr.if_block.src_tokens.end;
+				consume_semi_colon_at_end_of_expression(
+					if_dummy_stream, end, context,
+					if_expr.if_block
+				);
+				auto else_dummy_stream = if_expr.else_block.src_tokens.end;
+				if (else_dummy_stream != nullptr)
+				{
+					consume_semi_colon_at_end_of_expression(
+						if_dummy_stream, end, context,
+						if_expr.if_block
+					);
+				}
+			}
+			else
+			{
+				auto dummy_stream = expression.src_tokens.end;
+				context.assert_token(dummy_stream, lex::token::semi_colon);
+			}
+		},
+		[&](auto const &) {
+			context.assert_token(stream, lex::token::semi_colon);
+		}
+	});
+}
+
+ast::expression parse_top_level_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto const expr = parse_expression_without_semi_colon(stream, end, context);
+	consume_semi_colon_at_end_of_expression(stream, end, context, expr);
+	return expr;
+}
+
 ast::expression parse_compound_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -17,6 +108,7 @@ ast::expression parse_compound_expression(
 	bz::vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
+		bz::log("parsing at line {}, '{}'\n", stream->src_pos.line, stream->value);
 		if (!statements.empty() && statements.back().is<ast::stmt_expression>())
 		{
 			consume_semi_colon_at_end_of_expression(
@@ -98,6 +190,78 @@ ast::expression parse_compound_expression(
 		{
 			bz_assert(expr.is_null());
 			return ast::expression({ begin, begin, stream });
+		}
+	}
+}
+
+ast::expression parse_if_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_if);
+	auto const begin = stream;
+	++stream; // 'if'
+	auto condition = parse_parenthesized_condition(stream, end, context);
+	auto if_block = parse_top_level_expression(stream, end, context);
+	if (stream != end && stream->kind == lex::token::kw_else)
+	{
+		++stream; // 'else'
+		auto else_block = parse_top_level_expression(stream, end, context);
+		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
+		if (if_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
+		{
+			auto const [if_type, if_kind] = if_block.get_expr_type_and_kind();
+			auto const [else_type, else_kind] = else_block.get_expr_type_and_kind();
+			if (ast::remove_const_or_consteval(if_type) != ast::remove_const_or_consteval(else_type))
+			{
+				context.report_error(
+					src_tokens,
+					bz::format(
+						"mismatched types in if expression, '{}' and '{}'",
+						if_type, else_type
+					)
+				);
+				return ast::expression(src_tokens);
+			}
+			// TODO: this is not clean, nor right when there are rvalue references
+			auto const common_kind = std::max(if_kind, else_kind);
+			ast::typespec_view const common_type = common_kind == ast::expression_type_kind::lvalue_reference
+				? ast::typespec_view(if_type.is<ast::ts_const>() ? if_type : else_type)
+				: ast::remove_const_or_consteval(if_type);
+
+			return ast::make_dynamic_expression(
+				src_tokens,
+				common_kind, common_type,
+				ast::make_expr_if(
+					std::move(condition),
+					std::move(if_block),
+					std::move(else_block)
+				)
+			);
+		}
+		else
+		{
+			bz_assert(context.has_errors());
+			return ast::expression(src_tokens);
+		}
+	}
+	else
+	{
+		consume_semi_colon_at_end_of_expression(stream, end, context, if_block);
+		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
+		if (if_block.not_null())
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::none, ast::typespec(),
+				ast::make_expr_if(std::move(condition), std::move(if_block))
+			);
+		}
+		else
+		{
+			return ast::expression(src_tokens);
 		}
 	}
 }
@@ -392,6 +556,8 @@ static ast::expression parse_primary_expression(
 
 	case lex::token::curly_open:
 		return parse_compound_expression(stream, end, context);
+	case lex::token::kw_if:
+		return parse_if_expression(stream, end, context);
 
 	// unary operators
 	default:

@@ -641,75 +641,13 @@ ast::statement parse_stmt_no_op(
 	return ast::make_stmt_no_op();
 }
 
-ast::statement parse_stmt_expression_without_semi_colon(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-)
-{
-	switch (stream->kind)
-	{
-	// top level compound expression
-	case lex::token::curly_open:
-		return ast::make_stmt_expression(parse_compound_expression(stream, end, context));
-	// top level if expression
-	case lex::token::kw_if:
-		bz_assert(false);
-		return {};
-	default:
-		return ast::make_stmt_expression(parse_expression(stream, end, context, precedence{}, true));
-	}
-}
-
-void consume_semi_colon_at_end_of_expression(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	ast::expression const &expression
-)
-{
-	if (!expression.is_constant_or_dynamic())
-	{
-		context.assert_token(stream, lex::token::semi_colon);
-		return;
-	}
-
-	auto &expr = expression.get_expr();
-	expr.visit(bz::overload{
-		[&](ast::expr_compound const &compound_expr) {
-			if (compound_expr.final_expr.src_tokens.begin != nullptr)
-			{
-				if (compound_expr.final_expr.src_tokens.begin->kind == lex::token::curly_open)
-				{
-					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
-					consume_semi_colon_at_end_of_expression(
-						dummy_stream, end, context,
-						compound_expr.final_expr
-					);
-				}
-				else
-				{
-					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
-					context.assert_token(dummy_stream, lex::token::semi_colon);
-				}
-			}
-		},
-		[&](auto const &) {
-			context.assert_token(stream, lex::token::semi_colon);
-		}
-	});
-}
-
 ast::statement parse_stmt_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
 {
-	auto expr = parse_stmt_expression_without_semi_colon(stream, end, context);
-	bz_assert(expr.is<ast::stmt_expression>());
-	consume_semi_colon_at_end_of_expression(
-		stream, end, context,
-		expr.get<ast::stmt_expression_ptr>()->expr
-	);
-	return expr;
+	auto expr = parse_top_level_expression(stream, end, context);
+	return ast::make_stmt_expression(std::move(expr));
 }
 
 static ast::statement default_global_statement_parser(
@@ -787,9 +725,25 @@ ast::statement parse_local_statement_without_semi_colon(
 	ctx::parse_context &context
 )
 {
+	constexpr auto default_parser = +[](
+		lex::token_pos &stream, lex::token_pos end,
+		ctx::parse_context &context
+	)
+	{
+		auto const begin = stream;
+		auto const result = ast::make_stmt_expression(
+			parse_expression_without_semi_colon(stream, end, context)
+		);
+		if (stream == begin)
+		{
+			context.report_error(stream);
+			++stream;
+		}
+		return result;
+	};
 	constexpr auto parse_fn = create_parse_fn<
 		lex::token_pos, ctx::parse_context,
-		local_statement_parsers, &parse_stmt_expression_without_semi_colon
+		local_statement_parsers, default_parser
 	>();
 	if (stream == end)
 	{
