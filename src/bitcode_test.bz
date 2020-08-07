@@ -693,5 +693,8 @@ function main() -> int32
 {
 //	let i = 0;
 	static_assert((~0u64 >> 1u) as int64 + 1 == (1u64 << 63u) as int64);
+	{ ({ 3 }) }
+	{ { 3 } }
+	+2;
 	return 0;
 }
