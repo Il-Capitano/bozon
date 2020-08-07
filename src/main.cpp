@@ -1362,6 +1362,54 @@ struct some_type<T: std::vector<typename>>
 struct some_type<T: std::vector> // should this be allowed???
 
 
+new idea for specialization:
+
+struct some_type<T: typename>  { ... }
+struct some_type<&T: typename> { ... }
+struct some_type<std::vector<T: typename>> { ... }
+
+struct some_type<std::static_vector<T: typename, N: usize>> { ... }
+//                                  ^^^^^^^^^^^^^^^^^^^^^ multiple captures
+
+
+
+
+
+
+
+
+==== if consteval ====
+
+if consteval (condition)
+{
+	function foo() { ... }
+}
+else
+{
+	function foo(n: int32) { ... }
+}
+
+const val = if consteval (condition) a else b;
+
+
+
+
+
+
+==== parsing ====
+
+implementing compound expression with the current system is a bit of a hassle
+I would need to either change function declarations to have just a token range for the body
+or have to maintain an expr_compound and a stmt_compound type seperately
+
+changing function_body to have a variant of bz::vector<statement> and lex::token_range could work
+this has negative performance implication though, as we would have to reparse templated functions
+maybe that's not too bad...
+
+having a more uniform system of expr_if, expr_compound, ... should make life easier and the language
+more consistent
+
+
 */
 
 #include "ctx/src_manager.h"
@@ -1405,7 +1453,7 @@ int main(int argc, char const **argv)
 	}
 
 	auto const before_first_pass_parse = timer::now();
-	if (!manager.first_pass_parse())
+	if (!manager.parse_global_symbols())
 	{
 		return 3;
 	}
@@ -1418,7 +1466,7 @@ int main(int argc, char const **argv)
 	}
 
 	auto const before_resolve = timer::now();
-	if (!manager.resolve())
+	if (!manager.parse())
 	{
 		return 4;
 	}
