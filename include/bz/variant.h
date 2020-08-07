@@ -436,6 +436,10 @@ public:
 			meta::is_same<decltype(visitor(std::declval<Ts &>()))...>,
 			"Visitor must return the same type for every element"
 		);
+		static_assert(
+			(meta::is_invocable_v<Visitor, Ts &> && ...),
+			"Visitor is not invocable for one or more variants"
+		);
 		bz_assert(this->_index != null, "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> &>()));
 		using visitor_t = decltype(visitor);
@@ -466,6 +470,10 @@ public:
 		static_assert(
 			meta::is_same<decltype(visitor(std::declval<Ts const &>()))...>,
 			"Visitor must return the same type for every element"
+		);
+		static_assert(
+			(meta::is_invocable_v<Visitor, Ts const &> && ...),
+			"Visitor is not invocable for one or more variants"
 		);
 		bz_assert(this->_index != null, "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> const &>()));

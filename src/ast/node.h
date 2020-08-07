@@ -113,6 +113,10 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn)
 	{
+		static_assert(
+			(bz::meta::is_invocable_v<Fn, Ts &> && ...),
+			"Visitor is not invocable for one or more types"
+		);
 		return this->base_t::visit([&fn](auto &node) -> decltype(auto) {
 			return std::forward<Fn>(fn)(*node.get());
 		});
@@ -121,6 +125,10 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const
 	{
+		static_assert(
+			(bz::meta::is_invocable_v<Fn, Ts const &> && ...),
+			"Visitor is not invocable for one or more types"
+		);
 		return this->base_t::visit([&fn](auto &node) -> decltype(auto) {
 			return std::forward<Fn>(fn)(*node.get());
 		});
