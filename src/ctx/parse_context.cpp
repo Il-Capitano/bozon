@@ -335,11 +335,15 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 {
 	if (stream->kind != kind)
 	{
+		auto suggestions = kind == lex::token::semi_colon
+			? bz::vector<suggestion>{ make_suggestion_after(stream - 1, ";", "add ';' here:") }
+			: bz::vector<suggestion>{};
 		this->global_ctx.report_error(ctx::make_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format("expected {} before end-of-file", lex::get_token_name_for_message(kind))
-			: bz::format("expected {}", lex::get_token_name_for_message(kind))
+			: bz::format("expected {}", lex::get_token_name_for_message(kind)),
+			{}, std::move(suggestions)
 		));
 		return stream;
 	}
@@ -420,7 +424,6 @@ void parse_context::add_local_function(ast::decl_function &func_decl)
 		// TODO: check for conflicts
 		set->func_decls.push_back(&func_decl);
 	}
-	this->global_ctx.add_compile_function(func_decl);
 }
 
 void parse_context::add_local_operator(ast::decl_operator &op_decl)
@@ -442,7 +445,6 @@ void parse_context::add_local_operator(ast::decl_operator &op_decl)
 		// TODO: check for conflicts
 		set->op_decls.push_back(&op_decl);
 	}
-	this->global_ctx.add_compile_operator(op_decl);
 }
 
 /*
@@ -529,6 +531,12 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 	return {};
 }
 */
+
+void parse_context::add_function_for_compilation(ast::function_body &func_body)
+{
+	this->global_ctx.add_compile_function(func_body);
+}
+
 /*
 ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos id) const
 {
@@ -1925,14 +1933,14 @@ ast::expression parse_context::make_unary_operator_expression(
 
 	auto const scope_decl_count = possible_funcs.size();
 
-	auto &export_decls = this->global_ctx._export_decls;
+	auto &global_decls = *this->global_decls;
 	auto const global_set = std::find_if(
-		export_decls.op_sets.begin(), export_decls.op_sets.end(),
+		global_decls.op_sets.begin(), global_decls.op_sets.end(),
 		[op = op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
-	if (global_set != export_decls.op_sets.end())
+	if (global_set != global_decls.op_sets.end())
 	{
 		for (auto &op : global_set->op_decls)
 		{
@@ -2088,14 +2096,14 @@ ast::expression parse_context::make_binary_operator_expression(
 
 	auto const scope_decl_count = possible_funcs.size();
 
-	auto &export_decls = this->global_ctx._export_decls;
+	auto &global_decls = *this->global_decls;
 	auto const global_set = std::find_if(
-		export_decls.op_sets.begin(), export_decls.op_sets.end(),
+		global_decls.op_sets.begin(), global_decls.op_sets.end(),
 		[op = op->kind](auto const &op_set) {
 			return op == op_set.op;
 		}
 	);
-	if (global_set != export_decls.op_sets.end())
+	if (global_set != global_decls.op_sets.end())
 	{
 		for (auto &op : global_set->op_decls)
 		{
@@ -2223,14 +2231,14 @@ ast::expression parse_context::make_function_call_expression(
 
 			auto const scope_decl_count = possible_funcs.size();
 
-			auto &export_decls = this->global_ctx._export_decls;
+			auto &global_decls = *this->global_decls;
 			auto const global_set = std::find_if(
-				export_decls.func_sets.begin(), export_decls.func_sets.end(),
+				global_decls.func_sets.begin(), global_decls.func_sets.end(),
 				[id](auto const &fn_set) {
 					return id == fn_set.id;
 				}
 			);
-			if (global_set != export_decls.func_sets.end())
+			if (global_set != global_decls.func_sets.end())
 			{
 				for (auto &fn : global_set->func_decls)
 				{

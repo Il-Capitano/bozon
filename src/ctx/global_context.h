@@ -26,8 +26,7 @@ namespace ctx
 struct decl_list
 {
 	bz::vector<ast::decl_variable *> var_decls;
-	bz::vector<ast::decl_function *> func_decls;
-	bz::vector<ast::decl_operator *> op_decls;
+	bz::vector<ast::function_body *> funcs;
 	bz::vector<ast::type_info     *> type_infos;
 };
 
@@ -38,7 +37,6 @@ struct global_context
 	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();
 	static constexpr uint32_t command_line_file_id = std::numeric_limits<uint32_t>::max() - 1;
 
-	decl_set  _export_decls;
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
 
@@ -104,19 +102,10 @@ struct global_context
 	size_t get_error_and_warning_count(void) const
 	{ return this->_errors.size(); }
 
-	void add_export_declaration(ast::statement &decl);
-
-	void add_export_variable(ast::decl_variable &var_decl);
 	void add_compile_variable(ast::decl_variable &var_decl);
-
-	void add_export_function(ast::decl_function &func_decl);
-	void add_compile_function(ast::decl_function &func_decl);
-
-	void add_export_operator(ast::decl_operator &op_decl);
-	void add_compile_operator(ast::decl_operator &op_decl);
-
-	void add_export_struct(ast::decl_struct &struct_decl);
+	void add_compile_function(ast::function_body &func_body);
 	void add_compile_struct(ast::decl_struct &struct_decl);
+
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
 

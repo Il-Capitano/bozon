@@ -170,18 +170,11 @@ namespace ctx
 	{
 		bz_assert(false);
 	}
-	for (auto const func_decl : this->_global_ctx._compile_decls.func_decls)
+	for (auto const func_decl : this->_global_ctx._compile_decls.funcs)
 	{
-		if (func_decl->body.body.not_null())
+		if (func_decl->body.not_null())
 		{
-			bc::emit_function_bitcode(func_decl->body, context);
-		}
-	}
-	for (auto const op_decl : this->_global_ctx._compile_decls.op_decls)
-	{
-		if (op_decl->body.body.not_null())
-		{
-			bc::emit_function_bitcode(op_decl->body, context);
+			bc::emit_function_bitcode(*func_decl, context);
 		}
 	}
 

@@ -99,13 +99,7 @@ decl_set get_default_decls(void)
 }
 
 global_context::global_context(void)
-	: _export_decls{
-		  {}, // var_decls
-		  {}, // func_sets
-		  {}, // op_sets
-		  get_default_types() // types
-	  },
-	  _compile_decls{},
+	: _compile_decls{},
 	  _errors{},
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
@@ -184,111 +178,10 @@ size_t global_context::get_warning_count(void) const
 	return count;
 }
 
-void global_context::add_export_declaration(ast::statement &decl)
+void global_context::add_compile_function(ast::function_body &func_body)
 {
-	switch (decl.kind())
-	{
-	case ast::statement::index<ast::decl_variable>:
-		this->add_export_variable(*decl.get<ast::decl_variable_ptr>());
-		break;
-	case ast::statement::index<ast::decl_function>:
-		this->add_export_function(*decl.get<ast::decl_function_ptr>());
-		break;
-	case ast::statement::index<ast::decl_operator>:
-		this->add_export_operator(*decl.get<ast::decl_operator_ptr>());
-		break;
-	case ast::statement::index<ast::decl_struct>:
-		bz_assert(false);
-		break;
-	case ast::statement::index<ast::stmt_static_assert>:
-		break;
-	default:
-		bz_assert(false);
-		break;
-	}
+	this->_compile_decls.funcs.push_back(&func_body);
 }
-
-void global_context::add_export_variable(ast::decl_variable &var_decl)
-{
-	this->_export_decls.var_decls.push_back(&var_decl);
-	this->_compile_decls.var_decls.push_back(&var_decl);
-}
-
-void global_context::add_compile_variable(ast::decl_variable &var_decl)
-{
-	this->_compile_decls.var_decls.push_back(&var_decl);
-}
-
-void global_context::add_export_function(ast::decl_function &func_decl)
-{
-	auto &func_sets = this->_export_decls.func_sets;
-	auto set = std::find_if(
-		func_sets.begin(), func_sets.end(),
-		[id = func_decl.identifier->value](auto const &overload_set) {
-			return id == overload_set.id;
-		}
-	);
-	if (set == func_sets.end())
-	{
-		func_sets.push_back({ func_decl.identifier->value, { &func_decl } });
-	}
-	else
-	{
-		// we don't check for conflicts just yet
-		// these should be added after the first pass parsing stage
-		// and resolved after, where redeclaration checks are made
-		set->func_decls.push_back(&func_decl);
-	}
-
-	this->_compile_decls.func_decls.push_back(&func_decl);
-}
-
-void global_context::add_compile_function(ast::decl_function &func_decl)
-{
-	this->_compile_decls.func_decls.push_back(&func_decl);
-}
-
-void global_context::add_export_operator(ast::decl_operator &op_decl)
-{
-	auto &op_sets = this->_export_decls.op_sets;
-	auto set = std::find_if(
-		op_sets.begin(), op_sets.end(),
-		[op = op_decl.op->kind](auto const &overload_set) {
-			return op == overload_set.op;
-		}
-	);
-	if (set == op_sets.end())
-	{
-		op_sets.push_back({ op_decl.op->kind, { &op_decl } });
-	}
-	else
-	{
-		// we don't check for conflicts just yet
-		// these should be added after the first pass parsing stage
-		// and resolved after, where redeclaration checks are made
-		set->op_decls.push_back(&op_decl);
-	}
-
-	this->_compile_decls.op_decls.push_back(&op_decl);
-}
-
-void global_context::add_compile_operator(ast::decl_operator &op_decl)
-{
-	this->_compile_decls.op_decls.push_back(&op_decl);
-}
-
-/*
-void global_context::add_export_struct(ast::decl_struct &struct_decl)
-{
-	this->_export_decls.types.push_back({ struct_decl.identifier->value, &struct_decl.info });
-	this->_compile_decls.types.push_back(&struct_decl.info);
-}
-
-void global_context::add_compile_struct(ast::decl_struct &struct_decl)
-{
-	this->_compile_decls.type_infos.push_back(&struct_decl.info);
-}
-*/
 
 ast::type_info *global_context::get_base_type_info(uint32_t kind) const
 {
