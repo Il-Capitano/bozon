@@ -12,7 +12,7 @@ ast::expression parse_compound_expression(
 {
 	bz_assert(stream->kind == lex::token::curly_open);
 	auto const begin = stream;
-	++stream;
+	++stream; // '{'
 	context.add_scope();
 	bz::vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
@@ -33,6 +33,14 @@ ast::expression parse_compound_expression(
 		statements.emplace_back(parse_local_statement_without_semi_colon(stream, end, context));
 	}
 	context.remove_scope();
+	if (stream != end && stream->kind == lex::token::curly_close)
+	{
+		++stream; // '}'
+	}
+	else
+	{
+		context.report_paren_match_error(stream, begin);
+	}
 
 	if (statements.size() == 0)
 	{
@@ -67,14 +75,14 @@ ast::expression parse_compound_expression(
 	{
 		auto expr = std::move(statements.back().get<ast::stmt_expression_ptr>()->expr);
 		statements.pop_back();
-		if (expr.is<ast::constant_expression>() && statements.size() == 1)
+		if (expr.is<ast::constant_expression>() && statements.size() == 0)
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
 			return ast::make_constant_expression(
 				{ begin, begin, stream },
 				const_expr.kind, const_expr.type,
 				const_expr.value,
-				ast::make_expr_compound(std::move(statements), ast::expression())
+				ast::make_expr_compound(std::move(statements), std::move(expr))
 			);
 		}
 		else if (expr.is_constant_or_dynamic())
@@ -83,7 +91,7 @@ ast::expression parse_compound_expression(
 			return ast::make_dynamic_expression(
 				{ begin, begin, stream },
 				kind, type,
-				ast::make_expr_compound(std::move(statements), ast::expression())
+				ast::make_expr_compound(std::move(statements), std::move(expr))
 			);
 		}
 		else

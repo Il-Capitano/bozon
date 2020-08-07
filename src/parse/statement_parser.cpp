@@ -244,6 +244,7 @@ static bool resolve_function_symbol_helper(
 		return false;
 	}
 
+	context.add_function_for_compilation(func_body);
 	if (func_body.symbol_name == "" && func_body.function_name == "main")
 	{
 		func_body.symbol_name = "main";
@@ -676,11 +677,19 @@ void consume_semi_colon_at_end_of_expression(
 		[&](ast::expr_compound const &compound_expr) {
 			if (compound_expr.final_expr.src_tokens.begin != nullptr)
 			{
-				auto dummy_stream = compound_expr.final_expr.src_tokens.end;
-				consume_semi_colon_at_end_of_expression(
-					dummy_stream, end, context,
-					compound_expr.final_expr
-				);
+				if (compound_expr.final_expr.src_tokens.begin->kind == lex::token::curly_open)
+				{
+					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(
+						dummy_stream, end, context,
+						compound_expr.final_expr
+					);
+				}
+				else
+				{
+					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
+					context.assert_token(dummy_stream, lex::token::semi_colon);
+				}
 			}
 		},
 		[&](auto const &) {
