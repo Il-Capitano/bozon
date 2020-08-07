@@ -679,19 +679,19 @@ function print_matrix(arr: [4, 4: float64]) -> void
 		print("]\n");
 	}
 }
-
-function circle1() -> typeof circle2()
-{
-}
-
-function circle2() -> typeof circle2()
-{
-}
 */
+
+function circle1() -> void {}
+function circle2() -> typeof circle1() {}
+function circle3() -> typeof circle2() {}
+function circle4() -> typeof circle3() {}
+function circle5() -> typeof circle4() {}
 
 // function square_consteval(n: consteval int32) -> int32 { return n * n; }
 
 function main() -> int32
 {
+//	let i = 0;
+	static_assert((~0u64 >> 1u) as int64 + 1 == (1u64 << 63u) as int64);
 	return 0;
 }
