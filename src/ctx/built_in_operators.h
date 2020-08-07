@@ -65,6 +65,7 @@ ast::expression make_built_in_type_operation(
 );
 
 ast::expression make_built_in_cast(
+	lex::src_tokens src_tokens,
 	lex::token_pos as_pos,
 	ast::expression expr,
 	ast::typespec dest_type,

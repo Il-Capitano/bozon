@@ -101,7 +101,7 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 
 	this->report_error(
 		func_body.src_tokens,
-		bz::format("circular dependency while resolving {}", func_body.get_signature()),
+		bz::format("circular dependency encountered while resolving {}", func_body.get_signature()),
 		std::move(notes)
 	);
 }
@@ -2325,7 +2325,7 @@ ast::expression parse_context::make_cast_expression(
 
 	if (is_built_in_type(expr_type))
 	{
-		auto result = make_built_in_cast(op, std::move(expr), std::move(type), *this);
+		auto result = make_built_in_cast(src_tokens, op, std::move(expr), std::move(type), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}

@@ -20,17 +20,16 @@ ast::statement parse_stmt_static_assert(
 	auto const args = get_expression_tokens<
 		lex::token::paren_close
 	>(stream, end, context);
-	auto const close_paren = stream;
-	if (stream == end || close_paren->kind != lex::token::curly_close)
+	if (stream != end && stream->kind == lex::token::paren_close)
 	{
-		if (open_paren->kind == lex::token::curly_open)
-		{
-			context.report_paren_match_error(close_paren, open_paren);
-		}
+		++stream; // ')'
 	}
 	else
 	{
-		++stream; // ')'
+		if (open_paren->kind == lex::token::paren_open)
+		{
+			context.report_paren_match_error(stream, open_paren);
+		}
 	}
 	context.assert_token(stream, lex::token::semi_colon);
 	return ast::make_stmt_static_assert(args);
@@ -240,15 +239,20 @@ static bool resolve_function_symbol_helper(
 
 	resolve_typespec(func_body.return_type, context, precedence{});
 	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
-	if (func_body.return_type.is_empty())
+	if (!good || func_body.return_type.is_empty())
 	{
-		good = false;
+		return false;
 	}
-	if (good && func_body.symbol_name == "")
+
+	if (func_body.symbol_name == "" && func_body.function_name == "main")
+	{
+		func_body.symbol_name = "main";
+	}
+	else if (func_body.symbol_name == "")
 	{
 		func_body.symbol_name = func_body.get_symbol_name();
 	}
-	return good;
+	return true;
 }
 
 void resolve_function_symbol(
