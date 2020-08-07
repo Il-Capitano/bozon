@@ -265,9 +265,6 @@ struct parse_context
 	{ this->resolve_queue.pop_back(); }
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
-
-
-	llvm::Function *make_llvm_func_for_symbol(ast::function_body &func_body, bz::u8string_view id) const;
 };
 
 } // namespace ctx

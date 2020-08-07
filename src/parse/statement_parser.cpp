@@ -245,14 +245,6 @@ static bool resolve_function_symbol_helper(
 	}
 
 	context.add_function_for_compilation(func_body);
-	if (func_body.symbol_name == "" && func_body.function_name == "main")
-	{
-		func_body.symbol_name = "main";
-	}
-	else if (func_body.symbol_name == "")
-	{
-		func_body.symbol_name = func_body.get_symbol_name();
-	}
 	return true;
 }
 
@@ -504,7 +496,16 @@ ast::statement parse_attribute_statement(
 			{
 				context.report_paren_match_error(stream, paren_open);
 			}
-			attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
+			if constexpr (is_global)
+			{
+				attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
+			}
+			else
+			{
+				auto [stream, end] = args_range;
+				auto args = parse_expression_comma_list(stream, end, context);
+				attributes.emplace_back(name, args_range, std::move(args));
+			}
 		}
 		else
 		{

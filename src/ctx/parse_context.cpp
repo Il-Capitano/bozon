@@ -2609,15 +2609,4 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 ast::type_info *parse_context::get_base_type_info(uint32_t kind) const
 { return this->global_ctx.get_base_type_info(kind); }
 
-llvm::Function *parse_context::make_llvm_func_for_symbol(ast::function_body &func_body, bz::u8string_view id) const
-{
-	if (this->has_errors())
-	{
-		return nullptr;
-	}
-
-	bitcode_context bitcode_ctx(this->global_ctx);
-	return bc::create_function_from_symbol(func_body, id, bitcode_ctx);
-}
-
 } // namespace ctx

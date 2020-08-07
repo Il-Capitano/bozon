@@ -270,7 +270,6 @@ struct function_body
 	body_t                    body;
 	bz::u8string              function_name;
 	bz::u8string              symbol_name;
-	llvm::Function           *llvm_func;
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
 
@@ -290,6 +289,21 @@ struct function_body
 
 	bz::u8string get_signature(void) const;
 	bz::u8string get_symbol_name(void) const;
+
+	void resolve_symbol_name(void)
+	{
+		if (this->symbol_name == "")
+		{
+			if (this->function_name == "main")
+			{
+				this->symbol_name = "main";
+			}
+			else
+			{
+				this->symbol_name = this->get_symbol_name();
+			}
+		}
+	}
 
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,

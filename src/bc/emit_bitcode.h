@@ -9,9 +9,8 @@
 namespace bc
 {
 
-llvm::Function *create_function_from_symbol(
-	ast::function_body &func_body,
-	bz::u8string_view id,
+void add_function_to_module(
+	ast::function_body *func_body,
 	ctx::bitcode_context &context
 );
 void emit_function_bitcode(

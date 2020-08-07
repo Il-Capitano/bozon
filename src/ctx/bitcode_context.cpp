@@ -8,7 +8,7 @@ bitcode_context::bitcode_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
 	  vars_{},
 	  types_{},
-	  current_function(nullptr),
+	  current_function{ nullptr, nullptr },
 	  builder(_global_ctx._llvm_context)
 {}
 
@@ -25,7 +25,8 @@ void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Val
 
 llvm::Function *bitcode_context::get_function(ast::function_body const *func_body) const
 {
-	return func_body->llvm_func;
+	auto it = this->funcs_.find(func_body);
+	return it == this->funcs_.end() ? nullptr : it->second;
 }
 
 llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
@@ -43,7 +44,7 @@ llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 	return llvm::BasicBlock::Create(
 		this->global_ctx._llvm_context,
 		llvm::StringRef(name.data(), name.length()),
-		this->current_function->llvm_func
+		this->current_function.second
 	);
 }
 

@@ -154,16 +154,11 @@ namespace ctx
 	{
 		bz_assert(false);
 	}
-	/*
-	for (auto const func_decl : this->_global_ctx._compile_decls.func_decls)
+	for (auto const func : this->_global_ctx._compile_decls.funcs)
 	{
-		bc::add_function_to_module(func_decl->body, func_decl->identifier->value, context);
+		func->resolve_symbol_name();
+		bc::add_function_to_module(func, context);
 	}
-	for (auto const op_decl : this->_global_ctx._compile_decls.op_decls)
-	{
-		bc::add_function_to_module(op_decl->body, bz::format("__operator_{}", op_decl->op->kind), context);
-	}
-	*/
 
 	// add the definitions to the module
 	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)

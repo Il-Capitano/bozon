@@ -54,8 +54,9 @@ struct bitcode_context
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
+	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
 
-	ast::function_body const *current_function;
+	std::pair<ast::function_body const *, llvm::Function *> current_function;
 
 	llvm::IRBuilder<> builder;
 };

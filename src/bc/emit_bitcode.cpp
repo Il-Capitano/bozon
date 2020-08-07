@@ -206,6 +206,15 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
+	ast::expr_tuple const &,
+	ctx::bitcode_context &
+)
+{
+	bz_assert(false);
+	return {};
+}
+
+static val_ptr emit_bitcode(
 	ast::expr_unary_op const &unary_op,
 	ctx::bitcode_context &context
 )
@@ -1515,6 +1524,24 @@ static val_ptr emit_bitcode(
 }
 
 static val_ptr emit_bitcode(
+	ast::expr_compound const &compound_expr,
+	ctx::bitcode_context &context
+)
+{
+	bz_assert(false);
+	return {};
+}
+
+static val_ptr emit_bitcode(
+	ast::expr_if const &if_expr,
+	ctx::bitcode_context &context
+)
+{
+	bz_assert(false);
+	return {};
+}
+
+static val_ptr emit_bitcode(
 	ast::constant_expression const &const_expr,
 	ctx::bitcode_context &context
 )
@@ -1646,27 +1673,9 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	switch (dyn_expr.expr.kind())
-	{
-	case ast::expr_t::index<ast::expr_identifier>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_identifier_ptr>(), context);
-	case ast::expr_t::index<ast::expr_literal>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_literal_ptr>(), context);
-	case ast::expr_t::index<ast::expr_unary_op>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_unary_op_ptr>(), context);
-	case ast::expr_t::index<ast::expr_binary_op>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_binary_op_ptr>(), context);
-	case ast::expr_t::index<ast::expr_function_call>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_function_call_ptr>(), context);
-	case ast::expr_t::index<ast::expr_subscript>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_subscript_ptr>(), context);
-	case ast::expr_t::index<ast::expr_cast>:
-		return emit_bitcode(*dyn_expr.expr.get<ast::expr_cast_ptr>(), context);
-
-	default:
-		bz_assert(false);
-		return {};
-	}
+	return dyn_expr.expr.visit([&](auto const &expr) {
+		return emit_bitcode(expr, context);
+	});
 }
 
 static val_ptr emit_bitcode(
@@ -1823,7 +1832,7 @@ static void emit_bitcode(
 	else
 	{
 		auto const ret_val = emit_bitcode(ret_stmt.expr, context);
-		if (context.current_function->return_type.is<ast::ts_lvalue_reference>())
+		if (context.current_function.first->return_type.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
@@ -1894,15 +1903,125 @@ static void emit_bitcode(
 	}
 }
 
+
 static void emit_alloca(
 	ast::expression const &expr,
+	ctx::bitcode_context &context
+);
+
+static void emit_alloca(
+	ast::statement const &stmt,
+	ctx::bitcode_context &context
+);
+
+static void emit_alloca(
+	ast::expr_identifier const &,
 	ctx::bitcode_context &
 )
 {
-	switch (expr.kind())
+	// nothing
+}
+
+static void emit_alloca(
+	ast::expr_literal const &,
+	ctx::bitcode_context &
+)
+{
+	// nothing
+}
+
+static void emit_alloca(
+	ast::expr_tuple const &,
+	ctx::bitcode_context &
+)
+{
+	bz_assert(false);
+}
+
+static void emit_alloca(
+	ast::expr_unary_op const &unary_op,
+	ctx::bitcode_context &context
+)
+{
+	emit_alloca(unary_op.expr, context);
+}
+
+static void emit_alloca(
+	ast::expr_binary_op const &binary_op,
+	ctx::bitcode_context &context
+)
+{
+	emit_alloca(binary_op.lhs, context);
+	emit_alloca(binary_op.rhs, context);
+}
+
+static void emit_alloca(
+	ast::expr_subscript const &subscript_expr,
+	ctx::bitcode_context &context
+)
+{
+	emit_alloca(subscript_expr.base, context);
+	for (auto &index : subscript_expr.indicies)
 	{
-	default:
-		break;
+		emit_alloca(index, context);
+	}
+}
+
+static void emit_alloca(
+	ast::expr_function_call const &fn_call,
+	ctx::bitcode_context &context
+)
+{
+	for (auto &param : fn_call.params)
+	{
+		emit_alloca(param, context);
+	}
+}
+
+static void emit_alloca(
+	ast::expr_cast const &cast_expr,
+	ctx::bitcode_context &context
+)
+{
+	emit_alloca(cast_expr.expr, context);
+}
+
+static void emit_alloca(
+	ast::expr_compound const &expr_compound,
+	ctx::bitcode_context &context
+)
+{
+	for (auto &statement : expr_compound.statements)
+	{
+		emit_alloca(statement, context);
+	}
+	if (expr_compound.final_expr.not_null())
+	{
+		emit_alloca(expr_compound.final_expr, context);
+	}
+}
+
+static void emit_alloca(
+	ast::expr_if const &if_expr,
+	ctx::bitcode_context &context
+)
+{
+	emit_alloca(if_expr.condition, context);
+	emit_alloca(if_expr.if_block, context);
+	emit_alloca(if_expr.else_block, context);
+}
+
+
+static void emit_alloca(
+	ast::expression const &expr,
+	ctx::bitcode_context &context
+)
+{
+	if (expr.kind() == ast::expression::index_of<ast::dynamic_expression>)
+	{
+		expr.get<ast::dynamic_expression>().expr.visit([&](auto const &expr) {
+			emit_alloca(expr, context);
+		});
 	}
 }
 
@@ -2090,13 +2209,11 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 	}
 }
 
-llvm::Function *create_function_from_symbol(
+static llvm::Function *create_function_from_symbol(
 	ast::function_body &func_body,
-	bz::u8string_view id,
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(func_body.llvm_func == nullptr);
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)
@@ -2117,7 +2234,7 @@ llvm::Function *create_function_from_symbol(
 		}
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
-	auto const name = llvm::StringRef(id.data(), id.size());
+	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 	auto const fn = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, context.get_module());
 	for (auto &arg : fn->args())
 	{
@@ -2130,6 +2247,15 @@ llvm::Function *create_function_from_symbol(
 	return fn;
 }
 
+void add_function_to_module(
+	ast::function_body *func_body,
+	ctx::bitcode_context &context
+)
+{
+	auto const fn = create_function_from_symbol(*func_body, context);
+	context.funcs_.insert({ func_body, fn });
+}
+
 void emit_function_bitcode(
 	ast::function_body &func_body,
 	ctx::bitcode_context &context
@@ -2139,7 +2265,7 @@ void emit_function_bitcode(
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
 
-	context.current_function = &func_body;
+	context.current_function = { &func_body, fn };
 	auto const bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(bb);
 

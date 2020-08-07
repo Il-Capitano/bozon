@@ -108,7 +108,6 @@ ast::expression parse_compound_expression(
 	bz::vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
-		bz::log("parsing at line {}, '{}'\n", stream->src_pos.line, stream->value);
 		if (!statements.empty() && statements.back().is<ast::stmt_expression>())
 		{
 			consume_semi_colon_at_end_of_expression(
