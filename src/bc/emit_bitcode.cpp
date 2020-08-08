@@ -44,6 +44,11 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 );
 
+static void emit_bitcode(
+	ast::statement const &stmt,
+	ctx::bitcode_context &context
+);
+
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context);
 
 static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
@@ -1528,8 +1533,18 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(false);
-	return {};
+	for (auto &stmt : compound_expr.statements)
+	{
+		emit_bitcode(stmt, context);
+	}
+	if (compound_expr.final_expr.is_null())
+	{
+		return {};
+	}
+	else
+	{
+		return emit_bitcode(compound_expr.final_expr, context);
+	}
 }
 
 static val_ptr emit_bitcode(
