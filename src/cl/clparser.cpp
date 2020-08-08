@@ -239,6 +239,7 @@ struct prefix_parser
 	bz::u8string_view usage;
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
+	size_t            priority = std::numeric_limits<size_t>::max();
 };
 
 struct equals_parser
@@ -247,6 +248,7 @@ struct equals_parser
 	bz::u8string_view usage;
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
+	size_t            priority = std::numeric_limits<size_t>::max();
 };
 
 struct argument_parser
@@ -255,6 +257,7 @@ struct argument_parser
 	bz::u8string_view usage;
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
+	size_t            priority = std::numeric_limits<size_t>::max();
 };
 
 struct flag_parser
@@ -263,6 +266,7 @@ struct flag_parser
 	// usage is the same as flag_name
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
+	size_t            priority = std::numeric_limits<size_t>::max();
 };
 
 struct flag_with_alternate_parser
@@ -271,6 +275,7 @@ struct flag_with_alternate_parser
 	// usage is the same as both_names
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
+	size_t            priority = std::numeric_limits<size_t>::max();
 };
 
 constexpr std::pair<bz::u8string_view, bz::u8string_view> get_both_names(
@@ -318,7 +323,7 @@ constexpr auto equals_parsers = []() {
 	using T = equals_parser;
 
 	std::array result = {
-		T{ "--error-report-tab-size=", "--error-report-tab-size=<size>", "Set tab size for error reporting (default=4)", &set_tab_size },
+		T{ "--error-report-tab-size=", "--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", &set_tab_size },
 	};
 
 	return result;
@@ -350,8 +355,8 @@ constexpr auto flag_with_alternate_parsers = []() {
 	using T = flag_with_alternate_parser;
 
 	std::array result = {
-		T{ "-h, --help",    "Display this help page", &default_flag_parser<&display_help,    true> },
-		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true> },
+		T{ "-h, --help",    "Display this help page", &default_flag_parser<&display_help,    true>, 0 },
+		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true>, 1 },
 	};
 
 	return result;
@@ -677,6 +682,26 @@ constexpr bz::u8string_view get_help_string(command_line_parser const &parser)
 	}
 }
 
+constexpr size_t get_priority(command_line_parser const &parser)
+{
+	switch (parser.kind)
+	{
+	case parser_kind::prefix:
+		return parser.variants.prefix.priority;
+	case parser_kind::equals:
+		return parser.variants.equals.priority;
+	case parser_kind::argument:
+		return parser.variants.argument.priority;
+	case parser_kind::flag:
+		return parser.variants.flag.priority;
+	case parser_kind::flag_with_alternate:
+		return parser.variants.flag_with_alternate.priority;
+	default:
+		bz_assert(false);
+		return 0;
+	}
+}
+
 constexpr bz::u8string_view get_usage_string_without_dashes(command_line_parser const &parser)
 {
 	bz::u8string_view usage = get_usage_string(parser);
@@ -739,9 +764,14 @@ constexpr auto sorted_command_line_parsers = []() {
 	constexpr_bubble_sort(
 		result,
 		[](auto const &lhs, auto const &rhs) {
-			return alphabetical_compare(
-				get_usage_string_without_dashes(lhs),
-				get_usage_string_without_dashes(rhs)
+			auto const lhs_priority = get_priority(lhs);
+			auto const rhs_priority = get_priority(rhs);
+			return lhs_priority < rhs_priority
+			|| (lhs_priority == rhs_priority
+				&& alphabetical_compare(
+					get_usage_string_without_dashes(lhs),
+					get_usage_string_without_dashes(rhs)
+				)
 			);
 		},
 		[](auto &lhs, auto &rhs) {
