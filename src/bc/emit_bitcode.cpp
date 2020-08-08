@@ -1561,7 +1561,10 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	if (const_expr.kind == ast::expression_type_kind::type_name)
+	if (
+		const_expr.kind == ast::expression_type_kind::type_name
+		|| const_expr.kind == ast::expression_type_kind::none
+	)
 	{
 		return {};
 	}
@@ -2216,6 +2219,9 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 		bz_assert(false);
 		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
+		bz_assert(false);
+		return nullptr;
+	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 		bz_assert(false);
 		return nullptr;
 	default:
