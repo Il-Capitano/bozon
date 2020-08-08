@@ -8,6 +8,7 @@ namespace parse
 
 // parse functions can't be static, because they are referenced in parse_common.h
 
+template<bool is_global>
 ast::statement parse_stmt_static_assert(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -77,52 +78,12 @@ parse_decl_variable_id_and_type(
 
 	++stream; // ':'
 	auto const type = get_expression_tokens<
-		lex::token::comma,
-		lex::token::colon,
+		lex::token::assign,
 		lex::token::paren_close,
 		lex::token::square_close
 	>(stream, end, context);
 
 	return { prototype, id, type };
-}
-
-ast::statement parse_decl_variable(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-)
-{
-	bz_assert(stream != end);
-	bz_assert(
-		stream->kind == lex::token::kw_let
-		|| stream->kind == lex::token::kw_const
-		|| stream->kind == lex::token::kw_consteval
-	);
-	auto const begin = stream;
-	if (stream->kind == lex::token::kw_let)
-	{
-		++stream;
-	}
-
-	auto const [prototype, id, type] = parse_decl_variable_id_and_type(stream, end, context);
-	if (stream != end && stream->kind == lex::token::equals)
-	{
-		++stream; // '='
-		auto const init_expr = get_expression_tokens<>(stream, end, context);
-		return ast::make_decl_variable(
-			lex::token_range{ begin, stream },
-			id, prototype,
-			ast::make_unresolved_typespec(type),
-			ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
-		);
-	}
-	else
-	{
-		return ast::make_decl_variable(
-			lex::token_range{ begin, stream },
-			id, prototype,
-			ast::make_unresolved_typespec(type)
-		);
-	}
 }
 
 static void resolve_typespec(
@@ -165,7 +126,15 @@ static void resolve_var_decl_type(
 {
 	bz_assert(var_decl.var_type.is<ast::ts_unresolved>());
 	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
-	auto type = parse_expression(stream, end, context, no_assign, true);
+	auto type = stream == end
+		? ast::make_constant_expression(
+			{},
+			ast::expression_type_kind::type_name,
+			ast::make_typename_typespec(nullptr),
+			ast::constant_value(ast::make_auto_typespec(nullptr)),
+			ast::make_expr_identifier(nullptr)
+		)
+		: parse_expression(stream, end, context, no_assign, true);
 	if (type.not_null() && !type.is_typename())
 	{
 		bz_assert(stream < end);
@@ -215,6 +184,150 @@ static void resolve_var_decl_type(
 		var_decl.var_type.clear();
 	}
 }
+
+static void resolve_decl_variable(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	resolve_var_decl_type(var_decl, context);
+	if (var_decl.init_expr.not_null())
+	{
+		bz_assert(var_decl.init_expr.is<ast::unresolved_expression>());
+		auto stream = var_decl.init_expr.src_tokens.begin;
+		auto const end = var_decl.init_expr.src_tokens.end;
+		context.parenthesis_suppressed_value = 0;
+		var_decl.init_expr = parse_expression(stream, end, context, no_comma, false);
+		if (stream != end)
+		{
+			if (stream->kind == lex::token::comma)
+			{
+				context.report_error(
+					stream,
+					"operator , is not allowed in variable initialization expression"
+				);
+			}
+			else
+			{
+				context.assert_token(stream, lex::token::semi_colon);
+			}
+		}
+		context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
+	}
+	else
+	{
+		if (!ast::is_complete(var_decl.var_type))
+		{
+			context.report_error(
+				var_decl.identifier,
+				bz::format(
+					"a variable with an incomplete type '{}' must be initialized",
+					var_decl.var_type
+				)
+			);
+			var_decl.var_type.clear();
+		}
+		else if (var_decl.var_type.is<ast::ts_const>())
+		{
+			context.report_error(
+				var_decl.identifier,
+				"a variable with a 'const' type must be initialized"
+			);
+			var_decl.var_type.clear();
+		}
+		else if (var_decl.var_type.is<ast::ts_consteval>())
+		{
+			context.report_error(
+				var_decl.identifier,
+				"a variable with a 'consteval' type must be initialized"
+			);
+			var_decl.var_type.clear();
+		}
+	}
+}
+
+template<bool is_global>
+ast::statement parse_decl_variable(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(
+		stream->kind == lex::token::kw_let
+		|| stream->kind == lex::token::kw_const
+		|| stream->kind == lex::token::kw_consteval
+	);
+	auto const begin = stream;
+	if (stream->kind == lex::token::kw_let)
+	{
+		++stream;
+	}
+
+	auto const [prototype, id, type] = parse_decl_variable_id_and_type(stream, end, context);
+	if (stream != end && stream->kind == lex::token::assign)
+	{
+		++stream; // '='
+		auto const init_expr = get_expression_tokens<>(stream, end, context);
+		if constexpr (is_global)
+		{
+			return ast::make_decl_variable(
+				lex::token_range{ begin, stream },
+				id, prototype,
+				ast::make_unresolved_typespec(type),
+				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
+			);
+		}
+		else
+		{
+			auto result = ast::make_decl_variable(
+				lex::token_range{ begin, stream },
+				id, prototype,
+				ast::make_unresolved_typespec(type),
+				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
+			);
+			bz_assert(result.is<ast::decl_variable>());
+			auto &var_decl = *result.get<ast::decl_variable_ptr>();
+			resolve_decl_variable(var_decl, context);
+			context.add_local_variable(var_decl);
+			return result;
+		}
+	}
+	else
+	{
+		if constexpr (is_global)
+		{
+			return ast::make_decl_variable(
+				lex::token_range{ begin, stream },
+				id, prototype,
+				ast::make_unresolved_typespec(type)
+			);
+		}
+		else
+		{
+			auto result = ast::make_decl_variable(
+				lex::token_range{ begin, stream },
+				id, prototype,
+				ast::make_unresolved_typespec(type)
+			);
+			bz_assert(result.is<ast::decl_variable>());
+			auto &var_decl = *result.get<ast::decl_variable_ptr>();
+			resolve_decl_variable(var_decl, context);
+			context.add_local_variable(var_decl);
+			return result;
+		}
+	}
+}
+
+template ast::statement parse_decl_variable<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_variable<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 // resolves the function symbol, but doesn't modify scope
 static bool resolve_function_symbol_helper(
@@ -408,6 +521,7 @@ static ast::function_body parse_function_body(
 	return result;
 }
 
+template<bool is_global>
 ast::statement parse_decl_function(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -423,9 +537,31 @@ ast::statement parse_decl_function(
 		: lex::src_tokens{ begin, begin, stream };
 	auto body = parse_function_body(src_tokens, id->value, stream, end, context);
 
-	return ast::make_decl_function(id, std::move(body));
+	if constexpr (is_global)
+	{
+		return ast::make_decl_function(id, std::move(body));
+	}
+	else
+	{
+		resolve_function(body, context);
+		auto result = ast::make_decl_function(id, std::move(body));
+		bz_assert(result.is<ast::decl_function>());
+		context.add_local_function(*result.get<ast::decl_function_ptr>());
+		return result;
+	}
 }
 
+template ast::statement parse_decl_function<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_function<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<bool is_global>
 ast::statement parse_decl_operator(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -465,8 +601,29 @@ ast::statement parse_decl_operator(
 
 	auto body = parse_function_body(src_tokens, bz::format("{}", op->kind), stream, end, context);
 
-	return ast::make_decl_operator(op, std::move(body));
+	if constexpr (is_global)
+	{
+		return ast::make_decl_operator(op, std::move(body));
+	}
+	else
+	{
+		resolve_function(body, context);
+		auto result = ast::make_decl_operator(op, std::move(body));
+		bz_assert(result.is<ast::decl_operator>());
+		context.add_local_operator(*result.get<ast::decl_operator_ptr>());
+		return result;
+	}
 }
+
+template ast::statement parse_decl_operator<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_operator<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 template<bool is_global>
 ast::statement parse_attribute_statement(
@@ -796,6 +953,10 @@ void resolve_global_statement(
 		[&](ast::decl_operator &op_decl) {
 			context.add_to_resolve_queue({}, op_decl.body);
 			resolve_function(op_decl.body, context);
+		},
+		[&](ast::decl_variable &var_decl) {
+			context.add_to_resolve_queue({}, var_decl);
+			resolve_decl_variable(var_decl, context);
 		},
 		[&](auto &) {
 			bz_assert(false);

@@ -169,19 +169,23 @@ ast::expression parse_compound_expression(
 		if (expr.is<ast::constant_expression>() && statements.size() == 0)
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
+			auto result_type = const_expr.type;
+			auto const result_kind = const_expr.kind;
+			auto result_value = const_expr.value;
 			return ast::make_constant_expression(
 				{ begin, begin, stream },
-				const_expr.kind, const_expr.type,
-				const_expr.value,
+				result_kind, std::move(result_type),
+				std::move(result_value),
 				ast::make_expr_compound(std::move(statements), std::move(expr))
 			);
 		}
 		else if (expr.is_constant_or_dynamic())
 		{
 			auto const [type, kind] = expr.get_expr_type_and_kind();
+			auto result_type = type;
 			return ast::make_dynamic_expression(
 				{ begin, begin, stream },
-				kind, type,
+				kind, std::move(result_type),
 				ast::make_expr_compound(std::move(statements), std::move(expr))
 			);
 		}

@@ -1404,7 +1404,7 @@ static int get_type_match_level(
 
 	if (dest_it.is_empty() || src_it.is_empty())
 	{
-		bz_assert(context.has_errors());
+		bz_assert(expr_type_kind == ast::expression_type_kind::none || context.has_errors());
 		return -1;
 	}
 

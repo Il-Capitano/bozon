@@ -21,7 +21,10 @@ struct parse_context
 	struct resolve_queue_t
 	{
 		lex::src_tokens requester;
-		bz::variant<ast::function_body *> requested;
+		bz::variant<
+			ast::function_body *,
+			ast::decl_variable *
+		> requested;
 	};
 
 	global_context             &global_ctx;
@@ -260,6 +263,8 @@ struct parse_context
 
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
 	{ this->resolve_queue.emplace_back(tokens, &func_body); }
+	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_variable &var_decl)
+	{ this->resolve_queue.emplace_back(tokens, &var_decl); }
 
 	void pop_resolve_queue(void)
 	{ this->resolve_queue.pop_back(); }
