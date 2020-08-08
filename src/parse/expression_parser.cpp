@@ -69,8 +69,8 @@ void consume_semi_colon_at_end_of_expression(
 				if (else_dummy_stream != nullptr)
 				{
 					consume_semi_colon_at_end_of_expression(
-						if_dummy_stream, end, context,
-						if_expr.if_block
+						else_dummy_stream, end, context,
+						if_expr.else_block
 					);
 				}
 			}
@@ -137,7 +137,7 @@ ast::expression parse_compound_expression(
 	{
 		return ast::make_constant_expression(
 			{ begin, begin, stream },
-			ast::expression_type_kind::none, ast::typespec(),
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 			ast::constant_value(),
 			ast::make_expr_compound(std::move(statements), ast::expression())
 		);
@@ -147,7 +147,7 @@ ast::expression parse_compound_expression(
 		statements.pop_back();
 		return ast::make_dynamic_expression(
 			{ begin, begin, stream },
-			ast::expression_type_kind::none, ast::typespec(),
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 			ast::make_expr_compound(std::move(statements), ast::expression())
 		);
 	}
@@ -158,7 +158,7 @@ ast::expression parse_compound_expression(
 	{
 		return ast::make_dynamic_expression(
 			{ begin, begin, stream },
-			ast::expression_type_kind::none, ast::typespec(),
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 			ast::make_expr_compound(std::move(statements), ast::expression())
 		);
 	}
@@ -207,11 +207,19 @@ ast::expression parse_if_expression(
 	auto const begin = stream;
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	auto if_block = parse_top_level_expression(stream, end, context);
+	auto if_block = parse_expression_without_semi_colon(stream, end, context);
+	if (!if_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
+	{
+		++stream; // ';'
+	}
 	if (stream != end && stream->kind == lex::token::kw_else)
 	{
 		++stream; // 'else'
-		auto else_block = parse_top_level_expression(stream, end, context);
+		auto else_block = parse_expression_without_semi_colon(stream, end, context);
+		if (!else_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
+		{
+			++stream; // ';'
+		}
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 		if (if_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
 		{
@@ -252,13 +260,12 @@ ast::expression parse_if_expression(
 	}
 	else
 	{
-		consume_semi_colon_at_end_of_expression(stream, end, context, if_block);
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 		if (if_block.not_null())
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::none, ast::typespec(),
+				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
 				ast::make_expr_if(std::move(condition), std::move(if_block))
 			);
 		}

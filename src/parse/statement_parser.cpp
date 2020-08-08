@@ -79,6 +79,7 @@ parse_decl_variable_id_and_type(
 	++stream; // ':'
 	auto const type = get_expression_tokens<
 		lex::token::assign,
+		lex::token::comma,
 		lex::token::paren_close,
 		lex::token::square_close
 	>(stream, end, context);
@@ -269,6 +270,7 @@ ast::statement parse_decl_variable(
 	{
 		++stream; // '='
 		auto const init_expr = get_expression_tokens<>(stream, end, context);
+		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
 			return ast::make_decl_variable(
@@ -730,7 +732,7 @@ ast::statement parse_stmt_for(
 		return {};
 	}
 	auto condition = stream->kind == lex::token::semi_colon
-		? (++stream, ast::expression())
+		? ast::expression()
 		: parse_expression(stream, end, context, precedence{}, true);
 	if (context.assert_token(stream, lex::token::semi_colon)->kind != lex::token::semi_colon)
 	{
@@ -746,8 +748,8 @@ ast::statement parse_stmt_for(
 		context.report_error(stream, "expected iteration expression or closing )");
 		return {};
 	}
-	auto iteration = stream->kind == lex::token::semi_colon
-		? (++stream, ast::expression())
+	auto iteration = stream->kind == lex::token::paren_close
+		? ast::expression()
 		: parse_expression(stream, end, context, precedence{}, true);
 	if (stream != end && stream->kind == lex::token::paren_close)
 	{
@@ -783,6 +785,10 @@ ast::statement parse_stmt_return(
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_return);
 	++stream; // 'return'
+	if (stream != end && stream->kind == lex::token::semi_colon)
+	{
+		return ast::make_stmt_return();
+	}
 	auto expr = parse_expression(stream, end, context, precedence{}, true);
 	context.assert_token(stream, lex::token::semi_colon);
 	return ast::make_stmt_return(std::move(expr));
