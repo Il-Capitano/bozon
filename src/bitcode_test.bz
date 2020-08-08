@@ -22,7 +22,7 @@
 
 @extern("exit")              function exit(code: int32) -> void;
 
-	/*
+//	/*
 function assert(b: bool) -> void
 {
 	if (!b)
@@ -370,7 +370,7 @@ function scope_test() -> void
 	((u32 * 1u % 0u)) + 1u;
 
 	const n = 1u64;
-	(n << 99u);
+	((n << 99u));
 	const num = 65;
 	println(num as char);
 	println('A' as int32);
@@ -384,12 +384,12 @@ function scope_test() -> void
 	const f = 1.0;
 	((f / 0.0)) + 1.0;
 
-	(-1 as uint64);
+	((-1 as uint64));
 
 	let p: *int32;
 	p = null;
 
-	(-((1i8 + 127i8)));
+	((-((1i8 + 127i8))));
 
 //	-1 as uint64;
 
@@ -554,18 +554,6 @@ function for_test() -> void
 
 function declaration_leak() -> void
 {
-	if (false) let i = 0;
-//	i;
-	while (false) let i = 0;
-//	i;
-
-	if (false) let i = 0;
-//	else i;
-
-	if (false);
-	else let i = 0;
-//	i;
-
 	for (let i = 0; i < 10; ++i);
 //	i;
 }
@@ -706,12 +694,14 @@ function main() -> int32
 //	{
 //		return 2;
 //	});
-	let i = 2;
-	let j: int32;
-	println({ let i = 3; j } + 5);
+//	let i = 2;
+//	let j: int32;
+//	println({ let i = 3; j } + 5);
 
-	({
-		127i8
-	}) + 3i8;
+	for (;;)
+	{
+		println("hello");
+	}
+
 	return 0;
 }
