@@ -25,6 +25,8 @@ inline bool do_profile = false;
 inline compilation_phase compile_until = compilation_phase::link;
 // inline bool do_verbose_error = false;
 
+inline size_t tab_size = 4;
+
 
 void enable_warning(ctx::warning_kind kind);
 void disable_warning(ctx::warning_kind kind);

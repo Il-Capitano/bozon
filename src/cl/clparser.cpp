@@ -100,6 +100,97 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 	}
 }
 
+static std::pair<int, bool> parse_int(bz::u8string_view num)
+{
+	int result = 0;
+	bool is_negative = false;
+	auto it = num.begin();
+	auto const end = num.end();
+
+	if (it == end)
+	{
+		return { 0, false };
+	}
+
+	if (*it == '-')
+	{
+		is_negative = true;
+		++it;
+	}
+
+	if (it == end)
+	{
+		return { 0, false };
+	}
+
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		if (c >= '0' && c <= '9')
+		{
+			if (result > std::numeric_limits<int>::max() / 10)
+			{
+				return { 0, false };
+			}
+			result *= 10;
+			result += c - '0';
+		}
+		else
+		{
+			return { 0, false };
+		}
+	}
+
+	if (is_negative)
+	{
+		return { -result, true };
+	}
+	else
+	{
+		return { result, true };
+	}
+}
+
+static void set_tab_size(iter_t &it, iter_t end, ctx::command_parse_context &context)
+{
+	constexpr bz::u8string_view flag_name = "--error-report-tab-size=";
+	bz_assert(it != end);
+	bz_assert(it->starts_with(flag_name));
+	auto const arg = bz::u8string_view(
+		bz::u8iterator(it->data() + flag_name.size()),
+		it->end()
+	);
+
+	static uint32_t setter_arg_pos = 0;
+	if (setter_arg_pos == 0)
+	{
+		auto const [value, success] = parse_int(arg);
+		if (!success || value < 0)
+		{
+			context.report_error(
+				it,
+				bz::format("invalid argument '{}' for '{}'", ctx::convert_string_for_message(arg), flag_name)
+			);
+		}
+		else
+		{
+			setter_arg_pos = context.get_arg_position(it);
+			tab_size = value == 0 ? 4 : static_cast<size_t>(value);
+		}
+	}
+	else
+	{
+		context.report_error(
+			it,
+			bz::format(
+				"tab size has already been set by argument {} '{}'",
+				setter_arg_pos, context.get_arg_value(setter_arg_pos)
+			)
+		);
+	}
+	++it;
+}
+
 // we need the seperate flag function to check if *dest has been set or not
 // with only dest being the template argument, we can use a static variable in the function
 template<bool *dest>
@@ -145,6 +236,14 @@ using parse_fn_t = void (*)(iter_t &it, iter_t end, ctx::command_parse_context &
 struct prefix_parser
 {
 	bz::u8string_view prefix;
+	bz::u8string_view usage;
+	bz::u8string_view help;
+	parse_fn_t        parse_fn;
+};
+
+struct equals_parser
+{
+	bz::u8string_view arg_name;
 	bz::u8string_view usage;
 	bz::u8string_view help;
 	parse_fn_t        parse_fn;
@@ -215,6 +314,16 @@ constexpr auto prefix_parsers = []() {
 	return result;
 }();
 
+constexpr auto equals_parsers = []() {
+	using T = equals_parser;
+
+	std::array result = {
+		T{ "--error-report-tab-size=", "--error-report-tab-size=<size>", "Set tab size for error reporting (default=4)", &set_tab_size },
+	};
+
+	return result;
+}();
+
 constexpr auto argument_parsers = []() {
 	using T = argument_parser;
 
@@ -262,6 +371,17 @@ static_assert([]() {
 }(), "a prefix doesn't start with '-'");
 
 static_assert([]() {
+	for (auto const &eq : equals_parsers)
+	{
+		if (!eq.arg_name.starts_with("-"))
+		{
+			return false;
+		}
+	}
+	return true;
+}(), "an equals flag option doesn't start with '-'");
+
+static_assert([]() {
 	for (auto const &arg : argument_parsers)
 	{
 		if (!arg.arg_name.starts_with("-"))
@@ -270,7 +390,7 @@ static_assert([]() {
 		}
 	}
 	return true;
-}(), "an argument option doesn't start with '-'");
+}(), "an argument flag option doesn't start with '-'");
 
 static_assert([]() {
 	for (auto const &flag : flag_parsers)
@@ -296,6 +416,17 @@ static_assert([]() {
 }(), "a flag doesn't start with '-'");
 
 static_assert([]() {
+	for (auto const &eq : equals_parsers)
+	{
+		if (!eq.arg_name.ends_with("="))
+		{
+			return false;
+		}
+	}
+	return true;
+}(), "an equals flag option doesn't end with '='");
+
+static_assert([]() {
 	for (auto const &flag : flag_with_alternate_parsers)
 	{
 		auto const [first, second] = get_both_names(flag);
@@ -313,6 +444,7 @@ enum class parser_kind
 {
 	none,
 	prefix,
+	equals,
 	argument,
 	flag,
 	flag_with_alternate,
@@ -321,6 +453,7 @@ enum class parser_kind
 struct parser_variants_t
 {
 	prefix_parser              prefix              = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
+	equals_parser              equals              = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
 	argument_parser            argument            = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
 	flag_parser                flag                = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
 	flag_with_alternate_parser flag_with_alternate = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
@@ -335,7 +468,7 @@ struct command_line_parser
 constexpr auto command_line_parsers = []() {
 	using result_t = std::array<
 		command_line_parser,
-		prefix_parsers.size() + argument_parsers.size()
+		prefix_parsers.size() + argument_parsers.size() + equals_parsers.size()
 		+ flag_parsers.size() + flag_with_alternate_parsers.size()
 	>;
 
@@ -363,6 +496,13 @@ constexpr auto command_line_parsers = []() {
 		++i;
 	}
 
+	for (auto const &eq : equals_parsers)
+	{
+		result[i].kind = parser_kind::equals;
+		result[i].variants.equals = eq;
+		++i;
+	}
+
 	for (auto const &prefix : prefix_parsers)
 	{
 		result[i].kind = parser_kind::prefix;
@@ -387,6 +527,17 @@ static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context
 				constexpr auto parse_fn = parser.variants.prefix.parse_fn;
 
 				if (it->starts_with(prefix))
+				{
+					parse_fn(it, end, context);
+					good = true;
+				}
+			}
+			else if constexpr (parser.kind == parser_kind::equals)
+			{
+				constexpr auto eq_prefix = parser.variants.equals.arg_name;
+				constexpr auto parse_fn  = parser.variants.equals.parse_fn;
+
+				if (it->starts_with(eq_prefix))
 				{
 					parse_fn(it, end, context);
 					good = true;
@@ -476,6 +627,8 @@ constexpr bz::u8string_view get_usage_string(command_line_parser const &parser)
 	{
 	case parser_kind::prefix:
 		return parser.variants.prefix.usage;
+	case parser_kind::equals:
+		return parser.variants.equals.usage;
 	case parser_kind::argument:
 		return parser.variants.argument.usage;
 	case parser_kind::flag:
@@ -510,6 +663,8 @@ constexpr bz::u8string_view get_help_string(command_line_parser const &parser)
 	{
 	case parser_kind::prefix:
 		return parser.variants.prefix.help;
+	case parser_kind::equals:
+		return parser.variants.equals.help;
 	case parser_kind::argument:
 		return parser.variants.argument.help;
 	case parser_kind::flag:

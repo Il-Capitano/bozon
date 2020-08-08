@@ -15,16 +15,10 @@ static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos 
 	auto it = pivot.data();
 	do
 	{
-		if (pivot == file_begin)
-		{
-		}
-
 		--it;
 	} while (it != file_begin.data() && *it != '\n');
 	return bz::u8string_view(it, pivot.data()).length();
 }
-
-constexpr size_t tab_size = 4;
 
 static bz::u8string get_highlighted_error_or_warning(
 	ctx::char_pos const file_begin,

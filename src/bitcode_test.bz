@@ -706,6 +706,12 @@ function main() -> int32
 //	{
 //		return 2;
 //	});
-	println("Hello, world!");
+	let i = 2;
+	let j: int32;
+	println({ let i = 3; j } + 5);
+
+	({
+		127i8
+	}) + 3i8;
 	return 0;
 }
