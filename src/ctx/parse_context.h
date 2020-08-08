@@ -33,7 +33,6 @@ struct parse_context
 	bz::vector<resolve_queue_t> resolve_queue;
 
 	int parenthesis_suppressed_value = 0;
-	mutable bool _has_errors = false;
 
 
 	parse_context(global_context &_global_ctx);
@@ -204,7 +203,7 @@ struct parse_context
 		);
 	}
 
-	bool has_errors(void) const { return this->_has_errors; }
+	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 

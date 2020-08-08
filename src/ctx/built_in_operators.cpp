@@ -628,9 +628,10 @@ static ast::expression get_type_op_unary_reference(
 {
 	bz_assert(op->kind == lex::token::ampersand);
 	bz_assert(expr.not_null());
-	bz_assert(expr.get_tokens_end() != nullptr);
 	bz_assert(expr.is_typename());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	auto result_type = expr.get_typename();
 	if (result_type.is<ast::ts_consteval>())
@@ -665,9 +666,10 @@ static ast::expression get_type_op_unary_pointer(
 {
 	bz_assert(op->kind == lex::token::star);
 	bz_assert(expr.not_null());
-	bz_assert(expr.get_tokens_end() != nullptr);
 	bz_assert(expr.is_typename());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	auto result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
@@ -701,9 +703,10 @@ static ast::expression get_type_op_unary_const(
 {
 	bz_assert(op->kind == lex::token::kw_const);
 	bz_assert(expr.not_null());
-	bz_assert(expr.get_tokens_end() != nullptr);
 	bz_assert(expr.is_typename());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	auto result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
@@ -743,9 +746,10 @@ static ast::expression get_type_op_unary_consteval(
 {
 	bz_assert(op->kind == lex::token::kw_consteval);
 	bz_assert(expr.not_null());
-	bz_assert(expr.get_tokens_end() != nullptr);
 	bz_assert(expr.is_typename());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
 	if (const_expr_type.is<ast::ts_lvalue_reference>())
@@ -3493,7 +3497,10 @@ static ast::expression get_built_in_binary_comma(
 	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
 	auto result_type = type;
 
-	if (lhs.is<ast::constant_expression>())
+	if (
+		lhs.is<ast::constant_expression>()
+		&& !lhs.get_expr_type_and_kind().first.is<ast::ts_void>()
+	)
 	{
 		context.report_warning(
 			warning_kind::unused_value,

@@ -20,7 +20,6 @@ parse_context::parse_context(global_context &_global_ctx)
 
 void parse_context::report_error(lex::token_pos it) const
 {
-	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(it));
 }
 
@@ -30,7 +29,6 @@ void parse_context::report_error(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(
 		it, std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -43,7 +41,6 @@ void parse_context::report_error(
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	this->_has_errors = true;
 	this->global_ctx.report_error(ctx::make_error(
 		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
 		std::move(notes), std::move(suggestions)
@@ -329,6 +326,11 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 		{ second_erase_begin, second_erase_end, last->src_pos.end, std::move(last_suggestion_str) },
 		std::move(message)
 	};
+}
+
+bool parse_context::has_errors(void) const
+{
+	return this->global_ctx.has_errors();
 }
 
 lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind) const
@@ -2175,7 +2177,7 @@ ast::expression parse_context::make_function_call_expression(
 			auto const func_body = const_called.value.get<ast::constant_value::function>();
 			if (get_function_call_match_level(*func_body, params, *this, src_tokens).sum == -1)
 			{
-				if (func_body->state >= ast::resolve_state::symbol)
+				if (func_body->state != ast::resolve_state::error)
 				{
 					this->report_error(
 						src_tokens,

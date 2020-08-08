@@ -235,6 +235,16 @@ struct expression : bz::variant<
 			return this->get<dynamic_expression>().expr;
 		}
 	}
+
+	bool is_compound_or_if(void) const noexcept
+	{
+		if (!this->is_constant_or_dynamic())
+		{
+			return false;
+		}
+		auto &expr = this->get_expr();
+		return expr.is<expr_compound>() || expr.is<expr_if>();
+	}
 };
 
 

@@ -251,6 +251,11 @@ inline typespec make_base_type_typespec(lex::src_tokens src_tokens, type_info *i
 	return typespec{ { ts_base_type{ src_tokens, info } } };
 }
 
+inline typespec make_void_typespec(lex::token_pos void_pos)
+{
+	return typespec{ { ts_void{ void_pos } } };
+}
+
 inline typespec make_array_typespec(
 	lex::src_tokens src_tokens,
 	bz::vector<uint64_t> sizes,
