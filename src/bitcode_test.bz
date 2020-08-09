@@ -22,6 +22,7 @@
 
 @extern("exit")              function exit(code: int32) -> void;
 
+
 //	/*
 function assert(b: bool) -> void
 {
@@ -674,34 +675,3 @@ function print_matrix(arr: [4, 4: float64]) -> void
 // function circle3() -> typeof circle2() {}
 // function circle4() -> typeof circle3() {}
 // function circle5() -> typeof circle4() {}
-
-// function square_consteval(n: consteval int32) -> int32 { return n * n; }
-
-function main() -> int32
-{
-//	let i = 0;
-//	static_assert((~0u64 >> 1u) as int64 + 1 == (1u64 << 63u) as int64);
-//	{ ({ 3; }); }
-//	{ { 3; } }
-//	({ { 3 } });
-//	{ ({ 3 }); }
-//
-//	(if (false)
-//	{
-//		return 3;
-//	}
-//	else
-//	{
-//		return 2;
-//	});
-//	let i = 2;
-//	let j: int32;
-//	println({ let i = 3; j } + 5);
-
-	for (;;)
-	{
-		println("hello");
-	}
-
-	return 0;
-}

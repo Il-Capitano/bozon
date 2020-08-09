@@ -8,6 +8,143 @@ namespace parse
 
 // parse functions can't be static, because they are referenced in parse_common.h
 
+static void resolve_stmt_static_assert(
+	ast::stmt_static_assert &static_assert_stmt,
+	ctx::parse_context &context
+)
+{
+	bz_assert(static_assert_stmt.condition.is_null());
+	bz_assert(static_assert_stmt.condition.src_tokens.begin == nullptr);
+	bz_assert(static_assert_stmt.message.is_null());
+	bz_assert(static_assert_stmt.message.src_tokens.begin == nullptr);
+
+	auto const [begin, end] = static_assert_stmt.arg_tokens;
+	auto stream = begin;
+	auto args = parse_expression_comma_list(stream, end, context);
+	if (stream != end)
+	{
+		auto const open_paren = begin - 1;
+		if (open_paren->kind == lex::token::paren_open)
+		{
+			context.assert_token(stream, lex::token::paren_close);
+		}
+		else
+		{
+			context.report_error(stream);
+		}
+	}
+	if (args.size() != 1 && args.size() != 2)
+	{
+		context.report_error(
+			{ begin, begin, end },
+			bz::format(
+				"static_assert expects 1 or 2 arguments, but was given {}",
+				args.size()
+			)
+		);
+		return;
+	}
+
+	{
+		bool good = true;
+		auto const check_type = [&](
+			ast::expression const &expr,
+			uint32_t base_type_kind,
+			bz::u8string_view message
+		) {
+			if (!expr.is_constant_or_dynamic())
+			{
+				return;
+			}
+
+			auto const [type, _] = expr.get_expr_type_and_kind();
+			auto const without_const = ast::remove_const_or_consteval(type);
+			if (
+				!without_const.is<ast::ts_base_type>()
+				|| without_const.get<ast::ts_base_type>().info->kind != base_type_kind
+			)
+			{
+				good = false;
+				context.report_error(expr, message);
+			}
+		};
+
+		static_assert_stmt.condition = std::move(args[0]);
+		if (static_assert_stmt.condition.is_null())
+		{
+			good = false;
+		}
+		else if (!static_assert_stmt.condition.is<ast::constant_expression>())
+		{
+			good = false;
+			context.report_error(
+				static_assert_stmt.condition,
+				"condition for static_assert must be a constant expression"
+			);
+		}
+		check_type(
+			static_assert_stmt.condition,
+			ast::type_info::bool_,
+			"condition for static_assert must have type 'bool'"
+		);
+
+		if (args.size() == 2)
+		{
+			static_assert_stmt.message = std::move(args[1]);
+			if (static_assert_stmt.message.is_null())
+			{
+				good = false;
+			}
+			else if (!static_assert_stmt.message.is<ast::constant_expression>())
+			{
+				good = false;
+				context.report_error(
+					static_assert_stmt.message,
+					"message in static_assert must be a constant expression"
+				);
+			}
+			check_type(
+				static_assert_stmt.message,
+				ast::type_info::str_,
+				"message in static_assert must have type 'str'"
+			);
+		}
+
+		if (!good)
+		{
+			return;
+		}
+	}
+
+	auto &cond_const_expr = static_assert_stmt.condition.get<ast::constant_expression>();
+	bz_assert(cond_const_expr.value.kind() == ast::constant_value::boolean);
+	auto const cond = cond_const_expr.value.get<ast::constant_value::boolean>();
+
+	if (!cond)
+	{
+		if (static_assert_stmt.message.is_null())
+		{
+			context.report_error(
+				static_assert_stmt.condition,
+				"static assertion failed"
+			);
+		}
+		else
+		{
+			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
+			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
+			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
+			context.report_error(
+				static_assert_stmt.condition,
+				bz::format(
+					"static assertion failed, message: '{}'",
+					ctx::convert_string_for_message(message)
+				)
+			);
+		}
+	}
+}
+
 template<bool is_global>
 ast::statement parse_stmt_static_assert(
 	lex::token_pos &stream, lex::token_pos end,
@@ -33,8 +170,29 @@ ast::statement parse_stmt_static_assert(
 		}
 	}
 	context.assert_token(stream, lex::token::semi_colon);
-	return ast::make_stmt_static_assert(args);
+
+	if constexpr (is_global)
+	{
+		return ast::make_stmt_static_assert(args);
+	}
+	else
+	{
+		auto result = ast::make_stmt_static_assert(args);
+		bz_assert(result.is<ast::stmt_static_assert>());
+		resolve_stmt_static_assert(*result.get<ast::stmt_static_assert_ptr>(), context);
+		return result;
+	}
 }
+
+template ast::statement parse_stmt_static_assert<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_stmt_static_assert<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 static std::tuple<lex::token_range, lex::token_pos, lex::token_range>
 parse_decl_variable_id_and_type(
@@ -963,14 +1121,20 @@ void resolve_global_statement(
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);
 			resolve_function(func_decl.body, context);
+			context.pop_resolve_queue();
 		},
 		[&](ast::decl_operator &op_decl) {
 			context.add_to_resolve_queue({}, op_decl.body);
 			resolve_function(op_decl.body, context);
+			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {
 			context.add_to_resolve_queue({}, var_decl);
 			resolve_decl_variable(var_decl, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::stmt_static_assert &static_assert_stmt) {
+			resolve_stmt_static_assert(static_assert_stmt, context);
 		},
 		[&](auto &) {
 			bz_assert(false);
