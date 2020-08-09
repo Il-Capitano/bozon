@@ -545,10 +545,14 @@ ast::statement parse_decl_function(
 	}
 	else
 	{
-		resolve_function(body, context);
 		auto result = ast::make_decl_function(id, std::move(body));
 		bz_assert(result.is<ast::decl_function>());
-		context.add_local_function(*result.get<ast::decl_function_ptr>());
+		auto &func_decl = *result.get<ast::decl_function_ptr>();
+		resolve_function(func_decl.body, context);
+		if (func_decl.body.state != ast::resolve_state::error)
+		{
+			context.add_local_function(func_decl);
+		}
 		return result;
 	}
 }
@@ -609,10 +613,14 @@ ast::statement parse_decl_operator(
 	}
 	else
 	{
-		resolve_function(body, context);
 		auto result = ast::make_decl_operator(op, std::move(body));
 		bz_assert(result.is<ast::decl_operator>());
-		context.add_local_operator(*result.get<ast::decl_operator_ptr>());
+		auto &op_decl = *result.get<ast::decl_operator_ptr>();
+		resolve_function(op_decl.body, context);
+		if (op_decl.body.state != ast::resolve_state::error)
+		{
+			context.add_local_operator(op_decl);
+		}
 		return result;
 	}
 }
