@@ -840,7 +840,14 @@ ast::statement parse_attribute_statement(
 
 	constexpr auto parser_fn = is_global ? &parse_global_statement : &parse_local_statement;
 	auto statement = parser_fn(stream, end, context);
-	statement.set_attributes(std::move(attributes));
+	if constexpr (is_global)
+	{
+		statement.set_attributes_without_resolve(std::move(attributes));
+	}
+	else
+	{
+		statement.set_attributes(std::move(attributes));
+	}
 	return statement;
 }
 
@@ -1117,6 +1124,7 @@ void resolve_global_statement(
 	ctx::parse_context &context
 )
 {
+	stmt.resolve_attributes();
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);

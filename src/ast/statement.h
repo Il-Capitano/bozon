@@ -109,9 +109,17 @@ struct statement : statement_node_t
 	declare_default_5(statement)
 
 	bz::vector<attribute> _attributes;
-	void set_attributes(bz::vector<attribute> attributes) noexcept
+
+	void set_attributes_without_resolve(bz::vector<attribute> attributes)
 	{
 		this->_attributes = std::move(attributes);
+	}
+	void resolve_attributes(void);
+
+	void set_attributes(bz::vector<attribute> attributes)
+	{
+		this->_attributes = std::move(attributes);
+		this->resolve_attributes();
 	}
 
 	auto &get_attributes(void) noexcept

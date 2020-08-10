@@ -4,6 +4,11 @@
 namespace ast
 {
 
+void statement::resolve_attributes(void)
+{
+	bz_assert(this->_attributes.size() == 0);
+}
+
 lex::token_pos decl_variable::get_tokens_begin(void) const
 { return this->tokens.begin; }
 
