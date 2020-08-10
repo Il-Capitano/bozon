@@ -48,6 +48,17 @@ struct parse_context
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
+	void report_error(lex::src_tokens src_tokens) const
+	{
+		if (src_tokens.end - src_tokens.begin == 1)
+		{
+			this->report_error(src_tokens.begin);
+		}
+		else
+		{
+			this->report_error(src_tokens, "unexpected tokens");
+		}
+	}
 	template<typename T>
 	void report_error(
 		T const &tokens, bz::u8string message,
