@@ -114,13 +114,6 @@ struct statement : statement_node_t
 	{
 		this->_attributes = std::move(attributes);
 	}
-	void resolve_attributes(void);
-
-	void set_attributes(bz::vector<attribute> attributes)
-	{
-		this->_attributes = std::move(attributes);
-		this->resolve_attributes();
-	}
 
 	auto &get_attributes(void) noexcept
 	{ return this->_attributes; }

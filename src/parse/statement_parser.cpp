@@ -8,6 +8,11 @@ namespace parse
 
 // parse functions can't be static, because they are referenced in parse_common.h
 
+static void resolve_attributes(
+	ast::statement &stmt,
+	ctx::parse_context &context
+);
+
 static void resolve_stmt_static_assert(
 	ast::stmt_static_assert &static_assert_stmt,
 	ctx::parse_context &context
@@ -256,12 +261,7 @@ static void resolve_typespec(
 	auto type = parse_expression(stream, end, context, prec, true);
 	if (stream != end)
 	{
-		context.report_error(
-			{ stream, stream, end },
-			end - stream == 1
-			? "unexpected token"
-			: "unexpected tokens"
-		);
+		context.report_error({ stream, stream, end });
 	}
 	if (type.not_null() && !type.is_typename())
 	{
@@ -311,12 +311,7 @@ static void resolve_var_decl_type(
 		}
 		else
 		{
-			context.report_error(
-				{ stream, stream, end },
-				end - stream == 1
-				? "unexpected token"
-				: "unexpected tokens"
-			);
+			context.report_error({ stream, stream, end });
 		}
 		var_decl.var_type.clear();
 	}
@@ -846,7 +841,8 @@ ast::statement parse_attribute_statement(
 	}
 	else
 	{
-		statement.set_attributes(std::move(attributes));
+		statement.set_attributes_without_resolve(std::move(attributes));
+		resolve_attributes(statement, context);
 	}
 	return statement;
 }
@@ -1119,12 +1115,233 @@ bz::vector<ast::statement> parse_local_statements(
 	return result;
 }
 
+static void apply_attribute(
+	ast::stmt_while &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::stmt_for &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::stmt_return &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::stmt_no_op &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::stmt_static_assert &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::stmt_expression &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::decl_variable &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
+	ast::decl_function &func_decl,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.name->value == "extern")
+	{
+		if (attribute.args.size() != 1)
+		{
+			context.report_error(attribute.name, "@extern expects exactly one argument");
+			return;
+		}
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "argument of @extern must have type 'str'");
+			return;
+		}
+
+		auto const extern_name = attribute.args[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::string>().as_string_view();
+		func_decl.body.symbol_name = extern_name;
+	}
+	else
+	{
+		context.report_warning(
+			ctx::warning_kind::unknown_attribute,
+			attribute.name,
+			bz::format("unknown attribute '{}'", attribute.name->value)
+		);
+	}
+}
+
+static void apply_attribute(
+	ast::decl_operator &op_decl,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.name->value == "extern")
+	{
+		if (attribute.args.size() != 1)
+		{
+			context.report_error(attribute.name, "@extern expects exactly one argument");
+			return;
+		}
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "argument of @extern must have type 'str'");
+			return;
+		}
+
+		auto const extern_name = attribute.args[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::string>().as_string_view();
+		op_decl.body.symbol_name = extern_name;
+	}
+	else
+	{
+		context.report_warning(
+			ctx::warning_kind::unknown_attribute,
+			attribute.name,
+			bz::format("unknown attribute '{}'", attribute.name->value)
+		);
+	}
+}
+
+static void apply_attribute(
+	ast::decl_struct &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+
+static void apply_attribute(
+	ast::statement &stmt,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	stmt.visit([&](auto &s) {
+		apply_attribute(s, attribute, context);
+	});
+}
+
+static void resolve_attributes(
+	ast::statement &stmt,
+	ctx::parse_context &context
+)
+{
+	auto &attributes = stmt.get_attributes();
+	for (auto &attribute : attributes)
+	{
+		bz_assert(attribute.args.size() == 0);
+		auto [stream, end] = attribute.arg_tokens;
+		attribute.args = parse_expression_comma_list(stream, end, context);
+		if (stream != end)
+		{
+			context.report_error({ stream, stream, end });
+		}
+
+		for (auto &arg : attribute.args)
+		{
+			if (arg.not_null() && !arg.is<ast::constant_expression>())
+			{
+				context.report_error(arg, "attribute argument must be a constant expression");
+			}
+		}
+
+		apply_attribute(stmt, attribute, context);
+	}
+}
+
 void resolve_global_statement(
 	ast::statement &stmt,
 	ctx::parse_context &context
 )
 {
-	stmt.resolve_attributes();
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);
@@ -1148,6 +1365,7 @@ void resolve_global_statement(
 			bz_assert(false);
 		}
 	});
+	resolve_attributes(stmt, context);
 }
 
 } // namespace parse

@@ -20,7 +20,7 @@
 @extern("println_float64")   function println(x: float64)      -> void;
 @extern("println_bool")      function println(b: bool)         -> void;
 
-@extern("exit")              function exit(code: int32) -> void;
+@extern("exit")              function exit(code: int32)        -> void;
 
 
 //	/*
@@ -126,7 +126,7 @@ function main() -> int32
 	scope_test();
 
 	println("\n==== christmas_tree ====");
-	christmas_tree(4);
+	christmas_tree(30);
 
 	println("\n==== for_test ====");
 	for_test();
