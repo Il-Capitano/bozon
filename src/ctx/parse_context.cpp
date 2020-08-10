@@ -2351,8 +2351,10 @@ void parse_context::match_expression_to_type(
 	ast::typespec &dest_type
 )
 {
-	if (expr.is_null() || dest_type.is_empty())
+	bz_assert(!dest_type.is_empty());
+	if (expr.is_null())
 	{
+		dest_type.clear();
 		bz_assert(this->has_errors());
 		return;
 	}
@@ -2371,7 +2373,9 @@ void parse_context::match_expression_to_type(
 	}
 	else if (expr.is_typename())
 	{
-		bz_assert(false);
+		this->report_error(expr, "a type cannot be used in this context");
+		dest_type.clear();
+		return;
 	}
 
 	if (dest_type.is<ast::ts_consteval>() && !expr.is<ast::constant_expression>())

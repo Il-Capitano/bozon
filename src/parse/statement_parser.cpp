@@ -370,7 +370,11 @@ static void resolve_decl_variable(
 	}
 	else
 	{
-		if (!ast::is_complete(var_decl.var_type))
+		if (var_decl.var_type.is_empty())
+		{
+			bz_assert(context.has_errors());
+		}
+		else if (!ast::is_complete(var_decl.var_type))
 		{
 			context.report_error(
 				var_decl.identifier,
