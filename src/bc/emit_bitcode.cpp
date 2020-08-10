@@ -1415,6 +1415,12 @@ static val_ptr emit_bitcode(
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
 	auto const res = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+
+	if (res->getType()->isVoidTy())
+	{
+		return {};
+	}
+
 	if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
 	{
 		return { val_ptr::reference, res };
@@ -1552,8 +1558,82 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(false);
-	return {};
+	auto const condition = emit_bitcode(if_expr.condition, context).get_value(context);
+	// assert that the condition is an i1 (bool)
+	bz_assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
+	// the original block
+	auto const entry_bb = context.builder.GetInsertBlock();
+
+	// emit code for the then block
+	auto const then_bb = context.add_basic_block("then");
+	context.builder.SetInsertPoint(then_bb);
+	auto const then_val = emit_bitcode(if_expr.then_block, context);
+	auto const then_bb_end = context.builder.GetInsertBlock();
+
+	// emit code for the else block if there's any
+	auto const else_bb = if_expr.else_block.is_null() ? nullptr : context.add_basic_block("else");
+	val_ptr else_val = {};
+	if (else_bb)
+	{
+		context.builder.SetInsertPoint(else_bb);
+		else_val = emit_bitcode(if_expr.else_block, context);
+	}
+	auto const else_bb_end = else_bb ? context.builder.GetInsertBlock() : nullptr;
+
+	// if both branches have a return at the end, then don't create the end block
+	if (else_bb_end && context.has_terminator(then_bb_end) && context.has_terminator(else_bb_end))
+	{
+		context.builder.SetInsertPoint(entry_bb);
+		// else_bb must be valid here
+		context.builder.CreateCondBr(condition, then_bb, else_bb);
+		return {};
+	}
+
+	auto const end_bb = context.add_basic_block("endif");
+	// create branches for the entry block
+	context.builder.SetInsertPoint(entry_bb);
+	context.builder.CreateCondBr(condition, then_bb, else_bb ? else_bb : end_bb);
+
+	// create branches for the then and else blocks, if there's no return at the end
+	if (!context.has_terminator(then_bb_end))
+	{
+		context.builder.SetInsertPoint(then_bb_end);
+		context.builder.CreateBr(end_bb);
+	}
+	if (else_bb_end && !context.has_terminator(else_bb_end))
+	{
+		context.builder.SetInsertPoint(else_bb_end);
+		context.builder.CreateBr(end_bb);
+	}
+
+	context.builder.SetInsertPoint(end_bb);
+	if (!then_val.val || !else_val.val)
+	{
+		return {};
+	}
+
+	if (then_val.kind == val_ptr::reference && else_val.kind == val_ptr::reference)
+	{
+		auto const result = context.builder.CreatePHI(then_val.val->getType(), 2);
+		result->addIncoming(then_val.val, then_bb_end);
+		result->addIncoming(else_val.val, else_bb_end);
+		return {
+			val_ptr::reference,
+			result
+		};
+	}
+	else
+	{
+		auto const then_val_value = then_val.get_value(context);
+		auto const else_val_value = else_val.get_value(context);
+		auto const result = context.builder.CreatePHI(then_val_value->getType(), 2);
+		result->addIncoming(then_val_value, then_bb_end);
+		result->addIncoming(else_val_value, else_bb_end);
+		return {
+			val_ptr::value,
+			result
+		};
+	}
 }
 
 static val_ptr emit_bitcode(
@@ -2025,7 +2105,7 @@ static void emit_alloca(
 )
 {
 	emit_alloca(if_expr.condition, context);
-	emit_alloca(if_expr.if_block, context);
+	emit_alloca(if_expr.then_block, context);
 	emit_alloca(if_expr.else_block, context);
 }
 

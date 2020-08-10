@@ -402,27 +402,27 @@ struct expr_compound
 struct expr_if
 {
 	expression condition;
-	expression if_block;
+	expression then_block;
 	expression else_block;
 
 	declare_default_5(expr_if)
 
 	expr_if(
 		expression _condition,
-		expression _if_block,
+		expression _then_block,
 		expression _else_block
 	)
 		: condition (std::move(_condition)),
-		  if_block  (std::move(_if_block)),
+		  then_block(std::move(_then_block)),
 		  else_block(std::move(_else_block))
 	{}
 
 	expr_if(
 		expression _condition,
-		expression _if_block
+		expression _then_block
 	)
 		: condition (std::move(_condition)),
-		  if_block  (std::move(_if_block)),
+		  then_block(std::move(_then_block)),
 		  else_block()
 	{}
 };

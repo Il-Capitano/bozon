@@ -60,10 +60,10 @@ void consume_semi_colon_at_end_of_expression(
 		[&](ast::expr_if const &if_expr) {
 			if (expression.src_tokens.begin->kind == lex::token::kw_if)
 			{
-				auto if_dummy_stream = if_expr.if_block.src_tokens.end;
+				auto if_dummy_stream = if_expr.then_block.src_tokens.end;
 				consume_semi_colon_at_end_of_expression(
 					if_dummy_stream, end, context,
-					if_expr.if_block
+					if_expr.then_block
 				);
 				auto else_dummy_stream = if_expr.else_block.src_tokens.end;
 				if (else_dummy_stream != nullptr)
@@ -207,8 +207,8 @@ ast::expression parse_if_expression(
 	auto const begin = stream;
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	auto if_block = parse_expression_without_semi_colon(stream, end, context);
-	if (!if_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
+	auto then_block = parse_expression_without_semi_colon(stream, end, context);
+	if (!then_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
 	{
 		++stream; // ';'
 	}
@@ -221,9 +221,9 @@ ast::expression parse_if_expression(
 			++stream; // ';'
 		}
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
-		if (if_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
+		if (then_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
 		{
-			auto const [if_type, if_kind] = if_block.get_expr_type_and_kind();
+			auto const [if_type, if_kind] = then_block.get_expr_type_and_kind();
 			auto const [else_type, else_kind] = else_block.get_expr_type_and_kind();
 			if (ast::remove_const_or_consteval(if_type) != ast::remove_const_or_consteval(else_type))
 			{
@@ -247,7 +247,7 @@ ast::expression parse_if_expression(
 				common_kind, common_type,
 				ast::make_expr_if(
 					std::move(condition),
-					std::move(if_block),
+					std::move(then_block),
 					std::move(else_block)
 				)
 			);
@@ -261,12 +261,12 @@ ast::expression parse_if_expression(
 	else
 	{
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
-		if (if_block.not_null())
+		if (then_block.not_null())
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-				ast::make_expr_if(std::move(condition), std::move(if_block))
+				ast::make_expr_if(std::move(condition), std::move(then_block))
 			);
 		}
 		else
