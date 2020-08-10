@@ -138,10 +138,12 @@ static bz::u8string get_highlighted_error_or_warning(
 		](ctx::char_pos &it) {
 			if (*it.data() == '\t')
 			{
-				uint8_t spaces[tab_size];
-				uint8_t tildes[tab_size];
-				std::memset(spaces, ' ', sizeof spaces);
-				std::memset(tildes, '~', sizeof tildes);
+				auto const spaces_unique = std::make_unique<uint8_t[]>(tab_size);
+				auto const tildes_unique = std::make_unique<uint8_t[]>(tab_size);
+				auto const spaces = spaces_unique.get();
+				auto const tildes = tildes_unique.get();
+				std::memset(spaces, ' ', tab_size);
+				std::memset(tildes, '~', tab_size);
 				if (it == pivot_pos)
 				{
 					bz_assert(is_in_highlight);
@@ -511,10 +513,12 @@ static bz::u8string get_highlighted_note(
 		](ctx::char_pos &it) {
 			if (*it.data() == '\t')
 			{
-				uint8_t spaces[tab_size];
-				uint8_t tildes[tab_size];
-				std::memset(spaces, ' ', sizeof spaces);
-				std::memset(tildes, '~', sizeof tildes);
+				auto const spaces_unique = std::make_unique<uint8_t[]>(tab_size);
+				auto const tildes_unique = std::make_unique<uint8_t[]>(tab_size);
+				auto const spaces = spaces_unique.get();
+				auto const tildes = tildes_unique.get();
+				std::memset(spaces, ' ', tab_size);
+				std::memset(tildes, '~', tab_size);
 				if (it == pivot_pos)
 				{
 					bz_assert(is_in_highlight);
@@ -848,8 +852,9 @@ static bz::u8string get_highlighted_suggestion(
 		](ctx::char_pos &it) {
 			if (*it.data() == '\t')
 			{
-				uint8_t spaces[tab_size];
-				std::memset(spaces, ' ', sizeof spaces);
+				auto const spaces_unique = std::make_unique<uint8_t[]>(tab_size);
+				auto const spaces = spaces_unique.get();
+				std::memset(spaces, ' ', tab_size);
 				auto const char_count = tab_size - column % tab_size;
 
 				auto const tab_str = bz::u8string_view(spaces, spaces + char_count);
