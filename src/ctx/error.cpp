@@ -596,11 +596,21 @@ static bz::u8string get_highlighted_note(
 			{
 				bz_assert(!is_in_highlight);
 				it = first_erase_end_pos;
+				auto const erased_str = bz::u8string_view(first_erase_begin_pos, first_erase_end_pos);
+				auto const erase_length = erased_str.length();
+				file_line += bz::format("{}{:~<{}}{}", colors::bright_red, erase_length, "", colors::clear);
+				highlight_line += bz::format("{:{}}", erase_length, "");
+				column += erase_length;
 			}
 			else if (it == second_erase_begin_pos)
 			{
 				bz_assert(!is_in_highlight);
 				it = second_erase_end_pos;
+				auto const erased_str = bz::u8string_view(second_erase_begin_pos, second_erase_end_pos);
+				auto const erase_length = erased_str.length();
+				file_line += bz::format("{}{:~<{}}{}", colors::bright_red, erase_length, "", colors::clear);
+				highlight_line += bz::format("{:{}}", erase_length, "");
+				column += erase_length;
 			}
 
 			if (it == pivot_pos)
@@ -914,10 +924,20 @@ static bz::u8string get_highlighted_suggestion(
 			if (it == first_erase_begin_pos)
 			{
 				it = first_erase_end_pos;
+				auto const erased_str = bz::u8string_view(first_erase_begin_pos, first_erase_end_pos);
+				auto const erase_length = erased_str.length();
+				file_line += bz::format("{}{:~<{}}{}", colors::bright_red, erase_length, "", colors::clear);
+				highlight_line += bz::format("{:{}}", erase_length, "");
+				column += erase_length;
 			}
 			else if (it == second_erase_begin_pos)
 			{
 				it = second_erase_end_pos;
+				auto const erased_str = bz::u8string_view(second_erase_begin_pos, second_erase_end_pos);
+				auto const erase_length = erased_str.length();
+				file_line += bz::format("{}{:~<{}}{}", colors::bright_red, erase_length, "", colors::clear);
+				highlight_line += bz::format("{:{}}", erase_length, "");
+				column += erase_length;
 			}
 
 			if (it == line_end || *it.data() == '\n')
