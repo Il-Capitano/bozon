@@ -18,14 +18,23 @@ namespace ctx
 [[nodiscard]] bool src_manager::parse_command_line(int argc, char const **argv)
 {
 	auto const args = cl::get_args(argc, argv);
+	if (args.size() == 0)
+	{
+		cl::display_help_screen();
+		compile_until = compilation_phase::parse_command_line;
+		return true;
+	}
+
 	command_parse_context context(args, this->_global_ctx);
 	cl::parse_command_line(context);
+
 	auto const good = !this->_global_ctx.has_errors();
 	for (auto &err : this->_global_ctx.get_errors_and_warnings())
 	{
 		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
+
 	if (!good)
 	{
 		return false;

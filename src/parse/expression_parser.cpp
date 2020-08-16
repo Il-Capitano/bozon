@@ -53,8 +53,8 @@ void consume_semi_colon_at_end_of_expression(
 			}
 			else
 			{
-				auto dummy_stream = expression.src_tokens.end;
-				context.assert_token(dummy_stream, lex::token::semi_colon);
+				bz_assert(expression.src_tokens.end == stream);
+				context.assert_token(stream, lex::token::semi_colon);
 			}
 		},
 		[&](ast::expr_if const &if_expr) {
@@ -76,8 +76,8 @@ void consume_semi_colon_at_end_of_expression(
 			}
 			else
 			{
-				auto dummy_stream = expression.src_tokens.end;
-				context.assert_token(dummy_stream, lex::token::semi_colon);
+				bz_assert(expression.src_tokens.end == stream);
+				context.assert_token(stream, lex::token::semi_colon);
 			}
 		},
 		[&](auto const &) {

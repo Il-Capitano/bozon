@@ -100,7 +100,7 @@ void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_c
 	}
 }
 
-static std::pair<int, bool> parse_int(bz::u8string_view num)
+static bz::optional<int> parse_int(bz::u8string_view num)
 {
 	int result = 0;
 	bool is_negative = false;
@@ -109,7 +109,7 @@ static std::pair<int, bool> parse_int(bz::u8string_view num)
 
 	if (it == end)
 	{
-		return { 0, false };
+		return {};
 	}
 
 	if (*it == '-')
@@ -120,7 +120,7 @@ static std::pair<int, bool> parse_int(bz::u8string_view num)
 
 	if (it == end)
 	{
-		return { 0, false };
+		return {};
 	}
 
 	for (; it != end; ++it)
@@ -130,24 +130,24 @@ static std::pair<int, bool> parse_int(bz::u8string_view num)
 		{
 			if (result > std::numeric_limits<int>::max() / 10)
 			{
-				return { 0, false };
+				return {};
 			}
 			result *= 10;
 			result += c - '0';
 		}
 		else
 		{
-			return { 0, false };
+			return 0;
 		}
 	}
 
 	if (is_negative)
 	{
-		return { -result, true };
+		return -result;
 	}
 	else
 	{
-		return { result, true };
+		return result;
 	}
 }
 
@@ -164,8 +164,8 @@ static void set_tab_size(iter_t &it, iter_t end, ctx::command_parse_context &con
 	static uint32_t setter_arg_pos = 0;
 	if (setter_arg_pos == 0)
 	{
-		auto const [value, success] = parse_int(arg);
-		if (!success || value < 0)
+		auto const value = parse_int(arg);
+		if (!value.has_value() || *value < 0)
 		{
 			context.report_error(
 				it,
@@ -175,7 +175,7 @@ static void set_tab_size(iter_t &it, iter_t end, ctx::command_parse_context &con
 		else
 		{
 			setter_arg_pos = context.get_arg_position(it);
-			tab_size = value == 0 ? 4 : static_cast<size_t>(value);
+			tab_size = *value == 0 ? 4 : static_cast<size_t>(*value);
 		}
 	}
 	else
