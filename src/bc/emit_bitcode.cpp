@@ -20,6 +20,11 @@ struct val_ptr
 	llvm::Value *val = nullptr;
 	llvm::Value *consteval_val = nullptr;
 
+	bool has_value(void) const noexcept
+	{
+		return this->val != nullptr || this->consteval_val != nullptr;
+	}
+
 	llvm::Value *get_value(ctx::bitcode_context &context) const
 	{
 		if (this->consteval_val)
@@ -1607,7 +1612,7 @@ static val_ptr emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(end_bb);
-	if (!then_val.val || !else_val.val)
+	if (!then_val.has_value() || !else_val.has_value())
 	{
 		return {};
 	}
@@ -1615,6 +1620,8 @@ static val_ptr emit_bitcode(
 	if (then_val.kind == val_ptr::reference && else_val.kind == val_ptr::reference)
 	{
 		auto const result = context.builder.CreatePHI(then_val.val->getType(), 2);
+		bz_assert(then_val.val != nullptr);
+		bz_assert(else_val.val != nullptr);
 		result->addIncoming(then_val.val, then_bb_end);
 		result->addIncoming(else_val.val, else_bb_end);
 		return {
