@@ -54,8 +54,8 @@ static auto default_type_infos = get_default_type_infos();
 static bz::vector<typespec_with_name> get_default_types(void)
 {
 	bz::vector<typespec_with_name> result;
-	result.reserve(ast::type_info::null_t_);
-	for (size_t i = 0; i < ast::type_info::null_t_; ++i)
+	result.reserve(ast::type_info::null_t_ + 1);
+	for (size_t i = 0; i <= ast::type_info::null_t_; ++i)
 	{
 		auto &type_info = default_type_infos[i];
 		auto const name = ast::type_info::decode_symbol_name(type_info.symbol_name);
@@ -69,7 +69,7 @@ get_llvm_built_in_types(llvm::LLVMContext &context)
 {
 	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
 	auto const str_t = llvm::StructType::create("built_in.str", i8_ptr, i8_ptr);
-	auto const null_t = llvm::StructType::create(context, {}, "built_in.null_t");
+	auto const null_t = llvm::StructType::create(context, {}, "built_in.__null_t");
 	return {
 		llvm::Type::getInt8Ty(context),   // int8_
 		llvm::Type::getInt16Ty(context),  // int16_

@@ -654,6 +654,8 @@ function array_test() -> void
 	println("====");
 	print_matrix(multi_d_array);
 
+	static_assert(typeof null == __null_t);
+
 //	consteval T = int32;
 
 //	let arr: [10: consteval int32];
