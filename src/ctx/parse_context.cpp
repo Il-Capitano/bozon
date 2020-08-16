@@ -397,6 +397,20 @@ void parse_context::add_scope(void)
 void parse_context::remove_scope(void)
 {
 	bz_assert(!this->scope_decls.empty());
+	if (is_warning_enabled(warning_kind::unused_variable))
+	{
+		for (auto const var_decl : this->scope_decls.back().var_decls)
+		{
+			if (!var_decl->is_used && var_decl->identifier->kind == lex::token::identifier)
+			{
+				this->report_warning(
+					warning_kind::unused_variable,
+					*var_decl,
+					bz::format("unused variable '{}'", var_decl->identifier->value)
+				);
+			}
+		}
+	}
 	this->scope_decls.pop_back();
 }
 
@@ -619,6 +633,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		);
 		if (var != scope->var_decls.rend())
 		{
+			(*var)->is_used = true;
 			auto id_type_kind = ast::expression_type_kind::lvalue;
 			ast::typespec_view id_type = (*var)->var_type;
 			if (id_type.is<ast::ts_lvalue_reference>())
@@ -772,6 +787,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	);
 	if (var != global_decls.var_decls.end())
 	{
+		(*var)->is_used = true;
 		auto id_type_kind = ast::expression_type_kind::lvalue;
 		ast::typespec_view id_type = (*var)->var_type;
 		if (id_type.is<ast::ts_lvalue_reference>())
@@ -2394,6 +2410,7 @@ void parse_context::match_expression_to_type(
 		}
 		return;
 	}
+
 	auto expr_it = expr_type.as_typespec_view();
 	auto dest_it = ast::remove_const_or_consteval(dest_type);
 
@@ -2589,6 +2606,17 @@ void parse_context::match_expression_to_type(
 	{
 		bz_assert(dest_it.is<ast::ts_auto>());
 		expr_it = ast::remove_const_or_consteval(expr_it);
+
+		if (expr_it.is<ast::ts_void>())
+		{
+			this->report_error(
+				expr,
+				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
+			);
+			dest_type.clear();
+			return;
+		}
+
 		dest_type.copy_from(dest_it, expr_it);
 	}
 }

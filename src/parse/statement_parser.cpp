@@ -532,6 +532,7 @@ void resolve_function_symbol(
 	else if (func_body.state == ast::resolve_state::resolving_symbol)
 	{
 		context.report_circular_dependency_error(func_body);
+		func_body.state = ast::resolve_state::error;
 		return;
 	}
 
@@ -544,6 +545,10 @@ void resolve_function_symbol(
 	else
 	{
 		func_body.state = ast::resolve_state::error;
+	}
+	for (auto &var_decl : func_body.params)
+	{
+		var_decl.is_used = true;
 	}
 	context.remove_scope();
 }
@@ -670,10 +675,18 @@ static ast::function_body parse_function_body(
 	}
 	else if (stream == end || stream->kind != lex::token::semi_colon)
 	{
+		for (auto &var_decl : result.params)
+		{
+			var_decl.is_used = true;
+		}
 		context.assert_token(stream, lex::token::curly_open, lex::token::semi_colon);
 	}
 	else
 	{
+		for (auto &var_decl : result.params)
+		{
+			var_decl.is_used = true;
+		}
 		++stream; // ';'
 	}
 
@@ -820,16 +833,7 @@ ast::statement parse_attribute_statement(
 			{
 				context.report_paren_match_error(stream, paren_open);
 			}
-			if constexpr (is_global)
-			{
-				attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
-			}
-			else
-			{
-				auto [stream, end] = args_range;
-				auto args = parse_expression_comma_list(stream, end, context);
-				attributes.emplace_back(name, args_range, std::move(args));
-			}
+			attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
 		}
 		else
 		{
@@ -1198,16 +1202,30 @@ static void apply_attribute(
 }
 
 static void apply_attribute(
-	ast::decl_variable &,
+	ast::decl_variable &var_decl,
 	ast::attribute const &attribute,
 	ctx::parse_context &context
 )
 {
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
+	if (attribute.name->value == "maybe_unused")
+	{
+		if (attribute.args.size() != 0)
+		{
+			context.report_error(
+				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
+				"@maybe_unused expects no arguments"
+			);
+		}
+		var_decl.is_used = true;
+	}
+	else
+	{
+		context.report_warning(
+			ctx::warning_kind::unknown_attribute,
+			attribute.name,
+			bz::format("unknown attribute '{}'", attribute.name->value)
+		);
+	}
 }
 
 static void apply_attribute(

@@ -17,6 +17,7 @@ enum class warning_kind
 	unused_value,
 	unclosed_comment,
 	mismatched_brace_indent,
+	unused_variable,
 
 	_last,
 };

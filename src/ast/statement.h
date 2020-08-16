@@ -214,6 +214,7 @@ struct decl_variable
 	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
+	bool             is_used;
 
 	declare_default_5(decl_variable)
 
@@ -228,7 +229,8 @@ struct decl_variable
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
-		  init_expr      (std::move(_init_expr))
+		  init_expr      (std::move(_init_expr)),
+		  is_used        (false)
 	{}
 
 	decl_variable(
@@ -241,7 +243,8 @@ struct decl_variable
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
-		  init_expr      ()
+		  init_expr      (),
+		  is_used        (false)
 	{}
 
 	decl_variable(
@@ -254,7 +257,8 @@ struct decl_variable
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (make_auto_typespec(nullptr)),
-		  init_expr      (std::move(_init_expr))
+		  init_expr      (std::move(_init_expr)),
+		  is_used        (false)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;

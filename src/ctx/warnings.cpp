@@ -23,6 +23,7 @@ static constexpr auto warning_infos = []() {
 		T{ warning_kind::unused_value,             "unused-value"             },
 		T{ warning_kind::unclosed_comment,         "unclosed-comment"         },
 		T{ warning_kind::mismatched_brace_indent,  "mismatched-brace-indent"  },
+		T{ warning_kind::unused_variable,          "unused-variable"          },
 	};
 
 	constexpr_bubble_sort(
