@@ -126,7 +126,7 @@ function main() -> int32
 	scope_test();
 
 	println("\n==== christmas_tree ====");
-	christmas_tree(30);
+	christmas_tree(4);
 
 	println("\n==== for_test ====");
 	for_test();
@@ -298,7 +298,9 @@ function cast_test() -> void
 function const_expr_test() -> void
 {
 	const n = 9'223'372'036'854'775'807; // int64
+	static_assert(typeof n == const int64);
 	const n = 9'223'372'036'854'775'808; // uint64
+	static_assert(typeof n == const uint64);
 
 //	-(-9'223'372'036'854'775'807i64 - 1);
 
@@ -635,6 +637,7 @@ function array_test() -> void
 		}
 	}
 
+	@maybe_unused
 	const arr = arr;
 
 //	let arr: [10:];
@@ -654,19 +657,35 @@ function array_test() -> void
 //	consteval T = int32;
 
 //	let arr: [10: consteval int32];
+
+	const matrix = {
+		let result: [4, 4: float64];
+		for (let i = 0; i < 4; ++i)
+		{
+			for (let j = 0; j < 4; ++j)
+			{
+				result[i, j] = (i * 4 + j) as float64 + 0.33;
+			}
+		}
+		result
+	};
+	print_matrix(matrix);
 }
 
 function print_matrix(arr: [4, 4: float64]) -> void
 {
+	print("[");
 	for (let i = 0; i < 4; ++i)
 	{
-		print("[ ");
+		print(if (i == 0) "[ " else " [ ");
+
 		for (let j = 0; j < 4; ++j)
 		{
 			print(arr[i, j]), print(' ');
 		}
-		print("]\n");
+		print(if (i == 3) "]" else "]\n");
 	}
+	print("]\n");
 }
 //	*/
 
