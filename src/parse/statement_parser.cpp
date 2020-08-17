@@ -876,6 +876,18 @@ ast::statement parse_stmt_while(
 	auto const begin = stream;
 	++stream; // 'while'
 	auto condition = parse_parenthesized_condition(stream, end, context);
+	if (!condition.is_null())
+	{
+		auto const [type, _] = condition.get_expr_type_and_kind();
+		if (
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
+		)
+		{
+			context.report_error(condition, "condition for while statement must be have type 'bool'");
+		}
+	}
 	auto body = parse_local_statement(stream, end, context);
 	return ast::make_stmt_while(
 		lex::token_range{ begin, stream },
@@ -918,6 +930,18 @@ ast::statement parse_stmt_for(
 			lex::token::kw_if,
 			lex::token::paren_close
 		>(stream, end, context);
+	}
+	if (!condition.is_null())
+	{
+		auto const [type, _] = condition.get_expr_type_and_kind();
+		if (
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
+		)
+		{
+			context.report_error(condition, "condition for for statement must be have type 'bool'");
+		}
 	}
 
 	if (stream == end)

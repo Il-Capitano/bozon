@@ -19,7 +19,7 @@ ast::expression parse_expression_without_semi_colon(
 	case lex::token::kw_if:
 		return parse_if_expression(stream, end, context);
 	default:
-		return parse_expression(stream, end, context, precedence{}, true);
+		return parse_expression(stream, end, context, precedence{}, false);
 	}
 }
 
@@ -206,6 +206,18 @@ ast::expression parse_if_expression(
 	auto const begin = stream;
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
+	if (!condition.is_null())
+	{
+		auto const [type, _] = condition.get_expr_type_and_kind();
+		if (
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
+		)
+		{
+			context.report_error(condition, "condition for if expression must be have type 'bool'");
+		}
+	}
 	auto then_block = parse_expression_without_semi_colon(stream, end, context);
 	if (!then_block.is_top_level_compound_or_if() && stream->kind == lex::token::semi_colon)
 	{
