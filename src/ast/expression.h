@@ -236,14 +236,15 @@ struct expression : bz::variant<
 		}
 	}
 
-	bool is_compound_or_if(void) const noexcept
+	bool is_top_level_compound_or_if(void) const noexcept
 	{
 		if (!this->is_constant_or_dynamic())
 		{
 			return false;
 		}
 		auto &expr = this->get_expr();
-		return expr.is<expr_compound>() || expr.is<expr_if>();
+		return (expr.is<expr_compound>() && this->src_tokens.begin->kind == lex::token::curly_open)
+			|| (expr.is<expr_if>() && this->src_tokens.begin->kind == lex::token::kw_if);
 	}
 };
 
