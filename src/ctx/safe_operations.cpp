@@ -20,7 +20,7 @@ static bz::u8string_view get_type_name_from_kind(uint32_t kind)
 	case ast::type_info::char_: return "char";
 	case ast::type_info::str_: return "str";
 	case ast::type_info::bool_: return "bool";
-	default: bz_assert(false); return "";
+	default: bz_unreachable; return "";
 	}
 }
 
@@ -70,7 +70,7 @@ case ast::type_info::type##_:                                                   
 		}
 		return result;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -118,7 +118,7 @@ case ast::type_info::type##_:                                                   
 		}
 		return result;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -283,7 +283,7 @@ case ast::type_info::type##_:                                                   
 		}
 		return result;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -319,7 +319,7 @@ case ast::type_info::type##_:                                                   
 	x(uint32)
 	x(uint64)
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -487,7 +487,7 @@ case ast::type_info::type##_:                                                   
 		}
 		return result;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -532,7 +532,7 @@ case ast::type_info::type##_:                                                   
 		}
 		return result;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 #undef x
@@ -628,7 +628,7 @@ case ast::type_info::type##_:                                                   
 	x(int32)
 	x(int64)
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 }
@@ -789,7 +789,7 @@ uint64_t safe_left_shift(
 		}
 		return a << b;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 }
@@ -855,7 +855,7 @@ uint64_t safe_right_shift(
 		}
 		return a >> b;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 }

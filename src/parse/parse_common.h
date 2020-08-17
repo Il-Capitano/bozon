@@ -168,7 +168,7 @@ inline lex::token_range get_paren_matched_range(
 		return range;
 	}
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }

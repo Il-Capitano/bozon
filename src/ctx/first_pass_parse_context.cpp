@@ -58,7 +58,7 @@ void first_pass_parse_context::report_paren_match_error(
 				? bz::u8string("expected closing } before end-of-file")
 				: bz::format("expected closing } before '{}'", it->value);
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return bz::u8string();
 		}
 	}();

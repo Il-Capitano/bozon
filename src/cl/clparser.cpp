@@ -641,7 +641,7 @@ constexpr bz::u8string_view get_usage_string(command_line_parser const &parser)
 	case parser_kind::flag_with_alternate:
 		return parser.variants.flag_with_alternate.both_names;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return "";
 	}
 }
@@ -677,7 +677,7 @@ constexpr bz::u8string_view get_help_string(command_line_parser const &parser)
 	case parser_kind::flag_with_alternate:
 		return parser.variants.flag_with_alternate.help;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return "";
 	}
 }
@@ -697,7 +697,7 @@ constexpr size_t get_priority(command_line_parser const &parser)
 	case parser_kind::flag_with_alternate:
 		return parser.variants.flag_with_alternate.priority;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return 0;
 	}
 }

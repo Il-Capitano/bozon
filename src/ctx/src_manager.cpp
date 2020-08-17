@@ -161,7 +161,7 @@ namespace ctx
 	// add declarations to the module
 	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
 	{
-		bz_assert(false);
+		bz_unreachable;
 	}
 	for (auto const func : this->_global_ctx._compile_decls.funcs)
 	{
@@ -172,7 +172,7 @@ namespace ctx
 	// add the definitions to the module
 	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
 	{
-		bz_assert(false);
+		bz_unreachable;
 	}
 	for (auto const func_decl : this->_global_ctx._compile_decls.funcs)
 	{

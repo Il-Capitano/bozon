@@ -214,7 +214,7 @@ static int get_type_match_level(
 			ts = &ts->get<ast::ts_pointer_ptr>()->base;
 			break;
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		}
 	};

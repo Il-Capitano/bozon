@@ -1408,7 +1408,7 @@ void resolve_global_statement(
 			resolve_stmt_static_assert(static_assert_stmt, context);
 		},
 		[&](auto &) {
-			bz_assert(false);
+			bz_unreachable;
 		}
 	});
 	resolve_attributes(stmt, context);

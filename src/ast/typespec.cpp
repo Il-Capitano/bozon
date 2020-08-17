@@ -288,7 +288,7 @@ bz::u8string typespec_view::get_symbol_name(void) const
 				result += "0R.";
 			},
 			[](auto const &) {
-				bz_assert(false);
+				bz_unreachable;
 			}
 		});
 	}
@@ -478,7 +478,7 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 	case typespec_node_t::index_of<ts_typename>:
 		return true;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return false;
 	}
 }
@@ -506,7 +506,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				result += "void";
 			},
 			[&](ast::ts_function const &) {
-				bz_assert(false);
+				bz_unreachable;
 			},
 			[&](ast::ts_array const &array_t) {
 				result += "[";
@@ -518,7 +518,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				result += bz::format("{}: {}]", array_t.sizes.back(), array_t.elem_type);
 			},
 			[&](ast::ts_tuple const &) {
-				bz_assert(false);
+				bz_unreachable;
 			},
 			[&](ast::ts_auto const &) {
 				result += "auto";

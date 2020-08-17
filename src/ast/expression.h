@@ -171,7 +171,7 @@ struct expression : bz::variant<
 			return { dyn_expr.type, dyn_expr.kind };
 		}
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return { ast::typespec(), static_cast<ast::expression_type_kind>(0) };
 		}
 	}
@@ -192,7 +192,7 @@ struct expression : bz::variant<
 		}
 		default:
 		{
-			bz_assert(false);
+			bz_unreachable;
 			auto t = ast::typespec();
 			return { t, static_cast<expression_type_kind>(0) };
 		}

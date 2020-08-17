@@ -204,7 +204,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 		switch (decl.kind())
 		{
 		case ast::declaration::index<ast::decl_variable>:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		case ast::declaration::index<ast::decl_function>:
 		{
@@ -219,10 +219,10 @@ void src_file::report_and_clear_errors_and_warnings(void)
 			break;
 		}
 		case ast::declaration::index<ast::decl_struct>:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		}
 	}
@@ -232,7 +232,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 		switch (decl.kind())
 		{
 		case ast::declaration::index<ast::decl_variable>:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		case ast::declaration::index<ast::decl_function>:
 		{
@@ -253,10 +253,10 @@ void src_file::report_and_clear_errors_and_warnings(void)
 			break;
 		}
 		case ast::declaration::index<ast::decl_struct>:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		}
 	}

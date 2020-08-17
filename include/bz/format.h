@@ -719,7 +719,7 @@ inline u8string format_str(u8string_view str, format_spec spec)
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -818,7 +818,7 @@ inline u8string format_char(u8char c, format_spec spec)
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -961,7 +961,7 @@ u8string uint_to_string_base(Uint val, format_spec spec)
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -1038,7 +1038,7 @@ u8string uint_to_string(Uint val, format_spec spec)
 		return uint_to_string_base<16>(val, spec);
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return "";
 	}
 }
@@ -1214,7 +1214,7 @@ u8string int_to_string(Int val, format_spec spec)
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -1379,7 +1379,7 @@ u8string float_to_string_dec(
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -1607,7 +1607,7 @@ u8string float_to_string_exp(
 		break;
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 
@@ -1843,7 +1843,7 @@ u8string float_to_string(Float val, format_spec spec)
 				break;
 
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 
@@ -1889,7 +1889,7 @@ u8string float_to_string(Float val, format_spec spec)
 				break;
 
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 
@@ -2236,7 +2236,7 @@ u8string float_to_string(Float val, format_spec spec)
 		);
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return "";
 	}
 
@@ -2342,7 +2342,7 @@ inline u8string pointer_to_string(const void *ptr, format_spec spec)
 			break;
 
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			break;
 		}
 	}
