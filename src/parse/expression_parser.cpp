@@ -38,13 +38,12 @@ void consume_semi_colon_at_end_of_expression(
 	auto &expr = expression.get_expr();
 	expr.visit(bz::overload{
 		[&](ast::expr_compound const &compound_expr) {
-			if (compound_expr.final_expr.src_tokens.begin == nullptr)
-			{
-				return;
-			}
-
 			if (expression.src_tokens.begin->kind == lex::token::curly_open)
 			{
+				if (compound_expr.final_expr.src_tokens.begin == nullptr)
+				{
+					return;
+				}
 				auto dummy_stream = compound_expr.final_expr.src_tokens.end;
 				consume_semi_colon_at_end_of_expression(
 					dummy_stream, end, context,
@@ -208,7 +207,7 @@ ast::expression parse_if_expression(
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
 	auto then_block = parse_expression_without_semi_colon(stream, end, context);
-	if (!then_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
+	if (!then_block.is_top_level_compound_or_if() && stream->kind == lex::token::semi_colon)
 	{
 		++stream; // ';'
 	}
@@ -216,7 +215,7 @@ ast::expression parse_if_expression(
 	{
 		++stream; // 'else'
 		auto else_block = parse_expression_without_semi_colon(stream, end, context);
-		if (!else_block.is_compound_or_if() && stream->kind == lex::token::semi_colon)
+		if (!else_block.is_top_level_compound_or_if() && stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
 		}
