@@ -885,7 +885,7 @@ ast::statement parse_stmt_while(
 			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
 		)
 		{
-			context.report_error(condition, "condition for while statement must be have type 'bool'");
+			context.report_error(condition, "condition for while statement must have type 'bool'");
 		}
 	}
 	auto body = parse_local_statement(stream, end, context);
@@ -940,7 +940,7 @@ ast::statement parse_stmt_for(
 			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
 		)
 		{
-			context.report_error(condition, "condition for for statement must be have type 'bool'");
+			context.report_error(condition, "condition for for statement must have type 'bool'");
 		}
 	}
 

@@ -215,7 +215,7 @@ ast::expression parse_if_expression(
 			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
 		)
 		{
-			context.report_error(condition, "condition for if expression must be have type 'bool'");
+			context.report_error(condition, "condition for if expression must have type 'bool'");
 		}
 	}
 	auto then_block = parse_expression_without_semi_colon(stream, end, context);
