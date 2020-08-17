@@ -68,7 +68,7 @@ void parse_context::report_paren_match_error(
 				? bz::u8string("expected closing } before end-of-file")
 				: bz::format("expected closing } before '{}'", it->value);
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return bz::u8string();
 		}
 	}();
@@ -590,7 +590,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		this->report_error(id, "undeclared identifier");
 		return { ast::expression::rvalue, ast::typespec() };
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }
@@ -1330,7 +1330,7 @@ if (postfix == postfix_str)                                                     
 			ast::make_expr_literal(literal)
 		);
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 }
@@ -1383,7 +1383,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 ast::expression parse_context::make_tuple(lex::src_tokens, bz::vector<ast::expression>) const
 {
-	bz_assert(false);
+	bz_unreachable;
 	return ast::expression();
 }
 
@@ -1445,15 +1445,15 @@ static int get_type_match_level(
 	}
 	else if (dest_it.is<ast::ts_void>())
 	{
-		bz_assert(false);
+		bz_unreachable;
 	}
 	else if (dest_it.is<ast::ts_tuple>())
 	{
-		bz_assert(false);
+		bz_unreachable;
 	}
 	else if (dest_it.is<ast::ts_function>())
 	{
-		bz_assert(false);
+		bz_unreachable;
 	}
 	else if (dest_it.is<ast::ts_array>())
 	{
@@ -1590,15 +1590,15 @@ static int get_type_match_level(
 		}
 		else if (dest_it.is<ast::ts_void>())
 		{
-			bz_assert(false);
+			bz_unreachable;
 		}
 		else if (dest_it.is<ast::ts_function>())
 		{
-			bz_assert(false);
+			bz_unreachable;
 		}
 		else if (dest_it.is<ast::ts_tuple>())
 		{
-			bz_assert(false);
+			bz_unreachable;
 		}
 		else if (dest_it.kind() == src_it.kind())
 		{
@@ -1777,7 +1777,7 @@ static error get_bad_call_error(
 		}
 	}
 
-	bz_assert(false);
+	bz_unreachable;
 	return make_error(func->identifier, "");
 }
 */
@@ -1867,7 +1867,7 @@ static auto find_best_match(
 		else
 		{
 			// TODO: report ambiguous call error somehow
-			bz_assert(false);
+			bz_unreachable;
 			return { { -1, -1 }, nullptr };
 		}
 	}
@@ -2039,7 +2039,7 @@ ast::expression parse_context::make_binary_operator_expression(
 	else if (is_binary_type_op(op->kind) && !is_binary_built_in_operator(op->kind))
 	{
 		// there's no operator such as this ('as' is handled earlier)
-		bz_assert(false);
+		bz_unreachable;
 	}
 
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
@@ -2454,7 +2454,7 @@ void parse_context::match_expression_to_type(
 				}
 				break;
 			case ast::typespec_node_t::index_of<ast::ts_consteval>:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			case ast::typespec_node_t::index_of<ast::ts_pointer>:
 				dest_it = dest_it.get<ast::ts_pointer>();
@@ -2476,11 +2476,14 @@ void parse_context::match_expression_to_type(
 				dest_type.copy_from(dest_it, expr_it);
 				loop = false;
 				break;
+			case ast::typespec_node_t::index_of<ast::ts_void>:
+				loop = false;
+				break;
 			case ast::typespec_node_t::index_of<ast::ts_typename>:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 		}

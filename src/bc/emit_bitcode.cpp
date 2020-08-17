@@ -54,7 +54,7 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 );
 
-static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context);
+static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level = true);
 
 static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 	ast::expression const &lhs,
@@ -91,7 +91,7 @@ static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 		}
 		else
 		{
-			bz_assert(false);
+			bz_unreachable;
 			return {};
 		}
 	}
@@ -114,7 +114,7 @@ static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
 		}
 		else
 		{
-			bz_assert(false);
+			bz_unreachable;
 			return {};
 		}
 	}
@@ -156,7 +156,7 @@ static llvm::Value *get_constant_zero(
 			return llvm::ConstantStruct::getNullValue(struct_type);
 		}
 		default:
-			bz_assert(false);
+			bz_unreachable;
 		}
 	}
 	case ast::typespec_node_t::index_of<ast::ts_const>:
@@ -179,14 +179,14 @@ static llvm::Value *get_constant_zero(
 		return llvm::ConstantArray::getNullValue(llvm_type);
 
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 	case ast::typespec_node_t::index_of<ast::ts_void>:
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	}
 }
@@ -211,7 +211,7 @@ static val_ptr emit_bitcode(
 )
 {
 	// this should never be called, as a literal will always be an rvalue constant expression
-	bz_assert(false);
+	bz_unreachable;
 	return {};
 }
 
@@ -220,7 +220,7 @@ static val_ptr emit_bitcode(
 	ctx::bitcode_context &
 )
 {
-	bz_assert(false);
+	bz_unreachable;
 	return {};
 }
 
@@ -239,7 +239,7 @@ static val_ptr emit_bitcode(
 		return { val_ptr::value, val.val };
 	}
 	case lex::token::kw_sizeof:          // 'sizeof'
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 
 	// ==== overloadable ====
@@ -310,7 +310,7 @@ static val_ptr emit_bitcode(
 		return val;
 	}
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }
@@ -881,7 +881,7 @@ static val_ptr emit_built_in_binary_cmp(
 	// 2: float
 	auto const get_cmp_predicate = [op](int kind)
 	{
-		llvm::CmpInst::Predicate preds[3][6] = {
+		constexpr llvm::CmpInst::Predicate preds[3][6] = {
 			{
 				llvm::CmpInst::ICMP_EQ,
 				llvm::CmpInst::ICMP_NE,
@@ -907,7 +907,7 @@ static val_ptr emit_built_in_binary_cmp(
 				llvm::CmpInst::FCMP_OGE
 			},
 		};
-		int const pred = [op]() {
+		auto const pred = [op]() {
 			switch (op)
 			{
 			case lex::token::equals:
@@ -934,18 +934,23 @@ static val_ptr emit_built_in_binary_cmp(
 	{
 		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-		bz_assert(lhs_kind != ast::type_info::str_);
 		auto const [lhs_val, rhs_val] = get_common_type_vals(lhs, rhs, context);
-		auto const p = ctx::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
-			: ctx::is_floating_point_kind(lhs_kind) ? get_cmp_predicate(2)
-			: get_cmp_predicate(1); // unsigned, bool, char
 		if (ctx::is_floating_point_kind(lhs_kind))
 		{
-			return { val_ptr::value, context.builder.CreateFCmp(p, lhs_val, rhs_val) };
+			auto const pred = get_cmp_predicate(2);
+			return { val_ptr::value, context.builder.CreateFCmp(pred, lhs_val, rhs_val) };
+		}
+		else if (lhs_kind == ast::type_info::str_)
+		{
+			bz_unreachable;
+			return {};
 		}
 		else
 		{
-			return { val_ptr::value, context.builder.CreateICmp(p, lhs_val, rhs_val) };
+			auto const pred = ctx::is_signed_integer_kind(lhs_kind)
+				? get_cmp_predicate(0)
+				: get_cmp_predicate(1);
+			return { val_ptr::value, context.builder.CreateICmp(pred, lhs_val, rhs_val) };
 		}
 	}
 	else // if pointer
@@ -1388,7 +1393,7 @@ static val_ptr emit_bitcode(
 	case lex::token::dot_dot:            // '..'
 	case lex::token::dot_dot_eq:         // '..='
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }
@@ -1534,7 +1539,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }
@@ -1763,11 +1768,11 @@ static val_ptr emit_bitcode(
 		break;
 	}
 	case ast::constant_value::function_set_id:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	case ast::constant_value::aggregate:
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 	return result;
@@ -1796,7 +1801,7 @@ static val_ptr emit_bitcode(
 		return emit_bitcode(expr.get<ast::dynamic_expression>(), context);
 
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return {};
 	}
 }
@@ -2040,7 +2045,7 @@ static void emit_alloca(
 	ctx::bitcode_context &
 )
 {
-	bz_assert(false);
+	bz_unreachable;
 }
 
 static void emit_alloca(
@@ -2223,7 +2228,7 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_struct>:
 		break;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		break;
 	}
 }
@@ -2250,31 +2255,39 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 
 	case ast::type_info::aggregate:
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	}
 }
 
-static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context)
+static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level)
 {
 	switch (ts.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
 		return get_llvm_base_type(ts.get<ast::ts_base_type>(), context);
 	case ast::typespec_node_t::index_of<ast::ts_void>:
-		return llvm::Type::getVoidTy(context.get_llvm_context());
+		if (is_top_level)
+		{
+			return llvm::Type::getVoidTy(context.get_llvm_context());
+		}
+		else
+		{
+			// llvm doesn't allow void*, so we use i8* instead
+			return llvm::Type::getInt8Ty(context.get_llvm_context());
+		}
 	case ast::typespec_node_t::index_of<ast::ts_const>:
-		return get_llvm_type(ts.get<ast::ts_const>(), context);
+		return get_llvm_type(ts.get<ast::ts_const>(), context, is_top_level);
 	case ast::typespec_node_t::index_of<ast::ts_consteval>:
-		return get_llvm_type(ts.get<ast::ts_consteval>(), context);
+		return get_llvm_type(ts.get<ast::ts_consteval>(), context, is_top_level);
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
 	{
-		auto const base = get_llvm_type(ts.get<ast::ts_pointer>(), context);
+		auto const base = get_llvm_type(ts.get<ast::ts_pointer>(), context, false);
 		return llvm::PointerType::get(base, 0);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 	{
-		auto const base = get_llvm_type(ts.get<ast::ts_lvalue_reference>(), context);
+		auto const base = get_llvm_type(ts.get<ast::ts_lvalue_reference>(), context, false);
 		return llvm::PointerType::get(base, 0);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_function>:
@@ -2303,16 +2316,16 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 		return elem_t;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	default:
-		bz_assert(false);
+		bz_unreachable;
 		return nullptr;
 	}
 }
