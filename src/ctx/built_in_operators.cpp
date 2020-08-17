@@ -260,7 +260,7 @@ static ast::expression get_built_in_unary_minus(
 				}
 
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 
@@ -279,7 +279,7 @@ static ast::expression get_built_in_unary_minus(
 				break;
 
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 
@@ -450,7 +450,7 @@ static ast::expression get_built_in_unary_bit_not(
 				break;
 
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 		}
@@ -786,7 +786,7 @@ static ast::expression get_built_in_unary_sizeof(
 	parse_context &
 )
 {
-	bz_assert(false);
+	bz_unreachable;
 	return ast::expression();
 }
 
@@ -830,7 +830,7 @@ static ast::expression get_built_in_unary_typeof(
 #undef undeclared_unary_message
 
 
-#define undeclared_binary_message(op) "undeclared binary operator " op " with types '{}' and '{}'"
+#define undeclared_binary_message(op) "no match for binary operator " op " with types '{}' and '{}'"
 
 // sintN = sintM -> &sintN   where M <= N
 // uintN = uintM -> &sintN   where M <= N
@@ -948,9 +948,38 @@ static ast::expression get_built_in_binary_assign(
 		);
 	}
 
+	bz::vector<note> notes = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+
+		if (
+			(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+			|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		)
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"implicit conversion between signed and unsigned integer types is not allowed"
+			));
+		}
+		else if (
+			(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
+			|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		)
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"implicit conversion between floating-point and integer types is not allowed"
+			));
+		}
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("="), lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("="), lhs_type, rhs_type),
+		std::move(notes)
 	);
 	return ast::expression(src_tokens);
 }
@@ -1159,7 +1188,7 @@ static ast::expression get_built_in_binary_plus(
 					);
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -1206,7 +1235,7 @@ static ast::expression get_built_in_binary_plus(
 					);
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -1464,7 +1493,7 @@ static ast::expression get_built_in_binary_minus(
 					);
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -2699,7 +2728,7 @@ static ast::expression get_built_in_binary_compare(
 		case lex::token::greater_than_eq:
 			return lhs >= rhs;
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return false;
 		}
 	};
@@ -2716,7 +2745,7 @@ static ast::expression get_built_in_binary_compare(
 		case lex::token::greater_than_eq:
 			return ">=";
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return "";
 		}
 	}();
@@ -2967,7 +2996,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 		case lex::token::bit_or:
 			return '|';
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return '\0';
 		}
 	}();
@@ -2998,7 +3027,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 					result = lhs_val | rhs_val;
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -3040,7 +3069,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 					result = lhs_val || rhs_val;
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -3100,7 +3129,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 		case lex::token::bit_or_eq:
 			return "|=";
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return "";
 		}
 	}();
@@ -3213,7 +3242,7 @@ static ast::expression get_built_in_binary_bit_shift(
 					case ast::type_info::uint64_:
 						return { 64, "uint64" };
 					default:
-						bz_assert(false);
+						bz_unreachable;
 						return { 0, "" };
 					}
 				}();
@@ -3319,7 +3348,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 					case ast::type_info::uint64_:
 						return { 64, "uint64" };
 					default:
-						bz_assert(false);
+						bz_unreachable;
 						return { 0, "" };
 					}
 				}();
@@ -3386,7 +3415,7 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 		case lex::token::bool_or:
 			return "||";
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return "";
 		}
 	}();
@@ -3417,7 +3446,7 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 					result = lhs_val || rhs_val;
 					break;
 				default:
-					bz_assert(false);
+					bz_unreachable;
 					break;
 				}
 				return ast::make_constant_expression(
@@ -3667,7 +3696,7 @@ case ast::type_info::dest_t##_:                                                 
 		CASE(float32_t, float32);
 		CASE(float64_t, float64);
 		default:
-			bz_assert(false);
+			bz_unreachable;
 			return ast::constant_value();
 		}
 #undef CASE
@@ -3694,7 +3723,7 @@ case ast::type_info::dest_t##_:                                                 
 				value = do_arithmetic_cast(const_expr.value.get<ast::constant_value::float64>());
 				break;
 			default:
-				bz_assert(false);
+				bz_unreachable;
 				break;
 			}
 			return ast::make_constant_expression(
