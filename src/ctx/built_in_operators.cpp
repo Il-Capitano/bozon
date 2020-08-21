@@ -7,6 +7,174 @@
 namespace ctx
 {
 
+static precedence get_expr_precedence(ast::expression const &expression)
+{
+	constexpr auto default_return_val = precedence{ 0, true };
+	if (!expression.is_constant_or_dynamic())
+	{
+		return default_return_val;
+	}
+
+	auto &expr = expression.get_expr();
+	if (
+		is_unary_operator(expression.src_tokens.pivot->kind)
+		|| is_binary_operator(expression.src_tokens.pivot->kind)
+	)
+	{
+		if (
+			expr.is<ast::expr_unary_op>()
+			|| (
+				expr.is<ast::expr_function_call>()
+				&& expr.get<ast::expr_function_call_ptr>()->params.size() == 1
+			)
+		)
+		{
+			return expression.src_tokens.begin == expression.src_tokens.pivot
+				? get_unary_precedence(expression.src_tokens.pivot->kind)
+				: default_return_val;
+		}
+		else if (
+			expr.is<ast::expr_binary_op>()
+			|| (
+				expr.is<ast::expr_function_call>()
+				&& expr.get<ast::expr_function_call_ptr>()->params.size() == 2
+			)
+		)
+		{
+			auto const lhs_begin = expr.is<ast::expr_binary_op>()
+				? expr.get<ast::expr_binary_op_ptr>()->lhs.src_tokens.begin
+				: expr.get<ast::expr_function_call_ptr>()->params[0].src_tokens.begin;
+			return lhs_begin == expression.src_tokens.begin
+				? get_binary_precedence(expression.src_tokens.pivot->kind)
+				: default_return_val;
+		}
+		else
+		{
+			return default_return_val;
+		}
+	}
+	else
+	{
+		return default_return_val;
+	}
+}
+
+[[nodiscard]] static suggestion create_explicit_cast_suggestion(
+	ast::expression const &expr,
+	precedence op_prec,
+	bz::u8string_view type,
+	parse_context &context
+)
+{
+	constexpr auto as_prec = get_binary_precedence(lex::token::kw_as);
+	auto const parens_around_cast = op_prec < as_prec;
+	auto const expr_prec = get_expr_precedence(expr);
+	auto const parens_around_expr = as_prec < expr_prec;
+	bz::u8string_view const begin_str =
+		parens_around_cast && parens_around_expr ? "((" :
+		parens_around_cast || parens_around_expr ? "(" :
+		"";
+	auto const end_str = bz::format(
+		parens_around_cast && parens_around_expr ? ") as {})" :
+		parens_around_cast ? " as {})" :
+		parens_around_expr ? ") as {}" :
+		" as {}",
+		type
+	);
+
+	if (parens_around_cast || parens_around_expr)
+	{
+		return context.make_suggestion_around(
+			expr.src_tokens.begin, begin_str,
+			expr.src_tokens.end - 1, end_str,
+			bz::format("add explicit cast to '{}' here:", type)
+		);
+	}
+	else
+	{
+		return context.make_suggestion_after(
+			expr.src_tokens.end - 1, end_str,
+			bz::format("add explicit cast to '{}' here:", type)
+		);
+	}
+}
+
+[[nodiscard]] static suggestion create_explicit_cast_suggestion(
+	ast::expression const &expr,
+	precedence op_prec,
+	bz::u8string_view first_type,
+	bz::u8string_view second_type,
+	parse_context &context
+)
+{
+	constexpr auto as_prec = get_binary_precedence(lex::token::kw_as);
+	auto const parens_around_cast = op_prec < as_prec;
+	auto const expr_prec = get_expr_precedence(expr);
+	auto const parens_around_expr = as_prec < expr_prec;
+	bz::u8string_view const begin_str =
+		parens_around_cast && parens_around_expr ? "((" :
+		parens_around_cast || parens_around_expr ? "(" :
+		"";
+	auto const end_str = bz::format(
+		parens_around_cast && parens_around_expr ? ") as {} as {})" :
+		parens_around_cast ? " as {} as {})" :
+		parens_around_expr ? ") as {} as {}" :
+		" as {} as {}",
+		first_type, second_type
+	);
+
+	if (parens_around_cast || parens_around_expr)
+	{
+		return context.make_suggestion_around(
+			expr.src_tokens.begin, begin_str,
+			expr.src_tokens.end - 1, end_str,
+			bz::format("add explicit cast to '{}' and '{}' here:", first_type, second_type)
+		);
+	}
+	else
+	{
+		return context.make_suggestion_after(
+			expr.src_tokens.end - 1, end_str,
+			bz::format("add explicit cast to '{}' and '{}' here:", first_type, second_type)
+		);
+	}
+}
+
+static bz::u8string_view get_type_name_from_kind(uint32_t kind)
+{
+	switch (kind)
+	{
+	case ast::type_info::int8_: return "int8";
+	case ast::type_info::int16_: return "int16";
+	case ast::type_info::int32_: return "int32";
+	case ast::type_info::int64_: return "int64";
+	case ast::type_info::uint8_: return "uint8";
+	case ast::type_info::uint16_: return "uint16";
+	case ast::type_info::uint32_: return "uint32";
+	case ast::type_info::uint64_: return "uint64";
+	case ast::type_info::float32_: return "float32";
+	case ast::type_info::float64_: return "float64";
+	case ast::type_info::char_: return "char";
+	case ast::type_info::str_: return "str";
+	case ast::type_info::bool_: return "bool";
+	default: bz_unreachable; return "";
+	}
+}
+
+static uint32_t signed_to_unsigned(uint32_t kind)
+{
+	bz_assert(is_signed_integer_kind(kind));
+	static_assert(ast::type_info::uint8_ > ast::type_info::int8_);
+	return kind + (ast::type_info::uint8_ - ast::type_info::int8_);
+}
+
+static uint32_t unsigned_to_signed(uint32_t kind)
+{
+	bz_assert(is_unsigned_integer_kind(kind));
+	static_assert(ast::type_info::uint8_ > ast::type_info::int8_);
+	return kind - (ast::type_info::uint8_ - ast::type_info::int8_);
+}
+
 static auto get_base_kinds(
 	ast::typespec_view lhs_t,
 	ast::typespec_view rhs_t
@@ -47,7 +215,7 @@ static auto get_constant_expression_values(
 	}
 }
 
-#define undeclared_unary_message(op) "undeclared unary operator " op " with type '{}'"
+#define undeclared_unary_message(op) "no match for unary operator " op " with type '{}'"
 
 ast::type_info *get_narrowest_type_info(uint64_t val, parse_context &context)
 {
@@ -304,10 +472,30 @@ static ast::expression get_built_in_unary_minus(
 	}
 	else
 	{
-		context.report_error(
-			src_tokens,
-			bz::format(undeclared_unary_message("-"), type)
-		);
+		if (is_unsigned_integer_kind(kind))
+		{
+			auto const type_name = get_type_name_from_kind(unsigned_to_signed(kind));
+			bz_assert(src_tokens.pivot != nullptr);
+			context.report_error(
+				src_tokens,
+				bz::format(undeclared_unary_message("-"), type),
+				{ context.make_note(
+					src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+					"unary operator - is not allowed for unsigned integers"
+				) },
+				{ create_explicit_cast_suggestion(
+					expr, get_unary_precedence(lex::token::minus),
+					type_name, context
+				) }
+			);
+		}
+		else
+		{
+			context.report_error(
+				src_tokens,
+				bz::format(undeclared_unary_message("-"), type)
+			);
+		}
 		return ast::expression(src_tokens);
 	}
 }
@@ -419,10 +607,32 @@ static ast::expression get_built_in_unary_bit_not(
 	auto const kind = expr_t.get<ast::ts_base_type>().info->kind;
 	if (!is_unsigned_integer_kind(kind) && kind != ast::type_info::bool_)
 	{
-		context.report_error(
-			src_tokens,
-			bz::format(undeclared_unary_message("~"), type)
-		);
+		if (is_signed_integer_kind(kind))
+		{
+			auto const signed_type_name = get_type_name_from_kind(kind);
+			auto const unsigned_type_name = get_type_name_from_kind(signed_to_unsigned(kind));
+			bz_assert(src_tokens.pivot != nullptr);
+			context.report_error(
+				src_tokens,
+				bz::format(undeclared_unary_message("~"), type),
+				{ context.make_note(
+					src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+					"bit manipulation of signed integers is not allowed"
+				) },
+				{ create_explicit_cast_suggestion(
+					expr, get_unary_precedence(lex::token::bit_not),
+					unsigned_type_name, signed_type_name,
+					context
+				) }
+			);
+		}
+		else
+		{
+			context.report_error(
+				src_tokens,
+				bz::format(undeclared_unary_message("~"), type)
+			);
+		}
 		return ast::expression(src_tokens);
 	}
 
@@ -781,13 +991,14 @@ static ast::expression get_type_op_unary_consteval(
 }
 
 static ast::expression get_built_in_unary_sizeof(
-	lex::token_pos,
-	ast::expression,
-	parse_context &
+	lex::token_pos sizeof_pos,
+	ast::expression expr,
+	parse_context &context
 )
 {
-	bz_unreachable;
-	return ast::expression();
+	auto const src_tokens = lex::src_tokens{ sizeof_pos, sizeof_pos, expr.get_tokens_end() };
+	context.report_error(src_tokens, "operator sizeof is not yet implemented");
+	return ast::expression(src_tokens);
 }
 
 // typeof (val) -> (typeof val)

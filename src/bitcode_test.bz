@@ -696,3 +696,23 @@ function print_matrix(arr: [4, 4: float64]) -> void
 // function circle3() -> typeof circle2() {}
 // function circle4() -> typeof circle3() {}
 // function circle5() -> typeof circle4() {}
+
+function built_in_op_error_test() -> void
+{
+	let i8  = 0i8;
+	let i16 = 0i16;
+	let i32 = 0i32;
+	let i64 = 0i64;
+	let u8  = 0u8;
+	let u16 = 0u16;
+	let u32 = 0u32;
+	let u64 = 0u64;
+	let f32 = 0.0f32;
+	let f64 = 0.0f64;
+	let c = ' ';
+	let p = null as *int32;
+	let s = "";
+
+//	-(u32 + u8);
+//	~i32;
+}
