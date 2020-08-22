@@ -39,6 +39,11 @@ llvm::Module &bitcode_context::get_module(void) const noexcept
 	return this->global_ctx._module;
 }
 
+abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
+{
+	return this->global_ctx._platform_abi;
+}
+
 llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(

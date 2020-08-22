@@ -125,6 +125,19 @@ global_context::global_context(void)
 	bz_assert(this->_target_machine);
 	this->_module.setDataLayout(this->_target_machine->createDataLayout());
 	this->_module.setTargetTriple(target_triple);
+
+	auto const triple = llvm::Triple(target_triple);
+	auto const os = triple.getOS();
+	auto const arch = triple.getArch();
+
+	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
+	{
+		this->_platform_abi = abi::platform_abi::microsoft_x64;
+	}
+	else
+	{
+		this->_platform_abi = abi::platform_abi::generic;
+	}
 }
 
 

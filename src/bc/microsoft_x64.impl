@@ -1,0 +1,59 @@
+template<>
+llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
+	ast::function_body &func_body,
+	ctx::bitcode_context &context
+)
+{
+	bz_unreachable;
+	auto const result_t = get_llvm_type(func_body.return_type, context);
+	bz::vector<llvm::Type *> args = {};
+	for (auto &p : func_body.params)
+	{
+		auto const t = get_llvm_type(p.var_type, context);
+		auto const var_t = ast::remove_const_or_consteval(p.var_type);
+		if (
+			!(var_t.is<ast::ts_base_type>()
+			&& var_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_)
+			&& t->isStructTy()
+		)
+		{
+			args.push_back(llvm::PointerType::get(t, 0));
+		}
+		else
+		{
+			args.push_back(t);
+		}
+	}
+	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
+	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
+	auto const fn = llvm::Function::Create(
+		func_t, llvm::Function::ExternalLinkage,
+		name, context.get_module()
+	);
+
+	switch (func_body.cc)
+	{
+	case abi::calling_convention::bozon:
+		fn->setCallingConv(llvm::CallingConv::Fast);
+		break;
+	case abi::calling_convention::c:
+		fn->setCallingConv(llvm::CallingConv::C);
+		break;
+	case abi::calling_convention::fast:
+		fn->setCallingConv(llvm::CallingConv::Fast);
+		break;
+	case abi::calling_convention::std:
+		fn->setCallingConv(llvm::CallingConv::X86_StdCall);
+		break;
+	}
+
+	for (auto &arg : fn->args())
+	{
+		auto const t = arg.getType();
+		if (t->isPointerTy() && t->getPointerElementType()->isStructTy())
+		{
+			arg.addAttr(llvm::Attribute::ByVal);
+		}
+	}
+	return fn;
+}

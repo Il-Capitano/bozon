@@ -1281,6 +1281,7 @@ static void apply_attribute(
 			.get<ast::constant_expression>().value
 			.get<ast::constant_value::string>().as_string_view();
 		func_decl.body.symbol_name = extern_name;
+		func_decl.body.cc = abi::calling_convention::c;
 	}
 	else
 	{
@@ -1320,6 +1321,7 @@ static void apply_attribute(
 			.get<ast::constant_expression>().value
 			.get<ast::constant_value::string>().as_string_view();
 		op_decl.body.symbol_name = extern_name;
+		op_decl.body.cc = abi::calling_convention::c;
 	}
 	else
 	{

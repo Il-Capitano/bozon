@@ -7,8 +7,7 @@
 #include "expression.h"
 #include "typespec.h"
 #include "constant_value.h"
-
-#include <llvm/IR/Function.h>
+#include "abi/calling_conventions.h"
 
 namespace ast
 {
@@ -277,6 +276,7 @@ struct function_body
 	bz::u8string              symbol_name;
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
+	abi::calling_convention   cc = abi::calling_convention::bozon;
 
 	declare_default_5(function_body)
 

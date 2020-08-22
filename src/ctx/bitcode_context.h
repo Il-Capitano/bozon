@@ -28,6 +28,7 @@ struct bitcode_context
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::Module &get_module(void) const noexcept;
+	abi::platform_abi get_platform_abi(void) const noexcept;
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 
