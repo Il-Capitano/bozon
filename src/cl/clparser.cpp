@@ -24,15 +24,19 @@ using iter_t = bz::array_view<bz::u8string_view const>::const_iterator;
 
 static void parse_warnings(iter_t &it, iter_t end, ctx::command_parse_context &context)
 {
-	bz_assert(it->substring(0, 2) == "-W");
+	bz_assert(it->starts_with("-W"));
 	bz_assert(it != end);
 
-	if (*it == "-Wall")
+	if (*it == "-Whelp")
+	{
+		display_warning_help = true;
+	}
+	else if (*it == "-Wall")
 	{
 		enable_Wall();
 	}
 	// disabling warnings: -Wno-<warning-name>
-	else if (it->substring(2, 5) == "no-")
+	else if (it->starts_with("-Wno-"))
 	{
 		auto const warning_name = it->substring(5);
 		auto const warning_kind = ctx::get_warning_kind(warning_name);
@@ -299,8 +303,8 @@ constexpr auto prefix_parsers = []() {
 	using T = prefix_parser;
 
 	std::array result = {
-		T{ "-W",    "-W<warning>",    "Enable the specified warning",  &parse_warnings },
-		T{ "-Wno-", "-Wno-<warning>", "Disable the specified warning", &parse_warnings },
+		T{ "-W",    "-W<warning>",    "Enable the specified warning (-Whelp to see all available warnings)", &parse_warnings },
+		T{ "-Wno-", "-Wno-<warning>", "Disable the specified warning",                                       &parse_warnings },
 	};
 
 	// need to sort the array, so longer prefixes are checked first
@@ -881,7 +885,7 @@ static bz::u8string format_long_help_string(bz::u8string_view help_str)
 
 static bz::u8string build_help_string(void)
 {
-	constexpr bz::u8string_view initial_indent = spaces<initial_indent_width>;
+	constexpr auto initial_indent = spaces<initial_indent_width>;
 
 	bz::u8string result = "Usage: bozon [options] file\n\nOptions:\n";
 
@@ -916,7 +920,41 @@ static bz::u8string build_help_string(void)
 	return result;
 }
 
-void display_help_screen(void)
+static bz::u8string build_warning_info_string(void)
+{
+	constexpr auto initial_indent = spaces<initial_indent_width>;
+
+	bz::u8string result = "Available warnings:\n";
+
+	for (auto &info : ctx::warning_infos)
+	{
+		auto const description = [&]() -> bz::u8string {
+			if (info.description.length() > column_limit - command_usage_width - initial_indent_width)
+			{
+				return format_long_help_string(info.description);
+			}
+			else
+			{
+				return info.description;
+			}
+		}();
+
+		if (info.name.length() >= command_usage_width)
+		{
+			result += initial_indent;
+			result += info.name;
+			result += bz::format("\n{}{}\n", spaces<initial_indent_width + command_usage_width>, description);
+		}
+		else
+		{
+			result += bz::format("{}{:{}}{}\n", initial_indent, command_usage_width, info.name, description);
+		}
+	}
+
+	return result;
+}
+
+void print_help_screen(void)
 {
 	auto const help_string = build_help_string();
 	bz::print(help_string);
@@ -926,6 +964,12 @@ void print_version_info(void)
 {
 	constexpr bz::u8string_view version_info = "bozon 0.0.0";
 	bz::print("{}\n", version_info);
+}
+
+void print_warning_info(void)
+{
+	auto const help_string = build_warning_info_string();
+	bz::print(help_string);
 }
 
 } // namespace cl

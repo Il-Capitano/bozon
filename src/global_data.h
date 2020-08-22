@@ -17,6 +17,7 @@ enum class compilation_phase
 
 inline bool display_help = false;
 inline bool display_version = false;
+inline bool display_warning_help = false;
 
 inline bz::u8string output_file_name;
 inline std::array<bool, static_cast<size_t>(ctx::warning_kind::_last)> warnings{};

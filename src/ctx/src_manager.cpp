@@ -20,7 +20,7 @@ namespace ctx
 	auto const args = cl::get_args(argc, argv);
 	if (args.size() == 0)
 	{
-		cl::display_help_screen();
+		cl::print_help_screen();
 		compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
@@ -43,12 +43,17 @@ namespace ctx
 	{
 		if (display_help)
 		{
-			cl::display_help_screen();
+			cl::print_help_screen();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		else if (display_version)
 		{
 			cl::print_version_info();
+			compile_until = compilation_phase::parse_command_line;
+		}
+		else if (display_warning_help)
+		{
+			cl::print_warning_info();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		return true;
