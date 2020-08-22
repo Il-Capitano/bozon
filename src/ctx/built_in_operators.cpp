@@ -2669,9 +2669,36 @@ static ast::expression get_built_in_binary_modulo(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (is_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"implicit conversion between signed and unsigned integer types is not allowed"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, get_binary_precedence(lex::token::modulo_eq),
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"operator % doesn't do floating-point modulo"
+			));
+		}
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("%"), lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("%"), lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -2771,9 +2798,50 @@ static ast::expression get_built_in_binary_modulo_eq(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (
+			(is_signed_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+			|| (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		)
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"implicit conversion to a narrower integer type is not allowed"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, get_binary_precedence(lex::token::modulo_eq),
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else if (is_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"implicit conversion between signed and unsigned integer types is not allowed"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, get_binary_precedence(lex::token::modulo_eq),
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"operator %= doesn't do floating-point modulo"
+			));
+		}
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("%="), lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("%="), lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
