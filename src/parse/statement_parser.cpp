@@ -1085,30 +1085,31 @@ ast::statement parse_local_statement(
 	}
 }
 
+static constexpr auto parse_local_statement_without_semi_colon_default_parser = +[](
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto const begin = stream;
+	auto const result = ast::make_stmt_expression(
+		parse_expression_without_semi_colon(stream, end, context)
+	);
+	if (stream == begin)
+	{
+		context.report_error(stream);
+		++stream;
+	}
+	return result;
+};
+
 ast::statement parse_local_statement_without_semi_colon(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
 {
-	constexpr auto default_parser = +[](
-		lex::token_pos &stream, lex::token_pos end,
-		ctx::parse_context &context
-	)
-	{
-		auto const begin = stream;
-		auto const result = ast::make_stmt_expression(
-			parse_expression_without_semi_colon(stream, end, context)
-		);
-		if (stream == begin)
-		{
-			context.report_error(stream);
-			++stream;
-		}
-		return result;
-	};
 	constexpr auto parse_fn = create_parse_fn<
 		lex::token_pos, ctx::parse_context,
-		local_statement_parsers, default_parser
+		local_statement_parsers, parse_local_statement_without_semi_colon_default_parser
 	>();
 	if (stream == end)
 	{
