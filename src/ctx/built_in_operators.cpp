@@ -99,9 +99,11 @@ static precedence get_expr_precedence(ast::expression const &expression)
 	}
 }
 
+/*
 [[nodiscard]] static suggestion create_explicit_cast_suggestion(
 	ast::expression const &expr,
 	precedence op_prec,
+	lex::src_tokens src_tokens,
 	bz::u8string_view first_type,
 	bz::u8string_view second_type,
 	parse_context &context
@@ -139,6 +141,7 @@ static precedence get_expr_precedence(ast::expression const &expression)
 		);
 	}
 }
+*/
 
 static bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {
@@ -609,8 +612,6 @@ static ast::expression get_built_in_unary_bit_not(
 	{
 		if (is_signed_integer_kind(kind))
 		{
-			auto const signed_type_name = get_type_name_from_kind(kind);
-			auto const unsigned_type_name = get_type_name_from_kind(signed_to_unsigned(kind));
 			bz_assert(src_tokens.pivot != nullptr);
 			context.report_error(
 				src_tokens,
@@ -618,11 +619,6 @@ static ast::expression get_built_in_unary_bit_not(
 				{ context.make_note(
 					src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 					"bit manipulation of signed integers is not allowed"
-				) },
-				{ create_explicit_cast_suggestion(
-					expr, get_unary_precedence(lex::token::bit_not),
-					unsigned_type_name, signed_type_name,
-					context
 				) }
 			);
 		}
@@ -3128,12 +3124,27 @@ static ast::expression get_built_in_binary_equals_not_equals(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::equals).value == get_binary_precedence(lex::token::not_equals).value);
+		static_assert(get_binary_precedence(lex::token::equals).is_left_associative == get_binary_precedence(lex::token::not_equals).is_left_associative);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::equals),
+			lhs, rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
 			is_equals ? "==" : "!=", lhs_type, rhs_type
-		)
+		),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -3406,9 +3417,28 @@ static ast::expression get_built_in_binary_compare(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::less_than).value == get_binary_precedence(lex::token::less_than_eq).value);
+		static_assert(get_binary_precedence(lex::token::less_than).is_left_associative == get_binary_precedence(lex::token::less_than_eq).is_left_associative);
+		static_assert(get_binary_precedence(lex::token::less_than).value == get_binary_precedence(lex::token::greater_than).value);
+		static_assert(get_binary_precedence(lex::token::less_than).is_left_associative == get_binary_precedence(lex::token::greater_than).is_left_associative);
+		static_assert(get_binary_precedence(lex::token::less_than).value == get_binary_precedence(lex::token::greater_than_eq).value);
+		static_assert(get_binary_precedence(lex::token::less_than).is_left_associative == get_binary_precedence(lex::token::greater_than_eq).is_left_associative);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::less_than),
+			lhs, rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -3539,9 +3569,64 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const op_prec = get_binary_precedence(op->kind);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit operations on types with different bit widths is not allowed"
+			));
+			if (lhs_kind > rhs_kind)
+			{
+				suggestions.push_back(create_explicit_cast_suggestion(
+					rhs, op_prec,
+					get_type_name_from_kind(lhs_kind), context
+				));
+			}
+			else
+			{
+				suggestions.push_back(create_explicit_cast_suggestion(
+					lhs, op_prec,
+					get_type_name_from_kind(rhs_kind), context
+				));
+			}
+		}
+		else if (
+			(is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+			|| (is_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		)
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit manipulation of signed integers is not allowed"
+			));
+			if (is_unsigned_integer_kind(lhs_kind))
+			{
+				suggestions.push_back(create_explicit_cast_suggestion(
+					rhs, op_prec,
+					get_type_name_from_kind(lhs_kind), context
+				));
+			}
+			else if (is_unsigned_integer_kind(rhs_kind))
+			{
+				suggestions.push_back(create_explicit_cast_suggestion(
+					lhs, op_prec,
+					get_type_name_from_kind(rhs_kind), context
+				));
+			}
+		}
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("{:c}"), op_str, lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -3616,9 +3701,51 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::bit_and_eq).value == get_binary_precedence(lex::token::bit_xor_eq).value);
+		static_assert(get_binary_precedence(lex::token::bit_and_eq).is_left_associative == get_binary_precedence(lex::token::bit_xor_eq).is_left_associative);
+		static_assert(get_binary_precedence(lex::token::bit_and_eq).value == get_binary_precedence(lex::token::bit_or_eq).value);
+		static_assert(get_binary_precedence(lex::token::bit_and_eq).is_left_associative == get_binary_precedence(lex::token::bit_or_eq).is_left_associative);
+		auto const op_prec = get_binary_precedence(lex::token::bit_and_eq);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit operations on types with different bit widths is not allowed"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, op_prec,
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else if (
+			(is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+			|| (is_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		)
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit manipulation of signed integers is not allowed"
+			));
+			if (is_unsigned_integer_kind(lhs_kind))
+			{
+				suggestions.push_back(create_explicit_cast_suggestion(
+					rhs, op_prec,
+					get_type_name_from_kind(lhs_kind), context
+				));
+			}
+		}
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("{}"), op_str, lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -3726,12 +3853,42 @@ static ast::expression get_built_in_binary_bit_shift(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::bit_left_shift).value == get_binary_precedence(lex::token::bit_right_shift).value);
+		static_assert(get_binary_precedence(lex::token::bit_left_shift).is_left_associative == get_binary_precedence(lex::token::bit_right_shift).is_left_associative);
+		auto const op_prec = get_binary_precedence(lex::token::bit_left_shift);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"amount in bit shift must be an unsigned integer"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, op_prec,
+				get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
+			));
+		}
+		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit manipulation of signed integers is not allowed"
+			));
+		}
+	}
+
 	context.report_error(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
 			is_left_shift ? "<<" : ">>", lhs_type, rhs_type
-		)
+		),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -3823,12 +3980,42 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::bit_left_shift_eq).value == get_binary_precedence(lex::token::bit_right_shift_eq).value);
+		static_assert(get_binary_precedence(lex::token::bit_left_shift_eq).is_left_associative == get_binary_precedence(lex::token::bit_right_shift_eq).is_left_associative);
+		auto const op_prec = get_binary_precedence(lex::token::bit_left_shift_eq);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		if (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"amount in bit shift must be an unsigned integer"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, op_prec,
+				get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
+			));
+		}
+		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		{
+			notes.push_back(context.make_note(
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				"bit manipulation of signed integers is not allowed"
+			));
+		}
+	}
+
 	context.report_error(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
 			op->kind == lex::token::bit_left_shift_eq ? "<<=" : ">>=", lhs_type, rhs_type
-		)
+		),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
