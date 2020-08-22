@@ -343,7 +343,8 @@ constexpr auto flag_parsers = []() {
 	using T = flag_parser;
 
 	std::array result = {
-		T{ "--profile",        "Measure time for compilation steps", &default_flag_parser<&do_profile,       true> },
+		T{ "--profile",            "Measure time for compilation steps",                       &default_flag_parser<&do_profile,         true> },
+		T{ "--no-error-highlight", "Disable printing of highlighted source in error messages", &default_flag_parser<&do_error_highlight, false> },
 //		T{ "--verbose-errors", "Print more verbose error messages",  &default_flag_parser<&do_verbose_error, true> },
 //		T{ "--some-dummy-flag-that-might-or-might-not-be-long", "Some long help message to help you use this dummy flag, that might or might no be long, meaning that this help message might be longer than the limit", nullptr },
 	};

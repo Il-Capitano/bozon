@@ -26,6 +26,7 @@ inline compilation_phase compile_until = compilation_phase::link;
 // inline bool do_verbose_error = false;
 
 inline size_t tab_size = 4;
+inline bool do_error_highlight = true;
 
 
 void enable_warning(ctx::warning_kind kind);

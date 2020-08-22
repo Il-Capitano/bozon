@@ -1,6 +1,7 @@
 #include "error.h"
 #include "colors.h"
 #include "global_context.h"
+#include "global_data.h"
 
 namespace ctx
 {
@@ -1016,11 +1017,21 @@ void print_error_or_warning(
 			colors::bright_white, get_warning_name(err.kind), colors::clear
 		);
 
-	bz::print(
-		"{} {}\n{}",
-		src_pos, error_or_warning_line,
-		get_highlighted_error_or_warning(file_begin, file_end, err)
-	);
+	if (do_error_highlight)
+	{
+		bz::print(
+			"{} {}\n{}",
+			src_pos, error_or_warning_line,
+			get_highlighted_error_or_warning(file_begin, file_end, err)
+		);
+	}
+	else
+	{
+		bz::print(
+			"{} {}\n",
+			src_pos, error_or_warning_line
+		);
+	}
 
 	for (auto &n : err.notes)
 	{
@@ -1052,12 +1063,24 @@ void print_error_or_warning(
 				context.get_file_name(n.file_id), n.line, column,
 				colors::clear
 			);
-		bz::print(
-			"{}: {}note:{} {}\n{}",
-			note_src_pos, colors::note_color, colors::clear,
-			n.message,
-			get_highlighted_note(file_begin, file_end, n)
-		);
+
+		if (do_error_highlight)
+		{
+			bz::print(
+				"{}: {}note:{} {}\n{}",
+				note_src_pos, colors::note_color, colors::clear,
+				n.message,
+				get_highlighted_note(file_begin, file_end, n)
+			);
+		}
+		else
+		{
+			bz::print(
+				"{}: {}note:{} {}\n",
+				note_src_pos, colors::note_color, colors::clear,
+				n.message
+			);
+		}
 	}
 	for (auto &s : err.suggestions)
 	{
@@ -1069,15 +1092,29 @@ void print_error_or_warning(
 			? column
 			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
 
-		bz::print(
-			"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
-			colors::bright_white,
-			context.get_file_name(s.file_id), s.line, actual_column,
-			colors::clear,
-			colors::suggestion_color, colors::clear,
-			s.message,
-			get_highlighted_suggestion(file_begin, file_end, s)
-		);
+		if (do_error_highlight)
+		{
+			bz::print(
+				"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
+				colors::bright_white,
+				context.get_file_name(s.file_id), s.line, actual_column,
+				colors::clear,
+				colors::suggestion_color, colors::clear,
+				s.message,
+				get_highlighted_suggestion(file_begin, file_end, s)
+			);
+		}
+		else
+		{
+			bz::print(
+				"{}{}:{}:{}:{} {}suggestion:{} {}\n",
+				colors::bright_white,
+				context.get_file_name(s.file_id), s.line, actual_column,
+				colors::clear,
+				colors::suggestion_color, colors::clear,
+				s.message
+			);
+		}
 	}
 }
 
