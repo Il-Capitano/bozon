@@ -1041,6 +1041,155 @@ static ast::expression get_built_in_unary_typeof(
 #undef undeclared_unary_message
 
 
+static std::pair<bz::vector<note>, bz::vector<suggestion>>
+make_arithmetic_assign_error_notes_and_suggestions(
+	lex::src_tokens src_tokens,
+	precedence op_prec,
+	ast::expression const &rhs,
+	uint32_t lhs_kind,
+	uint32_t rhs_kind,
+	parse_context &context
+)
+{
+	std::pair<bz::vector<note>, bz::vector<suggestion>> result;
+
+	auto &notes = std::get<0>(result);
+	auto &suggestions = std::get<1>(result);
+
+	if (
+		(is_signed_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		|| (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+	)
+	{
+		bz_assert(lhs_kind < rhs_kind);
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion to a narrower integer type is not allowed"
+		));
+		suggestions.push_back(create_explicit_cast_suggestion(
+			rhs, op_prec,
+			get_type_name_from_kind(lhs_kind), context
+		));
+	}
+	else if (
+		(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+	)
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between signed and unsigned integer types is not allowed"
+		));
+		suggestions.push_back(create_explicit_cast_suggestion(
+			rhs, op_prec,
+			get_type_name_from_kind(lhs_kind), context
+		));
+	}
+	else if (
+		(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	)
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between floating-point and integer types is not allowed"
+		));
+		suggestions.push_back(create_explicit_cast_suggestion(
+			rhs, op_prec,
+			get_type_name_from_kind(lhs_kind), context
+		));
+	}
+	else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between between different floating-point types is not allowed"
+		));
+		suggestions.push_back(create_explicit_cast_suggestion(
+			rhs, op_prec,
+			get_type_name_from_kind(lhs_kind), context
+		));
+	}
+
+	return result;
+}
+
+static std::pair<bz::vector<note>, bz::vector<suggestion>>
+make_arithmetic_error_notes_and_suggestions(
+	lex::src_tokens src_tokens,
+	precedence op_prec,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	uint32_t lhs_kind,
+	uint32_t rhs_kind,
+	parse_context &context
+)
+{
+	std::pair<bz::vector<note>, bz::vector<suggestion>> result;
+
+	auto &notes = std::get<0>(result);
+	auto &suggestions = std::get<1>(result);
+
+	if (
+		(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+	)
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between signed and unsigned integer types is not allowed"
+		));
+	}
+	else if (
+		(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	)
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between floating-point and integer types is not allowed"
+		));
+		if (is_floating_point_kind(lhs_kind))
+		{
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, op_prec,
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else
+		{
+			suggestions.push_back(create_explicit_cast_suggestion(
+				lhs, op_prec,
+				get_type_name_from_kind(rhs_kind), context
+			));
+		}
+	}
+	else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	{
+		notes.push_back(context.make_note(
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			"implicit conversion between between different floating-point types is not allowed"
+		));
+		if (lhs_kind > rhs_kind)
+		{
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, op_prec,
+				get_type_name_from_kind(lhs_kind), context
+			));
+		}
+		else
+		{
+			suggestions.push_back(create_explicit_cast_suggestion(
+				lhs, op_prec,
+				get_type_name_from_kind(rhs_kind), context
+			));
+		}
+	}
+
+	return result;
+}
+
+
 #define undeclared_binary_message(op) "no match for binary operator " op " with types '{}' and '{}'"
 
 // sintN = sintM -> &sintN   where M <= N
@@ -1160,29 +1309,47 @@ static ast::expression get_built_in_binary_assign(
 	}
 
 	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_assign_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::assign), rhs, lhs_kind, rhs_kind, context
+		);
 
 		if (
-			(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
-			|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+			lhs_kind == ast::type_info::char_
+			&& (rhs_kind == ast::type_info::int32_ || rhs_kind == ast::type_info::uint32_)
 		)
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-				"implicit conversion between signed and unsigned integer types is not allowed"
+				bz::format(
+					"implicit conversion from '{}' to 'char' is not allowed",
+					get_type_name_from_kind(rhs_kind)
+				)
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, get_binary_precedence(lex::token::assign),
+				"char", context
 			));
 		}
 		else if (
-			(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
-			|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+			(lhs_kind == ast::type_info::int32_ || lhs_kind == ast::type_info::uint32_)
+			&& rhs_kind == ast::type_info::char_
 		)
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-				"implicit conversion between floating-point and integer types is not allowed"
+				bz::format(
+					"implicit conversion from 'char' to '{}' is not allowed",
+					get_type_name_from_kind(lhs_kind)
+				)
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				rhs, get_binary_precedence(lex::token::assign),
+				get_type_name_from_kind(lhs_kind), context
 			));
 		}
 	}
@@ -1190,7 +1357,7 @@ static ast::expression get_built_in_binary_assign(
 	context.report_error(
 		src_tokens,
 		bz::format(undeclared_binary_message("="), lhs_type, rhs_type),
-		std::move(notes)
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -1493,9 +1660,22 @@ static ast::expression get_built_in_binary_plus(
 		);
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::plus),
+			lhs, rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("+"), lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("+"), lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -1782,9 +1962,22 @@ static ast::expression get_built_in_binary_minus(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::minus),
+			lhs, rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("-"), lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("-"), lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -1903,12 +2096,27 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 		);
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::plus_eq).value == get_binary_precedence(lex::token::minus_eq).value);
+		static_assert(get_binary_precedence(lex::token::plus_eq).is_left_associative == get_binary_precedence(lex::token::minus_eq).is_left_associative);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_assign_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::plus_eq),
+			rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
 			op->kind == lex::token::plus_eq ? "+=" : "-=", lhs_type, rhs_type
-		)
+		),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -2139,9 +2347,24 @@ static ast::expression get_built_in_binary_multiply_divide(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::multiply).value == get_binary_precedence(lex::token::divide).value);
+		static_assert(get_binary_precedence(lex::token::multiply).is_left_associative == get_binary_precedence(lex::token::divide).is_left_associative);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::multiply),
+			lhs, rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
-		bz::format(undeclared_binary_message("{}"), is_multiply ? "*" : "/", lhs_type, rhs_type)
+		bz::format(undeclared_binary_message("{}"), is_multiply ? "*" : "/", lhs_type, rhs_type),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
@@ -2270,12 +2493,27 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 		}
 	}
 
+	bz::vector<note> notes = {};
+	bz::vector<suggestion> suggestions = {};
+
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
+	{
+		static_assert(get_binary_precedence(lex::token::multiply).value == get_binary_precedence(lex::token::divide).value);
+		static_assert(get_binary_precedence(lex::token::multiply).is_left_associative == get_binary_precedence(lex::token::divide).is_left_associative);
+		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
+		std::tie(notes, suggestions) = make_arithmetic_assign_error_notes_and_suggestions(
+			src_tokens, get_binary_precedence(lex::token::multiply),
+			rhs, lhs_kind, rhs_kind, context
+		);
+	}
+
 	context.report_error(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
 			op->kind == lex::token::multiply_eq ? "*=" : "/=", lhs_type, rhs_type
-		)
+		),
+		std::move(notes), std::move(suggestions)
 	);
 	return ast::expression(src_tokens);
 }
