@@ -45,10 +45,38 @@ struct val_ptr
 	}
 };
 
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expression const &expr,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static void emit_bitcode(
+	ast::statement const &stmt,
+	ctx::bitcode_context &context
+);
+
+
+template<abi::platform_abi abi>
+static void emit_alloca(
+	ast::expression const &expr,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static void emit_alloca(
+	ast::statement const &stmt,
+	ctx::bitcode_context &context
+);
+
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level = true);
+
 
 #include "common_declarations.impl"
 #include "microsoft_x64.impl"
+
 
 template<abi::platform_abi abi>
 static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(

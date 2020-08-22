@@ -2,32 +2,6 @@
 // ABI's are put here
 
 template<abi::platform_abi abi>
-static val_ptr emit_bitcode(
-	ast::expression const &expr,
-	ctx::bitcode_context &context
-);
-
-template<abi::platform_abi abi>
-static void emit_bitcode(
-	ast::statement const &stmt,
-	ctx::bitcode_context &context
-);
-
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expression const &expr,
-	ctx::bitcode_context &context
-);
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::statement const &stmt,
-	ctx::bitcode_context &context
-);
-
-
-template<abi::platform_abi abi>
 static llvm::Function *create_function_from_symbol_impl(
 	ast::function_body &func_body,
 	ctx::bitcode_context &context

@@ -4,7 +4,15 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 	ctx::bitcode_context &context
 )
 {
+	if (func_body.cc == abi::calling_convention::bozon)
+	{
+		return create_function_from_symbol_impl<abi::platform_abi::generic>(
+			func_body, context
+		);
+	}
+
 	bz_unreachable;
+/*
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)
@@ -56,4 +64,5 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 		}
 	}
 	return fn;
+*/
 }
