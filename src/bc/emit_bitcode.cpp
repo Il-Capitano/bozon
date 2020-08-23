@@ -59,18 +59,6 @@ static void emit_bitcode(
 );
 
 
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expression const &expr,
-	ctx::bitcode_context &context
-);
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::statement const &stmt,
-	ctx::bitcode_context &context
-);
-
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level = true);
 
 
@@ -2055,206 +2043,25 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 )
 {
-	auto const val_ptr = context.get_variable(&var_decl);
-	if (val_ptr == nullptr)
+	if (var_decl.var_type.is<ast::ts_lvalue_reference>())
 	{
-		bz_assert(var_decl.var_type.is<ast::ts_lvalue_reference>());
 		bz_assert(var_decl.init_expr.not_null());
 		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context);
 		bz_assert(init_val.kind == val_ptr::reference);
 		context.add_variable(&var_decl, init_val.val);
 	}
-	else if (var_decl.init_expr.not_null())
-	{
-		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context).get_value(context);
-		context.builder.CreateStore(init_val, val_ptr);
-	}
 	else
 	{
-		auto const ptr_type = val_ptr->getType();
-		auto const type = llvm::dyn_cast<llvm::PointerType>(ptr_type);
-		bz_assert(type != nullptr);
-		auto const init_val = get_constant_zero(var_decl.var_type, type->getElementType(), context);
-		context.builder.CreateStore(init_val, val_ptr);
-	}
-}
-
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_identifier const &,
-	ctx::bitcode_context &
-)
-{
-	// nothing
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_literal const &,
-	ctx::bitcode_context &
-)
-{
-	// nothing
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_tuple const &,
-	ctx::bitcode_context &
-)
-{
-	bz_unreachable;
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_unary_op const &unary_op,
-	ctx::bitcode_context &context
-)
-{
-	emit_alloca<abi>(unary_op.expr, context);
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_binary_op const &binary_op,
-	ctx::bitcode_context &context
-)
-{
-	emit_alloca<abi>(binary_op.lhs, context);
-	emit_alloca<abi>(binary_op.rhs, context);
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_subscript const &subscript_expr,
-	ctx::bitcode_context &context
-)
-{
-	emit_alloca<abi>(subscript_expr.base, context);
-	for (auto &index : subscript_expr.indicies)
-	{
-		emit_alloca<abi>(index, context);
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_function_call const &fn_call,
-	ctx::bitcode_context &context
-)
-{
-	for (auto &param : fn_call.params)
-	{
-		emit_alloca<abi>(param, context);
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_cast const &cast_expr,
-	ctx::bitcode_context &context
-)
-{
-	emit_alloca<abi>(cast_expr.expr, context);
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_compound const &expr_compound,
-	ctx::bitcode_context &context
-)
-{
-	for (auto &statement : expr_compound.statements)
-	{
-		emit_alloca<abi>(statement, context);
-	}
-	if (expr_compound.final_expr.not_null())
-	{
-		emit_alloca<abi>(expr_compound.final_expr, context);
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expr_if const &if_expr,
-	ctx::bitcode_context &context
-)
-{
-	emit_alloca<abi>(if_expr.condition, context);
-	emit_alloca<abi>(if_expr.then_block, context);
-	emit_alloca<abi>(if_expr.else_block, context);
-}
-
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::expression const &expr,
-	ctx::bitcode_context &context
-)
-{
-	if (expr.kind() == ast::expression::index_of<ast::dynamic_expression>)
-	{
-		expr.get<ast::dynamic_expression>().expr.visit([&](auto const &expr) {
-			emit_alloca<abi>(expr, context);
-		});
-	}
-}
-
-template<abi::platform_abi abi>
-static void emit_alloca(
-	ast::statement const &stmt,
-	ctx::bitcode_context &context
-)
-{
-	switch (stmt.kind())
-	{
-	case ast::statement::index<ast::stmt_while>:
-	{
-		auto &while_stmt = *stmt.get<ast::stmt_while_ptr>();
-		emit_alloca<abi>(while_stmt.condition, context);
-		emit_alloca<abi>(while_stmt.while_block, context);
-		break;
-	}
-	case ast::statement::index<ast::stmt_for>:
-	{
-		auto &for_stmt = *stmt.get<ast::stmt_for_ptr>();
-		emit_alloca<abi>(for_stmt.init, context);
-		emit_alloca<abi>(for_stmt.condition, context);
-		emit_alloca<abi>(for_stmt.iteration, context);
-		emit_alloca<abi>(for_stmt.for_block, context);
-		break;
-	}
-	case ast::statement::index<ast::stmt_return>:
-		emit_alloca<abi>(stmt.get<ast::stmt_return_ptr>()->expr, context);
-		break;
-	case ast::statement::index<ast::stmt_no_op>:
-		break;
-	case ast::statement::index<ast::stmt_expression>:
-		emit_alloca<abi>(stmt.get<ast::stmt_expression_ptr>()->expr, context);
-		break;
-	case ast::statement::index<ast::decl_variable>:
-	{
-		auto &var_decl = *stmt.get<ast::decl_variable_ptr>();
-		if (var_decl.var_type.is<ast::ts_lvalue_reference>())
-		{
-			return;
-		}
-		auto const var_t = get_llvm_type(var_decl.var_type, context);
-		auto const name = llvm::StringRef(
-			var_decl.identifier->value.data(),
-			var_decl.identifier->value.size()
-		);
-		auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
+		auto const type = get_llvm_type(var_decl.var_type, context);
+		auto const alloca = context.create_alloca(type);
+		auto const init_val = var_decl.init_expr.not_null()
+			? emit_bitcode<abi>(var_decl.init_expr, context).get_value(context)
+			: get_constant_zero(var_decl.var_type, type, context);
+		context.builder.CreateStore(init_val, alloca);
 		context.add_variable(&var_decl, alloca);
-		emit_alloca<abi>(var_decl.init_expr, context);
-		break;
-	}
-	default:
-		break;
 	}
 }
+
 
 template<abi::platform_abi abi>
 static void emit_bitcode(
@@ -2410,19 +2217,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		auto const var_t = ast::remove_const_or_consteval(p.var_type);
-		if (
-			!(var_t.is<ast::ts_base_type>()
-			&& var_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_)
-			&& t->isStructTy()
-		)
-		{
-			args.push_back(llvm::PointerType::get(t, 0));
-		}
-		else
-		{
-			args.push_back(t);
-		}
+		args.push_back(t);
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
@@ -2498,54 +2293,35 @@ static void emit_function_bitcode_impl(
 	bz_assert(fn->size() == 0);
 
 	context.current_function = { &func_body, fn };
-	auto const bb = context.add_basic_block("entry");
-	context.builder.SetInsertPoint(bb);
+
+	auto const alloca_bb = context.add_basic_block("alloca");
+	context.alloca_bb = alloca_bb;
+
+	auto const entry_bb = context.add_basic_block("entry");
+	context.builder.SetInsertPoint(entry_bb);
 
 	bz_assert(func_body.body.is<bz::vector<ast::statement>>());
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
-	// alloca's for function paraementers
+
+	// initialization of function parameters
 	{
-		bz_assert(func_body.params.size() == fn->arg_size());
 		auto p_it = func_body.params.begin();
 		auto fn_it = fn->arg_begin();
 		auto const fn_end = fn->arg_end();
 		for (; fn_it != fn_end; ++fn_it, ++p_it)
 		{
 			auto &p = *p_it;
-			if (p.var_type.is<ast::ts_lvalue_reference>())
+			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
 			{
-				context.add_variable(&p, fn_it);
+				auto const alloca = context.create_alloca(fn_it->getType());
+				llvm::Value *const param_val = fn_it;
+				context.builder.CreateStore(param_val, alloca);
+				context.add_variable(&p, alloca);
 			}
 			else
 			{
-				auto const var_t = get_llvm_type(p.var_type, context);
-				auto const name = llvm::StringRef(p.identifier->value.data(), p.identifier->value.size());
-				auto const alloca = context.builder.CreateAlloca(var_t, nullptr, name);
-				context.add_variable(&p, alloca);
-			}
-		}
-	}
-	// alloca's for statements
-	for (auto &stmt : func_body.get_statements())
-	{
-		emit_alloca<abi>(stmt, context);
-	}
-
-	// initialization of function parameter alloca's
-	{
-		auto p_it = func_body.params.begin();
-		auto fn_it = fn->arg_begin();
-		auto const fn_end = fn->arg_end();
-		for (; fn_it != fn_end; ++fn_it, ++p_it)
-		{
-			auto &p = *p_it;
-			if (!p.var_type.is<ast::ts_lvalue_reference>())
-			{
-				auto const val = context.get_variable(&p);
-				bz_assert(val != nullptr);
-				auto const param_val = fn_it;
-				context.builder.CreateStore(param_val, val);
+				context.add_variable(&p, fn_it);
 			}
 		}
 	}
@@ -2564,6 +2340,9 @@ static void emit_function_bitcode_impl(
 		context.builder.CreateRetVoid();
 	}
 
+	context.builder.SetInsertPoint(alloca_bb);
+	context.builder.CreateBr(entry_bb);
+
 	// true means it failed
 	if (llvm::verifyFunction(*fn) == true)
 	{
@@ -2572,7 +2351,7 @@ static void emit_function_bitcode_impl(
 			fn->getName().data() + fn->getName().size()
 		);
 		bz::print(
-			"{}verifyFunction failed on {}!!!\n{}",
+			"{}verifyFunction failed on '{}' !!!{}\n",
 			colors::bright_red,
 			ast::function_body::decode_symbol_name(fn_name),
 			colors::clear

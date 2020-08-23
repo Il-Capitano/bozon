@@ -10,6 +10,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
 #include <unordered_map>
 
 namespace ctx
@@ -30,7 +31,11 @@ struct bitcode_context
 	llvm::Module &get_module(void) const noexcept;
 	abi::platform_abi get_platform_abi(void) const noexcept;
 
+	size_t get_size(llvm::Type *t) const;
+	size_t get_register_size(void) const;
+
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
+	llvm::Value *create_alloca(llvm::Type *t);
 
 	llvm::Type *get_built_in_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
@@ -58,6 +63,7 @@ struct bitcode_context
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function;
+	llvm::BasicBlock *alloca_bb;
 
 	llvm::IRBuilder<> builder;
 };

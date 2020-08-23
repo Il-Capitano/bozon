@@ -11,19 +11,12 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 		);
 	}
 
-	bz_unreachable;
-/*
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	bz::vector<llvm::Type *> args = {};
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		auto const var_t = ast::remove_const_or_consteval(p.var_type);
-		if (
-			!(var_t.is<ast::ts_base_type>()
-			&& var_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_)
-			&& t->isStructTy()
-		)
+		if (context.get_size(t) > context.get_register_size())
 		{
 			args.push_back(llvm::PointerType::get(t, 0));
 		}
@@ -58,11 +51,71 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 	for (auto &arg : fn->args())
 	{
 		auto const t = arg.getType();
-		if (t->isPointerTy() && t->getPointerElementType()->isStructTy())
+		if (
+			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(t);
+			ptr_t && context.get_size(ptr_t->getElementType()) > context.get_register_size()
+		)
 		{
 			arg.addAttr(llvm::Attribute::ByVal);
 		}
 	}
 	return fn;
-*/
+}
+
+template<>
+val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
+	ast::expr_function_call const &func_call,
+	ctx::bitcode_context &context
+)
+{
+	constexpr auto abi = abi::platform_abi::microsoft_x64;
+	bz_assert(func_call.func_body != nullptr);
+	auto const fn = context.get_function(func_call.func_body);
+	bz_assert(fn != nullptr);
+
+	bz::vector<llvm::Value *> params = {};
+	params.reserve(func_call.params.size());
+
+	for (size_t i = 0; i < func_call.params.size(); ++i)
+	{
+		auto &p = func_call.params[i];
+		auto &p_t = func_call.func_body->params[i].var_type;
+		if (p_t.is<ast::ts_lvalue_reference>())
+		{
+			auto const val = emit_bitcode<abi>(p, context);
+			bz_assert(val.kind == val_ptr::reference);
+			params.push_back(val.val);
+		}
+		else
+		{
+			auto const val = emit_bitcode<abi>(p, context).get_value(context);
+			auto const arg = fn->getArg(i);
+			if (arg->hasAttribute(llvm::Attribute::ByVal))
+			{
+				bz_assert(arg->hasAttribute(llvm::Attribute::ByVal));
+				auto const alloca = context.create_alloca(val->getType());
+				context.builder.CreateStore(val, alloca);
+				params.push_back(alloca);
+			}
+			else
+			{
+				params.push_back(val);
+			}
+		}
+	}
+	auto const res = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+
+	if (res->getType()->isVoidTy())
+	{
+		return {};
+	}
+
+	if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
+	{
+		return { val_ptr::reference, res };
+	}
+	else
+	{
+		return { val_ptr::value, res };
+	}
 }

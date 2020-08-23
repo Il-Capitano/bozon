@@ -44,6 +44,24 @@ abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
 	return this->global_ctx._platform_abi;
 }
 
+size_t bitcode_context::get_size(llvm::Type *t) const
+{
+	return this->global_ctx._data_layout->getTypeAllocSize(t);
+}
+
+size_t bitcode_context::get_register_size(void) const
+{
+	switch (this->global_ctx._platform_abi)
+	{
+	case abi::platform_abi::generic:
+		return this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() / 8;
+	case abi::platform_abi::microsoft_x64:
+		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
+		return 8;
+	}
+	bz_unreachable;
+}
+
 llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(
@@ -51,6 +69,15 @@ llvm::BasicBlock *bitcode_context::add_basic_block(bz::u8string_view name)
 		llvm::StringRef(name.data(), name.length()),
 		this->current_function.second
 	);
+}
+
+llvm::Value *bitcode_context::create_alloca(llvm::Type *t)
+{
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.SetInsertPoint(bb);
+	return result;
 }
 
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const

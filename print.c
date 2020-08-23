@@ -2,14 +2,20 @@
 #include <stdint.h>
 #include <assert.h>
 
-void print(uint8_t const *begin, uint8_t const *end)
+typedef struct
 {
-	fwrite(begin, 1, end - begin, stdout);
+	uint8_t const *begin;
+	uint8_t const *end;
+} str;
+
+void print(str string)
+{
+	fwrite(string.begin, 1, string.end - string.begin, stdout);
 }
 
-void println(uint8_t const *begin, uint8_t const *end)
+void println(str string)
 {
-	fwrite(begin, 1, end - begin, stdout);
+	fwrite(string.begin, 1, string.end - string.begin, stdout);
 	fputc('\n', stdout);
 }
 
