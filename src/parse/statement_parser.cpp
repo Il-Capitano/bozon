@@ -1293,7 +1293,17 @@ static void apply_attribute(
 				"@cdecl expects no arguments"
 			);
 		}
-		func_decl.body.cc = abi::calling_convention::c;
+		if (func_decl.body.cc != abi::calling_convention::bozon)
+		{
+			context.report_error(
+				attribute.name,
+				"calling convention has already been set for this function"
+			);
+		}
+		else
+		{
+			func_decl.body.cc = abi::calling_convention::c;
+		}
 	}
 	else
 	{
