@@ -120,15 +120,23 @@ bz::u8string function_body::decode_symbol_name(
 		result += " (";
 		it = bz::u8string_view::const_iterator(op_end.data() + 2);
 	}
-	else
+	else if (symbol_name.starts_with(function_))
 	{
-		bz_assert(symbol_name.starts_with(function_));
 		auto const name_begin = bz::u8string_view::const_iterator(it.data() + function_.size());
 		result += "function ";
 		auto const name_end = symbol_name.find(name_begin, "..");
 		result += bz::u8string_view(name_begin, name_end);
 		result += '(';
 		it = bz::u8string_view::const_iterator(name_end.data() + 2);
+	}
+	else if (bz::u8string_view(it, end) == "main")
+	{
+		return "function main() -> int32";
+	}
+	else
+	{
+		// unknown prefix (extern probably)
+		return bz::u8string(it, end);
 	}
 
 	auto const param_count_begin = it;
