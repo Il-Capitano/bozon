@@ -36,6 +36,7 @@ struct bitcode_context
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
+	llvm::Value *create_alloca(llvm::Type *t, size_t align);
 
 	llvm::Type *get_built_in_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;

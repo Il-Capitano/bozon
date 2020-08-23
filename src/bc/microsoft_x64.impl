@@ -1,3 +1,23 @@
+static bool microsoft_x64_pass_by_ref(
+	llvm::Type *t,
+	ctx::bitcode_context &context
+)
+{
+	auto const size = context.get_size(t);
+	size_t const register_size = 8;
+	bz_assert(context.get_register_size() == register_size);
+	return size > register_size || (size != 1 && size != 2 && size != 4 && size != 8);
+}
+
+static bool microsoft_x64_pass_as_int_cast(
+	llvm::Type *t,
+	ctx::bitcode_context &context
+)
+{
+	bz_assert(!microsoft_x64_pass_by_ref(t, context));
+	return !t->isIntegerTy() && !t->isFloatingPointTy() && !t->isPointerTy();
+}
+
 template<>
 llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
 	ast::function_body &func_body,
@@ -12,16 +32,45 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 	}
 
 	auto const result_t = get_llvm_type(func_body.return_type, context);
+	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
+	pass_arg_by_ref.reserve(func_body.params.size());
+	args.reserve(func_body.params.size());
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		if (context.get_size(t) > context.get_register_size())
+		if (microsoft_x64_pass_by_ref(t, context))
 		{
+			pass_arg_by_ref.push_back(true);
 			args.push_back(llvm::PointerType::get(t, 0));
+		}
+		else if (microsoft_x64_pass_as_int_cast(t, context))
+		{
+			auto const size = context.get_size(t);
+			bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
+
+			switch (size)
+			{
+			case 1:
+				args.push_back(context.get_int8_t());
+				break;
+			case 2:
+				args.push_back(context.get_int16_t());
+				break;
+			case 4:
+				args.push_back(context.get_int32_t());
+				break;
+			case 8:
+				args.push_back(context.get_int64_t());
+				break;
+			default:
+				bz_unreachable;
+			}
+			pass_arg_by_ref.push_back(false);
 		}
 		else
 		{
+			pass_arg_by_ref.push_back(false);
 			args.push_back(t);
 		}
 	}
@@ -48,18 +97,106 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 		break;
 	}
 
-	for (auto &arg : fn->args())
+	for (size_t i = 0; i < func_body.params.size(); ++i)
 	{
-		auto const t = arg.getType();
-		if (
-			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(t);
-			ptr_t && context.get_size(ptr_t->getElementType()) > context.get_register_size()
-		)
+		auto &arg = *fn->getArg(i);
+		auto const &param = func_body.params[i];
+		auto const is_by_ref = pass_arg_by_ref[i];
+		if (is_by_ref)
 		{
 			arg.addAttr(llvm::Attribute::ByVal);
+			arg.addAttr(llvm::Attribute::NoAlias);
+			arg.addAttr(llvm::Attribute::NoCapture);
+			arg.addAttr(llvm::Attribute::NonNull);
+		}
+		else if (param.var_type.is<ast::ts_lvalue_reference>())
+		{
+			arg.addAttr(llvm::Attribute::NonNull);
 		}
 	}
 	return fn;
+}
+
+template<>
+void emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
+	ast::function_body &func_body,
+	ctx::bitcode_context &context
+)
+{
+	constexpr auto abi = abi::platform_abi::microsoft_x64;
+	auto const fn = context.get_function(&func_body);
+	bz_assert(fn != nullptr);
+	bz_assert(fn->size() == 0);
+
+	context.current_function = { &func_body, fn };
+
+	auto const alloca_bb = context.add_basic_block("alloca");
+	context.alloca_bb = alloca_bb;
+
+	auto const entry_bb = context.add_basic_block("entry");
+	context.builder.SetInsertPoint(entry_bb);
+
+	bz_assert(func_body.body.is<bz::vector<ast::statement>>());
+	bz::vector<llvm::Value *> params = {};
+	params.reserve(func_body.params.size());
+
+	// initialization of function parameters
+	{
+		auto p_it = func_body.params.begin();
+		auto fn_it = fn->arg_begin();
+		auto const fn_end = fn->arg_end();
+		for (; fn_it != fn_end; ++fn_it, ++p_it)
+		{
+			auto &p = *p_it;
+			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
+			{
+				auto const t = get_llvm_type(p.var_type, context);
+				auto const alloca = context.create_alloca(t);
+				// create a cast from integer types to struct types if necessery
+				llvm::Value *const param_val = fn_it;
+				auto const alloca_cast = context.builder.CreateBitCast(alloca, llvm::PointerType::get(param_val->getType(), 0));
+				context.builder.CreateStore(param_val, alloca_cast);
+				context.add_variable(&p, alloca);
+			}
+			else
+			{
+				context.add_variable(&p, fn_it);
+			}
+		}
+	}
+
+	// code emission for statements
+	for (auto &stmt : func_body.get_statements())
+	{
+		emit_bitcode<abi>(stmt, context);
+	}
+
+	if (!context.has_terminator())
+	{
+//		std::string func_name = context.current_function->getName();
+//		bz::print("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
+		bz_assert(func_body.return_type.is<ast::ts_void>());
+		context.builder.CreateRetVoid();
+	}
+
+	context.builder.SetInsertPoint(alloca_bb);
+	context.builder.CreateBr(entry_bb);
+
+	// true means it failed
+	if (llvm::verifyFunction(*fn) == true)
+	{
+		auto const fn_name = bz::u8string_view(
+			fn->getName().data(),
+			fn->getName().data() + fn->getName().size()
+		);
+		bz::print(
+			"{}verifyFunction failed on '{}' !!!{}\n",
+			colors::bright_red,
+			ast::function_body::decode_symbol_name(fn_name),
+			colors::clear
+		);
+	}
+	context.current_function = {};
 }
 
 template<>
@@ -70,6 +207,11 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 {
 	constexpr auto abi = abi::platform_abi::microsoft_x64;
 	bz_assert(func_call.func_body != nullptr);
+	if (func_call.func_body->cc == abi::calling_convention::bozon)
+	{
+		return emit_bitcode<abi::platform_abi::generic>(func_call, context);
+	}
+
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
 
@@ -88,17 +230,57 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		}
 		else
 		{
-			auto const val = emit_bitcode<abi>(p, context).get_value(context);
+			auto const val_ref = emit_bitcode<abi>(p, context);
 			auto const arg = fn->getArg(i);
-			if (arg->hasAttribute(llvm::Attribute::ByVal))
+			auto const t = val_ref.get_type();
+			if (microsoft_x64_pass_by_ref(t, context))
 			{
 				bz_assert(arg->hasAttribute(llvm::Attribute::ByVal));
-				auto const alloca = context.create_alloca(val->getType());
+				auto const val = val_ref.get_value(context);
+				auto const alloca = context.create_alloca(val->getType(), 16);
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
 			}
+			else if (microsoft_x64_pass_as_int_cast(t, context))
+			{
+				auto const dest_t = [&]() {
+					switch (context.get_size(t))
+					{
+					case 1:
+						return context.get_int8_t();
+					case 2:
+						return context.get_int16_t();
+					case 4:
+						return context.get_int32_t();
+					case 8:
+						return context.get_int64_t();
+					default:
+						bz_unreachable;
+					}
+				}();
+				if (val_ref.kind == val_ptr::reference)
+				{
+					auto const int_ptr = context.builder.CreateBitCast(
+						val_ref.val, llvm::PointerType::get(dest_t, 0)
+					);
+					auto const int_val = context.builder.CreateLoad(int_ptr);
+					params.push_back(int_val);
+				}
+				else
+				{
+					auto const val = val_ref.get_value(context);
+					auto const int_ptr = context.create_alloca(dest_t);
+					auto const cast_ptr = context.builder.CreateBitCast(
+						int_ptr, llvm::PointerType::get(t, 0)
+					);
+					context.builder.CreateStore(val, cast_ptr);
+					auto const int_val = context.builder.CreateLoad(int_ptr);
+					params.push_back(int_val);
+				}
+			}
 			else
 			{
+				auto const val = val_ref.get_value(context);
 				params.push_back(val);
 			}
 		}

@@ -43,6 +43,25 @@ struct val_ptr
 			return this->val;
 		}
 	}
+
+	llvm::Type *get_type(void) const
+	{
+		if (this->consteval_val)
+		{
+			return this->consteval_val->getType();
+		}
+
+		if (this->kind == reference)
+		{
+			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(this->val->getType());
+			bz_assert(ptr_t != nullptr);
+			return ptr_t->getElementType();
+		}
+		else
+		{
+			return this->val->getType();
+		}
+	}
 };
 
 
@@ -2242,12 +2261,11 @@ static llvm::Function *create_function_from_symbol_impl(
 		break;
 	}
 
-	for (auto &arg : fn->args())
+	for (auto const &[arg, param] : bz::zip(fn->args(), func_body.params))
 	{
-		auto const t = arg.getType();
-		if (t->isPointerTy() && t->getPointerElementType()->isStructTy())
+		if (param.var_type.is<ast::ts_lvalue_reference>())
 		{
-			arg.addAttr(llvm::Attribute::ByVal);
+			arg.addAttr(llvm::Attribute::NonNull);
 		}
 	}
 	return fn;

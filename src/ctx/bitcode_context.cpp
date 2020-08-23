@@ -80,6 +80,16 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t)
 	return result;
 }
 
+llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
+{
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	result->setAlignment(llvm::MaybeAlign(align));
+	this->builder.SetInsertPoint(bb);
+	return result;
+}
+
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
