@@ -1259,7 +1259,8 @@ static void apply_attribute(
 	ctx::parse_context &context
 )
 {
-	if (attribute.name->value == "extern")
+	auto const attr_name = attribute.name->value;
+	if (attr_name == "extern")
 	{
 		if (attribute.args.size() != 1)
 		{
@@ -1283,12 +1284,23 @@ static void apply_attribute(
 		func_decl.body.symbol_name = extern_name;
 		func_decl.body.cc = abi::calling_convention::c;
 	}
+	else if (attr_name == "cdecl")
+	{
+		if (attribute.args.size() != 0)
+		{
+			context.report_error(
+				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
+				"@cdecl expects no arguments"
+			);
+		}
+		func_decl.body.cc = abi::calling_convention::c;
+	}
 	else
 	{
 		context.report_warning(
 			ctx::warning_kind::unknown_attribute,
 			attribute.name,
-			bz::format("unknown attribute '{}'", attribute.name->value)
+			bz::format("unknown attribute '{}'", attr_name)
 		);
 	}
 }
