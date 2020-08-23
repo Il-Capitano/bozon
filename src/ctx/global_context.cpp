@@ -104,6 +104,7 @@ global_context::global_context(void)
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target_machine(nullptr),
+	  _data_layout(),
 	  _llvm_built_in_types(get_llvm_built_in_types(this->_llvm_context))
 {
 	auto const target_triple = llvm::sys::getDefaultTargetTriple();
@@ -123,7 +124,8 @@ global_context::global_context(void)
 	auto rm = llvm::Optional<llvm::Reloc::Model>();
 	this->_target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
 	bz_assert(this->_target_machine);
-	this->_module.setDataLayout(this->_target_machine->createDataLayout());
+	this->_data_layout = this->_target_machine->createDataLayout();
+	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
 
 	auto const triple = llvm::Triple(target_triple);
