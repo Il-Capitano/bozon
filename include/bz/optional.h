@@ -6,8 +6,35 @@
 
 bz_begin_namespace
 
+namespace internal
+{
+
+struct optional_trivial
+{
+};
+
+template<typename Optional, typename Element>
+struct optional_destructor_base
+{
+	~optional_destructor_base(void) noexcept
+	{
+		auto &This = *static_cast<Optional *>(this);
+		if (This._has_value)
+		{
+			This.destruct();
+		}
+	}
+};
+
+} // namespace internal
+
 template<typename T>
-class optional
+class optional :
+	public meta::conditional<
+		meta::is_nothrow_destructible_v<T>,
+		internal::optional_trivial,
+		internal::optional_destructor_base<optional<T>, T>
+	>
 {
 	static_assert(!meta::is_void<T>,      "bz::optional element type must not be void");
 	static_assert(!meta::is_reference<T>, "bz::optional element type must not be a reference");
@@ -89,16 +116,6 @@ public:
 	optional(void) noexcept
 		: _has_value(false)
 	{}
-
-	~optional(void) noexcept(
-		meta::is_nothrow_destructible_v<element_type>
-	)
-	{
-		if (this->_has_value)
-		{
-			this->destruct();
-		}
-	}
 
 	optional(self_t const &other) noexcept(
 		meta::is_nothrow_copy_constructible_v<element_type>
