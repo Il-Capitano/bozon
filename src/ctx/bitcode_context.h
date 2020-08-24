@@ -65,6 +65,7 @@ struct bitcode_context
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function;
 	llvm::BasicBlock *alloca_bb;
+	llvm::Value *output_pointer;
 
 	llvm::IRBuilder<> builder;
 };

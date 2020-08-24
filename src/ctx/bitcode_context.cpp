@@ -9,6 +9,8 @@ bitcode_context::bitcode_context(global_context &_global_ctx)
 	  vars_{},
 	  types_{},
 	  current_function{ nullptr, nullptr },
+	  alloca_bb(nullptr),
+	  output_pointer(nullptr),
 	  builder(_global_ctx._llvm_context)
 {}
 

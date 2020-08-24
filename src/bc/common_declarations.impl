@@ -18,3 +18,9 @@ static val_ptr emit_bitcode(
 	ast::expr_function_call const &func_call,
 	ctx::bitcode_context &context
 );
+
+template<abi::platform_abi abi>
+static void emit_bitcode(
+	ast::stmt_return const &ret_stmt,
+	ctx::bitcode_context &context
+);
