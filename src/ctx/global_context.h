@@ -81,12 +81,23 @@ struct global_context
 
 	char_pos get_file_begin(uint32_t file_id) const noexcept
 	{
-		if (file_id == command_line_file_id)
+		if (file_id == compiler_file_id || file_id == command_line_file_id)
 		{
 			return char_pos();
 		}
 		bz_assert(file_id < this->src_files.size());
 		return this->src_files[file_id]->_file.begin();
+	}
+
+	std::pair<char_pos, char_pos> get_file_begin_and_end(uint32_t file_id) const noexcept
+	{
+		if (file_id == compiler_file_id || file_id == command_line_file_id)
+		{
+			return { char_pos(), char_pos() };
+		}
+		bz_assert(file_id < this->src_files.size());
+		auto const src_file = this->src_files[file_id];
+		return { src_file->_file.begin(), src_file->_file.end() };
 	}
 
 	bool has_errors(void) const;

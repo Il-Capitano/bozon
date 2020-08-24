@@ -57,7 +57,7 @@ void src_file::report_and_clear_errors_and_warnings(void)
 	{
 		for (auto &err : this->_global_ctx.get_errors_and_warnings())
 		{
-			print_error_or_warning(this->_file.begin(), this->_file.end(), err, this->_global_ctx);
+			print_error_or_warning(err, this->_global_ctx);
 		}
 		this->_global_ctx.clear_errors_and_warnings();
 	}

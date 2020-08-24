@@ -31,7 +31,7 @@ namespace ctx
 	auto const good = !this->_global_ctx.has_errors();
 	for (auto &err : this->_global_ctx.get_errors_and_warnings())
 	{
-		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
+		print_error_or_warning(err, this->_global_ctx);
 	}
 	this->_global_ctx.clear_errors_and_warnings();
 
@@ -71,7 +71,7 @@ namespace ctx
 			"no source file was provided",
 			{}, {}
 		};
-		print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
+		print_error_or_warning(err, this->_global_ctx);
 		return false;
 	}
 	this->add_file(source_file);
@@ -102,7 +102,7 @@ namespace ctx
 				bz::format("unable to read file '{}'", file.get_file_name()),
 				{}, {}
 			};
-			print_error_or_warning(char_pos(), char_pos(), err, this->_global_ctx);
+			print_error_or_warning(err, this->_global_ctx);
 			return false;
 		}
 

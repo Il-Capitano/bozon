@@ -280,11 +280,7 @@ template<typename T>
 
 struct global_context;
 
-void print_error_or_warning(
-	char_pos file_begin, char_pos file_end,
-	error const &err,
-	global_context &context
-);
+void print_error_or_warning(error const &err, global_context &context);
 
 bz::u8string convert_string_for_message(bz::u8string_view str);
 

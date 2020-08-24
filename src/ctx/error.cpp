@@ -975,13 +975,10 @@ static bz::u8string get_highlighted_suggestion(
 	return result;
 }
 
-void print_error_or_warning(
-	char_pos file_begin, char_pos file_end,
-	error const &err,
-	global_context &context
-)
+void print_error_or_warning(error const &err, global_context &context)
 {
-	auto const src_pos = [&]() {
+	auto const [err_file_begin, err_file_end] = context.get_file_begin_and_end(err.file_id);
+	auto const src_pos = [&, err_file_begin = err_file_begin]() {
 		if (err.file_id == global_context::compiler_file_id)
 		{
 			return bz::format("{}bozon:{}", colors::bright_white, colors::clear);
@@ -1001,7 +998,7 @@ void print_error_or_warning(
 			return bz::format(
 				"{}{}:{}:{}:{}",
 				colors::bright_white,
-				file_name, err.line, get_column_number(file_begin, err.src_pivot),
+				file_name, err.line, get_column_number(err_file_begin, err.src_pivot),
 				colors::clear
 			);
 		}
@@ -1023,7 +1020,7 @@ void print_error_or_warning(
 		bz::print(
 			"{} {}\n{}",
 			src_pos, error_or_warning_line,
-			get_highlighted_error_or_warning(file_begin, file_end, err)
+			get_highlighted_error_or_warning(err_file_begin, err_file_end, err)
 		);
 	}
 	else
@@ -1036,10 +1033,11 @@ void print_error_or_warning(
 
 	for (auto &n : err.notes)
 	{
+		auto const [note_file_begin, note_file_end] = context.get_file_begin_and_end(n.file_id);
 		auto const is_empty = n.src_begin == n.src_end
 			&& n.first_suggestion.erase_begin == n.first_suggestion.erase_end
 			&& n.first_suggestion.suggestion_pos.data() == nullptr;
-		auto const column = [&]() -> size_t {
+		auto const column = [&, note_file_begin = note_file_begin]() -> size_t {
 			if (is_empty)
 			{
 				return 0;
@@ -1047,8 +1045,8 @@ void print_error_or_warning(
 			else
 			{
 				return n.src_pivot.data() == nullptr
-					? get_column_number(file_begin, n.first_suggestion.suggestion_pos)
-					: get_column_number(file_begin, n.src_pivot);
+					? get_column_number(note_file_begin, n.first_suggestion.suggestion_pos)
+					: get_column_number(note_file_begin, n.src_pivot);
 			}
 		}();
 		auto const note_src_pos = is_empty
@@ -1071,7 +1069,7 @@ void print_error_or_warning(
 				"{}: {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
 				n.message,
-				get_highlighted_note(file_begin, file_end, n)
+				get_highlighted_note(note_file_begin, note_file_end, n)
 			);
 		}
 		else
@@ -1085,10 +1083,11 @@ void print_error_or_warning(
 	}
 	for (auto &s : err.suggestions)
 	{
+		auto [suggestion_file_begin, suggestion_file_end] = context.get_file_begin_and_end(s.file_id);
 		auto const report_pos = s.first_suggestion.suggestion_pos;
 		auto const report_pos_erase_begin = s.first_suggestion.erase_begin;
 		auto const report_pos_erase_end = s.first_suggestion.erase_end;
-		auto const column = get_column_number(file_begin, report_pos);
+		auto const column = get_column_number(suggestion_file_begin, report_pos);
 		auto const actual_column = report_pos <= report_pos_erase_begin
 			? column
 			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
@@ -1102,7 +1101,7 @@ void print_error_or_warning(
 				colors::clear,
 				colors::suggestion_color, colors::clear,
 				s.message,
-				get_highlighted_suggestion(file_begin, file_end, s)
+				get_highlighted_suggestion(suggestion_file_begin, suggestion_file_end, s)
 			);
 		}
 		else

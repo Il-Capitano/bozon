@@ -211,7 +211,7 @@ uint32_t global_context::add_file_to_compile(lex::token_pos it, bz::u8string_vie
 			warning_kind::_last,
 			it->src_pos.file_id, it->src_pos.line,
 			it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-			bz::format("unable to read file '{}'", file.get_file_name()),
+			bz::format("unable to find module '{}'", it->value),
 			{}, {}
 		});
 		return std::numeric_limits<uint32_t>::max();
