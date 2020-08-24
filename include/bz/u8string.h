@@ -632,6 +632,9 @@ public:
 	const_iterator find(const_iterator it, u8string_view str) const noexcept
 	{ return this->as_string_view().find(it, str); }
 
+	const_iterator rfind(u8char c) const noexcept
+	{ return this->as_string_view().rfind(c); }
+
 
 	void reverse(void) noexcept
 	{
