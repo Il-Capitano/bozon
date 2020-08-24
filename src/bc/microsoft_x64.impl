@@ -242,8 +242,6 @@ void emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
 
 	if (!context.has_terminator())
 	{
-//		std::string func_name = context.current_function->getName();
-//		bz::print("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
 		bz_assert(func_body.return_type.is<ast::ts_void>());
 		context.builder.CreateRetVoid();
 	}
@@ -278,10 +276,6 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 {
 	constexpr auto abi = abi::platform_abi::microsoft_x64;
 	bz_assert(func_call.func_body != nullptr);
-	if (func_call.func_body->cc == abi::calling_convention::bozon)
-	{
-		return emit_bitcode<abi::platform_abi::generic>(func_call, context);
-	}
 
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
@@ -323,7 +317,12 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		{
 			auto const val_ref = emit_bitcode<abi>(p, context);
 			auto const t = val_ref.get_type();
-			if (microsoft_x64_pass_by_ref(t, context))
+			if (func_call.func_body->cc == abi::calling_convention::bozon)
+			{
+				auto const val = val_ref.get_value(context);
+				params.push_back(val);
+			}
+			else if (microsoft_x64_pass_by_ref(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
 				auto const val = val_ref.get_value(context);
