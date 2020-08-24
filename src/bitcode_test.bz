@@ -1,26 +1,88 @@
-@extern("print")             function print(str: str)        -> void;
-@extern("print_char")        function print(c: char)         -> void;
-@extern("print_int32")       function print(n: int32)        -> void;
-@extern("print_int64")       function print(n: int64)        -> void;
-@extern("print_uint32")      function print(n: uint32)       -> void;
-@extern("print_uint64")      function print(n: uint64)       -> void;
-@extern("print_int32_ptr")   function print(p: *const int32) -> void;
-@extern("print_float32")     function print(x: float32)      -> void;
-@extern("print_float64")     function print(x: float64)      -> void;
-@extern("print_bool")        function print(b: bool)         -> void;
+@extern("print",           "c") function print(str: str)        -> void;
+@extern("print_char",      "c") function print(c: char)         -> void;
+@extern("print_int32",     "c") function print(n: int32)        -> void;
+@extern("print_int64",     "c") function print(n: int64)        -> void;
+@extern("print_uint32",    "c") function print(n: uint32)       -> void;
+@extern("print_uint64",    "c") function print(n: uint64)       -> void;
+@extern("print_int32_ptr", "c") function print(p: *const int32) -> void;
+@extern("print_float32",   "c") function print(x: float32)      -> void;
+@extern("print_float64",   "c") function print(x: float64)      -> void;
+@extern("print_bool",      "c") function print(b: bool)         -> void;
 
-@extern("println")           function println(str: str)        -> void;
-@extern("println_char")      function println(c: char)         -> void;
-@extern("println_int32")     function println(n: int32)        -> void;
-@extern("println_int64")     function println(n: int64)        -> void;
-@extern("println_uint32")    function println(n: uint32)       -> void;
-@extern("println_uint64")    function println(n: uint64)       -> void;
-@extern("println_int32_ptr") function println(p: *const int32) -> void;
-@extern("println_float32")   function println(x: float32)      -> void;
-@extern("println_float64")   function println(x: float64)      -> void;
-@extern("println_bool")      function println(b: bool)         -> void;
+@extern("println",           "c") function println(str: str)        -> void;
+@extern("println_char",      "c") function println(c: char)         -> void;
+@extern("println_int32",     "c") function println(n: int32)        -> void;
+@extern("println_int64",     "c") function println(n: int64)        -> void;
+@extern("println_uint32",    "c") function println(n: uint32)       -> void;
+@extern("println_uint64",    "c") function println(n: uint64)       -> void;
+@extern("println_int32_ptr", "c") function println(p: *const int32) -> void;
+@extern("println_float32",   "c") function println(x: float32)      -> void;
+@extern("println_float64",   "c") function println(x: float64)      -> void;
+@extern("println_bool",      "c") function println(b: bool)         -> void;
 
-@extern("exit")              function exit(code: int32)        -> void;
+@extern("exit", "c") function exit(code: int32) -> void;
+
+
+@extern("exp",    "c") function exp(x: float64) -> float64;
+@extern("expf",   "c") function exp(x: float32) -> float32;
+@extern("exp2",   "c") function exp2(x: float64) -> float64;
+@extern("exp2f",  "c") function exp2(x: float32) -> float32;
+@extern("expm1",  "c") function expm1(x: float64) -> float64;
+@extern("expm1f", "c") function expm1(x: float32) -> float32;
+@extern("log",    "c") function log(x: float64) -> float64;
+@extern("logf",   "c") function log(x: float32) -> float32;
+@extern("log10",  "c") function log10(x: float64) -> float64;
+@extern("log10f", "c") function log10(x: float32) -> float32;
+@extern("log2",   "c") function log2(x: float64) -> float64;
+@extern("log2f",  "c") function log2(x: float32) -> float32;
+@extern("log1p",  "c") function log1p(x: float64) -> float64;
+@extern("log1pf", "c") function log1p(x: float32) -> float32;
+
+@extern("pow",    "c") function pow(x: float64, y: float64) -> float64;
+@extern("powf",   "c") function pow(x: float32, y: float32) -> float32;
+@extern("sqrt",   "c") function sqrt(x: float64) -> float64;
+@extern("sqrtf",  "c") function sqrt(x: float32) -> float32;
+@extern("cbrt",   "c") function cbrt(x: float64) -> float64;
+@extern("cbrtf",  "c") function cbrt(x: float32) -> float32;
+@extern("hypot",  "c") function hypot(x: float64, y: float64) -> float64;
+@extern("hypotf", "c") function hypot(x: float32, y: float32) -> float32;
+
+@extern("sin",    "c") function sin(x: float64) -> float64;
+@extern("sinf",   "c") function sin(x: float32) -> float32;
+@extern("cos",    "c") function cos(x: float64) -> float64;
+@extern("cosf",   "c") function cos(x: float32) -> float32;
+@extern("tan",    "c") function tan(x: float64) -> float64;
+@extern("tanf",   "c") function tan(x: float32) -> float32;
+@extern("asin",   "c") function asin(x: float64) -> float64;
+@extern("asinf",  "c") function asin(x: float32) -> float32;
+@extern("acos",   "c") function acos(x: float64) -> float64;
+@extern("acosf",  "c") function acos(x: float32) -> float32;
+@extern("atan",   "c") function atan(x: float64) -> float64;
+@extern("atanf",  "c") function atan(x: float32) -> float32;
+@extern("atan2",  "c") function atan2(x: float64, y: float64) -> float64;
+@extern("atan2f", "c") function atan2(x: float32, y: float32) -> float32;
+
+@extern("sinh",   "c") function sinh(x: float64) -> float64;
+@extern("sinhf",  "c") function sinh(x: float32) -> float32;
+@extern("cosh",   "c") function cosh(x: float64) -> float64;
+@extern("coshf",  "c") function cosh(x: float32) -> float32;
+@extern("tanh",   "c") function tanh(x: float64) -> float64;
+@extern("tanhf",  "c") function tanh(x: float32) -> float32;
+@extern("asinh",  "c") function asinh(x: float64) -> float64;
+@extern("asinhf", "c") function asinh(x: float32) -> float32;
+@extern("acosh",  "c") function acosh(x: float64) -> float64;
+@extern("acoshf", "c") function acosh(x: float32) -> float32;
+@extern("atanh",  "c") function atanh(x: float64) -> float64;
+@extern("atanhf", "c") function atanh(x: float32) -> float32;
+
+@extern("erf",     "c") function erf(x: float64) -> float64;
+@extern("erff",    "c") function erf(x: float32) -> float32;
+@extern("erfc",    "c") function erfc(x: float64) -> float64;
+@extern("erfcf",   "c") function erfc(x: float32) -> float32;
+@extern("tgamma",  "c") function tgamma(x: float64) -> float64;
+@extern("tgammaf", "c") function tgamma(x: float32) -> float32;
+@extern("lgamma",  "c") function lgamma(x: float64) -> float64;
+@extern("lgammaf", "c") function lgamma(x: float32) -> float32;
 
 
 //	/*
@@ -55,7 +117,7 @@ function factorial_recursive(n: int32) -> int32
 	}
 }
 
-function main() -> int32
+export function main() -> int32
 {
 	println("");
 	println("hello");
@@ -768,4 +830,17 @@ function built_in_op_error_test() -> void
 //	i32 %= u32;
 //	f32 % f32;
 //	f64 %= f64;
+}
+
+@cdecl function arr2_test(: [2: int32], : str, : int32) -> [3: int8]
+{
+	let arr: [3: int8];
+	return arr;
+}
+
+
+function arr2_tester() -> void
+{
+	let arr: [2: int32];
+	const s = arr2_test(arr, "hello", 3);
 }
