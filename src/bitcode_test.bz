@@ -1,24 +1,4 @@
-@extern("print",           "c") function print(str: str)        -> void;
-@extern("print_char",      "c") function print(c: char)         -> void;
-@extern("print_int32",     "c") function print(n: int32)        -> void;
-@extern("print_int64",     "c") function print(n: int64)        -> void;
-@extern("print_uint32",    "c") function print(n: uint32)       -> void;
-@extern("print_uint64",    "c") function print(n: uint64)       -> void;
-@extern("print_int32_ptr", "c") function print(p: *const int32) -> void;
-@extern("print_float32",   "c") function print(x: float32)      -> void;
-@extern("print_float64",   "c") function print(x: float64)      -> void;
-@extern("print_bool",      "c") function print(b: bool)         -> void;
-
-@extern("println",           "c") function println(str: str)        -> void;
-@extern("println_char",      "c") function println(c: char)         -> void;
-@extern("println_int32",     "c") function println(n: int32)        -> void;
-@extern("println_int64",     "c") function println(n: int64)        -> void;
-@extern("println_uint32",    "c") function println(n: uint32)       -> void;
-@extern("println_uint64",    "c") function println(n: uint64)       -> void;
-@extern("println_int32_ptr", "c") function println(p: *const int32) -> void;
-@extern("println_float32",   "c") function println(x: float32)      -> void;
-@extern("println_float64",   "c") function println(x: float64)      -> void;
-@extern("println_bool",      "c") function println(b: bool)         -> void;
+import print;
 
 @extern("exit", "c") function exit(code: int32) -> void;
 
@@ -172,10 +152,10 @@ export function main() -> int32
 	print('\n');
 	print('h');
 
-	assert('\u0470' == 'Ѱ');
-	assert('\U00000470' == 'Ѱ');
-	assert('ѱ' - 1 == 'Ѱ');
-	assert('Ѱ' as uint32 == 0x470);
+	static_assert('\u0470' == 'Ѱ');
+	static_assert('\U00000470' == 'Ѱ');
+	static_assert('ѱ' - 1 == 'Ѱ');
+	static_assert('Ѱ' as uint32 == 0x470);
 //	"a" "b";
 
 	println("\n=== \x41 ===");
