@@ -805,6 +805,20 @@ template ast::statement parse_decl_operator<true>(
 	ctx::parse_context &context
 );
 
+ast::statement parse_decl_import(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_import);
+	++stream; // import
+
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	context.assert_token(stream, lex::token::semi_colon);
+	return ast::make_decl_import(id);
+}
+
 template<bool is_global>
 ast::statement parse_attribute_statement(
 	lex::token_pos &stream, lex::token_pos end,
@@ -1453,6 +1467,19 @@ static void apply_attribute(
 	);
 }
 
+static void apply_attribute(
+	ast::decl_import &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
 
 static void apply_attribute(
 	ast::statement &stmt,
@@ -1516,6 +1543,9 @@ void resolve_global_statement(
 		},
 		[&](ast::stmt_static_assert &static_assert_stmt) {
 			resolve_stmt_static_assert(static_assert_stmt, context);
+		},
+		[](ast::decl_import) {
+			// nothing
 		},
 		[&](auto &) {
 			bz_unreachable;

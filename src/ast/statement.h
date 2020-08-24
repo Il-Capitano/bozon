@@ -44,6 +44,7 @@ declare_node_type(decl_variable);
 declare_node_type(decl_function);
 declare_node_type(decl_operator);
 declare_node_type(decl_struct);
+declare_node_type(decl_import);
 
 #undef declare_node_type
 
@@ -57,7 +58,8 @@ using statement_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
-	decl_struct
+	decl_struct,
+	decl_import
 >;
 
 using top_level_statement_types = bz::meta::type_pack<
@@ -65,14 +67,16 @@ using top_level_statement_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
-	decl_struct
+	decl_struct,
+	decl_import
 >;
 
 using declaration_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
-	decl_struct
+	decl_struct,
+	decl_import
 >;
 
 template<typename T>
@@ -565,6 +569,17 @@ struct decl_struct
 	lex::token_pos get_tokens_end(void) const;
 };
 
+struct decl_import
+{
+	lex::token_pos identifier;
+
+	decl_import(lex::token_pos _id)
+		: identifier(_id)
+	{}
+
+	declare_default_5(decl_import)
+};
+
 
 template<typename ...Args>
 statement make_statement(Args &&...args)
@@ -580,6 +595,7 @@ def_make_fn(statement, decl_variable)
 def_make_fn(statement, decl_function)
 def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_struct)
+def_make_fn(statement, decl_import)
 
 def_make_fn(statement, stmt_while)
 def_make_fn(statement, stmt_for)

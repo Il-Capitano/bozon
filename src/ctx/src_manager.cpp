@@ -123,18 +123,17 @@ namespace ctx
 
 [[nodiscard]] bool src_manager::parse_global_symbols(void)
 {
-	for (auto &file : this->_src_files)
+	bz_assert(this->_src_files.size() == 1);
+	auto &file = this->_src_files.front();
+	if (!file.parse_global_symbols())
 	{
-		if (!file.parse_global_symbols())
-		{
-			file.report_and_clear_errors_and_warnings();
-			return false;
-		}
-		else
-		{
-			// report warnings if any
-			file.report_and_clear_errors_and_warnings();
-		}
+		file.report_and_clear_errors_and_warnings();
+		return false;
+	}
+	else
+	{
+		// report warnings if any
+		file.report_and_clear_errors_and_warnings();
 	}
 
 	return true;

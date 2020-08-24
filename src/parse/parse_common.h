@@ -281,6 +281,11 @@ ast::statement parse_local_export_statement(
 	ctx::parse_context &context
 );
 
+ast::statement parse_decl_import(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 
 constexpr std::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, &parse_stmt_static_assert<true>,   only_global },
@@ -291,6 +296,7 @@ constexpr std::array statement_parsers = {
 	statement_parser{ lex::token::kw_operator,      &parse_decl_operator<true>,        only_global },
 	statement_parser{ lex::token::at,               &parse_attribute_statement<true>,  only_global },
 	statement_parser{ lex::token::kw_export,        &parse_export_statement,           only_global },
+	statement_parser{ lex::token::kw_import,        &parse_decl_import,                only_global },
 
 	statement_parser{ lex::token::kw_static_assert, &parse_stmt_static_assert<false>,  only_local  },
 	statement_parser{ lex::token::kw_let,           &parse_decl_variable<false>,       only_local  },

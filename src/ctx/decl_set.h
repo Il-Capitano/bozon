@@ -70,6 +70,50 @@ struct decl_set
 			set->op_decls.push_back(&op_decl);
 		}
 	}
+
+	void add_function_set(function_overload_set const &func_set)
+	{
+		auto const id = func_set.id;
+		auto const set = std::find_if(
+			this->func_sets.begin(), this->func_sets.end(),
+			[id](auto const &set) {
+				return id == set.id;
+			}
+		);
+		if (set == this->func_sets.end())
+		{
+			this->func_sets.push_back(func_set);
+		}
+		else
+		{
+			for (auto const func : func_set.func_decls)
+			{
+				set->func_decls.push_back(func);
+			}
+		}
+	}
+
+	void add_operator_set(operator_overload_set const &op_set)
+	{
+		auto const op = op_set.op;
+		auto const set = std::find_if(
+			this->op_sets.begin(), this->op_sets.end(),
+			[op](auto const &set) {
+				return op == set.op;
+			}
+		);
+		if (set == this->op_sets.end())
+		{
+			this->op_sets.push_back(op_set);
+		}
+		else
+		{
+			for (auto const op : op_set.op_decls)
+			{
+				set->op_decls.push_back(op);
+			}
+		}
+	}
 };
 
 } // namespace ctx

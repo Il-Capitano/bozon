@@ -18,6 +18,11 @@ private:
 	global_context _global_ctx;
 
 public:
+	src_manager(void)
+		: _src_files{},
+		  _global_ctx(*this)
+	{}
+
 	void add_file(bz::u8string_view file_name)
 	{
 		auto const it = std::find_if(
@@ -40,6 +45,9 @@ public:
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool emit_bitcode(void);
+
+	std::list<src_file> &get_src_files(void)
+	{ return this->_src_files; }
 
 	std::list<src_file> const &get_src_files(void) const
 	{ return this->_src_files; }

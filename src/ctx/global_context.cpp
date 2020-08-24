@@ -1,5 +1,6 @@
 #include "global_context.h"
 #include "parser.h"
+#include "src_manager.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
@@ -98,8 +99,9 @@ decl_set get_default_decls(void)
 	};
 }
 
-global_context::global_context(void)
-	: _compile_decls{},
+global_context::global_context(src_manager &_src_manager)
+	: _src_manager(_src_manager),
+	  _compile_decls{},
 	  _errors{},
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
@@ -198,115 +200,42 @@ void global_context::add_compile_function(ast::function_body &func_body)
 	this->_compile_decls.funcs.push_back(&func_body);
 }
 
+uint32_t global_context::add_file_to_compile(lex::token_pos it, bz::u8string_view file_name)
+{
+	this->_src_manager.add_file(file_name);
+	auto &file = this->_src_manager.get_src_files().back();
+	bz_assert(file._file_name == file_name);
+	if (!file.read_file())
+	{
+		this->report_error(error{
+			warning_kind::_last,
+			it->src_pos.file_id, it->src_pos.line,
+			it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+			bz::format("unable to read file '{}'", file.get_file_name()),
+			{}, {}
+		});
+		return std::numeric_limits<uint32_t>::max();
+	}
+	if (!file.tokenize())
+	{
+		return std::numeric_limits<uint32_t>::max();
+	}
+	if (!file.parse_global_symbols())
+	{
+		return std::numeric_limits<uint32_t>::max();
+	}
+	return file._file_id;
+}
+
+ctx::decl_set const &global_context::get_file_export_decls(uint32_t file_id)
+{
+	return this->src_files[file_id]->_export_decls;
+}
+
 ast::type_info *global_context::get_base_type_info(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
 	return &default_type_infos[kind];
 }
-
-/*
-static int get_type_match_level(
-	ast::typespec const &dest,
-	ast::expression::expr_type_t const &src
-)
-{
-	int result = 0;
-
-	auto dest_it = &dest;
-	auto src_it = &src.expr_type;
-
-	auto const advance = [](ast::typespec const *&ts)
-	{
-		switch (ts->kind())
-		{
-		case ast::typespec::index<ast::ts_reference>:
-			ts = &ts->get<ast::ts_reference_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_constant>:
-			ts = &ts->get<ast::ts_constant_ptr>()->base;
-			break;
-		case ast::typespec::index<ast::ts_pointer>:
-			ts = &ts->get<ast::ts_pointer_ptr>()->base;
-			break;
-		default:
-			bz_unreachable;
-			break;
-		}
-	};
-
-	if (dest_it->kind() != ast::typespec::index<ast::ts_reference>)
-	{
-		++result;
-		if (dest_it->kind() == ast::typespec::index<ast::ts_constant>)
-		{
-			advance(dest_it);
-		}
-		if (src_it->kind() == ast::typespec::index<ast::ts_constant>)
-		{
-			advance(src_it);
-		}
-
-		if (dest_it->kind() == ast::typespec::index<ast::ts_base_type>)
-		{
-			// TODO: use is_convertible
-			if (
-				src_it->kind() != ast::typespec::index<ast::ts_base_type>
-				|| src_it->get<ast::ts_base_type_ptr>()->info != dest_it->get<ast::ts_base_type_ptr>()->info
-			)
-			{
-				return -1;
-			}
-			else
-			{
-				return result;
-			}
-		}
-	}
-	// TODO: rvalue references...
-	else
-	{
-		if (
-			src.type_kind != ast::expression::lvalue
-			&& src.type_kind != ast::expression::lvalue_reference
-		)
-		{
-			return -1;
-		}
-		advance(dest_it);
-	}
-
-	while (true)
-	{
-		if (dest_it->kind() == ast::typespec::index<ast::ts_base_type>)
-		{
-			if (
-				src_it->kind() != ast::typespec::index<ast::ts_base_type>
-				|| src_it->get<ast::ts_base_type_ptr>()->info != dest_it->get<ast::ts_base_type_ptr>()->info
-			)
-			{
-				return -1;
-			}
-			else
-			{
-				return result;
-			}
-		}
-		else if (dest_it->kind() == src_it->kind())
-		{
-			advance(dest_it);
-			advance(src_it);
-		}
-		else if (dest_it->kind() == ast::typespec::index<ast::ts_constant>)
-		{
-			advance(dest_it);
-			++result;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-}
-*/
 
 } // namespace ctx

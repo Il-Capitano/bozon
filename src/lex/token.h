@@ -107,6 +107,7 @@ struct token
 		kw_typeof,           // typeof
 		kw_using,            // using
 		kw_export,           // export
+		kw_import,           // import
 
 		kw_as,               // as
 

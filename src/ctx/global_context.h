@@ -23,6 +23,8 @@
 namespace ctx
 {
 
+struct src_manager;
+
 struct decl_list
 {
 	bz::vector<ast::decl_variable *> var_decls;
@@ -37,6 +39,7 @@ struct global_context
 	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();
 	static constexpr uint32_t command_line_file_id = std::numeric_limits<uint32_t>::max() - 1;
 
+	src_manager &_src_manager;
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
 
@@ -49,7 +52,7 @@ struct global_context
 	abi::platform_abi _platform_abi;
 	std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_built_in_types;
 
-	global_context(void);
+	global_context(src_manager &_src_manager);
 
 	void report_error(error &&err)
 	{
@@ -107,6 +110,9 @@ struct global_context
 	void add_compile_variable(ast::decl_variable &var_decl);
 	void add_compile_function(ast::function_body &func_body);
 	void add_compile_struct(ast::decl_struct &struct_decl);
+
+	uint32_t add_file_to_compile(lex::token_pos it, bz::u8string_view file_name);
+	ctx::decl_set const &get_file_export_decls(uint32_t file_id);
 
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;

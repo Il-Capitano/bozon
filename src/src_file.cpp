@@ -63,6 +63,29 @@ void src_file::report_and_clear_errors_and_warnings(void)
 	}
 }
 
+void src_file::add_to_global_decls(ctx::decl_set const &set)
+{
+	for (auto const var_decl : set.var_decls)
+	{
+		this->_global_decls.var_decls.push_back(var_decl);
+	}
+
+	for (auto const &func_set : set.func_sets)
+	{
+		this->_global_decls.add_function_set(func_set);
+	}
+
+	for (auto const &op_set : set.op_sets)
+	{
+		this->_global_decls.add_operator_set(op_set);
+	}
+
+	for (auto const &type : set.types)
+	{
+		this->_global_decls.types.push_back(type);
+	}
+}
+
 [[nodiscard]] bool src_file::read_file(void)
 {
 	bz_assert(this->_stage == constructed);
@@ -131,6 +154,22 @@ void src_file::report_and_clear_errors_and_warnings(void)
 			if (op_decl.body.is_export)
 			{
 				this->_export_decls.add_operator(op_decl);
+			}
+			break;
+		}
+		case ast::statement::index<ast::decl_import>:
+		{
+			auto const &import_decl = *decl.get<ast::decl_import_ptr>();
+			auto const it = this->_file_name.rfind('/');
+			auto import_file = bz::u8string(this->_file_name.begin(), it);
+			import_file += '/';
+			import_file += import_decl.identifier->value;
+			import_file += ".bz";
+			auto const import_file_id = this->_global_ctx.add_file_to_compile(import_decl.identifier, import_file);
+			if (import_file_id != std::numeric_limits<uint32_t>::max())
+			{
+				auto const &import_decls = this->_global_ctx.get_file_export_decls(import_file_id);
+				this->add_to_global_decls(import_decls);
 			}
 			break;
 		}

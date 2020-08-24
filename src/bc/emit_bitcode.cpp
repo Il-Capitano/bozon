@@ -2121,6 +2121,7 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_function>:
 	case ast::statement::index<ast::decl_operator>:
 	case ast::statement::index<ast::decl_struct>:
+	case ast::statement::index<ast::decl_import>:
 		break;
 	default:
 		bz_unreachable;
