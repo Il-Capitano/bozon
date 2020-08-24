@@ -1,3 +1,8 @@
+// documentation: https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019
+// cdec, stdcall, fastcall and thiscall all resolve to this according to wikipedia:
+// https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
+// would like to have a more reliable source for this, but it's good enough
+
 static bool microsoft_x64_pass_by_ref(
 	llvm::Type *t,
 	ctx::bitcode_context &context
@@ -124,8 +129,13 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
+
+	auto const linkage = func_body.external_linkage || func_body.symbol_name == "main"
+		? llvm::Function::ExternalLinkage
+		: llvm::Function::InternalLinkage;
+
 	auto const fn = llvm::Function::Create(
-		func_t, llvm::Function::ExternalLinkage,
+		func_t, linkage,
 		name, context.get_module()
 	);
 

@@ -277,6 +277,8 @@ struct function_body
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
 	abi::calling_convention   cc = abi::calling_convention::bozon;
+	bool                      is_export = false;
+	bool                      external_linkage = false;
 
 	declare_default_5(function_body)
 

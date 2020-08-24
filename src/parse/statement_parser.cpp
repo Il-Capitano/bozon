@@ -866,6 +866,46 @@ template ast::statement parse_attribute_statement<true>(
 	ctx::parse_context &context
 );
 
+ast::statement parse_export_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_export);
+	++stream; // 'export'
+
+	auto const set_as_export = [](ast::statement &stmt) {
+		stmt.visit(bz::overload{
+			[](ast::decl_function &func_decl) {
+				func_decl.body.is_export = true;
+			},
+			[](ast::decl_operator &op_decl) {
+				op_decl.body.is_export = true;
+			},
+			[](auto const &) {
+				// nothing
+			}
+		});
+	};
+
+	auto result = parse_global_statement(stream, end, context);
+	set_as_export(result);
+	return result;
+}
+
+ast::statement parse_local_export_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_export);
+	context.report_error(stream, "'export' is not allowed for local declarations");
+	++stream; // 'export'
+	return parse_local_statement(stream, end, context);
+}
+
 ast::statement parse_stmt_while(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -1253,6 +1293,91 @@ static void apply_attribute(
 	}
 }
 
+static void apply_extern(
+	ast::function_body &func_body,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	bz_assert(attribute.name->value == "extern");
+	if (attribute.args.size() != 1 && attribute.args.size() != 2)
+	{
+		context.report_error(attribute.name, "@extern expects one or two arguments");
+		return;
+	}
+
+	bool good = true;
+	// symbol name
+	{
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "symbol name in @extern must have type 'str'");
+			good = false;
+		}
+	}
+
+	// calling convention
+	if (attribute.args.size() == 2)
+	{
+		auto const [type, _] = attribute.args[1].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "calling convention in @extern must have type 'str'");
+			good = false;
+		}
+	}
+
+	if (!good)
+	{
+		return;
+	}
+
+	auto const extern_name = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+	auto const cc = [&]() {
+		if (attribute.args.size() != 2)
+		{
+			return abi::calling_convention::c;
+		}
+		auto const cc_name = attribute.args[1]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::string>().as_string_view();
+		if (cc_name == "c")
+		{
+			return abi::calling_convention::c;
+		}
+		else if (cc_name == "std")
+		{
+			return abi::calling_convention::std;
+		}
+		else if (cc_name == "fast")
+		{
+			return abi::calling_convention::fast;
+		}
+		else
+		{
+			context.report_error(
+				attribute.args[1],
+				bz::format("unknown calling convention '{}'", ctx::convert_string_for_message(cc_name))
+			);
+			return abi::calling_convention::c;
+		}
+	}();
+	func_body.external_linkage = true;
+	func_body.symbol_name = extern_name;
+	func_body.cc = cc;
+}
+
 static void apply_attribute(
 	ast::decl_function &func_decl,
 	ast::attribute const &attribute,
@@ -1262,27 +1387,7 @@ static void apply_attribute(
 	auto const attr_name = attribute.name->value;
 	if (attr_name == "extern")
 	{
-		if (attribute.args.size() != 1)
-		{
-			context.report_error(attribute.name, "@extern expects exactly one argument");
-			return;
-		}
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "argument of @extern must have type 'str'");
-			return;
-		}
-
-		auto const extern_name = attribute.args[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::string>().as_string_view();
-		func_decl.body.symbol_name = extern_name;
-		func_decl.body.cc = abi::calling_convention::c;
+		apply_extern(func_decl.body, attribute, context);
 	}
 	else if (attr_name == "cdecl")
 	{
@@ -1323,27 +1428,7 @@ static void apply_attribute(
 {
 	if (attribute.name->value == "extern")
 	{
-		if (attribute.args.size() != 1)
-		{
-			context.report_error(attribute.name, "@extern expects exactly one argument");
-			return;
-		}
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "argument of @extern must have type 'str'");
-			return;
-		}
-
-		auto const extern_name = attribute.args[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::string>().as_string_view();
-		op_decl.body.symbol_name = extern_name;
-		op_decl.body.cc = abi::calling_convention::c;
+		apply_extern(op_decl.body, attribute, context);
 	}
 	else
 	{

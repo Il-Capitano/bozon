@@ -33,6 +33,7 @@ public:
 	ctx::global_context       &_global_ctx;
 	bz::vector<ast::statement> _declarations;
 	ctx::decl_set              _global_decls;
+	ctx::decl_set              _export_decls;
 
 public:
 	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);

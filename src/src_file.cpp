@@ -118,12 +118,20 @@ void src_file::report_and_clear_errors_and_warnings(void)
 		{
 			auto &func_decl = *decl.get<ast::decl_function_ptr>();
 			this->_global_decls.add_function(func_decl);
+			if (func_decl.body.is_export)
+			{
+				this->_export_decls.add_function(func_decl);
+			}
 			break;
 		}
 		case ast::statement::index<ast::decl_operator>:
 		{
 			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
 			this->_global_decls.add_operator(op_decl);
+			if (op_decl.body.is_export)
+			{
+				this->_export_decls.add_operator(op_decl);
+			}
 			break;
 		}
 		default:

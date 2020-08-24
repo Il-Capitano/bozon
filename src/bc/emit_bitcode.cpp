@@ -2240,8 +2240,13 @@ static llvm::Function *create_function_from_symbol_impl(
 	}
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
+
+	auto const linkage = func_body.external_linkage || func_body.symbol_name == "main"
+		? llvm::Function::ExternalLinkage
+		: llvm::Function::InternalLinkage;
+
 	auto const fn = llvm::Function::Create(
-		func_t, llvm::Function::ExternalLinkage,
+		func_t, linkage,
 		name, context.get_module()
 	);
 
