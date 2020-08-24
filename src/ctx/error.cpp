@@ -18,7 +18,8 @@ static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos 
 	{
 		--it;
 	} while (it != file_begin.data() && *it != '\n');
-	return bz::u8string_view(it, pivot.data()).length();
+	auto const len = bz::u8string_view(it, pivot.data()).length();
+	return it == file_begin.data() ? len + 1 : len;
 }
 
 static bz::u8string get_highlighted_error_or_warning(
