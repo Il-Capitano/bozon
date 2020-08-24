@@ -128,6 +128,7 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 			result_t;
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
+
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
 	auto const linkage = func_body.external_linkage || func_body.symbol_name == "main"
