@@ -202,27 +202,33 @@ void global_context::add_compile_function(ast::function_body &func_body)
 
 uint32_t global_context::add_file_to_compile(lex::token_pos it, bz::u8string_view file_name)
 {
-	this->_src_manager.add_file(file_name);
-	auto &file = this->_src_manager.get_src_files().back();
+	auto &file = this->_src_manager.add_file(file_name);
 	bz_assert(file._file_name == file_name);
-	if (!file.read_file())
+	if (file._stage == src_file::constructed)
 	{
-		this->report_error(error{
-			warning_kind::_last,
-			it->src_pos.file_id, it->src_pos.line,
-			it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-			bz::format("unable to find module '{}'", it->value),
-			{}, {}
-		});
-		return std::numeric_limits<uint32_t>::max();
+		if (!file.read_file())
+		{
+			this->report_error(error{
+				warning_kind::_last,
+				it->src_pos.file_id, it->src_pos.line,
+				it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+				bz::format("unable to find module '{}'", it->value),
+				{}, {}
+			});
+			return std::numeric_limits<uint32_t>::max();
+		}
+		if (!file.tokenize())
+		{
+			return std::numeric_limits<uint32_t>::max();
+		}
+		if (!file.parse_global_symbols())
+		{
+			return std::numeric_limits<uint32_t>::max();
+		}
 	}
-	if (!file.tokenize())
+	else
 	{
-		return std::numeric_limits<uint32_t>::max();
-	}
-	if (!file.parse_global_symbols())
-	{
-		return std::numeric_limits<uint32_t>::max();
+		bz_assert(file._stage == src_file::parsed_global_symbols);
 	}
 	return file._file_id;
 }

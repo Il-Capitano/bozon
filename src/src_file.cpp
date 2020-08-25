@@ -126,6 +126,8 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	this->_declarations = parse::parse_global_statements(stream, end, context);
 
+	bz::vector<ast::decl_import const *> imports = {};
+
 	this->_global_decls = ctx::get_default_decls();
 	for (auto &decl : this->_declarations)
 	{
@@ -159,26 +161,30 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		}
 		case ast::statement::index<ast::decl_import>:
 		{
-			auto const &import_decl = *decl.get<ast::decl_import_ptr>();
-			auto const it = this->_file_name.rfind('/');
-			auto import_file = bz::u8string(this->_file_name.begin(), it);
-			import_file += '/';
-			import_file += import_decl.identifier->value;
-			import_file += ".bz";
-			auto const import_file_id = this->_global_ctx.add_file_to_compile(import_decl.identifier, import_file);
-			if (import_file_id != std::numeric_limits<uint32_t>::max())
-			{
-				auto const &import_decls = this->_global_ctx.get_file_export_decls(import_file_id);
-				this->add_to_global_decls(import_decls);
-			}
+			imports.push_back(decl.get<ast::decl_import_ptr>().get());
 			break;
 		}
 		default:
 			break;
 		}
 	}
-
 	this->_stage = parsed_global_symbols;
+
+	for (auto const import : imports)
+	{
+		auto const it = this->_file_name.rfind('/');
+		auto import_file = bz::u8string(this->_file_name.begin(), it);
+		import_file += '/';
+		import_file += import->identifier->value;
+		import_file += ".bz";
+		auto const import_file_id = this->_global_ctx.add_file_to_compile(import->identifier, import_file);
+		if (import_file_id != std::numeric_limits<uint32_t>::max())
+		{
+			auto const &import_decls = this->_global_ctx.get_file_export_decls(import_file_id);
+			this->add_to_global_decls(import_decls);
+		}
+	}
+
 	return !this->_global_ctx.has_errors();
 }
 

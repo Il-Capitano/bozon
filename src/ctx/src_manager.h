@@ -23,7 +23,7 @@ public:
 		  _global_ctx(*this)
 	{}
 
-	void add_file(bz::u8string_view file_name)
+	src_file &add_file(bz::u8string_view file_name)
 	{
 		auto const it = std::find_if(
 			this->_src_files.begin(), this->_src_files.end(),
@@ -33,7 +33,11 @@ public:
 		);
 		if (it == this->_src_files.end())
 		{
-			this->_src_files.emplace_back(file_name, this->_global_ctx);
+			return this->_src_files.emplace_back(file_name, this->_global_ctx);
+		}
+		else
+		{
+			return *it;
 		}
 	}
 
