@@ -548,7 +548,7 @@ auto parse_context::get_identifier_decl(lex::token_pos id) const
 }
 */
 
-void parse_context::add_function_for_compilation(ast::function_body &func_body)
+void parse_context::add_function_for_compilation(ast::function_body &func_body) const
 {
 	this->global_ctx.add_compile_function(func_body);
 }
@@ -597,7 +597,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 */
 
 
-ast::typespec get_function_type(ast::function_body &body)
+static ast::typespec get_function_type(ast::function_body &body)
 {
 	auto const &return_type = body.return_type;
 	bz::vector<ast::typespec> param_types;

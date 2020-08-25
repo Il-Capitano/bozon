@@ -143,7 +143,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		{
 			auto &func_decl = *decl.get<ast::decl_function_ptr>();
 			this->_global_decls.add_function(func_decl);
-			if (func_decl.body.is_export)
+			if (func_decl.body.is_export())
 			{
 				this->_export_decls.add_function(func_decl);
 			}
@@ -153,7 +153,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		{
 			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
 			this->_global_decls.add_operator(op_decl);
-			if (op_decl.body.is_export)
+			if (op_decl.body.is_export())
 			{
 				this->_export_decls.add_operator(op_decl);
 			}

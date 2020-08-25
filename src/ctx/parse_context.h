@@ -228,7 +228,7 @@ struct parse_context
 	void add_local_operator(ast::decl_operator &op_decl);
 	void add_local_struct(ast::decl_struct &struct_decl);
 
-	void add_function_for_compilation(ast::function_body &func_body);
+	void add_function_for_compilation(ast::function_body &func_body) const;
 
 	ast::expression make_identifier_expression(lex::token_pos id) const;
 	ast::expression make_literal(lex::token_pos literal) const;
