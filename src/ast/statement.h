@@ -308,6 +308,7 @@ struct function_body
 			if (this->function_name == "main")
 			{
 				this->symbol_name = "main";
+				this->external_linkage = true;
 			}
 			else
 			{

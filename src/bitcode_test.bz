@@ -35,7 +35,7 @@ function factorial_recursive(n: int32) -> int32
 	}
 }
 
-export function main() -> int32
+function main() -> int32
 {
 	println("");
 	println("hello");
