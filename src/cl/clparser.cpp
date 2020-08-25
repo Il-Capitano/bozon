@@ -361,7 +361,7 @@ constexpr auto flag_with_alternate_parsers = []() {
 
 	std::array result = {
 		T{ "-h, --help",    "Display this help page", &default_flag_parser<&display_help,    true>, 0 },
-		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true>, 1 },
+		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true>    },
 	};
 
 	return result;
