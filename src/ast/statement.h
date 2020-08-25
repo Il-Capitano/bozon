@@ -273,6 +273,60 @@ struct function_body
 {
 	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
 
+	enum : uint32_t
+	{
+		module_export    = bit_at<0>,
+		external_linkage = bit_at<1>,
+		intrinsic        = bit_at<2>,
+	};
+
+	enum
+	{
+		// llvm intrinsics: https://releases.llvm.org/10.0.0/docs/LangRef.html
+		// (C standard library intrinsics section)
+		// and other C standard library functions
+		memcpy,
+		memmove,
+		memset,
+
+		// C standard library math functions
+
+		exp_f32,   exp_f64,
+		exp2_f32,  exp2_f64,
+		expm1_f32, expm1_f64,
+		log_f32,   log_f64,
+		log10_f32, log10_f64,
+		log2_f32,  log2_f64,
+		log1p_f32, log1p_f64,
+
+		sqrt_f32,  sqrt_f64,
+		pow_f32,   pow_f64,
+		cbrt_f32,  cbrt_f64,
+		hypot_f32, hypot_f64,
+
+		sin_f32,   sin_f64,
+		cos_f32,   cos_f64,
+		tan_f32,   tan_f64,
+		asin_f32,  asin_f64,
+		acos_f32,  acos_f64,
+		atan_f32,  atan_f64,
+		atan2_f32, atan2_f64,
+
+		sinh_f32,  sinh_f64,
+		cosh_f32,  cosh_f64,
+		tanh_f32,  tanh_f64,
+		asinh_f32, asinh_f64,
+		acosh_f32, acosh_f64,
+		atanh_f32, atanh_f64,
+
+		erf_f32,    erf_f64,
+		erfc_f32,   erfc_f64,
+		tgamma_f32, tgamma_f64,
+		lgamma_f32, lgamma_f64,
+
+		_intrinsic_last,
+	};
+
 	bz::vector<decl_variable> params;
 	typespec                  return_type;
 	body_t                    body;
@@ -281,8 +335,8 @@ struct function_body
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
 	abi::calling_convention   cc = abi::calling_convention::bozon;
-	bool                      is_export = false;
-	bool                      external_linkage = false;
+	uint32_t                  flags = 0;
+	uint32_t                  intrinsic_kind = 0;
 
 	declare_default_5(function_body)
 
@@ -308,13 +362,18 @@ struct function_body
 			if (this->function_name == "main")
 			{
 				this->symbol_name = "main";
-				this->external_linkage = true;
+				this->flags |= external_linkage;
 			}
 			else
 			{
 				this->symbol_name = this->get_symbol_name();
 			}
 		}
+	}
+
+	bool is_export(void) const noexcept
+	{
+		return (this->flags & module_export) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(
