@@ -15,25 +15,25 @@
 
 @intrinsic("pow_f64")   export function pow(x: float64, y: float64)   -> float64;
 @intrinsic("pow_f32")   export function pow(x: float32, y: float32)   -> float32;
-@intrinsic("sqrt_f64")  export function sqrt(x: float64)              -> float64;
-@intrinsic("sqrt_f32")  export function sqrt(x: float32)              -> float32;
-@intrinsic("cbrt_f64")  export function cbrt(x: float64)              -> float64;
-@intrinsic("cbrt_f32")  export function cbrt(x: float32)              -> float32;
+@intrinsic("sqrt_f64")  export function sqrt(x: float64) -> float64;
+@intrinsic("sqrt_f32")  export function sqrt(x: float32) -> float32;
+@intrinsic("cbrt_f64")  export function cbrt(x: float64) -> float64;
+@intrinsic("cbrt_f32")  export function cbrt(x: float32) -> float32;
 @intrinsic("hypot_f64") export function hypot(x: float64, y: float64) -> float64;
 @intrinsic("hypot_f32") export function hypot(x: float32, y: float32) -> float32;
 
-@intrinsic("sin_f64")   export function sin(x: float64)               -> float64;
-@intrinsic("sin_f32")   export function sin(x: float32)               -> float32;
-@intrinsic("cos_f64")   export function cos(x: float64)               -> float64;
-@intrinsic("cos_f32")   export function cos(x: float32)               -> float32;
-@intrinsic("tan_f64")   export function tan(x: float64)               -> float64;
-@intrinsic("tan_f32")   export function tan(x: float32)               -> float32;
-@intrinsic("asin_f64")  export function asin(x: float64)              -> float64;
-@intrinsic("asin_f32")  export function asin(x: float32)              -> float32;
-@intrinsic("acos_f64")  export function acos(x: float64)              -> float64;
-@intrinsic("acos_f32")  export function acos(x: float32)              -> float32;
-@intrinsic("atan_f64")  export function atan(x: float64)              -> float64;
-@intrinsic("atan_f32")  export function atan(x: float32)              -> float32;
+@intrinsic("sin_f64")   export function sin(x: float64)  -> float64;
+@intrinsic("sin_f32")   export function sin(x: float32)  -> float32;
+@intrinsic("cos_f64")   export function cos(x: float64)  -> float64;
+@intrinsic("cos_f32")   export function cos(x: float32)  -> float32;
+@intrinsic("tan_f64")   export function tan(x: float64)  -> float64;
+@intrinsic("tan_f32")   export function tan(x: float32)  -> float32;
+@intrinsic("asin_f64")  export function asin(x: float64) -> float64;
+@intrinsic("asin_f32")  export function asin(x: float32) -> float32;
+@intrinsic("acos_f64")  export function acos(x: float64) -> float64;
+@intrinsic("acos_f32")  export function acos(x: float32) -> float32;
+@intrinsic("atan_f64")  export function atan(x: float64) -> float64;
+@intrinsic("atan_f32")  export function atan(x: float32) -> float32;
 @intrinsic("atan2_f64") export function atan2(x: float64, y: float64) -> float64;
 @intrinsic("atan2_f32") export function atan2(x: float32, y: float32) -> float32;
 

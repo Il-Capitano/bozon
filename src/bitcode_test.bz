@@ -1,7 +1,6 @@
 import print;
 import math;
-
-@extern("exit", "c") function exit(code: int32) -> void;
+import utils;
 
 //	/*
 function assert(b: bool) -> void
@@ -114,7 +113,7 @@ function main() -> int32
 	println("\n==== array_test ====");
 	array_test();
 
-	println(sqrt(2.0));
+	println(exp(1.0));
 
 	return 0;
 /*
@@ -151,8 +150,13 @@ function foo() -> void
 	i8 == i8;
 //	i8 == u8;
 	i8 == i16;
+	i16 == i8;
 	u8 == u64;
+	u64 == u8;
+	i8 < i16;
+	i16 < i8;
 	u8 < u64;
+	u64 < u8;
 
 	u16 -= u8;
 	let p = &i8;
@@ -752,7 +756,7 @@ function built_in_op_error_test() -> void
 //	f64 %= f64;
 }
 
-@cdecl function arr2_test(: [2: int32], : str, : int32) -> [3: int8]
+function arr2_test(: [2: int32], : str, : int32) -> [3: int8]
 {
 	let arr: [3: int8];
 	return arr;
@@ -762,5 +766,5 @@ function built_in_op_error_test() -> void
 function arr2_tester() -> void
 {
 	let arr: [2: int32];
-	const s = arr2_test(arr, "hello", 3);
+	arr2_test(arr, "hello", 3);
 }
