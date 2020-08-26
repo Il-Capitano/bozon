@@ -49,13 +49,6 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 	ctx::bitcode_context &context
 )
 {
-	if (func_body.cc == abi::calling_convention::bozon)
-	{
-		return create_function_from_symbol_impl<abi::platform_abi::generic>(
-			func_body, context
-		);
-	}
-
 	auto const result_t = get_llvm_type(func_body.return_type, context);
 	auto const result_output_ptr = !result_t->isVoidTy() && microsoft_x64_output_ptr(result_t, context);
 	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && microsoft_x64_return_as_int_cast(result_t, context);
@@ -282,7 +275,8 @@ void emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
 template<>
 val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 	ast::expr_function_call const &func_call,
-	ctx::bitcode_context &context
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
 )
 {
 	constexpr auto abi = abi::platform_abi::microsoft_x64;
@@ -308,7 +302,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 	{
 		auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(arg_it->getType());
 		bz_assert(ptr_t != nullptr);
-		auto const output_ptr = context.create_alloca(ptr_t->getElementType());
+		auto const output_ptr = result_address != nullptr ? result_address : context.create_alloca(ptr_t->getElementType());
 		params.push_back(output_ptr);
 		++arg_it;
 	}
@@ -320,24 +314,19 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		auto &arg = *arg_it;
 		if (p_t.is<ast::ts_lvalue_reference>())
 		{
-			auto const val = emit_bitcode<abi>(p, context);
+			auto const val = emit_bitcode<abi>(p, context, nullptr);
 			bz_assert(val.kind == val_ptr::reference);
 			params.push_back(val.val);
 		}
 		else
 		{
-			auto const val_ref = emit_bitcode<abi>(p, context);
+			auto const val_ref = emit_bitcode<abi>(p, context, nullptr);
 			auto const t = val_ref.get_type();
-			if (func_call.func_body->cc == abi::calling_convention::bozon)
-			{
-				auto const val = val_ref.get_value(context);
-				params.push_back(val);
-			}
-			else if (microsoft_x64_pass_by_ref(t, context))
+			if (microsoft_x64_pass_by_ref(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
 				auto const val = val_ref.get_value(context);
-				auto const alloca = context.create_alloca(val->getType(), 16);
+				auto const alloca = context.create_alloca(t, 16);
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
 			}
@@ -394,14 +383,23 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		else if (result_int_cast)
 		{
 			auto const int_val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-			auto const val_ptr = context.create_alloca(result_type);
+			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
 			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(int_val->getType(), 0));
 			context.builder.CreateStore(int_val, int_ptr);
-			return context.builder.CreateLoad(val_ptr);
+			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
 		}
 		else
 		{
-			return context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			auto const val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			if (result_address == nullptr)
+			{
+				return val;
+			}
+			else
+			{
+				context.builder.CreateStore(val, result_address);
+				return result_address;
+			}
 		}
 	}();
 
@@ -410,7 +408,12 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		return {};
 	}
 
-	if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>() || result_output_ptr)
+	if (result_address != nullptr)
+	{
+		bz_assert(res == result_address);
+		return { val_ptr::reference, result_address };
+	}
+	else if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>() || result_output_ptr)
 	{
 		return { val_ptr::reference, res };
 	}
@@ -433,7 +436,7 @@ void emit_bitcode<abi::platform_abi::microsoft_x64>(
 	}
 	else
 	{
-		auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context);
+		auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
 		if (context.current_function.first->return_type.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(ret_val.kind == val_ptr::reference);
@@ -441,8 +444,8 @@ void emit_bitcode<abi::platform_abi::microsoft_x64>(
 		}
 		else if (context.output_pointer != nullptr)
 		{
-			auto const val = ret_val.get_value(context);
-			context.builder.CreateStore(val, context.output_pointer);
+			bz_assert(ret_val.val == context.output_pointer);
+			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRetVoid();
 		}
 		else if (!ret_val.get_type()->isIntegerTy() && context.current_function.second->getReturnType()->isIntegerTy())

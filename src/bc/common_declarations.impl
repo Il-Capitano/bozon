@@ -16,7 +16,8 @@ static void emit_function_bitcode_impl(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expr_function_call const &func_call,
-	ctx::bitcode_context &context
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
 );
 
 template<abi::platform_abi abi>
