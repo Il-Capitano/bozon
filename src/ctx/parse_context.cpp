@@ -1590,7 +1590,8 @@ static int get_type_match_level(
 		}
 		else if (dest_it.is<ast::ts_void>())
 		{
-			bz_unreachable;
+			++result;
+			return result;
 		}
 		else if (dest_it.is<ast::ts_function>())
 		{
