@@ -2886,7 +2886,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 					src_tokens,
 					nullptr,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
+					lhs_t,
 					context
 				);
 			}
@@ -2896,7 +2896,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 					src_tokens,
 					nullptr,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
+					rhs_t,
 					context
 				);
 			}
@@ -2935,7 +2935,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 					src_tokens,
 					nullptr,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
+					lhs_t,
 					context
 				);
 				bz_assert(rhs.not_null());
@@ -2946,7 +2946,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 					src_tokens,
 					nullptr,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
+					rhs_t,
 					context
 				);
 				bz_assert(lhs.not_null());
@@ -3293,7 +3293,7 @@ static ast::expression get_built_in_binary_compare(
 					src_tokens,
 					nullptr,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
+					lhs_t,
 					context
 				);
 			}
@@ -3303,7 +3303,7 @@ static ast::expression get_built_in_binary_compare(
 					src_tokens,
 					nullptr,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
+					rhs_t,
 					context
 				);
 			}
@@ -3342,7 +3342,7 @@ static ast::expression get_built_in_binary_compare(
 					src_tokens,
 					nullptr,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
+					lhs_t,
 					context
 				);
 			}
@@ -3352,7 +3352,7 @@ static ast::expression get_built_in_binary_compare(
 					src_tokens,
 					nullptr,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
+					rhs_t,
 					context
 				);
 			}
