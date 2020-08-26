@@ -888,23 +888,23 @@ ast::statement parse_export_statement(
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_export);
 	++stream; // 'export'
+	auto const after_export_token = stream;
 
-	auto const set_as_export = [](ast::statement &stmt) {
-		stmt.visit(bz::overload{
+	auto result = parse_global_statement(stream, end, context);
+	if (result.not_null())
+	{
+		result.visit(bz::overload{
 			[](ast::decl_function &func_decl) {
 				func_decl.body.flags |= ast::function_body::module_export;
 			},
 			[](ast::decl_operator &op_decl) {
 				op_decl.body.flags |= ast::function_body::module_export;
 			},
-			[](auto const &) {
-				// nothing
+			[&](auto const &) {
+				context.report_error(after_export_token, "only a function or an operator can be exported");
 			}
 		});
-	};
-
-	auto result = parse_global_statement(stream, end, context);
-	set_as_export(result);
+	}
 	return result;
 }
 
@@ -1110,7 +1110,12 @@ ast::statement parse_global_statement(
 	>();
 	if (stream == end)
 	{
-		context.report_error(stream, "expected a statement");
+		context.report_error(
+			stream,
+			stream->kind == lex::token::eof
+			? "expected a statement before end-of-file"
+			: "expected a statement"
+		);
 		return {};
 	}
 	else
