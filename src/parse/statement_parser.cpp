@@ -1403,6 +1403,13 @@ constexpr auto intrinsic_info = []() {
 	using T = intrinsic_info_t;
 
 	std::array result = {
+		T{ "memcpy_i32",  "llvm.memcpy.p0i8.p0i8.i32",  ast::function_body::memcpy  },
+		T{ "memcpy_i64",  "llvm.memcpy.p0i8.p0i8.i64",  ast::function_body::memcpy  },
+		T{ "memmove_i32", "llvm.memmove.p0i8.p0i8.i32", ast::function_body::memmove },
+		T{ "memmove_i64", "llvm.memmove.p0i8.p0i8.i64", ast::function_body::memmove },
+		T{ "memset_i32",  "llvm.memset.p0i8.i32",       ast::function_body::memset  },
+		T{ "memset_i64",  "llvm.memset.p0i8.i64",       ast::function_body::memset  },
+
 		T{ "exp_f32",   "llvm.exp.f32",   ast::function_body::exp_f32   },
 		T{ "exp_f64",   "llvm.exp.f64",   ast::function_body::exp_f64   },
 		T{ "exp2_f32",  "llvm.exp2.f32",  ast::function_body::exp2_f32  },
