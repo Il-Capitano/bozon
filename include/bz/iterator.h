@@ -26,6 +26,10 @@ private:
 	value_type *_data;
 
 public:
+	constexpr random_access_iterator(void) noexcept
+		: _data(nullptr)
+	{}
+
 	constexpr random_access_iterator(value_type *data) noexcept
 		: _data(data)
 	{}
@@ -311,6 +315,30 @@ struct zipped_iterators
 
 template<typename T, typename U>
 constexpr auto zip(T const &t, U const &u) noexcept(
+	noexcept(t.begin()) && noexcept(t.end())
+	&& noexcept(u.begin()) && noexcept(u.end())
+	&& meta::is_nothrow_constructible_v<
+		internal::zipped_iterators<
+			meta::remove_cv_reference<decltype(t.begin())>,
+			meta::remove_cv_reference<decltype(u.begin())>
+		>,
+		decltype(std::make_tuple(t.begin(), u.begin())),
+		decltype(std::make_tuple(t.end(), u.end()))
+	>
+) -> internal::zipped_iterators<
+	meta::remove_cv_reference<decltype(t.begin())>,
+	meta::remove_cv_reference<decltype(u.begin())>
+>
+{
+	using ret_t = internal::zipped_iterators<
+		meta::remove_cv_reference<decltype(t.begin())>,
+		meta::remove_cv_reference<decltype(u.begin())>
+	>;
+	return ret_t(std::make_tuple(t.begin(), u.begin()), std::make_tuple(t.end(), u.end()));
+}
+
+template<typename T, typename U>
+constexpr auto zip(T &t, U &u) noexcept(
 	noexcept(t.begin()) && noexcept(t.end())
 	&& noexcept(u.begin()) && noexcept(u.end())
 	&& meta::is_nothrow_constructible_v<
