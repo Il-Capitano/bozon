@@ -1,727 +1,59 @@
 #include "clparser.h"
-#include "ctx/warnings.h"
-#include "global_data.h"
-#include "ctx/command_parse_context.h"
-#include "ctx/error.h"
 
 namespace cl
 {
 
-bz::vector<bz::u8string_view> get_args(int argc, char const **argv)
+bz::result<bool, bz::u8string> arg_parser<bool>::parse(bz::u8string_view arg)
 {
-	bz_assert(argc >= 1);
-	bz::vector<bz::u8string_view> result = {};
-	result.reserve(argc - 1);
-	for (int i = 1; i < argc; ++i)
+	if (arg == "true")
 	{
-		result.push_back(argv[i]);
+		return true;
 	}
-	return result;
-}
-
-
-using iter_t = bz::array_view<bz::u8string_view const>::const_iterator;
-
-static void parse_warnings(iter_t &it, iter_t end, ctx::command_parse_context &context)
-{
-	bz_assert(it->starts_with("-W"));
-	bz_assert(it != end);
-
-	if (*it == "-Whelp")
+	else if (arg == "false")
 	{
-		display_warning_help = true;
-	}
-	else if (*it == "-Wall")
-	{
-		enable_Wall();
-	}
-	// disabling warnings: -Wno-<warning-name>
-	else if (it->starts_with("-Wno-"))
-	{
-		auto const warning_name = it->substring(5);
-		auto const warning_kind = ctx::get_warning_kind(warning_name);
-		if (warning_kind == ctx::warning_kind::_last)
-		{
-			context.report_error(
-				it,
-				bz::format("unknown warning '{}'", ctx::convert_string_for_message(warning_name))
-			);
-		}
-		else
-		{
-			disable_warning(warning_kind);
-		}
+		return false;
 	}
 	else
 	{
-		auto const warning_name = it->substring(2);
-		auto const warning_kind = ctx::get_warning_kind(warning_name);
-		if (warning_kind == ctx::warning_kind::_last)
-		{
-			context.report_error(
-				it,
-				bz::format("unknown warning '{}'", ctx::convert_string_for_message(warning_name))
-			);
-		}
-		else
-		{
-			enable_warning(warning_kind);
-		}
-	}
-	++it;
-}
-
-static void check_output_file_name(iter_t it, ctx::command_parse_context &context)
-{
-	if (!it->ends_with(".o"))
-	{
-		context.report_error(it, "output file must end in '.o'");
+		return bz::format("invalid bool input '{}'", arg);
 	}
 }
 
-template<
-	bz::u8string *dest,
-	void (*check_fn)(iter_t it, ctx::command_parse_context &context)
->
-void default_string_argument_parser(iter_t &it, iter_t end, ctx::command_parse_context &context)
+bz::result<bz::u8string_view, bz::u8string> arg_parser<bz::u8string>::parse(bz::u8string_view arg)
 {
-	bz_assert(it != end);
-	auto const arg = *it;
-	++it;
-
-	if (it == end)
-	{
-		context.report_error(
-			it,
-			bz::format("expected an argument after '{}'", ctx::convert_string_for_message(arg))
-		);
-	}
-	else
-	{
-		check_fn(it, context);
-		*dest = *it;
-		++it;
-	}
+	return arg;
 }
 
-static bz::optional<int> parse_int(bz::u8string_view num)
+bz::result<size_t, bz::u8string> arg_parser<size_t>::parse(bz::u8string_view arg)
 {
-	int result = 0;
-	bool is_negative = false;
-	auto it = num.begin();
-	auto const end = num.end();
-
-	if (it == end)
+	size_t result = 0;
+	for (auto const c : arg)
 	{
-		return {};
-	}
-
-	if (*it == '-')
-	{
-		is_negative = true;
-		++it;
-	}
-
-	if (it == end)
-	{
-		return {};
-	}
-
-	for (; it != end; ++it)
-	{
-		auto const c = *it;
 		if (c >= '0' && c <= '9')
 		{
-			if (result > std::numeric_limits<int>::max() / 10)
-			{
-				return {};
-			}
 			result *= 10;
 			result += c - '0';
 		}
 		else
 		{
-			return 0;
+			return bz::format("invalid number input '{}'", arg);
 		}
 	}
-
-	if (is_negative)
-	{
-		return -result;
-	}
-	else
-	{
-		return result;
-	}
-}
-
-static void set_tab_size(iter_t &it, iter_t end, ctx::command_parse_context &context)
-{
-	constexpr bz::u8string_view flag_name = "--error-report-tab-size=";
-	bz_assert(it != end);
-	bz_assert(it->starts_with(flag_name));
-	auto const arg = bz::u8string_view(
-		bz::u8iterator(it->data() + flag_name.size()),
-		it->end()
-	);
-
-	static uint32_t setter_arg_pos = 0;
-	if (setter_arg_pos == 0)
-	{
-		auto const value = parse_int(arg);
-		if (!value.has_value() || *value < 0)
-		{
-			context.report_error(
-				it,
-				bz::format("invalid argument '{}' for '{}'", ctx::convert_string_for_message(arg), flag_name)
-			);
-		}
-		else
-		{
-			setter_arg_pos = context.get_arg_position(it);
-			tab_size = *value == 0 ? 4 : static_cast<size_t>(*value);
-		}
-	}
-	else
-	{
-		context.report_error(
-			it,
-			bz::format(
-				"tab size has already been set by argument {} '{}'",
-				setter_arg_pos, context.get_arg_value(setter_arg_pos)
-			)
-		);
-	}
-	++it;
-}
-
-// we need the seperate flag function to check if *dest has been set or not
-// with only dest being the template argument, we can use a static variable in the function
-template<bool *dest>
-void set_flag(iter_t it, bool value, ctx::command_parse_context &context)
-{
-	static uint32_t setter_arg_pos = 0;
-	if (setter_arg_pos == 0)
-	{
-		setter_arg_pos = context.get_arg_position(it);
-		*dest = value;
-	}
-	else
-	{
-		context.report_error(
-			it,
-			bz::format(
-				"flag has already been set by argument {} '{}'",
-				setter_arg_pos, context.get_arg_value(setter_arg_pos)
-			)
-		);
-	}
-}
-
-template<bool *dest, bool value>
-void default_flag_parser(iter_t &it, iter_t end, ctx::command_parse_context &context)
-{
-	bz_assert(it != end);
-	set_flag<dest>(it, value, context);
-	++it;
-}
-
-static void check_source_file_name(iter_t it, ctx::command_parse_context &context)
-{
-	if (!it->ends_with(".bz"))
-	{
-		context.report_error(it, "source files must end in '.bz'");
-	}
-}
-
-
-using parse_fn_t = void (*)(iter_t &it, iter_t end, ctx::command_parse_context &context);
-
-struct prefix_parser
-{
-	bz::u8string_view prefix;
-	bz::u8string_view usage;
-	bz::u8string_view help;
-	parse_fn_t        parse_fn;
-	size_t            priority = std::numeric_limits<size_t>::max();
-};
-
-struct equals_parser
-{
-	bz::u8string_view arg_name;
-	bz::u8string_view usage;
-	bz::u8string_view help;
-	parse_fn_t        parse_fn;
-	size_t            priority = std::numeric_limits<size_t>::max();
-};
-
-struct argument_parser
-{
-	bz::u8string_view arg_name;
-	bz::u8string_view usage;
-	bz::u8string_view help;
-	parse_fn_t        parse_fn;
-	size_t            priority = std::numeric_limits<size_t>::max();
-};
-
-struct flag_parser
-{
-	bz::u8string_view flag_name;
-	// usage is the same as flag_name
-	bz::u8string_view help;
-	parse_fn_t        parse_fn;
-	size_t            priority = std::numeric_limits<size_t>::max();
-};
-
-struct flag_with_alternate_parser
-{
-	bz::u8string_view both_names;
-	// usage is the same as both_names
-	bz::u8string_view help;
-	parse_fn_t        parse_fn;
-	size_t            priority = std::numeric_limits<size_t>::max();
-};
-
-constexpr std::pair<bz::u8string_view, bz::u8string_view> get_both_names(
-	flag_with_alternate_parser const &flag
-)
-{
-	auto const comma = flag.both_names.find(',');
-	bz_assert(comma != flag.both_names.end());
-	bz_assert(comma + 1 != flag.both_names.end());
-	bz_assert(*(comma + 1) == ' ');
-	bz_assert(comma + 2 != flag.both_names.end());
-	bz_assert(*(comma + 2) == '-');
-	return {
-		bz::u8string_view(flag.both_names.begin(), comma),
-		bz::u8string_view(comma + 2, flag.both_names.end())
-	};
-}
-
-
-constexpr auto prefix_parsers = []() {
-	using T = prefix_parser;
-
-	std::array result = {
-		T{ "-W",    "-W<warning>",    "Enable the specified warning (-Whelp to see all available warnings)", &parse_warnings },
-		T{ "-Wno-", "-Wno-<warning>", "Disable the specified warning",                                       &parse_warnings },
-	};
-
-	// need to sort the array, so longer prefixes are checked first
-	constexpr_bubble_sort(
-		result,
-		[](auto const &lhs, auto const &rhs) {
-			return lhs.prefix.length() > rhs.prefix.length();
-		},
-		[](auto &lhs, auto &rhs) {
-			auto const tmp = lhs;
-			lhs = rhs;
-			rhs = tmp;
-		}
-	);
-
 	return result;
-}();
+}
 
-constexpr auto equals_parsers = []() {
-	using T = equals_parser;
-
-	std::array result = {
-		T{ "--error-report-tab-size=", "--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", &set_tab_size },
-	};
-
+bz::vector<bz::u8string_view> get_args(int argc, char const **argv)
+{
+	bz::vector<bz::u8string_view> result;
+	result.reserve(argc);
+	for (int i = 0; i < argc; ++i)
+	{
+		result.emplace_back(argv[i]);
+	}
 	return result;
-}();
-
-constexpr auto argument_parsers = []() {
-	using T = argument_parser;
-
-	std::array result = {
-		T{ "-o", "-o <file>", "Write output to <file>", &default_string_argument_parser<&output_file_name, &check_output_file_name> },
-	};
-
-	return result;
-}();
-
-constexpr auto flag_parsers = []() {
-	using T = flag_parser;
-
-	std::array result = {
-		T{ "--profile",            "Measure time for compilation steps",                       &default_flag_parser<&do_profile,         true> },
-		T{ "--no-error-highlight", "Disable printing of highlighted source in error messages", &default_flag_parser<&do_error_highlight, false> },
-//		T{ "--verbose-errors", "Print more verbose error messages",  &default_flag_parser<&do_verbose_error, true> },
-//		T{ "--some-dummy-flag-that-might-or-might-not-be-long", "Some long help message to help you use this dummy flag, that might or might no be long, meaning that this help message might be longer than the limit", nullptr },
-	};
-
-	return result;
-}();
-
-constexpr auto flag_with_alternate_parsers = []() {
-	using T = flag_with_alternate_parser;
-
-	std::array result = {
-		T{ "-h, --help",    "Display this help page", &default_flag_parser<&display_help,    true>, 0 },
-		T{ "-V, --version", "Print compiler version", &default_flag_parser<&display_version, true>    },
-	};
-
-	return result;
-}();
-
-
-
-static_assert([]() {
-	for (auto const &prefix : prefix_parsers)
-	{
-		if (!prefix.prefix.starts_with("-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "a prefix doesn't start with '-'");
-
-static_assert([]() {
-	for (auto const &eq : equals_parsers)
-	{
-		if (!eq.arg_name.starts_with("-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "an equals flag option doesn't start with '-'");
-
-static_assert([]() {
-	for (auto const &arg : argument_parsers)
-	{
-		if (!arg.arg_name.starts_with("-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "an argument flag option doesn't start with '-'");
-
-static_assert([]() {
-	for (auto const &flag : flag_parsers)
-	{
-		if (!flag.flag_name.starts_with("-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "a flag doesn't start with '-'");
-
-static_assert([]() {
-	for (auto const &flag : flag_with_alternate_parsers)
-	{
-		auto const [first, second] = get_both_names(flag);
-		if (!first.starts_with("-") || !second.starts_with("-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "a flag doesn't start with '-'");
-
-static_assert([]() {
-	for (auto const &eq : equals_parsers)
-	{
-		if (!eq.arg_name.ends_with("="))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "an equals flag option doesn't end with '='");
-
-static_assert([]() {
-	for (auto const &flag : flag_with_alternate_parsers)
-	{
-		auto const [first, second] = get_both_names(flag);
-		if (!(first.starts_with("-") && !first.starts_with("--") && second.starts_with("--")))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "flag with alternate form doesn't follow the form of '-x, --long-x'");
-
-
-
-enum class parser_kind
-{
-	none,
-	prefix,
-	equals,
-	argument,
-	flag,
-	flag_with_alternate,
-};
-
-struct parser_variants_t
-{
-	prefix_parser              prefix              = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	equals_parser              equals              = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	argument_parser            argument            = { bz::u8string_view{}, bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	flag_parser                flag                = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
-	flag_with_alternate_parser flag_with_alternate = { bz::u8string_view{}, bz::u8string_view{}, nullptr };
-};
-
-struct command_line_parser
-{
-	parser_kind       kind = parser_kind::none;
-	parser_variants_t variants{};
-};
-
-constexpr auto command_line_parsers = []() {
-	using result_t = std::array<
-		command_line_parser,
-		prefix_parsers.size() + argument_parsers.size() + equals_parsers.size()
-		+ flag_parsers.size() + flag_with_alternate_parsers.size()
-	>;
-
-	result_t result{};
-
-	size_t i = 0;
-	for (auto const &flag : flag_with_alternate_parsers)
-	{
-		result[i].kind = parser_kind::flag_with_alternate;
-		result[i].variants.flag_with_alternate = flag;
-		++i;
-	}
-
-	for (auto const &flag : flag_parsers)
-	{
-		result[i].kind = parser_kind::flag;
-		result[i].variants.flag = flag;
-		++i;
-	}
-
-	for (auto const &arg : argument_parsers)
-	{
-		result[i].kind = parser_kind::argument;
-		result[i].variants.argument = arg;
-		++i;
-	}
-
-	for (auto const &eq : equals_parsers)
-	{
-		result[i].kind = parser_kind::equals;
-		result[i].variants.equals = eq;
-		++i;
-	}
-
-	for (auto const &prefix : prefix_parsers)
-	{
-		result[i].kind = parser_kind::prefix;
-		result[i].variants.prefix = prefix;
-		++i;
-	}
-
-	return result;
-}();
-
-
-static void do_parse(iter_t &it, iter_t end, ctx::command_parse_context &context)
-{
-	bz_assert(it != end);
-	bool good = false;
-	[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
-		(((void)(good || ([&]() {
-			constexpr auto parser = command_line_parsers[Ns];
-			if constexpr (parser.kind == parser_kind::prefix)
-			{
-				constexpr auto prefix   = parser.variants.prefix.prefix;
-				constexpr auto parse_fn = parser.variants.prefix.parse_fn;
-
-				if (it->starts_with(prefix))
-				{
-					parse_fn(it, end, context);
-					good = true;
-				}
-			}
-			else if constexpr (parser.kind == parser_kind::equals)
-			{
-				constexpr auto eq_prefix = parser.variants.equals.arg_name;
-				constexpr auto parse_fn  = parser.variants.equals.parse_fn;
-
-				if (it->starts_with(eq_prefix))
-				{
-					parse_fn(it, end, context);
-					good = true;
-				}
-			}
-			else if constexpr (parser.kind == parser_kind::argument)
-			{
-				constexpr auto arg      = parser.variants.argument.arg_name;
-				constexpr auto parse_fn = parser.variants.argument.parse_fn;
-
-				if (*it == arg)
-				{
-					parse_fn(it, end, context);
-					good = true;
-				}
-			}
-			else if constexpr (parser.kind == parser_kind::flag)
-			{
-				constexpr auto flag     = parser.variants.flag.flag_name;
-				constexpr auto parse_fn = parser.variants.flag.parse_fn;
-
-				if (*it == flag)
-				{
-					parse_fn(it, end, context);
-					good = true;
-				}
-			}
-			else if constexpr (parser.kind == parser_kind::flag_with_alternate)
-			{
-				constexpr auto both_names = get_both_names(parser.variants.flag_with_alternate);
-				constexpr auto parse_fn = parser.variants.flag_with_alternate.parse_fn;
-
-				if (*it == both_names.first || *it == both_names.second)
-				{
-					parse_fn(it, end, context);
-					good = true;
-				}
-			}
-			else
-			{
-				static_assert(
-					bz::meta::always_false<decltype(sizeof...(Ns))>,
-					"invalid kind for command_line_parser"
-				);
-			}
-		}(), true))), ...);
-	}(bz::meta::make_index_sequence<command_line_parsers.size()>{});
-
-	if (!good && it->starts_with("-"))
-	{
-		context.report_error(
-			it,
-			bz::format("unknown command line option '{}'", ctx::convert_string_for_message(*it))
-		);
-		++it;
-	}
-	else if (!good)
-	{
-		check_source_file_name(it, context);
-		if (source_file != "")
-		{
-			context.report_error(it, "only one source file can be provided");
-		}
-		else
-		{
-			source_file = *it;
-		}
-		++it;
-	}
 }
 
-
-void parse_command_line(ctx::command_parse_context &context)
-{
-	auto it = context.args.begin();
-	auto const end = context.args.end();
-	while (it != end)
-	{
-		do_parse(it, end, context);
-	}
-}
-
-
-constexpr bz::u8string_view get_usage_string(command_line_parser const &parser)
-{
-	switch (parser.kind)
-	{
-	case parser_kind::prefix:
-		return parser.variants.prefix.usage;
-	case parser_kind::equals:
-		return parser.variants.equals.usage;
-	case parser_kind::argument:
-		return parser.variants.argument.usage;
-	case parser_kind::flag:
-		return parser.variants.flag.flag_name;
-	case parser_kind::flag_with_alternate:
-		return parser.variants.flag_with_alternate.both_names;
-	default:
-		bz_unreachable;
-		return "";
-	}
-}
-
-bz::u8string get_indented_usage_string(command_line_parser const &parser)
-{
-	auto const usage_string = get_usage_string(parser);
-	if (usage_string.starts_with("--"))
-	{
-		// four spaces to pad '-x, ' strings in flags having alternatives
-		bz::u8string result = "    ";
-		result += usage_string;
-		return result;
-	}
-	else
-	{
-		return usage_string;
-	}
-}
-
-constexpr bz::u8string_view get_help_string(command_line_parser const &parser)
-{
-	switch (parser.kind)
-	{
-	case parser_kind::prefix:
-		return parser.variants.prefix.help;
-	case parser_kind::equals:
-		return parser.variants.equals.help;
-	case parser_kind::argument:
-		return parser.variants.argument.help;
-	case parser_kind::flag:
-		return parser.variants.flag.help;
-	case parser_kind::flag_with_alternate:
-		return parser.variants.flag_with_alternate.help;
-	default:
-		bz_unreachable;
-		return "";
-	}
-}
-
-constexpr size_t get_priority(command_line_parser const &parser)
-{
-	switch (parser.kind)
-	{
-	case parser_kind::prefix:
-		return parser.variants.prefix.priority;
-	case parser_kind::equals:
-		return parser.variants.equals.priority;
-	case parser_kind::argument:
-		return parser.variants.argument.priority;
-	case parser_kind::flag:
-		return parser.variants.flag.priority;
-	case parser_kind::flag_with_alternate:
-		return parser.variants.flag_with_alternate.priority;
-	default:
-		bz_unreachable;
-		return 0;
-	}
-}
-
-constexpr bz::u8string_view get_usage_string_without_dashes(command_line_parser const &parser)
-{
-	bz::u8string_view usage = get_usage_string(parser);
-	if (usage.starts_with("--"))
-	{
-		return usage.substring(2);
-	}
-	else
-	{
-		bz_assert(usage.starts_with("-"));
-		return usage.substring(1);
-	}
-}
-
-constexpr bool alphabetical_compare(bz::u8string_view lhs, bz::u8string_view rhs)
+bool alphabetical_compare(bz::u8string_view lhs, bz::u8string_view rhs)
 {
 	auto lhs_it = lhs.begin();
 	auto rhs_it = rhs.begin();
@@ -763,51 +95,6 @@ constexpr bool alphabetical_compare(bz::u8string_view lhs, bz::u8string_view rhs
 	return lhs_it == lhs_end && rhs_it != rhs_end;
 }
 
-constexpr auto sorted_command_line_parsers = []() {
-	auto result = command_line_parsers;
-
-	constexpr_bubble_sort(
-		result,
-		[](auto const &lhs, auto const &rhs) {
-			auto const lhs_priority = get_priority(lhs);
-			auto const rhs_priority = get_priority(rhs);
-			return lhs_priority < rhs_priority
-			|| (lhs_priority == rhs_priority
-				&& alphabetical_compare(
-					get_usage_string_without_dashes(lhs),
-					get_usage_string_without_dashes(rhs)
-				)
-			);
-		},
-		[](auto &lhs, auto &rhs) {
-			auto const tmp = lhs;
-			lhs = rhs;
-			rhs = tmp;
-		}
-	);
-
-	return result;
-}();
-
-template<size_t N>
-constexpr auto spaces_impl = []() -> std::array<char, N> {
-	std::array<char, N> result{};
-	for (auto &c : result)
-	{
-		c = ' ';
-	}
-	return result;
-}();
-
-template<size_t N>
-constexpr bz::u8string_view spaces = bz::u8string_view(spaces_impl<N>.data(), spaces_impl<N>.data() + spaces_impl<N>.size());
-
-
-
-constexpr size_t initial_indent_width = 2;
-constexpr size_t command_usage_width = 24;
-constexpr size_t column_limit = 80;
-
 static bz::vector<bz::u8string_view> split_words(bz::u8string_view str)
 {
 	bz::vector<bz::u8string_view> result = {};
@@ -828,11 +115,16 @@ static bz::vector<bz::u8string_view> split_words(bz::u8string_view str)
 	return result;
 }
 
-static bz::u8string format_long_help_string(bz::u8string_view help_str)
+static bz::u8string format_long_help_string(
+	bz::u8string_view help_str,
+	size_t initial_indent_width,
+	size_t usage_width,
+	size_t column_limit
+)
 {
-	constexpr auto next_line_indent_width = initial_indent_width + command_usage_width;
-	constexpr auto help_str_width = column_limit - next_line_indent_width;
-	constexpr auto indentation = spaces<next_line_indent_width>;
+	auto const next_line_indent_width = initial_indent_width + usage_width;
+	auto const help_str_width = column_limit - next_line_indent_width;
+	auto const indentation = bz::format("{:{}}", next_line_indent_width, "");
 	bz_assert(help_str.length() > help_str_width);
 	auto const words = split_words(help_str);
 
@@ -883,93 +175,38 @@ static bz::u8string format_long_help_string(bz::u8string_view help_str)
 	return result;
 }
 
-static bz::u8string build_help_string(void)
+bz::u8string get_help_string(
+	bz::array_view<bz::u8string const> usages,
+	bz::array_view<bz::u8string const> helps,
+	size_t initial_indent_width,
+	size_t usage_width,
+	size_t column_limit
+)
 {
-	constexpr auto initial_indent = spaces<initial_indent_width>;
+	auto const initial_indent = bz::format("{:{}}", initial_indent_width, "");
 
-	bz::u8string result = "Usage: bozon [options] file\n\nOptions:\n";
+	bz::u8string result = "";
 
-	for (auto const &parser : sorted_command_line_parsers)
+	bz_assert(usages.size() == helps.size());
+	for (auto const &[usage, help] : bz::zip(usages, helps))
 	{
-		auto const usage = get_indented_usage_string(parser);
-		auto const help_str = get_help_string(parser);
+		auto const formatted_help = help.length() > (column_limit - usage_width - initial_indent_width)
+			? format_long_help_string(help, initial_indent_width, usage_width, column_limit)
+			: help;
 
-		auto const help = [&]() -> bz::u8string {
-			if (help_str.length() > column_limit - command_usage_width - initial_indent_width)
-			{
-				return format_long_help_string(help_str);
-			}
-			else
-			{
-				return help_str;
-			}
-		}();
-
-		if (usage.length() >= command_usage_width)
+		if (usage.length() >= usage_width)
 		{
 			result += initial_indent;
 			result += usage;
-			result += bz::format("\n{}{}\n", spaces<initial_indent_width + command_usage_width>, help);
+			result += bz::format("\n{:{}}{}\n", initial_indent_width + usage_width, "", formatted_help);
 		}
 		else
 		{
-			result += bz::format("{}{:{}}{}\n", initial_indent, command_usage_width, usage, help);
+			result += bz::format("{}{:{}}{}\n", initial_indent, usage_width, usage, help);
 		}
 	}
 
 	return result;
-}
-
-static bz::u8string build_warning_info_string(void)
-{
-	constexpr auto initial_indent = spaces<initial_indent_width>;
-
-	bz::u8string result = "Available warnings:\n";
-
-	for (auto &info : ctx::warning_infos)
-	{
-		auto const description = [&]() -> bz::u8string {
-			if (info.description.length() > column_limit - command_usage_width - initial_indent_width)
-			{
-				return format_long_help_string(info.description);
-			}
-			else
-			{
-				return info.description;
-			}
-		}();
-
-		if (info.name.length() >= command_usage_width)
-		{
-			result += initial_indent;
-			result += info.name;
-			result += bz::format("\n{}{}\n", spaces<initial_indent_width + command_usage_width>, description);
-		}
-		else
-		{
-			result += bz::format("{}{:{}}{}\n", initial_indent, command_usage_width, info.name, description);
-		}
-	}
-
-	return result;
-}
-
-void print_help_screen(void)
-{
-	auto const help_string = build_help_string();
-	bz::print(help_string);
-}
-
-void print_version_info(void)
-{
-	constexpr bz::u8string_view version_info = "bozon 0.0.0";
-	bz::print("{}\n", version_info);
-}
-
-void print_warning_info(void)
-{
-	auto const help_string = build_warning_info_string();
-	bz::print(help_string);
 }
 
 } // namespace cl

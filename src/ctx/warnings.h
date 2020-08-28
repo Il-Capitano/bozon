@@ -35,7 +35,7 @@ constexpr auto warning_infos = []() {
 	result_t result = {
 		T{ warning_kind::int_overflow,             "int-overflow",             "Integer overflow in constant expression"                              },
 		T{ warning_kind::int_divide_by_zero,       "int-divide-by-zero",       "Integer division by zero in non-constant expression"                  },
-		T{ warning_kind::float_overflow,           "float-overflow",           "Floating-point inf or NaN result in constant expression"              },
+		T{ warning_kind::float_overflow,           "float-overflow",           "Floating-point inf or nan result in constant expression"              },
 		T{ warning_kind::float_divide_by_zero,     "float-divide-by-zero",     "Floating-point division by zero in non-constant expression"           },
 
 		T{ warning_kind::unknown_attribute,        "unknown-attribute",        "Unknown attribute on statement or declaration"                        },

@@ -1,7 +1,7 @@
 #include "src_manager.h"
 #include "command_parse_context.h"
 #include "bc/emit_bitcode.h"
-#include "cl/clparser.h"
+#include "cl_options.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
@@ -18,15 +18,15 @@ namespace ctx
 [[nodiscard]] bool src_manager::parse_command_line(int argc, char const **argv)
 {
 	auto const args = cl::get_args(argc, argv);
-	if (args.size() == 0)
+	if (args.size() == 1)
 	{
-		cl::print_help_screen();
+		print_help();
 		compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
 
 	command_parse_context context(args, this->_global_ctx);
-	cl::parse_command_line(context);
+	::parse_command_line(context);
 
 	auto const good = !this->_global_ctx.has_errors();
 	for (auto &err : this->_global_ctx.get_errors_and_warnings())
@@ -43,17 +43,17 @@ namespace ctx
 	{
 		if (display_help)
 		{
-			cl::print_help_screen();
+			print_help();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		else if (display_version)
 		{
-			cl::print_version_info();
+			bz::print(version_info);
 			compile_until = compilation_phase::parse_command_line;
 		}
 		else if (display_warning_help)
 		{
-			cl::print_warning_info();
+			print_warning_help();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		return true;

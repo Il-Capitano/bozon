@@ -29,6 +29,8 @@ inline compilation_phase compile_until = compilation_phase::link;
 inline size_t tab_size = 4;
 inline bool do_error_highlight = true;
 
+constexpr bz::u8string_view version_info = "bozon 0.0.0\n";
+
 
 void enable_warning(ctx::warning_kind kind);
 void disable_warning(ctx::warning_kind kind);

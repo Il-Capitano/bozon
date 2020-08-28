@@ -24,7 +24,7 @@ struct command_parse_context
 
 	uint32_t get_arg_position(bz::array_view<bz::u8string_view const>::const_iterator it)
 	{
-		auto const result = it - this->args.begin() + 1;
+		auto const result = it - this->args.begin();
 		bz_assert(result < std::numeric_limits<uint32_t>::max());
 		return static_cast<uint32_t>(result);
 	}
