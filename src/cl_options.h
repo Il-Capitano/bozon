@@ -38,7 +38,7 @@ constexpr std::array clparsers = {
 	cl::create_parser<&display_version>   ("-V, --version",                  "Print compiler version"),
 	cl::create_parser<&output_file_name>  ("-o <file>",                      "Write output to <file>"),
 	cl::create_parser<&do_profile>        ("--profile",                      "Measure time for compilation steps"),
-	cl::create_parser<&do_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
+	cl::create_parser<&no_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	cl::create_parser<&tab_size>          ("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)"),
 
 	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>", "Enable the specified <warning>"),

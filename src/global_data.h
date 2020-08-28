@@ -27,7 +27,7 @@ inline compilation_phase compile_until = compilation_phase::link;
 // inline bool do_verbose_error = false;
 
 inline size_t tab_size = 4;
-inline bool do_error_highlight = true;
+inline bool no_error_highlight = false;
 
 constexpr bz::u8string_view version_info = "bozon 0.0.0\n";
 

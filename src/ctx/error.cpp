@@ -1015,19 +1015,19 @@ void print_error_or_warning(error const &err, global_context &context)
 			colors::bright_white, get_warning_name(err.kind), colors::clear
 		);
 
-	if (do_error_highlight)
+	if (no_error_highlight)
 	{
 		bz::print(
-			"{} {}\n{}",
-			src_pos, error_or_warning_line,
-			get_highlighted_error_or_warning(err_file_begin, err_file_end, err)
+			"{} {}\n",
+			src_pos, error_or_warning_line
 		);
 	}
 	else
 	{
 		bz::print(
-			"{} {}\n",
-			src_pos, error_or_warning_line
+			"{} {}\n{}",
+			src_pos, error_or_warning_line,
+			get_highlighted_error_or_warning(err_file_begin, err_file_end, err)
 		);
 	}
 
@@ -1063,21 +1063,21 @@ void print_error_or_warning(error const &err, global_context &context)
 				colors::clear
 			);
 
-		if (do_error_highlight)
+		if (no_error_highlight)
+		{
+			bz::print(
+				"{}: {}note:{} {}\n",
+				note_src_pos, colors::note_color, colors::clear,
+				n.message
+			);
+		}
+		else
 		{
 			bz::print(
 				"{}: {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
 				n.message,
 				get_highlighted_note(note_file_begin, note_file_end, n)
-			);
-		}
-		else
-		{
-			bz::print(
-				"{}: {}note:{} {}\n",
-				note_src_pos, colors::note_color, colors::clear,
-				n.message
 			);
 		}
 	}
@@ -1092,7 +1092,18 @@ void print_error_or_warning(error const &err, global_context &context)
 			? column
 			: column - bz::u8string_view(report_pos_erase_begin, report_pos_erase_end).length();
 
-		if (do_error_highlight)
+		if (no_error_highlight)
+		{
+			bz::print(
+				"{}{}:{}:{}:{} {}suggestion:{} {}\n",
+				colors::bright_white,
+				context.get_file_name(s.file_id), s.line, actual_column,
+				colors::clear,
+				colors::suggestion_color, colors::clear,
+				s.message
+			);
+		}
+		else
 		{
 			bz::print(
 				"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
@@ -1102,17 +1113,6 @@ void print_error_or_warning(error const &err, global_context &context)
 				colors::suggestion_color, colors::clear,
 				s.message,
 				get_highlighted_suggestion(suggestion_file_begin, suggestion_file_end, s)
-			);
-		}
-		else
-		{
-			bz::print(
-				"{}{}:{}:{}:{} {}suggestion:{} {}\n",
-				colors::bright_white,
-				context.get_file_name(s.file_id), s.line, actual_column,
-				colors::clear,
-				colors::suggestion_color, colors::clear,
-				s.message
 			);
 		}
 	}
