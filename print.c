@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <inttypes.h>
 
 typedef struct
 {
@@ -98,52 +99,52 @@ void println_char(uint32_t c)
 
 void print_int32(int32_t n)
 {
-	fprintf(stdout, "%i", n);
+	fprintf(stdout, "%" PRId32, n);
 }
 
 void println_int32(int32_t n)
 {
-	fprintf(stdout, "%i\n", n);
+	fprintf(stdout, "%" PRId32 "\n", n);
 }
 
 void print_uint32(uint32_t n)
 {
-	fprintf(stdout, "%u", n);
+	fprintf(stdout, "%" PRIu32, n);
 }
 
 void println_uint32(uint32_t n)
 {
-	fprintf(stdout, "%u\n", n);
+	fprintf(stdout, "%" PRIu32 "\n", n);
 }
 
 void print_int64(int64_t n)
 {
-	fprintf(stdout, "%lli", n);
+	fprintf(stdout, "%" PRId64, n);
 }
 
 void println_int64(int64_t n)
 {
-	fprintf(stdout, "%lli\n", n);
+	fprintf(stdout, "%" PRId64 "\n", n);
 }
 
 void print_uint64(uint64_t n)
 {
-	fprintf(stdout, "%llu", n);
+	fprintf(stdout, "%" PRIu64, n);
 }
 
 void println_uint64(uint64_t n)
 {
-	fprintf(stdout, "%llu\n", n);
+	fprintf(stdout, "%" PRIu64 "\n", n);
 }
 
 void print_int32_ptr(int32_t const *p)
 {
-	fprintf(stdout, "0x%llx", (uint64_t)p);
+	fprintf(stdout, "0x%" PRIx64, (uint64_t)p);
 }
 
 void println_int32_ptr(int32_t const *p)
 {
-	fprintf(stdout, "0x%llx\n", (uint64_t)p);
+	fprintf(stdout, "0x%" PRIx64 "\n", (uint64_t)p);
 }
 
 void print_float32(float x)
