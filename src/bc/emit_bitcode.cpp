@@ -2187,7 +2187,7 @@ static val_ptr emit_bitcode(
 		}
 
 		auto const string_ref = llvm::StringRef(str.data(), str.size());
-		auto const string_constant = context.builder.CreateGlobalString(string_ref);
+		auto const string_constant = context.builder.CreateGlobalString(string_ref, ".str");
 
 		auto const begin_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, 0);
 		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
