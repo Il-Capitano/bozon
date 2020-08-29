@@ -1420,7 +1420,7 @@ int main(int argc, char const **argv)
 {
 	auto in_ms = [](auto time)
 	{
-		return time.count() * 1000;
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(time).count() * 1e-6;
 	};
 
 	ctx::src_manager manager;
@@ -1498,7 +1498,7 @@ int main(int argc, char const **argv)
 		auto const first_pass_parse_time     = after_first_pass_parse - before_first_pass_parse;
 		auto const resolve_time              = after_resolve - before_resolve;
 		auto const code_emission_time        = end - before_code_emission;
-		auto const compilation_time          = command_line_parsing_time + tokenization_time + first_pass_parse_time + resolve_time + code_emission_time;
+		auto const compilation_time          = end - begin;
 
 		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
 		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
