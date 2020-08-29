@@ -7,9 +7,8 @@
 enum class compilation_phase
 {
 	parse_command_line,
-	lex,
-	first_pass_parse,
-	resolve,
+	parse_global_symbols,
+	parse,
 	emit_bitcode,
 	compile,
 	link,

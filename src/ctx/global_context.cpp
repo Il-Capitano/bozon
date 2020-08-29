@@ -205,23 +205,18 @@ uint32_t global_context::add_file_to_compile(lex::token_pos it, bz::u8string_vie
 	bz_assert(file._file_name == file_name);
 	if (file._stage == src_file::constructed)
 	{
-		if (!file.read_file())
-		{
-			this->report_error(error{
-				warning_kind::_last,
-				it->src_pos.file_id, it->src_pos.line,
-				it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-				bz::format("unable to find module '{}'", it->value),
-				{}, {}
-			});
-			return std::numeric_limits<uint32_t>::max();
-		}
-		if (!file.tokenize())
-		{
-			return std::numeric_limits<uint32_t>::max();
-		}
 		if (!file.parse_global_symbols())
 		{
+			if (file._stage == src_file::constructed)
+			{
+				this->report_error(error{
+					warning_kind::_last,
+					it->src_pos.file_id, it->src_pos.line,
+					it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
+					bz::format("unable to find module '{}'", it->value),
+					{}, {}
+				});
+			}
 			return std::numeric_limits<uint32_t>::max();
 		}
 	}

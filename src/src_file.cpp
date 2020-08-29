@@ -18,7 +18,7 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 	file_str.reserve(file_content_view.size());
 	for (auto it = file_content_view.begin(); it != file_content_view.end();  ++it)
 	{
-		// we use '\n' for line endings and not '\r\n' or '\r'
+		// we use '\n' for line endings and not '\r\n'
 		if (*it == '\r')
 		{
 			file_str += '\n';
@@ -50,18 +50,6 @@ src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
 	global_ctx.src_files.push_back(this);
 }
 
-
-void src_file::report_and_clear_errors_and_warnings(void)
-{
-	if (this->_global_ctx.has_errors_or_warnings())
-	{
-		for (auto &err : this->_global_ctx.get_errors_and_warnings())
-		{
-			print_error_or_warning(err, this->_global_ctx);
-		}
-		this->_global_ctx.clear_errors_and_warnings();
-	}
-}
 
 void src_file::add_to_global_decls(ctx::decl_set const &set)
 {
@@ -116,7 +104,25 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 [[nodiscard]] bool src_file::parse_global_symbols(void)
 {
-	bz_assert(this->_stage == tokenized);
+	switch (this->_stage)
+	{
+	case constructed:
+		if (!this->read_file())
+		{
+			return false;
+		}
+		[[fallthrough]];
+	case file_read:
+		if (!this->tokenize())
+		{
+			return false;
+		}
+		[[fallthrough]];
+	case tokenized:
+		break;
+	default:
+		bz_unreachable;
+	}
 	bz_assert(this->_tokens.size() != 0);
 	bz_assert(this->_tokens.back().kind == lex::token::eof);
 	auto stream = this->_tokens.cbegin();

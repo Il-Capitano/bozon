@@ -1429,82 +1429,73 @@ int main(int argc, char const **argv)
 
 	if (!manager.parse_command_line(argc, argv))
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 1;
 	}
 	auto const after_command_line_parsing = timer::now();
-//	bz::print("finished command line parsing");
 
 	if (compile_until <= compilation_phase::parse_command_line)
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
-	auto const before_tokenization = timer::now();
-	if (!manager.tokenize())
-	{
-		return 2;
-	}
-	auto const after_tokenization = timer::now();
-//	bz::print("finished tokenization\n");
-
-	if (compile_until <= compilation_phase::lex)
-	{
-		return 0;
-	}
-
-	auto const before_first_pass_parse = timer::now();
+	auto const before_parse_global_symbols = timer::now();
 	if (!manager.parse_global_symbols())
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 3;
 	}
-	auto const after_first_pass_parse = timer::now();
-//	bz::print("finished first pass parsing\n");
+	auto const after_parse_global_symbols = timer::now();
 
-	if (compile_until <= compilation_phase::first_pass_parse)
+	if (compile_until <= compilation_phase::parse_global_symbols)
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
-	auto const before_resolve = timer::now();
+	auto const before_parse = timer::now();
 	if (!manager.parse())
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 4;
 	}
-	auto const after_resolve = timer::now();
-//	bz::print("finished resolving\n");
+	auto const after_parse = timer::now();
 
-	if (compile_until <= compilation_phase::resolve)
+	if (compile_until <= compilation_phase::parse)
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
 	auto const before_code_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 5;
 	}
 	auto const end = timer::now();
 
 	if (compile_until <= compilation_phase::emit_bitcode)
 	{
+		manager.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
+	manager.report_and_clear_errors_and_warnings();
 
 	if (do_profile)
 	{
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
-		auto const tokenization_time         = after_tokenization - before_tokenization;
-		auto const first_pass_parse_time     = after_first_pass_parse - before_first_pass_parse;
-		auto const resolve_time              = after_resolve - before_resolve;
+		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
+		auto const resolve_time              = after_parse - before_parse;
 		auto const code_emission_time        = end - before_code_emission;
 		auto const compilation_time          = end - begin;
 
 		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
 		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
-		bz::print("tokenization time:        {:7.3f}ms\n", in_ms(tokenization_time));
-		bz::print("first pass parse time:    {:7.3f}ms\n", in_ms(first_pass_parse_time));
-		bz::print("resolve time:             {:7.3f}ms\n", in_ms(resolve_time));
+		bz::print("global symbol parse time: {:7.3f}ms\n", in_ms(first_pass_parse_time));
+		bz::print("parse time:               {:7.3f}ms\n", in_ms(resolve_time));
 		bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
 	}
 

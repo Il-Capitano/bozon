@@ -37,11 +37,13 @@ public:
 public:
 	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);
 
-	void report_and_clear_errors_and_warnings(void);
 	void add_to_global_decls(ctx::decl_set const &set);
 
+private:
 	[[nodiscard]] bool read_file(void);
 	[[nodiscard]] bool tokenize(void);
+
+public:
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 
