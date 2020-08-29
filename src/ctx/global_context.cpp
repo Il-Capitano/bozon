@@ -1,5 +1,4 @@
 #include "global_context.h"
-#include "parser.h"
 #include "src_manager.h"
 
 #include <llvm/Support/FileSystem.h>

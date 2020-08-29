@@ -7,7 +7,6 @@
 #include "lex/lexer.h"
 #include "ctx/first_pass_parse_context.h"
 #include "ctx/parse_context.h"
-#include "parser.h"
 #include "ctx/bitcode_context.h"
 #include "ctx/decl_set.h"
 
