@@ -219,7 +219,13 @@ ast::expression parse_if_expression(
 		}
 	}
 	auto then_block = parse_expression_without_semi_colon(stream, end, context);
-	if (!then_block.is_top_level_compound_or_if() && stream->kind == lex::token::semi_colon)
+	if (
+		stream != end
+		&& !then_block.is_top_level_compound_or_if()
+		&& stream->kind == lex::token::semi_colon
+		&& (stream + 1) != end
+		&& (stream + 1)->kind == lex::token::kw_else
+	)
 	{
 		++stream; // ';'
 	}
@@ -274,6 +280,7 @@ ast::expression parse_if_expression(
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 		if (then_block.not_null())
 		{
+			consume_semi_colon_at_end_of_expression(stream, end, context, then_block);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
