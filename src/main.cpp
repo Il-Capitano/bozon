@@ -1440,6 +1440,12 @@ int main(int argc, char const **argv)
 		return 0;
 	}
 
+	if (!manager.initialize_llvm())
+	{
+		manager.report_and_clear_errors_and_warnings();
+		return 2;
+	}
+
 	auto const before_parse_global_symbols = timer::now();
 	if (!manager.parse_global_symbols())
 	{

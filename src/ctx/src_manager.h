@@ -47,6 +47,7 @@ public:
 	void report_and_clear_errors_and_warnings(void);
 
 	[[nodiscard]] bool parse_command_line(int argc, char const **argv);
+	[[nodiscard]] bool initialize_llvm(void);
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool emit_bitcode(void);

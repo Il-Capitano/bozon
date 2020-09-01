@@ -191,9 +191,12 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 			{
 				auto const stream_value = *stream;
 				++stream;
-				auto const it = stream_value.find('=');
-				bz_assert(it != stream_value.end());
-				auto const arg = bz::u8string_view(it + 1, stream_value.end());
+				auto const it = stream_value.find('=') + 1;
+				auto const arg = bz::u8string_view(it, stream_value.end());
+				if (arg == "")
+				{
+					return bz::format("expected an argument for '{}'", bz::u8string_view(stream_value.begin(), it));
+				}
 				auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
 				if (result.has_error())
 				{

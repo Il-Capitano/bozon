@@ -64,6 +64,68 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	}
 }
 
+[[nodiscard]] bool src_manager::initialize_llvm(void)
+{
+	auto const target_triple = target == "" ? llvm::sys::getDefaultTargetTriple() : std::string(target.data_as_char_ptr(), target.size());
+	llvm::InitializeAllTargetInfos();
+	llvm::InitializeAllTargets();
+	llvm::InitializeAllTargetMCs();
+	llvm::InitializeAllAsmParsers();
+	llvm::InitializeAllAsmPrinters();
+
+	std::string target_error = "";
+	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
+	if (target == nullptr)
+	{
+		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
+		if (target_error.substr(0, default_start.length()) == default_start)
+		{
+			this->_global_ctx.report_error(error{
+				warning_kind::_last,
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				bz::format("'{}' is not an available target", convert_string_for_message(target_triple.c_str())),
+				{}, {}
+			});
+		}
+		else
+		{
+			this->_global_ctx.report_error(error{
+				warning_kind::_last,
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				target_error.c_str(),
+				{}, {}
+			});
+		}
+		return false;
+	}
+	auto const cpu = "generic";
+	auto const features = "";
+
+	llvm::TargetOptions options;
+	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	this->_global_ctx._target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
+	bz_assert(this->_global_ctx._target_machine);
+	this->_global_ctx._data_layout = this->_global_ctx._target_machine->createDataLayout();
+	this->_global_ctx._module.setDataLayout(*this->_global_ctx._data_layout);
+	this->_global_ctx._module.setTargetTriple(target_triple);
+
+	auto const triple = llvm::Triple(target_triple);
+	auto const os = triple.getOS();
+	auto const arch = triple.getArch();
+
+	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
+	{
+		this->_global_ctx._platform_abi = abi::platform_abi::microsoft_x64;
+	}
+	else
+	{
+		this->_global_ctx._platform_abi = abi::platform_abi::generic;
+	}
+	return true;
+}
+
 [[nodiscard]] bool src_manager::parse_global_symbols(void)
 {
 	if (source_file == "")

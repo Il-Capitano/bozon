@@ -107,41 +107,7 @@ global_context::global_context(src_manager &_src_manager)
 	  _target_machine(nullptr),
 	  _data_layout(),
 	  _llvm_built_in_types(get_llvm_built_in_types(this->_llvm_context))
-{
-	auto const target_triple = llvm::sys::getDefaultTargetTriple();
-	llvm::InitializeAllTargetInfos();
-	llvm::InitializeAllTargets();
-	llvm::InitializeAllTargetMCs();
-	llvm::InitializeAllAsmParsers();
-	llvm::InitializeAllAsmPrinters();
-
-	std::string error = "";
-	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, error);
-	bz_assert(target);
-	auto const cpu = "generic";
-	auto const features = "";
-
-	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	this->_target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
-	bz_assert(this->_target_machine);
-	this->_data_layout = this->_target_machine->createDataLayout();
-	this->_module.setDataLayout(*this->_data_layout);
-	this->_module.setTargetTriple(target_triple);
-
-	auto const triple = llvm::Triple(target_triple);
-	auto const os = triple.getOS();
-	auto const arch = triple.getArch();
-
-	if (os == llvm::Triple::Win32 && arch == llvm::Triple::x86_64)
-	{
-		this->_platform_abi = abi::platform_abi::microsoft_x64;
-	}
-	else
-	{
-		this->_platform_abi = abi::platform_abi::generic;
-	}
-}
+{}
 
 
 bool global_context::has_errors(void) const
