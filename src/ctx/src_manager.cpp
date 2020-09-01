@@ -185,10 +185,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	bitcode_context context(this->_global_ctx);
 
 	// add declarations to the module
-	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
-	{
-		bz_unreachable;
-	}
+	bz_assert(this->_global_ctx._compile_decls.var_decls.size() == 0);
 	for (auto const func : this->_global_ctx._compile_decls.funcs)
 	{
 		func->resolve_symbol_name();
@@ -196,10 +193,6 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	}
 
 	// add the definitions to the module
-	for ([[maybe_unused]] auto const var_decl : this->_global_ctx._compile_decls.var_decls)
-	{
-		bz_unreachable;
-	}
 	for (auto const func_decl : this->_global_ctx._compile_decls.funcs)
 	{
 		if (func_decl->body.not_null())

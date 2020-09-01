@@ -466,7 +466,7 @@ public:
 		auto const end = this->_data_end;
 		if (str.size() == 1)
 		{
-			return this->find(it_, *str.data());
+			return this->find(it_, static_cast<u8char>(*str.data()));
 		}
 
 		auto const is_char = [
@@ -703,7 +703,7 @@ constexpr bool constexpr_not_equals(u8string_view lhs, u8string_view rhs) noexce
 
 inline std::ostream &operator << (std::ostream &os, u8string_view sv)
 {
-	return os.write(sv.data(), sv.size());
+	return os.write(sv.data(), static_cast<std::streamsize>(sv.size()));
 }
 
 bz_end_namespace

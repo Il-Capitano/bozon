@@ -1420,7 +1420,9 @@ int main(int argc, char const **argv)
 {
 	auto in_ms = [](auto time)
 	{
-		return std::chrono::duration_cast<std::chrono::nanoseconds>(time).count() * 1e-6;
+		return static_cast<double>(
+			std::chrono::duration_cast<std::chrono::nanoseconds>(time).count()
+		) * 1e-6;
 	};
 
 	ctx::src_manager manager;

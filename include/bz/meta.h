@@ -243,7 +243,7 @@ using nth_type = typename internal::nth_type_impl<N, Ts...>::type;
 
 
 template<typename T, typename ...Ts>
-constexpr size_t type_index = -1;
+constexpr size_t type_index = std::numeric_limits<size_t>::max();
 
 template<typename T, typename ...Ts>
 constexpr size_t type_index<T, T, Ts...> = 0;

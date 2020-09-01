@@ -57,8 +57,6 @@ struct typespec_view
 {
 	bz::array_view<const typespec_node_t> nodes;
 
-	declare_default_5(typespec_view)
-
 	lex::src_tokens get_src_tokens(void) const noexcept;
 
 	uint64_t kind(void) const noexcept;
@@ -168,8 +166,6 @@ struct ts_function
 	lex::src_tokens src_tokens;
 	bz::vector<typespec> param_types;
 	typespec return_type;
-
-	declare_default_5(ts_function)
 };
 
 struct ts_array
@@ -177,16 +173,12 @@ struct ts_array
 	lex::src_tokens      src_tokens;
 	bz::vector<uint64_t> sizes;
 	typespec             elem_type;
-
-	declare_default_5(ts_array)
 };
 
 struct ts_tuple
 {
 	lex::src_tokens src_tokens;
 	bz::vector<typespec> types;
-
-	declare_default_5(ts_tuple)
 };
 
 struct ts_auto

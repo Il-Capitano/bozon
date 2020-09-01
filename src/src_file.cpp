@@ -120,7 +120,8 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		[[fallthrough]];
 	case tokenized:
 		break;
-	default:
+	case parsed_global_symbols:
+	case parsed:
 		bz_unreachable;
 	}
 	bz_assert(this->_tokens.size() != 0);

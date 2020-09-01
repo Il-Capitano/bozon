@@ -54,20 +54,25 @@ public:
 	{ return this->_data; }
 
 
-	constexpr self_t &operator += (size_t n) noexcept
+	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
+	constexpr self_t &operator += (Int n) noexcept
 	{ this->_data += n; return *this; }
 
-	constexpr self_t &operator -= (size_t n) noexcept
+	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
+	constexpr self_t &operator -= (Int n) noexcept
 	{ this->_data -= n; return *this; }
 
 
-	constexpr friend self_t operator + (self_t lhs, size_t rhs) noexcept
+	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
+	constexpr friend self_t operator + (self_t lhs, Int rhs) noexcept
 	{ return lhs._data + rhs; }
 
-	constexpr friend self_t operator + (size_t lhs, self_t rhs) noexcept
+	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
+	constexpr friend self_t operator + (Int lhs, self_t rhs) noexcept
 	{ return lhs + rhs._data; }
 
-	constexpr friend self_t operator - (self_t lhs, size_t rhs) noexcept
+	template<typename Int, meta::enable_if<std::is_integral_v<Int>, int> = 0>
+	constexpr friend self_t operator - (self_t lhs, Int rhs) noexcept
 	{ return lhs._data - rhs; }
 
 

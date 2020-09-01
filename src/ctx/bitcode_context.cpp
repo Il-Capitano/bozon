@@ -17,7 +17,7 @@ bitcode_context::bitcode_context(global_context &_global_ctx)
 llvm::Value *bitcode_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? nullptr : it->second;;
+	return it == this->vars_.end() ? nullptr : it->second;
 }
 
 void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val)
@@ -95,7 +95,7 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
-	return this->global_ctx._llvm_built_in_types[static_cast<int>(kind)];
+	return this->global_ctx._llvm_built_in_types[kind];
 }
 
 llvm::Type *bitcode_context::get_int8_t(void) const

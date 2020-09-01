@@ -86,71 +86,6 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 #include "microsoft_x64.impl"
 
 
-template<abi::platform_abi abi>
-static std::pair<llvm::Value *, llvm::Value *> get_common_type_vals(
-	ast::expression const &lhs,
-	ast::expression const &rhs,
-	ctx::bitcode_context &context
-)
-{
-	auto lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
-	bz_assert(lhs_t.is<ast::ts_base_type>());
-	bz_assert(rhs_t.is<ast::ts_base_type>());
-
-	auto const lhs_val = emit_bitcode<abi>(lhs, context).get_value(context);
-	auto const rhs_val = emit_bitcode<abi>(rhs, context).get_value(context);
-
-	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-
-	if (lhs_kind == rhs_kind)
-	{
-		return { lhs_val, rhs_val };
-	}
-	else if (lhs_kind > rhs_kind)
-	{
-		if (ctx::is_signed_integer_kind(lhs_kind))
-		{
-			auto const rhs_cast = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), true, "cast_tmp");
-			return { lhs_val, rhs_cast };
-		}
-		else if (ctx::is_unsigned_integer_kind(lhs_kind))
-		{
-			auto const rhs_cast = context.builder.CreateIntCast(rhs_val, lhs_val->getType(), false, "cast_tmp");
-			return { lhs_val, rhs_cast };
-		}
-		else
-		{
-			bz_unreachable;
-			return {};
-		}
-	}
-	else // lhs_kind < rhs_kind
-	{
-		if (ctx::is_signed_integer_kind(lhs_kind))
-		{
-			auto const lhs_cast = context.builder.CreateIntCast(lhs_val, rhs_val->getType(), true, "cast_tmp");
-			return { lhs_cast, rhs_val };
-		}
-		else if (ctx::is_unsigned_integer_kind(lhs_kind))
-		{
-			auto const lhs_cast = context.builder.CreateIntCast(lhs_val, rhs_val->getType(), false, "cast_tmp");
-			return { lhs_cast, rhs_val };
-		}
-		else if (ctx::is_floating_point_kind(lhs_kind))
-		{
-			auto const lhs_cast = context.builder.CreateFPCast(lhs_val, rhs_val->getType(), "cast_tmp");
-			return { lhs_cast, rhs_val };
-		}
-		else
-		{
-			bz_unreachable;
-			return {};
-		}
-	}
-}
-
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
 	llvm::Type *llvm_type,
@@ -211,14 +146,12 @@ static llvm::Value *get_constant_zero(
 
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		bz_unreachable;
-		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 	case ast::typespec_node_t::index_of<ast::ts_void>:
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 	default:
 		bz_unreachable;
-		return nullptr;
 	}
 }
 
@@ -256,7 +189,6 @@ static val_ptr emit_bitcode(
 {
 	// this should never be called, as a literal will always be an rvalue constant expression
 	bz_unreachable;
-	return {};
 }
 
 template<abi::platform_abi abi>
@@ -267,7 +199,6 @@ static val_ptr emit_bitcode(
 )
 {
 	bz_unreachable;
-	return {};
 }
 
 template<abi::platform_abi abi>
@@ -2157,7 +2088,7 @@ static val_ptr emit_bitcode(
 	case ast::constant_value::float32:
 		result.consteval_val = llvm::ConstantFP::get(
 			type,
-			const_expr.value.get<ast::constant_value::float32>()
+			static_cast<double>(const_expr.value.get<ast::constant_value::float32>())
 		);
 		break;
 	case ast::constant_value::float64:
@@ -2567,7 +2498,6 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 	case ast::type_info::aggregate:
 	default:
 		bz_unreachable;
-		return nullptr;
 	}
 }
 
@@ -2628,16 +2558,12 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		bz_unreachable;
-		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 		bz_unreachable;
-		return nullptr;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 		bz_unreachable;
-		return nullptr;
 	default:
 		bz_unreachable;
-		return nullptr;
 	}
 }
 

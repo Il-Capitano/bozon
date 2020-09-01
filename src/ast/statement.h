@@ -461,13 +461,11 @@ struct type_info
 
 	bz::vector<function_body *> constructors;
 
-	function_body *default_constructor;
-	function_body *copy_constructor;
-	function_body *move_constructor;
-	function_body *destructor;
-	function_body *move_destructor;
-
-	declare_default_5(type_info)
+//	function_body *default_constructor;
+//	function_body *copy_constructor;
+//	function_body *move_constructor;
+//	function_body *destructor;
+//	function_body *move_destructor;
 
 	static type_info make_built_in(bz::u8string_view name, uint8_t kind)
 	{
@@ -475,7 +473,7 @@ struct type_info
 			kind, resolve_state::all,
 			type_info_flags::default_built_in_flags,
 			bz::format("built_in.{}", name),
-			{}, nullptr, nullptr, nullptr, nullptr, nullptr
+			{}
 		};
 	}
 
@@ -506,18 +504,18 @@ struct type_info
 		{
 			static_assert(built_in.length() == built_in.size());
 			auto const begin = bz::u8string_view::const_iterator(it.data() + built_in.size());
-			auto const end = whole_str.find(begin, '.');
-			it = end;
-			return bz::u8string(begin, end);
+			auto const dot = whole_str.find(begin, '.');
+			it = dot;
+			return bz::u8string(begin, dot);
 		}
 		else
 		{
 			bz_assert(whole_str.starts_with(struct_));
 			static_assert(struct_.length() == struct_.size());
 			auto const begin = bz::u8string_view::const_iterator(it.data() + struct_.size());
-			auto const end = whole_str.find(begin, '.');
-			it = end;
-			return bz::u8string(begin, end);
+			auto const dot = whole_str.find(begin, '.');
+			it = dot;
+			return bz::u8string(begin, dot);
 		}
 	}
 };

@@ -45,7 +45,7 @@ bz::result<size_t, bz::u8string> arg_parser<size_t>::parse(bz::u8string_view arg
 bz::vector<bz::u8string_view> get_args(int argc, char const **argv)
 {
 	bz::vector<bz::u8string_view> result;
-	result.reserve(argc);
+	result.reserve(static_cast<size_t>(argc));
 	for (int i = 0; i < argc; ++i)
 	{
 		result.emplace_back(argv[i]);
@@ -66,7 +66,8 @@ bool alphabetical_compare(bz::u8string_view lhs, bz::u8string_view rhs)
 	auto const to_upper = [](bz::u8char c) {
 		if (c >= 'a' && c <= 'z')
 		{
-			return c + ('A' - 'a');
+			static_assert('a' > 'A');
+			return c - ('a' - 'A');
 		}
 		else
 		{

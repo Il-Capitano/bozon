@@ -25,7 +25,7 @@ bz_begin_namespace
 template<typename ...Ts>
 u8string format(u8string_view fmt, Ts const &...ts);
 
-#if _WIN32
+#ifdef _WIN32
 namespace internal
 {
 
@@ -420,7 +420,7 @@ struct float_components<double>
 			uint64_t mantissa: 52;
 			uint64_t exponent: 11;
 			uint64_t sign    : 1;
-		};
+		} components;
 	};
 };
 
@@ -436,7 +436,7 @@ struct float_components<float>
 			uint32_t mantissa: 23;
 			uint32_t exponent: 8;
 			uint32_t sign    : 1;
-		};
+		} components;
 	};
 };
 
@@ -533,16 +533,16 @@ struct format_spec
 	u8char fill;
 	u8char align;
 	u8char sign;
-	bool zero_pad;
+	u8char type;
 	size_t width;
 	size_t precision;
-	char type;
+	bool zero_pad;
 
 	static constexpr size_t precision_none = std::numeric_limits<size_t>::max();
 
 	static format_spec get_default()
 	{
-		return { '\0', '\0', '\0', false, 0, precision_none, '\0' };
+		return { '\0', '\0', '\0', '\0', 0, precision_none, false };
 	}
 };
 
@@ -552,19 +552,19 @@ inline format_spec get_default_format_spec(u8string_view spec)
 	auto it = spec.begin();
 	auto const end = spec.end();
 
-	auto is_valid_fill = [](char c)
+	auto is_valid_fill = [](u8char c)
 	{
 		return c != '\0';
 	};
 
-	auto is_align_spec = [](char c)
+	auto is_align_spec = [](u8char c)
 	{
 		return c == '<'
 			|| c == '>'
 			|| c == '^';
 	};
 
-	auto is_sign = [](char c)
+	auto is_sign = [](u8char c)
 	{
 		return c == '+'
 			|| c == '-'
@@ -663,7 +663,7 @@ inline u8string format_str(u8string_view str, format_spec spec)
 	auto const str_length = str.length();
 	auto const length = std::max(str_length, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [fill = spec.fill]() {
+	auto const fill_char_width = [fill = spec.fill]() -> size_t {
 		if (fill < (1u << 7))
 		{
 			return 1;
@@ -744,7 +744,7 @@ inline u8string format_char(u8char c, format_spec spec)
 	size_t const len = 1;
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [fill = spec.fill]() {
+	auto const fill_char_width = [fill = spec.fill]() -> size_t {
 		if (fill <= internal::max_one_byte_char)
 		{
 			return 1;
@@ -762,7 +762,7 @@ inline u8string format_char(u8char c, format_spec spec)
 			return 4;
 		}
 	}();
-	auto const char_width = [c]() {
+	auto const char_width = [c]() -> size_t {
 		if (c <= internal::max_one_byte_char)
 		{
 			return 1;
@@ -825,8 +825,8 @@ inline u8string format_char(u8char c, format_spec spec)
 	return res;
 }
 
-constexpr char digits_x[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-constexpr char digits_X[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+constexpr uint8_t digits_x[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+constexpr uint8_t digits_X[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
 template<size_t base, typename Uint, typename = std::enable_if_t<
 	std::is_same_v<Uint, uint32_t>
@@ -850,7 +850,7 @@ u8string uint_to_string_base(Uint val, format_spec spec)
 
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [&]() {
+	auto const fill_char_width = [&]() -> size_t {
 		if (spec.zero_pad)
 		{
 			return 1;
@@ -889,7 +889,7 @@ u8string uint_to_string_base(Uint val, format_spec spec)
 		}
 		else
 		{
-			std::array<char, log_uint<base>(std::numeric_limits<Uint>::max())> buffer;
+			std::array<uint8_t, log_uint<base>(std::numeric_limits<Uint>::max())> buffer;
 			auto out = buffer.rbegin();
 			auto copy = val;
 			do
@@ -1120,7 +1120,7 @@ u8string int_to_string(Int val, format_spec spec)
 
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [&]() {
+	auto const fill_char_width = [&]() -> size_t {
 		if (spec.zero_pad)
 		{
 			return 1;
@@ -1231,15 +1231,15 @@ u8string float_to_string_dec(
 )
 {
 	bz_assert(spec.precision != format_spec::precision_none);
-	size_t len = spec.precision                     // decimal part
-		+ (spec.precision == 0 ? 0 : 1)             // .
-		+ (dig_exponent < 0 ? 1 : dig_exponent + 1) // integer part
-		+ (put_sign ? 1 : 0)                        // sign
-		+ (spec.type == '%' ? 1 : 0);               // %
+	size_t len = spec.precision                                         // decimal part
+		+ (spec.precision == 0 ? 0 : 1)                                 // .
+		+ (dig_exponent < 0 ? 1 : static_cast<size_t>(dig_exponent + 1)) // integer part
+		+ (put_sign ? 1 : 0)                                            // sign
+		+ (spec.type == '%' ? 1 : 0);                                   // %
 
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [&]() {
+	auto const fill_char_width = [&]() -> size_t {
 		if (spec.zero_pad)
 		{
 			return 1;
@@ -1479,14 +1479,16 @@ u8string float_to_string_exp(
 {
 	auto const print_len = dig_end - dig_it;
 	bz_assert(print_len != 0);
-	size_t const len = print_len + 1               // digits + .
-		+ (put_sign ? 1 : 0)                       // sign
-		+ (std::abs(dig_exponent) >= 100 ? 5 : 4); // exponential notation
+	size_t const len = static_cast<size_t>(
+		print_len + 1                             // digits + .
+		+ (put_sign ? 1 : 0)                      // sign
+		+ (std::abs(dig_exponent) >= 100 ? 5 : 4) // exponential notation
+	);
 	// the exponential notation is either e+... or e+.. (. is a digit)
 
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [&]() {
+	auto const fill_char_width = [&]() -> size_t {
 		if (spec.zero_pad)
 		{
 			return 1;
@@ -1528,12 +1530,12 @@ u8string float_to_string_exp(
 			auto const div_100 = abs_dig_exponent / 100;
 			auto const rem_100 = abs_dig_exponent % 100;
 			abs_dig_exponent = rem_100;
-			res += div_100 + '0';
+			res += static_cast<u8char>(div_100 + '0');
 		}
 		auto const div_10 = abs_dig_exponent / 10;
 		auto const rem_10 = abs_dig_exponent % 10;
-		res += div_10 + '0';
-		res += rem_10 + '0';
+		res += static_cast<u8char>(div_10 + '0');
+		res += static_cast<u8char>(rem_10 + '0');
 	};
 
 	switch (spec.align)
@@ -1769,7 +1771,7 @@ u8string float_to_string(Float val, format_spec spec)
 
 	if (!std::isfinite(val))
 	{
-		auto const fill_char_width = [&]() {
+		auto const fill_char_width = [&]() -> size_t {
 			if (spec.zero_pad)
 			{
 				return 1;
@@ -1994,7 +1996,8 @@ u8string float_to_string(Float val, format_spec spec)
 			// if the last digit of frac_digits has a higher
 			// decimal place than the last digit of out_digits,
 			// we need to add the difference to out_it
-			out_it += (out_digits.size() - out_exponent) - (frac_digits.size() - frac_exponent);
+			out_it += (out_digits.size() - static_cast<size_t>(out_exponent))
+				- (frac_digits.size() - static_cast<size_t>(frac_exponent));
 
 			bool carry = false;
 			for (; frac_it != frac_end; ++out_it, ++frac_it)
@@ -2033,13 +2036,13 @@ u8string float_to_string(Float val, format_spec spec)
 
 		float_components_t<Float> val_components;
 		val_components.float_val = val;
-		auto val_exp = val_components.exponent - exponent_offset;
+		auto val_exp = val_components.components.exponent - exponent_offset;
 
 		frac_digits.push_back(1);
 
 		// if the exponent is zero, the number uses fixed point notation
 		// with a base of 2^(-exponent_offset + 1)
-		if (val_components.exponent == 0)
+		if (val_components.components.exponent == 0)
 		{
 			for (int i = 0; i < exponent_offset - 1; ++i)
 			{
@@ -2090,7 +2093,7 @@ u8string float_to_string(Float val, format_spec spec)
 		)
 		{
 			half_frac();
-			if ((val_components.mantissa & (unit << i)) != 0)
+			if ((val_components.components.mantissa & (unit << i)) != 0)
 			{
 				add_frac_to_out();
 			}
@@ -2107,11 +2110,11 @@ u8string float_to_string(Float val, format_spec spec)
 
 	if (spec.type == 'g')
 	{
-		print_len = spec.precision;
+		print_len = static_cast<decltype(print_len)>(spec.precision);
 	}
 	else
 	{
-		int32_t len = (out_exponent + 1) + spec.precision;
+		int32_t len = (out_exponent + 1) + static_cast<int32_t>(spec.precision);
 		print_len = len < 0 ? 0 : len;
 	}
 
@@ -2123,7 +2126,7 @@ u8string float_to_string(Float val, format_spec spec)
 
 		if (static_cast<int32_t>(out_digits.size()) > print_len)
 		{
-			it += out_digits.size() - print_len;
+			it += static_cast<size_t>(static_cast<int32_t>(out_digits.size()) - print_len);
 		}
 
 		bool carry = (it != begin && *(it - 1) >= 5);
@@ -2149,13 +2152,13 @@ u8string float_to_string(Float val, format_spec spec)
 
 	if (spec.type != 'g')
 	{
-		int32_t len = (out_exponent + 1) + spec.precision;
+		int32_t len = (out_exponent + 1) + static_cast<int32_t>(spec.precision);
 		print_len = len < 0 ? 0 : len;
 	}
 
 	if (static_cast<int32_t>(out_digits.size()) < print_len)
 	{
-		print_len = out_digits.size();
+		print_len = static_cast<int32_t>(out_digits.size());
 	}
 
 	// we don't want to print trailing zeros if we type spec is 'g'
@@ -2175,8 +2178,7 @@ u8string float_to_string(Float val, format_spec spec)
 			}
 		}
 
-		auto actual_len = last_non_zero - begin;
-		print_len = actual_len;
+		print_len = static_cast<int32_t>(last_non_zero - begin);
 	}
 
 	// we need to print trailing zeroes until the decimal point though
@@ -2203,7 +2205,7 @@ u8string float_to_string(Float val, format_spec spec)
 		// print with regular 'f' format
 		if (out_exponent < static_cast<int32_t>(spec.precision) && out_exponent >= -4)
 		{
-			spec.precision = print_len - out_exponent - 1;
+			spec.precision = static_cast<size_t>(print_len - out_exponent - 1);
 			spec.type = 'f';
 			return float_to_string_dec<N>(
 				out_digits.begin(),
@@ -2266,7 +2268,7 @@ inline u8string pointer_to_string(const void *ptr, format_spec spec)
 
 	auto const length = std::max(len, spec.width);
 	auto res = u8string();
-	auto const fill_char_width = [&]() {
+	auto const fill_char_width = [&]() -> size_t {
 		if (spec.zero_pad)
 		{
 			return 1;
@@ -2473,7 +2475,7 @@ struct formatter<char>
 	static u8string format(char val, u8string_view spec)
 	{
 		bz_assert(spec.size() == 0);
-		return u8string(1, val);
+		return u8string(1, static_cast<u8char>(val));
 	}
 };
 

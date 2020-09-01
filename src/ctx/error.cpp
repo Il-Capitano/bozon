@@ -19,7 +19,7 @@ static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos 
 		--it;
 	} while (it != file_begin.data() && *it != '\n');
 	auto const len = bz::u8string_view(it, pivot.data()).length();
-	return it == file_begin.data() ? len + 1 : len;
+	return static_cast<uint32_t>(it == file_begin.data() ? len + 1 : len);
 }
 
 static bz::u8string get_highlighted_error_or_warning(
@@ -162,7 +162,7 @@ static bz::u8string get_highlighted_error_or_warning(
 			else
 			{
 				file_line += *it;
-				auto const c = it == pivot_pos
+				bz::u8char const c = it == pivot_pos
 					? '^'
 					: (is_in_highlight ? '~' : ' ');
 				highlight_line += c;
@@ -537,7 +537,7 @@ static bz::u8string get_highlighted_note(
 			else
 			{
 				file_line += *it;
-				auto const c = it == pivot_pos
+				bz::u8char const c = it == pivot_pos
 					? '^'
 					: (is_in_highlight ? '~' : ' ');
 				highlight_line += c;

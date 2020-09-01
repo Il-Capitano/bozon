@@ -68,7 +68,6 @@ void parse_context::report_paren_match_error(
 				: bz::format("expected closing } before '{}'", it->value);
 		default:
 			bz_unreachable;
-			return bz::u8string();
 		}
 	}();
 	notes.push_front(this->make_paren_match_note(it, open_paren_it));
@@ -590,7 +589,6 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 		return { ast::expression::rvalue, ast::typespec() };
 	default:
 		bz_unreachable;
-		return {};
 	}
 }
 */
@@ -1330,7 +1328,6 @@ if (postfix == postfix_str)                                                     
 		);
 	default:
 		bz_unreachable;
-		break;
 	}
 }
 
@@ -1383,7 +1380,6 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 ast::expression parse_context::make_tuple(lex::src_tokens, bz::vector<ast::expression>) const
 {
 	bz_unreachable;
-	return ast::expression();
 }
 
 static bool is_built_in_type(ast::typespec_view ts)
@@ -1778,7 +1774,6 @@ static error get_bad_call_error(
 	}
 
 	bz_unreachable;
-	return make_error(func->identifier, "");
 }
 */
 
@@ -1868,7 +1863,6 @@ static auto find_best_match(
 		{
 			// TODO: report ambiguous call error somehow
 			bz_unreachable;
-			return { { -1, -1 }, nullptr };
 		}
 	}
 }
@@ -2455,7 +2449,6 @@ void parse_context::match_expression_to_type(
 				break;
 			case ast::typespec_node_t::index_of<ast::ts_consteval>:
 				bz_unreachable;
-				break;
 			case ast::typespec_node_t::index_of<ast::ts_pointer>:
 				dest_it = dest_it.get<ast::ts_pointer>();
 				if (!expr_it.is<ast::ts_pointer>())
@@ -2481,10 +2474,8 @@ void parse_context::match_expression_to_type(
 				break;
 			case ast::typespec_node_t::index_of<ast::ts_typename>:
 				bz_unreachable;
-				break;
 			default:
 				bz_unreachable;
-				break;
 			}
 		}
 	};

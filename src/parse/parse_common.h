@@ -51,9 +51,9 @@ inline lex::token_range get_tokens_in_curly(
 	else
 	{
 		bz_assert(stream->kind == lex::token::curly_close);
-		auto const end = stream;
+		auto const end_ = stream;
 		++stream; // '}'
-		return { begin, end };
+		return { begin, end_ };
 	}
 }
 

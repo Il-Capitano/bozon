@@ -160,7 +160,7 @@ static bz::u8string_view get_type_name_from_kind(uint32_t kind)
 	case ast::type_info::char_: return "char";
 	case ast::type_info::str_: return "str";
 	case ast::type_info::bool_: return "bool";
-	default: bz_unreachable; return "";
+	default: bz_unreachable;
 	}
 }
 
@@ -220,7 +220,8 @@ static auto get_constant_expression_values(
 
 #define undeclared_unary_message(op) "no match for unary operator " op " with type '{}'"
 
-ast::type_info *get_narrowest_type_info(uint64_t val, parse_context &context)
+/*
+static ast::type_info *get_narrowest_type_info(uint64_t val, parse_context &context)
 {
 	if (val <= std::numeric_limits<uint8_t>::max())
 	{
@@ -240,7 +241,7 @@ ast::type_info *get_narrowest_type_info(uint64_t val, parse_context &context)
 	}
 }
 
-ast::type_info *get_narrowest_type_info(int64_t val, parse_context &context)
+static ast::type_info *get_narrowest_type_info(int64_t val, parse_context &context)
 {
 	if (
 		val >= std::numeric_limits<int8_t>::min()
@@ -268,6 +269,7 @@ ast::type_info *get_narrowest_type_info(int64_t val, parse_context &context)
 		return context.get_base_type_info(ast::type_info::int64_);
 	}
 }
+*/
 
 // it's the same as a no-op
 // +sintN -> sintN
@@ -432,7 +434,6 @@ static ast::expression get_built_in_unary_minus(
 
 				default:
 					bz_unreachable;
-					break;
 				}
 
 				result_type = expr_t;
@@ -451,7 +452,6 @@ static ast::expression get_built_in_unary_minus(
 
 			default:
 				bz_unreachable;
-				break;
 			}
 
 			return ast::make_constant_expression(
@@ -657,7 +657,6 @@ static ast::expression get_built_in_unary_bit_not(
 
 			default:
 				bz_unreachable;
-				break;
 			}
 		}
 		else
@@ -1563,7 +1562,6 @@ static ast::expression get_built_in_binary_plus(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -1610,7 +1608,6 @@ static ast::expression get_built_in_binary_plus(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -1881,7 +1878,6 @@ static ast::expression get_built_in_binary_minus(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -3274,7 +3270,6 @@ static ast::expression get_built_in_binary_compare(
 			return ">=";
 		default:
 			bz_unreachable;
-			return "";
 		}
 	}();
 
@@ -3544,7 +3539,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 			return '|';
 		default:
 			bz_unreachable;
-			return '\0';
 		}
 	}();
 
@@ -3575,7 +3569,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -3617,7 +3610,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -3732,7 +3724,6 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 			return "|=";
 		default:
 			bz_unreachable;
-			return "";
 		}
 	}();
 
@@ -3887,7 +3878,6 @@ static ast::expression get_built_in_binary_bit_shift(
 						return { 64, "uint64" };
 					default:
 						bz_unreachable;
-						return { 0, "" };
 					}
 				}();
 				if (rhs_val >= lhs_bit_width)
@@ -4023,7 +4013,6 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 						return { 64, "uint64" };
 					default:
 						bz_unreachable;
-						return { 0, "" };
 					}
 				}();
 				if (rhs_val >= lhs_bit_width)
@@ -4120,7 +4109,6 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 			return "||";
 		default:
 			bz_unreachable;
-			return "";
 		}
 	}();
 
@@ -4151,7 +4139,6 @@ static ast::expression get_built_in_binary_bool_and_xor_or(
 					break;
 				default:
 					bz_unreachable;
-					break;
 				}
 				return ast::make_constant_expression(
 					src_tokens,
@@ -4389,19 +4376,18 @@ case ast::type_info::dest_t##_:                                                 
         return static_cast<ret_t>(static_cast<dest_t##_t>(value));                                  \
     }
 
-		CASE(int64_t, int8);
-		CASE(int64_t, int16);
-		CASE(int64_t, int32);
-		CASE(int64_t, int64);
-		CASE(uint64_t, uint8);
-		CASE(uint64_t, uint16);
-		CASE(uint64_t, uint32);
-		CASE(uint64_t, uint64);
-		CASE(float32_t, float32);
-		CASE(float64_t, float64);
+		CASE(int64_t, int8)
+		CASE(int64_t, int16)
+		CASE(int64_t, int32)
+		CASE(int64_t, int64)
+		CASE(uint64_t, uint8)
+		CASE(uint64_t, uint16)
+		CASE(uint64_t, uint32)
+		CASE(uint64_t, uint64)
+		CASE(float32_t, float32)
+		CASE(float64_t, float64)
 		default:
 			bz_unreachable;
-			return ast::constant_value();
 		}
 #undef CASE
 	};
@@ -4428,7 +4414,6 @@ case ast::type_info::dest_t##_:                                                 
 				break;
 			default:
 				bz_unreachable;
-				break;
 			}
 			return ast::make_constant_expression(
 				src_tokens,

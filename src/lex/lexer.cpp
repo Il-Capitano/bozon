@@ -30,37 +30,37 @@ bz::vector<token> get_tokens(
 }
 
 
-static constexpr bool is_num_char(char c)
+static constexpr bool is_num_char(bz::u8char c)
 {
 	return c >= '0' && c <= '9';
 }
 
-static constexpr bool is_oct_char(char c)
+static constexpr bool is_oct_char(bz::u8char c)
 {
 	return c >= '0' && c <= '7';
 }
 
-static constexpr bool is_bin_char(char c)
+static constexpr bool is_bin_char(bz::u8char c)
 {
 	return c == '0' || c == '1';
 }
 
-static constexpr bool is_alpha_char(char c)
+static constexpr bool is_alpha_char(bz::u8char c)
 {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static constexpr bool is_alphanum_char(char c)
+static constexpr bool is_alphanum_char(bz::u8char c)
 {
 	return is_num_char(c) || is_alpha_char(c);
 }
 
-static constexpr bool is_identifier_char(char c)
+static constexpr bool is_identifier_char(bz::u8char c)
 {
 	return is_alphanum_char(c) || c == '_';
 }
 
-static constexpr bool is_whitespace_char(char c)
+static constexpr bool is_whitespace_char(bz::u8char c)
 {
 	return c == ' '
 		|| c == '\t'

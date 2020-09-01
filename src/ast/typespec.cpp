@@ -479,7 +479,6 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		return true;
 	default:
 		bz_unreachable;
-		return false;
 	}
 }
 

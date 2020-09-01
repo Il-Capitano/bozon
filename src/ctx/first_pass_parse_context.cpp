@@ -59,7 +59,6 @@ void first_pass_parse_context::report_paren_match_error(
 				: bz::format("expected closing } before '{}'", it->value);
 		default:
 			bz_unreachable;
-			return bz::u8string();
 		}
 	}();
 	this->report_error(

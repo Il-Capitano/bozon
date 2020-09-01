@@ -145,7 +145,7 @@ public:
 		}
 		else
 		{
-			this->_power_of_two_reserve(other._alloc_end - other._data_begin);
+			this->_power_of_two_reserve(static_cast<size_t>(other._alloc_end - other._data_begin));
 			std::memcpy(this->_data_begin, other._data_begin, size);
 			this->_data_end = this->_data_begin + size;
 		}
@@ -187,7 +187,7 @@ public:
 		if (c < (1u << 7))
 		{
 			this->reserve(length);
-			std::memset(this->_begin_ptr(), c, length);
+			std::memset(this->_begin_ptr(), static_cast<int>(c), length);
 			if (this->_is_short_string())
 			{
 				this->_set_short_string_size(length);
@@ -289,7 +289,7 @@ public:
 		else
 		{
 			this->_set_to_null();
-			this->_power_of_two_reserve(rhs._alloc_end - rhs._data_begin);
+			this->_power_of_two_reserve(static_cast<size_t>(rhs._alloc_end - rhs._data_begin));
 			std::memcpy(this->_data_begin, rhs._data_begin, size);
 			this->_data_end = this->_data_begin + size;
 		}
@@ -514,7 +514,7 @@ public:
 
 			if (this->_is_short_string())
 			{
-				this->_set_short_string_size(trail - this->_short_string_begin());
+				this->_set_short_string_size(static_cast<size_t>(trail - this->_short_string_begin()));
 			}
 			else
 			{
@@ -528,23 +528,23 @@ public:
 			if (c <= internal::max_two_byte_char)
 			{
 				char_size = 2;
-				encoded_char[0] = 0b1100'0000 | (c >> 6);
-				encoded_char[1] = 0b1000'0000 | ((c >> 0) & 0b0011'1111);
+				encoded_char[0] = static_cast<uint8_t>(0b1100'0000 | (c >> 6));
+				encoded_char[1] = static_cast<uint8_t>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
 			}
 			else if (c <= internal::max_three_byte_char)
 			{
 				char_size = 3;
-				encoded_char[0] = 0b1110'0000 | (c >> 12);
-				encoded_char[1] = 0b1000'0000 | ((c >> 6) & 0b0011'1111);
-				encoded_char[2] = 0b1000'0000 | ((c >> 0) & 0b0011'1111);
+				encoded_char[0] = static_cast<uint8_t>(0b1110'0000 | (c >> 12));
+				encoded_char[1] = static_cast<uint8_t>(0b1000'0000 | ((c >> 6) & 0b0011'1111));
+				encoded_char[2] = static_cast<uint8_t>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
 			}
 			else
 			{
 				char_size = 4;
-				encoded_char[0] = 0b1111'0000 | (c >> 18);
-				encoded_char[1] = 0b1000'0000 | ((c >> 12) & 0b0011'1111);
-				encoded_char[2] = 0b1000'0000 | ((c >>  6) & 0b0011'1111);
-				encoded_char[3] = 0b1000'0000 | ((c >>  0) & 0b0011'1111);
+				encoded_char[0] = static_cast<uint8_t>(0b1111'0000 | (c >> 18));
+				encoded_char[1] = static_cast<uint8_t>(0b1000'0000 | ((c >> 12) & 0b0011'1111));
+				encoded_char[2] = static_cast<uint8_t>(0b1000'0000 | ((c >>  6) & 0b0011'1111));
+				encoded_char[3] = static_cast<uint8_t>(0b1000'0000 | ((c >>  0) & 0b0011'1111));
 			}
 
 			auto const is_char = [
@@ -583,7 +583,7 @@ public:
 
 			if (this->_is_short_string())
 			{
-				this->_set_short_string_size(trail - this->_short_string_begin());
+				this->_set_short_string_size(static_cast<size_t>(trail - this->_short_string_begin()));
 			}
 			else
 			{

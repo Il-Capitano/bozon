@@ -86,9 +86,9 @@ struct decl_set
 		}
 		else
 		{
-			for (auto const func : func_set.func_decls)
+			for (auto const decl : func_set.func_decls)
 			{
-				set->func_decls.push_back(func);
+				set->func_decls.push_back(decl);
 			}
 		}
 	}
@@ -108,9 +108,9 @@ struct decl_set
 		}
 		else
 		{
-			for (auto const op : op_set.op_decls)
+			for (auto const decl : op_set.op_decls)
 			{
-				set->op_decls.push_back(op);
+				set->op_decls.push_back(decl);
 			}
 		}
 	}

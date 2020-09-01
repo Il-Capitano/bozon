@@ -29,7 +29,7 @@ static_assert(ast::type_info::bool_    == 12);
 static_assert(ast::type_info::null_t_  == 13);
 
 
-auto get_default_type_infos(void)
+static auto get_default_type_infos(void)
 {
 	return std::array{
 		ast::type_info::make_built_in("int8",     ast::type_info::int8_),
@@ -98,8 +98,8 @@ decl_set get_default_decls(void)
 	};
 }
 
-global_context::global_context(src_manager &_src_manager)
-	: _src_manager(_src_manager),
+global_context::global_context(src_manager &manager)
+	: _src_manager(manager),
 	  _compile_decls{},
 	  _errors{},
 	  _llvm_context(),
