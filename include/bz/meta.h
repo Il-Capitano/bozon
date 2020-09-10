@@ -4,6 +4,7 @@
 #include "core.h"
 
 #include <type_traits>
+#include <limits>
 
 bz_begin_namespace
 
