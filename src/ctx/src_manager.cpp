@@ -66,7 +66,9 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool src_manager::initialize_llvm(void)
 {
-	auto const target_triple = target == "" ? llvm::sys::getDefaultTargetTriple() : std::string(target.data_as_char_ptr(), target.size());
+	auto const target_triple = target == "" || target == "native"
+		? llvm::sys::getDefaultTargetTriple()
+		: std::string(target.data_as_char_ptr(), target.size());
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
 	llvm::InitializeAllTargetMCs();
@@ -111,7 +113,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	this->_global_ctx._module.setDataLayout(*this->_global_ctx._data_layout);
 	this->_global_ctx._module.setTargetTriple(target_triple);
 
-	auto const triple = llvm::Triple(target_triple);
+	auto const triple = this->_global_ctx._target_machine->getTargetTriple();
 	auto const os = triple.getOS();
 	auto const arch = triple.getArch();
 
