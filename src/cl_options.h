@@ -19,17 +19,21 @@ constexpr std::array Wall_indicies = {
 	static_cast<size_t>(ctx::warning_kind::unused_variable),
 };
 
+inline bz::u8string dummy_flag_value;
+
 constexpr auto warning_group = []() {
 	std::array<cl::group_element_t, ctx::warning_infos.size() + 1> result{};
 
-	for (size_t i = 0; i < ctx::warning_infos.size(); ++i)
+	size_t i = 0;
+	for (i = 0; i < ctx::warning_infos.size(); ++i)
 	{
 		bz_assert(static_cast<size_t>(ctx::warning_infos[i].kind) == i);
-		result[i] = cl::create_group_element(ctx::warning_infos[i].name, ctx::warning_infos[i].description);
+		result[i] = cl::create_group_element(ctx::warning_infos[i].name, ctx::warning_infos[i].description, i);
 	}
 
-	result.back() = cl::create_group_element("all", "Enable all warnings", Wall_indicies);
+	result[i++] = cl::create_group_element("all", "Enable all warnings", Wall_indicies);
 
+	bz_assert(i == result.size());
 	return result;
 }();
 

@@ -19,7 +19,6 @@ using parse_fn_t = bz::optional<bz::u8string> (*)(iter_t begin, iter_t end, iter
 enum class parser_kind
 {
 	flag,
-	multiple_flag,
 	prefix,
 	argument,
 	group,
@@ -57,6 +56,20 @@ struct arg_parser<size_t>
 	static bz::result<size_t, bz::u8string> parse(bz::u8string_view arg);
 };
 
+namespace internal
+{
+
+constexpr bool is_valid_flag_char(bz::u8char c)
+{
+	return c > ' '
+		&& c != ','
+		&& c != '='
+		&& c != '<' && c != '>'
+		&& c != '[' && c != ']'
+		&& c != '(' && c != ')'
+		&& c != '{' && c != '}';
+}
+
 template<bool *output>
 bz::optional<bz::u8string> default_flag_parser(iter_t begin, iter_t end, iter_t &stream)
 {
@@ -77,45 +90,254 @@ bz::optional<bz::u8string> default_flag_parser(iter_t begin, iter_t end, iter_t 
 	}
 };
 
-// syntax:
-// --flag-name             a simple bool flag
-// --flag-name=<value>     equals flag
+// -f <value>
 // --flag-name <value>
-// -h, --help              multiple option simple bool flag
-template<auto *output>
-constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
+constexpr void check_argument_parser_syntax(bz::u8string_view usage)
 {
-	bz_assert(usage.starts_with("-"));
-	auto const is_valid_char = [](bz::u8char c) {
-		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '-';
-	};
-
-	auto const begin = usage.begin();
+	auto it = usage.begin();
 	auto const end = usage.end();
-	auto it = begin;
-	++it;
-	bz_assert(it != end);
-	if (*it == '-')
+
+	while (it != end && is_valid_flag_char(*it))
 	{
 		++it;
 	}
 
-	while (it != end && is_valid_char(*it))
+	bz_assert(it != end && *it == ' ', "usage doesn't follow the syntax --flag-name <value> (no space after '--flag-name')");
+	++it; // ' '
+	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax --flag-name <value> (missing '<' after '--flag-name ')");
+	++it; // '<'
+
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax --flag-name <value> (missing '>' after '--flag-name <value')");
+	++it;
+	bz_assert(it == end, "usage doesn't follow the syntax --flag-name <value> (usage doesn't end after '>')");
+}
+
+template<auto *output>
+bz::optional<bz::u8string> default_argument_parser(iter_t begin, iter_t end, iter_t &stream)
+{
+	bz_assert(stream != end);
+	static iter_t init_iter = nullptr;
+	auto const flag_iter = stream;
+	if (init_iter == nullptr)
+	{
+		auto const flag_name = *stream;
+		++stream;
+		if (stream == end)
+		{
+			return bz::format("expected an argument after '{}'", flag_name);
+		}
+		auto const arg = *stream;
+		++stream;
+		auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+		if (result.has_error())
+		{
+			return result.get_error();
+		}
+		else
+		{
+			init_iter = flag_iter;
+			*output = result.get_result();
+			return {};
+		}
+	}
+	else
+	{
+		++stream;
+		if (stream != end)
+		{
+			++stream;
+		}
+		return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
+	}
+}
+
+// -f=<value>
+// --flag-name=<value>
+constexpr void check_equals_parser_syntax(bz::u8string_view usage)
+{
+	auto it = usage.begin();
+	auto const end = usage.end();
+
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+
+	bz_assert(it != end && *it == '=', "usage doesn't follow the syntax --flag-name=<value> (missing '=' after '--flag-name')");
+	++it; // ' '
+	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax --flag-name=<value> (missing '<' after '--flag-name=')");
+	++it; // '<'
+
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax --flag-name=<value> (missing '>' after '--flag-name=<value')");
+	++it;
+	bz_assert(it == end, "usage doesn't follow the syntax --flag-name=<value> (usage doesn't end after '>')");
+}
+
+template<auto *output>
+bz::optional<bz::u8string> default_equals_parser(iter_t begin, iter_t end, iter_t &stream)
+{
+	bz_assert(stream != end);
+	static iter_t init_iter = nullptr;
+	auto const flag_iter = stream;
+	if (init_iter == nullptr)
+	{
+		auto const stream_value = *stream;
+		++stream;
+		auto const it = stream_value.find('=') + 1;
+		auto const arg = bz::u8string_view(it, stream_value.end());
+		if (arg == "")
+		{
+			return bz::format("expected an argument after '{}'", bz::u8string_view(stream_value.begin(), it));
+		}
+		auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+		if (result.has_error())
+		{
+			return result.get_error();
+		}
+		else
+		{
+			*output = result.get_result();
+			init_iter = flag_iter;
+			return {};
+		}
+	}
+	else
+	{
+		auto const flag_name = bz::u8string_view(flag_iter->begin(), flag_iter->find('='));
+		++stream;
+		return bz::format("option '{}' has already been set by argument '{}', at position {}", flag_name, *init_iter, init_iter - begin);
+	}
+}
+
+constexpr void check_multiple_flag_parser_syntax(bz::u8string_view usage)
+{
+	bz_assert(usage.starts_with("-"), "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (usage doesn't start with '-')");
+	bz_assert(!usage.starts_with("--"), "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (usage starts with '--')");
+	auto it = usage.begin();
+	auto const end = usage.end();
+	++it; // '-'
+
+	bz_assert(it != end && is_valid_flag_char(*it), "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing character after '-')");
+	++it;
+	bz_assert(it != end && *it == ',', "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing ',' after first flag name)");
+	++it;
+	bz_assert(it != end && *it == ' ', "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing ' ' after ',')");
+	++it;
+	bz_assert(it != end && *it == '-', "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing the second flag)");
+	++it;
+	bz_assert(it != end && *it == '-', "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing second '-' in second flag)");
+	++it;
+
+	while (it != end && is_valid_flag_char(*it))
 	{
 		++it;
 	}
 
 	if (it == end)
 	{
+		return;
+	}
+
+	bz_assert(it != end && *it == ' ', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing ' ' after second flag name)");
+	++it;
+	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing '<' after ' ')");
+	++it;
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing '>' after value name)");
+	++it;
+	bz_assert(it == end, "usage doesn't follow the syntax '-f, --flag-name <value>' (usage doesn't end after '>')");
+}
+
+constexpr std::pair<bz::u8string_view, bz::u8string_view> get_multiple_flag_names(bz::u8string_view usage)
+{
+	auto it = usage.begin();
+	auto const end = usage.end();
+
+	auto const first_flag_name_begin = it;
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it != end);
+	auto const first_flag_name = bz::u8string_view(first_flag_name_begin, it);
+
+	bz_assert(*it == ',');
+	++it;
+	bz_assert(it != end && *it == ' ');
+	++it;
+	bz_assert(it != end && *it == '-');
+
+	auto const second_flag_name_begin = it;
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	auto const second_flag_name = bz::u8string_view(second_flag_name_begin, it);
+
+	return { first_flag_name, second_flag_name };
+}
+
+constexpr bool is_multiple_flag_argument(bz::u8string_view usage)
+{
+	auto const [first, second] = get_multiple_flag_names(usage);
+	return usage.length() > (first.length() + second.length() + 2);
+}
+
+} // namespace internal
+
+// syntax:
+// -f
+// --flag-name             simple bool flag
+// -f <value>
+// --flag-name <value>     argument flag
+// -f=<value>
+// --flag-name=<value>     equals flag
+// -f, --flag-name         multiple option simple bool flag
+// -f, --flag-name <value> multiple option argument flag
+template<auto *output>
+constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
+{
+	bz_assert(usage.starts_with("-"));
+
+	auto const begin = usage.begin();
+	auto const end = usage.end();
+	auto it = begin;
+	++it; // '-'
+	bz_assert(it != end);
+	if (*it == '-')
+	{
+		++it;
+		bz_assert(it != end && internal::is_valid_flag_char(*it) && *it != '-', "expected a flag character after '--'");
+	}
+	else
+	{
+		bz_assert(internal::is_valid_flag_char(*it), "expected a flag character after '-'");
+		bz_assert(it + 1 == end || !internal::is_valid_flag_char(*(it + 1)), "flag starting with a single '-' must be one character long");
+	}
+
+	while (it != end && internal::is_valid_flag_char(*it))
+	{
+		++it;
+	}
+
+	if (it == end)
+	{
+		// assert that the output is bool
+		bz_assert((bz::meta::is_same<decltype(output), bool *>), "a flag with no argument must have an output type of 'bool'");
 		if constexpr (bz::meta::is_same<decltype(output), bool *>)
 		{
-			// assert that the output is bool
-			bz_assert((bz::meta::is_same<decltype(output), bool *>));
-			return parser{ parser_kind::flag, usage, "", usage, help, &default_flag_parser<output> };
-		}
-		else
-		{
-			bz_unreachable;
+			return parser{ parser_kind::flag, usage, "", usage, help, &internal::default_flag_parser<output> };
 		}
 	}
 
@@ -123,125 +345,42 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 	{
 	case ' ':
 	{
+		internal::check_argument_parser_syntax(usage);
 		auto const flag_name = bz::u8string_view(begin, it);
-		++it;
-		bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '--flag-name <value>' (missing '<')");
-		++it;
-		while (it != end && is_valid_char(*it))
-		{
-			++it;
-		}
-		bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '--flag-name <value>' (missing '>')");
-		++it;
-		bz_assert(it == end, "flag doesn't follow the syntax '--flag-name <value>' (string doesn't end after '>')");
-		auto const parse_fn = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
-			bz_assert(stream != end);
-			static iter_t init_iter = nullptr;
-			if (init_iter == nullptr)
-			{
-				init_iter = stream;
-				auto const flag_name = *stream;
-				++stream;
-				if (stream == end)
-				{
-					return bz::format("expected an argument after '{}'", flag_name);
-				}
-				auto const arg = *stream;
-				auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
-				if (result.has_error())
-				{
-					return result.get_error();
-				}
-				else
-				{
-					*output = result.get_result();
-					return {};
-				}
-			}
-			else
-			{
-				auto const flag_iter = stream;
-				++stream;
-				if (stream != end)
-				{
-					++stream;
-				}
-				return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
-			}
-		};
+		auto const parse_fn = &internal::default_argument_parser<output>;
 		return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn };
 	}
 	case '=':
 	{
 		++it;
+		internal::check_equals_parser_syntax(usage);
 		auto const prefix_name = bz::u8string_view(begin, it);
-		bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '--flag-name=<value>' (missing '<')");
-		++it;
-		while (it != end && is_valid_char(*it))
-		{
-			++it;
-		}
-		bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '--flag-name=<value>' (missing '>')");
-		++it;
-		bz_assert(it == end, "flag doesn't follow the syntax '--flag-name=<value>' (flag doesn't end after '>')");
-		auto const parse_fn = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
-			bz_assert(stream != end);
-			static iter_t init_iter = nullptr;
-			if (init_iter == nullptr)
-			{
-				auto const stream_value = *stream;
-				++stream;
-				auto const it = stream_value.find('=') + 1;
-				auto const arg = bz::u8string_view(it, stream_value.end());
-				if (arg == "")
-				{
-					return bz::format("expected an argument for '{}'", bz::u8string_view(stream_value.begin(), it));
-				}
-				auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
-				if (result.has_error())
-				{
-					return result.get_error();
-				}
-				else
-				{
-					*output = result.get_result();
-					return {};
-				}
-			}
-			else
-			{
-				auto const flag_iter = stream;
-				++stream;
-				return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
-			}
-		};
+		auto const parse_fn = &internal::default_equals_parser<output>;
 		return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn };
 	}
 	case ',':
 	{
-		if constexpr (bz::meta::is_same<decltype(output), bool *>)
+		internal::check_multiple_flag_parser_syntax(usage);
+		auto const [first_flag_name, second_flag_name] = internal::get_multiple_flag_names(usage);
+		auto const is_argument = internal::is_multiple_flag_argument(usage);
+
+		if (is_argument)
 		{
-			bz_assert(!usage.starts_with("--"), "flag doesn't follow the syntax '-f, --flag-name' (first flag starts with '--')");
-			auto const first_flag_name = bz::u8string_view(begin, it);
-			bz_assert(first_flag_name.length() == 2, "flag doesn't follow the syntax '-f, --flag-name' (first flag is not a single character)");
-			++it;
-			bz_assert(it != end && *it == ' ', "flag doesn't follow the syntax '-f, --flag-name' (missing space after comma)");
-			++it;
-			auto const second_flag_begin = it;
-			bz_assert(bz::u8string_view(it, end).starts_with("--"), "flag doesn't follow the syntax '-f, --flag-name' (second flag doesn't start with '--')");
-			++it; ++it;
-			while (it != end && is_valid_char(*it))
-			{
-				++it;
-			}
-			bz_assert(it == end, "flag doesn't follow the syntax '-f, --flag-name' (second flag doesn't end after the name)");
-			auto const second_flag_name = bz::u8string_view(second_flag_begin, end);
-			bz_assert(second_flag_name.length() >= 3, "flag doesn't follow the syntax '-f, --flag-name' (second flag has no name)");
-			return parser{ parser_kind::multiple_flag, first_flag_name, second_flag_name, usage, help, &default_flag_parser<output> };
+			auto const parse_fn = &internal::default_argument_parser<output>;
+			return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn };
 		}
 		else
 		{
-			bz_unreachable;
+			bz_assert((bz::meta::is_same<decltype(output), bool *>), "a flag with no argument must have an output type of 'bool'");
+			if constexpr (bz::meta::is_same<decltype(output), bool *>)
+			{
+				auto const parse_fn = &internal::default_flag_parser<output>;
+				return parser{ parser_kind::flag, first_flag_name, second_flag_name, usage, help, parse_fn };
+			}
+			else
+			{
+				bz_unreachable;
+			}
 		}
 	}
 	default:
@@ -251,30 +390,108 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 
 struct group_element_t
 {
-	bz::u8string_view flag_name{};
-	bz::u8string_view help{};
+	bz::u8string_view            flag_name{};
+	bz::u8string_view            usage{};
+	bz::u8string_view            help{};
+	size_t                       index;
 	bz::array_view<size_t const> enable_group{};
+	parse_fn_t                   parse_fn;
 };
 
-constexpr group_element_t create_group_element(bz::u8string_view usage, bz::u8string_view help)
+// syntax:
+// item-name    simple bool flag
+constexpr group_element_t create_group_element(bz::u8string_view usage, bz::u8string_view help, size_t index)
 {
-	for (auto const c : usage)
-	{
-		bz_assert((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '-', "flag must be of the form 'flag-name'");
-	}
 	bz_assert(bz::constexpr_not_equals(usage, "help"), "'help' is reserved in groups");
-	return group_element_t{ usage, help, {} };
+	auto it = usage.begin();
+	auto const end = usage.end();
+	bz_assert(it != end, "usage doesn't follow the syntax 'item-name' (usage is empty)");
+	while (it != end && internal::is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it == end, "item doesn't follow the syntax 'item-name' (usage doesn't end after name)");
+	return group_element_t{ usage, usage, help, index, {}, nullptr };
 }
 
+// syntax:
+// item-name    simple bool flag
 template<size_t N>
 constexpr group_element_t create_group_element(bz::u8string_view usage, bz::u8string_view help, std::array<size_t, N> const &enable_group)
 {
-	for (auto const c : usage)
-	{
-		bz_assert((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '-', "flag must be of the form 'flag-name'");
-	}
 	bz_assert(bz::constexpr_not_equals(usage, "help"), "'help' is reserved in groups");
-	return group_element_t{ usage, help, { enable_group.data(), enable_group.data() + enable_group.size() } };
+	auto it = usage.begin();
+	auto const end = usage.end();
+	bz_assert(it != end, "usage doesn't follow the syntax 'item-name' (usage is empty)");
+	while (it != end && internal::is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it == end, "item doesn't follow the syntax 'item-name' (usage doesn't end after name)");
+	return group_element_t{ usage, usage, help, size_t(-1), { enable_group.data(), enable_group.data() + enable_group.size() }, nullptr };
+}
+
+// syntax:
+// item-name=<value>    equals flag
+template<auto *output>
+constexpr group_element_t create_group_element(bz::u8string_view usage, bz::u8string_view help)
+{
+	auto const begin = usage.begin();
+	auto const end   = usage.end();
+	auto it = begin;
+	bz_assert(it != end, "usage doesn't follow the syntax 'item-name=<value>' (usage is empty)");
+	while (it != end && internal::is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	auto const item_name = bz::u8string_view(begin, it);
+	bz_assert(bz::constexpr_not_equals(item_name, "help"), "'help' is reserved in groups");
+	bz_assert(it != end && *it == '=', "usage doesn't follow the syntax 'item-name=<value>' (missing '=' after item name)");
+	++it;
+	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax 'item-name=<value>' (missing '<' after '=')");
+	++it;
+	while (it != end && internal::is_valid_flag_char(*it))
+	{
+		++it;
+	}
+	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax 'item-name=<value>' (missing '>' after value name)");
+	++it;
+	bz_assert(it == end, "usage doesn't follow the syntax 'item-name=<value>' (usage doesn't end after '>')");
+	auto const parse_fn = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
+		bz_assert(stream != end);
+		static iter_t init_iter = nullptr;
+		auto const flag_iter = stream;
+		if (init_iter == nullptr)
+		{
+			auto const stream_value = *stream;
+			++stream;
+			auto const it = stream_value.find('=') + 1;
+			auto const arg = bz::u8string_view(it, stream_value.end());
+			if (arg == "")
+			{
+				auto const flag_name = bz::u8string_view(stream_value.begin() + 2, it);
+				return bz::format("expected an argument after '{}'", flag_name);
+			}
+			auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+			if (result.has_error())
+			{
+				return result.get_error();
+			}
+			else
+			{
+				*output = result.get_result();
+				init_iter = flag_iter;
+				return {};
+			}
+		}
+		else
+		{
+			auto const flag_name = bz::u8string_view(flag_iter->begin() + 2, flag_iter->find('='));
+			++stream;
+			return bz::format("option '{}' has already been set by argument '{}', at position {}", flag_name, *init_iter, init_iter - begin);
+		}
+	};
+	return group_element_t{ item_name, usage, help, size_t(-1), {}, parse_fn };
 }
 
 namespace internal
@@ -288,49 +505,114 @@ constexpr bool is_array<std::array<T, N>> = true;
 
 } // namespace internal
 
-template<auto &group, auto &output, bool *help_out>
+// syntax:
+// -F<item>           simple bool flag enabler
+// -F<item>=<value>   items with a <value> argument
+// -F<item>[=<value>] only some items have <value> argument
+// -Fno-<item>        disabler (only bool flags)
+template<auto &group_, auto &bool_output_, bool *help_out>
 constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view help)
 {
-	using group_t = bz::meta::remove_cv_reference<decltype(group)>;
-	using output_t = bz::meta::remove_reference<decltype(output)>;
+	using group_t = bz::meta::remove_cv_reference<decltype(group_)>;
+	using bool_output_t = bz::meta::remove_reference<decltype(bool_output_)>;
 	static_assert(internal::is_array<group_t>);
-	static_assert(internal::is_array<output_t>);
-	static_assert(bz::meta::is_same<group_t, std::array<group_element_t, group.size()>>);
-	static_assert(bz::meta::is_same<output_t, std::array<bool, output.size()>>);
-	auto const is_valid_char = [](bz::u8char c) {
-		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '-';
-	};
+	static_assert(internal::is_array<bool_output_t>);
+	static_assert(bz::meta::is_same<group_t, std::array<group_element_t, group_.size()>>);
+	static_assert(bz::meta::is_same<bool_output_t, std::array<bool, bool_output_.size()>>);
+
+	group_t const &group = group_;
+	bool_output_t &bool_output = bool_output_;
+
+	constexpr auto group_bool_count = [&]() {
+		size_t count = 0;
+		for (auto const &g : group)
+		{
+			if (g.enable_group.empty() && g.parse_fn == nullptr)
+			{
+				++count;
+			}
+		}
+		return count;
+	}();
+	constexpr auto group_equals_count = [&]() {
+		size_t count = 0;
+		for (auto const &g : group)
+		{
+			if (g.parse_fn != nullptr)
+			{
+				++count;
+			}
+		}
+		return count;
+	}();
+	static_assert(group_bool_count == bool_output.size(), "number of bool group flags doesn't match the output array size");
 
 	auto const begin = usage.begin();
 	auto const end = usage.end();
 	auto it = begin;
-	bz_assert(it != end && *it == '-', "flag doesn't follow the syntax '-f<value>' (flag doesn't start with '-')");
+	bz_assert(it != end && *it == '-', "flag doesn't follow the syntax '-f<item>' (flag doesn't start with '-')");
 	++it;
 	bz_assert(it != end && [](bz::u8char c) {
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-	}(*it), "flag doesn't follow the syntax '-f<value>' (second character must be a letter)");
+	}(*it), "flag doesn't follow the syntax '-f<item>' (second character must be a letter)");
 	++it;
-	bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '-f<value>' (missing '<')");
+	bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '-f<item>' (missing '<')");
 	++it;
-	while (it != end && is_valid_char(*it))
+	while (it != end && internal::is_valid_flag_char(*it))
 	{
 		++it;
 	}
-	bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '-f<value>' (missing '>')");
+	bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '-f<item>' (missing '>')");
 	++it;
-	bz_assert(it == end, "flag doesn't follow the syntax '-f<value>' (flag must end after '>')");
-
-	using T = bz::meta::integral_constant<size_t, output.size()>;
+	if constexpr (group_bool_count == 0)
+	{
+		static_assert(group_equals_count != 0);
+		bz_assert(it != end && *it == '=', "flag doesn't follow the syntax '-f<item>=<value>' (missing '=')");
+		++it;
+		bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '-f<item>=<value>' (missing '<' after '=')");
+		++it;
+		while (it != end && internal::is_valid_flag_char(*it))
+		{
+			++it;
+		}
+		bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '-f<item>=<value>' (missing '>' after value name)");
+		++it;
+		bz_assert(it == end, "flag doesn't follow the syntax '-f<item>=<value>' (usage doesn't end after '>')");
+	}
+	else if constexpr (group_equals_count != 0)
+	{
+		bz_assert(it != end && *it == '[', "flag doesn't follow the syntax '-f<item>[=<value>]' (missing '[')");
+		++it;
+		bz_assert(it != end && *it == '=', "flag doesn't follow the syntax '-f<item>[=<value>]' (missing '=')");
+		++it;
+		bz_assert(it != end && *it == '<', "flag doesn't follow the syntax '-f<item>[=<value>]' (missing '<' after '=')");
+		++it;
+		while (it != end && internal::is_valid_flag_char(*it))
+		{
+			++it;
+		}
+		bz_assert(it != end && *it == '>', "flag doesn't follow the syntax '-f<item>[=<value>]' (missing '>' after value name)");
+		++it;
+		bz_assert(it != end && *it == ']', "flag doesn't follow the syntax '-f<item>[=<value>]' (missing ']' after '>')");
+		++it;
+		bz_assert(it == end, "flag doesn't follow the syntax '-f<item>[=<value>]' (usage doesn't end after ']')");
+	}
+	else
+	{
+		bz_assert(it == end, "flag doesn't follow the syntax '-f<item>' (usage doesn't end after '>')");
+	}
 
 	auto const parser = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
 		bz_assert(stream != end);
-		auto const flag_it = stream;
 		auto const full_flag_val = *stream;
-		++stream;
-		auto flag_val = full_flag_val.substring(2);
-		static std::array<std::pair<int, iter_t>, T::value> enables;
+		auto const equals_it = full_flag_val.find('=');
+		auto flag_val = bz::u8string_view(full_flag_val.begin() + 2, equals_it);
+		static std::array<std::pair<int, iter_t>, bool_output.size()> enables;
 
-		auto const modify_flag = [=](bz::u8string_view flag_val, bool value) -> bz::optional<bz::u8string> {
+		auto const modify_flag = [
+			full_flag_val, equals_it,
+			begin, end, &stream
+		](bz::u8string_view flag_val, bool value) -> bz::optional<bz::u8string> {
 			auto const it = std::find_if(
 				group.begin(), group.end(),
 				[flag_val](auto const &flag) {
@@ -340,11 +622,14 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 
 			if (it == group.end())
 			{
+				++stream;
 				return bz::format("unknown option '{}' for '{}'", flag_val, full_flag_val.substring(0, 2));
 			}
-			else if (it->enable_group.empty())
+			else if (it->index != size_t(-1))
 			{
-				auto const index = static_cast<size_t>(it - group.begin());
+				auto const flag_it = stream;
+				++stream;
+				auto const index = it->index;
 				switch (enables[index].first)
 				{
 				case -2:
@@ -357,7 +642,7 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 				case  0:
 				case  1:
 					enables[index] = { value ? 2 : -2, flag_it };
-					output[index] = value;
+					bool_output[index] = value;
 					return {};
 				case  2:
 					return bz::format(
@@ -368,8 +653,22 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 					bz_unreachable;
 				}
 			}
+			else if (value && it->parse_fn != nullptr)
+			{
+				if (equals_it == full_flag_val.end())
+				{
+					++stream;
+					return bz::format("expected an argument for option '{}'", flag_val);
+				}
+				else
+				{
+					return it->parse_fn(begin, end, stream);
+				}
+			}
 			else if (value)
 			{
+				auto const flag_it = stream;
+				++stream;
 				bz_assert(it->enable_group.size() > 0);
 				for (auto const index : it->enable_group)
 				{
@@ -381,7 +680,7 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 						bz_unreachable;
 					case  0:
 						enables[index] = { 1, flag_it };
-						output[index] = true;
+						bool_output[index] = true;
 						break;
 					case  1:
 						break;
@@ -395,7 +694,8 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 			}
 			else
 			{
-				return bz::format("unknown option '{}' for '{}'", flag_val, full_flag_val.substring(0, 2));
+				++stream;
+				return bz::format("unknown option '{}' for '{}'", flag_val, full_flag_val.substring(0, value ? 2 : 5));
 			}
 		};
 
@@ -405,7 +705,8 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 			if (help_it == nullptr)
 			{
 				*help_out = true;
-				help_it = flag_it;
+				help_it = stream;
+				++stream;
 				return {};
 			}
 			else
@@ -444,22 +745,15 @@ constexpr auto create_parser_function(void)
 			(((void)(done || ([&]() {
 				if constexpr (parsers[Ns].kind == parser_kind::flag)
 				{
-					constexpr auto flag_name = parsers[Ns].flag_name;
-					constexpr auto parse_fn  = parsers[Ns].parse_fn;
-
-					if (flag_val == flag_name)
-					{
-						result = parse_fn(begin, end, stream);
-						done = true;
-					}
-				}
-				else if constexpr (parsers[Ns].kind == parser_kind::multiple_flag)
-				{
 					constexpr auto first_flag_name  = parsers[Ns].flag_name;
 					constexpr auto second_flag_name = parsers[Ns].alternate_flag_name;
 					constexpr auto parse_fn  = parsers[Ns].parse_fn;
+					constexpr bool has_second_flag = bz::constexpr_not_equals(second_flag_name, "");
 
-					if (flag_val == first_flag_name || flag_val == second_flag_name)
+					if (
+						flag_val == first_flag_name
+						|| (has_second_flag && flag_val == second_flag_name)
+					)
 					{
 						result = parse_fn(begin, end, stream);
 						done = true;
@@ -615,8 +909,8 @@ bz::u8string get_group_help_string(
 	}
 
 	std::sort(indicies.begin(), indicies.end(), [](size_t lhs, size_t rhs) {
-		auto const lhs_flag = group[lhs].flag_name;
-		auto const rhs_flag = group[rhs].flag_name;
+		auto const lhs_flag = group[lhs].usage;
+		auto const rhs_flag = group[rhs].usage;
 		auto const lhs_is_group = !group[lhs].enable_group.empty();
 		auto const rhs_is_group = !group[rhs].enable_group.empty();
 
@@ -648,7 +942,7 @@ bz::u8string get_group_help_string(
 			usages.emplace_back("");
 			helps.emplace_back("");
 		}
-		usages.emplace_back(group[index].flag_name);
+		usages.emplace_back(group[index].usage);
 		helps.emplace_back(group[index].help);
 	}
 
