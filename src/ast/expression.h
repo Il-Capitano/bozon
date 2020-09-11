@@ -156,6 +156,12 @@ struct expression : bz::variant<
 		return this->get<constant_expression>().value.get<constant_value::type>();
 	}
 
+	bool is_tuple(void) const noexcept
+	{
+		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
+			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
+	}
+
 	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const noexcept
 	{
 		switch (this->kind())
