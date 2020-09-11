@@ -1098,7 +1098,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 	{
 		notes.push_back(context.make_note(
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-			"implicit conversion between between different floating-point types is not allowed"
+			"implicit conversion between different floating-point types is not allowed"
 		));
 		suggestions.push_back(create_explicit_cast_suggestion(
 			rhs, op_prec,
@@ -1163,7 +1163,7 @@ make_arithmetic_error_notes_and_suggestions(
 	{
 		notes.push_back(context.make_note(
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-			"implicit conversion between between different floating-point types is not allowed"
+			"implicit conversion between different floating-point types is not allowed"
 		));
 		if (lhs_kind > rhs_kind)
 		{
