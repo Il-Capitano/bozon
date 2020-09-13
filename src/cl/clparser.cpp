@@ -203,7 +203,7 @@ bz::u8string get_help_string(
 		}
 		else
 		{
-			result += bz::format("{}{:{}}{}\n", initial_indent, usage_width, usage, help);
+			result += bz::format("{}{:{}}{}\n", initial_indent, usage_width, usage, formatted_help);
 		}
 	}
 
