@@ -143,9 +143,9 @@ static llvm::Value *get_constant_zero(
 	}
 	case ast::typespec_node_t::index_of<ast::ts_array>:
 		return llvm::ConstantArray::getNullValue(llvm_type);
-
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		bz_unreachable;
+		return llvm::ConstantAggregate::getNullValue(llvm_type);
+
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 	case ast::typespec_node_t::index_of<ast::ts_void>:
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
@@ -2557,7 +2557,16 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 		return elem_t;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
-		bz_unreachable;
+	{
+		auto &tuple_t = ts.get<ast::ts_tuple>();
+		bz::vector<llvm::Type *> types = {};
+		types.reserve(tuple_t.types.size());
+		for (auto &type : tuple_t.types)
+		{
+			types.push_back(get_llvm_type(type, context));
+		}
+		return llvm::StructType::get(context.get_llvm_context(), llvm::ArrayRef(types.data(), types.size()));
+	}
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 		bz_unreachable;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
