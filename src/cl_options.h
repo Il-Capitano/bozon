@@ -40,10 +40,11 @@ constexpr auto warning_group = []() {
 constexpr std::array clparsers = {
 	cl::create_parser<&display_help>      ("-h, --help",                     "Display this help page"),
 	cl::create_parser<&display_version>   ("-V, --version",                  "Print compiler version"),
+	cl::create_parser<&do_verbose>        ("-v, --verbose",                  "Do verbose output"),
 	cl::create_parser<&output_file_name>  ("-o <file>",                      "Write output to <file>"),
-	cl::create_parser<&do_profile>        ("--profile",                      "Measure time for compilation steps"),
-	cl::create_parser<&no_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
-	cl::create_parser<&tab_size>          ("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)"),
+	cl::create_parser<&do_profile>        ("--profile",                      "Measure time for compilation steps", true),
+	cl::create_parser<&no_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages", true),
+	cl::create_parser<&tab_size>          ("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", true),
 	cl::create_parser<&target>            ("--target=<target-triple>",       "Set compilation target to <target-triple>"),
 
 	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>", "Enable the specified <warning>"),
@@ -95,6 +96,17 @@ inline void print_help(void)
 {
 	bz::u8string help_string = "Usage: bozon [options] file\n\nOptions:\n";
 	help_string += cl::get_help_string<clparsers>(2, 24, 80);
+	help_string += "\nAdditional help:\n";
+	help_string += cl::get_additional_help_string<clparsers>(2, 24, 80);
+	bz::print(help_string);
+}
+
+inline void print_verbose_help(void)
+{
+	bz::u8string help_string = "Usage: bozon [options] file\n\nOptions:\n";
+	help_string += cl::get_help_string<clparsers>(2, 24, 80, true);
+	help_string += "\nAdditional help:\n";
+	help_string += cl::get_additional_help_string<clparsers>(2, 24, 80, true);
 	bz::print(help_string);
 }
 

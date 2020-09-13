@@ -47,7 +47,14 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		if (display_help)
 		{
-			print_help();
+			if (do_verbose)
+			{
+				print_verbose_help();
+			}
+			else
+			{
+				print_help();
+			}
 			compile_until = compilation_phase::parse_command_line;
 		}
 		else if (display_version)

@@ -23,7 +23,7 @@ inline std::array<bool, static_cast<size_t>(ctx::warning_kind::_last)> warnings{
 inline bz::u8string source_file;
 inline bool do_profile = false;
 inline compilation_phase compile_until = compilation_phase::link;
-// inline bool do_verbose_error = false;
+inline bool do_verbose = false;
 inline bz::u8string target;
 
 inline size_t tab_size = 4;

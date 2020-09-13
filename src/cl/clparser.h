@@ -21,7 +21,6 @@ enum class parser_kind
 	flag,
 	prefix,
 	argument,
-	group,
 };
 
 struct parser
@@ -33,6 +32,7 @@ struct parser
 	bz::u8string_view usage{};
 	bz::u8string_view help{};
 	parse_fn_t        parse_fn{};
+	bool              hidden{};
 };
 
 template<typename T>
@@ -306,7 +306,7 @@ constexpr bool is_multiple_flag_argument(bz::u8string_view usage)
 // -f, --flag-name         multiple option simple bool flag
 // -f, --flag-name <value> multiple option argument flag
 template<auto *output>
-constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
+constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help, bool hidden = false)
 {
 	bz_assert(usage.starts_with("-"));
 
@@ -337,7 +337,7 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 		bz_assert((bz::meta::is_same<decltype(output), bool *>), "a flag with no argument must have an output type of 'bool'");
 		if constexpr (bz::meta::is_same<decltype(output), bool *>)
 		{
-			return parser{ parser_kind::flag, usage, "", usage, help, &internal::default_flag_parser<output> };
+			return parser{ parser_kind::flag, usage, "", usage, help, &internal::default_flag_parser<output>, hidden };
 		}
 	}
 
@@ -348,7 +348,7 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 		internal::check_argument_parser_syntax(usage);
 		auto const flag_name = bz::u8string_view(begin, it);
 		auto const parse_fn = &internal::default_argument_parser<output>;
-		return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn };
+		return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn, hidden };
 	}
 	case '=':
 	{
@@ -356,7 +356,7 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 		internal::check_equals_parser_syntax(usage);
 		auto const prefix_name = bz::u8string_view(begin, it);
 		auto const parse_fn = &internal::default_equals_parser<output>;
-		return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn };
+		return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn, hidden };
 	}
 	case ',':
 	{
@@ -367,7 +367,7 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 		if (is_argument)
 		{
 			auto const parse_fn = &internal::default_argument_parser<output>;
-			return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn };
+			return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn, hidden };
 		}
 		else
 		{
@@ -375,7 +375,7 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help)
 			if constexpr (bz::meta::is_same<decltype(output), bool *>)
 			{
 				auto const parse_fn = &internal::default_flag_parser<output>;
-				return parser{ parser_kind::flag, first_flag_name, second_flag_name, usage, help, parse_fn };
+				return parser{ parser_kind::flag, first_flag_name, second_flag_name, usage, help, parse_fn, hidden };
 			}
 			else
 			{
@@ -511,7 +511,7 @@ constexpr bool is_array<std::array<T, N>> = true;
 // -F<item>[=<value>] only some items have <value> argument
 // -Fno-<item>        disabler (only bool flags)
 template<auto &group_, auto &bool_output_, bool *help_out>
-constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view help)
+constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view help, bool hidden = false)
 {
 	using group_t = bz::meta::remove_cv_reference<decltype(group_)>;
 	using bool_output_t = bz::meta::remove_reference<decltype(bool_output_)>;
@@ -602,7 +602,7 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 		bz_assert(it == end, "flag doesn't follow the syntax '-f<item>' (usage doesn't end after '>')");
 	}
 
-	auto const parser = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
+	auto const parse_fn = +[](iter_t begin, iter_t end, iter_t &stream) -> bz::optional<bz::u8string> {
 		bz_assert(stream != end);
 		auto const full_flag_val = *stream;
 		auto const equals_it = full_flag_val.find('=');
@@ -623,7 +623,7 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 			if (it == group.end())
 			{
 				++stream;
-				return bz::format("unknown option '{}' for '{}'", flag_val, full_flag_val.substring(0, 2));
+				return bz::format("unknown option '{}' for '{}'", flag_val, full_flag_val.substring(0, value ? 2 : 5));
 			}
 			else if (it->index != size_t(-1))
 			{
@@ -727,7 +727,7 @@ constexpr parser create_group_parser(bz::u8string_view usage, bz::u8string_view 
 			return modify_flag(flag_val, true);
 		}
 	};
-	return { parser_kind::prefix, usage.substring(0, 2), "", usage, help, parser };
+	return parser{ parser_kind::prefix, usage.substring(0, 2), "", usage, help, parse_fn, hidden };
 }
 
 template<auto &parsers>
@@ -781,17 +781,6 @@ constexpr auto create_parser_function(void)
 						done = true;
 					}
 				}
-				else if constexpr (parsers[Ns].kind == parser_kind::group)
-				{
-					constexpr auto flag_name = parsers[Ns].flag_name;
-					constexpr auto parse_fn  = parsers[Ns].parse_fn;
-
-					if (flag_val.starts_with(flag_name))
-					{
-						result = parse_fn(begin, end, stream);
-						done = true;
-					}
-				}
 			}(), true))), ...);
 			if (!done)
 			{
@@ -820,7 +809,8 @@ template<auto &parsers>
 bz::u8string get_help_string(
 	size_t initial_indent_width,
 	size_t usage_width,
-	size_t column_limit
+	size_t column_limit,
+	bool is_verbose = false
 )
 {
 	using parsers_t = bz::meta::remove_cv_reference<decltype(parsers)>;
@@ -875,16 +865,131 @@ bz::u8string get_help_string(
 	helps.reserve(parsers.size());
 	for (auto const index : indicies)
 	{
-		auto const usage = parsers[index].usage;
-		if (usage.starts_with("--"))
+		if (is_verbose || !parsers[index].hidden)
 		{
-			usages.emplace_back(bz::format("    {}", usage));
+			auto const usage = parsers[index].usage;
+			if (usage.starts_with("--"))
+			{
+				usages.emplace_back(bz::format("    {}", usage));
+			}
+			else
+			{
+				usages.emplace_back(usage);
+			}
+			helps.emplace_back(parsers[index].help);
+		}
+	}
+
+	return get_help_string(usages, helps, initial_indent_width, usage_width, column_limit);
+}
+
+template<auto &parsers>
+bz::u8string get_additional_help_string(
+	size_t initial_indent_width,
+	size_t usage_width,
+	size_t column_limit,
+	bool is_verbose = false
+)
+{
+	using parsers_t = bz::meta::remove_cv_reference<decltype(parsers)>;
+	static_assert(internal::is_array<parsers_t>);
+	static_assert(bz::meta::is_same<parsers_t, std::array<parser, parsers.size()>>);
+
+	bz::vector<size_t> indicies = {};
+	indicies.resize(parsers.size());
+	for (size_t i = 0; i < indicies.size(); ++i)
+	{
+		indicies[i] = i;
+	}
+
+	std::sort(indicies.begin(), indicies.end(), [](size_t lhs, size_t rhs) {
+		if (parsers[lhs].flag_name == "-h" || parsers[lhs].flag_name == "--help")
+		{
+			return true;
+		}
+		else if (parsers[rhs].flag_name == "-h" || parsers[rhs].flag_name == "--help")
+		{
+			return false;
+		}
+		auto lhs_usage = parsers[lhs].usage;
+		auto rhs_usage = parsers[rhs].usage;
+
+		if (lhs_usage.starts_with("--"))
+		{
+			lhs_usage = lhs_usage.substring(2);
 		}
 		else
 		{
-			usages.emplace_back(usage);
+			bz_assert(lhs_usage.starts_with("-"));
+			lhs_usage = lhs_usage.substring(1);
 		}
-		helps.emplace_back(parsers[index].help);
+
+		if (rhs_usage.starts_with("--"))
+		{
+			rhs_usage = rhs_usage.substring(2);
+		}
+		else
+		{
+			bz_assert(rhs_usage.starts_with("-"));
+			rhs_usage = rhs_usage.substring(1);
+		}
+
+		return alphabetical_compare(lhs_usage, rhs_usage);
+	});
+
+	bz::vector<bz::u8string> usages = {};
+	bz::vector<bz::u8string> helps = {};
+
+	auto const verbose_it = std::find_if(
+		parsers.begin(), parsers.end(),
+		[](auto const &p) {
+			return (p.flag_name == "-v" && p.alternate_flag_name == "--verbose")
+				|| (p.flag_name == "-v" && p.alternate_flag_name == "")
+				|| (p.flag_name == "--verbose" && p.alternate_flag_name == "");
+		}
+	);
+
+	auto const has_verbose = verbose_it != parsers.end();
+	auto const verbose_flag_name = has_verbose ? verbose_it->flag_name : "";
+
+	for (auto const index : indicies)
+	{
+		auto const &parser = parsers[index];
+		if (!is_verbose && has_verbose)
+		{
+			if (parser.flag_name == "-h" && parser.alternate_flag_name == "--help")
+			{
+				usages.emplace_back(bz::format("--help {}", verbose_flag_name));
+				helps.emplace_back("Display all available options");
+			}
+			else if (parser.flag_name == "-h" && parser.alternate_flag_name == "")
+			{
+				usages.emplace_back(bz::format("-h {}", verbose_flag_name));
+				helps.emplace_back("Display all available options");
+			}
+			else if (parser.flag_name == "--help" && parser.alternate_flag_name == "")
+			{
+				usages.emplace_back(bz::format("--help {}", verbose_flag_name));
+				helps.emplace_back("Display all available options");
+			}
+		}
+
+		if (is_verbose || !parser.hidden)
+		{
+			auto const usage = parser.usage;
+			auto it = usage.begin();
+			auto const end = usage.end();
+			if (
+				it != end && *it == '-' && (++it, true)
+				&& it != end && internal::is_valid_flag_char(*it) && *it != '-' && (++it, true)
+				&& it != end && *it == '<'
+			)
+			{
+				auto const prefix = usage.substring(0, 2);
+				usages.emplace_back(bz::format("{}help", prefix));
+				helps.emplace_back(bz::format("Display available options for '{}'", prefix));
+			}
+		}
 	}
 
 	return get_help_string(usages, helps, initial_indent_width, usage_width, column_limit);
