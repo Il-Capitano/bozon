@@ -516,8 +516,24 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				}
 				result += bz::format("{}: {}]", array_t.sizes.back(), array_t.elem_type);
 			},
-			[&](ast::ts_tuple const &) {
-				bz_unreachable;
+			[&](ast::ts_tuple const &tuple_t) {
+				if (tuple_t.types.size() == 0)
+				{
+					result += "[]";
+				}
+				else if (tuple_t.types.size() == 1)
+				{
+					result += bz::format("[{}]", tuple_t.types[0]);
+				}
+				else
+				{
+					result += bz::format("[{}", tuple_t.types[0]);
+					for (auto const &type : bz::array_view{ tuple_t.types.begin() + 1, tuple_t.types.end() })
+					{
+						result += bz::format(", {}", type);
+					}
+					result += "]";
+				}
 			},
 			[&](ast::ts_auto const &) {
 				result += "auto";

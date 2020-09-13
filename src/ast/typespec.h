@@ -93,7 +93,7 @@ struct typespec
 
 	template<typename T, typename ...Args>
 	void add_layer(Args &&...args);
-
+	void remove_layer(void);
 
 
 	operator typespec_view (void) const noexcept
@@ -257,6 +257,14 @@ inline typespec make_array_typespec(
 	return typespec{ { ts_array{ src_tokens, std::move(sizes), std::move(elem_type) } } };
 }
 
+inline typespec make_tuple_typespec(
+	lex::src_tokens src_tokens,
+	bz::vector<typespec> types
+)
+{
+	return typespec{ { ts_tuple{ src_tokens, std::move(types) } } };
+}
+
 
 template<typename T>
 bool typespec_view::is(void) const noexcept
@@ -290,6 +298,11 @@ void typespec::add_layer(Args &&...args)
 {
 	static_assert(!is_terminator_typespec<T>);
 	this->nodes.emplace_front(T{ std::forward<Args>(args)... });
+}
+
+inline void typespec::remove_layer(void)
+{
+	this->nodes.pop_front();
 }
 
 } // namespace ast
