@@ -807,6 +807,39 @@ public:
 		this->_data_end->~value_type();
 	}
 
+	void pop_front(void) noexcept(
+		meta::is_nothrow_destructible_v<value_type>
+		&& (
+			meta::is_nothrow_move_constructible_v<value_type>
+			|| meta::is_nothrow_copy_constructible_v<value_type>
+		)
+	)
+	{
+		if (this->_data_end == this->_data_begin)
+		{
+			return;
+		}
+
+		auto it = this->_data_begin;
+		auto trace = it;
+		auto const end = this->_data_end;
+		++it;
+		for (; it != end; ++it, ++trace)
+		{
+			trace->~value_type();
+			if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+			{
+				this->try_emplace(trace, std::move(*it));
+			}
+			else
+			{
+				this->try_emplace(trace, *it);
+			}
+		}
+		trace->~value_type();
+		--this->_data_end;
+	}
+
 
 public:
 	// ==== member access ====
