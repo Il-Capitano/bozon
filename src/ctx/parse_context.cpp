@@ -1377,9 +1377,63 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	);
 }
 
-ast::expression parse_context::make_tuple(lex::src_tokens, bz::vector<ast::expression>) const
+ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
 {
-	bz_unreachable;
+	auto const is_const_expression = [&]() {
+		for (auto const &e : elems)
+		{
+			if (!e.is<ast::constant_expression>())
+			{
+				return false;
+			}
+		}
+		return true;
+	}();
+	auto const is_typename = [&]() {
+		for (auto const &e : elems)
+		{
+			if (!e.is_typename())
+			{
+				return false;
+			}
+		}
+		return true;
+	}();
+
+	if (is_typename)
+	{
+		bz::vector<ast::typespec> types = {};
+		types.reserve(elems.size());
+		for (auto const &e : elems)
+		{
+			types.emplace_back(e.get_typename());
+		}
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::typespec(),
+			ast::constant_value(ast::make_tuple_typespec(src_tokens, std::move(types))),
+			ast::make_expr_tuple(std::move(elems))
+		);
+	}
+	else if (is_const_expression)
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::tuple,
+			ast::typespec(),
+			ast::make_expr_tuple(std::move(elems))
+		);
+	}
+	else
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::tuple,
+			ast::typespec(),
+			ast::make_expr_tuple(std::move(elems))
+		);
+	}
 }
 
 static bool is_built_in_type(ast::typespec_view ts)
@@ -2319,7 +2373,8 @@ ast::expression parse_context::make_subscript_operator_expression(
 	}
 
 	auto const [type, kind] = called.get_expr_type_and_kind();
-	if (ast::remove_const_or_consteval(type).is<ast::ts_array>())
+	auto const constless_type = ast::remove_const_or_consteval(type);
+	if (constless_type.is<ast::ts_array>() || constless_type.is<ast::ts_tuple>())
 	{
 		return make_built_in_subscript_operator(src_tokens, std::move(called), std::move(args), *this);
 	}

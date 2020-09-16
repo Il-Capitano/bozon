@@ -4516,123 +4516,210 @@ ast::expression make_built_in_subscript_operator(
 )
 {
 	bz_assert(args.size() > 0);
-	auto const [array_type, array_kind] = called.get_expr_type_and_kind();
-	bz_assert(ast::remove_const_or_consteval(array_type).is<ast::ts_array>());
-	auto &array_t = ast::remove_const_or_consteval(array_type).get<ast::ts_array>();
+	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
+	auto const called_t = ast::remove_const_or_consteval(called_type);
 
-	if (args.size() > array_t.sizes.size())
+	if (called_t.is<ast::ts_tuple>())
 	{
-		context.report_error(
-			src_tokens,
-			bz::format("too many indicies for a {} dimensional array",
-			array_t.sizes.size())
-		);
-		return ast::expression(src_tokens);
-	}
+		auto &tuple_t = called_t.get<ast::ts_tuple>();
+		if (args.size() > 1)
+		{
+			context.report_error(src_tokens, "too many indicies for tuple subscript");
+			return ast::expression(src_tokens);
+		}
 
-	bool good = true;
-	bool is_consteval = true;
-	for (auto const &[arg, size] : bz::zip(args, array_t.sizes))
-	{
-		auto const [arg_type, _] = arg.get_expr_type_and_kind();
+		if (!args[0].is<ast::constant_expression>())
+		{
+			context.report_error(args[0], "tuple subscript must be a constant expression");
+			return ast::expression(src_tokens);
+		}
+
+		auto const [arg_type, _] = args[0].get_expr_type_and_kind();
 		auto const arg_t = ast::remove_const_or_consteval(arg_type);
 		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
-			good = false;
-			context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
+			context.report_error(args[0], bz::format("invalid type '{}' for tuple subscript", arg_type));
+			return ast::expression(src_tokens);
 		}
 
-		if (!arg.is<ast::constant_expression>())
+		auto &const_arg = args[0].get<ast::constant_expression>();
+		size_t index = 0;
+		if (const_arg.value.kind() == ast::constant_value::uint)
 		{
-			is_consteval = false;
+			auto const value = const_arg.value.get<ast::constant_value::uint>();
+			if (value >= tuple_t.types.size())
+			{
+				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
+				return ast::expression(src_tokens);
+			}
+			index = value;
 		}
 		else
 		{
-			auto &const_arg = arg.get<ast::constant_expression>();
-			if (const_arg.value.kind() == ast::constant_value::uint)
+			bz_assert(const_arg.value.kind() == ast::constant_value::sint);
+			auto const value = const_arg.value.get<ast::constant_value::sint>();
+			if (value < 0 || static_cast<size_t>(value) >= tuple_t.types.size())
 			{
-				auto const value = const_arg.value.get<ast::constant_value::uint>();
-				if (value >= size)
+				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
+				return ast::expression(src_tokens);
+			}
+			index = static_cast<size_t>(value);
+		}
+
+		if (called.is<ast::constant_expression>())
+		{
+			bz_unreachable;
+		}
+		else if (called.get_expr().is<ast::expr_tuple>())
+		{
+			bz_unreachable;
+		}
+		else
+		{
+			ast::typespec result_type = tuple_t.types[index];
+			if (
+				!result_type.is<ast::ts_const>()
+				&& !result_type.is<ast::ts_lvalue_reference>()
+				&& called_type.is<ast::ts_const>()
+			)
+			{
+				result_type.add_layer<ast::ts_const>(nullptr);
+			}
+
+			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
+				? ast::expression_type_kind::lvalue_reference
+				: called_kind;
+
+			if (result_type.is<ast::ts_lvalue_reference>())
+			{
+				result_type.remove_layer();
+			}
+
+			return ast::make_dynamic_expression(
+				src_tokens,
+				result_kind, std::move(result_type),
+				ast::make_expr_subscript(std::move(called), std::move(args))
+			);
+		}
+	}
+	else // if (called_t.is<ast::ts_array>())
+	{
+		bz_assert(called_t.is<ast::ts_array>());
+		auto &array_t = called_t.get<ast::ts_array>();
+
+		if (args.size() > array_t.sizes.size())
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("too many indicies for a(n) {} dimensional array subscript", array_t.sizes.size())
+			);
+			return ast::expression(src_tokens);
+		}
+
+		bool good = true;
+		bool is_consteval = true;
+		for (auto const &[arg, size] : bz::zip(args, array_t.sizes))
+		{
+			auto const [arg_type, _] = arg.get_expr_type_and_kind();
+			auto const arg_t = ast::remove_const_or_consteval(arg_type);
+			if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+			{
+				good = false;
+				context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
+			}
+
+			if (!arg.is<ast::constant_expression>())
+			{
+				is_consteval = false;
+			}
+			else
+			{
+				auto &const_arg = arg.get<ast::constant_expression>();
+				if (const_arg.value.kind() == ast::constant_value::uint)
 				{
-					is_consteval = false;
-					context.report_error(
-						arg,
-						bz::format(
-							"index {} is out of range in array subscript, the size is {}",
-							value, size
-						)
-					);
+					auto const value = const_arg.value.get<ast::constant_value::uint>();
+					if (value >= size)
+					{
+						is_consteval = false;
+						context.report_error(
+							arg,
+							bz::format(
+								"index {} is out of range in array subscript, the size is {}",
+								value, size
+							)
+						);
+					}
+				}
+				else if (const_arg.value.kind() == ast::constant_value::sint)
+				{
+					auto const value = const_arg.value.get<ast::constant_value::sint>();
+					if (static_cast<uint64_t>(value) >= size || value < 0)
+					{
+						is_consteval = false;
+						context.report_error(
+							arg,
+							bz::format(
+								"index {} is out of range in array subscript, the size is {}",
+								value, size
+							)
+						);
+					}
 				}
 			}
-			else if (const_arg.value.kind() == ast::constant_value::sint)
+		}
+
+		if (!good)
+		{
+			return ast::expression(src_tokens);
+		}
+
+		auto const result_kind =
+			called_kind == ast::expression_type_kind::lvalue
+			|| called_kind == ast::expression_type_kind::lvalue_reference
+				? ast::expression_type_kind::lvalue
+				: ast::expression_type_kind::rvalue;
+
+		auto result_type = [&]() {
+			auto &elem_type = array_t.elem_type;
+
+			if (args.size() == array_t.sizes.size())
 			{
-				auto const value = const_arg.value.get<ast::constant_value::sint>();
-				if (static_cast<uint64_t>(value) >= size || value < 0)
+				return elem_type;
+			}
+
+			bz::vector<uint64_t> sizes = {};
+
+			size_t dim = 0;
+			for (auto const size : bz::reversed(array_t.sizes))
+			{
+				sizes.push_back(size);
+				++dim;
+				if (dim == args.size())
 				{
-					is_consteval = false;
-					context.report_error(
-						arg,
-						bz::format(
-							"index {} is out of range in array subscript, the size is {}",
-							value, size
-						)
-					);
+					break;
 				}
 			}
-		}
-	}
+			return ast::make_array_typespec({}, std::move(sizes), elem_type);
+		}();
 
-	if (!good)
-	{
-		return ast::expression(src_tokens);
-	}
-
-	auto const result_kind =
-		array_kind == ast::expression_type_kind::lvalue
-		|| array_kind == ast::expression_type_kind::lvalue_reference
-			? ast::expression_type_kind::lvalue
-			: ast::expression_type_kind::rvalue;
-
-	auto result_type = [&]() {
-		auto &elem_type = array_t.elem_type;
-
-		if (args.size() == array_t.sizes.size())
+		if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
 		{
-			return elem_type;
+			result_type.add_layer<ast::ts_const>(nullptr);
 		}
 
-		bz::vector<uint64_t> sizes = {};
-
-		size_t dim = 0;
-		for (auto const size : bz::reversed(array_t.sizes))
+		if (is_consteval && called.is<ast::constant_expression>())
 		{
-			sizes.push_back(size);
-			++dim;
-			if (dim == args.size())
-			{
-				break;
-			}
+			context.report_error(src_tokens, "array type in constant expression is not yet implemented");
+			return ast::expression(src_tokens);
 		}
-		return ast::make_array_typespec({}, std::move(sizes), elem_type);
-	}();
-
-	if (array_type.is<ast::ts_const>() || array_type.is<ast::ts_consteval>())
-	{
-		result_type.add_layer<ast::ts_const>(nullptr);
-	}
-
-	if (is_consteval && called.is<ast::constant_expression>())
-	{
-		context.report_error(src_tokens, "array type in constant expression is not yet implemented");
-		return ast::expression(src_tokens);
-	}
-	else
-	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			result_kind, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(args))
-		);
+		else
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				result_kind, std::move(result_type),
+				ast::make_expr_subscript(std::move(called), std::move(args))
+			);
+		}
 	}
 }
 
