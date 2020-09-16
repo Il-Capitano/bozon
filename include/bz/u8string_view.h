@@ -656,6 +656,15 @@ public:
 		}
 		return true;
 	}
+
+	constexpr bool contains(u8char c) const noexcept
+	{ return this->find(c) != this->end(); }
+
+	constexpr bool contains(u8string_view str) const noexcept
+	{ return this->find(str) != this->end(); }
+
+	constexpr bool contains_any(u8string_view str) const noexcept
+	{ return this->find_any(str) != this->end(); }
 };
 
 inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept
