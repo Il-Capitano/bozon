@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "colors.h"
+#include "global_data.h"
 #include "ctx/lex_context.h"
 
 constexpr bool is_hex_char(bz::u8char c)
@@ -31,6 +32,7 @@ constexpr bz::u8char get_hex_value(bz::u8char c)
 struct escape_sequence_parser
 {
 	bz::u8char c;
+	bz::u8string_view help;
 	void       (*verify)(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context);
 	bz::u8char (*get)(bz::u8iterator &it);
 };
@@ -288,16 +290,27 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 
 
 constexpr std::array escape_sequence_parsers = {
-	escape_sequence_parser{ '\\', &verify_backslash,       &get_backslash       },
-	escape_sequence_parser{ '\'', &verify_single_quote,    &get_single_quote    },
-	escape_sequence_parser{ '\"', &verify_double_quote,    &get_double_quote    },
-	escape_sequence_parser{ 'n',  &verify_new_line,        &get_new_line        },
-	escape_sequence_parser{ 't',  &verify_tab,             &get_tab             },
-	escape_sequence_parser{ 'r',  &verify_carriage_return, &get_carriage_return },
-	escape_sequence_parser{ 'x',  &verify_hex_char,        &get_hex_char        },
-	escape_sequence_parser{ 'u',  &verify_unicode_small,   &get_unicode_small   },
-	escape_sequence_parser{ 'U',  &verify_unicode_big,     &get_unicode_big     },
+	escape_sequence_parser{ '\\', "\\\\",        &verify_backslash,       &get_backslash       },
+	escape_sequence_parser{ '\'', "\\\'",        &verify_single_quote,    &get_single_quote    },
+	escape_sequence_parser{ '\"', "\\\"",        &verify_double_quote,    &get_double_quote    },
+	escape_sequence_parser{ 'n',  "\\n",         &verify_new_line,        &get_new_line        },
+	escape_sequence_parser{ 't',  "\\t",         &verify_tab,             &get_tab             },
+	escape_sequence_parser{ 'r',  "\\r",         &verify_carriage_return, &get_carriage_return },
+	escape_sequence_parser{ 'x',  "\\xXX",       &verify_hex_char,        &get_hex_char        },
+	escape_sequence_parser{ 'u',  "\\uXXXX",     &verify_unicode_small,   &get_unicode_small   },
+	escape_sequence_parser{ 'U',  "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big     },
 };
+
+inline bz::u8string get_available_escape_sequences_message(void)
+{
+	bz::u8string message = "Available escape sequences are ";
+	for (auto const &parser : escape_sequence_parsers)
+	{
+		message += bz::format("'{}', ", parser.help);
+	}
+	message += "where X is a hex character";
+	return message;
+}
 
 inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context)
 {
@@ -344,11 +357,24 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 				}
 			}
 		};
-		auto const escaped_char = *stream.it;
+
+		bz::vector<ctx::note> notes = {};
+		if (do_verbose)
+		{
+			notes.push_back(context.make_note(
+				stream.file_id, stream.line,
+				get_available_escape_sequences_message()
+			));
+		}
+
 		context.bad_chars(
 			stream.file_id, stream.line,
 			escape_char, escape_char, stream.it + 1,
-			bz::format("invalid escape sequence '\\{}'", get_char(escaped_char))
+			bz::format("invalid escape sequence '\\{}'", get_char(c)),
+			std::move(notes), { context.make_suggestion(
+				stream.file_id, stream.line,
+				escape_char, "\\", "did you mean to escape the backslash?"
+			) }
 		);
 		++stream;
 	}
