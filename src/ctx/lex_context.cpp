@@ -88,13 +88,12 @@ void lex_context::report_warning(
 
 [[nodiscard]] ctx::note lex_context::make_note(
 	uint32_t file_id, uint32_t line,
-	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
 	bz::u8string message
 )
 {
 	return ctx::note{
 		file_id, line,
-		begin, pivot, end,
+		char_pos(), char_pos(), char_pos(),
 		{}, {},
 		std::move(message)
 	};
@@ -109,6 +108,20 @@ void lex_context::report_warning(
 	return ctx::note{
 		file_id, line,
 		pivot, pivot, pivot + 1,
+		{}, {},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] ctx::note lex_context::make_note(
+	uint32_t file_id, uint32_t line,
+	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+	bz::u8string message
+)
+{
+	return ctx::note{
+		file_id, line,
+		begin, pivot, end,
 		{}, {},
 		std::move(message)
 	};
