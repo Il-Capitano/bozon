@@ -225,7 +225,10 @@ static bz::u8string get_highlighted_error_or_warning(
 		}
 
 		result += bz::format("{:{}} | {}\n", max_line_num_width, line, file_line);
-		result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		if (highlight_line.contains_any("^~"))
+		{
+			result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		}
 		++line;
 
 		return it;
@@ -651,7 +654,10 @@ static bz::u8string get_highlighted_note(
 		}
 
 		result += bz::format("{:{}} | {}\n", max_line_num_width, line, file_line);
-		result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		if (highlight_line.contains_any("^~"))
+		{
+			result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		}
 		++line;
 
 		return it;
@@ -951,7 +957,10 @@ static bz::u8string get_highlighted_suggestion(
 		}
 
 		result += bz::format("{:{}} | {}\n", max_line_num_width, line, file_line);
-		result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		if (highlight_line.contains_any("^~"))
+		{
+			result += bz::format("{:{}} | {}\n", max_line_num_width, "", highlight_line);
+		}
 		++line;
 
 		return it;
