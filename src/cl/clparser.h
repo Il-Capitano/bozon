@@ -56,6 +56,9 @@ struct arg_parser<size_t>
 	static bz::result<size_t, bz::u8string> parse(bz::u8string_view arg);
 };
 
+template<auto *output>
+constexpr bool is_array_like = false;
+
 namespace internal
 {
 
@@ -73,6 +76,7 @@ constexpr bool is_valid_flag_char(bz::u8char c)
 template<bool *output>
 bz::optional<bz::u8string> default_flag_parser(iter_t begin, iter_t end, iter_t &stream)
 {
+	static_assert(!is_array_like<output>);
 	bz_assert(stream != end);
 	static iter_t init_iter = nullptr;
 	if (init_iter == nullptr)
@@ -120,38 +124,62 @@ template<auto *output>
 bz::optional<bz::u8string> default_argument_parser(iter_t begin, iter_t end, iter_t &stream)
 {
 	bz_assert(stream != end);
-	static iter_t init_iter = nullptr;
-	auto const flag_iter = stream;
-	if (init_iter == nullptr)
+	if constexpr (is_array_like<output>)
 	{
-		auto const flag_name = *stream;
-		++stream;
-		if (stream == end)
-		{
-			return bz::format("expected an argument after '{}'", flag_name);
-		}
-		auto const arg = *stream;
-		++stream;
-		auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
-		if (result.has_error())
-		{
-			return result.get_error();
-		}
-		else
-		{
-			init_iter = flag_iter;
-			*output = result.get_result();
-			return {};
-		}
+			auto const flag_name = *stream;
+			++stream;
+			if (stream == end)
+			{
+				return bz::format("expected an argument after '{}'", flag_name);
+			}
+			auto const arg = *stream;
+			++stream;
+			auto const result = arg_parser<typename bz::meta::remove_reference<decltype(*output)>::value_type>::parse(arg);
+			if (result.has_error())
+			{
+				return result.get_error();
+			}
+			else
+			{
+				output->emplace_back(std::move(result.get_result()));
+				return {};
+			}
 	}
 	else
 	{
-		++stream;
-		if (stream != end)
+		static iter_t init_iter = nullptr;
+		auto const flag_iter = stream;
+		if (init_iter == nullptr)
+		{
+			auto const flag_name = *stream;
+			++stream;
+			if (stream == end)
+			{
+				return bz::format("expected an argument after '{}'", flag_name);
+			}
+			auto const arg = *stream;
+			++stream;
+			auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+			if (result.has_error())
+			{
+				return result.get_error();
+			}
+			else
+			{
+				init_iter = flag_iter;
+				*output = std::move(result.get_result());
+				return {};
+			}
+		}
+		else
 		{
 			++stream;
+			if (stream != end)
+			{
+				++stream;
+			}
+			return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
 		}
-		return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
 	}
 }
 
@@ -185,9 +213,7 @@ template<auto *output>
 bz::optional<bz::u8string> default_equals_parser(iter_t begin, iter_t end, iter_t &stream)
 {
 	bz_assert(stream != end);
-	static iter_t init_iter = nullptr;
-	auto const flag_iter = stream;
-	if (init_iter == nullptr)
+	if constexpr (is_array_like<output>)
 	{
 		auto const stream_value = *stream;
 		++stream;
@@ -197,23 +223,49 @@ bz::optional<bz::u8string> default_equals_parser(iter_t begin, iter_t end, iter_
 		{
 			return bz::format("expected an argument after '{}'", bz::u8string_view(stream_value.begin(), it));
 		}
-		auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+		auto const result = arg_parser<typename bz::meta::remove_reference<decltype(*output)>::value_type>::parse(arg);
 		if (result.has_error())
 		{
 			return result.get_error();
 		}
 		else
 		{
-			*output = result.get_result();
-			init_iter = flag_iter;
+			output->emplace_back(std::move(result.get_result()));
 			return {};
 		}
 	}
 	else
 	{
-		auto const flag_name = bz::u8string_view(flag_iter->begin(), flag_iter->find('='));
-		++stream;
-		return bz::format("option '{}' has already been set by argument '{}', at position {}", flag_name, *init_iter, init_iter - begin);
+		static iter_t init_iter = nullptr;
+		auto const flag_iter = stream;
+		if (init_iter == nullptr)
+		{
+			auto const stream_value = *stream;
+			++stream;
+			auto const it = stream_value.find('=') + 1;
+			auto const arg = bz::u8string_view(it, stream_value.end());
+			if (arg == "")
+			{
+				return bz::format("expected an argument after '{}'", bz::u8string_view(stream_value.begin(), it));
+			}
+			auto const result = arg_parser<bz::meta::remove_reference<decltype(*output)>>::parse(arg);
+			if (result.has_error())
+			{
+				return result.get_error();
+			}
+			else
+			{
+				init_iter = flag_iter;
+				*output = std::move(result.get_result());
+				return {};
+			}
+		}
+		else
+		{
+			auto const flag_name = bz::u8string_view(flag_iter->begin(), flag_iter->find('='));
+			++stream;
+			return bz::format("option '{}' has already been set by argument '{}', at position {}", flag_name, *init_iter, init_iter - begin);
+		}
 	}
 }
 
@@ -747,8 +799,8 @@ constexpr auto create_parser_function(void)
 				{
 					constexpr auto first_flag_name  = parsers[Ns].flag_name;
 					constexpr auto second_flag_name = parsers[Ns].alternate_flag_name;
-					constexpr auto parse_fn  = parsers[Ns].parse_fn;
-					constexpr bool has_second_flag = bz::constexpr_not_equals(second_flag_name, "");
+					constexpr auto parse_fn         = parsers[Ns].parse_fn;
+					constexpr bool has_second_flag  = bz::constexpr_not_equals(second_flag_name, "");
 
 					if (
 						flag_val == first_flag_name
@@ -763,6 +815,7 @@ constexpr auto create_parser_function(void)
 				{
 					constexpr auto flag_name = parsers[Ns].flag_name;
 					constexpr auto parse_fn  = parsers[Ns].parse_fn;
+					static_assert(bz::constexpr_equals(parsers[Ns].alternate_flag_name, ""));
 
 					if (flag_val.starts_with(flag_name))
 					{
@@ -772,10 +825,15 @@ constexpr auto create_parser_function(void)
 				}
 				else if constexpr (parsers[Ns].kind == parser_kind::argument)
 				{
-					constexpr auto flag_name = parsers[Ns].flag_name;
-					constexpr auto parse_fn  = parsers[Ns].parse_fn;
+					constexpr auto first_flag_name  = parsers[Ns].flag_name;
+					constexpr auto second_flag_name = parsers[Ns].alternate_flag_name;
+					constexpr auto parse_fn         = parsers[Ns].parse_fn;
+					constexpr bool has_second_flag  = bz::constexpr_not_equals(second_flag_name, "");
 
-					if (flag_val == flag_name)
+					if (
+						flag_val == first_flag_name
+						|| (has_second_flag && flag_val == second_flag_name)
+					)
 					{
 						result = parse_fn(begin, end, stream);
 						done = true;
