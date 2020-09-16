@@ -29,6 +29,8 @@ inline bz::u8string target;
 inline size_t tab_size = 4;
 inline bool no_error_highlight = false;
 
+inline bz::vector<bz::u8string> import_dirs;
+
 constexpr bz::u8string_view version_info = "bozon 0.0.0\n";
 
 

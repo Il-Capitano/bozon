@@ -37,6 +37,9 @@ constexpr auto warning_group = []() {
 	return result;
 }();
 
+template<>
+constexpr bool cl::is_array_like<&import_dirs> = true;
+
 constexpr std::array clparsers = {
 	cl::create_parser<&display_help>      ("-h, --help",                     "Display this help page"),
 	cl::create_parser<&display_version>   ("-V, --version",                  "Print compiler version"),
@@ -46,6 +49,7 @@ constexpr std::array clparsers = {
 	cl::create_parser<&no_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages", true),
 	cl::create_parser<&tab_size>          ("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", true),
 	cl::create_parser<&target>            ("--target=<target-triple>",       "Set compilation target to <target-triple>"),
+	cl::create_parser<&import_dirs>       ("-I, --import-dir <dir>",         "Add <dir> as an import directory"),
 
 	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>", "Enable the specified <warning>"),
 };
