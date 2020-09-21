@@ -713,7 +713,14 @@ ast::expression parse_expression(
 		context.parenthesis_suppressed_value = 0;
 	}
 	auto const original_paren_suppress_value = context.parenthesis_suppressed_value;
+	auto const start_it = stream;
 	auto lhs = parse_primary_expression(stream, end, context);
+	if (stream != end && stream == start_it)
+	{
+		bz_assert(lhs.is_null());
+		++stream;
+		lhs = parse_primary_expression(stream, end, context);
+	}
 	context.parenthesis_suppressed_value = original_paren_suppress_value;
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
