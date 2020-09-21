@@ -20,6 +20,8 @@ struct constant_value : bz::variant<
 
 	// arrays
 	bz::vector<constant_value>,
+	// tuples
+	bz::vector<constant_value>,
 
 	function_body *,
 	bz::u8string_view,
@@ -37,6 +39,8 @@ struct constant_value : bz::variant<
 		bool, internal::null_t,
 
 		// arrays
+		bz::vector<constant_value>,
+		// tuples
 		bz::vector<constant_value>,
 
 		function_body *,
@@ -59,6 +63,7 @@ struct constant_value : bz::variant<
 		boolean         = base_t::index_of<bool>,
 		null            = base_t::index_of<internal::null_t>,
 		array,
+		tuple,
 		function        = base_t::index_of<function_body *>,
 		function_set_id = base_t::index_of<bz::u8string_view>,
 		type            = base_t::index_of<ast::typespec>,
@@ -66,7 +71,9 @@ struct constant_value : bz::variant<
 	};
 
 	static_assert(bz::meta::is_same<base_t::value_type<array>, bz::vector<constant_value>>);
+	static_assert(bz::meta::is_same<base_t::value_type<tuple>, bz::vector<constant_value>>);
 	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, bz::vector<constant_value>>);
+	static_assert(array != tuple && array != aggregate && tuple != aggregate);
 
 	using base_t::variant;
 	using base_t::operator =;
