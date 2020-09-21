@@ -72,6 +72,23 @@ void lex_context::report_warning(
 	});
 }
 
+void lex_context::report_warning(
+	warning_kind kind,
+	uint32_t file_id, uint32_t line,
+	ctx::char_pos it,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	this->global_ctx.report_warning(ctx::error{
+		kind,
+		file_id, line,
+		it, it, it + 1,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
+}
+
 
 [[nodiscard]] ctx::note lex_context::make_note(
 	file_iterator const &pos,
