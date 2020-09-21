@@ -555,20 +555,48 @@ static token get_number_token(
 static token get_single_char_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
-	ctx::lex_context &
+	ctx::lex_context &context
 )
 {
 	bz_assert(stream.it != end);
 	auto const begin_it = stream.it;
+	auto const char_value = *begin_it;
 	auto const line     = stream.line;
 	++stream;
 	auto const end_it = stream.it;
 
-	return token(
-		static_cast<uint32_t>(*begin_it),
-		bz::u8string_view(begin_it, end_it),
-		stream.file_id, line, begin_it, end_it
-	);
+	// ascii
+	if (char_value <= 127)
+	{
+		return token(
+			static_cast<uint32_t>(char_value),
+			bz::u8string_view(begin_it, end_it),
+			stream.file_id, line, begin_it, end_it
+		);
+	}
+	// U+037E: ';' greek question mark
+	else if (char_value == 0x37e)
+	{
+		context.report_warning(
+			ctx::warning_kind::greek_question_mark,
+			stream.file_id, line, begin_it,
+			"unicode character U+037E (greek question mark) looks the same as a semicolon, but it is not"
+		);
+		return token(
+			token::non_ascii_character,
+			bz::u8string_view(begin_it, end_it),
+			stream.file_id, line, begin_it, end_it
+		);
+	}
+	// non-ascii
+	else
+	{
+		return token(
+			token::non_ascii_character,
+			bz::u8string_view(begin_it, end_it),
+			stream.file_id, line, begin_it, end_it
+		);
+	}
 }
 
 static bool is_str(bz::u8string_view str, file_iterator &stream, ctx::char_pos const end)

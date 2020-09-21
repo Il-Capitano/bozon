@@ -17,6 +17,7 @@ constexpr std::array Wall_indicies = {
 	static_cast<size_t>(ctx::warning_kind::unclosed_comment),
 	static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent),
 	static_cast<size_t>(ctx::warning_kind::unused_variable),
+	static_cast<size_t>(ctx::warning_kind::greek_question_mark),
 };
 
 inline bz::u8string dummy_flag_value;

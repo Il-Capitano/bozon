@@ -122,6 +122,8 @@ struct token
 
 		kw_static_assert,    // static_assert
 
+		non_ascii_character,
+
 		_last
 	};
 
