@@ -31,11 +31,12 @@ struct optional_destructor_base
 template<typename T>
 class optional :
 	public meta::conditional<
-		meta::is_nothrow_destructible_v<T>,
+		meta::is_trivially_destructible_v<T>,
 		internal::optional_trivial,
 		internal::optional_destructor_base<optional<T>, T>
 	>
 {
+	friend struct internal::optional_destructor_base<optional<T>, T>;
 	static_assert(!meta::is_void<T>,      "bz::optional element type must not be void");
 	static_assert(!meta::is_reference<T>, "bz::optional element type must not be a reference");
 private:
@@ -101,7 +102,7 @@ public:
 
 	template<typename ...Args>
 	void emplace(Args &&...args) noexcept(
-		meta::is_nothrow_constructible_v<element_type>
+		meta::is_nothrow_constructible_v<element_type, Args...>
 		&& meta::is_nothrow_destructible_v<element_type>
 	)
 	{
