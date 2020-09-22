@@ -137,6 +137,9 @@ llvm::Type *bitcode_context::get_char_t(void) const
 llvm::Type *bitcode_context::get_bool_t(void) const
 { return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::bool_)]; }
 
+llvm::Type *bitcode_context::get_null_t(void) const
+{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::null_t_)]; }
+
 
 bool bitcode_context::has_terminator(void) const
 {

@@ -52,6 +52,7 @@ struct bitcode_context
 	llvm::Type *get_str_t(void) const;
 	llvm::Type *get_char_t(void) const;
 	llvm::Type *get_bool_t(void) const;
+	llvm::Type *get_null_t(void) const;
 
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);

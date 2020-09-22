@@ -4519,12 +4519,11 @@ ast::expression make_built_in_subscript_operator(
 	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
 	auto const called_t = ast::remove_const_or_consteval(called_type);
 
-	if (called_t.is<ast::ts_tuple>())
+	if (called_t.is<ast::ts_tuple>() || called_kind == ast::expression_type_kind::tuple)
 	{
-		auto &tuple_t = called_t.get<ast::ts_tuple>();
 		if (args.size() > 1)
 		{
-			context.report_error(src_tokens, "too many indicies for tuple subscript");
+			context.report_error(src_tokens, "too many indicies for tuple subscript, only one index is allowed");
 			return ast::expression(src_tokens);
 		}
 
@@ -4542,12 +4541,15 @@ ast::expression make_built_in_subscript_operator(
 			return ast::expression(src_tokens);
 		}
 
+		auto const tuple_elem_count = called_t.is<ast::ts_tuple>()
+			? called_t.get<ast::ts_tuple>().types.size()
+			: called.get_expr().get<ast::expr_tuple_ptr>()->elems.size();
 		auto &const_arg = args[0].get<ast::constant_expression>();
 		size_t index = 0;
 		if (const_arg.value.kind() == ast::constant_value::uint)
 		{
 			auto const value = const_arg.value.get<ast::constant_value::uint>();
-			if (value >= tuple_t.types.size())
+			if (value >= tuple_elem_count)
 			{
 				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
 				return ast::expression(src_tokens);
@@ -4558,7 +4560,7 @@ ast::expression make_built_in_subscript_operator(
 		{
 			bz_assert(const_arg.value.kind() == ast::constant_value::sint);
 			auto const value = const_arg.value.get<ast::constant_value::sint>();
-			if (value < 0 || static_cast<size_t>(value) >= tuple_t.types.size())
+			if (value < 0 || static_cast<size_t>(value) >= tuple_elem_count)
 			{
 				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
 				return ast::expression(src_tokens);
@@ -4566,16 +4568,35 @@ ast::expression make_built_in_subscript_operator(
 			index = static_cast<size_t>(value);
 		}
 
-		if (called.is<ast::constant_expression>())
+		if (called.get_expr().is<ast::expr_tuple>())
 		{
-			bz_unreachable;
-		}
-		else if (called.get_expr().is<ast::expr_tuple>())
-		{
-			bz_unreachable;
+			auto &tuple = *called.get_expr().get<ast::expr_tuple_ptr>();
+			auto &result_elem = tuple.elems[index];
+			auto [result_type, result_kind] = result_elem.get_expr_type_and_kind();
+
+			if (called.is<ast::constant_expression>())
+			{
+				bz_assert(result_elem.is<ast::constant_expression>());
+				auto result_value = result_elem.get<ast::constant_expression>().value;
+				return ast::make_constant_expression(
+					src_tokens,
+					result_kind, std::move(result_type),
+					std::move(result_value),
+					ast::make_expr_subscript(std::move(called), std::move(args))
+				);
+			}
+			else
+			{
+				return ast::make_dynamic_expression(
+					src_tokens,
+					result_kind, std::move(result_type),
+					ast::make_expr_subscript(std::move(called), std::move(args))
+				);
+			}
 		}
 		else
 		{
+			auto &tuple_t = called_t.get<ast::ts_tuple>();
 			ast::typespec result_type = tuple_t.types[index];
 			if (
 				!result_type.is<ast::ts_const>()
@@ -4595,11 +4616,26 @@ ast::expression make_built_in_subscript_operator(
 				result_type.remove_layer();
 			}
 
-			return ast::make_dynamic_expression(
-				src_tokens,
-				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(args))
-			);
+			if (called.is<ast::constant_expression>())
+			{
+				auto &const_expr = called.get<ast::constant_expression>();
+				bz_assert(const_expr.value.kind() == ast::constant_value::tuple);
+				auto result_value = const_expr.value.get<ast::constant_value::tuple>()[index];
+				return ast::make_constant_expression(
+					src_tokens,
+					result_kind, std::move(result_type),
+					std::move(result_value),
+					ast::make_expr_subscript(std::move(called), std::move(args))
+				);
+			}
+			else
+			{
+				return ast::make_dynamic_expression(
+					src_tokens,
+					result_kind, std::move(result_type),
+					ast::make_expr_subscript(std::move(called), std::move(args))
+				);
+			}
 		}
 	}
 	else // if (called_t.is<ast::ts_array>())

@@ -1418,10 +1418,19 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 	}
 	else if (is_const_expression)
 	{
-		return ast::make_dynamic_expression(
+		ast::constant_value const_value;
+		const_value.emplace<ast::constant_value::tuple>();
+		auto &values = const_value.get<ast::constant_value::tuple>();
+		values.reserve(elems.size());
+		for (auto const &e : elems)
+		{
+			values.emplace_back(e.get<ast::constant_expression>().value);
+		}
+		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::tuple,
 			ast::typespec(),
+			std::move(const_value),
 			ast::make_expr_tuple(std::move(elems))
 		);
 	}
@@ -2374,7 +2383,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 
 	auto const [type, kind] = called.get_expr_type_and_kind();
 	auto const constless_type = ast::remove_const_or_consteval(type);
-	if (constless_type.is<ast::ts_array>() || constless_type.is<ast::ts_tuple>())
+	if (constless_type.is<ast::ts_array>() || constless_type.is<ast::ts_tuple>() || kind == ast::expression_type_kind::tuple)
 	{
 		return make_built_in_subscript_operator(src_tokens, std::move(called), std::move(args), *this);
 	}

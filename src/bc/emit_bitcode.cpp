@@ -2040,81 +2040,55 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_bitcode(
-	ast::constant_expression const &const_expr,
-	ctx::bitcode_context &context,
-	llvm::Value *result_address
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	ctx::bitcode_context &context
 )
 {
-	if (
-		const_expr.kind == ast::expression_type_kind::type_name
-		|| const_expr.kind == ast::expression_type_kind::none
-	)
-	{
-		return {};
-	}
-	// consteval variable
-
-	val_ptr result;
-
-	if (const_expr.kind == ast::expression_type_kind::lvalue)
-	{
-		bz_assert(const_expr.expr.is<ast::expr_identifier>());
-		result = emit_bitcode<abi>(*const_expr.expr.get<ast::expr_identifier_ptr>(), context, nullptr);
-	}
-	else
-	{
-		result.kind = val_ptr::value;
-	}
-
-	auto const type = get_llvm_type(const_expr.type, context);
-
-	switch (const_expr.value.kind())
+	switch (value.kind())
 	{
 	case ast::constant_value::sint:
-		result.consteval_val = llvm::ConstantInt::get(
-			type,
-			bit_cast<uint64_t>(const_expr.value.get<ast::constant_value::sint>()),
+		bz_assert(!type.is_empty());
+		return llvm::ConstantInt::get(
+			get_llvm_type(type, context),
+			bit_cast<uint64_t>(value.get<ast::constant_value::sint>()),
 			true
 		);
-		break;
 	case ast::constant_value::uint:
-		result.consteval_val = llvm::ConstantInt::get(
-			type,
-			const_expr.value.get<ast::constant_value::uint>(),
+		bz_assert(!type.is_empty());
+		return llvm::ConstantInt::get(
+			get_llvm_type(type, context),
+			value.get<ast::constant_value::uint>(),
 			false
 		);
-		break;
 	case ast::constant_value::float32:
-		result.consteval_val = llvm::ConstantFP::get(
-			type,
-			static_cast<double>(const_expr.value.get<ast::constant_value::float32>())
+		return llvm::ConstantFP::get(
+			context.get_float32_t(),
+			static_cast<double>(value.get<ast::constant_value::float32>())
 		);
-		break;
 	case ast::constant_value::float64:
-		result.consteval_val = llvm::ConstantFP::get(
-			type,
-			const_expr.value.get<ast::constant_value::float64>()
+		return llvm::ConstantFP::get(
+			context.get_float64_t(),
+			value.get<ast::constant_value::float64>()
 		);
-		break;
 	case ast::constant_value::u8char:
-		result.consteval_val = llvm::ConstantInt::get(
-			type,
-			const_expr.value.get<ast::constant_value::u8char>()
+		return llvm::ConstantInt::get(
+			context.get_char_t(),
+			value.get<ast::constant_value::u8char>()
 		);
-		break;
 	case ast::constant_value::string:
 	{
-		auto const str = const_expr.value.get<ast::constant_value::string>().as_string_view();
-		auto const str_t = llvm::dyn_cast<llvm::StructType>(type);
+		auto const str = value.get<ast::constant_value::string>().as_string_view();
+		auto const str_t = llvm::dyn_cast<llvm::StructType>(context.get_str_t());
 		bz_assert(str_t != nullptr);
 
 		// if the string is empty, we make a zero initialized string, so
 		// structs with a default value of "" get to be zero initialized
 		if (str == "")
 		{
-			result.consteval_val = llvm::ConstantStruct::getNullValue(str_t);
-			break;
+			return llvm::ConstantStruct::getNullValue(str_t);
 		}
 
 		auto const string_ref = llvm::StringRef(str.data(), str.size());
@@ -2129,45 +2103,107 @@ static val_ptr emit_bitcode(
 		bz_assert(const_end_ptr != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
 
-		result.consteval_val = llvm::ConstantStruct::get(str_t, elems);
-		break;
+		return llvm::ConstantStruct::get(str_t, elems);
 	}
 	case ast::constant_value::boolean:
-		result.consteval_val = llvm::ConstantInt::get(
-			type,
-			static_cast<uint64_t>(const_expr.value.get<ast::constant_value::boolean>())
+		return llvm::ConstantInt::get(
+			context.get_bool_t(),
+			static_cast<uint64_t>(value.get<ast::constant_value::boolean>())
 		);
-		break;
 	case ast::constant_value::null:
-	{
-		if (ast::remove_const_or_consteval(const_expr.type).is<ast::ts_pointer>())
+		if (ast::remove_const_or_consteval(type).is<ast::ts_pointer>())
 		{
-			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(type);
+			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(get_llvm_type(type, context));
 			bz_assert(ptr_t != nullptr);
-			result.consteval_val = llvm::ConstantPointerNull::get(ptr_t);
+			return llvm::ConstantPointerNull::get(ptr_t);
 		}
 		else
 		{
-			auto const struct_t = llvm::dyn_cast<llvm::StructType>(type);
-			bz_assert(struct_t != nullptr);
-			result.consteval_val = llvm::ConstantStruct::get(struct_t);
+			return llvm::ConstantStruct::get(
+				llvm::dyn_cast<llvm::StructType>(context.get_null_t())
+			);
 		}
-		break;
+	case ast::constant_value::array:
+		bz_unreachable;
+	case ast::constant_value::tuple:
+	{
+		auto const &tuple_values = value.get<ast::constant_value::tuple>();
+		bz::vector<llvm::Type *>     types = {};
+		bz::vector<llvm::Constant *> elems = {};
+		types.reserve(tuple_values.size());
+		elems.reserve(tuple_values.size());
+		if (const_expr != nullptr && const_expr->expr.is<ast::expr_tuple>())
+		{
+			auto &tuple = *const_expr->expr.get<ast::expr_tuple_ptr>();
+			for (auto const &elem : tuple.elems)
+			{
+				bz_assert(elem.is<ast::constant_expression>());
+				auto const &const_elem = elem.get<ast::constant_expression>();
+				elems.push_back(get_value<abi>(const_elem.value, const_elem.type, &const_elem, context));
+				types.push_back(elems.back()->getType());
+			}
+		}
+		else
+		{
+			bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_tuple>());
+			auto const &tuple_t = ast::remove_const_or_consteval(type).get<ast::ts_tuple>();
+			for (auto const &[val, t] : bz::zip(tuple_values, tuple_t.types))
+			{
+				elems.push_back(get_value<abi>(val, t, nullptr, context));
+				types.push_back(elems.back()->getType());
+			}
+		}
+		auto const tuple_type = llvm::StructType::get(
+			context.get_llvm_context(),
+			llvm::ArrayRef(types.data(), types.size())
+		);
+		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
 	}
 	case ast::constant_value::function:
 	{
-		auto const decl = const_expr.value.get<ast::constant_value::function>();
-		result.consteval_val = context.get_function(decl);
-		break;
+		auto const decl = value.get<ast::constant_value::function>();
+		return context.get_function(decl);
 	}
 	case ast::constant_value::function_set_id:
 		bz_unreachable;
-		return {};
+	case ast::constant_value::type:
+		bz_unreachable;
 	case ast::constant_value::aggregate:
+		bz_unreachable;
 	default:
 		bz_unreachable;
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::constant_expression const &const_expr,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	if (
+		const_expr.kind == ast::expression_type_kind::type_name
+		|| const_expr.kind == ast::expression_type_kind::none
+	)
+	{
 		return {};
 	}
+
+	val_ptr result;
+
+	// consteval variable
+	if (const_expr.kind == ast::expression_type_kind::lvalue)
+	{
+		bz_assert(const_expr.expr.is<ast::expr_identifier>());
+		result = emit_bitcode<abi>(*const_expr.expr.get<ast::expr_identifier_ptr>(), context, nullptr);
+	}
+	else
+	{
+		result.kind = val_ptr::value;
+	}
+
+	result.consteval_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 
 	if (result_address == nullptr)
 	{
