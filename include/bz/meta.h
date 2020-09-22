@@ -151,6 +151,8 @@ constexpr bool is_trivial_v = std::is_trivial_v<T>;
 template<typename From, typename To>
 constexpr bool is_convertible_v = std::is_convertible_v<From, To>;
 
+template<typename T>
+constexpr bool is_trivially_destructible_v = std::is_trivially_destructible_v<T>;
 
 template<typename T, T N, T ...Ns>
 constexpr T max = []
