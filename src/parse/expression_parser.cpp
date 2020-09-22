@@ -603,7 +603,7 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			context.report_error(stream, "expected primary expression");
+			context.report_error(stream, "expected a primary expression");
 			return ast::expression({ stream, stream, stream + 1 });
 		}
 	}
