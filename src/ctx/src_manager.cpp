@@ -114,7 +114,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 
 	llvm::TargetOptions options;
 	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	this->_global_ctx._target_machine = target->createTargetMachine(target_triple, cpu, features, options, rm);
+	this->_global_ctx._target_machine.reset(target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_global_ctx._target_machine);
 	this->_global_ctx._data_layout = this->_global_ctx._target_machine->createDataLayout();
 	this->_global_ctx._module.setDataLayout(*this->_global_ctx._data_layout);
@@ -228,7 +228,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	);
 	bz_assert(!ec);
 
-	auto const target_machine = this->_global_ctx._target_machine;
+	auto const target_machine = this->_global_ctx._target_machine.get();
 
 	llvm::legacy::PassManager pass;
 	auto const file_type = llvm::CGFT_ObjectFile;
