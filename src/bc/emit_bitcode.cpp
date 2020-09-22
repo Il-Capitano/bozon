@@ -2124,7 +2124,21 @@ static llvm::Constant *get_value(
 			);
 		}
 	case ast::constant_value::array:
-		bz_unreachable;
+	{
+		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_array>());
+		auto const elem_type = ast::remove_const_or_consteval(type)
+			.get<ast::ts_array>().elem_type.as_typespec_view();
+		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
+		bz_assert(array_type != nullptr);
+		auto const &array_values = value.get<ast::constant_value::array>();
+		bz::vector<llvm::Constant *> elems = {};
+		elems.reserve(array_values.size());
+		for (auto const &val : array_values)
+		{
+			elems.push_back(get_value<abi>(val, elem_type, nullptr, context));
+		}
+		return llvm::ConstantArray::get(array_type, llvm::ArrayRef(elems.data(), elems.size()));
+	}
 	case ast::constant_value::tuple:
 	{
 		auto const &tuple_values = value.get<ast::constant_value::tuple>();
