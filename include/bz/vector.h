@@ -896,16 +896,16 @@ public:
 
 
 	reverse_iterator rbegin(void) noexcept
-	{ return this->_data_end - 1; }
+	{ return this->_data_end == nullptr ? nullptr : this->_data_end - 1; }
 
 	reverse_iterator rend(void) noexcept
-	{ return this->_data_begin - 1; }
+	{ return this->_data_begin == nullptr ? nullptr : this->_data_begin - 1; }
 
 	const_reverse_iterator rbegin(void) const noexcept
-	{ return this->_data_end - 1; }
+	{ return this->_data_end == nullptr ? nullptr : this->_data_end - 1; }
 
 	const_reverse_iterator rend(void) const noexcept
-	{ return this->_data_begin - 1; }
+	{ return this->_data_begin == nullptr ? nullptr : this->_data_begin - 1; }
 
 	const_reverse_iterator crbegin(void) const noexcept
 	{ return this->_data_end - 1; }
