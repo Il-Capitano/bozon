@@ -58,17 +58,17 @@ inline lex::token_range get_tokens_in_curly(
 }
 
 template<uint32_t ...stop_tokens>
-inline lex::token_range get_expression_tokens(
+inline lex::token_range get_expression_tokens_without_error(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
 {
 	auto const begin = stream;
-	size_t level = 0;
 	auto const is_valid_kind = [](uint32_t kind) {
 		return is_valid_expression_or_type_token(kind)
 			&& !((kind == stop_tokens) || ...);
 	};
+	size_t level = 0;
 
 	while (stream != end && (level != 0 || is_valid_kind(stream->kind)))
 	{
@@ -76,9 +76,74 @@ inline lex::token_range get_expression_tokens(
 		{
 		case lex::token::paren_open:
 		{
+			++stream; // '('
+			get_expression_tokens_without_error<
+				lex::token::paren_close, lex::token::square_close
+			>(stream, end, context);
+			if (stream != end && stream->kind == lex::token::paren_close)
+			{
+				++stream;
+			}
+			break;
+		}
+		case lex::token::square_open:
+		{
+			++stream; // '['
+			get_expression_tokens_without_error<
+				lex::token::paren_close, lex::token::square_close
+			>(stream, end, context);
+			if (stream != end && stream->kind == lex::token::square_close)
+			{
+				++stream;
+			}
+			break;
+		}
+		case lex::token::curly_open:
+			++level;
+			++stream; // '{'
+			break;
+		case lex::token::curly_close:
+			--level;
+			++stream; // '}'
+			break;
+		case lex::token::paren_close:
+			++stream; // ')'
+			break;
+		case lex::token::square_close:
+			++stream; // ']'
+			break;
+		default:
+			++stream;
+			break;
+		}
+	}
+
+	return { begin, stream };
+}
+
+template<uint32_t ...stop_tokens>
+inline lex::token_range get_expression_tokens(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto const begin = stream;
+	auto const is_valid_kind = [](uint32_t kind) {
+		return is_valid_expression_or_type_token(kind)
+			&& !((kind == stop_tokens) || ...);
+	};
+
+	while (stream != end && is_valid_kind(stream->kind))
+	{
+		switch (stream->kind)
+		{
+		case lex::token::paren_open:
+		{
 			auto const open_paren = stream;
 			++stream; // '('
-			get_expression_tokens<lex::token::paren_close>(stream, end, context);
+			get_expression_tokens_without_error<
+				lex::token::paren_close, lex::token::square_close
+			>(stream, end, context);
 			if (stream == end || stream->kind != lex::token::paren_close)
 			{
 				context.report_paren_match_error(stream, open_paren);
@@ -93,7 +158,9 @@ inline lex::token_range get_expression_tokens(
 		{
 			auto const open_square = stream;
 			++stream; // '['
-			get_expression_tokens<lex::token::square_close>(stream, end, context);
+			get_expression_tokens_without_error<
+				lex::token::paren_close, lex::token::square_close
+			>(stream, end, context);
 			if (stream == end || stream->kind != lex::token::square_close)
 			{
 				context.report_paren_match_error(stream, open_square);
@@ -114,7 +181,7 @@ inline lex::token_range get_expression_tokens(
 			break;
 		case lex::token::square_close:
 			context.report_error(stream, "stray ]");
-			++stream; // ')'
+			++stream; // ']'
 			break;
 		default:
 			++stream;

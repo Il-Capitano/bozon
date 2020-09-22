@@ -160,7 +160,7 @@ ast::statement parse_stmt_static_assert(
 	bz_assert(stream->kind == lex::token::kw_static_assert);
 	++stream; // 'static_assert'
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
-	auto const args = get_expression_tokens<
+	auto const args = get_expression_tokens_without_error<
 		lex::token::paren_close
 	>(stream, end, context);
 	if (stream != end && stream->kind == lex::token::paren_close)
