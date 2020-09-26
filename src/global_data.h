@@ -14,6 +14,38 @@ enum class compilation_phase
 	link,
 };
 
+enum class emit_type
+{
+	object,
+	asm_,
+	llvm_bc,
+	llvm_ir,
+};
+
+inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
+{
+	if (arg == "object")
+	{
+		return emit_type::object;
+	}
+	else if (arg == "asm")
+	{
+		return emit_type::asm_;
+	}
+	else if (arg == "llvm-bc")
+	{
+		return emit_type::llvm_bc;
+	}
+	else if (arg == "llvm-ir")
+	{
+		return emit_type::llvm_ir;
+	}
+	else
+	{
+		return {};
+	}
+}
+
 inline bool display_help = false;
 inline bool display_version = false;
 inline bool display_warning_help = false;
@@ -25,6 +57,7 @@ inline bool do_profile = false;
 inline compilation_phase compile_until = compilation_phase::link;
 inline bool do_verbose = false;
 inline bz::u8string target;
+inline emit_type emit_file_type = emit_type::object;
 
 inline size_t tab_size = 4;
 inline bool no_error_highlight = false;

@@ -42,15 +42,16 @@ template<>
 constexpr bool cl::is_array_like<&import_dirs> = true;
 
 constexpr std::array clparsers = {
-	cl::create_parser<&display_help>      ("-h, --help",                     "Display this help page"),
-	cl::create_parser<&display_version>   ("-V, --version",                  "Print compiler version"),
-	cl::create_parser<&do_verbose>        ("-v, --verbose",                  "Do verbose output"),
-	cl::create_parser<&output_file_name>  ("-o <file>",                      "Write output to <file>"),
-	cl::create_parser<&do_profile>        ("--profile",                      "Measure time for compilation steps", true),
-	cl::create_parser<&no_error_highlight>("--no-error-highlight",           "Disable printing of highlighted source in error messages", true),
-	cl::create_parser<&tab_size>          ("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", true),
-	cl::create_parser<&target>            ("--target=<target-triple>",       "Set compilation target to <target-triple>"),
-	cl::create_parser<&import_dirs>       ("-I, --import-dir <dir>",         "Add <dir> as an import directory"),
+	cl::create_parser<&display_help>                    ("-h, --help",                          "Display this help page"),
+	cl::create_parser<&do_verbose>                      ("-v, --verbose",                       "Do verbose output"),
+	cl::create_parser<&display_version>                 ("-V, --version",                       "Print compiler version"),
+	cl::create_parser<&import_dirs>                     ("-I, --import-dir <dir>",              "Add <dir> as an import directory"),
+	cl::create_parser<&output_file_name>                ("-o, --output <file>",                 "Write output to <file>"),
+	cl::create_parser<&emit_file_type, &parse_emit_type>("--emit={object|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=object)"),
+	cl::create_parser<&do_profile>                      ("--profile",                           "Measure time for compilation steps", true),
+	cl::create_parser<&no_error_highlight>              ("--no-error-highlight",                "Disable printing of highlighted source in error messages", true),
+	cl::create_parser<&tab_size>                        ("--error-report-tab-size=<size>",      "Set tab size in error reporting (default=4)", true),
+	cl::create_parser<&target>                          ("--target=<target-triple>",            "Set compilation target to <target-triple>"),
 
 	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>", "Enable the specified <warning>"),
 };
