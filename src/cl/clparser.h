@@ -67,6 +67,7 @@ constexpr bool is_valid_flag_char(bz::u8char c)
 	return c > ' '
 		&& c != ','
 		&& c != '='
+		&& c != '|'
 		&& c != '<' && c != '>'
 		&& c != '[' && c != ']'
 		&& c != '(' && c != ')'
@@ -94,29 +95,54 @@ bz::optional<bz::u8string> default_flag_parser(iter_t begin, iter_t end, iter_t 
 	}
 };
 
+constexpr void consume_flag_name(bz::u8iterator &it, bz::u8iterator end)
+{
+	while (it != end && is_valid_flag_char(*it))
+	{
+		++it;
+	}
+}
+
+constexpr void consume_value(bz::u8iterator &it, bz::u8iterator end)
+{
+	bz_assert(it != end && (*it == '<' || *it == '{'), "value doesn't start with '<' or '{'");
+	if (*it == '<')
+	{
+		++it; // '<'
+		consume_flag_name(it, end);
+		bz_assert(it != end && *it == '>', "value doesn't end with '>'");
+		++it; // '>'
+	}
+	else // if (*it == '{')
+	{
+		++it; // '{'
+		do
+		{
+			auto const val_begin = it;
+			consume_flag_name(it, end);
+			auto const val_end = it;
+			auto const val = bz::u8string_view(val_begin, val_end);
+			bz_assert(bz::constexpr_not_equals(val, ""), "value option must not be an empty string");
+		} while (it != end && *it == '|' && ((void)++it, true));
+		bz_assert(it != end && *it == '}', "value doesn't end with '}'");
+		++it; // '}'
+	}
+}
+
 // -f <value>
 // --flag-name <value>
+// --flag-name {val1|val2|val3}
 constexpr void check_argument_parser_syntax(bz::u8string_view usage)
 {
 	auto it = usage.begin();
 	auto const end = usage.end();
 
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
+	bz_assert(it != end && *it == '-', "usage doesn't follow the syntax --flag-name <value> (flag name doesn't start with '-')");
+	consume_flag_name(it, end);
 
 	bz_assert(it != end && *it == ' ', "usage doesn't follow the syntax --flag-name <value> (no space after '--flag-name')");
 	++it; // ' '
-	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax --flag-name <value> (missing '<' after '--flag-name ')");
-	++it; // '<'
-
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
-	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax --flag-name <value> (missing '>' after '--flag-name <value')");
-	++it;
+	consume_value(it, end);
 	bz_assert(it == end, "usage doesn't follow the syntax --flag-name <value> (usage doesn't end after '>')");
 }
 
@@ -126,24 +152,24 @@ bz::optional<bz::u8string> default_argument_parser(iter_t begin, iter_t end, ite
 	bz_assert(stream != end);
 	if constexpr (is_array_like<output>)
 	{
-			auto const flag_name = *stream;
-			++stream;
-			if (stream == end)
-			{
-				return bz::format("expected an argument after '{}'", flag_name);
-			}
-			auto const arg = *stream;
-			++stream;
-			auto const result = arg_parser<typename bz::meta::remove_reference<decltype(*output)>::value_type>::parse(arg);
-			if (result.has_error())
-			{
-				return result.get_error();
-			}
-			else
-			{
-				output->emplace_back(std::move(result.get_result()));
-				return {};
-			}
+		auto const flag_name = *stream;
+		++stream;
+		if (stream == end)
+		{
+			return bz::format("expected an argument after '{}'", flag_name);
+		}
+		auto const arg = *stream;
+		++stream;
+		auto const result = arg_parser<typename bz::meta::remove_reference<decltype(*output)>::value_type>::parse(arg);
+		if (result.has_error())
+		{
+			return result.get_error();
+		}
+		else
+		{
+			output->emplace_back(std::move(result.get_result()));
+			return {};
+		}
 	}
 	else
 	{
@@ -183,29 +209,86 @@ bz::optional<bz::u8string> default_argument_parser(iter_t begin, iter_t end, ite
 	}
 }
 
+template<
+	auto *output,
+	bz::optional<bz::meta::remove_pointer<decltype(output)>> (*value_parser)(bz::u8string_view value)
+>
+bz::optional<bz::u8string> choice_argument_parser(iter_t begin, iter_t end, iter_t &stream)
+{
+	bz_assert(stream != end);
+	if constexpr (is_array_like<output>)
+	{
+		auto const flag_name = *stream;
+		++stream;
+		if (stream == end)
+		{
+			return bz::format("expected an argument after '{}'", flag_name);
+		}
+		auto const arg = *stream;
+		++stream;
+		auto const result = value_parser(arg);
+		if (result.has_value())
+		{
+			output->emplace_back(std::move(*result));
+			return {};
+		}
+		else
+		{
+			return bz::format("invalid argument '{}' for '{}'", arg, flag_name);
+		}
+	}
+	else
+	{
+		static iter_t init_iter = nullptr;
+		auto const flag_iter = stream;
+		if (init_iter == nullptr)
+		{
+			auto const flag_name = *stream;
+			++stream;
+			if (stream == end)
+			{
+				return bz::format("expected an argument after '{}'", flag_name);
+			}
+			auto const arg = *stream;
+			++stream;
+			auto const result = value_parser(arg);
+			if (result.has_value())
+			{
+				init_iter = flag_iter;
+				*output = std::move(*result);
+				return {};
+			}
+			else
+			{
+				return bz::format("invalid argument '{}' for '{}'", arg, flag_name);
+			}
+		}
+		else
+		{
+			++stream;
+			if (stream != end)
+			{
+				++stream;
+			}
+			return bz::format("option '{}' has already been set by argument '{}', at position {}", *flag_iter, *init_iter, init_iter - begin);
+		}
+	}
+}
+
 // -f=<value>
 // --flag-name=<value>
+// --flag-name={val1|val2|val3}
 constexpr void check_equals_parser_syntax(bz::u8string_view usage)
 {
 	auto it = usage.begin();
 	auto const end = usage.end();
 
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
+	bz_assert(it != end && *it == '-', "usage doesn't follow the syntax --flag-name=<value> (flag name doesn't start with '-')");
+	consume_flag_name(it, end);
 
 	bz_assert(it != end && *it == '=', "usage doesn't follow the syntax --flag-name=<value> (missing '=' after '--flag-name')");
-	++it; // ' '
-	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax --flag-name=<value> (missing '<' after '--flag-name=')");
-	++it; // '<'
-
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
-	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax --flag-name=<value> (missing '>' after '--flag-name=<value')");
-	++it;
+	++it; // '='
+	consume_value(it, end);
 	bz_assert(it == end, "usage doesn't follow the syntax --flag-name=<value> (usage doesn't end after '>')");
 }
 
@@ -269,6 +352,71 @@ bz::optional<bz::u8string> default_equals_parser(iter_t begin, iter_t end, iter_
 	}
 }
 
+template<
+	auto *output,
+	bz::optional<bz::meta::remove_pointer<decltype(output)>> (*value_parser)(bz::u8string_view value)
+>
+bz::optional<bz::u8string> choice_equals_parser(iter_t begin, iter_t end, iter_t &stream)
+{
+	bz_assert(stream != end);
+	if constexpr (is_array_like<output>)
+	{
+		auto const stream_value = *stream;
+		++stream;
+		auto const it = stream_value.find('=');
+		auto const flag_name = bz::u8string_view(stream_value.begin(), it);
+		auto const arg = bz::u8string_view(it + 1, stream_value.end());
+		if (arg == "")
+		{
+			return bz::format("expected an argument after '{}'", bz::u8string_view(stream_value.begin(), it + 1));
+		}
+		auto const result = value_parser(arg);
+		if (result.has_value())
+		{
+			output->emplace_back(std::move(*result));
+			return {};
+		}
+		else
+		{
+			return bz::format("invalid argument '{}' for '{}'", arg, flag_name);
+		}
+	}
+	else
+	{
+		static iter_t init_iter = nullptr;
+		auto const flag_iter = stream;
+		if (init_iter == nullptr)
+		{
+			auto const stream_value = *stream;
+			++stream;
+			auto const it = stream_value.find('=');
+			auto const flag_name = bz::u8string_view(stream_value.begin(), it);
+			auto const arg = bz::u8string_view(it + 1, stream_value.end());
+			if (arg == "")
+			{
+				return bz::format("expected an argument after '{}'", bz::u8string_view(stream_value.begin(), it + 1));
+			}
+			auto const result = value_parser(arg);
+			if (result.has_value())
+			{
+				init_iter = flag_iter;
+				*output = std::move(*result);
+				return {};
+			}
+			else
+			{
+				return bz::format("invalid argument '{}' for '{}'", arg, flag_name);
+			}
+		}
+		else
+		{
+			auto const flag_name = bz::u8string_view(flag_iter->begin(), flag_iter->find('='));
+			++stream;
+			return bz::format("option '{}' has already been set by argument '{}', at position {}", flag_name, *init_iter, init_iter - begin);
+		}
+	}
+}
+
 constexpr void check_multiple_flag_parser_syntax(bz::u8string_view usage)
 {
 	bz_assert(usage.starts_with("-"), "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (usage doesn't start with '-')");
@@ -288,10 +436,7 @@ constexpr void check_multiple_flag_parser_syntax(bz::u8string_view usage)
 	bz_assert(it != end && *it == '-', "usage doesn't follow the syntax '-f, --flag-name' or '-f, --flag-name <value>' (missing second '-' in second flag)");
 	++it;
 
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
+	consume_flag_name(it, end);
 
 	if (it == end)
 	{
@@ -300,14 +445,7 @@ constexpr void check_multiple_flag_parser_syntax(bz::u8string_view usage)
 
 	bz_assert(it != end && *it == ' ', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing ' ' after second flag name)");
 	++it;
-	bz_assert(it != end && *it == '<', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing '<' after ' ')");
-	++it;
-	while (it != end && is_valid_flag_char(*it))
-	{
-		++it;
-	}
-	bz_assert(it != end && *it == '>', "usage doesn't follow the syntax '-f, --flag-name <value>' (missing '>' after value name)");
-	++it;
+	consume_value(it, end);
 	bz_assert(it == end, "usage doesn't follow the syntax '-f, --flag-name <value>' (usage doesn't end after '>')");
 }
 
@@ -346,6 +484,16 @@ constexpr bool is_multiple_flag_argument(bz::u8string_view usage)
 	return usage.length() > (first.length() + second.length() + 2);
 }
 
+constexpr bool is_choice_flag(bz::u8string_view usage)
+{
+	return usage.contains('{');
+}
+
+constexpr size_t get_choice_count(bz::u8string_view usage)
+{
+	return usage.count_chars('|') + 1;
+}
+
 } // namespace internal
 
 // syntax:
@@ -357,9 +505,14 @@ constexpr bool is_multiple_flag_argument(bz::u8string_view usage)
 // --flag-name=<value>     equals flag
 // -f, --flag-name         multiple option simple bool flag
 // -f, --flag-name <value> multiple option argument flag
-template<auto *output>
+
+template<
+	auto *output,
+	bz::optional<bz::meta::remove_pointer<decltype(output)>> (*choice_parse_fn)(bz::u8string_view value) = nullptr
+>
 constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help, bool hidden = false)
 {
+	static_assert(output != nullptr);
 	bz_assert(usage.starts_with("-"));
 
 	auto const begin = usage.begin();
@@ -399,16 +552,36 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help, 
 	{
 		internal::check_argument_parser_syntax(usage);
 		auto const flag_name = bz::u8string_view(begin, it);
-		auto const parse_fn = &internal::default_argument_parser<output>;
-		return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn, hidden };
+		if constexpr (choice_parse_fn != nullptr)
+		{
+			bz_assert(internal::is_choice_flag(usage));
+			auto const parse_fn = &internal::choice_argument_parser<output, choice_parse_fn>;
+			return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn, hidden };
+		}
+		else
+		{
+			bz_assert(!internal::is_choice_flag(usage));
+			auto const parse_fn = &internal::default_argument_parser<output>;
+			return parser{ parser_kind::argument, flag_name, "", usage, help, parse_fn, hidden };
+		}
 	}
 	case '=':
 	{
 		++it;
 		internal::check_equals_parser_syntax(usage);
 		auto const prefix_name = bz::u8string_view(begin, it);
-		auto const parse_fn = &internal::default_equals_parser<output>;
-		return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn, hidden };
+		if constexpr (choice_parse_fn != nullptr)
+		{
+			bz_assert(internal::is_choice_flag(usage));
+			auto const parse_fn = &internal::choice_equals_parser<output, choice_parse_fn>;
+			return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn, hidden };
+		}
+		else
+		{
+			bz_assert(!internal::is_choice_flag(usage));
+			auto const parse_fn = &internal::default_equals_parser<output>;
+			return parser{ parser_kind::prefix, prefix_name, "", usage, help, parse_fn, hidden };
+		}
 	}
 	case ',':
 	{
@@ -418,8 +591,18 @@ constexpr parser create_parser(bz::u8string_view usage, bz::u8string_view help, 
 
 		if (is_argument)
 		{
-			auto const parse_fn = &internal::default_argument_parser<output>;
-			return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn, hidden };
+			if constexpr (choice_parse_fn != nullptr)
+			{
+				bz_assert(internal::is_choice_flag(usage));
+				auto const parse_fn = &internal::choice_argument_parser<output, choice_parse_fn>;
+				return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn, hidden };
+			}
+			else
+			{
+				bz_assert(!internal::is_choice_flag(usage));
+				auto const parse_fn = &internal::default_argument_parser<output>;
+				return parser{ parser_kind::argument, first_flag_name, second_flag_name, usage, help, parse_fn, hidden };
+			}
 		}
 		else
 		{
