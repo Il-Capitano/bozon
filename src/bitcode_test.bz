@@ -113,6 +113,10 @@ function main() -> int32
 	println("\n==== array_test ====");
 	array_test();
 
+	println("\n==== tuple_test ====");
+	tuple_test();
+
+	println("\n==== end main ====");
 	println(exp(1.0));
 
 	return 0;
@@ -767,4 +771,21 @@ function arr2_tester() -> void
 {
 	let arr: [2: int32];
 	arr2_test(arr, "hello", 3);
+	const arr = arr;
+}
+
+function tuple_test() -> void
+{
+	let t: [int32, float64];
+	println([2, 2.234][1]);
+
+	consteval t = [0, 1.53, "hello"];
+	consteval str = t[2];
+	static_assert(str == t[2]);
+//	const t = [t, 234.5f32, 0b0000'1000];
+	// we need to deal with nested auto case in `match_expression_to_type`
+//	let t: const [int32, auto] = [123, 3.5f32];
+//	static_assert(typeof t == const [int32, float32]);
+	// also this
+//	let t: [int32, float64] = [0, 2.5];
 }

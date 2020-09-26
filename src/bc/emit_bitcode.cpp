@@ -2209,8 +2209,9 @@ static val_ptr emit_bitcode(
 	// consteval variable
 	if (const_expr.kind == ast::expression_type_kind::lvalue)
 	{
-		bz_assert(const_expr.expr.is<ast::expr_identifier>());
-		result = emit_bitcode<abi>(*const_expr.expr.get<ast::expr_identifier_ptr>(), context, nullptr);
+		result = const_expr.expr.visit([&](auto const &expr) {
+			return emit_bitcode<abi>(expr, context, nullptr);
+		});
 	}
 	else
 	{

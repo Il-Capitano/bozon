@@ -2460,7 +2460,7 @@ void parse_context::match_expression_to_type(
 	}
 
 	auto [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	if (!ast::is_complete(expr_type))
+	if (expr_type_kind != ast::expression_type_kind::tuple && !ast::is_complete(expr_type))
 	{
 		if (!ast::is_complete(dest_type))
 		{
@@ -2660,7 +2660,7 @@ void parse_context::match_expression_to_type(
 			return;
 		}
 	}
-	else
+	else if (ast::is_complete(expr_type))
 	{
 		bz_assert(dest_it.is<ast::ts_auto>());
 		expr_it = ast::remove_const_or_consteval(expr_it);
@@ -2676,6 +2676,30 @@ void parse_context::match_expression_to_type(
 		}
 
 		dest_type.copy_from(dest_it, expr_it);
+	}
+	else
+	{
+		bz_assert(dest_it.is<ast::ts_auto>());
+		bz_assert(!ast::is_complete(expr_type));
+		bz_assert(expr_type_kind == ast::expression_type_kind::tuple);
+		bz_assert(expr.get_expr().is<ast::expr_tuple>());
+		auto &tuple_expr = *expr.get_expr().get<ast::expr_tuple_ptr>();
+		bz::vector<ast::typespec> types = {};
+		types.reserve(tuple_expr.elems.size());
+		for (size_t i = 0; i < tuple_expr.elems.size(); ++i)
+		{
+			types.emplace_back(ast::make_auto_typespec(nullptr));
+		}
+		for (auto const [elem_expr, type] : bz::zip(tuple_expr.elems, types))
+		{
+			static_assert(bz::meta::is_same<decltype(type), ast::typespec &>);
+			this->match_expression_to_type(elem_expr, type);
+		}
+		auto const auto_pos = dest_it.get<ast::ts_auto>().auto_pos;
+		auto const src_tokens = auto_pos == nullptr
+			? lex::src_tokens{}
+			: lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
+		dest_type.move_from(dest_it, ast::make_tuple_typespec(src_tokens, std::move(types)));
 	}
 }
 

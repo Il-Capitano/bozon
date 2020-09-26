@@ -131,6 +131,7 @@ struct typespec
 	void clear(void) noexcept;
 
 	void copy_from(typespec_view pos, typespec_view source);
+	void move_from(typespec_view pos, typespec_view source);
 
 
 	bz::u8string get_symbol_name(void) const
