@@ -665,6 +665,38 @@ public:
 
 	constexpr bool contains_any(u8string_view str) const noexcept
 	{ return this->find_any(str) != this->end(); }
+
+	constexpr size_t count_chars(u8char c) const noexcept
+	{
+		if (c <= internal::max_one_byte_char)
+		{
+			size_t result = 0;
+			auto it = this->_data_begin;
+			auto const end = this->_data_end;
+			for (; it != end; ++it)
+			{
+				if (static_cast<u8char>(*it) == c)
+				{
+					++result;
+				}
+			}
+			return result;
+		}
+		else
+		{
+			size_t result = 0;
+			auto it = this->begin();
+			auto const end = this->end();
+			for (; it != end; ++it)
+			{
+				if (*it == c)
+				{
+					++result;
+				}
+			}
+			return result;
+		}
+	}
 };
 
 inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept

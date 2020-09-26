@@ -323,6 +323,23 @@ namespace internal
 {
 
 template<typename T>
+struct remove_pointer_impl
+{ using type = T; };
+
+template<typename T>
+struct remove_pointer_impl<T *>
+{ using type = T; };
+
+} // namespace internal
+
+template<typename T>
+using remove_pointer = typename internal::remove_pointer_impl<T>::type;
+
+
+namespace internal
+{
+
+template<typename T>
 struct remove_reference_impl
 { using type = T; };
 
