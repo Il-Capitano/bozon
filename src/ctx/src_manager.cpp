@@ -11,6 +11,9 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 
 namespace ctx
 {
@@ -213,13 +216,6 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 //	context.module.print(llvm::errs(), nullptr);
 	auto &module = this->_global_ctx._module;
 
-	{
-		std::error_code ec;
-		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
-		bz_assert(!ec);
-		module.print(file, nullptr);
-	}
-
 	auto const output_file = output_file_name.as_string_view();
 	std::error_code ec;
 	llvm::raw_fd_ostream dest(
@@ -230,12 +226,45 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 
 	auto const target_machine = this->_global_ctx._target_machine.get();
 
-	llvm::legacy::PassManager pass;
-	auto const file_type = llvm::CGFT_ObjectFile;
-	auto const res = target_machine->addPassesToEmitFile(pass, dest, nullptr, file_type);
+
+	llvm::legacy::PassManager pass_manager;
+
+	// optimizations
+	pass_manager.add(llvm::createInstructionCombiningPass());
+	pass_manager.add(llvm::createReassociatePass());
+	pass_manager.add(llvm::createGVNPass());
+	pass_manager.add(llvm::createCFGSimplificationPass());
+	pass_manager.add(llvm::createInstructionCombiningPass());
+//	pass_manager.add(llvm::createReassociatePass());
+	pass_manager.add(llvm::createGVNPass());
+	pass_manager.add(llvm::createCFGSimplificationPass());
+
+	// object file emission
+	auto const file_type = []() {
+		switch (emit_file_type)
+		{
+		case emit_type::object:
+			return llvm::CGFT_ObjectFile;
+		case emit_type::asm_:
+			return llvm::CGFT_AssemblyFile;
+		case emit_type::llvm_bc:
+		case emit_type::llvm_ir:
+			bz_unreachable;
+		}
+		bz_unreachable;
+	}();
+	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, file_type);
 	bz_assert(!res);
-	pass.run(module);
+	pass_manager.run(module);
 	dest.flush();
+
+	// only here for debug purposes, the '--emit' option does not control this
+	{
+		std::error_code ec;
+		llvm::raw_fd_ostream file("output.ll", ec, llvm::sys::fs::OF_Text);
+		bz_assert(!ec);
+		module.print(file, nullptr);
+	}
 
 	return true;
 }

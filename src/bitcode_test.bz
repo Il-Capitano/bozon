@@ -782,10 +782,63 @@ function tuple_test() -> void
 	consteval t = [0, 1.53, "hello"];
 	consteval str = t[2];
 	static_assert(str == t[2]);
+	let &const num = t[1];
 //	const t = [t, 234.5f32, 0b0000'1000];
 	// we need to deal with nested auto case in `match_expression_to_type`
 //	let t: const [int32, auto] = [123, 3.5f32];
 //	static_assert(typeof t == const [int32, float32]);
 	// also this
 //	let t: [int32, float64] = [0, 2.5];
+
+	let t = [ 123, 123.123, "HELLO!!"];
+	let &i32 = t[0];
+	let &f64 = t[1];
+	let &s   = t[2];
+
+	print("["), print(t[0]), print(", "), print(t[1]), print(", "), print(t[2]), print("]\n");
+	i32 = 456;
+	print("["), print(t[0]), print(", "), print(t[1]), print(", "), print(t[2]), print("]\n");
+	s = "hello?";
+	print("["), print(t[0]), print(", "), print(t[1]), print(", "), print(t[2]), print("]\n");
+	f64 = i32 as float64 + 0.456;
+	print("["), print(t[0]), print(", "), print(t[1]), print(", "), print(t[2]), print("]\n");
+	const val = (f64 * 3.2) + (3.2 * f64);
+	println(val);
+}
+
+function optimization_test() -> void
+{
+	function do_calculation(x: float64) -> float64
+	{
+		let res = (x * 3.4) + (3.4 * x);
+		res *= res;
+		return res;
+	}
+
+	function do_work(arr: [2: int32]) -> [2: int32]
+	{
+		const tmp = arr[0];
+		arr[0] = arr[1];
+		arr[1] = tmp;
+		return arr;
+	}
+
+	let arr: [2: int32];
+	arr[0] = 123;
+	arr[1] = 456;
+	const arr = do_work(arr);
+}
+
+function phi_test(x: int32, b: bool) -> int32
+{
+	let result = x;
+	if (b)
+	{
+		result *= 2;
+	}
+	else
+	{
+		result /= 2;
+	}
+	return result;
 }
