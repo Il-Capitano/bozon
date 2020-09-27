@@ -1744,6 +1744,7 @@ static val_ptr emit_bitcode(
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
 	auto const res = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+	res->setCallingConv(fn->getCallingConv());
 
 	if (res->getType()->isVoidTy())
 	{
@@ -2142,7 +2143,7 @@ static llvm::Constant *get_value(
 	case ast::constant_value::tuple:
 	{
 		auto const &tuple_values = value.get<ast::constant_value::tuple>();
-		bz::vector<llvm::Type *>     types = {};
+		bz::vector<llvm::Type     *> types = {};
 		bz::vector<llvm::Constant *> elems = {};
 		types.reserve(tuple_values.size());
 		elems.reserve(tuple_values.size());

@@ -377,12 +377,14 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 	auto const res = [&]() -> llvm::Value * {
 		if (result_output_ptr)
 		{
-			context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			call->setCallingConv(fn->getCallingConv());
 			return params.front();
 		}
 		else if (result_int_cast)
 		{
 			auto const int_val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			int_val->setCallingConv(fn->getCallingConv());
 			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
 			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(int_val->getType(), 0));
 			context.builder.CreateStore(int_val, int_ptr);
@@ -391,6 +393,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		else
 		{
 			auto const val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			val->setCallingConv(fn->getCallingConv());
 			if (result_address == nullptr)
 			{
 				return val;
