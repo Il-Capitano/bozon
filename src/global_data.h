@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "ctx/warnings.h"
+#include "bc/optimizations.h"
 
 enum class compilation_phase
 {
@@ -46,16 +47,23 @@ inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 	}
 }
 
-inline bool display_help = false;
-inline bool display_version = false;
+inline bool display_help         = false;
+inline bool display_version      = false;
 inline bool display_warning_help = false;
+inline bool display_opt_help     = false;
+
+inline std::array<bool, ctx::warning_infos.size()>     warnings{};
+inline std::array<bool, bc::optimization_infos.size()> optimizations{};
 
 inline bz::u8string output_file_name;
-inline std::array<bool, static_cast<size_t>(ctx::warning_kind::_last)> warnings{};
 inline bz::u8string source_file;
-inline bool do_profile = false;
+
 inline compilation_phase compile_until = compilation_phase::link;
+
+inline bool do_profile = false;
+inline bool debug_ir_output = false;
 inline bool do_verbose = false;
+
 inline bz::u8string target;
 inline emit_type emit_file_type = emit_type::object;
 
@@ -64,13 +72,11 @@ inline bool no_error_highlight = false;
 
 inline bz::vector<bz::u8string> import_dirs;
 
+
 constexpr bz::u8string_view version_info = "bozon 0.0.0\n";
 
-
-void enable_warning(ctx::warning_kind kind);
-void disable_warning(ctx::warning_kind kind);
-void enable_Wall(void);
-
-bool is_warning_enabled(ctx::warning_kind kind);
+bool is_warning_enabled(ctx::warning_kind kind) noexcept;
+bool is_optimization_enabled(bc::optimization_kind kind) noexcept;
+bool is_any_optimization_enabled(void) noexcept;
 
 #endif // GLOBAL_DATA_H

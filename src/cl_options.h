@@ -3,22 +3,37 @@
 
 #include "cl/clparser.h"
 #include "ctx/warnings.h"
+#include "bc/optimizations.h"
 #include "global_data.h"
 #include "ctx/command_parse_context.h"
 
-constexpr std::array Wall_indicies = {
-	static_cast<size_t>(ctx::warning_kind::int_overflow),
-	static_cast<size_t>(ctx::warning_kind::int_divide_by_zero),
-	static_cast<size_t>(ctx::warning_kind::float_overflow),
-	static_cast<size_t>(ctx::warning_kind::float_divide_by_zero),
-	static_cast<size_t>(ctx::warning_kind::unknown_attribute),
-	static_cast<size_t>(ctx::warning_kind::null_pointer_dereference),
-	static_cast<size_t>(ctx::warning_kind::unused_value),
-	static_cast<size_t>(ctx::warning_kind::unclosed_comment),
-	static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent),
-	static_cast<size_t>(ctx::warning_kind::unused_variable),
-	static_cast<size_t>(ctx::warning_kind::greek_question_mark),
-};
+constexpr auto Wall_indicies = []() {
+	using result_t = std::array<size_t, ctx::warning_infos.size()>;
+	result_t result{};
+
+	size_t i = 0;
+	for (auto const &info : ctx::warning_infos)
+	{
+		result[i++] = static_cast<size_t>(info.kind);
+	}
+	bz_assert(i == result.size());
+
+	return result;
+}();
+
+constexpr auto Oall_indicies = []() {
+	using result_t = std::array<size_t, bc::optimization_infos.size()>;
+	result_t result{};
+
+	size_t i = 0;
+	for (auto const &info : bc::optimization_infos)
+	{
+		result[i++] = static_cast<size_t>(info.kind);
+	}
+	bz_assert(i == result.size());
+
+	return result;
+}();
 
 inline bz::u8string dummy_flag_value;
 
@@ -38,6 +53,22 @@ constexpr auto warning_group = []() {
 	return result;
 }();
 
+constexpr std::array opt_group = []() {
+	std::array<cl::group_element_t, bc::optimization_infos.size() + 1> result{};
+
+	size_t i = 0;
+	for (i = 0; i < bc::optimization_infos.size(); ++i)
+	{
+		bz_assert(static_cast<size_t>(bc::optimization_infos[i].kind) == i);
+		result[i] = cl::create_group_element(bc::optimization_infos[i].name, bc::optimization_infos[i].description, i);
+	}
+
+	result[i++] = cl::create_group_element("all", "Enable all optimizations", Oall_indicies);
+
+	bz_assert(i == result.size());
+	return result;
+}();
+
 template<>
 constexpr bool cl::is_array_like<&import_dirs> = true;
 
@@ -49,11 +80,13 @@ constexpr std::array clparsers = {
 	cl::create_parser<&output_file_name>                ("-o, --output <file>",                 "Write output to <file>"),
 	cl::create_parser<&emit_file_type, &parse_emit_type>("--emit={object|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=object)"),
 	cl::create_parser<&do_profile>                      ("--profile",                           "Measure time for compilation steps", true),
+	cl::create_parser<&debug_ir_output>                 ("--debug-ir-output",                   "Emit an LLVM IR file alongside the regular output", true),
 	cl::create_parser<&no_error_highlight>              ("--no-error-highlight",                "Disable printing of highlighted source in error messages", true),
 	cl::create_parser<&tab_size>                        ("--error-report-tab-size=<size>",      "Set tab size in error reporting (default=4)", true),
 	cl::create_parser<&target>                          ("--target=<target-triple>",            "Set compilation target to <target-triple>"),
 
-	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>", "Enable the specified <warning>"),
+	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>",      "Enable the specified <warning>"),
+	cl::create_group_parser<opt_group, optimizations, &display_opt_help>   ("-O<optimization>", "Enable the specified <optimization>"),
 };
 
 inline void parse_command_line(ctx::command_parse_context &context)
@@ -120,6 +153,13 @@ inline void print_warning_help(void)
 {
 	bz::u8string help_string = "Available warnings:\n";
 	help_string += cl::get_group_help_string<warning_group>(2, 24, 80);
+	bz::print(help_string);
+}
+
+inline void print_opt_help(void)
+{
+	bz::u8string help_string = "Available optimizations:\n";
+	help_string += cl::get_group_help_string<opt_group>(2, 24, 80);
 	bz::print(help_string);
 }
 

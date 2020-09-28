@@ -1410,6 +1410,12 @@ having a more uniform system of expr_if, expr_compound, ... should make life eas
 more consistent
 
 
+
+{
+	std::print("hello, {}\n".std::format("world!"));
+}
+
+
 */
 
 #include "ctx/src_manager.h"
@@ -1476,19 +1482,29 @@ int main(int argc, char const **argv)
 		return 0;
 	}
 
-	auto const before_code_emission = timer::now();
+	auto const before_bitcode_emission = timer::now();
 	if (!manager.emit_bitcode())
 	{
 		manager.report_and_clear_errors_and_warnings();
 		return 5;
 	}
-	auto const end = timer::now();
+	auto const after_bitcode_emission = timer::now();
+
+	auto const before_file_emission = timer::now();
+	if (!manager.emit_file())
+	{
+		manager.report_and_clear_errors_and_warnings();
+		return 6;
+	}
+	auto const after_file_emission = timer::now();
 
 	if (compile_until <= compilation_phase::emit_bitcode)
 	{
 		manager.report_and_clear_errors_and_warnings();
 		return 0;
 	}
+
+	auto const end = timer::now();
 
 	manager.report_and_clear_errors_and_warnings();
 
@@ -1497,14 +1513,16 @@ int main(int argc, char const **argv)
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
 		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
 		auto const resolve_time              = after_parse - before_parse;
-		auto const code_emission_time        = end - before_code_emission;
+		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
+		auto const file_emission_time        = after_file_emission - before_file_emission;
 		auto const compilation_time          = end - begin;
 
 		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
 		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
 		bz::print("global symbol parse time: {:7.3f}ms\n", in_ms(first_pass_parse_time));
 		bz::print("parse time:               {:7.3f}ms\n", in_ms(resolve_time));
-		bz::print("code emission time:       {:7.3f}ms\n", in_ms(code_emission_time));
+		bz::print("bitcode emission time:    {:7.3f}ms\n", in_ms(bitcode_emission_time));
+		bz::print("file emission time:       {:7.3f}ms\n", in_ms(file_emission_time));
 	}
 
 	return 0;

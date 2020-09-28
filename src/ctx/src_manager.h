@@ -51,6 +51,9 @@ public:
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool emit_bitcode(void);
+	[[nodiscard]] bool emit_file(void);
+
+	void optimize(void);
 
 	std::list<src_file> &get_src_files(void)
 	{ return this->_src_files; }
