@@ -60,6 +60,17 @@ struct global_context
 		this->_errors.emplace_back(std::move(err));
 	}
 
+	void report_error(bz::u8string message)
+	{
+		this->_errors.emplace_back(error{
+			warning_kind::_last,
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			std::move(message),
+			{}, {}
+		});
+	}
+
 	void report_warning(error &&err)
 	{
 		bz_assert(err.is_warning());
