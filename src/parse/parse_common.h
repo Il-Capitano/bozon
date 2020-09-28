@@ -163,7 +163,7 @@ inline lex::token_range get_expression_tokens(
 			>(stream, end, context);
 			if (stream == end || stream->kind != lex::token::square_close)
 			{
-				context.report_paren_match_error(stream, open_square);
+//				context.report_paren_match_error(stream, open_square);
 			}
 			else
 			{
