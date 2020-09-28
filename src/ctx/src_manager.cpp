@@ -16,6 +16,7 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Utils.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
 
 namespace ctx
 {
@@ -241,10 +242,15 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	if (emit_file_type == emit_type::llvm_bc || emit_file_type == emit_type::llvm_ir)
+	if (emit_file_type == emit_type::llvm_ir)
 	{
-		this->_global_ctx.report_error("llvm bitcode and ir emission is not yet supported");
-		return false;
+		module.print(dest, nullptr);
+		return true;
+	}
+	else if (emit_file_type == emit_type::llvm_bc)
+	{
+		llvm::WriteBitcodeToFile(module, dest);
+		return true;
 	}
 	else
 	{
