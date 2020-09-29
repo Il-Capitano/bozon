@@ -101,8 +101,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		if (target_error.substr(0, default_start.length()) == default_start)
 		{
 			this->_global_ctx.report_error(bz::format(
-				"'{}' is not an available target",
-				convert_string_for_message(target_triple.c_str())
+				"'{}' is not an available target", target_triple.c_str()
 			));
 		}
 		else
@@ -145,13 +144,6 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 	this->add_file(source_file);
-	if (output_file_name == "")
-	{
-		auto const slash = source_file.rfind('/');
-		auto const dot = source_file.rfind('.');
-		output_file_name = bz::u8string_view(slash + 1, dot);
-		output_file_name += ".o";
-	}
 
 	auto &file = this->_src_files.front();
 	if (!file.parse_global_symbols())
@@ -159,8 +151,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		if (file._stage == src_file::constructed)
 		{
 			this->_global_ctx.report_error(bz::format(
-				"unable to read file '{}'",
-				convert_string_for_message(file.get_file_name())
+				"unable to read file '{}'", file.get_file_name()
 			));
 		}
 		return false;
@@ -211,22 +202,6 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool src_manager::emit_file(void)
 {
 	auto &module = this->_global_ctx._module;
-	auto const output_file = output_file_name.as_string_view();
-
-	std::error_code ec;
-	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data(), output_file.size()),
-		ec, llvm::sys::fs::OF_None
-	);
-	if (ec)
-	{
-		this->_global_ctx.report_error(bz::format(
-			"unable to open output file '{}', reason: '{}'",
-			output_file, ec.message().c_str()
-		));
-		return false;
-	}
-
 	// only here for debug purposes, the '--emit' option does not control this
 	if (debug_ir_output)
 	{
@@ -242,40 +217,18 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	if (emit_file_type == emit_type::llvm_ir)
+	switch (emit_file_type)
 	{
-		module.print(dest, nullptr);
-		return true;
+	case emit_type::obj:
+		return this->emit_obj();
+	case emit_type::asm_:
+		return this->emit_asm();
+	case emit_type::llvm_bc:
+		return this->emit_llvm_bc();
+	case emit_type::llvm_ir:
+		return this->emit_llvm_ir();
 	}
-	else if (emit_file_type == emit_type::llvm_bc)
-	{
-		llvm::WriteBitcodeToFile(module, dest);
-		return true;
-	}
-	else
-	{
-		bz_assert(emit_file_type == emit_type::object || emit_file_type == emit_type::asm_);
-		llvm::legacy::PassManager pass_manager;
-		auto const file_type = emit_file_type == emit_type::object
-			? llvm::CGFT_ObjectFile
-			: llvm::CGFT_AssemblyFile;
-
-		auto const target_machine = this->_global_ctx._target_machine.get();
-		auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, file_type);
-		if (res)
-		{
-			this->_global_ctx.report_error(bz::format(
-				"{} file emission is not supported",
-				file_type == llvm::CGFT_ObjectFile ? "object" : "assembly"
-			));
-			return false;
-		}
-
-		pass_manager.run(module);
-		dest.flush();
-
-		return true;
-	}
+	bz_unreachable;
 }
 
 void src_manager::optimize(void)
@@ -304,6 +257,8 @@ while (false)
 	add_opt(reassociate, llvm::createReassociatePass);
 	add_opt(gvn,         llvm::createGVNPass);
 
+#undef add_opt
+
 	{
 		int i = 0;
 		// opt_pass_manager.run returns true if any of the passes modified the code
@@ -312,6 +267,190 @@ while (false)
 			++i;
 		}
 	}
+}
+
+bool src_manager::emit_obj(void)
+{
+	bz::u8string const &output_file = output_file_name != ""
+		? output_file_name
+		: []() {
+			auto const slash_it = source_file.rfind('/');
+			auto const dot = source_file.rfind('.');
+			bz_assert(dot != bz::u8iterator{});
+			return bz::format("{}.o", bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			));
+		}();
+
+	if (!output_file.ends_with(".o"))
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::bad_file_extension,
+			bz::format("LLVM IR output file '{}' doesn't have the files extension '.ll'", output_file)
+		);
+	}
+
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (ec)
+	{
+		this->_global_ctx.report_error(bz::format(
+			"unable to open output file '{}', reason: '{}'",
+			output_file, ec.message().c_str()
+		));
+		return false;
+	}
+
+	auto &module = this->_global_ctx._module;
+	llvm::legacy::PassManager pass_manager;
+	auto const target_machine = this->_global_ctx._target_machine.get();
+	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CGFT_ObjectFile);
+	if (res)
+	{
+		this->_global_ctx.report_error("object file emission is not supported");
+		return false;
+	}
+
+	pass_manager.run(module);
+	return true;
+}
+
+bool src_manager::emit_asm(void)
+{
+	bz::u8string const &output_file = output_file_name != ""
+		? output_file_name
+		: []() {
+			auto const slash_it = source_file.rfind('/');
+			auto const dot = source_file.rfind('.');
+			bz_assert(dot != bz::u8iterator{});
+			return bz::format("{}.s", bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			));
+		}();
+
+	if (!output_file.ends_with(".s"))
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::bad_file_extension,
+			bz::format("LLVM IR output file '{}' doesn't have the files extension '.ll'", output_file)
+		);
+	}
+
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (ec)
+	{
+		this->_global_ctx.report_error(bz::format(
+			"unable to open output file '{}', reason: '{}'",
+			output_file, ec.message().c_str()
+		));
+		return false;
+	}
+
+	auto &module = this->_global_ctx._module;
+	llvm::legacy::PassManager pass_manager;
+	auto const target_machine = this->_global_ctx._target_machine.get();
+	auto const res = target_machine->addPassesToEmitFile(pass_manager, dest, nullptr, llvm::CGFT_AssemblyFile);
+	if (res)
+	{
+		this->_global_ctx.report_error("assembly file emission is not supported");
+		return false;
+	}
+
+	pass_manager.run(module);
+	dest.flush();
+
+	return true;
+}
+
+bool src_manager::emit_llvm_bc(void)
+{
+	auto &module = this->_global_ctx._module;
+	bz::u8string const &output_file = output_file_name != ""
+		? output_file_name
+		: []() {
+			auto const slash_it = source_file.rfind('/');
+			auto const dot = source_file.rfind('.');
+			bz_assert(dot != bz::u8iterator{});
+			return bz::format("{}.bc", bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			));
+		}();
+
+	if (!output_file.ends_with(".bc"))
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::bad_file_extension,
+			bz::format("LLVM IR output file '{}' doesn't have the files extension '.ll'", output_file)
+		);
+	}
+
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (ec)
+	{
+		this->_global_ctx.report_error(bz::format(
+			"unable to open output file '{}', reason: '{}'",
+			output_file, ec.message().c_str()
+		));
+		return false;
+	}
+
+	llvm::WriteBitcodeToFile(module, dest);
+	return true;
+}
+
+bool src_manager::emit_llvm_ir(void)
+{
+	auto &module = this->_global_ctx._module;
+	bz::u8string const &output_file = output_file_name != ""
+		? output_file_name
+		: []() {
+			auto const slash_it = source_file.rfind('/');
+			auto const dot = source_file.rfind('.');
+			bz_assert(dot != bz::u8iterator{});
+			return bz::format("{}.ll", bz::u8string(
+				slash_it == bz::u8iterator{} ? source_file.begin() : slash_it + 1,
+				dot
+			));
+		}();
+
+	if (!output_file.ends_with(".ll"))
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::bad_file_extension,
+			bz::format("LLVM IR output file '{}' doesn't have the files extension '.ll'", output_file)
+		);
+	}
+
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (ec)
+	{
+		this->_global_ctx.report_error(bz::format(
+			"unable to open output file '{}', reason: '{}'",
+			output_file, ec.message().c_str()
+		));
+		return false;
+	}
+
+	module.print(dest, nullptr);
+	return true;
 }
 
 } // namespace ctx

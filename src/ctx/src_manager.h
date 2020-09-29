@@ -54,6 +54,10 @@ public:
 	[[nodiscard]] bool emit_file(void);
 
 	void optimize(void);
+	bool emit_obj(void);
+	bool emit_asm(void);
+	bool emit_llvm_bc(void);
+	bool emit_llvm_ir(void);
 
 	std::list<src_file> &get_src_files(void)
 	{ return this->_src_files; }
