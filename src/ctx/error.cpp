@@ -22,6 +22,43 @@ static uint32_t get_column_number(ctx::char_pos const file_begin, ctx::char_pos 
 	return static_cast<uint32_t>(it == file_begin.data() ? len + 1 : len);
 }
 
+static bz::u8string convert_string_for_message(bz::u8string_view str)
+{
+	bz::u8string result = "";
+
+	auto it = str.begin();
+	auto const end = str.end();
+
+	auto begin = it;
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		if (c < ' ')
+		{
+			result += bz::u8string_view(begin, it);
+			switch (c)
+			{
+			case '\t':
+				result += bz::format("{}\\t{}", colors::bright_black, colors::clear);
+				break;
+			case '\n':
+				result += bz::format("{}\\n{}", colors::bright_black, colors::clear);
+				break;
+			case '\r':
+				result += bz::format("{}\\r{}", colors::bright_black, colors::clear);
+				break;
+			default:
+				result += bz::format("{}\\x{:02x}{}", colors::bright_black, c, colors::clear);
+				break;
+			}
+			begin = it + 1;
+		}
+	}
+	result += bz::u8string_view(begin, it);
+
+	return result;
+}
+
 static bz::u8string get_highlighted_error_or_warning(
 	ctx::char_pos const file_begin,
 	ctx::char_pos const file_end,
@@ -1015,12 +1052,12 @@ void print_error_or_warning(error const &err, global_context &context)
 	auto const error_or_warning_line = err.is_error()
 		? bz::format(
 			"{}error:{} {}",
-			colors::error_color, colors::clear, err.message
+			colors::error_color, colors::clear, convert_string_for_message(err.message)
 		)
 		: bz::format(
 			"{}warning:{} {} {}[-W{}]{}",
 			colors::warning_color, colors::clear,
-			err.message,
+			convert_string_for_message(err.message),
 			colors::bright_white, get_warning_name(err.kind), colors::clear
 		);
 
@@ -1077,7 +1114,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			bz::print(
 				"{}: {}note:{} {}\n",
 				note_src_pos, colors::note_color, colors::clear,
-				n.message
+				convert_string_for_message(n.message)
 			);
 		}
 		else
@@ -1085,7 +1122,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			bz::print(
 				"{}: {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
-				n.message,
+				convert_string_for_message(n.message),
 				get_highlighted_note(note_file_begin, note_file_end, n)
 			);
 		}
@@ -1109,7 +1146,7 @@ void print_error_or_warning(error const &err, global_context &context)
 				context.get_file_name(s.file_id), s.line, actual_column,
 				colors::clear,
 				colors::suggestion_color, colors::clear,
-				s.message
+				convert_string_for_message(s.message)
 			);
 		}
 		else
@@ -1120,48 +1157,11 @@ void print_error_or_warning(error const &err, global_context &context)
 				context.get_file_name(s.file_id), s.line, actual_column,
 				colors::clear,
 				colors::suggestion_color, colors::clear,
-				s.message,
+				convert_string_for_message(s.message),
 				get_highlighted_suggestion(suggestion_file_begin, suggestion_file_end, s)
 			);
 		}
 	}
-}
-
-bz::u8string convert_string_for_message(bz::u8string_view str)
-{
-	bz::u8string result = "";
-
-	auto it = str.begin();
-	auto const end = str.end();
-
-	auto begin = it;
-	for (; it != end; ++it)
-	{
-		auto const c = *it;
-		if (c < ' ')
-		{
-			result += bz::u8string_view(begin, it);
-			switch (c)
-			{
-			case '\t':
-				result += bz::format("{}\\t{}", colors::bright_black, colors::clear);
-				break;
-			case '\n':
-				result += bz::format("{}\\n{}", colors::bright_black, colors::clear);
-				break;
-			case '\r':
-				result += bz::format("{}\\r{}", colors::bright_black, colors::clear);
-				break;
-			default:
-				result += bz::format("{}\\x{:02x}{}", colors::bright_black, c, colors::clear);
-				break;
-			}
-			begin = it + 1;
-		}
-	}
-	result += bz::u8string_view(begin, it);
-
-	return result;
 }
 
 } // namespace ctx

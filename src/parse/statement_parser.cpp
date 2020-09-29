@@ -141,10 +141,7 @@ static void resolve_stmt_static_assert(
 			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
 			context.report_error(
 				static_assert_stmt.condition,
-				bz::format(
-					"static assertion failed, message: '{}'",
-					ctx::convert_string_for_message(message)
-				)
+				bz::format("static assertion failed, message: '{}'", message)
 			);
 		}
 	}
@@ -1387,7 +1384,7 @@ static void apply_extern(
 		{
 			context.report_error(
 				attribute.args[1],
-				bz::format("unknown calling convention '{}'", ctx::convert_string_for_message(cc_name))
+				bz::format("unknown calling convention '{}'", cc_name)
 			);
 			return abi::calling_convention::c;
 		}
@@ -1528,7 +1525,7 @@ static void apply_intrinsic(
 	{
 		context.report_error(
 			attribute.args[0],
-			bz::format("unknown intrinsic '{}'", ctx::convert_string_for_message(name))
+			bz::format("unknown intrinsic '{}'", name)
 		);
 		return;
 	}

@@ -2,7 +2,6 @@
 #define ESCAPE_SEQUENCES_H
 
 #include "core.h"
-#include "colors.h"
 #include "global_data.h"
 #include "ctx/lex_context.h"
 
@@ -335,28 +334,6 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 	{
 		static_assert('\\' <= 127);
 		auto const escape_char = ctx::char_pos(stream.it.data() - 1);
-		auto const get_char = [](bz::u8char c) -> bz::u8string {
-			if (c >= ' ')
-			{
-				return bz::u8string(1, c);
-			}
-			else
-			{
-				switch (c)
-				{
-				case '\t': return bz::format("{}\\t{}", colors::bright_black, colors::clear);
-				case '\n': return bz::format("{}\\n{}", colors::bright_black, colors::clear);
-				case '\r': return bz::format("{}\\r{}", colors::bright_black, colors::clear);
-				default:
-					return bz::format(
-						"{}\\x{:02x}{}",
-						colors::bright_black,
-						static_cast<uint32_t>(c),
-						colors::clear
-					);
-				}
-			}
-		};
 
 		bz::vector<ctx::note> notes = {};
 		if (do_verbose)
@@ -370,7 +347,7 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 		context.bad_chars(
 			stream.file_id, stream.line,
 			escape_char, escape_char, stream.it + 1,
-			bz::format("invalid escape sequence '\\{}'", get_char(c)),
+			bz::format("invalid escape sequence '\\{:c}'", c),
 			std::move(notes), { context.make_suggestion(
 				stream.file_id, stream.line,
 				escape_char, "\\", "did you mean to escape the backslash?"

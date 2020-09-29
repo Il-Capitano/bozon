@@ -1,5 +1,4 @@
 #include "lexer.h"
-#include "colors.h"
 #include "escape_sequences.h"
 
 namespace lex
