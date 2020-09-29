@@ -19,6 +19,7 @@ enum class warning_kind
 	mismatched_brace_indent,
 	unused_variable,
 	greek_question_mark,
+	bad_file_extension,
 
 	_last,
 };
@@ -46,6 +47,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::mismatched_brace_indent,  "mismatched-brace-indent",  "Opening and closing braces have different amount of indentation"           },
 		T{ warning_kind::unused_variable,          "unused-variable",          "Variable is never used"                                                    },
 		T{ warning_kind::greek_question_mark,      "greek-question-mark",      "Greek question mark (U+037E) in file, which looks the same as a semicolon" },
+		T{ warning_kind::bad_file_extension,       "bad-file-extension",       "Output file doesn't have the usual file extension for output type"         },
 	};
 
 	constexpr_bubble_sort(
