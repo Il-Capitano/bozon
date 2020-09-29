@@ -139,16 +139,11 @@ inline lex::token_range get_expression_tokens(
 		{
 		case lex::token::paren_open:
 		{
-			auto const open_paren = stream;
 			++stream; // '('
 			get_expression_tokens_without_error<
 				lex::token::paren_close, lex::token::square_close
 			>(stream, end, context);
-			if (stream == end || stream->kind != lex::token::paren_close)
-			{
-				context.report_paren_match_error(stream, open_paren);
-			}
-			else
+			if (stream != end && stream->kind == lex::token::paren_close)
 			{
 				++stream;
 			}
@@ -156,16 +151,11 @@ inline lex::token_range get_expression_tokens(
 		}
 		case lex::token::square_open:
 		{
-			auto const open_square = stream;
 			++stream; // '['
 			get_expression_tokens_without_error<
 				lex::token::paren_close, lex::token::square_close
 			>(stream, end, context);
-			if (stream == end || stream->kind != lex::token::square_close)
-			{
-//				context.report_paren_match_error(stream, open_square);
-			}
-			else
+			if (stream != end && stream->kind == lex::token::square_close)
 			{
 				++stream;
 			}
