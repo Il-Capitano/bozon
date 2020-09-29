@@ -287,7 +287,7 @@ bool src_manager::emit_obj(void)
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
-			bz::format("object output file '{}' doesn't have the file extension '.ll'", output_file)
+			bz::format("object output file '{}' doesn't have the file extension '.o'", output_file)
 		);
 	}
 
@@ -337,7 +337,7 @@ bool src_manager::emit_asm(void)
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
-			bz::format("assembly output file '{}' doesn't have the file extension '.ll'", output_file)
+			bz::format("assembly output file '{}' doesn't have the file extension '.s'", output_file)
 		);
 	}
 
@@ -390,7 +390,7 @@ bool src_manager::emit_llvm_bc(void)
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
-			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.ll'", output_file)
+			bz::format("LLVM bitcode output file '{}' doesn't have the file extension '.bc'", output_file)
 		);
 	}
 
