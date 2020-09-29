@@ -17,7 +17,7 @@ enum class compilation_phase
 
 enum class emit_type
 {
-	object,
+	obj,
 	asm_,
 	llvm_bc,
 	llvm_ir,
@@ -25,9 +25,9 @@ enum class emit_type
 
 inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 {
-	if (arg == "object")
+	if (arg == "obj")
 	{
-		return emit_type::object;
+		return emit_type::obj;
 	}
 	else if (arg == "asm")
 	{
@@ -65,7 +65,7 @@ inline bool debug_ir_output = false;
 inline bool do_verbose = false;
 
 inline bz::u8string target;
-inline emit_type emit_file_type = emit_type::object;
+inline emit_type emit_file_type = emit_type::obj;
 
 inline size_t tab_size = 4;
 inline bool no_error_highlight = false;
