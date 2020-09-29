@@ -80,6 +80,20 @@ struct global_context
 		}
 	}
 
+	void report_warning(warning_kind kind, bz::u8string message)
+	{
+		if (is_warning_enabled(kind))
+		{
+			this->_errors.emplace_back(error{
+				kind,
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				std::move(message),
+				{}, {}
+			});
+		}
+	}
+
 	bz::u8string_view get_file_name(uint32_t file_id) const noexcept
 	{
 		if (file_id == command_line_file_id)
