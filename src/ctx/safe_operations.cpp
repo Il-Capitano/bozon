@@ -31,21 +31,21 @@ int64_t safe_add(
 )
 {
 	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) + bit_cast<uint64_t>(b));
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (!is_in_range<type##_t>(result))                                                \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (!is_in_range<type##_t>(result))                                                          \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} + {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<int64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -63,8 +63,8 @@ case ast::type_info::type##_:                                                   
 				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
-					"overflow in constant expression with type 'int64' results in {}",
-					result
+					"overflow in constant expression '{} + {}' with type 'int64' results in {}",
+					a, b, result
 				)
 			);
 		}
@@ -81,21 +81,21 @@ uint64_t safe_add(
 )
 {
 	auto const result = a + b;
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (!is_in_range<type##_t>(result))                                                \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (!is_in_range<type##_t>(result))                                                          \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} + {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<uint64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -110,8 +110,8 @@ case ast::type_info::type##_:                                                   
 				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
-					"overflow in constant expression with type 'uint64' results in {}",
-					result
+					"overflow in constant expression '{} + {}' with type 'uint64' results in {}",
+					a, b, result
 				)
 			);
 		}
@@ -130,22 +130,6 @@ bz::u8char safe_add(
 )
 {
 	auto const result = a + static_cast<uint32_t>(b);
-	if (
-		b > static_cast<int64_t>(std::numeric_limits<bz::u8char>::max() - a)
-		|| b < -static_cast<int64_t>(a)
-	)
-	{
-		context.report_parenthesis_suppressed_warning(
-			warning_kind::int_overflow,
-			src_tokens,
-			bz::format(
-				reversed
-				? "overflow in constant expression with types '{}' and 'char' results in U+{:04X}"
-				: "overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
-				get_type_name_from_kind(type_kind), result
-			)
-		);
-	}
 	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
@@ -153,6 +137,25 @@ bz::u8char safe_add(
 			bz::format(
 				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
+			)
+		);
+	}
+	else if (
+		b > static_cast<int64_t>(std::numeric_limits<bz::u8char>::max() - a)
+		|| b < -static_cast<int64_t>(a)
+	)
+	{
+		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
+			src_tokens,
+			reversed
+			? bz::format(
+				"overflow in constant expression '{} + '{:c}'' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
+				b, a, get_type_name_from_kind(type_kind), result, result
+			)
+			: bz::format(
+				"overflow in constant expression ''{:c}' + {}' with types '{}' and 'char' results in '{:c}' (U+{:04X})",
+				a, b, get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -166,19 +169,6 @@ bz::u8char safe_add(
 )
 {
 	auto const result = a + static_cast<uint32_t>(b);
-	if (b > static_cast<uint64_t>(std::numeric_limits<bz::u8char>::max() - a))
-	{
-		context.report_parenthesis_suppressed_warning(
-			warning_kind::int_overflow,
-			src_tokens,
-			bz::format(
-				reversed
-				? "overflow in constant expression with types '{}' and 'char' results in U+{:04X}"
-				: "overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
-				get_type_name_from_kind(type_kind), result
-			)
-		);
-	}
 	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
@@ -186,6 +176,22 @@ bz::u8char safe_add(
 			bz::format(
 				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
+			)
+		);
+	}
+	else if (b > static_cast<uint64_t>(std::numeric_limits<bz::u8char>::max() - a))
+	{
+		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
+			src_tokens,
+			reversed
+			? bz::format(
+				"overflow in constant expression '{} + '{:c}'' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
+				b, a, get_type_name_from_kind(type_kind), result, result
+			)
+			: bz::format(
+				"overflow in constant expression ''{:c}' + {}' with types '{}' and 'char' results in '{:c}' (U+{:04X})",
+				a, b, get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -207,7 +213,10 @@ float32_t safe_add(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} + {}' with type 'float32' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -228,7 +237,10 @@ float64_t safe_add(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} + {}' with type 'float64' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -242,21 +254,21 @@ int64_t safe_subtract(
 )
 {
 	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) - bit_cast<uint64_t>(b));
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (!is_in_range<type##_t>(result))                                                \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (!is_in_range<type##_t>(result))                                                          \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} - {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<int64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -274,8 +286,8 @@ case ast::type_info::type##_:                                                   
 				warning_kind::int_overflow,
 				src_tokens,
 				bz::format(
-					"overflow in constant expression with type 'int64' results in {}",
-					result
+					"overflow in constant expression '{} - {}' with type 'int64' results in {}",
+					a, b, result
 				)
 			);
 		}
@@ -292,21 +304,21 @@ uint64_t safe_subtract(
 )
 {
 	auto const result = a - b;
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (b > a)                                                                         \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (b > a)                                                                                   \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} - {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<uint64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -328,7 +340,17 @@ bz::u8char safe_subtract(
 )
 {
 	auto const result = a - static_cast<uint32_t>(b);
-	if (
+	if (!bz::is_valid_unicode_value(result))
+	{
+		context.report_error(
+			src_tokens,
+			bz::format(
+				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
+				result
+			)
+		);
+	}
+	else if (
 		(b > 0 && b > static_cast<int64_t>(a))
 		|| (b < 0 && static_cast<int64_t>(a) > static_cast<int64_t>(std::numeric_limits<bz::u8char>::max()) + b)
 	)
@@ -337,18 +359,8 @@ bz::u8char safe_subtract(
 			warning_kind::int_overflow,
 			src_tokens,
 			bz::format(
-				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
-				get_type_name_from_kind(type_kind), result
-			)
-		);
-	}
-	if (!bz::is_valid_unicode_value(result))
-	{
-		context.report_error(
-			src_tokens,
-			bz::format(
-				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
-				result
+				"overflow in constant expression '{:c} - {}' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
+				a, b, get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -361,17 +373,6 @@ bz::u8char safe_subtract(
 )
 {
 	auto const result = a - static_cast<uint32_t>(b);
-	if (b > static_cast<uint64_t>(a))
-	{
-		context.report_parenthesis_suppressed_warning(
-			warning_kind::int_overflow,
-			src_tokens,
-			bz::format(
-				"overflow in constant expression with types 'char' and '{}' results in U+{:04X}",
-				get_type_name_from_kind(type_kind), result
-			)
-		);
-	}
 	if (!bz::is_valid_unicode_value(result))
 	{
 		context.report_error(
@@ -379,6 +380,17 @@ bz::u8char safe_subtract(
 			bz::format(
 				"the result of U+{:04X} in a constant expression is not a valid unicode codepoint",
 				result
+			)
+		);
+	}
+	else if (b > static_cast<uint64_t>(a))
+	{
+		context.report_parenthesis_suppressed_warning(
+			warning_kind::int_overflow,
+			src_tokens,
+			bz::format(
+				"overflow in constant expression '{:c} - {}' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
+				a, b, get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -410,7 +422,10 @@ float32_t safe_subtract(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} - {}' with type 'float32' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -431,7 +446,10 @@ float64_t safe_subtract(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} - {}' with type 'float64' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -445,21 +463,21 @@ int64_t safe_multiply(
 )
 {
 	auto const result = bit_cast<int64_t>(bit_cast<uint64_t>(a) * bit_cast<uint64_t>(b));
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (!is_in_range<type##_t>(result))                                                \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (!is_in_range<type##_t>(result))                                                          \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} * {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<int64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -478,7 +496,10 @@ case ast::type_info::type##_:                                                   
 			context.report_parenthesis_suppressed_warning(
 				warning_kind::int_overflow,
 				src_tokens,
-				bz::format("overflow in constant expression with type 'int64' results in {}", result)
+				bz::format(
+					"overflow in constant expression '{} * {}' with type 'int64' results in {}",
+					a, b, result
+				)
 			);
 		}
 		return result;
@@ -494,21 +515,21 @@ uint64_t safe_multiply(
 )
 {
 	auto const result = a * b;
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (!is_in_range<type##_t>(result))                                                \
-    {                                                                                  \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (!is_in_range<type##_t>(result))                                                          \
+    {                                                                                            \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} * {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
     return static_cast<uint64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -522,7 +543,10 @@ case ast::type_info::type##_:                                                   
 			context.report_parenthesis_suppressed_warning(
 				warning_kind::int_overflow,
 				src_tokens,
-				bz::format("overflow in constant expression with type 'uint64' results in {}", result)
+				bz::format(
+					"overflow in constant expression '{} * {}' with type 'uint64' results in {}",
+					a, b, result
+				)
 			);
 		}
 		return result;
@@ -547,7 +571,10 @@ float32_t safe_multiply(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} * {}' with type 'float32' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -568,7 +595,10 @@ float64_t safe_multiply(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} * {}' with type 'float64' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -593,26 +623,26 @@ int64_t safe_divide(
 	int64_t result;
 
 	// with signed integers overflow can happen if a == int_min && b == -1
-#define x(type)                                                                        \
-case ast::type_info::type##_:                                                          \
-    bz_assert(is_in_range<type##_t>(a));                                               \
-    bz_assert(is_in_range<type##_t>(b));                                               \
-    if (a == std::numeric_limits<type##_t>::min() && b == -1)                          \
-    {                                                                                  \
-        result = std::numeric_limits<type##_t>::min();                                 \
-        context.report_parenthesis_suppressed_warning(                                 \
-            warning_kind::int_overflow,                                                \
-            src_tokens,                                                                \
-            bz::format(                                                                \
-                "overflow in constant expression with type '" #type "' results in {}", \
-                static_cast<type##_t>(result)                                          \
-            )                                                                          \
-        );                                                                             \
-    }                                                                                  \
-    else                                                                               \
-    {                                                                                  \
-        result = a / b;                                                                \
-    }                                                                                  \
+#define x(type)                                                                                  \
+case ast::type_info::type##_:                                                                    \
+    bz_assert(is_in_range<type##_t>(a));                                                         \
+    bz_assert(is_in_range<type##_t>(b));                                                         \
+    if (a == std::numeric_limits<type##_t>::min() && b == -1)                                    \
+    {                                                                                            \
+        result = std::numeric_limits<type##_t>::min();                                           \
+        context.report_parenthesis_suppressed_warning(                                           \
+            warning_kind::int_overflow,                                                          \
+            src_tokens,                                                                          \
+            bz::format(                                                                          \
+                "overflow in constant expression '{} / {}' with type '" #type "' results in {}", \
+                a, b, static_cast<type##_t>(result)                                              \
+            )                                                                                    \
+        );                                                                                       \
+    }                                                                                            \
+    else                                                                                         \
+    {                                                                                            \
+        result = a / b;                                                                          \
+    }                                                                                            \
     return static_cast<int64_t>(static_cast<type##_t>(result));
 
 	switch (type_kind)
@@ -658,7 +688,10 @@ float32_t safe_divide(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} / {}' with type 'float32' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
@@ -679,7 +712,10 @@ float64_t safe_divide(
 		context.report_parenthesis_suppressed_warning(
 			warning_kind::float_overflow,
 			src_tokens,
-			bz::format("result of floating point arithmetic in constant expression is {}", result)
+			bz::format(
+				"result of floating point arithmetic in constant expression '{} / {}' with type 'float64' is {}",
+				a, b, result
+			)
 		);
 	}
 	return result;
