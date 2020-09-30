@@ -13,6 +13,80 @@ static void resolve_attributes(
 	ctx::parse_context &context
 );
 
+static bz::u8string get_static_assert_expression(ast::constant_expression const &cond)
+{
+	auto const get_const_expr_value_string = [](ast::constant_value const &value) -> bz::u8string {
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+			return bz::format("{}", value.get<ast::constant_value::sint>());
+		case ast::constant_value::uint:
+			return bz::format("{}", value.get<ast::constant_value::uint>());
+		case ast::constant_value::float32:
+			return bz::format("{}", value.get<ast::constant_value::float32>());
+		case ast::constant_value::float64:
+			return bz::format("{}", value.get<ast::constant_value::float64>());
+		case ast::constant_value::u8char:
+			return bz::format("'{:c}'", value.get<ast::constant_value::u8char>());
+		case ast::constant_value::string:
+			return bz::format("\"{}\"", value.get<ast::constant_value::string>());
+		case ast::constant_value::boolean:
+			return bz::format("{}", value.get<ast::constant_value::boolean>());
+		case ast::constant_value::null:
+			return "null";
+		case ast::constant_value::array:
+		case ast::constant_value::tuple:
+		case ast::constant_value::function:
+		case ast::constant_value::function_set_id:
+			return "";
+		case ast::constant_value::type:
+			return bz::format("{}", value.get<ast::constant_value::type>());
+		case ast::constant_value::aggregate:
+		default:
+			return "";
+		}
+	};
+
+	if (cond.expr.is<ast::expr_binary_op>())
+	{
+		auto const &binary_op = *cond.expr.get<ast::expr_binary_op_ptr>();
+		switch (binary_op.op->kind)
+		{
+		case lex::token::equals:
+		case lex::token::not_equals:
+		case lex::token::less_than:
+		case lex::token::less_than_eq:
+		case lex::token::greater_than:
+		case lex::token::greater_than_eq:
+		{
+			auto const op_str = token_info[binary_op.op->kind].token_value;
+			auto const &lhs = binary_op.lhs;
+			bz_assert(lhs.is<ast::constant_expression>());
+			auto const lhs_str = get_const_expr_value_string(lhs.get<ast::constant_expression>().value);
+			if (lhs_str == "")
+			{
+				return "";
+			}
+			auto const &rhs = binary_op.rhs;
+			bz_assert(rhs.is<ast::constant_expression>());
+			auto const rhs_str = get_const_expr_value_string(rhs.get<ast::constant_expression>().value);
+			if (rhs_str == "")
+			{
+				return "";
+			}
+			return bz::format("{} {} {}", lhs_str, op_str, rhs_str);
+		}
+
+		default:
+			return "";
+		}
+	}
+	else
+	{
+		return "";
+	}
+}
+
 static void resolve_stmt_static_assert(
 	ast::stmt_static_assert &static_assert_stmt,
 	ctx::parse_context &context
@@ -87,6 +161,7 @@ static void resolve_stmt_static_assert(
 				"condition for static_assert must be a constant expression"
 			);
 		}
+
 		check_type(
 			static_assert_stmt.condition,
 			ast::type_info::bool_,
@@ -108,6 +183,7 @@ static void resolve_stmt_static_assert(
 					"message in static_assert must be a constant expression"
 				);
 			}
+
 			check_type(
 				static_assert_stmt.message,
 				ast::type_info::str_,
@@ -127,23 +203,20 @@ static void resolve_stmt_static_assert(
 
 	if (!cond)
 	{
-		if (static_assert_stmt.message.is_null())
+		auto const expression_string = get_static_assert_expression(cond_const_expr);
+		bz::u8string error_message = "static assertion failed";
+		if (expression_string != "")
 		{
-			context.report_error(
-				static_assert_stmt.condition,
-				"static assertion failed"
-			);
+			error_message += bz::format(" due to requirement '{}'", expression_string);
 		}
-		else
+		if (static_assert_stmt.message.not_null())
 		{
 			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
 			auto const message = message_const_expr.value.get<ast::constant_value::string>().as_string_view();
-			context.report_error(
-				static_assert_stmt.condition,
-				bz::format("static assertion failed, message: '{}'", message)
-			);
+			error_message += bz::format(", message: '{}'", message);
 		}
+		context.report_error(static_assert_stmt.condition, std::move(error_message));
 	}
 }
 
