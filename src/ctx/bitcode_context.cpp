@@ -60,6 +60,9 @@ size_t bitcode_context::get_register_size(void) const
 	case abi::platform_abi::microsoft_x64:
 		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
 		return 8;
+	case abi::platform_abi::systemv_amd64:
+		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
+		return 8;
 	}
 	bz_unreachable;
 }

@@ -84,6 +84,7 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 
 #include "common_declarations.impl"
 #include "microsoft_x64.impl"
+#include "systemv_amd64.impl"
 
 
 static llvm::Value *get_constant_zero(
@@ -2695,6 +2696,10 @@ static llvm::Function *create_function_from_symbol(
 		return create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
 			func_body, context
 		);
+	case abi::platform_abi::systemv_amd64:
+		return create_function_from_symbol_impl<abi::platform_abi::systemv_amd64>(
+			func_body, context
+		);
 	}
 	bz_unreachable;
 }
@@ -2801,6 +2806,11 @@ void emit_function_bitcode(
 		return;
 	case abi::platform_abi::microsoft_x64:
 		emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
+			func_body, context
+		);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
 			func_body, context
 		);
 		return;
