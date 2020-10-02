@@ -3,7 +3,12 @@
 // https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
 // would like to have a more reliable source for this, but it's good enough
 
-static bool microsoft_x64_pass_by_ref(
+#include "emit_bitcode.h"
+
+namespace microsoft_x64
+{
+
+static bool pass_by_ref(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
@@ -14,7 +19,7 @@ static bool microsoft_x64_pass_by_ref(
 	return size > register_size || (size != 1 && size != 2 && size != 4 && size != 8);
 }
 
-static bool microsoft_x64_output_ptr(
+static bool output_ptr(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
@@ -25,23 +30,74 @@ static bool microsoft_x64_output_ptr(
 	return size > register_size || (size != 1 && size != 2 && size != 4 && size != 8);
 }
 
-static bool microsoft_x64_pass_as_int_cast(
+static bool pass_as_int_cast(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(!microsoft_x64_pass_by_ref(t, context));
+	bz_assert(!pass_by_ref(t, context));
 	return !t->isVoidTy() && !t->isIntegerTy() && !t->isFloatingPointTy() && !t->isPointerTy();
 }
 
-static bool microsoft_x64_return_as_int_cast(
+static bool return_as_int_cast(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
 {
-	bz_assert(!microsoft_x64_pass_by_ref(t, context));
+	bz_assert(!pass_by_ref(t, context));
 	return !t->isVoidTy() && !t->isIntegerTy() && !t->isFloatingPointTy() && !t->isPointerTy();
 }
+
+static llvm::Value *create_bitcast(
+	val_ptr val,
+	llvm::Type *dest_type,
+	ctx::bitcode_context &context
+)
+{
+	if (val.kind == val_ptr::reference)
+	{
+		auto const dest_ptr = context.builder.CreateBitCast(
+			val.val, llvm::PointerType::get(dest_type, 0)
+		);
+		return context.builder.CreateLoad(dest_ptr);
+	}
+	else
+	{
+		auto const src_value = val.get_value(context);
+		auto const dest_ptr = context.create_alloca(dest_type);
+		auto const cast_ptr = context.builder.CreateBitCast(
+			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
+		);
+		context.builder.CreateStore(src_value, cast_ptr);
+		return context.builder.CreateLoad(dest_ptr);
+	}
+}
+
+static llvm::Value *create_cast_to_int(
+	val_ptr val,
+	ctx::bitcode_context &context
+)
+{
+	auto const dest_type = [&]() {
+		auto const val_t = val.get_type();
+		switch (context.get_size(val_t))
+		{
+		case 1:
+			return context.get_int8_t();
+		case 2:
+			return context.get_int16_t();
+		case 4:
+			return context.get_int32_t();
+		case 8:
+			return context.get_int64_t();
+		default:
+			bz_unreachable;
+		}
+	}();
+	return create_bitcast(val, dest_type, context);
+}
+
+} // namespace microsoft_x64
 
 template<>
 llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
@@ -50,8 +106,8 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 )
 {
 	auto const result_t = get_llvm_type(func_body.return_type, context);
-	auto const result_output_ptr = !result_t->isVoidTy() && microsoft_x64_output_ptr(result_t, context);
-	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && microsoft_x64_return_as_int_cast(result_t, context);
+	auto const result_output_ptr = !result_t->isVoidTy() && microsoft_x64::output_ptr(result_t, context);
+	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && microsoft_x64::return_as_int_cast(result_t, context);
 
 	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
@@ -65,12 +121,12 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		if (microsoft_x64_pass_by_ref(t, context))
+		if (microsoft_x64::pass_by_ref(t, context))
 		{
 			pass_arg_by_ref.push_back(true);
 			args.push_back(llvm::PointerType::get(t, 0));
 		}
-		else if (microsoft_x64_pass_as_int_cast(t, context))
+		else if (microsoft_x64::pass_as_int_cast(t, context))
 		{
 			auto const size = context.get_size(t);
 			bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
@@ -322,7 +378,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		{
 			auto const val_ref = emit_bitcode<abi>(p, context, nullptr);
 			auto const t = val_ref.get_type();
-			if (microsoft_x64_pass_by_ref(t, context))
+			if (microsoft_x64::pass_by_ref(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
 				auto const val = val_ref.get_value(context);
@@ -330,42 +386,9 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
 			}
-			else if (microsoft_x64_pass_as_int_cast(t, context))
+			else if (microsoft_x64::pass_as_int_cast(t, context))
 			{
-				auto const dest_t = [&]() {
-					switch (context.get_size(t))
-					{
-					case 1:
-						return context.get_int8_t();
-					case 2:
-						return context.get_int16_t();
-					case 4:
-						return context.get_int32_t();
-					case 8:
-						return context.get_int64_t();
-					default:
-						bz_unreachable;
-					}
-				}();
-				if (val_ref.kind == val_ptr::reference)
-				{
-					auto const int_ptr = context.builder.CreateBitCast(
-						val_ref.val, llvm::PointerType::get(dest_t, 0)
-					);
-					auto const int_val = context.builder.CreateLoad(int_ptr);
-					params.push_back(int_val);
-				}
-				else
-				{
-					auto const val = val_ref.get_value(context);
-					auto const int_ptr = context.create_alloca(dest_t);
-					auto const cast_ptr = context.builder.CreateBitCast(
-						int_ptr, llvm::PointerType::get(t, 0)
-					);
-					context.builder.CreateStore(val, cast_ptr);
-					auto const int_val = context.builder.CreateLoad(int_ptr);
-					params.push_back(int_val);
-				}
+				params.push_back(microsoft_x64::create_cast_to_int(val_ref, context));
 			}
 			else
 			{
