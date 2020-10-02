@@ -20,6 +20,7 @@ enum class warning_kind
 	unused_variable,
 	greek_question_mark,
 	bad_file_extension,
+	unknown_target,
 
 	_last,
 };
@@ -48,6 +49,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::unused_variable,          "unused-variable",          "Variable is never used"                                                    },
 		T{ warning_kind::greek_question_mark,      "greek-question-mark",      "Greek question mark (U+037E) in file, which looks the same as a semicolon" },
 		T{ warning_kind::bad_file_extension,       "bad-file-extension",       "Output file doesn't have the usual file extension for output type"         },
+		T{ warning_kind::unknown_target,           "unknown-target",           "ABI compatibility hasn't been implemented for this target yet"             },
 	};
 
 	constexpr_bubble_sort(

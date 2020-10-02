@@ -133,6 +133,18 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		this->_global_ctx._platform_abi = abi::platform_abi::generic;
 	}
+
+	if (this->_global_ctx._platform_abi == abi::platform_abi::generic)
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::unknown_target,
+			bz::format(
+				"target '{}' has limited support right now, external function calls may not work as intended",
+				target_triple.c_str()
+			)
+		);
+	}
+
 	return true;
 }
 
