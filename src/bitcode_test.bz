@@ -382,7 +382,7 @@ function scope_test() -> void
 	let p: *int32;
 	p = null;
 
-	((-((1i8 + 127i8))));
+	((-((2i8 + 126i8))));
 
 //	-1 as uint64;
 
@@ -575,6 +575,8 @@ function static_assert_test() -> void
 	static_assert(((uint64_max + 1u)) == 0u);
 	static_assert(int64_max as uint64 * 2u + 1u == uint64_max);
 
+//	uint64_max + ('\n' + 1) + uint64_max;
+
 	consteval c = '\ud7ff';
 //	c + 1;
 
@@ -765,7 +767,6 @@ function arr2_test(: [2: int32], : str, : int32) -> [3: int8]
 	let arr: [3: int8];
 	return arr;
 }
-
 
 function arr2_tester() -> void
 {

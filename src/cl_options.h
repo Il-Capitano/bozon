@@ -133,7 +133,7 @@ inline void parse_command_line(ctx::command_parse_context &context)
 
 inline void print_help(void)
 {
-	bz::u8string help_string = "Usage: bozon [options] file\n\nOptions:\n";
+	bz::u8string help_string = "Usage: bozon [options ...] file\n\nOptions:\n";
 	help_string += cl::get_help_string<clparsers>(2, 24, 80);
 	help_string += "\nAdditional help:\n";
 	help_string += cl::get_additional_help_string<clparsers>(2, 24, 80);
