@@ -63,11 +63,6 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 			}
 			compile_until = compilation_phase::parse_command_line;
 		}
-		else if (display_version)
-		{
-			bz::print(version_info);
-			compile_until = compilation_phase::parse_command_line;
-		}
 		else if (display_opt_help)
 		{
 			print_opt_help();
@@ -76,6 +71,11 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		else if (display_warning_help)
 		{
 			print_warning_help();
+			compile_until = compilation_phase::parse_command_line;
+		}
+		else if (display_version)
+		{
+			print_version_info();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		return true;
@@ -129,6 +129,10 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		this->_global_ctx._platform_abi = abi::platform_abi::microsoft_x64;
 	}
+//	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
+//	{
+//		this->_global_ctx._platform_abi = abi::platform_abi::systemv_amd64;
+//	}
 	else
 	{
 		this->_global_ctx._platform_abi = abi::platform_abi::generic;

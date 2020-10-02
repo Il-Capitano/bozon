@@ -72,11 +72,10 @@ inline bool no_error_highlight = false;
 
 inline bz::vector<bz::u8string> import_dirs;
 
-
-constexpr bz::u8string_view version_info = "bozon 0.0.0\n";
-
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_optimization_enabled(bc::optimization_kind kind) noexcept;
 bool is_any_optimization_enabled(void) noexcept;
+
+void print_version_info(void);
 
 #endif // GLOBAL_DATA_H
