@@ -524,7 +524,7 @@ public:
 	{ return this->_data_end - 1; }
 
 	reverse_iterator rend(void)
-	{ return this->_data - 1; }
+	{ return (T *)this->_data - 1; }
 };
 
 
