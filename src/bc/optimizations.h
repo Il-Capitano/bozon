@@ -14,6 +14,7 @@ enum class optimization_kind
 	simplifycfg,
 	reassociate,
 	gvn,
+	inline_,
 
 	_last,
 };
@@ -34,6 +35,7 @@ constexpr std::array optimization_infos = []() {
 		T{ optimization_kind::simplifycfg, "simplifycfg", "Simplify the CFG"                                        },
 		T{ optimization_kind::reassociate, "reassociate", "Reassociate expressions for better constant propagation" },
 		T{ optimization_kind::gvn,         "gvn",         "Global value numbering"                                  },
+		T{ optimization_kind::inline_,     "inline",      "Function inlining"                                       },
 	};
 
 	constexpr_bubble_sort(

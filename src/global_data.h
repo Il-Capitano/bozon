@@ -72,6 +72,8 @@ inline bool no_error_highlight = false;
 
 inline bz::vector<bz::u8string> import_dirs;
 
+inline size_t max_opt_iter_count = 32;
+
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_optimization_enabled(bc::optimization_kind kind) noexcept;
 bool is_any_optimization_enabled(void) noexcept;

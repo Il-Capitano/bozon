@@ -13,11 +13,10 @@ namespace ctx
 
 struct src_manager
 {
-private:
 	std::list<src_file> _src_files;
 	global_context _global_ctx;
 
-public:
+
 	src_manager(void)
 		: _src_files{},
 		  _global_ctx(*this)

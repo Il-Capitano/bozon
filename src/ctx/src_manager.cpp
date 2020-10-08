@@ -1,6 +1,6 @@
 #include "src_manager.h"
 #include "command_parse_context.h"
-#include "bc/emit_bitcode.h"
+#include "bc/runtime/runtime_emit_bitcode.h"
 #include "cl_options.h"
 #include "colors.h"
 
@@ -17,6 +17,7 @@
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Utils.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/Transforms/IPO.h>
 
 namespace ctx
 {
@@ -198,7 +199,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	for (auto const func : this->_global_ctx._compile_decls.funcs)
 	{
 		func->resolve_symbol_name();
-		bc::add_function_to_module(func, context);
+		bc::runtime::add_function_to_module(func, context);
 	}
 
 	// add the definitions to the module
@@ -206,7 +207,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		if (func_decl->body.not_null())
 		{
-			bc::emit_function_bitcode(*func_decl, context);
+			bc::runtime::emit_function_bitcode(*func_decl, context);
 		}
 	}
 
@@ -256,6 +257,8 @@ void src_manager::optimize(void)
 
 	auto &module = this->_global_ctx._module;
 	llvm::legacy::PassManager opt_pass_manager;
+	// reassociation pass seems to be buggy, it thinks it modified the code even when it didn't
+	llvm::legacy::PassManager reassociate_pass_manager;
 
 #define add_opt(kind, llvm_func)                              \
 do {                                                          \
@@ -270,16 +273,31 @@ while (false)
 	add_opt(instcombine, llvm::createInstructionCombiningPass);
 	add_opt(mem2reg,     llvm::createPromoteMemoryToRegisterPass);
 	add_opt(simplifycfg, llvm::createCFGSimplificationPass);
-	add_opt(reassociate, llvm::createReassociatePass);
 	add_opt(gvn,         llvm::createGVNPass);
+	add_opt(inline_,     llvm::createFunctionInliningPass);
+
+	if (is_optimization_enabled(bc::optimization_kind::reassociate))
+	{
+		reassociate_pass_manager.add(llvm::createReassociatePass());
+	}
+	if (is_optimization_enabled(bc::optimization_kind::instcombine))
+	{
+		// we need to add instcombine here too, as ressociate and instcombine have
+		// conflicting optimizations
+		// e.g. instcombine: %1 = mul i32 %0, 4    ->    %1 = shl i32 %0, 2
+		//      reassociate: %1 = shl i32 %0, 2    ->    %1 = mul i32 %0, 4
+		reassociate_pass_manager.add(llvm::createInstructionCombiningPass());
+	}
 
 #undef add_opt
 
 	{
-		int i = 0;
+		size_t const max_iter = max_opt_iter_count;
+		size_t i = 0;
 		// opt_pass_manager.run returns true if any of the passes modified the code
-		while (i < 4 && opt_pass_manager.run(module))
+		while (i < max_iter && opt_pass_manager.run(module))
 		{
+			reassociate_pass_manager.run(module);
 			++i;
 		}
 	}

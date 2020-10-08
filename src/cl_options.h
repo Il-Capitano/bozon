@@ -54,7 +54,7 @@ constexpr auto warning_group = []() {
 }();
 
 constexpr std::array opt_group = []() {
-	std::array<cl::group_element_t, bc::optimization_infos.size() + 1> result{};
+	std::array<cl::group_element_t, bc::optimization_infos.size() + 2> result{};
 
 	size_t i = 0;
 	for (i = 0; i < bc::optimization_infos.size(); ++i)
@@ -64,6 +64,8 @@ constexpr std::array opt_group = []() {
 	}
 
 	result[i++] = cl::create_group_element("all", "Enable all optimizations", Oall_indicies);
+
+	result[i++] = cl::create_group_element<&max_opt_iter_count>("max-iter-count=<count>", "Control the maximum number of pass iterations (default=32)");
 
 	bz_assert(i == result.size());
 	return result;
@@ -78,15 +80,15 @@ constexpr std::array clparsers = {
 	cl::create_parser<&display_version>                 ("-V, --version",                    "Print compiler version"),
 	cl::create_parser<&import_dirs>                     ("-I, --import-dir <dir>",           "Add <dir> as an import directory"),
 	cl::create_parser<&output_file_name>                ("-o, --output <file>",              "Write output to <file>"),
-	cl::create_parser<&emit_file_type, &parse_emit_type>("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=object)"),
+	cl::create_parser<&emit_file_type, &parse_emit_type>("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
 	cl::create_parser<&do_profile>                      ("--profile",                        "Measure time for compilation steps", true),
 	cl::create_parser<&debug_ir_output>                 ("--debug-ir-output",                "Emit an LLVM IR file alongside the regular output", true),
 	cl::create_parser<&no_error_highlight>              ("--no-error-highlight",             "Disable printing of highlighted source in error messages", true),
 	cl::create_parser<&tab_size>                        ("--error-report-tab-size=<size>",   "Set tab size in error reporting (default=4)", true),
 	cl::create_parser<&target>                          ("--target=<target-triple>",         "Set compilation target to <target-triple>"),
 
-	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>",      "Enable the specified <warning>"),
-	cl::create_group_parser<opt_group, optimizations, &display_opt_help>   ("-O<optimization>", "Enable the specified <optimization>"),
+	cl::create_group_parser<warning_group, warnings, &display_warning_help>("-W<warning>",                "Enable the specified <warning>"),
+	cl::create_group_parser<opt_group, optimizations, &display_opt_help>   ("-O<optimization>[=<value>]", "Enable the specified <optimization>"),
 };
 
 inline void parse_command_line(ctx::command_parse_context &context)
