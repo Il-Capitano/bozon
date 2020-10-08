@@ -2,8 +2,6 @@
 #include "global_context.h"
 #include "built_in_operators.h"
 #include "lex/lexer.h"
-#include "bitcode_context.h"
-#include "bc/emit_bitcode.h"
 #include "escape_sequences.h"
 #include "parse/statement_parser.h"
 
