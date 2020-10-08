@@ -82,11 +82,11 @@ bool alphabetical_compare(bz::u8string_view lhs, bz::u8string_view rhs)
 		auto const lhs_is_upper = is_upper(*lhs_it);
 		auto const rhs_is_upper = is_upper(*rhs_it);
 
-		if (lhs_c < rhs_c || (lhs_c == rhs_c && !lhs_is_upper && rhs_is_upper))
+		if (lhs_c < rhs_c || (lhs_c == rhs_c && lhs_is_upper && !rhs_is_upper))
 		{
 			return true;
 		}
-		else if (lhs_c > rhs_c || (lhs_c == rhs_c && lhs_is_upper && !rhs_is_upper))
+		else if (lhs_c > rhs_c || (lhs_c == rhs_c && !lhs_is_upper && rhs_is_upper))
 		{
 			return false;
 		}
