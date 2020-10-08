@@ -1,6 +1,7 @@
 // cpp files that are needed for compilation,
 // but have no tests yet are included here
 #include "global_data.cpp"
+#include "src_file.cpp"
 
 #include "lex/token.cpp"
 
@@ -18,4 +19,8 @@
 #include "ctx/built_in_operators.cpp"
 #include "ctx/safe_operations.cpp"
 
-#include "bc/emit_bitcode.cpp"
+#include "parse/expression_parser.cpp"
+#include "parse/statement_parser.cpp"
+#include "parse/parse_common.cpp"
+
+#include "bc/runtime/runtime_emit_bitcode.cpp"
