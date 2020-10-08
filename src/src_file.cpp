@@ -87,7 +87,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	this->_file = read_text_from_file(file);
 	if (!this->_file.verify())
 	{
-		this->_global_ctx.report_error(bz::format("file '{}' is not a valid in UTF-8 file", this->_file_name));
+		this->_global_ctx.report_error(bz::format("file '{}' is not a valid UTF-8 file", this->_file_name));
 		return false;
 	}
 	this->_stage = file_read;
