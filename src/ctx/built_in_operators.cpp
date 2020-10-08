@@ -143,27 +143,6 @@ static precedence get_expr_precedence(ast::expression const &expression)
 }
 */
 
-static bz::u8string_view get_type_name_from_kind(uint32_t kind)
-{
-	switch (kind)
-	{
-	case ast::type_info::int8_: return "int8";
-	case ast::type_info::int16_: return "int16";
-	case ast::type_info::int32_: return "int32";
-	case ast::type_info::int64_: return "int64";
-	case ast::type_info::uint8_: return "uint8";
-	case ast::type_info::uint16_: return "uint16";
-	case ast::type_info::uint32_: return "uint32";
-	case ast::type_info::uint64_: return "uint64";
-	case ast::type_info::float32_: return "float32";
-	case ast::type_info::float64_: return "float64";
-	case ast::type_info::char_: return "char";
-	case ast::type_info::str_: return "str";
-	case ast::type_info::bool_: return "bool";
-	default: bz_unreachable;
-	}
-}
-
 static uint32_t signed_to_unsigned(uint32_t kind)
 {
 	bz_assert(is_signed_integer_kind(kind));
@@ -489,7 +468,7 @@ static ast::expression get_built_in_unary_minus(
 	{
 		if (is_unsigned_integer_kind(kind))
 		{
-			auto const type_name = get_type_name_from_kind(unsigned_to_signed(kind));
+			auto const type_name = ast::get_type_name_from_kind(unsigned_to_signed(kind));
 			bz_assert(src_tokens.pivot != nullptr);
 			context.report_error(
 				src_tokens,
@@ -1075,7 +1054,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 		suggestions.push_back(create_explicit_cast_suggestion(
 			rhs, op_prec,
-			get_type_name_from_kind(lhs_kind), context
+			ast::get_type_name_from_kind(lhs_kind), context
 		));
 	}
 	else if (
@@ -1089,7 +1068,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 		suggestions.push_back(create_explicit_cast_suggestion(
 			rhs, op_prec,
-			get_type_name_from_kind(lhs_kind), context
+			ast::get_type_name_from_kind(lhs_kind), context
 		));
 	}
 	else if (
@@ -1103,7 +1082,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 		suggestions.push_back(create_explicit_cast_suggestion(
 			rhs, op_prec,
-			get_type_name_from_kind(lhs_kind), context
+			ast::get_type_name_from_kind(lhs_kind), context
 		));
 	}
 	else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
@@ -1114,7 +1093,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 		suggestions.push_back(create_explicit_cast_suggestion(
 			rhs, op_prec,
-			get_type_name_from_kind(lhs_kind), context
+			ast::get_type_name_from_kind(lhs_kind), context
 		));
 	}
 
@@ -1160,14 +1139,14 @@ make_arithmetic_error_notes_and_suggestions(
 		{
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else
 		{
 			suggestions.push_back(create_explicit_cast_suggestion(
 				lhs, op_prec,
-				get_type_name_from_kind(rhs_kind), context
+				ast::get_type_name_from_kind(rhs_kind), context
 			));
 		}
 	}
@@ -1181,14 +1160,14 @@ make_arithmetic_error_notes_and_suggestions(
 		{
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else
 		{
 			suggestions.push_back(create_explicit_cast_suggestion(
 				lhs, op_prec,
-				get_type_name_from_kind(rhs_kind), context
+				ast::get_type_name_from_kind(rhs_kind), context
 			));
 		}
 	}
@@ -1334,7 +1313,7 @@ static ast::expression get_built_in_binary_assign(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				bz::format(
 					"implicit conversion from '{}' to 'char' is not allowed",
-					get_type_name_from_kind(rhs_kind)
+					ast::get_type_name_from_kind(rhs_kind)
 				)
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
@@ -1351,12 +1330,12 @@ static ast::expression get_built_in_binary_assign(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				bz::format(
 					"implicit conversion from 'char' to '{}' is not allowed",
-					get_type_name_from_kind(lhs_kind)
+					ast::get_type_name_from_kind(lhs_kind)
 				)
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, get_binary_precedence(lex::token::assign),
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 	}
@@ -2691,7 +2670,7 @@ static ast::expression get_built_in_binary_modulo(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, get_binary_precedence(lex::token::modulo_eq),
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
@@ -2823,7 +2802,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, get_binary_precedence(lex::token::modulo_eq),
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else if (is_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
@@ -2834,7 +2813,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, get_binary_precedence(lex::token::modulo_eq),
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
@@ -3658,14 +3637,14 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					rhs, op_prec,
-					get_type_name_from_kind(lhs_kind), context
+					ast::get_type_name_from_kind(lhs_kind), context
 				));
 			}
 			else
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					lhs, op_prec,
-					get_type_name_from_kind(rhs_kind), context
+					ast::get_type_name_from_kind(rhs_kind), context
 				));
 			}
 		}
@@ -3682,14 +3661,14 @@ static ast::expression get_built_in_binary_bit_and_xor_or(
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					rhs, op_prec,
-					get_type_name_from_kind(lhs_kind), context
+					ast::get_type_name_from_kind(lhs_kind), context
 				));
 			}
 			else if (is_unsigned_integer_kind(rhs_kind))
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					lhs, op_prec,
-					get_type_name_from_kind(rhs_kind), context
+					ast::get_type_name_from_kind(rhs_kind), context
 				));
 			}
 		}
@@ -3791,7 +3770,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
-				get_type_name_from_kind(lhs_kind), context
+				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
 		else if (
@@ -3807,7 +3786,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					rhs, op_prec,
-					get_type_name_from_kind(lhs_kind), context
+					ast::get_type_name_from_kind(lhs_kind), context
 				));
 			}
 		}
@@ -3940,7 +3919,7 @@ static ast::expression get_built_in_binary_bit_shift(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
-				get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
+				ast::get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
 			));
 		}
 		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
@@ -4066,7 +4045,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 			));
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
-				get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
+				ast::get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
 			));
 		}
 		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))

@@ -3,27 +3,6 @@
 namespace ctx
 {
 
-static bz::u8string_view get_type_name_from_kind(uint32_t kind)
-{
-	switch (kind)
-	{
-	case ast::type_info::int8_: return "int8";
-	case ast::type_info::int16_: return "int16";
-	case ast::type_info::int32_: return "int32";
-	case ast::type_info::int64_: return "int64";
-	case ast::type_info::uint8_: return "uint8";
-	case ast::type_info::uint16_: return "uint16";
-	case ast::type_info::uint32_: return "uint32";
-	case ast::type_info::uint64_: return "uint64";
-	case ast::type_info::float32_: return "float32";
-	case ast::type_info::float64_: return "float64";
-	case ast::type_info::char_: return "char";
-	case ast::type_info::str_: return "str";
-	case ast::type_info::bool_: return "bool";
-	default: bz_unreachable;
-	}
-}
-
 // int + int
 int64_t safe_add(
 	int64_t a, int64_t b, uint32_t type_kind,
@@ -151,11 +130,11 @@ bz::u8char safe_add(
 			reversed
 			? bz::format(
 				"overflow in constant expression '{} + '{:c}'' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
-				b, a, get_type_name_from_kind(type_kind), result, result
+				b, a, ast::get_type_name_from_kind(type_kind), result, result
 			)
 			: bz::format(
 				"overflow in constant expression ''{:c}' + {}' with types '{}' and 'char' results in '{:c}' (U+{:04X})",
-				a, b, get_type_name_from_kind(type_kind), result, result
+				a, b, ast::get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -187,11 +166,11 @@ bz::u8char safe_add(
 			reversed
 			? bz::format(
 				"overflow in constant expression '{} + '{:c}'' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
-				b, a, get_type_name_from_kind(type_kind), result, result
+				b, a, ast::get_type_name_from_kind(type_kind), result, result
 			)
 			: bz::format(
 				"overflow in constant expression ''{:c}' + {}' with types '{}' and 'char' results in '{:c}' (U+{:04X})",
-				a, b, get_type_name_from_kind(type_kind), result, result
+				a, b, ast::get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -360,7 +339,7 @@ bz::u8char safe_subtract(
 			src_tokens,
 			bz::format(
 				"overflow in constant expression '{:c} - {}' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
-				a, b, get_type_name_from_kind(type_kind), result, result
+				a, b, ast::get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}
@@ -390,7 +369,7 @@ bz::u8char safe_subtract(
 			src_tokens,
 			bz::format(
 				"overflow in constant expression '{:c} - {}' with types 'char' and '{}' results in '{:c}' (U+{:04X})",
-				a, b, get_type_name_from_kind(type_kind), result, result
+				a, b, ast::get_type_name_from_kind(type_kind), result, result
 			)
 		);
 	}

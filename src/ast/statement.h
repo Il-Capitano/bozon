@@ -520,6 +520,27 @@ struct type_info
 	}
 };
 
+inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
+{
+	switch (kind)
+	{
+	case ast::type_info::int8_: return "int8";
+	case ast::type_info::int16_: return "int16";
+	case ast::type_info::int32_: return "int32";
+	case ast::type_info::int64_: return "int64";
+	case ast::type_info::uint8_: return "uint8";
+	case ast::type_info::uint16_: return "uint16";
+	case ast::type_info::uint32_: return "uint32";
+	case ast::type_info::uint64_: return "uint64";
+	case ast::type_info::float32_: return "float32";
+	case ast::type_info::float64_: return "float64";
+	case ast::type_info::char_: return "char";
+	case ast::type_info::str_: return "str";
+	case ast::type_info::bool_: return "bool";
+	default: bz_unreachable;
+	}
+}
+
 namespace internal
 {
 
