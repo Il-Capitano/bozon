@@ -58,6 +58,9 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 		case lex::token::less_than_eq:
 		case lex::token::greater_than:
 		case lex::token::greater_than_eq:
+		case lex::token::bool_and:
+		case lex::token::bool_xor:
+		case lex::token::bool_or:
 		{
 			auto const op_str = token_info[binary_op.op->kind].token_value;
 			auto const &lhs = binary_op.lhs;
@@ -80,6 +83,10 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 		default:
 			return "";
 		}
+	}
+	else if (cond.expr.is<ast::expr_literal>())
+	{
+		return get_const_expr_value_string(cond.value);
 	}
 	else
 	{
@@ -326,7 +333,10 @@ static void resolve_typespec(
 	precedence prec
 )
 {
-	bz_assert(ts.is<ast::ts_unresolved>());
+	if (!ts.is<ast::ts_unresolved>())
+	{
+		return;
+	}
 	auto [stream, end] = ts.get<ast::ts_unresolved>().tokens;
 	auto type = parse_expression(stream, end, context, prec, true);
 	if (stream != end)
@@ -736,6 +746,10 @@ static ast::function_body parse_function_body(
 		>(stream, end, context);
 		result.return_type = ast::make_unresolved_typespec(ret_type);
 	}
+	else if (stream != end)
+	{
+		result.return_type = ast::make_void_typespec(stream);
+	}
 
 	if (stream != end && stream->kind == lex::token::curly_open)
 	{
@@ -758,6 +772,7 @@ static ast::function_body parse_function_body(
 			var_decl.is_used = true;
 		}
 		++stream; // ';'
+		result.flags |= ast::function_body::external_linkage;
 	}
 
 	return result;
@@ -966,9 +981,11 @@ ast::statement parse_export_statement(
 		result.visit(bz::overload{
 			[](ast::decl_function &func_decl) {
 				func_decl.body.flags |= ast::function_body::module_export;
+				func_decl.body.flags |= ast::function_body::external_linkage;
 			},
 			[](ast::decl_operator &op_decl) {
 				op_decl.body.flags |= ast::function_body::module_export;
+				op_decl.body.flags |= ast::function_body::external_linkage;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "only a function or an operator can be exported");
