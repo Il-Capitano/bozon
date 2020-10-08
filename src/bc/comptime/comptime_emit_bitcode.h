@@ -6,7 +6,7 @@
 #include "ast/statement.h"
 #include "ctx/bitcode_context.h"
 
-namespace bc
+namespace bc::comptime
 {
 
 void add_function_to_module(
@@ -18,6 +18,6 @@ void emit_function_bitcode(
 	ctx::bitcode_context &context
 );
 
-} // namespace bc
+} // namespace bc::comptime
 
 #endif // BC_EMIT_BITCODE_H

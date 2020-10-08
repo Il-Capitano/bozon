@@ -1,11 +1,11 @@
 // documentation: https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019
 // cdec, stdcall, fastcall and thiscall all resolve to this according to wikipedia:
-// https://en.wikipedia.org/wiki/X86_calling_conventions#systemv_amd64::calling_convention
+// https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
 // would like to have a more reliable source for this, but it's good enough
 
-#include "emit_bitcode.h"
+#include "runtime_emit_bitcode.h"
 
-namespace systemv_amd64
+namespace microsoft_x64
 {
 
 static bool pass_by_ref(
@@ -97,17 +97,17 @@ static llvm::Value *create_cast_to_int(
 	return create_bitcast(val, dest_type, context);
 }
 
-} // namespace systemv_amd64
+} // namespace microsoft_x64
 
 template<>
-llvm::Function *create_function_from_symbol_impl<abi::platform_abi::systemv_amd64>(
+llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
 	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
 	auto const result_t = get_llvm_type(func_body.return_type, context);
-	auto const result_output_ptr = !result_t->isVoidTy() && systemv_amd64::output_ptr(result_t, context);
-	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && systemv_amd64::return_as_int_cast(result_t, context);
+	auto const result_output_ptr = !result_t->isVoidTy() && microsoft_x64::output_ptr(result_t, context);
+	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && microsoft_x64::return_as_int_cast(result_t, context);
 
 	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
@@ -121,12 +121,12 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::systemv_amd6
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		if (systemv_amd64::pass_by_ref(t, context))
+		if (microsoft_x64::pass_by_ref(t, context))
 		{
 			pass_arg_by_ref.push_back(true);
 			args.push_back(llvm::PointerType::get(t, 0));
 		}
-		else if (systemv_amd64::pass_as_int_cast(t, context))
+		else if (microsoft_x64::pass_as_int_cast(t, context))
 		{
 			auto const size = context.get_size(t);
 			bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
@@ -180,7 +180,7 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::systemv_amd6
 
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
-	auto const linkage = func_body.external_linkage
+	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
@@ -240,12 +240,12 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::systemv_amd6
 }
 
 template<>
-void emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
+void emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
 	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
-	constexpr auto abi = abi::platform_abi::systemv_amd64;
+	constexpr auto abi = abi::platform_abi::microsoft_x64;
 	auto const fn = context.get_function(&func_body);
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
@@ -329,13 +329,13 @@ void emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
 }
 
 template<>
-val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
+val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 	ast::expr_function_call const &func_call,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
 )
 {
-	constexpr auto abi = abi::platform_abi::systemv_amd64;
+	constexpr auto abi = abi::platform_abi::microsoft_x64;
 	bz_assert(func_call.func_body != nullptr);
 
 	auto const fn = context.get_function(func_call.func_body);
@@ -378,7 +378,7 @@ val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
 		{
 			auto const val_ref = emit_bitcode<abi>(p, context, nullptr);
 			auto const t = val_ref.get_type();
-			if (systemv_amd64::pass_by_ref(t, context))
+			if (microsoft_x64::pass_by_ref(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
 				auto const val = val_ref.get_value(context);
@@ -386,9 +386,9 @@ val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
 			}
-			else if (systemv_amd64::pass_as_int_cast(t, context))
+			else if (microsoft_x64::pass_as_int_cast(t, context))
 			{
-				params.push_back(systemv_amd64::create_cast_to_int(val_ref, context));
+				params.push_back(microsoft_x64::create_cast_to_int(val_ref, context));
 			}
 			else
 			{
@@ -450,12 +450,12 @@ val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
 }
 
 template<>
-void emit_bitcode<abi::platform_abi::systemv_amd64>(
+void emit_bitcode<abi::platform_abi::microsoft_x64>(
 	ast::stmt_return const &ret_stmt,
 	ctx::bitcode_context &context
 )
 {
-	constexpr auto abi = abi::platform_abi::systemv_amd64;
+	constexpr auto abi = abi::platform_abi::microsoft_x64;
 	if (ret_stmt.expr.is_null())
 	{
 		context.builder.CreateRetVoid();

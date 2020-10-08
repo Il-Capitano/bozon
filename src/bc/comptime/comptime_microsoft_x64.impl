@@ -3,7 +3,7 @@
 // https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
 // would like to have a more reliable source for this, but it's good enough
 
-#include "emit_bitcode.h"
+#include "comptime_emit_bitcode.h"
 
 namespace microsoft_x64
 {
@@ -180,7 +180,7 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
-	auto const linkage = func_body.external_linkage
+	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 

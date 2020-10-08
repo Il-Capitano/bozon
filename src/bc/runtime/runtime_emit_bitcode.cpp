@@ -2,12 +2,12 @@
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/Attributes.h>
 
-#include "emit_bitcode.h"
+#include "runtime_emit_bitcode.h"
 #include "ctx/built_in_operators.h"
 #include "colors.h"
 #include "abi/calling_conventions.h"
 
-namespace bc
+namespace bc::runtime
 {
 
 struct val_ptr
@@ -82,9 +82,9 @@ static void emit_bitcode(
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level = true);
 
 
-#include "common_declarations.impl"
-#include "microsoft_x64.impl"
-#include "systemv_amd64.impl"
+#include "runtime_common_declarations.impl"
+#include "runtime_microsoft_x64.impl"
+#include "runtime_systemv_amd64.impl"
 
 
 static llvm::Value *get_constant_zero(
@@ -2645,7 +2645,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
-	auto const linkage = func_body.external_linkage
+	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
@@ -2818,4 +2818,4 @@ void emit_function_bitcode(
 	bz_unreachable;
 }
 
-} // namespace bc
+} // namespace bc::runtime
