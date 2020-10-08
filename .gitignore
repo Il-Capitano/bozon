@@ -1,4 +1,5 @@
 bin
+test/lex/fuzz-corpus
 .vs
 .vscode
 .cppbuild
