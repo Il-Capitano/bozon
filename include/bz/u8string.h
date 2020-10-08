@@ -489,6 +489,18 @@ public:
 	}
 
 
+	void clear(void) noexcept
+	{
+		if (this->_is_short_string())
+		{
+			this->_set_short_string_size(0);
+		}
+		else
+		{
+			this->_data_end = this->_data_begin;
+		}
+	}
+
 	void erase(u8char c) noexcept
 	{
 		if (c <= internal::max_one_byte_char)
