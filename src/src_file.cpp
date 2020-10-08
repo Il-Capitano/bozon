@@ -1,6 +1,5 @@
 #include "src_file.h"
 #include "ctx/global_context.h"
-#include "bc/emit_bitcode.h"
 #include "parse/statement_parser.h"
 
 static bz::u8string read_text_from_file(std::ifstream &file)
@@ -33,7 +32,6 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 		}
 	}
 
-	bz_assert(file_str.verify());
 	return file_str;
 }
 
@@ -87,6 +85,11 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	}
 
 	this->_file = read_text_from_file(file);
+	if (!this->_file.verify())
+	{
+		this->_global_ctx.report_error(bz::format("file '{}' is not a valid in UTF-8 file", this->_file_name));
+		return false;
+	}
 	this->_stage = file_read;
 	return true;
 }
