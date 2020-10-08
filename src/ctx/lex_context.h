@@ -24,6 +24,12 @@ struct lex_context
 		bz::u8string message,
 		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
 	) const;
+	void bad_char(
+		file_iterator const &stream,
+		char_pos end,
+		bz::u8string message,
+		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+	) const;
 	void bad_chars(
 		uint32_t file_id, uint32_t line,
 		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,

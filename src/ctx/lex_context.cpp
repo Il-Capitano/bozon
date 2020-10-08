@@ -24,6 +24,22 @@ void lex_context::bad_char(
 	});
 }
 
+void lex_context::bad_char(
+	file_iterator const &stream,
+	char_pos end,
+	bz::u8string message,
+	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+) const
+{
+	this->global_ctx.report_error(ctx::error{
+		warning_kind::_last,
+		stream.file_id, stream.line,
+		stream.it, stream.it, stream.it == end ? stream.it : stream.it + 1,
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	});
+}
+
 void lex_context::bad_chars(
 	uint32_t file_id, uint32_t line,
 	ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,

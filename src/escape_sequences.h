@@ -131,16 +131,16 @@ inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_c
 	++stream;
 	if (stream.it == end || !is_hex_char(*stream.it))
 	{
-		context.bad_char(stream, "\\x must be followed by two hex characters");
+		context.bad_char(stream, end, "\\x must be followed by two hex characters (one byte)");
 		return;
 	}
 	auto const first_char = stream.it;
-	auto const first_char_val = *first_char;
+	auto const first_char_val = *stream.it;
 	++stream;
 	if (stream.it == end || !is_hex_char(*stream.it))
 	{
 		context.bad_char(
-			stream,
+			stream, end,
 			"\\x must be followed by two hex characters (one byte)",
 			{},
 			{
@@ -206,12 +206,12 @@ inline void verify_unicode_small(file_iterator &stream, ctx::char_pos end, ctx::
 	// we expect four hex characters
 	for (int i = 0; i < 4; ++i, ++stream)
 	{
-		auto const c = *stream.it;
-		if (stream.it == end || !is_hex_char(c))
+		if (stream.it == end || !is_hex_char(*stream.it))
 		{
-			context.bad_char(stream, "\\u must be followed by four hex characters (two bytes)");
-			break;
+			context.bad_char(stream, end, "\\u must be followed by four hex characters (two bytes)");
+			return;
 		}
+		auto const c = *stream.it;
 		val <<= 4;
 		val |= get_hex_value(c);
 	}
@@ -252,12 +252,12 @@ inline void verify_unicode_big(file_iterator &stream, ctx::char_pos end, ctx::le
 	// we expect eight hex characters
 	for (int i = 0; i < 8; ++i, ++stream)
 	{
-		auto const c = *stream.it;
-		if (stream.it == end || !is_hex_char(c))
+		if (stream.it == end || !is_hex_char(*stream.it))
 		{
-			context.bad_char(stream, "\\U must be followed by eight hex characters (four bytes)");
+			context.bad_char(stream, end, "\\U must be followed by eight hex characters (four bytes)");
 			return;
 		}
+		auto const c = *stream.it;
 		val <<= 4;
 		val |= get_hex_value(c);
 	}
