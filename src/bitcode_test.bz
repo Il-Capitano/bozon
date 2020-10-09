@@ -544,11 +544,17 @@ function for_test() -> void
 }
 
 // static_assert(false);
+// static_assert(true ^^ true, "\u0080");
 
 function declaration_leak() -> void
 {
 	for (let i = 0; i < 10; ++i);
 //	i;
+}
+
+export function div_test(n: int32) -> int32
+{
+	return n / 10;
 }
 
 function static_assert_test() -> void
@@ -726,6 +732,7 @@ function built_in_op_error_test() -> void
 //	u32 + f32;
 //	f64 + f32;
 //	f32 * f32 + f64;
+	(123 + 3);
 
 //	f32 - f64;
 //	i32 - u32;
