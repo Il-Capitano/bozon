@@ -6,6 +6,7 @@
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
+#include "abi/platform_abi.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>

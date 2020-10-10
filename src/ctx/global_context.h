@@ -17,6 +17,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "src_file.h"
+#include "abi/platform_abi.h"
 
 #include "decl_set.h"
 

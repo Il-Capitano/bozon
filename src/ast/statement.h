@@ -371,6 +371,11 @@ struct function_body
 		}
 	}
 
+	bool is_external_linkage(void) const noexcept
+	{
+		return (this->flags & external_linkage) != 0;
+	}
+
 	bool is_export(void) const noexcept
 	{
 		return (this->flags & module_export) != 0;
