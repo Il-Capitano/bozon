@@ -6,6 +6,7 @@
 #include "ctx/built_in_operators.h"
 #include "colors.h"
 #include "abi/calling_conventions.h"
+#include "abi/platform_function_call.h"
 
 namespace bc::runtime
 {
@@ -2636,13 +2637,78 @@ static llvm::Function *create_function_from_symbol_impl(
 )
 {
 	auto const result_t = get_llvm_type(func_body.return_type, context);
+	auto const result_output_ptr = !result_t->isVoidTy() && abi::return_with_output_pointer<abi>(result_t, context);
+	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && abi::return_as_int_cast<abi>(result_t, context);
+
+	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
+	pass_arg_by_ref.reserve(func_body.params.size());
+	args.reserve(func_body.params.size() + static_cast<size_t>(result_output_ptr));
+
+	if (result_output_ptr)
+	{
+		args.push_back(llvm::PointerType::get(result_t, 0));
+	}
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		args.push_back(t);
+		if (abi::pass_by_reference<abi>(t, context))
+		{
+			pass_arg_by_ref.push_back(true);
+			args.push_back(llvm::PointerType::get(t, 0));
+		}
+		else if (abi::pass_as_int_cast<abi>(t, context))
+		{
+			auto const size = context.get_size(t);
+			bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
+
+			switch (size)
+			{
+			case 1:
+				args.push_back(context.get_int8_t());
+				break;
+			case 2:
+				args.push_back(context.get_int16_t());
+				break;
+			case 4:
+				args.push_back(context.get_int32_t());
+				break;
+			case 8:
+				args.push_back(context.get_int64_t());
+				break;
+			default:
+				bz_unreachable;
+			}
+			pass_arg_by_ref.push_back(false);
+		}
+		else
+		{
+			pass_arg_by_ref.push_back(false);
+			args.push_back(t);
+		}
 	}
-	auto const func_t = llvm::FunctionType::get(result_t, llvm::ArrayRef(args.data(), args.size()), false);
+	auto const func_t = [&]() {
+		auto const real_result_t =
+			result_output_ptr ? llvm::Type::getVoidTy(context.get_llvm_context()) :
+			result_int_cast ? [&]() {
+				auto const size = context.get_size(result_t);
+				switch (size)
+				{
+				case 1:
+					return context.get_int8_t();
+				case 2:
+					return context.get_int16_t();
+				case 4:
+					return context.get_int32_t();
+				case 8:
+					return context.get_int64_t();
+				}
+				bz_unreachable;
+			}() :
+			result_t;
+		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
+	}();
+
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
 	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
@@ -2657,7 +2723,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	switch (func_body.cc)
 	{
 	case abi::calling_convention::bozon:
-		fn->setCallingConv(llvm::CallingConv::Fast);
+		fn->setCallingConv(llvm::CallingConv::C);
 		break;
 	case abi::calling_convention::c:
 		fn->setCallingConv(llvm::CallingConv::C);
@@ -2670,9 +2736,33 @@ static llvm::Function *create_function_from_symbol_impl(
 		break;
 	}
 
-	for (auto const &[arg, param] : bz::zip(fn->args(), func_body.params))
+	auto param_it = func_body.params.begin();
+	auto is_by_ref_it = pass_arg_by_ref.begin();
+	auto arg_it = fn->arg_begin();
+	auto const arg_end = fn->arg_end();
+
+	if (result_output_ptr)
 	{
-		if (param.var_type.is<ast::ts_lvalue_reference>())
+		arg_it->addAttr(llvm::Attribute::StructRet);
+		arg_it->addAttr(llvm::Attribute::NoAlias);
+		arg_it->addAttr(llvm::Attribute::NoCapture);
+		arg_it->addAttr(llvm::Attribute::NonNull);
+		++arg_it;
+	}
+
+	for (; arg_it != arg_end; ++param_it, ++is_by_ref_it, ++arg_it)
+	{
+		auto &arg = *arg_it;
+		auto const &param = *param_it;
+		auto const is_by_ref = *is_by_ref_it;
+		if (is_by_ref)
+		{
+			arg.addAttr(llvm::Attribute::ByVal);
+			arg.addAttr(llvm::Attribute::NoAlias);
+			arg.addAttr(llvm::Attribute::NoCapture);
+			arg.addAttr(llvm::Attribute::NonNull);
+		}
+		else if (param.var_type.is<ast::ts_lvalue_reference>())
 		{
 			arg.addAttr(llvm::Attribute::NonNull);
 		}
@@ -2740,14 +2830,24 @@ static void emit_function_bitcode_impl(
 		auto p_it = func_body.params.begin();
 		auto fn_it = fn->arg_begin();
 		auto const fn_end = fn->arg_end();
+
+		if (fn_it != fn_end && fn_it->hasAttribute(llvm::Attribute::StructRet))
+		{
+			context.output_pointer = fn_it;
+			++fn_it;
+		}
+
 		for (; fn_it != fn_end; ++fn_it, ++p_it)
 		{
 			auto &p = *p_it;
 			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
 			{
-				auto const alloca = context.create_alloca(fn_it->getType());
+				auto const t = get_llvm_type(p.var_type, context);
+				auto const alloca = context.create_alloca(t);
+				// create a cast from integer types to struct types if necessery
 				llvm::Value *const param_val = fn_it;
-				context.builder.CreateStore(param_val, alloca);
+				auto const alloca_cast = context.builder.CreateBitCast(alloca, llvm::PointerType::get(param_val->getType(), 0));
+				context.builder.CreateStore(param_val, alloca_cast);
 				context.add_variable(&p, alloca);
 			}
 			else
@@ -2765,8 +2865,6 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-//		std::string func_name = context.current_function->getName();
-//		bz::print("{} {} {}\n", func_body.return_type, func_body.params.size(), func_name.c_str());
 		bz_assert(func_body.return_type.is<ast::ts_void>());
 		context.builder.CreateRetVoid();
 	}
@@ -2789,6 +2887,8 @@ static void emit_function_bitcode_impl(
 		);
 	}
 	context.current_function = {};
+	context.alloca_bb = nullptr;
+	context.output_pointer = nullptr;
 }
 
 void emit_function_bitcode(
