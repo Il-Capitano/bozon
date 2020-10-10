@@ -15,38 +15,6 @@ static void resolve_attributes(
 
 static bz::u8string get_static_assert_expression(ast::constant_expression const &cond)
 {
-	auto const get_const_expr_value_string = [](ast::constant_value const &value) -> bz::u8string {
-		switch (value.kind())
-		{
-		case ast::constant_value::sint:
-			return bz::format("{}", value.get<ast::constant_value::sint>());
-		case ast::constant_value::uint:
-			return bz::format("{}", value.get<ast::constant_value::uint>());
-		case ast::constant_value::float32:
-			return bz::format("{}", value.get<ast::constant_value::float32>());
-		case ast::constant_value::float64:
-			return bz::format("{}", value.get<ast::constant_value::float64>());
-		case ast::constant_value::u8char:
-			return bz::format("'{:c}'", value.get<ast::constant_value::u8char>());
-		case ast::constant_value::string:
-			return bz::format("\"{}\"", value.get<ast::constant_value::string>());
-		case ast::constant_value::boolean:
-			return bz::format("{}", value.get<ast::constant_value::boolean>());
-		case ast::constant_value::null:
-			return "null";
-		case ast::constant_value::array:
-		case ast::constant_value::tuple:
-		case ast::constant_value::function:
-		case ast::constant_value::function_set_id:
-			return "";
-		case ast::constant_value::type:
-			return bz::format("{}", value.get<ast::constant_value::type>());
-		case ast::constant_value::aggregate:
-		default:
-			return "";
-		}
-	};
-
 	if (cond.expr.is<ast::expr_binary_op>())
 	{
 		auto const &binary_op = *cond.expr.get<ast::expr_binary_op_ptr>();
@@ -65,14 +33,14 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 			auto const op_str = token_info[binary_op.op->kind].token_value;
 			auto const &lhs = binary_op.lhs;
 			bz_assert(lhs.is<ast::constant_expression>());
-			auto const lhs_str = get_const_expr_value_string(lhs.get<ast::constant_expression>().value);
+			auto const lhs_str = ast::get_value_string(lhs.get<ast::constant_expression>().value);
 			if (lhs_str == "")
 			{
 				return "";
 			}
 			auto const &rhs = binary_op.rhs;
 			bz_assert(rhs.is<ast::constant_expression>());
-			auto const rhs_str = get_const_expr_value_string(rhs.get<ast::constant_expression>().value);
+			auto const rhs_str = ast::get_value_string(rhs.get<ast::constant_expression>().value);
 			if (rhs_str == "")
 			{
 				return "";
@@ -86,7 +54,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 	}
 	else if (cond.expr.is<ast::expr_literal>())
 	{
-		return get_const_expr_value_string(cond.value);
+		return ast::get_value_string(cond.value);
 	}
 	else
 	{

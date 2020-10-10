@@ -31,6 +31,7 @@ constexpr bz::u8char get_hex_value(bz::u8char c)
 struct escape_sequence_parser
 {
 	bz::u8char c;
+	bz::u8char escaped_char;
 	bz::u8string_view help;
 	void       (*verify)(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context);
 	bz::u8char (*get)(bz::u8iterator &it);
@@ -289,15 +290,15 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 
 
 constexpr std::array escape_sequence_parsers = {
-	escape_sequence_parser{ '\\', "\\\\",        &verify_backslash,       &get_backslash       },
-	escape_sequence_parser{ '\'', "\\\'",        &verify_single_quote,    &get_single_quote    },
-	escape_sequence_parser{ '\"', "\\\"",        &verify_double_quote,    &get_double_quote    },
-	escape_sequence_parser{ 'n',  "\\n",         &verify_new_line,        &get_new_line        },
-	escape_sequence_parser{ 't',  "\\t",         &verify_tab,             &get_tab             },
-	escape_sequence_parser{ 'r',  "\\r",         &verify_carriage_return, &get_carriage_return },
-	escape_sequence_parser{ 'x',  "\\xXX",       &verify_hex_char,        &get_hex_char        },
-	escape_sequence_parser{ 'u',  "\\uXXXX",     &verify_unicode_small,   &get_unicode_small   },
-	escape_sequence_parser{ 'U',  "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big     },
+	escape_sequence_parser{ '\\', '\\',                                   "\\\\",        &verify_backslash,       &get_backslash       },
+	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &verify_single_quote,    &get_single_quote    },
+	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &verify_double_quote,    &get_double_quote    },
+	escape_sequence_parser{ 'n',  '\n',                                   "\\n",         &verify_new_line,        &get_new_line        },
+	escape_sequence_parser{ 't',  '\t',                                   "\\t",         &verify_tab,             &get_tab             },
+	escape_sequence_parser{ 'r',  '\r',                                   "\\r",         &verify_carriage_return, &get_carriage_return },
+	escape_sequence_parser{ 'x',  std::numeric_limits<bz::u8char>::max(), "\\xXX",       &verify_hex_char,        &get_hex_char        },
+	escape_sequence_parser{ 'u',  std::numeric_limits<bz::u8char>::max(), "\\uXXXX",     &verify_unicode_small,   &get_unicode_small   },
+	escape_sequence_parser{ 'U',  std::numeric_limits<bz::u8char>::max(), "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big     },
 };
 
 inline bz::u8string get_available_escape_sequences_message(void)
@@ -372,6 +373,54 @@ inline bz::u8char get_escape_sequence(bz::u8iterator &it)
 		return result;
 	}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
 	// no error reporting needed here
+}
+
+inline bz::u8string add_escape_sequences(bz::u8string_view str)
+{
+	bz::u8string result;
+	result.reserve(str.size());
+	for (auto const c : str)
+	{
+		bool escaped = false;
+		[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
+			((
+				(c == escape_sequence_parsers[Ns].escaped_char) ? (void)(escaped = true, result += '\\', result += escape_sequence_parsers[Ns].c) : (void)0
+			), ...);
+		}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
+		if (!escaped)
+		{
+			if (c < ' ' || c == '\x7f')
+			{
+				result += bz::format("\\x{:02x}", c);
+			}
+			else
+			{
+				result += c;
+			}
+		}
+	}
+	return result;
+}
+
+inline bz::u8string add_escape_sequences(bz::u8char c)
+{
+	for (auto const &parser : escape_sequence_parsers)
+	{
+		if (c == parser.escaped_char)
+		{
+			bz::u8string result = "\\";
+			result += parser.c;
+			return result;
+		}
+	}
+	if (c < ' ' || c == '\x7f')
+	{
+		return bz::format("\\x{:02x}", c);
+	}
+	else
+	{
+		return bz::u8string(1, c);
+	}
 }
 
 #endif // ESCAPE_SEQUENCES_H

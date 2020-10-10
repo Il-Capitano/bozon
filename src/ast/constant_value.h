@@ -84,6 +84,8 @@ struct constant_value : bz::variant<
 	declare_default_5(constant_value)
 };
 
+bz::u8string get_value_string(constant_value const &value);
+
 } // namespace ast
 
 #endif // AST_CONSTANT_VALUE_H
