@@ -13,6 +13,7 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/AggressiveInstCombine/AggressiveInstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Utils.h>
@@ -260,21 +261,24 @@ void src_manager::optimize(void)
 	// reassociation pass seems to be buggy, it thinks it modified the code even when it didn't
 	llvm::legacy::PassManager reassociate_pass_manager;
 
-#define add_opt(kind, llvm_func)                              \
-do {                                                          \
-    if (is_optimization_enabled(bc::optimization_kind::kind)) \
-    {                                                         \
-        opt_pass_manager.add(llvm_func());                    \
-    }                                                         \
-}                                                             \
-while (false)
+#define add_opt(kind, pass)                               \
+if (is_optimization_enabled(bc::optimization_kind::kind)) \
+{                                                         \
+    opt_pass_manager.add(pass);                           \
+}
 
 	// optimizations
-	add_opt(instcombine, llvm::createInstructionCombiningPass);
-	add_opt(mem2reg,     llvm::createPromoteMemoryToRegisterPass);
-	add_opt(simplifycfg, llvm::createCFGSimplificationPass);
-	add_opt(gvn,         llvm::createGVNPass);
-	add_opt(inline_,     llvm::createFunctionInliningPass);
+	add_opt(instcombine,            llvm::createInstructionCombiningPass())
+	add_opt(mem2reg,                llvm::createPromoteMemoryToRegisterPass())
+	add_opt(simplifycfg,            llvm::createCFGSimplificationPass())
+	add_opt(gvn,                    llvm::createGVNPass())
+	add_opt(inline_,                llvm::createFunctionInliningPass())
+	add_opt(sccp,                   llvm::createSCCPPass())
+	// dead code elimination should come after sccp as suggested in LLVM docs
+	// http://llvm.org/docs/Passes.html#passes-sccp
+	add_opt(adce,                   llvm::createAggressiveDCEPass())
+	else add_opt(dce,               llvm::createDeadCodeEliminationPass())
+	add_opt(aggressive_instcombine, llvm::createAggressiveInstCombinerPass())
 
 	if (is_optimization_enabled(bc::optimization_kind::reassociate))
 	{

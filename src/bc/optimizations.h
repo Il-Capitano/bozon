@@ -15,6 +15,10 @@ enum class optimization_kind
 	reassociate,
 	gvn,
 	inline_,
+	dce,
+	adce,
+	sccp,
+	aggressive_instcombine,
 
 	_last,
 };
@@ -30,12 +34,16 @@ constexpr std::array optimization_infos = []() {
 	using result_t = std::array<optimization_info, static_cast<size_t>(optimization_kind::_last)>;
 	using T = optimization_info;
 	result_t result = {
-		T{ optimization_kind::instcombine, "instcombine", "Combine redundant instructions"                          },
-		T{ optimization_kind::mem2reg,     "mem2reg",     "Promote memory to register"                              },
-		T{ optimization_kind::simplifycfg, "simplifycfg", "Simplify the CFG"                                        },
-		T{ optimization_kind::reassociate, "reassociate", "Reassociate expressions for better constant propagation" },
-		T{ optimization_kind::gvn,         "gvn",         "Global value numbering"                                  },
-		T{ optimization_kind::inline_,     "inline",      "Function inlining"                                       },
+		T{ optimization_kind::instcombine,            "instcombine",            "Combine redundant instructions"                          },
+		T{ optimization_kind::mem2reg,                "mem2reg",                "Promote memory to register"                              },
+		T{ optimization_kind::simplifycfg,            "simplifycfg",            "Simplify the Control Flow Graph"                         },
+		T{ optimization_kind::reassociate,            "reassociate",            "Reassociate expressions for better constant propagation" },
+		T{ optimization_kind::gvn,                    "gvn",                    "Global value numbering"                                  },
+		T{ optimization_kind::inline_,                "inline",                 "Function inlining"                                       },
+		T{ optimization_kind::dce,                    "dce",                    "Dead Code Elimination"                                   },
+		T{ optimization_kind::adce,                   "adce",                   "Aggressive Dead Code Elimination"                        },
+		T{ optimization_kind::sccp,                   "sccp",                   "Sparse Conditional Constant Propagation"                 },
+		T{ optimization_kind::aggressive_instcombine, "aggressive-instcombine", "Combine expression patterns"                             },
 	};
 
 	constexpr_bubble_sort(
