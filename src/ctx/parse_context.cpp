@@ -2423,7 +2423,11 @@ void parse_context::match_expression_to_type(
 	ast::typespec &dest_type
 )
 {
-	bz_assert(!dest_type.is_empty());
+	if (dest_type.is_empty())
+	{
+		expr.clear();
+		return;
+	}
 	if (expr.is_null())
 	{
 		dest_type.clear();
