@@ -2715,7 +2715,7 @@ void add_function_to_module(
 
 template<abi::platform_abi abi>
 static void emit_function_bitcode_impl(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -2792,7 +2792,7 @@ static void emit_function_bitcode_impl(
 }
 
 void emit_function_bitcode(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -2813,6 +2813,39 @@ void emit_function_bitcode(
 		emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
 			func_body, context
 		);
+		return;
+	}
+	bz_unreachable;
+}
+
+void emit_necessary_functions(ctx::bitcode_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		{
+			emit_function_bitcode_impl<abi::platform_abi::generic>(
+				*context.functions_to_compile[i], context
+			);
+		}
+		return;
+	case abi::platform_abi::microsoft_x64:
+		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		{
+			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
+				*context.functions_to_compile[i], context
+			);
+		}
+		return;
+	case abi::platform_abi::systemv_amd64:
+		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		{
+			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
+				*context.functions_to_compile[i], context
+			);
+		}
 		return;
 	}
 	bz_unreachable;

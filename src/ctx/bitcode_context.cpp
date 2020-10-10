@@ -4,10 +4,12 @@
 namespace ctx
 {
 
-bitcode_context::bitcode_context(global_context &_global_ctx)
+bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module &_module)
 	: global_ctx(_global_ctx),
+	  module(_module),
 	  vars_{},
 	  types_{},
+	  functions_to_compile{},
 	  current_function{ nullptr, nullptr },
 	  alloca_bb(nullptr),
 	  output_pointer(nullptr),
@@ -25,10 +27,18 @@ void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Val
 	this->vars_.insert_or_assign(var_decl, val);
 }
 
-llvm::Function *bitcode_context::get_function(ast::function_body const *func_body) const
+llvm::Function *bitcode_context::get_function(ast::function_body const *func_body)
 {
 	auto it = this->funcs_.find(func_body);
-	return it == this->funcs_.end() ? nullptr : it->second;
+	if (it == this->funcs_.end())
+	{
+		return nullptr;
+	}
+	else
+	{
+		this->ensure_function_emission(func_body);
+		return it->second;
+	}
 }
 
 llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
@@ -38,7 +48,7 @@ llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
 
 llvm::Module &bitcode_context::get_module(void) const noexcept
 {
-	return this->global_ctx._module;
+	return this->module;
 }
 
 abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
@@ -153,6 +163,21 @@ bool bitcode_context::has_terminator(void) const
 bool bitcode_context::has_terminator(llvm::BasicBlock *bb)
 {
 	return bb->size() != 0 && bb->back().isTerminator();
+}
+
+void bitcode_context::ensure_function_emission(ast::function_body const *func)
+{
+	// no need to emit functions with no definition
+	if (func->body.is_null())
+	{
+		return;
+	}
+
+	auto const it = std::find(this->functions_to_compile.begin(), this->functions_to_compile.end(), func);
+	if (it == this->functions_to_compile.end())
+	{
+		this->functions_to_compile.push_back(func);
+	}
 }
 
 } // namespace ctx

@@ -193,7 +193,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool src_manager::emit_bitcode(void)
 {
-	bitcode_context context(this->_global_ctx);
+	bitcode_context context(this->_global_ctx, this->_global_ctx._module);
 
 	// add declarations to the module
 	bz_assert(this->_global_ctx._compile_decls.var_decls.size() == 0);
@@ -201,16 +201,13 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		func->resolve_symbol_name();
 		bc::runtime::add_function_to_module(func, context);
-	}
-
-	// add the definitions to the module
-	for (auto const func_decl : this->_global_ctx._compile_decls.funcs)
-	{
-		if (func_decl->body.not_null())
+		if (func->is_external_linkage())
 		{
-			bc::runtime::emit_function_bitcode(*func_decl, context);
+			context.ensure_function_emission(func);
 		}
 	}
+
+	bc::runtime::emit_necessary_functions(context);
 
 	this->optimize();
 

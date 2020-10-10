@@ -9,7 +9,7 @@ static llvm::Function *create_function_from_symbol_impl(
 
 template<abi::platform_abi abi>
 static void emit_function_bitcode_impl(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 );
 

@@ -20,12 +20,12 @@ struct global_context;
 
 struct bitcode_context
 {
-	bitcode_context(global_context &_global_ctx);
+	bitcode_context(global_context &_global_ctx, llvm::Module &_module);
 
 	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
 
-	llvm::Function *get_function(ast::function_body const *func_body) const;
+	llvm::Function *get_function(ast::function_body const *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::Module &get_module(void) const noexcept;
@@ -58,11 +58,17 @@ struct bitcode_context
 	static bool has_terminator(llvm::BasicBlock *bb);
 
 
+	void ensure_function_emission(ast::function_body const *func);
+
+
 	global_context &global_ctx;
+	llvm::Module &module;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
+
+	bz::vector<ast::function_body const *> functions_to_compile;
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function;
 	llvm::BasicBlock *alloca_bb;

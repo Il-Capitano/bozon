@@ -241,7 +241,7 @@ llvm::Function *create_function_from_symbol_impl<abi::platform_abi::microsoft_x6
 
 template<>
 void emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 )
 {
