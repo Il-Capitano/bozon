@@ -105,6 +105,27 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 	return result;
 }
 
+llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_type)
+{
+	if (val.kind == bc::val_ptr::reference)
+	{
+		auto const dest_ptr = this->builder.CreateBitCast(
+			val.val, llvm::PointerType::get(dest_type, 0)
+		);
+		return this->builder.CreateLoad(dest_ptr);
+	}
+	else
+	{
+		auto const src_value = val.get_value(this->builder);
+		auto const dest_ptr = this->create_alloca(dest_type);
+		auto const cast_ptr = this->builder.CreateBitCast(
+			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
+		);
+		this->builder.CreateStore(src_value, cast_ptr);
+		return this->builder.CreateLoad(dest_ptr);
+	}
+}
+
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);

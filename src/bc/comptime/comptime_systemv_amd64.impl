@@ -63,7 +63,7 @@ static llvm::Value *create_bitcast(
 	}
 	else
 	{
-		auto const src_value = val.get_value(context);
+		auto const src_value = val.get_value(context.builder);
 		auto const dest_ptr = context.create_alloca(dest_type);
 		auto const cast_ptr = context.builder.CreateBitCast(
 			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
@@ -381,7 +381,7 @@ val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
 			if (systemv_amd64::pass_by_ref(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
-				auto const val = val_ref.get_value(context);
+				auto const val = val_ref.get_value(context.builder);
 				auto const alloca = context.create_alloca(t, 16);
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
@@ -392,7 +392,7 @@ val_ptr emit_bitcode<abi::platform_abi::systemv_amd64>(
 			}
 			else
 			{
-				auto const val = val_ref.get_value(context);
+				auto const val = val_ref.get_value(context.builder);
 				params.push_back(val);
 			}
 		}
@@ -486,7 +486,7 @@ void emit_bitcode<abi::platform_abi::systemv_amd64>(
 			}
 			else
 			{
-				auto const val = ret_val.get_value(context);
+				auto const val = ret_val.get_value(context.builder);
 				auto const int_ptr = context.create_alloca(ret_t);
 				auto const val_ptr = context.builder.CreateBitCast(int_ptr, llvm::PointerType::get(val->getType(), 0));
 				context.builder.CreateStore(val, val_ptr);
@@ -496,7 +496,7 @@ void emit_bitcode<abi::platform_abi::systemv_amd64>(
 		}
 		else
 		{
-			context.builder.CreateRet(ret_val.get_value(context));
+			context.builder.CreateRet(ret_val.get_value(context.builder));
 		}
 	}
 }

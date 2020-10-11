@@ -6,31 +6,6 @@
 namespace microsoft_x64
 {
 
-static llvm::Value *create_bitcast(
-	val_ptr val,
-	llvm::Type *dest_type,
-	ctx::bitcode_context &context
-)
-{
-	if (val.kind == val_ptr::reference)
-	{
-		auto const dest_ptr = context.builder.CreateBitCast(
-			val.val, llvm::PointerType::get(dest_type, 0)
-		);
-		return context.builder.CreateLoad(dest_ptr);
-	}
-	else
-	{
-		auto const src_value = val.get_value(context);
-		auto const dest_ptr = context.create_alloca(dest_type);
-		auto const cast_ptr = context.builder.CreateBitCast(
-			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
-		);
-		context.builder.CreateStore(src_value, cast_ptr);
-		return context.builder.CreateLoad(dest_ptr);
-	}
-}
-
 static llvm::Value *create_cast_to_int(
 	val_ptr val,
 	ctx::bitcode_context &context
@@ -52,7 +27,7 @@ static llvm::Value *create_cast_to_int(
 			bz_unreachable;
 		}
 	}();
-	return create_bitcast(val, dest_type, context);
+	return context.create_bitcast(val, dest_type);
 }
 
 } // namespace microsoft_x64
@@ -110,7 +85,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 			if (abi::pass_by_reference<abi>(t, context))
 			{
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
-				auto const val = val_ref.get_value(context);
+				auto const val = val_ref.get_value(context.builder);
 				auto const alloca = context.create_alloca(t, 16);
 				context.builder.CreateStore(val, alloca);
 				params.push_back(alloca);
@@ -121,7 +96,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 			}
 			else
 			{
-				auto const val = val_ref.get_value(context);
+				auto const val = val_ref.get_value(context.builder);
 				params.push_back(val);
 			}
 		}
@@ -215,7 +190,7 @@ void emit_bitcode<abi::platform_abi::microsoft_x64>(
 			}
 			else
 			{
-				auto const val = ret_val.get_value(context);
+				auto const val = ret_val.get_value(context.builder);
 				auto const int_ptr = context.create_alloca(ret_t);
 				auto const val_ptr = context.builder.CreateBitCast(int_ptr, llvm::PointerType::get(val->getType(), 0));
 				context.builder.CreateStore(val, val_ptr);
@@ -225,7 +200,7 @@ void emit_bitcode<abi::platform_abi::microsoft_x64>(
 		}
 		else
 		{
-			context.builder.CreateRet(ret_val.get_value(context));
+			context.builder.CreateRet(ret_val.get_value(context.builder));
 		}
 	}
 }
