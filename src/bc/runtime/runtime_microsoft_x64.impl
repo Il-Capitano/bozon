@@ -3,35 +3,6 @@
 // https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention
 // would like to have a more reliable source for this, but it's good enough
 
-namespace microsoft_x64
-{
-
-static llvm::Value *create_cast_to_int(
-	val_ptr val,
-	ctx::bitcode_context &context
-)
-{
-	auto const dest_type = [&]() {
-		auto const val_t = val.get_type();
-		switch (context.get_size(val_t))
-		{
-		case 1:
-			return context.get_int8_t();
-		case 2:
-			return context.get_int16_t();
-		case 4:
-			return context.get_int32_t();
-		case 8:
-			return context.get_int64_t();
-		default:
-			bz_unreachable;
-		}
-	}();
-	return context.create_bitcast(val, dest_type);
-}
-
-} // namespace microsoft_x64
-
 template<>
 val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 	ast::expr_function_call const &func_call,
@@ -92,7 +63,7 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 			}
 			else if (abi::pass_as_int_cast<abi>(t, context))
 			{
-				params.push_back(microsoft_x64::create_cast_to_int(val_ref, context));
+				params.push_back(context.create_cast_to_int(val_ref));
 			}
 			else
 			{

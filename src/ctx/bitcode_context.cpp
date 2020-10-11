@@ -126,6 +126,35 @@ llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_t
 	}
 }
 
+llvm::Value *bitcode_context::create_cast_to_int(bc::val_ptr val)
+{
+	auto const dest_type = [&]() -> llvm::Type * {
+		auto const val_t = val.get_type();
+		switch (this->get_size(val_t))
+		{
+		case 1:
+			return this->get_int8_t();
+		case 2:
+			return this->get_int16_t();
+		case 3:
+			return llvm::IntegerType::getIntNTy(this->get_llvm_context(), 24);
+		case 4:
+			return this->get_int32_t();
+		case 5:
+			return llvm::IntegerType::getIntNTy(this->get_llvm_context(), 40);
+		case 6:
+			return llvm::IntegerType::getIntNTy(this->get_llvm_context(), 48);
+		case 7:
+			return llvm::IntegerType::getIntNTy(this->get_llvm_context(), 56);
+		case 8:
+			return this->get_int64_t();
+		default:
+			bz_unreachable;
+		}
+	}();
+	return this->create_bitcast(val, dest_type);
+}
+
 llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);

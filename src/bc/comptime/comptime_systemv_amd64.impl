@@ -3,8 +3,6 @@
 // https://en.wikipedia.org/wiki/X86_calling_conventions#systemv_amd64::calling_convention
 // would like to have a more reliable source for this, but it's good enough
 
-#include "comptime_emit_bitcode.h"
-
 namespace systemv_amd64
 {
 
