@@ -15,6 +15,9 @@ template<>
 bool pass_by_reference<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
 bool pass_by_reference<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+bool pass_by_reference<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
+
 
 template<platform_abi abi>
 bool pass_as_int_cast(llvm::Type *t, ctx::bitcode_context &context);
@@ -23,6 +26,9 @@ template<>
 bool pass_as_int_cast<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
 bool pass_as_int_cast<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+bool pass_as_int_cast<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
+
 
 template<platform_abi abi>
 bool return_with_output_pointer(llvm::Type *t, ctx::bitcode_context &context);
@@ -31,6 +37,9 @@ template<>
 bool return_with_output_pointer<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
 bool return_with_output_pointer<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+bool return_with_output_pointer<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
+
 
 template<platform_abi abi>
 bool return_as_int_cast(llvm::Type *t, ctx::bitcode_context &context);
@@ -39,6 +48,8 @@ template<>
 bool return_as_int_cast<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
 bool return_as_int_cast<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+bool return_as_int_cast<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
 
 } // namespace abi
 
