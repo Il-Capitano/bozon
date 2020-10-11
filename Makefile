@@ -266,7 +266,7 @@ test_ld_debug_flags := -g
 test_ld_release_flags := 
 test_ld_lib_dirs :=
 test_ld_libs := LLVM
-test_exe_debug := bin/test/debug/testbozon.exe
+test_exe_debug := bin/test/debug/test_bozon.exe
 test_exe_release := bin/test/release/test_bozon.exe
 
 # all binary files
@@ -369,12 +369,12 @@ linux_cc := clang
 linux_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 linux_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
 linux_cc_include_dirs := ./include ./src /usr/include/llvm-10 /usr/include/llvm-c-10 
-linux_ld_debug_flags := -g-fsanitize=address,undefined -fno-omit-frame-pointer
+linux_ld_debug_flags := -g -fsanitize=address,undefined -fno-omit-frame-pointer
 linux_ld_release_flags := -flto
 linux_ld_lib_dirs :=
 linux_ld_libs := LLVM
-linux_exe_debug := bin/linux/debug/linuxbozon.exe
-linux_exe_release := bin/linux/release/linux_bozon.exe
+linux_exe_debug := bin/linux/debug/bozon
+linux_exe_release := bin/linux/release/bozon
 
 # all binary files
 # used for clean-up
