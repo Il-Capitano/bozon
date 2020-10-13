@@ -4,6 +4,7 @@
 #include "cl_options.h"
 #include "colors.h"
 
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/raw_ostream.h>
@@ -19,6 +20,7 @@
 #include <llvm/Transforms/Utils.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Transforms/IPO.h>
+#include <llvm/MC/MCAsmInfo.h>
 
 namespace ctx
 {
@@ -95,6 +97,18 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	llvm::InitializeAllAsmParsers();
 	llvm::InitializeAllAsmPrinters();
 
+	{
+		// set --x86-asm-syntax for LLVM
+		char const *args[] = {
+			"bozon",
+			x86_asm_syntax == x86_asm_syntax_kind::att ? "--x86-asm-syntax=att" : "--x86-asm-syntax=intel"
+		};
+		if (!llvm::cl::ParseCommandLineOptions(std::size(args), args))
+		{
+			bz_unreachable;
+		}
+	}
+
 	std::string target_error = "";
 	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
 	if (target == nullptr)
@@ -112,18 +126,8 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 		}
 		return false;
 	}
-	auto const cpu = "generic";
-	auto const features = "";
 
-	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	this->_global_ctx._target_machine.reset(target->createTargetMachine(target_triple, cpu, features, options, rm));
-	bz_assert(this->_global_ctx._target_machine);
-	this->_global_ctx._data_layout = this->_global_ctx._target_machine->createDataLayout();
-	this->_global_ctx._module.setDataLayout(*this->_global_ctx._data_layout);
-	this->_global_ctx._module.setTargetTriple(target_triple);
-
-	auto const triple = this->_global_ctx._target_machine->getTargetTriple();
+	auto const triple = llvm::Triple(target_triple);
 	auto const os = triple.getOS();
 	auto const arch = triple.getArch();
 
@@ -150,6 +154,17 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 			)
 		);
 	}
+
+	auto const cpu = "generic";
+	auto const features = "";
+
+	llvm::TargetOptions options;
+	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	this->_global_ctx._target_machine.reset(target->createTargetMachine(target_triple, cpu, features, options, rm));
+	bz_assert(this->_global_ctx._target_machine);
+	this->_global_ctx._data_layout = this->_global_ctx._target_machine->createDataLayout();
+	this->_global_ctx._module.setDataLayout(*this->_global_ctx._data_layout);
+	this->_global_ctx._module.setTargetTriple(target_triple);
 
 	return true;
 }

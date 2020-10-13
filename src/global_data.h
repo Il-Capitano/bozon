@@ -47,6 +47,28 @@ inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 	}
 }
 
+enum class x86_asm_syntax_kind
+{
+	att,
+	intel,
+};
+
+inline bz::optional<x86_asm_syntax_kind> parse_x86_asm_syntax(bz::u8string_view arg)
+{
+	if (arg == "att")
+	{
+		return x86_asm_syntax_kind::att;
+	}
+	else if (arg == "intel")
+	{
+		return x86_asm_syntax_kind::intel;
+	}
+	else
+	{
+		return {};
+	}
+}
+
 inline bool display_help         = false;
 inline bool display_version      = false;
 inline bool display_warning_help = false;
@@ -66,6 +88,7 @@ inline bool do_verbose = false;
 
 inline bz::u8string target;
 inline emit_type emit_file_type = emit_type::obj;
+inline x86_asm_syntax_kind x86_asm_syntax = x86_asm_syntax_kind::att;
 
 inline size_t tab_size = 4;
 inline bool no_error_highlight = false;
