@@ -5,6 +5,7 @@
 
 #include "lex/token.cpp"
 
+#include "ast/constant_value.cpp"
 #include "ast/typespec.cpp"
 #include "ast/expression.cpp"
 #include "ast/statement.cpp"
@@ -24,3 +25,6 @@
 #include "parse/parse_common.cpp"
 
 #include "bc/runtime/runtime_emit_bitcode.cpp"
+#include "abi/generic.cpp"
+#include "abi/microsoft_x64.cpp"
+#include "abi/systemv_amd64.cpp"

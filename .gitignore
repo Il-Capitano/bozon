@@ -1,5 +1,7 @@
 bin
 test/lex/fuzz-corpus
+test/lex/fuzz-corpus-min
+test/lex/dictionary.txt
 .vs
 .vscode
 .cppbuild
