@@ -877,6 +877,26 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			ast::make_expr_identifier(id)
 		);
 	}
+	else if (id_value.starts_with("__builtin"))
+	{
+		using T = std::pair<bz::u8string_view, uint32_t>;
+		static constexpr std::array<T, 0> builtins = {
+		};
+		auto const it = std::find_if(builtins.begin(), builtins.end(), [id_value](auto const &p) {
+			return p.first == id_value;
+		});
+		if (it != builtins.end())
+		{
+			auto const func_body = this->get_builtin_function(it->second);
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::function_name,
+				get_function_type(*func_body),
+				ast::constant_value(func_body),
+				ast::make_expr_identifier(id)
+			);
+		}
+	}
 
 	this->report_error(id, bz::format("undeclared identifier '{}'", id_value));
 	return ast::expression(src_tokens);
