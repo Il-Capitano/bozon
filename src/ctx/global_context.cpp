@@ -31,7 +31,7 @@ static ast::function_body create_builtin_function(
 	)), ...);
 	return ast::function_body{
 		std::move(params),
-		ast::make_base_type_typespec({}, return_type),
+		return_type != nullptr ? ast::make_base_type_typespec({}, return_type) : ast::make_void_typespec(nullptr),
 		ast::function_body::body_t{},
 		"",
 		symbol_name,

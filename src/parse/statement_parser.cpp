@@ -1463,6 +1463,11 @@ constexpr auto intrinsic_info = []() {
 	using T = intrinsic_info_t;
 
 	std::array result = {
+		T{ "print_stdout",   "__bozon_builtin_print_stdout",    ast::function_body::print_stdout   },
+		T{ "println_stdout", "__bozon_builtin_println_stdout",  ast::function_body::println_stdout },
+		T{ "print_stderr",   "__bozon_builtin_print_stderr",    ast::function_body::print_stderr   },
+		T{ "println_stderr", "__bozon_builtin_println_stderr",  ast::function_body::println_stderr },
+
 		T{ "memcpy_i32",  "llvm.memcpy.p0i8.p0i8.i32",  ast::function_body::memcpy  },
 		T{ "memcpy_i64",  "llvm.memcpy.p0i8.p0i8.i64",  ast::function_body::memcpy  },
 		T{ "memmove_i32", "llvm.memmove.p0i8.p0i8.i32", ast::function_body::memmove },

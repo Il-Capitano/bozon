@@ -1,4 +1,9 @@
-@extern("print",           "c") export function print(str: str)        -> void;
+@intrinsic("print_stdout")   export function print(str: str)   -> void;
+@intrinsic("println_stdout") export function println(str: str) -> void;
+
+@intrinsic("print_stderr")   export function log(str: str)   -> void;
+@intrinsic("println_stderr") export function logln(str: str) -> void;
+
 @extern("print_char",      "c") export function print(c: char)         -> void;
 @extern("print_int32",     "c") export function print(n: int32)        -> void;
 @extern("print_int64",     "c") export function print(n: int64)        -> void;
@@ -9,7 +14,6 @@
 @extern("print_float64",   "c") export function print(x: float64)      -> void;
 @extern("print_bool",      "c") export function print(b: bool)         -> void;
 
-@extern("println",           "c") export function println(str: str)        -> void;
 @extern("println_char",      "c") export function println(c: char)         -> void;
 @extern("println_int32",     "c") export function println(n: int32)        -> void;
 @extern("println_int64",     "c") export function println(n: int64)        -> void;

@@ -283,17 +283,22 @@ struct function_body
 	enum : uint32_t
 	{
 		_builtin_first,
+
 		builtin_str_eq = _builtin_first,
 		builtin_str_neq,
 
 		_builtin_last,
+		_intrinsic_first = _builtin_last,
+
+		print_stdout = _intrinsic_first,
+		println_stdout,
+		print_stderr,
+		println_stderr,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
-		_intrinsic_first = _builtin_last,
-
-		memcpy = _intrinsic_first,
+		memcpy,
 		memmove,
 		memset,
 
