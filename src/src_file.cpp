@@ -4,7 +4,7 @@
 
 static bz::u8string read_text_from_file(std::ifstream &file)
 {
-	std::string file_content{
+	std::vector<char> file_content{
 		std::istreambuf_iterator<char>(file),
 		std::istreambuf_iterator<char>()
 	};
@@ -13,25 +13,9 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 		file_content.data() + file_content.size()
 	);
 
-	bz::u8string file_str;
-	file_str.reserve(file_content_view.size());
-	for (auto it = file_content_view.begin(); it != file_content_view.end();  ++it)
-	{
-		// we use '\n' for line endings and not '\r\n'
-		if (*it == '\r')
-		{
-			file_str += '\n';
-			if (it + 1 != file_content_view.end() && *(it + 1) == '\n')
-			{
-				++it;
-			}
-		}
-		else
-		{
-			file_str += *it;
-		}
-	}
 
+	bz::u8string file_str = file_content_view;
+	file_str.erase('\r');
 	return file_str;
 }
 
