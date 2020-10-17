@@ -80,7 +80,7 @@ function main() -> int32
 	print('\n');
 	println(c as uint32);
 	print(c);
-	print(1076u32 as char);
+	print(1076 as char);
 	print('\n');
 	print('\u0470');
 	print('\u0471');
@@ -123,6 +123,7 @@ function main() -> int32
 	let s2 = "hello2";
 	println(s1 == s2);
 	println(s1 != s2);
+	logln("Hello from stderr");
 
 
 	return 0;
