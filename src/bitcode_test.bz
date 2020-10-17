@@ -119,6 +119,12 @@ function main() -> int32
 	println("\n==== end main ====");
 	println(exp(1.0));
 
+	let s1 = "hello1";
+	let s2 = "hello2";
+	println(s1 == s2);
+	println(s1 != s2);
+
+
 	return 0;
 /*
 	let bool: bool = false;
