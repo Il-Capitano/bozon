@@ -55,11 +55,21 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 			auto const t = val_ref.get_type();
 			if (abi::pass_by_reference<abi>(t, context))
 			{
+				// there's no need to provide a seperate copy for a byval argument,
+				// as a copy is made at the call site automatically
+				// see: https://reviews.llvm.org/D79636
 				bz_assert(arg.hasAttribute(llvm::Attribute::ByVal));
-				auto const val = val_ref.get_value(context.builder);
-				auto const alloca = context.create_alloca(t, 16);
-				context.builder.CreateStore(val, alloca);
-				params.push_back(alloca);
+				if (val_ref.kind == val_ptr::reference)
+				{
+					params.push_back(val_ref.val);
+				}
+				else
+				{
+					auto const val = val_ref.get_value(context.builder);
+					auto const alloca = context.create_alloca(t);
+					context.builder.CreateStore(val, alloca);
+					params.push_back(alloca);
+				}
 			}
 			else if (abi::pass_as_int_cast<abi>(t, context))
 			{
@@ -73,32 +83,41 @@ val_ptr emit_bitcode<abi::platform_abi::microsoft_x64>(
 		}
 	}
 	auto const res = [&]() -> llvm::Value * {
+		auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+		call->setCallingConv(fn->getCallingConv());
+		arg_it = fn->arg_begin();
+		unsigned i = 0;
+		bz_assert(fn->arg_size() == call->arg_size());
+		for (; arg_it != arg_end; ++arg_it, ++i)
+		{
+			if (arg_it->hasAttribute(llvm::Attribute::ByVal))
+			{
+				call->addParamAttr(i, llvm::Attribute::ByVal);
+				call->addParamAttr(i, llvm::Attribute::NoAlias);
+				call->addParamAttr(i, llvm::Attribute::NoCapture);
+				call->addParamAttr(i, llvm::Attribute::NonNull);
+			}
+		}
 		if (result_output_ptr)
 		{
-			auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-			call->setCallingConv(fn->getCallingConv());
 			return params.front();
 		}
 		else if (result_int_cast)
 		{
-			auto const int_val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-			int_val->setCallingConv(fn->getCallingConv());
 			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
-			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(int_val->getType(), 0));
-			context.builder.CreateStore(int_val, int_ptr);
+			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
+			context.builder.CreateStore(call, int_ptr);
 			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
 		}
 		else
 		{
-			auto const val = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-			val->setCallingConv(fn->getCallingConv());
 			if (result_address == nullptr)
 			{
-				return val;
+				return call;
 			}
 			else
 			{
-				context.builder.CreateStore(val, result_address);
+				context.builder.CreateStore(call, result_address);
 				return result_address;
 			}
 		}
