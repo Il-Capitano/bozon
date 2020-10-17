@@ -2727,4 +2727,9 @@ bool parse_context::is_convertible(ast::expression::expr_type_t const &from, ast
 ast::type_info *parse_context::get_base_type_info(uint32_t kind) const
 { return this->global_ctx.get_base_type_info(kind); }
 
+ast::function_body *parse_context::get_builtin_function(uint32_t kind) const
+{
+	return this->global_ctx.get_builtin_function(kind);
+}
+
 } // namespace ctx

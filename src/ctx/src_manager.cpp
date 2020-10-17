@@ -212,6 +212,7 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 
 	// add declarations to the module
 	bz_assert(this->_global_ctx._compile_decls.var_decls.size() == 0);
+	bc::runtime::add_builtin_functions(context);
 	for (auto const func : this->_global_ctx._compile_decls.funcs)
 	{
 		func->resolve_symbol_name();

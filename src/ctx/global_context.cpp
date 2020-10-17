@@ -1,5 +1,6 @@
 #include "global_context.h"
 #include "src_manager.h"
+#include "ast/statement.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
@@ -12,6 +13,35 @@
 
 namespace ctx
 {
+
+template<typename ...Ts>
+static ast::function_body create_builtin_function(
+	uint32_t kind,
+	bz::u8string_view symbol_name,
+	ast::type_info *return_type,
+	Ts ...arg_types
+)
+{
+	static_assert((bz::meta::is_same<Ts, ast::type_info *> && ...));
+	bz::vector<ast::decl_variable> params;
+	params.reserve(sizeof... (Ts));
+	((params.emplace_back(
+		lex::token_range{}, lex::token_pos{}, lex::token_range{},
+		ast::make_base_type_typespec({}, arg_types)
+	)), ...);
+	return ast::function_body{
+		std::move(params),
+		ast::make_base_type_typespec({}, return_type),
+		ast::function_body::body_t{},
+		"",
+		symbol_name,
+		lex::src_tokens{},
+		ast::resolve_state::symbol,
+		abi::calling_convention::c,
+		ast::function_body::external_linkage | ast::function_body::intrinsic,
+		kind
+	};
+}
 
 static_assert(ast::type_info::int8_    ==  0);
 static_assert(ast::type_info::int16_   ==  1);
@@ -202,6 +232,26 @@ ast::type_info *global_context::get_base_type_info(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
 	return &default_type_infos[kind];
+}
+
+ast::function_body *global_context::get_builtin_function(uint32_t kind) const
+{
+	auto const bool_type_info = this->get_base_type_info(ast::type_info::bool_);
+	auto const str_type_info  = this->get_base_type_info(ast::type_info::str_);
+
+#define add_builtin(pos, kind, symbol_name, ...) \
+((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
+	static std::array<
+		ast::function_body,
+		ast::function_body::_builtin_last - ast::function_body::_builtin_first
+	> builtin_functions = {
+		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type_info, str_type_info, str_type_info),
+		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type_info, str_type_info, str_type_info),
+	};
+#undef add_builtin
+
+	bz_assert(kind < builtin_functions.size() && builtin_functions[kind].intrinsic_kind == kind);
+	return &builtin_functions[kind];
 }
 
 } // namespace ctx

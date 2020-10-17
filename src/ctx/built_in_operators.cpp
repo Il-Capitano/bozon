@@ -3050,11 +3050,21 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			}
 			else
 			{
+				bz::vector<ast::expression> args;
+				args.reserve(2);
+				args.emplace_back(std::move(lhs)); args.emplace_back(std::move(rhs));
 				return ast::make_dynamic_expression(
 					src_tokens,
 					ast::expression_type_kind::rvalue,
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(ast::type_info::bool_) } }),
-					ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+					ast::make_expr_function_call(
+						src_tokens, std::move(args),
+						context.get_builtin_function(
+							is_equals
+							? ast::function_body::builtin_str_eq
+							: ast::function_body::builtin_str_neq
+						)
+					)
 				);
 			}
 		}

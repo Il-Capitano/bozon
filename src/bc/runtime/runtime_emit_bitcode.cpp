@@ -2863,6 +2863,18 @@ void emit_function_bitcode(
 	bz_unreachable;
 }
 
+void add_builtin_functions(ctx::bitcode_context &context)
+{
+	for (
+		uint32_t kind = ast::function_body::_builtin_first;
+		kind < ast::function_body::_builtin_last;
+		++kind
+	)
+	{
+		add_function_to_module(context.get_builtin_function(kind), context);
+	}
+}
+
 void emit_necessary_functions(ctx::bitcode_context &context)
 {
 	auto const abi = context.get_platform_abi();

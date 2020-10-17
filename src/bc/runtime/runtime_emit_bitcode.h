@@ -18,6 +18,7 @@ void emit_function_bitcode(
 	ctx::bitcode_context &context
 );
 
+void add_builtin_functions(ctx::bitcode_context &context);
 void emit_necessary_functions(ctx::bitcode_context &context);
 
 } // namespace bc::runtime

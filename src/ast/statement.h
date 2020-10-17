@@ -280,12 +280,20 @@ struct function_body
 		intrinsic        = bit_at<2>,
 	};
 
-	enum
+	enum : uint32_t
 	{
-		// llvm intrinsics: https://releases.llvm.org/10.0.0/docs/LangRef.html
-		// (C standard library intrinsics section)
+		_builtin_first,
+		builtin_str_eq = _builtin_first,
+		builtin_str_neq,
+
+		_builtin_last,
+
+		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
-		memcpy,
+
+		_intrinsic_first = _builtin_last,
+
+		memcpy = _intrinsic_first,
 		memmove,
 		memset,
 
@@ -338,7 +346,7 @@ struct function_body
 	uint32_t                  flags = 0;
 	uint32_t                  intrinsic_kind = 0;
 
-	declare_default_5(function_body)
+//	declare_default_5(function_body)
 
 	bz::vector<statement> &get_statements(void) noexcept
 	{
