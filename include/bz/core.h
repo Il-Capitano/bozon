@@ -42,6 +42,24 @@ inline void _unreachable_message(const char *file, int line)
 	std::cerr << "hit unreachable code at " << file << ':' << line << "\n";
 }
 
+#if __cpp_exceptions
+
+#define bz_try       try
+#define bz_catch(x)  catch (x)
+#define bz_catch_all catch (...)
+#define bz_throw(x)  throw x
+#define bz_rethrow   throw
+
+#else
+
+#define bz_try       if (true)
+#define bz_catch     if (false)
+#define bz_catch_all if (false)
+#define bz_throw(x)
+#define bz_rethrow
+
+#endif // __cpp_exceptions
+
 bz_end_namespace
 
 #endif // _bz_core_h__

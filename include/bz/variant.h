@@ -122,7 +122,14 @@ private:
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
-		new(this->_data) value_type<N>(std::forward<Args>(args)...);
+		if constexpr (meta::is_constructible_v<value_type<N>, Args...>)
+		{
+			new(this->_data) value_type<N>(std::forward<Args>(args)...);
+		}
+		else
+		{
+			new(this->_data) value_type<N>{std::forward<Args>(args)...};
+		}
 		this->_index = N;
 	}
 
@@ -506,6 +513,10 @@ public:
 	template<typename T>
 	bool is(void) const noexcept
 	{ return this->_index == index_of<T>; }
+
+	template<size_t N>
+	bool is(void) const noexcept
+	{ return this->_index == N; }
 };
 
 template<typename ...Ts>

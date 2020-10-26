@@ -67,16 +67,16 @@ private:
 		}
 		else
 		{
-			try
+			bz_try
 			{
 				new(this->_data) element_type(std::forward<Args>(args)...);
 				this->_has_value = true;
 			}
-			catch (...)
+			bz_catch_all
 			{
 				this->no_check_get().~element_type();
 				this->_has_value = false;
-				throw;
+				bz_rethrow;
 			}
 		}
 	}

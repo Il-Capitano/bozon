@@ -27,8 +27,8 @@ class vector
 private:
 	using self_t = vector<T, Alloc>;
 
-	static constexpr bool nothrow_alloc   = meta::is_fn_noexcept<decltype(&Alloc::allocate)>;
-	static constexpr bool nothrow_dealloc = meta::is_same<Alloc, allocator<T>> || meta::is_fn_noexcept<decltype(&Alloc::deallocate)>;
+	static constexpr bool nothrow_alloc   = false;
+	static constexpr bool nothrow_dealloc = true;
 
 	static constexpr bool nothrow_move_value     = meta::is_nothrow_move_constructible_v<T>;
 	static constexpr bool nothrow_copy_value     = meta::is_nothrow_copy_constructible_v<T>;
@@ -106,7 +106,7 @@ private:
 		}
 		else
 		{
-			try
+			bz_try
 			{
 				// if it's not constructible with the provided args, we try to use
 				// value_type{ args... } syntax instead
@@ -119,10 +119,10 @@ private:
 					new (p) value_type{ std::forward<Args>(args)... };
 				}
 			}
-			catch (...)
+			bz_catch_all
 			{
 				p->~value_type();
-				throw;
+				bz_rethrow;
 			}
 		}
 	}
@@ -213,7 +213,7 @@ private:
 		}
 		else
 		{
-			try
+			bz_try
 			{
 				for (; old_it != old_end; ++new_it, ++old_it)
 				{
@@ -231,13 +231,13 @@ private:
 				this->_data_end   = new_it;
 				this->_alloc_end  = new_data + new_cap;
 			}
-			catch (...)
+			bz_catch_all
 			{
 				this->no_null_clear();
 				this->_data_begin = new_data;
 				this->_data_end   = new_it;
 				this->_alloc_end  = new_data + new_cap;
-				throw;
+				bz_rethrow;
 			}
 		}
 	}
