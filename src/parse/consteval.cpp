@@ -1092,7 +1092,8 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_function_call &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_cast &) -> ast::constant_value {
+		[&context](ast::expr_cast &cast_expr) -> ast::constant_value {
+			consteval_try(cast_expr.expr, context);
 			return {};
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
@@ -1141,6 +1142,117 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 		);
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;
+	}
+}
+
+
+static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::note> &notes)
+{
+	bz_assert(expr.consteval_state == ast::expression::consteval_failed);
+	bz_assert(expr.is<ast::dynamic_expression>());
+	expr.get_expr().visit(bz::overload{
+		[&notes](ast::expr_identifier const &id) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				id.identifier, "subexpression is not a constant expression"
+			));
+		},
+		[&notes](ast::expr_literal const &) {
+			// literals are always constant expressions
+			bz_unreachable;
+		},
+		[&notes](ast::expr_tuple const &tuple) {
+			for (auto const &elem : tuple.elems)
+			{
+				if (elem.consteval_state == ast::expression::consteval_failed)
+				{
+					get_consteval_fail_notes_helper(elem, notes);
+				}
+			}
+		},
+		[&expr, &notes](ast::expr_unary_op const &unary_op) {
+			if (unary_op.expr.consteval_state == ast::expression::consteval_succeeded)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens,
+					bz::format(
+						"subexpression '{}{}' is not a constant expression",
+						unary_op.op->value,
+						ast::get_value_string(unary_op.expr.get<ast::constant_expression>().value)
+					)
+				));
+			}
+			else
+			{
+				get_consteval_fail_notes_helper(unary_op.expr, notes);
+			}
+		},
+		[&expr, &notes](ast::expr_binary_op const &binary_op) {
+			if (
+				binary_op.lhs.consteval_state == ast::expression::consteval_succeeded
+				&& binary_op.rhs.consteval_state == ast::expression::consteval_succeeded
+			)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens,
+					bz::format(
+						"subexpression '{} {} {}' is not a constant expression",
+						ast::get_value_string(binary_op.lhs.get<ast::constant_expression>().value),
+						binary_op.op->value,
+						ast::get_value_string(binary_op.rhs.get<ast::constant_expression>().value)
+					)
+				));
+			}
+			else
+			{
+				if (binary_op.lhs.consteval_state == ast::expression::consteval_failed)
+				{
+					get_consteval_fail_notes_helper(binary_op.lhs, notes);
+				}
+				if (binary_op.rhs.consteval_state == ast::expression::consteval_failed)
+				{
+					get_consteval_fail_notes_helper(binary_op.rhs, notes);
+				}
+			}
+		},
+		[&notes](ast::expr_subscript const &) {
+		},
+		[&notes](ast::expr_function_call const &) {
+		},
+		[&expr, &notes](ast::expr_cast const &cast_expr) {
+			if (cast_expr.expr.consteval_state == ast::expression::consteval_succeeded)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens,
+					bz::format(
+						"subexpression '{} as {}' is not a constant expression",
+						ast::get_value_string(cast_expr.expr.get<ast::constant_expression>().value),
+						cast_expr.type
+					)
+				));
+			}
+			else
+			{
+				get_consteval_fail_notes_helper(cast_expr.expr, notes);
+			}
+		},
+		[&notes](ast::expr_compound const &) {
+		},
+		[&notes](ast::expr_if const &) {
+		},
+	});
+}
+
+bz::vector<ctx::note> get_consteval_fail_notes(ast::expression const &expr)
+{
+	bz::vector<ctx::note> result = {};
+	if (expr.consteval_state != ast::expression::consteval_failed)
+	{
+		return result;
+	}
+	else
+	{
+		get_consteval_fail_notes_helper(expr, result);
+		return result;
 	}
 }
 

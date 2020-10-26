@@ -141,7 +141,8 @@ static void resolve_stmt_static_assert(
 				good = false;
 				context.report_error(
 					static_assert_stmt.condition,
-					"condition for static_assert must be a constant expression"
+					"condition for static_assert must be a constant expression",
+					get_consteval_fail_notes(static_assert_stmt.condition)
 				);
 			}
 		}
@@ -168,7 +169,8 @@ static void resolve_stmt_static_assert(
 					good = false;
 					context.report_error(
 						static_assert_stmt.message,
-						"message in static_assert must be a constant expression"
+						"message in static_assert must be a constant expression",
+						get_consteval_fail_notes(static_assert_stmt.message)
 					);
 				}
 			}
