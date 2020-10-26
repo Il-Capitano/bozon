@@ -1389,16 +1389,6 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
 {
-	auto const is_const_expression = [&]() {
-		for (auto const &e : elems)
-		{
-			if (!e.is<ast::constant_expression>())
-			{
-				return false;
-			}
-		}
-		return true;
-	}();
 	auto const is_typename = [&]() {
 		for (auto const &e : elems)
 		{
@@ -1423,24 +1413,6 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 			ast::expression_type_kind::type_name,
 			ast::typespec(),
 			ast::constant_value(ast::make_tuple_typespec(src_tokens, std::move(types))),
-			ast::make_expr_tuple(std::move(elems))
-		);
-	}
-	else if (is_const_expression)
-	{
-		ast::constant_value const_value;
-		const_value.emplace<ast::constant_value::tuple>();
-		auto &values = const_value.get<ast::constant_value::tuple>();
-		values.reserve(elems.size());
-		for (auto const &e : elems)
-		{
-			values.emplace_back(e.get<ast::constant_expression>().value);
-		}
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::tuple,
-			ast::typespec(),
-			std::move(const_value),
 			ast::make_expr_tuple(std::move(elems))
 		);
 	}
