@@ -214,9 +214,11 @@ static bz::u8string get_highlighted_text(
 		}
 		file_line      += highlight_color;
 		highlight_line += highlight_color;
-		while (it != src_end && *it != '\n')
+		auto u8it = bz::u8iterator(it);
+		while (u8it.data() != src_end && *it != '\n')
 		{
-			if (*it == '\t')
+			auto const c = *u8it;
+			if (c == '\t')
 			{
 				auto const tab_size = ::tab_size == 0 ? 4 : ::tab_size;
 				auto const chars_to_put = tab_size - column % tab_size;
@@ -226,7 +228,7 @@ static bz::u8string get_highlighted_text(
 					char tildes[16];
 					std::memset(spaces, ' ', sizeof spaces);
 					std::memset(tildes, '~', sizeof tildes);
-					if (it == src_pivot)
+					if (u8it.data() == src_pivot)
 					{
 						tildes[0] = '^';
 					}
@@ -239,7 +241,7 @@ static bz::u8string get_highlighted_text(
 					auto const tildes = std::make_unique<char[]>(chars_to_put);
 					std::memset(spaces.get(), ' ', chars_to_put);
 					std::memset(tildes.get(), '~', chars_to_put);
-					if (it == src_pivot)
+					if (u8it.data() == src_pivot)
 					{
 						tildes[0] = '^';
 					}
@@ -250,12 +252,13 @@ static bz::u8string get_highlighted_text(
 			}
 			else
 			{
-				file_line += *it;
-				highlight_line += it == src_pivot ? '^' : '~';
+				file_line += c;
+				highlight_line += u8it.data() == src_pivot ? '^' : '~';
 				++column;
 			}
-			++it;
+			++u8it;
 		}
+		it = u8it.data();
 		if (it == src_pivot)
 		{
 			highlight_line += '^';
