@@ -108,14 +108,25 @@ struct expression : bz::variant<
 	bool is(void) const noexcept
 	{ return this->kind() == base_t::index_of<T>; }
 
+	enum : int
+	{
+		consteval_failed,
+		consteval_never_tried,
+		consteval_succeeded,
+	};
+
 	lex::src_tokens src_tokens;
+	int consteval_state = consteval_never_tried;
+	int paren_level = 0;
 
 	declare_default_5(expression)
 
 	template<typename ...Ts>
 	expression(lex::src_tokens _src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
-		  src_tokens(_src_tokens)
+		  src_tokens(_src_tokens),
+		  consteval_state(this->is<ast::constant_expression>() ? consteval_succeeded : consteval_never_tried),
+		  paren_level(0)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }

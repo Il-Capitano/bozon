@@ -19,7 +19,7 @@ ast::expression parse_expression_without_semi_colon(
 	case lex::token::kw_if:
 		return parse_if_expression(stream, end, context);
 	default:
-		return parse_expression(stream, end, context, precedence{}, false);
+		return parse_expression(stream, end, context, precedence{});
 	}
 }
 
@@ -312,7 +312,7 @@ static ast::expression parse_array_type(
 	}
 
 	++stream; // ':'
-	auto type = parse_expression(stream, end, context, no_comma, true);
+	auto type = parse_expression(stream, end, context, no_comma);
 	bool good = true;
 	if (stream != end)
 	{
@@ -536,16 +536,8 @@ static ast::expression parse_primary_expression(
 		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
-		if (stream == end)
-		{
-			context.parenthesis_suppressed_value = std::min(context.parenthesis_suppressed_value + 1, 2);
-		}
-		else
-		{
-			context.parenthesis_suppressed_value = 1;
-		}
-		auto expr = parse_expression(inner_stream, inner_end, context, precedence{}, true);
-		context.parenthesis_suppressed_value = 0;
+		auto expr = parse_expression(inner_stream, inner_end, context, precedence{});
+		expr.paren_level += 1;
 		if (inner_stream != inner_end && inner_stream->kind != lex::token::paren_close)
 		{
 			context.report_paren_match_error(inner_stream, paren_begin);
@@ -594,11 +586,8 @@ static ast::expression parse_primary_expression(
 			auto const op = stream;
 			auto const prec = get_unary_precedence(op->kind);
 			++stream;
-			auto const original_paren_suppress_value = context.parenthesis_suppressed_value;
-			context.parenthesis_suppressed_value = 0;
-			auto expr = parse_expression(stream, end, context, prec, false);
+			auto expr = parse_expression(stream, end, context, prec);
 
-			context.parenthesis_suppressed_value = original_paren_suppress_value;
 			return context.make_unary_operator_expression({ op, op, stream }, op, std::move(expr));
 		}
 		else
@@ -670,8 +659,6 @@ static ast::expression parse_expression_helper(
 		// any other operator
 		default:
 		{
-			auto const original_suppress_value = context.parenthesis_suppressed_value;
-			context.parenthesis_suppressed_value = 0;
 			auto rhs = parse_primary_expression(stream, end, context);
 			precedence rhs_prec;
 
@@ -683,12 +670,10 @@ static ast::expression parse_expression_helper(
 				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
 			}
 
-			context.parenthesis_suppressed_value = stream == end ? original_suppress_value : 0;
 			lhs = context.make_binary_operator_expression(
 				{ lhs.get_tokens_begin(), op, stream },
 				op, std::move(lhs), std::move(rhs)
 			);
-			context.parenthesis_suppressed_value = original_suppress_value;
 			break;
 		}
 		}
@@ -700,19 +685,9 @@ static ast::expression parse_expression_helper(
 ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	precedence prec,
-	bool set_parenthesis_suppress_value
+	precedence prec
 )
 {
-	if (set_parenthesis_suppress_value)
-	{
-		context.parenthesis_suppressed_value = std::max(context.parenthesis_suppressed_value, 1);
-	}
-	else
-	{
-		context.parenthesis_suppressed_value = 0;
-	}
-	auto const original_paren_suppress_value = context.parenthesis_suppressed_value;
 	auto const start_it = stream;
 	auto lhs = parse_primary_expression(stream, end, context);
 	if (stream != end && stream == start_it)
@@ -721,7 +696,6 @@ ast::expression parse_expression(
 		++stream;
 		lhs = parse_primary_expression(stream, end, context);
 	}
-	context.parenthesis_suppressed_value = original_paren_suppress_value;
 	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
 }
 
@@ -737,12 +711,12 @@ bz::vector<ast::expression> parse_expression_comma_list(
 		return exprs;
 	}
 
-	exprs.emplace_back(parse_expression(stream, end, context, no_comma, true));
+	exprs.emplace_back(parse_expression(stream, end, context, no_comma));
 
 	while (stream != end && stream->kind == lex::token::comma)
 	{
 		++stream; // ','
-		exprs.emplace_back(parse_expression(stream, end, context, no_comma, true));
+		exprs.emplace_back(parse_expression(stream, end, context, no_comma));
 	}
 
 	return exprs;

@@ -1,6 +1,7 @@
 #include "statement_parser.h"
 #include "token_info.h"
 #include "expression_parser.h"
+#include "consteval.h"
 #include "parse_common.h"
 
 namespace parse
@@ -72,6 +73,7 @@ static void resolve_stmt_static_assert(
 	bz_assert(static_assert_stmt.message.is_null());
 	bz_assert(static_assert_stmt.message.src_tokens.begin == nullptr);
 
+	auto const static_assert_pos = static_assert_stmt.static_assert_pos;
 	auto const [begin, end] = static_assert_stmt.arg_tokens;
 	auto stream = begin;
 	auto args = parse_expression_comma_list(stream, end, context);
@@ -89,8 +91,11 @@ static void resolve_stmt_static_assert(
 	}
 	if (args.size() != 1 && args.size() != 2)
 	{
+		auto const src_tokens = begin == end
+			? lex::src_tokens{ static_assert_pos, static_assert_pos, static_assert_pos + 1 }
+			: lex::src_tokens{ begin, begin, end };
 		context.report_error(
-			{ begin, begin, end },
+			src_tokens,
 			bz::format(
 				"static_assert expects 1 or 2 arguments, but was given {}",
 				args.size()
@@ -106,7 +111,7 @@ static void resolve_stmt_static_assert(
 			uint32_t base_type_kind,
 			bz::u8string_view message
 		) {
-			if (!expr.is_constant_or_dynamic())
+			if (!expr.is<ast::constant_expression>())
 			{
 				return;
 			}
@@ -128,13 +133,17 @@ static void resolve_stmt_static_assert(
 		{
 			good = false;
 		}
-		else if (!static_assert_stmt.condition.is<ast::constant_expression>())
+		else
 		{
-			good = false;
-			context.report_error(
-				static_assert_stmt.condition,
-				"condition for static_assert must be a constant expression"
-			);
+			consteval_try(static_assert_stmt.condition, context);
+			if (static_assert_stmt.condition.consteval_state == ast::expression::consteval_failed)
+			{
+				good = false;
+				context.report_error(
+					static_assert_stmt.condition,
+					"condition for static_assert must be a constant expression"
+				);
+			}
 		}
 
 		check_type(
@@ -146,17 +155,22 @@ static void resolve_stmt_static_assert(
 		if (args.size() == 2)
 		{
 			static_assert_stmt.message = std::move(args[1]);
+			bz_assert(static_assert_stmt.message.consteval_state == ast::expression::consteval_never_tried);
 			if (static_assert_stmt.message.is_null())
 			{
 				good = false;
 			}
-			else if (!static_assert_stmt.message.is<ast::constant_expression>())
+			else
 			{
-				good = false;
-				context.report_error(
-					static_assert_stmt.message,
-					"message in static_assert must be a constant expression"
-				);
+				consteval_try(static_assert_stmt.message, context);
+				if (static_assert_stmt.message.consteval_state == ast::expression::consteval_failed)
+				{
+					good = false;
+					context.report_error(
+						static_assert_stmt.message,
+						"message in static_assert must be a constant expression"
+					);
+				}
 			}
 
 			check_type(
@@ -203,6 +217,7 @@ ast::statement parse_stmt_static_assert(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_static_assert);
+	auto const static_assert_pos = stream;
 	++stream; // 'static_assert'
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	auto const args = get_expression_tokens_without_error<
@@ -223,11 +238,11 @@ ast::statement parse_stmt_static_assert(
 
 	if constexpr (is_global)
 	{
-		return ast::make_stmt_static_assert(args);
+		return ast::make_stmt_static_assert(static_assert_pos, args);
 	}
 	else
 	{
-		auto result = ast::make_stmt_static_assert(args);
+		auto result = ast::make_stmt_static_assert(static_assert_pos, args);
 		bz_assert(result.is<ast::stmt_static_assert>());
 		resolve_stmt_static_assert(*result.get<ast::stmt_static_assert_ptr>(), context);
 		return result;
@@ -306,7 +321,7 @@ static void resolve_typespec(
 		return;
 	}
 	auto [stream, end] = ts.get<ast::ts_unresolved>().tokens;
-	auto type = parse_expression(stream, end, context, prec, true);
+	auto type = parse_expression(stream, end, context, prec);
 	if (stream != end)
 	{
 		context.report_error({ stream, stream, end });
@@ -341,7 +356,7 @@ static void resolve_var_decl_type(
 			ast::constant_value(ast::make_auto_typespec(nullptr)),
 			ast::make_expr_identifier(nullptr)
 		)
-		: parse_expression(stream, end, context, no_assign, true);
+		: parse_expression(stream, end, context, no_assign);
 	if (type.not_null() && !type.is_typename())
 	{
 		bz_assert(stream < end);
@@ -398,8 +413,7 @@ static void resolve_decl_variable(
 		bz_assert(var_decl.init_expr.is<ast::unresolved_expression>());
 		auto stream = var_decl.init_expr.src_tokens.begin;
 		auto const end = var_decl.init_expr.src_tokens.end;
-		context.parenthesis_suppressed_value = 0;
-		var_decl.init_expr = parse_expression(stream, end, context, no_comma, false);
+		var_decl.init_expr = parse_expression(stream, end, context, no_comma);
 		if (stream != end)
 		{
 			if (stream->kind == lex::token::comma)
@@ -1031,7 +1045,7 @@ ast::statement parse_stmt_for(
 	}
 	auto condition = stream->kind == lex::token::semi_colon
 		? ast::expression()
-		: parse_expression(stream, end, context, precedence{}, true);
+		: parse_expression(stream, end, context, precedence{});
 	if (context.assert_token(stream, lex::token::semi_colon)->kind != lex::token::semi_colon)
 	{
 		get_expression_tokens<
@@ -1060,7 +1074,7 @@ ast::statement parse_stmt_for(
 	}
 	auto iteration = stream->kind == lex::token::paren_close
 		? ast::expression()
-		: parse_expression(stream, end, context, precedence{}, true);
+		: parse_expression(stream, end, context, precedence{});
 	if (stream != end && stream->kind == lex::token::paren_close)
 	{
 		++stream;
@@ -1099,7 +1113,7 @@ ast::statement parse_stmt_return(
 	{
 		return ast::make_stmt_return();
 	}
-	auto expr = parse_expression(stream, end, context, precedence{}, true);
+	auto expr = parse_expression(stream, end, context, precedence{});
 	context.assert_token(stream, lex::token::semi_colon);
 	return ast::make_stmt_return(std::move(expr));
 }

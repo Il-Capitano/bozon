@@ -27,12 +27,18 @@ struct parse_context
 		> requested;
 	};
 
-	global_context             &global_ctx;
-	decl_set                   *global_decls;
-	bz::vector<decl_set>        scope_decls;
-	bz::vector<resolve_queue_t> resolve_queue;
+	struct consteval_call_stack_t
+	{
+		lex::src_tokens tokens;
+		bz::u8string    mesage;
+	};
 
-	int parenthesis_suppressed_value = 0;
+	global_context      &global_ctx;
+	decl_set            *global_decls;
+	bz::vector<decl_set> scope_decls;
+
+	bz::vector<resolve_queue_t>        resolve_queue;
+	bz::vector<consteval_call_stack_t> consteval_call_stack;
 
 
 	parse_context(global_context &_global_ctx);
@@ -107,12 +113,14 @@ struct parse_context
 	}
 
 	void report_parenthesis_suppressed_warning(
+		int parens_count,
 		warning_kind kind,
 		lex::token_pos it, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const;
 	void report_parenthesis_suppressed_warning(
+		int parens_count,
 		warning_kind kind,
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
@@ -120,18 +128,15 @@ struct parse_context
 	) const;
 	template<typename T>
 	void report_parenthesis_suppressed_warning(
+		int parens_count,
 		warning_kind kind,
 		T const &tokens, bz::u8string message,
 		bz::vector<ctx::note> notes = {},
 		bz::vector<ctx::suggestion> suggestions = {}
 	) const
 	{
-		if (this->parenthesis_suppressed_value == 2)
-		{
-			return;
-		}
 		this->report_parenthesis_suppressed_warning(
-			kind,
+			parens_count, kind,
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
 			std::move(message), std::move(notes), std::move(suggestions)
 		);
@@ -278,6 +283,12 @@ struct parse_context
 
 	void pop_resolve_queue(void)
 	{ this->resolve_queue.pop_back(); }
+
+	void add_to_consteval_call_stack(lex::src_tokens tokens, bz::u8string message)
+	{ this->consteval_call_stack.emplace_back(tokens, std::move(message)); }
+
+	void pop_consteval_call_stack(void)
+	{ this->consteval_call_stack.pop_back(); }
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
 	ast::function_body *get_builtin_function(uint32_t kind) const;

@@ -12,8 +12,7 @@ namespace parse
 ast::expression parse_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	precedence prec,
-	bool set_parenthesis_suppress_value
+	precedence prec
 );
 
 bz::vector<ast::expression> parse_expression_comma_list(

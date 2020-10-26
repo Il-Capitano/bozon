@@ -21,6 +21,8 @@ enum class warning_kind
 	greek_question_mark,
 	bad_file_extension,
 	unknown_target,
+	invalid_unicode,
+	nan_compare,
 
 	_last,
 };
@@ -50,6 +52,8 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::greek_question_mark,      "greek-question-mark",      "Greek question mark (U+037E) in file, which looks the same as a semicolon" },
 		T{ warning_kind::bad_file_extension,       "bad-file-extension",       "Output file doesn't have the usual file extension for output type"         },
 		T{ warning_kind::unknown_target,           "unknown-target",           "ABI compatibility hasn't been implemented for this target yet"             },
+		T{ warning_kind::invalid_unicode,          "invalid-unicode",          "'char' result of an expression is an invalid unicode codepoint"            },
+		T{ warning_kind::nan_compare,              "nan-compare",              "Comparing against nan when comparing floating-point numbers"               },
 	};
 
 	constexpr_bubble_sort(

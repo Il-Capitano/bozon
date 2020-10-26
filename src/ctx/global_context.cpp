@@ -2,6 +2,7 @@
 #include "src_manager.h"
 #include "ast/statement.h"
 
+#include <cassert>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/raw_ostream.h>

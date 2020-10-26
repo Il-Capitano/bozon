@@ -10,7 +10,7 @@ ast::expression parse_parenthesized_condition(
 )
 {
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
-	auto const condition = parse_expression(stream, end, context, precedence{}, true);
+	auto const condition = parse_expression(stream, end, context, precedence{});
 
 	if (stream != end && stream->kind == lex::token::paren_close)
 	{

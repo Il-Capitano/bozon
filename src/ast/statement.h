@@ -196,14 +196,16 @@ struct stmt_expression
 
 struct stmt_static_assert
 {
+	lex::token_pos   static_assert_pos;
 	lex::token_range arg_tokens;
 	expression condition;
 	expression message;
 
 	declare_default_5(stmt_static_assert)
 
-	stmt_static_assert(lex::token_range _arg_tokens)
-		: arg_tokens(_arg_tokens),
+	stmt_static_assert(lex::token_pos _static_assert_pos, lex::token_range _arg_tokens)
+		: static_assert_pos(_static_assert_pos),
+		  arg_tokens(_arg_tokens),
 		  condition(),
 		  message()
 	{}

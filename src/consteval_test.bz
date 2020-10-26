@@ -1,0 +1,9 @@
+// static_assert(((-((127i8 + 1i8)))));
+// static_assert('\U0010ffff' + 1);
+// static_assert(-127i8 - 1i8 - 1i8);
+// static_assert('\x00' - 1);
+// static_assert(((100i8 * 100i8 == 16i8)));
+// static_assert((-127i8 - 1i8) / -1i8);
+// static_assert(123 / 0);
+// static_assert(null == null);
+static_assert(((0.0f32 / 0.0f32)) as float64 == ((-0.0 / 0.0)));

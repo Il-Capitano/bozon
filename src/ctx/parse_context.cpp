@@ -128,19 +128,15 @@ void parse_context::report_warning(
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
+	int parens_count,
 	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	if (this->parenthesis_suppressed_value == 2)
-	{
-		return;
-	}
-
-	bz::u8string_view const open_paren  = this->parenthesis_suppressed_value == 0 ? "((" : "(";
-	bz::u8string_view const close_paren = this->parenthesis_suppressed_value == 0 ? "))" : ")";
+	auto const open_paren  = bz::u8string(static_cast<size_t>(parens_count), '(');
+	auto const close_paren = bz::u8string(static_cast<size_t>(parens_count), ')');
 	notes.emplace_back(ctx::make_note_with_suggestion(
 		{},
 		it, open_paren, it + 1, close_paren,
@@ -155,19 +151,15 @@ void parse_context::report_parenthesis_suppressed_warning(
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
+	int parens_count,
 	warning_kind kind,
 	lex::src_tokens src_tokens,
 	bz::u8string message,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
 ) const
 {
-	if (this->parenthesis_suppressed_value == 2)
-	{
-		return;
-	}
-
-	bz::u8string_view const open_paren  = this->parenthesis_suppressed_value == 0 ? "((" : "(";
-	bz::u8string_view const close_paren = this->parenthesis_suppressed_value == 0 ? "))" : ")";
+	auto const open_paren  = bz::u8string(static_cast<size_t>(parens_count), '(');
+	auto const close_paren = bz::u8string(static_cast<size_t>(parens_count), ')');
 	notes.emplace_back(ctx::make_note_with_suggestion(
 		{},
 		src_tokens.begin, open_paren, src_tokens.end, close_paren,
