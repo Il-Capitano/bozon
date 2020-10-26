@@ -23,6 +23,7 @@ enum class warning_kind
 	unknown_target,
 	invalid_unicode,
 	nan_compare,
+	out_of_bounds_index,
 
 	_last,
 };
@@ -54,6 +55,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::unknown_target,           "unknown-target",           "ABI compatibility hasn't been implemented for this target yet"             },
 		T{ warning_kind::invalid_unicode,          "invalid-unicode",          "'char' result of an expression is an invalid unicode codepoint"            },
 		T{ warning_kind::nan_compare,              "nan-compare",              "Comparing against nan when comparing floating-point numbers"               },
+		T{ warning_kind::out_of_bounds_index,      "out-of-bounds-index",      "Index is out of bounds in array subscript"                                 },
 	};
 
 	constexpr_bubble_sort(

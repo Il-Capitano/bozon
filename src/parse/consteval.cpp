@@ -1026,6 +1026,111 @@ static ast::constant_value evaluate_binary_op(
 	}
 }
 
+static ast::constant_value evaluate_subscript(
+	ast::expr_subscript const &subscript_expr,
+	ctx::parse_context &context
+)
+{
+	bool is_consteval = true;
+	bz::vector<uint64_t> index_values;
+	index_values.reserve(subscript_expr.indicies.size());
+
+	auto const &base_type = subscript_expr.base.get_expr_type_and_kind().first;
+
+	for (size_t i = 0; i < subscript_expr.indicies.size(); ++i)
+	{
+		auto const &index = subscript_expr.indicies[i];
+
+		if (index.consteval_state == ast::expression::consteval_failed)
+		{
+			is_consteval = false;
+			continue;
+		}
+
+		bz_assert(index.is<ast::constant_expression>());
+		auto const &index_const_value = index.get<ast::constant_expression>().value;
+		uint64_t index_value;
+		if (index_const_value.is<ast::constant_value::uint>())
+		{
+			index_value = index_const_value.get<ast::constant_value::uint>();
+		}
+		else
+		{
+			bz_assert(index_const_value.is<ast::constant_value::sint>());
+			auto const signed_index_value = index_const_value.get<ast::constant_value::sint>();
+			if (signed_index_value < 0)
+			{
+				is_consteval = false;
+				if (index.paren_level < 2)
+				{
+					context.report_parenthesis_suppressed_warning(
+						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
+						index.src_tokens,
+						bz::format("negative index {} in subscript", signed_index_value)
+					);
+				}
+				continue;
+			}
+
+			index_value = static_cast<uint64_t>(signed_index_value);
+		}
+
+		if (base_type.is<ast::ts_array>())
+		{
+			auto const &array_sizes = base_type.get<ast::ts_array>().sizes;
+			bz_assert(i < array_sizes.size());
+			if (index_value >= array_sizes[i])
+			{
+				is_consteval = false;
+				if (index.paren_level < 2)
+				{
+					context.report_parenthesis_suppressed_warning(
+						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
+						index.src_tokens,
+						bz::format("index {} is out bounds for an array of size {}", index_value, array_sizes[i])
+					);
+				}
+				continue;
+			}
+		}
+		// tuple types shouldn't be handled, as index value checking
+		// should already happen in built_in_operators
+		index_values.push_back(index_value);
+	}
+
+	if (!is_consteval || subscript_expr.base.consteval_state == ast::expression::consteval_failed)
+	{
+		return {};
+	}
+
+	bz_assert(subscript_expr.base.is<ast::constant_expression>());
+	auto const &base_value = subscript_expr.base.get<ast::constant_expression>().value;
+	if (base_type.is<ast::ts_array>())
+	{
+		ast::constant_value const *value_ptr = &base_value;
+		for (auto const index : index_values)
+		{
+			bz_assert(value_ptr->is<ast::constant_value::array>());
+			auto const &array_value = value_ptr->get<ast::constant_value::array>();
+			bz_assert(index < array_value.size());
+			value_ptr = &array_value[index];
+		}
+		return *value_ptr;
+	}
+	else
+	{
+		// bz_assert(base_type.is<ast::ts_tuple>());
+		// ^^^  this is not valid because base_type could also be empty if it's a tuple expression
+		// e.g. [1, 2, 3][0]
+		bz_assert(base_value.is<ast::constant_value::tuple>());
+		auto const &tuple_value = base_value.get<ast::constant_value::tuple>();
+		bz_assert(index_values.size() == 1);
+		auto const index_value = index_values.front();
+		bz_assert(index_value < tuple_value.size());
+		return tuple_value[index_value];
+	}
+}
+
 static ast::constant_value try_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
@@ -1086,8 +1191,13 @@ static ast::constant_value try_evaluate_expr(
 
 			return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
 		},
-		[](ast::expr_subscript &) -> ast::constant_value {
-			return {};
+		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
+			consteval_try(subscript_expr.base, context);
+			for (auto &index : subscript_expr.indicies)
+			{
+				consteval_try(index, context);
+			}
+			return evaluate_subscript(subscript_expr, context);
 		},
 		[](ast::expr_function_call &) -> ast::constant_value {
 			return {};
@@ -1151,23 +1261,26 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 	bz_assert(expr.consteval_state == ast::expression::consteval_failed);
 	bz_assert(expr.is<ast::dynamic_expression>());
 	expr.get_expr().visit(bz::overload{
-		[&notes](ast::expr_identifier const &id) {
+		[&expr, &notes](ast::expr_identifier const &) {
 			notes.emplace_back(ctx::parse_context::make_note(
-				id.identifier, "subexpression is not a constant expression"
+				expr.src_tokens, "subexpression is not a constant expression"
 			));
 		},
-		[&notes](ast::expr_literal const &) {
+		[](ast::expr_literal const &) {
 			// literals are always constant expressions
 			bz_unreachable;
 		},
 		[&notes](ast::expr_tuple const &tuple) {
+			bool any_failed = false;
 			for (auto const &elem : tuple.elems)
 			{
 				if (elem.consteval_state == ast::expression::consteval_failed)
 				{
+					any_failed = true;
 					get_consteval_fail_notes_helper(elem, notes);
 				}
 			}
+			bz_assert(any_failed);
 		},
 		[&expr, &notes](ast::expr_unary_op const &unary_op) {
 			if (unary_op.expr.consteval_state == ast::expression::consteval_succeeded)
@@ -1214,9 +1327,44 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				}
 			}
 		},
-		[&notes](ast::expr_subscript const &) {
+		[&expr, &notes](ast::expr_subscript const &subscript_expr) {
+			bool any_failed = false;
+			if (subscript_expr.base.consteval_state == ast::expression::consteval_failed)
+			{
+				any_failed = true;
+				get_consteval_fail_notes_helper(subscript_expr.base, notes);
+			}
+			for (auto const &index : subscript_expr.indicies)
+			{
+				if (index.consteval_state == ast::expression::consteval_failed)
+				{
+					any_failed = true;
+					get_consteval_fail_notes_helper(index, notes);
+				}
+			}
+			if (!any_failed)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, "subexpression is not a constant expression"
+				));
+			}
 		},
-		[&notes](ast::expr_function_call const &) {
+		[&expr, &notes](ast::expr_function_call const &func_call) {
+			bool any_failed = false;
+			for (auto const &param : func_call.params)
+			{
+				if (param.consteval_state == ast::expression::consteval_failed)
+				{
+					any_failed = true;
+					get_consteval_fail_notes_helper(param, notes);
+				}
+			}
+			if (!any_failed)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, "subexpression is not a constant expression"
+				));
+			}
 		},
 		[&expr, &notes](ast::expr_cast const &cast_expr) {
 			if (cast_expr.expr.consteval_state == ast::expression::consteval_succeeded)
@@ -1235,9 +1383,15 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
 		},
-		[&notes](ast::expr_compound const &) {
+		[&expr, &notes](ast::expr_compound const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
-		[&notes](ast::expr_if const &) {
+		[&expr, &notes](ast::expr_if const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
 	});
 }
