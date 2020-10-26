@@ -100,7 +100,7 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
-	result->setAlignment(llvm::MaybeAlign(align));
+	result->setAlignment(llvm::Align(align));
 	this->builder.SetInsertPoint(bb);
 	return result;
 }
