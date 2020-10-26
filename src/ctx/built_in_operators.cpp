@@ -921,7 +921,7 @@ static ast::expression get_built_in_binary_assign(
 			&& lhs_kind >= rhs_kind
 		)
 		{
-			rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind,
@@ -935,7 +935,7 @@ static ast::expression get_built_in_binary_assign(
 			&& lhs_kind >= rhs_kind
 		)
 		{
-			rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind,
@@ -968,7 +968,7 @@ static ast::expression get_built_in_binary_assign(
 		&& rhs.get<ast::constant_expression>().value.kind() == ast::constant_value::null
 	)
 	{
-		rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+		rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 		auto result_type = lhs_t;
 		auto const result_type_kind = lhs_type_kind;
 		return ast::make_dynamic_expression(
@@ -1068,7 +1068,7 @@ static ast::expression get_built_in_binary_plus(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1080,7 +1080,7 @@ static ast::expression get_built_in_binary_plus(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1105,7 +1105,7 @@ static ast::expression get_built_in_binary_plus(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1117,7 +1117,7 @@ static ast::expression get_built_in_binary_plus(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1253,7 +1253,7 @@ static ast::expression get_built_in_binary_minus(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1265,7 +1265,7 @@ static ast::expression get_built_in_binary_minus(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1290,7 +1290,7 @@ static ast::expression get_built_in_binary_minus(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1302,7 +1302,7 @@ static ast::expression get_built_in_binary_minus(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1452,7 +1452,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1468,7 +1468,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1484,7 +1484,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1575,7 +1575,7 @@ static ast::expression get_built_in_binary_multiply_divide(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1586,7 +1586,7 @@ static ast::expression get_built_in_binary_multiply_divide(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1610,7 +1610,7 @@ static ast::expression get_built_in_binary_multiply_divide(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1621,7 +1621,7 @@ static ast::expression get_built_in_binary_multiply_divide(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1720,7 +1720,7 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1737,7 +1737,7 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1815,7 +1815,7 @@ static ast::expression get_built_in_binary_modulo(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1826,7 +1826,7 @@ static ast::expression get_built_in_binary_modulo(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1850,7 +1850,7 @@ static ast::expression get_built_in_binary_modulo(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(lhs_kind) } }),
@@ -1861,7 +1861,7 @@ static ast::expression get_built_in_binary_modulo(
 			{
 				common_kind = rhs_kind;
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, context.get_base_type_info(rhs_kind) } }),
@@ -1959,7 +1959,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1976,7 +1976,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -2072,7 +2072,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					lhs_t,
@@ -2082,7 +2082,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			else if (lhs_kind < rhs_kind)
 			{
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					rhs_t,
@@ -2105,7 +2105,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					lhs_t,
@@ -2116,7 +2116,7 @@ static ast::expression get_built_in_binary_equals_not_equals(
 			else if (lhs_kind < rhs_kind)
 			{
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					rhs_t,
@@ -2321,7 +2321,7 @@ static ast::expression get_built_in_binary_compare(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					lhs_t,
@@ -2331,7 +2331,7 @@ static ast::expression get_built_in_binary_compare(
 			else if (lhs_kind < rhs_kind)
 			{
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					rhs_t,
@@ -2354,7 +2354,7 @@ static ast::expression get_built_in_binary_compare(
 			if (lhs_kind > rhs_kind)
 			{
 				rhs = make_built_in_cast(
-					src_tokens,
+					rhs.src_tokens,
 					nullptr,
 					std::move(rhs),
 					lhs_t,
@@ -2364,7 +2364,7 @@ static ast::expression get_built_in_binary_compare(
 			else if (lhs_kind < rhs_kind)
 			{
 				lhs = make_built_in_cast(
-					src_tokens,
+					lhs.src_tokens,
 					nullptr,
 					std::move(lhs),
 					rhs_t,
@@ -2719,7 +2719,7 @@ static ast::expression get_built_in_binary_bit_shift(
 		)
 		{
 			auto result_type = lhs_t;
-			rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
@@ -2810,7 +2810,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			rhs = make_built_in_cast(src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
