@@ -1,8 +1,8 @@
 #include "statement_parser.h"
-#include "token_info.h"
 #include "expression_parser.h"
 #include "consteval.h"
 #include "parse_common.h"
+#include "token_info.h"
 
 namespace parse
 {
@@ -156,7 +156,6 @@ static void resolve_stmt_static_assert(
 		if (args.size() == 2)
 		{
 			static_assert_stmt.message = std::move(args[1]);
-			bz_assert(static_assert_stmt.message.consteval_state == ast::expression::consteval_never_tried);
 			if (static_assert_stmt.message.is_null())
 			{
 				good = false;
