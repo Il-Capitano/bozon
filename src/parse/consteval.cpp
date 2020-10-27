@@ -985,6 +985,159 @@ static ast::constant_value evaluate_binary_bit_or(
 	}
 }
 
+static ast::constant_value evaluate_binary_bit_left_shift(
+	ast::expression const &original_expr,
+	ast::expression const &lhs, ast::expression const &rhs,
+	ctx::parse_context &context
+)
+{
+	bz_assert(lhs.is<ast::constant_expression>());
+	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	auto const &lhs_value = lhs_const_expr.value;
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	bz_assert(lhs_value.is<ast::constant_value::uint>());
+	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
+	bz_assert(rhs_value.is<ast::constant_value::uint>());
+	auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+
+	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
+	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
+
+	auto const result = safe_binary_bit_left_shift(
+		original_expr.src_tokens, original_expr.paren_level,
+		lhs_int_val, rhs_int_val, lhs_type_kind,
+		context
+	);
+	if (result.has_value())
+	{
+		return ast::constant_value(result.get());
+	}
+	else
+	{
+		return {};
+	}
+}
+
+static ast::constant_value evaluate_binary_bit_right_shift(
+	ast::expression const &original_expr,
+	ast::expression const &lhs, ast::expression const &rhs,
+	ctx::parse_context &context
+)
+{
+	bz_assert(lhs.is<ast::constant_expression>());
+	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	auto const &lhs_value = lhs_const_expr.value;
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	bz_assert(lhs_value.is<ast::constant_value::uint>());
+	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
+	bz_assert(rhs_value.is<ast::constant_value::uint>());
+	auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+
+	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
+	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
+
+	auto const result = safe_binary_bit_right_shift(
+		original_expr.src_tokens, original_expr.paren_level,
+		lhs_int_val, rhs_int_val, lhs_type_kind,
+		context
+	);
+	if (result.has_value())
+	{
+		return ast::constant_value(result.get());
+	}
+	else
+	{
+		return {};
+	}
+}
+
+static ast::constant_value evaluate_binary_bool_and(
+	[[maybe_unused]] ast::expression const &original_expr,
+	ast::expression const &lhs, ast::expression const &rhs,
+	[[maybe_unused]] ctx::parse_context &context
+)
+{
+	bz_assert(lhs.is<ast::constant_expression>());
+	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	auto const &lhs_value = lhs_const_expr.value;
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	bz_assert(lhs_value.is<ast::constant_value::boolean>());
+	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+	bz_assert(rhs_value.is<ast::constant_value::boolean>());
+	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+
+	// short-circuiting is handled elsewhere
+	bz_assert(lhs_bool_val);
+	return ast::constant_value(rhs_bool_val);
+}
+
+static ast::constant_value evaluate_binary_bool_xor(
+	[[maybe_unused]] ast::expression const &original_expr,
+	ast::expression const &lhs, ast::expression const &rhs,
+	[[maybe_unused]] ctx::parse_context &context
+)
+{
+	bz_assert(lhs.is<ast::constant_expression>());
+	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	auto const &lhs_value = lhs_const_expr.value;
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	bz_assert(lhs_value.is<ast::constant_value::boolean>());
+	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+	bz_assert(rhs_value.is<ast::constant_value::boolean>());
+	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+
+	return ast::constant_value(lhs_bool_val != rhs_bool_val);
+}
+
+static ast::constant_value evaluate_binary_bool_or(
+	[[maybe_unused]] ast::expression const &original_expr,
+	ast::expression const &lhs, ast::expression const &rhs,
+	[[maybe_unused]] ctx::parse_context &context
+)
+{
+	bz_assert(lhs.is<ast::constant_expression>());
+	auto const &lhs_const_expr = lhs.get<ast::constant_expression>();
+	auto const &lhs_value = lhs_const_expr.value;
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	bz_assert(lhs_value.is<ast::constant_value::boolean>());
+	auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+	bz_assert(rhs_value.is<ast::constant_value::boolean>());
+	auto const rhs_bool_val = rhs_value.get<ast::constant_value::boolean>();
+
+	// short-circuiting is handled elsewhere
+	bz_assert(!lhs_bool_val);
+	return ast::constant_value(rhs_bool_val);
+}
+
+static ast::constant_value evaluate_binary_comma(
+	[[maybe_unused]] ast::expression const &original_expr,
+	[[maybe_unused]] ast::expression const &lhs, ast::expression const &rhs,
+	[[maybe_unused]] ctx::parse_context &context
+)
+{
+	bz_assert(rhs.is<ast::constant_expression>());
+	auto const &rhs_const_expr = rhs.get<ast::constant_expression>();
+	auto const &rhs_value = rhs_const_expr.value;
+
+	return rhs_value;
+}
+
+
 static ast::constant_value evaluate_binary_op(
 	ast::expression const &original_expr,
 	uint32_t op, ast::expression const &lhs, ast::expression const &rhs,
@@ -1021,6 +1174,18 @@ static ast::constant_value evaluate_binary_op(
 		return evaluate_binary_bit_xor(original_expr, lhs, rhs, context);
 	case lex::token::bit_or:
 		return evaluate_binary_bit_or(original_expr, lhs, rhs, context);
+	case lex::token::bit_left_shift:
+		return evaluate_binary_bit_left_shift(original_expr, lhs, rhs, context);
+	case lex::token::bit_right_shift:
+		return evaluate_binary_bit_right_shift(original_expr, lhs, rhs, context);
+	case lex::token::bool_and:
+		return evaluate_binary_bool_and(original_expr, lhs, rhs, context);
+	case lex::token::bool_xor:
+		return evaluate_binary_bool_xor(original_expr, lhs, rhs, context);
+	case lex::token::bool_or:
+		return evaluate_binary_bool_or(original_expr, lhs, rhs, context);
+	case lex::token::comma:
+		return evaluate_binary_comma(original_expr, lhs, rhs, context);
 	default:
 		return {};
 	}
@@ -1131,6 +1296,124 @@ static ast::constant_value evaluate_subscript(
 	}
 }
 
+static ast::constant_value guaranteed_evaluate_expr(
+	ast::expression &expr,
+	ctx::parse_context &context
+)
+{
+	return expr.get_expr().visit(bz::overload{
+		[](ast::expr_identifier &) -> ast::constant_value {
+			// identifiers are only constant expressions if they are a consteval
+			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
+			return {};
+		},
+		[](ast::expr_literal &) -> ast::constant_value {
+			// literals are always constant expressions
+			bz_unreachable;
+		},
+		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &elem : tuple.elems)
+			{
+				consteval_try(elem, context);
+				is_consteval = is_consteval && elem.consteval_state == ast::expression::consteval_succeeded;
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result;
+			result.emplace<ast::constant_value::tuple>();
+			auto &elem_values = result.get<ast::constant_value::tuple>();
+			elem_values.reserve(tuple.elems.size());
+			for (auto &elem : tuple.elems)
+			{
+				bz_assert(elem.is<ast::constant_expression>());
+				elem_values.emplace_back(elem.get<ast::constant_expression>().value);
+			}
+			return result;
+		},
+		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+			consteval_try(unary_op.expr, context);
+			if (unary_op.expr.consteval_state != ast::expression::consteval_succeeded)
+			{
+				return {};
+			}
+
+			return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
+		},
+		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
+			consteval_try(binary_op.lhs, context);
+			consteval_try(binary_op.rhs, context);
+
+			// special case for bool_and and bool_or shortcircuiting
+			if (binary_op.lhs.consteval_state == ast::expression::consteval_succeeded)
+			{
+				auto const op = binary_op.op->kind;
+				if (op == lex::token::bool_and)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (!lhs_bool_val)
+					{
+						return ast::constant_value(false);
+					}
+				}
+				else if (op == lex::token::bool_or)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (lhs_bool_val)
+					{
+						return ast::constant_value(true);
+					}
+				}
+			}
+
+			if (
+				binary_op.lhs.consteval_state != ast::expression::consteval_succeeded
+				|| binary_op.rhs.consteval_state != ast::expression::consteval_succeeded
+			)
+			{
+				return {};
+			}
+
+			return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
+		},
+		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
+			consteval_try(subscript_expr.base, context);
+			for (auto &index : subscript_expr.indicies)
+			{
+				consteval_try(index, context);
+			}
+
+			return evaluate_subscript(subscript_expr, context);
+		},
+		[&context](ast::expr_function_call &func_call) -> ast::constant_value {
+			for (auto &param : func_call.params)
+			{
+				consteval_try(param, context);
+			}
+			return {};
+		},
+		[&context](ast::expr_cast &cast_expr) -> ast::constant_value {
+			consteval_try(cast_expr.expr, context);
+			return {};
+		},
+		[](ast::expr_compound &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_if &) -> ast::constant_value {
+			return {};
+		},
+	});
+}
+
 static ast::constant_value try_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
@@ -1181,6 +1464,35 @@ static ast::constant_value try_evaluate_expr(
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_try(binary_op.lhs, context);
 			consteval_try(binary_op.rhs, context);
+
+			// special case for bool_and and bool_or shortcircuiting
+			if (binary_op.lhs.consteval_state == ast::expression::consteval_succeeded)
+			{
+				auto const op = binary_op.op->kind;
+				if (op == lex::token::bool_and)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (!lhs_bool_val)
+					{
+						return ast::constant_value(false);
+					}
+				}
+				else if (op == lex::token::bool_or)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (lhs_bool_val)
+					{
+						return ast::constant_value(true);
+					}
+				}
+			}
+
 			if (
 				binary_op.lhs.consteval_state != ast::expression::consteval_succeeded
 				|| binary_op.rhs.consteval_state != ast::expression::consteval_succeeded
@@ -1197,9 +1509,14 @@ static ast::constant_value try_evaluate_expr(
 			{
 				consteval_try(index, context);
 			}
+
 			return evaluate_subscript(subscript_expr, context);
 		},
-		[](ast::expr_function_call &) -> ast::constant_value {
+		[&context](ast::expr_function_call &func_call) -> ast::constant_value {
+			for (auto &param : func_call.params)
+			{
+				consteval_try(param, context);
+			}
 			return {};
 		},
 		[&context](ast::expr_cast &cast_expr) -> ast::constant_value {
@@ -1217,6 +1534,37 @@ static ast::constant_value try_evaluate_expr(
 
 void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 {
+	if (expr.is<ast::constant_expression>())
+	{
+		expr.consteval_state = ast::expression::consteval_succeeded;
+		return;
+	}
+	else if (
+		!expr.is<ast::dynamic_expression>()
+		|| expr.consteval_state != ast::expression::consteval_never_tried
+	)
+	{
+		expr.consteval_state = ast::expression::consteval_failed;
+		return;
+	}
+
+	auto const value = guaranteed_evaluate_expr(expr, context);
+	if (value.is_null())
+	{
+		return;
+	}
+	else
+	{
+		auto &dyn_expr  = expr.get<ast::dynamic_expression>();
+		auto type       = std::move(dyn_expr.type);
+		auto inner_expr = std::move(dyn_expr.expr);
+		expr.emplace<ast::constant_expression>(
+			dyn_expr.kind, std::move(type),
+			value, std::move(inner_expr)
+		);
+		expr.consteval_state = ast::expression::consteval_succeeded;
+		return;
+	}
 }
 
 void consteval_try(ast::expression &expr, ctx::parse_context &context)

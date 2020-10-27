@@ -174,6 +174,19 @@ bool safe_binary_equals(
 	ctx::parse_context &context
 );
 
+
+bz::optional<uint64_t> safe_binary_bit_left_shift(
+	lex::src_tokens src_tokens, int paren_level,
+	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
+	ctx::parse_context &context
+);
+
+bz::optional<uint64_t> safe_binary_bit_right_shift(
+	lex::src_tokens src_tokens, int paren_level,
+	uint64_t lhs, uint64_t rhs, uint32_t lhs_type_kind,
+	ctx::parse_context &context
+);
+
 } // namespace parse
 
 #endif //PARSE_SAFE_OPERATIONS_H
