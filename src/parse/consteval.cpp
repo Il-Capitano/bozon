@@ -1296,6 +1296,249 @@ static ast::constant_value evaluate_subscript(
 	}
 }
 
+static ast::constant_value evaluate_cast(
+	ast::expression const &original_expr,
+	ast::expr_cast const &subscript_expr,
+	ctx::parse_context &context
+)
+{
+	bz_assert(subscript_expr.expr.is<ast::constant_expression>());
+	auto const dest_type = ast::remove_const_or_consteval(subscript_expr.type);
+	if (!dest_type.is<ast::ts_base_type>())
+	{
+		return {};
+	}
+
+	auto const dest_kind = dest_type.get<ast::ts_base_type>().info->kind;
+	auto const paren_level = original_expr.paren_level;
+	auto const &value = subscript_expr.expr.get<ast::constant_expression>().value;
+	auto const &src_tokens = original_expr.src_tokens;
+
+	switch (dest_kind)
+	{
+	case ast::type_info::int8_:
+	case ast::type_info::int16_:
+	case ast::type_info::int32_:
+	case ast::type_info::int64_:
+	{
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+		{
+			using T = std::tuple<bz::u8string_view, int64_t, int64_t, int64_t>;
+			auto const int_val = value.get<ast::constant_value::sint>();
+			auto const [type_name, min_val, max_val, result] =
+				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
+				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
+				dest_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
+				T{ "int64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
+			if (paren_level < 2 && (int_val < min_val || int_val > max_val))
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - paren_level, ctx::warning_kind::int_overflow,
+					src_tokens,
+					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
+				);
+			}
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::uint:
+		{
+			using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
+			auto const int_val = value.get<ast::constant_value::uint>();
+			auto const [type_name, max_val, result] =
+				dest_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::max(), static_cast<int8_t> (int_val) } :
+				dest_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::max(), static_cast<int16_t>(int_val) } :
+				dest_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::max(), static_cast<int32_t>(int_val) } :
+				T{ "int64", std::numeric_limits<int64_t>::max(), static_cast<int64_t>(int_val) };
+			if (paren_level < 2 && int_val > static_cast<uint64_t>(max_val))
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - paren_level, ctx::warning_kind::int_overflow,
+					src_tokens,
+					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
+				);
+			}
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::float32:
+		{
+			auto const float_val = value.get<ast::constant_value::float32>();
+			auto const result =
+				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
+				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
+				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
+				static_cast<int64_t>(float_val);
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::float64:
+		{
+			auto const float_val = value.get<ast::constant_value::float64>();
+			auto const result =
+				dest_kind == ast::type_info::int8_  ? static_cast<int8_t> (float_val) :
+				dest_kind == ast::type_info::int16_ ? static_cast<int16_t>(float_val) :
+				dest_kind == ast::type_info::int32_ ? static_cast<int32_t>(float_val) :
+				static_cast<int64_t>(float_val);
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::u8char:
+			// no overflow possible in constant expressions
+			return ast::constant_value(static_cast<int64_t>(value.get<ast::constant_value::u8char>()));
+		default:
+			bz_unreachable;
+		}
+	}
+
+	case ast::type_info::uint8_:
+	case ast::type_info::uint16_:
+	case ast::type_info::uint32_:
+	case ast::type_info::uint64_:
+	{
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+		{
+			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
+			auto const int_val = value.get<ast::constant_value::sint>();
+			auto const [type_name, max_val, result] =
+				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
+				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
+				dest_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
+				T{ "uint64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
+			if (paren_level < 2 && (int_val < 0 || static_cast<uint64_t>(int_val) > max_val))
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - paren_level, ctx::warning_kind::int_overflow,
+					src_tokens,
+					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
+				);
+			}
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::uint:
+		{
+			using T = std::tuple<bz::u8string_view, uint64_t, uint64_t>;
+			auto const int_val = value.get<ast::constant_value::uint>();
+			auto const [type_name, max_val, result] =
+				dest_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max(), static_cast<uint8_t> (int_val) } :
+				dest_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(int_val) } :
+				dest_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max(), static_cast<uint32_t>(int_val) } :
+				T{ "uint64", std::numeric_limits<uint64_t>::max(), static_cast<uint64_t>(int_val) };
+			if (paren_level < 2 && int_val > max_val)
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - paren_level, ctx::warning_kind::int_overflow,
+					src_tokens,
+					bz::format("overflow in constant expression '{} as {}' results in {}", int_val, type_name, result)
+				);
+			}
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::float32:
+		{
+			auto const float_val = value.get<ast::constant_value::float32>();
+			auto const result =
+				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
+				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
+				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
+				static_cast<uint64_t>(float_val);
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::float64:
+		{
+			auto const float_val = value.get<ast::constant_value::float64>();
+			auto const result =
+				dest_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (float_val) :
+				dest_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(float_val) :
+				dest_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(float_val) :
+				static_cast<uint64_t>(float_val);
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::u8char:
+			// no overflow possible in constant expressions
+			return ast::constant_value(static_cast<uint64_t>(value.get<ast::constant_value::u8char>()));
+		default:
+			bz_unreachable;
+		}
+	}
+
+	case ast::type_info::float32_:
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::sint>()));
+		case ast::constant_value::uint:
+			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::uint>()));
+		case ast::constant_value::float32:
+			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::float32>()));
+		case ast::constant_value::float64:
+			return ast::constant_value(static_cast<float32_t>(value.get<ast::constant_value::float64>()));
+		default:
+			bz_unreachable;
+		}
+	case ast::type_info::float64_:
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::sint>()));
+		case ast::constant_value::uint:
+			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::uint>()));
+		case ast::constant_value::float32:
+			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::float32>()));
+		case ast::constant_value::float64:
+			return ast::constant_value(static_cast<float64_t>(value.get<ast::constant_value::float64>()));
+		default:
+			bz_unreachable;
+		}
+	case ast::type_info::char_:
+		switch (value.kind())
+		{
+		case ast::constant_value::sint:
+		{
+			auto const result = static_cast<bz::u8char>(value.get<ast::constant_value::sint>());
+			if (!bz::is_valid_unicode_value(result))
+			{
+				if (paren_level < 2)
+				{
+					context.report_parenthesis_suppressed_warning(
+						2 - paren_level, ctx::warning_kind::invalid_unicode,
+						src_tokens,
+						bz::format("the result of U+{:04X} is not a valid unicode codepoint", result)
+					);
+				}
+				return {};
+			}
+			return ast::constant_value(result);
+		}
+		case ast::constant_value::uint:
+		{
+			auto const result = static_cast<bz::u8char>(value.get<ast::constant_value::uint>());
+			if (!bz::is_valid_unicode_value(result))
+			{
+				if (paren_level < 2)
+				{
+					context.report_parenthesis_suppressed_warning(
+						2 - paren_level, ctx::warning_kind::invalid_unicode,
+						src_tokens,
+						bz::format("the result of U+{:04X} is not a valid unicode codepoint", result)
+					);
+				}
+				return {};
+			}
+			return ast::constant_value(result);
+		}
+		default:
+			bz_unreachable;
+		}
+	case ast::type_info::str_:
+	case ast::type_info::bool_:
+	case ast::type_info::null_t_:
+	default:
+		bz_unreachable;
+	}
+	return {};
+}
+
 static ast::constant_value guaranteed_evaluate_expr(
 	ast::expression &expr,
 	ctx::parse_context &context
@@ -1401,9 +1644,13 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			return {};
 		},
-		[&context](ast::expr_cast &cast_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
-			return {};
+			if (cast_expr.expr.consteval_state != ast::expression::consteval_succeeded)
+			{
+				return {};
+			}
+			return evaluate_cast(expr, cast_expr, context);
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
@@ -1519,9 +1766,13 @@ static ast::constant_value try_evaluate_expr(
 			}
 			return {};
 		},
-		[&context](ast::expr_cast &cast_expr) -> ast::constant_value {
+		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
-			return {};
+			if (cast_expr.expr.consteval_state != ast::expression::consteval_succeeded)
+			{
+				return {};
+			}
+			return evaluate_cast(expr, cast_expr, context);
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
