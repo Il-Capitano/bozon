@@ -412,16 +412,23 @@ static void resolve_decl_variable(
 	if (var_decl.init_expr.not_null())
 	{
 		bz_assert(var_decl.init_expr.is<ast::unresolved_expression>());
-		auto stream = var_decl.init_expr.src_tokens.begin;
-		auto const end = var_decl.init_expr.src_tokens.end;
+		auto const begin = var_decl.init_expr.src_tokens.begin;
+		auto const end   = var_decl.init_expr.src_tokens.end;
+		auto stream = begin;
 		var_decl.init_expr = parse_expression(stream, end, context, no_comma);
 		if (stream != end)
 		{
 			if (stream->kind == lex::token::comma)
 			{
+				auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
 				context.report_error(
 					stream,
-					"operator , is not allowed in variable initialization expression"
+					"operator , is not allowed in variable initialization expression",
+					{}, { context.make_suggestion_around(
+						begin,          ctx::char_pos(), ctx::char_pos(), "(",
+						suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+						"put parenthesis around the initialization expression"
+					) }
 				);
 			}
 			else
