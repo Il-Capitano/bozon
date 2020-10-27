@@ -311,7 +311,7 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 	return suggestion{
 		first->src_pos.file_id, first->src_pos.line,
 		{ first_erase_begin, first_erase_end, first->src_pos.begin, std::move(first_suggestion_str) },
-		{ second_erase_begin, second_erase_end, last->src_pos.end, std::move(last_suggestion_str) },
+		{ second_erase_begin, second_erase_end, (last - 1)->src_pos.end, std::move(last_suggestion_str) },
 		std::move(message)
 	};
 }

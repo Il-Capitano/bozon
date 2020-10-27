@@ -86,7 +86,7 @@ static precedence get_expr_precedence(ast::expression const &expression)
 	{
 		return context.make_suggestion_around(
 			expr.src_tokens.begin, begin_str,
-			expr.src_tokens.end - 1, end_str,
+			expr.src_tokens.end, end_str,
 			bz::format("add explicit cast to '{}' here:", type)
 		);
 	}
