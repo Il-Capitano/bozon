@@ -1621,9 +1621,44 @@ static void apply_intrinsic(
 	func_body.cc = abi::calling_convention::c;
 }
 
+static void apply_symbol_name(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	bz_assert(attribute.name->value == "symbol_name");
+	if (attribute.args.size() != 1)
+	{
+		context.report_error(attribute.name, "@symbol_name expects exactly one argument");
+		return;
+	}
+
+	// symbol name
+	{
+		consteval_try(attribute.args[0], context);
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "name in @symbol_name must have type 'str'");
+			return;
+		}
+	}
+
+	auto const symbol_name = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+
+	func_body.symbol_name = symbol_name;
+}
+
 static void apply_attribute(
 	ast::decl_function &func_decl,
-	ast::attribute const &attribute,
+	ast::attribute &attribute,
 	ctx::parse_context &context
 )
 {
@@ -1657,6 +1692,10 @@ static void apply_attribute(
 			func_decl.body.cc = abi::calling_convention::c;
 		}
 	}
+	else if (attr_name == "symbol_name")
+	{
+		apply_symbol_name(func_decl.body, attribute, context);
+	}
 	else
 	{
 		context.report_warning(
@@ -1669,7 +1708,7 @@ static void apply_attribute(
 
 static void apply_attribute(
 	ast::decl_operator &op_decl,
-	ast::attribute const &attribute,
+	ast::attribute &attribute,
 	ctx::parse_context &context
 )
 {
@@ -1681,6 +1720,10 @@ static void apply_attribute(
 	else if (attr_name == "intrinsic")
 	{
 		apply_intrinsic(op_decl.body, attribute, context);
+	}
+	else if (attr_name == "symbol_name")
+	{
+		apply_symbol_name(op_decl.body, attribute, context);
 	}
 	else
 	{
@@ -1721,7 +1764,7 @@ static void apply_attribute(
 
 static void apply_attribute(
 	ast::statement &stmt,
-	ast::attribute const &attribute,
+	ast::attribute &attribute,
 	ctx::parse_context &context
 )
 {
