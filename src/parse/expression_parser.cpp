@@ -1,5 +1,6 @@
 #include "expression_parser.h"
 #include "statement_parser.h"
+#include "consteval.h"
 #include "parse_common.h"
 
 namespace parse
@@ -14,11 +15,20 @@ ast::expression parse_expression_without_semi_colon(
 	{
 	// top level compound expression
 	case lex::token::curly_open:
-		return parse_compound_expression(stream, end, context);
+	{
+		auto result = parse_compound_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	// top level if expression
 	case lex::token::kw_if:
-		return parse_if_expression(stream, end, context);
+	{
+		auto result = parse_if_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	default:
+		// parse_expression already calls consteval_guaranteed
 		return parse_expression(stream, end, context, precedence{});
 	}
 }
@@ -696,7 +706,9 @@ ast::expression parse_expression(
 		++stream;
 		lhs = parse_primary_expression(stream, end, context);
 	}
-	return parse_expression_helper(std::move(lhs), stream, end, context, prec);
+	auto result = parse_expression_helper(std::move(lhs), stream, end, context, prec);
+	consteval_guaranteed(result, context);
+	return result;
 }
 
 bz::vector<ast::expression> parse_expression_comma_list(
