@@ -1331,7 +1331,8 @@ static val_ptr emit_built_in_binary_left_shift(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const result_val = context.builder.CreateShl(lhs_val, rhs_val, "lshift_tmp");
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const result_val = context.builder.CreateShl(lhs_val, cast_rhs_val, "lshift_tmp");
 	if (result_address == nullptr)
 	{
 		return { val_ptr::value, result_val };
@@ -1361,10 +1362,11 @@ static val_ptr emit_built_in_binary_left_shift_eq(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
-	auto const res = context.builder.CreateShl(lhs_val, rhs_val, "lshift_tmp");
+	auto const res = context.builder.CreateShl(lhs_val, cast_rhs_val, "lshift_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
 	if (result_address == nullptr)
 	{
@@ -1395,7 +1397,8 @@ static val_ptr emit_built_in_binary_right_shift(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const result_val = context.builder.CreateLShr(lhs_val, rhs_val, "rshift_tmp");
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const result_val = context.builder.CreateLShr(lhs_val, cast_rhs_val, "rshift_tmp");
 	if (result_address == nullptr)
 	{
 		return { val_ptr::value, result_val };
@@ -1425,10 +1428,11 @@ static val_ptr emit_built_in_binary_right_shift_eq(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
-	auto const res = context.builder.CreateLShr(lhs_val, rhs_val, "rshift_tmp");
+	auto const res = context.builder.CreateLShr(lhs_val, cast_rhs_val, "rshift_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
 	if (result_address == nullptr)
 	{

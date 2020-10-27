@@ -2719,7 +2719,8 @@ static ast::expression get_built_in_binary_bit_shift(
 		)
 		{
 			auto result_type = lhs_t;
-			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			// rhs shouldn't be cast to lhs_t here, becuase then e.g. 1u8 << 256u would be converted
+			// to 1u8 << 0u8, which is bad!
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
@@ -2810,7 +2811,8 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 			&& is_unsigned_integer_kind(rhs_kind)
 		)
 		{
-			rhs = make_built_in_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			// rhs shouldn't be cast to lhs_t here, becuase then e.g. 1u8 << 256u would be converted
+			// to 1u8 << 0u8, which is bad!
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
