@@ -6,6 +6,12 @@
 namespace parse
 {
 
+static ast::expression parse_expression_impl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	precedence prec
+);
+
 ast::expression parse_expression_without_semi_colon(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -546,7 +552,7 @@ static ast::expression parse_primary_expression(
 		auto const paren_begin = stream;
 		++stream;
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
-		auto expr = parse_expression(inner_stream, inner_end, context, precedence{});
+		auto expr = parse_expression_impl(inner_stream, inner_end, context, precedence{});
 		expr.paren_level += 1;
 		if (inner_stream != inner_end && inner_stream->kind != lex::token::paren_close)
 		{
@@ -596,7 +602,7 @@ static ast::expression parse_primary_expression(
 			auto const op = stream;
 			auto const prec = get_unary_precedence(op->kind);
 			++stream;
-			auto expr = parse_expression(stream, end, context, prec);
+			auto expr = parse_expression_impl(stream, end, context, prec);
 
 			return context.make_unary_operator_expression({ op, op, stream }, op, std::move(expr));
 		}
@@ -692,7 +698,7 @@ static ast::expression parse_expression_helper(
 	return lhs;
 }
 
-ast::expression parse_expression(
+static ast::expression parse_expression_impl(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
 	precedence prec
@@ -707,6 +713,16 @@ ast::expression parse_expression(
 		lhs = parse_primary_expression(stream, end, context);
 	}
 	auto result = parse_expression_helper(std::move(lhs), stream, end, context, prec);
+	return result;
+}
+
+ast::expression parse_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	precedence prec
+)
+{
+	auto result = parse_expression_impl(stream, end, context, prec);
 	consteval_guaranteed(result, context);
 	return result;
 }
