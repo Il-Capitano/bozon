@@ -13,12 +13,12 @@
 @intrinsic("log1p_f32") export function log1p(x: float32) -> float32;
 @intrinsic("log1p_f64") export function log1p(x: float64) -> float64;
 
-@intrinsic("pow_f32")   export function pow(x: float32, y: float32)   -> float32;
-@intrinsic("pow_f64")   export function pow(x: float64, y: float64)   -> float64;
 @intrinsic("sqrt_f32")  export function sqrt(x: float32) -> float32;
 @intrinsic("sqrt_f64")  export function sqrt(x: float64) -> float64;
 @intrinsic("cbrt_f32")  export function cbrt(x: float32) -> float32;
 @intrinsic("cbrt_f64")  export function cbrt(x: float64) -> float64;
+@intrinsic("pow_f32")   export function pow(x: float32, y: float32)   -> float32;
+@intrinsic("pow_f64")   export function pow(x: float64, y: float64)   -> float64;
 @intrinsic("hypot_f32") export function hypot(x: float32, y: float32) -> float32;
 @intrinsic("hypot_f64") export function hypot(x: float64, y: float64) -> float64;
 

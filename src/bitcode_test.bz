@@ -406,7 +406,7 @@ function scope_test() -> void
 	const f32 = 1.23464234 as typeof 1.0f32;
 	const f32: typeof f32 = 0.0f32;
 
-	println((0x8000'0000 as int32));
+	println(((0x8000'0000 as int32)));
 
 	println(multiply(123i64, 123i8));
 	println(123 * 123);
