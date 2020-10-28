@@ -1296,6 +1296,228 @@ static ast::constant_value evaluate_subscript(
 	}
 }
 
+static ast::constant_value evaluate_math_functions(
+	ast::expression const &original_expr,
+	ast::expr_function_call const &func_call,
+	ctx::parse_context &context
+)
+{
+
+	auto const get_float32 = [&func_call](size_t i = 0) {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::float32>());
+		return value.get<ast::constant_value::float32>();
+	};
+
+	auto const get_float64 = [&func_call](size_t i = 0) {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::float64>());
+		return value.get<ast::constant_value::float64>();
+	};
+
+	auto const paren_level = original_expr.paren_level;
+	auto const &src_tokens = original_expr.src_tokens;
+
+	switch (func_call.func_body->intrinsic_kind)
+	{
+#define def_case_default(func_name)                            \
+case ast::function_body::func_name##_f32:                      \
+    return ast::constant_value(std::func_name(get_float32())); \
+case ast::function_body::func_name##_f64:                      \
+    return ast::constant_value(std::func_name(get_float64()));
+
+#define def_case_error(func_name, condition, message)                            \
+case ast::function_body::func_name##_f32:                                        \
+{                                                                                \
+    auto const arg = get_float32();                                              \
+    if (condition)                                                               \
+    {                                                                            \
+        if (paren_level < 2)                                                     \
+        {                                                                        \
+            context.report_parenthesis_suppressed_warning(                       \
+                2 - paren_level, ctx::warning_kind::bad_float_math,              \
+                src_tokens, bz::format("calling '" #func_name "' " message, arg) \
+            );                                                                   \
+        }                                                                        \
+        return {};                                                               \
+    }                                                                            \
+    else                                                                         \
+    {                                                                            \
+        return ast::constant_value(std::func_name(arg));                         \
+    }                                                                            \
+}                                                                                \
+case ast::function_body::func_name##_f64:                                        \
+{                                                                                \
+    auto const arg = get_float64();                                              \
+    if (condition)                                                               \
+    {                                                                            \
+        if (paren_level < 2)                                                     \
+        {                                                                        \
+            context.report_parenthesis_suppressed_warning(                       \
+                2 - paren_level, ctx::warning_kind::bad_float_math,              \
+                src_tokens, bz::format("calling '" #func_name "' " message, arg) \
+            );                                                                   \
+        }                                                                        \
+        return {};                                                               \
+    }                                                                            \
+    else                                                                         \
+    {                                                                            \
+        return ast::constant_value(std::func_name(arg));                         \
+    }                                                                            \
+}
+
+	// ==== exponential and logarithmic functions ====
+	// exponential functions can take any value
+	def_case_default(exp)
+	def_case_default(exp2)
+	def_case_default(expm1)
+	// log functions can't take negative arguments, except for log1p, which can't take numbers < -1.0
+	def_case_error(log,   arg < 0,  "with a negative value, {}")
+	def_case_error(log10, arg < 0,  "with a negative value, {}")
+	def_case_error(log2,  arg < 0,  "with a negative value, {}")
+	def_case_error(log1p, arg < -1, "with a value less than -1, {}")
+
+	// ==== power functions ====
+	case ast::function_body::pow_f32:
+		return ast::constant_value(std::pow(get_float32(0), get_float32(1)));
+	case ast::function_body::pow_f64:
+		return ast::constant_value(std::pow(get_float64(0), get_float64(1)));
+	def_case_error(sqrt, arg < 0, "with a negative value, {}")
+	def_case_default(cbrt)
+	case ast::function_body::hypot_f32:
+		return ast::constant_value(std::hypot(get_float32(0), get_float32(1)));
+	case ast::function_body::hypot_f64:
+		return ast::constant_value(std::hypot(get_float64(0), get_float64(1)));
+
+	// ==== trigonometric functions ====
+	def_case_default(sin)
+	def_case_default(cos)
+	def_case_default(tan)
+	def_case_error(asin, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
+	def_case_error(acos, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
+	def_case_default(atan)
+	case ast::function_body::atan2_f32:
+		return ast::constant_value(std::atan2(get_float32(0), get_float32(1)));
+	case ast::function_body::atan2_f64:
+		return ast::constant_value(std::atan2(get_float64(0), get_float64(1)));
+
+	// ==== hyperbolic functions ====
+	def_case_default(sinh)
+	def_case_default(cosh)
+	def_case_default(tanh)
+	def_case_default(asinh)
+	def_case_error(acosh, arg < 1, "with a value less than 1, {}")
+	def_case_error(atanh, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
+
+	// ==== error and gamma functions ====
+	def_case_default(erf)
+	def_case_default(erfc)
+	def_case_error(tgamma, arg < 0, "with a negative value, {}")
+	def_case_error(lgamma, arg < 0, "with a negative value, {}")
+
+	default:
+		bz_unreachable;
+
+#undef def_case_default
+#undef def_case_error
+	}
+}
+
+static ast::constant_value evaluate_function_call(
+	ast::expression const &original_expr,
+	ast::expr_function_call const &func_call,
+	ctx::parse_context &context
+)
+{
+	if (!func_call.func_body->is_intrinsic())
+	{
+		return {};
+	}
+
+	switch (func_call.func_body->intrinsic_kind)
+	{
+	case ast::function_body::builtin_str_eq:
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(lhs_value.is<ast::constant_value::string>());
+		bz_assert(rhs_value.is<ast::constant_value::string>());
+		return ast::constant_value(
+			lhs_value.get<ast::constant_value::string>()
+			== rhs_value.get<ast::constant_value::string>()
+		);
+	}
+	case ast::function_body::builtin_str_neq:
+	{
+		bz_assert(func_call.params.size() == 2);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(lhs_value.is<ast::constant_value::string>());
+		bz_assert(rhs_value.is<ast::constant_value::string>());
+		return ast::constant_value(
+			lhs_value.get<ast::constant_value::string>()
+			!= rhs_value.get<ast::constant_value::string>()
+		);
+	}
+
+	case ast::function_body::print_stdout:
+	case ast::function_body::println_stdout:
+	case ast::function_body::print_stderr:
+	case ast::function_body::println_stderr:
+		return {};
+
+	case ast::function_body::memcpy:
+	case ast::function_body::memmove:
+	case ast::function_body::memset:
+		return {};
+
+	case ast::function_body::exp_f32: case ast::function_body::exp_f64:
+	case ast::function_body::exp2_f32: case ast::function_body::exp2_f64:
+	case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
+	case ast::function_body::log_f32: case ast::function_body::log_f64:
+	case ast::function_body::log10_f32: case ast::function_body::log10_f64:
+	case ast::function_body::log2_f32: case ast::function_body::log2_f64:
+	case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
+		[[fallthrough]];
+	case ast::function_body::pow_f32: case ast::function_body::pow_f64:
+	case ast::function_body::sqrt_f32: case ast::function_body::sqrt_f64:
+	case ast::function_body::cbrt_f32: case ast::function_body::cbrt_f64:
+	case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
+	case ast::function_body::sin_f32: case ast::function_body::sin_f64:
+	case ast::function_body::cos_f32: case ast::function_body::cos_f64:
+	case ast::function_body::tan_f32: case ast::function_body::tan_f64:
+	case ast::function_body::asin_f32: case ast::function_body::asin_f64:
+	case ast::function_body::acos_f32: case ast::function_body::acos_f64:
+	case ast::function_body::atan_f32: case ast::function_body::atan_f64:
+	case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
+		[[fallthrough]];
+	case ast::function_body::sinh_f32: case ast::function_body::sinh_f64:
+	case ast::function_body::cosh_f32: case ast::function_body::cosh_f64:
+	case ast::function_body::tanh_f32: case ast::function_body::tanh_f64:
+	case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
+	case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
+	case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
+		[[fallthrough]];
+	case ast::function_body::erf_f32: case ast::function_body::erf_f64:
+	case ast::function_body::erfc_f32: case ast::function_body::erfc_f64:
+	case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
+	case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
+		return evaluate_math_functions(original_expr, func_call, context);
+
+	default:
+		bz_unreachable;
+	}
+}
+
 static ast::constant_value evaluate_cast(
 	ast::expression const &original_expr,
 	ast::expr_cast const &subscript_expr,
@@ -1637,12 +1859,24 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			return evaluate_subscript(subscript_expr, context);
 		},
-		[&context](ast::expr_function_call &func_call) -> ast::constant_value {
+		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
+			bool is_consteval = true;
 			for (auto &param : func_call.params)
 			{
 				consteval_try(param, context);
+				if (param.consteval_state == ast::expression::consteval_failed)
+				{
+					is_consteval = false;
+				}
 			}
-			return {};
+			if (!is_consteval)
+			{
+				return {};
+			}
+			else
+			{
+				return evaluate_function_call(expr, func_call, context);
+			}
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
@@ -1650,7 +1884,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				return {};
 			}
-			return evaluate_cast(expr, cast_expr, context);
+			else
+			{
+				return evaluate_cast(expr, cast_expr, context);
+			}
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
@@ -1759,12 +1996,24 @@ static ast::constant_value try_evaluate_expr(
 
 			return evaluate_subscript(subscript_expr, context);
 		},
-		[&context](ast::expr_function_call &func_call) -> ast::constant_value {
+		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
+			bool is_consteval = true;
 			for (auto &param : func_call.params)
 			{
 				consteval_try(param, context);
+				if (param.consteval_state == ast::expression::consteval_failed)
+				{
+					is_consteval = false;
+				}
 			}
-			return {};
+			if (!is_consteval)
+			{
+				return {};
+			}
+			else
+			{
+				return evaluate_function_call(expr, func_call, context);
+			}
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);

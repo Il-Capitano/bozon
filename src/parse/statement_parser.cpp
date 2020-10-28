@@ -560,11 +560,16 @@ template ast::statement parse_decl_variable<true>(
 
 // resolves the function symbol, but doesn't modify scope
 static bool resolve_function_symbol_helper(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
 	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
+	if (func_stmt != nullptr)
+	{
+		resolve_attributes(*func_stmt, context);
+	}
 	bool good = true;
 	for (auto &p : func_body.params)
 	{
@@ -591,6 +596,7 @@ static bool resolve_function_symbol_helper(
 }
 
 void resolve_function_symbol(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
@@ -608,7 +614,7 @@ void resolve_function_symbol(
 
 	func_body.state = ast::resolve_state::resolving_symbol;
 	context.add_scope();
-	if (resolve_function_symbol_helper(func_body, context))
+	if (resolve_function_symbol_helper(func_stmt, func_body, context))
 	{
 		func_body.state = ast::resolve_state::symbol;
 	}
@@ -624,6 +630,7 @@ void resolve_function_symbol(
 }
 
 void resolve_function(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
@@ -645,7 +652,7 @@ void resolve_function(
 	{
 		func_body.state = ast::resolve_state::resolving_symbol;
 		context.add_scope();
-		if (!resolve_function_symbol_helper(func_body, context))
+		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
 			context.remove_scope();
@@ -793,7 +800,7 @@ ast::statement parse_decl_function(
 		auto result = ast::make_decl_function(id, std::move(body));
 		bz_assert(result.is<ast::decl_function>());
 		auto &func_decl = *result.get<ast::decl_function_ptr>();
-		resolve_function(func_decl.body, context);
+		resolve_function(&result, func_decl.body, context);
 		if (func_decl.body.state != ast::resolve_state::error)
 		{
 			context.add_local_function(func_decl);
@@ -861,7 +868,7 @@ ast::statement parse_decl_operator(
 		auto result = ast::make_decl_operator(op, std::move(body));
 		bz_assert(result.is<ast::decl_operator>());
 		auto &op_decl = *result.get<ast::decl_operator_ptr>();
-		resolve_function(op_decl.body, context);
+		resolve_function(&result, op_decl.body, context);
 		if (op_decl.body.state != ast::resolve_state::error)
 		{
 			context.add_local_operator(op_decl);
@@ -1781,8 +1788,16 @@ static void resolve_attributes(
 	auto &attributes = stmt.get_attributes();
 	for (auto &attribute : attributes)
 	{
-		bz_assert(attribute.args.size() == 0);
+		if (attribute.args.size() != 0)
+		{
+			// attributes have already been resolved
+			return;
+		}
 		auto [stream, end] = attribute.arg_tokens;
+		if (stream == end)
+		{
+			continue;
+		}
 		attribute.args = parse_expression_comma_list(stream, end, context);
 		if (stream != end)
 		{
@@ -1809,12 +1824,12 @@ void resolve_global_statement(
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
 			context.add_to_resolve_queue({}, func_decl.body);
-			resolve_function(func_decl.body, context);
+			resolve_function(&stmt, func_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_operator &op_decl) {
 			context.add_to_resolve_queue({}, op_decl.body);
-			resolve_function(op_decl.body, context);
+			resolve_function(&stmt, op_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {

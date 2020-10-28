@@ -37,10 +37,12 @@ void resolve_global_statement(
 );
 
 void resolve_function_symbol(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 );
 void resolve_function(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 );

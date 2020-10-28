@@ -11,13 +11,14 @@ namespace ctx
 struct function_overload_set
 {
 	bz::u8string id;
-	bz::vector<ast::decl_function *> func_decls;
+	bz::vector<std::pair<ast::statement *, ast::decl_function *>> func_decls;
 };
 
 struct operator_overload_set
 {
 	uint32_t op;
-	bz::vector<ast::decl_operator *> op_decls;
+	// will always be ast::decl_operator
+	bz::vector<std::pair<ast::statement *, ast::decl_operator *>> op_decls;
 };
 
 struct typespec_with_name
@@ -33,6 +34,27 @@ struct decl_set
 	bz::vector<operator_overload_set> op_sets;
 	bz::vector<typespec_with_name>    types;
 
+	void add_function(ast::statement &stmt)
+	{
+		bz_assert(stmt.is<ast::decl_function>());
+		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
+		auto const id = func_decl.identifier->value;
+		auto const set = std::find_if(
+			this->func_sets.begin(), this->func_sets.end(),
+			[id](auto const &set) {
+				return id == set.id;
+			}
+		);
+		if (set == this->func_sets.end())
+		{
+			this->func_sets.push_back({ id, {{ &stmt, &func_decl }} });
+		}
+		else
+		{
+			set->func_decls.push_back({ &stmt, &func_decl });
+		}
+	}
+
 	void add_function(ast::decl_function &func_decl)
 	{
 		auto const id = func_decl.identifier->value;
@@ -44,11 +66,32 @@ struct decl_set
 		);
 		if (set == this->func_sets.end())
 		{
-			this->func_sets.push_back({ id, { &func_decl } });
+			this->func_sets.push_back({ id, {{ nullptr, &func_decl }} });
 		}
 		else
 		{
-			set->func_decls.push_back(&func_decl);
+			set->func_decls.push_back({ nullptr, &func_decl });
+		}
+	}
+
+	void add_operator(ast::statement &stmt)
+	{
+		bz_assert(stmt.is<ast::decl_operator>());
+		auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
+		auto const op = op_decl.op->kind;
+		auto const set = std::find_if(
+			this->op_sets.begin(), this->op_sets.end(),
+			[op](auto const &set) {
+				return op == set.op;
+			}
+		);
+		if (set == this->op_sets.end())
+		{
+			this->op_sets.push_back({ op, {{ &stmt, &op_decl }} });
+		}
+		else
+		{
+			set->op_decls.push_back({ &stmt, &op_decl });
 		}
 	}
 
@@ -63,11 +106,11 @@ struct decl_set
 		);
 		if (set == this->op_sets.end())
 		{
-			this->op_sets.push_back({ op, { &op_decl } });
+			this->op_sets.push_back({ op, {{ nullptr, &op_decl }} });
 		}
 		else
 		{
-			set->op_decls.push_back(&op_decl);
+			set->op_decls.push_back({ nullptr, &op_decl });
 		}
 	}
 
@@ -86,7 +129,7 @@ struct decl_set
 		}
 		else
 		{
-			for (auto const decl : func_set.func_decls)
+			for (auto const &decl : func_set.func_decls)
 			{
 				set->func_decls.push_back(decl);
 			}
@@ -108,7 +151,7 @@ struct decl_set
 		}
 		else
 		{
-			for (auto const decl : op_set.op_decls)
+			for (auto const &decl : op_set.op_decls)
 			{
 				set->op_decls.push_back(decl);
 			}

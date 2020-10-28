@@ -396,6 +396,11 @@ struct function_body
 		return (this->flags & module_export) != 0;
 	}
 
+	bool is_intrinsic(void) const noexcept
+	{
+		return (this->flags & intrinsic) != 0;
+	}
+
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end

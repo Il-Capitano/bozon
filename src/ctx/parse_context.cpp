@@ -412,43 +412,13 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 void parse_context::add_local_function(ast::decl_function &func_decl)
 {
 	bz_assert(this->scope_decls.size() != 0);
-	auto &sets = this->scope_decls.back().func_sets;
-	auto const set = std::find_if(
-		sets.begin(), sets.end(),
-		[id = func_decl.identifier->value](auto const &set) {
-			return id == set.id;
-		}
-	);
-	if (set == sets.end())
-	{
-		sets.push_back({ func_decl.identifier->value, { &func_decl } });
-	}
-	else
-	{
-		// TODO: check for conflicts
-		set->func_decls.push_back(&func_decl);
-	}
+	this->scope_decls.back().add_function(func_decl);
 }
 
 void parse_context::add_local_operator(ast::decl_operator &op_decl)
 {
 	bz_assert(this->scope_decls.size() != 0);
-	auto &sets = this->scope_decls.back().op_sets;
-	auto const set = std::find_if(
-		sets.begin(), sets.end(),
-		[op = op_decl.op->kind](auto const &set) {
-			return op == set.op;
-		}
-	);
-	if (set == sets.end())
-	{
-		sets.push_back({ op_decl.op->kind, { &op_decl } });
-	}
-	else
-	{
-		// TODO: check for conflicts
-		set->op_decls.push_back(&op_decl);
-	}
+	this->scope_decls.back().add_operator(op_decl);
 }
 
 /*
@@ -741,7 +711,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			{
 				bz_assert(global_fn_set->func_decls.size() == 1);
 				bz_assert(final_set == nullptr);
-				auto &body = global_fn_set->func_decls[0]->body;
+				auto &body = global_fn_set->func_decls[0].second->body;
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::function_name, get_function_type(body),
@@ -754,7 +724,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		{
 			bz_assert(final_set != nullptr);
 			bz_assert(final_set->func_decls.size() == 1);
-			auto &body = final_set->func_decls[0]->body;
+			auto &body = final_set->func_decls[0].second->body;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::function_name, get_function_type(body),
@@ -822,11 +792,11 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		auto const id_type_kind = ast::expression_type_kind::function_name;
 		if (fn_set->func_decls.size() == 1)
 		{
-			auto const decl = fn_set->func_decls[0];
+			auto &body = fn_set->func_decls[0].second->body;
 			return ast::make_constant_expression(
 				src_tokens,
-				id_type_kind, get_function_type(decl->body),
-				ast::constant_value(&decl->body),
+				id_type_kind, get_function_type(body),
+				ast::constant_value(&body),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -1665,6 +1635,7 @@ struct match_level
 };
 
 static match_level get_function_call_match_level(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	bz::array_view<const ast::expression> params,
 	parse_context &context,
@@ -1676,9 +1647,12 @@ static match_level get_function_call_match_level(
 		return { -1, -1 };
 	}
 
-	context.add_to_resolve_queue(src_tokens, func_body);
-	parse::resolve_function_symbol(func_body, context);
-	context.pop_resolve_queue();
+	if (func_body.state < ast::resolve_state::symbol)
+	{
+		context.add_to_resolve_queue(src_tokens, func_body);
+		parse::resolve_function_symbol(func_stmt, func_body, context);
+		context.pop_resolve_queue();
+	}
 
 	if (func_body.state < ast::resolve_state::symbol)
 	{
@@ -1718,6 +1692,7 @@ static match_level get_function_call_match_level(
 }
 
 static match_level get_function_call_match_level(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ast::expression const &expr,
 	parse_context &context,
@@ -1729,9 +1704,13 @@ static match_level get_function_call_match_level(
 		return { -1, -1 };
 	}
 
-	context.add_to_resolve_queue(src_tokens, func_body);
-	parse::resolve_function_symbol(func_body, context);
-	context.pop_resolve_queue();
+
+	if (func_body.state < ast::resolve_state::symbol)
+	{
+		context.add_to_resolve_queue(src_tokens, func_body);
+		parse::resolve_function_symbol(func_stmt, func_body, context);
+		context.pop_resolve_queue();
+	}
 
 	if (func_body.state < ast::resolve_state::symbol)
 	{
@@ -1743,6 +1722,7 @@ static match_level get_function_call_match_level(
 }
 
 static match_level get_function_call_match_level(
+	ast::statement *func_stmt,
 	ast::function_body &func_body,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -1755,9 +1735,13 @@ static match_level get_function_call_match_level(
 		return { -1, -1 };
 	}
 
-	context.add_to_resolve_queue(src_tokens, func_body);
-	parse::resolve_function_symbol(func_body, context);
-	context.pop_resolve_queue();
+
+	if (func_body.state < ast::resolve_state::symbol)
+	{
+		context.add_to_resolve_queue(src_tokens, func_body);
+		parse::resolve_function_symbol(func_stmt, func_body, context);
+		context.pop_resolve_queue();
+	}
 
 	if (func_body.state < ast::resolve_state::symbol)
 	{
@@ -1979,10 +1963,11 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, expr, *this, src_tokens);
+				auto &body = op.second->body;
+				auto const match_level = get_function_call_match_level(op.first, body, expr, *this, src_tokens);
 				if (match_level.min != -1)
 				{
-					possible_funcs.push_back({ match_level, &op->body });
+					possible_funcs.push_back({ match_level, &body });
 				}
 			}
 		}
@@ -2001,10 +1986,11 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, expr, *this, src_tokens);
+			auto &body = op.second->body;
+			auto const match_level = get_function_call_match_level(op.first, body, expr, *this, src_tokens);
 			if (match_level.min != -1)
 			{
-				possible_funcs.push_back({ match_level, &op->body });
+				possible_funcs.push_back({ match_level, &body });
 			}
 		}
 	}
@@ -2142,10 +2128,11 @@ ast::expression parse_context::make_binary_operator_expression(
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto const match_level = get_function_call_match_level(op->body, lhs, rhs, *this, src_tokens);
+				auto &body = op.second->body;
+				auto const match_level = get_function_call_match_level(op.first, body, lhs, rhs, *this, src_tokens);
 				if (match_level.min != -1)
 				{
-					possible_funcs.push_back({ match_level, &op->body });
+					possible_funcs.push_back({ match_level, &body });
 				}
 			}
 		}
@@ -2164,10 +2151,11 @@ ast::expression parse_context::make_binary_operator_expression(
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto const match_level = get_function_call_match_level(op->body, lhs, rhs, *this, src_tokens);
+			auto &body = op.second->body;
+			auto const match_level = get_function_call_match_level(op.first, body, lhs, rhs, *this, src_tokens);
 			if (match_level.min != -1)
 			{
-				possible_funcs.push_back({ match_level, &op->body });
+				possible_funcs.push_back({ match_level, &body });
 			}
 		}
 	}
@@ -2230,7 +2218,7 @@ ast::expression parse_context::make_function_call_expression(
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
 			auto const func_body = const_called.value.get<ast::constant_value::function>();
-			if (get_function_call_match_level(*func_body, params, *this, src_tokens).sum == -1)
+			if (get_function_call_match_level(nullptr, *func_body, params, *this, src_tokens).sum == -1)
 			{
 				if (func_body->state != ast::resolve_state::error)
 				{
@@ -2277,10 +2265,11 @@ ast::expression parse_context::make_function_call_expression(
 				{
 					for (auto &fn : set->func_decls)
 					{
-						auto const match_level = get_function_call_match_level(fn->body, params, *this, src_tokens);
+						auto &body = fn.second->body;
+						auto const match_level = get_function_call_match_level(fn.first, body, params, *this, src_tokens);
 						if (match_level.min != -1)
 						{
-							possible_funcs.push_back({ match_level, &fn->body });
+							possible_funcs.push_back({ match_level, &body });
 						}
 					}
 				}
@@ -2299,10 +2288,11 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				for (auto &fn : global_set->func_decls)
 				{
-					auto const match_level = get_function_call_match_level(fn->body, params, *this, src_tokens);
+					auto &body = fn.second->body;
+					auto const match_level = get_function_call_match_level(fn.first, body, params, *this, src_tokens);
 					if (match_level.min != -1)
 					{
-						possible_funcs.push_back({ match_level, &fn->body });
+						possible_funcs.push_back({ match_level, &body });
 					}
 				}
 			}

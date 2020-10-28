@@ -7,14 +7,14 @@ default: debug
 
 default_cxx := clang++
 default_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -mtune=native -ferror-limit=2 -stdlib=libc++ -fno-exceptions -fno-rtti -D_FILE_OFFSET_BITS=64 -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -std=c++17
-default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -mtune=native -ferror-limit=2 -DNDEBUG -std=c++17
+default_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -mtune=native -ferror-limit=2 -stdlib=libc++ -fno-exceptions -fno-rtti -D_FILE_OFFSET_BITS=64 -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -DNDEBUG -std=c++17
 default_cxx_include_dirs := ./include ./src 
 default_cc := clang
 default_cc_debug_flags := -c -g -Og -Wall -Wextra -std=c11
 default_cc_release_flags := -c -O3 -Wall -Wextra -std=c11
 default_cc_include_dirs := ./include ./src 
 default_ld_debug_flags := -g -stdlib=libc++ -fno-exceptions -fno-rtti
-default_ld_release_flags := -flto
+default_ld_release_flags := -flto -stdlib=libc++ -fno-exceptions -fno-rtti
 default_ld_lib_dirs := C:/msys64/mingw64/lib
 default_ld_libs := LLVMXRay LLVMWindowsManifest LLVMTableGen LLVMSymbolize LLVMDebugInfoPDB LLVMOrcJIT LLVMOrcError LLVMJITLink LLVMObjectYAML LLVMMCA LLVMLTO LLVMPasses LLVMCoroutines LLVMObjCARCOpts LLVMExtensions LLVMLineEditor LLVMLibDriver LLVMInterpreter LLVMFuzzMutate LLVMMCJIT LLVMExecutionEngine LLVMRuntimeDyld LLVMDWARFLinker LLVMDlltoolDriver LLVMOption LLVMDebugInfoGSYM LLVMCoverage LLVMXCoreDisassembler LLVMXCoreCodeGen LLVMXCoreDesc LLVMXCoreInfo LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMX86Desc LLVMX86Info LLVMWebAssemblyDisassembler LLVMWebAssemblyCodeGen LLVMWebAssemblyDesc LLVMWebAssemblyAsmParser LLVMWebAssemblyInfo LLVMSystemZDisassembler LLVMSystemZCodeGen LLVMSystemZAsmParser LLVMSystemZDesc LLVMSystemZInfo LLVMSparcDisassembler LLVMSparcCodeGen LLVMSparcAsmParser LLVMSparcDesc LLVMSparcInfo LLVMRISCVDisassembler LLVMRISCVCodeGen LLVMRISCVAsmParser LLVMRISCVDesc LLVMRISCVUtils LLVMRISCVInfo LLVMPowerPCDisassembler LLVMPowerPCCodeGen LLVMPowerPCAsmParser LLVMPowerPCDesc LLVMPowerPCInfo LLVMNVPTXCodeGen LLVMNVPTXDesc LLVMNVPTXInfo LLVMMSP430Disassembler LLVMMSP430CodeGen LLVMMSP430AsmParser LLVMMSP430Desc LLVMMSP430Info LLVMMipsDisassembler LLVMMipsCodeGen LLVMMipsAsmParser LLVMMipsDesc LLVMMipsInfo LLVMLanaiDisassembler LLVMLanaiCodeGen LLVMLanaiAsmParser LLVMLanaiDesc LLVMLanaiInfo LLVMHexagonDisassembler LLVMHexagonCodeGen LLVMHexagonAsmParser LLVMHexagonDesc LLVMHexagonInfo LLVMBPFDisassembler LLVMBPFCodeGen LLVMBPFAsmParser LLVMBPFDesc LLVMBPFInfo LLVMAVRDisassembler LLVMAVRCodeGen LLVMAVRAsmParser LLVMAVRDesc LLVMAVRInfo LLVMARMDisassembler LLVMARMCodeGen LLVMARMAsmParser LLVMARMDesc LLVMARMUtils LLVMARMInfo LLVMAMDGPUDisassembler LLVMAMDGPUCodeGen LLVMMIRParser LLVMipo LLVMInstrumentation LLVMVectorize LLVMLinker LLVMIRReader LLVMAsmParser LLVMFrontendOpenMP LLVMAMDGPUAsmParser LLVMAMDGPUDesc LLVMAMDGPUUtils LLVMAMDGPUInfo LLVMAArch64Disassembler LLVMMCDisassembler LLVMAArch64CodeGen LLVMCFGuard LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoDWARF LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMAggressiveInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMProfileData LLVMObject LLVMTextAPI LLVMBitReader LLVMCore LLVMRemarks LLVMBitstreamReader LLVMAArch64AsmParser LLVMMCParser LLVMAArch64Desc LLVMMC LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMBinaryFormat LLVMAArch64Utils LLVMAArch64Info LLVMSupport LLVMDemangle z psapi shell32 ole32 uuid advapi32 pthread
 default_exe_debug := bin/default/debug/bozon.exe
@@ -59,10 +59,10 @@ rebuild-release: clean-release release
 exec: exec-debug
 
 exec-debug: $(default_exe_debug)
-	$(default_exe_debug) -Wall -Wno-unused-variable --debug-ir-output ./src/consteval_test.bz
+	$(default_exe_debug) -Wall -Wno-unused-variable --debug-ir-output ./src/bitcode_test.bz
 
 exec-release: $(default_exe_release)
-	$(default_exe_release) -Wall -Wno-unused-variable --debug-ir-output ./src/consteval_test.bz
+	$(default_exe_release) -Wall -Wno-unused-variable --debug-ir-output ./src/bitcode_test.bz
 
 $(default_exe_debug): bin/default/debug/int/generic.cpp.o bin/default/debug/int/microsoft_x64.cpp.o bin/default/debug/int/systemv_amd64.cpp.o bin/default/debug/int/constant_value.cpp.o bin/default/debug/int/expression.cpp.o bin/default/debug/int/statement.cpp.o bin/default/debug/int/typespec.cpp.o bin/default/debug/int/comptime_emit_bitcode.cpp.o bin/default/debug/int/runtime_emit_bitcode.cpp.o bin/default/debug/int/clparser.cpp.o bin/default/debug/int/bitcode_context.cpp.o bin/default/debug/int/built_in_operators.cpp.o bin/default/debug/int/command_parse_context.cpp.o bin/default/debug/int/comptime_executor.cpp.o bin/default/debug/int/error.cpp.o bin/default/debug/int/first_pass_parse_context.cpp.o bin/default/debug/int/global_context.cpp.o bin/default/debug/int/lex_context.cpp.o bin/default/debug/int/parse_context.cpp.o bin/default/debug/int/safe_operations_.cpp.o bin/default/debug/int/src_manager.cpp.o bin/default/debug/int/warnings.cpp.o bin/default/debug/int/global_data.cpp.o bin/default/debug/int/lexer.cpp.o bin/default/debug/int/token.cpp.o bin/default/debug/int/main.cpp.o bin/default/debug/int/consteval.cpp.o bin/default/debug/int/expression_parser.cpp.o bin/default/debug/int/parse_common.cpp.o bin/default/debug/int/safe_operations.cpp.o bin/default/debug/int/statement_parser.cpp.o bin/default/debug/int/src_file.cpp.o
 	$(default_cxx) $(default_ld_debug_flags) $^ -o $@ $(addprefix -L,$(default_ld_lib_dirs)) $(addprefix -l,$(default_ld_libs))

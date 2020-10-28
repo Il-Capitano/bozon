@@ -24,6 +24,7 @@ enum class warning_kind
 	invalid_unicode,
 	nan_compare,
 	out_of_bounds_index,
+	bad_float_math,
 
 	_last,
 };
@@ -56,6 +57,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::invalid_unicode,          "invalid-unicode",          "'char' result of an expression is an invalid unicode codepoint"            },
 		T{ warning_kind::nan_compare,              "nan-compare",              "Comparing against nan when comparing floating-point numbers"               },
 		T{ warning_kind::out_of_bounds_index,      "out-of-bounds-index",      "Index is out of bounds in array subscript"                                 },
+		T{ warning_kind::bad_float_math,           "bad-float-math",           "Invalid arguments for floating-point math functions"                       },
 	};
 
 	constexpr_bubble_sort(
