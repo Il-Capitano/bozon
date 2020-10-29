@@ -1677,6 +1677,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
+		static_assert(ast::function_body::builtin_str_eq == ast::function_body::_builtin_first);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -1730,6 +1731,7 @@ static val_ptr emit_bitcode(
 				return val_ptr{ val_ptr::value, result };
 			}
 		}
+		static_assert(ast::function_body::builtin_str_from_ptrs + 1 == ast::function_body::_builtin_last);
 
 		default:
 			break;
