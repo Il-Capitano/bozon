@@ -137,12 +137,12 @@ void println_uint64(uint64_t n)
 	fprintf(stdout, "%" PRIu64 "\n", n);
 }
 
-void print_int32_ptr(int32_t const *p)
+void print_void_ptr(void const *p)
 {
 	fprintf(stdout, "0x%" PRIx64, (uint64_t)p);
 }
 
-void println_int32_ptr(int32_t const *p)
+void println_void_ptr(void const *p)
 {
 	fprintf(stdout, "0x%" PRIx64 "\n", (uint64_t)p);
 }
