@@ -214,6 +214,7 @@ struct ts_lvalue_reference
 
 
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
+typespec_view remove_pointer(typespec_view ts) noexcept;
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 
 bool is_complete(typespec_view ts) noexcept;

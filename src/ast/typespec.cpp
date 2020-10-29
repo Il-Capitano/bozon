@@ -171,6 +171,18 @@ typespec_view remove_lvalue_reference(typespec_view ts) noexcept
 	}
 }
 
+typespec_view remove_pointer(typespec_view ts) noexcept
+{
+	if (ts.nodes.size() != 0 && ts.nodes.front().is<ts_pointer>())
+	{
+		return typespec_view{{ ts.nodes.begin() + 1, ts.nodes.end() }};
+	}
+	else
+	{
+		return ts;
+	}
+}
+
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept
 {
 	if (
