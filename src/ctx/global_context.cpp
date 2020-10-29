@@ -19,20 +19,20 @@ template<typename ...Ts>
 static ast::function_body create_builtin_function(
 	uint32_t kind,
 	bz::u8string_view symbol_name,
-	ast::type_info *return_type,
+	ast::typespec return_type,
 	Ts ...arg_types
 )
 {
-	static_assert((bz::meta::is_same<Ts, ast::type_info *> && ...));
+	static_assert((bz::meta::is_same<Ts, ast::typespec> && ...));
 	bz::vector<ast::decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
 		lex::token_range{}, lex::token_pos{}, lex::token_range{},
-		ast::make_base_type_typespec({}, arg_types)
+		std::move(arg_types)
 	)), ...);
 	return ast::function_body{
 		std::move(params),
-		return_type != nullptr ? ast::make_base_type_typespec({}, return_type) : ast::make_void_typespec(nullptr),
+		std::move(return_type),
 		ast::function_body::body_t{},
 		"",
 		symbol_name,
@@ -237,8 +237,14 @@ ast::type_info *global_context::get_base_type_info(uint32_t kind) const
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind) const
 {
-	auto const bool_type_info = this->get_base_type_info(ast::type_info::bool_);
-	auto const str_type_info  = this->get_base_type_info(ast::type_info::str_);
+	auto const bool_type = ast::make_base_type_typespec({}, this->get_base_type_info(ast::type_info::bool_));
+	auto const str_type  = ast::make_base_type_typespec({}, this->get_base_type_info(ast::type_info::str_));
+	auto const uint8_const_ptr_type = [&]() {
+		ast::typespec result = ast::make_base_type_typespec({}, this->get_base_type_info(ast::type_info::uint8_));
+		result.add_layer<ast::ts_const>(nullptr);
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
@@ -246,8 +252,11 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind) const
 		ast::function_body,
 		ast::function_body::_builtin_last - ast::function_body::_builtin_first
 	> builtin_functions = {
-		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type_info, str_type_info, str_type_info),
-		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type_info, str_type_info, str_type_info),
+		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
+		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
+		add_builtin(2, ast::function_body::builtin_str_begin_ptr, "", uint8_const_ptr_type, str_type),
+		add_builtin(3, ast::function_body::builtin_str_end_ptr,   "", uint8_const_ptr_type, str_type),
+		add_builtin(4, ast::function_body::builtin_str_from_ptrs, "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
 	};
 #undef add_builtin
 

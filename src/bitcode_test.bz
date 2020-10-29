@@ -116,6 +116,9 @@ function main() -> int32
 	println("\n==== tuple_test ====");
 	tuple_test();
 
+	println("\n==== str_pointer_test ====");
+	str_pointer_test();
+
 	println("\n==== end main ====");
 	println(exp(1.0));
 
@@ -124,6 +127,7 @@ function main() -> int32
 	println(s1 == s2);
 	println(s1 != s2);
 	logln("Hello from stderr");
+
 
 
 	return 0;
@@ -856,4 +860,52 @@ function phi_test(x: int32, b: bool) -> int32
 		result /= 2;
 	}
 	return result;
+}
+
+function str_pointer_test()
+{
+	const s = "hello";
+	const begin = __builtin_str_begin_ptr(s);
+	const end   = __builtin_str_end_ptr(s);
+	static_assert(typeof begin == const *const uint8);
+	static_assert(typeof begin == typeof end);
+
+	println(begin);
+	println(end);
+
+	assert(my_str_equals("hello", "hello"));
+	assert(my_str_equals(s, "hello"));
+
+	let arr: [10: uint8];
+	arr[0] = 'h' as uint32 as uint8;
+	arr[1] = 'e' as uint32 as uint8;
+	arr[2] = 'l' as uint32 as uint8;
+	arr[3] = 'l' as uint32 as uint8;
+	arr[4] = 'o' as uint32 as uint8;
+	const arr_s = __builtin_str_from_ptrs(&arr[0], &arr[5]);
+	__builtin_str_from_ptrs(&arr[0], &arr[5]);
+	static_assert(typeof arr_s == const str);
+	assert(arr_s == "hello");
+}
+
+function my_str_equals(lhs: str, rhs: str) -> bool
+{
+	let lhs_it = __builtin_str_begin_ptr(lhs);
+	let rhs_it = __builtin_str_begin_ptr(rhs);
+	const lhs_end = __builtin_str_end_ptr(lhs);
+	const rhs_end = __builtin_str_end_ptr(rhs);
+
+	if (lhs_end - lhs_it != rhs_end - rhs_it)
+	{
+		return false;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return false;
+		}
+	}
+	return true;
 }

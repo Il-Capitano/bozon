@@ -1468,6 +1468,10 @@ static ast::constant_value evaluate_function_call(
 			!= rhs_value.get<ast::constant_value::string>()
 		);
 	}
+	case ast::function_body::builtin_str_begin_ptr:
+	case ast::function_body::builtin_str_end_ptr:
+	case ast::function_body::builtin_str_from_ptrs:
+		return {};
 
 	case ast::function_body::print_stdout:
 	case ast::function_body::println_stdout:

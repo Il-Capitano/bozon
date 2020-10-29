@@ -842,7 +842,10 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	else if (id_value.starts_with("__builtin"))
 	{
 		using T = std::pair<bz::u8string_view, uint32_t>;
-		static constexpr std::array<T, 0> builtins = {
+		static constexpr std::array builtins = {
+			T{ "__builtin_str_begin_ptr", ast::function_body::builtin_str_begin_ptr },
+			T{ "__builtin_str_end_ptr",   ast::function_body::builtin_str_end_ptr   },
+			T{ "__builtin_str_from_ptrs", ast::function_body::builtin_str_from_ptrs },
 		};
 		auto const it = std::find_if(builtins.begin(), builtins.end(), [id_value](auto const &p) {
 			return p.first == id_value;

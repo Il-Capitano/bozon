@@ -1673,6 +1673,69 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	if (func_call.func_body->is_intrinsic())
+	{
+		switch (func_call.func_body->intrinsic_kind)
+		{
+		case ast::function_body::builtin_str_begin_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const begin_ptr = context.builder.CreateExtractValue(arg, 0);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(begin_ptr, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, begin_ptr };
+			}
+		}
+		case ast::function_body::builtin_str_end_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end_ptr = context.builder.CreateExtractValue(arg, 1);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(end_ptr, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, end_ptr };
+			}
+		}
+		case ast::function_body::builtin_str_from_ptrs:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const begin_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end_ptr   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+				auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+				context.builder.CreateStore(begin_ptr, result_begin_ptr);
+				context.builder.CreateStore(end_ptr, result_end_ptr);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				bz_assert(context.get_str_t()->isStructTy());
+				auto const str_t = static_cast<llvm::StructType *>(context.get_str_t());
+				llvm::Value *result = llvm::ConstantStruct::get(str_t, { llvm::UndefValue::get(str_t), llvm::UndefValue::get(str_t) });
+				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
+				result = context.builder.CreateInsertValue(result, end_ptr,   1);
+				return val_ptr{ val_ptr::value, result };
+			}
+		}
+
+		default:
+			break;
+		}
+	}
+
 	bz_assert(func_call.func_body != nullptr);
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_call.params.size());
@@ -2658,6 +2721,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
+	bz_assert(func_body.symbol_name != "");
 	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
 	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
@@ -2875,7 +2939,11 @@ void add_builtin_functions(ctx::bitcode_context &context)
 		++kind
 	)
 	{
-		add_function_to_module(context.get_builtin_function(kind), context);
+		auto const body = context.get_builtin_function(kind);
+		if (body->symbol_name != "")
+		{
+			add_function_to_module(body, context);
+		}
 	}
 }
 
