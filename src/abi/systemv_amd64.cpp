@@ -4,39 +4,21 @@ namespace abi
 {
 
 template<>
-bool pass_by_reference<platform_abi::systemv_amd64>(
+pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	[[maybe_unused]] llvm::Type *t,
 	[[maybe_unused]] ctx::bitcode_context &context
 )
 {
-	return false;
+	return pass_kind::value;
 }
 
 template<>
-bool pass_as_int_cast<platform_abi::systemv_amd64>(
+llvm::Type *get_int_cast_type<platform_abi::systemv_amd64>(
 	[[maybe_unused]] llvm::Type *t,
 	[[maybe_unused]] ctx::bitcode_context &context
 )
 {
-	return false;
-}
-
-template<>
-bool return_with_output_pointer<platform_abi::systemv_amd64>(
-	[[maybe_unused]] llvm::Type *t,
-	[[maybe_unused]] ctx::bitcode_context &context
-)
-{
-	return false;
-}
-
-template<>
-bool return_as_int_cast<platform_abi::systemv_amd64>(
-	[[maybe_unused]] llvm::Type *t,
-	[[maybe_unused]] ctx::bitcode_context &context
-)
-{
-	return false;
+	bz_unreachable;
 }
 
 } // namespace abi

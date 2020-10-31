@@ -28,11 +28,6 @@ static void emit_bitcode(
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &context, bool is_top_level = true);
 
 
-#include "runtime_common_declarations.impl"
-#include "runtime_microsoft_x64.impl"
-#include "runtime_systemv_amd64.impl"
-
-
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
 	llvm::Type *llvm_type,
@@ -1739,58 +1734,151 @@ static val_ptr emit_bitcode(
 	}
 
 	bz_assert(func_call.func_body != nullptr);
+	auto const fn = context.get_function(func_call.func_body);
+	bz_assert(fn != nullptr);
+
+	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+	auto const result_kind = abi::get_pass_kind<abi>(result_type, context);
+
 	bz::vector<llvm::Value *> params = {};
-	params.reserve(func_call.params.size());
+	bz::vector<bool> params_is_pass_by_ref = {};
+	params.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
+	params_is_pass_by_ref.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
+
+	if (result_kind == abi::pass_kind::reference)
+	{
+		auto const output_ptr = result_address != nullptr
+			? result_address
+			: context.create_alloca(result_type);
+		params.push_back(output_ptr);
+		params_is_pass_by_ref.push_back(false);
+	}
+
 	for (size_t i = 0; i < func_call.params.size(); ++i)
 	{
 		auto &p = func_call.params[i];
 		auto &p_t = func_call.func_body->params[i].var_type;
+		auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 		if (p_t.is<ast::ts_lvalue_reference>())
 		{
-			auto const val = emit_bitcode<abi>(p, context, nullptr);
-			bz_assert(val.kind == val_ptr::reference);
-			params.push_back(val.val);
+			bz_assert(param_val.kind == val_ptr::reference);
+			params.push_back(param_val.val);
+			params_is_pass_by_ref.push_back(false);
+		}
+		// *void and *const void
+		else if (ast::remove_const_or_consteval(ast::remove_pointer(p_t)).is<ast::ts_void>())
+		{
+			auto const void_ptr_val = context.builder.CreatePointerCast(
+				param_val.get_value(context.builder),
+				llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
+			);
+			params.push_back(void_ptr_val);
+			params_is_pass_by_ref.push_back(false);
 		}
 		else
 		{
-			auto const val = emit_bitcode<abi>(p, context, nullptr);
-			params.push_back(val.get_value(context.builder));
+			auto const param_llvm_type = get_llvm_type(p_t, context);
+			auto const pass_kind = abi::get_pass_kind<abi>(param_llvm_type, context);
+
+			switch (pass_kind)
+			{
+			case abi::pass_kind::reference:
+				// there's no need to provide a seperate copy for a byval argument,
+				// as a copy is made at the call site automatically
+				// see: https://reviews.llvm.org/D79636
+				if (param_val.kind == val_ptr::reference)
+				{
+					params.push_back(param_val.val);
+				}
+				else
+				{
+					auto const val = param_val.get_value(context.builder);
+					auto const alloca = context.create_alloca(param_llvm_type);
+					context.builder.CreateStore(val, alloca);
+					params.push_back(alloca);
+				}
+				params_is_pass_by_ref.push_back(true);
+				break;
+			case abi::pass_kind::int_cast:
+				params.push_back(context.create_cast_to_int(param_val));
+				params_is_pass_by_ref.push_back(false);
+				break;
+			case abi::pass_kind::value:
+				params.push_back(param_val.get_value(context.builder));
+				params_is_pass_by_ref.push_back(false);
+				break;
+			}
 		}
 	}
-	auto const fn = context.get_function(func_call.func_body);
-	bz_assert(fn != nullptr);
-	auto const res = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-	res->setCallingConv(fn->getCallingConv());
+
+	auto const res = [&]() -> llvm::Value * {
+		auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+		call->setCallingConv(fn->getCallingConv());
+		auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
+		auto const is_pass_by_ref_end = params_is_pass_by_ref.end();
+		unsigned i = 0;
+		bz_assert(fn->arg_size() == call->arg_size());
+		if (result_kind == abi::pass_kind::reference)
+		{
+			call->addParamAttr(0, llvm::Attribute::StructRet);
+			bz_assert(is_pass_by_ref_it != is_pass_by_ref_end);
+			++is_pass_by_ref_it, ++i;
+		}
+		for (; is_pass_by_ref_it != is_pass_by_ref_end; ++is_pass_by_ref_it, ++i)
+		{
+			auto const is_pass_by_ref = *is_pass_by_ref_it;
+			if (is_pass_by_ref)
+			{
+				call->addParamAttr(i, llvm::Attribute::ByVal);
+				call->addParamAttr(i, llvm::Attribute::NoAlias);
+				call->addParamAttr(i, llvm::Attribute::NoCapture);
+				call->addParamAttr(i, llvm::Attribute::NonNull);
+			}
+		}
+		switch (result_kind)
+		{
+		case abi::pass_kind::reference:
+			return params.front();
+		case abi::pass_kind::int_cast:
+		{
+			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
+			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
+			context.builder.CreateStore(call, int_ptr);
+			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
+		}
+		case abi::pass_kind::value:
+			if (result_address == nullptr)
+			{
+				return call;
+			}
+			else
+			{
+				context.builder.CreateStore(call, result_address);
+				return result_address;
+			}
+		}
+	}();
 
 	if (res->getType()->isVoidTy())
 	{
 		return {};
 	}
 
-	if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
+	if (result_address != nullptr)
 	{
-		if (result_address == nullptr)
-		{
-			return { val_ptr::reference, res };
-		}
-		else
-		{
-			auto const loaded_val = context.builder.CreateLoad(res);
-			context.builder.CreateStore(loaded_val, result_address);
-			return { val_ptr::reference, result_address };
-		}
+		bz_assert(res == result_address);
+		return { val_ptr::reference, result_address };
+	}
+	else if (
+		func_call.func_body->return_type.is<ast::ts_lvalue_reference>()
+		|| result_kind == abi::pass_kind::reference
+	)
+	{
+		return { val_ptr::reference, res };
 	}
 	else
 	{
-		if (result_address == nullptr)
-		{
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			context.builder.CreateStore(res, result_address);
-			return { val_ptr::reference, result_address };
-		}
+		return { val_ptr::value, res };
 	}
 }
 
@@ -2420,15 +2508,45 @@ static void emit_bitcode(
 	}
 	else
 	{
-		auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, nullptr);
+		auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
 		if (context.current_function.first->return_type.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
 		}
+		else if (context.output_pointer != nullptr)
+		{
+			bz_assert(ret_val.val == context.output_pointer);
+			bz_assert(ret_val.kind == val_ptr::reference);
+			context.builder.CreateRetVoid();
+		}
 		else
 		{
-			context.builder.CreateRet(ret_val.get_value(context.builder));
+			auto const ret_kind = abi::get_pass_kind<abi>(ret_val.get_type(), context);
+			if (ret_kind == abi::pass_kind::int_cast)
+			{
+				auto const ret_t = context.current_function.second->getReturnType();
+				if (ret_val.kind == val_ptr::reference)
+				{
+					auto const val_ptr = ret_val.val;
+					auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(ret_t, 0));
+					auto const int_val = context.builder.CreateLoad(int_ptr);
+					context.builder.CreateRet(int_val);
+				}
+				else
+				{
+					auto const val = ret_val.get_value(context.builder);
+					auto const int_ptr = context.create_alloca(ret_t);
+					auto const val_ptr = context.builder.CreateBitCast(int_ptr, llvm::PointerType::get(val->getType(), 0));
+					context.builder.CreateStore(val, val_ptr);
+					auto const int_val = context.builder.CreateLoad(int_ptr);
+					context.builder.CreateRet(int_val);
+				}
+			}
+			else
+			{
+				context.builder.CreateRet(ret_val.get_value(context.builder));
+			}
 		}
 	}
 }
@@ -2651,75 +2769,52 @@ static llvm::Function *create_function_from_symbol_impl(
 )
 {
 	auto const result_t = get_llvm_type(func_body.return_type, context);
-	auto const result_output_ptr = !result_t->isVoidTy() && abi::return_with_output_pointer<abi>(result_t, context);
-	auto const result_int_cast = !result_t->isVoidTy() && !result_output_ptr && abi::return_as_int_cast<abi>(result_t, context);
+	auto const return_kind = abi::get_pass_kind<abi>(result_t, context);
 
 	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
 	pass_arg_by_ref.reserve(func_body.params.size());
-	args.reserve(func_body.params.size() + static_cast<size_t>(result_output_ptr));
+	args.reserve(func_body.params.size() + (return_kind == abi::pass_kind::reference ? 1 : 0));
 
-	if (result_output_ptr)
+	if (return_kind == abi::pass_kind::reference)
 	{
 		args.push_back(llvm::PointerType::get(result_t, 0));
 	}
 	for (auto &p : func_body.params)
 	{
 		auto const t = get_llvm_type(p.var_type, context);
-		if (abi::pass_by_reference<abi>(t, context))
+		auto const pass_kind = abi::get_pass_kind<abi>(t, context);
+
+		switch (pass_kind)
 		{
+		case abi::pass_kind::reference:
 			pass_arg_by_ref.push_back(true);
 			args.push_back(llvm::PointerType::get(t, 0));
-		}
-		else if (abi::pass_as_int_cast<abi>(t, context))
-		{
-			auto const size = context.get_size(t);
-			bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
-
-			switch (size)
-			{
-			case 1:
-				args.push_back(context.get_int8_t());
-				break;
-			case 2:
-				args.push_back(context.get_int16_t());
-				break;
-			case 4:
-				args.push_back(context.get_int32_t());
-				break;
-			case 8:
-				args.push_back(context.get_int64_t());
-				break;
-			default:
-				bz_unreachable;
-			}
+			break;
+		case abi::pass_kind::int_cast:
+			args.push_back(abi::get_int_cast_type<abi>(t, context));
 			pass_arg_by_ref.push_back(false);
-		}
-		else
-		{
+			break;
+		case abi::pass_kind::value:
 			pass_arg_by_ref.push_back(false);
 			args.push_back(t);
+			break;
 		}
 	}
 	auto const func_t = [&]() {
-		auto const real_result_t =
-			result_output_ptr ? llvm::Type::getVoidTy(context.get_llvm_context()) :
-			result_int_cast ? [&]() {
-				auto const size = context.get_size(result_t);
-				switch (size)
-				{
-				case 1:
-					return context.get_int8_t();
-				case 2:
-					return context.get_int16_t();
-				case 4:
-					return context.get_int32_t();
-				case 8:
-					return context.get_int64_t();
-				}
-				bz_unreachable;
-			}() :
-			result_t;
+		llvm::Type *real_result_t;
+		switch (return_kind)
+		{
+		case abi::pass_kind::reference:
+			real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
+			break;
+		case abi::pass_kind::int_cast:
+			real_result_t = abi::get_int_cast_type<abi>(result_t, context);
+			break;
+		case abi::pass_kind::value:
+			real_result_t = result_t;
+			break;
+		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
@@ -2756,7 +2851,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	auto arg_it = fn->arg_begin();
 	auto const arg_end = fn->arg_end();
 
-	if (result_output_ptr)
+	if (return_kind == abi::pass_kind::reference)
 	{
 		arg_it->addAttr(llvm::Attribute::StructRet);
 		arg_it->addAttr(llvm::Attribute::NoAlias);
