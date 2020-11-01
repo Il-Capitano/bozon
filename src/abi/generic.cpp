@@ -4,11 +4,21 @@ namespace abi
 {
 
 template<>
-pass_kind get_pass_kind<platform_abi::generic>(
-	[[maybe_unused]] llvm::Type *t,
-	[[maybe_unused]] ctx::bitcode_context &context
-)
+pass_kind get_pass_kind<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context)
 {
+	if (t->isVoidTy())
+	{
+		return pass_kind::value;
+	}
+
+	auto const size = context.get_size(t);
+	size_t const register_size = 8;
+	bz_assert(context.get_register_size() == register_size);
+	if (size > 2 * register_size)
+	{
+		return pass_kind::reference;
+	}
+
 	return pass_kind::value;
 }
 
