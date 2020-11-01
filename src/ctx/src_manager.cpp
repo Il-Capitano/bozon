@@ -334,7 +334,7 @@ bool src_manager::emit_obj(void)
 			));
 		}();
 
-	if (!output_file.ends_with(".o"))
+	if (output_file != "-" && !output_file.ends_with(".o"))
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
@@ -343,10 +343,25 @@ bool src_manager::emit_obj(void)
 	}
 
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-		ec, llvm::sys::fs::OF_None
-	);
+
+	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
+	bool const is_output_stdout = output_file == "-";
+	if (!is_output_stdout)
+	{
+		opt_dest_file.emplace(
+			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+			ec, llvm::sys::fs::OF_None
+		);
+	}
+	else
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::binary_stdout,
+			"outputting binary file to stdout"
+		);
+	}
+	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+
 	if (ec)
 	{
 		this->_global_ctx.report_error(bz::format(
@@ -384,7 +399,7 @@ bool src_manager::emit_asm(void)
 			));
 		}();
 
-	if (!output_file.ends_with(".s"))
+	if (output_file != "-" && !output_file.ends_with(".s"))
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
@@ -393,10 +408,18 @@ bool src_manager::emit_asm(void)
 	}
 
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-		ec, llvm::sys::fs::OF_None
-	);
+
+	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
+	bool const is_output_stdout = output_file == "-";
+	if (!is_output_stdout)
+	{
+		opt_dest_file.emplace(
+			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+			ec, llvm::sys::fs::OF_None
+		);
+	}
+	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+
 	if (ec)
 	{
 		this->_global_ctx.report_error(bz::format(
@@ -437,7 +460,7 @@ bool src_manager::emit_llvm_bc(void)
 			));
 		}();
 
-	if (!output_file.ends_with(".bc"))
+	if (output_file != "-" && !output_file.ends_with(".bc"))
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
@@ -446,10 +469,25 @@ bool src_manager::emit_llvm_bc(void)
 	}
 
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-		ec, llvm::sys::fs::OF_None
-	);
+
+	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
+	bool const is_output_stdout = output_file == "-";
+	if (!is_output_stdout)
+	{
+		opt_dest_file.emplace(
+			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+			ec, llvm::sys::fs::OF_None
+		);
+	}
+	else
+	{
+		this->_global_ctx.report_warning(
+			warning_kind::binary_stdout,
+			"outputting binary file to stdout"
+		);
+	}
+	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+
 	if (ec)
 	{
 		this->_global_ctx.report_error(bz::format(
@@ -478,7 +516,7 @@ bool src_manager::emit_llvm_ir(void)
 			));
 		}();
 
-	if (!output_file.ends_with(".ll"))
+	if (output_file != "-" && !output_file.ends_with(".ll"))
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::bad_file_extension,
@@ -487,10 +525,18 @@ bool src_manager::emit_llvm_ir(void)
 	}
 
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(
-		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-		ec, llvm::sys::fs::OF_None
-	);
+
+	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
+	bool const is_output_stdout = output_file == "-";
+	if (!is_output_stdout)
+	{
+		opt_dest_file.emplace(
+			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+			ec, llvm::sys::fs::OF_None
+		);
+	}
+	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+
 	if (ec)
 	{
 		this->_global_ctx.report_error(bz::format(
