@@ -27,7 +27,7 @@ bool is_any_optimization_enabled(void) noexcept
 	return false;
 }
 
-static constexpr bz::u8string_view bozon_version = "bozon 0.0.0";
+static constexpr bz::u8string_view bozon_version = "0.0.0";
 static constexpr bz::u8string_view llvm_version = LLVM_VERSION_STRING;
 
 void print_version_info(void)
@@ -37,7 +37,7 @@ void print_version_info(void)
 		auto const default_target = llvm::sys::getDefaultTargetTriple();
 		auto const host_cpu = llvm::sys::getHostCPUName();
 		bz::print(
-			"{}\n"
+			"bozon {}\n"
 			"default target: {}\n"
 			"host CPU: {}\n"
 			"LLVM version: {}\n",
@@ -47,6 +47,6 @@ void print_version_info(void)
 	}
 	else
 	{
-		bz::print("{}\n", bozon_version);
+		bz::print("bozon {}\n", bozon_version);
 	}
 }

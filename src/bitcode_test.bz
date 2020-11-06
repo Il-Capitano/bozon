@@ -128,6 +128,7 @@ function main() -> int32
 	println(s1 != s2);
 	logln("Hello from stderr");
 
+	arr2_tester();
 
 
 	return 0;
@@ -870,8 +871,7 @@ function str_pointer_test()
 	static_assert(typeof begin == const *const uint8);
 	static_assert(typeof begin == typeof end);
 
-	println(begin);
-	println(end);
+	print(begin), print(", "), println(end);
 
 	assert(my_str_equals("hello", "hello"));
 	assert(my_str_equals(s, "hello"));
@@ -881,11 +881,13 @@ function str_pointer_test()
 	arr[1] = 'e' as uint32 as uint8;
 	arr[2] = 'l' as uint32 as uint8;
 	arr[3] = 'l' as uint32 as uint8;
-	arr[4] = 'o' as uint32 as uint8;
+	arr[4] = 'a' as uint32 as uint8;
 	const arr_s = __builtin_str_from_ptrs(&arr[0], &arr[5]);
 	__builtin_str_from_ptrs(&arr[0], &arr[5]);
 	static_assert(typeof arr_s == const str);
-	assert(arr_s == "hello");
+	assert(arr_s == "hella");
+	arr[4] = 'o' as uint32 as uint8;
+	assert(arr_s != "hella");
 }
 
 function my_str_equals(lhs: str, rhs: str) -> bool
@@ -898,6 +900,11 @@ function my_str_equals(lhs: str, rhs: str) -> bool
 	if (lhs_end - lhs_it != rhs_end - rhs_it)
 	{
 		return false;
+	}
+
+	if (lhs_it == rhs_it)
+	{
+		return true;
 	}
 
 	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
