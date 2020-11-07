@@ -37,7 +37,11 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 
 		auto const elem_count = t->getArrayNumElements();
 		auto const elem_size = context.get_size(elem_type);
-		if (elem_size > register_size)
+		if (elem_count == 1)
+		{
+			return elem_pass_kind;
+		}
+		else if (elem_size > register_size)
 		{
 			bz_assert(elem_count == 1);
 			return elem_pass_kind;
@@ -60,13 +64,25 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 			return pass_kind::reference;
 		}
 
-		if (t->getStructNumElements() > 2)
+		auto const elem_count = t->getStructNumElements();
+		if (elem_count == 1)
+		{
+			return get_pass_kind<platform_abi::systemv_amd64>(t->getStructElementType(0), context);
+		}
+		else if (elem_count > 2)
 		{
 			return pass_kind::int_cast;
 		}
+
+		if (size <= register_size)
+		{
+			return pass_kind::int_cast;
+		}
+
 		for (auto const elem_type : static_cast<llvm::StructType *>(t)->elements())
 		{
 			auto const elem_pass_kind = get_pass_kind<platform_abi::systemv_amd64>(elem_type, context);
+
 			if (elem_pass_kind == pass_kind::int_cast)
 			{
 				return pass_kind::int_cast;
@@ -134,14 +150,14 @@ llvm::Type *get_int_cast_type<platform_abi::systemv_amd64>(
 		auto const last_type  = struct_t->elements().back();
 		bz_assert(!(first_type->isPointerTy() && last_type->isPointerTy()));
 
-		if (first_type->isPointerTy())
+		if (first_type->isPointerTy() || first_type->isDoubleTy())
 		{
 			return llvm::StructType::get(
 				first_type,
 				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8)
 			);
 		}
-		else if (last_type->isPointerTy())
+		else if (last_type->isPointerTy() || last_type->isDoubleTy())
 		{
 			return llvm::StructType::get(
 				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8),
