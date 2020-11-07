@@ -227,6 +227,16 @@ struct expression : bz::variant<
 			&& this->get_expr_type_and_kind().second == expression_type_kind::none;
 	}
 
+	bool has_consteval_succeeded(void) const noexcept
+	{
+		return this->consteval_state == consteval_succeeded;
+	}
+
+	bool has_consteval_failed(void) const noexcept
+	{
+		return this->consteval_state == consteval_failed;
+	}
+
 	expr_t &get_expr(void)
 	{
 		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());

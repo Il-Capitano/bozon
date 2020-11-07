@@ -1206,7 +1206,7 @@ static ast::constant_value evaluate_subscript(
 	{
 		auto const &index = subscript_expr.indicies[i];
 
-		if (index.consteval_state == ast::expression::consteval_failed)
+		if (index.has_consteval_failed())
 		{
 			is_consteval = false;
 			continue;
@@ -1263,7 +1263,7 @@ static ast::constant_value evaluate_subscript(
 		index_values.push_back(index_value);
 	}
 
-	if (!is_consteval || subscript_expr.base.consteval_state == ast::expression::consteval_failed)
+	if (!is_consteval || subscript_expr.base.has_consteval_failed())
 	{
 		return {};
 	}
@@ -1790,7 +1790,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			for (auto &elem : tuple.elems)
 			{
 				consteval_try(elem, context);
-				is_consteval = is_consteval && elem.consteval_state == ast::expression::consteval_succeeded;
+				is_consteval = is_consteval && elem.has_consteval_succeeded();
 			}
 			if (!is_consteval)
 			{
@@ -1810,7 +1810,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 		},
 		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			consteval_try(unary_op.expr, context);
-			if (unary_op.expr.consteval_state != ast::expression::consteval_succeeded)
+			if (!unary_op.expr.has_consteval_succeeded())
 			{
 				return {};
 			}
@@ -1822,7 +1822,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			consteval_try(binary_op.rhs, context);
 
 			// special case for bool_and and bool_or shortcircuiting
-			if (binary_op.lhs.consteval_state == ast::expression::consteval_succeeded)
+			if (binary_op.lhs.has_consteval_succeeded())
 			{
 				auto const op = binary_op.op->kind;
 				if (op == lex::token::bool_and)
@@ -1849,15 +1849,14 @@ static ast::constant_value guaranteed_evaluate_expr(
 				}
 			}
 
-			if (
-				binary_op.lhs.consteval_state != ast::expression::consteval_succeeded
-				|| binary_op.rhs.consteval_state != ast::expression::consteval_succeeded
-			)
+			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
+			{
+				return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
+			}
+			else
 			{
 				return {};
 			}
-
-			return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
@@ -1873,7 +1872,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			for (auto &param : func_call.params)
 			{
 				consteval_try(param, context);
-				if (param.consteval_state == ast::expression::consteval_failed)
+				if (param.has_consteval_failed())
 				{
 					is_consteval = false;
 				}
@@ -1889,20 +1888,56 @@ static ast::constant_value guaranteed_evaluate_expr(
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
-			if (cast_expr.expr.consteval_state != ast::expression::consteval_succeeded)
+			if (cast_expr.expr.has_consteval_succeeded())
 			{
-				return {};
+				return evaluate_cast(expr, cast_expr, context);
 			}
 			else
 			{
-				return evaluate_cast(expr, cast_expr, context);
+				return {};
 			}
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_if &) -> ast::constant_value {
-			return {};
+		[&context](ast::expr_if &if_expr) -> ast::constant_value {
+			consteval_try(if_expr.condition, context);
+			consteval_try(if_expr.then_block, context);
+			consteval_try(if_expr.else_block, context);
+			if (if_expr.condition.has_consteval_succeeded())
+			{
+				bz_assert(if_expr.condition.is<ast::constant_expression>());
+				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				auto const condition_value = if_expr.condition
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::boolean>();
+				if (condition_value)
+				{
+					if (if_expr.then_block.has_consteval_succeeded())
+					{
+						return if_expr.then_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+				else
+				{
+					if (if_expr.else_block.has_consteval_succeeded())
+					{
+						return if_expr.else_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+			}
+			else
+			{
+				return {};
+			}
 		},
 	});
 }
@@ -1927,7 +1962,7 @@ static ast::constant_value try_evaluate_expr(
 			for (auto &elem : tuple.elems)
 			{
 				consteval_try(elem, context);
-				is_consteval = is_consteval && elem.consteval_state == ast::expression::consteval_succeeded;
+				is_consteval = is_consteval && elem.has_consteval_succeeded();
 			}
 			if (!is_consteval)
 			{
@@ -1947,19 +1982,21 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
 			consteval_try(unary_op.expr, context);
-			if (unary_op.expr.consteval_state != ast::expression::consteval_succeeded)
+			if (unary_op.expr.has_consteval_succeeded())
+			{
+				return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
+			}
+			else
 			{
 				return {};
 			}
-
-			return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_try(binary_op.lhs, context);
 			consteval_try(binary_op.rhs, context);
 
 			// special case for bool_and and bool_or shortcircuiting
-			if (binary_op.lhs.consteval_state == ast::expression::consteval_succeeded)
+			if (binary_op.lhs.has_consteval_succeeded())
 			{
 				auto const op = binary_op.op->kind;
 				if (op == lex::token::bool_and)
@@ -1986,15 +2023,14 @@ static ast::constant_value try_evaluate_expr(
 				}
 			}
 
-			if (
-				binary_op.lhs.consteval_state != ast::expression::consteval_succeeded
-				|| binary_op.rhs.consteval_state != ast::expression::consteval_succeeded
-			)
+			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
+			{
+				return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
+			}
+			else
 			{
 				return {};
 			}
-
-			return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
@@ -2010,7 +2046,7 @@ static ast::constant_value try_evaluate_expr(
 			for (auto &param : func_call.params)
 			{
 				consteval_try(param, context);
-				if (param.consteval_state == ast::expression::consteval_failed)
+				if (param.has_consteval_failed())
 				{
 					is_consteval = false;
 				}
@@ -2026,17 +2062,56 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
-			if (cast_expr.expr.consteval_state != ast::expression::consteval_succeeded)
+			if (cast_expr.expr.has_consteval_succeeded())
+			{
+				return evaluate_cast(expr, cast_expr, context);
+			}
+			else
 			{
 				return {};
 			}
-			return evaluate_cast(expr, cast_expr, context);
 		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
 		},
-		[](ast::expr_if &) -> ast::constant_value {
-			return {};
+		[&context](ast::expr_if &if_expr) -> ast::constant_value {
+			consteval_try(if_expr.condition, context);
+			consteval_try(if_expr.then_block, context);
+			consteval_try(if_expr.else_block, context);
+			if (if_expr.condition.has_consteval_succeeded())
+			{
+				bz_assert(if_expr.condition.is<ast::constant_expression>());
+				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				auto const condition_value = if_expr.condition
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::boolean>();
+				if (condition_value)
+				{
+					if (if_expr.then_block.has_consteval_succeeded())
+					{
+						return if_expr.then_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+				else
+				{
+					if (if_expr.else_block.has_consteval_succeeded())
+					{
+						return if_expr.else_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+			}
+			else
+			{
+				return {};
+			}
 		},
 	});
 }
@@ -2115,7 +2190,7 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 
 static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::note> &notes)
 {
-	bz_assert(expr.consteval_state == ast::expression::consteval_failed);
+	bz_assert(expr.has_consteval_failed());
 	bz_assert(expr.is<ast::dynamic_expression>());
 	expr.get_expr().visit(bz::overload{
 		[&expr, &notes](ast::expr_identifier const &) {
@@ -2131,7 +2206,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			bool any_failed = false;
 			for (auto const &elem : tuple.elems)
 			{
-				if (elem.consteval_state == ast::expression::consteval_failed)
+				if (elem.has_consteval_failed())
 				{
 					any_failed = true;
 					get_consteval_fail_notes_helper(elem, notes);
@@ -2140,7 +2215,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			bz_assert(any_failed);
 		},
 		[&expr, &notes](ast::expr_unary_op const &unary_op) {
-			if (unary_op.expr.consteval_state == ast::expression::consteval_succeeded)
+			if (unary_op.expr.has_consteval_succeeded())
 			{
 				notes.emplace_back(ctx::parse_context::make_note(
 					expr.src_tokens,
@@ -2158,8 +2233,8 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		},
 		[&expr, &notes](ast::expr_binary_op const &binary_op) {
 			if (
-				binary_op.lhs.consteval_state == ast::expression::consteval_succeeded
-				&& binary_op.rhs.consteval_state == ast::expression::consteval_succeeded
+				binary_op.lhs.has_consteval_succeeded()
+				&& binary_op.rhs.has_consteval_succeeded()
 			)
 			{
 				notes.emplace_back(ctx::parse_context::make_note(
@@ -2174,11 +2249,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 			else
 			{
-				if (binary_op.lhs.consteval_state == ast::expression::consteval_failed)
+				if (binary_op.lhs.has_consteval_failed())
 				{
 					get_consteval_fail_notes_helper(binary_op.lhs, notes);
 				}
-				if (binary_op.rhs.consteval_state == ast::expression::consteval_failed)
+				if (binary_op.rhs.has_consteval_failed())
 				{
 					get_consteval_fail_notes_helper(binary_op.rhs, notes);
 				}
@@ -2186,14 +2261,14 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		},
 		[&expr, &notes](ast::expr_subscript const &subscript_expr) {
 			bool any_failed = false;
-			if (subscript_expr.base.consteval_state == ast::expression::consteval_failed)
+			if (subscript_expr.base.has_consteval_failed())
 			{
 				any_failed = true;
 				get_consteval_fail_notes_helper(subscript_expr.base, notes);
 			}
 			for (auto const &index : subscript_expr.indicies)
 			{
-				if (index.consteval_state == ast::expression::consteval_failed)
+				if (index.has_consteval_failed())
 				{
 					any_failed = true;
 					get_consteval_fail_notes_helper(index, notes);
@@ -2210,7 +2285,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			bool any_failed = false;
 			for (auto const &param : func_call.params)
 			{
-				if (param.consteval_state == ast::expression::consteval_failed)
+				if (param.has_consteval_failed())
 				{
 					any_failed = true;
 					get_consteval_fail_notes_helper(param, notes);
@@ -2224,7 +2299,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 		},
 		[&expr, &notes](ast::expr_cast const &cast_expr) {
-			if (cast_expr.expr.consteval_state == ast::expression::consteval_succeeded)
+			if (cast_expr.expr.has_consteval_succeeded())
 			{
 				notes.emplace_back(ctx::parse_context::make_note(
 					expr.src_tokens,
@@ -2245,10 +2320,29 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, "subexpression is not a constant expression"
 			));
 		},
-		[&expr, &notes](ast::expr_if const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
+		[&notes](ast::expr_if const &if_expr) {
+			if (!if_expr.condition.has_consteval_succeeded())
+			{
+				get_consteval_fail_notes_helper(if_expr.condition, notes);
+			}
+			else
+			{
+				bz_assert(if_expr.condition.is<ast::constant_expression>());
+				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				auto const condition_value = if_expr.condition
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::boolean>();
+				if (condition_value)
+				{
+					bz_assert(!if_expr.then_block.has_consteval_succeeded());
+					get_consteval_fail_notes_helper(if_expr.then_block, notes);
+				}
+				else
+				{
+					bz_assert(!if_expr.else_block.has_consteval_succeeded());
+					get_consteval_fail_notes_helper(if_expr.else_block, notes);
+				}
+			}
 		},
 	});
 }
@@ -2256,7 +2350,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 bz::vector<ctx::note> get_consteval_fail_notes(ast::expression const &expr)
 {
 	bz::vector<ctx::note> result = {};
-	if (expr.consteval_state != ast::expression::consteval_failed)
+	if (!expr.has_consteval_failed())
 	{
 		return result;
 	}

@@ -136,7 +136,7 @@ static void resolve_stmt_static_assert(
 		else
 		{
 			consteval_try(static_assert_stmt.condition, context);
-			if (static_assert_stmt.condition.consteval_state == ast::expression::consteval_failed)
+			if (static_assert_stmt.condition.has_consteval_failed())
 			{
 				good = false;
 				context.report_error(
@@ -163,7 +163,7 @@ static void resolve_stmt_static_assert(
 			else
 			{
 				consteval_try(static_assert_stmt.message, context);
-				if (static_assert_stmt.message.consteval_state == ast::expression::consteval_failed)
+				if (static_assert_stmt.message.has_consteval_failed())
 				{
 					good = false;
 					context.report_error(
@@ -327,10 +327,23 @@ static void resolve_typespec(
 	{
 		context.report_error({ stream, stream, end });
 	}
-	if (type.not_null() && !type.is_typename())
+
+	consteval_try(type, context);
+	if (type.not_null() && !type.has_consteval_succeeded())
 	{
+		auto notes = get_consteval_fail_notes(type);
+		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
+		context.report_error(
+			type.src_tokens,
+			"expected a type",
+			std::move(notes)
+		);
 		ts.clear();
+	}
+	else if (type.not_null() && !type.is_typename())
+	{
 		context.report_error(type, "expected a type");
+		ts.clear();
 	}
 	else if (type.is_typename())
 	{
@@ -358,10 +371,19 @@ static void resolve_var_decl_type(
 			ast::make_expr_identifier(nullptr)
 		)
 		: parse_expression(stream, end, context, no_assign);
-	if (type.not_null() && !type.is_typename())
+	consteval_try(type, context);
+	if (type.not_null() && !type.has_consteval_succeeded())
 	{
-		bz_assert(stream < end);
-		if (is_binary_operator(stream->kind))
+		context.report_error(
+			type.src_tokens,
+			"variable type must be a constant expression",
+			get_consteval_fail_notes(type)
+		);
+		var_decl.var_type.clear();
+	}
+	else if (type.not_null() && !type.is_typename())
+	{
+		if (stream != end && is_binary_operator(stream->kind))
 		{
 			bz_assert(stream->kind != lex::token::assign);
 			context.report_error(
@@ -373,10 +395,12 @@ static void resolve_var_decl_type(
 				) }
 			);
 		}
-		else
+		else if (stream != end)
 		{
 			context.report_error({ stream, stream, end });
 		}
+
+		context.report_error(type.src_tokens, "expected a type");
 		var_decl.var_type.clear();
 	}
 	else if (type.is_typename())
