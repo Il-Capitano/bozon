@@ -135,10 +135,10 @@ void src_manager::report_and_clear_errors_and_warnings(void)
 	{
 		this->_global_ctx._platform_abi = abi::platform_abi::microsoft_x64;
 	}
-//	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
-//	{
-//		this->_global_ctx._platform_abi = abi::platform_abi::systemv_amd64;
-//	}
+	else if (os == llvm::Triple::Linux && arch == llvm::Triple::x86_64)
+	{
+		this->_global_ctx._platform_abi = abi::platform_abi::systemv_amd64;
+	}
 	else
 	{
 		this->_global_ctx._platform_abi = abi::platform_abi::generic;
