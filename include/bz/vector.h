@@ -81,7 +81,6 @@ private:
 				--it;
 				it->~value_type();
 			}
-			this->_data_end = it;
 			this->_allocator.deallocate(this->_data_begin, this->capacity());
 		}
 	}
