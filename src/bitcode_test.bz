@@ -127,6 +127,7 @@ function main() -> int32
 	println(s1 == s2);
 	println(s1 != s2);
 	logln("Hello from stderr");
+	logln("Hello again from stderr");
 
 	arr2_tester();
 
@@ -915,4 +916,12 @@ function my_str_equals(lhs: str, rhs: str) -> bool
 		}
 	}
 	return true;
+}
+
+function consteval_test(i: if (true) int32 else int64)
+{
+	static_assert(typeof i == int32);
+
+	consteval a = (if (false) i else 234);
+	static_assert(a == 234);
 }
