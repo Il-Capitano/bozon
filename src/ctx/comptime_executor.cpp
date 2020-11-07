@@ -5,8 +5,7 @@ namespace ctx
 {
 
 comptime_executor::comptime_executor(global_context &global_ctx)
-	: module("comptime_execution", global_ctx._llvm_context),
-	  context(global_ctx, module)
+	: context(global_ctx, global_ctx._comptime_module)
 {}
 
 } // namespace ctx

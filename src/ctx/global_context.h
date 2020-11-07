@@ -48,6 +48,7 @@ struct global_context
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module _module;
+	llvm::Module _comptime_module;
 	std::unique_ptr<llvm::TargetMachine> _target_machine;
 	bz::optional<llvm::DataLayout> _data_layout;
 	abi::platform_abi _platform_abi;

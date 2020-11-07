@@ -135,6 +135,7 @@ global_context::global_context(src_manager &manager)
 	  _errors{},
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
+	  _comptime_module("comptime_module", this->_llvm_context),
 	  _target_machine(nullptr),
 	  _data_layout(),
 	  _llvm_built_in_types(get_llvm_built_in_types(this->_llvm_context))

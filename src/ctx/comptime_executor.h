@@ -14,7 +14,6 @@ struct comptime_executor
 {
 	comptime_executor(global_context &global_ctx);
 
-	llvm::Module module;
 	bitcode_context context;
 };
 
