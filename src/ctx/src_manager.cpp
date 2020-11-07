@@ -342,25 +342,20 @@ bool src_manager::emit_obj(void)
 		);
 	}
 
+	// passing "-" to raw_fd_ostream should output to stdout and not create a new file
+	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
-
-	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
-	bool const is_output_stdout = output_file == "-";
-	if (!is_output_stdout)
-	{
-		opt_dest_file.emplace(
-			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-			ec, llvm::sys::fs::OF_None
-		);
-	}
-	else
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (output_file == "-")
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
-	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
 
 	if (ec)
 	{
@@ -407,18 +402,13 @@ bool src_manager::emit_asm(void)
 		);
 	}
 
+	// passing "-" to raw_fd_ostream should output to stdout and not create a new file
+	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
-
-	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
-	bool const is_output_stdout = output_file == "-";
-	if (!is_output_stdout)
-	{
-		opt_dest_file.emplace(
-			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-			ec, llvm::sys::fs::OF_None
-		);
-	}
-	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
 
 	if (ec)
 	{
@@ -468,25 +458,20 @@ bool src_manager::emit_llvm_bc(void)
 		);
 	}
 
+	// passing "-" to raw_fd_ostream should output to stdout and not create a new file
+	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
-
-	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
-	bool const is_output_stdout = output_file == "-";
-	if (!is_output_stdout)
-	{
-		opt_dest_file.emplace(
-			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-			ec, llvm::sys::fs::OF_None
-		);
-	}
-	else
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
+	if (output_file == "-")
 	{
 		this->_global_ctx.report_warning(
 			warning_kind::binary_stdout,
 			"outputting binary file to stdout"
 		);
 	}
-	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
 
 	if (ec)
 	{
@@ -524,18 +509,13 @@ bool src_manager::emit_llvm_ir(void)
 		);
 	}
 
+	// passing "-" to raw_fd_ostream should output to stdout and not create a new file
+	// http://llvm.org/doxygen/classllvm_1_1raw__fd__ostream.html#af5462bc0fe5a61eccc662708da280e64
 	std::error_code ec;
-
-	bz::optional<llvm::raw_fd_ostream> opt_dest_file;
-	bool const is_output_stdout = output_file == "-";
-	if (!is_output_stdout)
-	{
-		opt_dest_file.emplace(
-			llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
-			ec, llvm::sys::fs::OF_None
-		);
-	}
-	llvm::raw_fd_ostream &dest = is_output_stdout ? llvm::outs() : opt_dest_file.get();
+	llvm::raw_fd_ostream dest(
+		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
+		ec, llvm::sys::fs::OF_None
+	);
 
 	if (ec)
 	{
