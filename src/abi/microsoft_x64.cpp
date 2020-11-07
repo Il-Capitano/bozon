@@ -4,7 +4,10 @@ namespace abi
 {
 
 template<>
-pass_kind get_pass_kind<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context)
+pass_kind get_pass_kind<platform_abi::microsoft_x64>(
+	llvm::Type *t,
+	ctx::bitcode_context &context
+)
 {
 	if (t->isVoidTy())
 	{
@@ -29,7 +32,10 @@ pass_kind get_pass_kind<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode
 }
 
 template<>
-llvm::Type *get_int_cast_type<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context)
+llvm::Type *get_int_cast_type<platform_abi::microsoft_x64>(
+	llvm::Type *t,
+	ctx::bitcode_context &context
+)
 {
 	auto const size = context.get_size(t);
 	bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
