@@ -1811,7 +1811,17 @@ static val_ptr emit_bitcode(
 				params_is_pass_by_ref.push_back(false);
 				break;
 			case abi::pass_kind::two_registers:
-				bz_unreachable;
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(param_val.get_type(), context);
+				auto const cast_val = context.create_bitcast(param_val, llvm::StructType::get(first_type, second_type));
+				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
+				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
+				params.push_back(first_val);
+				params_is_pass_by_ref.push_back(false);
+				params.push_back(second_val);
+				params_is_pass_by_ref.push_back(false);
+				break;
+			}
 			}
 		}
 	}
@@ -1855,14 +1865,13 @@ static val_ptr emit_bitcode(
 				return result_address;
 			}
 		case abi::pass_kind::one_register:
+		case abi::pass_kind::two_registers:
 		{
 			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
 			auto const result_t_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
 			context.builder.CreateStore(call, result_t_ptr);
 			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
 		}
-		case abi::pass_kind::two_registers:
-			bz_unreachable;
 		}
 	}();
 
@@ -2538,14 +2547,13 @@ static void emit_bitcode(
 				context.builder.CreateRet(ret_val.get_value(context.builder));
 				break;
 			case abi::pass_kind::one_register:
+			case abi::pass_kind::two_registers:
 			{
 				auto const ret_type = context.current_function.second->getReturnType();
 				auto const result = context.create_bitcast(ret_val, ret_type);
 				context.builder.CreateRet(result);
 				break;
 			}
-			case abi::pass_kind::two_registers:
-				bz_unreachable;
 			}
 		}
 	}
@@ -2800,7 +2808,14 @@ static llvm::Function *create_function_from_symbol_impl(
 			args.push_back(abi::get_one_register_type<abi>(t, context));
 			break;
 		case abi::pass_kind::two_registers:
-			bz_unreachable;
+		{
+			auto const [first_type, second_type] = abi::get_two_register_types<abi>(t, context);
+			pass_arg_by_ref.push_back(false);
+			args.push_back(first_type);
+			pass_arg_by_ref.push_back(false);
+			args.push_back(second_type);
+			break;
+		}
 		}
 	}
 	auto const func_t = [&]() {
@@ -2817,7 +2832,11 @@ static llvm::Function *create_function_from_symbol_impl(
 			real_result_t = abi::get_one_register_type<abi>(result_t, context);
 			break;
 		case abi::pass_kind::two_registers:
-			bz_unreachable;
+		{
+			auto const [first_type, second_type] = abi::get_two_register_types<abi>(result_t, context);
+			real_result_t = llvm::StructType::get(first_type, second_type);
+			break;
+		}
 		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();

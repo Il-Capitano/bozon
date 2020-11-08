@@ -46,6 +46,41 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	}
 }
 
+static void get_types_helper(llvm::Type *t, bz::vector<llvm::Type *> &types)
+{
+	switch (t->getTypeID())
+	{
+	case llvm::Type::TypeID::ArrayTyID:
+	{
+		auto const elem_type = t->getArrayElementType();
+		auto const elem_count = t->getArrayNumElements();
+		for (unsigned i = 0; i < elem_count; ++i)
+		{
+			get_types_helper(elem_type, types);
+		}
+		break;
+	}
+	case llvm::Type::TypeID::StructTyID:
+	{
+		for (auto const elem_type : static_cast<llvm::StructType *>(t)->elements())
+		{
+			get_types_helper(elem_type, types);
+		}
+		break;
+	}
+	default:
+		types.push_back(t);
+		break;
+	}
+}
+
+static bz::vector<llvm::Type *> get_types(llvm::Type *t)
+{
+	bz::vector<llvm::Type *> result;
+	get_types_helper(t, result);
+	return result;
+}
+
 template<>
 llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	llvm::Type *t,
@@ -57,40 +92,9 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	switch (t->getTypeID())
 	{
 	case llvm::Type::ArrayTyID:
-	{
-		auto const element_type  = t->getArrayElementType();
-		auto const element_count = t->getArrayNumElements();
-		if (element_type->isFloatTy())
-		{
-			bz_assert(element_count == 1 || element_count == 2);
-			if (element_count == 1)
-			{
-				return element_type;
-			}
-			else
-			{
-				llvm::FixedVectorType::get(element_type, element_count);
-			}
-		}
-		else if (element_type->isDoubleTy())
-		{
-			bz_assert(element_count == 1);
-			return element_type;
-		}
-		else if (element_type->isPointerTy())
-		{
-			bz_assert(element_count == 1);
-			return element_type;
-		}
-
-		auto const size = context.get_size(t);
-		bz_assert(size <= register_size);
-		return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
-	}
 	case llvm::Type::TypeID::StructTyID:
 	{
-		auto const struct_t = static_cast<llvm::StructType *>(t);
-		auto const elem_count = struct_t->getNumElements();
+		auto const contained_types = get_types(t);
 		auto const get_pass_type = [&context](llvm::Type *type) -> llvm::Type * {
 			auto const pass_kind = get_pass_kind<platform_abi::systemv_amd64>(type, context);
 			switch (pass_kind)
@@ -103,21 +107,18 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 				bz_unreachable;
 			}
 		};
-		if (elem_count == 1)
+		if (contained_types.size() == 1)
 		{
 			// { T } gets reduced to T
-			auto const elem_type = struct_t->getElementType(0);
-			return get_pass_type(elem_type);
+			return get_pass_type(contained_types[0]);
 		}
-		else if (elem_count == 2)
+		else if (contained_types.size() == 2)
 		{
 			// the only special case here is { float, float } should become <2 x float>
 			// this applies to { { float }, float } too
-			auto const first_elem_pass_type  = get_pass_type(struct_t->getElementType(0));
-			auto const second_elem_pass_type = get_pass_type(struct_t->getElementType(1));
-			if (first_elem_pass_type->isFloatTy() && second_elem_pass_type->isFloatTy())
+			if (contained_types[0]->isFloatTy() && contained_types[1]->isFloatTy())
 			{
-				return llvm::FixedVectorType::get(first_elem_pass_type, 2);
+				return llvm::FixedVectorType::get(contained_types[0], 2);
 			}
 		}
 
@@ -136,7 +137,32 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	ctx::bitcode_context &context
 )
 {
-	bz_unreachable;
+	size_t const register_size = 8;
+	bz_assert(context.get_register_size() == register_size);
+	std::pair<llvm::Type *, llvm::Type *> result{};
+	auto const size = context.get_size(t);
+	auto const contained_types = get_types(t);
+	bz_assert(contained_types.size() > 1);
+	auto const first_type = contained_types.front();
+	auto const last_type = contained_types.back();
+	if (first_type->isPointerTy() || first_type->isDoubleTy())
+	{
+		result.first = first_type;
+	}
+	if (last_type->isPointerTy() || last_type->isDoubleTy())
+	{
+		result.second = last_type;
+	}
+
+	if (result.first != nullptr && result.second != nullptr)
+	{
+		bz_assert(contained_types.size() == 2);
+		return result;
+	}
+	else
+	{
+		bz_unreachable;
+	}
 }
 
 } // namespace abi
