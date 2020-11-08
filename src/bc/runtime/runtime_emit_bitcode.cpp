@@ -1799,14 +1799,19 @@ static val_ptr emit_bitcode(
 				}
 				params_is_pass_by_ref.push_back(true);
 				break;
-			case abi::pass_kind::int_cast:
-				params.push_back(context.create_cast_to_int(param_val));
-				params_is_pass_by_ref.push_back(false);
-				break;
 			case abi::pass_kind::value:
 				params.push_back(param_val.get_value(context.builder));
 				params_is_pass_by_ref.push_back(false);
 				break;
+			case abi::pass_kind::one_register:
+				params.push_back(context.create_bitcast(
+					param_val,
+					abi::get_one_register_type<abi>(param_val.get_type(), context)
+				));
+				params_is_pass_by_ref.push_back(false);
+				break;
+			case abi::pass_kind::two_registers:
+				bz_unreachable;
 			}
 		}
 	}
@@ -1839,13 +1844,6 @@ static val_ptr emit_bitcode(
 		{
 		case abi::pass_kind::reference:
 			return params.front();
-		case abi::pass_kind::int_cast:
-		{
-			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
-			auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
-			context.builder.CreateStore(call, int_ptr);
-			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
-		}
 		case abi::pass_kind::value:
 			if (result_address == nullptr)
 			{
@@ -1856,6 +1854,15 @@ static val_ptr emit_bitcode(
 				context.builder.CreateStore(call, result_address);
 				return result_address;
 			}
+		case abi::pass_kind::one_register:
+		{
+			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
+			auto const result_t_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
+			context.builder.CreateStore(call, result_t_ptr);
+			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
+		}
+		case abi::pass_kind::two_registers:
+			bz_unreachable;
 		}
 	}();
 
@@ -2523,29 +2530,22 @@ static void emit_bitcode(
 		else
 		{
 			auto const ret_kind = abi::get_pass_kind<abi>(ret_val.get_type(), context);
-			if (ret_kind == abi::pass_kind::int_cast)
+			switch (ret_kind)
 			{
-				auto const ret_t = context.current_function.second->getReturnType();
-				if (ret_val.kind == val_ptr::reference)
-				{
-					auto const val_ptr = ret_val.val;
-					auto const int_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(ret_t, 0));
-					auto const int_val = context.builder.CreateLoad(int_ptr);
-					context.builder.CreateRet(int_val);
-				}
-				else
-				{
-					auto const val = ret_val.get_value(context.builder);
-					auto const int_ptr = context.create_alloca(ret_t);
-					auto const val_ptr = context.builder.CreateBitCast(int_ptr, llvm::PointerType::get(val->getType(), 0));
-					context.builder.CreateStore(val, val_ptr);
-					auto const int_val = context.builder.CreateLoad(int_ptr);
-					context.builder.CreateRet(int_val);
-				}
-			}
-			else
-			{
+			case abi::pass_kind::reference:
+				bz_unreachable;
+			case abi::pass_kind::value:
 				context.builder.CreateRet(ret_val.get_value(context.builder));
+				break;
+			case abi::pass_kind::one_register:
+			{
+				auto const ret_type = context.current_function.second->getReturnType();
+				auto const result = context.create_bitcast(ret_val, ret_type);
+				context.builder.CreateRet(result);
+				break;
+			}
+			case abi::pass_kind::two_registers:
+				bz_unreachable;
 			}
 		}
 	}
@@ -2791,14 +2791,16 @@ static llvm::Function *create_function_from_symbol_impl(
 			pass_arg_by_ref.push_back(true);
 			args.push_back(llvm::PointerType::get(t, 0));
 			break;
-		case abi::pass_kind::int_cast:
-			args.push_back(abi::get_int_cast_type<abi>(t, context));
-			pass_arg_by_ref.push_back(false);
-			break;
 		case abi::pass_kind::value:
 			pass_arg_by_ref.push_back(false);
 			args.push_back(t);
 			break;
+		case abi::pass_kind::one_register:
+			pass_arg_by_ref.push_back(false);
+			args.push_back(abi::get_one_register_type<abi>(t, context));
+			break;
+		case abi::pass_kind::two_registers:
+			bz_unreachable;
 		}
 	}
 	auto const func_t = [&]() {
@@ -2808,12 +2810,14 @@ static llvm::Function *create_function_from_symbol_impl(
 		case abi::pass_kind::reference:
 			real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
 			break;
-		case abi::pass_kind::int_cast:
-			real_result_t = abi::get_int_cast_type<abi>(result_t, context);
-			break;
 		case abi::pass_kind::value:
 			real_result_t = result_t;
 			break;
+		case abi::pass_kind::one_register:
+			real_result_t = abi::get_one_register_type<abi>(result_t, context);
+			break;
+		case abi::pass_kind::two_registers:
+			bz_unreachable;
 		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();

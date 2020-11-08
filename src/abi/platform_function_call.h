@@ -12,7 +12,8 @@ enum class pass_kind
 {
 	value,
 	reference,
-	int_cast,
+	one_register,
+	two_registers,
 };
 
 template<platform_abi abi>
@@ -27,14 +28,25 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode
 
 
 template<platform_abi abi>
-llvm::Type *get_int_cast_type(llvm::Type *t, ctx::bitcode_context &context);
+llvm::Type *get_one_register_type(llvm::Type *t, ctx::bitcode_context &context);
 
 template<>
-llvm::Type *get_int_cast_type<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
+llvm::Type *get_one_register_type<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
-llvm::Type *get_int_cast_type<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
 template<>
-llvm::Type *get_int_cast_type<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
+llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
+
+
+template<platform_abi abi>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types(llvm::Type *t, ctx::bitcode_context &context);
+
+template<>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::generic>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::microsoft_x64>(llvm::Type *t, ctx::bitcode_context &context);
+template<>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(llvm::Type *t, ctx::bitcode_context &context);
 
 /*
 template<platform_abi abi>

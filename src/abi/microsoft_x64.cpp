@@ -27,12 +27,12 @@ pass_kind get_pass_kind<platform_abi::microsoft_x64>(
 	}
 	else
 	{
-		return pass_kind::int_cast;
+		return pass_kind::one_register;
 	}
 }
 
 template<>
-llvm::Type *get_int_cast_type<platform_abi::microsoft_x64>(
+llvm::Type *get_one_register_type<platform_abi::microsoft_x64>(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
@@ -40,6 +40,15 @@ llvm::Type *get_int_cast_type<platform_abi::microsoft_x64>(
 	auto const size = context.get_size(t);
 	bz_assert(size == 1 || size == 2 || size == 4 || size == 8);
 	return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
+}
+
+template<>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::microsoft_x64>(
+	[[maybe_unused]] llvm::Type *t,
+	[[maybe_unused]] ctx::bitcode_context &context
+)
+{
+	bz_unreachable;
 }
 
 } // namespace abi

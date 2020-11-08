@@ -24,71 +24,21 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	case llvm::Type::TypeID::FloatTyID:
 		return pass_kind::value;
 	case llvm::Type::ArrayTyID:
-	{
-		auto const size = context.get_size(t);
-		if (size > 2 * register_size)
-		{
-			return pass_kind::reference;
-		}
-
-		auto const elem_type = t->getArrayElementType();
-		auto const elem_pass_kind = get_pass_kind<platform_abi::systemv_amd64>(elem_type, context);
-		bz_assert(elem_pass_kind != pass_kind::reference);
-
-		auto const elem_count = t->getArrayNumElements();
-		auto const elem_size = context.get_size(elem_type);
-		if (elem_count == 1)
-		{
-			return elem_pass_kind;
-		}
-		else if (elem_size > register_size)
-		{
-			bz_assert(elem_count == 1);
-			return elem_pass_kind;
-		}
-		else if (elem_size == register_size)
-		{
-			bz_assert(elem_count == 1 || elem_count == 2);
-			return elem_pass_kind;
-		}
-		else
-		{
-			return pass_kind::int_cast;
-		}
-	}
 	case llvm::Type::TypeID::StructTyID:
 	{
 		auto const size = context.get_size(t);
-		if (size > 2 * register_size)
+		if (size <= register_size)
+		{
+			return pass_kind::one_register;
+		}
+		else if (size <= 2 * register_size)
+		{
+			return pass_kind::two_registers;
+		}
+		else
 		{
 			return pass_kind::reference;
 		}
-
-		auto const elem_count = t->getStructNumElements();
-		if (elem_count == 1)
-		{
-			return get_pass_kind<platform_abi::systemv_amd64>(t->getStructElementType(0), context);
-		}
-		else if (elem_count > 2)
-		{
-			return pass_kind::int_cast;
-		}
-
-		if (size <= register_size)
-		{
-			return pass_kind::int_cast;
-		}
-
-		for (auto const elem_type : static_cast<llvm::StructType *>(t)->elements())
-		{
-			auto const elem_pass_kind = get_pass_kind<platform_abi::systemv_amd64>(elem_type, context);
-
-			if (elem_pass_kind == pass_kind::int_cast)
-			{
-				return pass_kind::int_cast;
-			}
-		}
-		return pass_kind::value;
 	}
 
 	default:
@@ -97,7 +47,7 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 }
 
 template<>
-llvm::Type *get_int_cast_type<platform_abi::systemv_amd64>(
+llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	llvm::Type *t,
 	ctx::bitcode_context &context
 )
@@ -108,74 +58,85 @@ llvm::Type *get_int_cast_type<platform_abi::systemv_amd64>(
 	{
 	case llvm::Type::ArrayTyID:
 	{
-		auto const size = context.get_size(t);
-		bz_assert(size <= 2 * register_size);
-		switch (size)
+		auto const element_type  = t->getArrayElementType();
+		auto const element_count = t->getArrayNumElements();
+		if (element_type->isFloatTy())
 		{
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-			return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
-		case 9:
-		case 10:
-		case 11:
-		case 12:
-		case 13:
-		case 14:
-		case 15:
-		case 16:
-			return llvm::StructType::get(
-				context.get_int64_t(),
-				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8)
-			);
-		default:
-			bz_unreachable;
+			bz_assert(element_count == 1 || element_count == 2);
+			if (element_count == 1)
+			{
+				return element_type;
+			}
+			else
+			{
+				llvm::FixedVectorType::get(element_type, element_count);
+			}
 		}
+		else if (element_type->isDoubleTy())
+		{
+			bz_assert(element_count == 1);
+			return element_type;
+		}
+		else if (element_type->isPointerTy())
+		{
+			bz_assert(element_count == 1);
+			return element_type;
+		}
+
+		auto const size = context.get_size(t);
+		bz_assert(size <= register_size);
+		return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
 	}
 	case llvm::Type::TypeID::StructTyID:
 	{
-		auto const size = context.get_size(t);
 		auto const struct_t = static_cast<llvm::StructType *>(t);
-		if (size <= 8)
+		auto const elem_count = struct_t->getNumElements();
+		auto const get_pass_type = [&context](llvm::Type *type) -> llvm::Type * {
+			auto const pass_kind = get_pass_kind<platform_abi::systemv_amd64>(type, context);
+			switch (pass_kind)
+			{
+			case pass_kind::value:
+				return type;
+			case pass_kind::one_register:
+				return get_one_register_type<platform_abi::systemv_amd64>(type, context);
+			default:
+				bz_unreachable;
+			}
+		};
+		if (elem_count == 1)
 		{
-			return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
+			// { T } gets reduced to T
+			auto const elem_type = struct_t->getElementType(0);
+			return get_pass_type(elem_type);
+		}
+		else if (elem_count == 2)
+		{
+			// the only special case here is { float, float } should become <2 x float>
+			// this applies to { { float }, float } too
+			auto const first_elem_pass_type  = get_pass_type(struct_t->getElementType(0));
+			auto const second_elem_pass_type = get_pass_type(struct_t->getElementType(1));
+			if (first_elem_pass_type->isFloatTy() && second_elem_pass_type->isFloatTy())
+			{
+				return llvm::FixedVectorType::get(first_elem_pass_type, 2);
+			}
 		}
 
-		auto const first_type = struct_t->elements().front();
-		auto const last_type  = struct_t->elements().back();
-		bz_assert(!(first_type->isPointerTy() && last_type->isPointerTy()));
-
-		if (first_type->isPointerTy() || first_type->isDoubleTy())
-		{
-			return llvm::StructType::get(
-				first_type,
-				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8)
-			);
-		}
-		else if (last_type->isPointerTy() || last_type->isDoubleTy())
-		{
-			return llvm::StructType::get(
-				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8),
-				last_type
-			);
-		}
-		else
-		{
-			return llvm::StructType::get(
-				context.get_int64_t(),
-				llvm::IntegerType::get(context.get_llvm_context(), (size - 8) * 8)
-			);
-		}
+		auto const size = context.get_size(t);
+		return llvm::IntegerType::get(context.get_llvm_context(), size * 8);
 	}
 
 	default:
 		bz_unreachable;
 	}
+}
+
+template<>
+std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(
+	llvm::Type *t,
+	ctx::bitcode_context &context
+)
+{
+	bz_unreachable;
 }
 
 } // namespace abi
