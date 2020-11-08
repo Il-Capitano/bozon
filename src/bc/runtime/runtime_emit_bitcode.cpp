@@ -2869,7 +2869,6 @@ static llvm::Function *create_function_from_symbol_impl(
 		break;
 	}
 
-	auto param_it = func_body.params.begin();
 	auto is_by_ref_it = pass_arg_by_ref.begin();
 	auto arg_it = fn->arg_begin();
 	auto const arg_end = fn->arg_end();
@@ -2883,20 +2882,15 @@ static llvm::Function *create_function_from_symbol_impl(
 		++arg_it;
 	}
 
-	for (; arg_it != arg_end; ++param_it, ++is_by_ref_it, ++arg_it)
+	for (; arg_it != arg_end; ++is_by_ref_it, ++arg_it)
 	{
 		auto &arg = *arg_it;
-		auto const &param = *param_it;
 		auto const is_by_ref = *is_by_ref_it;
 		if (is_by_ref)
 		{
 			arg.addAttr(llvm::Attribute::ByVal);
 			arg.addAttr(llvm::Attribute::NoAlias);
 			arg.addAttr(llvm::Attribute::NoCapture);
-			arg.addAttr(llvm::Attribute::NonNull);
-		}
-		else if (param.var_type.is<ast::ts_lvalue_reference>())
-		{
 			arg.addAttr(llvm::Attribute::NonNull);
 		}
 	}
@@ -2975,6 +2969,8 @@ static void emit_function_bitcode_impl(
 			auto &p = *p_it;
 			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
 			{
+				// multiple register arg passing needs to be handled here
+				bz_unreachable;
 				auto const t = get_llvm_type(p.var_type, context);
 				auto const alloca = context.create_alloca(t);
 				// create a cast from integer types to struct types if necessery
