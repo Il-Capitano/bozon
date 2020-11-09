@@ -2190,6 +2190,10 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 
 static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::note> &notes)
 {
+	if (expr.is_null())
+	{
+		return;
+	}
 	bz_assert(expr.has_consteval_failed());
 	bz_assert(expr.is<ast::dynamic_expression>());
 	expr.get_expr().visit(bz::overload{

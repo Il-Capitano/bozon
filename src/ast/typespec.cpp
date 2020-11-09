@@ -316,6 +316,14 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			[&](ts_lvalue_reference const &) {
 				result += "0R.";
 			},
+			[&](ts_tuple const &tuple_t) {
+				result += bz::format("0T.{}", tuple_t.types.size());
+				for (auto const &elem_type : tuple_t.types)
+				{
+					result += '.';
+					result += elem_type.get_symbol_name();
+				}
+			},
 			[](auto const &) {
 				bz_unreachable;
 			}
@@ -336,6 +344,7 @@ bz::u8string typespec::decode_symbol_name(
 
 	constexpr bz::u8string_view void_ = "void";
 	constexpr bz::u8string_view array = "0A.";
+	constexpr bz::u8string_view tuple = "0T.";
 
 	auto const parse_int = [](bz::u8string_view str) {
 		uint64_t result = 0;
@@ -381,7 +390,7 @@ bz::u8string typespec::decode_symbol_name(
 			auto const dim = parse_int(bz::u8string_view(dim_begin, dim_end));
 
 			auto size_begin = dim_end + 1;
-			for (uint64_t i = 0; i < dim; ++i)
+			for (auto const i : bz::range(dim))
 			{
 				auto const size_end = symbol_name.find(size_begin, '.');
 				auto const size = parse_int(bz::u8string_view(size_begin, size_end));
@@ -399,18 +408,42 @@ bz::u8string typespec::decode_symbol_name(
 			result += ": ";
 			result += decode_symbol_name(it, end);
 			result += "]";
-			return result;
+			break;
+		}
+		else if (symbol_name.starts_with(tuple))
+		{
+			result += "[";
+			auto const types_count_begin = bz::u8string_view::const_iterator(it.data() + tuple.size());
+			auto const types_count_end = symbol_name.find(types_count_begin, '.');
+			auto const elem_types_count = parse_int(bz::u8string_view(types_count_begin, types_count_end));
+			if (elem_types_count == 0)
+			{
+				result += "]";
+			}
+			else
+			{
+				it = types_count_end + 1;
+				result += decode_symbol_name(it, end);
+				for ([[maybe_unused]] auto const _ : bz::range(uint64_t(1), elem_types_count))
+				{
+					result += ", ";
+					bz_assert(*it == '.');
+					++it;
+					result += decode_symbol_name(it, end);
+				}
+				result += "]";
+			}
+			break;
 		}
 		else if (symbol_name.starts_with(void_))
 		{
 			result += "void";
-			it = bz::u8string_view::const_iterator(it.data() + void_.size());
-			return result;
+			break;
 		}
 		else
 		{
 			result += type_info::decode_symbol_name(it, end);
-			return result;
+			break;
 		}
 	}
 

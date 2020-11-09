@@ -1372,8 +1372,22 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 		}
 		return true;
 	}();
+	auto const has_error = [&]() {
+		for (auto const &e : elems)
+		{
+			if (e.is_null())
+			{
+				return true;
+			}
+		}
+		return false;
+	}();
 
-	if (is_typename)
+	if (has_error)
+	{
+		return ast::expression(src_tokens);
+	}
+	else if (is_typename)
 	{
 		bz::vector<ast::typespec> types = {};
 		types.reserve(elems.size());
