@@ -448,6 +448,7 @@ struct float_components<float>
 template<typename T, size_t N>
 class stack_vector
 {
+	static_assert(meta::is_trivial_v<T>);
 private:
 	T  _data[N];
 	T *_data_end;
@@ -477,11 +478,12 @@ public:
 		auto trace = it;
 		--it;
 
-		while (--trace, --it, it != this->_data - 1)
+		while (it != this->_data)
 		{
+			--trace, --it;
 			*trace = std::move(*it);
 		}
-		*trace = std::move(val);
+		*it = std::move(val);
 		return this->_data[0];
 	}
 
