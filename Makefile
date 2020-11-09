@@ -374,7 +374,7 @@ bin/test/release/int/test_main.cpp.o: ./test/test_main.cpp ./include/bz/allocato
 # =======================
 
 linux_cxx := clang++
-linux_cxx_debug_flags := -c -g -O0 -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -fsanitize=address,undefined -fno-omit-frame-pointer -std=c++17
+linux_cxx_debug_flags := -c -g -Og -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -fsanitize=address,undefined -fno-omit-frame-pointer -std=c++17
 linux_cxx_release_flags := -c -O3 -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -march=native -ferror-limit=2 -std=c++17
 linux_cxx_include_dirs := ./include ./src /usr/include/llvm-10 /usr/include/llvm-c-10 
 linux_cc := clang
