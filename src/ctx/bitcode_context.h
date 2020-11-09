@@ -34,6 +34,8 @@ struct bitcode_context
 	abi::platform_abi get_platform_abi(void) const noexcept;
 
 	size_t get_size(llvm::Type *t) const;
+	size_t get_align(llvm::Type *t) const;
+	size_t get_offset(llvm::Type *t, size_t elem) const;
 	size_t get_register_size(void) const;
 
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);

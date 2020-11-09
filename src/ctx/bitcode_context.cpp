@@ -61,6 +61,22 @@ size_t bitcode_context::get_size(llvm::Type *t) const
 	return this->global_ctx._data_layout->getTypeAllocSize(t);
 }
 
+size_t bitcode_context::get_align(llvm::Type *t) const
+{
+#if LLVM_VERSION_MAJOR >= 11
+	return this->global_ctx._data_layout->getPrefTypeAlign(t).value();
+#else
+	return this->global_ctx._data_layout->getPrefTypeAlignment(t);
+#endif // llvm 11
+}
+
+size_t bitcode_context::get_offset(llvm::Type *t, size_t elem) const
+{
+	bz_assert(t->isStructTy());
+	return this->global_ctx._data_layout->getStructLayout(static_cast<llvm::StructType *>(t))->getElementOffset(elem);
+}
+
+
 size_t bitcode_context::get_register_size(void) const
 {
 	switch (this->global_ctx._platform_abi)

@@ -118,7 +118,11 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 			// this applies to { { float }, float } too
 			if (contained_types[0]->isFloatTy() && contained_types[1]->isFloatTy())
 			{
+#if LLVM_VERSION_MAJOR >= 11
 				return llvm::FixedVectorType::get(contained_types[0], 2);
+#else
+				return llvm::VectorType::get(contained_types[0], 2);
+#endif // llvm 11
 			}
 		}
 
@@ -131,6 +135,56 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	}
 }
 
+static void get_types_with_offset_helper(
+	llvm::Type *t,
+	bz::vector<std::pair<llvm::Type *, size_t>> &result,
+	size_t current_offset,
+	ctx::bitcode_context &context
+)
+{
+	size_t const register_size = 8;
+	bz_assert(context.get_register_size() == register_size);
+	switch (t->getTypeID())
+	{
+	case llvm::Type::TypeID::ArrayTyID:
+	{
+		auto const elem_type = t->getArrayElementType();
+		auto const elem_count = t->getArrayNumElements();
+		auto const elem_size = context.get_size(elem_type);
+		for ([[maybe_unused]] auto const _ : bz::range(elem_count))
+		{
+			get_types_with_offset_helper(elem_type, result, current_offset, context);
+			current_offset += elem_size;
+		}
+		break;
+	}
+	case llvm::Type::TypeID::StructTyID:
+	{
+		auto const elem_count = t->getStructNumElements();
+		for (auto const i : bz::range(elem_count))
+		{
+			get_types_with_offset_helper(
+				t->getStructElementType(i),
+				result,
+				current_offset + context.get_offset(t, i),
+				context
+			);
+		}
+		break;
+	}
+	default:
+		result.push_back({ t, current_offset });
+		break;
+	}
+}
+
+static bz::vector<std::pair<llvm::Type *, size_t>> get_types_with_offset(llvm::Type *t, ctx::bitcode_context &context)
+{
+	bz::vector<std::pair<llvm::Type *, size_t>> result;
+	get_types_with_offset_helper(t, result, 0, context);
+	return result;
+}
+
 template<>
 std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::systemv_amd64>(
 	llvm::Type *t,
@@ -140,29 +194,84 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	size_t const register_size = 8;
 	bz_assert(context.get_register_size() == register_size);
 	std::pair<llvm::Type *, llvm::Type *> result{};
-	auto const size = context.get_size(t);
-	auto const contained_types = get_types(t);
-	bz_assert(contained_types.size() > 1);
-	auto const first_type = contained_types.front();
-	auto const last_type = contained_types.back();
-	if (first_type->isPointerTy() || first_type->isDoubleTy())
-	{
-		result.first = first_type;
-	}
-	if (last_type->isPointerTy() || last_type->isDoubleTy())
-	{
-		result.second = last_type;
-	}
 
-	if (result.first != nullptr && result.second != nullptr)
+	auto const contained_types = get_types_with_offset(t, context);
+
+	auto const first_type_in_second_register_it = std::find_if(
+		contained_types.begin(), contained_types.end(),
+		[register_size](auto const &pair) { return pair.second == register_size; }
+	);
+	bz_assert(first_type_in_second_register_it != contained_types.end());
+	auto const first_register_types  = bz::array_view(contained_types.begin(), first_type_in_second_register_it);
+	auto const second_register_types = bz::array_view(first_type_in_second_register_it, contained_types.end());
+
+	if (first_register_types.size() == 1)
 	{
-		bz_assert(contained_types.size() == 2);
-		return result;
+		// special case for single types (e.g. pointers or float64)
+		result.first = first_register_types[0].first;
+	}
+	else if (
+		first_register_types.size() == 2
+		&& first_register_types[0].first->isFloatTy()
+		&& first_register_types[1].first->isFloatTy()
+	)
+	{
+		// special case for 2 float32's
+#if LLVM_VERSION_MAJOR >= 11
+		result.first = llvm::FixedVectorType::get(first_register_types[0].first, 2);
+#else
+		result.first = llvm::VectorType::get(first_register_types[0].first, 2);
+#endif // llvm 11
 	}
 	else
 	{
-		bz_unreachable;
+		// here, we don't care about how big the remaining types are, it's always going to be int64
+		// clang does the same thing, e.g [int16, int16, int64] would become int64, int64 when
+		// passing them as arguments
+		result.first = context.get_int64_t();
 	}
+
+	if (second_register_types.size() == 1)
+	{
+		// special case for single types (e.g. pointers or float64)
+		result.second = second_register_types[0].first;
+	}
+	else if (
+		second_register_types.size() == 2
+		&& second_register_types[0].first->isFloatTy()
+		&& second_register_types[1].first->isFloatTy()
+	)
+	{
+		// special case for 2 float32's
+#if LLVM_VERSION_MAJOR >= 11
+		result.second = llvm::FixedVectorType::get(second_register_types[0].first, 2);
+#else
+		result.second = llvm::VectorType::get(second_register_types[0].first, 2);
+#endif // llvm 11
+	}
+	else
+	{
+		auto const max_align = [&context, &contained_types]() {
+			size_t max_align = 0;
+			for (auto const &[type, offset] : contained_types)
+			{
+				auto const type_align = context.get_align(type);
+				if (type_align > max_align)
+				{
+					max_align = type_align;
+				}
+			}
+			return max_align;
+		}();
+		auto const [last_type, last_offset] = second_register_types.back();
+		auto const last_type_size = context.get_size(last_type);
+		auto const last_type_end_offset = last_offset + last_type_size;
+		auto const last_type_end_aligned_offset = last_type_end_offset + max_align - ((last_type_end_offset - 1) % max_align + 1);
+		auto const second_register_int_size = last_type_end_aligned_offset - register_size;
+		result.second = llvm::IntegerType::get(context.get_llvm_context(), second_register_int_size * 8);
+	}
+
+	return result;
 }
 
 } // namespace abi

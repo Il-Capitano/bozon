@@ -2969,18 +2969,49 @@ static void emit_function_bitcode_impl(
 			auto &p = *p_it;
 			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
 			{
-				// multiple register arg passing needs to be handled here
-				bz_unreachable;
 				auto const t = get_llvm_type(p.var_type, context);
-				auto const alloca = context.create_alloca(t);
-				// create a cast from integer types to struct types if necessery
-				llvm::Value *const param_val = fn_it;
-				auto const alloca_cast = context.builder.CreateBitCast(alloca, llvm::PointerType::get(param_val->getType(), 0));
-				context.builder.CreateStore(param_val, alloca_cast);
-				context.add_variable(&p, alloca);
+				auto const pass_kind = abi::get_pass_kind<abi>(t, context);
+				switch (pass_kind)
+				{
+				case abi::pass_kind::reference:
+					context.add_variable(&p, fn_it);
+					break;
+				case abi::pass_kind::value:
+				{
+					auto const alloca = context.create_alloca(t);
+					context.builder.CreateStore(fn_it, alloca);
+					context.add_variable(&p, alloca);
+					break;
+				}
+				case abi::pass_kind::one_register:
+				{
+					auto const alloca = context.create_alloca(t);
+					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
+					context.builder.CreateStore(fn_it, alloca_cast);
+					context.add_variable(&p, alloca);
+					break;
+				}
+				case abi::pass_kind::two_registers:
+				{
+					auto const alloca = context.create_alloca(t);
+					auto const first_val = fn_it;
+					auto const first_type = fn_it->getType();
+					++fn_it;
+					auto const second_val = fn_it;
+					auto const second_type = fn_it->getType();
+					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(llvm::StructType::get(first_type, second_type), 0));
+					auto const first_address  = context.builder.CreateStructGEP(alloca_cast, 0);
+					auto const second_address = context.builder.CreateStructGEP(alloca_cast, 1);
+					context.builder.CreateStore(first_val, first_address);
+					context.builder.CreateStore(second_val, second_address);
+					context.add_variable(&p, alloca);
+					break;
+				}
+				}
 			}
 			else
 			{
+				bz_assert(fn_it->getType()->isPointerTy());
 				context.add_variable(&p, fn_it);
 			}
 		}
