@@ -1,7 +1,6 @@
 #include "built_in_operators.h"
 #include "global_context.h"
 #include "parse_context.h"
-#include "safe_operations.h"
 #include "token_info.h"
 
 namespace ctx
