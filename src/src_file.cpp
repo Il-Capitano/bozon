@@ -35,10 +35,8 @@ src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
 
 void src_file::add_to_global_decls(ctx::decl_set const &set)
 {
-	for (auto const var_decl : set.var_decls)
-	{
-		this->_global_decls.var_decls.push_back(var_decl);
-	}
+	this->_global_decls.var_decls.append(set.var_decls);
+	this->_global_decls.types.append(set.types);
 
 	for (auto const &func_set : set.func_sets)
 	{
@@ -48,11 +46,6 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	for (auto const &op_set : set.op_sets)
 	{
 		this->_global_decls.add_operator_set(op_set);
-	}
-
-	for (auto const &type : set.types)
-	{
-		this->_global_decls.types.push_back(type);
 	}
 }
 

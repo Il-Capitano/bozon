@@ -138,7 +138,7 @@ static void get_types_with_offset_helper(
 		auto const elem_type = t->getArrayElementType();
 		auto const elem_count = t->getArrayNumElements();
 		auto const elem_size = context.get_size(elem_type);
-		for ([[maybe_unused]] auto const _ : bz::range(elem_count))
+		for ([[maybe_unused]] auto const _ : bz::iota(0, elem_count))
 		{
 			get_types_with_offset_helper(elem_type, result, current_offset, context);
 			current_offset += elem_size;
@@ -148,7 +148,7 @@ static void get_types_with_offset_helper(
 	case llvm::Type::TypeID::StructTyID:
 	{
 		auto const elem_count = t->getStructNumElements();
-		for (auto const i : bz::range(elem_count))
+		for (auto const i : bz::iota(0, elem_count))
 		{
 			get_types_with_offset_helper(
 				t->getStructElementType(i),

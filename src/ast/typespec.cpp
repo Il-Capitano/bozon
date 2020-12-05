@@ -390,7 +390,7 @@ bz::u8string typespec::decode_symbol_name(
 			auto const dim = parse_int(bz::u8string_view(dim_begin, dim_end));
 
 			auto size_begin = dim_end + 1;
-			for (auto const i : bz::range(dim))
+			for (auto const i : bz::iota(0, dim))
 			{
 				auto const size_end = symbol_name.find(size_begin, '.');
 				auto const size = parse_int(bz::u8string_view(size_begin, size_end));
@@ -424,7 +424,7 @@ bz::u8string typespec::decode_symbol_name(
 			{
 				it = types_count_end + 1;
 				result += decode_symbol_name(it, end);
-				for ([[maybe_unused]] auto const _ : bz::range(uint64_t(1), elem_types_count))
+				for ([[maybe_unused]] auto const _ : bz::iota(1, elem_types_count))
 				{
 					result += ", ";
 					bz_assert(*it == '.');
