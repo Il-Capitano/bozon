@@ -5,6 +5,8 @@ test/lex/dictionary.txt
 .vs
 .vscode
 .cppbuild
+.cppb/dependencies
+.cache
 *.o
 *.exe
 *.ll

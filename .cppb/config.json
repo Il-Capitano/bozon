@@ -1,0 +1,66 @@
+{
+	"default": {
+		"compiler": "clang",
+		"c_standard": "c11",
+		"cpp_standard": "c++17",
+
+		"c_compiler_flags": [],
+		"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
+		"link_flags": [],
+		"emit_compile_commands": true,
+
+		"run_args": [ "-Wall", "-Wno-unused-variable", "--debug-ir-output", "--profile", "./src/bitcode_test.bz" ],
+
+		"source_directory": "src",
+		"include_paths": [ "src", "include" ],
+		"library_paths": [],
+		"libraries": [],
+
+		"defines": [],
+		"warnings": [
+			"all",
+			"extra",
+			"no-c++20-extensions",
+			"no-defaulted-function-deleted"
+		],
+
+		"configs": {
+			"windows-debug": {},
+			"windows-release": {},
+			"linux-debug": {},
+			"linux-release": {},
+			"windows": {
+				"defines": [
+					"_FILE_OFFSET_BITS=64",
+					"__STDC_CONSTANT_MACROS",
+					"__STDC_FORMAT_MACROS",
+					"__STDC_LIMIT_MACROS"
+				],
+				"cpp_compiler_flags": [ "-fno-exceptions", "-fno-rtti" ],
+				"link_flags": [ "-fno-exceptions", "-fno-rtti" ],
+				"libraries": [ "LLVM" ]
+			},
+			"linux": {
+				"include_paths": [
+					"/usr/lib/llvm-10/include"
+				],
+				"defines": [
+					"_GNU_SOURCE",
+					"__STDC_CONSTANT_MACROS",
+					"__STDC_FORMAT_MACROS",
+					"__STDC_LIMIT_MACROS"
+				],
+				"cpp_compiler_flags": [ "-fno-exceptions" ],
+				"link_flags": [ "-fno-exceptions" ],
+				"libraries": [ "LLVM-10" ]
+			},
+			"debug": {
+				"optimization": "0"
+			},
+			"release": {
+				"defines": [ "NDEBUG" ],
+				"optimization": "3"
+			}
+		}
+	}
+}
