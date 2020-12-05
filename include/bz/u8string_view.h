@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "iterator.h"
+#include "ranges.h"
 
 bz_begin_namespace
 
@@ -165,7 +166,7 @@ def_cmp_operator(>=)
 	}
 };
 
-class u8string_view
+class u8string_view : collection_base<u8string_view>
 {
 public:
 	using       iterator = u8iterator;

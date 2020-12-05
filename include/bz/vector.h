@@ -918,7 +918,7 @@ namespace internal
 {
 
 template<typename Range>
-auto range_base_collect<Range>::collect(void) const noexcept
+auto range_base_collect<Range>::collect(void) const
 { return this->template collect<vector>(); }
 
 } // namespace internal

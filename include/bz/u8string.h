@@ -3,13 +3,14 @@
 
 #include "core.h"
 #include "u8string_view.h"
+#include "ranges.h"
 #include <tuple>
 #include <cstring>
 #include <algorithm>
 
 bz_begin_namespace
 
-class u8string
+class u8string : collection_base<u8string>
 {
 public:
 private:
