@@ -7,6 +7,7 @@
 #include "meta.h"
 #include "iterator.h"
 #include "array_view.h"
+#include "ranges.h"
 
 bz_begin_namespace
 
@@ -14,7 +15,7 @@ template<typename T, typename = allocator<T>>
 class vector;
 
 template<typename T, typename Alloc>
-class vector
+class vector : public collection_base<vector<T, Alloc>>
 {
 	static_assert(
 		!meta::is_reference<T>,
@@ -912,6 +913,15 @@ public:
 	const_reverse_iterator crend(void) const noexcept
 	{ return this->_data_begin - 1; }
 };
+
+namespace internal
+{
+
+template<typename Range>
+auto range_base_collect<Range>::collect(void) const noexcept
+{ return this->template collect<vector>(); }
+
+} // namespace internal
 
 bz_end_namespace
 

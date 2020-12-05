@@ -4,11 +4,12 @@
 #include "core.h"
 #include "iterator.h"
 #include "meta.h"
+#include "ranges.h"
 
 bz_begin_namespace
 
 template<typename T>
-class array_view
+class array_view : public collection_base<array_view<T>>
 {
 private:
 	using self_t = array_view<T>;

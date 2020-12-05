@@ -579,6 +579,30 @@ struct apply_type_pack_impl<T, type_pack<Ts...>>
 template<template<typename ...> typename T, typename Pack>
 using apply_type_pack = typename internal::apply_type_pack_impl<T, Pack>::type;
 
+
+namespace internal
+{
+
+template<typename T>
+struct is_member_variable_type_impl
+{
+	static constexpr bool value = false;
+};
+
+template<typename T, typename Base>
+struct is_member_variable_type_impl<T (Base::*)>
+{
+	static constexpr bool value = true;
+};
+
+} // namespace internal
+
+template<typename T>
+constexpr bool is_member_variable_type = internal::is_member_variable_type_impl<T>::value;
+
+template<auto Value>
+constexpr bool is_member_variable = is_member_variable_type<decltype(Value)>;
+
 } // namespace meta
 
 bz_end_namespace

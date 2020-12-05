@@ -23,6 +23,7 @@
 #include <bz/optional.h>
 #include <bz/format.h>
 #include <bz/result.h>
+#include <bz/array.h>
 
 #include "my_assert.h"
 
