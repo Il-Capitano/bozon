@@ -23,7 +23,7 @@ pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	case llvm::Type::TypeID::DoubleTyID:
 	case llvm::Type::TypeID::FloatTyID:
 		return pass_kind::value;
-	case llvm::Type::ArrayTyID:
+	case llvm::Type::TypeID::ArrayTyID:
 	case llvm::Type::TypeID::StructTyID:
 	{
 		auto const size = context.get_size(t);
@@ -87,43 +87,30 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 	ctx::bitcode_context &context
 )
 {
-	size_t const register_size = 8;
-	bz_assert(context.get_register_size() == register_size);
 	switch (t->getTypeID())
 	{
 	case llvm::Type::ArrayTyID:
 	case llvm::Type::TypeID::StructTyID:
 	{
 		auto const contained_types = get_types(t);
-		auto const get_pass_type = [&context](llvm::Type *type) -> llvm::Type * {
-			auto const pass_kind = get_pass_kind<platform_abi::systemv_amd64>(type, context);
-			switch (pass_kind)
-			{
-			case pass_kind::value:
-				return type;
-			case pass_kind::one_register:
-				return get_one_register_type<platform_abi::systemv_amd64>(type, context);
-			default:
-				bz_unreachable;
-			}
-		};
 		if (contained_types.size() == 1)
 		{
 			// { T } gets reduced to T
-			return get_pass_type(contained_types[0]);
+			return contained_types[0];
 		}
-		else if (contained_types.size() == 2)
+		else if (
+			contained_types.size() == 2
+			&& contained_types[0]->isFloatTy()
+			&& contained_types[1]->isFloatTy()
+		)
 		{
 			// the only special case here is { float, float } should become <2 x float>
 			// this applies to { { float }, float } too
-			if (contained_types[0]->isFloatTy() && contained_types[1]->isFloatTy())
-			{
 #if LLVM_VERSION_MAJOR >= 11
-				return llvm::FixedVectorType::get(contained_types[0], 2);
+			return llvm::FixedVectorType::get(contained_types[0], 2);
 #else
-				return llvm::VectorType::get(contained_types[0], 2);
+			return llvm::VectorType::get(contained_types[0], 2);
 #endif // llvm 11
-			}
 		}
 
 		auto const size = context.get_size(t);
@@ -251,18 +238,10 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	}
 	else
 	{
-		auto const max_align = [&context, &contained_types]() {
-			size_t max_align = 0;
-			for (auto const &[type, offset] : contained_types)
-			{
-				auto const type_align = context.get_align(type);
-				if (type_align > max_align)
-				{
-					max_align = type_align;
-				}
-			}
-			return max_align;
-		}();
+		auto const max_align = contained_types
+			.member<&decltype(contained_types)::value_type::first>()
+			.transform([&context](auto const type) { return context.get_align(type); })
+			.max(0);
 		auto const [last_type, last_offset] = second_register_types.back();
 		auto const last_type_size = context.get_size(last_type);
 		auto const last_type_end_offset = last_offset + last_type_size;
