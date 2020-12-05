@@ -289,7 +289,7 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 }
 
 
-constexpr std::array escape_sequence_parsers = {
+constexpr bz::array escape_sequence_parsers = {
 	escape_sequence_parser{ '\\', '\\',                                   "\\\\",        &verify_backslash,       &get_backslash       },
 	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &verify_single_quote,    &get_single_quote    },
 	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &verify_double_quote,    &get_double_quote    },

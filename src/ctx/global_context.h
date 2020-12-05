@@ -52,7 +52,7 @@ struct global_context
 	std::unique_ptr<llvm::TargetMachine> _target_machine;
 	bz::optional<llvm::DataLayout> _data_layout;
 	abi::platform_abi _platform_abi;
-	std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_built_in_types;
+	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_built_in_types;
 
 	global_context(src_manager &_src_manager);
 

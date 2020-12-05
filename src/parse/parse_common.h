@@ -344,7 +344,7 @@ ast::statement parse_decl_import(
 );
 
 
-constexpr std::array statement_parsers = {
+constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, &parse_stmt_static_assert<true>,   only_global },
 	statement_parser{ lex::token::kw_let,           &parse_decl_variable<true>,        only_global },
 	statement_parser{ lex::token::kw_const,         &parse_decl_variable<true>,        only_global },
@@ -381,7 +381,7 @@ constexpr auto global_statement_parsers = []() {
 		}
 		return count;
 	}();
-	using result_t = std::array<statement_parser, global_statement_kind_count>;
+	using result_t = bz::array<statement_parser, global_statement_kind_count>;
 	result_t result{};
 
 	size_t i = 0;
@@ -409,7 +409,7 @@ constexpr auto local_statement_parsers = []() {
 		}
 		return count;
 	}();
-	using result_t = std::array<statement_parser, local_statement_kind_count>;
+	using result_t = bz::array<statement_parser, local_statement_kind_count>;
 	result_t result{};
 
 	size_t i = 0;

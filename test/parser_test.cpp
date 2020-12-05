@@ -347,23 +347,23 @@ xx(                                                                             
 )
 
 	using pair_t = std::pair<bz::u8string_view, uint32_t>;
-	std::array signed_vars = {
+	bz::array signed_vars = {
 		pair_t{ "i8",  ast::type_info::int8_  },
 		pair_t{ "i16", ast::type_info::int16_ },
 		pair_t{ "i32", ast::type_info::int32_ },
 		pair_t{ "i64", ast::type_info::int64_ },
 	};
-	std::array unsigned_vars = {
+	bz::array unsigned_vars = {
 		pair_t{ "u8",  ast::type_info::uint8_  },
 		pair_t{ "u16", ast::type_info::uint16_ },
 		pair_t{ "u32", ast::type_info::uint32_ },
 		pair_t{ "u64", ast::type_info::uint64_ },
 	};
-	std::array floating_point_vars = {
+	bz::array floating_point_vars = {
 		pair_t{ "f32", ast::type_info::float32_ },
 		pair_t{ "f64", ast::type_info::float64_ },
 	};
-	std::array char_vars = {
+	bz::array char_vars = {
 		pair_t{ "c", ast::type_info::char_ },
 	};
 

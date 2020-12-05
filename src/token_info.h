@@ -95,7 +95,7 @@ struct prec_t
 	precedence prec;
 };
 
-constexpr std::array operator_precedences = {
+constexpr bz::array operator_precedences = {
 //	prec_t{ ---, lex::token::square_open,        precedence{  2, true  } },
 //	prec_t{ ---, lex::token::dot,                precedence{  2, true  } },
 //	prec_t{ ---, lex::token::arrow,              precedence{  2, true  } },
@@ -165,7 +165,7 @@ constexpr precedence call_prec     {  2, true };
 constexpr precedence subscript_prec{  2, true };
 
 constexpr auto token_info = []() {
-	std::array<token_info_t, lex::token::_last> result{};
+	bz::array<token_info_t, lex::token::_last> result{};
 
 	using namespace token_info_flags;
 
@@ -352,7 +352,7 @@ constexpr auto make_multi_char_tokens()
 		}
 		return count;
 	};
-	using result_t = std::array<token_name_kind_pair, get_count()>;
+	using result_t = bz::array<token_name_kind_pair, get_count()>;
 
 	result_t result;
 
@@ -398,7 +398,7 @@ constexpr auto make_keywords()
 		}
 		return count;
 	};
-	using result_t = std::array<token_name_kind_pair, get_count()>;
+	using result_t = bz::array<token_name_kind_pair, get_count()>;
 
 	result_t result;
 

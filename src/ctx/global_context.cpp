@@ -62,7 +62,7 @@ static_assert(ast::type_info::null_t_  == 13);
 
 static auto get_default_type_infos(void)
 {
-	return std::array{
+	return bz::array{
 		ast::type_info::make_built_in("int8",     ast::type_info::int8_),
 		ast::type_info::make_built_in("int16",    ast::type_info::int16_),
 		ast::type_info::make_built_in("int32",    ast::type_info::int32_),
@@ -95,7 +95,7 @@ static bz::vector<typespec_with_name> get_default_types(void)
 	return result;
 }
 
-static std::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
+static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_built_in_types(llvm::LLVMContext &context)
 {
 	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
@@ -249,7 +249,7 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind) const
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
-	static std::array<
+	static bz::array<
 		ast::function_body,
 		ast::function_body::_builtin_last - ast::function_body::_builtin_first
 	> builtin_functions = {

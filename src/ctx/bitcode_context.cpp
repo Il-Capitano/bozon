@@ -242,8 +242,7 @@ void bitcode_context::ensure_function_emission(ast::function_body const *func)
 		return;
 	}
 
-	auto const it = std::find(this->functions_to_compile.begin(), this->functions_to_compile.end(), func);
-	if (it == this->functions_to_compile.end())
+	if (!this->functions_to_compile.contains(func))
 	{
 		this->functions_to_compile.push_back(func);
 	}

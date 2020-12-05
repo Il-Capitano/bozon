@@ -35,8 +35,6 @@ constexpr auto Oall_indicies = []() {
 	return result;
 }();
 
-inline bz::u8string dummy_flag_value;
-
 constexpr auto warning_group = []() {
 	std::array<cl::group_element_t, ctx::warning_infos.size() + 1> result{};
 
@@ -72,7 +70,7 @@ constexpr std::array opt_group = []() {
 }();
 
 template<>
-constexpr bool cl::is_array_like<&import_dirs> = true;
+inline constexpr bool cl::is_array_like<&import_dirs> = true;
 
 constexpr std::array clparsers = {
 	cl::create_parser<&display_help>                         ("-h, --help",                       "Display this help page"),

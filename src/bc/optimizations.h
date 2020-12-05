@@ -1,6 +1,8 @@
 #ifndef BC_OPTIMIZATIONS_H
 #define BC_OPTIMIZATIONS_H
 
+#include "core.h"
+
 #include <array>
 #include <bz/u8string_view.h>
 
@@ -30,15 +32,15 @@ struct optimization_info
 	bz::u8string_view description;
 };
 
-constexpr std::array optimization_infos = []() {
-	using result_t = std::array<optimization_info, static_cast<size_t>(optimization_kind::_last)>;
+constexpr bz::array optimization_infos = []() {
+	using result_t = bz::array<optimization_info, static_cast<size_t>(optimization_kind::_last)>;
 	using T = optimization_info;
 	result_t result = {
 		T{ optimization_kind::instcombine,            "instcombine",            "Combine redundant instructions"                          },
 		T{ optimization_kind::mem2reg,                "mem2reg",                "Promote memory to register"                              },
 		T{ optimization_kind::simplifycfg,            "simplifycfg",            "Simplify the Control Flow Graph"                         },
 		T{ optimization_kind::reassociate,            "reassociate",            "Reassociate expressions for better constant propagation" },
-		T{ optimization_kind::gvn,                    "gvn",                    "Global value numbering"                                  },
+		T{ optimization_kind::gvn,                    "gvn",                    "Global Value Numbering"                                  },
 		T{ optimization_kind::inline_,                "inline",                 "Function inlining"                                       },
 		T{ optimization_kind::dce,                    "dce",                    "Dead Code Elimination"                                   },
 		T{ optimization_kind::adce,                   "adce",                   "Aggressive Dead Code Elimination"                        },

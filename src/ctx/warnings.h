@@ -38,7 +38,7 @@ struct warning_info
 };
 
 constexpr auto warning_infos = []() {
-	using result_t = std::array<warning_info, static_cast<size_t>(warning_kind::_last)>;
+	using result_t = bz::array<warning_info, static_cast<size_t>(warning_kind::_last)>;
 	using T = warning_info;
 	result_t result = {
 		T{ warning_kind::int_overflow,             "int-overflow",             "Integer overflow in constant expression"                                   },

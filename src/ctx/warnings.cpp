@@ -3,16 +3,10 @@
 namespace ctx
 {
 
-static_assert([]() {
-	for (auto const &info : warning_infos)
-	{
-		if (info.name.starts_with("no-"))
-		{
-			return false;
-		}
-	}
-	return true;
-}(), "a warning name starts with 'no-'");
+static_assert(
+	warning_infos.is_all([](auto const &info) { return !info.name.starts_with("no-"); }),
+	"a warning name starts with 'no-'"
+);
 
 static_assert([]() {
 	for (size_t i = 0; i < warning_infos.size(); ++i)

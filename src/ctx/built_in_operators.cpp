@@ -3269,7 +3269,7 @@ struct unary_operator_parse_function_t
 
 constexpr auto built_in_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
-	auto result = std::array{
+	auto result = bz::array{
 		T{ lex::token::plus,        &get_built_in_unary_plus                  }, // +
 		T{ lex::token::minus,       &get_built_in_unary_minus                 }, // -
 		T{ lex::token::address_of,  &get_built_in_unary_address_of            }, // &
@@ -3317,7 +3317,7 @@ constexpr auto built_in_unary_operators = []() {
 
 constexpr auto type_op_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
-	auto result = std::array{
+	auto result = bz::array{
 		T{ lex::token::address_of,   &get_type_op_unary_reference }, // &
 		T{ lex::token::dereference,  &get_type_op_unary_pointer   }, // *
 		T{ lex::token::kw_const,     &get_type_op_unary_const     }, // const
@@ -3366,7 +3366,7 @@ struct binary_operator_parse_function_t
 
 constexpr auto built_in_binary_operators = []() {
 	using T = binary_operator_parse_function_t;
-	auto result = std::array{
+	auto result = bz::array{
 		T{ lex::token::assign,             &get_built_in_binary_assign             }, // =
 		T{ lex::token::plus,               &get_built_in_binary_plus               }, // +
 		T{ lex::token::plus_eq,            &get_built_in_binary_plus_minus_eq      }, // +=
@@ -3435,7 +3435,7 @@ constexpr auto built_in_binary_operators = []() {
 
 constexpr auto type_op_binary_operators = []() {
 	using T = binary_operator_parse_function_t;
-	auto result = std::array{
+	auto result = bz::array{
 		T{ lex::token::equals,     &get_type_op_binary_equals_not_equals }, // ==
 		T{ lex::token::not_equals, &get_type_op_binary_equals_not_equals }, // !=
 	};
