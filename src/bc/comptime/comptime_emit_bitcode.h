@@ -14,9 +14,12 @@ void add_function_to_module(
 	ctx::bitcode_context &context
 );
 void emit_function_bitcode(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 );
+
+void add_builtin_functions(ctx::bitcode_context &context);
+void emit_necessary_functions(ctx::bitcode_context &context);
 
 } // namespace bc::comptime
 

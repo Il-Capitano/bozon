@@ -197,34 +197,6 @@
     },
     {
         "directory": "C:/dev/projects/bozon",
-        "file": "C:/dev/projects/bozon/src/bc/comptime/comptime_emit_bitcode.cpp",
-        "arguments": [
-            "-c",
-            "-g",
-            "-std=c++17",
-            "-fno-exceptions",
-            "-fno-rtti",
-            "-march=native",
-            "-mtune=native",
-            "-ferror-limit=2",
-            "-Isrc",
-            "-Iinclude",
-            "-D_FILE_OFFSET_BITS=64",
-            "-D__STDC_CONSTANT_MACROS",
-            "-D__STDC_FORMAT_MACROS",
-            "-D__STDC_LIMIT_MACROS",
-            "-Wall",
-            "-Wextra",
-            "-Wno-c++20-extensions",
-            "-Wno-defaulted-function-deleted",
-            "-O0",
-            "-o",
-            "bin/windows-debug/int/comptime_emit_bitcode.cpp.o",
-            "C:/dev/projects/bozon/src/bc/comptime/comptime_emit_bitcode.cpp"
-        ]
-    },
-    {
-        "directory": "C:/dev/projects/bozon",
         "file": "C:/dev/projects/bozon/src/bc/runtime/runtime_emit_bitcode.cpp",
         "arguments": [
             "-c",
@@ -865,6 +837,34 @@
             "-o",
             "bin/windows-debug/int/src_file.cpp.o",
             "C:/dev/projects/bozon/src/src_file.cpp"
+        ]
+    },
+    {
+        "directory": "C:/dev/projects/bozon",
+        "file": "C:/dev/projects/bozon/src/bc/comptime/comptime_emit_bitcode.cpp",
+        "arguments": [
+            "-c",
+            "-g",
+            "-std=c++17",
+            "-fno-exceptions",
+            "-fno-rtti",
+            "-march=native",
+            "-mtune=native",
+            "-ferror-limit=2",
+            "-Isrc",
+            "-Iinclude",
+            "-D_FILE_OFFSET_BITS=64",
+            "-D__STDC_CONSTANT_MACROS",
+            "-D__STDC_FORMAT_MACROS",
+            "-D__STDC_LIMIT_MACROS",
+            "-Wall",
+            "-Wextra",
+            "-Wno-c++20-extensions",
+            "-Wno-defaulted-function-deleted",
+            "-O0",
+            "-o",
+            "bin/windows-debug/int/comptime_emit_bitcode.cpp.o",
+            "C:/dev/projects/bozon/src/bc/comptime/comptime_emit_bitcode.cpp"
         ]
     }
 ]
