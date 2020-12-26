@@ -1,5 +1,9 @@
 #include "src_file.h"
 #include "ctx/global_context.h"
+#include "ctx/lex_context.h"
+#include "ctx/parse_context.h"
+#include "ctx/bitcode_context.h"
+#include "lex/lexer.h"
 #include "parse/statement_parser.h"
 
 static bz::u8string read_text_from_file(std::ifstream &file)
@@ -20,17 +24,15 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 }
 
 
-src_file::src_file(bz::u8string_view file_name, ctx::global_context &global_ctx)
+src_file::src_file(fs::path file_path, uint32_t file_id, ctx::global_context &global_ctx)
 	: _stage(constructed),
-	  _file_id(static_cast<uint32_t>(global_ctx.src_files.size())),
-	  _file_name(file_name),
+	  _file_id(file_id),
+	  _file_path(std::move(file_path)),
 	  _file(), _tokens(),
 	  _global_ctx(global_ctx),
 	  _declarations{},
 	  _global_decls{}
-{
-	global_ctx.src_files.push_back(this);
-}
+{}
 
 
 void src_file::add_to_global_decls(ctx::decl_set const &set)
@@ -52,19 +54,20 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 [[nodiscard]] bool src_file::read_file(void)
 {
 	bz_assert(this->_stage == constructed);
-	auto file_name = this->_file_name;
-	file_name += '\0';
-	std::ifstream file(reinterpret_cast<char const *>(file_name.data()));
+	std::ifstream file(this->_file_path);
 
 	if (!file.good())
 	{
+		bz::u8string const file_name = this->_file_path.generic_string().c_str();
+		this->_global_ctx.report_error(bz::format("unable to read file '{}'", file_name));
 		return false;
 	}
 
 	this->_file = read_text_from_file(file);
 	if (!this->_file.verify())
 	{
-		this->_global_ctx.report_error(bz::format("file '{}' is not a valid UTF-8 file", this->_file_name));
+		bz::u8string const file_name = this->_file_path.generic_string().c_str();
+		this->_global_ctx.report_error(bz::format("'{}' is not a valid UTF-8 file", file_name));
 		return false;
 	}
 	this->_stage = file_read;
@@ -159,12 +162,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	for (auto const import : imports)
 	{
-		auto const it = this->_file_name.rfind('/');
-		auto import_file = bz::u8string(this->_file_name.begin(), it);
-		import_file += '/';
-		import_file += import->identifier->value;
-		import_file += ".bz";
-		auto const import_file_id = this->_global_ctx.add_file_to_compile(import->identifier, import_file);
+		auto const import_file_id = this->_global_ctx.add_module(import->identifier, this->_file_id, import->identifier->value);
 		if (import_file_id != std::numeric_limits<uint32_t>::max())
 		{
 			auto const &import_decls = this->_global_ctx.get_file_export_decls(import_file_id);

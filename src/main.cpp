@@ -1418,7 +1418,7 @@ more consistent
 
 */
 
-#include "ctx/src_manager.h"
+#include "ctx/global_context.h"
 #include "timer.h"
 
 
@@ -1431,82 +1431,82 @@ int main(int argc, char const **argv)
 		) * 1e-6;
 	};
 
-	ctx::src_manager manager;
+	ctx::global_context global_ctx;
 
 	auto const begin = timer::now();
 
-	if (!manager.parse_command_line(argc, argv))
+	if (!global_ctx.parse_command_line(argc, argv))
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 1;
 	}
 	auto const after_command_line_parsing = timer::now();
 
 	if (compile_until <= compilation_phase::parse_command_line)
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
-	if (!manager.initialize_llvm())
+	if (!global_ctx.initialize_llvm())
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 2;
 	}
 
 	auto const before_parse_global_symbols = timer::now();
-	if (!manager.parse_global_symbols())
+	if (!global_ctx.parse_global_symbols())
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 3;
 	}
 	auto const after_parse_global_symbols = timer::now();
 
 	if (compile_until <= compilation_phase::parse_global_symbols)
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
 	auto const before_parse = timer::now();
-	if (!manager.parse())
+	if (!global_ctx.parse())
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 4;
 	}
 	auto const after_parse = timer::now();
 
 	if (compile_until <= compilation_phase::parse)
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
 	auto const before_bitcode_emission = timer::now();
-	if (!manager.emit_bitcode())
+	if (!global_ctx.emit_bitcode())
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 5;
 	}
 	auto const after_bitcode_emission = timer::now();
 
 	auto const before_file_emission = timer::now();
-	if (!manager.emit_file())
+	if (!global_ctx.emit_file())
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 6;
 	}
 	auto const after_file_emission = timer::now();
 
 	if (compile_until <= compilation_phase::emit_bitcode)
 	{
-		manager.report_and_clear_errors_and_warnings();
+		global_ctx.report_and_clear_errors_and_warnings();
 		return 0;
 	}
 
 	auto const end = timer::now();
 
-	manager.report_and_clear_errors_and_warnings();
+	global_ctx.report_and_clear_errors_and_warnings();
 
 	if (do_profile)
 	{
