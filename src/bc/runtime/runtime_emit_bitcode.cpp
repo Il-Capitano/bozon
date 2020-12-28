@@ -2047,6 +2047,21 @@ static val_ptr emit_bitcode(
 			}
 		}
 	}
+	else if (expr_t.is<ast::ts_pointer>() && dest_t.is<ast::ts_pointer>())
+	{
+		auto const llvm_dest_t = get_llvm_type(dest_t, context);
+		auto const expr = emit_bitcode<abi>(cast.expr, context, nullptr).get_value(context.builder);
+		auto const cast_result = context.builder.CreatePointerCast(expr, llvm_dest_t);
+		if (result_address == nullptr)
+		{
+			return { val_ptr::value, cast_result };
+		}
+		else
+		{
+			context.builder.CreateStore(cast_result, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
 	else
 	{
 		bz_unreachable;

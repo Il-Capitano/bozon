@@ -2981,6 +2981,50 @@ ast::expression make_built_in_cast(
 			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
 		);
 	}
+	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
+	{
+		auto inner_dest_t = dest_t.get<ast::ts_pointer>();
+		auto inner_expr_t = expr_t.get<ast::ts_pointer>();
+		if (!inner_dest_t.is<ast::ts_const>() && inner_expr_t.is<ast::ts_const>())
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
+			);
+			return ast::expression(src_tokens);
+		}
+		inner_dest_t = ast::remove_const_or_consteval(inner_dest_t);
+		inner_expr_t = ast::remove_const_or_consteval(inner_expr_t);
+		while (inner_dest_t.is_safe_blind_get() && inner_expr_t.is_safe_blind_get() && inner_dest_t.kind() == inner_expr_t.kind())
+		{
+			inner_dest_t = inner_dest_t.blind_get();
+			inner_expr_t = inner_expr_t.blind_get();
+		}
+		if (
+			inner_dest_t.is<ast::ts_void>()
+			|| (
+				inner_dest_t.is<ast::ts_base_type>()
+				&& inner_expr_t.is<ast::ts_base_type>()
+				&& inner_dest_t.get<ast::ts_base_type>().info->kind == inner_expr_t.get<ast::ts_base_type>().info->kind
+			)
+		)
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue,
+				dest_t,
+				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+			);
+		}
+		else
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
+			);
+			return ast::expression(src_tokens);
+		}
+	}
 	else if (!dest_t.is<ast::ts_base_type>())
 	{
 		context.report_error(
@@ -2989,47 +3033,54 @@ ast::expression make_built_in_cast(
 		);
 		return ast::expression(src_tokens);
 	}
-
-	bz_assert(expr_t.is<ast::ts_base_type>());
-	bz_assert(dest_t.is<ast::ts_base_type>());
-
-	auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
-	if (is_arithmetic_kind(expr_kind) && is_arithmetic_kind(dest_kind))
+	else if (expr_t.is<ast::ts_base_type>())
 	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, dest_t,
-			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
-		);
-	}
-	else if (
-		expr_kind == ast::type_info::char_
-		&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
-	)
-	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, dest_t,
-			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
-		);
-	}
-	else if (
-		(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
-		&& dest_kind == ast::type_info::char_
-	)
-	{
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue, dest_t,
-			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
-		);
-	}
+		auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
+		if (is_arithmetic_kind(expr_kind) && is_arithmetic_kind(dest_kind))
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue, dest_t,
+				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+			);
+		}
+		else if (
+			expr_kind == ast::type_info::char_
+			&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
+		)
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue, dest_t,
+				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+			);
+		}
+		else if (
+			(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
+			&& dest_kind == ast::type_info::char_
+		)
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue, dest_t,
+				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+			);
+		}
 
-	context.report_error(
-		src_tokens,
-		bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
-	);
-	return ast::expression(src_tokens);
+		context.report_error(
+			src_tokens,
+			bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
+		);
+		return ast::expression(src_tokens);
+	}
+	else
+	{
+		context.report_error(
+			src_tokens,
+			bz::format("invalid conversion from '{}' to '{}'", expr_type, dest_type)
+		);
+		return ast::expression(src_tokens);
+	}
 }
 
 ast::expression make_built_in_subscript_operator(
