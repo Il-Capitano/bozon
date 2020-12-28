@@ -2651,6 +2651,10 @@ ast::expression parse_context::make_function_call_expression(
 				}
 				return ast::expression(src_tokens);
 			}
+			for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
+			{
+				match_expression_to_type(param, func_body_param.var_type);
+			}
 			auto &ret_t = func_body->return_type;
 			auto return_type_kind = ast::expression_type_kind::rvalue;
 			auto return_type = ast::remove_const_or_consteval(ret_t);
@@ -2730,6 +2734,10 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			else
 			{
+				for (auto const [param, func_body_param] : bz::zip(params, best.second->params))
+				{
+					match_expression_to_type(param, func_body_param.var_type);
+				}
 				auto &ret_t = best.second->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
 				auto return_type = ast::remove_const_or_consteval(ret_t);
