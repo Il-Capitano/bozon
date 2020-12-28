@@ -497,24 +497,35 @@ void print_error_or_warning(error const &err, global_context &context)
 					: get_column_number(note_file_begin, n.src_pivot);
 			}
 		}();
-		auto const note_src_pos = is_empty
-			? bz::format(
-				"{}{}:{}{}",
-				colors::bright_white,
-				context.get_file_name(n.file_id), n.line,
-				colors::clear
-			)
-			: bz::format(
-				"{}{}:{}:{}{}",
-				colors::bright_white,
-				context.get_file_name(n.file_id), n.line, column,
-				colors::clear
-			);
+		auto const note_src_pos = [&]() {
+			if (n.file_id == global_context::compiler_file_id)
+			{
+				return bz::format("{}bozon:{}", colors::bright_white, colors::clear);
+			}
+			else if (is_empty)
+			{
+				return bz::format(
+					"{}{}:{}:{}",
+					colors::bright_white,
+					context.get_file_name(n.file_id), n.line,
+					colors::clear
+				);
+			}
+			else
+			{
+				return bz::format(
+					"{}{}:{}:{}:{}",
+					colors::bright_white,
+					context.get_file_name(n.file_id), n.line, column,
+					colors::clear
+				);
+			}
+		}();
 
 		if (no_error_highlight)
 		{
 			bz::print(
-				"{}: {}note:{} {}\n",
+				"{} {}note:{} {}\n",
 				note_src_pos, colors::note_color, colors::clear,
 				convert_string_for_message(n.message)
 			);
@@ -522,7 +533,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		else
 		{
 			bz::print(
-				"{}: {}note:{} {}\n{}",
+				"{} {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
 				convert_string_for_message(n.message),
 				get_highlighted_text(
