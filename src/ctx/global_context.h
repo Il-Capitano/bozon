@@ -62,14 +62,14 @@ struct global_context
 		this->_errors.emplace_back(std::move(err));
 	}
 
-	void report_error(bz::u8string message)
+	void report_error(bz::u8string message, bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {})
 	{
 		this->_errors.emplace_back(error{
 			warning_kind::_last,
 			global_context::compiler_file_id, 0,
 			char_pos(), char_pos(), char_pos(),
 			std::move(message),
-			{}, {}
+			std::move(notes), std::move(suggestions)
 		});
 	}
 
@@ -94,6 +94,15 @@ struct global_context
 				{}, {}
 			});
 		}
+	}
+
+	[[nodiscard]] static note make_note(bz::u8string message)
+	{
+		return note{
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			{}, {}, std::move(message)
+		};
 	}
 
 	bz::u8string_view get_file_name(uint32_t file_id) const noexcept
