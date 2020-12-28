@@ -73,6 +73,7 @@ struct typespec_view
 	template<typename T>
 	auto get(void) const noexcept -> bz::meta::conditional<is_terminator_typespec<T>, T const &, typespec_view>;
 
+	bool is_safe_blind_get(void) const noexcept;
 	typespec_view blind_get(void) const noexcept;
 
 	template<typename Fn>
@@ -131,7 +132,8 @@ struct typespec
 	void clear(void) noexcept;
 
 	void copy_from(typespec_view pos, typespec_view source);
-	void move_from(typespec_view pos, typespec_view source);
+	void move_from(typespec_view pos, typespec &source);
+	void move_from(typespec_view pos, typespec &&source);
 
 
 	bz::u8string get_symbol_name(void) const

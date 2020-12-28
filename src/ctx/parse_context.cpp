@@ -1434,7 +1434,174 @@ static bool is_built_in_type(ast::typespec_view ts)
 	}
 }
 
+static bool is_implicitly_convertible(
+	ast::typespec_view dest,
+	ast::expression const &expr,
+	[[maybe_unused]] parse_context &context
+)
+{
+	bz_assert(!dest.is<ast::ts_const>());
+	bz_assert(!dest.is<ast::ts_consteval>());
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
+	if (dest.is<ast::ts_base_type>() && expr_type_without_const.is<ast::ts_base_type>())
+	{
+		auto const dest_info = dest.get<ast::ts_base_type>().info;
+		auto const expr_info = expr_type_without_const.get<ast::ts_base_type>().info;
+		if (
+			(is_signed_integer_kind(dest_info->kind) && is_signed_integer_kind(expr_info->kind))
+			|| (is_unsigned_integer_kind(dest_info->kind) && is_unsigned_integer_kind(expr_info->kind))
+		)
+		{
+			return dest_info->kind >= expr_info->kind;
+		}
+	}
+	return false;
+}
+
+static int get_strict_type_match_level(
+	ast::typespec_view dest,
+	ast::typespec_view source,
+	bool accept_void
+)
+{
+	bz_assert(ast::is_complete(source));
+	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
+	{
+		dest = dest.blind_get();
+		source = source.blind_get();
+	}
+	bz_assert(!dest.is<ast::ts_unresolved>());
+	bz_assert(!source.is<ast::ts_unresolved>());
+
+	if (accept_void && dest.is<ast::ts_void>())
+	{
+		return 1;
+	}
+	else if (dest.is<ast::ts_auto>())
+	{
+		return 1;
+	}
+	else if (dest == source)
+	{
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
 static int get_type_match_level(
+	ast::typespec_view dest,
+	ast::expression const &expr,
+	parse_context &context
+)
+{
+	// six base cases:
+	// *T
+	//     -> if expr is of pointer type strict match U to T
+	//     -> else expr is some base type, try implicitly casting it
+	//     -> special case for *void
+	// *const T
+	//     -> same as before, but U doesn't have to be const (no need to strict match), +1 match level if U is not const
+	// &T
+	//     -> expr must be an lvalue
+	//     -> strict match type of expr to T
+	// &const T
+	//     -> expr must be an lvalue
+	//     -> type of expr doesn't need to be const, +1 match level if U is not const
+	// T
+	//     -> if type of expr is T, then there's nothing to do
+	//     -> else try to implicitly cast expr to T
+	// const T -> match to T (no need to worry about const)
+	if (dest.is<ast::ts_const>())
+	{
+		return get_type_match_level(dest.get<ast::ts_const>(), expr, context);
+	}
+	else if (dest.is<ast::ts_consteval>())
+	{
+		if (!expr.is<ast::constant_expression>())
+		{
+			return -1;
+		}
+		else
+		{
+			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
+		}
+	}
+
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
+
+	if (dest.is<ast::ts_pointer>())
+	{
+		if (expr_type_without_const.is<ast::ts_pointer>())
+		{
+			auto const inner_dest = dest.get<ast::ts_pointer>();
+			auto const inner_expr_type = expr_type_without_const.get<ast::ts_pointer>();
+			if (inner_dest.is<ast::ts_const>())
+			{
+				if (inner_expr_type.is<ast::ts_const>())
+				{
+					return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type.get<ast::ts_const>(), true);
+				}
+				else
+				{
+					auto const strict_match_result = get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type, true);
+					return strict_match_result == -1 ? -1 : strict_match_result + 1;
+				}
+			}
+			else
+			{
+				return get_strict_type_match_level(inner_dest, inner_expr_type, true);
+			}
+		}
+		// special case for null
+		else if (expr_type_without_const.is<ast::ts_base_type>() && expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
+		{
+			return 1;
+		}
+	}
+	else if (dest.is<ast::ts_lvalue_reference>())
+	{
+		if (expr_type_kind != ast::expression_type_kind::lvalue && expr_type_kind != ast::expression_type_kind::lvalue_reference)
+		{
+			return -1;
+		}
+
+		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
+		if (inner_dest.is<ast::ts_const>())
+		{
+			if (expr_type.is<ast::ts_const>())
+			{
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+			}
+			else
+			{
+				auto const strict_match_result = get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+				return strict_match_result == -1 ? -1 : strict_match_result + 1;
+			}
+		}
+		else
+		{
+			return get_strict_type_match_level(inner_dest, expr_type, false);
+		}
+	}
+
+	// only implicit type conversions are left
+	if (dest == expr_type_without_const)
+	{
+		return 0;
+	}
+	else if (is_implicitly_convertible(dest, expr, context))
+	{
+		return 1;
+	}
+	return -1;
+}
+
+static int get_type_match_level_old(
 	ast::typespec_view dest,
 	ast::expression const &expr,
 	parse_context &context
@@ -1643,6 +1810,14 @@ static int get_type_match_level(
 			return -1;
 		}
 	}
+}
+
+static void match_expression_to_type(
+	ast::typespec &ts,
+	ast::expression const &expr,
+	parse_context &context
+)
+{
 }
 
 struct match_level
@@ -1908,6 +2083,7 @@ static auto find_best_match(
 		else
 		{
 			// TODO: report ambiguous call error somehow
+			return { { -1, -1 }, nullptr };
 			bz_unreachable;
 		}
 	}

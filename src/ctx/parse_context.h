@@ -273,8 +273,8 @@ struct parse_context
 		ast::typespec &type
 	);
 
-	bool is_implicitly_convertible(ast::expression const &from, ast::typespec const &to);
-	bool is_explicitly_convertible(ast::expression const &from, ast::typespec const &to);
+	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
+	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
 	{ this->resolve_queue.emplace_back(tokens, &func_body); }

@@ -96,6 +96,13 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 	return src_tokens;
 }
 
+bool typespec_view::is_safe_blind_get(void) const noexcept
+{
+	return [this]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
+		return ((!is_terminator_typespec<Ts> && this->is<Ts>()) || ...);
+	}(typespec_types{});
+}
+
 typespec_view typespec_view::blind_get(void) const noexcept
 {
 	return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
@@ -141,7 +148,24 @@ void typespec::copy_from(typespec_view pos, typespec_view source)
 	}
 }
 
-void typespec::move_from(typespec_view pos, typespec_view source)
+void typespec::move_from(typespec_view pos, typespec &source)
+{
+	auto const it_pos = pos.nodes.begin();
+	bz_assert(it_pos >= this->nodes.begin() && it_pos < this->nodes.end());
+	bz_assert(pos.nodes.end() == this->nodes.end());
+	bz_assert(source.nodes.end() < this->nodes.begin() || source.nodes.begin() >= this->nodes.end());
+	auto const it_index = static_cast<size_t>(it_pos - this->nodes.begin());
+	this->nodes.resize(it_index + source.nodes.size());
+	auto it = this->nodes.begin() + it_index;
+	auto const end = this->nodes.end();
+	auto src_it = source.nodes.begin();
+	for (; it != end; ++it, ++src_it)
+	{
+		*it = std::move(*src_it);
+	}
+}
+
+void typespec::move_from(typespec_view pos, typespec &&source)
 {
 	auto const it_pos = pos.nodes.begin();
 	bz_assert(it_pos >= this->nodes.begin() && it_pos < this->nodes.end());
