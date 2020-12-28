@@ -24,8 +24,6 @@
 namespace ctx
 {
 
-struct src_manager;
-
 struct decl_list
 {
 	bz::vector<ast::decl_variable *> var_decls;
@@ -40,11 +38,11 @@ struct global_context
 	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();
 	static constexpr uint32_t command_line_file_id = std::numeric_limits<uint32_t>::max() - 1;
 
-	src_manager &_src_manager;
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
 
-	bz::vector<src_file const *> src_files;
+	std::list<src_file> _src_files;
+	bz::vector<fs::path> _import_dirs;
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module _module;
@@ -54,7 +52,7 @@ struct global_context
 	abi::platform_abi _platform_abi;
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_built_in_types;
 
-	global_context(src_manager &_src_manager);
+	global_context(void);
 
 	void report_error(error &&err)
 	{
@@ -105,14 +103,16 @@ struct global_context
 		};
 	}
 
-	bz::u8string_view get_file_name(uint32_t file_id) const noexcept
+	src_file const &get_src_file(uint32_t file_id) const noexcept
 	{
-		if (file_id == command_line_file_id)
-		{
-			return "<command-line>";
-		}
-		bz_assert(file_id < this->src_files.size());
-		return this->src_files[file_id]->get_file_name();
+		auto const it = std::find_if(
+			this->_src_files.begin(), this->_src_files.end(),
+			[&](auto const &src_file) {
+				return file_id == src_file._file_id;
+			}
+		);
+		bz_assert(it != this->_src_files.end());
+		return *it;
 	}
 
 	char_pos get_file_begin(uint32_t file_id) const noexcept
@@ -121,8 +121,8 @@ struct global_context
 		{
 			return char_pos();
 		}
-		bz_assert(file_id < this->src_files.size());
-		return this->src_files[file_id]->_file.begin();
+		bz_assert(file_id < this->_src_files.size());
+		return this->get_src_file(file_id)._file.begin();
 	}
 
 	std::pair<char_pos, char_pos> get_file_begin_and_end(uint32_t file_id) const noexcept
@@ -131,9 +131,9 @@ struct global_context
 		{
 			return { char_pos(), char_pos() };
 		}
-		bz_assert(file_id < this->src_files.size());
-		auto const src_file = this->src_files[file_id];
-		return { src_file->_file.begin(), src_file->_file.end() };
+		bz_assert(file_id < this->_src_files.size());
+		auto const &src_file = this->get_src_file(file_id);
+		return { src_file._file.begin(), src_file._file.end() };
 	}
 
 	bool has_errors(void) const;
@@ -158,8 +158,11 @@ struct global_context
 	void add_compile_function(ast::function_body &func_body);
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
-	uint32_t add_file_to_compile(lex::token_pos it, bz::u8string_view file_name);
+	uint32_t add_module(lex::token_pos it, uint32_t current_file_id, bz::u8string_view file_name);
 	ctx::decl_set const &get_file_export_decls(uint32_t file_id);
+
+	bz::u8string get_file_name(uint32_t file_id)
+	{ return this->get_src_file(file_id).get_file_path().generic_string().c_str(); }
 
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;
@@ -167,6 +170,22 @@ struct global_context
 
 	llvm::DataLayout const &get_data_layout(void) const
 	{ return this->_module.getDataLayout(); }
+
+	void report_and_clear_errors_and_warnings(void);
+
+	[[nodiscard]] bool parse_command_line(int argc, char const **argv);
+	[[nodiscard]] bool initialize_llvm(void);
+	[[nodiscard]] bool parse_global_symbols(void);
+	[[nodiscard]] bool parse(void);
+	[[nodiscard]] bool emit_bitcode(void);
+	[[nodiscard]] bool emit_file(void);
+
+	bool emit_obj(void);
+	bool emit_asm(void);
+	bool emit_llvm_bc(void);
+	bool emit_llvm_ir(void);
+
+	void optimize(void);
 };
 
 } // namespace ctx

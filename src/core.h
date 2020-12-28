@@ -12,6 +12,7 @@
 #include <memory>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 
 #include <cstdint>
 #include <cmath>
@@ -26,6 +27,8 @@
 #include <bz/array.h>
 
 #include "my_assert.h"
+
+namespace fs = std::filesystem;
 
 #undef min
 #undef max

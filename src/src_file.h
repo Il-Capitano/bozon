@@ -3,12 +3,13 @@
 
 #include "core.h"
 
-#include "ctx/lex_context.h"
-#include "lex/lexer.h"
-#include "ctx/first_pass_parse_context.h"
-#include "ctx/parse_context.h"
-#include "ctx/bitcode_context.h"
+#include "lex/token.h"
 #include "ctx/decl_set.h"
+
+namespace ctx
+{
+	struct global_context;
+} // namespace ctx
 
 struct src_file
 {
@@ -25,7 +26,7 @@ public:
 	src_file_stage _stage;
 
 	uint32_t               _file_id;
-	bz::u8string           _file_name;
+	fs::path               _file_path;
 	bz::u8string           _file;
 	bz::vector<lex::token> _tokens;
 
@@ -35,7 +36,7 @@ public:
 	ctx::decl_set              _export_decls;
 
 public:
-	src_file(bz::u8string_view file_name, ctx::global_context &global_ctx);
+	src_file(fs::path file_path, uint32_t file_id, ctx::global_context &global_ctx);
 
 	void add_to_global_decls(ctx::decl_set const &set);
 
@@ -48,8 +49,8 @@ public:
 	[[nodiscard]] bool parse(void);
 
 
-	bz::u8string_view get_file_name() const
-	{ return this->_file_name; }
+	fs::path const &get_file_path() const
+	{ return this->_file_path; }
 
 	auto tokens_begin(void) const
 	{ bz_assert(this->_stage >= tokenized); return this->_tokens.begin(); }
