@@ -6,6 +6,7 @@ test/lex/dictionary.txt
 .vscode
 .cppbuild
 .cppb/dependencies
+compile_commands.json
 .cache
 *.o
 *.exe
