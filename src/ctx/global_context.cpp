@@ -381,9 +381,11 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::initialize_llvm(void)
 {
-	auto const target_triple = target == "" || target == "native"
+	auto const is_native_target = target == "" || target == "native";
+	auto const target_triple = is_native_target
 		? llvm::sys::getDefaultTargetTriple()
 		: std::string(target.data_as_char_ptr(), target.size());
+	llvm::InitializeAllDisassemblers();
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
 	llvm::InitializeAllTargetMCs();
@@ -407,15 +409,34 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	if (target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
+		bz::vector<ctx::note> notes;
+		if (do_verbose)
+		{
+			bz::u8string message = "available targets are: ";
+			bool is_first = true;
+			for (auto const &target : llvm::TargetRegistry::targets())
+			{
+				if (is_first)
+				{
+					message += bz::format("'{}'", target.getName());
+					is_first = false;
+				}
+				else
+				{
+					message += bz::format(", '{}'", target.getName());
+				}
+			}
+			notes.emplace_back(this->make_note(std::move(message)));
+		}
 		if (target_error.substr(0, default_start.length()) == default_start)
 		{
 			this->report_error(bz::format(
 				"'{}' is not an available target", target_triple.c_str()
-			));
+			), std::move(notes));
 		}
 		else
 		{
-			this->report_error(target_error.c_str());
+			this->report_error(target_error.c_str(), std::move(notes));
 		}
 		return false;
 	}
