@@ -590,8 +590,20 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			[&](ast::ts_void const &) {
 				result += "void";
 			},
-			[&](ast::ts_function const &) {
-				bz_unreachable;
+			[&](ast::ts_function const &func_t) {
+				if (func_t.param_types.size() == 0)
+				{
+					result += bz::format("function() -> {}", func_t.return_type);
+				}
+				else
+				{
+					result += bz::format("function({}", func_t.param_types[0]);
+					for (auto const &param_type : bz::array_view{ func_t.param_types.begin() + 1, func_t.param_types.end() })
+					{
+						result += bz::format(", {}", param_type);
+					}
+					result += bz::format(") -> {}", func_t.return_type);
+				}
 			},
 			[&](ast::ts_array const &array_t) {
 				result += "[";
