@@ -1560,7 +1560,14 @@ static int get_type_match_level(
 		// special case for null
 		else if (expr_type_without_const.is<ast::ts_base_type>() && expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
 		{
-			return 1;
+			if (ast::is_complete(dest))
+			{
+				return 1;
+			}
+			else
+			{
+				return -1;
+			}
 		}
 	}
 	else if (dest.is<ast::ts_lvalue_reference>())
@@ -1590,7 +1597,11 @@ static int get_type_match_level(
 	}
 
 	// only implicit type conversions are left
-	if (dest == expr_type_without_const)
+	if (dest.is<ast::ts_auto>())
+	{
+		return 1;
+	}
+	else if (dest == expr_type_without_const)
 	{
 		return 0;
 	}
@@ -1599,6 +1610,232 @@ static int get_type_match_level(
 		return 1;
 	}
 	return -1;
+}
+
+static void strict_match_expression_to_type_impl(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view source,
+	ast::typespec_view dest,
+	bool accept_void,
+	parse_context &context
+)
+{
+	bz_assert(ast::is_complete(source));
+	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
+	{
+		dest = dest.blind_get();
+		source = source.blind_get();
+	}
+	bz_assert(!dest.is<ast::ts_unresolved>());
+	bz_assert(!source.is<ast::ts_unresolved>());
+
+	if (accept_void && dest.is<ast::ts_void>())
+	{
+		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest_container);
+	}
+	else if (dest.is<ast::ts_auto>())
+	{
+		dest_container.copy_from(dest, source);
+	}
+	else if (dest == source)
+	{
+		// nothing
+	}
+	else
+	{
+		context.report_error(expr, bz::format("cannot convert expression from type '{}' to '{}'", expr.get_expr_type_and_kind().first, dest_container));
+		if (!ast::is_complete(dest_container))
+		{
+			dest_container.clear();
+		}
+		expr.clear();
+	}
+}
+
+static void match_expression_to_type_impl(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view dest,
+	parse_context &context
+)
+{
+	// a slightly different implementation of get_type_match_level
+
+	if (dest.is<ast::ts_const>())
+	{
+		match_expression_to_type_impl(expr, dest_container, dest.get<ast::ts_const>(), context);
+		return;
+	}
+	else if (dest.is<ast::ts_consteval>())
+	{
+		if (!expr.is<ast::constant_expression>())
+		{
+			context.report_error(expr, "expression must be a constant expression");
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			expr.clear();
+			return;
+		}
+		else
+		{
+			match_expression_to_type_impl(expr, dest_container, dest.get<ast::ts_consteval>(), context);
+			return;
+		}
+	}
+
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
+
+	if (dest.is<ast::ts_pointer>())
+	{
+		if (expr_type_without_const.is<ast::ts_pointer>())
+		{
+			auto const inner_dest = dest.get<ast::ts_pointer>();
+			auto const inner_expr_type = expr_type_without_const.get<ast::ts_pointer>();
+			if (inner_dest.is<ast::ts_const>())
+			{
+				if (inner_expr_type.is<ast::ts_const>())
+				{
+					strict_match_expression_to_type_impl(
+						expr, dest_container,
+						inner_expr_type.get<ast::ts_const>(), inner_dest.get<ast::ts_const>(),
+						true, context
+					);
+					return;
+				}
+				else
+				{
+					strict_match_expression_to_type_impl(
+						expr, dest_container,
+						inner_expr_type, inner_dest.get<ast::ts_const>(),
+						true, context
+					);
+					return;
+				}
+			}
+			else
+			{
+				strict_match_expression_to_type_impl(
+					expr, dest_container,
+					inner_expr_type, inner_dest,
+					true, context
+				);
+				return;
+			}
+		}
+		// special case for null
+		else if (expr_type_without_const.is<ast::ts_base_type>() && expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
+		{
+			if (ast::is_complete(dest))
+			{
+				expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest);
+				return;
+			}
+			else
+			{
+				bz_assert(!ast::is_complete(dest_container));
+				context.report_error(expr, bz::format("cannot convert 'null' to incomplete type '{}'", dest_container));
+				dest_container.clear();
+				expr.clear();
+				return;
+			}
+		}
+	}
+	else if (dest.is<ast::ts_lvalue_reference>())
+	{
+		if (expr_type_kind != ast::expression_type_kind::lvalue && expr_type_kind != ast::expression_type_kind::lvalue_reference)
+		{
+			context.report_error(expr, bz::format("cannot bind an rvalue to an lvalue reference '{}'", dest_container));
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			expr.clear();
+			return;
+		}
+
+		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
+		if (inner_dest.is<ast::ts_const>())
+		{
+			if (expr_type.is<ast::ts_const>())
+			{
+				strict_match_expression_to_type_impl(
+					expr, dest_container,
+					expr_type_without_const, inner_dest.get<ast::ts_const>(),
+					false, context
+				);
+				return;
+			}
+			else
+			{
+				strict_match_expression_to_type_impl(
+					expr, dest_container,
+					expr_type_without_const, inner_dest.get<ast::ts_const>(),
+					false, context
+				);
+				return;
+			}
+		}
+		else
+		{
+			strict_match_expression_to_type_impl(
+				expr, dest_container,
+				expr_type, inner_dest,
+				false, context
+			);
+			return;
+		}
+	}
+
+	// only implicit type conversions are left
+	if (dest.is<ast::ts_auto>() && ast::is_complete(expr_type_without_const))
+	{
+		dest_container.copy_from(dest, expr_type_without_const);
+	}
+	else if (dest == expr_type_without_const)
+	{
+		return;
+	}
+	else if (is_implicitly_convertible(dest, expr, context))
+	{
+		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest);
+	}
+	else
+	{
+		context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
+		if (!ast::is_complete(dest_container))
+		{
+			dest_container.clear();
+		}
+		expr.clear();
+	}
+}
+
+// clears ts and expr if an error occurs
+static void match_expression_to_type(
+	ast::expression &expr,
+	ast::typespec &dest_type,
+	parse_context &context
+)
+{
+	if (dest_type.is_empty())
+	{
+		expr.clear();
+	}
+	else if (expr.is_null())
+	{
+		if (!ast::is_complete(dest_type))
+		{
+			dest_type.clear();
+		}
+	}
+	else
+	{
+		match_expression_to_type_impl(expr, dest_type, dest_type, context);
+	}
 }
 
 static int get_type_match_level_old(
@@ -1810,14 +2047,6 @@ static int get_type_match_level_old(
 			return -1;
 		}
 	}
-}
-
-static void match_expression_to_type(
-	ast::typespec &ts,
-	ast::expression const &expr,
-	parse_context &context
-)
-{
 }
 
 struct match_level
@@ -2590,6 +2819,8 @@ void parse_context::match_expression_to_type(
 	ast::typespec &dest_type
 )
 {
+	::ctx::match_expression_to_type(expr, dest_type, *this);
+	return;
 	if (dest_type.is_empty())
 	{
 		expr.clear();
