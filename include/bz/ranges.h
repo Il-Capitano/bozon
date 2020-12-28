@@ -55,6 +55,8 @@ struct collection_base_member
 {
 	template<auto MemberPtr>
 	constexpr auto member(void) const noexcept;
+	template<auto MemberPtr>
+	constexpr auto member(void) noexcept;
 };
 
 template<typename Range>
@@ -220,6 +222,7 @@ struct collection_base :
 	internal::collection_base_append   <Collection>
 {
 	constexpr auto as_range(void) const noexcept;
+	constexpr auto as_range(void) noexcept;
 };
 
 
@@ -531,6 +534,13 @@ constexpr auto collection_base<Collection>::as_range(void) const noexcept
 	return basic_range{ self->begin(), self->end() };
 }
 
+template<typename Collection>
+constexpr auto collection_base<Collection>::as_range(void) noexcept
+{
+	auto const self = static_cast<Collection *>(this);
+	return basic_range{ self->begin(), self->end() };
+}
+
 template<typename Range>
 constexpr auto to_range(Range &&range) noexcept
 {
@@ -601,13 +611,21 @@ constexpr auto range_base_member<Range>::member(void) const noexcept
 	static_assert(meta::is_member_variable<MemberPtr>, "template parameter must be a struct member pointer (e.g. &foo::i)");
 	return ::bz::transform(
 		*static_cast<Range const *>(this),
-		[](auto const &value) -> auto const & { return value.*MemberPtr; }
+		[](auto &&value) -> auto && { return value.*MemberPtr; }
 	);
 }
 
 template<typename Collection>
 template<auto MemberPtr>
 constexpr auto collection_base_member<Collection>::member(void) const noexcept
+{
+	static_assert(meta::is_member_variable<MemberPtr>, "template parameter must be a struct member pointer (e.g. &foo::i)");
+	return static_cast<Collection const *>(this)->as_range().template member<MemberPtr>();
+}
+
+template<typename Collection>
+template<auto MemberPtr>
+constexpr auto collection_base_member<Collection>::member(void) noexcept
 {
 	static_assert(meta::is_member_variable<MemberPtr>, "template parameter must be a struct member pointer (e.g. &foo::i)");
 	return static_cast<Collection const *>(this)->as_range().template member<MemberPtr>();
