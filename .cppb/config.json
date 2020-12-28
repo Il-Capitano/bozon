@@ -52,7 +52,8 @@
 				],
 				"cpp_compiler_flags": [ "-fno-exceptions" ],
 				"link_flags": [ "-fno-exceptions" ],
-				"libraries": [ "LLVM-10" ]
+				"libraries": [ "LLVM-10" ],
+				"warnings": [ "no-unused-parameter" ]
 			},
 			"debug": {
 				"optimization": "0"
