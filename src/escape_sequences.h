@@ -37,88 +37,20 @@ struct escape_sequence_parser
 	bz::u8char (*get)(bz::u8iterator &it);
 };
 
-inline void verify_backslash(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
+template<char c>
+inline void default_verify(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
 {
 	bz_assert(stream.it != end);
-	bz_assert(*stream.it == '\\');
+	bz_assert(*stream.it == c);
 	++stream;
 }
 
-inline bz::u8char get_backslash(bz::u8iterator &it)
+template<char c, char res>
+inline bz::u8char default_get(bz::u8iterator &it)
 {
-	bz_assert(*it == '\\');
+	bz_assert(*it == c);
 	++it;
-	return '\\';
-}
-
-inline void verify_single_quote(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
-{
-	bz_assert(stream.it != end);
-	bz_assert(*stream.it == '\'');
-	++stream;
-}
-
-inline bz::u8char get_single_quote(bz::u8iterator &it)
-{
-	bz_assert(*it == '\'');
-	++it;
-	return '\'';
-}
-
-inline void verify_double_quote(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
-{
-	bz_assert(stream.it != end);
-	bz_assert(*stream.it == '\"');
-	++stream;
-}
-
-inline bz::u8char get_double_quote(bz::u8iterator &it)
-{
-	bz_assert(*it == '\"');
-	++it;
-	return '\"';
-}
-
-inline void verify_new_line(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
-{
-	bz_assert(stream.it != end);
-	bz_assert(*stream.it == 'n');
-	++stream;
-}
-
-inline bz::u8char get_new_line(bz::u8iterator &it)
-{
-	bz_assert(*it == 'n');
-	++it;
-	return '\n';
-}
-
-inline void verify_tab(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
-{
-	bz_assert(stream.it != end);
-	bz_assert(*stream.it == 't');
-	++stream;
-}
-
-inline bz::u8char get_tab(bz::u8iterator &it)
-{
-	bz_assert(*it == 't');
-	++it;
-	return '\t';
-}
-
-inline void verify_carriage_return(file_iterator &stream, ctx::char_pos end, ctx::lex_context &)
-{
-	bz_assert(stream.it != end);
-	bz_assert(*stream.it == 'r');
-	++stream;
-}
-
-inline bz::u8char get_carriage_return(bz::u8iterator &it)
-{
-	bz_assert(*it == 'r');
-	++it;
-	return '\r';
+	return res;
 }
 
 inline void verify_hex_char(file_iterator &stream, ctx::char_pos end, ctx::lex_context &context)
@@ -290,20 +222,20 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 
 
 constexpr bz::array escape_sequence_parsers = {
-	escape_sequence_parser{ '\\', '\\',                                   "\\\\",        &verify_backslash,       &get_backslash       },
-	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &verify_single_quote,    &get_single_quote    },
-	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &verify_double_quote,    &get_double_quote    },
-	escape_sequence_parser{ 'n',  '\n',                                   "\\n",         &verify_new_line,        &get_new_line        },
-	escape_sequence_parser{ 't',  '\t',                                   "\\t",         &verify_tab,             &get_tab             },
-	escape_sequence_parser{ 'r',  '\r',                                   "\\r",         &verify_carriage_return, &get_carriage_return },
-	escape_sequence_parser{ 'x',  std::numeric_limits<bz::u8char>::max(), "\\xXX",       &verify_hex_char,        &get_hex_char        },
-	escape_sequence_parser{ 'u',  std::numeric_limits<bz::u8char>::max(), "\\uXXXX",     &verify_unicode_small,   &get_unicode_small   },
-	escape_sequence_parser{ 'U',  std::numeric_limits<bz::u8char>::max(), "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big     },
+	escape_sequence_parser{ '\\', '\\',                                   "\\\\",        &default_verify<'\\'>,   &default_get<'\\', '\\'> },
+	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &default_verify<'\\'>,   &default_get<'\'', '\''> },
+	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &default_verify<'\\'>,   &default_get<'\"', '\"'> },
+	escape_sequence_parser{ 'n',  '\n',                                   "\\n",         &default_verify<'n'>,    &default_get<'n',  '\n'> },
+	escape_sequence_parser{ 't',  '\t',                                   "\\t",         &default_verify<'t'>,    &default_get<'t',  '\t'> },
+	escape_sequence_parser{ 'r',  '\r',                                   "\\r",         &default_verify<'r'>,    &default_get<'r',  '\r'> },
+	escape_sequence_parser{ 'x',  std::numeric_limits<bz::u8char>::max(), "\\xXX",       &verify_hex_char,        &get_hex_char            },
+	escape_sequence_parser{ 'u',  std::numeric_limits<bz::u8char>::max(), "\\uXXXX",     &verify_unicode_small,   &get_unicode_small       },
+	escape_sequence_parser{ 'U',  std::numeric_limits<bz::u8char>::max(), "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big         },
 };
 
 inline bz::u8string get_available_escape_sequences_message(void)
 {
-	bz::u8string message = "Available escape sequences are ";
+	bz::u8string message = "available escape sequences are ";
 	for (auto const &parser : escape_sequence_parsers)
 	{
 		message += bz::format("'{}', ", parser.help);
