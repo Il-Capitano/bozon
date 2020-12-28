@@ -1416,6 +1416,33 @@ more consistent
 }
 
 
+
+==== slices ====
+
+slice type: [: float64]
+multi-dimension slices??  [,: float64]
+[, 10: int32] == [: [10: int32]]
+[10,: int32] == [10: [: int32]]  maybe not allowed because it's a bit confusing
+
+let arr: [4: int32] = [ ... ];
+const slice = arr[:];  // arr[0] to arr[4] (one past the end)
+const slice = arr[1:]; // arr[1] to arr[4]
+const slice = arr[:2]; // arr[0] to arr[2]
+const slice = arr[:5]; // UB? checked in debug mode? maybe?
+
+[: T] => { T*, T* } in LLVM IR
+
+operator[](v: &vector<T: typename>, s: __slice_index_t) -> [: T]
+{
+	return __builtin_slice_from_pointers(v.data + s.begin, v.data + s.end);
+}
+
+operator[](v: &const vector<T: typename>, s: __slice_index_t) -> [: const T]
+{
+	return __builtin_slice_from_pointers(v.data + s.begin, v.data + s.end);
+}
+
+
 */
 
 #include "ctx/src_manager.h"
