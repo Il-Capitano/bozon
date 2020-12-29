@@ -585,89 +585,19 @@ template ast::statement parse_decl_variable<true>(
 	ctx::parse_context &context
 );
 
-// resolves the function symbol, but doesn't modify scope
-static bool resolve_function_symbol_helper(
-	ast::statement_view func_stmt,
-	ast::function_body &func_body,
-	ctx::parse_context &context
-)
-{
-	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
-	if (func_stmt.not_null())
-	{
-		resolve_attributes(func_stmt, context);
-	}
-	bool good = true;
-	for (auto &p : func_body.params)
-	{
-		resolve_var_decl_type(p, context);
-		if (p.var_type.is_empty())
-		{
-			good = false;
-		}
-	}
-	for (auto &p : func_body.params)
-	{
-		context.add_local_variable(p);
-	}
-
-	resolve_typespec(func_body.return_type, context, precedence{});
-	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
-	if (!good || func_body.return_type.is_empty())
-	{
-		return false;
-	}
-
-	context.add_function_for_compilation(func_body);
-	return true;
-}
-
-void resolve_function_symbol(
-	ast::statement_view func_stmt,
-	ast::function_body &func_body,
-	ctx::parse_context &context
-)
-{
-	if (func_body.state >= ast::resolve_state::symbol || func_body.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
-	{
-		context.report_circular_dependency_error(func_body);
-		func_body.state = ast::resolve_state::error;
-		return;
-	}
-
-	func_body.state = ast::resolve_state::resolving_symbol;
-	context.add_scope();
-	if (resolve_function_symbol_helper(func_stmt, func_body, context))
-	{
-		func_body.state = ast::resolve_state::symbol;
-	}
-	else
-	{
-		func_body.state = ast::resolve_state::error;
-	}
-	for (auto &var_decl : func_body.params)
-	{
-		var_decl.is_used = true;
-	}
-	context.remove_scope();
-}
-
 static bool resolve_function_parameters_helper(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	bz_assert(func_body.state == ast::resolve_state::resolving_parameters);
+	bz_assert(func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol);
 	if (!func_stmt.get_attributes().empty())
 	{
 		resolve_attributes(func_stmt, context);
 	}
 	bool good = true;
+	bool is_generic = false;
 	for (auto &p : func_body.params)
 	{
 		resolve_var_decl_type(p, context);
@@ -675,8 +605,16 @@ static bool resolve_function_parameters_helper(
 		{
 			good = false;
 		}
+		else if (!ast::is_complete(p.var_type))
+		{
+			is_generic = true;
+		}
 	}
-	return true;
+	if (is_generic)
+	{
+		func_body.flags |= ast::function_body::generic;
+	}
+	return good;
 }
 
 void resolve_function_parameters(
@@ -713,6 +651,80 @@ void resolve_function_parameters(
 	context.remove_scope();
 }
 
+static bool resolve_function_return_type_helper(
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
+	for (auto &p : func_body.params)
+	{
+		context.add_local_variable(p);
+	}
+
+	resolve_typespec(func_body.return_type, context, precedence{});
+	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
+	return !func_body.return_type.is_empty();
+}
+
+// resolves the function symbol, but doesn't modify scope
+static bool resolve_function_symbol_helper(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
+	auto const parameters_good = resolve_function_parameters_helper(func_stmt, func_body, context);
+	if (func_body.is_generic())
+	{
+		return parameters_good;
+	}
+	auto const return_type_good = resolve_function_return_type_helper(func_body, context);
+	auto const good = parameters_good && return_type_good;
+	if (!good)
+	{
+		return false;
+	}
+
+	context.add_function_for_compilation(func_body);
+	return true;
+}
+
+void resolve_function_symbol(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	if (func_body.state >= ast::resolve_state::symbol || func_body.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
+	{
+		context.report_circular_dependency_error(func_body);
+		func_body.state = ast::resolve_state::error;
+		return;
+	}
+
+	func_body.state = ast::resolve_state::resolving_symbol;
+	context.add_scope();
+	if (resolve_function_symbol_helper(func_stmt, func_body, context))
+	{
+		func_body.state = func_body.is_generic() ? ast::resolve_state::parameters : ast::resolve_state::symbol;
+	}
+	else
+	{
+		func_body.state = ast::resolve_state::error;
+	}
+	for (auto &var_decl : func_body.params)
+	{
+		var_decl.is_used = true;
+	}
+	context.remove_scope();
+}
+
 void resolve_function(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -724,7 +736,8 @@ void resolve_function(
 		return;
 	}
 	else if (
-		func_body.state == ast::resolve_state::resolving_symbol
+		func_body.state == ast::resolve_state::resolving_parameters
+		|| func_body.state == ast::resolve_state::resolving_symbol
 		|| func_body.state == ast::resolve_state::resolving_all
 	)
 	{
@@ -732,7 +745,7 @@ void resolve_function(
 		return;
 	}
 
-	if (func_body.state == ast::resolve_state::none)
+	if (func_body.state <= ast::resolve_state::parameters)
 	{
 		func_body.state = ast::resolve_state::resolving_symbol;
 		context.add_scope();
@@ -742,8 +755,18 @@ void resolve_function(
 			context.remove_scope();
 			return;
 		}
+		else if (func_body.is_generic())
+		{
+			func_body.state = ast::resolve_state::parameters;
+			context.remove_scope();
+			return;
+		}
 	}
 	else if (func_body.body.is_null())
+	{
+		return;
+	}
+	else if (func_body.is_generic())
 	{
 		return;
 	}

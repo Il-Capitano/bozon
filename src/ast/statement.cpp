@@ -88,6 +88,43 @@ bz::u8string function_body::get_symbol_name(void) const
 	return symbol_name;
 }
 
+std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(void)
+{
+	auto result = std::make_unique<function_body>(*this);
+	result->flags &= ~generic;
+	return result;
+}
+
+function_body *function_body::add_specialized_body(std::unique_ptr<function_body> body)
+{
+	bz_assert(body->params.size() == this->params.size());
+	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
+		for (auto const &[lhs_param, rhs_param] : bz::zip(lhs, rhs))
+		{
+			if (lhs_param.var_type != rhs_param.var_type)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+	auto const it = std::find_if(
+		this->generic_specializations.begin(), this->generic_specializations.end(),
+		[&](auto const &specialization) {
+			return is_equal_params(specialization->params, body->params);
+		}
+	);
+	if (it == this->generic_specializations.end())
+	{
+		this->generic_specializations.push_back(std::move(body));
+		return this->generic_specializations.back().get();
+	}
+	else
+	{
+		return it->get();
+	}
+}
+
 bz::u8string function_body::decode_symbol_name(
 	bz::u8string_view::const_iterator &it,
 	bz::u8string_view::const_iterator end

@@ -2426,8 +2426,8 @@ ast::expression parse_context::make_unary_operator_expression(
 	else
 	{
 		auto &body = best.second.get<ast::decl_operator>().body;
-		parse::resolve_function_symbol(best.second, body, *this);
 		match_expression_to_type(expr, body.params[0].var_type);
+		parse::resolve_function_symbol(best.second, body, *this);
 		auto &ret_t = body.return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
@@ -2594,9 +2594,9 @@ ast::expression parse_context::make_binary_operator_expression(
 	else
 	{
 		auto &body = best.second.get<ast::decl_operator>().body;
-		parse::resolve_function_symbol(best.second, body, *this);
 		match_expression_to_type(lhs, body.params[0].var_type);
 		match_expression_to_type(rhs, body.params[1].var_type);
+		parse::resolve_function_symbol(best.second, body, *this);
 		auto &ret_t = body.return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
@@ -2646,7 +2646,7 @@ ast::expression parse_context::make_function_call_expression(
 		auto &const_called = called.get<ast::constant_expression>();
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
-			auto const func_body = const_called.value.get<ast::constant_value::function>();
+			auto func_body = const_called.value.get<ast::constant_value::function>();
 			if (get_function_call_match_level({}, *func_body, params, *this, src_tokens).sum == -1)
 			{
 				if (func_body->state != ast::resolve_state::error)
@@ -2659,11 +2659,30 @@ ast::expression parse_context::make_function_call_expression(
 				}
 				return ast::expression(src_tokens);
 			}
-			parse::resolve_function_symbol({}, *func_body, *this);
-			for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
+
+			if (func_body->is_generic())
 			{
-				match_expression_to_type(param, func_body_param.var_type);
+				bz::print("generic function!\n");
+				auto specialized_body = func_body->get_copy_for_generic_specialization();
+				for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+				{
+					match_expression_to_type(param, func_body_param.var_type);
+				}
+				func_body = func_body->add_specialized_body(std::move(specialized_body));
+				if (!this->generic_functions.contains(func_body))
+				{
+					this->generic_functions.push_back(func_body);
+				}
 			}
+			else
+			{
+				for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
+				{
+					match_expression_to_type(param, func_body_param.var_type);
+				}
+			}
+			parse::resolve_function_symbol({}, *func_body, *this);
+
 			auto &ret_t = func_body->return_type;
 			auto return_type_kind = ast::expression_type_kind::rvalue;
 			auto return_type = ast::remove_const_or_consteval(ret_t);
@@ -2743,13 +2762,31 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			else
 			{
-				auto &body = best.second.get<ast::decl_function>().body;
-				parse::resolve_function_symbol(best.second, body, *this);
-				for (auto const [param, func_body_param] : bz::zip(params, body.params))
+				auto func_body = &best.second.get<ast::decl_function>().body;
+				if (func_body->is_generic())
 				{
-					match_expression_to_type(param, func_body_param.var_type);
+					bz::print("generic overloaded function!\n");
+					auto specialized_body = func_body->get_copy_for_generic_specialization();
+					for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+					{
+						match_expression_to_type(param, func_body_param.var_type);
+					}
+					func_body = func_body->add_specialized_body(std::move(specialized_body));
+					if (!this->generic_functions.contains(func_body))
+					{
+						this->generic_functions.push_back(func_body);
+					}
 				}
-				auto &ret_t = body.return_type;
+				else
+				{
+					for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
+					{
+						match_expression_to_type(param, func_body_param.var_type);
+					}
+				}
+				parse::resolve_function_symbol(best.second, *func_body, *this);
+
+				auto &ret_t = func_body->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
 				auto return_type = ast::remove_const_or_consteval(ret_t);
 				if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2760,7 +2797,7 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::make_dynamic_expression(
 					src_tokens,
 					return_type_kind, return_type,
-					ast::make_expr_function_call(src_tokens, std::move(params), &body)
+					ast::make_expr_function_call(src_tokens, std::move(params), func_body)
 				);
 			}
 		}

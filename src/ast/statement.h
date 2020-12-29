@@ -301,6 +301,7 @@ struct function_body
 		module_export    = bit_at<0>,
 		external_linkage = bit_at<1>,
 		intrinsic        = bit_at<2>,
+		generic          = bit_at<3>,
 	};
 
 	enum : uint32_t
@@ -376,8 +377,25 @@ struct function_body
 	abi::calling_convention   cc = abi::calling_convention::bozon;
 	uint32_t                  flags = 0;
 	uint32_t                  intrinsic_kind = 0;
+	bz::vector<std::unique_ptr<function_body>> generic_specializations;
 
 //	declare_default_5(function_body)
+	function_body(void)             = default;
+	function_body(function_body &&) = default;
+
+	function_body(function_body const &other)
+		: params        (other.params),
+		  return_type   (other.return_type),
+		  body          (other.body),
+		  function_name (other.function_name),
+		  symbol_name   (other.symbol_name),
+		  src_tokens    (other.src_tokens),
+		  state         (other.state),
+		  cc            (other.cc),
+		  flags         (other.flags),
+		  intrinsic_kind(other.intrinsic_kind),
+		  generic_specializations()
+	{}
 
 	bz::vector<statement> &get_statements(void) noexcept
 	{
@@ -393,6 +411,9 @@ struct function_body
 
 	bz::u8string get_signature(void) const;
 	bz::u8string get_symbol_name(void) const;
+
+	std::unique_ptr<function_body> get_copy_for_generic_specialization(void);
+	function_body *add_specialized_body(std::unique_ptr<function_body> body);
 
 	void resolve_symbol_name(void)
 	{
@@ -423,6 +444,11 @@ struct function_body
 	bool is_intrinsic(void) const noexcept
 	{
 		return (this->flags & intrinsic) != 0;
+	}
+
+	bool is_generic(void) const noexcept
+	{
+		return (this->flags & generic) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(

@@ -43,18 +43,15 @@ static ast::function_body create_builtin_function(
 		lex::token_range{}, lex::token_pos{}, lex::token_range{},
 		std::move(arg_types)
 	)), ...);
-	return ast::function_body{
-		std::move(params),
-		std::move(return_type),
-		ast::function_body::body_t{},
-		"",
-		symbol_name,
-		lex::src_tokens{},
-		ast::resolve_state::symbol,
-		abi::calling_convention::c,
-		ast::function_body::external_linkage | ast::function_body::intrinsic,
-		kind
-	};
+	ast::function_body result;
+	result.params = std::move(params);
+	result.return_type = std::move(return_type);
+	result.symbol_name = symbol_name;
+	result.state = ast::resolve_state::symbol;
+	result.cc = abi::calling_convention::c;
+	result.flags = ast::function_body::external_linkage | ast::function_body::intrinsic;
+	result.intrinsic_kind = kind;
+	return result;
 }
 
 static_assert(ast::type_info::int8_    ==  0);
