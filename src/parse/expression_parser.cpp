@@ -127,7 +127,7 @@ ast::expression parse_compound_expression(
 		{
 			consume_semi_colon_at_end_of_expression(
 				stream, end, context,
-				statements.back().get<ast::stmt_expression_ptr>()->expr
+				statements.back().get<ast::stmt_expression>().expr
 			);
 		}
 
@@ -168,7 +168,7 @@ ast::expression parse_compound_expression(
 	}
 	else if (
 		!statements.back().is<ast::stmt_expression>()
-		|| statements.back().get<ast::stmt_expression_ptr>()->expr.is_none()
+		|| statements.back().get<ast::stmt_expression>().expr.is_none()
 	)
 	{
 		return ast::make_dynamic_expression(
@@ -179,7 +179,7 @@ ast::expression parse_compound_expression(
 	}
 	else
 	{
-		auto expr = std::move(statements.back().get<ast::stmt_expression_ptr>()->expr);
+		auto expr = std::move(statements.back().get<ast::stmt_expression>().expr);
 		statements.pop_back();
 		if (expr.is<ast::constant_expression>() && statements.size() == 0)
 		{

@@ -711,7 +711,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			{
 				bz_assert(global_fn_set->func_decls.size() == 1);
 				bz_assert(final_set == nullptr);
-				auto &body = global_fn_set->func_decls[0].second->body;
+				auto &body = global_fn_set->func_decls[0].get<ast::decl_function>().body;
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::function_name, get_function_type(body),
@@ -724,7 +724,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		{
 			bz_assert(final_set != nullptr);
 			bz_assert(final_set->func_decls.size() == 1);
-			auto &body = final_set->func_decls[0].second->body;
+			auto &body = final_set->func_decls[0].get<ast::decl_function>().body;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::function_name, get_function_type(body),
@@ -792,7 +792,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		auto const id_type_kind = ast::expression_type_kind::function_name;
 		if (fn_set->func_decls.size() == 1)
 		{
-			auto &body = fn_set->func_decls[0].second->body;
+			auto &body = fn_set->func_decls[0].get<ast::decl_function>().body;
 			return ast::make_constant_expression(
 				src_tokens,
 				id_type_kind, get_function_type(body),
@@ -2056,7 +2056,7 @@ struct match_level
 };
 
 static match_level get_function_call_match_level(
-	ast::statement *func_stmt,
+	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	bz::array_view<const ast::expression> params,
 	parse_context &context,
@@ -2113,7 +2113,7 @@ static match_level get_function_call_match_level(
 }
 
 static match_level get_function_call_match_level(
-	ast::statement *func_stmt,
+	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ast::expression const &expr,
 	parse_context &context,
@@ -2143,7 +2143,7 @@ static match_level get_function_call_match_level(
 }
 
 static match_level get_function_call_match_level(
-	ast::statement *func_stmt,
+	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -2385,8 +2385,8 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto &body = op.second->body;
-				auto const match_level = get_function_call_match_level(op.first, body, expr, *this, src_tokens);
+				auto &body = op.get<ast::decl_function>().body;
+				auto const match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &body });
@@ -2408,8 +2408,8 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto &body = op.second->body;
-			auto const match_level = get_function_call_match_level(op.first, body, expr, *this, src_tokens);
+			auto &body = op.get<ast::decl_function>().body;
+			auto const match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &body });
@@ -2550,8 +2550,8 @@ ast::expression parse_context::make_binary_operator_expression(
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto &body = op.second->body;
-				auto const match_level = get_function_call_match_level(op.first, body, lhs, rhs, *this, src_tokens);
+				auto &body = op.get<ast::decl_operator>().body;
+				auto const match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 				if (match_level.min != -1)
 				{
 					possible_funcs.push_back({ match_level, &body });
@@ -2573,8 +2573,8 @@ ast::expression parse_context::make_binary_operator_expression(
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto &body = op.second->body;
-			auto const match_level = get_function_call_match_level(op.first, body, lhs, rhs, *this, src_tokens);
+			auto &body = op.get<ast::decl_operator>().body;
+			auto const match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 			if (match_level.min != -1)
 			{
 				possible_funcs.push_back({ match_level, &body });
@@ -2640,7 +2640,7 @@ ast::expression parse_context::make_function_call_expression(
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
 			auto const func_body = const_called.value.get<ast::constant_value::function>();
-			if (get_function_call_match_level(nullptr, *func_body, params, *this, src_tokens).sum == -1)
+			if (get_function_call_match_level({}, *func_body, params, *this, src_tokens).sum == -1)
 			{
 				if (func_body->state != ast::resolve_state::error)
 				{
@@ -2691,8 +2691,8 @@ ast::expression parse_context::make_function_call_expression(
 				{
 					for (auto &fn : set->func_decls)
 					{
-						auto &body = fn.second->body;
-						auto const match_level = get_function_call_match_level(fn.first, body, params, *this, src_tokens);
+						auto &body = fn.get<ast::decl_function>().body;
+						auto const match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 						if (match_level.min != -1)
 						{
 							possible_funcs.push_back({ match_level, &body });
@@ -2714,8 +2714,8 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				for (auto &fn : global_set->func_decls)
 				{
-					auto &body = fn.second->body;
-					auto const match_level = get_function_call_match_level(fn.first, body, params, *this, src_tokens);
+					auto &body = fn.get<ast::decl_function>().body;
+					auto const match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 					if (match_level.min != -1)
 					{
 						possible_funcs.push_back({ match_level, &body });
@@ -2849,7 +2849,7 @@ void parse_context::match_expression_to_type(
 		bz_assert(const_expr.kind == ast::expression_type_kind::function_name);
 //		bz_assert(false, "overloaded function not handled in match_expresstion_to_type");
 		bz_assert(const_expr.expr.is<ast::expr_identifier>());
-		this->report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier_ptr>()->identifier);
+		this->report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier>().identifier);
 		dest_type.clear();
 		return;
 	}
@@ -3091,7 +3091,7 @@ void parse_context::match_expression_to_type(
 		bz_assert(!ast::is_complete(expr_type));
 		bz_assert(expr_type_kind == ast::expression_type_kind::tuple);
 		bz_assert(expr.get_expr().is<ast::expr_tuple>());
-		auto &tuple_expr = *expr.get_expr().get<ast::expr_tuple_ptr>();
+		auto &tuple_expr = expr.get_expr().get<ast::expr_tuple>();
 		bz::vector<ast::typespec> types = {};
 		types.reserve(tuple_expr.elems.size());
 		for (size_t i = 0; i < tuple_expr.elems.size(); ++i)

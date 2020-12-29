@@ -31,22 +31,19 @@ enum class resolve_state : int8_t
 	all,
 };
 
-#define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
+struct stmt_while;
+struct stmt_for;
+struct stmt_return;
+struct stmt_no_op;
+struct stmt_static_assert;
+struct stmt_expression;
 
-declare_node_type(stmt_while);
-declare_node_type(stmt_for);
-declare_node_type(stmt_return);
-declare_node_type(stmt_no_op);
-declare_node_type(stmt_static_assert);
-declare_node_type(stmt_expression);
+struct decl_variable;
+struct decl_function;
+struct decl_operator;
+struct decl_struct;
+struct decl_import;
 
-declare_node_type(decl_variable);
-declare_node_type(decl_function);
-declare_node_type(decl_operator);
-declare_node_type(decl_struct);
-declare_node_type(decl_import);
-
-#undef declare_node_type
 
 using statement_types = bz::meta::type_pack<
 	stmt_while,
@@ -99,6 +96,7 @@ constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
 
 
 using statement_node_t = bz::meta::apply_type_pack<node, statement_types>;
+using statement_node_view_t = node_view_from_node<statement_node_t>;
 
 struct statement : statement_node_t
 {
@@ -122,6 +120,27 @@ struct statement : statement_node_t
 	{ return this->_attributes; }
 
 	auto const &get_attributes(void) const noexcept
+	{ return this->_attributes; }
+};
+
+struct statement_view : statement_node_view_t
+{
+	using base_t = statement_node_view_t;
+
+	using base_t::node_view;
+	using base_t::get;
+	using base_t::kind;
+	using base_t::emplace;
+
+	declare_default_5(statement_view)
+
+	bz::array_view<attribute> _attributes;
+
+	statement_view(statement &stmt)
+		: base_t(static_cast<statement_node_t &>(stmt)), _attributes(stmt._attributes)
+	{}
+
+	auto get_attributes(void) const noexcept
 	{ return this->_attributes; }
 };
 

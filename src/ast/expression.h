@@ -12,20 +12,17 @@ namespace ast
 
 struct expression;
 
-#define declare_node_type(x) struct x; using x##_ptr = std::unique_ptr<x>
+struct expr_identifier;
+struct expr_literal;
+struct expr_tuple;
+struct expr_unary_op;
+struct expr_binary_op;
+struct expr_subscript;
+struct expr_function_call;
+struct expr_cast;
+struct expr_compound;
+struct expr_if;
 
-declare_node_type(expr_identifier);
-declare_node_type(expr_literal);
-declare_node_type(expr_tuple);
-declare_node_type(expr_unary_op);
-declare_node_type(expr_binary_op);
-declare_node_type(expr_subscript);
-declare_node_type(expr_function_call);
-declare_node_type(expr_cast);
-declare_node_type(expr_compound);
-declare_node_type(expr_if);
-
-#undef declare_node_type
 
 using expr_t = node<
 	expr_identifier,

@@ -2284,7 +2284,7 @@ static llvm::Constant *get_value(
 		elems.reserve(tuple_values.size());
 		if (const_expr != nullptr && const_expr->expr.is<ast::expr_tuple>())
 		{
-			auto &tuple = *const_expr->expr.get<ast::expr_tuple_ptr>();
+			auto &tuple = const_expr->expr.get<ast::expr_tuple>();
 			for (auto const &elem : tuple.elems)
 			{
 				bz_assert(elem.is<ast::constant_expression>());
@@ -2651,26 +2651,26 @@ static void emit_bitcode(
 	switch (stmt.kind())
 	{
 	case ast::statement::index<ast::stmt_while>:
-		emit_bitcode<abi>(*stmt.get<ast::stmt_while_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::stmt_while>(), context);
 		break;
 	case ast::statement::index<ast::stmt_for>:
-		emit_bitcode<abi>(*stmt.get<ast::stmt_for_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::stmt_for>(), context);
 		break;
 	case ast::statement::index<ast::stmt_return>:
-		emit_bitcode<abi>(*stmt.get<ast::stmt_return_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::stmt_return>(), context);
 		break;
 	case ast::statement::index<ast::stmt_no_op>:
-		emit_bitcode<abi>(*stmt.get<ast::stmt_no_op_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::stmt_no_op>(), context);
 		break;
 	case ast::statement::index<ast::stmt_expression>:
-		emit_bitcode<abi>(*stmt.get<ast::stmt_expression_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::stmt_expression>(), context);
 		break;
 	case ast::statement::index<ast::stmt_static_assert>:
 		// nothing
 		break;
 
 	case ast::statement::index<ast::decl_variable>:
-		emit_bitcode<abi>(*stmt.get<ast::decl_variable_ptr>(), context);
+		emit_bitcode<abi>(stmt.get<ast::decl_variable>(), context);
 		break;
 
 	case ast::statement::index<ast::decl_function>:

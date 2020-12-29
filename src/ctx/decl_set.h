@@ -11,14 +11,14 @@ namespace ctx
 struct function_overload_set
 {
 	bz::u8string id;
-	bz::vector<std::pair<ast::statement *, ast::decl_function *>> func_decls;
+	bz::vector<ast::statement_view> func_decls;
 };
 
 struct operator_overload_set
 {
 	uint32_t op;
 	// will always be ast::decl_operator
-	bz::vector<std::pair<ast::statement *, ast::decl_operator *>> op_decls;
+	bz::vector<ast::statement_view> op_decls;
 };
 
 struct typespec_with_name
@@ -37,7 +37,7 @@ struct decl_set
 	void add_function(ast::statement &stmt)
 	{
 		bz_assert(stmt.is<ast::decl_function>());
-		auto &func_decl = *stmt.get<ast::decl_function_ptr>();
+		auto &func_decl = stmt.get<ast::decl_function>();
 		auto const id = func_decl.identifier->value;
 		auto const set = std::find_if(
 			this->func_sets.begin(), this->func_sets.end(),
@@ -47,11 +47,11 @@ struct decl_set
 		);
 		if (set == this->func_sets.end())
 		{
-			this->func_sets.push_back({ id, {{ &stmt, &func_decl }} });
+			this->func_sets.push_back({ id, { ast::statement_view(stmt) } });
 		}
 		else
 		{
-			set->func_decls.push_back({ &stmt, &func_decl });
+			set->func_decls.emplace_back(stmt);
 		}
 	}
 
@@ -66,18 +66,18 @@ struct decl_set
 		);
 		if (set == this->func_sets.end())
 		{
-			this->func_sets.push_back({ id, {{ nullptr, &func_decl }} });
+			this->func_sets.push_back({ id, { ast::statement_view(&func_decl) } });
 		}
 		else
 		{
-			set->func_decls.push_back({ nullptr, &func_decl });
+			set->func_decls.emplace_back(&func_decl);
 		}
 	}
 
 	void add_operator(ast::statement &stmt)
 	{
 		bz_assert(stmt.is<ast::decl_operator>());
-		auto &op_decl = *stmt.get<ast::decl_operator_ptr>();
+		auto &op_decl = stmt.get<ast::decl_operator>();
 		auto const op = op_decl.op->kind;
 		auto const set = std::find_if(
 			this->op_sets.begin(), this->op_sets.end(),
@@ -87,11 +87,11 @@ struct decl_set
 		);
 		if (set == this->op_sets.end())
 		{
-			this->op_sets.push_back({ op, {{ &stmt, &op_decl }} });
+			this->op_sets.push_back({ op, { ast::statement_view(stmt) } });
 		}
 		else
 		{
-			set->op_decls.push_back({ &stmt, &op_decl });
+			set->op_decls.emplace_back(stmt);
 		}
 	}
 
@@ -106,11 +106,11 @@ struct decl_set
 		);
 		if (set == this->op_sets.end())
 		{
-			this->op_sets.push_back({ op, {{ nullptr, &op_decl }} });
+			this->op_sets.push_back({ op, { ast::statement_view(&op_decl) } });
 		}
 		else
 		{
-			set->op_decls.push_back({ nullptr, &op_decl });
+			set->op_decls.emplace_back(&op_decl);
 		}
 	}
 

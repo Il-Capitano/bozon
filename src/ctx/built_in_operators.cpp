@@ -24,7 +24,7 @@ static precedence get_expr_precedence(ast::expression const &expression)
 			expr.is<ast::expr_unary_op>()
 			|| (
 				expr.is<ast::expr_function_call>()
-				&& expr.get<ast::expr_function_call_ptr>()->params.size() == 1
+				&& expr.get<ast::expr_function_call>().params.size() == 1
 			)
 		)
 		{
@@ -36,13 +36,13 @@ static precedence get_expr_precedence(ast::expression const &expression)
 			expr.is<ast::expr_binary_op>()
 			|| (
 				expr.is<ast::expr_function_call>()
-				&& expr.get<ast::expr_function_call_ptr>()->params.size() == 2
+				&& expr.get<ast::expr_function_call>().params.size() == 2
 			)
 		)
 		{
 			auto const lhs_begin = expr.is<ast::expr_binary_op>()
-				? expr.get<ast::expr_binary_op_ptr>()->lhs.src_tokens.begin
-				: expr.get<ast::expr_function_call_ptr>()->params[0].src_tokens.begin;
+				? expr.get<ast::expr_binary_op>().lhs.src_tokens.begin
+				: expr.get<ast::expr_function_call>().params[0].src_tokens.begin;
 			return lhs_begin == expression.src_tokens.begin
 				? get_binary_precedence(expression.src_tokens.pivot->kind)
 				: default_return_val;
@@ -3118,7 +3118,7 @@ ast::expression make_built_in_subscript_operator(
 
 		auto const tuple_elem_count = called_t.is<ast::ts_tuple>()
 			? called_t.get<ast::ts_tuple>().types.size()
-			: called.get_expr().get<ast::expr_tuple_ptr>()->elems.size();
+			: called.get_expr().get<ast::expr_tuple>().elems.size();
 		auto &const_arg = args[0].get<ast::constant_expression>();
 		size_t index = 0;
 		if (const_arg.value.kind() == ast::constant_value::uint)
@@ -3145,7 +3145,7 @@ ast::expression make_built_in_subscript_operator(
 
 		if (called.get_expr().is<ast::expr_tuple>())
 		{
-			auto &tuple = *called.get_expr().get<ast::expr_tuple_ptr>();
+			auto &tuple = called.get_expr().get<ast::expr_tuple>();
 			auto &result_elem = tuple.elems[index];
 			auto [result_type, result_kind] = result_elem.get_expr_type_and_kind();
 
