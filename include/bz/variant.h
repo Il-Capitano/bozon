@@ -388,11 +388,17 @@ public:
 
 	template<typename T>
 	T &get(void) noexcept
-	{ return this->get<index_of<T>>(); }
+	{
+		static_assert(meta::is_in_types<T, Ts...>);
+		return this->get<index_of<T>>();
+	}
 
 	template<typename T>
 	T const &get(void) const noexcept
-	{ return this->get<index_of<T>>(); }
+	{
+		static_assert(meta::is_in_types<T, Ts...>);
+		return this->get<index_of<T>>();
+	}
 
 
 	template<size_t N>
