@@ -59,7 +59,7 @@
 				"warnings": [ "no-unused-parameter" ]
 			},
 			"debug": {
-				"optimization": "0"
+				"optimization": "g"
 			},
 			"release": {
 				"defines": [ "NDEBUG" ],
