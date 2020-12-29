@@ -41,6 +41,11 @@ void resolve_function_symbol(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 );
+void resolve_function_parameters(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+);
 void resolve_function(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,

@@ -360,7 +360,10 @@ static void resolve_var_decl_type(
 	ctx::parse_context &context
 )
 {
-	bz_assert(var_decl.var_type.is<ast::ts_unresolved>());
+	if (!var_decl.var_type.is<ast::ts_unresolved>())
+	{
+		return;
+	}
 	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
 	auto type = stream == end
 		? ast::make_constant_expression(
@@ -629,7 +632,7 @@ void resolve_function_symbol(
 	{
 		return;
 	}
-	else if (func_body.state == ast::resolve_state::resolving_symbol)
+	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
 	{
 		context.report_circular_dependency_error(func_body);
 		func_body.state = ast::resolve_state::error;
@@ -641,6 +644,63 @@ void resolve_function_symbol(
 	if (resolve_function_symbol_helper(func_stmt, func_body, context))
 	{
 		func_body.state = ast::resolve_state::symbol;
+	}
+	else
+	{
+		func_body.state = ast::resolve_state::error;
+	}
+	for (auto &var_decl : func_body.params)
+	{
+		var_decl.is_used = true;
+	}
+	context.remove_scope();
+}
+
+static bool resolve_function_parameters_helper(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	bz_assert(func_body.state == ast::resolve_state::resolving_parameters);
+	if (!func_stmt.get_attributes().empty())
+	{
+		resolve_attributes(func_stmt, context);
+	}
+	bool good = true;
+	for (auto &p : func_body.params)
+	{
+		resolve_var_decl_type(p, context);
+		if (p.var_type.is_empty())
+		{
+			good = false;
+		}
+	}
+	return true;
+}
+
+void resolve_function_parameters(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	if (func_body.state >= ast::resolve_state::parameters || func_body.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
+	{
+		context.report_circular_dependency_error(func_body);
+		func_body.state = ast::resolve_state::error;
+		return;
+	}
+
+	func_body.state = ast::resolve_state::resolving_parameters;
+	context.add_scope();
+	if (resolve_function_parameters_helper(func_stmt, func_body, context))
+	{
+		func_body.state = ast::resolve_state::parameters;
 	}
 	else
 	{

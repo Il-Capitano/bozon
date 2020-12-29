@@ -2068,14 +2068,14 @@ static match_level get_function_call_match_level(
 		return { -1, -1 };
 	}
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_symbol(func_stmt, func_body, context);
+		parse::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		return { -1, -1 };
 	}
@@ -2126,14 +2126,14 @@ static match_level get_function_call_match_level(
 	}
 
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_symbol(func_stmt, func_body, context);
+		parse::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		return { -1, -1 };
 	}
@@ -2157,14 +2157,14 @@ static match_level get_function_call_match_level(
 	}
 
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_symbol(func_stmt, func_body, context);
+		parse::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
-	if (func_body.state < ast::resolve_state::symbol)
+	if (func_body.state < ast::resolve_state::parameters)
 	{
 		return { -1, -1 };
 	}
@@ -2228,11 +2228,11 @@ static error get_bad_call_error(
 */
 
 static auto find_best_match(
-	bz::vector<std::pair<match_level, ast::function_body *>> const &possible_funcs,
+	bz::vector<std::pair<match_level, ast::statement_view>> const &possible_funcs,
 	size_t scope_decl_count
-) -> std::pair<match_level, ast::function_body *>
+) -> std::pair<match_level, ast::statement_view>
 {
-	std::pair<match_level, ast::function_body *> min_scope_match = { { -1, -1 }, nullptr };
+	std::pair<match_level, ast::statement_view> min_scope_match = { { -1, -1 }, {} };
 
 	{
 		auto it = possible_funcs.begin();
@@ -2250,7 +2250,7 @@ static auto find_best_match(
 		}
 	}
 
-	std::pair<match_level, ast::function_body *> min_global_match = { { -1, -1 }, nullptr };
+	std::pair<match_level, ast::statement_view> min_global_match = { { -1, -1 }, {} };
 	{
 		auto it = possible_funcs.begin() + scope_decl_count;
 		auto const end = possible_funcs.end();
@@ -2269,7 +2269,7 @@ static auto find_best_match(
 
 	if (min_scope_match.first.min == -1 && min_global_match.first.min == -1)
 	{
-		return { { -1, -1 }, nullptr };
+		return { { -1, -1 }, {} };
 	}
 	// there's no global match
 	else if (min_global_match.first.min == -1)
@@ -2291,7 +2291,7 @@ static auto find_best_match(
 	else
 	{
 		// we need to check for ambiguity here
-		bz::vector<std::pair<match_level, ast::function_body *>> possible_min_matches = {};
+		bz::vector<std::pair<match_level, ast::statement_view>> possible_min_matches = {};
 		for (
 			auto it = possible_funcs.begin() + scope_decl_count;
 			it != possible_funcs.end();
@@ -2312,7 +2312,7 @@ static auto find_best_match(
 		else
 		{
 			// TODO: report ambiguous call error somehow
-			return { { -1, -1 }, nullptr };
+			return { { -1, -1 }, {} };
 			bz_unreachable;
 		}
 	}
@@ -2366,7 +2366,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		);
 	};
 
-	bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+	bz::vector<std::pair<match_level, ast::statement_view>> possible_funcs = {};
 
 	// we go through the scope decls for a matching declaration
 	for (
@@ -2389,7 +2389,7 @@ ast::expression parse_context::make_unary_operator_expression(
 				auto const match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 				if (match_level.min != -1)
 				{
-					possible_funcs.push_back({ match_level, &body });
+					possible_funcs.push_back({ match_level, op });
 				}
 			}
 		}
@@ -2412,7 +2412,7 @@ ast::expression parse_context::make_unary_operator_expression(
 			auto const match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 			if (match_level.min != -1)
 			{
-				possible_funcs.push_back({ match_level, &body });
+				possible_funcs.push_back({ match_level, op });
 			}
 		}
 	}
@@ -2425,7 +2425,10 @@ ast::expression parse_context::make_unary_operator_expression(
 	}
 	else
 	{
-		auto &ret_t = best.second->return_type;
+		auto &body = best.second.get<ast::decl_operator>().body;
+		parse::resolve_function_symbol(best.second, body, *this);
+		match_expression_to_type(expr, body.params[0].var_type);
+		auto &ret_t = body.return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2438,7 +2441,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+			ast::make_expr_function_call(src_tokens, std::move(params), &body)
 		);
 	}
 }
@@ -2531,7 +2534,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		}
 	};
 
-	bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+	bz::vector<std::pair<match_level, ast::statement_view>> possible_funcs = {};
 
 	// we go through the scope decls for a matching declaration
 	for (
@@ -2554,7 +2557,7 @@ ast::expression parse_context::make_binary_operator_expression(
 				auto const match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 				if (match_level.min != -1)
 				{
-					possible_funcs.push_back({ match_level, &body });
+					possible_funcs.push_back({ match_level, op });
 				}
 			}
 		}
@@ -2577,7 +2580,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			auto const match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 			if (match_level.min != -1)
 			{
-				possible_funcs.push_back({ match_level, &body });
+				possible_funcs.push_back({ match_level, op });
 			}
 		}
 	}
@@ -2590,7 +2593,11 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 	else
 	{
-		auto &ret_t = best.second->return_type;
+		auto &body = best.second.get<ast::decl_operator>().body;
+		parse::resolve_function_symbol(best.second, body, *this);
+		match_expression_to_type(lhs, body.params[0].var_type);
+		match_expression_to_type(rhs, body.params[1].var_type);
+		auto &ret_t = body.return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2605,7 +2612,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+			ast::make_expr_function_call(src_tokens, std::move(params), &body)
 		);
 	}
 }
@@ -2646,11 +2653,13 @@ ast::expression parse_context::make_function_call_expression(
 				{
 					this->report_error(
 						src_tokens,
-						"couldn't match the function call to any of the overloads"
+						"couldn't match the function call to any of the overloads",
+						{ this->make_note(func_body->src_tokens, "candidate:") }
 					);
 				}
 				return ast::expression(src_tokens);
 			}
+			parse::resolve_function_symbol({}, *func_body, *this);
 			for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
 			{
 				match_expression_to_type(param, func_body_param.var_type);
@@ -2673,7 +2682,7 @@ ast::expression parse_context::make_function_call_expression(
 		{
 			bz_assert(const_called.value.kind() == ast::constant_value::function_set_id);
 			auto const id = const_called.value.get<ast::constant_value::function_set_id>();
-			bz::vector<std::pair<match_level, ast::function_body *>> possible_funcs = {};
+			bz::vector<std::pair<match_level, ast::statement_view>> possible_funcs = {};
 			// we go through the scope decls for a matching declaration
 			for (
 				auto scope = this->scope_decls.rbegin();
@@ -2695,7 +2704,7 @@ ast::expression parse_context::make_function_call_expression(
 						auto const match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 						if (match_level.min != -1)
 						{
-							possible_funcs.push_back({ match_level, &body });
+							possible_funcs.push_back({ match_level, fn });
 						}
 					}
 				}
@@ -2718,7 +2727,7 @@ ast::expression parse_context::make_function_call_expression(
 					auto const match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 					if (match_level.min != -1)
 					{
-						possible_funcs.push_back({ match_level, &body });
+						possible_funcs.push_back({ match_level, fn });
 					}
 				}
 			}
@@ -2734,11 +2743,13 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			else
 			{
-				for (auto const [param, func_body_param] : bz::zip(params, best.second->params))
+				auto &body = best.second.get<ast::decl_function>().body;
+				parse::resolve_function_symbol(best.second, body, *this);
+				for (auto const [param, func_body_param] : bz::zip(params, body.params))
 				{
 					match_expression_to_type(param, func_body_param.var_type);
 				}
-				auto &ret_t = best.second->return_type;
+				auto &ret_t = body.return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
 				auto return_type = ast::remove_const_or_consteval(ret_t);
 				if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2749,7 +2760,7 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::make_dynamic_expression(
 					src_tokens,
 					return_type_kind, return_type,
-					ast::make_expr_function_call(src_tokens, std::move(params), best.second)
+					ast::make_expr_function_call(src_tokens, std::move(params), &body)
 				);
 			}
 		}

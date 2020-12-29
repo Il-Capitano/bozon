@@ -25,6 +25,8 @@ enum class resolve_state : int8_t
 {
 	error = -1,
 	none,
+	resolving_parameters,
+	parameters,
 	resolving_symbol,
 	symbol,
 	resolving_all,
