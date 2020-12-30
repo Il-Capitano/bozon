@@ -42,7 +42,6 @@ struct global_context
 	bz::vector<error> _errors;
 
 	std::list<src_file> _src_files;
-	bz::vector<fs::path> _import_dirs;
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module _module;
@@ -162,7 +161,17 @@ struct global_context
 	ctx::decl_set const &get_file_export_decls(uint32_t file_id);
 
 	bz::u8string get_file_name(uint32_t file_id)
-	{ return this->get_src_file(file_id).get_file_path().generic_string().c_str(); }
+	{
+		if (file_id == command_line_file_id)
+		{
+			return "<command-line>";
+		}
+		else
+		{
+			bz_assert(file_id != compiler_file_id);
+			return this->get_src_file(file_id).get_file_path().generic_string().c_str();
+		}
+	}
 
 
 	ast::type_info *get_base_type_info(uint32_t kind) const;

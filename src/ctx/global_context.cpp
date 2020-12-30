@@ -206,7 +206,7 @@ void global_context::add_compile_function(ast::function_body &func_body)
 	this->_compile_decls.funcs.push_back(&func_body);
 }
 
-static fs::path search_for_source_file(bz::u8string_view module_name, fs::path const &current_path, bz::vector<fs::path> const &import_dirs)
+static fs::path search_for_source_file(bz::u8string_view module_name, fs::path const &current_path)
 {
 	std::string_view std_sv(module_name.data(), module_name.size());
 	auto same_dir_module = current_path / std_sv;
@@ -218,7 +218,8 @@ static fs::path search_for_source_file(bz::u8string_view module_name, fs::path c
 
 	for (auto const &import_dir : import_dirs)
 	{
-		auto module = import_dir / std_sv;
+		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
+		auto module = fs::path(import_dir_sv) / std_sv;
 		module += ".bz";
 		if (fs::exists(module))
 		{
@@ -230,7 +231,7 @@ static fs::path search_for_source_file(bz::u8string_view module_name, fs::path c
 
 uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id, bz::u8string_view file_name)
 {
-	auto const file_path = search_for_source_file(file_name, this->get_src_file(current_file_id).get_file_path().parent_path(), this->_import_dirs);
+	auto const file_path = search_for_source_file(file_name, this->get_src_file(current_file_id).get_file_path().parent_path());
 	if (file_path.empty())
 	{
 		this->report_error(error{
