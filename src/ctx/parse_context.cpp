@@ -2662,7 +2662,6 @@ ast::expression parse_context::make_function_call_expression(
 
 			if (func_body->is_generic())
 			{
-				bz::print("generic function!\n");
 				auto specialized_body = func_body->get_copy_for_generic_specialization();
 				for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 				{
@@ -2682,6 +2681,10 @@ ast::expression parse_context::make_function_call_expression(
 				}
 			}
 			parse::resolve_function_symbol({}, *func_body, *this);
+			if (func_body->state == ast::resolve_state::error)
+			{
+				return ast::expression(src_tokens);
+			}
 
 			auto &ret_t = func_body->return_type;
 			auto return_type_kind = ast::expression_type_kind::rvalue;
@@ -2765,13 +2768,13 @@ ast::expression parse_context::make_function_call_expression(
 				auto func_body = &best.second.get<ast::decl_function>().body;
 				if (func_body->is_generic())
 				{
-					bz::print("generic overloaded function!\n");
 					auto specialized_body = func_body->get_copy_for_generic_specialization();
 					for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 					{
 						match_expression_to_type(param, func_body_param.var_type);
 					}
 					func_body = func_body->add_specialized_body(std::move(specialized_body));
+					bz_assert(!func_body->is_generic());
 					if (!this->generic_functions.contains(func_body))
 					{
 						this->generic_functions.push_back(func_body);
@@ -2785,6 +2788,10 @@ ast::expression parse_context::make_function_call_expression(
 					}
 				}
 				parse::resolve_function_symbol(best.second, *func_body, *this);
+				if (func_body->state == ast::resolve_state::error)
+				{
+					return ast::expression(src_tokens);
+				}
 
 				auto &ret_t = func_body->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
