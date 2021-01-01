@@ -775,11 +775,6 @@ void resolve_function(
 
 	bz::optional<ctx::parse_context> new_context{};
 	auto context_ptr = [&]() {
-		if (context.scope_decls.size() == 0)
-		{
-			return &context;
-		}
-
 		auto const var_count = context.scope_decls
 			.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
 			.sum();
