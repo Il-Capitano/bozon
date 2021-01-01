@@ -186,7 +186,9 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	}
 	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
 	{
+		context.add_to_resolve_queue({}, *context.generic_functions[i]);
 		parse::resolve_function({}, *context.generic_functions[i], context);
+		context.pop_resolve_queue();
 	}
 
 	this->_stage = parsed;
