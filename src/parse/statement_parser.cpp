@@ -761,38 +761,56 @@ void resolve_function(
 			context.remove_scope();
 			return;
 		}
-	}
-	else if (func_body.body.is_null())
-	{
-		return;
-	}
-	else if (func_body.is_generic())
-	{
-		return;
-	}
-	else
-	{
-		context.add_scope();
-		for (auto &p : func_body.params)
+		else
 		{
-			context.add_local_variable(p);
+			func_body.state = ast::resolve_state::symbol;
+			context.remove_scope();
 		}
 	}
 
 	if (func_body.body.is_null())
 	{
-		func_body.state = ast::resolve_state::symbol;
-		context.remove_scope();
 		return;
+	}
+
+	bz::optional<ctx::parse_context> new_context{};
+	auto context_ptr = [&]() {
+		if (context.scope_decls.size() == 0)
+		{
+			return &context;
+		}
+
+		auto const var_count = context.scope_decls
+			.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
+			.sum();
+		if (var_count == 0)
+		{
+			return &context;
+		}
+		else
+		{
+			new_context.emplace(context);
+			for (auto &decl_set : new_context->scope_decls)
+			{
+				decl_set.var_decls.clear();
+			}
+			return &new_context.get();
+		}
+	}();
+
+	context_ptr->add_scope();
+	for (auto &p : func_body.params)
+	{
+		context_ptr->add_local_variable(p);
 	}
 
 	func_body.state = ast::resolve_state::resolving_all;
 
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
-	func_body.body = parse_local_statements(stream, end, context);
+	func_body.body = parse_local_statements(stream, end, *context_ptr);
 
-	context.remove_scope();
+	context_ptr->remove_scope();
 }
 
 static ast::function_body parse_function_body(

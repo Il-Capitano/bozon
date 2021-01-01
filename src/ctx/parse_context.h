@@ -37,6 +37,7 @@ struct parse_context
 	decl_set            *global_decls;
 	bz::vector<decl_set> scope_decls;
 	bz::vector<ast::function_body *> generic_functions;
+	bz::vector<std::size_t>          generic_function_scope_start;
 
 	bz::vector<resolve_queue_t>        resolve_queue;
 	bz::vector<consteval_call_stack_t> consteval_call_stack;

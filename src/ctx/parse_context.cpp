@@ -12,7 +12,10 @@ parse_context::parse_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
 	  global_decls(nullptr),
 	  scope_decls{},
-	  resolve_queue{}
+	  generic_functions{},
+	  generic_function_scope_start{},
+	  resolve_queue{},
+	  consteval_call_stack{}
 {}
 
 static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context const &context)
@@ -31,41 +34,47 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 	notes.emplace_back(context.make_note(body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())));
 	for (auto const &required_from : bz::reversed(body.generic_required_from))
 	{
-		notes.emplace_back(context.make_note(required_from.first, required_from.second));
+		if (required_from.second == nullptr)
+		{
+			notes.emplace_back(context.make_note(required_from.first, "required from here"));
+		}
+		else
+		{
+			notes.emplace_back(context.make_note(required_from.first, bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())));
+		}
 	}
 }
 
-static bz::vector<std::pair<lex::src_tokens, bz::u8string>> get_generic_requirements(parse_context &context)
+static bz::vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_requirements(
+	lex::src_tokens src_tokens,
+	parse_context &context
+)
 {
-	bz::vector<std::pair<lex::src_tokens, bz::u8string>> result;
+	bz::vector<std::pair<lex::src_tokens, ast::function_body *>> result;
 	auto it = context.resolve_queue.rbegin();
 	auto const end = context.resolve_queue.rend();
 	auto const is_generic_specialization_dep = [](auto const &dep) {
 		auto const body = dep.requested.template get_if<ast::function_body *>();
 		return body != nullptr && (*body)->is_generic_specialization();
 	};
-	for (; it != end; ++it)
+	if (it != end && is_generic_specialization_dep(*it))
 	{
-		auto &dep = *it;
-		if (is_generic_specialization_dep(dep))
+		// we need to accumulate everything on the front, but prefer using push_back for the first
+		// few elements that are known
+		result.push_back({ it->requester, nullptr });
+		result.push_back({ src_tokens, it->requested.get<ast::function_body *>() });
+		++it;
+		for (; it != end && is_generic_specialization_dep(*it); ++it)
 		{
-			if (it + 1 != end && is_generic_specialization_dep(*(it + 1)))
-			{
-				auto &next_body = *(it + 1)->requested.get<ast::function_body *>();
-				result.push_back({
-					dep.requester,
-					bz::format("required from generic instantiation of '{}'", next_body.get_signature())
-				});
-			}
-			else
-			{
-				result.push_back({ dep.requester, "required from here" });
-			}
+			auto &dep = *it;
+			auto const body = it->requested.get<ast::function_body *>();
+			result.back().second = body;
+			result.push_front({ dep.requester, nullptr });
 		}
-		else
-		{
-			break;
-		}
+	}
+	else
+	{
+		result.push_back({ src_tokens, nullptr });
 	}
 	return result;
 }
@@ -441,6 +450,7 @@ void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 void parse_context::add_scope(void)
 {
 	this->scope_decls.push_back({});
+	this->generic_function_scope_start.push_back(this->generic_functions.size());
 }
 
 void parse_context::remove_scope(void)
@@ -460,6 +470,15 @@ void parse_context::remove_scope(void)
 			}
 		}
 	}
+	auto const generic_functions_start_index = this->generic_function_scope_start.back();
+	for (std::size_t i = generic_functions_start_index ; i < this->generic_functions.size(); ++i)
+	{
+		this->add_to_resolve_queue({}, *this->generic_functions[i]);
+		parse::resolve_function({}, *this->generic_functions[i], *this);
+		this->pop_resolve_queue();
+	}
+	this->generic_functions.resize(generic_functions_start_index);
+	this->generic_function_scope_start.pop_back();
 	this->scope_decls.pop_back();
 }
 
@@ -2487,8 +2506,8 @@ ast::expression parse_context::make_unary_operator_expression(
 	else
 	{
 		auto &body = best.second.get<ast::decl_operator>().body;
-		match_expression_to_type(expr, body.params[0].var_type);
 		this->add_to_resolve_queue(src_tokens, body);
+		match_expression_to_type(expr, body.params[0].var_type);
 		parse::resolve_function_symbol(best.second, body, *this);
 		this->pop_resolve_queue();
 		auto &ret_t = body.return_type;
@@ -2657,9 +2676,9 @@ ast::expression parse_context::make_binary_operator_expression(
 	else
 	{
 		auto &body = best.second.get<ast::decl_operator>().body;
+		this->add_to_resolve_queue(src_tokens, body);
 		match_expression_to_type(lhs, body.params[0].var_type);
 		match_expression_to_type(rhs, body.params[1].var_type);
-		this->add_to_resolve_queue(src_tokens, body);
 		parse::resolve_function_symbol(best.second, body, *this);
 		this->pop_resolve_queue();
 		auto &ret_t = body.return_type;
@@ -2727,13 +2746,16 @@ ast::expression parse_context::make_function_call_expression(
 
 			if (func_body->is_generic())
 			{
-				auto required_from = get_generic_requirements(*this);
+				auto required_from = get_generic_requirements(src_tokens, *this);
 				auto specialized_body = func_body->get_copy_for_generic_specialization(std::move(required_from));
+				this->add_to_resolve_queue(src_tokens, *specialized_body);
 				for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 				{
 					match_expression_to_type(param, func_body_param.var_type);
 				}
+				this->pop_resolve_queue();
 				func_body = func_body->add_specialized_body(std::move(specialized_body));
+				this->add_to_resolve_queue(src_tokens, *func_body);
 				if (!this->generic_functions.contains(func_body))
 				{
 					this->generic_functions.push_back(func_body);
@@ -2741,12 +2763,12 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			else
 			{
+				this->add_to_resolve_queue(src_tokens, *func_body);
 				for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
 				{
 					match_expression_to_type(param, func_body_param.var_type);
 				}
 			}
-			this->add_to_resolve_queue(src_tokens, *func_body);
 			parse::resolve_function_symbol({}, *func_body, *this);
 			this->pop_resolve_queue();
 			if (func_body->state == ast::resolve_state::error)
@@ -2836,13 +2858,16 @@ ast::expression parse_context::make_function_call_expression(
 				auto func_body = &best.second.get<ast::decl_function>().body;
 				if (func_body->is_generic())
 				{
-					auto required_from = get_generic_requirements(*this);
+					auto required_from = get_generic_requirements(src_tokens, *this);
 					auto specialized_body = func_body->get_copy_for_generic_specialization(std::move(required_from));
+					this->add_to_resolve_queue(src_tokens, *specialized_body);
 					for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 					{
 						match_expression_to_type(param, func_body_param.var_type);
 					}
+					this->pop_resolve_queue();
 					func_body = func_body->add_specialized_body(std::move(specialized_body));
+					this->add_to_resolve_queue(src_tokens, *func_body);
 					bz_assert(!func_body->is_generic());
 					if (!this->generic_functions.contains(func_body))
 					{
@@ -2851,12 +2876,12 @@ ast::expression parse_context::make_function_call_expression(
 				}
 				else
 				{
+					this->add_to_resolve_queue(src_tokens, *func_body);
 					for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
 					{
 						match_expression_to_type(param, func_body_param.var_type);
 					}
 				}
-				this->add_to_resolve_queue(src_tokens, *func_body);
 				parse::resolve_function_symbol(best.second, *func_body, *this);
 				this->pop_resolve_queue();
 				if (func_body->state == ast::resolve_state::error)

@@ -89,7 +89,7 @@ bz::u8string function_body::get_symbol_name(void) const
 	return symbol_name;
 }
 
-std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, bz::u8string>> required_from)
+std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, function_body *>> required_from)
 {
 	auto result = std::make_unique<function_body>(*this);
 	result->flags &= ~generic;
