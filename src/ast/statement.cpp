@@ -59,6 +59,7 @@ bz::u8string function_body::get_signature(void) const
 	{
 		if (first)
 		{
+			first = false;
 			result += bz::format(": {}", p.var_type);
 		}
 		else
@@ -88,15 +89,18 @@ bz::u8string function_body::get_symbol_name(void) const
 	return symbol_name;
 }
 
-std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(void)
+std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, bz::u8string>> required_from)
 {
 	auto result = std::make_unique<function_body>(*this);
 	result->flags &= ~generic;
+	result->flags |= generic_specialization;
+	result->generic_required_from.append(std::move(required_from));
 	return result;
 }
 
 function_body *function_body::add_specialized_body(std::unique_ptr<function_body> body)
 {
+	bz_assert(body->is_generic_specialization());
 	bz_assert(body->params.size() == this->params.size());
 	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
 		for (auto const &[lhs_param, rhs_param] : bz::zip(lhs, rhs))
