@@ -1,7 +1,8 @@
 /*
 
 TODO:
-	- array type
+	- make tuples work with type matching
+	- array sclice type
 	- user-defined type implementation
 
 
@@ -1537,14 +1538,16 @@ int main(int argc, char const **argv)
 
 	if (do_profile)
 	{
+		auto const compilation_time          = end - begin;
+		auto const front_end_time            = after_bitcode_emission - begin;
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
 		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
 		auto const resolve_time              = after_parse - before_parse;
 		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
 		auto const file_emission_time        = after_file_emission - before_file_emission;
-		auto const compilation_time          = end - begin;
 
 		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
+		bz::print("front-end time:           {:7.3f}ms\n", in_ms(front_end_time));
 		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
 		bz::print("global symbol parse time: {:7.3f}ms\n", in_ms(first_pass_parse_time));
 		bz::print("parse time:               {:7.3f}ms\n", in_ms(resolve_time));
