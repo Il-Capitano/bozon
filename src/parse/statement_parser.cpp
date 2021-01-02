@@ -804,6 +804,7 @@ void resolve_function(
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
 	func_body.body = parse_local_statements(stream, end, *context_ptr);
+	func_body.state = ast::resolve_state::all;
 
 	context_ptr->remove_scope();
 }

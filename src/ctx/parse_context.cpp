@@ -61,7 +61,10 @@ static bz::vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_
 	{
 		// we need to accumulate everything on the front, but prefer using push_back for the first
 		// few elements that are known
-		result.push_back({ it->requester, nullptr });
+		if (it->requester.pivot != nullptr)
+		{
+			result.push_back({ it->requester, nullptr });
+		}
 		result.push_back({ src_tokens, it->requested.get<ast::function_body *>() });
 		++it;
 		for (; it != end && is_generic_specialization_dep(*it); ++it)
@@ -1597,7 +1600,8 @@ static int get_type_match_level(
 	// const T -> match to T (no need to worry about const)
 	if (dest.is<ast::ts_const>())
 	{
-		return get_type_match_level(dest.get<ast::ts_const>(), expr, context);
+		// + 2, because it didn't match reference and reference const qualifier
+		return 2 + get_type_match_level(dest.get<ast::ts_const>(), expr, context);
 	}
 	else if (dest.is<ast::ts_consteval>())
 	{
@@ -1607,7 +1611,8 @@ static int get_type_match_level(
 		}
 		else
 		{
-			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
+			// + 2, because it didn't match reference and reference const qualifier
+			return 2 + get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
 		}
 	}
 
@@ -1616,6 +1621,7 @@ static int get_type_match_level(
 
 	if (dest.is<ast::ts_pointer>())
 	{
+		// + 2 needs to be added everywhere, because it didn't match reference and reference const qualifier
 		if (expr_type_without_const.is<ast::ts_pointer>())
 		{
 			auto const inner_dest = dest.get<ast::ts_pointer>();
@@ -1624,17 +1630,19 @@ static int get_type_match_level(
 			{
 				if (inner_expr_type.is<ast::ts_const>())
 				{
-					return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type.get<ast::ts_const>(), true);
+					auto const strict_match_result = get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type.get<ast::ts_const>(), true);
+					return strict_match_result == -1 ? -1 : strict_match_result + 2;
 				}
 				else
 				{
 					auto const strict_match_result = get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type, true);
-					return strict_match_result == -1 ? -1 : strict_match_result + 1;
+					return strict_match_result == -1 ? -1 : strict_match_result + 3;
 				}
 			}
 			else
 			{
-				return get_strict_type_match_level(inner_dest, inner_expr_type, true);
+				auto const strict_match_result = get_strict_type_match_level(inner_dest, inner_expr_type, true);
+				return strict_match_result == -1 ? -1 : strict_match_result + 2;
 			}
 		}
 		// special case for null
@@ -1642,7 +1650,7 @@ static int get_type_match_level(
 		{
 			if (ast::is_complete(dest))
 			{
-				return 1;
+				return 3;
 			}
 			else
 			{
@@ -1677,17 +1685,18 @@ static int get_type_match_level(
 	}
 
 	// only implicit type conversions are left
+	// + 2 needs to be added everywhere, because it didn't match reference and reference const qualifier
 	if (dest.is<ast::ts_auto>())
 	{
-		return 1;
+		return 3;
 	}
 	else if (dest == expr_type_without_const)
 	{
-		return 0;
+		return 2;
 	}
 	else if (is_implicitly_convertible(dest, expr, context))
 	{
-		return 1;
+		return 3;
 	}
 	return -1;
 }
