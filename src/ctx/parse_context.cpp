@@ -40,7 +40,10 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 		}
 		else
 		{
-			notes.emplace_back(context.make_note(required_from.first, bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())));
+			notes.emplace_back(context.make_note(
+				required_from.first,
+				bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
+			));
 		}
 	}
 }
@@ -71,7 +74,8 @@ static bz::vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_
 		{
 			auto &dep = *it;
 			auto const body = it->requested.get<ast::function_body *>();
-			result.back().second = body;
+			bz_assert(body != nullptr);
+			result.front().second = body;
 			result.push_front({ dep.requester, nullptr });
 		}
 	}
@@ -150,6 +154,15 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 	int count = 0;
 	for (auto const &dep : bz::reversed(this->resolve_queue))
 	{
+		if (
+			notes.size() != 0
+			&& dep.requested.is<ast::function_body *>()
+			&& dep.requested.get<ast::function_body *>()->is_generic_specialization()
+		)
+		{
+			auto const func_body = dep.requested.get<ast::function_body *>();
+			notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+		}
 		if (dep.requested == &func_body)
 		{
 			++count;
@@ -163,7 +176,7 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 
 	this->report_error(
 		func_body.src_tokens,
-		bz::format("circular dependency encountered while resolving {}", func_body.get_signature()),
+		bz::format("circular dependency encountered while resolving '{}'", func_body.get_signature()),
 		std::move(notes)
 	);
 }
