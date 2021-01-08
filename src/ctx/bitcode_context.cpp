@@ -225,9 +225,6 @@ llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
 	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
 }
 
-ast::function_body *bitcode_context::get_builtin_function(uint32_t kind) const
-{ return this->global_ctx.get_builtin_function(kind); }
-
 
 bool bitcode_context::has_terminator(void) const
 {

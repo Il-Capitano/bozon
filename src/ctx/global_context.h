@@ -174,9 +174,6 @@ struct global_context
 	}
 
 
-	ast::type_info *get_base_type_info(uint32_t kind) const;
-	ast::function_body *get_builtin_function(uint32_t kind) const;
-
 	llvm::DataLayout const &get_data_layout(void) const
 	{ return this->_module.getDataLayout(); }
 

@@ -770,6 +770,9 @@ def_make_fn(statement, stmt_static_assert)
 
 #undef def_make_fn
 
+type_info *get_builtin_type_info(uint32_t kind);
+function_body *get_builtin_function(uint32_t kind);
+
 } // namespace ast
 
 #endif // AST_STATEMENT_H

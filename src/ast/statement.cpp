@@ -225,4 +225,132 @@ bz::u8string function_body::decode_symbol_name(
 	return result;
 }
 
+static_assert(ast::type_info::int8_    ==  0);
+static_assert(ast::type_info::int16_   ==  1);
+static_assert(ast::type_info::int32_   ==  2);
+static_assert(ast::type_info::int64_   ==  3);
+static_assert(ast::type_info::uint8_   ==  4);
+static_assert(ast::type_info::uint16_  ==  5);
+static_assert(ast::type_info::uint32_  ==  6);
+static_assert(ast::type_info::uint64_  ==  7);
+static_assert(ast::type_info::float32_ ==  8);
+static_assert(ast::type_info::float64_ ==  9);
+static_assert(ast::type_info::char_    == 10);
+static_assert(ast::type_info::str_     == 11);
+static_assert(ast::type_info::bool_    == 12);
+static_assert(ast::type_info::null_t_  == 13);
+
+
+static auto get_builtin_type_infos(void)
+{
+	return bz::array{
+		ast::type_info::make_built_in("int8",     ast::type_info::int8_),
+		ast::type_info::make_built_in("int16",    ast::type_info::int16_),
+		ast::type_info::make_built_in("int32",    ast::type_info::int32_),
+		ast::type_info::make_built_in("int64",    ast::type_info::int64_),
+		ast::type_info::make_built_in("uint8",    ast::type_info::uint8_),
+		ast::type_info::make_built_in("uint16",   ast::type_info::uint16_),
+		ast::type_info::make_built_in("uint32",   ast::type_info::uint32_),
+		ast::type_info::make_built_in("uint64",   ast::type_info::uint64_),
+		ast::type_info::make_built_in("float32",  ast::type_info::float32_),
+		ast::type_info::make_built_in("float64",  ast::type_info::float64_),
+		ast::type_info::make_built_in("char",     ast::type_info::char_),
+		ast::type_info::make_built_in("str",      ast::type_info::str_),
+		ast::type_info::make_built_in("bool",     ast::type_info::bool_),
+		ast::type_info::make_built_in("__null_t", ast::type_info::null_t_),
+	};
+}
+
+static auto builtin_type_infos = get_builtin_type_infos();
+
+template<typename ...Ts>
+static ast::function_body create_builtin_function(
+	uint32_t kind,
+	bz::u8string_view symbol_name,
+	ast::typespec return_type,
+	Ts ...arg_types
+)
+{
+	static_assert((bz::meta::is_same<Ts, ast::typespec> && ...));
+	bz::vector<ast::decl_variable> params;
+	params.reserve(sizeof... (Ts));
+	((params.emplace_back(
+		lex::token_range{}, lex::token_pos{}, lex::token_range{},
+		std::move(arg_types)
+	)), ...);
+	auto const is_generic = [&]() {
+		for (auto const &param : params)
+		{
+			if (!ast::is_complete(param.var_type))
+			{
+				return true;
+			}
+		}
+		return false;
+	}();
+	ast::function_body result;
+	result.params = std::move(params);
+	result.return_type = std::move(return_type);
+	result.symbol_name = symbol_name;
+	result.state = ast::resolve_state::symbol;
+	result.cc = abi::calling_convention::c;
+	result.flags =
+		ast::function_body::external_linkage
+		| ast::function_body::intrinsic
+		| (is_generic ? ast::function_body::generic : 0);
+	result.intrinsic_kind = kind;
+	return result;
+}
+
+type_info *get_builtin_type_info(uint32_t kind)
+{
+	bz_assert(kind < builtin_type_infos.size());
+	return &builtin_type_infos[kind];
+}
+
+static auto builtin_functions = []() {
+	auto const bool_type = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::bool_));
+	auto const str_type  = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::str_));
+	auto const uint8_const_ptr_type = [&]() {
+		ast::typespec result = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::uint8_));
+		result.add_layer<ast::ts_const>(nullptr);
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
+	auto const auto_ptr_type = [&]() {
+		ast::typespec result = ast::make_auto_typespec({});
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
+	auto const auto_const_ptr_type = [&]() {
+		ast::typespec result = ast::make_auto_typespec({});
+		result.add_layer<ast::ts_const>(nullptr);
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
+
+#define add_builtin(pos, kind, symbol_name, ...) \
+((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
+	bz::array<
+		ast::function_body,
+		ast::function_body::_builtin_last - ast::function_body::_builtin_first
+	> result = {
+		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
+		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
+		add_builtin(2, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
+		add_builtin(3, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
+		add_builtin(4, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+		add_builtin(5, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
+		add_builtin(6, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
+	};
+#undef add_builtin
+	return result;
+}();
+
+function_body *get_builtin_function(uint32_t kind)
+{
+	bz_assert(kind < builtin_functions.size());
+	return &builtin_functions[kind];
+}
+
 } // namespace ast
