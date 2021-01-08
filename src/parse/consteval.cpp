@@ -1472,9 +1472,11 @@ static ast::constant_value evaluate_function_call(
 	case ast::function_body::builtin_str_begin_ptr:
 	case ast::function_body::builtin_str_end_ptr:
 	case ast::function_body::builtin_str_from_ptrs:
+	case ast::function_body::builtin_slice_from_ptrs:
+	case ast::function_body::builtin_slice_from_const_ptrs:
 		return {};
 
-	static_assert(ast::function_body::builtin_str_from_ptrs + 1 == ast::function_body::_builtin_last);
+	static_assert(ast::function_body::builtin_slice_from_const_ptrs + 1 == ast::function_body::_builtin_last);
 
 	// builtins end here
 

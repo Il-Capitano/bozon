@@ -219,6 +219,12 @@ llvm::Type *bitcode_context::get_bool_t(void) const
 llvm::Type *bitcode_context::get_null_t(void) const
 { return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::null_t_)]; }
 
+llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
+{
+	auto const elem_ptr_type = llvm::PointerType::get(elem_type, 0);
+	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
+}
+
 ast::function_body *bitcode_context::get_builtin_function(uint32_t kind) const
 { return this->global_ctx.get_builtin_function(kind); }
 

@@ -118,10 +118,25 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 			return is_equal_params(specialization->params, body->params);
 		}
 	);
+
 	if (it == this->generic_specializations.end())
 	{
 		this->generic_specializations.push_back(std::move(body));
-		return this->generic_specializations.back().get();
+		auto const func_body = this->generic_specializations.back().get();
+		if (func_body->is_intrinsic())
+		{
+			if (
+				func_body->intrinsic_kind == builtin_slice_from_ptrs
+				|| func_body->intrinsic_kind == builtin_slice_from_const_ptrs
+			)
+			{
+				bz_assert(func_body->params.size() == 2);
+				typespec_view const arg_type = func_body->params[0].var_type;
+				bz_assert(arg_type.is<ts_pointer>());
+				func_body->return_type = make_array_slice_typespec({}, arg_type.get<ts_pointer>());
+			}
+		}
+		return func_body;
 	}
 	else
 	{

@@ -471,6 +471,81 @@ static ast::expression parse_array_type(
 	);
 }
 
+static ast::expression parse_array_slice_type(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::colon);
+	bz_assert((stream - 1)->kind == lex::token::square_open);
+	auto const begin_token = stream - 1;
+	++stream;
+	auto type = parse_expression(stream, end, context, no_comma);
+	bool good = true;
+	if (stream != end)
+	{
+		good = false;
+		if (stream->kind == lex::token::comma)
+		{
+			context.report_paren_match_error(
+				stream, begin_token,
+				{ context.make_note(stream, "operator , is not allowed in array element type") }
+			);
+		}
+		else
+		{
+			context.report_paren_match_error(stream, begin_token);
+		}
+	}
+
+	if (type.is_null())
+	{
+		good = false;
+	}
+	else if (!type.is_typename())
+	{
+		good = false;
+		context.report_error(type, "expected a type as the array element type");
+	}
+	else
+	{
+		auto &elem_type = type.get_typename();
+		if (elem_type.is<ast::ts_consteval>())
+		{
+			good = false;
+			auto const consteval_pos = type.src_tokens.pivot != nullptr
+				&& type.src_tokens.pivot->kind == lex::token::kw_consteval
+					? type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(consteval_pos->src_pos.begin, consteval_pos->src_pos.end);
+			context.report_error(
+				type, "array slice element type cannot be 'consteval'",
+				{}, { context.make_suggestion_before(
+					begin_token, ctx::char_pos(), ctx::char_pos(), "consteval ",
+					consteval_pos, consteval_begin, consteval_end, "const",
+					"make the array slice type 'consteval'"
+				) }
+			);
+		}
+	}
+
+	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
+	if (!good)
+	{
+		return ast::expression(src_tokens);
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::make_array_slice_typespec(src_tokens, std::move(type.get_typename())),
+		ast::expr_t{}
+	);
+}
+
 static ast::expression parse_primary_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -566,14 +641,18 @@ static ast::expression parse_primary_expression(
 		return expr;
 	}
 
-	// tuple or array type
+	// tuple, tuple type or array type or array slice type
 	case lex::token::square_open:
 	{
 		auto const begin_token = stream;
 		++stream; // '['
 		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
-		auto const colon_or_end = search_token(lex::token::colon, inner_stream, inner_end);
-		if (colon_or_end != inner_end)
+		// array slice
+		if (inner_stream->kind == lex::token::colon)
+		{
+			return parse_array_slice_type(inner_stream, inner_end, context);
+		}
+		else if (auto const colon_or_end = search_token(lex::token::colon, inner_stream, inner_end); colon_or_end != inner_end)
 		{
 			return parse_array_type(inner_stream, inner_end, context);
 		}

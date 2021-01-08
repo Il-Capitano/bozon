@@ -369,6 +369,24 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 	};
 }
 
+[[nodiscard]] suggestion parse_context::make_suggestion_before(
+	lex::token_pos first_it,
+	char_pos first_erase_begin, char_pos first_erase_end,
+	bz::u8string first_suggestion_str,
+	lex::token_pos second_it,
+	char_pos second_erase_begin, char_pos second_erase_end,
+	bz::u8string second_suggestion_str,
+	bz::u8string message
+)
+{
+	return suggestion{
+		first_it->src_pos.file_id, first_it->src_pos.line,
+		{ first_erase_begin, first_erase_end, first_it->src_pos.begin, std::move(first_suggestion_str) },
+		{ second_erase_begin, second_erase_end, second_it->src_pos.begin, std::move(second_suggestion_str) },
+		std::move(message)
+	};
+}
+
 [[nodiscard]] suggestion parse_context::make_suggestion_after(
 	lex::token_pos it,
 	char_pos erase_begin, char_pos erase_end,
@@ -939,9 +957,11 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	{
 		using T = std::pair<bz::u8string_view, uint32_t>;
 		static constexpr bz::array builtins = {
-			T{ "__builtin_str_begin_ptr", ast::function_body::builtin_str_begin_ptr },
-			T{ "__builtin_str_end_ptr",   ast::function_body::builtin_str_end_ptr   },
-			T{ "__builtin_str_from_ptrs", ast::function_body::builtin_str_from_ptrs },
+			T{ "__builtin_str_begin_ptr",         ast::function_body::builtin_str_begin_ptr         },
+			T{ "__builtin_str_end_ptr",           ast::function_body::builtin_str_end_ptr           },
+			T{ "__builtin_str_from_ptrs",         ast::function_body::builtin_str_from_ptrs         },
+			T{ "__builtin_slice_from_ptrs",       ast::function_body::builtin_slice_from_ptrs       },
+			T{ "__builtin_slice_from_const_ptrs", ast::function_body::builtin_slice_from_const_ptrs },
 		};
 		auto const it = std::find_if(builtins.begin(), builtins.end(), [id_value](auto const &p) {
 			return p.first == id_value;
@@ -2958,7 +2978,12 @@ ast::expression parse_context::make_subscript_operator_expression(
 
 	auto const [type, kind] = called.get_expr_type_and_kind();
 	auto const constless_type = ast::remove_const_or_consteval(type);
-	if (constless_type.is<ast::ts_array>() || constless_type.is<ast::ts_tuple>() || kind == ast::expression_type_kind::tuple)
+	if (
+		constless_type.is<ast::ts_array>()
+		|| constless_type.is<ast::ts_array_slice>()
+		|| constless_type.is<ast::ts_tuple>()
+		|| kind == ast::expression_type_kind::tuple
+	)
 	{
 		return make_built_in_subscript_operator(src_tokens, std::move(called), std::move(args), *this);
 	}

@@ -13,6 +13,7 @@ struct ts_base_type;
 struct ts_void;
 struct ts_function;
 struct ts_array;
+struct ts_array_slice;
 struct ts_tuple;
 struct ts_auto;
 struct ts_typename;
@@ -28,6 +29,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_void,
 	ts_function,
 	ts_array,
+	ts_array_slice,
 	ts_tuple,
 	ts_auto,
 	ts_typename,
@@ -43,6 +45,7 @@ using terminator_typespec_types = bz::meta::type_pack<
 	ts_void,
 	ts_function,
 	ts_array,
+	ts_array_slice,
 	ts_tuple,
 	ts_auto,
 	ts_typename
@@ -178,6 +181,12 @@ struct ts_array
 	typespec             elem_type;
 };
 
+struct ts_array_slice
+{
+	lex::src_tokens src_tokens;
+	typespec        elem_type;
+};
+
 struct ts_tuple
 {
 	lex::src_tokens src_tokens;
@@ -259,6 +268,14 @@ inline typespec make_array_typespec(
 )
 {
 	return typespec{ { ts_array{ src_tokens, std::move(sizes), std::move(elem_type) } } };
+}
+
+inline typespec make_array_slice_typespec(
+	lex::src_tokens src_tokens,
+	typespec elem_type
+)
+{
+	return typespec{ { ts_array_slice{ src_tokens, std::move(elem_type) } } };
 }
 
 inline typespec make_tuple_typespec(

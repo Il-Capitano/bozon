@@ -1720,14 +1720,47 @@ static val_ptr emit_bitcode(
 			{
 				bz_assert(context.get_str_t()->isStructTy());
 				auto const str_t = static_cast<llvm::StructType *>(context.get_str_t());
-				llvm::Value *result = llvm::ConstantStruct::get(str_t, { llvm::UndefValue::get(str_t), llvm::UndefValue::get(str_t) });
+				auto const str_member_t= str_t->getElementType(0);
+				llvm::Value *result = llvm::ConstantStruct::get(
+					str_t,
+					{ llvm::UndefValue::get(str_member_t), llvm::UndefValue::get(str_member_t) }
+				);
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr{ val_ptr::value, result };
 			}
 		}
-		static_assert(ast::function_body::builtin_str_from_ptrs + 1 == ast::function_body::_builtin_last);
+		case ast::function_body::builtin_slice_from_ptrs:
+		case ast::function_body::builtin_slice_from_const_ptrs:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const begin_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end_ptr   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+				auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+				context.builder.CreateStore(begin_ptr, result_begin_ptr);
+				context.builder.CreateStore(end_ptr, result_end_ptr);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				bz_assert(begin_ptr->getType()->isPointerTy());
+				auto const slice_elem_t = static_cast<llvm::PointerType *>(begin_ptr->getType())->getElementType();
+				auto const slice_t = context.get_slice_t(slice_elem_t);
+				auto const slice_member_t = slice_t->getElementType(0);
+				llvm::Value *result = llvm::ConstantStruct::get(
+					slice_t,
+					{ llvm::UndefValue::get(slice_member_t), llvm::UndefValue::get(slice_member_t) }
+				);
+				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
+				result = context.builder.CreateInsertValue(result, end_ptr,   1);
+				return val_ptr{ val_ptr::value, result };
+			}
+		}
 
+		static_assert(ast::function_body::builtin_slice_from_const_ptrs + 1 == ast::function_body::_builtin_last);
 		default:
 			break;
 		}

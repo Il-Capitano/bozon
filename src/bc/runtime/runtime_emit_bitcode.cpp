@@ -2,6 +2,7 @@
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/Attributes.h>
 
+#include "ast/typespec.h"
 #include "runtime_emit_bitcode.h"
 #include "ctx/built_in_operators.h"
 #include "colors.h"
@@ -85,6 +86,8 @@ static llvm::Value *get_constant_zero(
 	}
 	case ast::typespec_node_t::index_of<ast::ts_array>:
 		return llvm::ConstantArray::getNullValue(llvm_type);
+	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
+		return llvm::ConstantStruct::getNullValue(llvm_type);
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 		return llvm::ConstantAggregate::getNullValue(llvm_type);
 
@@ -1720,14 +1723,47 @@ static val_ptr emit_bitcode(
 			{
 				bz_assert(context.get_str_t()->isStructTy());
 				auto const str_t = static_cast<llvm::StructType *>(context.get_str_t());
-				llvm::Value *result = llvm::ConstantStruct::get(str_t, { llvm::UndefValue::get(str_t), llvm::UndefValue::get(str_t) });
+				auto const str_member_t= str_t->getElementType(0);
+				llvm::Value *result = llvm::ConstantStruct::get(
+					str_t,
+					{ llvm::UndefValue::get(str_member_t), llvm::UndefValue::get(str_member_t) }
+				);
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr{ val_ptr::value, result };
 			}
 		}
-		static_assert(ast::function_body::builtin_str_from_ptrs + 1 == ast::function_body::_builtin_last);
+		case ast::function_body::builtin_slice_from_ptrs:
+		case ast::function_body::builtin_slice_from_const_ptrs:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const begin_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end_ptr   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			if (result_address != nullptr)
+			{
+				auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+				auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+				context.builder.CreateStore(begin_ptr, result_begin_ptr);
+				context.builder.CreateStore(end_ptr, result_end_ptr);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				bz_assert(begin_ptr->getType()->isPointerTy());
+				auto const slice_elem_t = static_cast<llvm::PointerType *>(begin_ptr->getType())->getElementType();
+				auto const slice_t = context.get_slice_t(slice_elem_t);
+				auto const slice_member_t = slice_t->getElementType(0);
+				llvm::Value *result = llvm::ConstantStruct::get(
+					slice_t,
+					{ llvm::UndefValue::get(slice_member_t), llvm::UndefValue::get(slice_member_t) }
+				);
+				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
+				result = context.builder.CreateInsertValue(result, end_ptr,   1);
+				return val_ptr{ val_ptr::value, result };
+			}
+		}
 
+		static_assert(ast::function_body::builtin_slice_from_const_ptrs + 1 == ast::function_body::_builtin_last);
 		default:
 			break;
 		}
@@ -1906,43 +1942,72 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
-	bz::vector<llvm::Value *> indicies = {};
-	for (auto &index : subscript.indicies)
+	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type_and_kind().first);
+	if (base_type.is<ast::ts_array>())
 	{
-		bz_assert(ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-		auto const index_val = emit_bitcode<abi>(index, context, nullptr).get_value(context.builder);
-		if (ctx::is_unsigned_integer_kind(kind))
+		bz::vector<llvm::Value *> indicies = {};
+		for (auto &index : subscript.indicies)
 		{
-			indicies.push_back(context.builder.CreateIntCast(index_val, context.get_uint64_t(), false));
+			bz_assert(ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
+			auto const kind = ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+			auto const index_val = emit_bitcode<abi>(index, context, nullptr).get_value(context.builder);
+			if (ctx::is_unsigned_integer_kind(kind))
+			{
+				indicies.push_back(context.builder.CreateIntCast(index_val, context.get_uint64_t(), false));
+			}
+			else
+			{
+				indicies.push_back(index_val);
+			}
+		}
+
+		llvm::Value *result_ptr;
+		if (array.kind == val_ptr::reference)
+		{
+			indicies.push_front(llvm::ConstantInt::get(context.get_uint64_t(), 0));
+			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
 		}
 		else
 		{
-			indicies.push_back(index_val);
+			bz_assert(array.kind == val_ptr::value);
+			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
+		}
+
+		if (result_address == nullptr)
+		{
+			return { val_ptr::reference, result_ptr };
+		}
+		else
+		{
+			auto const loaded_val = context.builder.CreateLoad(result_ptr);
+			context.builder.CreateStore(loaded_val, result_address);
+			return { val_ptr::reference, result_address };
 		}
 	}
-
-	llvm::Value *result_ptr;
-	if (array.kind == val_ptr::reference)
-	{
-		indicies.push_front(llvm::ConstantInt::get(context.get_uint64_t(), 0));
-		result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
-	}
 	else
 	{
-		bz_assert(array.kind == val_ptr::value);
-		result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
-	}
+		bz_assert(base_type.is<ast::ts_array_slice>());
+		auto const begin_ptr = context.builder.CreateExtractValue(array.get_value(context.builder), 0);
+		bz_assert(subscript.indicies.size() == 1);
+		bz_assert(ast::remove_const_or_consteval(subscript.indicies[0].get_expr_type_and_kind().first).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.indicies[0].get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		auto index_val = emit_bitcode<abi>(subscript.indicies[0], context, nullptr).get_value(context.builder);
+		if (ctx::is_unsigned_integer_kind(kind))
+		{
+			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
+		}
+		auto const result_ptr = context.builder.CreateGEP(begin_ptr, index_val);
 
-	if (result_address == nullptr)
-	{
-		return { val_ptr::reference, result_ptr };
-	}
-	else
-	{
-		auto const loaded_val = context.builder.CreateLoad(result_ptr);
-		context.builder.CreateStore(loaded_val, result_address);
-		return { val_ptr::reference, result_address };
+		if (result_address == nullptr)
+		{
+			return { val_ptr::reference, result_ptr };
+		}
+		else
+		{
+			auto const loaded_val = context.builder.CreateLoad(result_ptr);
+			context.builder.CreateStore(loaded_val, result_address);
+			return { val_ptr::reference, result_address };
+		}
 	}
 }
 
@@ -2764,6 +2829,13 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 		}
 
 		return elem_t;
+	}
+	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
+	{
+		auto &arr_slice_t = ts.get<ast::ts_array_slice>();
+		auto const elem_t = get_llvm_type(arr_slice_t.elem_type, context);
+		auto const elem_ptr_t = llvm::PointerType::get(elem_t, 0);
+		return llvm::StructType::get(elem_ptr_t, elem_ptr_t);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 	{

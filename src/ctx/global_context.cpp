@@ -43,13 +43,26 @@ static ast::function_body create_builtin_function(
 		lex::token_range{}, lex::token_pos{}, lex::token_range{},
 		std::move(arg_types)
 	)), ...);
+	auto const is_generic = [&]() {
+		for (auto const &param : params)
+		{
+			if (!ast::is_complete(param.var_type))
+			{
+				return true;
+			}
+		}
+		return false;
+	}();
 	ast::function_body result;
 	result.params = std::move(params);
 	result.return_type = std::move(return_type);
 	result.symbol_name = symbol_name;
 	result.state = ast::resolve_state::symbol;
 	result.cc = abi::calling_convention::c;
-	result.flags = ast::function_body::external_linkage | ast::function_body::intrinsic;
+	result.flags =
+		ast::function_body::external_linkage
+		| ast::function_body::intrinsic
+		| (is_generic ? ast::function_body::generic : 0);
 	result.intrinsic_kind = kind;
 	return result;
 }
@@ -296,6 +309,17 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind) const
 		result.add_layer<ast::ts_pointer>(nullptr);
 		return result;
 	}();
+	auto const auto_ptr_type = [&]() {
+		ast::typespec result = ast::make_auto_typespec({});
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
+	auto const auto_const_ptr_type = [&]() {
+		ast::typespec result = ast::make_auto_typespec({});
+		result.add_layer<ast::ts_const>(nullptr);
+		result.add_layer<ast::ts_pointer>(nullptr);
+		return result;
+	}();
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
@@ -305,9 +329,11 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind) const
 	> builtin_functions = {
 		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
 		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
-		add_builtin(2, ast::function_body::builtin_str_begin_ptr, "", uint8_const_ptr_type, str_type),
-		add_builtin(3, ast::function_body::builtin_str_end_ptr,   "", uint8_const_ptr_type, str_type),
-		add_builtin(4, ast::function_body::builtin_str_from_ptrs, "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+		add_builtin(2, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
+		add_builtin(3, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
+		add_builtin(4, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+		add_builtin(5, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
+		add_builtin(6, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
 	};
 #undef add_builtin
 

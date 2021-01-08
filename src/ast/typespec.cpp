@@ -28,6 +28,9 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 			[&](ts_array const &array_t) {
 				src_tokens = array_t.src_tokens;
 			},
+			[&](ts_array_slice const &array_slice_t) {
+				src_tokens = array_slice_t.src_tokens;
+			},
 			[&](ts_tuple const &tuple) {
 				src_tokens = tuple.src_tokens;
 			},
@@ -249,6 +252,9 @@ bool is_complete(typespec_view ts) noexcept
 		[](ts_array const &array_t) {
 			return is_complete(array_t.elem_type);
 		},
+		[](ts_array_slice const &array_slice_t) {
+			return is_complete(array_slice_t.elem_type);
+		},
 		[](ts_tuple const &tuple_t) {
 			for (auto &t : tuple_t.types)
 			{
@@ -325,6 +331,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 				}
 				result += array_t.elem_type.get_symbol_name();
 			},
+			[&](ts_array_slice const &array_slice_t) {
+				result += bz::format("0S.{}", array_slice_t.elem_type.get_symbol_name());
+			},
 			[&](ts_void const &) {
 				result += "void";
 			},
@@ -366,9 +375,10 @@ bz::u8string typespec::decode_symbol_name(
 	constexpr bz::u8string_view const_     = "const.";
 	constexpr bz::u8string_view consteval_ = "consteval.";
 
-	constexpr bz::u8string_view void_ = "void";
-	constexpr bz::u8string_view array = "0A.";
-	constexpr bz::u8string_view tuple = "0T.";
+	constexpr bz::u8string_view void_       = "void";
+	constexpr bz::u8string_view array       = "0A.";
+	constexpr bz::u8string_view array_slice = "0S.";
+	constexpr bz::u8string_view tuple       = "0T.";
 
 	auto const parse_int = [](bz::u8string_view str) {
 		uint64_t result = 0;
@@ -433,6 +443,13 @@ bz::u8string typespec::decode_symbol_name(
 			result += decode_symbol_name(it, end);
 			result += "]";
 			break;
+		}
+		else if (symbol_name.starts_with(array_slice))
+		{
+			it = bz::u8string_view::const_iterator(it.data() + array_slice.size());
+			result += "[: ";
+			result += decode_symbol_name(it, end);
+			result += "]";
 		}
 		else if (symbol_name.starts_with(tuple))
 		{
@@ -542,6 +559,13 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		}
 		return lhs_array_t.elem_type == rhs_array_t.elem_type;
 	}
+	case typespec_node_t::index_of<ts_array_slice>:
+	{
+		auto const &lhs_array_slice_t = lhs_last.get<ts_array_slice>();
+		auto const &rhs_array_slice_t = rhs_last.get<ts_array_slice>();
+
+		return lhs_array_slice_t.elem_type == rhs_array_slice_t.elem_type;
+	}
 	case typespec_node_t::index_of<ts_tuple>:
 	{
 		auto const &lhs_tuple_t = lhs_last.get<ts_tuple>();
@@ -613,6 +637,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 					result += bz::format("{}, ", size);
 				}
 				result += bz::format("{}: {}]", array_t.sizes.back(), array_t.elem_type);
+			},
+			[&](ast::ts_array_slice const &array_slice_t) {
+				result += bz::format("[: {}]", array_slice_t.elem_type);
 			},
 			[&](ast::ts_tuple const &tuple_t) {
 				if (tuple_t.types.size() == 0)

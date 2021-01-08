@@ -170,6 +170,15 @@ struct parse_context
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
+	[[nodiscard]] static suggestion make_suggestion_before(
+		lex::token_pos first_it,
+		char_pos first_erase_begin, char_pos first_erase_end,
+		bz::u8string first_suggestion_str,
+		lex::token_pos second_it,
+		char_pos second_erase_begin, char_pos second_erase_end,
+		bz::u8string second_suggestion_str,
+		bz::u8string message
+	);
 	[[nodiscard]] static suggestion make_suggestion_after(
 		lex::token_pos it,
 		char_pos erase_begin, char_pos erase_end,

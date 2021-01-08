@@ -3184,6 +3184,23 @@ ast::expression make_built_in_subscript_operator(
 			);
 		}
 	}
+	else if (called_t.is<ast::ts_array_slice>())
+	{
+		if (args.size() > 1)
+		{
+			context.report_error(src_tokens, "too many indicies for array slice subscript, only one index is allowed");
+			return ast::expression(src_tokens);
+		}
+
+		bz_assert(called_t.is<ast::ts_array_slice>());
+		auto &array_slice_t = called_t.get<ast::ts_array_slice>();
+		auto result_type = array_slice_t.elem_type;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::lvalue, std::move(result_type),
+			ast::make_expr_subscript(std::move(called), std::move(args))
+		);
+	}
 	else // if (called_t.is<ast::ts_array>())
 	{
 		bz_assert(called_t.is<ast::ts_array>());
@@ -3216,10 +3233,9 @@ ast::expression make_built_in_subscript_operator(
 		}
 
 		auto const result_kind =
-			called_kind == ast::expression_type_kind::lvalue
-			|| called_kind == ast::expression_type_kind::lvalue_reference
-				? ast::expression_type_kind::lvalue
-				: ast::expression_type_kind::rvalue;
+			called_kind == ast::expression_type_kind::lvalue           ? ast::expression_type_kind::lvalue :
+			called_kind == ast::expression_type_kind::lvalue_reference ? ast::expression_type_kind::lvalue_reference :
+			ast::expression_type_kind::rvalue;
 
 		auto result_type = [&]() {
 			auto &elem_type = array_t.elem_type;
