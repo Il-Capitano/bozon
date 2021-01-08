@@ -286,13 +286,16 @@ static bz::u8string get_highlighted_text(
 		{
 			ret_val = true;
 			it = first_erase_end;
-			auto const erased_str = bz::u8string_view(first_erase_begin, first_erase_end);
-			auto const erased_len = erased_str.length();
-			file_line      += colors::suggestion_color;
-			file_line      += bz::format("{:-<{}}", erased_len, "");
-			highlight_line += bz::format("{: <{}}", erased_len, "");
-			file_line      += colors::clear;
-			column += erased_len;
+			if (first_erase_begin != first_str_pos)
+			{
+				auto const erased_str = bz::u8string_view(first_erase_begin, first_erase_end);
+				auto const erased_len = erased_str.length();
+				file_line      += colors::bright_red;
+				file_line      += bz::format("{:-<{}}", erased_len, "");
+				highlight_line += bz::format("{: <{}}", erased_len, "");
+				file_line      += colors::clear;
+				column += erased_len;
+			}
 		}
 		return ret_val;
 	};
@@ -315,13 +318,16 @@ static bz::u8string get_highlighted_text(
 		{
 			ret_val = true;
 			it = second_erase_end;
-			auto const erased_str = bz::u8string_view(second_erase_begin, second_erase_end);
-			auto const erased_len = erased_str.length();
-			file_line      += colors::suggestion_color;
-			file_line      += bz::format("{:-<{}}", erased_len, "");
-			highlight_line += bz::format("{: <{}}", erased_len, "");
-			file_line      += colors::clear;
-			column += erased_len;
+			if (second_erase_begin != second_str_pos)
+			{
+				auto const erased_str = bz::u8string_view(second_erase_begin, second_erase_end);
+				auto const erased_len = erased_str.length();
+				file_line      += colors::bright_red;
+				file_line      += bz::format("{:-<{}}", erased_len, "");
+				highlight_line += bz::format("{: <{}}", erased_len, "");
+				file_line      += colors::clear;
+				column += erased_len;
+			}
 		}
 		return ret_val;
 	};
