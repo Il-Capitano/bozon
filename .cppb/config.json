@@ -59,11 +59,12 @@
 				"warnings": [ "no-unused-parameter" ]
 			},
 			"debug": {
-				"optimization": "g"
+				"optimization": "1"
 			},
 			"release": {
 				"defines": [ "NDEBUG" ],
-				"optimization": "3"
+				"optimization": "3",
+				"link_flags": [ "-flto" ]
 			}
 		}
 	}
