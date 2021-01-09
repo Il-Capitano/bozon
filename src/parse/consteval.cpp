@@ -1197,24 +1197,15 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	bz::vector<uint64_t> index_values;
-	index_values.reserve(subscript_expr.indicies.size());
-
 	auto const &base_type = subscript_expr.base.get_expr_type_and_kind().first;
 
-	for (size_t i = 0; i < subscript_expr.indicies.size(); ++i)
+	auto const &index = subscript_expr.index;
+	uint64_t index_value = 0;
+
+	if (index.is<ast::constant_expression>())
 	{
-		auto const &index = subscript_expr.indicies[i];
-
-		if (index.has_consteval_failed())
-		{
-			is_consteval = false;
-			continue;
-		}
-
 		bz_assert(index.is<ast::constant_expression>());
 		auto const &index_const_value = index.get<ast::constant_expression>().value;
-		uint64_t index_value;
 		if (index_const_value.is<ast::constant_value::uint>())
 		{
 			index_value = index_const_value.get<ast::constant_value::uint>();
@@ -1234,17 +1225,18 @@ static ast::constant_value evaluate_subscript(
 						bz::format("negative index {} in subscript", signed_index_value)
 					);
 				}
-				continue;
 			}
-
-			index_value = static_cast<uint64_t>(signed_index_value);
+			else
+			{
+				index_value = static_cast<uint64_t>(signed_index_value);
+			}
 		}
 
 		if (base_type.is<ast::ts_array>())
 		{
 			auto const &array_sizes = base_type.get<ast::ts_array>().sizes;
-			bz_assert(i < array_sizes.size());
-			if (index_value >= array_sizes[i])
+			bz_assert(!array_sizes.empty());
+			if (index_value >= array_sizes.front())
 			{
 				is_consteval = false;
 				if (index.paren_level < 2)
@@ -1252,15 +1244,13 @@ static ast::constant_value evaluate_subscript(
 					context.report_parenthesis_suppressed_warning(
 						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
 						index.src_tokens,
-						bz::format("index {} is out bounds for an array of size {}", index_value, array_sizes[i])
+						bz::format("index {} is out bounds for an array of size {}", index_value, array_sizes.front())
 					);
 				}
-				continue;
 			}
 		}
 		// tuple types shouldn't be handled, as index value checking
 		// should already happen in built_in_operators
-		index_values.push_back(index_value);
 	}
 
 	if (!is_consteval || subscript_expr.base.has_consteval_failed())
@@ -1269,28 +1259,21 @@ static ast::constant_value evaluate_subscript(
 	}
 
 	bz_assert(subscript_expr.base.is<ast::constant_expression>());
-	auto const &base_value = subscript_expr.base.get<ast::constant_expression>().value;
+	auto const &value = subscript_expr.base.get<ast::constant_expression>().value;
 	if (base_type.is<ast::ts_array>())
 	{
-		ast::constant_value const *value_ptr = &base_value;
-		for (auto const index : index_values)
-		{
-			bz_assert(value_ptr->is<ast::constant_value::array>());
-			auto const &array_value = value_ptr->get<ast::constant_value::array>();
-			bz_assert(index < array_value.size());
-			value_ptr = &array_value[index];
-		}
-		return *value_ptr;
+		bz_assert(value.is<ast::constant_value::array>());
+		auto const &array_value = value.get<ast::constant_value::array>();
+		bz_assert(index_value < array_value.size());
+		return array_value[index_value];
 	}
 	else
 	{
 		// bz_assert(base_type.is<ast::ts_tuple>());
 		// ^^^  this is not valid because base_type could also be empty if it's a tuple expression
 		// e.g. [1, 2, 3][0]
-		bz_assert(base_value.is<ast::constant_value::tuple>());
-		auto const &tuple_value = base_value.get<ast::constant_value::tuple>();
-		bz_assert(index_values.size() == 1);
-		auto const index_value = index_values.front();
+		bz_assert(value.is<ast::constant_value::tuple>());
+		auto const &tuple_value = value.get<ast::constant_value::tuple>();
 		bz_assert(index_value < tuple_value.size());
 		return tuple_value[index_value];
 	}
@@ -1862,10 +1845,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
-			for (auto &index : subscript_expr.indicies)
-			{
-				consteval_try(index, context);
-			}
+			consteval_try(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
 		},
@@ -2036,10 +2016,7 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
 			consteval_try(subscript_expr.base, context);
-			for (auto &index : subscript_expr.indicies)
-			{
-				consteval_try(index, context);
-			}
+			consteval_try(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
 		},
@@ -2272,13 +2249,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				any_failed = true;
 				get_consteval_fail_notes_helper(subscript_expr.base, notes);
 			}
-			for (auto const &index : subscript_expr.indicies)
+			if (subscript_expr.index.has_consteval_failed())
 			{
-				if (index.has_consteval_failed())
-				{
-					any_failed = true;
-					get_consteval_fail_notes_helper(index, notes);
-				}
+				any_failed = true;
+				get_consteval_fail_notes_helper(subscript_expr.index, notes);
 			}
 			if (!any_failed)
 			{

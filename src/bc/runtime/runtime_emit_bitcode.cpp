@@ -1945,32 +1945,25 @@ static val_ptr emit_bitcode(
 	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type_and_kind().first);
 	if (base_type.is<ast::ts_array>())
 	{
-		bz::vector<llvm::Value *> indicies = {};
-		for (auto &index : subscript.indicies)
+		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
+		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		if (ctx::is_unsigned_integer_kind(kind))
 		{
-			bz_assert(ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-			auto const kind = ast::remove_const_or_consteval(index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-			auto const index_val = emit_bitcode<abi>(index, context, nullptr).get_value(context.builder);
-			if (ctx::is_unsigned_integer_kind(kind))
-			{
-				indicies.push_back(context.builder.CreateIntCast(index_val, context.get_uint64_t(), false));
-			}
-			else
-			{
-				indicies.push_back(index_val);
-			}
+			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
 		}
 
 		llvm::Value *result_ptr;
 		if (array.kind == val_ptr::reference)
 		{
-			indicies.push_front(llvm::ConstantInt::get(context.get_uint64_t(), 0));
-			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
+			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_uint64_t(), 0), index_val };
+			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies));
 		}
 		else
 		{
 			bz_assert(array.kind == val_ptr::value);
-			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies.data(), indicies.size()));
+			result_ptr = context.builder.CreateGEP(array.val, index_val);
 		}
 
 		if (result_address == nullptr)
@@ -1988,10 +1981,9 @@ static val_ptr emit_bitcode(
 	{
 		bz_assert(base_type.is<ast::ts_array_slice>());
 		auto const begin_ptr = context.builder.CreateExtractValue(array.get_value(context.builder), 0);
-		bz_assert(subscript.indicies.size() == 1);
-		bz_assert(ast::remove_const_or_consteval(subscript.indicies[0].get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(subscript.indicies[0].get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-		auto index_val = emit_bitcode<abi>(subscript.indicies[0], context, nullptr).get_value(context.builder);
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		if (ctx::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);

@@ -2961,35 +2961,47 @@ ast::expression parse_context::make_subscript_operator_expression(
 	bz::vector<ast::expression> args
 )
 {
-	if (called.is_null() || args.size() == 0)
-	{
-		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
-	}
-
 	for (auto &arg : args)
 	{
-		if (arg.is_null())
+		if (called.is_null() || args.size() == 0)
 		{
 			bz_assert(this->has_errors());
 			return ast::expression(src_tokens);
 		}
-	}
 
-	auto const [type, kind] = called.get_expr_type_and_kind();
-	auto const constless_type = ast::remove_const_or_consteval(type);
-	if (
-		constless_type.is<ast::ts_array>()
-		|| constless_type.is<ast::ts_array_slice>()
-		|| constless_type.is<ast::ts_tuple>()
-		|| kind == ast::expression_type_kind::tuple
-	)
-	{
-		return make_built_in_subscript_operator(src_tokens, std::move(called), std::move(args), *this);
-	}
+		for (auto &arg : args)
+		{
+			if (arg.is_null())
+			{
+				bz_assert(this->has_errors());
+				return ast::expression(src_tokens);
+			}
+		}
 
-	this->report_error(src_tokens, "operator [] not yet implemented");
-	return ast::expression(src_tokens);
+		auto const [type, kind] = called.get_expr_type_and_kind();
+		auto const constless_type = ast::remove_const_or_consteval(type);
+		if (
+			constless_type.is<ast::ts_array>()
+			|| constless_type.is<ast::ts_array_slice>()
+			|| constless_type.is<ast::ts_tuple>()
+			|| kind == ast::expression_type_kind::tuple
+		)
+		{
+			called = make_built_in_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
+		}
+		else
+		{
+			this->report_error(
+				src_tokens,
+				bz::format(
+					"invalid operator [] with types '{}' and '{}'",
+					called.get_expr_type_and_kind().first, arg.get_expr_type_and_kind().first
+				)
+			);
+			return ast::expression(src_tokens);
+		}
+	}
+	return called;
 }
 
 ast::expression parse_context::make_cast_expression(

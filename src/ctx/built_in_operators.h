@@ -75,7 +75,7 @@ ast::expression make_built_in_cast(
 ast::expression make_built_in_subscript_operator(
 	lex::src_tokens src_tokens,
 	ast::expression called,
-	bz::vector<ast::expression> args,
+	ast::expression arg,
 	parse_context &context
 );
 

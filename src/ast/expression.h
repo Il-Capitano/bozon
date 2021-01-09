@@ -357,17 +357,17 @@ struct expr_binary_op
 
 struct expr_subscript
 {
-	expression             base;
-	bz::vector<expression> indicies;
+	expression base;
+	expression index;
 
 	declare_default_5(expr_subscript)
 
 	expr_subscript(
-		expression             _base,
-		bz::vector<expression> _indicies
+		expression _base,
+		expression _index
 	)
-		: base    (std::move(_base)),
-		  indicies(std::move(_indicies))
+		: base (std::move(_base)),
+		  index(std::move(_index))
 	{}
 };
 

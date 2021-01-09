@@ -3086,47 +3086,40 @@ ast::expression make_built_in_cast(
 ast::expression make_built_in_subscript_operator(
 	lex::src_tokens src_tokens,
 	ast::expression called,
-	bz::vector<ast::expression> args,
+	ast::expression arg,
 	parse_context &context
 )
 {
-	bz_assert(args.size() > 0);
 	auto const [called_type, called_kind] = called.get_expr_type_and_kind();
 	auto const called_t = ast::remove_const_or_consteval(called_type);
 
 	if (called_t.is<ast::ts_tuple>() || called_kind == ast::expression_type_kind::tuple)
 	{
-		if (args.size() > 1)
+		if (!arg.is<ast::constant_expression>())
 		{
-			context.report_error(src_tokens, "too many indicies for tuple subscript, only one index is allowed");
+			context.report_error(arg, "tuple subscript must be a constant expression");
 			return ast::expression(src_tokens);
 		}
 
-		if (!args[0].is<ast::constant_expression>())
-		{
-			context.report_error(args[0], "tuple subscript must be a constant expression");
-			return ast::expression(src_tokens);
-		}
-
-		auto const [arg_type, _] = args[0].get_expr_type_and_kind();
+		auto const [arg_type, _] = arg.get_expr_type_and_kind();
 		auto const arg_t = ast::remove_const_or_consteval(arg_type);
 		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
-			context.report_error(args[0], bz::format("invalid type '{}' for tuple subscript", arg_type));
+			context.report_error(arg, bz::format("invalid type '{}' for tuple subscript", arg_type));
 			return ast::expression(src_tokens);
 		}
 
 		auto const tuple_elem_count = called_t.is<ast::ts_tuple>()
 			? called_t.get<ast::ts_tuple>().types.size()
 			: called.get_expr().get<ast::expr_tuple>().elems.size();
-		auto &const_arg = args[0].get<ast::constant_expression>();
+		auto &const_arg = arg.get<ast::constant_expression>();
 		size_t index = 0;
 		if (const_arg.value.kind() == ast::constant_value::uint)
 		{
 			auto const value = const_arg.value.get<ast::constant_value::uint>();
 			if (value >= tuple_elem_count)
 			{
-				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
+				context.report_error(arg, bz::format("index {} is out of range for tuple type '{}'", value, called_type));
 				return ast::expression(src_tokens);
 			}
 			index = value;
@@ -3137,7 +3130,7 @@ ast::expression make_built_in_subscript_operator(
 			auto const value = const_arg.value.get<ast::constant_value::sint>();
 			if (value < 0 || static_cast<size_t>(value) >= tuple_elem_count)
 			{
-				context.report_error(args[0], bz::format("index {} is out of range for tuple type '{}'", value, called_type));
+				context.report_error(arg, bz::format("index {} is out of range for tuple type '{}'", value, called_type));
 				return ast::expression(src_tokens);
 			}
 			index = static_cast<size_t>(value);
@@ -3152,7 +3145,7 @@ ast::expression make_built_in_subscript_operator(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(args))
+				ast::make_expr_subscript(std::move(called), std::move(arg))
 			);
 		}
 		else
@@ -3168,9 +3161,11 @@ ast::expression make_built_in_subscript_operator(
 				result_type.add_layer<ast::ts_const>(nullptr);
 			}
 
-			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
-				? ast::expression_type_kind::lvalue_reference
-				: called_kind;
+			auto const result_kind =
+				result_type.is<ast::ts_lvalue_reference>()
+				|| called_kind == ast::expression_type_kind::lvalue_reference
+					? ast::expression_type_kind::lvalue_reference
+					: called_kind;
 
 			if (result_type.is<ast::ts_lvalue_reference>())
 			{
@@ -3180,25 +3175,29 @@ ast::expression make_built_in_subscript_operator(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_kind, std::move(result_type),
-				ast::make_expr_subscript(std::move(called), std::move(args))
+				ast::make_expr_subscript(std::move(called), std::move(arg))
 			);
 		}
 	}
 	else if (called_t.is<ast::ts_array_slice>())
 	{
-		if (args.size() > 1)
+		bz_assert(called_t.is<ast::ts_array_slice>());
+		auto &array_slice_t = called_t.get<ast::ts_array_slice>();
+
+		auto const [arg_type, _] = arg.get_expr_type_and_kind();
+		auto const arg_t = ast::remove_const_or_consteval(arg_type);
+		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
-			context.report_error(src_tokens, "too many indicies for array slice subscript, only one index is allowed");
+			context.report_error(arg, bz::format("invalid type '{}' for array slice subscript", arg_type));
 			return ast::expression(src_tokens);
 		}
 
-		bz_assert(called_t.is<ast::ts_array_slice>());
-		auto &array_slice_t = called_t.get<ast::ts_array_slice>();
 		auto result_type = array_slice_t.elem_type;
+
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::lvalue, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(args))
+			ast::make_expr_subscript(std::move(called), std::move(arg))
 		);
 	}
 	else // if (called_t.is<ast::ts_array>())
@@ -3206,29 +3205,11 @@ ast::expression make_built_in_subscript_operator(
 		bz_assert(called_t.is<ast::ts_array>());
 		auto &array_t = called_t.get<ast::ts_array>();
 
-		if (args.size() > array_t.sizes.size())
+		auto const [arg_type, _] = arg.get_expr_type_and_kind();
+		auto const arg_t = ast::remove_const_or_consteval(arg_type);
+		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
-			context.report_error(
-				src_tokens,
-				bz::format("too many indicies for a(n) {} dimensional array subscript", array_t.sizes.size())
-			);
-			return ast::expression(src_tokens);
-		}
-
-		bool good = true;
-		for (auto const &[arg, size] : bz::zip(args, array_t.sizes))
-		{
-			auto const [arg_type, _] = arg.get_expr_type_and_kind();
-			auto const arg_t = ast::remove_const_or_consteval(arg_type);
-			if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
-			{
-				good = false;
-				context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
-			}
-		}
-
-		if (!good)
-		{
+			context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
 			return ast::expression(src_tokens);
 		}
 
@@ -3240,23 +3221,17 @@ ast::expression make_built_in_subscript_operator(
 		auto result_type = [&]() {
 			auto &elem_type = array_t.elem_type;
 
-			if (args.size() == array_t.sizes.size())
+			if (array_t.sizes.size() == 1)
 			{
 				return elem_type;
 			}
 
 			bz::vector<uint64_t> sizes = {};
-
-			size_t dim = 0;
-			for (auto const size : bz::reversed(array_t.sizes))
+			for (size_t i = 1; i < array_t.sizes.size(); ++i)
 			{
-				sizes.push_back(size);
-				++dim;
-				if (dim == args.size())
-				{
-					break;
-				}
+				sizes.push_back(array_t.sizes[i]);
 			}
+
 			return ast::make_array_typespec({}, std::move(sizes), elem_type);
 		}();
 
@@ -3268,7 +3243,7 @@ ast::expression make_built_in_subscript_operator(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_kind, std::move(result_type),
-			ast::make_expr_subscript(std::move(called), std::move(args))
+			ast::make_expr_subscript(std::move(called), std::move(arg))
 		);
 	}
 }
