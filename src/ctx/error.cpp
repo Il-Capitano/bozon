@@ -215,7 +215,7 @@ static bz::u8string get_highlighted_text(
 		file_line      += highlight_color;
 		highlight_line += highlight_color;
 		auto u8it = bz::u8iterator(it);
-		while (u8it.data() != src_end && *it != '\n')
+		while (u8it.data() != src_end && *u8it.data() != '\n')
 		{
 			auto const c = *u8it;
 			if (c == '\t')
