@@ -203,6 +203,8 @@ static bz::u8string get_highlighted_text(
 	}();
 
 	bz::u8string file_line;
+	// may be empty, if the highlight shouldn't be shown,
+	// because it's either empty, or all tildes
 	bz::u8string highlight_line;
 	size_t column = 0; // 0-based column number
 	auto it = first_line_begin;
@@ -214,6 +216,7 @@ static bz::u8string get_highlighted_text(
 		}
 		file_line      += highlight_color;
 		highlight_line += highlight_color;
+		auto const begin = it;
 		auto u8it = bz::u8iterator(it);
 		while (u8it.data() != src_end && *u8it.data() != '\n')
 		{
@@ -259,12 +262,20 @@ static bz::u8string get_highlighted_text(
 			++u8it;
 		}
 		it = u8it.data();
+		auto const end = it;
 		if (it == src_pivot)
 		{
 			highlight_line += '^';
 		}
-		file_line      += colors::clear;
-		highlight_line += colors::clear;
+		else if (begin >= src_begin && end < src_end && (src_pivot < begin || src_pivot > end))
+		{
+			highlight_line.clear();
+		}
+		file_line += colors::clear;
+		if (highlight_line.size() != 0)
+		{
+			highlight_line += colors::clear;
+		}
 		return true;
 	};
 
@@ -414,7 +425,10 @@ static bz::u8string get_highlighted_text(
 			}
 		}
 		result += bz::format("{:{}} | {}\n", max_line_chars_width, line_num, file_line);
-		result += bz::format("{:{}} | {}\n", max_line_chars_width, "", highlight_line);
+		if (highlight_line.size() != 0 && !highlight_line.is_all(bz::u8char(' ')))
+		{
+			result += bz::format("{:{}} | {}\n", max_line_chars_width, "", highlight_line);
+		}
 		if (it != last_line_end)
 		{
 			++it;
