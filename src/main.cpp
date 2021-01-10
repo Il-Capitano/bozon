@@ -2,7 +2,6 @@
 
 TODO:
 	- make tuples work with type matching
-	- array sclice type
 	- user-defined type implementation
 
 
