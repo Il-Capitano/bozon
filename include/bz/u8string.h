@@ -10,7 +10,7 @@
 
 bz_begin_namespace
 
-class u8string : collection_base<u8string>
+class u8string : public collection_base<u8string>
 {
 public:
 private:

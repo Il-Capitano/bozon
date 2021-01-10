@@ -77,29 +77,29 @@ struct range_base_count
 template<typename Range>
 struct range_base_is_any
 {
-	template<typename Func>
-	constexpr bool is_any(Func &&func) const noexcept;
+	template<typename FuncOrVal>
+	constexpr bool is_any(FuncOrVal &&func_or_val) const noexcept;
 };
 
 template<typename Collection>
 struct collection_base_is_any
 {
-	template<typename Func>
-	constexpr bool is_any(Func &&func) const noexcept;
+	template<typename FuncOrVal>
+	constexpr bool is_any(FuncOrVal &&func_or_val) const noexcept;
 };
 
 template<typename Range>
 struct range_base_is_all
 {
-	template<typename Func>
-	constexpr bool is_all(Func &&func) const noexcept;
+	template<typename FuncOrVal>
+	constexpr bool is_all(FuncOrVal &&func_or_val) const noexcept;
 };
 
 template<typename Collection>
 struct collection_base_is_all
 {
-	template<typename Func>
-	constexpr bool is_all(Func &&func) const noexcept;
+	template<typename FuncOrVal>
+	constexpr bool is_all(FuncOrVal &&func_or_val) const noexcept;
 };
 
 template<typename Range>
@@ -658,44 +658,64 @@ constexpr std::size_t range_base_count<Range>::count(void) const noexcept
 }
 
 template<typename Range>
-template<typename Func>
-constexpr bool range_base_is_any<Range>::is_any(Func &&func) const noexcept
+template<typename FuncOrVal>
+constexpr bool range_base_is_any<Range>::is_any(FuncOrVal &&func_or_val) const noexcept
 {
 	auto const self = static_cast<Range const *>(this);
 	for (auto &&it : *self)
 	{
-		if (func(std::forward<decltype(it)>(it)))
+		if constexpr (meta::is_invocable_v<FuncOrVal, decltype(it)>)
 		{
-			return true;
+			if (func_or_val(std::forward<decltype(it)>(it)))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if (func_or_val == std::forward<decltype(it)>(it))
+			{
+				return true;
+			}
 		}
 	}
 	return false;
 }
 
 template<typename Collection>
-template<typename Func>
-constexpr bool collection_base_is_any<Collection>::is_any(Func &&func) const noexcept
-{ return static_cast<Collection const *>(this)->as_range().is_any(std::forward<Func>(func)); }
+template<typename FuncOrVal>
+constexpr bool collection_base_is_any<Collection>::is_any(FuncOrVal &&func_or_val) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().is_any(std::forward<FuncOrVal>(func_or_val)); }
 
 template<typename Range>
-template<typename Func>
-constexpr bool range_base_is_all<Range>::is_all(Func &&func) const noexcept
+template<typename FuncOrVal>
+constexpr bool range_base_is_all<Range>::is_all(FuncOrVal &&func_or_val) const noexcept
 {
 	auto const self = static_cast<Range const *>(this);
 	for (auto &&it : *self)
 	{
-		if (!func(std::forward<decltype(it)>(it)))
+		if constexpr (meta::is_invocable_v<FuncOrVal, decltype(it)>)
 		{
-			return false;
+			if (!func_or_val(std::forward<decltype(it)>(it)))
+			{
+				return false;
+			}
+		}
+		else
+		{
+			if (func_or_val != std::forward<decltype(it)>(it))
+			{
+				return false;
+			}
 		}
 	}
 	return true;
 }
 
 template<typename Collection>
-template<typename Func>
-constexpr bool collection_base_is_all<Collection>::is_all(Func &&func) const noexcept
-{ return static_cast<Collection const *>(this)->as_range().is_all(std::forward<Func>(func)); }
+template<typename FuncOrVal>
+constexpr bool collection_base_is_all<Collection>::is_all(FuncOrVal &&func_or_val) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().is_all(std::forward<FuncOrVal>(func_or_val)); }
 
 template<typename Range>
 template<typename Val>
