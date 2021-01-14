@@ -45,7 +45,10 @@
 			},
 			"linux": {
 				"include_paths": [
-					"/usr/lib/llvm-10/include"
+					"/usr/lib/llvm-11/include"
+				],
+				"library_paths": [
+					"/usr/lib/llvm-11/lib"
 				],
 				"defines": [
 					"_GNU_SOURCE",
@@ -55,7 +58,7 @@
 				],
 				"cpp_compiler_flags": [ "-fno-exceptions" ],
 				"link_flags": [ "-fno-exceptions" ],
-				"libraries": [ "LLVM-10" ],
+				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ]
 			},
 			"debug": {
