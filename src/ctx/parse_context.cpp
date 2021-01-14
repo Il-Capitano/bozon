@@ -1672,8 +1672,9 @@ static int get_type_match_level(
 	// const T -> match to T (no need to worry about const)
 	if (dest.is<ast::ts_const>())
 	{
+		auto const result = get_type_match_level(dest.get<ast::ts_const>(), expr, context);
 		// + 2, because it didn't match reference and reference const qualifier
-		return 2 + get_type_match_level(dest.get<ast::ts_const>(), expr, context);
+		return result == -1 ? -1 : result + 2;
 	}
 	else if (dest.is<ast::ts_consteval>())
 	{
@@ -1683,8 +1684,9 @@ static int get_type_match_level(
 		}
 		else
 		{
+			auto const result = get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
 			// + 2, because it didn't match reference and reference const qualifier
-			return 2 + get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
+			return result == -1 ? -1 : result + 2;
 		}
 	}
 
