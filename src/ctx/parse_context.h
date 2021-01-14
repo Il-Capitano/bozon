@@ -67,6 +67,11 @@ struct parse_context
 			this->report_error(src_tokens, "unexpected tokens");
 		}
 	}
+	void report_error(
+		bz::u8string message,
+		bz::vector<note> notes = {},
+		bz::vector<suggestion> suggestions = {}
+	) const;
 	template<typename T>
 	void report_error(
 		T const &tokens, bz::u8string message,
@@ -156,13 +161,15 @@ struct parse_context
 		);
 	}
 
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static note make_note(
 		lex::token_pos it, bz::u8string message,
-		ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+		char_pos suggestion_pos, bz::u8string suggestion_str
 	);
-	[[nodiscard]] static ctx::note make_paren_match_note(
+	[[nodiscard]] static note make_paren_match_note(
 		lex::token_pos it, lex::token_pos open_paren_it
 	);
+	// should only be used for generic intrinsic instantiation reporting
+	[[nodiscard]] static note make_note(bz::u8string message);
 
 	[[nodiscard]] static suggestion make_suggestion_before(
 		lex::token_pos it,

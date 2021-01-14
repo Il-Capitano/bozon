@@ -31,7 +31,16 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 		return;
 	}
 
-	notes.emplace_back(context.make_note(body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())));
+	if (body.is_intrinsic())
+	{
+		// intrinsics don't have a definition, so the source position can't be reported
+		notes.emplace_back(context.make_note(bz::format("in generic instantiation of '{}'", body.get_signature())));
+	}
+	else
+	{
+		notes.emplace_back(context.make_note(body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())));
+	}
+
 	for (auto const &required_from : bz::reversed(body.generic_required_from))
 	{
 		if (required_from.second == nullptr)
@@ -117,6 +126,15 @@ void parse_context::report_error(
 	));
 }
 
+void parse_context::report_error(
+	bz::u8string message,
+	bz::vector<note> notes,
+	bz::vector<suggestion> suggestions
+) const
+{
+	this->global_ctx.report_error(std::move(message), std::move(notes), std::move(suggestions));
+}
+
 void parse_context::report_paren_match_error(
 	lex::token_pos it, lex::token_pos open_paren_it,
 	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
@@ -174,11 +192,21 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 		notes.emplace_back(make_note(dep.requester, "required from here"));
 	}
 
-	this->report_error(
-		func_body.src_tokens,
-		bz::format("circular dependency encountered while resolving '{}'", func_body.get_signature()),
-		std::move(notes)
-	);
+	if (func_body.is_intrinsic())
+	{
+		this->report_error(
+			bz::format("circular dependency encountered while resolving '{}'", func_body.get_signature()),
+			std::move(notes)
+		);
+	}
+	else
+	{
+		this->report_error(
+			func_body.src_tokens,
+			bz::format("circular dependency encountered while resolving '{}'", func_body.get_signature()),
+			std::move(notes)
+		);
+	}
 }
 
 void parse_context::report_warning(
@@ -259,7 +287,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 	));
 }
 
-note parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string message)
+[[nodiscard]] note parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string message)
 {
 	return note{
 		file_id, line,
@@ -269,7 +297,7 @@ note parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string mess
 	};
 }
 
-note parse_context::make_note(lex::token_pos it, bz::u8string message)
+[[nodiscard]] note parse_context::make_note(lex::token_pos it, bz::u8string message)
 {
 	return note{
 		it->src_pos.file_id, it->src_pos.line,
@@ -279,7 +307,7 @@ note parse_context::make_note(lex::token_pos it, bz::u8string message)
 	};
 }
 
-note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+[[nodiscard]] note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 {
 	return note{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -289,16 +317,26 @@ note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 	};
 }
 
-[[nodiscard]] ctx::note parse_context::make_note(
+[[nodiscard]] note parse_context::make_note(
 	lex::token_pos it, bz::u8string message,
 	ctx::char_pos suggestion_pos, bz::u8string suggestion_str
 )
 {
-	return ctx::note{
+	return note{
 		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-		{ ctx::char_pos(), ctx::char_pos(), suggestion_pos, std::move(suggestion_str) },
+		{ char_pos(), char_pos(), suggestion_pos, std::move(suggestion_str) },
 		{},
+		std::move(message)
+	};
+}
+
+[[nodiscard]] note parse_context::make_note(bz::u8string message)
+{
+	return note{
+		global_context::compiler_file_id, 0,
+		char_pos(), char_pos(), char_pos(),
+		{}, {},
 		std::move(message)
 	};
 }
@@ -1594,8 +1632,9 @@ static int get_strict_type_match_level(
 	{
 		return 1;
 	}
-	else if (dest.is<ast::ts_auto>())
+	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
+		bz_assert(!source.is<ast::ts_consteval>());
 		return 1;
 	}
 	else if (dest == source)
@@ -1756,8 +1795,9 @@ static void strict_match_expression_to_type_impl(
 	{
 		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest_container);
 	}
-	else if (dest.is<ast::ts_auto>())
+	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
+		bz_assert(!source.is<ast::ts_consteval>());
 		dest_container.copy_from(dest, source);
 	}
 	else if (dest == source)
@@ -1766,6 +1806,7 @@ static void strict_match_expression_to_type_impl(
 	}
 	else
 	{
+		bz_assert(expr.not_null());
 		context.report_error(expr, bz::format("cannot convert expression from type '{}' to '{}'", expr.get_expr_type_and_kind().first, dest_container));
 		if (!ast::is_complete(dest_container))
 		{
@@ -2777,11 +2818,21 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				if (func_body->state != ast::resolve_state::error)
 				{
-					this->report_error(
-						src_tokens,
-						"couldn't match the function call to any of the overloads",
-						{ this->make_note(func_body->src_tokens, "candidate:") }
-					);
+					if (func_body->is_intrinsic())
+					{
+						this->report_error(
+							src_tokens,
+							"couldn't match the function call to any of the overloads"
+						);
+					}
+					else
+					{
+						this->report_error(
+							src_tokens,
+							"couldn't match the function call to any of the overloads",
+							{ this->make_note(func_body->src_tokens, "candidate:") }
+						);
+					}
 				}
 				return ast::expression(src_tokens);
 			}
