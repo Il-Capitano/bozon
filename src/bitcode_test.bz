@@ -12,7 +12,7 @@ function assert(b: bool) -> void
 	}
 }
 
-function factorial(n: int32) -> typeof n
+function factorial(n: auto) -> typeof n
 {
 	let res: typeof n = 1;
 	for (let i: typeof n = 2; i <= n; ++i)
@@ -22,7 +22,7 @@ function factorial(n: int32) -> typeof n
 	return res;
 }
 
-function factorial_recursive(n: int32) -> int32
+function factorial_recursive(n: auto) -> typeof n
 {
 	if (n <= 1)
 	{
@@ -39,20 +39,19 @@ function main() -> int32
 	println("");
 	println("hello");
 	println(123);
+	println(123i8); // this is ambiguous because it can match to println(int32) and println(int64)
 	println(factorial(5));
 	println("hello again!!!!\nand on a new line\n");
 
 	foo();
 
 	let good = true;
-	let i = 0;
-	while (i < 20)
+	for (let i = 0; i < 20; ++i)
 	{
 		if (factorial(i) != factorial_recursive(i))
 		{
 			good = false;
 		}
-		i += 1;
 	}
 
 	if (good)
@@ -113,11 +112,17 @@ function main() -> int32
 	println("\n==== array_test ====");
 	array_test();
 
-	println("\n==== tuple_test ====");
-	tuple_test();
+//	println("\n==== tuple_test ====");
+//	tuple_test();
 
 	println("\n==== str_pointer_test ====");
 	str_pointer_test();
+
+	println("\n==== generic_test ====");
+	generic_test();
+
+	println("\n==== ambiguous_function_test ====");
+	ambiguous_function_test();
 
 	println("\n==== end main ====");
 	println(exp(1.0));
@@ -681,7 +686,8 @@ function array_test() -> void
 			}
 		}
 		result
-	};
+	}
+	;
 	print_matrix(matrix);
 }
 
@@ -795,15 +801,16 @@ function arr2_tester() -> void
 	const arr = arr;
 }
 
+/*
 function tuple_test() -> void
 {
 	let t: [int32, float64];
 	println([2, 2.234][1]);
 
 	consteval t = [0, 1.53, "hello"];
-	consteval str = t[2];
-	static_assert(str == t[2]);
-	let &const num = t[1];
+//	consteval str = t[2];
+//	static_assert(str == t[2]);
+//	let &const num = t[1];
 //	const t = [t, 234.5f32, 0b0000'1000];
 	// we need to deal with nested auto case in `match_expression_to_type`
 //	let t: const [int32, auto] = [123, 3.5f32];
@@ -826,6 +833,7 @@ function tuple_test() -> void
 	const val = (f64 * 3.2) + (3.2 * f64);
 	println(val);
 }
+*/
 
 function optimization_test() -> void
 {
@@ -864,7 +872,7 @@ function phi_test(x: int32, b: bool) -> int32
 	return result;
 }
 
-function str_pointer_test()
+export function str_pointer_test()
 {
 	const s = "hello";
 	const begin = __builtin_str_begin_ptr(s);
@@ -884,11 +892,22 @@ function str_pointer_test()
 	arr[3] = 'l' as uint32 as uint8;
 	arr[4] = 'a' as uint32 as uint8;
 	const arr_s = __builtin_str_from_ptrs(&arr[0], &arr[5]);
-	__builtin_str_from_ptrs(&arr[0], &arr[5]);
 	static_assert(typeof arr_s == const str);
 	assert(arr_s == "hella");
 	arr[4] = 'o' as uint32 as uint8;
 	assert(arr_s != "hella");
+
+	let arr_slice = __builtin_slice_from_const_ptrs(&arr[0], &arr[5]);
+	println(arr_slice[3] as uint32 as char);
+
+	let arr: [10: int32];
+	for (let i = 0; i < 10; ++i)
+	{
+		arr[i] = i;
+	}
+	const arr = arr;
+	let arr_slice: [: const int32] = __builtin_slice_from_const_ptrs(&arr[0], &arr[((10))]);
+	println(arr_slice[4]);
 }
 
 function my_str_equals(lhs: str, rhs: str) -> bool
@@ -924,4 +943,61 @@ function consteval_test(i: if (true) int32 else int64)
 
 	consteval a = (if (false) i else 234);
 	static_assert(a == 234);
+}
+
+function generic_test()
+{
+	function add_wrapper(const lhs, const rhs) -> typeof add(lhs, rhs)
+	{
+		println("add_wrapper(const auto, const auto)");
+		return add(lhs, rhs); // this works because it isn't resolved until the full scope is known
+	}
+
+	function add_wrapper(&const lhs, &const rhs) -> typeof add(lhs, rhs)
+	{
+		println("add_wrapper(&const auto, &const auto)");
+		return add(lhs, rhs);
+	}
+
+	function add(lhs: auto, rhs: auto) -> typeof (lhs + rhs)
+	{ return lhs + rhs; }
+
+	function foo(lhs: auto, rhs: auto) -> int32
+	{
+		lhs + rhs;
+		return 0;
+	}
+
+	static_assert(typeof add_wrapper(1, 2) == int32);
+	static_assert(typeof add_wrapper(1i8, 2i8) == int8);
+	static_assert(typeof add_wrapper(1i64, 2i8) == int64);
+//	static_assert(typeof add_wrapper("", "") == int32);
+//	foo("", "");
+
+	const a = 3;
+	const b = 7;
+	add_wrapper(a, b);
+	add_wrapper(a as int64, b);
+
+	const s1 = "string 1";
+	const s2 = "string 2";
+//	add_wrapper(s1, s2);
+
+	function circular1(n) -> typeof circular2(n) {}
+	function circular2(n) -> typeof circular3(n) {}
+	function circular3(n) -> typeof circular1(n as int32) {}
+
+//	circular1(0i64);
+}
+
+function ambiguous_function_test()
+{
+	function foo(n: int32);
+	function foo(n: int64);
+	foo(3);
+	// foo(3i8);
+
+	function bar(n: int32, m: int64);
+	function bar(n: int64, m: int32);
+	// bar(3, 3);
 }
