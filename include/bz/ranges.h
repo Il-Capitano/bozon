@@ -647,11 +647,11 @@ constexpr auto range_base_collect<Range>::collect(void) const
 template<typename Range>
 constexpr std::size_t range_base_count<Range>::count(void) const noexcept
 {
-	auto const self = static_cast<Range const *>(this);
+	auto self_copy = static_cast<Range const *>(this)->begin();
 	std::size_t result = 0;
-	while (!self->at_end())
+	while (!self_copy.at_end())
 	{
-		++(*self);
+		++self_copy;
 		++result;
 	}
 	return result;
