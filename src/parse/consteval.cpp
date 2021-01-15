@@ -1197,7 +1197,7 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = subscript_expr.base.get_expr_type_and_kind().first;
+	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type_and_kind().first);
 
 	auto const &index = subscript_expr.index;
 	uint64_t index_value = 0;
@@ -1244,7 +1244,7 @@ static ast::constant_value evaluate_subscript(
 					context.report_parenthesis_suppressed_warning(
 						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
 						index.src_tokens,
-						bz::format("index {} is out bounds for an array of size {}", index_value, array_sizes.front())
+						bz::format("index {} is out of bounds for an array of size {}", index_value, array_sizes.front())
 					);
 				}
 			}
