@@ -5,9 +5,7 @@
 @intrinsic("println_stderr") export function logln(str: str) -> void;
 
 @extern("print_char",     "c") export function print(c: char)        -> void;
-@extern("print_int32",    "c") export function print(n: int32)       -> void;
 @extern("print_int64",    "c") export function print(n: int64)       -> void;
-@extern("print_uint32",   "c") export function print(n: uint32)      -> void;
 @extern("print_uint64",   "c") export function print(n: uint64)      -> void;
 @extern("print_void_ptr", "c") export function print(p: *const void) -> void;
 @extern("print_float32",  "c") export function print(x: float32)     -> void;
@@ -15,9 +13,7 @@
 @extern("print_bool",     "c") export function print(b: bool)        -> void;
 
 @extern("println_char",     "c") export function println(c: char)        -> void;
-@extern("println_int32",    "c") export function println(n: int32)       -> void;
 @extern("println_int64",    "c") export function println(n: int64)       -> void;
-@extern("println_uint32",   "c") export function println(n: uint32)      -> void;
 @extern("println_uint64",   "c") export function println(n: uint64)      -> void;
 @extern("println_void_ptr", "c") export function println(p: *const void) -> void;
 @extern("println_float32",  "c") export function println(x: float32)     -> void;

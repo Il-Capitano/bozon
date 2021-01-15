@@ -97,26 +97,6 @@ void println_char(uint32_t c)
 	fwrite(buffer, 1, buffer_size, stdout);
 }
 
-void print_int32(int32_t n)
-{
-	fprintf(stdout, "%" PRId32, n);
-}
-
-void println_int32(int32_t n)
-{
-	fprintf(stdout, "%" PRId32 "\n", n);
-}
-
-void print_uint32(uint32_t n)
-{
-	fprintf(stdout, "%" PRIu32, n);
-}
-
-void println_uint32(uint32_t n)
-{
-	fprintf(stdout, "%" PRIu32 "\n", n);
-}
-
 void print_int64(int64_t n)
 {
 	fprintf(stdout, "%" PRId64, n);
