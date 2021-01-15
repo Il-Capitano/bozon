@@ -992,12 +992,12 @@ function generic_test()
 
 function ambiguous_function_test()
 {
-	function foo(n: int32);
-	function foo(n: int64);
+	function foo(n: int32) {}
+	function foo(n: int64) {}
 	foo(3);
 	// foo(3i8);
 
-	function bar(n: int32, m: int64);
-	function bar(n: int64, m: int32);
+	function bar(n: int32, m: int64) {}
+	function bar(n: int64, m: int32) {}
 	// bar(3, 3);
 }
