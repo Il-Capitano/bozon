@@ -299,10 +299,11 @@ struct function_body
 	enum : uint32_t
 	{
 		module_export          = bit_at<0>,
-		external_linkage       = bit_at<1>,
-		intrinsic              = bit_at<2>,
-		generic                = bit_at<3>,
-		generic_specialization = bit_at<4>,
+		main                   = bit_at<1>,
+		external_linkage       = bit_at<2>,
+		intrinsic              = bit_at<3>,
+		generic                = bit_at<4>,
+		generic_specialization = bit_at<5>,
 	};
 
 	enum : uint32_t
@@ -424,21 +425,18 @@ struct function_body
 	{
 		if (this->symbol_name == "")
 		{
-			if (this->function_name == "main")
-			{
-				this->symbol_name = "main";
-				this->flags |= external_linkage;
-			}
-			else
-			{
-				this->symbol_name = this->get_symbol_name();
-			}
+			this->symbol_name = this->get_symbol_name();
 		}
 	}
 
 	bool is_external_linkage(void) const noexcept
 	{
 		return (this->flags & external_linkage) != 0;
+	}
+
+	bool is_main(void) const noexcept
+	{
+		return(this->flags & main) != 0;
 	}
 
 	bool is_export(void) const noexcept

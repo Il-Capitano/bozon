@@ -2592,7 +2592,14 @@ static void emit_bitcode(
 {
 	if (ret_stmt.expr.is_null())
 	{
-		context.builder.CreateRetVoid();
+		if (context.current_function.first->is_main())
+		{
+			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
+		}
+		else
+		{
+			context.builder.CreateRetVoid();
+		}
 	}
 	else
 	{
@@ -2867,63 +2874,80 @@ static llvm::Function *create_function_from_symbol_impl(
 	{
 		args.push_back(llvm::PointerType::get(result_t, 0));
 	}
-	for (auto &p : func_body.params)
+	if (func_body.is_main())
 	{
-		auto const t = get_llvm_type(p.var_type, context);
-		auto const pass_kind = abi::get_pass_kind<abi>(t, context);
+		auto const str_slice = context.get_slice_t(context.get_str_t());
+		args.push_back(str_slice);
+	}
+	else
+	{
+		for (auto &p : func_body.params)
+		{
+			auto const t = get_llvm_type(p.var_type, context);
+			auto const pass_kind = abi::get_pass_kind<abi>(t, context);
 
-		switch (pass_kind)
-		{
-		case abi::pass_kind::reference:
-			pass_arg_by_ref.push_back(true);
-			args.push_back(llvm::PointerType::get(t, 0));
-			break;
-		case abi::pass_kind::value:
-			pass_arg_by_ref.push_back(false);
-			args.push_back(t);
-			break;
-		case abi::pass_kind::one_register:
-			pass_arg_by_ref.push_back(false);
-			args.push_back(abi::get_one_register_type<abi>(t, context));
-			break;
-		case abi::pass_kind::two_registers:
-		{
-			auto const [first_type, second_type] = abi::get_two_register_types<abi>(t, context);
-			pass_arg_by_ref.push_back(false);
-			args.push_back(first_type);
-			pass_arg_by_ref.push_back(false);
-			args.push_back(second_type);
-			break;
-		}
+			switch (pass_kind)
+			{
+			case abi::pass_kind::reference:
+				pass_arg_by_ref.push_back(true);
+				args.push_back(llvm::PointerType::get(t, 0));
+				break;
+			case abi::pass_kind::value:
+				pass_arg_by_ref.push_back(false);
+				args.push_back(t);
+				break;
+			case abi::pass_kind::one_register:
+				pass_arg_by_ref.push_back(false);
+				args.push_back(abi::get_one_register_type<abi>(t, context));
+				break;
+			case abi::pass_kind::two_registers:
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(t, context);
+				pass_arg_by_ref.push_back(false);
+				args.push_back(first_type);
+				pass_arg_by_ref.push_back(false);
+				args.push_back(second_type);
+				break;
+			}
+			}
 		}
 	}
 	auto const func_t = [&]() {
 		llvm::Type *real_result_t;
-		switch (return_kind)
+		if (func_body.is_main())
 		{
-		case abi::pass_kind::reference:
-			real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
-			break;
-		case abi::pass_kind::value:
-			real_result_t = result_t;
-			break;
-		case abi::pass_kind::one_register:
-			real_result_t = abi::get_one_register_type<abi>(result_t, context);
-			break;
-		case abi::pass_kind::two_registers:
-		{
-			auto const [first_type, second_type] = abi::get_two_register_types<abi>(result_t, context);
-			real_result_t = llvm::StructType::get(first_type, second_type);
-			break;
+			real_result_t = context.get_int32_t();
 		}
+		else
+		{
+			switch (return_kind)
+			{
+			case abi::pass_kind::reference:
+				real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
+				break;
+			case abi::pass_kind::value:
+				real_result_t = result_t;
+				break;
+			case abi::pass_kind::one_register:
+				real_result_t = abi::get_one_register_type<abi>(result_t, context);
+				break;
+			case abi::pass_kind::two_registers:
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(result_t, context);
+				real_result_t = llvm::StructType::get(first_type, second_type);
+				break;
+			}
+			}
 		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
 	bz_assert(func_body.symbol_name != "");
-	auto const name = llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
+	auto const name = func_body.is_main()
+		? llvm::StringRef("__bozon_main")
+		: llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
 
-	auto const linkage = (func_body.flags & ast::function_body::external_linkage) != 0
+	auto const linkage = func_body.is_external_linkage()
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
@@ -2949,8 +2973,8 @@ static llvm::Function *create_function_from_symbol_impl(
 	}
 
 	auto is_by_ref_it = pass_arg_by_ref.begin();
+	auto is_by_ref_end = pass_arg_by_ref.begin();
 	auto arg_it = fn->arg_begin();
-	auto const arg_end = fn->arg_end();
 
 	if (return_kind == abi::pass_kind::reference)
 	{
@@ -2961,7 +2985,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		++arg_it;
 	}
 
-	for (; arg_it != arg_end; ++is_by_ref_it, ++arg_it)
+	for (; is_by_ref_it != is_by_ref_end; ++is_by_ref_it, ++arg_it)
 	{
 		auto &arg = *arg_it;
 		auto const is_by_ref = *is_by_ref_it;
@@ -3034,6 +3058,7 @@ static void emit_function_bitcode_impl(
 	// initialization of function parameters
 	{
 		auto p_it = func_body.params.begin();
+		auto const p_end = func_body.params.end();
 		auto fn_it = fn->arg_begin();
 		auto const fn_end = fn->arg_end();
 
@@ -3043,7 +3068,7 @@ static void emit_function_bitcode_impl(
 			++fn_it;
 		}
 
-		for (; fn_it != fn_end; ++fn_it, ++p_it)
+		for (; p_it != p_end; ++fn_it, ++p_it)
 		{
 			auto &p = *p_it;
 			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
@@ -3105,7 +3130,14 @@ static void emit_function_bitcode_impl(
 	if (!context.has_terminator())
 	{
 		bz_assert(func_body.return_type.is<ast::ts_void>());
-		context.builder.CreateRetVoid();
+		if (context.current_function.first->is_main())
+		{
+			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
+		}
+		else
+		{
+			context.builder.CreateRetVoid();
+		}
 	}
 
 	context.builder.SetInsertPoint(alloca_bb);
@@ -3114,14 +3146,10 @@ static void emit_function_bitcode_impl(
 	// true means it failed
 	if (llvm::verifyFunction(*fn) == true)
 	{
-		auto const fn_name = bz::u8string_view(
-			fn->getName().data(),
-			fn->getName().data() + fn->getName().size()
-		);
 		bz::print(
 			"{}verifyFunction failed on '{}' !!!{}\n",
 			colors::bright_red,
-			ast::function_body::decode_symbol_name(fn_name),
+			func_body.get_signature(),
 			colors::clear
 		);
 	}

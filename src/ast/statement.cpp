@@ -185,10 +185,6 @@ bz::u8string function_body::decode_symbol_name(
 		result += '(';
 		it = bz::u8string_view::const_iterator(name_end.data() + 2);
 	}
-	else if (bz::u8string_view(it, end) == "main")
-	{
-		return "function main() -> int32";
-	}
 	else
 	{
 		// unknown prefix (extern probably)

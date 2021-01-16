@@ -667,6 +667,126 @@ static bool resolve_function_return_type_helper(
 	return !func_body.return_type.is_empty();
 }
 
+static bool is_valid_main(ast::function_body const &body)
+{
+	if (body.is_generic())
+	{
+		return false;
+	}
+
+	if (!(
+		body.return_type.is<ast::ts_void>()
+		|| (
+			body.return_type.is<ast::ts_base_type>()
+			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::int32_
+		)
+	))
+	{
+		return false;
+	}
+
+	if (body.params.size() == 0)
+	{
+		return true;
+	}
+	else if (body.params.size() > 1)
+	{
+		return false;
+	}
+
+	for (auto const &param : body.params)
+	{
+		auto const param_t = ast::remove_const_or_consteval(param.var_type);
+		if (!param_t.is<ast::ts_array_slice>())
+		{
+			return false;
+		}
+		auto const slice_t = ast::remove_const_or_consteval(param_t.get<ast::ts_array_slice>().elem_type);
+		if (!(
+			slice_t.is<ast::ts_void>()
+			|| (
+				slice_t.is<ast::ts_base_type>()
+				&& slice_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_
+			)
+		))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+static void report_invalid_main_error(ast::function_body const &body, ctx::parse_context &context)
+{
+	if (body.is_generic())
+	{
+		context.report_error(
+			body.src_tokens, "invalid declaration for main function",
+			{ context.make_note(body.src_tokens, "main function can't be generic") }
+		);
+		return;
+	}
+
+	if (!(
+		body.return_type.is<ast::ts_void>()
+		|| (
+			body.return_type.is<ast::ts_base_type>()
+			&& body.return_type.get<ast::ts_base_type>().info->kind == ast::type_info::int32_
+		)
+	))
+	{
+		auto const ret_t_src_tokens = body.return_type.get_src_tokens();
+		bz_assert(ret_t_src_tokens.pivot != nullptr);
+		context.report_error(
+			body.src_tokens, "invalid declaration for main function",
+			{ context.make_note(ret_t_src_tokens, "main function's return type must be 'void' or 'int32'") }
+		);
+		return;
+	}
+
+	if (body.params.size() == 0)
+	{
+		bz_unreachable;
+	}
+	else if (body.params.size() > 1)
+	{
+		context.report_error(
+			body.src_tokens, "invalid declaration for main function",
+			{ context.make_note(body.src_tokens, "main function must have at most one parameter") }
+		);
+		return;
+	}
+
+	for (auto const &param : body.params)
+	{
+		auto const param_t = ast::remove_const_or_consteval(param.var_type);
+		if (!param_t.is<ast::ts_array_slice>())
+		{
+			context.report_error(
+				body.src_tokens, "invalid declaration for main function",
+				{ context.make_note(param.identifier, "parameter type must be '[: const str]'") }
+			);
+			return;
+		}
+		auto const slice_t = ast::remove_const_or_consteval(param_t.get<ast::ts_array_slice>().elem_type);
+		if (!(
+			slice_t.is<ast::ts_void>()
+			|| (
+				slice_t.is<ast::ts_base_type>()
+				&& slice_t.get<ast::ts_base_type>().info->kind == ast::type_info::str_
+			)
+		))
+		{
+			context.report_error(
+				body.src_tokens, "invalid declaration for main function",
+				{ context.make_note(param.identifier, "parameter type must be '[: const str]'") }
+			);
+			return;
+		}
+	}
+	bz_unreachable;
+}
+
 // resolves the function symbol, but doesn't modify scope
 static bool resolve_function_symbol_helper(
 	ast::statement_view func_stmt,
@@ -687,6 +807,10 @@ static bool resolve_function_symbol_helper(
 		return false;
 	}
 
+	if (func_body.is_main() && !is_valid_main(func_body))
+	{
+		report_invalid_main_error(func_body, context);
+	}
 	context.add_function_for_compilation(func_body);
 	return true;
 }
@@ -911,6 +1035,11 @@ ast::statement parse_decl_function(
 		? lex::src_tokens{ begin, id, stream }
 		: lex::src_tokens{ begin, begin, stream };
 	auto body = parse_function_body(src_tokens, id->value, stream, end, context);
+	if (id->value == "main")
+	{
+		body.flags |= ast::function_body::main;
+		body.flags |= ast::function_body::external_linkage;
+	}
 
 	if constexpr (is_global)
 	{
