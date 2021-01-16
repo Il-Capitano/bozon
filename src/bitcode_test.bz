@@ -34,8 +34,16 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 }
 
-function main() -> int32
+function main(args: [: const str]) -> int32
 {
+	const size = __builtin_slice_size(args);
+	static_assert(typeof size == const uint64);
+	println(size);
+	for (let i = 0u64; i < size; ++i)
+	{
+		println(args[i]);
+	}
+
 	println("");
 	println("hello");
 	println(123);
@@ -906,7 +914,7 @@ export function str_pointer_test()
 		arr[i] = i;
 	}
 	const arr = arr;
-	let arr_slice: [: const int32] = __builtin_slice_from_const_ptrs(&arr[0], &arr[((10))]);
+	let arr_slice: [: const auto] = __builtin_slice_from_const_ptrs(&arr[0], &arr[((10))]);
 	println(arr_slice[4]);
 }
 
