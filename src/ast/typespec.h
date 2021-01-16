@@ -118,11 +118,11 @@ struct typespec
 	{ return !this->nodes.empty(); }
 
 	template<typename T>
-	auto is(void) const noexcept
+	bool is(void) const noexcept
 	{ return this->as_typespec_view().is<T>(); }
 
 	template<typename T>
-	auto get(void) const noexcept
+	decltype(auto) get(void) const noexcept
 	{ return this->as_typespec_view().get<T>(); }
 
 	uint64_t kind(void) const noexcept

@@ -1,4 +1,5 @@
 #include "parse_context.h"
+#include "ast/typespec.h"
 #include "global_context.h"
 #include "built_in_operators.h"
 #include "lex/lexer.h"
@@ -998,6 +999,12 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			T{ "__builtin_str_begin_ptr",         ast::function_body::builtin_str_begin_ptr         },
 			T{ "__builtin_str_end_ptr",           ast::function_body::builtin_str_end_ptr           },
 			T{ "__builtin_str_from_ptrs",         ast::function_body::builtin_str_from_ptrs         },
+
+			T{ "__builtin_slice_begin_ptr",       ast::function_body::builtin_slice_begin_ptr       },
+			T{ "__builtin_slice_begin_const_ptr", ast::function_body::builtin_slice_begin_const_ptr },
+			T{ "__builtin_slice_end_ptr",         ast::function_body::builtin_slice_end_ptr         },
+			T{ "__builtin_slice_end_const_ptr",   ast::function_body::builtin_slice_end_const_ptr   },
+			T{ "__builtin_slice_size",            ast::function_body::builtin_slice_size,           },
 			T{ "__builtin_slice_from_ptrs",       ast::function_body::builtin_slice_from_ptrs       },
 			T{ "__builtin_slice_from_const_ptrs", ast::function_body::builtin_slice_from_const_ptrs },
 		};
@@ -1828,6 +1835,42 @@ static match_level_t get_type_match_level(
 	{
 		return 3;
 	}
+	else if (
+		dest.is<ast::ts_array_slice>()
+		&& (expr_type_without_const.is<ast::ts_array>() || (expr_type_without_const.is<ast::ts_array_slice>()))
+	)
+	{
+		auto const dest_elem_t = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
+		auto const expr_elem_t = expr_type_without_const.is<ast::ts_array>()
+			? expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view()
+			: expr_type_without_const.get<ast::ts_array_slice>().elem_type.as_typespec_view();
+		auto const is_const_expr_elem_t= expr_type_without_const.is<ast::ts_array>()
+			? expr_type.is<ast::ts_const>()
+			: expr_elem_t.is<ast::ts_const>();
+		auto const expr_elem_t_without_const = ast::remove_const_or_consteval(expr_elem_t);
+		if (dest_elem_t.is<ast::ts_const>())
+		{
+			if (is_const_expr_elem_t)
+			{
+				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + 2;
+			}
+			else
+			{
+				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + 3;
+			}
+		}
+		else
+		{
+			if (is_const_expr_elem_t)
+			{
+				return match_level_t{};
+			}
+			else
+			{
+				return get_strict_type_match_level(dest_elem_t, expr_elem_t_without_const, false) + 2;
+			}
+		}
+	}
 	else if (dest == expr_type_without_const)
 	{
 		return 2;
@@ -1989,24 +2032,12 @@ static void match_expression_to_type_impl(
 		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
 		if (inner_dest.is<ast::ts_const>())
 		{
-			if (expr_type.is<ast::ts_const>())
-			{
-				strict_match_expression_to_type_impl(
-					expr, dest_container,
-					expr_type_without_const, inner_dest.get<ast::ts_const>(),
-					false, context
-				);
-				return;
-			}
-			else
-			{
-				strict_match_expression_to_type_impl(
-					expr, dest_container,
-					expr_type_without_const, inner_dest.get<ast::ts_const>(),
-					false, context
-				);
-				return;
-			}
+			strict_match_expression_to_type_impl(
+				expr, dest_container,
+				expr_type_without_const, inner_dest.get<ast::ts_const>(),
+				false, context
+			);
+			return;
 		}
 		else
 		{
@@ -2023,6 +2054,38 @@ static void match_expression_to_type_impl(
 	if (dest.is<ast::ts_auto>() && ast::is_complete(expr_type_without_const))
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
+		return;
+	}
+	else if (dest.is<ast::ts_array_slice>())
+	{
+		bz_assert(dest_container.is<ast::ts_array_slice>());
+		auto &dest_elem_container = dest_container.nodes.front().get<ast::ts_array_slice>().elem_type;
+		auto const dest_elem_t = dest_elem_container.as_typespec_view();
+		auto const expr_elem_t = expr_type_without_const.is<ast::ts_array>()
+			? expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view()
+			: expr_type_without_const.get<ast::ts_array_slice>().elem_type.as_typespec_view();
+		auto const is_const_expr_elem_t= expr_type_without_const.is<ast::ts_array>()
+			? expr_type.is<ast::ts_const>()
+			: expr_elem_t.is<ast::ts_const>();
+		auto const expr_elem_t_without_const = ast::remove_const_or_consteval(expr_elem_t);
+		if (dest_elem_t.is<ast::ts_const>())
+		{
+			strict_match_expression_to_type_impl(
+				expr, dest_elem_container,
+				expr_elem_t_without_const, dest_elem_t.get<ast::ts_const>(),
+				false, context
+			);
+			return;
+		}
+		else if (!is_const_expr_elem_t)
+		{
+			strict_match_expression_to_type_impl(
+				expr, dest_elem_container,
+				expr_elem_t_without_const, dest_elem_t,
+				false, context
+			);
+			return;
+		}
 	}
 	else if (dest == expr_type_without_const)
 	{
@@ -2031,16 +2094,15 @@ static void match_expression_to_type_impl(
 	else if (is_implicitly_convertible(dest, expr, context))
 	{
 		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest);
+		return;
 	}
-	else
+
+	context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
+	if (!ast::is_complete(dest_container))
 	{
-		context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
-		if (!ast::is_complete(dest_container))
-		{
-			dest_container.clear();
-		}
-		expr.clear();
+		dest_container.clear();
 	}
+	expr.clear();
 }
 
 // clears ts and expr if an error occurs

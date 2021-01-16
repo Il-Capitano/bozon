@@ -315,6 +315,12 @@ struct function_body
 		builtin_str_begin_ptr,
 		builtin_str_end_ptr,
 		builtin_str_from_ptrs,
+
+		builtin_slice_begin_ptr,
+		builtin_slice_begin_const_ptr,
+		builtin_slice_end_ptr,
+		builtin_slice_end_const_ptr,
+		builtin_slice_size,
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 

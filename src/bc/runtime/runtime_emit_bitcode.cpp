@@ -1733,6 +1733,56 @@ static val_ptr emit_bitcode(
 				return val_ptr{ val_ptr::value, result };
 			}
 		}
+		case ast::function_body::builtin_slice_begin_ptr:
+		case ast::function_body::builtin_slice_begin_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const begin_ptr = context.builder.CreateExtractValue(slice, 0);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(begin_ptr, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, begin_ptr };
+			}
+		}
+		case ast::function_body::builtin_slice_end_ptr:
+		case ast::function_body::builtin_slice_end_const_ptr:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const end_ptr = context.builder.CreateExtractValue(slice, 1);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(end_ptr, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, end_ptr };
+			}
+		}
+		case ast::function_body::builtin_slice_size:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const slice = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			bz_assert(slice->getType()->isStructTy());
+			auto const begin_ptr = context.builder.CreateExtractValue(slice, 0);
+			auto const end_ptr   = context.builder.CreateExtractValue(slice, 1);
+			auto const size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(size, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, size };
+			}
+		}
 		case ast::function_body::builtin_slice_from_ptrs:
 		case ast::function_body::builtin_slice_from_const_ptrs:
 		{
@@ -2877,7 +2927,32 @@ static llvm::Function *create_function_from_symbol_impl(
 	if (func_body.is_main())
 	{
 		auto const str_slice = context.get_slice_t(context.get_str_t());
-		args.push_back(str_slice);
+		auto const pass_kind = abi::get_pass_kind<abi>(str_slice, context);
+
+		switch (pass_kind)
+		{
+		case abi::pass_kind::reference:
+			pass_arg_by_ref.push_back(true);
+			args.push_back(llvm::PointerType::get(str_slice, 0));
+			break;
+		case abi::pass_kind::value:
+			pass_arg_by_ref.push_back(false);
+			args.push_back(str_slice);
+			break;
+		case abi::pass_kind::one_register:
+			pass_arg_by_ref.push_back(false);
+			args.push_back(abi::get_one_register_type<abi>(str_slice, context));
+			break;
+		case abi::pass_kind::two_registers:
+		{
+			auto const [first_type, second_type] = abi::get_two_register_types<abi>(str_slice, context);
+			pass_arg_by_ref.push_back(false);
+			args.push_back(first_type);
+			pass_arg_by_ref.push_back(false);
+			args.push_back(second_type);
+			break;
+		}
+		}
 	}
 	else
 	{

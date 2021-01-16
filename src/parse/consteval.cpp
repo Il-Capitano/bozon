@@ -1455,6 +1455,13 @@ static ast::constant_value evaluate_function_call(
 	case ast::function_body::builtin_str_begin_ptr:
 	case ast::function_body::builtin_str_end_ptr:
 	case ast::function_body::builtin_str_from_ptrs:
+		return {};
+
+	case ast::function_body::builtin_slice_begin_ptr:
+	case ast::function_body::builtin_slice_begin_const_ptr:
+	case ast::function_body::builtin_slice_end_ptr:
+	case ast::function_body::builtin_slice_end_const_ptr:
+	case ast::function_body::builtin_slice_size:
 	case ast::function_body::builtin_slice_from_ptrs:
 	case ast::function_body::builtin_slice_from_const_ptrs:
 		return {};

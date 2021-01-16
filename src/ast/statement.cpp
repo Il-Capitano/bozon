@@ -125,15 +125,31 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 		auto const func_body = this->generic_specializations.back().get();
 		if (func_body->is_intrinsic())
 		{
-			if (
-				func_body->intrinsic_kind == builtin_slice_from_ptrs
-				|| func_body->intrinsic_kind == builtin_slice_from_const_ptrs
-			)
+			switch (func_body->intrinsic_kind)
+			{
+			case builtin_slice_begin_ptr:
+			case builtin_slice_begin_const_ptr:
+			case builtin_slice_end_ptr:
+			case builtin_slice_end_const_ptr:
+			{
+				bz_assert(func_body->params.size() == 1);
+				typespec_view const arg_type = func_body->params[0].var_type;
+				bz_assert(arg_type.is<ts_array_slice>());
+				func_body->return_type = arg_type.get<ast::ts_array_slice>().elem_type;
+				func_body->return_type.add_layer<ts_pointer>();
+				break;
+			}
+			case builtin_slice_from_ptrs:
+			case builtin_slice_from_const_ptrs:
 			{
 				bz_assert(func_body->params.size() == 2);
 				typespec_view const arg_type = func_body->params[0].var_type;
 				bz_assert(arg_type.is<ts_pointer>());
 				func_body->return_type = make_array_slice_typespec({}, arg_type.get<ts_pointer>());
+				break;
+			}
+
+			static_assert(builtin_slice_from_const_ptrs + 1 == _builtin_last);
 			}
 		}
 		return func_body;
@@ -305,8 +321,9 @@ type_info *get_builtin_type_info(uint32_t kind)
 }
 
 static auto builtin_functions = []() {
-	auto const bool_type = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::bool_));
-	auto const str_type  = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::str_));
+	auto const bool_type   = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::bool_));
+	auto const uint64_type = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::uint64_));
+	auto const str_type    = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::str_));
 	auto const uint8_const_ptr_type = [&]() {
 		ast::typespec result = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::uint8_));
 		result.add_layer<ast::ts_const>(nullptr);
@@ -324,6 +341,15 @@ static auto builtin_functions = []() {
 		result.add_layer<ast::ts_pointer>(nullptr);
 		return result;
 	}();
+	auto const slice_auto_type = [&]() {
+		ast::typespec auto_t = ast::make_auto_typespec({});
+		return ast::make_array_slice_typespec({}, std::move(auto_t));
+	}();
+	auto const slice_const_auto_type = [&]() {
+		ast::typespec auto_t = ast::make_auto_typespec({});
+		auto_t.add_layer<ast::ts_const>(nullptr);
+		return ast::make_array_slice_typespec({}, std::move(auto_t));
+	}();
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
@@ -331,13 +357,20 @@ static auto builtin_functions = []() {
 		ast::function_body,
 		ast::function_body::_builtin_last - ast::function_body::_builtin_first
 	> result = {
-		add_builtin(0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
-		add_builtin(1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
-		add_builtin(2, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
-		add_builtin(3, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
-		add_builtin(4, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
-		add_builtin(5, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
-		add_builtin(6, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
+		add_builtin( 0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
+		add_builtin( 1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
+
+		add_builtin( 2, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
+		add_builtin( 3, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
+		add_builtin( 4, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+
+		add_builtin( 5, ast::function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
+		add_builtin( 6, ast::function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
+		add_builtin( 7, ast::function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
+		add_builtin( 8, ast::function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
+		add_builtin( 9, ast::function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
+		add_builtin(10, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
+		add_builtin(11, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
 	};
 #undef add_builtin
 	return result;
