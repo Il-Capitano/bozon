@@ -152,13 +152,13 @@ struct expression : bz::variant<
 			&& const_expr->kind == expression_type_kind::type_name;
 	}
 
-	ast::typespec &get_typename(void) noexcept
+	typespec &get_typename(void) noexcept
 	{
 		bz_assert(this->is_typename());
 		return this->get<constant_expression>().value.get<constant_value::type>();
 	}
 
-	ast::typespec const &get_typename(void) const noexcept
+	typespec const &get_typename(void) const noexcept
 	{
 		bz_assert(this->is_typename());
 		return this->get<constant_expression>().value.get<constant_value::type>();
@@ -168,6 +168,19 @@ struct expression : bz::variant<
 	{
 		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
 			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
+	}
+
+	expr_tuple &get_tuple(void) noexcept
+	{
+		bz_assert(this->is_tuple());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr.get<expr_tuple>();
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr.get<expr_tuple>();
+		}
 	}
 
 	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const noexcept

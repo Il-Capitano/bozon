@@ -5,6 +5,7 @@
 #include "lex/lexer.h"
 #include "escape_sequences.h"
 #include "parse/statement_parser.h"
+#include "parse/consteval.h"
 
 namespace ctx
 {
@@ -1723,7 +1724,7 @@ static match_level_t get_strict_type_match_level(
 
 static match_level_t get_type_match_level(
 	ast::typespec_view dest,
-	ast::expression const &expr,
+	ast::expression &expr,
 	parse_context &context
 )
 {
@@ -1751,6 +1752,7 @@ static match_level_t get_type_match_level(
 	}
 	else if (dest.is<ast::ts_consteval>())
 	{
+		parse::consteval_try(expr, context);
 		if (!expr.is<ast::constant_expression>())
 		{
 			return match_level_t{};
@@ -1835,6 +1837,17 @@ static match_level_t get_type_match_level(
 	{
 		return 3;
 	}
+	else if (dest.is<ast::ts_auto>() && expr.is_tuple())
+	{
+		auto &tuple_expr = expr.get_tuple();
+		match_level_t result = bz::vector<match_level_t>{};
+		auto &result_vec = result.get<bz::vector<match_level_t>>();
+		for (auto &elem : tuple_expr.elems)
+		{
+			result_vec.push_back(get_type_match_level(dest, elem, context));
+		}
+		return result;
+	}
 	else if (
 		dest.is<ast::ts_array_slice>()
 		&& (expr_type_without_const.is<ast::ts_array>() || (expr_type_without_const.is<ast::ts_array_slice>()))
@@ -1869,6 +1882,21 @@ static match_level_t get_type_match_level(
 			{
 				return get_strict_type_match_level(dest_elem_t, expr_elem_t_without_const, false) + 2;
 			}
+		}
+	}
+	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
+	{
+		auto const &dest_tuple_types = dest.get<ast::ts_tuple>().types;
+		auto &expr_tuple_elems = expr.get_tuple().elems;
+		if (dest_tuple_types.size() == expr_tuple_elems.size())
+		{
+			match_level_t result = bz::vector<match_level_t>{};
+			auto &result_vec = result.get<bz::vector<match_level_t>>();
+			for (auto const &[elem, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
+			{
+				result_vec.push_back(get_type_match_level(type, elem, context));
+			}
+			return result;
 		}
 	}
 	else if (dest == expr_type_without_const)
@@ -2056,10 +2084,27 @@ static void match_expression_to_type_impl(
 		dest_container.copy_from(dest, expr_type_without_const);
 		return;
 	}
+	else if (dest.is<ast::ts_auto>() && expr.is_tuple())
+	{
+		auto &tuple_expr = expr.get_tuple();
+		ast::typespec tuple_type = ast::make_tuple_typespec(dest.get_src_tokens(), {});
+		auto &tuple_type_vec = tuple_type.nodes.front().get<ast::ts_tuple>().types;
+		tuple_type_vec.resize(tuple_expr.elems.size());
+		for (auto &type : tuple_type_vec)
+		{
+			type = ast::make_auto_typespec(nullptr);
+		}
+		for (auto const &[expr, type] : bz::zip(tuple_expr.elems, tuple_type_vec))
+		{
+			match_expression_to_type_impl(expr, type, type, context);
+		}
+		dest_container.move_from(dest, tuple_type);
+		return;
+	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
-		bz_assert(dest_container.is<ast::ts_array_slice>());
-		auto &dest_elem_container = dest_container.nodes.front().get<ast::ts_array_slice>().elem_type;
+		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
+		auto &dest_elem_container = dest_container.nodes.back().get<ast::ts_array_slice>().elem_type;
 		auto const dest_elem_t = dest_elem_container.as_typespec_view();
 		auto const expr_elem_t = expr_type_without_const.is<ast::ts_array>()
 			? expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view()
@@ -2084,6 +2129,20 @@ static void match_expression_to_type_impl(
 				expr_elem_t_without_const, dest_elem_t,
 				false, context
 			);
+			return;
+		}
+	}
+	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
+		auto &dest_tuple_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
+		auto &expr_tuple_elems = expr.get_tuple().elems;
+		if (dest_tuple_types.size() == expr_tuple_elems.size())
+		{
+			for (auto const &[expr, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
+			{
+				match_expression_to_type_impl(expr, type, type, context);
+			}
 			return;
 		}
 	}
@@ -2343,7 +2402,7 @@ static int get_type_match_level_old(
 static match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	bz::array_view<const ast::expression> params,
+	bz::array_view<ast::expression> params,
 	parse_context &context,
 	lex::src_tokens src_tokens
 )
@@ -2393,7 +2452,7 @@ static match_level_t get_function_call_match_level(
 static match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	ast::expression const &expr,
+	ast::expression &expr,
 	parse_context &context,
 	lex::src_tokens src_tokens
 )
@@ -2422,8 +2481,8 @@ static match_level_t get_function_call_match_level(
 static match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
-	ast::expression const &lhs,
-	ast::expression const &rhs,
+	ast::expression &lhs,
+	ast::expression &rhs,
 	parse_context &context,
 	lex::src_tokens src_tokens
 )
