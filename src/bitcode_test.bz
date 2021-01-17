@@ -120,8 +120,8 @@ function main(args: [: const str]) -> int32
 	println("\n==== array_test ====");
 	array_test();
 
-//	println("\n==== tuple_test ====");
-//	tuple_test();
+	println("\n==== tuple_test ====");
+	tuple_test();
 
 	println("\n==== str_pointer_test ====");
 	str_pointer_test();
@@ -285,7 +285,7 @@ function ref_test() -> void
 	foo_ref(m);
 	println("first and third pointers should be the same");
 
-//	asdfasdf([0, 1, 2, 3, 4, 5]);
+	asdfasdf([0, 1, 2, 3, 4, 5]);
 }
 
 function cast_test() -> void
@@ -309,7 +309,8 @@ function cast_test() -> void
 //	let v: vec2;
 }
 
-// function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void;
+function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void
+{}
 
 function const_expr_test() -> void
 {
@@ -809,22 +810,19 @@ function arr2_tester() -> void
 	const arr = arr;
 }
 
-/*
 function tuple_test() -> void
 {
 	let t: [int32, float64];
 	println([2, 2.234][1]);
 
 	consteval t = [0, 1.53, "hello"];
-//	consteval str = t[2];
-//	static_assert(str == t[2]);
-//	let &const num = t[1];
-//	const t = [t, 234.5f32, 0b0000'1000];
-	// we need to deal with nested auto case in `match_expression_to_type`
-//	let t: const [int32, auto] = [123, 3.5f32];
-//	static_assert(typeof t == const [int32, float32]);
-	// also this
-//	let t: [int32, float64] = [0, 2.5];
+	consteval str = t[2];
+	static_assert(str == t[2]);
+	let &const num = t[1];
+	const t = [t, 234.5f32, 0b0000'1000];
+	let t: const [int32, auto] = [123, 3.5f32];
+	static_assert(typeof t == const [int32, float32]);
+	let t: [int32, float64] = [0, 2.5];
 
 	let t = [ 123, 123.123, "HELLO!!"];
 	let &i32 = t[0];
@@ -841,7 +839,6 @@ function tuple_test() -> void
 	const val = (f64 * 3.2) + (3.2 * f64);
 	println(val);
 }
-*/
 
 function optimization_test() -> void
 {
