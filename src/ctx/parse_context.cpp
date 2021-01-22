@@ -40,7 +40,20 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 	}
 	else
 	{
-		notes.emplace_back(context.make_note(body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())));
+		auto const file_id = body.src_tokens.pivot->src_pos.file_id;
+		if (do_verbose || !context.global_ctx.is_library_file(file_id))
+		{
+			notes.emplace_back(context.make_note(
+				body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
+			));
+		}
+		else
+		{
+			auto const line = body.src_tokens.pivot->src_pos.line;
+			notes.emplace_back(context.make_note(
+				file_id, line, bz::format("in generic instantiation of '{}'", body.get_signature())
+			));
+		}
 	}
 
 	for (auto const &required_from : bz::reversed(body.generic_required_from))
@@ -51,10 +64,22 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 		}
 		else
 		{
-			notes.emplace_back(context.make_note(
-				required_from.first,
-				bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
-			));
+			auto const file_id = required_from.first.pivot->src_pos.file_id;
+			if (do_verbose || !context.global_ctx.is_library_file(file_id))
+			{
+				notes.emplace_back(context.make_note(
+					required_from.first,
+					bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
+				));
+			}
+			else
+			{
+				auto const line = required_from.first.pivot->src_pos.line;
+				notes.emplace_back(context.make_note(
+					file_id, line,
+					bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
+				));
+			}
 		}
 	}
 }

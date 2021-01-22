@@ -142,14 +142,14 @@ void global_context::add_compile_function(ast::function_body &func_body)
 	this->_compile_decls.funcs.push_back(&func_body);
 }
 
-static fs::path search_for_source_file(bz::u8string_view module_name, fs::path const &current_path)
+static std::pair<fs::path, bool> search_for_source_file(bz::u8string_view module_name, fs::path const &current_path)
 {
 	std::string_view std_sv(module_name.data(), module_name.size());
 	auto same_dir_module = current_path / std_sv;
 	same_dir_module += ".bz";
 	if (fs::exists(same_dir_module))
 	{
-		return same_dir_module;
+		return { same_dir_module, false };
 	}
 
 	for (auto const &import_dir : import_dirs)
@@ -159,7 +159,7 @@ static fs::path search_for_source_file(bz::u8string_view module_name, fs::path c
 		module += ".bz";
 		if (fs::exists(module))
 		{
-			return module;
+			return { module, true };
 		}
 	}
 	return {};
@@ -167,7 +167,11 @@ static fs::path search_for_source_file(bz::u8string_view module_name, fs::path c
 
 uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id, bz::u8string_view file_name)
 {
-	auto const file_path = search_for_source_file(file_name, this->get_src_file(current_file_id).get_file_path().parent_path());
+	auto &current_file = this->get_src_file(current_file_id);
+	auto const [file_path, is_library_file] = search_for_source_file(
+		file_name,
+		current_file.get_file_path().parent_path()
+	);
 	if (file_path.empty())
 	{
 		this->report_error(error{
@@ -180,7 +184,7 @@ uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id,
 		return std::numeric_limits<uint32_t>::max();
 	}
 
-	auto &file = [&]() -> auto & {
+	auto &file = [&, &file_path = file_path, is_library_file = is_library_file]() -> auto & {
 		auto const file_it = std::find_if(
 			this->_src_files.begin(), this->_src_files.end(),
 			[&](auto const &src_file) {
@@ -189,7 +193,7 @@ uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id,
 		);
 		if (file_it == this->_src_files.end())
 		{
-			return this->_src_files.emplace_back(file_path, this->_src_files.size(), *this);
+			return this->_src_files.emplace_back(file_path, this->_src_files.size(), is_library_file || current_file._is_library_file);
 		}
 		else
 		{
@@ -199,7 +203,7 @@ uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id,
 
 	if (file._stage == src_file::constructed)
 	{
-		if (!file.parse_global_symbols())
+		if (!file.parse_global_symbols(*this))
 		{
 			return std::numeric_limits<uint32_t>::max();
 		}
@@ -391,8 +395,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
-	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), *this);
-	if (!file.parse_global_symbols())
+	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), false);
+	if (!file.parse_global_symbols(*this))
 	{
 		return false;
 	}
@@ -404,7 +408,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 {
 	for (auto &file : this->_src_files)
 	{
-		if (!file.parse())
+		if (!file.parse(*this))
 		{
 			return false;
 		}

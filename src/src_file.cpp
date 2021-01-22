@@ -24,12 +24,12 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 }
 
 
-src_file::src_file(fs::path file_path, uint32_t file_id, ctx::global_context &global_ctx)
+src_file::src_file(fs::path file_path, uint32_t file_id, bool is_library_file)
 	: _stage(constructed),
+	  _is_library_file(is_library_file),
 	  _file_id(file_id),
 	  _file_path(std::move(file_path)),
 	  _file(), _tokens(),
-	  _global_ctx(global_ctx),
 	  _declarations{},
 	  _global_decls{}
 {}
@@ -51,7 +51,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	}
 }
 
-[[nodiscard]] bool src_file::read_file(void)
+[[nodiscard]] bool src_file::read_file(ctx::global_context &global_ctx)
 {
 	bz_assert(this->_stage == constructed);
 	std::ifstream file(this->_file_path);
@@ -59,7 +59,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	if (!file.good())
 	{
 		bz::u8string const file_name = this->_file_path.generic_string().c_str();
-		this->_global_ctx.report_error(bz::format("unable to read file '{}'", file_name));
+		global_ctx.report_error(bz::format("unable to read file '{}'", file_name));
 		return false;
 	}
 
@@ -67,36 +67,36 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	if (!this->_file.verify())
 	{
 		bz::u8string const file_name = this->_file_path.generic_string().c_str();
-		this->_global_ctx.report_error(bz::format("'{}' is not a valid UTF-8 file", file_name));
+		global_ctx.report_error(bz::format("'{}' is not a valid UTF-8 file", file_name));
 		return false;
 	}
 	this->_stage = file_read;
 	return true;
 }
 
-[[nodiscard]] bool src_file::tokenize(void)
+[[nodiscard]] bool src_file::tokenize(ctx::global_context &global_ctx)
 {
 	bz_assert(this->_stage == file_read);
 
-	ctx::lex_context context(this->_global_ctx);
+	ctx::lex_context context(global_ctx);
 	this->_tokens = lex::get_tokens(this->_file, this->_file_id, context);
 	this->_stage = tokenized;
 
-	return !this->_global_ctx.has_errors();
+	return !global_ctx.has_errors();
 }
 
-[[nodiscard]] bool src_file::parse_global_symbols(void)
+[[nodiscard]] bool src_file::parse_global_symbols(ctx::global_context &global_ctx)
 {
 	switch (this->_stage)
 	{
 	case constructed:
-		if (!this->read_file())
+		if (!this->read_file(global_ctx))
 		{
 			return false;
 		}
 		[[fallthrough]];
 	case file_read:
-		if (!this->tokenize())
+		if (!this->tokenize(global_ctx))
 		{
 			return false;
 		}
@@ -112,7 +112,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	auto stream = this->_tokens.cbegin();
 	auto end    = this->_tokens.cend() - 1;
 
-	ctx::parse_context context(this->_global_ctx);
+	ctx::parse_context context(global_ctx);
 
 	this->_declarations = parse::parse_global_statements(stream, end, context);
 
@@ -162,22 +162,22 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	for (auto const import : imports)
 	{
-		auto const import_file_id = this->_global_ctx.add_module(import->identifier, this->_file_id, import->identifier->value);
+		auto const import_file_id = global_ctx.add_module(import->identifier, this->_file_id, import->identifier->value);
 		if (import_file_id != std::numeric_limits<uint32_t>::max())
 		{
-			auto const &import_decls = this->_global_ctx.get_file_export_decls(import_file_id);
+			auto const &import_decls = global_ctx.get_file_export_decls(import_file_id);
 			this->add_to_global_decls(import_decls);
 		}
 	}
 
-	return !this->_global_ctx.has_errors();
+	return !global_ctx.has_errors();
 }
 
-[[nodiscard]] bool src_file::parse(void)
+[[nodiscard]] bool src_file::parse(ctx::global_context &global_ctx)
 {
 	bz_assert(this->_stage == parsed_global_symbols);
 
-	ctx::parse_context context(this->_global_ctx);
+	ctx::parse_context context(global_ctx);
 	context.global_decls = &this->_global_decls;
 
 	for (auto &decl : this->_declarations)
@@ -192,119 +192,5 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	}
 
 	this->_stage = parsed;
-	return !this->_global_ctx.has_errors();
+	return !global_ctx.has_errors();
 }
-
-/*
-[[nodiscard]] bool src_file::first_pass_parse(void)
-{
-	bz_assert(this->_stage == tokenized);
-	bz_assert(this->_tokens.size() != 0);
-	bz_assert(this->_tokens.back().kind == lex::token::eof);
-	auto stream = this->_tokens.cbegin();
-	auto end    = this->_tokens.cend() - 1;
-
-	ctx::first_pass_parse_context context(this->_global_ctx);
-
-	while (stream != end)
-	{
-		this->_declarations.emplace_back(parse_top_level_statement(stream, end, context));
-	}
-
-	for (auto &decl : this->_declarations)
-	{
-		if (decl.not_null())
-		{
-			this->_global_ctx.add_export_declaration(decl);
-		}
-	}
-
-	this->_stage = first_pass_parsed;
-	return !this->_global_ctx.has_errors();
-}
-
-[[nodiscard]] bool src_file::resolve(void)
-{
-	bz_assert(this->_stage == first_pass_parsed);
-
-	ctx::parse_context context(this->_global_ctx);
-
-	for (auto &decl : this->_declarations)
-	{
-		::resolve(decl, context);
-	}
-
-	this->_stage = resolved;
-	return !this->_global_ctx.has_errors();
-}
-*/
-
-/*
-[[nodiscard]] bool src_file::emit_bitcode(ctx::bitcode_context &context)
-{
-	// add the declarations to the module
-	for (auto &decl : this->_declarations)
-	{
-		switch (decl.kind())
-		{
-		case ast::declaration::index<ast::decl_variable>:
-			bz_unreachable;
-			break;
-		case ast::declaration::index<ast::decl_function>:
-		{
-			auto &func_decl = *decl.get<ast::decl_function_ptr>();
-			bc::add_function_to_module(func_decl.body, func_decl.identifier->value, context);
-			break;
-		}
-		case ast::declaration::index<ast::decl_operator>:
-		{
-			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
-			bc::add_function_to_module(op_decl.body, bz::format("__operator_{}", op_decl.op->kind), context);
-			break;
-		}
-		case ast::declaration::index<ast::decl_struct>:
-			bz_unreachable;
-			break;
-		default:
-			bz_unreachable;
-			break;
-		}
-	}
-	// add the definitions to the module
-	for (auto &decl : this->_declarations)
-	{
-		switch (decl.kind())
-		{
-		case ast::declaration::index<ast::decl_variable>:
-			bz_unreachable;
-			break;
-		case ast::declaration::index<ast::decl_function>:
-		{
-			auto &func_decl = *decl.get<ast::decl_function_ptr>();
-			if (func_decl.body.body.has_value())
-			{
-				bc::emit_function_bitcode(func_decl.body, context);
-			}
-			break;
-		}
-		case ast::declaration::index<ast::decl_operator>:
-		{
-			auto &op_decl = *decl.get<ast::decl_operator_ptr>();
-			if (op_decl.body.body.has_value())
-			{
-				bc::emit_function_bitcode(op_decl.body, context);
-			}
-			break;
-		}
-		case ast::declaration::index<ast::decl_struct>:
-			bz_unreachable;
-			break;
-		default:
-			bz_unreachable;
-			break;
-		}
-	}
-
-	return true;
-}
-*/

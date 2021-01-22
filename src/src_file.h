@@ -13,7 +13,7 @@ namespace ctx
 
 struct src_file
 {
-	enum src_file_stage
+	enum src_file_stage : uint8_t
 	{
 		constructed,
 		file_read,
@@ -24,29 +24,29 @@ struct src_file
 
 public:
 	src_file_stage _stage;
+	bool           _is_library_file;
 
 	uint32_t               _file_id;
 	fs::path               _file_path;
 	bz::u8string           _file;
 	bz::vector<lex::token> _tokens;
 
-	ctx::global_context       &_global_ctx;
 	bz::vector<ast::statement> _declarations;
 	ctx::decl_set              _global_decls;
 	ctx::decl_set              _export_decls;
 
 public:
-	src_file(fs::path file_path, uint32_t file_id, ctx::global_context &global_ctx);
+	src_file(fs::path file_path, uint32_t file_id, bool is_library_file);
 
 	void add_to_global_decls(ctx::decl_set const &set);
 
 private:
-	[[nodiscard]] bool read_file(void);
-	[[nodiscard]] bool tokenize(void);
+	[[nodiscard]] bool read_file(ctx::global_context &global_ctx);
+	[[nodiscard]] bool tokenize(ctx::global_context &global_ctx);
 
 public:
-	[[nodiscard]] bool parse_global_symbols(void);
-	[[nodiscard]] bool parse(void);
+	[[nodiscard]] bool parse_global_symbols(ctx::global_context &global_ctx);
+	[[nodiscard]] bool parse(ctx::global_context &global_ctx);
 
 
 	fs::path const &get_file_path() const

@@ -135,6 +135,9 @@ struct global_context
 		return { src_file._file.begin(), src_file._file.end() };
 	}
 
+	bool is_library_file(uint32_t file_id) const noexcept
+	{ return this->get_src_file(file_id)._is_library_file; }
+
 	bool has_errors(void) const;
 	bool has_warnings(void) const;
 
