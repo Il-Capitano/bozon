@@ -1,6 +1,7 @@
 import print;
 import math;
 import utils;
+import generic;
 
 //	/*
 function assert(b: bool) -> void
@@ -47,7 +48,7 @@ function main(args: [: const str]) -> int32
 	println("");
 	println("hello");
 	println(123);
-	println(123i8); // this is ambiguous because it can match to println(int32) and println(int64)
+	println(123i8);
 	println(factorial(5));
 	println("hello again!!!!\nand on a new line\n");
 
@@ -233,8 +234,8 @@ function foo() -> void
 		println("yay");
 	}
 
-	let n = 0xffu32;
-	const mask = 0x46u32;
+	let n = 0xff;
+	const mask = 0x46;
 	n &= mask;
 	if (n == mask)
 		println("yay!!");
@@ -1005,4 +1006,10 @@ function ambiguous_function_test()
 	function bar(n: int32, m: int64) {}
 	function bar(n: int64, m: int32) {}
 	// bar(3, 3);
+}
+
+function add_tester()
+{
+	add(3, 4);
+//	add_wrapper("", ' ');
 }
