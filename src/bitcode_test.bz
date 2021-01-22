@@ -949,6 +949,15 @@ function consteval_test(i: if (true) int32 else int64)
 
 	consteval a = (if (false) i else 234);
 	static_assert(a == 234);
+
+	consteval len = __builtin_str_length("Hello");
+	static_assert(len == 5u);
+	consteval str = "Helló";
+	consteval len  = __builtin_str_length(str);
+	consteval size = __builtin_str_size(str);
+	static_assert(len == 5u);
+	static_assert(size == 6u);
+	static_assert(len != size);
 }
 
 function generic_test()
