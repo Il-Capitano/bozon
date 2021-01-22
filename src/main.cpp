@@ -1,7 +1,6 @@
 /*
 
 TODO:
-	- make tuples work with type matching
 	- user-defined type implementation
 
 
@@ -1365,7 +1364,7 @@ struct some_type<T: std::vector> // should this be allowed???
 new idea for specialization:
 
 struct some_type<T: typename>  { ... }
-struct some_type<&T: typename> { ... }
+struct some_type<&(T: typename)> { ... }
 struct some_type<std::vector<T: typename>> { ... }
 
 struct some_type<std::static_vector<T: typename, N: usize>> { ... }
@@ -1442,6 +1441,14 @@ operator[](v: &const vector<T: typename>, s: __slice_index_t) -> [: const T]
 	return __builtin_slice_from_pointers(v.data + s.begin, v.data + s.end);
 }
 
+
+
+
+Maybe an interactive shell could be done with this language, kind of like python.
+Would be JIT compiled, would allow IO in comptime code (?)
+
+consteval f = read_file("file_name.txt");
+// use f
 
 */
 
