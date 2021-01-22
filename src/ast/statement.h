@@ -312,8 +312,11 @@ struct function_body
 
 		builtin_str_eq = _builtin_first,
 		builtin_str_neq,
+		builtin_str_length,
+
 		builtin_str_begin_ptr,
 		builtin_str_end_ptr,
+		builtin_str_size,
 		builtin_str_from_ptrs,
 
 		builtin_slice_begin_ptr,

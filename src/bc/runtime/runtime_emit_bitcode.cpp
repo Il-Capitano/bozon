@@ -1675,7 +1675,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::builtin_str_eq == ast::function_body::_builtin_first);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 14);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -1704,6 +1704,24 @@ static val_ptr emit_bitcode(
 			else
 			{
 				return val_ptr{ val_ptr::value, end_ptr };
+			}
+		}
+		case ast::function_body::builtin_str_size:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const str = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			bz_assert(str->getType()->isStructTy());
+			auto const begin_ptr = context.builder.CreateExtractValue(str, 0);
+			auto const end_ptr   = context.builder.CreateExtractValue(str, 1);
+			auto const size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(size, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return val_ptr{ val_ptr::value, size };
 			}
 		}
 		case ast::function_body::builtin_str_from_ptrs:

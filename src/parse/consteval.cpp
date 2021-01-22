@@ -1423,7 +1423,7 @@ static ast::constant_value evaluate_function_call(
 
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::builtin_str_eq == ast::function_body::_builtin_first);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 14);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -1452,8 +1452,26 @@ static ast::constant_value evaluate_function_call(
 			!= rhs_value.get<ast::constant_value::string>()
 		);
 	}
+	case ast::function_body::builtin_str_length:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(str_value.is<ast::constant_value::string>());
+		return ast::constant_value(str_value.get<ast::constant_value::string>().length());
+	}
+
 	case ast::function_body::builtin_str_begin_ptr:
 	case ast::function_body::builtin_str_end_ptr:
+		return {};
+	case ast::function_body::builtin_str_size:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(str_value.is<ast::constant_value::string>());
+		return ast::constant_value(str_value.get<ast::constant_value::string>().size());
+	}
 	case ast::function_body::builtin_str_from_ptrs:
 		return {};
 
@@ -1465,8 +1483,6 @@ static ast::constant_value evaluate_function_call(
 	case ast::function_body::builtin_slice_from_ptrs:
 	case ast::function_body::builtin_slice_from_const_ptrs:
 		return {};
-
-	static_assert(ast::function_body::builtin_slice_from_const_ptrs + 1 == ast::function_body::_builtin_last);
 
 	// builtins end here
 

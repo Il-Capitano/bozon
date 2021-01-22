@@ -149,7 +149,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				break;
 			}
 
-			static_assert(builtin_slice_from_const_ptrs + 1 == _builtin_last);
+			static_assert(_builtin_last - _builtin_first == 14);
 			}
 		}
 		return func_body;
@@ -357,22 +357,25 @@ static auto builtin_functions = []() {
 		ast::function_body,
 		ast::function_body::_builtin_last - ast::function_body::_builtin_first
 	> result = {
-		add_builtin( 0, ast::function_body::builtin_str_eq,  "__bozon_builtin_str_eq",  bool_type, str_type, str_type),
-		add_builtin( 1, ast::function_body::builtin_str_neq, "__bozon_builtin_str_neq", bool_type, str_type, str_type),
+		add_builtin( 0, ast::function_body::builtin_str_eq,     "__bozon_builtin_str_eq",     bool_type,   str_type, str_type),
+		add_builtin( 1, ast::function_body::builtin_str_neq,    "__bozon_builtin_str_neq",    bool_type,   str_type, str_type),
+		add_builtin( 2, ast::function_body::builtin_str_length, "__bozon_builtin_str_length", uint64_type, str_type),
 
-		add_builtin( 2, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
-		add_builtin( 3, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
-		add_builtin( 4, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+		add_builtin( 3, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
+		add_builtin( 4, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
+		add_builtin( 5, ast::function_body::builtin_str_size,              "", uint64_type, str_type),
+		add_builtin( 6, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
 
-		add_builtin( 5, ast::function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
-		add_builtin( 6, ast::function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
-		add_builtin( 7, ast::function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
-		add_builtin( 8, ast::function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
-		add_builtin( 9, ast::function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
-		add_builtin(10, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
-		add_builtin(11, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
+		add_builtin( 7, ast::function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
+		add_builtin( 8, ast::function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
+		add_builtin( 9, ast::function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
+		add_builtin(10, ast::function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
+		add_builtin(11, ast::function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
+		add_builtin(12, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
+		add_builtin(13, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
 	};
 #undef add_builtin
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 14);
 	return result;
 }();
 
