@@ -10,4 +10,5 @@ compile_commands.json
 .cache
 *.o
 *.exe
+*.out
 *.ll
