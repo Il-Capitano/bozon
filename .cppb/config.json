@@ -9,7 +9,15 @@
 		"link_flags": [],
 		"emit_compile_commands": true,
 
-		"run_args": [ "-Wall", "-Wno-unused-variable", "--debug-ir-output", "--profile", "./src/bitcode_test.bz" ],
+		"run_args": [
+			"-Wall",
+			"-Wno-unused-variable",
+			"--debug-ir-output",
+			"--profile",
+			"-I", "./bozon-stdlib",
+			"-o", "./bitcode_test.o",
+			"./src/bitcode_test.bz"
+		],
 
 		"source_directory": "src",
 		"include_paths": [ "src", "include" ],
