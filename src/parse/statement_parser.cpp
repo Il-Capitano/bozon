@@ -1021,7 +1021,7 @@ static ast::function_body parse_function_body(
 }
 
 template<bool is_global>
-ast::statement parse_decl_function(
+ast::statement parse_decl_function_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -1034,37 +1034,56 @@ ast::statement parse_decl_function(
 	auto const src_tokens = id->kind == lex::token::identifier
 		? lex::src_tokens{ begin, id, stream }
 		: lex::src_tokens{ begin, begin, stream };
-	auto body = parse_function_body(src_tokens, id->value, stream, end, context);
-	if (id->value == "main")
+	if (stream->kind == lex::token::assign)
 	{
-		body.flags |= ast::function_body::main;
-		body.flags |= ast::function_body::external_linkage;
-	}
-
-	if constexpr (is_global)
-	{
-		return ast::make_decl_function(id, std::move(body));
+		auto const alias_expr = get_expression_tokens<>(stream, end, context);
+		context.assert_token(stream, lex::token::semi_colon);
+		uint32_t flags = 0;
+		if (id->value == "main")
+		{
+			flags |= ast::function_body::main;
+			flags |= ast::function_body::external_linkage;
+		}
+		return ast::make_decl_function_alias(
+			id,
+			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end }),
+			flags
+		);
 	}
 	else
 	{
-		auto result = ast::make_decl_function(id, std::move(body));
-		bz_assert(result.is<ast::decl_function>());
-		auto &func_decl = result.get<ast::decl_function>();
-		resolve_function(result, func_decl.body, context);
-		if (func_decl.body.state != ast::resolve_state::error)
+		auto body = parse_function_body(src_tokens, id->value, stream, end, context);
+		if (id->value == "main")
 		{
-			context.add_local_function(func_decl);
+			body.flags |= ast::function_body::main;
+			body.flags |= ast::function_body::external_linkage;
 		}
-		return result;
+
+		if constexpr (is_global)
+		{
+			return ast::make_decl_function(id, std::move(body));
+		}
+		else
+		{
+			auto result = ast::make_decl_function(id, std::move(body));
+			bz_assert(result.is<ast::decl_function>());
+			auto &func_decl = result.get<ast::decl_function>();
+			resolve_function(result, func_decl.body, context);
+			if (func_decl.body.state != ast::resolve_state::error)
+			{
+				context.add_local_function(func_decl);
+			}
+			return result;
+		}
 	}
 }
 
-template ast::statement parse_decl_function<false>(
+template ast::statement parse_decl_function_or_alias<false>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_function<true>(
+template ast::statement parse_decl_function_or_alias<true>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -1238,6 +1257,10 @@ ast::statement parse_export_statement(
 			[](ast::decl_operator &op_decl) {
 				op_decl.body.flags |= ast::function_body::module_export;
 				op_decl.body.flags |= ast::function_body::external_linkage;
+			},
+			[](ast::decl_function_alias &func_alias) {
+				func_alias.function_flags |= ast::function_body::module_export;
+				func_alias.function_flags |= ast::function_body::external_linkage;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "only a function or an operator can be exported");
@@ -1840,6 +1863,19 @@ static void apply_attribute(
 			bz::format("unknown attribute '{}'", attr_name)
 		);
 	}
+}
+
+static void apply_attribute(
+	ast::decl_function_alias &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
 }
 
 static void apply_attribute(

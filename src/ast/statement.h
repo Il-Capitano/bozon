@@ -43,6 +43,7 @@ struct stmt_expression;
 struct decl_variable;
 struct decl_function;
 struct decl_operator;
+struct decl_function_alias;
 struct decl_struct;
 struct decl_import;
 
@@ -57,6 +58,7 @@ using statement_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
+	decl_function_alias,
 	decl_struct,
 	decl_import
 >;
@@ -66,6 +68,7 @@ using top_level_statement_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
+	decl_function_alias,
 	decl_struct,
 	decl_import
 >;
@@ -74,6 +77,7 @@ using declaration_types = bz::meta::type_pack<
 	decl_variable,
 	decl_function,
 	decl_operator,
+	decl_function_alias,
 	decl_struct,
 	decl_import
 >;
@@ -518,6 +522,60 @@ struct decl_operator
 	{}
 };
 
+struct decl_function_alias
+{
+	lex::token_pos identifier;
+	expression     alias_expr;
+	uint32_t       function_flags;
+
+	declare_default_5(decl_function_alias)
+
+	decl_function_alias(
+		lex::token_pos _id,
+		expression     _alias_expr,
+		uint32_t       _function_flags = 0
+	)
+		: identifier(_id),
+		  alias_expr(std::move(_alias_expr)),
+		  function_flags(_function_flags)
+	{}
+
+	bool is_external_linkage(void) const noexcept
+	{
+		return (this->function_flags & function_body::external_linkage) != 0;
+	}
+
+	bool is_main(void) const noexcept
+	{
+		return(this->function_flags & function_body::main) != 0;
+	}
+
+	bool is_export(void) const noexcept
+	{
+		return (this->function_flags & function_body::module_export) != 0;
+	}
+
+	bool is_intrinsic(void) const noexcept
+	{
+		return (this->function_flags & function_body::intrinsic) != 0;
+	}
+
+	bool is_generic(void) const noexcept
+	{
+		return (this->function_flags & function_body::generic) != 0;
+	}
+
+	bool is_generic_specialization(void) const noexcept
+	{
+		return (this->function_flags & function_body::generic_specialization) != 0;
+	}
+
+	bool is_reversed_args(void) const noexcept
+	{
+		return (this->function_flags & function_body::reversed_args) != 0;
+	}
+};
+
 namespace type_info_flags
 {
 
@@ -771,6 +829,7 @@ ret_type make_ ## node_type (Args &&...args)                                   \
 def_make_fn(statement, decl_variable)
 def_make_fn(statement, decl_function)
 def_make_fn(statement, decl_operator)
+def_make_fn(statement, decl_function_alias)
 def_make_fn(statement, decl_struct)
 def_make_fn(statement, decl_import)
 

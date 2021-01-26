@@ -12,6 +12,7 @@ struct function_overload_set
 {
 	bz::u8string id;
 	bz::vector<ast::statement_view> func_decls;
+	bz::vector<ast::statement_view> alias_decls;
 };
 
 struct operator_overload_set
@@ -47,7 +48,7 @@ struct decl_set
 		);
 		if (set == this->func_sets.end())
 		{
-			this->func_sets.push_back({ id, { ast::statement_view(stmt) } });
+			this->func_sets.push_back({ id, { ast::statement_view(stmt) }, {} });
 		}
 		else
 		{
@@ -66,7 +67,7 @@ struct decl_set
 		);
 		if (set == this->func_sets.end())
 		{
-			this->func_sets.push_back({ id, { ast::statement_view(&func_decl) } });
+			this->func_sets.push_back({ id, { ast::statement_view(&func_decl) }, {} });
 		}
 		else
 		{
@@ -111,6 +112,27 @@ struct decl_set
 		else
 		{
 			set->op_decls.emplace_back(&op_decl);
+		}
+	}
+
+	void add_function_alias(ast::statement &stmt)
+	{
+		bz_assert(stmt.is<ast::decl_function_alias>());
+		auto &alias_decl = stmt.get<ast::decl_function_alias>();
+		auto const id = alias_decl.identifier->value;
+		auto const set = std::find_if(
+			this->func_sets.begin(), this->func_sets.end(),
+			[id](auto const &set) {
+				return id == set.id;
+			}
+		);
+		if (set == this->func_sets.end())
+		{
+			this->func_sets.push_back({ id, {}, { ast::statement_view(stmt) } });
+		}
+		else
+		{
+			set->alias_decls.emplace_back(stmt);
 		}
 	}
 

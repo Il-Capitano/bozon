@@ -149,6 +149,16 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 			}
 			break;
 		}
+		case ast::statement::index<ast::decl_function_alias>:
+		{
+			this->_global_decls.add_function_alias(decl);
+			auto const &alias = decl.get<ast::decl_function_alias>();
+			if (alias.is_export())
+			{
+				this->_export_decls.add_function_alias(decl);
+			}
+			break;
+		}
 		case ast::statement::index<ast::decl_import>:
 		{
 			imports.push_back(&decl.get<ast::decl_import>());
