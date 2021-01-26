@@ -321,61 +321,143 @@ type_info *get_builtin_type_info(uint32_t kind)
 }
 
 static auto builtin_functions = []() {
-	auto const bool_type   = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::bool_));
-	auto const uint64_type = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::uint64_));
-	auto const str_type    = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::str_));
+	auto const bool_type    = make_base_type_typespec({}, get_builtin_type_info(type_info::bool_));
+	auto const uint64_type  = make_base_type_typespec({}, get_builtin_type_info(type_info::uint64_));
+	auto const uint8_type   = make_base_type_typespec({}, get_builtin_type_info(type_info::uint8_));
+	auto const float32_type = make_base_type_typespec({}, get_builtin_type_info(type_info::float32_));
+	auto const float64_type = make_base_type_typespec({}, get_builtin_type_info(type_info::float64_));
+	auto const str_type     = make_base_type_typespec({}, get_builtin_type_info(type_info::str_));
+	auto const void_type    = make_void_typespec(nullptr);
+	auto const void_ptr_type = [&]() {
+		typespec result = make_void_typespec(nullptr);
+		result.add_layer<ts_pointer>(nullptr);
+		return result;
+	}();
+	auto const void_const_ptr_type = [&]() {
+		typespec result = make_void_typespec(nullptr);
+		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_const>(nullptr);
+		return result;
+	}();
 	auto const uint8_const_ptr_type = [&]() {
-		ast::typespec result = ast::make_base_type_typespec({}, get_builtin_type_info(ast::type_info::uint8_));
-		result.add_layer<ast::ts_const>(nullptr);
-		result.add_layer<ast::ts_pointer>(nullptr);
+		typespec result = make_base_type_typespec({}, get_builtin_type_info(type_info::uint8_));
+		result.add_layer<ts_const>(nullptr);
+		result.add_layer<ts_pointer>(nullptr);
 		return result;
 	}();
 	auto const auto_ptr_type = [&]() {
-		ast::typespec result = ast::make_auto_typespec({});
-		result.add_layer<ast::ts_pointer>(nullptr);
+		typespec result = make_auto_typespec({});
+		result.add_layer<ts_pointer>(nullptr);
 		return result;
 	}();
 	auto const auto_const_ptr_type = [&]() {
-		ast::typespec result = ast::make_auto_typespec({});
-		result.add_layer<ast::ts_const>(nullptr);
-		result.add_layer<ast::ts_pointer>(nullptr);
+		typespec result = make_auto_typespec({});
+		result.add_layer<ts_const>(nullptr);
+		result.add_layer<ts_pointer>(nullptr);
 		return result;
 	}();
 	auto const slice_auto_type = [&]() {
-		ast::typespec auto_t = ast::make_auto_typespec({});
-		return ast::make_array_slice_typespec({}, std::move(auto_t));
+		typespec auto_t = make_auto_typespec({});
+		return make_array_slice_typespec({}, std::move(auto_t));
 	}();
 	auto const slice_const_auto_type = [&]() {
-		ast::typespec auto_t = ast::make_auto_typespec({});
-		auto_t.add_layer<ast::ts_const>(nullptr);
-		return ast::make_array_slice_typespec({}, std::move(auto_t));
+		typespec auto_t = make_auto_typespec({});
+		auto_t.add_layer<ts_const>(nullptr);
+		return make_array_slice_typespec({}, std::move(auto_t));
 	}();
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
-	bz::array<
-		ast::function_body,
-		ast::function_body::_builtin_last - ast::function_body::_builtin_first
-	> result = {
-		add_builtin( 0, ast::function_body::builtin_str_eq,     "__bozon_builtin_str_eq",     bool_type,   str_type, str_type),
-		add_builtin( 1, ast::function_body::builtin_str_neq,    "__bozon_builtin_str_neq",    bool_type,   str_type, str_type),
-		add_builtin( 2, ast::function_body::builtin_str_length, "__bozon_builtin_str_length", uint64_type, str_type),
+	bz::array result = {
+		add_builtin( 0, function_body::builtin_str_eq,     "__bozon_builtin_str_eq",     bool_type,   str_type, str_type),
+		add_builtin( 1, function_body::builtin_str_neq,    "__bozon_builtin_str_neq",    bool_type,   str_type, str_type),
+		add_builtin( 2, function_body::builtin_str_length, "__bozon_builtin_str_length", uint64_type, str_type),
 
-		add_builtin( 3, ast::function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
-		add_builtin( 4, ast::function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
-		add_builtin( 5, ast::function_body::builtin_str_size,              "", uint64_type, str_type),
-		add_builtin( 6, ast::function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
+		add_builtin( 3, function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
+		add_builtin( 4, function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
+		add_builtin( 5, function_body::builtin_str_size,              "", uint64_type, str_type),
+		add_builtin( 6, function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
 
-		add_builtin( 7, ast::function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
-		add_builtin( 8, ast::function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
-		add_builtin( 9, ast::function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
-		add_builtin(10, ast::function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
-		add_builtin(11, ast::function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
-		add_builtin(12, ast::function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
-		add_builtin(13, ast::function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
+		add_builtin( 7, function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
+		add_builtin( 8, function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
+		add_builtin( 9, function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
+		add_builtin(10, function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
+		add_builtin(11, function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
+		add_builtin(12, function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
+		add_builtin(13, function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
+
+		add_builtin(14, function_body::print_stdout,   "__bozon_print_stdout",   void_type, str_type),
+		add_builtin(15, function_body::println_stdout, "__bozon_println_stdout", void_type, str_type),
+		add_builtin(16, function_body::print_stderr,   "__bozon_print_stderr",   void_type, str_type),
+		add_builtin(17, function_body::println_stderr, "__bozon_println_stderr", void_type, str_type),
+
+		add_builtin(18, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
+		add_builtin(19, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
+		add_builtin(20, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type, bool_type),
+
+		add_builtin(21, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type),
+		add_builtin(22, function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type),
+		add_builtin(23, function_body::exp2_f32,  "llvm.exp2.f32",  float32_type, float32_type),
+		add_builtin(24, function_body::exp2_f64,  "llvm.exp2.f64",  float64_type, float64_type),
+		add_builtin(25, function_body::expm1_f32, "expm1f",         float32_type, float32_type),
+		add_builtin(26, function_body::expm1_f64, "expm1",          float64_type, float64_type),
+		add_builtin(27, function_body::log_f32,   "llvm.log.f32",   float32_type, float32_type),
+		add_builtin(28, function_body::log_f64,   "llvm.log.f64",   float64_type, float64_type),
+		add_builtin(29, function_body::log10_f32, "llvm.log10.f32", float32_type, float32_type),
+		add_builtin(30, function_body::log10_f64, "llvm.log10.f64", float64_type, float64_type),
+		add_builtin(31, function_body::log2_f32,  "llvm.log2.f32",  float32_type, float32_type),
+		add_builtin(32, function_body::log2_f64,  "llvm.log2.f64",  float64_type, float64_type),
+		add_builtin(33, function_body::log1p_f32, "log1pf",         float32_type, float32_type),
+		add_builtin(34, function_body::log1p_f64, "log1p",          float64_type, float64_type),
+
+		add_builtin(35, function_body::sqrt_f32,  "llvm.sqrt.f32", float32_type, float32_type),
+		add_builtin(36, function_body::sqrt_f64,  "llvm.sqrt.f64", float64_type, float64_type),
+		add_builtin(37, function_body::pow_f32,   "llvm.pow.f32",  float32_type, float32_type, float32_type),
+		add_builtin(38, function_body::pow_f64,   "llvm.pow.f64",  float64_type, float64_type, float64_type),
+		add_builtin(39, function_body::cbrt_f32,  "cbrtf",         float32_type, float32_type),
+		add_builtin(40, function_body::cbrt_f64,  "cbrt",          float64_type, float64_type),
+		add_builtin(41, function_body::hypot_f32, "hypotf",        float32_type, float32_type, float32_type),
+		add_builtin(42, function_body::hypot_f64, "hypot",         float64_type, float64_type, float64_type),
+
+		add_builtin(43, function_body::sin_f32,   "llvm.sin.f32", float32_type, float32_type),
+		add_builtin(44, function_body::sin_f64,   "llvm.sin.f64", float64_type, float64_type),
+		add_builtin(45, function_body::cos_f32,   "llvm.cos.f32", float32_type, float32_type),
+		add_builtin(46, function_body::cos_f64,   "llvm.cos.f64", float64_type, float64_type),
+		add_builtin(47, function_body::tan_f32,   "tanf",         float32_type, float32_type),
+		add_builtin(48, function_body::tan_f64,   "tan",          float64_type, float64_type),
+		add_builtin(49, function_body::asin_f32,  "asinf",        float32_type, float32_type),
+		add_builtin(50, function_body::asin_f64,  "asin",         float64_type, float64_type),
+		add_builtin(51, function_body::acos_f32,  "acosf",        float32_type, float32_type),
+		add_builtin(52, function_body::acos_f64,  "acos",         float64_type, float64_type),
+		add_builtin(53, function_body::atan_f32,  "atanf",        float32_type, float32_type),
+		add_builtin(54, function_body::atan_f64,  "atan",         float64_type, float64_type),
+		add_builtin(55, function_body::atan2_f32, "atan2f",       float32_type, float32_type, float32_type),
+		add_builtin(56, function_body::atan2_f64, "atan2",        float64_type, float64_type, float64_type),
+
+		add_builtin(57, function_body::sinh_f32,  "sinhf",  float32_type, float32_type),
+		add_builtin(58, function_body::sinh_f64,  "sinh",   float64_type, float64_type),
+		add_builtin(59, function_body::cosh_f32,  "coshf",  float32_type, float32_type),
+		add_builtin(60, function_body::cosh_f64,  "cosh",   float64_type, float64_type),
+		add_builtin(61, function_body::tanh_f32,  "tanhf",  float32_type, float32_type),
+		add_builtin(62, function_body::tanh_f64,  "tanh",   float64_type, float64_type),
+		add_builtin(63, function_body::asinh_f32, "asinhf", float32_type, float32_type),
+		add_builtin(64, function_body::asinh_f64, "asinh",  float64_type, float64_type),
+		add_builtin(65, function_body::acosh_f32, "acoshf", float32_type, float32_type),
+		add_builtin(66, function_body::acosh_f64, "acosh",  float64_type, float64_type),
+		add_builtin(67, function_body::atanh_f32, "atanhf", float32_type, float32_type),
+		add_builtin(68, function_body::atanh_f64, "atanh",  float64_type, float64_type),
+
+		add_builtin(69, function_body::erf_f32,    "erff",    float32_type, float32_type),
+		add_builtin(70, function_body::erf_f64,    "erf",     float64_type, float64_type),
+		add_builtin(71, function_body::erfc_f32,   "erfcf",   float32_type, float32_type),
+		add_builtin(72, function_body::erfc_f64,   "erfc",    float64_type, float64_type),
+		add_builtin(73, function_body::tgamma_f32, "tgammaf", float32_type, float32_type),
+		add_builtin(74, function_body::tgamma_f64, "tgamma",  float64_type, float64_type),
+		add_builtin(75, function_body::lgamma_f32, "lgammaf", float32_type, float32_type),
+		add_builtin(76, function_body::lgamma_f64, "lgamma",  float64_type, float64_type),
 	};
 #undef add_builtin
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 14);
+	static_assert(result.size() == intrinsic_info.size());
 	return result;
 }();
 

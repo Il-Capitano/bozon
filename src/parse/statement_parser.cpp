@@ -940,6 +940,7 @@ static ast::function_body parse_function_body(
 	ctx::parse_context &context
 )
 {
+	ast::function_body result = {};
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	auto [param_stream, param_end] = get_expression_tokens<
 		lex::token::paren_close
@@ -954,7 +955,6 @@ static ast::function_body parse_function_body(
 		context.report_paren_match_error(param_end, open_paren);
 	}
 
-	ast::function_body result = {};
 	result.src_tokens = src_tokens;
 	result.function_name = std::move(function_name);
 	while (param_stream != param_end)
@@ -1108,6 +1108,11 @@ ast::statement parse_decl_operator(
 		: lex::src_tokens{ begin, begin, begin + 1 };
 
 	auto body = parse_function_body(src_tokens, bz::format("{}", op->kind), stream, end, context);
+	auto const op_kind = op->kind;
+	if (is_binary_operator(op_kind) && !get_binary_precedence(op_kind).is_left_associative)
+	{
+		body.flags |= ast::function_body::reversed_args;
+	}
 
 	if constexpr (is_global)
 	{
@@ -1731,153 +1736,6 @@ static void apply_extern(
 	func_body.cc = cc;
 }
 
-struct intrinsic_info_t
-{
-	bz::u8string_view name;
-	bz::u8string_view symbol_name;
-	uint32_t kind;
-};
-
-constexpr auto intrinsic_info = []() {
-	using T = intrinsic_info_t;
-
-	bz::array result = {
-		T{ "print_stdout",   "__bozon_builtin_print_stdout",    ast::function_body::print_stdout   },
-		T{ "println_stdout", "__bozon_builtin_println_stdout",  ast::function_body::println_stdout },
-		T{ "print_stderr",   "__bozon_builtin_print_stderr",    ast::function_body::print_stderr   },
-		T{ "println_stderr", "__bozon_builtin_println_stderr",  ast::function_body::println_stderr },
-
-		T{ "memcpy_i32",  "llvm.memcpy.p0i8.p0i8.i32",  ast::function_body::memcpy  },
-		T{ "memcpy_i64",  "llvm.memcpy.p0i8.p0i8.i64",  ast::function_body::memcpy  },
-		T{ "memmove_i32", "llvm.memmove.p0i8.p0i8.i32", ast::function_body::memmove },
-		T{ "memmove_i64", "llvm.memmove.p0i8.p0i8.i64", ast::function_body::memmove },
-		T{ "memset_i32",  "llvm.memset.p0i8.i32",       ast::function_body::memset  },
-		T{ "memset_i64",  "llvm.memset.p0i8.i64",       ast::function_body::memset  },
-
-		T{ "exp_f32",   "llvm.exp.f32",   ast::function_body::exp_f32   },
-		T{ "exp_f64",   "llvm.exp.f64",   ast::function_body::exp_f64   },
-		T{ "exp2_f32",  "llvm.exp2.f32",  ast::function_body::exp2_f32  },
-		T{ "exp2_f64",  "llvm.exp2.f64",  ast::function_body::exp2_f64  },
-		T{ "expm1_f32", "expm1f",         ast::function_body::expm1_f32 },
-		T{ "expm1_f64", "expm1",          ast::function_body::expm1_f64 },
-		T{ "log_f32",   "llvm.log.f32",   ast::function_body::log_f32   },
-		T{ "log_f64",   "llvm.log.f64",   ast::function_body::log_f64   },
-		T{ "log10_f32", "llvm.log10.f32", ast::function_body::log10_f32 },
-		T{ "log10_f64", "llvm.log10.f64", ast::function_body::log10_f64 },
-		T{ "log2_f32",  "llvm.log2.f32",  ast::function_body::log2_f32  },
-		T{ "log2_f64",  "llvm.log2.f64",  ast::function_body::log2_f64  },
-		T{ "log1p_f32", "log1pf",         ast::function_body::log1p_f32 },
-		T{ "log1p_f64", "log1p",          ast::function_body::log1p_f64 },
-
-		T{ "pow_f32",   "llvm.pow.f32",  ast::function_body::pow_f32   },
-		T{ "pow_f64",   "llvm.pow.f64",  ast::function_body::pow_f64   },
-		T{ "sqrt_f32",  "llvm.sqrt.f32", ast::function_body::sqrt_f32  },
-		T{ "sqrt_f64",  "llvm.sqrt.f64", ast::function_body::sqrt_f64  },
-		T{ "cbrt_f32",  "cbrtf",         ast::function_body::cbrt_f32  },
-		T{ "cbrt_f64",  "cbrt",          ast::function_body::cbrt_f64  },
-		T{ "hypot_f32", "hypotf",        ast::function_body::hypot_f32 },
-		T{ "hypot_f64", "hypot",         ast::function_body::hypot_f64 },
-
-		T{ "sin_f32",   "llvm.sin.f32", ast::function_body::sin_f32   },
-		T{ "sin_f64",   "llvm.sin.f64", ast::function_body::sin_f64   },
-		T{ "cos_f32",   "llvm.cos.f32", ast::function_body::cos_f32   },
-		T{ "cos_f64",   "llvm.cos.f64", ast::function_body::cos_f64   },
-		T{ "tan_f32",   "tanf",         ast::function_body::tan_f32   },
-		T{ "tan_f64",   "tan",          ast::function_body::tan_f64   },
-		T{ "asin_f32",  "asinf",        ast::function_body::asin_f32  },
-		T{ "asin_f64",  "asin",         ast::function_body::asin_f64  },
-		T{ "acos_f32",  "acosf",        ast::function_body::acos_f32  },
-		T{ "acos_f64",  "acos",         ast::function_body::acos_f64  },
-		T{ "atan_f32",  "atanf",        ast::function_body::atan_f32  },
-		T{ "atan_f64",  "atan",         ast::function_body::atan_f64  },
-		T{ "atan2_f32", "atan2f",       ast::function_body::atan2_f32 },
-		T{ "atan2_f64", "atan2",        ast::function_body::atan2_f64 },
-
-		T{ "sinh_f32",  "sinhf",  ast::function_body::sinh_f32  },
-		T{ "sinh_f64",  "sinh",   ast::function_body::sinh_f64  },
-		T{ "cosh_f32",  "coshf",  ast::function_body::cosh_f32  },
-		T{ "cosh_f64",  "cosh",   ast::function_body::cosh_f64  },
-		T{ "tanh_f32",  "tanhf",  ast::function_body::tanh_f32  },
-		T{ "tanh_f64",  "tanh",   ast::function_body::tanh_f64  },
-		T{ "asinh_f32", "asinhf", ast::function_body::asinh_f32 },
-		T{ "asinh_f64", "asinh",  ast::function_body::asinh_f64 },
-		T{ "acosh_f32", "acoshf", ast::function_body::acosh_f32 },
-		T{ "acosh_f64", "acosh",  ast::function_body::acosh_f64 },
-		T{ "atanh_f32", "atanhf", ast::function_body::atanh_f32 },
-		T{ "atanh_f64", "atanh",  ast::function_body::atanh_f64 },
-
-		T{ "erf_f32",    "erff",    ast::function_body::erf_f32    },
-		T{ "erf_f64",    "erf",     ast::function_body::erf_f64    },
-		T{ "erfc_f32",   "erfcf",   ast::function_body::erfc_f32   },
-		T{ "erfc_f64",   "erfc",    ast::function_body::erfc_f64   },
-		T{ "tgamma_f32", "tgammaf", ast::function_body::tgamma_f32 },
-		T{ "tgamma_f64", "tgamma",  ast::function_body::tgamma_f64 },
-		T{ "lgamma_f32", "lgammaf", ast::function_body::lgamma_f32 },
-		T{ "lgamma_f64", "lgamma",  ast::function_body::lgamma_f64 },
-	};
-
-	return result;
-}();
-
-static void apply_intrinsic(
-	ast::function_body &func_body,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	bz_assert(attribute.name->value == "intrinsic");
-	if (attribute.args.size() != 1)
-	{
-		context.report_error(attribute.name, "@intrinsic expects exactly one argument");
-		return;
-	}
-
-	// symbol name
-	{
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "name in @intrinsic must have type 'str'");
-			return;
-		}
-	}
-
-	if ((func_body.flags & ast::function_body::intrinsic) != 0)
-	{
-		context.report_error(attribute.name, "declaration has already been marked as @intrinsic");
-		return;
-	}
-
-	auto const name = attribute.args[0]
-		.get<ast::constant_expression>().value
-		.get<ast::constant_value::string>().as_string_view();
-
-	auto const info = std::find_if(
-		intrinsic_info.begin(), intrinsic_info.end(),
-		[&](auto const &info) {
-			return name == info.name;
-		}
-	);
-
-	if (info == intrinsic_info.end())
-	{
-		context.report_error(
-			attribute.args[0],
-			bz::format("unknown intrinsic '{}'", name)
-		);
-		return;
-	}
-
-	func_body.flags |= ast::function_body::intrinsic;
-	func_body.intrinsic_kind = info->kind;
-	func_body.symbol_name = info->symbol_name;
-	func_body.cc = abi::calling_convention::c;
-}
-
 static void apply_symbol_name(
 	ast::function_body &func_body,
 	ast::attribute &attribute,
@@ -1924,10 +1782,6 @@ static void apply_attribute(
 	{
 		apply_extern(func_decl.body, attribute, context);
 	}
-	else if (attr_name == "intrinsic")
-	{
-		apply_intrinsic(func_decl.body, attribute, context);
-	}
 	else if (attr_name == "cdecl")
 	{
 		if (attribute.args.size() != 0)
@@ -1973,10 +1827,6 @@ static void apply_attribute(
 	if (attr_name == "extern")
 	{
 		apply_extern(op_decl.body, attribute, context);
-	}
-	else if (attr_name == "intrinsic")
-	{
-		apply_intrinsic(op_decl.body, attribute, context);
 	}
 	else if (attr_name == "symbol_name")
 	{

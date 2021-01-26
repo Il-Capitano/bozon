@@ -304,6 +304,7 @@ struct function_body
 		intrinsic              = bit_at<3>,
 		generic                = bit_at<4>,
 		generic_specialization = bit_at<5>,
+		reversed_args          = bit_at<6>,
 	};
 
 	enum : uint32_t
@@ -466,6 +467,11 @@ struct function_body
 	bool is_generic_specialization(void) const noexcept
 	{
 		return (this->flags & generic_specialization) != 0;
+	}
+
+	bool is_reversed_args(void) const noexcept
+	{
+		return (this->flags & reversed_args) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(
@@ -779,6 +785,112 @@ def_make_fn(statement, stmt_static_assert)
 
 type_info *get_builtin_type_info(uint32_t kind);
 function_body *get_builtin_function(uint32_t kind);
+
+struct intrinsic_info_t
+{
+	uint32_t kind;
+	bz::u8string_view func_name;
+};
+
+constexpr auto intrinsic_info = []() {
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 14);
+	static_assert(function_body::_intrinsic_last - function_body::_intrinsic_first == 63);
+	constexpr size_t size = (function_body::_builtin_last - function_body::_builtin_first) + (function_body::_intrinsic_last - function_body::_intrinsic_first);
+	return bz::array<intrinsic_info_t, size>{{
+		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
+		{ function_body::builtin_str_neq,    "__builtin_str_neq"    },
+		{ function_body::builtin_str_length, "__builtin_str_length" },
+
+		{ function_body::builtin_str_begin_ptr, "__builtin_str_begin_ptr" },
+		{ function_body::builtin_str_end_ptr,   "__builtin_str_end_ptr"   },
+		{ function_body::builtin_str_size,      "__builtin_str_size"      },
+		{ function_body::builtin_str_from_ptrs, "__builtin_str_from_ptrs" },
+
+		{ function_body::builtin_slice_begin_ptr,       "__builtin_slice_begin_ptr"       },
+		{ function_body::builtin_slice_begin_const_ptr, "__builtin_slice_begin_const_ptr" },
+		{ function_body::builtin_slice_end_ptr,         "__builtin_slice_end_ptr"         },
+		{ function_body::builtin_slice_end_const_ptr,   "__builtin_slice_end_const_ptr"   },
+		{ function_body::builtin_slice_size,            "__builtin_slice_size"            },
+		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
+		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
+
+		{ function_body::print_stdout,   "__builtin_print_stdout"   },
+		{ function_body::println_stdout, "__builtin_println_stdout" },
+		{ function_body::print_stderr,   "__builtin_print_stderr"   },
+		{ function_body::println_stderr, "__builtin_println_stderr" },
+
+		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
+		// and other C standard library functions
+
+		{ function_body::memcpy,  "__builtin_memcpy"  },
+		{ function_body::memmove, "__builtin_memmove" },
+		{ function_body::memset,  "__builtin_memset"  },
+
+		// C standard library math functions
+
+		{ function_body::exp_f32,   "__builtin_exp_f32"   },
+		{ function_body::exp_f64,   "__builtin_exp_f64"   },
+		{ function_body::exp2_f32,  "__builtin_exp2_f32"  },
+		{ function_body::exp2_f64,  "__builtin_exp2_f64"  },
+		{ function_body::expm1_f32, "__builtin_expm1_f32" },
+		{ function_body::expm1_f64, "__builtin_expm1_f64" },
+		{ function_body::log_f32,   "__builtin_log_f32"   },
+		{ function_body::log_f64,   "__builtin_log_f64"   },
+		{ function_body::log10_f32, "__builtin_log10_f32" },
+		{ function_body::log10_f64, "__builtin_log10_f64" },
+		{ function_body::log2_f32,  "__builtin_log2_f32"  },
+		{ function_body::log2_f64,  "__builtin_log2_f64"  },
+		{ function_body::log1p_f32, "__builtin_log1p_f32" },
+		{ function_body::log1p_f64, "__builtin_log1p_f64" },
+
+		{ function_body::sqrt_f32,  "__builtin_sqrt_f32"  },
+		{ function_body::sqrt_f64,  "__builtin_sqrt_f64"  },
+		{ function_body::pow_f32,   "__builtin_pow_f32"   },
+		{ function_body::pow_f64,   "__builtin_pow_f64"   },
+		{ function_body::cbrt_f32,  "__builtin_cbrt_f32"  },
+		{ function_body::cbrt_f64,  "__builtin_cbrt_f64"  },
+		{ function_body::hypot_f32, "__builtin_hypot_f32" },
+		{ function_body::hypot_f64, "__builtin_hypot_f64" },
+
+		{ function_body::sin_f32,   "__builtin_sin_f32"   },
+		{ function_body::sin_f64,   "__builtin_sin_f64"   },
+		{ function_body::cos_f32,   "__builtin_cos_f32"   },
+		{ function_body::cos_f64,   "__builtin_cos_f64"   },
+		{ function_body::tan_f32,   "__builtin_tan_f32"   },
+		{ function_body::tan_f64,   "__builtin_tan_f64"   },
+		{ function_body::asin_f32,  "__builtin_asin_f32"  },
+		{ function_body::asin_f64,  "__builtin_asin_f64"  },
+		{ function_body::acos_f32,  "__builtin_acos_f32"  },
+		{ function_body::acos_f64,  "__builtin_acos_f64"  },
+		{ function_body::atan_f32,  "__builtin_atan_f32"  },
+		{ function_body::atan_f64,  "__builtin_atan_f64"  },
+		{ function_body::atan2_f32, "__builtin_atan2_f32" },
+		{ function_body::atan2_f64, "__builtin_atan2_f64" },
+
+		{ function_body::sinh_f32,  "__builtin_sinh_f32"  },
+		{ function_body::sinh_f64,  "__builtin_sinh_f64"  },
+		{ function_body::cosh_f32,  "__builtin_cosh_f32"  },
+		{ function_body::cosh_f64,  "__builtin_cosh_f64"  },
+		{ function_body::tanh_f32,  "__builtin_tanh_f32"  },
+		{ function_body::tanh_f64,  "__builtin_tanh_f64"  },
+		{ function_body::asinh_f32, "__builtin_asinh_f32" },
+		{ function_body::asinh_f64, "__builtin_asinh_f64" },
+		{ function_body::acosh_f32, "__builtin_acosh_f32" },
+		{ function_body::acosh_f64, "__builtin_acosh_f64" },
+		{ function_body::atanh_f32, "__builtin_atanh_f32" },
+		{ function_body::atanh_f64, "__builtin_atanh_f64" },
+
+		{ function_body::erf_f32,    "__builtin_erf_f32"    },
+		{ function_body::erf_f64,    "__builtin_erf_f64"    },
+		{ function_body::erfc_f32,   "__builtin_erfc_f32"   },
+		{ function_body::erfc_f64,   "__builtin_erfc_f64"   },
+		{ function_body::tgamma_f32, "__builtin_tgamma_f32" },
+		{ function_body::tgamma_f64, "__builtin_tgamma_f64" },
+		{ function_body::lgamma_f32, "__builtin_lgamma_f32" },
+		{ function_body::lgamma_f64, "__builtin_lgamma_f64" },
+	}};
+}();
+
 
 } // namespace ast
 

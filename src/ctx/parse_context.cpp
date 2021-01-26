@@ -1020,31 +1020,12 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	}
 	else if (id_value.starts_with("__builtin"))
 	{
-		using T = std::pair<bz::u8string_view, uint32_t>;
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 14);
-		static constexpr bz::array builtins = {
-			T{ "__builtin_str_eq",                ast::function_body::builtin_str_eq                },
-			T{ "__builtin_str_neq",               ast::function_body::builtin_str_neq               },
-			T{ "__builtin_str_length",            ast::function_body::builtin_str_length            },
-			T{ "__builtin_str_begin_ptr",         ast::function_body::builtin_str_begin_ptr         },
-			T{ "__builtin_str_end_ptr",           ast::function_body::builtin_str_end_ptr           },
-			T{ "__builtin_str_size",              ast::function_body::builtin_str_size              },
-			T{ "__builtin_str_from_ptrs",         ast::function_body::builtin_str_from_ptrs         },
-
-			T{ "__builtin_slice_begin_ptr",       ast::function_body::builtin_slice_begin_ptr       },
-			T{ "__builtin_slice_begin_const_ptr", ast::function_body::builtin_slice_begin_const_ptr },
-			T{ "__builtin_slice_end_ptr",         ast::function_body::builtin_slice_end_ptr         },
-			T{ "__builtin_slice_end_const_ptr",   ast::function_body::builtin_slice_end_const_ptr   },
-			T{ "__builtin_slice_size",            ast::function_body::builtin_slice_size,           },
-			T{ "__builtin_slice_from_ptrs",       ast::function_body::builtin_slice_from_ptrs       },
-			T{ "__builtin_slice_from_const_ptrs", ast::function_body::builtin_slice_from_const_ptrs },
-		};
-		auto const it = std::find_if(builtins.begin(), builtins.end(), [id_value](auto const &p) {
-			return p.first == id_value;
+		auto const it = std::find_if(ast::intrinsic_info.begin(), ast::intrinsic_info.end(), [id_value](auto const &p) {
+			return p.func_name == id_value;
 		});
-		if (it != builtins.end())
+		if (it != ast::intrinsic_info.end())
 		{
-			auto const func_body = ast::get_builtin_function(it->second);
+			auto const func_body = ast::get_builtin_function(it->kind);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::function_name,

@@ -3,6 +3,7 @@
 #include <llvm/IR/Attributes.h>
 
 #include "ast/typespec.h"
+#include "bz/meta.h"
 #include "runtime_emit_bitcode.h"
 #include "ctx/built_in_operators.h"
 #include "colors.h"
@@ -1858,16 +1859,24 @@ static val_ptr emit_bitcode(
 		params_is_pass_by_ref.push_back(false);
 	}
 
-	for (size_t i = 0; i < func_call.params.size(); ++i)
+	auto const emit_arg = [&]<bool push_to_front>(size_t i, bz::meta::integral_constant<bool, push_to_front>)
 	{
+		using params_push_type = decltype(params)::value_type &(bz::meta::remove_cv_reference<decltype(params)>::*)(decltype(params)::value_type const &);
+		using ref_push_type = decltype(params_is_pass_by_ref)::value_type &(bz::meta::remove_cv_reference<decltype(params_is_pass_by_ref)>::*)(decltype(params_is_pass_by_ref)::value_type const &);
+		constexpr auto params_push = push_to_front
+			? static_cast<params_push_type>(&decltype(params)::push_front)
+			: static_cast<params_push_type>(&decltype(params)::push_back);
+		constexpr auto ref_push = push_to_front
+			? static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_front)
+			: static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_back);
 		auto &p = func_call.params[i];
 		auto &p_t = func_call.func_body->params[i].var_type;
 		auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 		if (p_t.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(param_val.kind == val_ptr::reference);
-			params.push_back(param_val.val);
-			params_is_pass_by_ref.push_back(false);
+			(params.*params_push)(param_val.val);
+			(params_is_pass_by_ref.*ref_push)(false);
 		}
 		// *void and *const void
 		else if (ast::remove_const_or_consteval(ast::remove_pointer(p_t)).is<ast::ts_void>())
@@ -1876,8 +1885,8 @@ static val_ptr emit_bitcode(
 				param_val.get_value(context.builder),
 				llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
 			);
-			params.push_back(void_ptr_val);
-			params_is_pass_by_ref.push_back(false);
+			(params.*params_push)(void_ptr_val);
+			(params_is_pass_by_ref.*ref_push)(false);
 		}
 		else
 		{
@@ -1892,27 +1901,27 @@ static val_ptr emit_bitcode(
 				// see: https://reviews.llvm.org/D79636
 				if (param_val.kind == val_ptr::reference)
 				{
-					params.push_back(param_val.val);
+					(params.*params_push)(param_val.val);
 				}
 				else
 				{
 					auto const val = param_val.get_value(context.builder);
 					auto const alloca = context.create_alloca(param_llvm_type);
 					context.builder.CreateStore(val, alloca);
-					params.push_back(alloca);
+					(params.*params_push)(alloca);
 				}
-				params_is_pass_by_ref.push_back(true);
+				(params_is_pass_by_ref.*ref_push)(true);
 				break;
 			case abi::pass_kind::value:
-				params.push_back(param_val.get_value(context.builder));
-				params_is_pass_by_ref.push_back(false);
+				(params.*params_push)(param_val.get_value(context.builder));
+				(params_is_pass_by_ref.*ref_push)(false);
 				break;
 			case abi::pass_kind::one_register:
-				params.push_back(context.create_bitcast(
+				(params.*params_push)(context.create_bitcast(
 					param_val,
 					abi::get_one_register_type<abi>(param_val.get_type(), context)
 				));
-				params_is_pass_by_ref.push_back(false);
+				(params_is_pass_by_ref.*ref_push)(false);
 				break;
 			case abi::pass_kind::two_registers:
 			{
@@ -1920,13 +1929,40 @@ static val_ptr emit_bitcode(
 				auto const cast_val = context.create_bitcast(param_val, llvm::StructType::get(first_type, second_type));
 				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
 				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
-				params.push_back(first_val);
-				params_is_pass_by_ref.push_back(false);
-				params.push_back(second_val);
-				params_is_pass_by_ref.push_back(false);
+				if constexpr (push_to_front)
+				{
+					params.push_front(second_val);
+					params_is_pass_by_ref.push_front(false);
+					params.push_front(first_val);
+					params_is_pass_by_ref.push_front(false);
+				}
+				else
+				{
+					params.push_back(first_val);
+					params_is_pass_by_ref.push_back(false);
+					params.push_back(second_val);
+					params_is_pass_by_ref.push_back(false);
+				}
 				break;
 			}
 			}
+		}
+	};
+
+	if (func_call.func_body->is_reversed_args())
+	{
+		auto const size = func_call.params.size();
+		for (size_t i = size; i != 0; --i)
+		{
+			emit_arg(i - 1, bz::meta::integral_constant<bool, true>{});
+		}
+	}
+	else
+	{
+		auto const size = func_call.params.size();
+		for (size_t i = 0; i < size; ++i)
+		{
+			emit_arg(i, bz::meta::integral_constant<bool, false>{});
 		}
 	}
 
