@@ -21,8 +21,6 @@
 
 		"source_directory": "src",
 		"include_paths": [ "src", "include" ],
-		"library_paths": [],
-		"libraries": [],
 
 		"defines": [],
 		"warnings": [
@@ -41,31 +39,9 @@
 			},
 			"linux-release": {},
 			"windows": {
-				"defines": [
-					"_FILE_OFFSET_BITS=64",
-					"__STDC_CONSTANT_MACROS",
-					"__STDC_FORMAT_MACROS",
-					"__STDC_LIMIT_MACROS"
-				],
-				"cpp_compiler_flags": [ "-fno-exceptions", "-fno-rtti" ],
-				"link_flags": [ "-fno-exceptions", "-fno-rtti" ],
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
-				"include_paths": [
-					"/usr/lib/llvm-11/include"
-				],
-				"library_paths": [
-					"/usr/lib/llvm-11/lib"
-				],
-				"defines": [
-					"_GNU_SOURCE",
-					"__STDC_CONSTANT_MACROS",
-					"__STDC_FORMAT_MACROS",
-					"__STDC_LIMIT_MACROS"
-				],
-				"cpp_compiler_flags": [ "-fno-exceptions" ],
-				"link_flags": [ "-fno-exceptions" ],
 				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ]
 			},
