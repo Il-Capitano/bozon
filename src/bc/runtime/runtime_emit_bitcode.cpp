@@ -3135,7 +3135,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	}
 
 	auto is_by_ref_it = pass_arg_by_ref.begin();
-	auto is_by_ref_end = pass_arg_by_ref.begin();
+	auto is_by_ref_end = pass_arg_by_ref.end();
 	auto arg_it = fn->arg_begin();
 
 	if (return_kind == abi::pass_kind::reference)
