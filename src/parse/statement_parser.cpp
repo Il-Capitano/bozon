@@ -590,7 +590,7 @@ void resolve_function_alias(
 	ctx::parse_context &context
 )
 {
-	if (alias_decl.state >= ast::resolve_state::all)
+	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
 	{
 		return;
 	}
@@ -652,9 +652,15 @@ void resolve_function_alias(
 	{
 		auto const func_set_id = value.get<ast::constant_value::function_set_id>();
 		bz_assert(alias_decl.aliased_bodies.empty());
-		alias_decl.aliased_bodies = context.get_function_bodies_from_id(func_set_id);
-		bz_assert(!alias_decl.aliased_bodies.empty());
-		alias_decl.state = ast::resolve_state::all;
+		alias_decl.aliased_bodies = context.get_function_bodies_from_id(alias_decl.alias_expr.src_tokens, func_set_id);
+		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_bodies.empty())
+		{
+			alias_decl.state = ast::resolve_state::all;
+		}
+		else
+		{
+			alias_decl.state = ast::resolve_state::error;
+		}
 	}
 	else
 	{

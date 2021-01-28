@@ -293,7 +293,7 @@ struct parse_context
 		ast::typespec &type
 	);
 
-	bz::vector<ast::function_body *> get_function_bodies_from_id(bz::u8string_view id);
+	bz::vector<ast::function_body *> get_function_bodies_from_id(lex::src_tokens requester, bz::u8string_view id);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);

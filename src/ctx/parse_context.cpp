@@ -216,6 +216,7 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 				break;
 			}
 		}
+		bz_assert(dep.requester.pivot != nullptr);
 		notes.emplace_back(make_note(dep.requester, "required from here"));
 	}
 
@@ -243,13 +244,26 @@ void parse_context::report_circular_dependency_error(ast::decl_function_alias &a
 	for (auto const &dep : bz::reversed(this->resolve_queue))
 	{
 		if (
-			notes.size() != 0
+			!notes.empty()
 			&& dep.requested.is<ast::function_body *>()
-			&& dep.requested.get<ast::function_body *>()->is_generic_specialization()
 		)
 		{
 			auto const func_body = dep.requested.get<ast::function_body *>();
-			notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+			if (func_body->is_generic_specialization())
+			{
+				notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+			}
+			else
+			{
+				notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
+			}
+		}
+		else if (
+			!notes.empty()
+			&& dep.requested.is<ast::decl_function_alias *>()
+		)
+		{
+			notes.back().message = bz::format("required from instantiation of alias 'function {}'", dep.requested.get<ast::decl_function_alias *>()->identifier->value);
 		}
 		if (dep.requested == &alias)
 		{
@@ -259,12 +273,13 @@ void parse_context::report_circular_dependency_error(ast::decl_function_alias &a
 				break;
 			}
 		}
+		bz_assert(dep.requester.pivot != nullptr);
 		notes.emplace_back(make_note(dep.requester, "required from here"));
 	}
 
 	this->report_error(
 		alias.src_tokens,
-		bz::format("circular dependency encountered while resolving function alias '{}'", alias.identifier->value),
+		bz::format("circular dependency encountered while resolving alias 'function {}'", alias.identifier->value),
 		std::move(notes)
 	);
 }
@@ -872,8 +887,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 	if (is_function_set)
 	{
 		int fn_set_count = 0;
-		using iter_t = decltype(this->scope_decls[0].func_sets)::const_iterator;
-		iter_t final_set = nullptr;
+		ast::function_body *final_body = nullptr;
 		for (auto &scope : this->scope_decls)
 		{
 			auto const fn_set = std::find_if(
@@ -885,7 +899,11 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			if (fn_set != scope.func_sets.end())
 			{
 				++fn_set_count;
-				if (fn_set_count >= 2 || fn_set->func_decls.size() >= 2)
+				if (
+					fn_set_count >= 2
+					|| fn_set->func_decls.size() + fn_set->alias_decls.size() >= 2
+					|| (fn_set->alias_decls.size() == 1 && fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.size() >= 2)
+				)
 				{
 					static_assert(bz::meta::is_same<decltype(id_value), bz::u8string_view const>);
 					return ast::make_constant_expression(
@@ -895,7 +913,9 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 						ast::make_expr_identifier(id)
 					);
 				}
-				final_set = fn_set;
+				final_body = fn_set->func_decls.empty()
+					? fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.front()
+					: &fn_set->func_decls.front().get<ast::decl_function>().body;
 			}
 		}
 
@@ -909,7 +929,11 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 		if (global_fn_set != global_decls.func_sets.end())
 		{
 			++fn_set_count;
-			if (fn_set_count >= 2 || global_fn_set->func_decls.size() >= 2)
+			if (
+				fn_set_count >= 2
+				|| global_fn_set->func_decls.size() + global_fn_set->alias_decls.size() >= 2
+				|| (global_fn_set->alias_decls.size() == 1 && global_fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.size() >= 2)
+			)
 			{
 				static_assert(bz::meta::is_same<decltype(id_value), bz::u8string_view const>);
 				return ast::make_constant_expression(
@@ -921,26 +945,33 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id) con
 			}
 			else
 			{
-				bz_assert(global_fn_set->func_decls.size() == 1);
-				bz_assert(final_set == nullptr);
-				auto &body = global_fn_set->func_decls[0].get<ast::decl_function>().body;
+				bz_assert(
+					(global_fn_set->func_decls.size() == 1 && global_fn_set->alias_decls.empty())
+					|| (
+						global_fn_set->func_decls.empty()
+						&& global_fn_set->alias_decls.size() == 1
+						&& global_fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.size() == 1
+					)
+				);
+				bz_assert(final_body == nullptr);
+				auto const body = global_fn_set->func_decls.empty()
+					? global_fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.front()
+					: &global_fn_set->func_decls.front().get<ast::decl_function>().body;
 				return ast::make_constant_expression(
 					src_tokens,
-					ast::expression_type_kind::function_name, get_function_type(body),
-					ast::constant_value(&body),
+					ast::expression_type_kind::function_name, get_function_type(*body),
+					ast::constant_value(body),
 					ast::make_expr_identifier(id)
 				);
 			}
 		}
 		else
 		{
-			bz_assert(final_set != nullptr);
-			bz_assert(final_set->func_decls.size() == 1);
-			auto &body = final_set->func_decls[0].get<ast::decl_function>().body;
+			bz_assert(final_body != nullptr);
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::function_name, get_function_type(body),
-				ast::constant_value(&body),
+				ast::expression_type_kind::function_name, get_function_type(*final_body),
+				ast::constant_value(final_body),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -2417,7 +2448,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 						{
 							auto &alias = func.stmt.get<ast::decl_function_alias>();
 							notes.emplace_back(context.make_note(
-								alias.src_tokens, bz::format("via function alias '{}'", alias.identifier->value)
+								alias.src_tokens, bz::format("via alias 'function {}'", alias.identifier->value)
 							));
 						}
 					}
@@ -2441,7 +2472,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 		{
 			auto &alias = func.stmt.get<ast::decl_function_alias>();
 			notes.emplace_back(context.make_note(
-				alias.src_tokens, bz::format("via function alias '{}'", alias.identifier->value)
+				alias.src_tokens, bz::format("via alias 'function {}'", alias.identifier->value)
 			));
 		}
 	}
@@ -3114,7 +3145,7 @@ void parse_context::match_expression_to_type(
 	}
 }
 
-bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(bz::u8string_view id)
+bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(lex::src_tokens requester, bz::u8string_view id)
 {
 	for (
 		auto scope = this->scope_decls.rbegin();
@@ -3134,7 +3165,9 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(bz::
 			result.append(set->func_decls.transform([](auto const view) { return &view.template get<ast::decl_function>().body; }));
 			for (auto const &alias : set->alias_decls)
 			{
+				this->add_to_resolve_queue(requester, alias.get<ast::decl_function_alias>());
 				parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+				this->pop_resolve_queue();
 				result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
 			}
 			return result;
@@ -3154,7 +3187,9 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(bz::
 		result.append(global_set->func_decls.transform([](auto const view) { return &view.template get<ast::decl_function>().body; }));
 		for (auto const &alias : global_set->alias_decls)
 		{
+			this->add_to_resolve_queue(requester, alias.get<ast::decl_function_alias>());
 			parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+			this->pop_resolve_queue();
 			result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
 		}
 		return result;
