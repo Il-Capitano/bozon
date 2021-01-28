@@ -332,10 +332,7 @@ struct function_body
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 
-		_builtin_last,
-		_intrinsic_first = _builtin_last,
-
-		print_stdout = _intrinsic_first,
+		print_stdout,
 		println_stdout,
 		print_stderr,
 		println_stderr,
@@ -382,7 +379,7 @@ struct function_body
 		tgamma_f32, tgamma_f64,
 		lgamma_f32, lgamma_f64,
 
-		_intrinsic_last,
+		_builtin_last,
 	};
 
 	bz::vector<decl_variable> params;
@@ -524,20 +521,27 @@ struct decl_operator
 
 struct decl_function_alias
 {
-	lex::token_pos identifier;
-	expression     alias_expr;
-	uint32_t       function_flags;
+	lex::token_pos              identifier;
+	lex::src_tokens             src_tokens;
+	expression                  alias_expr;
+	bz::vector<function_body *> aliased_bodies;
+	uint32_t                    function_flags;
+	resolve_state               state;
 
 	declare_default_5(decl_function_alias)
 
 	decl_function_alias(
-		lex::token_pos _id,
-		expression     _alias_expr,
-		uint32_t       _function_flags = 0
+		lex::src_tokens _src_tokens,
+		lex::token_pos  _id,
+		expression      _alias_expr,
+		uint32_t        _function_flags = 0
 	)
 		: identifier(_id),
+		  src_tokens(_src_tokens),
 		  alias_expr(std::move(_alias_expr)),
-		  function_flags(_function_flags)
+		  aliased_bodies{},
+		  function_flags(_function_flags),
+		  state(resolve_state::none)
 	{}
 
 	bool is_external_linkage(void) const noexcept
@@ -852,9 +856,8 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 14);
-	static_assert(function_body::_intrinsic_last - function_body::_intrinsic_first == 63);
-	constexpr size_t size = (function_body::_builtin_last - function_body::_builtin_first) + (function_body::_intrinsic_last - function_body::_intrinsic_first);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 77);
+	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
 		{ function_body::builtin_str_neq,    "__builtin_str_neq"    },

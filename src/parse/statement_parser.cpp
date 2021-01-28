@@ -394,7 +394,7 @@ static void resolve_var_decl_type(
 				"expected ';' or '=' at the end of a type",
 				{ context.make_note(
 					stream,
-					bz::format("operator {} is not allowed in a variable declaration's type", stream->value)
+					bz::format("'operator {}' is not allowed in a variable declaration's type", stream->value)
 				) }
 			);
 		}
@@ -450,7 +450,7 @@ static void resolve_decl_variable(
 				auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
 				context.report_error(
 					stream,
-					"operator , is not allowed in variable initialization expression",
+					"'operator ,' is not allowed in variable initialization expression",
 					{}, { context.make_suggestion_around(
 						begin,          ctx::char_pos(), ctx::char_pos(), "(",
 						suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
@@ -584,6 +584,85 @@ template ast::statement parse_decl_variable<true>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
+
+void resolve_function_alias(
+	ast::decl_function_alias &alias_decl,
+	ctx::parse_context &context
+)
+{
+	if (alias_decl.state >= ast::resolve_state::all)
+	{
+		return;
+	}
+	else if (alias_decl.state != ast::resolve_state::none)
+	{
+		bz_assert(alias_decl.state == ast::resolve_state::resolving_all);
+		context.report_circular_dependency_error(alias_decl);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const begin = alias_decl.alias_expr.src_tokens.begin;
+	auto const end   = alias_decl.alias_expr.src_tokens.end;
+	auto stream = begin;
+	alias_decl.state = ast::resolve_state::resolving_all;
+	alias_decl.alias_expr = parse_expression(stream, end, context, no_comma);
+	if (stream != end)
+	{
+		if (stream->kind == lex::token::comma)
+		{
+			auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+			context.report_error(
+				stream,
+				"'operator ,' is not allowed in function alias expression",
+				{}, { context.make_suggestion_around(
+					begin,          ctx::char_pos(), ctx::char_pos(), "(",
+					suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+					"put parenthesis around the expression"
+				) }
+			);
+		}
+		else
+		{
+			context.assert_token(stream, lex::token::semi_colon);
+		}
+	}
+	consteval_try(alias_decl.alias_expr, context);
+
+	if (!alias_decl.alias_expr.has_consteval_succeeded())
+	{
+		context.report_error(
+			alias_decl.alias_expr,
+			"function alias expression must be a constant expression",
+			get_consteval_fail_notes(alias_decl.alias_expr)
+		);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	if (value.is<ast::constant_value::function>())
+	{
+		auto const func_body = value.get<ast::constant_value::function>();
+		bz_assert(alias_decl.aliased_bodies.empty());
+		alias_decl.aliased_bodies = { func_body };
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else if (value.is<ast::constant_value::function_set_id>())
+	{
+		auto const func_set_id = value.get<ast::constant_value::function_set_id>();
+		bz_assert(alias_decl.aliased_bodies.empty());
+		alias_decl.aliased_bodies = context.get_function_bodies_from_id(func_set_id);
+		bz_assert(!alias_decl.aliased_bodies.empty());
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else
+	{
+		context.report_error(alias_decl.alias_expr, "function alias value must be a function");
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+}
 
 static bool resolve_function_parameters_helper(
 	ast::statement_view func_stmt,
@@ -1036,6 +1115,7 @@ ast::statement parse_decl_function_or_alias(
 		: lex::src_tokens{ begin, begin, stream };
 	if (stream->kind == lex::token::assign)
 	{
+		++stream; // '='
 		auto const alias_expr = get_expression_tokens<>(stream, end, context);
 		context.assert_token(stream, lex::token::semi_colon);
 		uint32_t flags = 0;
@@ -1045,6 +1125,7 @@ ast::statement parse_decl_function_or_alias(
 			flags |= ast::function_body::external_linkage;
 		}
 		return ast::make_decl_function_alias(
+			src_tokens,
 			id,
 			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end }),
 			flags
@@ -1104,7 +1185,7 @@ ast::statement parse_decl_operator(
 		context.report_error(
 			op,
 			is_operator(op->kind)
-			? bz::format("operator {} is not overloadable", op->value)
+			? bz::format("'operator {}' is not overloadable", op->value)
 			: bz::u8string("expected an overloadable operator")
 		);
 	}
@@ -1966,6 +2047,11 @@ void resolve_global_statement(
 		[&](ast::decl_operator &op_decl) {
 			context.add_to_resolve_queue({}, op_decl.body);
 			resolve_function(stmt, op_decl.body, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::decl_function_alias &alias_decl) {
+			context.add_to_resolve_queue({}, alias_decl);
+			resolve_function_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {

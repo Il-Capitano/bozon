@@ -23,7 +23,8 @@ struct parse_context
 		lex::src_tokens requester;
 		bz::variant<
 			ast::function_body *,
-			ast::decl_variable *
+			ast::decl_variable *,
+			ast::decl_function_alias *
 		> requested;
 	};
 
@@ -91,6 +92,7 @@ struct parse_context
 	) const;
 
 	void report_circular_dependency_error(ast::function_body &func_body) const;
+	void report_circular_dependency_error(ast::decl_function_alias &alias) const;
 
 	void report_warning(
 		warning_kind kind,
@@ -291,11 +293,15 @@ struct parse_context
 		ast::typespec &type
 	);
 
+	bz::vector<ast::function_body *> get_function_bodies_from_id(bz::u8string_view id);
+
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
 	{ this->resolve_queue.emplace_back(tokens, &func_body); }
+	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_function_alias &alias_decl)
+	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_variable &var_decl)
 	{ this->resolve_queue.emplace_back(tokens, &var_decl); }
 

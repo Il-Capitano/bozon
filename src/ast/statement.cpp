@@ -149,7 +149,9 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				break;
 			}
 
-			static_assert(_builtin_last - _builtin_first == 14);
+			static_assert(_builtin_last - _builtin_first == 77);
+			default:
+				break;
 			}
 		}
 		return func_body;
@@ -386,10 +388,10 @@ static auto builtin_functions = []() {
 		add_builtin(12, function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
 		add_builtin(13, function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
 
-		add_builtin(14, function_body::print_stdout,   "__bozon_print_stdout",   void_type, str_type),
-		add_builtin(15, function_body::println_stdout, "__bozon_println_stdout", void_type, str_type),
-		add_builtin(16, function_body::print_stderr,   "__bozon_print_stderr",   void_type, str_type),
-		add_builtin(17, function_body::println_stderr, "__bozon_println_stderr", void_type, str_type),
+		add_builtin(14, function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type),
+		add_builtin(15, function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type),
+		add_builtin(16, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type),
+		add_builtin(17, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type),
 
 		add_builtin(18, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
 		add_builtin(19, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),

@@ -135,6 +135,7 @@ function main(args: [: const str]) -> int32
 
 	println("\n==== end main ====");
 	println(exp(1.0));
+	static_assert(typeof exp(1.0) == float64);
 
 	let s1 = "hello1";
 	let s2 = "hello2";

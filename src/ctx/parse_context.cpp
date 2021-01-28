@@ -236,6 +236,39 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 	}
 }
 
+void parse_context::report_circular_dependency_error(ast::decl_function_alias &alias) const
+{
+	bz::vector<note> notes = {};
+	int count = 0;
+	for (auto const &dep : bz::reversed(this->resolve_queue))
+	{
+		if (
+			notes.size() != 0
+			&& dep.requested.is<ast::function_body *>()
+			&& dep.requested.get<ast::function_body *>()->is_generic_specialization()
+		)
+		{
+			auto const func_body = dep.requested.get<ast::function_body *>();
+			notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+		}
+		if (dep.requested == &alias)
+		{
+			++count;
+			if (count == 2)
+			{
+				break;
+			}
+		}
+		notes.emplace_back(make_note(dep.requester, "required from here"));
+	}
+
+	this->report_error(
+		alias.src_tokens,
+		bz::format("circular dependency encountered while resolving function alias '{}'", alias.identifier->value),
+		std::move(notes)
+	);
+}
+
 void parse_context::report_warning(
 	warning_kind kind,
 	lex::token_pos it,
@@ -2175,30 +2208,6 @@ static void match_expression_to_type_impl(
 	expr.clear();
 }
 
-// clears ts and expr if an error occurs
-static void match_expression_to_type(
-	ast::expression &expr,
-	ast::typespec &dest_type,
-	parse_context &context
-)
-{
-	if (dest_type.is_empty())
-	{
-		expr.clear();
-	}
-	else if (expr.is_null())
-	{
-		if (!ast::is_complete(dest_type))
-		{
-			dest_type.clear();
-		}
-	}
-	else
-	{
-		match_expression_to_type_impl(expr, dest_type, dest_type, context);
-	}
-}
-
 static match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -2361,9 +2370,16 @@ static error get_bad_call_error(
 }
 */
 
-static ast::statement_view find_best_match(
+struct possible_func_t
+{
+	match_level_t match_level;
+	ast::statement_view stmt;
+	ast::function_body *func_body;
+};
+
+static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	lex::src_tokens src_tokens,
-	bz::array_view<const std::pair<match_level_t, ast::statement_view>> possible_funcs,
+	bz::array_view<const possible_func_t> possible_funcs,
 	bz::array_view<const size_t> scope_decl_counts,
 	parse_context &context
 )
@@ -2376,32 +2392,37 @@ static ast::statement_view find_best_match(
 		if (!possible_scope_funcs.empty())
 		{
 			auto const min_match_it = std::min_element(possible_scope_funcs.begin(), possible_scope_funcs.end(), [](auto const &lhs, auto const &rhs) {
-				return lhs.first < rhs.first;
+				return lhs.match_level < rhs.match_level;
 			});
 			bz_assert(min_match_it != possible_scope_funcs.end());
-			if (min_match_it->first.not_null())
+			if (min_match_it->match_level.not_null())
 			{
 				// search for possible ambiguity
 				auto filtered_funcs = possible_scope_funcs
-					.filter([&](auto const &func) { return &*min_match_it == &func || match_level_compare(min_match_it->first, func.first) == 0; });
+					.filter([&](auto const &func) { return &*min_match_it == &func || match_level_compare(min_match_it->match_level, func.match_level) == 0; });
 				if (filtered_funcs.count() == 1)
 				{
-					return min_match_it->second;
+					return { min_match_it->stmt, min_match_it->func_body };
 				}
 				else
 				{
-					auto notes = filtered_funcs
-						.transform([&](std::pair<match_level_t, ast::statement_view> const &func) {
-							bz_assert(func.second.is<ast::decl_function>() || func.second.is<ast::decl_operator>());
-							auto const body = func.second.is<ast::decl_function>()
-								? &func.second.get<ast::decl_function>().body
-								: &func.second.get<ast::decl_operator>().body;
-							bz_assert(body->src_tokens.pivot != nullptr);
-							return context.make_note(body->src_tokens, bz::format("candidate '{}'", body->get_signature()));
-						})
-						.collect();
+					bz::vector<note> notes;
+					notes.reserve(possible_funcs.size());
+					for (auto &func : possible_funcs)
+					{
+						notes.emplace_back(context.make_note(
+							func.func_body->src_tokens, bz::format("candidate '{}'", func.func_body->get_signature())
+						));
+						if (func.stmt.is<ast::decl_function_alias>())
+						{
+							auto &alias = func.stmt.get<ast::decl_function_alias>();
+							notes.emplace_back(context.make_note(
+								alias.src_tokens, bz::format("via function alias '{}'", alias.identifier->value)
+							));
+						}
+					}
 					context.report_error(src_tokens, "function call is ambiguous", std::move(notes));
-					return {};
+					return { {}, nullptr };
 				}
 			}
 		}
@@ -2409,18 +2430,23 @@ static ast::statement_view find_best_match(
 	}
 
 	// report undeclared function error
-	auto notes = possible_funcs
-		.transform([&](std::pair<match_level_t, ast::statement_view> const &func) {
-			bz_assert(func.second.is<ast::decl_function>() || func.second.is<ast::decl_operator>());
-			auto const body = func.second.is<ast::decl_function>()
-				? &func.second.get<ast::decl_function>().body
-				: &func.second.get<ast::decl_operator>().body;
-			bz_assert(body->src_tokens.pivot != nullptr);
-			return context.make_note(body->src_tokens, bz::format("candidate '{}'", body->get_signature()));
-		})
-		.collect();
+	bz::vector<note> notes;
+	notes.reserve(possible_funcs.size());
+	for (auto &func : possible_funcs)
+	{
+		notes.emplace_back(context.make_note(
+			func.func_body->src_tokens, bz::format("candidate '{}'", func.func_body->get_signature())
+		));
+		if (func.stmt.is<ast::decl_function_alias>())
+		{
+			auto &alias = func.stmt.get<ast::decl_function_alias>();
+			notes.emplace_back(context.make_note(
+				alias.src_tokens, bz::format("via function alias '{}'", alias.identifier->value)
+			));
+		}
+	}
 	context.report_error(src_tokens, "couldn't match the function call to any of the overloads", std::move(notes));
-	return {};
+	return { {}, nullptr };
 }
 
 ast::expression parse_context::make_unary_operator_expression(
@@ -2460,7 +2486,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		return result;
 	}
 
-	bz::vector<std::pair<match_level_t, ast::statement_view>> possible_funcs = {};
+	bz::vector<possible_func_t> possible_funcs = {};
 	bz::vector<size_t> scope_decl_counts = { 0 };
 
 	// we go through the scope decls for a matching declaration
@@ -2484,11 +2510,11 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			for (auto &op : set->op_decls)
 			{
-				auto &body = op.get<ast::decl_function>().body;
+				auto &body = op.get<ast::decl_operator>().body;
 				auto match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 				if (match_level.not_null())
 				{
-					possible_funcs.push_back({ std::move(match_level), op });
+					possible_funcs.push_back({ std::move(match_level), op, &body });
 					scope_decl_counts.back() += 1;
 				}
 			}
@@ -2511,30 +2537,36 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		for (auto &op : global_set->op_decls)
 		{
-			auto &body = op.get<ast::decl_function>().body;
+			auto &body = op.get<ast::decl_operator>().body;
 			auto match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
 			if (match_level.not_null())
 			{
-				possible_funcs.push_back({ std::move(match_level), op });
+				possible_funcs.push_back({ std::move(match_level), op, &body });
 				scope_decl_counts.back() += 1;
 			}
 		}
 	}
 
-	auto const best = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
-	if (best.is_null())
+	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
+	if (best_body == nullptr)
 	{
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		auto &body = best.get<ast::decl_operator>().body;
-		bz_assert(!body.is_generic());
-		this->add_to_resolve_queue(src_tokens, body);
-		match_expression_to_type(expr, body.params[0].var_type);
-		parse::resolve_function_symbol(best, body, *this);
+		bz_assert(!best_body->is_generic());
+		this->add_to_resolve_queue(src_tokens, *best_body);
+		match_expression_to_type(expr, best_body->params[0].var_type);
+		if (best_stmt.is<ast::decl_function>())
+		{
+			parse::resolve_function_symbol(best_stmt, *best_body, *this);
+		}
+		else
+		{
+			parse::resolve_function_symbol({}, *best_body, *this);
+		}
 		this->pop_resolve_queue();
-		auto &ret_t = body.return_type;
+		auto &ret_t = best_body->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2547,7 +2579,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), &body)
+			ast::make_expr_function_call(src_tokens, std::move(params), best_body)
 		);
 	}
 }
@@ -2616,7 +2648,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		return result;
 	}
 
-	bz::vector<std::pair<match_level_t, ast::statement_view>> possible_funcs = {};
+	bz::vector<possible_func_t> possible_funcs = {};
 	bz::vector<size_t> scope_decl_counts = { 0 };
 
 	// we go through the scope decls for a matching declaration
@@ -2644,7 +2676,7 @@ ast::expression parse_context::make_binary_operator_expression(
 				auto match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 				if (match_level.not_null())
 				{
-					possible_funcs.push_back({ std::move(match_level), op });
+					possible_funcs.push_back({ std::move(match_level), op, &body });
 					scope_decl_counts.back() += 1;
 				}
 			}
@@ -2671,26 +2703,32 @@ ast::expression parse_context::make_binary_operator_expression(
 			auto match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
 			if (match_level.not_null())
 			{
-				possible_funcs.push_back({ std::move(match_level), op });
+				possible_funcs.push_back({ std::move(match_level), op, &body });
 			}
 		}
 	}
 
-	auto const best = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
-	if (best.is_null())
+	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
+	if (best_body == nullptr)
 	{
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		auto &body = best.get<ast::decl_operator>().body;
-		bz_assert(!body.is_generic());
-		this->add_to_resolve_queue(src_tokens, body);
-		match_expression_to_type(lhs, body.params[0].var_type);
-		match_expression_to_type(rhs, body.params[1].var_type);
-		parse::resolve_function_symbol(best, body, *this);
+		bz_assert(!best_body->is_generic());
+		this->add_to_resolve_queue(src_tokens, *best_body);
+		match_expression_to_type(lhs, best_body->params[0].var_type);
+		match_expression_to_type(rhs, best_body->params[1].var_type);
+		if (best_stmt.is<ast::decl_function>())
+		{
+			parse::resolve_function_symbol(best_stmt, *best_body, *this);
+		}
+		else
+		{
+			parse::resolve_function_symbol({}, *best_body, *this);
+		}
 		this->pop_resolve_queue();
-		auto &ret_t = body.return_type;
+		auto &ret_t = best_body->return_type;
 		auto return_type_kind = ast::expression_type_kind::rvalue;
 		auto return_type = ast::remove_const_or_consteval(ret_t);
 		if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2705,7 +2743,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), &body)
+			ast::make_expr_function_call(src_tokens, std::move(params), best_body)
 		);
 	}
 }
@@ -2814,7 +2852,7 @@ ast::expression parse_context::make_function_call_expression(
 			bz_assert(const_called.value.kind() == ast::constant_value::function_set_id);
 			auto const id = const_called.value.get<ast::constant_value::function_set_id>();
 
-			bz::vector<std::pair<match_level_t, ast::statement_view>> possible_funcs = {};
+			bz::vector<possible_func_t> possible_funcs = {};
 			bz::vector<size_t> scope_decl_counts = { 0 };
 			// we go through the scope decls for a matching declaration
 			for (
@@ -2841,8 +2879,24 @@ ast::expression parse_context::make_function_call_expression(
 						auto match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 						if (match_level.not_null())
 						{
-							possible_funcs.push_back({ std::move(match_level), fn });
+							possible_funcs.push_back({ std::move(match_level), fn, &body });
 							scope_decl_counts.back() += 1;
+						}
+					}
+					for (auto &alias_decl : set->alias_decls)
+					{
+						auto &alias = alias_decl.get<ast::decl_function_alias>();
+						this->add_to_resolve_queue(src_tokens, alias);
+						parse::resolve_function_alias(alias, *this);
+						this->pop_resolve_queue();
+						for (auto const body : alias.aliased_bodies)
+						{
+							auto match_level = get_function_call_match_level({}, *body, params, *this, src_tokens);
+							if (match_level.not_null())
+							{
+								possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+								scope_decl_counts.back() += 1;
+							}
 						}
 					}
 				}
@@ -2868,54 +2922,76 @@ ast::expression parse_context::make_function_call_expression(
 					auto match_level = get_function_call_match_level(fn, body, params, *this, src_tokens);
 					if (match_level.not_null())
 					{
-						possible_funcs.push_back({ std::move(match_level), fn });
+						possible_funcs.push_back({ std::move(match_level), fn, &body });
 						scope_decl_counts.back() += 1;
+					}
+				}
+				for (auto &alias_decl : global_set->alias_decls)
+				{
+					auto &alias = alias_decl.get<ast::decl_function_alias>();
+					this->add_to_resolve_queue(src_tokens, alias);
+					parse::resolve_function_alias(alias, *this);
+					this->pop_resolve_queue();
+					for (auto const body : alias.aliased_bodies)
+					{
+						auto match_level = get_function_call_match_level({}, *body, params, *this, src_tokens);
+						if (match_level.not_null())
+						{
+							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+							scope_decl_counts.back() += 1;
+						}
 					}
 				}
 			}
 
-			auto const best = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
-			if (best.is_null())
+			auto [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, scope_decl_counts, *this);
+			if (best_stmt.is_null())
 			{
 				return ast::expression(src_tokens);
 			}
 			else
 			{
-				auto func_body = &best.get<ast::decl_function>().body;
-				if (func_body->is_generic())
+				if (best_body->is_generic())
 				{
 					auto required_from = get_generic_requirements(src_tokens, *this);
-					auto specialized_body = func_body->get_copy_for_generic_specialization(std::move(required_from));
+					auto specialized_body = best_body->get_copy_for_generic_specialization(std::move(required_from));
 					this->add_to_resolve_queue(src_tokens, *specialized_body);
 					for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 					{
 						match_expression_to_type(param, func_body_param.var_type);
 					}
 					this->pop_resolve_queue();
-					func_body = func_body->add_specialized_body(std::move(specialized_body));
-					this->add_to_resolve_queue(src_tokens, *func_body);
-					bz_assert(!func_body->is_generic());
-					if (!this->generic_functions.contains(func_body))
+					best_body = best_body->add_specialized_body(std::move(specialized_body));
+					this->add_to_resolve_queue(src_tokens, *best_body);
+					bz_assert(!best_body->is_generic());
+					if (!this->generic_functions.contains(best_body))
 					{
-						this->generic_functions.push_back(func_body);
+						this->generic_functions.push_back(best_body);
 					}
 				}
 				else
 				{
-					this->add_to_resolve_queue(src_tokens, *func_body);
-					for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
+					this->add_to_resolve_queue(src_tokens, *best_body);
+					for (auto const [param, func_body_param] : bz::zip(params, best_body->params))
 					{
 						match_expression_to_type(param, func_body_param.var_type);
 					}
 				}
-				parse::resolve_function_symbol(best, *func_body, *this);
+				if (best_stmt.is<ast::decl_function>())
+				{
+					parse::resolve_function_symbol(best_stmt, *best_body, *this);
+				}
+				else
+				{
+					parse::resolve_function_symbol({}, *best_body, *this);
+				}
 				this->pop_resolve_queue();
-				if (func_body->state == ast::resolve_state::error)
+				if (best_body->state == ast::resolve_state::error)
 				{
 					return ast::expression(src_tokens);
 				}
 
-				auto &ret_t = func_body->return_type;
+				auto &ret_t = best_body->return_type;
 				auto return_type_kind = ast::expression_type_kind::rvalue;
 				auto return_type = ast::remove_const_or_consteval(ret_t);
 				if (ret_t.is<ast::ts_lvalue_reference>())
@@ -2926,7 +3002,7 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::make_dynamic_expression(
 					src_tokens,
 					return_type_kind, return_type,
-					ast::make_expr_function_call(src_tokens, std::move(params), func_body)
+					ast::make_expr_function_call(src_tokens, std::move(params), best_body)
 				);
 			}
 		}
@@ -3021,288 +3097,70 @@ void parse_context::match_expression_to_type(
 	ast::typespec &dest_type
 )
 {
-	::ctx::match_expression_to_type(expr, dest_type, *this);
-	return;
 	if (dest_type.is_empty())
 	{
 		expr.clear();
-		return;
 	}
-	if (expr.is_null())
-	{
-		dest_type.clear();
-		bz_assert(this->has_errors());
-		return;
-	}
-
-	// check for an overloaded function
-	if (expr.is_overloaded_function())
-	{
-		bz_assert(expr.is<ast::constant_expression>());
-		auto &const_expr = expr.get<ast::constant_expression>();
-		bz_assert(const_expr.kind == ast::expression_type_kind::function_name);
-//		bz_assert(false, "overloaded function not handled in match_expresstion_to_type");
-		bz_assert(const_expr.expr.is<ast::expr_identifier>());
-		this->report_ambiguous_id_error(const_expr.expr.get<ast::expr_identifier>().identifier);
-		dest_type.clear();
-		return;
-	}
-	else if (expr.is_typename())
-	{
-		this->report_error(expr, "a type cannot be used in this context");
-		dest_type.clear();
-		return;
-	}
-
-	if (dest_type.is<ast::ts_consteval>() && !expr.is<ast::constant_expression>())
-	{
-		this->report_error(expr, "expression must be a constant expression");
-		dest_type.clear();
-		return;
-	}
-
-	auto [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	if (expr_type_kind != ast::expression_type_kind::tuple && !ast::is_complete(expr_type))
+	else if (expr.is_null())
 	{
 		if (!ast::is_complete(dest_type))
 		{
 			dest_type.clear();
 		}
-		return;
-	}
-
-	auto expr_it = expr_type.as_typespec_view();
-	auto dest_it = ast::remove_const_or_consteval(dest_type);
-
-	auto const strict_match = [&, &expr_type = expr_type]() {
-		bool loop = true;
-		while (loop)
-		{
-			switch (dest_it.kind())
-			{
-			case ast::typespec_node_t::index_of<ast::ts_base_type>:
-				if (expr_it != dest_it)
-				{
-					this->report_error(
-						expr,
-						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-					);
-					if (!ast::is_complete(dest_type))
-					{
-						dest_type.clear();
-					}
-				}
-				loop = false;
-				break;
-			case ast::typespec_node_t::index_of<ast::ts_const>:
-				dest_it = dest_it.get<ast::ts_const>();
-				if (!(expr_it.is<ast::ts_const>() || expr_it.is<ast::ts_consteval>()))
-				{
-					this->report_error(
-						expr,
-						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-					);
-					if (!ast::is_complete(dest_type))
-					{
-						dest_type.clear();
-					}
-					loop = false;
-				}
-				else
-				{
-					expr_it = ast::remove_const_or_consteval(expr_it);
-				}
-				break;
-			case ast::typespec_node_t::index_of<ast::ts_consteval>:
-				bz_unreachable;
-			case ast::typespec_node_t::index_of<ast::ts_pointer>:
-				dest_it = dest_it.get<ast::ts_pointer>();
-				if (!expr_it.is<ast::ts_pointer>())
-				{
-					this->report_error(
-						expr,
-						bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-					);
-					dest_type.clear();
-					loop = false;
-				}
-				else
-				{
-					expr_it = expr_it.get<ast::ts_pointer>();
-				}
-				break;
-			case ast::typespec_node_t::index_of<ast::ts_auto>:
-				dest_type.copy_from(dest_it, expr_it);
-				loop = false;
-				break;
-			case ast::typespec_node_t::index_of<ast::ts_void>:
-				loop = false;
-				break;
-			case ast::typespec_node_t::index_of<ast::ts_typename>:
-				bz_unreachable;
-			default:
-				bz_unreachable;
-			}
-		}
-	};
-
-	if (dest_it.is<ast::ts_lvalue_reference>())
-	{
-		if (
-			expr_type_kind != ast::expression_type_kind::lvalue
-			&& expr_type_kind != ast::expression_type_kind::lvalue_reference
-		)
-		{
-			this->report_error(expr, "cannot bind an rvalue to an lvalue reference");
-			dest_type.clear();
-			return;
-		}
-
-		dest_it = dest_it.get<ast::ts_lvalue_reference>();
-
-		if (dest_it.is<ast::ts_const>())
-		{
-			dest_it = dest_it.get<ast::ts_const>();
-			expr_it = ast::remove_const_or_consteval(expr_it);
-		}
-		else if (expr_it.is<ast::ts_const>())
-		{
-			this->report_error(
-				expr,
-				bz::format(
-					"cannot bind an expression of type '{}' to a reference of type '{}'",
-					expr_it, dest_it
-				)
-			);
-			dest_type.clear();
-			return;
-		}
-
-		strict_match();
-	}
-	else if (dest_it.is<ast::ts_pointer>())
-	{
-		expr_it = ast::remove_const_or_consteval(expr_it);
-		dest_it = dest_it.get<ast::ts_pointer>();
-		if (!expr_it.is<ast::ts_pointer>())
-		{
-			// check if expr is a null literal
-			if (
-				expr_it.is<ast::ts_base_type>()
-				&& expr_it.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
-			)
-			{
-				bz_assert(expr.is<ast::constant_expression>());
-				if (!ast::is_complete(dest_type))
-				{
-					this->report_error(expr, "variable type cannot be deduced");
-					dest_type.clear();
-					return;
-				}
-				else
-				{
-					expr.get<ast::constant_expression>().type = ast::remove_const_or_consteval(dest_type);
-					return;
-				}
-			}
-			else
-			{
-				this->report_error(
-					expr,
-					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-				);
-				dest_type.clear();
-				return;
-			}
-		}
-		else
-		{
-			expr_it = expr_it.get<ast::ts_pointer>();
-			if (dest_it.is<ast::ts_const>())
-			{
-				dest_it = dest_it.get<ast::ts_const>();
-				expr_it = ast::remove_const_or_consteval(expr_it);
-			}
-			else if (expr_it.is<ast::ts_const>())
-			{
-				this->report_error(
-					expr,
-					bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-				);
-				dest_type.clear();
-				return;
-			}
-		}
-
-		strict_match();
-	}
-	else if (dest_it.is<ast::ts_base_type>())
-	{
-		expr_it = ast::remove_const_or_consteval(expr_it);
-		if (!expr_it.is<ast::ts_base_type>())
-		{
-			this->report_error(
-				expr,
-				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-			);
-			dest_type.clear();
-			return;
-		}
-
-		auto const dest_info = dest_it.get<ast::ts_base_type>().info;
-		auto const expr_info = expr_it.get<ast::ts_base_type>().info;
-
-		if (dest_info != expr_info)
-		{
-			this->report_error(
-				expr,
-				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-			);
-			dest_type.clear();
-			return;
-		}
-	}
-	else if (ast::is_complete(expr_type))
-	{
-		bz_assert(dest_it.is<ast::ts_auto>());
-		expr_it = ast::remove_const_or_consteval(expr_it);
-
-		if (expr_it.is<ast::ts_void>())
-		{
-			this->report_error(
-				expr,
-				bz::format("cannot convert expression from type '{}' to '{}'", expr_type, dest_type)
-			);
-			dest_type.clear();
-			return;
-		}
-
-		dest_type.copy_from(dest_it, expr_it);
 	}
 	else
 	{
-		bz_assert(dest_it.is<ast::ts_auto>());
-		bz_assert(!ast::is_complete(expr_type));
-		bz_assert(expr_type_kind == ast::expression_type_kind::tuple);
-		bz_assert(expr.get_expr().is<ast::expr_tuple>());
-		auto &tuple_expr = expr.get_expr().get<ast::expr_tuple>();
-		bz::vector<ast::typespec> types = {};
-		types.reserve(tuple_expr.elems.size());
-		for (size_t i = 0; i < tuple_expr.elems.size(); ++i)
-		{
-			types.emplace_back(ast::make_auto_typespec(nullptr));
-		}
-		for (auto const [elem_expr, type] : bz::zip(tuple_expr.elems, types))
-		{
-			static_assert(bz::meta::is_same<decltype(type), ast::typespec &>);
-			this->match_expression_to_type(elem_expr, type);
-		}
-		auto const auto_pos = dest_it.get<ast::ts_auto>().auto_pos;
-		auto const src_tokens = auto_pos == nullptr
-			? lex::src_tokens{}
-			: lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
-		dest_type.move_from(dest_it, ast::make_tuple_typespec(src_tokens, std::move(types)));
+		match_expression_to_type_impl(expr, dest_type, dest_type, *this);
 	}
+}
+
+bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(bz::u8string_view id)
+{
+	for (
+		auto scope = this->scope_decls.rbegin();
+		scope != this->scope_decls.rend();
+		++scope
+	)
+	{
+		auto const set = std::find_if(
+			scope->func_sets.begin(), scope->func_sets.end(),
+			[id](auto const &fn_set) {
+				return id == fn_set.id;
+			}
+		);
+		if (set != scope->func_sets.end())
+		{
+			bz::vector<ast::function_body *> result;
+			result.append(set->func_decls.transform([](auto const view) { return &view.template get<ast::decl_function>().body; }));
+			for (auto const &alias : set->alias_decls)
+			{
+				parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+				result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
+			}
+			return result;
+		}
+	}
+
+	auto &global_decls = *this->global_decls;
+	auto const global_set = std::find_if(
+		global_decls.func_sets.begin(), global_decls.func_sets.end(),
+		[id](auto const &fn_set) {
+			return id == fn_set.id;
+		}
+	);
+	if (global_set != global_decls.func_sets.end())
+	{
+		bz::vector<ast::function_body *> result;
+		result.append(global_set->func_decls.transform([](auto const view) { return &view.template get<ast::decl_function>().body; }));
+		for (auto const &alias : global_set->alias_decls)
+		{
+			parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+			result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
+		}
+		return result;
+	}
+
+	return {};
 }
 
 /*

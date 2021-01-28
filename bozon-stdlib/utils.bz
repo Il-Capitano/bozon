@@ -1,5 +1,5 @@
-@intrinsic("memcpy_i64")  export function memcpy(dest: *void, src: *const void, len: uint64, is_volitile: bool) -> void;
-@intrinsic("memmove_i64") export function memmove(dest: *void, src: *const void, len: uint64, is_volitile: bool) -> void;
-@intrinsic("memset_i64")  export function memset(dest: *void, val: uint8, len: uint64, is_volitile: bool) -> void;
+export function memcpy  = __builtin_memcpy;
+export function memmove = __builtin_memmove;
+export function memset  = __builtin_memset;
 
 @extern("exit", "c") export function exit(code: int32) -> void;

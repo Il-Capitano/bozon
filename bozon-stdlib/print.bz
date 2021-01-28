@@ -1,8 +1,8 @@
-@intrinsic("print_stdout")   export function print(str: str)   -> void;
-@intrinsic("println_stdout") export function println(str: str) -> void;
+export function print   = __builtin_print_stdout;
+export function println = __builtin_println_stdout;
 
-@intrinsic("print_stderr")   export function log(str: str)   -> void;
-@intrinsic("println_stderr") export function logln(str: str) -> void;
+export function log   = __builtin_print_stderr;
+export function logln = __builtin_println_stderr;
 
 @extern("print_char",     "c") export function print(c: char)        -> void;
 @extern("print_int64",    "c") export function print(n: int64)       -> void;
