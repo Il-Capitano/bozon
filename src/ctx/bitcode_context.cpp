@@ -82,7 +82,10 @@ size_t bitcode_context::get_register_size(void) const
 	switch (this->global_ctx._platform_abi)
 	{
 	case abi::platform_abi::generic:
-		return this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() / 8;
+	{
+		static size_t register_size = this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() / 8;
+		return register_size;
+	}
 	case abi::platform_abi::microsoft_x64:
 		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
 		return 8;
