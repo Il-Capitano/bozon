@@ -63,11 +63,10 @@ size_t bitcode_context::get_size(llvm::Type *t) const
 
 size_t bitcode_context::get_align(llvm::Type *t) const
 {
-#if LLVM_VERSION_MAJOR >= 11
 	return this->global_ctx._data_layout->getPrefTypeAlign(t).value();
-#else
-	return this->global_ctx._data_layout->getPrefTypeAlignment(t);
-#endif // llvm 11
+#if LLVM_VERSION_MAJOR < 11
+#error LLVM 11 is required
+#endif // llvm < 11
 }
 
 size_t bitcode_context::get_offset(llvm::Type *t, size_t elem) const
