@@ -9,11 +9,20 @@ pass_kind get_pass_kind<platform_abi::generic>(
 	ctx::bitcode_context &context
 )
 {
+	if (t->isVoidTy())
+	{
+		return pass_kind::value;
+	}
+
 	auto const size = context.get_size(t);
 	auto const register_size = context.get_register_size();
 	if (size > register_size)
 	{
 		return pass_kind::reference;
+	}
+	else if (t->isIntegerTy() || t->isFloatingPointTy() || t->isPointerTy())
+	{
+		return pass_kind::value;
 	}
 	else
 	{
