@@ -584,7 +584,7 @@ ast::statement parse_decl_variable(
 		|| stream->kind == lex::token::kw_const
 		|| stream->kind == lex::token::kw_consteval
 	);
-	auto const begin = stream;
+	auto const begin_token = stream;
 	if (stream->kind == lex::token::kw_let)
 	{
 		++stream;
@@ -595,11 +595,12 @@ ast::statement parse_decl_variable(
 	{
 		++stream; // '='
 		auto const init_expr = get_expression_tokens<>(stream, end, context);
+		auto const end_token = stream;
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
 			return ast::make_decl_variable(
-				lex::src_tokens{ begin, id, stream },
+				lex::src_tokens{ begin_token, id, end_token },
 				id, prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
@@ -608,7 +609,7 @@ ast::statement parse_decl_variable(
 		else
 		{
 			auto result = ast::make_decl_variable(
-				lex::src_tokens{ begin, id, stream },
+				lex::src_tokens{ begin_token, id, end_token },
 				id, prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
@@ -622,10 +623,12 @@ ast::statement parse_decl_variable(
 	}
 	else
 	{
+		auto const end_token = stream;
+		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
 			return ast::make_decl_variable(
-				lex::src_tokens{ begin, id, stream },
+				lex::src_tokens{ begin_token, id, end_token },
 				id, prototype,
 				ast::make_unresolved_typespec(type)
 			);
@@ -633,7 +636,7 @@ ast::statement parse_decl_variable(
 		else
 		{
 			auto result = ast::make_decl_variable(
-				lex::src_tokens{ begin, id, end },
+				lex::src_tokens{ begin_token, id, end_token },
 				id, prototype,
 				ast::make_unresolved_typespec(type)
 			);
