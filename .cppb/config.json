@@ -43,7 +43,8 @@
 			},
 			"linux": {
 				"libraries": [ "LLVM-11" ],
-				"warnings": [ "no-unused-parameter" ]
+				"warnings": [ "no-unused-parameter" ],
+				"emit_compile_commands": false
 			},
 			"debug": {
 				"optimization": "1"
