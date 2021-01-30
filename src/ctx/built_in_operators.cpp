@@ -859,6 +859,21 @@ make_arithmetic_error_notes_and_suggestions(
 	return result;
 }
 
+static bz::vector<note> get_declared_constant_notes(ast::expression &expr, parse_context &context)
+{
+	bz::vector<note> result;
+	if (expr.is_constant_or_dynamic() && expr.get_expr().is<ast::expr_identifier>())
+	{
+		auto const &id_expr = expr.get_expr().get<ast::expr_identifier>();
+		if (id_expr.decl != nullptr)
+		{
+			result.emplace_back(context.make_note(
+				id_expr.decl->src_tokens, "variable declared constant here"
+			));
+		}
+	}
+	return result;
+}
 
 #define undeclared_binary_message(op) "no match for binary operator " op " with types '{}' and '{}'"
 
@@ -895,7 +910,7 @@ static ast::expression get_built_in_binary_assign(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
@@ -1433,7 +1448,7 @@ static ast::expression get_built_in_binary_plus_minus_eq(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
@@ -1701,7 +1716,7 @@ static ast::expression get_built_in_binary_multiply_divide_eq(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
@@ -1940,7 +1955,7 @@ static ast::expression get_built_in_binary_modulo_eq(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
@@ -2618,7 +2633,7 @@ static ast::expression get_built_in_binary_bit_and_xor_or_eq(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
@@ -2795,7 +2810,7 @@ static ast::expression get_built_in_binary_bit_shift_eq(
 	}
 	else if (lhs_t.is<ast::ts_const>() || lhs_t.is<ast::ts_consteval>())
 	{
-		context.report_error(src_tokens, "cannot assign to a constant");
+		context.report_error(src_tokens, "cannot assign to a constant", get_declared_constant_notes(lhs, context));
 		return ast::expression(src_tokens);
 	}
 
