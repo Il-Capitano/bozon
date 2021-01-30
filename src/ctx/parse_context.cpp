@@ -193,22 +193,49 @@ void parse_context::report_paren_match_error(
 	);
 }
 
-void parse_context::report_circular_dependency_error(ast::function_body &func_body) const
+template<typename T>
+static bz::vector<note> get_circular_notes(T *decl, parse_context const &context)
 {
 	bz::vector<note> notes = {};
 	int count = 0;
-	for (auto const &dep : bz::reversed(this->resolve_queue))
+	for (auto const &dep : bz::reversed(context.resolve_queue))
 	{
 		if (
-			notes.size() != 0
+			!notes.empty()
 			&& dep.requested.is<ast::function_body *>()
-			&& dep.requested.get<ast::function_body *>()->is_generic_specialization()
 		)
 		{
 			auto const func_body = dep.requested.get<ast::function_body *>();
-			notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+			if (func_body->is_generic_specialization())
+			{
+				notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+			}
+			else
+			{
+				notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
+			}
 		}
-		if (dep.requested == &func_body)
+		else if (
+			!notes.empty()
+			&& dep.requested.is<ast::decl_function_alias *>()
+		)
+		{
+			notes.back().message = bz::format(
+				"required from instantiation of alias 'function {}'",
+				dep.requested.get<ast::decl_function_alias *>()->identifier->value
+			);
+		}
+		else if (
+			!notes.empty()
+			&& dep.requested.is<ast::decl_type_alias *>()
+		)
+		{
+			notes.back().message = bz::format(
+				"required from instantiation of type alias '{}'",
+				dep.requested.get<ast::decl_type_alias *>()->identifier->value
+			);
+		}
+		if (dep.requested == decl)
 		{
 			++count;
 			if (count == 2)
@@ -219,6 +246,12 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 		bz_assert(dep.requester.pivot != nullptr);
 		notes.emplace_back(make_note(dep.requester, "required from here"));
 	}
+	return notes;
+}
+
+void parse_context::report_circular_dependency_error(ast::function_body &func_body) const
+{
+	auto notes = get_circular_notes(&func_body, *this);
 
 	if (func_body.is_intrinsic())
 	{
@@ -237,92 +270,31 @@ void parse_context::report_circular_dependency_error(ast::function_body &func_bo
 	}
 }
 
-void parse_context::report_circular_dependency_error(ast::decl_function_alias &alias) const
+void parse_context::report_circular_dependency_error(ast::decl_function_alias &alias_decl) const
 {
-	bz::vector<note> notes = {};
-	int count = 0;
-	for (auto const &dep : bz::reversed(this->resolve_queue))
-	{
-		if (
-			!notes.empty()
-			&& dep.requested.is<ast::function_body *>()
-		)
-		{
-			auto const func_body = dep.requested.get<ast::function_body *>();
-			if (func_body->is_generic_specialization())
-			{
-				notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
-			}
-			else
-			{
-				notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
-			}
-		}
-		else if (
-			!notes.empty()
-			&& dep.requested.is<ast::decl_function_alias *>()
-		)
-		{
-			notes.back().message = bz::format("required from instantiation of alias 'function {}'", dep.requested.get<ast::decl_function_alias *>()->identifier->value);
-		}
-		if (dep.requested == &alias)
-		{
-			++count;
-			if (count == 2)
-			{
-				break;
-			}
-		}
-		bz_assert(dep.requester.pivot != nullptr);
-		notes.emplace_back(make_note(dep.requester, "required from here"));
-	}
+	auto notes = get_circular_notes(&alias_decl, *this);
 
 	this->report_error(
-		alias.src_tokens,
-		bz::format("circular dependency encountered while resolving alias 'function {}'", alias.identifier->value),
+		alias_decl.src_tokens,
+		bz::format("circular dependency encountered while resolving alias 'function {}'", alias_decl.identifier->value),
+		std::move(notes)
+	);
+}
+
+void parse_context::report_circular_dependency_error(ast::decl_type_alias &alias_decl) const
+{
+	auto notes = get_circular_notes(&alias_decl, *this);
+
+	this->report_error(
+		alias_decl.src_tokens,
+		bz::format("circular dependency encountered while resolving type alias '{}'", alias_decl.identifier->value),
 		std::move(notes)
 	);
 }
 
 void parse_context::report_circular_dependency_error(ast::decl_variable &var_decl) const
 {
-	bz::vector<note> notes = {};
-	int count = 0;
-	for (auto const &dep : bz::reversed(this->resolve_queue))
-	{
-		if (
-			!notes.empty()
-			&& dep.requested.is<ast::function_body *>()
-		)
-		{
-			auto const func_body = dep.requested.get<ast::function_body *>();
-			if (func_body->is_generic_specialization())
-			{
-				notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
-			}
-			else
-			{
-				notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
-			}
-		}
-		else if (
-			!notes.empty()
-			&& dep.requested.is<ast::decl_function_alias *>()
-		)
-		{
-			notes.back().message = bz::format("required from instantiation of alias 'function {}'", dep.requested.get<ast::decl_function_alias *>()->identifier->value);
-		}
-		if (dep.requested == &var_decl)
-		{
-			++count;
-			if (count == 2)
-			{
-				break;
-			}
-		}
-		bz_assert(dep.requester.pivot != nullptr);
-		notes.emplace_back(make_note(dep.requester, "required from here"));
-	}
+	auto notes = get_circular_notes(&var_decl, *this);
 
 	this->report_error(
 		var_decl.src_tokens,
@@ -913,21 +885,29 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 			break;
 		}
 
-		auto const type = std::find_if(
+		auto const type_it = std::find_if(
 			scope->types.rbegin(), scope->types.rend(),
-			[id = id_value](auto const &type_info) {
-				return type_info.id == id;
+			[id = id_value](auto const type_alias) {
+				return type_alias->identifier->value == id;
 			}
 		);
-		if (type != scope->types.rend())
+		if (type_it != scope->types.rend())
 		{
-			return ast::make_constant_expression(
-				src_tokens,
-				ast::expression_type_kind::type_name,
-				ast::make_typename_typespec(nullptr),
-				type->ts,
-				ast::make_expr_identifier(id)
-			);
+			auto const type = (*type_it)->get_type();
+			if (type.has_value())
+			{
+				return ast::make_constant_expression(
+					src_tokens,
+					ast::expression_type_kind::type_name,
+					ast::make_typename_typespec(nullptr),
+					type,
+					ast::make_expr_identifier(id)
+				);
+			}
+			else
+			{
+				return ast::expression(src_tokens);
+			}
 		}
 	}
 
@@ -1135,31 +1115,43 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 		}
 	}
 
-	auto const type = std::find_if(
+	auto const type_it = std::find_if(
 		global_decls.types.begin(), global_decls.types.end(),
-		[id = id_value](auto const &type_info) {
-			return type_info.id == id;
+		[id = id_value](auto const type_alias) {
+			return type_alias->identifier->value == id;
 		}
 	);
-	if (type != global_decls.types.end())
+	if (type_it != global_decls.types.end())
 	{
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::type_name,
-			ast::make_typename_typespec(nullptr),
-			type->ts,
-			ast::make_expr_identifier(id)
-		);
+		auto &type_alias = **type_it;
+		this->add_to_resolve_queue(src_tokens, type_alias);
+		parse::resolve_type_alias(type_alias, *this);
+		this->pop_resolve_queue();
+		auto const type = type_alias.get_type();
+		if (type.has_value())
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::type_name,
+				ast::make_typename_typespec(nullptr),
+				type,
+				ast::make_expr_identifier(id)
+			);
+		}
+		else
+		{
+			return ast::expression(src_tokens);
+		}
 	}
 
-	// special case for void type
-	if (id_value == "void")
+	// builtin types
+	if (auto const builtin_type = ast::get_builtin_type(id_value); builtin_type.has_value())
 	{
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::typespec({ ast::ts_void{ id } }),
+			builtin_type,
 			ast::make_expr_identifier(id)
 		);
 	}

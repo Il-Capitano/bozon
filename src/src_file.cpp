@@ -153,9 +153,19 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		{
 			this->_global_decls.add_function_alias(decl);
 			auto const &alias = decl.get<ast::decl_function_alias>();
-			if (alias.is_export())
+			if (alias.is_export)
 			{
 				this->_export_decls.add_function_alias(decl);
+			}
+			break;
+		}
+		case ast::statement::index<ast::decl_type_alias>:
+		{
+			this->_global_decls.add_type_alias(decl);
+			auto const &alias = decl.get<ast::decl_type_alias>();
+			if (alias.is_export)
+			{
+				this->_export_decls.add_type_alias(decl);
 			}
 			break;
 		}

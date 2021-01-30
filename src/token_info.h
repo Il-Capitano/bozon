@@ -281,6 +281,7 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_operator]      = { lex::token::kw_operator,      "operator",      "", keyword_flags                   };
 	result[lex::token::kw_class]         = { lex::token::kw_class,         "class",         "", keyword_flags                   };
 	result[lex::token::kw_struct]        = { lex::token::kw_struct,        "struct",        "", keyword_flags                   };
+	result[lex::token::kw_type]          = { lex::token::kw_type,          "type",          "", keyword_flags                   };
 	result[lex::token::kw_namespace]     = { lex::token::kw_namespace,     "namespace",     "", keyword_flags                   };
 	result[lex::token::kw_using]         = { lex::token::kw_using,         "using",         "", keyword_flags                   };
 	result[lex::token::kw_static_assert] = { lex::token::kw_static_assert, "static_assert", "", keyword_flags                   };

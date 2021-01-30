@@ -22,18 +22,12 @@ struct operator_overload_set
 	bz::vector<ast::statement_view> op_decls;
 };
 
-struct typespec_with_name
-{
-	bz::u8string_view id;
-	ast::typespec     ts;
-};
-
 struct decl_set
 {
-	bz::vector<ast::decl_variable *>  var_decls;
-	bz::vector<function_overload_set> func_sets;
-	bz::vector<operator_overload_set> op_sets;
-	bz::vector<typespec_with_name>    types;
+	bz::vector<ast::decl_variable *>   var_decls;
+	bz::vector<function_overload_set>  func_sets;
+	bz::vector<operator_overload_set>  op_sets;
+	bz::vector<ast::decl_type_alias *> types;
 
 	void add_function(ast::statement &stmt)
 	{
@@ -178,6 +172,13 @@ struct decl_set
 				set->op_decls.push_back(decl);
 			}
 		}
+	}
+
+	void add_type_alias(ast::statement &stmt)
+	{
+		bz_assert(stmt.is<ast::decl_type_alias>());
+		auto &alias_decl = stmt.get<ast::decl_type_alias>();
+		this->types.push_back(&alias_decl);
 	}
 };
 

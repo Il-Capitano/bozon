@@ -102,6 +102,7 @@ struct token
 		kw_class,            // class
 		kw_struct,           // struct
 		kw_typename,         // typename
+		kw_type,             // type
 		kw_namespace,        // namespace
 		kw_sizeof,           // sizeof
 		kw_typeof,           // typeof

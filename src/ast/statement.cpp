@@ -277,6 +277,42 @@ static auto get_builtin_type_infos(void)
 
 static auto builtin_type_infos = get_builtin_type_infos();
 
+type_info *get_builtin_type_info(uint32_t kind)
+{
+	bz_assert(kind < builtin_type_infos.size());
+	return &builtin_type_infos[kind];
+}
+
+static bz::vector<std::pair<bz::u8string_view, typespec>>
+get_builtin_types(void)
+{
+	bz::vector<std::pair<bz::u8string_view, typespec>> result;
+	result.reserve(builtin_type_infos.size() + 1);
+	for (auto &type_info : builtin_type_infos)
+	{
+		result.emplace_back(type_info::decode_symbol_name(type_info.symbol_name), make_base_type_typespec({}, &type_info));
+	}
+	result.emplace_back("void", make_void_typespec(nullptr));
+	return result;
+}
+
+static auto builtin_types = get_builtin_types();
+
+typespec_view get_builtin_type(bz::u8string_view name)
+{
+	auto const it = std::find_if(builtin_types.begin(), builtin_types.end(), [name](auto const &builtin_type) {
+		return builtin_type.first == name;
+	});
+	if (it != builtin_types.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return {};
+	}
+}
+
 template<typename ...Ts>
 static ast::function_body create_builtin_function(
 	uint32_t kind,
@@ -314,12 +350,6 @@ static ast::function_body create_builtin_function(
 		| (is_generic ? ast::function_body::generic : 0);
 	result.intrinsic_kind = kind;
 	return result;
-}
-
-type_info *get_builtin_type_info(uint32_t kind)
-{
-	bz_assert(kind < builtin_type_infos.size());
-	return &builtin_type_infos[kind];
 }
 
 static auto builtin_functions = []() {

@@ -28,19 +28,6 @@
 namespace ctx
 {
 
-static bz::vector<typespec_with_name> get_default_types(void)
-{
-	bz::vector<typespec_with_name> result;
-	result.reserve(ast::type_info::null_t_ + 1);
-	for (uint32_t i = 0; i <= ast::type_info::null_t_; ++i)
-	{
-		auto const type_info = ast::get_builtin_type_info(i);
-		auto const name = ast::type_info::decode_symbol_name(type_info->symbol_name);
-		result.emplace_back(name, ast::make_base_type_typespec({}, type_info));
-	}
-	return result;
-}
-
 static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_built_in_types(llvm::LLVMContext &context)
 {
@@ -71,7 +58,7 @@ decl_set get_default_decls(void)
 		{}, // var_decls
 		{}, // func_sets
 		{}, // op_sets
-		get_default_types() // types
+		{}  // types
 	};
 }
 

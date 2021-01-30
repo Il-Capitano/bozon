@@ -659,6 +659,127 @@ template ast::statement parse_decl_variable<true>(
 	ctx::parse_context &context
 );
 
+void resolve_type_alias(
+	ast::decl_type_alias &alias_decl,
+	ctx::parse_context &context
+)
+{
+	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (alias_decl.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(alias_decl);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	alias_decl.state = ast::resolve_state::resolving_all;
+
+	bz_assert(alias_decl.alias_expr.is<ast::unresolved_expression>());
+	auto const begin = alias_decl.alias_expr.src_tokens.begin;
+	auto const end   = alias_decl.alias_expr.src_tokens.end;
+	auto stream = begin;
+	alias_decl.state = ast::resolve_state::resolving_all;
+	alias_decl.alias_expr = parse_expression(stream, end, context, no_comma);
+	if (stream != end)
+	{
+		if (stream->kind == lex::token::comma)
+		{
+			auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+			context.report_error(
+				stream,
+				"'operator ,' is not allowed in type alias expression",
+				{}, { context.make_suggestion_around(
+					begin,          ctx::char_pos(), ctx::char_pos(), "(",
+					suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+					"put parenthesis around the expression"
+				) }
+			);
+		}
+		else
+		{
+			context.assert_token(stream, lex::token::semi_colon);
+		}
+	}
+	else if (alias_decl.alias_expr.is_null())
+	{
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+	consteval_try(alias_decl.alias_expr, context);
+
+	if (!alias_decl.alias_expr.has_consteval_succeeded())
+	{
+		context.report_error(
+			alias_decl.alias_expr,
+			"type alias expression must be a constant expression",
+			get_consteval_fail_notes(alias_decl.alias_expr)
+		);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
+	if (value.is<ast::constant_value::type>())
+	{
+		alias_decl.state = ast::resolve_state::all;
+	}
+	else
+	{
+		context.report_error(alias_decl.alias_expr, "type alias value must be a type");
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+}
+
+template<bool is_global>
+ast::statement parse_decl_type_alias(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_type);
+	auto const begin_token = stream;
+	++stream; // type
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	context.assert_token(stream, lex::token::assign);
+	auto const alias_tokens = get_expression_tokens<>(stream, end, context);
+	auto const end_token = stream;
+	context.assert_token(stream, lex::token::semi_colon);
+	if constexpr (is_global)
+	{
+		return ast::make_decl_type_alias(
+			lex::src_tokens{ begin_token, id, end_token },
+			id,
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+		);
+	}
+	else
+	{
+		auto result = ast::make_decl_type_alias(
+			lex::src_tokens{ begin_token, id, end_token },
+			id,
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+		);
+		bz_assert(result.is<ast::decl_type_alias>());
+		resolve_type_alias(result.get<ast::decl_type_alias>(), context);
+		return result;
+	}
+}
+
+template ast::statement parse_decl_type_alias<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_type_alias<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 void resolve_function_alias(
 	ast::decl_function_alias &alias_decl,
 	ctx::parse_context &context
@@ -1203,17 +1324,10 @@ ast::statement parse_decl_function_or_alias(
 		++stream; // '='
 		auto const alias_expr = get_expression_tokens<>(stream, end, context);
 		context.assert_token(stream, lex::token::semi_colon);
-		uint32_t flags = 0;
-		if (id->value == "main")
-		{
-			flags |= ast::function_body::main;
-			flags |= ast::function_body::external_linkage;
-		}
 		return ast::make_decl_function_alias(
 			src_tokens,
 			id,
-			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end }),
-			flags
+			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end })
 		);
 	}
 	else
@@ -1424,9 +1538,11 @@ ast::statement parse_export_statement(
 				op_decl.body.flags |= ast::function_body::module_export;
 				op_decl.body.flags |= ast::function_body::external_linkage;
 			},
-			[](ast::decl_function_alias &func_alias) {
-				func_alias.function_flags |= ast::function_body::module_export;
-				func_alias.function_flags |= ast::function_body::external_linkage;
+			[](ast::decl_function_alias &alias_decl) {
+				alias_decl.is_export = true;
+			},
+			[](ast::decl_type_alias &alias_decl) {
+				alias_decl.is_export = true;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "only a function or an operator can be exported");
@@ -2045,6 +2161,19 @@ static void apply_attribute(
 }
 
 static void apply_attribute(
+	ast::decl_type_alias &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
 	ast::decl_struct &,
 	ast::attribute const &attribute,
 	ctx::parse_context &context
@@ -2137,6 +2266,11 @@ void resolve_global_statement(
 		[&](ast::decl_function_alias &alias_decl) {
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_function_alias(alias_decl, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::decl_type_alias &alias_decl) {
+			context.add_to_resolve_queue({}, alias_decl);
+			resolve_type_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {

@@ -24,7 +24,8 @@ struct parse_context
 		bz::variant<
 			ast::function_body *,
 			ast::decl_variable *,
-			ast::decl_function_alias *
+			ast::decl_function_alias *,
+			ast::decl_type_alias *
 		> requested;
 	};
 
@@ -92,7 +93,8 @@ struct parse_context
 	) const;
 
 	void report_circular_dependency_error(ast::function_body &func_body) const;
-	void report_circular_dependency_error(ast::decl_function_alias &alias) const;
+	void report_circular_dependency_error(ast::decl_function_alias &alias_decl) const;
+	void report_circular_dependency_error(ast::decl_type_alias &alias_decl) const;
 	void report_circular_dependency_error(ast::decl_variable &var_decl) const;
 
 	void report_warning(
@@ -302,6 +304,8 @@ struct parse_context
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
 	{ this->resolve_queue.emplace_back(tokens, &func_body); }
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_function_alias &alias_decl)
+	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
+	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_type_alias &alias_decl)
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_variable &var_decl)
 	{ this->resolve_queue.emplace_back(tokens, &var_decl); }

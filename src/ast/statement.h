@@ -44,6 +44,7 @@ struct decl_variable;
 struct decl_function;
 struct decl_operator;
 struct decl_function_alias;
+struct decl_type_alias;
 struct decl_struct;
 struct decl_import;
 
@@ -59,6 +60,7 @@ using statement_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_type_alias,
 	decl_struct,
 	decl_import
 >;
@@ -69,6 +71,7 @@ using top_level_statement_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_type_alias,
 	decl_struct,
 	decl_import
 >;
@@ -78,6 +81,7 @@ using declaration_types = bz::meta::type_pack<
 	decl_function,
 	decl_operator,
 	decl_function_alias,
+	decl_type_alias,
 	decl_struct,
 	decl_import
 >;
@@ -525,62 +529,59 @@ struct decl_operator
 
 struct decl_function_alias
 {
-	lex::token_pos              identifier;
 	lex::src_tokens             src_tokens;
+	lex::token_pos              identifier;
 	expression                  alias_expr;
 	bz::vector<function_body *> aliased_bodies;
-	uint32_t                    function_flags;
 	resolve_state               state;
+	bool                        is_export;
 
 	declare_default_5(decl_function_alias)
 
 	decl_function_alias(
 		lex::src_tokens _src_tokens,
 		lex::token_pos  _id,
-		expression      _alias_expr,
-		uint32_t        _function_flags = 0
+		expression      _alias_expr
 	)
-		: identifier(_id),
-		  src_tokens(_src_tokens),
+		: src_tokens(_src_tokens),
+		  identifier(_id),
 		  alias_expr(std::move(_alias_expr)),
 		  aliased_bodies{},
-		  function_flags(_function_flags),
-		  state(resolve_state::none)
+		  state(resolve_state::none),
+		  is_export(false)
+	{}
+};
+
+struct decl_type_alias
+{
+	lex::src_tokens src_tokens;
+	lex::token_pos  identifier;
+	expression      alias_expr;
+	resolve_state   state;
+	bool            is_export;
+
+	decl_type_alias(
+		lex::src_tokens _src_tokens,
+		lex::token_pos  _id,
+		expression      _alias_expr
+	)
+		: src_tokens(_src_tokens),
+		  identifier(_id),
+		  alias_expr(std::move(_alias_expr)),
+		  state     (resolve_state::none),
+		  is_export (false)
 	{}
 
-	bool is_external_linkage(void) const noexcept
+	typespec_view get_type(void) const
 	{
-		return (this->function_flags & function_body::external_linkage) != 0;
-	}
-
-	bool is_main(void) const noexcept
-	{
-		return(this->function_flags & function_body::main) != 0;
-	}
-
-	bool is_export(void) const noexcept
-	{
-		return (this->function_flags & function_body::module_export) != 0;
-	}
-
-	bool is_intrinsic(void) const noexcept
-	{
-		return (this->function_flags & function_body::intrinsic) != 0;
-	}
-
-	bool is_generic(void) const noexcept
-	{
-		return (this->function_flags & function_body::generic) != 0;
-	}
-
-	bool is_generic_specialization(void) const noexcept
-	{
-		return (this->function_flags & function_body::generic_specialization) != 0;
-	}
-
-	bool is_reversed_args(void) const noexcept
-	{
-		return (this->function_flags & function_body::reversed_args) != 0;
+		if (this->alias_expr.is_typename())
+		{
+			return this->alias_expr.get_typename();
+		}
+		else
+		{
+			return {};
+		}
 	}
 };
 
@@ -838,6 +839,7 @@ def_make_fn(statement, decl_variable)
 def_make_fn(statement, decl_function)
 def_make_fn(statement, decl_operator)
 def_make_fn(statement, decl_function_alias)
+def_make_fn(statement, decl_type_alias)
 def_make_fn(statement, decl_struct)
 def_make_fn(statement, decl_import)
 
@@ -851,6 +853,7 @@ def_make_fn(statement, stmt_static_assert)
 #undef def_make_fn
 
 type_info *get_builtin_type_info(uint32_t kind);
+typespec_view get_builtin_type(bz::u8string_view name);
 function_body *get_builtin_function(uint32_t kind);
 
 struct intrinsic_info_t
