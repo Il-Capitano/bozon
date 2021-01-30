@@ -424,6 +424,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	// add declarations to the module
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	bc::runtime::add_builtin_functions(context);
+	for (auto const &file : this->_src_files)
+	{
+		for (auto const decl : file._global_decls.var_decls)
+		{
+			bc::runtime::emit_global_variable(*decl, context);
+		}
+	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
 		func->resolve_symbol_name();

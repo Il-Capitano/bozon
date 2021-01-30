@@ -93,6 +93,7 @@ struct parse_context
 
 	void report_circular_dependency_error(ast::function_body &func_body) const;
 	void report_circular_dependency_error(ast::decl_function_alias &alias) const;
+	void report_circular_dependency_error(ast::decl_variable &var_decl) const;
 
 	void report_warning(
 		warning_kind kind,
@@ -255,7 +256,7 @@ struct parse_context
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
-	ast::expression make_identifier_expression(lex::token_pos id) const;
+	ast::expression make_identifier_expression(lex::token_pos id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
 	ast::expression make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const;

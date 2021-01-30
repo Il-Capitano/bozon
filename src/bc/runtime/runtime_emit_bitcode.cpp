@@ -3347,6 +3347,44 @@ void emit_function_bitcode(
 	bz_unreachable;
 }
 
+template<abi::platform_abi abi>
+static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
+{
+	auto const name = llvm::StringRef(var_decl.identifier->value.data(), var_decl.identifier->value.size());
+	auto const type = get_llvm_type(var_decl.var_type, context);
+	auto const val = context.get_module().getOrInsertGlobal(name, type);
+	llvm::GlobalVariable *global_var = llvm::dyn_cast<llvm::GlobalVariable>(val);
+	bz_assert(var_decl.init_expr.is<ast::constant_expression>());
+	auto const &const_expr = var_decl.init_expr.get<ast::constant_expression>();
+	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+	global_var->setInitializer(init_val);
+	context.add_variable(&var_decl, global_var);
+}
+
+void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_global_variable_impl<abi::platform_abi::generic>(
+			var_decl, context
+		);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_global_variable_impl<abi::platform_abi::microsoft_x64>(
+			var_decl, context
+		);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_global_variable_impl<abi::platform_abi::systemv_amd64>(
+			var_decl, context
+		);
+		return;
+	}
+	bz_unreachable;
+}
+
 void add_builtin_functions(ctx::bitcode_context &context)
 {
 	for (

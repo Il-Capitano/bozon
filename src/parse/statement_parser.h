@@ -36,6 +36,15 @@ void resolve_global_statement(
 	ctx::parse_context &context
 );
 
+void resolve_variable_symbol(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+);
+void resolve_variable(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+);
+
 void resolve_function_alias(
 	ast::decl_function_alias &alias_decl,
 	ctx::parse_context &context

@@ -5,13 +5,13 @@ namespace ast
 {
 
 lex::token_pos decl_variable::get_tokens_begin(void) const
-{ return this->tokens.begin; }
+{ return this->src_tokens.begin; }
 
 lex::token_pos decl_variable::get_tokens_pivot(void) const
-{ return this->identifier; }
+{ return this->src_tokens.pivot; }
 
 lex::token_pos decl_variable::get_tokens_end(void) const
-{ return this->tokens.end; }
+{ return this->src_tokens.end; }
 
 bz::u8string function_body::get_signature(void) const
 {
@@ -289,7 +289,7 @@ static ast::function_body create_builtin_function(
 	bz::vector<ast::decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
-		lex::token_range{}, lex::token_pos{}, lex::token_range{},
+		lex::src_tokens{}, lex::token_pos{}, lex::token_range{},
 		std::move(arg_types)
 	)), ...);
 	auto const is_generic = [&]() {

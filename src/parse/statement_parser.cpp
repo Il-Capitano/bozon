@@ -355,15 +355,13 @@ static void resolve_typespec(
 	}
 }
 
-static void resolve_var_decl_type(
+static void resolve_variable_type(
 	ast::decl_variable &var_decl,
 	ctx::parse_context &context
 )
 {
-	if (!var_decl.var_type.is<ast::ts_unresolved>())
-	{
-		return;
-	}
+	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
+	bz_assert(var_decl.var_type.is<ast::ts_unresolved>());
 	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
 	auto type = stream == end
 		? ast::make_constant_expression(
@@ -383,6 +381,7 @@ static void resolve_var_decl_type(
 			get_consteval_fail_notes(type)
 		);
 		var_decl.var_type.clear();
+		var_decl.state = ast::resolve_state::error;
 	}
 	else if (type.not_null() && !type.is_typename())
 	{
@@ -405,6 +404,7 @@ static void resolve_var_decl_type(
 
 		context.report_error(type.src_tokens, "expected a type");
 		var_decl.var_type.clear();
+		var_decl.state = ast::resolve_state::error;
 	}
 	else if (type.is_typename())
 	{
@@ -422,20 +422,22 @@ static void resolve_var_decl_type(
 		else
 		{
 			var_decl.var_type.clear();
+			var_decl.state = ast::resolve_state::error;
 		}
 	}
 	else
 	{
 		var_decl.var_type.clear();
+		var_decl.state = ast::resolve_state::error;
 	}
 }
 
-static void resolve_decl_variable(
+static void resolve_variable_init_expr_and_match_type(
 	ast::decl_variable &var_decl,
 	ctx::parse_context &context
 )
 {
-	resolve_var_decl_type(var_decl, context);
+	bz_assert(!var_decl.var_type.is_empty());
 	if (var_decl.init_expr.not_null())
 	{
 		bz_assert(var_decl.init_expr.is<ast::unresolved_expression>());
@@ -467,11 +469,7 @@ static void resolve_decl_variable(
 	}
 	else
 	{
-		if (var_decl.var_type.is_empty())
-		{
-			bz_assert(context.has_errors());
-		}
-		else if (!ast::is_complete(var_decl.var_type))
+		if (!ast::is_complete(var_decl.var_type))
 		{
 			context.report_error(
 				var_decl.identifier,
@@ -481,6 +479,7 @@ static void resolve_decl_variable(
 				)
 			);
 			var_decl.var_type.clear();
+			var_decl.state = ast::resolve_state::error;
 		}
 		else if (var_decl.var_type.is<ast::ts_const>())
 		{
@@ -488,7 +487,7 @@ static void resolve_decl_variable(
 				var_decl.identifier,
 				"a variable with a 'const' type must be initialized"
 			);
-			var_decl.var_type.clear();
+			var_decl.state = ast::resolve_state::error;
 		}
 		else if (var_decl.var_type.is<ast::ts_consteval>())
 		{
@@ -496,9 +495,81 @@ static void resolve_decl_variable(
 				var_decl.identifier,
 				"a variable with a 'consteval' type must be initialized"
 			);
-			var_decl.var_type.clear();
+			var_decl.state = ast::resolve_state::error;
 		}
 	}
+}
+
+void resolve_variable_symbol(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	if (var_decl.state >= ast::resolve_state::symbol || var_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (var_decl.state == ast::resolve_state::resolving_symbol)
+	{
+		context.report_circular_dependency_error(var_decl);
+		var_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	var_decl.state = ast::resolve_state::resolving_symbol;
+	resolve_variable_type(var_decl, context);
+	if (var_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+
+	if (!ast::is_complete(var_decl.var_type) || var_decl.var_type.is<ast::ts_consteval>())
+	{
+		var_decl.state = ast::resolve_state::resolving_all;
+		resolve_variable_init_expr_and_match_type(var_decl, context);
+		if (var_decl.state == ast::resolve_state::error)
+		{
+			return;
+		}
+		var_decl.state = ast::resolve_state::all;
+	}
+	else
+	{
+		var_decl.state = ast::resolve_state::symbol;
+	}
+}
+
+void resolve_variable(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	if (var_decl.state >= ast::resolve_state::all || var_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (var_decl.state == ast::resolve_state::resolving_symbol || var_decl.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(var_decl);
+		var_decl.state = ast::resolve_state::error;
+		return;
+	}
+	if (var_decl.state < ast::resolve_state::symbol)
+	{
+		var_decl.state = ast::resolve_state::resolving_symbol;
+		resolve_variable_type(var_decl, context);
+		if (var_decl.state == ast::resolve_state::error)
+		{
+			return;
+		}
+	}
+	var_decl.state = ast::resolve_state::resolving_all;
+	resolve_variable_init_expr_and_match_type(var_decl, context);
+	if (var_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	var_decl.state = ast::resolve_state::all;
 }
 
 template<bool is_global>
@@ -528,7 +599,7 @@ ast::statement parse_decl_variable(
 		if constexpr (is_global)
 		{
 			return ast::make_decl_variable(
-				lex::token_range{ begin, stream },
+				lex::src_tokens{ begin, id, stream },
 				id, prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
@@ -537,14 +608,14 @@ ast::statement parse_decl_variable(
 		else
 		{
 			auto result = ast::make_decl_variable(
-				lex::token_range{ begin, stream },
+				lex::src_tokens{ begin, id, stream },
 				id, prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
 			);
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
-			resolve_decl_variable(var_decl, context);
+			resolve_variable(var_decl, context);
 			context.add_local_variable(var_decl);
 			return result;
 		}
@@ -554,7 +625,7 @@ ast::statement parse_decl_variable(
 		if constexpr (is_global)
 		{
 			return ast::make_decl_variable(
-				lex::token_range{ begin, stream },
+				lex::src_tokens{ begin, id, stream },
 				id, prototype,
 				ast::make_unresolved_typespec(type)
 			);
@@ -562,13 +633,13 @@ ast::statement parse_decl_variable(
 		else
 		{
 			auto result = ast::make_decl_variable(
-				lex::token_range{ begin, stream },
+				lex::src_tokens{ begin, id, end },
 				id, prototype,
 				ast::make_unresolved_typespec(type)
 			);
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
-			resolve_decl_variable(var_decl, context);
+			resolve_variable(var_decl, context);
 			context.add_local_variable(var_decl);
 			return result;
 		}
@@ -685,7 +756,12 @@ static bool resolve_function_parameters_helper(
 	bool is_generic = false;
 	for (auto &p : func_body.params)
 	{
-		resolve_var_decl_type(p, context);
+		if (p.state == ast::resolve_state::none)
+		{
+			p.state = ast::resolve_state::resolving_symbol;
+			resolve_variable_type(p, context);
+			p.state = ast::resolve_state::symbol;
+		}
 		if (p.var_type.is_empty())
 		{
 			good = false;
@@ -1050,7 +1126,7 @@ static ast::function_body parse_function_body(
 			context, false
 		);
 		result.params.emplace_back(
-			lex::token_range{ begin, param_stream },
+			lex::src_tokens{ begin, id, param_stream },
 			id, prototype,
 			ast::make_unresolved_typespec(type)
 		);
@@ -2062,8 +2138,20 @@ void resolve_global_statement(
 		},
 		[&](ast::decl_variable &var_decl) {
 			context.add_to_resolve_queue({}, var_decl);
-			resolve_decl_variable(var_decl, context);
+			resolve_variable(var_decl, context);
 			context.pop_resolve_queue();
+			if (var_decl.state != ast::resolve_state::error)
+			{
+				consteval_try(var_decl.init_expr, context);
+				if (!var_decl.init_expr.has_consteval_succeeded())
+				{
+					context.report_error(
+						var_decl.src_tokens,
+						"a global variable must be initialized by a constant expression",
+						get_consteval_fail_notes(var_decl.init_expr)
+					);
+				}
+			}
 		},
 		[&](ast::stmt_static_assert &static_assert_stmt) {
 			resolve_stmt_static_assert(static_assert_stmt, context);

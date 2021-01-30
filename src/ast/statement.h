@@ -239,55 +239,59 @@ struct stmt_static_assert
 
 struct decl_variable
 {
-	lex::token_range tokens;
+	lex::src_tokens  src_tokens;
 	lex::token_pos   identifier;
 	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
+	resolve_state    state;
 	bool             is_used;
 
 	declare_default_5(decl_variable)
 
 	decl_variable(
-		lex::token_range _tokens,
+		lex::src_tokens  _src_tokens,
 		lex::token_pos   _id,
 		lex::token_range _prototype_range,
 		typespec         _var_type,
 		expression       _init_expr
 	)
-		: tokens         (_tokens),
+		: src_tokens     (_src_tokens),
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
 		  init_expr      (std::move(_init_expr)),
+		  state          (resolve_state::none),
 		  is_used        (false)
 	{}
 
 	decl_variable(
-		lex::token_range _tokens,
+		lex::src_tokens  _src_tokens,
 		lex::token_pos   _id,
 		lex::token_range _prototype_range,
 		typespec         _var_type
 	)
-		: tokens         (_tokens),
+		: src_tokens     (_src_tokens),
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
 		  init_expr      (),
+		  state          (resolve_state::none),
 		  is_used        (false)
 	{}
 
 	decl_variable(
-		lex::token_range _tokens,
+		lex::src_tokens  _src_tokens,
 		lex::token_pos   _id,
 		lex::token_range _prototype_range,
 		expression       _init_expr
 	)
-		: tokens         (_tokens),
+		: src_tokens     (_src_tokens),
 		  identifier     (_id),
 		  prototype_range(_prototype_range),
 		  var_type       (make_auto_typespec(nullptr)),
 		  init_expr      (std::move(_init_expr)),
+		  state          (resolve_state::none),
 		  is_used        (false)
 	{}
 
