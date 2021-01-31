@@ -174,11 +174,14 @@ struct decl_set
 		}
 	}
 
-	void add_type_alias(ast::statement &stmt)
+	void add_type_alias(ast::decl_type_alias &alias_decl)
 	{
-		bz_assert(stmt.is<ast::decl_type_alias>());
-		auto &alias_decl = stmt.get<ast::decl_type_alias>();
 		this->types.push_back(&alias_decl);
+	}
+
+	void add_variable(ast::decl_variable &var_decl)
+	{
+		this->var_decls.push_back(&var_decl);
 	}
 };
 

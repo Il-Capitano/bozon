@@ -250,6 +250,7 @@ struct decl_variable
 	expression       init_expr; // is null if there's no initializer
 	resolve_state    state;
 	bool             is_used;
+	bool             is_export;
 
 	declare_default_5(decl_variable)
 
@@ -266,7 +267,8 @@ struct decl_variable
 		  var_type       (std::move(_var_type)),
 		  init_expr      (std::move(_init_expr)),
 		  state          (resolve_state::none),
-		  is_used        (false)
+		  is_used        (false),
+		  is_export      (false)
 	{}
 
 	decl_variable(
@@ -281,7 +283,8 @@ struct decl_variable
 		  var_type       (std::move(_var_type)),
 		  init_expr      (),
 		  state          (resolve_state::none),
-		  is_used        (false)
+		  is_used        (false),
+		  is_export      (false)
 	{}
 
 	decl_variable(
@@ -296,7 +299,8 @@ struct decl_variable
 		  var_type       (make_auto_typespec(nullptr)),
 		  init_expr      (std::move(_init_expr)),
 		  state          (resolve_state::none),
-		  is_used        (false)
+		  is_used        (false),
+		  is_export      (false)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;

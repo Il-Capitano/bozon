@@ -1544,8 +1544,11 @@ ast::statement parse_export_statement(
 			[](ast::decl_type_alias &alias_decl) {
 				alias_decl.is_export = true;
 			},
+			[](ast::decl_variable &var_decl) {
+				var_decl.is_export = true;
+			},
 			[&](auto const &) {
-				context.report_error(after_export_token, "only a function or an operator can be exported");
+				context.report_error(after_export_token, "invalid statement to export exported");
 			}
 		});
 	}

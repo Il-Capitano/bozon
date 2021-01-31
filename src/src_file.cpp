@@ -126,7 +126,11 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		case ast::statement::index<ast::decl_variable>:
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
-			this->_global_decls.var_decls.push_back(&var_decl);
+			this->_global_decls.add_variable(var_decl);
+			if (var_decl.is_export)
+			{
+				this->_export_decls.add_variable(var_decl);
+			}
 			break;
 		}
 		case ast::statement::index<ast::decl_function>:
@@ -161,11 +165,11 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		}
 		case ast::statement::index<ast::decl_type_alias>:
 		{
-			this->_global_decls.add_type_alias(decl);
-			auto const &alias = decl.get<ast::decl_type_alias>();
+			auto &alias = decl.get<ast::decl_type_alias>();
+			this->_global_decls.add_type_alias(alias);
 			if (alias.is_export)
 			{
-				this->_export_decls.add_type_alias(decl);
+				this->_export_decls.add_type_alias(alias);
 			}
 			break;
 		}
