@@ -2421,8 +2421,7 @@ static llvm::Constant *get_value(
 			return llvm::ConstantStruct::getNullValue(str_t);
 		}
 
-		auto const string_ref = llvm::StringRef(str.data(), str.size());
-		auto const string_constant = context.builder.CreateGlobalString(string_ref, ".str");
+		auto const string_constant = context.create_string(str);
 
 		auto const begin_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, 0);
 		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
@@ -3353,7 +3352,8 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::b
 	auto const name = llvm::StringRef(var_decl.identifier->value.data(), var_decl.identifier->value.size());
 	auto const type = get_llvm_type(var_decl.var_type, context);
 	auto const val = context.get_module().getOrInsertGlobal(name, type);
-	llvm::GlobalVariable *global_var = llvm::dyn_cast<llvm::GlobalVariable>(val);
+	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
+	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
 	bz_assert(var_decl.init_expr.is<ast::constant_expression>());
 	auto const &const_expr = var_decl.init_expr.get<ast::constant_expression>();
 	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);

@@ -41,6 +41,7 @@ struct bitcode_context
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
 	llvm::Value *create_alloca(llvm::Type *t, size_t align);
+	llvm::Value *create_string(bz::u8string_view str);
 
 	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
 	llvm::Value *create_cast_to_int(bc::val_ptr val);

@@ -123,6 +123,12 @@ llvm::Value *bitcode_context::create_alloca(llvm::Type *t, size_t align)
 	return result;
 }
 
+llvm::Value *bitcode_context::create_string(bz::u8string_view str)
+{
+	auto const str_ref = llvm::StringRef(str.data(), str.size());
+	return this->builder.CreateGlobalString(str_ref, ".str", 0, &this->get_module());
+}
+
 llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_type)
 {
 	if (val.kind == bc::val_ptr::reference)
