@@ -29,11 +29,11 @@ namespace ctx
 {
 
 static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
-get_llvm_built_in_types(llvm::LLVMContext &context)
+get_llvm_builtin_types(llvm::LLVMContext &context)
 {
 	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
-	auto const str_t = llvm::StructType::create("built_in.str", i8_ptr, i8_ptr);
-	auto const null_t = llvm::StructType::create(context, {}, "built_in.__null_t");
+	auto const str_t = llvm::StructType::create("builtin.str", i8_ptr, i8_ptr);
+	auto const null_t = llvm::StructType::create(context, {}, "builtin.__null_t");
 	return {
 		llvm::Type::getInt8Ty(context),   // int8_
 		llvm::Type::getInt16Ty(context),  // int16_
@@ -70,7 +70,7 @@ global_context::global_context(void)
 	  _comptime_module("comptime_module", this->_llvm_context),
 	  _target_machine(nullptr),
 	  _data_layout(),
-	  _llvm_built_in_types(get_llvm_built_in_types(this->_llvm_context))
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
 {}
 
 

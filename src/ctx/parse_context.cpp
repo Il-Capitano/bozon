@@ -1,7 +1,7 @@
 #include "parse_context.h"
 #include "ast/typespec.h"
 #include "global_context.h"
-#include "built_in_operators.h"
+#include "builtin_operators.h"
 #include "lex/lexer.h"
 #include "escape_sequences.h"
 #include "parse/statement_parser.h"
@@ -1724,16 +1724,16 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 	}
 }
 
-static bool is_built_in_type(ast::typespec_view ts)
+static bool is_builtin_type(ast::typespec_view ts)
 {
 	switch (ts.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_const>:
-		return is_built_in_type(ts.get<ast::ts_const>());
+		return is_builtin_type(ts.get<ast::ts_const>());
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
 	{
 		auto &base = ts.get<ast::ts_base_type>();
-		return (base.info->flags & ast::type_info_flags::built_in) != 0;
+		return (base.info->flags & ast::type_info_flags::builtin) != 0;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
 	case ast::typespec_node_t::index_of<ast::ts_function>:
@@ -2567,11 +2567,11 @@ ast::expression parse_context::make_unary_operator_expression(
 
 	if (is_unary_type_op(op->kind) && expr.is_typename())
 	{
-		auto result = make_built_in_type_operation(op, std::move(expr), *this);
+		auto result = make_builtin_type_operation(op, std::move(expr), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
-	else if (is_unary_type_op(op->kind) && !is_unary_built_in_operator(op->kind))
+	else if (is_unary_type_op(op->kind) && !is_unary_builtin_operator(op->kind))
 	{
 		bz_assert(!is_overloadable_operator(op->kind));
 		this->report_error(expr, bz::format("expected a type after '{}'", op->value));
@@ -2582,10 +2582,10 @@ ast::expression parse_context::make_unary_operator_expression(
 	// user-defined operators shouldn't be looked at
 	if (
 		!is_unary_overloadable_operator(op->kind)
-		|| (is_built_in_type(ast::remove_const_or_consteval(type)) && is_unary_built_in_operator(op->kind))
+		|| (is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op->kind))
 	)
 	{
-		auto result = make_built_in_operation(op, std::move(expr), *this);
+		auto result = make_builtin_operation(op, std::move(expr), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
@@ -2724,11 +2724,11 @@ ast::expression parse_context::make_binary_operator_expression(
 
 	if (is_binary_type_op(op->kind) && lhs.is_typename() && rhs.is_typename())
 	{
-		auto result = make_built_in_type_operation(op, std::move(lhs), std::move(rhs), *this);
+		auto result = make_builtin_type_operation(op, std::move(lhs), std::move(rhs), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
-	else if (is_binary_type_op(op->kind) && !is_binary_built_in_operator(op->kind))
+	else if (is_binary_type_op(op->kind) && !is_binary_builtin_operator(op->kind))
 	{
 		// there's no operator such as this ('as' is handled earlier)
 		bz_unreachable;
@@ -2741,13 +2741,13 @@ ast::expression parse_context::make_binary_operator_expression(
 	if (
 		!is_binary_overloadable_operator(op->kind)
 		|| (
-			is_built_in_type(ast::remove_const_or_consteval(lhs_type))
-			&& is_built_in_type(ast::remove_const_or_consteval(rhs_type))
-			&& is_binary_built_in_operator(op->kind)
+			is_builtin_type(ast::remove_const_or_consteval(lhs_type))
+			&& is_builtin_type(ast::remove_const_or_consteval(rhs_type))
+			&& is_binary_builtin_operator(op->kind)
 		)
 	)
 	{
-		auto result = make_built_in_operation(op, std::move(lhs), std::move(rhs), *this);
+		auto result = make_builtin_operation(op, std::move(lhs), std::move(rhs), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
@@ -3151,7 +3151,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			|| kind == ast::expression_type_kind::tuple
 		)
 		{
-			called = make_built_in_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
+			called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
 		}
 		else
 		{
@@ -3183,9 +3183,9 @@ ast::expression parse_context::make_cast_expression(
 
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 
-	if (is_built_in_type(expr_type))
+	if (is_builtin_type(expr_type))
 	{
-		auto result = make_built_in_cast(src_tokens, op, std::move(expr), std::move(type), *this);
+		auto result = make_builtin_cast(src_tokens, op, std::move(expr), std::move(type), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
@@ -3275,7 +3275,7 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(lex:
 auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
 	-> std::pair<ast::function_body *, ast::expression::expr_type_t>
 {
-	auto res = get_built_in_cast_type(cast.expr.expr_type, cast.type, *this);
+	auto res = get_builtin_cast_type(cast.expr.expr_type, cast.type, *this);
 	if (res.expr_type.kind() == ast::typespec::null)
 	{
 		this->report_error(cast, bz::format("invalid cast from '{}' to '{}'", cast.expr.expr_type.expr_type, cast.type));

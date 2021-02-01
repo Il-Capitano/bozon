@@ -594,7 +594,7 @@ namespace type_info_flags
 
 enum : uint32_t
 {
-	built_in     = bit_at<0>,
+	builtin     = bit_at<0>,
 	resolved     = bit_at<1>,
 	instantiable = bit_at<2>,
 
@@ -604,8 +604,8 @@ enum : uint32_t
 	trivially_destructible  = bit_at<6>,
 };
 
-static constexpr size_t default_built_in_flags =
-	built_in | resolved | instantiable
+static constexpr size_t default_builtin_flags =
+	builtin | resolved | instantiable
 	| default_zero_initialize | trivially_copyable | trivially_movable;
 
 } // namespace type_info_flags
@@ -636,23 +636,23 @@ struct type_info
 //	function_body *destructor;
 //	function_body *move_destructor;
 
-	static type_info make_built_in(bz::u8string_view name, uint8_t kind)
+	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{
 		return type_info{
 			kind, resolve_state::all,
-			type_info_flags::default_built_in_flags,
-			bz::format("built_in.{}", name),
+			type_info_flags::default_builtin_flags,
+			bz::format("builtin.{}", name),
 			{}
 		};
 	}
 
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
 	{
-		constexpr bz::u8string_view built_in = "built_in.";
+		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_  = "struct.";
-		if (symbol_name.starts_with(built_in))
+		if (symbol_name.starts_with(builtin))
 		{
-			return symbol_name.substring(built_in.length());
+			return symbol_name.substring(builtin.length());
 		}
 		else
 		{
@@ -667,12 +667,12 @@ struct type_info
 	)
 	{
 		auto const whole_str = bz::u8string_view(it, end);
-		constexpr bz::u8string_view built_in = "built_in.";
+		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_  = "struct.";
-		if (whole_str.starts_with(built_in))
+		if (whole_str.starts_with(builtin))
 		{
-			static_assert(built_in.length() == built_in.size());
-			auto const begin = bz::u8string_view::const_iterator(it.data() + built_in.size());
+			static_assert(builtin.length() == builtin.size());
+			auto const begin = bz::u8string_view::const_iterator(it.data() + builtin.size());
 			auto const dot = whole_str.find(begin, '.');
 			it = dot;
 			return bz::u8string(begin, dot);

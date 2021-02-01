@@ -3,7 +3,7 @@
 #include <llvm/IR/Attributes.h>
 
 #include "comptime_emit_bitcode.h"
-#include "ctx/built_in_operators.h"
+#include "ctx/builtin_operators.h"
 #include "colors.h"
 #include "abi/calling_conventions.h"
 #include "abi/platform_function_call.h"
@@ -304,7 +304,7 @@ static val_ptr emit_bitcode(
 
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_assign(
+static val_ptr emit_builtin_binary_assign(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -327,7 +327,7 @@ static val_ptr emit_built_in_binary_assign(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_plus(
+static val_ptr emit_builtin_binary_plus(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -448,7 +448,7 @@ static val_ptr emit_built_in_binary_plus(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_plus_eq(
+static val_ptr emit_builtin_binary_plus_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -547,7 +547,7 @@ static val_ptr emit_built_in_binary_plus_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_minus(
+static val_ptr emit_builtin_binary_minus(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -665,7 +665,7 @@ static val_ptr emit_built_in_binary_minus(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_minus_eq(
+static val_ptr emit_builtin_binary_minus_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -771,7 +771,7 @@ static val_ptr emit_built_in_binary_minus_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_multiply(
+static val_ptr emit_builtin_binary_multiply(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -803,7 +803,7 @@ static val_ptr emit_built_in_binary_multiply(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_multiply_eq(
+static val_ptr emit_builtin_binary_multiply_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -839,7 +839,7 @@ static val_ptr emit_built_in_binary_multiply_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_divide(
+static val_ptr emit_builtin_binary_divide(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -871,7 +871,7 @@ static val_ptr emit_built_in_binary_divide(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_divide_eq(
+static val_ptr emit_builtin_binary_divide_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -907,7 +907,7 @@ static val_ptr emit_built_in_binary_divide_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_modulo(
+static val_ptr emit_builtin_binary_modulo(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -939,7 +939,7 @@ static val_ptr emit_built_in_binary_modulo(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_modulo_eq(
+static val_ptr emit_builtin_binary_modulo_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -975,7 +975,7 @@ static val_ptr emit_built_in_binary_modulo_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_cmp(
+static val_ptr emit_builtin_binary_cmp(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1093,7 +1093,7 @@ static val_ptr emit_built_in_binary_cmp(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_and(
+static val_ptr emit_builtin_binary_bit_and(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1127,7 +1127,7 @@ static val_ptr emit_built_in_binary_bit_and(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_and_eq(
+static val_ptr emit_builtin_binary_bit_and_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1165,7 +1165,7 @@ static val_ptr emit_built_in_binary_bit_and_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_xor(
+static val_ptr emit_builtin_binary_bit_xor(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1199,7 +1199,7 @@ static val_ptr emit_built_in_binary_bit_xor(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_xor_eq(
+static val_ptr emit_builtin_binary_bit_xor_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1237,7 +1237,7 @@ static val_ptr emit_built_in_binary_bit_xor_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_or(
+static val_ptr emit_builtin_binary_bit_or(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1271,7 +1271,7 @@ static val_ptr emit_built_in_binary_bit_or(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bit_or_eq(
+static val_ptr emit_builtin_binary_bit_or_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1309,7 +1309,7 @@ static val_ptr emit_built_in_binary_bit_or_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_left_shift(
+static val_ptr emit_builtin_binary_left_shift(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1326,7 +1326,7 @@ static val_ptr emit_built_in_binary_left_shift(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const result_val = context.builder.CreateShl(lhs_val, cast_rhs_val, "lshift_tmp");
 	if (result_address == nullptr)
 	{
@@ -1340,7 +1340,7 @@ static val_ptr emit_built_in_binary_left_shift(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_left_shift_eq(
+static val_ptr emit_builtin_binary_left_shift_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1357,7 +1357,7 @@ static val_ptr emit_built_in_binary_left_shift_eq(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
@@ -1375,7 +1375,7 @@ static val_ptr emit_built_in_binary_left_shift_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_right_shift(
+static val_ptr emit_builtin_binary_right_shift(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1392,7 +1392,7 @@ static val_ptr emit_built_in_binary_right_shift(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const result_val = context.builder.CreateLShr(lhs_val, cast_rhs_val, "rshift_tmp");
 	if (result_address == nullptr)
 	{
@@ -1406,7 +1406,7 @@ static val_ptr emit_built_in_binary_right_shift(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_right_shift_eq(
+static val_ptr emit_builtin_binary_right_shift_eq(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1423,7 +1423,7 @@ static val_ptr emit_built_in_binary_right_shift_eq(
 	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_built_in_type(lhs_kind), false);
+	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
@@ -1441,7 +1441,7 @@ static val_ptr emit_built_in_binary_right_shift_eq(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bool_and(
+static val_ptr emit_builtin_binary_bool_and(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1495,7 +1495,7 @@ static val_ptr emit_built_in_binary_bool_and(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bool_xor(
+static val_ptr emit_builtin_binary_bool_xor(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1525,7 +1525,7 @@ static val_ptr emit_built_in_binary_bool_xor(
 }
 
 template<abi::platform_abi abi>
-static val_ptr emit_built_in_binary_bool_or(
+static val_ptr emit_builtin_binary_bool_or(
 	ast::expr_binary_op const &binary_op,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -1597,60 +1597,60 @@ static val_ptr emit_bitcode(
 
 	// ==== overloadable ====
 	case lex::token::assign:             // '='
-		return emit_built_in_binary_assign<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_assign<abi>(binary_op, context, result_address);
 	case lex::token::plus:               // '+'
-		return emit_built_in_binary_plus<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_plus<abi>(binary_op, context, result_address);
 	case lex::token::plus_eq:            // '+='
-		return emit_built_in_binary_plus_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_plus_eq<abi>(binary_op, context, result_address);
 	case lex::token::minus:              // '-'
-		return emit_built_in_binary_minus<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_minus<abi>(binary_op, context, result_address);
 	case lex::token::minus_eq:           // '-='
-		return emit_built_in_binary_minus_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_minus_eq<abi>(binary_op, context, result_address);
 	case lex::token::multiply:           // '*'
-		return emit_built_in_binary_multiply<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_multiply<abi>(binary_op, context, result_address);
 	case lex::token::multiply_eq:        // '*='
-		return emit_built_in_binary_multiply_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_multiply_eq<abi>(binary_op, context, result_address);
 	case lex::token::divide:             // '/'
-		return emit_built_in_binary_divide<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide<abi>(binary_op, context, result_address);
 	case lex::token::divide_eq:          // '/='
-		return emit_built_in_binary_divide_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide_eq<abi>(binary_op, context, result_address);
 	case lex::token::modulo:             // '%'
-		return emit_built_in_binary_modulo<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_modulo<abi>(binary_op, context, result_address);
 	case lex::token::modulo_eq:          // '%='
-		return emit_built_in_binary_modulo_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_modulo_eq<abi>(binary_op, context, result_address);
 	case lex::token::equals:             // '=='
 	case lex::token::not_equals:         // '!='
 	case lex::token::less_than:          // '<'
 	case lex::token::less_than_eq:       // '<='
 	case lex::token::greater_than:       // '>'
 	case lex::token::greater_than_eq:    // '>='
-		return emit_built_in_binary_cmp<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_cmp<abi>(binary_op, context, result_address);
 	case lex::token::bit_and:            // '&'
-		return emit_built_in_binary_bit_and<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_and<abi>(binary_op, context, result_address);
 	case lex::token::bit_and_eq:         // '&='
-		return emit_built_in_binary_bit_and_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_and_eq<abi>(binary_op, context, result_address);
 	case lex::token::bit_xor:            // '^'
-		return emit_built_in_binary_bit_xor<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_xor<abi>(binary_op, context, result_address);
 	case lex::token::bit_xor_eq:         // '^='
-		return emit_built_in_binary_bit_xor_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_xor_eq<abi>(binary_op, context, result_address);
 	case lex::token::bit_or:             // '|'
-		return emit_built_in_binary_bit_or<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_or<abi>(binary_op, context, result_address);
 	case lex::token::bit_or_eq:          // '|='
-		return emit_built_in_binary_bit_or_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bit_or_eq<abi>(binary_op, context, result_address);
 	case lex::token::bit_left_shift:     // '<<'
-		return emit_built_in_binary_left_shift<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_left_shift<abi>(binary_op, context, result_address);
 	case lex::token::bit_left_shift_eq:  // '<<='
-		return emit_built_in_binary_left_shift_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_left_shift_eq<abi>(binary_op, context, result_address);
 	case lex::token::bit_right_shift:    // '>>'
-		return emit_built_in_binary_right_shift<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_right_shift<abi>(binary_op, context, result_address);
 	case lex::token::bit_right_shift_eq: // '>>='
-		return emit_built_in_binary_right_shift_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_right_shift_eq<abi>(binary_op, context, result_address);
 	case lex::token::bool_and:           // '&&'
-		return emit_built_in_binary_bool_and<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bool_and<abi>(binary_op, context, result_address);
 	case lex::token::bool_xor:           // '^^'
-		return emit_built_in_binary_bool_xor<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bool_xor<abi>(binary_op, context, result_address);
 	case lex::token::bool_or:            // '||'
-		return emit_built_in_binary_bool_or<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_bool_or<abi>(binary_op, context, result_address);
 
 	// these have no built-in operations
 	case lex::token::dot_dot:            // '..'
@@ -2777,7 +2777,7 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 	case ast::type_info::str_:
 	case ast::type_info::bool_:
 	case ast::type_info::null_t_:
-		return context.get_built_in_type(base_t.info->kind);
+		return context.get_builtin_type(base_t.info->kind);
 
 	case ast::type_info::aggregate:
 	default:

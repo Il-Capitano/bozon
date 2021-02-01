@@ -1156,35 +1156,35 @@ f = null;
 ==== metafunctions ====
 
 // in "std/meta/ast.bz"
-export using expression = __built_in_expression_t;
-export using expression_src_pos = __built_in_expression_src_pos_t;
+export using expression = __builtin_expression_t;
+export using expression_src_pos = __builtin_expression_src_pos_t;
 
 export for expression
 consteval function get_src_pos(expr: &const expression) -> &const expression_src_pos
 {
-	return __built_in_expression_get_src_pos(expr);
+	return __builtin_expression_get_src_pos(expr);
 }
 
 export for expression_src_pos
 consteval function get_file_name(src_pos: &const expression_src_pos) -> str
 {
-	return __built_in_expression_src_pos_get_file_name(src_pos);
+	return __builtin_expression_src_pos_get_file_name(src_pos);
 }
 
 export for expression_src_pos
 consteval function get_line_number(src_pos: &const expression_src_pos) -> usize
 {
-	return __built_in_expression_src_pos_get_line_number(src_pos);
+	return __builtin_expression_src_pos_get_line_number(src_pos);
 }
 
 export metafunction create_expression(expr: &const expression)
 {
-	-> (__built_in_create_expression(expr));
+	-> (__builtin_create_expression(expr));
 }
 
 export consteval function is_debug() -> bool
 {
-	return __built_in_is_debug();
+	return __builtin_is_debug();
 }
 
 

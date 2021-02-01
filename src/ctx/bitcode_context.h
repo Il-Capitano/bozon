@@ -46,7 +46,7 @@ struct bitcode_context
 	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
 	llvm::Value *create_cast_to_int(bc::val_ptr val);
 
-	llvm::Type *get_built_in_type(uint32_t kind) const;
+	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
 	llvm::Type *get_int16_t(void) const;
 	llvm::Type *get_int32_t(void) const;

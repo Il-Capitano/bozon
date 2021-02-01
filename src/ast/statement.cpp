@@ -258,20 +258,20 @@ static_assert(ast::type_info::null_t_  == 13);
 static auto get_builtin_type_infos(void)
 {
 	return bz::array{
-		ast::type_info::make_built_in("int8",     ast::type_info::int8_),
-		ast::type_info::make_built_in("int16",    ast::type_info::int16_),
-		ast::type_info::make_built_in("int32",    ast::type_info::int32_),
-		ast::type_info::make_built_in("int64",    ast::type_info::int64_),
-		ast::type_info::make_built_in("uint8",    ast::type_info::uint8_),
-		ast::type_info::make_built_in("uint16",   ast::type_info::uint16_),
-		ast::type_info::make_built_in("uint32",   ast::type_info::uint32_),
-		ast::type_info::make_built_in("uint64",   ast::type_info::uint64_),
-		ast::type_info::make_built_in("float32",  ast::type_info::float32_),
-		ast::type_info::make_built_in("float64",  ast::type_info::float64_),
-		ast::type_info::make_built_in("char",     ast::type_info::char_),
-		ast::type_info::make_built_in("str",      ast::type_info::str_),
-		ast::type_info::make_built_in("bool",     ast::type_info::bool_),
-		ast::type_info::make_built_in("__null_t", ast::type_info::null_t_),
+		ast::type_info::make_builtin("int8",     ast::type_info::int8_),
+		ast::type_info::make_builtin("int16",    ast::type_info::int16_),
+		ast::type_info::make_builtin("int32",    ast::type_info::int32_),
+		ast::type_info::make_builtin("int64",    ast::type_info::int64_),
+		ast::type_info::make_builtin("uint8",    ast::type_info::uint8_),
+		ast::type_info::make_builtin("uint16",   ast::type_info::uint16_),
+		ast::type_info::make_builtin("uint32",   ast::type_info::uint32_),
+		ast::type_info::make_builtin("uint64",   ast::type_info::uint64_),
+		ast::type_info::make_builtin("float32",  ast::type_info::float32_),
+		ast::type_info::make_builtin("float64",  ast::type_info::float64_),
+		ast::type_info::make_builtin("char",     ast::type_info::char_),
+		ast::type_info::make_builtin("str",      ast::type_info::str_),
+		ast::type_info::make_builtin("bool",     ast::type_info::bool_),
+		ast::type_info::make_builtin("__null_t", ast::type_info::null_t_),
 	};
 }
 

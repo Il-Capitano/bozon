@@ -179,53 +179,53 @@ llvm::Value *bitcode_context::create_cast_to_int(bc::val_ptr val)
 	return this->create_bitcast(val, dest_type);
 }
 
-llvm::Type *bitcode_context::get_built_in_type(uint32_t kind) const
+llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
-	return this->global_ctx._llvm_built_in_types[kind];
+	return this->global_ctx._llvm_builtin_types[kind];
 }
 
 llvm::Type *bitcode_context::get_int8_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::int8_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int8_)]; }
 
 llvm::Type *bitcode_context::get_int16_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::int16_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int16_)]; }
 
 llvm::Type *bitcode_context::get_int32_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::int32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int32_)]; }
 
 llvm::Type *bitcode_context::get_int64_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::int64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int64_)]; }
 
 llvm::Type *bitcode_context::get_uint8_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::uint8_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint8_)]; }
 
 llvm::Type *bitcode_context::get_uint16_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::uint16_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint16_)]; }
 
 llvm::Type *bitcode_context::get_uint32_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::uint32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint32_)]; }
 
 llvm::Type *bitcode_context::get_uint64_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::uint64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint64_)]; }
 
 llvm::Type *bitcode_context::get_float32_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::float32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
 
 llvm::Type *bitcode_context::get_float64_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::float64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
 
 llvm::Type *bitcode_context::get_str_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::str_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }
 
 llvm::Type *bitcode_context::get_char_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::char_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::char_)]; }
 
 llvm::Type *bitcode_context::get_bool_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::bool_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::bool_)]; }
 
 llvm::Type *bitcode_context::get_null_t(void) const
-{ return this->global_ctx._llvm_built_in_types[static_cast<int>(ast::type_info::null_t_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
 
 llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
 {
