@@ -36,15 +36,21 @@ function factorial_recursive(n: auto) -> typeof n
 }
 
 // strings don't work in global variables
-// let global = [3, "hello"];
-let global = [3i64, 23.234];
+let global = [3, "hello"];
+// let global = [3i64, 23.234];
 consteval c = 5;
 static_assert(c == 5);
 
+type asdf0 = int32;
+type asdf = const asdf0;
+static_assert(asdf == const int32);
+
 function main(args: [: const str]) -> int32
 {
+	// let i: void;
 	global[0] = 5;
 	// c = 3;
+	println(pi);
 	const size = __builtin_slice_size(args);
 	let i: int64;
 	static_assert(typeof size == const uint64);
