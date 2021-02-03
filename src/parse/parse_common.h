@@ -304,6 +304,12 @@ ast::statement parse_decl_operator(
 );
 
 template<bool is_global>
+ast::statement parse_decl_struct(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<bool is_global>
 ast::statement parse_attribute_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -358,6 +364,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_type,          &parse_decl_type_alias<true>,         only_global },
 	statement_parser{ lex::token::kw_function,      &parse_decl_function_or_alias<true>,  only_global },
 	statement_parser{ lex::token::kw_operator,      &parse_decl_operator<true>,           only_global },
+	statement_parser{ lex::token::kw_struct,        &parse_decl_struct<true>,             only_global },
 	statement_parser{ lex::token::at,               &parse_attribute_statement<true>,     only_global },
 	statement_parser{ lex::token::kw_export,        &parse_export_statement,              only_global },
 	statement_parser{ lex::token::kw_import,        &parse_decl_import,                   only_global },

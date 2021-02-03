@@ -1733,7 +1733,8 @@ static bool is_builtin_type(ast::typespec_view ts)
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
 	{
 		auto &base = ts.get<ast::ts_base_type>();
-		return (base.info->flags & ast::type_info_flags::builtin) != 0;
+		bz_assert(base.info->kind != ast::type_info::forward_declaration);
+		return base.info->kind != ast::type_info::aggregate;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
 	case ast::typespec_node_t::index_of<ast::ts_function>:

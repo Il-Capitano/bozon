@@ -1441,6 +1441,82 @@ template ast::statement parse_decl_operator<true>(
 	ctx::parse_context &context
 );
 
+void resolve_type_info(
+	ast::type_info &info,
+	ctx::parse_context &context
+)
+{
+	context.report_error(info.src_tokens, "struct resolving is not implemented");
+	info.state = ast::resolve_state::error;
+}
+
+static ast::statement parse_decl_struct_impl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::kw_struct);
+	auto const begin_token = stream;
+	++stream;
+	bz_assert(stream != end || stream->kind != lex::token::identifier);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	auto const src_tokens = lex::src_tokens{ begin_token, (id == stream ? begin_token : id), stream };
+
+	if (stream != end && stream->kind == lex::token::curly_open)
+	{
+		++stream; // '{'
+		auto const range = get_tokens_in_curly<>(stream, end, context);
+		return ast::make_decl_struct(src_tokens, id, range);
+	}
+	else if (stream == end || stream->kind != lex::token::semi_colon)
+	{
+		context.assert_token(stream, lex::token::curly_open, lex::token::semi_colon);
+		return {};
+	}
+	else
+	{
+		++stream; // ';'
+		return ast::make_decl_struct(src_tokens, id);
+	}
+}
+
+template<bool is_global>
+ast::statement parse_decl_struct(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto result = parse_decl_struct_impl(stream, end, context);
+	if (result.is_null())
+	{
+		return result;
+	}
+	
+	if constexpr (is_global)
+	{
+		return result;
+	}
+	else 
+	{
+		bz_assert(result.is<ast::decl_struct>());
+		auto &struct_decl = result.get<ast::decl_struct>();
+		context.add_to_resolve_queue({}, struct_decl.info);
+		resolve_type_info(struct_decl.info, context);
+		context.pop_resolve_queue();
+		return result;
+	}
+}
+
+template ast::statement parse_decl_struct<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_struct<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 ast::statement parse_decl_import(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -2274,6 +2350,11 @@ void resolve_global_statement(
 		[&](ast::decl_type_alias &alias_decl) {
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_type_alias(alias_decl, context);
+			context.pop_resolve_queue();
+		},
+		[&](ast::decl_struct &struct_decl) {
+			context.add_to_resolve_queue({}, struct_decl.info);
+			resolve_type_info(struct_decl.info, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {

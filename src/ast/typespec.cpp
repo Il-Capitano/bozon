@@ -280,7 +280,7 @@ bool is_instantiable(typespec_view ts) noexcept
 
 	return ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &base_type) {
-			return (base_type.info->flags & type_info_flags::instantiable) != 0;
+			return base_type.info->kind != ast::type_info::forward_declaration;
 		},
 		[](ts_void const &) {
 			return false;

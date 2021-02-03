@@ -589,27 +589,6 @@ struct decl_type_alias
 	}
 };
 
-namespace type_info_flags
-{
-
-enum : uint32_t
-{
-	builtin     = bit_at<0>,
-	resolved     = bit_at<1>,
-	instantiable = bit_at<2>,
-
-	default_zero_initialize = bit_at<3>,
-	trivially_copyable      = bit_at<4>,
-	trivially_movable       = bit_at<5>,
-	trivially_destructible  = bit_at<6>,
-};
-
-static constexpr size_t default_builtin_flags =
-	builtin | resolved | instantiable
-	| default_zero_initialize | trivially_copyable | trivially_movable;
-
-} // namespace type_info_flags
-
 struct type_info
 {
 	enum : uint8_t
@@ -621,35 +600,59 @@ struct type_info
 		bool_, null_t_,
 
 		aggregate,
+		forward_declaration,
 	};
 
-	uint8_t       kind;
-	resolve_state resolve;
-	uint32_t      flags;
-	bz::u8string  symbol_name;
+	lex::src_tokens src_tokens;
+	uint8_t         kind;
+	resolve_state   state;
+	bz::u8string    symbol_name;
 
-	bz::vector<function_body *> constructors;
+	using function_body_ptr = std::unique_ptr<function_body>;
+	bz::vector<function_body_ptr> constructors;
+	function_body *default_constructor;
+	function_body *copy_constructor;
+	function_body *move_constructor;
+	function_body_ptr destructor;
+	function_body_ptr move_destuctor;
 
-//	function_body *default_constructor;
-//	function_body *copy_constructor;
-//	function_body *move_constructor;
-//	function_body *destructor;
-//	function_body *move_destructor;
+	type_info(lex::src_tokens _src_tokens, lex::token_range range)
+		: src_tokens(_src_tokens),
+		  kind(range.begin == range.end ? forward_declaration : aggregate),
+		  state(resolve_state::none),
+		  symbol_name(),
+		  constructors{},
+		  default_constructor(nullptr),
+		  copy_constructor(nullptr),
+		  move_constructor(nullptr),
+		  destructor(nullptr),
+		  move_destuctor(nullptr)
+	{}
+
+private:
+	type_info(bz::u8string_view name, uint8_t kind)
+		: src_tokens{},
+		  kind(kind),
+		  state(resolve_state::all),
+		  symbol_name(bz::format("builtin.{}", name)),
+		  constructors{},
+		  default_constructor(nullptr),
+		  copy_constructor(nullptr),
+		  move_constructor(nullptr),
+		  destructor(nullptr),
+		  move_destuctor(nullptr)
+	{}
+public:
 
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{
-		return type_info{
-			kind, resolve_state::all,
-			type_info_flags::default_builtin_flags,
-			bz::format("builtin.{}", name),
-			{}
-		};
+		return type_info(name, kind);
 	}
 
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
 	{
 		constexpr bz::u8string_view builtin = "builtin.";
-		constexpr bz::u8string_view struct_  = "struct.";
+		constexpr bz::u8string_view struct_ = "struct.";
 		if (symbol_name.starts_with(builtin))
 		{
 			return symbol_name.substring(builtin.length());
@@ -668,7 +671,7 @@ struct type_info
 	{
 		auto const whole_str = bz::u8string_view(it, end);
 		constexpr bz::u8string_view builtin = "builtin.";
-		constexpr bz::u8string_view struct_  = "struct.";
+		constexpr bz::u8string_view struct_ = "struct.";
 		if (whole_str.starts_with(builtin))
 		{
 			static_assert(builtin.length() == builtin.size());
@@ -693,19 +696,19 @@ inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {
 	switch (kind)
 	{
-	case ast::type_info::int8_: return "int8";
-	case ast::type_info::int16_: return "int16";
-	case ast::type_info::int32_: return "int32";
-	case ast::type_info::int64_: return "int64";
-	case ast::type_info::uint8_: return "uint8";
-	case ast::type_info::uint16_: return "uint16";
-	case ast::type_info::uint32_: return "uint32";
-	case ast::type_info::uint64_: return "uint64";
+	case ast::type_info::int8_:    return "int8";
+	case ast::type_info::int16_:   return "int16";
+	case ast::type_info::int32_:   return "int32";
+	case ast::type_info::int64_:   return "int64";
+	case ast::type_info::uint8_:   return "uint8";
+	case ast::type_info::uint16_:  return "uint16";
+	case ast::type_info::uint32_:  return "uint32";
+	case ast::type_info::uint64_:  return "uint64";
 	case ast::type_info::float32_: return "float32";
 	case ast::type_info::float64_: return "float64";
-	case ast::type_info::char_: return "char";
-	case ast::type_info::str_: return "str";
-	case ast::type_info::bool_: return "bool";
+	case ast::type_info::char_:    return "char";
+	case ast::type_info::str_:     return "str";
+	case ast::type_info::bool_:    return "bool";
 	default: bz_unreachable;
 	}
 }
@@ -797,21 +800,25 @@ constexpr auto type_info_from_type_v = internal::type_info_from_type<T>::value;
 
 struct decl_struct
 {
-	lex::token_pos identifier;
-	type_info      info;
+	using info_t = bz::variant<lex::token_range, type_info>;
 
-	declare_default_5(decl_struct)
-/*
-	decl_struct(lex::token_pos _id)
+	lex::token_pos  identifier;
+	type_info       info;
+
+//	declare_default_5(decl_struct)
+	decl_struct(decl_struct const &) = delete;
+	decl_struct(decl_struct &&)      = default;
+
+	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id, lex::token_range _range)
 		: identifier(_id),
-		  info{
-			  type_info::aggregate,
-			  resolve_state::none,
-			  0ull,
-			  _id->value,
-		  }
+		  info      (_src_tokens, _range)
 	{}
-*/
+
+	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id)
+		: identifier(_id),
+		  info      (_src_tokens, {})
+	{}
+
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;

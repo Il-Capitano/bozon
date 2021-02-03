@@ -25,7 +25,8 @@ struct parse_context
 			ast::function_body *,
 			ast::decl_variable *,
 			ast::decl_function_alias *,
-			ast::decl_type_alias *
+			ast::decl_type_alias *,
+			ast::type_info *
 		> requested;
 	};
 
@@ -307,6 +308,8 @@ struct parse_context
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_type_alias &alias_decl)
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
+	void add_to_resolve_queue(lex::src_tokens tokens, ast::type_info &info)
+	{ this->resolve_queue.emplace_back(tokens, &info); }
 	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_variable &var_decl)
 	{ this->resolve_queue.emplace_back(tokens, &var_decl); }
 

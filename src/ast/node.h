@@ -50,9 +50,16 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 		fn_t emplacers[] = {
 			[](self_t &self, self_t const &other)
 			{
-				self.template emplace<std::unique_ptr<Ts>>(
-					std::make_unique<Ts>(other.template get<Ts>())
-				);
+				if constexpr (bz::meta::is_copy_constructible_v<Ts>)
+				{
+					self.template emplace<std::unique_ptr<Ts>>(
+						std::make_unique<Ts>(other.template get<Ts>())
+					);
+				}
+				else 
+				{
+					bz_unreachable;
+				}
 			} ...
 		};
 		emplacers[other.kind()](*this, other);

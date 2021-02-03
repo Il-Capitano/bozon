@@ -55,6 +55,11 @@ void resolve_function_alias(
 	ctx::parse_context &context
 );
 
+void resolve_type_info(
+	ast::type_info &info,
+	ctx::parse_context &context
+);
+
 void resolve_function_parameters(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,

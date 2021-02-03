@@ -1450,6 +1450,69 @@ Would be JIT compiled, would allow IO in comptime code (?)
 consteval f = read_file("file_name.txt");
 // use f
 
+
+
+struct vec2d 
+{
+	.x: float64;
+	.y: float64;
+}
+
+struct string
+{
+	._data_begin: *uint8;
+	._data_end:   *uint8;
+	._alloc_end:  *uint8;
+
+	constructor(s: str)
+	{
+		const size = __builtin_str_size(s);
+		const [alloc_begin, alloc_end] = allocate_memory(size);
+		memcpy(alloc_begin, __builtin_str_begin(s), size));
+		return string[
+			._data_begin = alloc_begin,
+			._data_end   = alloc_begin + size,
+			._alloc_end  = alloc_end
+		];
+	}
+
+	constructor(other: &const string)
+	{
+		const size = other.size();
+		const [alloc_begin, alloc_end] = allocate_memory(size);
+		memcpy(alloc_begin, other._data_begin, size));
+		return string[
+			._data_begin = alloc_begin,
+			._data_end   = alloc_begin + size,
+			._alloc_end  = alloc_end
+		];
+	}
+
+	constructor(other: move string) = default;
+
+	destructor(&this)
+	{
+		deallocate(this._data_begin, this._data_end);
+	}
+
+	destructor(move this) = default;
+}
+
+export function size(s: #const string) -> usize
+{
+	return __builtin_str_size(s);
+}
+
+export function length(s: #const string) -> usize
+{
+	return __builtin_str_length(s);
+}
+
+export operator as str (s: #const string) -> str
+{
+	return __builtin_str_from_ptrs(s._data_begin, s._data_end);
+}
+
 */
 
 #include "ctx/global_context.h"
