@@ -1,0 +1,9 @@
+export function add(lhs, rhs) -> typeof (lhs + rhs)
+{
+	return lhs + rhs;
+}
+
+export function add_wrapper(lhs, rhs) -> typeof add(lhs, rhs)
+{
+	return add(lhs, rhs);
+}
