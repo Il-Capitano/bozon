@@ -58,7 +58,8 @@ decl_set get_default_decls(void)
 		{}, // var_decls
 		{}, // func_sets
 		{}, // op_sets
-		{}  // types
+		{}, // type_aliases
+		{}, // types
 	};
 }
 
@@ -413,6 +414,14 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	bc::runtime::add_builtin_functions(context);
 	for (auto const &file : this->_src_files)
 	{
+		for (auto const type : file._global_decls.types)
+		{
+			bc::runtime::emit_global_type_symbol(*type, context);
+		}
+		for (auto const type : file._global_decls.types)
+		{
+			bc::runtime::emit_global_type(*type, context);
+		}
 		for (auto const decl : file._global_decls.var_decls)
 		{
 			bc::runtime::emit_global_variable(*decl, context);

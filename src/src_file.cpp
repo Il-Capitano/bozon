@@ -38,6 +38,7 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bool is_library_file)
 void src_file::add_to_global_decls(ctx::decl_set const &set)
 {
 	this->_global_decls.var_decls.append(set.var_decls);
+	this->_global_decls.type_aliases.append(set.type_aliases);
 	this->_global_decls.types.append(set.types);
 
 	for (auto const &func_set : set.func_sets)
@@ -170,6 +171,16 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 			if (alias.is_export)
 			{
 				this->_export_decls.add_type_alias(alias);
+			}
+			break;
+		}
+		case ast::statement::index<ast::decl_struct>:
+		{
+			auto &struct_decl = decl.get<ast::decl_struct>();
+			this->_global_decls.add_type(struct_decl);
+			if (struct_decl.info.is_export)
+			{
+				this->_export_decls.add_type(struct_decl);
 			}
 			break;
 		}

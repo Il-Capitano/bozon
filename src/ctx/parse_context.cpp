@@ -887,13 +887,41 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 
 		auto const type_it = std::find_if(
 			scope->types.rbegin(), scope->types.rend(),
-			[id = id_value](auto const type_alias) {
-				return type_alias->identifier->value == id;
+			[id = id_value](auto const type) {
+				return type->identifier->value == id;
 			}
 		);
 		if (type_it != scope->types.rend())
 		{
-			auto const type = (*type_it)->get_type();
+			auto &info = (*type_it)->info;
+			this->add_to_resolve_queue(src_tokens, info);
+			parse::resolve_type_info_symbol(info, *this);
+			this->pop_resolve_queue();
+			if (info.state != ast::resolve_state::error)
+			{
+				return ast::make_constant_expression(
+					src_tokens,
+					ast::expression_type_kind::type_name,
+					ast::make_typename_typespec(nullptr),
+					ast::make_base_type_typespec(src_tokens, &info),
+					ast::make_expr_identifier(id)
+				);
+			}
+			else 
+			{
+				return ast::expression(src_tokens);
+			}
+		}
+
+		auto const type_alias_it = std::find_if(
+			scope->type_aliases.rbegin(), scope->type_aliases.rend(),
+			[id = id_value](auto const type_alias) {
+				return type_alias->identifier->value == id;
+			}
+		);
+		if (type_alias_it != scope->type_aliases.rend())
+		{
+			auto const type = (*type_alias_it)->get_type();
 			if (type.has_value())
 			{
 				return ast::make_constant_expression(
@@ -1117,13 +1145,41 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 
 	auto const type_it = std::find_if(
 		global_decls.types.begin(), global_decls.types.end(),
-		[id = id_value](auto const type_alias) {
-			return type_alias->identifier->value == id;
+		[id = id_value](auto const type) {
+			return type->identifier->value == id;
 		}
 	);
 	if (type_it != global_decls.types.end())
 	{
-		auto &type_alias = **type_it;
+		auto &info = (*type_it)->info;
+		this->add_to_resolve_queue(src_tokens, info);
+		parse::resolve_type_info_symbol(info, *this);
+		this->pop_resolve_queue();
+		if (info.state != ast::resolve_state::error)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::type_name,
+				ast::make_typename_typespec(nullptr),
+				ast::make_base_type_typespec(src_tokens, &info),
+				ast::make_expr_identifier(id)
+			);
+		}
+		else 
+		{
+			return ast::expression(src_tokens);
+		}
+	}
+
+	auto const type_alias_it = std::find_if(
+		global_decls.type_aliases.begin(), global_decls.type_aliases.end(),
+		[id = id_value](auto const type_alias) {
+			return type_alias->identifier->value == id;
+		}
+	);
+	if (type_alias_it != global_decls.type_aliases.end())
+	{
+		auto &type_alias = **type_alias_it;
 		this->add_to_resolve_queue(src_tokens, type_alias);
 		parse::resolve_type_alias(type_alias, *this);
 		this->pop_resolve_queue();

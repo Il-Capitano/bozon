@@ -1,0 +1,4 @@
+export struct FILE;
+
+@extern("__bozon_fopen",  "c") export function fopen(file_name: str) -> *FILE;
+@extern("__bozon_fclose", "c") export function fclose(file: *FILE) -> void;

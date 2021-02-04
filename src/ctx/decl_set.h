@@ -27,7 +27,8 @@ struct decl_set
 	bz::vector<ast::decl_variable *>   var_decls;
 	bz::vector<function_overload_set>  func_sets;
 	bz::vector<operator_overload_set>  op_sets;
-	bz::vector<ast::decl_type_alias *> types;
+	bz::vector<ast::decl_type_alias *> type_aliases;
+	bz::vector<ast::decl_struct *>     types;
 
 	void add_function(ast::statement &stmt)
 	{
@@ -176,7 +177,12 @@ struct decl_set
 
 	void add_type_alias(ast::decl_type_alias &alias_decl)
 	{
-		this->types.push_back(&alias_decl);
+		this->type_aliases.push_back(&alias_decl);
+	}
+
+	void add_type(ast::decl_struct &struct_decl)
+	{
+		this->types.push_back(&struct_decl);
 	}
 
 	void add_variable(ast::decl_variable &var_decl)

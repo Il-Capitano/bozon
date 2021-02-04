@@ -27,6 +27,16 @@ void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Val
 	this->vars_.insert_or_assign(var_decl, val);
 }
 
+llvm::Type *bitcode_context::get_base_type(ast::type_info const *info) const
+{
+	auto const it = this->types_.find(info);
+	return it == this->types_.end() ? nullptr : it->second;
+}
+void bitcode_context::add_base_type(ast::type_info const *info, llvm::Type *type)
+{
+	this->types_.insert_or_assign(info, type);
+}
+
 llvm::Function *bitcode_context::get_function(ast::function_body const *func_body)
 {
 	auto it = this->funcs_.find(func_body);

@@ -2904,7 +2904,13 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::bitc
 	case ast::type_info::null_t_:
 		return context.get_builtin_type(base_t.info->kind);
 
+	case ast::type_info::forward_declaration:
 	case ast::type_info::aggregate:
+	{
+		auto const result = context.get_base_type(base_t.info);
+		bz_assert(result != nullptr);
+		return result;
+	}
 	default:
 		bz_unreachable;
 	}
@@ -3363,6 +3369,10 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::b
 
 void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
 {
+	if (context.vars_.find(&var_decl) != context.vars_.end())
+	{
+		return;
+	}
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
@@ -3383,6 +3393,48 @@ void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_conte
 		return;
 	}
 	bz_unreachable;
+}
+
+void emit_global_type_symbol(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
+{
+	if (context.types_.find(&struct_decl.info) != context.types_.end())
+	{
+		return;
+	}
+	switch (struct_decl.info.kind)
+	{
+	case ast::type_info::forward_declaration:
+	case ast::type_info::aggregate:
+	{
+		auto const name = llvm::StringRef(struct_decl.info.symbol_name.data_as_char_ptr(), struct_decl.info.symbol_name.size());
+		context.add_base_type(&struct_decl.info, llvm::StructType::create(context.get_llvm_context(), name));
+		break;
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
+void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
+{
+	auto const type = context.get_base_type(&struct_decl.info);
+	bz_assert(type != nullptr);
+	bz_assert(type->isStructTy());
+	auto const struct_type = static_cast<llvm::StructType *>(type);
+	switch (struct_decl.info.kind)
+	{
+	case ast::type_info::forward_declaration:
+		return;
+	case ast::type_info::aggregate:
+	{
+		auto const types = struct_decl.info.member_variables
+			.transform([&](auto const &member) { return get_llvm_type(member.type, context); })
+			.collect();
+		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+	}
+	default:
+		bz_unreachable;
+	}
 }
 
 void add_builtin_functions(ctx::bitcode_context &context)

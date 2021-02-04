@@ -27,6 +27,9 @@ struct bitcode_context
 	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
 
+	llvm::Type *get_base_type(ast::type_info const *info) const;
+	void add_base_type(ast::type_info const *info, llvm::Type *type);
+
 	llvm::Function *get_function(ast::function_body const *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;

@@ -589,6 +589,13 @@ struct decl_type_alias
 	}
 };
 
+struct member_variable 
+{
+	lex::src_tokens   src_tokens;
+	bz::u8string_view identifier;
+	typespec          type;
+};
+
 struct type_info
 {
 	enum : uint8_t
@@ -603,30 +610,39 @@ struct type_info
 		forward_declaration,
 	};
 
-	lex::src_tokens src_tokens;
-	uint8_t         kind;
-	resolve_state   state;
-	bz::u8string    symbol_name;
+	lex::src_tokens  src_tokens;
+	uint8_t          kind;
+	resolve_state    state;
+	bool             is_export;
+	bz::u8string     type_name;
+	bz::u8string     symbol_name;
+	lex::token_range body_tokens;
+
+	bz::vector<member_variable> member_variables;
 
 	using function_body_ptr = std::unique_ptr<function_body>;
-	bz::vector<function_body_ptr> constructors;
-	function_body *default_constructor;
-	function_body *copy_constructor;
-	function_body *move_constructor;
-	function_body_ptr destructor;
-	function_body_ptr move_destuctor;
+//	bz::vector<function_body_ptr> constructors;
+//	function_body *default_constructor;
+//	function_body *copy_constructor;
+//	function_body *move_constructor;
+//	function_body_ptr destructor;
+//	function_body_ptr move_destuctor;
 
-	type_info(lex::src_tokens _src_tokens, lex::token_range range)
+	type_info(lex::src_tokens _src_tokens, bz::u8string _type_name, lex::token_range range)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == range.end ? forward_declaration : aggregate),
 		  state(resolve_state::none),
+		  is_export(false),
+		  type_name(std::move(_type_name)),
 		  symbol_name(),
-		  constructors{},
-		  default_constructor(nullptr),
-		  copy_constructor(nullptr),
-		  move_constructor(nullptr),
-		  destructor(nullptr),
-		  move_destuctor(nullptr)
+		  body_tokens(range),
+		  member_variables{}
+//		  constructors{},
+//		  default_constructor(nullptr),
+//		  copy_constructor(nullptr),
+//		  move_constructor(nullptr),
+//		  destructor(nullptr),
+//		  move_destuctor(nullptr)
 	{}
 
 private:
@@ -634,13 +650,16 @@ private:
 		: src_tokens{},
 		  kind(kind),
 		  state(resolve_state::all),
+		  is_export(false),
 		  symbol_name(bz::format("builtin.{}", name)),
-		  constructors{},
-		  default_constructor(nullptr),
-		  copy_constructor(nullptr),
-		  move_constructor(nullptr),
-		  destructor(nullptr),
-		  move_destuctor(nullptr)
+		  body_tokens{},
+		  member_variables{}
+//		  constructors{},
+//		  default_constructor(nullptr),
+//		  copy_constructor(nullptr),
+//		  move_constructor(nullptr),
+//		  destructor(nullptr),
+//		  move_destuctor(nullptr)
 	{}
 public:
 
@@ -811,12 +830,12 @@ struct decl_struct
 
 	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id, lex::token_range _range)
 		: identifier(_id),
-		  info      (_src_tokens, _range)
+		  info      (_src_tokens, _id->value, _range)
 	{}
 
 	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id)
 		: identifier(_id),
-		  info      (_src_tokens, {})
+		  info      (_src_tokens, _id->value, {})
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;

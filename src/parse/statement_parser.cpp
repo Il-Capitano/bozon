@@ -1441,11 +1441,30 @@ template ast::statement parse_decl_operator<true>(
 	ctx::parse_context &context
 );
 
+void resolve_type_info_symbol(
+	ast::type_info &info,
+	[[maybe_unused]] ctx::parse_context &context
+)
+{
+	if (info.state >= ast::resolve_state::symbol)
+	{
+		return;
+	}
+	bz_assert(info.state != ast::resolve_state::resolving_symbol);
+	info.symbol_name = bz::format("struct.{}", info.type_name);
+	info.state = ast::resolve_state::symbol;
+}
+
 void resolve_type_info(
 	ast::type_info &info,
 	ctx::parse_context &context
 )
 {
+	resolve_type_info_symbol(info, context);
+	if (info.kind == ast::type_info::forward_declaration)
+	{
+		return;
+	}
 	context.report_error(info.src_tokens, "struct resolving is not implemented");
 	info.state = ast::resolve_state::error;
 }
@@ -1623,8 +1642,11 @@ ast::statement parse_export_statement(
 			[](ast::decl_variable &var_decl) {
 				var_decl.is_export = true;
 			},
+			[](ast::decl_struct &struct_decl) {
+				struct_decl.info.is_export = true;
+			},
 			[&](auto const &) {
-				context.report_error(after_export_token, "invalid statement to export exported");
+				context.report_error(after_export_token, "invalid statement to be exported");
 			}
 		});
 	}
