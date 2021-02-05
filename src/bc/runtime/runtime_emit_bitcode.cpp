@@ -1965,75 +1965,80 @@ static val_ptr emit_bitcode(
 		}
 	}
 
-	auto const res = [&]() -> llvm::Value * {
-		auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-		call->setCallingConv(fn->getCallingConv());
-		auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
-		auto const is_pass_by_ref_end = params_is_pass_by_ref.end();
-		unsigned i = 0;
-		bz_assert(fn->arg_size() == call->arg_size());
-		if (result_kind == abi::pass_kind::reference)
-		{
-			call->addParamAttr(0, llvm::Attribute::StructRet);
-			bz_assert(is_pass_by_ref_it != is_pass_by_ref_end);
-			++is_pass_by_ref_it, ++i;
-		}
-		for (; is_pass_by_ref_it != is_pass_by_ref_end; ++is_pass_by_ref_it, ++i)
-		{
-			auto const is_pass_by_ref = *is_pass_by_ref_it;
-			if (is_pass_by_ref)
-			{
-				call->addParamAttr(i, llvm::Attribute::ByVal);
-				call->addParamAttr(i, llvm::Attribute::NoAlias);
-				call->addParamAttr(i, llvm::Attribute::NoCapture);
-				call->addParamAttr(i, llvm::Attribute::NonNull);
-			}
-		}
-		switch (result_kind)
-		{
-		case abi::pass_kind::reference:
-			return params.front();
-		case abi::pass_kind::value:
-			if (result_address == nullptr)
-			{
-				return call;
-			}
-			else
-			{
-				context.builder.CreateStore(call, result_address);
-				return result_address;
-			}
-		case abi::pass_kind::one_register:
-		case abi::pass_kind::two_registers:
-		{
-			auto const val_ptr = result_address != nullptr ? result_address : context.create_alloca(result_type);
-			auto const result_t_ptr = context.builder.CreateBitCast(val_ptr, llvm::PointerType::get(call->getType(), 0));
-			context.builder.CreateStore(call, result_t_ptr);
-			return result_address != nullptr ? result_address : context.builder.CreateLoad(val_ptr);
-		}
-		}
-	}();
-
-	if (res->getType()->isVoidTy())
+	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+	call->setCallingConv(fn->getCallingConv());
+	auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
+	auto const is_pass_by_ref_end = params_is_pass_by_ref.end();
+	unsigned i = 0;
+	bz_assert(fn->arg_size() == call->arg_size());
+	if (result_kind == abi::pass_kind::reference)
 	{
-		return {};
+		call->addParamAttr(0, llvm::Attribute::StructRet);
+		bz_assert(is_pass_by_ref_it != is_pass_by_ref_end);
+		++is_pass_by_ref_it, ++i;
 	}
-
-	if (result_address != nullptr)
+	for (; is_pass_by_ref_it != is_pass_by_ref_end; ++is_pass_by_ref_it, ++i)
 	{
-		bz_assert(res == result_address);
-		return { val_ptr::reference, result_address };
+		auto const is_pass_by_ref = *is_pass_by_ref_it;
+		if (is_pass_by_ref)
+		{
+			call->addParamAttr(i, llvm::Attribute::ByVal);
+			call->addParamAttr(i, llvm::Attribute::NoAlias);
+			call->addParamAttr(i, llvm::Attribute::NoCapture);
+			call->addParamAttr(i, llvm::Attribute::NonNull);
+		}
 	}
-	else if (
-		func_call.func_body->return_type.is<ast::ts_lvalue_reference>()
-		|| result_kind == abi::pass_kind::reference
-	)
+	switch (result_kind)
 	{
-		return { val_ptr::reference, res };
+	case abi::pass_kind::reference:
+		return { val_ptr::reference, params.front() };
+	case abi::pass_kind::value:
+		if (call->getType()->isVoidTy())
+		{
+			return {};
+		}
+		else if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
+		{
+			bz_assert(result_address == nullptr);
+			return { val_ptr::reference, call };
+		}
+		if (result_address == nullptr)
+		{
+			return { val_ptr::value, call };
+		}
+		else
+		{
+			context.builder.CreateStore(call, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	case abi::pass_kind::one_register:
+	case abi::pass_kind::two_registers:
+	{
+		auto const call_result_type = call->getType();
+		if (result_address != nullptr)
+		{
+			auto const result_ptr = context.builder.CreateBitCast(
+				result_address,
+				llvm::PointerType::get(call_result_type, 0)
+			);
+			context.builder.CreateStore(call, result_ptr);
+			return { val_ptr::reference, result_address };
+		}
+		else if (result_type == call_result_type)
+		{
+			return { val_ptr::value, call };
+		}
+		else 
+		{
+			auto const result_ptr = context.create_alloca(result_type);
+			auto const result_ptr_cast = context.builder.CreateBitCast(
+				result_ptr,
+				llvm::PointerType::get(call_result_type, 0)
+			);
+			context.builder.CreateStore(call, result_ptr_cast);
+			return { val_ptr::reference, result_ptr };
+		}
 	}
-	else
-	{
-		return { val_ptr::value, res };
 	}
 }
 
