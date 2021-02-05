@@ -271,49 +271,6 @@ bool is_complete(typespec_view ts) noexcept
 	});
 }
 
-bool is_instantiable(typespec_view ts) noexcept
-{
-	if (ts.nodes.size() == 0)
-	{
-		return false;
-	}
-
-	return ts.nodes.back().visit(bz::overload{
-		[](ts_base_type const &base_type) {
-			return base_type.info->state == ast::resolve_state::all;
-		},
-		[](ts_void const &) {
-			return false;
-		},
-		[](ts_function const &fn_t) {
-			for (auto &param : fn_t.param_types)
-			{
-				if (!is_instantiable(param))
-				{
-					return false;
-				}
-			}
-			return fn_t.return_type.is<ts_void>() || is_instantiable(fn_t.return_type);
-		},
-		[](ts_array const &array_t) {
-			return is_instantiable(array_t.elem_type);
-		},
-		[](ts_tuple const &tuple_t) {
-			for (auto &t : tuple_t.types)
-			{
-				if (!is_instantiable(t))
-				{
-					return false;
-				}
-			}
-			return true;
-		},
-		[](auto const &) {
-			return false;
-		}
-	});
-}
-
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz::u8string result = "";
