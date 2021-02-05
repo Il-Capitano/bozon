@@ -873,6 +873,12 @@ public:
 	operator array_view<value_type const> (void) const noexcept
 	{ return array_view<value_type const>(this->_data_begin, this->_data_end); }
 
+	array_view<value_type> as_array_view(void) noexcept
+	{ return array_view<value_type>(this->_data_begin, this->_data_end); }
+
+	array_view<value_type const> as_array_view(void) const noexcept
+	{ return array_view<value_type const>(this->_data_begin, this->_data_end); }
+
 
 public:
 	// ==== iteration ====
