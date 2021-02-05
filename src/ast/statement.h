@@ -630,7 +630,7 @@ struct type_info
 
 	type_info(lex::src_tokens _src_tokens, bz::u8string _type_name, lex::token_range range)
 		: src_tokens(_src_tokens),
-		  kind(range.begin == range.end ? forward_declaration : aggregate),
+		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
 		  is_export(false),
 		  type_name(std::move(_type_name)),

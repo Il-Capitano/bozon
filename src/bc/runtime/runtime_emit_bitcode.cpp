@@ -3424,6 +3424,7 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 	switch (struct_decl.info.kind)
 	{
 	case ast::type_info::forward_declaration:
+		// there's nothing to do
 		return;
 	case ast::type_info::aggregate:
 	{
@@ -3431,6 +3432,7 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 			.transform([&](auto const &member) { return get_llvm_type(member.type, context); })
 			.collect();
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
+		break;
 	}
 	default:
 		bz_unreachable;

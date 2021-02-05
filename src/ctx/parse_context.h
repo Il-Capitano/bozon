@@ -96,6 +96,7 @@ struct parse_context
 	void report_circular_dependency_error(ast::function_body &func_body) const;
 	void report_circular_dependency_error(ast::decl_function_alias &alias_decl) const;
 	void report_circular_dependency_error(ast::decl_type_alias &alias_decl) const;
+	void report_circular_dependency_error(ast::type_info &info) const;
 	void report_circular_dependency_error(ast::decl_variable &var_decl) const;
 
 	void report_warning(
@@ -296,6 +297,8 @@ struct parse_context
 		ast::expression &expr,
 		ast::typespec &type
 	);
+
+	bool is_instantiable(ast::typespec_view ts);
 
 	bz::vector<ast::function_body *> get_function_bodies_from_id(lex::src_tokens requester, bz::u8string_view id);
 

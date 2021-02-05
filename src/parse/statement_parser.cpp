@@ -498,6 +498,15 @@ static void resolve_variable_init_expr_and_match_type(
 			var_decl.state = ast::resolve_state::error;
 		}
 	}
+	if (!context.is_instantiable(var_decl.var_type))
+	{
+		bz::log("variable type '{}' is not instantiable\n", var_decl.var_type);
+		auto const src_tokens = var_decl.var_type.get_src_tokens();
+		bz_assert(src_tokens.pivot != nullptr);
+		context.report_error(src_tokens, "variable type is not instantiable");
+		var_decl.state = ast::resolve_state::error;
+		var_decl.var_type.clear();
+	}
 }
 
 void resolve_variable_symbol(
@@ -1446,7 +1455,7 @@ void resolve_type_info_symbol(
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	if (info.state >= ast::resolve_state::symbol)
+	if (info.state >= ast::resolve_state::symbol || info.state == ast::resolve_state::error)
 	{
 		return;
 	}
@@ -1460,13 +1469,98 @@ void resolve_type_info(
 	ctx::parse_context &context
 )
 {
+	if (info.state >= ast::resolve_state::all || info.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (info.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(info);
+		info.state = ast::resolve_state::error;
+		return;
+	}
 	resolve_type_info_symbol(info, context);
 	if (info.kind == ast::type_info::forward_declaration)
 	{
 		return;
 	}
-	context.report_error(info.src_tokens, "struct resolving is not implemented");
-	info.state = ast::resolve_state::error;
+
+	info.state = ast::resolve_state::resolving_all;
+	auto stream = info.body_tokens.begin;
+	auto const end = info.body_tokens.end;
+
+	while (stream != end)
+	{
+		auto const begin_token = stream;
+		if (stream->kind != lex::token::dot)
+		{
+			if (
+				stream->kind == lex::token::identifier
+				&& stream + 1 != end && (stream + 1)->kind == lex::token::colon
+			)
+			{
+				context.report_error(
+					stream, "expected '.'",
+					{}, { context.make_suggestion_before(stream, ".", "add '.' here") }
+				);
+			}
+			else 
+			{
+				context.assert_token(stream, lex::token::dot);
+			}
+		}
+		else 
+		{
+			++stream; // '.'
+		}
+
+		bz_assert(stream != end);
+		auto const id = context.assert_token(stream, lex::token::identifier);
+		if (id->kind != lex::token::identifier)
+		{
+			info.state = ast::resolve_state::error;
+		}
+		bz_assert(stream != end);
+		context.assert_token(stream, lex::token::colon);
+		auto type = parse_expression(stream, end, context, no_assign);
+		consteval_try(type, context);
+		if (type.not_null() && !type.has_consteval_succeeded())
+		{
+			context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
+			info.state = ast::resolve_state::error;
+		}
+		else if (type.not_null() && !type.is_typename())
+		{
+			context.report_error(type, "expected a type");
+			info.state = ast::resolve_state::error;
+		}
+		else if (type.is_null())
+		{
+			info.state = ast::resolve_state::error;
+		}
+		else if (!context.is_instantiable(type.get_typename()))
+		{
+			context.report_error(type, "struct member type is not instantiable");
+			info.state = ast::resolve_state::error;
+		}
+		else
+		{
+			info.member_variables.push_back({
+				{ begin_token, id, stream },
+				id->value,
+				std::move(type.get_typename())
+			});
+		}
+		context.assert_token(stream, lex::token::semi_colon);
+	}
+	if (info.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else 
+	{
+		info.state = ast::resolve_state::all;
+	}
 }
 
 static ast::statement parse_decl_struct_impl(

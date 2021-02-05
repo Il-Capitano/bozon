@@ -200,40 +200,41 @@ static bz::vector<note> get_circular_notes(T *decl, parse_context const &context
 	int count = 0;
 	for (auto const &dep : bz::reversed(context.resolve_queue))
 	{
-		if (
-			!notes.empty()
-			&& dep.requested.is<ast::function_body *>()
-		)
+		if (!notes.empty())
 		{
-			auto const func_body = dep.requested.get<ast::function_body *>();
-			if (func_body->is_generic_specialization())
+			if (dep.requested.is<ast::function_body *>())
 			{
-				notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+				auto const func_body = dep.requested.get<ast::function_body *>();
+				if (func_body->is_generic_specialization())
+				{
+					notes.back().message = bz::format("required from generic instantiation of '{}'", func_body->get_signature());
+				}
+				else
+				{
+					notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
+				}
 			}
-			else
+			else if (dep.requested.is<ast::decl_function_alias *>())
 			{
-				notes.back().message = bz::format("required from instantiation of '{}'", func_body->get_signature());
+				notes.back().message = bz::format(
+					"required from instantiation of alias 'function {}'",
+					dep.requested.get<ast::decl_function_alias *>()->identifier->value
+				);
 			}
-		}
-		else if (
-			!notes.empty()
-			&& dep.requested.is<ast::decl_function_alias *>()
-		)
-		{
-			notes.back().message = bz::format(
-				"required from instantiation of alias 'function {}'",
-				dep.requested.get<ast::decl_function_alias *>()->identifier->value
-			);
-		}
-		else if (
-			!notes.empty()
-			&& dep.requested.is<ast::decl_type_alias *>()
-		)
-		{
-			notes.back().message = bz::format(
-				"required from instantiation of type alias '{}'",
-				dep.requested.get<ast::decl_type_alias *>()->identifier->value
-			);
+			else if (dep.requested.is<ast::decl_type_alias *>())
+			{
+				notes.back().message = bz::format(
+					"required from instantiation of type alias '{}'",
+					dep.requested.get<ast::decl_type_alias *>()->identifier->value
+				);
+			}
+			else if (dep.requested.is<ast::type_info *>())
+			{
+				notes.back().message = bz::format(
+					"required from instantiation of type 'struct {}'",
+					dep.requested.get<ast::type_info *>()->type_name
+				);
+			}
 		}
 		if (dep.requested == decl)
 		{
@@ -288,6 +289,17 @@ void parse_context::report_circular_dependency_error(ast::decl_type_alias &alias
 	this->report_error(
 		alias_decl.src_tokens,
 		bz::format("circular dependency encountered while resolving type alias '{}'", alias_decl.identifier->value),
+		std::move(notes)
+	);
+}
+
+void parse_context::report_circular_dependency_error(ast::type_info &info) const
+{
+	auto notes = get_circular_notes(&info, *this);
+
+	this->report_error(
+		info.src_tokens,
+		bz::format("circular dependency encountered while resolving type 'struct {}'", info.type_name),
 		std::move(notes)
 	);
 }
@@ -1203,11 +1215,23 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 	// builtin types
 	if (auto const builtin_type = ast::get_builtin_type(id_value); builtin_type.has_value())
 	{
+		ast::typespec type = builtin_type;
+		type.nodes.back().visit(bz::overload{
+			[&](ast::ts_base_type &base_type) {
+				base_type.src_tokens = src_tokens;
+			},
+			[&](ast::ts_void &void_t) {
+				void_t.void_pos = id;
+			},
+			[](auto const &) {
+				bz_unreachable;
+			}
+		});
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			builtin_type,
+			std::move(type),
 			ast::make_expr_identifier(id)
 		);
 	}
@@ -3273,6 +3297,86 @@ void parse_context::match_expression_to_type(
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, *this);
 	}
+}
+
+bool parse_context::is_instantiable(ast::typespec_view ts)
+{
+	if (ts.nodes.size() == 0)
+	{
+		return false;
+	}
+
+	for (auto const &node : ts.nodes)
+	{
+		// 1 means it's instantiable
+		// 0 means it's not yet decidable
+		// -1 means it's not instantiable
+		auto const result = node.visit(bz::overload{
+			[this](ast::ts_base_type const &base_type) {
+				if (base_type.info->state != ast::resolve_state::all && base_type.info->state != ast::resolve_state::error)
+				{
+					this->add_to_resolve_queue(base_type.src_tokens, *base_type.info);
+					parse::resolve_type_info(*base_type.info, *this);
+					this->pop_resolve_queue();
+				}
+				return base_type.info->state == ast::resolve_state::all ? 1 : -1;
+			},
+			[](ast::ts_void const &) {
+				return -1;
+			},
+			[](ast::ts_function const &) {
+				// functions are pointers under the hood, so we don't really care about
+				// parameters or return types being instantiable here;  return types are checked
+				// when the function is called
+				return 1;
+			},
+			[this](ast::ts_array const &array_t) {
+				return this->is_instantiable(array_t.elem_type) ? 1 : -1;
+			},
+			[this](ast::ts_array_slice const &array_slice_t) {
+				// array slice type needs to be sized, because pointer arithmetic is required
+				// when accessing elements
+				return this->is_instantiable(array_slice_t.elem_type) ? 1 : -1;
+			},
+			[this](ast::ts_tuple const &tuple_t) {
+				for (auto &t : tuple_t.types)
+				{
+					if (!this->is_instantiable(t))
+					{
+						return -1;
+					}
+				}
+				return 1;
+			},
+			[](ast::ts_auto const &) {
+				return -1;
+			},
+			[](ast::ts_typename const &) {
+				return -1;
+			},
+			[](ast::ts_const const &) {
+				return 0;
+			},
+			[](ast::ts_consteval const &) {
+				return 0;
+			},
+			[](ast::ts_pointer const &) { 
+				return 1;
+			},
+			[](ast::ts_lvalue_reference const &) {
+				return 1;
+			},
+			[](ast::ts_unresolved const &) {
+				bz_unreachable;
+				return -1;
+			}
+		});
+		if (result != 0)
+		{
+			return result == 1;
+		}
+	}
+	return false;
 }
 
 bz::vector<ast::function_body *> parse_context::get_function_bodies_from_id(lex::src_tokens requester, bz::u8string_view id)

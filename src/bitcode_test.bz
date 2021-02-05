@@ -4,13 +4,22 @@ import utils;
 import generic;
 import file;
 
-/*
 struct vec2d
 {
 	.x: float64;
 	.y: float64;
+	// .v: vec2d;
 }
-*/
+
+struct struct_foo
+{
+	.b: struct_bar;
+}
+
+struct struct_bar 
+{
+	.f: struct_foo;
+}
 
 //	/*
 function assert(b: bool) -> void
@@ -56,8 +65,7 @@ static_assert(asdf == const int32);
 
 function main(args: [: const str]) -> int32
 {
-	const file = fopen("test.txt");
-	fclose(file);
+	let v: vec2d;
 
 	// let i: void;
 	global[0] = 5;
