@@ -1999,8 +1999,16 @@ static val_ptr emit_bitcode(
 		}
 		else if (func_call.func_body->return_type.is<ast::ts_lvalue_reference>())
 		{
-			bz_assert(result_address == nullptr);
-			return { val_ptr::reference, call };
+			if (result_address == nullptr)
+			{
+				return { val_ptr::reference, call };
+			}
+			else
+			{
+				auto const loaded_val = context.builder.CreateLoad(call);
+				context.builder.CreateStore(loaded_val, result_address);
+				return { val_ptr::reference, result_address };
+			}
 		}
 		if (result_address == nullptr)
 		{
