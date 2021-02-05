@@ -2159,7 +2159,7 @@ static void strict_match_expression_to_type_impl(
 
 	if (accept_void && dest.is<ast::ts_void>())
 	{
-		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest_container);
+		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
 	}
 	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
@@ -2260,7 +2260,7 @@ static void match_expression_to_type_impl(
 		{
 			if (ast::is_complete(dest))
 			{
-				expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest);
+				expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest);
 				return;
 			}
 			else
@@ -2381,7 +2381,7 @@ static void match_expression_to_type_impl(
 	}
 	else if (is_implicitly_convertible(dest, expr, context))
 	{
-		expr = context.make_cast_expression(expr.src_tokens, nullptr, std::move(expr), dest);
+		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest);
 		return;
 	}
 
@@ -2800,7 +2800,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			return ast::expression(src_tokens);
 		}
 
-		return this->make_cast_expression(src_tokens, op, std::move(lhs), std::move(rhs.get_typename()));
+		return this->make_cast_expression(src_tokens, std::move(lhs), std::move(rhs.get_typename()));
 	}
 
 	if (is_binary_type_op(op->kind) && lhs.is_typename() && rhs.is_typename())
@@ -3206,21 +3206,18 @@ ast::expression parse_context::make_subscript_operator_expression(
 	bz::vector<ast::expression> args
 )
 {
+	if (called.is_null() || args.size() == 0)
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
 	for (auto &arg : args)
 	{
-		if (called.is_null() || args.size() == 0)
+		if (arg.is_null())
 		{
 			bz_assert(this->has_errors());
 			return ast::expression(src_tokens);
-		}
-
-		for (auto &arg : args)
-		{
-			if (arg.is_null())
-			{
-				bz_assert(this->has_errors());
-				return ast::expression(src_tokens);
-			}
 		}
 
 		auto const [type, kind] = called.get_expr_type_and_kind();
@@ -3251,7 +3248,6 @@ ast::expression parse_context::make_subscript_operator_expression(
 
 ast::expression parse_context::make_cast_expression(
 	lex::src_tokens src_tokens,
-	lex::token_pos op,
 	ast::expression expr,
 	ast::typespec type
 )
@@ -3266,7 +3262,7 @@ ast::expression parse_context::make_cast_expression(
 
 	if (is_builtin_type(expr_type))
 	{
-		auto result = make_builtin_cast(src_tokens, op, std::move(expr), std::move(type), *this);
+		auto result = make_builtin_cast(src_tokens, std::move(expr), std::move(type), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
@@ -3275,6 +3271,67 @@ ast::expression parse_context::make_cast_expression(
 		this->report_error(src_tokens, "invalid cast");
 		return ast::expression(src_tokens);
 	}
+}
+
+ast::expression parse_context::make_member_access_expression(
+	lex::src_tokens src_tokens,
+	ast::expression base,
+	lex::token_pos member
+)
+{
+	if (base.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
+	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
+	auto const base_t = ast::remove_const_or_consteval(base_type);
+	auto const members = [&]() -> bz::array_view<ast::member_variable> {
+		if (base_t.is<ast::ts_base_type>())
+		{
+			return base_t.get<ast::ts_base_type>().info->member_variables.as_array_view();
+		}
+		else 
+		{
+			return {};
+		}
+	}();
+	auto const it = std::find_if(
+		members.begin(), members.end(),
+		[member_value = member->value](auto const &member_variable) {
+			return member_value == member_variable.identifier;
+		}
+	);
+	if (it == members.end())
+	{
+		this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, base_t));
+		return ast::expression(src_tokens);
+	}
+	auto const index = static_cast<uint32_t>(it - members.begin());
+	auto result_type = it->type;
+	if (
+		!result_type.is<ast::ts_const>()
+		&& !result_type.is<ast::ts_lvalue_reference>()
+		&& base_type.is<ast::ts_const>()
+	)
+	{
+		result_type.add_layer<ast::ts_const>(nullptr);
+	}
+
+	auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
+		? ast::expression_type_kind::lvalue_reference
+		: base_type_kind;
+
+	if (result_type.is<ast::ts_lvalue_reference>())
+	{
+		result_type.remove_layer();
+	}
+	return ast::make_dynamic_expression(
+		src_tokens,
+		result_kind, std::move(result_type),
+		ast::make_expr_member_access(std::move(base), index)
+	);
 }
 
 void parse_context::match_expression_to_type(

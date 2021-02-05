@@ -1253,7 +1253,7 @@ static ast::constant_value evaluate_subscript(
 		// should already happen in built_in_operators
 	}
 
-	if (!is_consteval || subscript_expr.base.has_consteval_failed())
+	if (!is_consteval || !subscript_expr.base.has_consteval_succeeded())
 	{
 		return {};
 	}
@@ -1797,7 +1797,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			bool is_consteval = true;
 			for (auto &elem : tuple.elems)
 			{
-				consteval_try(elem, context);
+				consteval_guaranteed(elem, context);
 				is_consteval = is_consteval && elem.has_consteval_succeeded();
 			}
 			if (!is_consteval)
@@ -1817,7 +1817,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return result;
 		},
 		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
-			consteval_try(unary_op.expr, context);
+			consteval_guaranteed(unary_op.expr, context);
 			if (!unary_op.expr.has_consteval_succeeded())
 			{
 				return {};
@@ -1826,8 +1826,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
-			consteval_try(binary_op.lhs, context);
-			consteval_try(binary_op.rhs, context);
+			consteval_guaranteed(binary_op.lhs, context);
+			consteval_guaranteed(binary_op.rhs, context);
 
 			// special case for bool_and and bool_or shortcircuiting
 			if (binary_op.lhs.has_consteval_succeeded())
@@ -1867,8 +1867,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 		},
 		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
-			consteval_try(subscript_expr.base, context);
-			consteval_try(subscript_expr.index, context);
+			consteval_guaranteed(subscript_expr.base, context);
+			consteval_guaranteed(subscript_expr.index, context);
 
 			return evaluate_subscript(subscript_expr, context);
 		},
@@ -1876,8 +1876,8 @@ static ast::constant_value guaranteed_evaluate_expr(
 			bool is_consteval = true;
 			for (auto &param : func_call.params)
 			{
-				consteval_try(param, context);
-				if (param.has_consteval_failed())
+				consteval_guaranteed(param, context);
+				if (!param.has_consteval_succeeded())
 				{
 					is_consteval = false;
 				}
@@ -1892,7 +1892,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
-			consteval_try(cast_expr.expr, context);
+			consteval_guaranteed(cast_expr.expr, context);
 			if (cast_expr.expr.has_consteval_succeeded())
 			{
 				return evaluate_cast(expr, cast_expr, context);
@@ -1902,13 +1902,26 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
+			consteval_guaranteed(member_access_expr.base, context);
+			if (member_access_expr.base.has_consteval_succeeded())
+			{
+				return member_access_expr.base
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+			}
+			else 
+			{
+				return {};
+			}
+		},
 		[](ast::expr_compound &) -> ast::constant_value {
 			return {};
 		},
 		[&context](ast::expr_if &if_expr) -> ast::constant_value {
-			consteval_try(if_expr.condition, context);
-			consteval_try(if_expr.then_block, context);
-			consteval_try(if_expr.else_block, context);
+			consteval_guaranteed(if_expr.condition, context);
+			consteval_guaranteed(if_expr.then_block, context);
+			consteval_guaranteed(if_expr.else_block, context);
 			if (if_expr.condition.has_consteval_succeeded())
 			{
 				bz_assert(if_expr.condition.is<ast::constant_expression>());
@@ -2069,6 +2082,19 @@ static ast::constant_value try_evaluate_expr(
 				return evaluate_cast(expr, cast_expr, context);
 			}
 			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
+			consteval_try(member_access_expr.base, context);
+			if (member_access_expr.base.has_consteval_succeeded())
+			{
+				return member_access_expr.base
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+			}
+			else 
 			{
 				return {};
 			}
@@ -2317,6 +2343,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			{
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
+		},
+		[&notes](ast::expr_member_access const &member_access_expr) {
+			bz_assert(!member_access_expr.base.has_consteval_succeeded());
+			get_consteval_fail_notes_helper(member_access_expr.base, notes);
 		},
 		[&expr, &notes](ast::expr_compound const &) {
 			notes.emplace_back(ctx::parse_context::make_note(

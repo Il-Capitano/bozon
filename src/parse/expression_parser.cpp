@@ -713,6 +713,19 @@ static ast::expression parse_expression_helper(
 
 		switch (op->kind)
 		{
+		case lex::token::dot:
+		{
+			auto const id = context.assert_token(stream, lex::token::identifier);
+			if (id->kind != lex::token::identifier)
+			{
+				lhs.clear();
+				break;
+			}
+
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_member_access_expression(src_tokens, std::move(lhs), id);
+			break;
+		}
 		// function call operator
 		case lex::token::paren_open:
 		{
@@ -723,10 +736,8 @@ static ast::expression parse_expression_helper(
 				context.report_error(inner_stream, "expected ',' or closing )");
 			}
 
-			lhs = context.make_function_call_expression(
-				{ lhs.get_tokens_begin(), op, stream },
-				std::move(lhs), std::move(params)
-			);
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_function_call_expression(src_tokens, std::move(lhs), std::move(params));
 			break;
 		}
 
@@ -744,10 +755,8 @@ static ast::expression parse_expression_helper(
 				context.report_error(inner_end, "subscript expression expects at least one index");
 			}
 
-			lhs = context.make_subscript_operator_expression(
-				{ lhs.get_tokens_begin(), op, stream },
-				std::move(lhs), std::move(args)
-			);
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_subscript_operator_expression(src_tokens, std::move(lhs), std::move(args));
 			break;
 		}
 
@@ -765,10 +774,8 @@ static ast::expression parse_expression_helper(
 				rhs = parse_expression_helper(std::move(rhs), stream, end, context, rhs_prec);
 			}
 
-			lhs = context.make_binary_operator_expression(
-				{ lhs.get_tokens_begin(), op, stream },
-				op, std::move(lhs), std::move(rhs)
-			);
+			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+			lhs = context.make_binary_operator_expression(src_tokens, op, std::move(lhs), std::move(rhs));
 			break;
 		}
 		}

@@ -288,9 +288,13 @@ struct parse_context
 	);
 	ast::expression make_cast_expression(
 		lex::src_tokens src_tokens,
-		lex::token_pos op,
 		ast::expression expr,
 		ast::typespec type
+	);
+	ast::expression make_member_access_expression(
+		lex::src_tokens src_tokens,
+		ast::expression base,
+		lex::token_pos member
 	);
 
 	void match_expression_to_type(

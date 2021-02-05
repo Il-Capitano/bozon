@@ -61,6 +61,11 @@ static_assert(asdf == const int32);
 function main(args: [: const str]) -> int32
 {
 	let v: vec2d;
+	v.x;
+	static_assert(typeof v.x == float64);
+	v.x = 3.14;
+	v.y = 2.72;
+	print('('); print(v.x); print(", "); print(v.y); print(")\n");
 
 	// let i: void;
 	global[0] = 5;

@@ -20,6 +20,7 @@ struct expr_binary_op;
 struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
+struct expr_member_access;
 struct expr_compound;
 struct expr_if;
 
@@ -33,6 +34,7 @@ using expr_t = node<
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
+	expr_member_access,
 	expr_compound,
 	expr_if
 >;
@@ -405,20 +407,33 @@ struct expr_function_call
 
 struct expr_cast
 {
-	lex::token_pos as_pos;
 	expression     expr;
 	typespec       type;
 
 	declare_default_5(expr_cast)
 
 	expr_cast(
-		lex::token_pos _as_pos,
-		expression     _expr,
-		typespec       _type
+		expression _expr,
+		typespec   _type
 	)
-		: as_pos(_as_pos),
-		  expr  (std::move(_expr)),
-		  type  (std::move(_type))
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_member_access
+{
+	expression base;
+	uint32_t   index;
+
+	declare_default_5(expr_member_access)
+
+	expr_member_access(
+		expression _base,
+		uint32_t   _index
+	)
+		: base (std::move(_base)),
+		  index(_index)
 	{}
 };
 
@@ -491,6 +506,7 @@ def_make_fn(expr_t, expr_binary_op)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
 

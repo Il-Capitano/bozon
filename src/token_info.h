@@ -89,17 +89,13 @@ enum : uint64_t
 
 struct prec_t
 {
-	enum { unary, binary };
+	enum { unary, binary, none };
 	int op_type;
 	uint32_t kind;
 	precedence prec;
 };
 
 constexpr bz::array operator_precedences = {
-//	prec_t{ ---, lex::token::square_open,        precedence{  2, true  } },
-//	prec_t{ ---, lex::token::dot,                precedence{  2, true  } },
-//	prec_t{ ---, lex::token::arrow,              precedence{  2, true  } },
-
 	prec_t{ prec_t::unary,  lex::token::plus,               {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::minus,              {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::plus_plus,          {  3, false } },
@@ -163,6 +159,7 @@ constexpr precedence no_assign     { 17, true };
 constexpr precedence no_comma      { 19, true };
 constexpr precedence call_prec     {  2, true };
 constexpr precedence subscript_prec{  2, true };
+constexpr precedence dot_prec      {  2, true };
 
 constexpr auto token_info = []() {
 	bz::array<token_info_t, lex::token::_last> result{};
@@ -478,6 +475,10 @@ constexpr precedence get_binary_or_call_precedence(uint32_t kind)
 	else if (kind == lex::token::square_open)
 	{
 		return subscript_prec;
+	}
+	else if (kind == lex::token::dot)
+	{
+		return dot_prec;
 	}
 	else
 	{

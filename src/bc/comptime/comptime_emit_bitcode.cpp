@@ -2146,6 +2146,43 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	ast::expr_member_access const &member_access,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const base = emit_bitcode<abi>(member_access.base, context, nullptr);
+	if (base.kind == val_ptr::reference)
+	{
+		auto const ptr = context.builder.CreateStructGEP(base.val, member_access.index);
+		if (result_address == nullptr)
+		{
+			return { val_ptr::reference, ptr };
+		}
+		else 
+		{
+			auto const val = context.builder.CreateLoad(ptr);
+			context.builder.CreateStore(val, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+	else 
+	{
+		auto const val = base.get_value(context.builder);
+		if (result_address == nullptr)
+		{
+			return { val_ptr::value, val };
+		}
+		else 
+		{
+			context.builder.CreateStore(val, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	ast::expr_compound const &compound_expr,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address

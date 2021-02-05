@@ -66,7 +66,6 @@ ast::expression make_builtin_type_operation(
 
 ast::expression make_builtin_cast(
 	lex::src_tokens src_tokens,
-	lex::token_pos as_pos,
 	ast::expression expr,
 	ast::typespec dest_type,
 	parse_context &context

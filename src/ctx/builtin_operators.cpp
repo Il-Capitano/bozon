@@ -935,7 +935,7 @@ static ast::expression get_builtin_binary_assign(
 			&& lhs_kind >= rhs_kind
 		)
 		{
-			rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind,
@@ -949,7 +949,7 @@ static ast::expression get_builtin_binary_assign(
 			&& lhs_kind >= rhs_kind
 		)
 		{
-			rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+			rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind,
@@ -982,7 +982,7 @@ static ast::expression get_builtin_binary_assign(
 		&& rhs.get<ast::constant_expression>().value.kind() == ast::constant_value::null
 	)
 	{
-		rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+		rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 		auto result_type = lhs_t;
 		auto const result_type_kind = lhs_type_kind;
 		return ast::make_dynamic_expression(
@@ -1083,7 +1083,6 @@ static ast::expression get_builtin_binary_plus(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1095,7 +1094,6 @@ static ast::expression get_builtin_binary_plus(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1120,7 +1118,6 @@ static ast::expression get_builtin_binary_plus(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1132,7 +1129,6 @@ static ast::expression get_builtin_binary_plus(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1268,7 +1264,6 @@ static ast::expression get_builtin_binary_minus(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1280,7 +1275,6 @@ static ast::expression get_builtin_binary_minus(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1305,7 +1299,6 @@ static ast::expression get_builtin_binary_minus(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1317,7 +1310,6 @@ static ast::expression get_builtin_binary_minus(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1466,7 +1458,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1482,7 +1474,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1498,7 +1490,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -1590,7 +1582,6 @@ static ast::expression get_builtin_binary_multiply_divide(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1601,7 +1592,6 @@ static ast::expression get_builtin_binary_multiply_divide(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1625,7 +1615,6 @@ static ast::expression get_builtin_binary_multiply_divide(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1636,7 +1625,6 @@ static ast::expression get_builtin_binary_multiply_divide(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1734,7 +1722,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1751,7 +1739,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1830,7 +1818,6 @@ static ast::expression get_builtin_binary_modulo(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1841,7 +1828,6 @@ static ast::expression get_builtin_binary_modulo(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1865,7 +1851,6 @@ static ast::expression get_builtin_binary_modulo(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(lhs_kind) } }),
 					context
@@ -1876,7 +1861,6 @@ static ast::expression get_builtin_binary_modulo(
 				common_kind = rhs_kind;
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(rhs_kind) } }),
 					context
@@ -1973,7 +1957,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -1990,7 +1974,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 		{
 			if (lhs_kind != rhs_kind)
 			{
-				rhs = make_builtin_cast(rhs.src_tokens, nullptr, std::move(rhs), lhs_t, context);
+				rhs = make_builtin_cast(rhs.src_tokens, std::move(rhs), lhs_t, context);
 			}
 
 			return ast::make_dynamic_expression(
@@ -2087,7 +2071,6 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					lhs_t,
 					context
@@ -2097,7 +2080,6 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			{
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					rhs_t,
 					context
@@ -2120,7 +2102,6 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					lhs_t,
 					context
@@ -2131,7 +2112,6 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			{
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					rhs_t,
 					context
@@ -2336,7 +2316,6 @@ static ast::expression get_builtin_binary_compare(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					lhs_t,
 					context
@@ -2346,7 +2325,6 @@ static ast::expression get_builtin_binary_compare(
 			{
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					rhs_t,
 					context
@@ -2369,7 +2347,6 @@ static ast::expression get_builtin_binary_compare(
 			{
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
-					nullptr,
 					std::move(rhs),
 					lhs_t,
 					context
@@ -2379,7 +2356,6 @@ static ast::expression get_builtin_binary_compare(
 			{
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
-					nullptr,
 					std::move(lhs),
 					rhs_t,
 					context
@@ -2959,7 +2935,6 @@ static ast::expression get_builtin_binary_comma(
 
 ast::expression make_builtin_cast(
 	lex::src_tokens src_tokens,
-	lex::token_pos as_pos,
 	ast::expression expr,
 	ast::typespec dest_type,
 	parse_context &context
@@ -2993,7 +2968,7 @@ ast::expression make_builtin_cast(
 			ast::expression_type_kind::rvalue,
 			dest_t,
 			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+			ast::make_expr_cast(std::move(expr), dest_type)
 		);
 	}
 	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
@@ -3028,7 +3003,7 @@ ast::expression make_builtin_cast(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				dest_t,
-				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+				ast::make_expr_cast(std::move(expr), dest_type)
 			);
 		}
 		else
@@ -3056,7 +3031,7 @@ ast::expression make_builtin_cast(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+				ast::make_expr_cast(std::move(expr), dest_type)
 			);
 		}
 		else if (
@@ -3067,7 +3042,7 @@ ast::expression make_builtin_cast(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+				ast::make_expr_cast(std::move(expr), dest_type)
 			);
 		}
 		else if (
@@ -3078,7 +3053,7 @@ ast::expression make_builtin_cast(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(as_pos, std::move(expr), dest_type)
+				ast::make_expr_cast(std::move(expr), dest_type)
 			);
 		}
 
@@ -3176,11 +3151,9 @@ ast::expression make_builtin_subscript_operator(
 				result_type.add_layer<ast::ts_const>(nullptr);
 			}
 
-			auto const result_kind =
-				result_type.is<ast::ts_lvalue_reference>()
-				|| called_kind == ast::expression_type_kind::lvalue_reference
-					? ast::expression_type_kind::lvalue_reference
-					: called_kind;
+			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
+				? ast::expression_type_kind::lvalue_reference
+				: called_kind;
 
 			if (result_type.is<ast::ts_lvalue_reference>())
 			{
@@ -3228,10 +3201,7 @@ ast::expression make_builtin_subscript_operator(
 			return ast::expression(src_tokens);
 		}
 
-		auto const result_kind =
-			called_kind == ast::expression_type_kind::lvalue           ? ast::expression_type_kind::lvalue :
-			called_kind == ast::expression_type_kind::lvalue_reference ? ast::expression_type_kind::lvalue_reference :
-			ast::expression_type_kind::rvalue;
+		auto const result_kind = called_kind;
 
 		auto result_type = [&]() {
 			auto &elem_type = array_t.elem_type;
