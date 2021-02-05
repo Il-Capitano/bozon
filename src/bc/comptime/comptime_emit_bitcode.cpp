@@ -2168,7 +2168,9 @@ static val_ptr emit_bitcode(
 	}
 	else 
 	{
-		auto const val = base.get_value(context.builder);
+		auto const val = context.builder.CreateExtractValue(
+			base.get_value(context.builder), member_access.index
+		);
 		if (result_address == nullptr)
 		{
 			return { val_ptr::value, val };
