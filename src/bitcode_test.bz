@@ -11,14 +11,9 @@ struct vec2d
 	// .v: vec2d;
 }
 
-struct struct_foo
+struct S
 {
-	.b: struct_bar;
-}
-
-struct struct_bar 
-{
-	.f: struct_foo;
+	.p: *S;
 }
 
 //	/*
