@@ -4,18 +4,6 @@ import utils;
 import generic;
 import file;
 
-struct vec2d
-{
-	.x: float64;
-	.y: float64;
-	// .v: vec2d;
-}
-
-struct S
-{
-	.p: *S;
-}
-
 //	/*
 function assert(b: bool) -> void
 {
@@ -60,13 +48,6 @@ static_assert(asdf == const int32);
 
 function main(args: [: const str]) -> int32
 {
-	let v: vec2d;
-	v.x;
-	static_assert(typeof v.x == float64);
-	v.x = 3.14;
-	v.y = 2.72;
-	print('('); print(v.x); print(", "); print(v.y); print(")\n");
-
 	// let i: void;
 	global[0] = 5;
 	// c = 3;
@@ -167,6 +148,9 @@ function main(args: [: const str]) -> int32
 
 	println("\n==== ambiguous_function_test ====");
 	ambiguous_function_test();
+
+	println("\n==== struct_test ====");
+	struct_test();
 
 	println("\n==== end main ====");
 	println(exp(1.0));
@@ -1061,3 +1045,29 @@ function add_tester()
 
 // function alias1 = alias1;
 // function alias2 = alias1;
+
+struct vec2d
+{
+	.x: float64;
+	.y: float64;
+}
+
+function struct_test()
+{
+	function get_vec() -> &vec2d;
+	function modify_vec(v: vec2d) -> vec2d;
+	print(get_vec().x);
+	get_vec().x = 3.4;
+	static_assert(typeof get_vec() == &vec2d);
+	static_assert(typeof get_vec().x == &float64);
+	// const v = get_vec();
+	// const v = modify_vec(v);
+
+	const v = vec2d[ 0.0, 0.0 ];
+}
+
+struct vec2
+{
+	.x: float32;
+	.y: float32;
+}

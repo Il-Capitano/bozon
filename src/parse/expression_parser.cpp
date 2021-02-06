@@ -750,10 +750,6 @@ static ast::expression parse_expression_helper(
 			{
 				context.report_paren_match_error(inner_stream, op);
 			}
-			else if (args.size() == 0)
-			{
-				context.report_error(inner_end, "subscript expression expects at least one index");
-			}
 
 			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
 			lhs = context.make_subscript_operator_expression(src_tokens, std::move(lhs), std::move(args));

@@ -3206,44 +3206,133 @@ ast::expression parse_context::make_subscript_operator_expression(
 	bz::vector<ast::expression> args
 )
 {
-	if (called.is_null() || args.size() == 0)
+	if (called.is_null())
 	{
 		bz_assert(this->has_errors());
 		return ast::expression(src_tokens);
 	}
 
-	for (auto &arg : args)
+	if (called.is_typename())
 	{
-		if (arg.is_null())
+		ast::typespec_view const type = called.get_typename();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (!type_without_const.is<ast::ts_base_type>())
 		{
-			bz_assert(this->has_errors());
+			this->report_error(src_tokens, bz::format("invalid struct initializer of type '{}'", type));
 			return ast::expression(src_tokens);
 		}
 
-		auto const [type, kind] = called.get_expr_type_and_kind();
-		auto const constless_type = ast::remove_const_or_consteval(type);
-		if (
-			constless_type.is<ast::ts_array>()
-			|| constless_type.is<ast::ts_array_slice>()
-			|| constless_type.is<ast::ts_tuple>()
-			|| kind == ast::expression_type_kind::tuple
-		)
+		auto const info = type_without_const.get<ast::ts_base_type>().info;
+		if (info->member_variables.size() != args.size())
 		{
-			called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
+			auto const member_size = info->member_variables.size();
+			auto const args_size = args.size();
+			if (member_size < args_size)
+			{
+				this->report_error(
+					src_tokens,
+					bz::format("too many initializers for type '{}'", type),
+					{ this->make_note(
+						info->src_tokens,
+						bz::format("'struct {}' is defined here", info->type_name)
+					) }
+				);
+				return ast::expression(src_tokens);
+			}
+			else if (member_size - args_size == 1)
+			{
+				this->report_error(
+					src_tokens,
+					bz::format("missing initializer for field '{}' in type '{}'", info->member_variables.back().identifier, type),
+					{ this->make_note(
+						info->src_tokens,
+						bz::format("'struct {}' is defined here", info->type_name)
+					) }
+				);
+				return ast::expression(src_tokens);
+			}
+			else
+			{
+				auto const message = [&]() {
+					bz::u8string result = "missing initializers for fields ";
+					result += bz::format("'{}'", info->member_variables[args_size].identifier);
+					for (size_t i = args_size + 1; i < member_size - 1; ++i)
+					{
+						result += bz::format(", '{}'", info->member_variables[i].identifier);
+					}
+					result += bz::format(" and '{}' in type '{}'", info->member_variables.back().identifier, type);
+					return result;
+				}();
+				this->report_error(
+					src_tokens,
+					std::move(message),
+					{ this->make_note(
+						info->src_tokens,
+						bz::format("'struct {}' is defined here", info->type_name)
+					) }
+				);
+				return ast::expression(src_tokens);
+			}
 		}
-		else
+
+		bool is_good = true;
+		for (auto const [expr, member] : bz::zip(args, info->member_variables))
 		{
-			this->report_error(
-				src_tokens,
-				bz::format(
-					"invalid operator [] with types '{}' and '{}'",
-					called.get_expr_type_and_kind().first, arg.get_expr_type_and_kind().first
-				)
-			);
+			this->match_expression_to_type(expr, member.type);
+			is_good = is_good && expr.not_null();
+		}
+		if (!is_good)
+		{
 			return ast::expression(src_tokens);
 		}
+
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			type_without_const,
+			ast::make_expr_struct_init(std::move(args), type_without_const)
+		);
 	}
-	return called;
+	else
+	{
+		if (args.size() == 0)
+		{
+			this->report_error(src_tokens, "subscript expression expects at least one index");
+			return ast::expression(src_tokens);
+		}
+		for (auto &arg : args)
+		{
+			if (arg.is_null())
+			{
+				bz_assert(this->has_errors());
+				return ast::expression(src_tokens);
+			}
+
+			auto const [type, kind] = called.get_expr_type_and_kind();
+			auto const constless_type = ast::remove_const_or_consteval(type);
+			if (
+				constless_type.is<ast::ts_array>()
+				|| constless_type.is<ast::ts_array_slice>()
+				|| constless_type.is<ast::ts_tuple>()
+				|| kind == ast::expression_type_kind::tuple
+			)
+			{
+				called = make_builtin_subscript_operator(src_tokens, std::move(called), std::move(arg), *this);
+			}
+			else
+			{
+				this->report_error(
+					src_tokens,
+					bz::format(
+						"invalid operator [] with types '{}' and '{}'",
+						called.get_expr_type_and_kind().first, arg.get_expr_type_and_kind().first
+					)
+				);
+				return ast::expression(src_tokens);
+			}
+		}
+		return called;
+	}
 }
 
 ast::expression parse_context::make_cast_expression(

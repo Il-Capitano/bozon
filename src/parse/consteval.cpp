@@ -1902,10 +1902,32 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_struct_init &struct_init_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : struct_init_expr.exprs)
+			{
+				consteval_guaranteed(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			result.emplace<ast::constant_value::aggregate>();
+			auto &aggregate = result.get<ast::constant_value::aggregate>();
+			for (auto const &expr : struct_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+			}
+			return result;
+		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
 			{
+				bz_assert(member_access_expr.base.get<ast::constant_expression>().value.is<ast::constant_value::aggregate>());
 				return member_access_expr.base
 					.get<ast::constant_expression>().value
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
@@ -2085,6 +2107,27 @@ static ast::constant_value try_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[&context](ast::expr_struct_init &struct_init_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : struct_init_expr.exprs)
+			{
+				consteval_try(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			result.emplace<ast::constant_value::aggregate>();
+			auto &aggregate = result.get<ast::constant_value::aggregate>();
+			for (auto const &expr : struct_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+			}
+			return result;
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_try(member_access_expr.base, context);
@@ -2343,6 +2386,18 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			{
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
+		},
+		[&notes](ast::expr_struct_init const &struct_init_expr) {
+			bool any_failed = false;
+			for (auto const &expr : struct_init_expr.exprs)
+			{
+				if (expr.has_consteval_failed())
+				{
+					any_failed = true;
+					get_consteval_fail_notes_helper(expr, notes);
+				}
+			}
+			bz_assert(any_failed);
 		},
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());

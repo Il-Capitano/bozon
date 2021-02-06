@@ -2146,6 +2146,23 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	ast::expr_struct_init const &struct_init,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = get_llvm_type(struct_init.type, context);
+	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
+	for (size_t i = 0; i < struct_init.exprs.size(); ++i)
+	{
+		auto const member_ptr = context.builder.CreateStructGEP(result_ptr, i);
+		emit_bitcode<abi>(struct_init.exprs[i], context, member_ptr);
+	}
+	return { val_ptr::reference, result_ptr };
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	ast::expr_member_access const &member_access,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address

@@ -498,9 +498,12 @@ static void resolve_variable_init_expr_and_match_type(
 			var_decl.state = ast::resolve_state::error;
 		}
 	}
-	if (!context.is_instantiable(var_decl.var_type))
+	if (
+		!var_decl.var_type.is_empty()
+		&& !context.is_instantiable(var_decl.var_type)
+		&& var_decl.state != ast::resolve_state::error
+	)
 	{
-		bz::log("variable type '{}' is not instantiable\n", var_decl.var_type);
 		auto const src_tokens = var_decl.var_type.get_src_tokens();
 		bz_assert(src_tokens.pivot != nullptr);
 		context.report_error(src_tokens, "variable type is not instantiable");

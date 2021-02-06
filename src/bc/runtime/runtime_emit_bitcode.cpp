@@ -1991,6 +1991,7 @@ static val_ptr emit_bitcode(
 	switch (result_kind)
 	{
 	case abi::pass_kind::reference:
+		bz_assert(result_address == nullptr || params.front() == result_address);
 		return { val_ptr::reference, params.front() };
 	case abi::pass_kind::value:
 		if (call->getType()->isVoidTy())
@@ -2278,6 +2279,23 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	ast::expr_struct_init const &struct_init,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = get_llvm_type(struct_init.type, context);
+	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
+	for (size_t i = 0; i < struct_init.exprs.size(); ++i)
+	{
+		auto const member_ptr = context.builder.CreateStructGEP(result_ptr, i);
+		emit_bitcode<abi>(struct_init.exprs[i], context, member_ptr);
+	}
+	return { val_ptr::reference, result_ptr };
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	ast::expr_member_access const &member_access,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
@@ -2559,11 +2577,24 @@ static llvm::Constant *get_value(
 		auto const decl = value.get<ast::constant_value::function>();
 		return context.get_function(decl);
 	}
+	case ast::constant_value::aggregate:
+	{
+		auto const &aggregate = value.get<ast::constant_value::aggregate>();
+		bz_assert(type.is<ast::ts_base_type>());
+		auto const info = type.get<ast::ts_base_type>().info;
+		auto const val_type = get_llvm_type(type, context);
+		bz_assert(val_type->isStructTy());
+		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
+		auto const members = bz::zip(aggregate, info->member_variables)
+			.transform([&context](auto const pair) {
+				return get_value<abi>(pair.first, pair.second.type, nullptr, context);
+			})
+			.collect();
+		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
+	}
 	case ast::constant_value::function_set_id:
 		bz_unreachable;
 	case ast::constant_value::type:
-		bz_unreachable;
-	case ast::constant_value::aggregate:
 		bz_unreachable;
 	default:
 		bz_unreachable;

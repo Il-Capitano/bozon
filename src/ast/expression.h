@@ -20,6 +20,7 @@ struct expr_binary_op;
 struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
+struct expr_struct_init;
 struct expr_member_access;
 struct expr_compound;
 struct expr_if;
@@ -34,6 +35,7 @@ using expr_t = node<
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
+	expr_struct_init,
 	expr_member_access,
 	expr_compound,
 	expr_if
@@ -421,6 +423,22 @@ struct expr_cast
 	{}
 };
 
+struct expr_struct_init
+{
+	bz::vector<expression> exprs;
+	typespec               type;
+
+	declare_default_5(expr_struct_init)
+
+	expr_struct_init(
+		bz::vector<expression> _exprs,
+		typespec               _type
+	)
+		: exprs(std::move(_exprs)),
+		  type (std::move(_type))
+	{}
+};
+
 struct expr_member_access
 {
 	expression base;
@@ -506,6 +524,7 @@ def_make_fn(expr_t, expr_binary_op)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_struct_init)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
