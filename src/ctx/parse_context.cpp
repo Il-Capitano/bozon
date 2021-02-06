@@ -3218,11 +3218,16 @@ ast::expression parse_context::make_subscript_operator_expression(
 		auto const type_without_const = ast::remove_const_or_consteval(type);
 		if (!type_without_const.is<ast::ts_base_type>())
 		{
-			this->report_error(src_tokens, bz::format("invalid struct initializer of type '{}'", type));
+			this->report_error(src_tokens, bz::format("invalid struct initializer for type '{}'", type));
 			return ast::expression(src_tokens);
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
+		if (info->kind != ast::type_info::aggregate)
+		{
+			this->report_error(src_tokens, bz::format("invalid struct initializer for type '{}'", type));
+			return ast::expression(src_tokens);
+		}
 		if (info->member_variables.size() != args.size())
 		{
 			auto const member_size = info->member_variables.size();
