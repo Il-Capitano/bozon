@@ -1064,6 +1064,8 @@ function struct_test()
 	// const v = modify_vec(v);
 
 	const v = vec2d[ 0.0, 0.0 ];
+	consteval v = vec2d[ 1.2, 4.3 ];
+	static_assert(v.x == 1.2);
 }
 
 struct vec2
