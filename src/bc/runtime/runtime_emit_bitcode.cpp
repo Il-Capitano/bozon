@@ -2037,7 +2037,7 @@ static val_ptr emit_bitcode(
 		{
 			return { val_ptr::value, call };
 		}
-		else 
+		else
 		{
 			auto const result_ptr = context.create_alloca(result_type);
 			auto const result_ptr_cast = context.builder.CreateBitCast(
@@ -2309,14 +2309,14 @@ static val_ptr emit_bitcode(
 		{
 			return { val_ptr::reference, ptr };
 		}
-		else 
+		else
 		{
 			auto const val = context.builder.CreateLoad(ptr);
 			context.builder.CreateStore(val, result_address);
 			return { val_ptr::reference, result_address };
 		}
 	}
-	else 
+	else
 	{
 		auto const val = context.builder.CreateExtractValue(
 			base.get_value(context.builder), member_access.index
@@ -2325,7 +2325,7 @@ static val_ptr emit_bitcode(
 		{
 			return { val_ptr::value, val };
 		}
-		else 
+		else
 		{
 			context.builder.CreateStore(val, result_address);
 			return { val_ptr::reference, result_address };
@@ -2580,8 +2580,8 @@ static llvm::Constant *get_value(
 	case ast::constant_value::aggregate:
 	{
 		auto const &aggregate = value.get<ast::constant_value::aggregate>();
-		bz_assert(type.is<ast::ts_base_type>());
-		auto const info = type.get<ast::ts_base_type>().info;
+		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_base_type>());
+		auto const info = ast::remove_const_or_consteval(type).get<ast::ts_base_type>().info;
 		auto const val_type = get_llvm_type(type, context);
 		bz_assert(val_type->isStructTy());
 		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
@@ -2908,7 +2908,7 @@ static void emit_bitcode(
 		auto const alloca = context.create_alloca(type);
 		if (var_decl.init_expr.not_null())
 		{
-			emit_bitcode<abi>(var_decl.init_expr, context, alloca).get_value(context.builder);
+			emit_bitcode<abi>(var_decl.init_expr, context, alloca);
 		}
 		else
 		{
