@@ -2806,7 +2806,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best_body)
+			ast::make_expr_function_call(src_tokens, std::move(params), best_body, ast::resolve_order::regular)
 		);
 	}
 }
@@ -2968,10 +2968,13 @@ ast::expression parse_context::make_binary_operator_expression(
 		params.reserve(2);
 		params.emplace_back(std::move(lhs));
 		params.emplace_back(std::move(rhs));
+		auto const resolve_order = get_binary_precedence(op->kind).is_left_associative
+			? ast::resolve_order::regular
+			: ast::resolve_order::reversed;
 		return ast::make_dynamic_expression(
 			src_tokens,
 			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best_body)
+			ast::make_expr_function_call(src_tokens, std::move(params), best_body, resolve_order)
 		);
 	}
 }
@@ -3072,7 +3075,7 @@ ast::expression parse_context::make_function_call_expression(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				return_type_kind, return_type,
-				ast::make_expr_function_call(src_tokens, std::move(params), func_body)
+				ast::make_expr_function_call(src_tokens, std::move(params), func_body, ast::resolve_order::regular)
 			);
 		}
 		else
@@ -3230,7 +3233,7 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::make_dynamic_expression(
 					src_tokens,
 					return_type_kind, return_type,
-					ast::make_expr_function_call(src_tokens, std::move(params), best_body)
+					ast::make_expr_function_call(src_tokens, std::move(params), best_body, ast::resolve_order::regular)
 				);
 			}
 		}

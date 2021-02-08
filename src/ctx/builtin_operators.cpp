@@ -2169,7 +2169,8 @@ static ast::expression get_builtin_binary_equals_not_equals(
 						is_equals
 						? ast::function_body::builtin_str_eq
 						: ast::function_body::builtin_str_neq
-					)
+					),
+					ast::resolve_order::regular
 				)
 			);
 		}

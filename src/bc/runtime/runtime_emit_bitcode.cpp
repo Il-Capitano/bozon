@@ -1948,7 +1948,7 @@ static val_ptr emit_bitcode(
 		}
 	};
 
-	if (func_call.func_body->is_reversed_args())
+	if (func_call.param_resolve_order == ast::resolve_order::reversed)
 	{
 		auto const size = func_call.params.size();
 		for (size_t i = size; i != 0; --i)

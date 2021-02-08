@@ -388,22 +388,30 @@ struct expr_subscript
 	{}
 };
 
+enum class resolve_order
+{
+	regular, reversed,
+};
+
 struct expr_function_call
 {
 	lex::src_tokens        src_tokens;
 	bz::vector<expression> params;
 	function_body         *func_body;
+	resolve_order          param_resolve_order;
 
 	declare_default_5(expr_function_call)
 
 	expr_function_call(
 		lex::src_tokens        _src_tokens,
 		bz::vector<expression> _params,
-		function_body         *_func_body
+		function_body         *_func_body,
+		resolve_order          _param_resolve_order
 	)
 		: src_tokens(_src_tokens),
 		  params    (std::move(_params)),
-		  func_body (_func_body)
+		  func_body (_func_body),
+		  param_resolve_order(_param_resolve_order)
 	{}
 };
 

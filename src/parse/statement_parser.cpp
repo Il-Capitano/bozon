@@ -1419,11 +1419,6 @@ ast::statement parse_decl_operator(
 		: lex::src_tokens{ begin, begin, begin + 1 };
 
 	auto body = parse_function_body(src_tokens, bz::format("{}", op->kind), stream, end, context);
-	auto const op_kind = op->kind;
-	if (is_binary_operator(op_kind) && !get_binary_precedence(op_kind).is_left_associative)
-	{
-		body.flags |= ast::function_body::reversed_args;
-	}
 
 	if constexpr (is_global)
 	{
@@ -1507,12 +1502,12 @@ void resolve_type_info(
 					{}, { context.make_suggestion_before(stream, ".", "add '.' here") }
 				);
 			}
-			else 
+			else
 			{
 				context.assert_token(stream, lex::token::dot);
 			}
 		}
-		else 
+		else
 		{
 			++stream; // '.'
 		}
@@ -1560,7 +1555,7 @@ void resolve_type_info(
 	{
 		return;
 	}
-	else 
+	else
 	{
 		info.state = ast::resolve_state::all;
 	}
@@ -1607,12 +1602,12 @@ ast::statement parse_decl_struct(
 	{
 		return result;
 	}
-	
+
 	if constexpr (is_global)
 	{
 		return result;
 	}
-	else 
+	else
 	{
 		bz_assert(result.is<ast::decl_struct>());
 		auto &struct_decl = result.get<ast::decl_struct>();

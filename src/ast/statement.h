@@ -320,7 +320,6 @@ struct function_body
 		intrinsic              = bit_at<3>,
 		generic                = bit_at<4>,
 		generic_specialization = bit_at<5>,
-		reversed_args          = bit_at<6>,
 	};
 
 	enum : uint32_t
@@ -482,11 +481,6 @@ struct function_body
 		return (this->flags & generic_specialization) != 0;
 	}
 
-	bool is_reversed_args(void) const noexcept
-	{
-		return (this->flags & reversed_args) != 0;
-	}
-
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end
@@ -589,7 +583,7 @@ struct decl_type_alias
 	}
 };
 
-struct member_variable 
+struct member_variable
 {
 	lex::src_tokens   src_tokens;
 	bz::u8string_view identifier;
