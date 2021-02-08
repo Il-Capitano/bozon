@@ -919,7 +919,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 					ast::make_expr_identifier(id)
 				);
 			}
-			else 
+			else
 			{
 				return ast::expression(src_tokens);
 			}
@@ -1177,7 +1177,7 @@ ast::expression parse_context::make_identifier_expression(lex::token_pos id)
 				ast::make_expr_identifier(id)
 			);
 		}
-		else 
+		else
 		{
 			return ast::expression(src_tokens);
 		}
@@ -1857,6 +1857,44 @@ struct match_level_t : public bz::variant<int, bz::vector<match_level_t>>
 	~match_level_t(void) noexcept = default;
 };
 
+static void format_match_level_impl(match_level_t const &match_level, bz::u8string &result)
+{
+	if (match_level.is<int>())
+	{
+		result += bz::format("{}", match_level.get<int>());
+	}
+	else if (match_level.is<bz::vector<match_level_t>>())
+	{
+		auto const &vec = match_level.get<bz::vector<match_level_t>>();
+		result += "[";
+		bool first = true;
+		for (auto const &ml : vec)
+		{
+			if (first)
+			{
+				first = false;
+			}
+			else
+			{
+				result += ", ";
+			}
+			format_match_level_impl(ml, result);
+		}
+		result += "]";
+	}
+	else
+	{
+		result += "null";
+	}
+}
+
+[[maybe_unused]] static bz::u8string format_match_level(match_level_t const &match_level)
+{
+	bz::u8string result;
+	format_match_level_impl(match_level, result);
+	return result;
+}
+
 // returns -1 if lhs < rhs, 0 if lhs == rhs or they are ambiguous and 1 if lhs > rhs
 static int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 {
@@ -2503,6 +2541,10 @@ static match_level_t get_function_call_match_level(
 	auto &result_vec = result.get<bz::vector<match_level_t>>();
 	result_vec.push_back(get_type_match_level(func_body.params[0].var_type, lhs, context));
 	result_vec.push_back(get_type_match_level(func_body.params[0].var_type, rhs, context));
+	if (result_vec[0].is_null() || result_vec[1].is_null())
+	{
+		result.clear();
+	}
 	return result;
 }
 
@@ -2889,6 +2931,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			if (match_level.not_null())
 			{
 				possible_funcs.push_back({ std::move(match_level), op, &body });
+				scope_decl_counts.back() += 1;
 			}
 		}
 	}
@@ -3386,7 +3429,7 @@ ast::expression parse_context::make_member_access_expression(
 		{
 			return base_t.get<ast::ts_base_type>().info->member_variables.as_array_view();
 		}
-		else 
+		else
 		{
 			return {};
 		}
@@ -3511,7 +3554,7 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 			[](ast::ts_consteval const &) {
 				return 0;
 			},
-			[](ast::ts_pointer const &) { 
+			[](ast::ts_pointer const &) {
 				return 1;
 			},
 			[](ast::ts_lvalue_reference const &) {
