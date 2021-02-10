@@ -10,6 +10,7 @@
 		"emit_compile_commands": true,
 
 		"run_args": [
+			"-Wall",
 			"-Wno-unused-variable",
 			"--debug-ir-output",
 			"--profile",
