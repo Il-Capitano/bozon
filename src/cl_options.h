@@ -53,6 +53,15 @@ inline constexpr bz::array ctcli::option_group<warning_group_id> = []() {
 }();
 
 template<>
+inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []() {
+	return []<size_t ...Is>(bz::meta::index_sequence<Is...>) {
+		return bz::array{
+			ctcli::create_multiple_group_element<warning_group_id>("all", "Enable all warnings", { ctx::warning_infos[Is].name... }),
+		};
+	}(bz::meta::make_index_sequence<ctx::warning_infos.size()>{});
+}();
+
+template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 1> result{};
 
@@ -71,21 +80,30 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 }();
 
 template<>
+inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
+	return []<size_t ...Is>(bz::meta::index_sequence<Is...>) {
+		return bz::array{
+			ctcli::create_multiple_group_element<opt_group_id>("all", "Enable all optimizations", { bc::optimization_infos[Is].name... }),
+		};
+	}(bz::meta::make_index_sequence<bc::optimization_infos.size()>{});
+}();
+
+template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
 	ctcli::create_option("-V, --version",                    "Print compiler version"),
 	ctcli::create_option("-I, --import-dir <dir>",           "Add <dir> as an import directory", ctcli::arg_type::string),
 	ctcli::create_option("-o, --output <file>",              "Write output to <file>", ctcli::arg_type::string),
-	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)", ctcli::arg_type::none),
+	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
 	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
 
-	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)", ctcli::arg_type::none),
+	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
 	ctcli::create_hidden_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
 
-	ctcli::create_group_option("-W, --warn <warning>",      "Enable the specified <warning>", warning_group_id, "warnings"),
-	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id, "optimizations"),
+	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id, "warnings"),
+	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,     "optimizations"),
 };
 
 template<>
@@ -105,6 +123,38 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")> = &tab_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>    = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>            = &import_dirs;
+
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-overflow")>           = &warnings[static_cast<size_t>(ctx::warning_kind::float_overflow)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn float-divide-by-zero")>     = &warnings[static_cast<size_t>(ctx::warning_kind::float_divide_by_zero)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-attribute")>        = &warnings[static_cast<size_t>(ctx::warning_kind::unknown_attribute)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn null-pointer-dereference")> = &warnings[static_cast<size_t>(ctx::warning_kind::null_pointer_dereference)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-value")>             = &warnings[static_cast<size_t>(ctx::warning_kind::unused_value)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unclosed-comment")>         = &warnings[static_cast<size_t>(ctx::warning_kind::unclosed_comment)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn mismatched-brace-indent")>  = &warnings[static_cast<size_t>(ctx::warning_kind::mismatched_brace_indent)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unused-variable")>          = &warnings[static_cast<size_t>(ctx::warning_kind::unused_variable)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn greek-question-mark")>      = &warnings[static_cast<size_t>(ctx::warning_kind::greek_question_mark)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-file-extension")>       = &warnings[static_cast<size_t>(ctx::warning_kind::bad_file_extension)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unknown-target")>           = &warnings[static_cast<size_t>(ctx::warning_kind::unknown_target)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>          = &warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>              = &warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-float-math")>           = &warnings[static_cast<size_t>(ctx::warning_kind::bad_float_math)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
+static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 18);
+
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt instcombine")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::instcombine)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt mem2reg")>                = &optimizations[static_cast<size_t>(bc::optimization_kind::mem2reg)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt simplifycfg")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::simplifycfg)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt reassociate")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::reassociate)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt gvn")>                    = &optimizations[static_cast<size_t>(bc::optimization_kind::gvn)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt inline")>                 = &optimizations[static_cast<size_t>(bc::optimization_kind::inline_)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt dce")>                    = &optimizations[static_cast<size_t>(bc::optimization_kind::dce)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt adce")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::adce)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt sccp")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::sccp)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt aggressive-instcombine")> = &optimizations[static_cast<size_t>(bc::optimization_kind::aggressive_instcombine)];
+static_assert(static_cast<size_t>(bc::optimization_kind::_last) == 10);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")> = &max_opt_iter_count;
 

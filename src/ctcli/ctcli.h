@@ -47,6 +47,19 @@ class invalid_syntax_error final : public std::runtime_error
 namespace internal
 {
 
+template<typename It, typename Cond>
+constexpr It constexpr_find_if(It begin, It end, Cond cond)
+{
+	for (; begin != end; ++begin)
+	{
+		if (cond(*begin))
+		{
+			return begin;
+		}
+	}
+	return end;
+}
+
 // The functions defined here should only be used at compile time, for building the
 // `command_line_options` array.
 
@@ -826,7 +839,7 @@ create_multiple_group_element(string_view usage, string_view help, std::initiali
 		std::size_t i = 0;
 		for (auto const element : elements)
 		{
-			auto const it = std::find_if(
+			auto const it = internal::constexpr_find_if(
 				group.begin(), group.end(),
 				[&element](auto const &group_element) {
 					return element == group_element.usage;
@@ -859,7 +872,7 @@ create_hidden_multiple_group_element(string_view usage, string_view help, std::i
 		std::size_t i = 0;
 		for (auto const element : elements)
 		{
-			auto const it = std::find_if(
+			auto const it = internal::constexpr_find_if(
 				group.begin(), group.end(),
 				[&element](auto const &group_element) {
 					return element == group_element.usage;
@@ -892,7 +905,7 @@ create_undocumented_multiple_group_element(string_view usage, string_view help, 
 		std::size_t i = 0;
 		for (auto const element : elements)
 		{
-			auto const it = std::find_if(
+			auto const it = internal::constexpr_find_if(
 				group.begin(), group.end(),
 				[&element](auto const &group_element) {
 					return element == group_element.usage;
@@ -1177,13 +1190,13 @@ constexpr commands_id_t get_commands_id_t(command_index_t index) noexcept
 }
 
 template<group_id_t ID>
-constexpr auto help_group_element_index = (assert(add_help_to_group<ID>), create_group_element_index(ID, option_group<ID>.size()));
+constexpr auto help_group_element_index = (std::enable_if_t<add_help_to_group<ID>, int>{}, create_group_element_index(ID, option_group<ID>.size()));
 
 template<options_id_t ID>
-constexpr auto help_option_index = (assert(add_help_option<ID>), create_option_index(ID, command_line_options<ID>.size()));
+constexpr auto help_option_index = (std::enable_if_t<add_help_option<ID>, int>{}, create_option_index(ID, command_line_options<ID>.size()));
 
 template<options_id_t ID>
-constexpr auto verbose_option_index = (assert(add_verbose_option<ID>), create_option_index(ID, command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0)));
+constexpr auto verbose_option_index = (std::enable_if_t<add_verbose_option<ID>, int>{}, create_option_index(ID, command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0)));
 
 template<commands_id_t ID>
 constexpr auto help_command_index = create_command_index(ID, command_line_commands<ID>.size());
