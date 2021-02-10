@@ -171,6 +171,7 @@ class u8string_view : collection_base<u8string_view>
 public:
 	using       iterator = u8iterator;
 	using const_iterator = u8iterator;
+	using char_type      = u8char;
 private:
 	char const *_data_begin;
 	char const *_data_end;
@@ -383,7 +384,7 @@ public:
 		return u8string_view(it, end);
 	}
 
-	constexpr const_iterator find(const_iterator it_, u8char c) const noexcept
+	constexpr const_iterator find(const_iterator it_, char_type c) const noexcept
 	{
 		auto it = it_.data();
 		bz_assert(it >= this->_data_begin && it <= this->_data_end);
@@ -458,7 +459,7 @@ public:
 		return const_iterator(end);
 	}
 
-	constexpr const_iterator find(u8char c) const noexcept
+	constexpr const_iterator find(char_type c) const noexcept
 	{ return this->find(this->begin(), c); }
 
 	constexpr const_iterator find(const_iterator it_, u8string_view str) const noexcept
@@ -467,7 +468,7 @@ public:
 		auto const end = this->_data_end;
 		if (str.size() == 1)
 		{
-			return this->find(it_, static_cast<u8char>(*str.data()));
+			return this->find(it_, static_cast<char_type>(*str.data()));
 		}
 
 		auto const is_char = [
@@ -549,7 +550,7 @@ public:
 	constexpr const_iterator find_any(u8string_view str) const noexcept
 	{ return this->find_any(this->begin(), str); }
 
-	constexpr const_iterator rfind(u8char c) const noexcept
+	constexpr const_iterator rfind(char_type c) const noexcept
 	{
 		auto it = this->_data_end;
 		auto const begin = this->_data_begin;
@@ -637,6 +638,16 @@ public:
 		return true;
 	}
 
+	constexpr bool starts_with(char_type c) const noexcept
+	{
+		if (this->_data_begin == this->_data_end)
+		{
+			return false;
+		}
+		auto const begin = this->begin();
+		return *begin == c;
+	}
+
 	constexpr bool ends_with(u8string_view str) const noexcept
 	{
 		auto const str_size = str.size();
@@ -658,7 +669,40 @@ public:
 		return true;
 	}
 
-	constexpr bool contains(u8char c) const noexcept
+	constexpr bool ends_with(char_type c) const noexcept
+	{
+		if (this->_data_begin == this->_data_end)
+		{
+			return false;
+		}
+
+		char encoded_char[4] = {};
+		std::size_t char_size = 0;
+		if (c <= internal::max_two_byte_char)
+		{
+			char_size = 2;
+			encoded_char[0] = static_cast<char>(0b1100'0000 | (c >> 6));
+			encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+		}
+		else if (c <= internal::max_three_byte_char)
+		{
+			char_size = 3;
+			encoded_char[0] = static_cast<char>(0b1110'0000 | (c >> 12));
+			encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 6) & 0b0011'1111));
+			encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >> 0) & 0b0011'1111));
+		}
+		else
+		{
+			char_size = 4;
+			encoded_char[0] = static_cast<char>(0b1111'0000 | (c >> 18));
+			encoded_char[1] = static_cast<char>(0b1000'0000 | ((c >> 12) & 0b0011'1111));
+			encoded_char[2] = static_cast<char>(0b1000'0000 | ((c >>  6) & 0b0011'1111));
+			encoded_char[3] = static_cast<char>(0b1000'0000 | ((c >>  0) & 0b0011'1111));
+		}
+		return this->ends_with(u8string_view(encoded_char, encoded_char + char_size));
+	}
+
+	constexpr bool contains(char_type c) const noexcept
 	{ return this->find(c) != this->end(); }
 
 	constexpr bool contains(u8string_view str) const noexcept
@@ -667,7 +711,7 @@ public:
 	constexpr bool contains_any(u8string_view str) const noexcept
 	{ return this->find_any(str) != this->end(); }
 
-	constexpr size_t count_chars(u8char c) const noexcept
+	constexpr size_t count_chars(char_type c) const noexcept
 	{
 		if (c <= internal::max_one_byte_char)
 		{
@@ -676,7 +720,7 @@ public:
 			auto const end = this->_data_end;
 			for (; it != end; ++it)
 			{
-				if (static_cast<u8char>(*it) == c)
+				if (static_cast<char_type>(*it) == c)
 				{
 					++result;
 				}
@@ -700,7 +744,7 @@ public:
 	}
 };
 
-inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept
+constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 {
 	if (lhs.size() != rhs.size())
 	{
@@ -708,12 +752,23 @@ inline bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 	}
 	auto lhs_it = lhs.data();
 	auto rhs_it = rhs.data();
+	/*
+	// clang thinks this is not a constant expression, GCC accepts it fine, see https://godbolt.org/z/vdofz3
 	if (lhs_it == rhs_it)
 	{
 		return true;
 	}
+	*/
 
-	return std::memcmp(lhs_it, rhs_it, lhs.size()) == 0;
+	auto const lhs_end = lhs_it + lhs.size();
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 constexpr bool constexpr_equals(u8string_view lhs, u8string_view rhs) noexcept
@@ -737,7 +792,7 @@ constexpr bool constexpr_equals(u8string_view lhs, u8string_view rhs) noexcept
 	return true;
 }
 
-inline bool operator != (u8string_view lhs, u8string_view rhs) noexcept
+constexpr bool operator != (u8string_view lhs, u8string_view rhs) noexcept
 { return !(lhs == rhs); }
 
 constexpr bool constexpr_not_equals(u8string_view lhs, u8string_view rhs) noexcept

@@ -69,10 +69,7 @@ inline bz::optional<x86_asm_syntax_kind> parse_x86_asm_syntax(bz::u8string_view 
 	}
 }
 
-inline bool display_help         = false;
 inline bool display_version      = false;
-inline bool display_warning_help = false;
-inline bool display_opt_help     = false;
 
 inline std::array<bool, ctx::warning_infos.size()>     warnings{};
 inline std::array<bool, bc::optimization_infos.size()> optimizations{};

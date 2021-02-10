@@ -28,6 +28,12 @@ struct type_pack
 	{ return sizeof... (Ts); }
 };
 
+template<typename T>
+struct type_identity
+{
+	using type = T;
+};
+
 
 template<typename T, typename U, typename ...Ts>
 constexpr bool is_same = is_same<T, U> && (is_same<T, Ts> && ...);

@@ -1,5 +1,4 @@
 #include "global_context.h"
-#include "command_parse_context.h"
 #include "bitcode_context.h"
 #include "ast/statement.h"
 #include "cl_options.h"
@@ -220,45 +219,46 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::parse_command_line(int argc, char const **argv)
 {
-	auto const args = cl::get_args(argc, argv);
-	if (args.size() == 1)
+	if (argc == 1)
 	{
-		print_help();
+		ctcli::print_options_help<>("bozon", "source-file", 2, 24, 80);
 		compile_until = compilation_phase::parse_command_line;
 		return true;
 	}
 
-	command_parse_context context(args, *this);
-	::parse_command_line(context);
+	auto const errors = ctcli::parse_command_line(argc, argv);
+	for (auto const &err : errors)
+	{
+		this->report_error(error{
+			warning_kind::_last,
+			command_line_file_id,
+			static_cast<uint32_t>(err.flag_position),
+			char_pos(), char_pos(), char_pos(),
+			err.message,
+			{}, {}
+		});
+	}
 
-	auto const good = !this->has_errors();
+	auto &positional_args = ctcli::positional_arguments<ctcli::options_id_t::def>;
+	if (positional_args.size() >= 2)
+	{
+		this->report_error("only one source file may be provided");
+		return false;
+	}
 
-	if (!good)
+	if (positional_args.size() == 1)
+	{
+		source_file = positional_args[0];
+	}
+
+	if (!errors.empty())
 	{
 		return false;
 	}
 	else
 	{
-		if (display_help)
+		if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
 		{
-			if (do_verbose)
-			{
-				print_verbose_help();
-			}
-			else
-			{
-				print_help();
-			}
-			compile_until = compilation_phase::parse_command_line;
-		}
-		else if (display_opt_help)
-		{
-			print_opt_help();
-			compile_until = compilation_phase::parse_command_line;
-		}
-		else if (display_warning_help)
-		{
-			print_warning_help();
 			compile_until = compilation_phase::parse_command_line;
 		}
 		else if (display_version)
@@ -379,6 +379,11 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	if (source_file == "")
 	{
 		this->report_error("no source file was provided");
+		return false;
+	}
+	else if (!source_file.ends_with(".bz"))
+	{
+		this->report_error("source file name must end in '.bz'");
 		return false;
 	}
 
