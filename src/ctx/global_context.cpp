@@ -78,7 +78,7 @@ bool global_context::has_errors(void) const
 {
 	for (auto &err : this->_errors)
 	{
-		if (err.is_error())
+		if (err.is_error() || (is_warning_error(err.kind)))
 		{
 			return true;
 		}

@@ -9,6 +9,12 @@ bool is_warning_enabled(ctx::warning_kind kind) noexcept
 	return warnings[static_cast<size_t>(kind)];
 }
 
+bool is_warning_error(ctx::warning_kind kind) noexcept
+{
+	bz_assert(kind != ctx::warning_kind::_last);
+	return warnings[static_cast<size_t>(kind)] && error_warnings[static_cast<size_t>(kind)];
+}
+
 bool is_optimization_enabled(bc::optimization_kind kind) noexcept
 {
 	bz_assert(kind != bc::optimization_kind::_last);

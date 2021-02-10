@@ -39,7 +39,7 @@ static constexpr auto opt_group_id     = ctcli::group_id_t::_1;
 
 template<>
 inline constexpr bz::array ctcli::option_group<warning_group_id> = []() {
-	bz::array<ctcli::group_element_t, ctx::warning_infos.size()> result{};
+	bz::array<ctcli::group_element_t, ctx::warning_infos.size() + 1> result{};
 
 	size_t i = 0;
 	for (i = 0; i < ctx::warning_infos.size(); ++i)
@@ -47,6 +47,8 @@ inline constexpr bz::array ctcli::option_group<warning_group_id> = []() {
 		bz_assert(static_cast<size_t>(ctx::warning_infos[i].kind) == i);
 		result[i] = ctcli::create_group_element(ctx::warning_infos[i].name, ctx::warning_infos[i].description);
 	}
+
+	result[i++] = ctcli::create_group_element("error=<warning>", "Treat <warning> as an error", ctcli::arg_type::string);
 
 	bz_assert(i == result.size());
 	return result;
@@ -111,6 +113,9 @@ inline constexpr bool ctcli::add_verbose_option<ctcli::options_id_t::def> = true
 
 template<>
 inline constexpr bool ctcli::is_array_like<ctcli::option("--import-dir")> = true;
+
+template<>
+inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>               = &display_version;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                = &output_file_name;
@@ -195,6 +200,26 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::option("--x86-asm-sy
 	else
 	{
 		return {};
+	}
+};
+
+template<>
+inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--warn error")> = [](bz::u8string_view arg) -> std::optional<bz::u8string_view> {
+	auto const it = std::find_if(
+		ctx::warning_infos.begin(), ctx::warning_infos.end(),
+		[arg](auto const &info) {
+			return info.name == arg;
+		}
+	);
+	if (it == ctx::warning_infos.end())
+	{
+		return {};
+	}
+	else
+	{
+		auto const index = static_cast<size_t>(it - ctx::warning_infos.begin());
+		error_warnings[index] = true;
+		return arg;
 	}
 };
 

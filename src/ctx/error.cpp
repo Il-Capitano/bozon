@@ -466,17 +466,33 @@ void print_error_or_warning(error const &err, global_context &context)
 			);
 		}
 	}();
-	auto const error_or_warning_line = err.is_error()
-		? bz::format(
-			"{}error:{} {}",
-			colors::error_color, colors::clear, convert_string_for_message(err.message)
-		)
-		: bz::format(
-			"{}warning:{} {} {}[-W{}]{}",
-			colors::warning_color, colors::clear,
-			convert_string_for_message(err.message),
-			colors::bright_white, get_warning_name(err.kind), colors::clear
-		);
+	auto const error_or_warning_line = [&]() {
+		if (err.is_error())
+		{
+			return bz::format(
+				"{}error:{} {}",
+				colors::error_color, colors::clear, convert_string_for_message(err.message)
+			);
+		}
+		else if (is_warning_error(err.kind))
+		{
+			return bz::format(
+				"{}error:{} {} {}[-W error={}]{}",
+				colors::error_color, colors::clear,
+				convert_string_for_message(err.message),
+				colors::bright_white, get_warning_name(err.kind), colors::clear
+			);
+		}
+		else
+		{
+			return bz::format(
+				"{}warning:{} {} {}[-W {}]{}",
+				colors::warning_color, colors::clear,
+				convert_string_for_message(err.message),
+				colors::bright_white, get_warning_name(err.kind), colors::clear
+			);
+		}
+	}();
 
 	if (no_error_highlight)
 	{
@@ -491,7 +507,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			"{} {}\n{}",
 			src_pos, error_or_warning_line,
 			get_highlighted_text(
-				err.is_error() ? colors::error_color : colors::warning_color,
+				err.is_error() || is_warning_error(err.kind) ? colors::error_color : colors::warning_color,
 				err_file_begin, err_file_end,
 				err.src_begin, err.src_pivot, err.src_end,
 				{}, {}, err.line
