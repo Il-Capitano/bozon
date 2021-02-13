@@ -108,14 +108,10 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,     "optimizations"),
 };
 
-template<>
-inline constexpr bool ctcli::add_verbose_option<ctcli::options_id_t::def> = true;
+template<> inline constexpr bool ctcli::add_verbose_option<ctcli::options_id_t::def> = true;
 
-template<>
-inline constexpr bool ctcli::is_array_like<ctcli::option("--import-dir")> = true;
-
-template<>
-inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
+template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--import-dir")> = true;
+template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>               = &display_version;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                = &output_file_name;
@@ -213,6 +209,14 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::group_element("--war
 	);
 	if (it == ctx::warning_infos.end())
 	{
+		if (arg == "all")
+		{
+			for (auto &val : error_warnings)
+			{
+				val = true;
+			}
+			return arg;
+		}
 		return {};
 	}
 	else
