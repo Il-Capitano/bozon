@@ -3,18 +3,19 @@
 
 #include "core.h"
 #include "lex/token.h"
+#include "allocator.h"
 
 namespace ast
 {
 
 template<typename ...Ts>
-struct node : public bz::variant<std::unique_ptr<Ts>...>
+struct node : public bz::variant<ast_unique_ptr<Ts>...>
 {
-	using base_t = bz::variant<std::unique_ptr<Ts>...>;
+	using base_t = bz::variant<ast_unique_ptr<Ts>...>;
 	using self_t = node<Ts...>;
 
 	template<typename T>
-	static constexpr size_t index = base_t::template index_of<std::unique_ptr<T>>;
+	static constexpr size_t index = base_t::template index_of<ast_unique_ptr<T>>;
 
 	auto kind(void) const noexcept
 	{ return this->base_t::index(); }
@@ -25,11 +26,11 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 
 	template<typename T>
 	T &get(void) noexcept
-	{ return *this->base_t::template get<std::unique_ptr<T>>(); }
+	{ return *this->base_t::template get<ast_unique_ptr<T>>(); }
 
 	template<typename T>
 	T &get(void) const noexcept
-	{ return *this->base_t::template get<std::unique_ptr<T>>(); }
+	{ return *this->base_t::template get<ast_unique_ptr<T>>(); }
 
 	node(void) = default;
 
@@ -52,8 +53,8 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 			{
 				if constexpr (bz::meta::is_copy_constructible_v<Ts>)
 				{
-					self.template emplace<std::unique_ptr<Ts>>(
-						std::make_unique<Ts>(other.template get<Ts>())
+					self.template emplace<ast_unique_ptr<Ts>>(
+						make_ast_unique<Ts>(other.template get<Ts>())
 					);
 				}
 				else 
@@ -78,8 +79,8 @@ struct node : public bz::variant<std::unique_ptr<Ts>...>
 		fn_t emplacers[] = {
 			[](self_t &self, self_t const &other)
 			{
-				self.template emplace<std::unique_ptr<Ts>>(
-					std::make_unique<Ts>(other.template get<Ts>())
+				self.template emplace<ast_unique_ptr<Ts>>(
+					make_ast_unique<Ts>(other.template get<Ts>())
 				);
 			} ...
 		};

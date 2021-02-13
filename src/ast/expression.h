@@ -522,7 +522,7 @@ expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 #define def_make_fn(ret_type, node_type)                                       \
 template<typename ...Args>                                                     \
 ret_type make_ ## node_type (Args &&...args)                                   \
-{ return ret_type(std::make_unique<node_type>(std::forward<Args>(args)...)); }
+{ return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
 def_make_fn(expr_t, expr_identifier)
 def_make_fn(expr_t, expr_literal)

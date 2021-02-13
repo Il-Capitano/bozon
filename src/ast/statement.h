@@ -857,7 +857,7 @@ statement make_statement(Args &&...args)
 #define def_make_fn(ret_type, node_type)                                       \
 template<typename ...Args>                                                     \
 ret_type make_ ## node_type (Args &&...args)                                   \
-{ return ret_type(std::make_unique<node_type>(std::forward<Args>(args)...)); }
+{ return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
 def_make_fn(statement, decl_variable)
 def_make_fn(statement, decl_function)
