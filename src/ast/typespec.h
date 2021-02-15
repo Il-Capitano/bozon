@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "lex/token.h"
+#include "allocator.h"
 
 namespace ast
 {
@@ -88,11 +89,11 @@ struct typespec_view
 
 struct typespec
 {
-	bz::vector<typespec_node_t> nodes;
+	arena_vector<typespec_node_t> nodes;
 
 	declare_default_5(typespec)
 
-	typespec(bz::vector<typespec_node_t> _nodes);
+	typespec(arena_vector<typespec_node_t> _nodes);
 	typespec(typespec_view ts);
 
 	template<typename T, typename ...Args>

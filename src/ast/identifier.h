@@ -4,6 +4,7 @@
 #include "core.h"
 #include "lex/token.h"
 #include "lex/lexer.h"
+#include "allocator.h"
 
 namespace ast
 {
@@ -11,7 +12,7 @@ namespace ast
 struct identifier
 {
 	lex::token_range tokens = {};
-	bz::vector<bz::u8string_view> values{};
+	arena_vector<bz::u8string_view> values{};
 	bool is_qualified = false;
 
 	bz::u8string format_as_unqualified(void) const

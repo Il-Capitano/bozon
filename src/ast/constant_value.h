@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "typespec.h"
+#include "allocator.h"
 
 namespace ast
 {
@@ -24,8 +25,8 @@ struct constant_value : bz::variant<
 	bz::vector<constant_value>,
 
 	function_body *,
-	bz::vector<bz::u8string_view>,
-	bz::vector<bz::u8string_view>,
+	arena_vector<bz::u8string_view>,
+	arena_vector<bz::u8string_view>,
 
 	ast::typespec,
 
@@ -45,8 +46,8 @@ struct constant_value : bz::variant<
 		bz::vector<constant_value>,
 
 		function_body *,
-		bz::vector<bz::u8string_view>,
-		bz::vector<bz::u8string_view>,
+		arena_vector<bz::u8string_view>,
+		arena_vector<bz::u8string_view>,
 
 		ast::typespec,
 
@@ -67,7 +68,7 @@ struct constant_value : bz::variant<
 		array,
 		tuple,
 		function        = base_t::index_of<function_body *>,
-		unqualified_function_set_id = base_t::index_of<bz::vector<bz::u8string_view>>,
+		unqualified_function_set_id = base_t::index_of<arena_vector<bz::u8string_view>>,
 		qualified_function_set_id,
 		type            = base_t::index_of<ast::typespec>,
 		aggregate,

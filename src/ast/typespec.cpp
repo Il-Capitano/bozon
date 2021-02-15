@@ -111,7 +111,7 @@ typespec_view typespec_view::blind_get(void) const noexcept
 	return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
 }
 
-typespec::typespec(bz::vector<typespec_node_t> _nodes)
+typespec::typespec(arena_vector<typespec_node_t> _nodes)
 	: nodes(std::move(_nodes))
 {}
 
