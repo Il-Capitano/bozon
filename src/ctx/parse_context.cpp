@@ -564,6 +564,12 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
+void parse_context::set_current_file(uint32_t file_id)
+{
+	this->current_file_id = file_id;
+	this->current_scope   = this->global_ctx.get_src_file(file_id)._scope;
+}
+
 bool parse_context::has_errors(void) const
 {
 	return this->global_ctx.has_errors();
@@ -1237,7 +1243,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 
 	// ==== export (global) decls ====
 	auto &global_decls = *this->global_decls;
-	if (auto const var_decl = find_var_decl_in_global_scope(global_decls, id, {}))
+	if (auto const var_decl = find_var_decl_in_global_scope(global_decls, id, this->current_scope))
 	{
 		// global variables need to be resolved here
 		this->add_to_resolve_queue(src_tokens, *var_decl);
@@ -1281,7 +1287,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	}
 
 	if (
-		auto const [fn_set, set_count] = find_func_set_in_global_scope(global_decls, id, {});
+		auto const [fn_set, set_count] = find_func_set_in_global_scope(global_decls, id, this->current_scope);
 		set_count > 1
 	)
 	{
@@ -1350,7 +1356,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 	}
 
-	if (auto const type = find_type_in_global_scope(global_decls, id, {}))
+	if (auto const type = find_type_in_global_scope(global_decls, id, this->current_scope))
 	{
 		auto &info = type->info;
 		this->add_to_resolve_queue(src_tokens, info);
@@ -1372,7 +1378,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 	}
 
-	if (auto const type_alias = find_type_alias_in_global_scope(global_decls, id, {}))
+	if (auto const type_alias = find_type_alias_in_global_scope(global_decls, id, this->current_scope))
 	{
 		this->add_to_resolve_queue(src_tokens, *type_alias);
 		parse::resolve_type_alias(*type_alias, *this);

@@ -24,14 +24,15 @@ static bz::u8string read_text_from_file(std::ifstream &file)
 }
 
 
-src_file::src_file(fs::path file_path, uint32_t file_id, bool is_library_file)
+src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string_view> scope, bool is_library_file)
 	: _stage(constructed),
 	  _is_library_file(is_library_file),
 	  _file_id(file_id),
 	  _file_path(std::move(file_path)),
 	  _file(), _tokens(),
 	  _declarations{},
-	  _global_decls{}
+	  _global_decls{},
+	  _scope(std::move(scope))
 {}
 
 

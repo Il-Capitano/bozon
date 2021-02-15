@@ -183,6 +183,18 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		});
 		return std::numeric_limits<uint32_t>::max();
 	}
+	auto scope = [&, is_library_file = is_library_file]() {
+		if (is_library_file)
+		{
+			return bz::vector(id.values.begin(), id.values.end() - 1);
+		}
+		else
+		{
+			auto result = this->get_src_file(current_file_id)._scope;
+			result.append(bz::array_view(id.values.begin(), id.values.end() - 1));
+			return result;
+		}
+	}();
 
 	auto &file = [&, &file_path = file_path, is_library_file = is_library_file]() -> auto & {
 		auto const file_it = std::find_if(
@@ -193,7 +205,7 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		);
 		if (file_it == this->_src_files.end())
 		{
-			return this->_src_files.emplace_back(file_path, this->_src_files.size(), is_library_file || current_file._is_library_file);
+			return this->_src_files.emplace_back(file_path, this->_src_files.size(), std::move(scope), is_library_file || current_file._is_library_file);
 		}
 		else
 		{
@@ -401,7 +413,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	auto const source_file_path = fs::path(std::string_view(source_file.data_as_char_ptr(), source_file.size()));
-	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), false);
+	auto &file = this->_src_files.emplace_back(source_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, false);
 	if (!file.parse_global_symbols(*this))
 	{
 		return false;

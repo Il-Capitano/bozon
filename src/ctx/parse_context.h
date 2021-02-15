@@ -41,7 +41,8 @@ struct parse_context
 	bz::vector<decl_set> scope_decls;
 	bz::vector<ast::function_body *> generic_functions;
 	bz::vector<std::size_t>          generic_function_scope_start;
-	bz::vector<bz::u8string_view>    current_scope;
+	uint32_t                                current_file_id;
+	bz::array_view<bz::u8string_view const> current_scope;
 
 	bz::vector<resolve_queue_t>        resolve_queue;
 	bz::vector<consteval_call_stack_t> consteval_call_stack;
@@ -260,6 +261,8 @@ struct parse_context
 			std::move(message)
 		);
 	}
+
+	void set_current_file(uint32_t file_id);
 
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;

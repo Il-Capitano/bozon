@@ -1708,7 +1708,14 @@ ast::statement parse_decl_import(
 
 	auto id = get_identifier(stream, end, context);
 	context.assert_token(stream, lex::token::semi_colon);
-	return ast::make_decl_import(std::move(id));
+	if (id.values.empty())
+	{
+		return ast::statement();
+	}
+	else
+	{
+		return ast::make_decl_import(std::move(id));
+	}
 }
 
 template<bool is_global>
@@ -2026,7 +2033,18 @@ ast::statement parse_global_statement(
 	}
 	else
 	{
-		return parse_fn(stream, end, context);
+		auto const original_file_id = context.current_file_id;
+		auto const origial_scope    = context.current_scope;
+
+		if (stream->src_pos.file_id != original_file_id)
+		{
+			context.set_current_file(stream->src_pos.file_id);
+		}
+		auto const result = parse_fn(stream, end, context);
+
+		context.current_file_id = original_file_id;
+		context.current_scope   = origial_scope;
+		return result;
 	}
 }
 
@@ -2514,33 +2532,65 @@ void resolve_global_statement(
 	ctx::parse_context &context
 )
 {
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
+			auto const stmt_file_id = func_decl.id.tokens.begin->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, func_decl.body);
 			resolve_function(stmt, func_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_operator &op_decl) {
+			auto const stmt_file_id = op_decl.op->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, op_decl.body);
 			resolve_function(stmt, op_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_function_alias &alias_decl) {
+			auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_function_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_type_alias &alias_decl) {
+			auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_type_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_struct &struct_decl) {
+			auto const stmt_file_id = struct_decl.id.tokens.begin->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, struct_decl.info);
 			resolve_type_info(struct_decl.info, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {
+			auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			context.add_to_resolve_queue({}, var_decl);
 			resolve_variable(var_decl, context);
 			context.pop_resolve_queue();
@@ -2558,6 +2608,11 @@ void resolve_global_statement(
 			}
 		},
 		[&](ast::stmt_static_assert &static_assert_stmt) {
+			auto const stmt_file_id = static_assert_stmt.static_assert_pos->src_pos.file_id;
+			if (original_file_id != stmt_file_id)
+			{
+				context.set_current_file(stmt_file_id);
+			}
 			resolve_stmt_static_assert(static_assert_stmt, context);
 		},
 		[](ast::decl_import) {
@@ -2568,6 +2623,8 @@ void resolve_global_statement(
 		}
 	});
 	resolve_attributes(stmt, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 } // namespace parse
