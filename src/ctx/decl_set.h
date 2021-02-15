@@ -10,7 +10,7 @@ namespace ctx
 
 struct function_overload_set
 {
-	bz::u8string id;
+	ast::identifier id;
 	bz::vector<ast::statement_view> func_decls;
 	bz::vector<ast::statement_view> alias_decls;
 };
@@ -34,10 +34,10 @@ struct decl_set
 	{
 		bz_assert(stmt.is<ast::decl_function>());
 		auto &func_decl = stmt.get<ast::decl_function>();
-		auto const id = func_decl.identifier->value;
+		auto const &id = func_decl.id;
 		auto const set = std::find_if(
 			this->func_sets.begin(), this->func_sets.end(),
-			[id](auto const &set) {
+			[&id](auto const &set) {
 				return id == set.id;
 			}
 		);
@@ -53,10 +53,10 @@ struct decl_set
 
 	void add_function(ast::decl_function &func_decl)
 	{
-		auto const id = func_decl.identifier->value;
+		auto const &id = func_decl.id;
 		auto const set = std::find_if(
 			this->func_sets.begin(), this->func_sets.end(),
-			[id](auto const &set) {
+			[&id](auto const &set) {
 				return id == set.id;
 			}
 		);
@@ -114,10 +114,10 @@ struct decl_set
 	{
 		bz_assert(stmt.is<ast::decl_function_alias>());
 		auto &alias_decl = stmt.get<ast::decl_function_alias>();
-		auto const id = alias_decl.identifier->value;
+		auto const &id = alias_decl.id;
 		auto const set = std::find_if(
 			this->func_sets.begin(), this->func_sets.end(),
-			[id](auto const &set) {
+			[&id](auto const &set) {
 				return id == set.id;
 			}
 		);
@@ -136,7 +136,7 @@ struct decl_set
 		auto const id = func_set.id;
 		auto const set = std::find_if(
 			this->func_sets.begin(), this->func_sets.end(),
-			[id](auto const &set) {
+			[&id](auto const &set) {
 				return id == set.id;
 			}
 		);

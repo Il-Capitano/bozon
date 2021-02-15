@@ -6,6 +6,7 @@
 #include "node.h"
 #include "typespec.h"
 #include "constant_value.h"
+#include "identifier.h"
 
 namespace ast
 {
@@ -297,17 +298,17 @@ struct function_body;
 
 struct expr_identifier
 {
-	lex::token_pos identifier;
+	identifier id;
 	decl_variable const *decl;
 
 	declare_default_5(expr_identifier)
 
-	expr_identifier(lex::token_pos _id, decl_variable const *var_decl)
-		: identifier(_id), decl(var_decl)
+	expr_identifier(identifier _id, decl_variable const *var_decl)
+		: id(std::move(_id)), decl(var_decl)
 	{}
 
-	expr_identifier(lex::token_pos _id)
-		: identifier(_id), decl(nullptr)
+	expr_identifier(identifier _id)
+		: id(std::move(_id)), decl(nullptr)
 	{}
 };
 

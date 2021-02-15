@@ -2592,7 +2592,8 @@ static llvm::Constant *get_value(
 			.collect();
 		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
 	}
-	case ast::constant_value::function_set_id:
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
 		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;
@@ -3438,9 +3439,10 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
 {
-	auto const name = llvm::StringRef(var_decl.identifier->value.data(), var_decl.identifier->value.size());
+	auto const name = var_decl.id.format_as_unqualified();
+	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.var_type, context);
-	auto const val = context.get_module().getOrInsertGlobal(name, type);
+	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
 	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
 	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
 	bz_assert(var_decl.init_expr.is<ast::constant_expression>());

@@ -27,7 +27,8 @@ bz::u8string get_value_string(constant_value const &value)
 	case ast::constant_value::array:
 	case ast::constant_value::tuple:
 	case ast::constant_value::function:
-	case ast::constant_value::function_set_id:
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
 		return "";
 	case ast::constant_value::type:
 		return bz::format("{}", value.get<ast::constant_value::type>());

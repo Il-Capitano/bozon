@@ -41,6 +41,7 @@ struct parse_context
 	bz::vector<decl_set> scope_decls;
 	bz::vector<ast::function_body *> generic_functions;
 	bz::vector<std::size_t>          generic_function_scope_start;
+	bz::vector<bz::u8string_view>    current_scope;
 
 	bz::vector<resolve_queue_t>        resolve_queue;
 	bz::vector<consteval_call_stack_t> consteval_call_stack;
@@ -69,6 +70,18 @@ struct parse_context
 		{
 			this->report_error(src_tokens, "unexpected tokens");
 		}
+	}
+	void report_error(
+		lex::token_range range, bz::u8string message,
+		bz::vector<note> notes = {},
+		bz::vector<suggestion> suggestions = {}
+	)
+	{
+		this->report_error(
+			{ range.begin, range.begin, range.end },
+			std::move(message),
+			std::move(notes), std::move(suggestions)
+		);
 	}
 	void report_error(
 		bz::u8string message,
@@ -159,6 +172,10 @@ struct parse_context
 	[[nodiscard]] static note make_note(uint32_t file_id, uint32_t line, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);
 	[[nodiscard]] static note make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static note make_note(lex::token_range range, bz::u8string message)
+	{
+		return make_note({ range.begin, range.begin, range.end }, std::move(message));
+	}
 	template<typename T>
 	[[nodiscard]] static note make_note(T const &tokens, bz::u8string message)
 	{
@@ -260,7 +277,7 @@ struct parse_context
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
-	ast::expression make_identifier_expression(lex::token_pos id);
+	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
 	ast::expression make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const;
@@ -304,7 +321,16 @@ struct parse_context
 
 	bool is_instantiable(ast::typespec_view ts);
 
-	bz::vector<ast::function_body *> get_function_bodies_from_id(lex::src_tokens requester, bz::u8string_view id);
+	bz::vector<ast::function_body *> get_function_bodies_from_unqualified_id(
+		lex::src_tokens requester,
+		bz::array_view<bz::u8string_view const> id
+	);
+	bz::vector<ast::function_body *> get_function_bodies_from_qualified_id(
+		lex::src_tokens requester,
+		bz::array_view<bz::u8string_view const> id
+	);
+
+	ast::identifier make_qualified_identifier(lex::token_pos id);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);

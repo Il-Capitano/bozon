@@ -36,7 +36,6 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 }
 
-// strings don't work in global variables
 let global = [3, "hello"];
 // let global = [3i64, 23.234];
 consteval c = 5;
@@ -380,7 +379,7 @@ function scope_test() -> void
 	{
 		function foo(n: &const int32) -> void { println("foo(n: &const int32)"); }
 		foo(n);
-		foo(3);
+		// foo(3); // this doesn't work now, because foo(: &const int32) shadows foo(: const int32)
 	}
 
 	foo(n);
@@ -1046,30 +1045,50 @@ function add_tester()
 // function alias1 = alias1;
 // function alias2 = alias1;
 
-struct vec2d
+struct vec2
 {
 	.x: float64;
 	.y: float64;
 }
 
+operator + (lhs: vec2, rhs: vec2) -> vec2
+{
+	return vec2[ lhs.x + rhs.x, lhs.y + rhs.y ];
+}
+
+operator - (lhs: vec2, rhs: vec2) -> vec2
+{
+	return vec2[ lhs.x - rhs.x, lhs.y - rhs.y ];
+}
+
+operator == (lhs: vec2, rhs: vec2) -> bool
+{
+	return (lhs.x == rhs.x) & (lhs.y == rhs.y);
+}
+
+operator != (lhs: vec2, rhs: vec2) -> bool
+{
+	return !(lhs == rhs);
+}
+
 function struct_test()
 {
+	/*
 	function get_vec() -> &vec2d;
 	function modify_vec(v: vec2d) -> vec2d;
 	print(get_vec().x);
 	get_vec().x = 3.4;
 	static_assert(typeof get_vec() == &vec2d);
 	static_assert(typeof get_vec().x == &float64);
+	*/
 	// const v = get_vec();
 	// const v = modify_vec(v);
 
-	const v = vec2d[ 0.0, 0.0 ];
-	consteval v = vec2d[ 1.2, 4.3 ];
+	const v = vec2[ 0.0, 0.0 ];
+	consteval v = vec2[ 1.2, -4.3 ];
 	static_assert(v.x == 1.2);
-}
 
-struct vec2
-{
-	.x: float32;
-	.y: float32;
+	let sum = v + v;
+	// static_assert(v + v - v == v);
+	print(sum.x), print(", "), println(sum.y);
 }

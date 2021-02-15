@@ -7,6 +7,7 @@
 #include "expression.h"
 #include "typespec.h"
 #include "constant_value.h"
+#include "identifier.h"
 #include "abi/calling_conventions.h"
 
 namespace ast
@@ -244,7 +245,7 @@ struct stmt_static_assert
 struct decl_variable
 {
 	lex::src_tokens  src_tokens;
-	lex::token_pos   identifier;
+	identifier       id;
 	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
@@ -256,13 +257,13 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,
-		lex::token_pos   _id,
+		identifier       _id,
 		lex::token_range _prototype_range,
 		typespec         _var_type,
 		expression       _init_expr
 	)
 		: src_tokens     (_src_tokens),
-		  identifier     (_id),
+		  id             (std::move(_id)),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
 		  init_expr      (std::move(_init_expr)),
@@ -273,12 +274,12 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,
-		lex::token_pos   _id,
+		identifier       _id,
 		lex::token_range _prototype_range,
 		typespec         _var_type
 	)
 		: src_tokens     (_src_tokens),
-		  identifier     (_id),
+		  id             (std::move(_id)),
 		  prototype_range(_prototype_range),
 		  var_type       (std::move(_var_type)),
 		  init_expr      (),
@@ -289,12 +290,12 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,
-		lex::token_pos   _id,
+		identifier       _id,
 		lex::token_range _prototype_range,
 		expression       _init_expr
 	)
 		: src_tokens     (_src_tokens),
-		  identifier     (_id),
+		  id             (std::move(_id)),
 		  prototype_range(_prototype_range),
 		  var_type       (make_auto_typespec(nullptr)),
 		  init_expr      (std::move(_init_expr)),
@@ -495,17 +496,17 @@ struct function_body
 
 struct decl_function
 {
-	lex::token_pos identifier;
+	identifier     id;
 	function_body  body;
 
 	declare_default_5(decl_function)
 
 	decl_function(
-		lex::token_pos _id,
+		identifier     _id,
 		function_body  _body
 	)
-		: identifier(_id),
-		  body      (std::move(_body))
+		: id  (std::move(_id)),
+		  body(std::move(_body))
 	{}
 };
 
@@ -528,7 +529,7 @@ struct decl_operator
 struct decl_function_alias
 {
 	lex::src_tokens             src_tokens;
-	lex::token_pos              identifier;
+	identifier                  id;
 	expression                  alias_expr;
 	bz::vector<function_body *> aliased_bodies;
 	resolve_state               state;
@@ -538,11 +539,11 @@ struct decl_function_alias
 
 	decl_function_alias(
 		lex::src_tokens _src_tokens,
-		lex::token_pos  _id,
+		identifier      _id,
 		expression      _alias_expr
 	)
 		: src_tokens(_src_tokens),
-		  identifier(_id),
+		  id(std::move(_id)),
 		  alias_expr(std::move(_alias_expr)),
 		  aliased_bodies{},
 		  state(resolve_state::none),
@@ -553,18 +554,18 @@ struct decl_function_alias
 struct decl_type_alias
 {
 	lex::src_tokens src_tokens;
-	lex::token_pos  identifier;
+	identifier      id;
 	expression      alias_expr;
 	resolve_state   state;
 	bool            is_export;
 
 	decl_type_alias(
 		lex::src_tokens _src_tokens,
-		lex::token_pos  _id,
+		identifier      _id,
 		expression      _alias_expr
 	)
 		: src_tokens(_src_tokens),
-		  identifier(_id),
+		  id        (std::move(_id)),
 		  alias_expr(std::move(_alias_expr)),
 		  state     (resolve_state::none),
 		  is_export (false)
@@ -608,7 +609,7 @@ struct type_info
 	uint8_t          kind;
 	resolve_state    state;
 	bool             is_export;
-	bz::u8string     type_name;
+	identifier       type_name;
 	bz::u8string     symbol_name;
 	lex::token_range body_tokens;
 
@@ -622,7 +623,7 @@ struct type_info
 //	function_body_ptr destructor;
 //	function_body_ptr move_destuctor;
 
-	type_info(lex::src_tokens _src_tokens, bz::u8string _type_name, lex::token_range range)
+	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
@@ -645,6 +646,7 @@ private:
 		  kind(kind),
 		  state(resolve_state::all),
 		  is_export(false),
+		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body_tokens{},
 		  member_variables{}
@@ -815,21 +817,21 @@ struct decl_struct
 {
 	using info_t = bz::variant<lex::token_range, type_info>;
 
-	lex::token_pos  identifier;
-	type_info       info;
+	identifier id;
+	type_info  info;
 
 //	declare_default_5(decl_struct)
 	decl_struct(decl_struct const &) = delete;
 	decl_struct(decl_struct &&)      = default;
 
-	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id, lex::token_range _range)
-		: identifier(_id),
-		  info      (_src_tokens, _id->value, _range)
+	decl_struct(lex::src_tokens _src_tokens, identifier _id, lex::token_range _range)
+		: id  (std::move(_id)),
+		  info(_src_tokens, this->id, _range)
 	{}
 
-	decl_struct(lex::src_tokens _src_tokens, lex::token_pos _id)
-		: identifier(_id),
-		  info      (_src_tokens, _id->value, {})
+	decl_struct(lex::src_tokens _src_tokens, identifier _id)
+		: id  (std::move(_id)),
+		  info(_src_tokens, this->id, {})
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;

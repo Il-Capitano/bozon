@@ -325,7 +325,7 @@ static ast::function_body create_builtin_function(
 	bz::vector<ast::decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
-		lex::src_tokens{}, lex::token_pos{}, lex::token_range{},
+		lex::src_tokens{}, identifier{}, lex::token_range{},
 		std::move(arg_types)
 	)), ...);
 	auto const is_generic = [&]() {

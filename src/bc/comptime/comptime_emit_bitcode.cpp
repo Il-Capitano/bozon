@@ -2176,14 +2176,14 @@ static val_ptr emit_bitcode(
 		{
 			return { val_ptr::reference, ptr };
 		}
-		else 
+		else
 		{
 			auto const val = context.builder.CreateLoad(ptr);
 			context.builder.CreateStore(val, result_address);
 			return { val_ptr::reference, result_address };
 		}
 	}
-	else 
+	else
 	{
 		auto const val = context.builder.CreateExtractValue(
 			base.get_value(context.builder), member_access.index
@@ -2192,7 +2192,7 @@ static val_ptr emit_bitcode(
 		{
 			return { val_ptr::value, val };
 		}
-		else 
+		else
 		{
 			context.builder.CreateStore(val, result_address);
 			return { val_ptr::reference, result_address };
@@ -2445,7 +2445,8 @@ static llvm::Constant *get_value(
 		auto const decl = value.get<ast::constant_value::function>();
 		return context.get_function(decl);
 	}
-	case ast::constant_value::function_set_id:
+	case ast::constant_value::unqualified_function_set_id:
+	case ast::constant_value::qualified_function_set_id:
 		bz_unreachable;
 	case ast::constant_value::type:
 		bz_unreachable;

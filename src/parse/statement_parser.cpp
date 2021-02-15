@@ -369,7 +369,7 @@ static void resolve_variable_type(
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
 			ast::constant_value(ast::make_auto_typespec(nullptr)),
-			ast::make_expr_identifier(nullptr)
+			ast::make_expr_identifier(ast::identifier{})
 		)
 		: parse_expression(stream, end, context, no_assign);
 	consteval_try(type, context);
@@ -472,7 +472,7 @@ static void resolve_variable_init_expr_and_match_type(
 		if (!ast::is_complete(var_decl.var_type))
 		{
 			context.report_error(
-				var_decl.identifier,
+				var_decl.id.tokens,
 				bz::format(
 					"a variable with an incomplete type '{}' must be initialized",
 					var_decl.var_type
@@ -484,7 +484,7 @@ static void resolve_variable_init_expr_and_match_type(
 		else if (var_decl.var_type.is<ast::ts_const>())
 		{
 			context.report_error(
-				var_decl.identifier,
+				var_decl.id.tokens,
 				"a variable with a 'const' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
@@ -492,7 +492,7 @@ static void resolve_variable_init_expr_and_match_type(
 		else if (var_decl.var_type.is<ast::ts_consteval>())
 		{
 			context.report_error(
-				var_decl.identifier,
+				var_decl.id.tokens,
 				"a variable with a 'consteval' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
@@ -611,18 +611,24 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
+			auto var_id = is_global
+				? context.make_qualified_identifier(id)
+				: ast::make_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				id, prototype,
+				std::move(var_id), prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
 			);
 		}
 		else
 		{
+			auto var_id = is_global
+				? context.make_qualified_identifier(id)
+				: ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				id, prototype,
+				std::move(var_id), prototype,
 				ast::make_unresolved_typespec(type),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
 			);
@@ -639,17 +645,23 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
+			auto var_id = is_global
+				? context.make_qualified_identifier(id)
+				: ast::make_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				id, prototype,
+				std::move(var_id), prototype,
 				ast::make_unresolved_typespec(type)
 			);
 		}
 		else
 		{
+			auto var_id = is_global
+				? context.make_qualified_identifier(id)
+				: ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				id, prototype,
+				std::move(var_id), prototype,
 				ast::make_unresolved_typespec(type)
 			);
 			bz_assert(result.is<ast::decl_variable>());
@@ -765,7 +777,7 @@ ast::statement parse_decl_type_alias(
 	{
 		return ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
-			id,
+			context.make_qualified_identifier(id),
 			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
 		);
 	}
@@ -773,7 +785,7 @@ ast::statement parse_decl_type_alias(
 	{
 		auto result = ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
-			id,
+			ast::make_identifier(id),
 			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
 		);
 		bz_assert(result.is<ast::decl_type_alias>());
@@ -855,11 +867,15 @@ void resolve_function_alias(
 		alias_decl.aliased_bodies = { func_body };
 		alias_decl.state = ast::resolve_state::all;
 	}
-	else if (value.is<ast::constant_value::function_set_id>())
+	else if (value.is<ast::constant_value::unqualified_function_set_id>() || value.is<ast::constant_value::qualified_function_set_id>())
 	{
-		auto const func_set_id = value.get<ast::constant_value::function_set_id>();
+		auto const func_set_id = value.is<ast::constant_value::unqualified_function_set_id>()
+			? value.get<ast::constant_value::unqualified_function_set_id>().as_array_view()
+			: value.get<ast::constant_value::qualified_function_set_id>().as_array_view();
 		bz_assert(alias_decl.aliased_bodies.empty());
-		alias_decl.aliased_bodies = context.get_function_bodies_from_id(alias_decl.alias_expr.src_tokens, func_set_id);
+		alias_decl.aliased_bodies = value.is<ast::constant_value::unqualified_function_set_id>()
+			? context.get_function_bodies_from_unqualified_id(alias_decl.alias_expr.src_tokens, func_set_id)
+			: context.get_function_bodies_from_qualified_id(alias_decl.alias_expr.src_tokens, func_set_id);
 		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_bodies.empty())
 		{
 			alias_decl.state = ast::resolve_state::all;
@@ -1061,7 +1077,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		{
 			context.report_error(
 				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.identifier, "parameter type must be '[: const str]'") }
+				{ context.make_note(param.id.tokens, "parameter type must be '[: const str]'") }
 			);
 			return;
 		}
@@ -1076,7 +1092,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		{
 			context.report_error(
 				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.identifier, "parameter type must be '[: const str]'") }
+				{ context.make_note(param.id.tokens, "parameter type must be '[: const str]'") }
 			);
 			return;
 		}
@@ -1263,7 +1279,7 @@ static ast::function_body parse_function_body(
 		);
 		result.params.emplace_back(
 			lex::src_tokens{ begin, id, param_stream },
-			id, prototype,
+			ast::make_identifier(id), prototype,
 			ast::make_unresolved_typespec(type)
 		);
 		if (param_stream != param_end)
@@ -1336,9 +1352,12 @@ ast::statement parse_decl_function_or_alias(
 		++stream; // '='
 		auto const alias_expr = get_expression_tokens<>(stream, end, context);
 		context.assert_token(stream, lex::token::semi_colon);
+		auto func_id = is_global
+			? context.make_qualified_identifier(id)
+			: ast::make_identifier(id);
 		return ast::make_decl_function_alias(
 			src_tokens,
-			id,
+			std::move(func_id),
 			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end })
 		);
 	}
@@ -1353,11 +1372,11 @@ ast::statement parse_decl_function_or_alias(
 
 		if constexpr (is_global)
 		{
-			return ast::make_decl_function(id, std::move(body));
+			return ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
 		}
 		else
 		{
-			auto result = ast::make_decl_function(id, std::move(body));
+			auto result = ast::make_decl_function(ast::make_identifier(id), std::move(body));
 			bz_assert(result.is<ast::decl_function>());
 			auto &func_decl = result.get<ast::decl_function>();
 			resolve_function(result, func_decl.body, context);
@@ -1458,7 +1477,14 @@ void resolve_type_info_symbol(
 		return;
 	}
 	bz_assert(info.state != ast::resolve_state::resolving_symbol);
-	info.symbol_name = bz::format("struct.{}", info.type_name);
+	if (info.type_name.is_qualified)
+	{
+		info.symbol_name = bz::format("struct.{}", info.type_name.format_as_unqualified());
+	}
+	else
+	{
+		info.symbol_name = bz::format("non_global_struct.{}", info.type_name.format_as_unqualified());
+	}
 	info.state = ast::resolve_state::symbol;
 }
 
@@ -1577,7 +1603,9 @@ static ast::statement parse_decl_struct_impl(
 	{
 		++stream; // '{'
 		auto const range = get_tokens_in_curly<>(stream, end, context);
-		return ast::make_decl_struct(src_tokens, id, range);
+		constexpr bool is_global = true; // here becuase if local structs are enabled, we have to change id construction below
+		static_assert(is_global);
+		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range);
 	}
 	else if (stream == end || stream->kind != lex::token::semi_colon)
 	{
@@ -1587,7 +1615,7 @@ static ast::statement parse_decl_struct_impl(
 	else
 	{
 		++stream; // ';'
-		return ast::make_decl_struct(src_tokens, id);
+		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id));
 	}
 }
 

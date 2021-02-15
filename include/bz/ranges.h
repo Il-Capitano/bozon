@@ -26,6 +26,8 @@ template<typename Collection>
 struct collection_base_filter
 {
 	template<typename Func>
+	constexpr auto filter(Func &&func) noexcept;
+	template<typename Func>
 	constexpr auto filter(Func &&func) const noexcept;
 };
 
@@ -39,6 +41,8 @@ struct range_base_transform
 template<typename Collection>
 struct collection_base_transform
 {
+	template<typename Func>
+	constexpr auto transform(Func &&func) noexcept;
 	template<typename Func>
 	constexpr auto transform(Func &&func) const noexcept;
 };
@@ -54,9 +58,9 @@ template<typename Collection>
 struct collection_base_member
 {
 	template<auto MemberPtr>
-	constexpr auto member(void) const noexcept;
-	template<auto MemberPtr>
 	constexpr auto member(void) noexcept;
+	template<auto MemberPtr>
+	constexpr auto member(void) const noexcept;
 };
 
 template<typename Range>
@@ -127,6 +131,8 @@ template<typename Collection>
 struct collection_base_for_each
 {
 	template<typename Func>
+	constexpr void for_each(Func &&func) noexcept;
+	template<typename Func>
 	constexpr void for_each(Func &&func) const noexcept;
 };
 
@@ -147,6 +153,8 @@ struct range_base_max
 {
 	template<typename T>
 	constexpr auto max(T &&val) const noexcept;
+	template<typename T, typename Func>
+	constexpr auto max(T &&val, Func cmp) const noexcept;
 };
 
 template<typename Collection>
@@ -154,6 +162,8 @@ struct collection_base_max
 {
 	template<typename T>
 	constexpr auto max(T &&val) const noexcept;
+	template<typename T, typename Cmp>
+	constexpr auto max(T &&val, Cmp cmp) const noexcept;
 };
 
 template<typename Range>
@@ -161,6 +171,8 @@ struct range_base_min
 {
 	template<typename T>
 	constexpr auto min(T &&val) const noexcept;
+	template<typename T, typename Cmp>
+	constexpr auto min(T &&val, Cmp cmp) const noexcept;
 };
 
 template<typename Collection>
@@ -168,6 +180,8 @@ struct collection_base_min
 {
 	template<typename T>
 	constexpr auto min(T &&val) const noexcept;
+	template<typename T, typename Func>
+	constexpr auto min(T &&val, Func cmp) const noexcept;
 };
 
 template<typename Collection>
@@ -185,6 +199,12 @@ struct collection_base_append
 	void append(Range &&range);
 	template<typename Range>
 	void append_move(Range &&range);
+};
+
+template<typename Range>
+struct range_base_front
+{
+	decltype(auto) front(void);
 };
 
 } // namespace internal
@@ -277,6 +297,9 @@ public:
 	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
 	{ return !rhs.at_end(); }
 
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
 
 	constexpr self_t begin(void) const noexcept
 	{ return *this; }
@@ -330,6 +353,9 @@ public:
 
 	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
 	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
 
 
 	constexpr self_t begin(void) const noexcept
@@ -389,6 +415,9 @@ public:
 	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
 	{ return !rhs.at_end(); }
 
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
 
 	constexpr self_t begin(void) const noexcept
 	{ return *this; }
@@ -438,6 +467,9 @@ public:
 
 	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
 	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
 
 
 	constexpr self_t begin(void) const noexcept
@@ -493,6 +525,10 @@ public:
 
 	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
 	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
 
 	constexpr self_t begin(void) const noexcept
 	{ return *this; }
@@ -591,6 +627,11 @@ constexpr auto range_base_filter<Range>::filter(Func &&func) const noexcept
 
 template<typename Collection>
 template<typename Func>
+constexpr auto collection_base_filter<Collection>::filter(Func &&func) noexcept
+{ return static_cast<Collection *>(this)->as_range().filter(std::forward<Func>(func)); }
+
+template<typename Collection>
+template<typename Func>
 constexpr auto collection_base_filter<Collection>::filter(Func &&func) const noexcept
 { return static_cast<Collection const *>(this)->as_range().filter(std::forward<Func>(func)); }
 
@@ -598,6 +639,11 @@ template<typename Range>
 template<typename Func>
 constexpr auto range_base_transform<Range>::transform(Func &&func) const noexcept
 { return ::bz::transform(*static_cast<Range const *>(this), std::forward<Func>(func)); }
+
+template<typename Collection>
+template<typename Func>
+constexpr auto collection_base_transform<Collection>::transform(Func &&func) noexcept
+{ return static_cast<Collection *>(this)->as_range().transform(std::forward<Func>(func)); }
 
 template<typename Collection>
 template<typename Func>
@@ -617,7 +663,7 @@ constexpr auto range_base_member<Range>::member(void) const noexcept
 
 template<typename Collection>
 template<auto MemberPtr>
-constexpr auto collection_base_member<Collection>::member(void) const noexcept
+constexpr auto collection_base_member<Collection>::member(void) noexcept
 {
 	static_assert(meta::is_member_variable<MemberPtr>, "template parameter must be a struct member pointer (e.g. &foo::i)");
 	return static_cast<Collection const *>(this)->as_range().template member<MemberPtr>();
@@ -625,7 +671,7 @@ constexpr auto collection_base_member<Collection>::member(void) const noexcept
 
 template<typename Collection>
 template<auto MemberPtr>
-constexpr auto collection_base_member<Collection>::member(void) noexcept
+constexpr auto collection_base_member<Collection>::member(void) const noexcept
 {
 	static_assert(meta::is_member_variable<MemberPtr>, "template parameter must be a struct member pointer (e.g. &foo::i)");
 	return static_cast<Collection const *>(this)->as_range().template member<MemberPtr>();
@@ -750,6 +796,11 @@ constexpr void range_base_for_each<Range>::for_each(Func &&func) const noexcept
 
 template<typename Collection>
 template<typename Func>
+constexpr void collection_base_for_each<Collection>::for_each(Func &&func) noexcept
+{ return static_cast<Collection *>(this)->as_range().for_each(std::forward<Func>(func)); }
+
+template<typename Collection>
+template<typename Func>
 constexpr void collection_base_for_each<Collection>::for_each(Func &&func) const noexcept
 { return static_cast<Collection const *>(this)->as_range().for_each(std::forward<Func>(func)); }
 
@@ -791,6 +842,27 @@ constexpr auto collection_base_max<Collection>::max(T &&val) const noexcept
 { return static_cast<Collection const *>(this)->as_range().max(std::forward<T>(val)); }
 
 template<typename Range>
+template<typename T, typename Cmp>
+constexpr auto range_base_max<Range>::max(T &&val, Cmp cmp) const noexcept
+{
+	auto const self = static_cast<Range const *>(this);
+	std::decay_t<decltype(self->operator*())> result(std::forward<T>(val));
+	for (auto &&it : *self)
+	{
+		if (cmp(result, it))
+		{
+			result = std::forward<decltype(it)>(it);
+		}
+	}
+	return result;
+}
+
+template<typename Collection>
+template<typename T, typename Cmp>
+constexpr auto collection_base_max<Collection>::max(T &&val, Cmp cmp) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().max(std::forward<T>(val), std::move(cmp)); }
+
+template<typename Range>
 template<typename T>
 constexpr auto range_base_min<Range>::min(T &&val) const noexcept
 {
@@ -810,6 +882,27 @@ template<typename Collection>
 template<typename T>
 constexpr auto collection_base_min<Collection>::min(T &&val) const noexcept
 { return static_cast<Collection const *>(this)->as_range().min(std::forward<T>(val)); }
+
+template<typename Range>
+template<typename T, typename Cmp>
+constexpr auto range_base_min<Range>::min(T &&val, Cmp cmp) const noexcept
+{
+	auto const self = static_cast<Range const *>(this);
+	std::decay_t<decltype(self->operator*())> result{std::forward<T>(val)};
+	for (auto &&it : *self)
+	{
+		if (cmp(it, result))
+		{
+			result = std::forward<decltype(it)>(it);
+		}
+	}
+	return result;
+}
+
+template<typename Collection>
+template<typename T, typename Cmp>
+constexpr auto collection_base_min<Collection>::min(T &&val, Cmp cmp) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().min(std::forward<T>(val), std::move(cmp)); }
 
 template<typename Collection>
 void collection_base_sort<Collection>::sort(void) noexcept

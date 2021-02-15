@@ -101,6 +101,9 @@ public:
 
 	constexpr const_reverse_iterator crend(void) const noexcept
 	{ return const_reverse_iterator(this->_data_begin - 1); }
+
+	constexpr operator array_view<value_type const> (void) const noexcept
+	{ return array_view<value_type const>{ this->_data_begin, this->_data_end }; }
 };
 
 template<typename T>

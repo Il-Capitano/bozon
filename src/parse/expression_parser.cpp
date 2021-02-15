@@ -559,11 +559,35 @@ static ast::expression parse_primary_expression(
 
 	switch (stream->kind)
 	{
+	case lex::token::scope:
 	case lex::token::identifier:
 	{
-		auto const id = stream;
-		++stream;
-		return context.make_identifier_expression(id);
+		auto const begin_token = stream;
+		bool const is_qualified = stream->kind == lex::token::scope;
+		bool is_last_scope = !is_qualified;
+		while (stream != end)
+		{
+			if (is_last_scope && stream->kind == lex::token::identifier)
+			{
+				++stream;
+			}
+			else if (!is_last_scope && stream->kind == lex::token::scope)
+			{
+				++stream;
+			}
+			else
+			{
+				break;
+			}
+			is_last_scope = !is_last_scope;
+		}
+		if (is_last_scope)
+		{
+			context.assert_token(stream, lex::token::identifier);
+			return ast::expression({ begin_token, begin_token, stream });
+		}
+		auto const end_token = stream;
+		return context.make_identifier_expression(ast::make_identifier({ begin_token, end_token }));
 	}
 
 	// literals
@@ -604,7 +628,7 @@ static ast::expression parse_primary_expression(
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
 			ast::make_auto_typespec(auto_pos),
-			ast::make_expr_identifier(auto_pos)
+			ast::make_expr_identifier(ast::make_identifier(auto_pos))
 		);
 	}
 
@@ -618,7 +642,7 @@ static ast::expression parse_primary_expression(
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
 			ast::make_typename_typespec(typename_pos),
-			ast::make_expr_identifier(typename_pos)
+			ast::make_expr_identifier(ast::make_identifier(typename_pos))
 		);
 	}
 
