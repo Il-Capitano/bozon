@@ -199,6 +199,10 @@ struct collection_base_append
 	void append(Range &&range);
 	template<typename Range>
 	void append_move(Range &&range);
+	template<typename Range>
+	void append_front(Range &&range);
+	template<typename Range>
+	void append_front_move(Range &&range);
 };
 
 template<typename Range>
@@ -938,6 +942,28 @@ void collection_base_append<Collection>::append_move(Range &&range)
 	for (auto &&it : std::forward<Range>(range))
 	{
 		self->push_back(std::move(it));
+	}
+}
+
+template<typename Collection>
+template<typename Range>
+void collection_base_append<Collection>::append_front(Range &&range)
+{
+	auto const self = static_cast<Collection *>(this);
+	for (auto &&it : std::forward<Range>(range))
+	{
+		self->push_front(std::forward<decltype(it)>(it));
+	}
+}
+
+template<typename Collection>
+template<typename Range>
+void collection_base_append<Collection>::append_front_move(Range &&range)
+{
+	auto const self = static_cast<Collection *>(this);
+	for (auto &&it : std::forward<Range>(range))
+	{
+		self->push_front(std::move(it));
 	}
 }
 
