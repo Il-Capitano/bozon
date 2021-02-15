@@ -197,7 +197,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	for (auto const import : imports)
 	{
-		auto const import_file_id = global_ctx.add_module(import->identifier, this->_file_id, import->identifier->value);
+		auto const import_file_id = global_ctx.add_module(this->_file_id, import->id);
 		if (import_file_id != std::numeric_limits<uint32_t>::max())
 		{
 			auto const &import_decls = global_ctx.get_file_export_decls(import_file_id);

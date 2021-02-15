@@ -1,8 +1,8 @@
-import print;
-import math;
-import utils;
-import generic;
-import file;
+import std::print;
+import std::math;
+import std::utils;
+import std::generic;
+import std::file;
 
 //	/*
 function assert(b: bool) -> void

@@ -129,43 +129,56 @@ void global_context::add_compile_function(ast::function_body &func_body)
 	this->_compile_decls.funcs.push_back(&func_body);
 }
 
-static std::pair<fs::path, bool> search_for_source_file(bz::u8string_view module_name, fs::path const &current_path)
+static std::pair<fs::path, bool> search_for_source_file(ast::identifier const &id, fs::path const &current_path)
 {
-	std::string_view std_sv(module_name.data(), module_name.size());
-	auto same_dir_module = current_path / std_sv;
-	same_dir_module += ".bz";
-	if (fs::exists(same_dir_module))
+	bz::u8string module_file_name;
+	bool first = true;
+	for (auto const value : id.values)
 	{
-		return { same_dir_module, false };
+		if (first)
+		{
+			first = false;
+		}
+		else
+		{
+			module_file_name += '/';
+		}
+		module_file_name += value;
+	}
+	module_file_name += ".bz";
+	std::string_view std_sv(module_file_name.data_as_char_ptr(), module_file_name.size());
+	if (!id.is_qualified)
+	{
+		auto same_dir_module = current_path / std_sv;
+		if (fs::exists(same_dir_module))
+		{
+			return { std::move(same_dir_module), false };
+		}
 	}
 
 	for (auto const &import_dir : import_dirs)
 	{
 		std::string_view import_dir_sv(import_dir.data_as_char_ptr(), import_dir.size());
 		auto module = fs::path(import_dir_sv) / std_sv;
-		module += ".bz";
 		if (fs::exists(module))
 		{
-			return { module, true };
+			return { std::move(module), true };
 		}
 	}
 	return {};
 }
 
-uint32_t global_context::add_module(lex::token_pos it, uint32_t current_file_id, bz::u8string_view file_name)
+uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier const &id)
 {
 	auto &current_file = this->get_src_file(current_file_id);
-	auto const [file_path, is_library_file] = search_for_source_file(
-		file_name,
-		current_file.get_file_path().parent_path()
-	);
+	auto const [file_path, is_library_file] = search_for_source_file(id, current_file.get_file_path().parent_path());
 	if (file_path.empty())
 	{
 		this->report_error(error{
 			warning_kind::_last,
-			it->src_pos.file_id, it->src_pos.line,
-			it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
-			bz::format("unable to find module '{}'", it->value),
+			id.tokens.begin->src_pos.file_id, id.tokens.begin->src_pos.line,
+			id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.end,
+			bz::format("unable to find module '{}'", id.as_string()),
 			{}, {}
 		});
 		return std::numeric_limits<uint32_t>::max();

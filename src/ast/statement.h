@@ -841,10 +841,10 @@ struct decl_struct
 
 struct decl_import
 {
-	lex::token_pos identifier;
+	identifier id;
 
-	decl_import(lex::token_pos _id)
-		: identifier(_id)
+	decl_import(identifier _id)
+		: id(std::move(_id))
 	{}
 
 	declare_default_5(decl_import)

@@ -1656,6 +1656,47 @@ template ast::statement parse_decl_struct<true>(
 	ctx::parse_context &context
 );
 
+static ast::identifier get_identifier(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	if (
+		stream == end
+		|| (stream->kind != lex::token::identifier && stream->kind != lex::token::scope)
+	)
+	{
+		context.assert_token(stream, lex::token::identifier);
+		return ast::identifier{};
+	}
+
+	auto const begin_token = stream;
+	auto const is_qualified = stream->kind == lex::token::scope;
+	auto is_last_scope = !is_qualified;
+	while (stream != end)
+	{
+		if (is_last_scope && stream->kind == lex::token::identifier)
+		{
+			++stream;
+		}
+		else if (!is_last_scope && stream->kind == lex::token::scope)
+		{
+			++stream;
+		}
+		else
+		{
+			break;
+		}
+		is_last_scope = !is_last_scope;
+	}
+	auto const end_token = stream;
+	if (is_last_scope)
+	{
+		context.assert_token(stream, lex::token::identifier);
+	}
+	return ast::make_identifier({ begin_token, end_token });
+}
+
 ast::statement parse_decl_import(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -1665,9 +1706,9 @@ ast::statement parse_decl_import(
 	bz_assert(stream->kind == lex::token::kw_import);
 	++stream; // import
 
-	auto const id = context.assert_token(stream, lex::token::identifier);
+	auto id = get_identifier(stream, end, context);
 	context.assert_token(stream, lex::token::semi_colon);
-	return ast::make_decl_import(id);
+	return ast::make_decl_import(std::move(id));
 }
 
 template<bool is_global>
