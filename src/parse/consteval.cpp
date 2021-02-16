@@ -1288,16 +1288,16 @@ static ast::constant_value evaluate_math_functions(
 
 	auto const get_float32 = [&func_call](size_t i = 0) {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
 		bz_assert(value.is<ast::constant_value::float32>());
 		return value.get<ast::constant_value::float32>();
 	};
 
 	auto const get_float64 = [&func_call](size_t i = 0) {
 		bz_assert(i < func_call.params.size());
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
 		bz_assert(value.is<ast::constant_value::float64>());
 		return value.get<ast::constant_value::float64>();
 	};
@@ -1932,7 +1932,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 					.get<ast::constant_expression>().value
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
 			}
-			else 
+			else
 			{
 				return {};
 			}
@@ -2137,7 +2137,7 @@ static ast::constant_value try_evaluate_expr(
 					.get<ast::constant_expression>().value
 					.get<ast::constant_value::aggregate>()[member_access_expr.index];
 			}
-			else 
+			else
 			{
 				return {};
 			}
