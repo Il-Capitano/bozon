@@ -1,5 +1,6 @@
 #include "statement.h"
 #include "token_info.h"
+#include "ctx/global_context.h"
 
 namespace ast
 {
@@ -15,25 +16,13 @@ lex::token_pos decl_variable::get_tokens_end(void) const
 
 bz::u8string function_body::get_signature(void) const
 {
-	auto const parse_int = [](bz::u8string_view str) {
-		uint64_t result = 0;
-		for (auto const c : str)
-		{
-			bz_assert(c >= '0' && c <= '9');
-			result *= 10;
-			result += c - '0';
-		}
-		return result;
-	};
-
-	auto const first_char = *this->function_name.begin();
-	auto const is_op = first_char >= '1' && first_char <= '9';
+	auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();
 	bz::u8string result = "";
 
 	if (is_op)
 	{
 		result += "operator ";
-		auto const kind = parse_int(this->function_name);
+		auto const kind = this->function_name_or_operator_kind.get<uint32_t>();
 		if (kind == lex::token::paren_open)
 		{
 			result += "() (";
@@ -51,7 +40,7 @@ bz::u8string function_body::get_signature(void) const
 	else
 	{
 		result += "function ";
-		result += this->function_name;
+		result += this->function_name_or_operator_kind.get<identifier>().format_as_unqualified();
 		result += '(';
 	}
 	bool first = true;
@@ -74,10 +63,11 @@ bz::u8string function_body::get_signature(void) const
 
 bz::u8string function_body::get_symbol_name(void) const
 {
-	bz_assert(this->function_name.size() != 0);
-	auto const first_char = *this->function_name.begin();
-	auto const is_op = first_char >= '1' && first_char <= '9';
-	auto symbol_name = bz::format("{}.{}", is_op ? "op" : "func", this->function_name);
+	bz_assert(this->function_name_or_operator_kind.not_null());
+	auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();
+	auto symbol_name = is_op
+		? bz::format("op.{}", this->function_name_or_operator_kind.get<uint32_t>())
+		: bz::format("func.{}", this->function_name_or_operator_kind.get<identifier>().format_for_symbol());
 	symbol_name += bz::format("..{}", this->params.size());
 	for (auto &p : this->params)
 	{
@@ -135,7 +125,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				bz_assert(func_body->params.size() == 1);
 				typespec_view const arg_type = func_body->params[0].var_type;
 				bz_assert(arg_type.is<ts_array_slice>());
-				func_body->return_type = arg_type.get<ast::ts_array_slice>().elem_type;
+				func_body->return_type = arg_type.get<ts_array_slice>().elem_type;
 				func_body->return_type.add_layer<ts_pointer>();
 				break;
 			}
@@ -199,7 +189,16 @@ bz::u8string function_body::decode_symbol_name(
 		auto const name_begin = bz::u8string_view::const_iterator(it.data() + function_.size());
 		result += "function ";
 		auto const name_end = symbol_name.find(name_begin, "..");
-		result += bz::u8string_view(name_begin, name_end);
+		auto func_name = bz::u8string_view(name_begin, name_end);
+		for (auto it = func_name.find('.'); it != func_name.end(); it = func_name.find('.'))
+		{
+			auto const scope_name = bz::u8string_view(func_name.begin(), it);
+			func_name = bz::u8string_view(it + 1, func_name.end());
+			result += scope_name;
+			constexpr auto scope = lex::get_token_value(lex::token::scope);
+			result += scope;
+		}
+		result += func_name;
 		result += '(';
 		it = bz::u8string_view::const_iterator(name_end.data() + 2);
 	}
@@ -239,52 +238,43 @@ bz::u8string function_body::decode_symbol_name(
 	return result;
 }
 
-static_assert(ast::type_info::int8_    ==  0);
-static_assert(ast::type_info::int16_   ==  1);
-static_assert(ast::type_info::int32_   ==  2);
-static_assert(ast::type_info::int64_   ==  3);
-static_assert(ast::type_info::uint8_   ==  4);
-static_assert(ast::type_info::uint16_  ==  5);
-static_assert(ast::type_info::uint32_  ==  6);
-static_assert(ast::type_info::uint64_  ==  7);
-static_assert(ast::type_info::float32_ ==  8);
-static_assert(ast::type_info::float64_ ==  9);
-static_assert(ast::type_info::char_    == 10);
-static_assert(ast::type_info::str_     == 11);
-static_assert(ast::type_info::bool_    == 12);
-static_assert(ast::type_info::null_t_  == 13);
+static_assert(type_info::int8_    ==  0);
+static_assert(type_info::int16_   ==  1);
+static_assert(type_info::int32_   ==  2);
+static_assert(type_info::int64_   ==  3);
+static_assert(type_info::uint8_   ==  4);
+static_assert(type_info::uint16_  ==  5);
+static_assert(type_info::uint32_  ==  6);
+static_assert(type_info::uint64_  ==  7);
+static_assert(type_info::float32_ ==  8);
+static_assert(type_info::float64_ ==  9);
+static_assert(type_info::char_    == 10);
+static_assert(type_info::str_     == 11);
+static_assert(type_info::bool_    == 12);
+static_assert(type_info::null_t_  == 13);
 
 
-static auto get_builtin_type_infos(void)
+bz::vector<type_info> make_builtin_type_infos(void)
 {
-	return bz::array{
-		ast::type_info::make_builtin("int8",     ast::type_info::int8_),
-		ast::type_info::make_builtin("int16",    ast::type_info::int16_),
-		ast::type_info::make_builtin("int32",    ast::type_info::int32_),
-		ast::type_info::make_builtin("int64",    ast::type_info::int64_),
-		ast::type_info::make_builtin("uint8",    ast::type_info::uint8_),
-		ast::type_info::make_builtin("uint16",   ast::type_info::uint16_),
-		ast::type_info::make_builtin("uint32",   ast::type_info::uint32_),
-		ast::type_info::make_builtin("uint64",   ast::type_info::uint64_),
-		ast::type_info::make_builtin("float32",  ast::type_info::float32_),
-		ast::type_info::make_builtin("float64",  ast::type_info::float64_),
-		ast::type_info::make_builtin("char",     ast::type_info::char_),
-		ast::type_info::make_builtin("str",      ast::type_info::str_),
-		ast::type_info::make_builtin("bool",     ast::type_info::bool_),
-		ast::type_info::make_builtin("__null_t", ast::type_info::null_t_),
+	return bz::vector{
+		type_info::make_builtin("int8",     type_info::int8_),
+		type_info::make_builtin("int16",    type_info::int16_),
+		type_info::make_builtin("int32",    type_info::int32_),
+		type_info::make_builtin("int64",    type_info::int64_),
+		type_info::make_builtin("uint8",    type_info::uint8_),
+		type_info::make_builtin("uint16",   type_info::uint16_),
+		type_info::make_builtin("uint32",   type_info::uint32_),
+		type_info::make_builtin("uint64",   type_info::uint64_),
+		type_info::make_builtin("float32",  type_info::float32_),
+		type_info::make_builtin("float64",  type_info::float64_),
+		type_info::make_builtin("char",     type_info::char_),
+		type_info::make_builtin("str",      type_info::str_),
+		type_info::make_builtin("bool",     type_info::bool_),
+		type_info::make_builtin("__null_t", type_info::null_t_),
 	};
 }
 
-static auto builtin_type_infos = get_builtin_type_infos();
-
-type_info *get_builtin_type_info(uint32_t kind)
-{
-	bz_assert(kind < builtin_type_infos.size());
-	return &builtin_type_infos[kind];
-}
-
-static bz::vector<std::pair<bz::u8string_view, typespec>>
-get_builtin_types(void)
+bz::vector<std::pair<bz::u8string_view, typespec>> make_builtin_types(bz::array_view<type_info> builtin_type_infos)
 {
 	bz::vector<std::pair<bz::u8string_view, typespec>> result;
 	result.reserve(builtin_type_infos.size() + 1);
@@ -296,33 +286,16 @@ get_builtin_types(void)
 	return result;
 }
 
-static auto builtin_types = get_builtin_types();
-
-typespec_view get_builtin_type(bz::u8string_view name)
-{
-	auto const it = std::find_if(builtin_types.begin(), builtin_types.end(), [name](auto const &builtin_type) {
-		return builtin_type.first == name;
-	});
-	if (it != builtin_types.end())
-	{
-		return it->second;
-	}
-	else
-	{
-		return {};
-	}
-}
-
 template<typename ...Ts>
-static ast::function_body create_builtin_function(
+static function_body create_builtin_function(
 	uint32_t kind,
 	bz::u8string_view symbol_name,
-	ast::typespec return_type,
+	typespec return_type,
 	Ts ...arg_types
 )
 {
-	static_assert((bz::meta::is_same<Ts, ast::typespec> && ...));
-	bz::vector<ast::decl_variable> params;
+	static_assert((bz::meta::is_same<Ts, typespec> && ...));
+	bz::vector<decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
 		lex::src_tokens{}, identifier{}, lex::token_range{},
@@ -331,34 +304,35 @@ static ast::function_body create_builtin_function(
 	auto const is_generic = [&]() {
 		for (auto const &param : params)
 		{
-			if (!ast::is_complete(param.var_type))
+			if (!is_complete(param.var_type))
 			{
 				return true;
 			}
 		}
 		return false;
 	}();
-	ast::function_body result;
+	function_body result;
 	result.params = std::move(params);
 	result.return_type = std::move(return_type);
 	result.symbol_name = symbol_name;
-	result.state = ast::resolve_state::symbol;
+	result.state = resolve_state::symbol;
 	result.cc = abi::calling_convention::c;
 	result.flags =
-		ast::function_body::external_linkage
-		| ast::function_body::intrinsic
-		| (is_generic ? ast::function_body::generic : 0);
+		function_body::external_linkage
+		| function_body::intrinsic
+		| (is_generic ? function_body::generic : 0);
 	result.intrinsic_kind = kind;
 	return result;
 }
 
-static auto builtin_functions = []() {
-	auto const bool_type    = make_base_type_typespec({}, get_builtin_type_info(type_info::bool_));
-	auto const uint64_type  = make_base_type_typespec({}, get_builtin_type_info(type_info::uint64_));
-	auto const uint8_type   = make_base_type_typespec({}, get_builtin_type_info(type_info::uint8_));
-	auto const float32_type = make_base_type_typespec({}, get_builtin_type_info(type_info::float32_));
-	auto const float64_type = make_base_type_typespec({}, get_builtin_type_info(type_info::float64_));
-	auto const str_type     = make_base_type_typespec({}, get_builtin_type_info(type_info::str_));
+bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos)
+{
+	auto const bool_type    = make_base_type_typespec({}, &builtin_type_infos[type_info::bool_]);
+	auto const uint64_type  = make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
+	auto const uint8_type   = make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
+	auto const float32_type = make_base_type_typespec({}, &builtin_type_infos[type_info::float32_]);
+	auto const float64_type = make_base_type_typespec({}, &builtin_type_infos[type_info::float64_]);
+	auto const str_type     = make_base_type_typespec({}, &builtin_type_infos[type_info::str_]);
 	auto const void_type    = make_void_typespec(nullptr);
 	auto const void_ptr_type = [&]() {
 		typespec result = make_void_typespec(nullptr);
@@ -372,7 +346,7 @@ static auto builtin_functions = []() {
 		return result;
 	}();
 	auto const uint8_const_ptr_type = [&]() {
-		typespec result = make_base_type_typespec({}, get_builtin_type_info(type_info::uint8_));
+		typespec result = make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
 		result.add_layer<ts_const>(nullptr);
 		result.add_layer<ts_pointer>(nullptr);
 		return result;
@@ -400,7 +374,7 @@ static auto builtin_functions = []() {
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
-	bz::array result = {
+	bz::vector result = {
 		add_builtin( 0, function_body::builtin_str_eq,     "__bozon_builtin_str_eq",     bool_type,   str_type, str_type),
 		add_builtin( 1, function_body::builtin_str_neq,    "__bozon_builtin_str_neq",    bool_type,   str_type, str_type),
 		add_builtin( 2, function_body::builtin_str_length, "__bozon_builtin_str_length", uint64_type, str_type),
@@ -489,14 +463,8 @@ static auto builtin_functions = []() {
 		add_builtin(76, function_body::lgamma_f64, "lgamma",  float64_type, float64_type),
 	};
 #undef add_builtin
-	static_assert(result.size() == intrinsic_info.size());
+	bz_assert(result.size() == intrinsic_info.size());
 	return result;
-}();
-
-function_body *get_builtin_function(uint32_t kind)
-{
-	bz_assert(kind < builtin_functions.size());
-	return &builtin_functions[kind];
 }
 
 } // namespace ast

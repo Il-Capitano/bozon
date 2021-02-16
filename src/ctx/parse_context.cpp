@@ -20,6 +20,21 @@ parse_context::parse_context(global_context &_global_ctx)
 	  consteval_call_stack{}
 {}
 
+ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
+{
+	return this->global_ctx.get_builtin_type_info(kind);
+}
+
+ast::typespec_view parse_context::get_builtin_type(bz::u8string_view name) const
+{
+	return this->global_ctx.get_builtin_type(name);
+}
+
+ast::function_body *parse_context::get_builtin_function(uint32_t kind) const
+{
+	return this->global_ctx.get_builtin_function(kind);
+}
+
 static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context const &context)
 {
 	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())
@@ -1404,7 +1419,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	if (!id.is_qualified && id.values.size() == 1)
 	{
 		auto const id_value = id.values.front();
-		if (auto const builtin_type = ast::get_builtin_type(id_value); builtin_type.has_value())
+		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.has_value())
 		{
 			ast::typespec type = builtin_type;
 			type.nodes.back().visit(bz::overload{
@@ -1433,7 +1448,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 			});
 			if (it != ast::intrinsic_info.end())
 			{
-				auto const func_body = ast::get_builtin_function(it->kind);
+				auto const func_body = this->get_builtin_function(it->kind);
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::function_name,
@@ -1494,17 +1509,17 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
 			{
 				value = static_cast<wide_default_type>(num);
-				type_info = ast::get_builtin_type_info(default_type_info);
+				type_info = this->get_builtin_type_info(default_type_info);
 			}
 			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
 			{
 				value = static_cast<wide_default_type>(num);
-				type_info = ast::get_builtin_type_info(default_type_info + 1);
+				type_info = this->get_builtin_type_info(default_type_info + 1);
 			}
 			else
 			{
 				value = num;
-				type_info = ast::get_builtin_type_info(ast::type_info::uint64_);
+				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
 			}
 		}
 #define postfix_check(postfix_str, type, wide_type)                                           \
@@ -1515,7 +1530,7 @@ if (postfix == postfix_str)                                                     
         this->report_error(literal, "literal value is too large to fit in type '" #type "'"); \
     }                                                                                         \
     value = static_cast<wide_type>(static_cast<type##_t>(num));                               \
-    type_info = ast::get_builtin_type_info(ast::type_info::type##_);                            \
+    type_info = this->get_builtin_type_info(ast::type_info::type##_);                            \
 }
 		else postfix_check("i8",  int8,   int64_t)
 		else postfix_check("i16", int16,  int64_t)
@@ -1531,17 +1546,17 @@ if (postfix == postfix_str)                                                     
 			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
 			{
 				value = static_cast<wide_default_type>(num);
-				type_info = ast::get_builtin_type_info(default_type_info);
+				type_info = this->get_builtin_type_info(default_type_info);
 			}
 			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
 			{
 				value = static_cast<wide_default_type>(num);
-				type_info = ast::get_builtin_type_info(default_type_info + 1);
+				type_info = this->get_builtin_type_info(default_type_info + 1);
 			}
 			else
 			{
 				value = num;
-				type_info = ast::get_builtin_type_info(ast::type_info::uint64_);
+				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
 			}
 			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 		}
@@ -1642,17 +1657,17 @@ if (postfix == postfix_str)                                                     
 		if (postfix == "" || postfix == "f64")
 		{
 			value = num;
-			type_info = ast::get_builtin_type_info(ast::type_info::float64_);
+			type_info = this->get_builtin_type_info(ast::type_info::float64_);
 		}
 		else if (postfix == "f32")
 		{
 			value = static_cast<float32_t>(num);
-			type_info = ast::get_builtin_type_info(ast::type_info::float32_);
+			type_info = this->get_builtin_type_info(ast::type_info::float32_);
 		}
 		else
 		{
 			value = num;
-			type_info = ast::get_builtin_type_info(ast::type_info::float64_);
+			type_info = this->get_builtin_type_info(ast::type_info::float64_);
 			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 		}
 
@@ -1862,7 +1877,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(ast::type_info::char_) } }),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::char_) } }),
 			ast::constant_value(value),
 			ast::make_expr_literal(literal)
 		);
@@ -1871,7 +1886,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(true),
 			ast::make_expr_literal(literal)
 		);
@@ -1879,7 +1894,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(false),
 			ast::make_expr_literal(literal)
 		);
@@ -1887,7 +1902,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(ast::type_info::null_t_) } }),
+			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::null_t_) } }),
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_literal(literal)
 		);
@@ -1936,7 +1951,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	return ast::make_constant_expression(
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
-		ast::typespec({ ast::ts_base_type{ {}, ast::get_builtin_type_info(ast::type_info::str_) } }),
+		ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::str_) } }),
 		ast::constant_value(result),
 		ast::make_expr_literal(lex::token_range{ begin, end })
 	);
@@ -3335,14 +3350,14 @@ ast::expression parse_context::make_function_call_expression(
 					{
 						this->report_error(
 							src_tokens,
-							"couldn't match the function call to function"
+							"couldn't match the function call to the function"
 						);
 					}
 					else
 					{
 						this->report_error(
 							src_tokens,
-							"couldn't match the function call to function",
+							"couldn't match the function call to the function",
 							{ this->make_note(func_body->src_tokens, bz::format("candidate '{}'", func_body->get_signature())) }
 						);
 					}

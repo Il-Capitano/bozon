@@ -35,6 +35,25 @@ struct identifier
 		return result;
 	}
 
+	bz::u8string format_for_symbol(void) const
+	{
+		bz::u8string result;
+		bool first = true;
+		for (auto const value : this->values)
+		{
+			if (first)
+			{
+				first = false;
+			}
+			else
+			{
+				result += '.';
+			}
+			result += value;
+		}
+		return result;
+	}
+
 	bz::u8string as_string(void) const
 	{
 		bz::u8string result;

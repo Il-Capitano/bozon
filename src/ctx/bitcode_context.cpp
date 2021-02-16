@@ -16,6 +16,21 @@ bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module &_mod
 	  builder(_global_ctx._llvm_context)
 {}
 
+ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)
+{
+	return this->global_ctx.get_builtin_type_info(kind);
+}
+
+ast::typespec_view bitcode_context::get_builtin_type(bz::u8string_view name)
+{
+	return this->global_ctx.get_builtin_type(name);
+}
+
+ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
+{
+	return this->global_ctx.get_builtin_function(kind);
+}
+
 llvm::Value *bitcode_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);

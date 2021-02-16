@@ -3233,7 +3233,7 @@ void add_builtin_functions(ctx::bitcode_context &context)
 		++kind
 	)
 	{
-		auto const body = ast::get_builtin_function(kind);
+		auto const body = context.get_builtin_function(kind);
 		if (body->symbol_name != "")
 		{
 			add_function_to_module(body, context);

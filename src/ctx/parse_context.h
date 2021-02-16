@@ -50,6 +50,10 @@ struct parse_context
 
 	parse_context(global_context &_global_ctx);
 
+	ast::type_info *get_builtin_type_info(uint32_t kind) const;
+	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
+	ast::function_body *get_builtin_function(uint32_t kind) const;
+
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it, bz::u8string message,

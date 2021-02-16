@@ -17,7 +17,7 @@ struct attribute
 {
 	lex::token_pos              name;
 	lex::token_range            arg_tokens;
-	bz::vector<ast::expression> args;
+	bz::vector<expression> args;
 
 	declare_default_5(attribute)
 };
@@ -323,7 +323,7 @@ struct function_body
 		generic_specialization = bit_at<5>,
 	};
 
-	enum : uint32_t
+	enum : uint8_t
 	{
 		_builtin_first,
 
@@ -397,13 +397,13 @@ struct function_body
 	bz::vector<decl_variable> params;
 	typespec                  return_type;
 	body_t                    body;
-	bz::u8string              function_name;
+	bz::variant<identifier, uint32_t> function_name_or_operator_kind;
 	bz::u8string              symbol_name;
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
 	abi::calling_convention   cc = abi::calling_convention::bozon;
+	uint8_t                   intrinsic_kind = 0;
 	uint32_t                  flags = 0;
-	uint32_t                  intrinsic_kind = 0;
 	bz::vector<std::unique_ptr<function_body>>              generic_specializations;
 	bz::vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
 
@@ -415,27 +415,27 @@ struct function_body
 		: params        (other.params),
 		  return_type   (other.return_type),
 		  body          (other.body),
-		  function_name (other.function_name),
+		  function_name_or_operator_kind(other.function_name_or_operator_kind),
 		  symbol_name   (other.symbol_name),
 		  src_tokens    (other.src_tokens),
 		  state         (other.state),
 		  cc            (other.cc),
-		  flags         (other.flags),
 		  intrinsic_kind(other.intrinsic_kind),
+		  flags         (other.flags),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from)
 	{}
 
 	bz::vector<statement> &get_statements(void) noexcept
 	{
-		bz_assert(this->body.is<bz::vector<ast::statement>>());
-		return this->body.get<bz::vector<ast::statement>>();
+		bz_assert(this->body.is<bz::vector<statement>>());
+		return this->body.get<bz::vector<statement>>();
 	}
 
 	bz::vector<statement> const &get_statements(void) const noexcept
 	{
-		bz_assert(this->body.is<bz::vector<ast::statement>>());
-		return this->body.get<bz::vector<ast::statement>>();
+		bz_assert(this->body.is<bz::vector<statement>>());
+		return this->body.get<bz::vector<statement>>();
 	}
 
 	bz::u8string get_signature(void) const;
@@ -711,19 +711,19 @@ inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {
 	switch (kind)
 	{
-	case ast::type_info::int8_:    return "int8";
-	case ast::type_info::int16_:   return "int16";
-	case ast::type_info::int32_:   return "int32";
-	case ast::type_info::int64_:   return "int64";
-	case ast::type_info::uint8_:   return "uint8";
-	case ast::type_info::uint16_:  return "uint16";
-	case ast::type_info::uint32_:  return "uint32";
-	case ast::type_info::uint64_:  return "uint64";
-	case ast::type_info::float32_: return "float32";
-	case ast::type_info::float64_: return "float64";
-	case ast::type_info::char_:    return "char";
-	case ast::type_info::str_:     return "str";
-	case ast::type_info::bool_:    return "bool";
+	case type_info::int8_:    return "int8";
+	case type_info::int16_:   return "int16";
+	case type_info::int32_:   return "int32";
+	case type_info::int64_:   return "int64";
+	case type_info::uint8_:   return "uint8";
+	case type_info::uint16_:  return "uint16";
+	case type_info::uint32_:  return "uint32";
+	case type_info::uint64_:  return "uint64";
+	case type_info::float32_: return "float32";
+	case type_info::float64_: return "float64";
+	case type_info::char_:    return "char";
+	case type_info::str_:     return "str";
+	case type_info::bool_:    return "bool";
 	default: bz_unreachable;
 	}
 }
@@ -773,36 +773,36 @@ struct type_info_from_type;
 
 template<>
 struct type_info_from_type<int8_t>
-{ static constexpr auto value = ast::type_info::int8_; };
+{ static constexpr auto value = type_info::int8_; };
 template<>
 struct type_info_from_type<int16_t>
-{ static constexpr auto value = ast::type_info::int16_; };
+{ static constexpr auto value = type_info::int16_; };
 template<>
 struct type_info_from_type<int32_t>
-{ static constexpr auto value = ast::type_info::int32_; };
+{ static constexpr auto value = type_info::int32_; };
 template<>
 struct type_info_from_type<int64_t>
-{ static constexpr auto value = ast::type_info::int64_; };
+{ static constexpr auto value = type_info::int64_; };
 
 template<>
 struct type_info_from_type<uint8_t>
-{ static constexpr auto value = ast::type_info::uint8_; };
+{ static constexpr auto value = type_info::uint8_; };
 template<>
 struct type_info_from_type<uint16_t>
-{ static constexpr auto value = ast::type_info::uint16_; };
+{ static constexpr auto value = type_info::uint16_; };
 template<>
 struct type_info_from_type<uint32_t>
-{ static constexpr auto value = ast::type_info::uint32_; };
+{ static constexpr auto value = type_info::uint32_; };
 template<>
 struct type_info_from_type<uint64_t>
-{ static constexpr auto value = ast::type_info::uint64_; };
+{ static constexpr auto value = type_info::uint64_; };
 
 template<>
 struct type_info_from_type<float32_t>
-{ static constexpr auto value = ast::type_info::float32_; };
+{ static constexpr auto value = type_info::float32_; };
 template<>
 struct type_info_from_type<float64_t>
-{ static constexpr auto value = ast::type_info::float64_; };
+{ static constexpr auto value = type_info::float64_; };
 
 } // namespace internal
 
@@ -878,9 +878,9 @@ def_make_fn(statement, stmt_static_assert)
 
 #undef def_make_fn
 
-type_info *get_builtin_type_info(uint32_t kind);
-typespec_view get_builtin_type(bz::u8string_view name);
-function_body *get_builtin_function(uint32_t kind);
+bz::vector<type_info> make_builtin_type_infos(void);
+bz::vector<std::pair<bz::u8string_view, typespec>> make_builtin_types(bz::array_view<type_info> builtin_type_infos);
+bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos);
 
 struct intrinsic_info_t
 {

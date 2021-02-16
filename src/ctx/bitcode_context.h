@@ -24,6 +24,10 @@ struct bitcode_context
 {
 	bitcode_context(global_context &_global_ctx, llvm::Module &_module);
 
+	ast::type_info *get_builtin_type_info(uint32_t kind);
+	ast::typespec_view get_builtin_type(bz::u8string_view name);
+	ast::function_body *get_builtin_function(uint32_t kind);
+
 	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
 

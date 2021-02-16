@@ -6,7 +6,7 @@
 namespace abi
 {
 
-enum class calling_convention
+enum class calling_convention : int8_t
 {
 	bozon,
 	c,

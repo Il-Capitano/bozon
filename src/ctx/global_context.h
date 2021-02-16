@@ -41,6 +41,10 @@ struct global_context
 	decl_list _compile_decls;
 	bz::vector<error> _errors;
 
+	bz::vector<ast::type_info> _builtin_type_infos;
+	bz::vector<std::pair<bz::u8string_view, ast::typespec>> _builtin_types;
+	bz::vector<ast::function_body> _builtin_functions;
+
 	std::list<src_file> _src_files;
 
 	llvm::LLVMContext _llvm_context;
@@ -52,6 +56,10 @@ struct global_context
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 
 	global_context(void);
+
+	ast::type_info *get_builtin_type_info(uint32_t kind);
+	ast::typespec_view get_builtin_type(bz::u8string_view name);
+	ast::function_body *get_builtin_function(uint32_t kind);
 
 	void report_error(error &&err)
 	{

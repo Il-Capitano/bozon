@@ -60,7 +60,7 @@ void *arena_allocator::sized_allocate(size_t size)
 		{
 			new_node->next_node->prev_node = new_node;
 		}
-		else 
+		else
 		{
 			arena.last_node = new_node;
 		}

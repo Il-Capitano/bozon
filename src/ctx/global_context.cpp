@@ -62,9 +62,39 @@ decl_set get_default_decls(void)
 	};
 }
 
+ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
+{
+	bz_assert(kind <= ast::type_info::null_t_);
+	return &this->_builtin_type_infos[kind];
+}
+
+ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
+{
+	auto const it = std::find_if(this->_builtin_types.begin(), this->_builtin_types.end(), [name](auto const &builtin_type) {
+		return builtin_type.first == name;
+	});
+	if (it != this->_builtin_types.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return {};
+	}
+}
+
+ast::function_body *global_context::get_builtin_function(uint32_t kind)
+{
+	bz_assert(kind < this->_builtin_functions.size());
+	return &this->_builtin_functions[kind];
+}
+
 global_context::global_context(void)
 	: _compile_decls{},
 	  _errors{},
+	  _builtin_type_infos(ast::make_builtin_type_infos()),
+	  _builtin_types(ast::make_builtin_types(this->_builtin_type_infos)),
+	  _builtin_functions(ast::make_builtin_functions(this->_builtin_type_infos)),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _comptime_module("comptime_module", this->_llvm_context),

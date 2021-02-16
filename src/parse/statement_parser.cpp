@@ -1248,7 +1248,7 @@ void resolve_function(
 
 static ast::function_body parse_function_body(
 	lex::src_tokens src_tokens,
-	bz::u8string function_name,
+	bz::variant<ast::identifier, uint32_t> func_name_or_op_kind,
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -1269,7 +1269,7 @@ static ast::function_body parse_function_body(
 	}
 
 	result.src_tokens = src_tokens;
-	result.function_name = std::move(function_name);
+	result.function_name_or_operator_kind = std::move(func_name_or_op_kind);
 	while (param_stream != param_end)
 	{
 		auto const begin = param_stream;
@@ -1363,7 +1363,10 @@ ast::statement parse_decl_function_or_alias(
 	}
 	else
 	{
-		auto body = parse_function_body(src_tokens, id->value, stream, end, context);
+		auto const func_name = is_global
+			? context.make_qualified_identifier(id)
+			: ast::make_identifier(id);
+		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
 		if (id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
@@ -1437,7 +1440,7 @@ ast::statement parse_decl_operator(
 		? lex::src_tokens{ begin, op, stream }
 		: lex::src_tokens{ begin, begin, begin + 1 };
 
-	auto body = parse_function_body(src_tokens, bz::format("{}", op->kind), stream, end, context);
+	auto body = parse_function_body(src_tokens, op->kind, stream, end, context);
 
 	if constexpr (is_global)
 	{
