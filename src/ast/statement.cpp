@@ -314,6 +314,8 @@ static function_body create_builtin_function(
 	function_body result;
 	result.params = std::move(params);
 	result.return_type = std::move(return_type);
+	bz_assert(intrinsic_info[kind].kind == kind);
+	result.function_name_or_operator_kind = identifier{ {}, { intrinsic_info[kind].func_name }, true };
 	result.symbol_name = symbol_name;
 	result.state = resolve_state::symbol;
 	result.cc = abi::calling_convention::c;

@@ -63,7 +63,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 	}
 }
 
-static void resolve_stmt_static_assert(
+static void resolve_stmt_static_assert_impl(
 	ast::stmt_static_assert &static_assert_stmt,
 	ctx::parse_context &context
 )
@@ -208,6 +208,23 @@ static void resolve_stmt_static_assert(
 		}
 		context.report_error(static_assert_stmt.condition, std::move(error_message));
 	}
+}
+
+static void resolve_stmt_static_assert(
+	ast::stmt_static_assert &static_assert_stmt,
+	ctx::parse_context &context
+)
+{
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = static_assert_stmt.static_assert_pos->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_stmt_static_assert_impl(static_assert_stmt, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 template<bool is_global>
@@ -512,22 +529,11 @@ static void resolve_variable_init_expr_and_match_type(
 	}
 }
 
-void resolve_variable_symbol(
+static void resolve_variable_symbol_impl(
 	ast::decl_variable &var_decl,
 	ctx::parse_context &context
 )
 {
-	if (var_decl.state >= ast::resolve_state::symbol || var_decl.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	else if (var_decl.state == ast::resolve_state::resolving_symbol)
-	{
-		context.report_circular_dependency_error(var_decl);
-		var_decl.state = ast::resolve_state::error;
-		return;
-	}
-
 	var_decl.state = ast::resolve_state::resolving_symbol;
 	resolve_variable_type(var_decl, context);
 	if (var_decl.state == ast::resolve_state::error)
@@ -551,21 +557,39 @@ void resolve_variable_symbol(
 	}
 }
 
-void resolve_variable(
+void resolve_variable_symbol(
 	ast::decl_variable &var_decl,
 	ctx::parse_context &context
 )
 {
-	if (var_decl.state >= ast::resolve_state::all || var_decl.state == ast::resolve_state::error)
+	if (var_decl.state >= ast::resolve_state::symbol || var_decl.state == ast::resolve_state::error)
 	{
 		return;
 	}
-	else if (var_decl.state == ast::resolve_state::resolving_symbol || var_decl.state == ast::resolve_state::resolving_all)
+	else if (var_decl.state == ast::resolve_state::resolving_symbol)
 	{
 		context.report_circular_dependency_error(var_decl);
 		var_decl.state = ast::resolve_state::error;
 		return;
 	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_variable_symbol_impl(var_decl, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
+}
+
+static void resolve_variable_impl(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
 	if (var_decl.state < ast::resolve_state::symbol)
 	{
 		var_decl.state = ast::resolve_state::resolving_symbol;
@@ -582,6 +606,34 @@ void resolve_variable(
 		return;
 	}
 	var_decl.state = ast::resolve_state::all;
+}
+
+void resolve_variable(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	if (var_decl.state >= ast::resolve_state::all || var_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (var_decl.state == ast::resolve_state::resolving_symbol || var_decl.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(var_decl);
+		var_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_variable_impl(var_decl, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 template<bool is_global>
@@ -683,22 +735,11 @@ template ast::statement parse_decl_variable<true>(
 	ctx::parse_context &context
 );
 
-void resolve_type_alias(
+static void resolve_type_alias_impl(
 	ast::decl_type_alias &alias_decl,
 	ctx::parse_context &context
 )
 {
-	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	else if (alias_decl.state == ast::resolve_state::resolving_all)
-	{
-		context.report_circular_dependency_error(alias_decl);
-		alias_decl.state = ast::resolve_state::error;
-		return;
-	}
-
 	alias_decl.state = ast::resolve_state::resolving_all;
 
 	bz_assert(alias_decl.alias_expr.is<ast::unresolved_expression>());
@@ -758,6 +799,34 @@ void resolve_type_alias(
 	}
 }
 
+void resolve_type_alias(
+	ast::decl_type_alias &alias_decl,
+	ctx::parse_context &context
+)
+{
+	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (alias_decl.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(alias_decl);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_type_alias_impl(alias_decl, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
+}
+
 template<bool is_global>
 ast::statement parse_decl_type_alias(
 	lex::token_pos &stream, lex::token_pos end,
@@ -804,23 +873,11 @@ template ast::statement parse_decl_type_alias<true>(
 	ctx::parse_context &context
 );
 
-void resolve_function_alias(
+static void resolve_function_alias_impl(
 	ast::decl_function_alias &alias_decl,
 	ctx::parse_context &context
 )
 {
-	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	else if (alias_decl.state != ast::resolve_state::none)
-	{
-		bz_assert(alias_decl.state == ast::resolve_state::resolving_all);
-		context.report_circular_dependency_error(alias_decl);
-		alias_decl.state = ast::resolve_state::error;
-		return;
-	}
-
 	auto const begin = alias_decl.alias_expr.src_tokens.begin;
 	auto const end   = alias_decl.alias_expr.src_tokens.end;
 	auto stream = begin;
@@ -893,6 +950,35 @@ void resolve_function_alias(
 	}
 }
 
+void resolve_function_alias(
+	ast::decl_function_alias &alias_decl,
+	ctx::parse_context &context
+)
+{
+	if (alias_decl.state >= ast::resolve_state::all || alias_decl.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (alias_decl.state != ast::resolve_state::none)
+	{
+		bz_assert(alias_decl.state == ast::resolve_state::resolving_all);
+		context.report_circular_dependency_error(alias_decl);
+		alias_decl.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_function_alias_impl(alias_decl, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
+}
+
 static bool resolve_function_parameters_helper(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -930,6 +1016,29 @@ static bool resolve_function_parameters_helper(
 	return good;
 }
 
+static void resolve_function_parameters_impl(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	func_body.state = ast::resolve_state::resolving_parameters;
+	context.add_scope();
+	if (resolve_function_parameters_helper(func_stmt, func_body, context))
+	{
+		func_body.state = ast::resolve_state::parameters;
+	}
+	else
+	{
+		func_body.state = ast::resolve_state::error;
+	}
+	for (auto &var_decl : func_body.params)
+	{
+		var_decl.is_used = true;
+	}
+	context.remove_scope();
+}
+
 void resolve_function_parameters(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -947,21 +1056,16 @@ void resolve_function_parameters(
 		return;
 	}
 
-	func_body.state = ast::resolve_state::resolving_parameters;
-	context.add_scope();
-	if (resolve_function_parameters_helper(func_stmt, func_body, context))
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
 	{
-		func_body.state = ast::resolve_state::parameters;
+		context.set_current_file(stmt_file_id);
 	}
-	else
-	{
-		func_body.state = ast::resolve_state::error;
-	}
-	for (auto &var_decl : func_body.params)
-	{
-		var_decl.is_used = true;
-	}
-	context.remove_scope();
+	resolve_function_parameters_impl(func_stmt, func_body, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 static bool resolve_function_return_type_helper(
@@ -1128,23 +1232,12 @@ static bool resolve_function_symbol_helper(
 	return true;
 }
 
-void resolve_function_symbol(
+static void resolve_function_symbol_impl(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	if (func_body.state >= ast::resolve_state::symbol || func_body.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
-	{
-		context.report_circular_dependency_error(func_body);
-		func_body.state = ast::resolve_state::error;
-		return;
-	}
-
 	func_body.state = ast::resolve_state::resolving_symbol;
 	context.add_scope();
 	if (resolve_function_symbol_helper(func_stmt, func_body, context))
@@ -1162,26 +1255,41 @@ void resolve_function_symbol(
 	context.remove_scope();
 }
 
-void resolve_function(
+void resolve_function_symbol(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
-	if (func_body.state >= ast::resolve_state::all || func_body.state == ast::resolve_state::error)
+	if (func_body.state >= ast::resolve_state::symbol || func_body.state == ast::resolve_state::error)
 	{
 		return;
 	}
-	else if (
-		func_body.state == ast::resolve_state::resolving_parameters
-		|| func_body.state == ast::resolve_state::resolving_symbol
-		|| func_body.state == ast::resolve_state::resolving_all
-	)
+	else if (func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol)
 	{
 		context.report_circular_dependency_error(func_body);
+		func_body.state = ast::resolve_state::error;
 		return;
 	}
 
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_function_symbol_impl(func_stmt, func_body, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
+}
+
+static void resolve_function_impl(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
 		func_body.state = ast::resolve_state::resolving_symbol;
@@ -1244,6 +1352,42 @@ void resolve_function(
 	func_body.state = ast::resolve_state::all;
 
 	context_ptr->remove_scope();
+}
+
+void resolve_function(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	if (func_body.state >= ast::resolve_state::all || func_body.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (
+		func_body.state == ast::resolve_state::resolving_parameters
+		|| func_body.state == ast::resolve_state::resolving_symbol
+		|| func_body.state == ast::resolve_state::resolving_all
+	)
+	{
+		context.report_circular_dependency_error(func_body);
+		return;
+	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	// this check is needed because of generic built-in functions like __builtin_slice_size
+	if (func_body.src_tokens.pivot != nullptr)
+	{
+		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
+		if (original_file_id != stmt_file_id)
+		{
+			context.set_current_file(stmt_file_id);
+		}
+	}
+	resolve_function_impl(func_stmt, func_body, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 static ast::function_body parse_function_body(
@@ -1470,16 +1614,11 @@ template ast::statement parse_decl_operator<true>(
 	ctx::parse_context &context
 );
 
-void resolve_type_info_symbol(
+static void resolve_type_info_symbol_impl(
 	ast::type_info &info,
 	[[maybe_unused]] ctx::parse_context &context
 )
 {
-	if (info.state >= ast::resolve_state::symbol || info.state == ast::resolve_state::error)
-	{
-		return;
-	}
-	bz_assert(info.state != ast::resolve_state::resolving_symbol);
 	if (info.type_name.is_qualified)
 	{
 		info.symbol_name = bz::format("struct.{}", info.type_name.format_as_unqualified());
@@ -1491,23 +1630,39 @@ void resolve_type_info_symbol(
 	info.state = ast::resolve_state::symbol;
 }
 
-void resolve_type_info(
+void resolve_type_info_symbol(
 	ast::type_info &info,
 	ctx::parse_context &context
 )
 {
-	if (info.state >= ast::resolve_state::all || info.state == ast::resolve_state::error)
+	if (info.state >= ast::resolve_state::symbol || info.state == ast::resolve_state::error)
 	{
 		return;
 	}
-	else if (info.state == ast::resolve_state::resolving_all)
+	bz_assert(info.state != ast::resolve_state::resolving_symbol);
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
 	{
-		context.report_circular_dependency_error(info);
-		info.state = ast::resolve_state::error;
-		return;
+		context.set_current_file(stmt_file_id);
 	}
-	resolve_type_info_symbol(info, context);
-	if (info.kind == ast::type_info::forward_declaration)
+	resolve_type_info_symbol_impl(info, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
+}
+
+static void resolve_type_info_impl(
+	ast::type_info &info,
+	ctx::parse_context &context
+)
+{
+	if (info.state < ast::resolve_state::symbol)
+	{
+		resolve_type_info_symbol_impl(info, context);
+	}
+	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
 	{
 		return;
 	}
@@ -1588,6 +1743,34 @@ void resolve_type_info(
 	{
 		info.state = ast::resolve_state::all;
 	}
+}
+
+void resolve_type_info(
+	ast::type_info &info,
+	ctx::parse_context &context
+)
+{
+	if (info.state >= ast::resolve_state::all || info.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (info.state == ast::resolve_state::resolving_all)
+	{
+		context.report_circular_dependency_error(info);
+		info.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const original_file_id = context.current_file_id;
+	auto const origial_scope    = context.current_scope;
+	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
+	if (original_file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_type_info_impl(info, context);
+	context.current_file_id = original_file_id;
+	context.current_scope   = origial_scope;
 }
 
 static ast::statement parse_decl_struct_impl(
@@ -2535,65 +2718,33 @@ void resolve_global_statement(
 	ctx::parse_context &context
 )
 {
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
 	stmt.visit(bz::overload{
 		[&](ast::decl_function &func_decl) {
-			auto const stmt_file_id = func_decl.id.tokens.begin->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, func_decl.body);
 			resolve_function(stmt, func_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_operator &op_decl) {
-			auto const stmt_file_id = op_decl.op->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, op_decl.body);
 			resolve_function(stmt, op_decl.body, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_function_alias &alias_decl) {
-			auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_function_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_type_alias &alias_decl) {
-			auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, alias_decl);
 			resolve_type_alias(alias_decl, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_struct &struct_decl) {
-			auto const stmt_file_id = struct_decl.id.tokens.begin->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, struct_decl.info);
 			resolve_type_info(struct_decl.info, context);
 			context.pop_resolve_queue();
 		},
 		[&](ast::decl_variable &var_decl) {
-			auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			context.add_to_resolve_queue({}, var_decl);
 			resolve_variable(var_decl, context);
 			context.pop_resolve_queue();
@@ -2611,11 +2762,6 @@ void resolve_global_statement(
 			}
 		},
 		[&](ast::stmt_static_assert &static_assert_stmt) {
-			auto const stmt_file_id = static_assert_stmt.static_assert_pos->src_pos.file_id;
-			if (original_file_id != stmt_file_id)
-			{
-				context.set_current_file(stmt_file_id);
-			}
 			resolve_stmt_static_assert(static_assert_stmt, context);
 		},
 		[](ast::decl_import) {
@@ -2626,8 +2772,6 @@ void resolve_global_statement(
 		}
 	});
 	resolve_attributes(stmt, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
 }
 
 } // namespace parse
