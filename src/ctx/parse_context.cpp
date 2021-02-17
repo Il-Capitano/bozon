@@ -582,7 +582,9 @@ void parse_context::report_parenthesis_suppressed_warning(
 void parse_context::set_current_file(uint32_t file_id)
 {
 	this->current_file_id = file_id;
-	this->current_scope   = this->global_ctx.get_src_file(file_id)._scope;
+	auto &file = this->global_ctx.get_src_file(file_id);
+	this->current_scope   = file._scope;
+	this->global_decls    = &file._global_decls;
 }
 
 bool parse_context::has_errors(void) const
@@ -1416,7 +1418,8 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	}
 
 	// builtin types
-	if (!id.is_qualified && id.values.size() == 1)
+	// qualification doesn't matter here, they act as globally defined types
+	if (id.values.size() == 1)
 	{
 		auto const id_value = id.values.front();
 		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.has_value())

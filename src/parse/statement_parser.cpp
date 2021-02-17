@@ -215,16 +215,14 @@ static void resolve_stmt_static_assert(
 	ctx::parse_context &context
 )
 {
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = static_assert_stmt.static_assert_pos->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_stmt_static_assert_impl(static_assert_stmt, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 template<bool is_global>
@@ -573,16 +571,14 @@ void resolve_variable_symbol(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_variable_symbol_impl(var_decl, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static void resolve_variable_impl(
@@ -624,16 +620,14 @@ void resolve_variable(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_variable_impl(var_decl, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 template<bool is_global>
@@ -815,16 +809,14 @@ void resolve_type_alias(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_type_alias_impl(alias_decl, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 template<bool is_global>
@@ -967,16 +959,14 @@ void resolve_function_alias(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_function_alias_impl(alias_decl, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static bool resolve_function_parameters_helper(
@@ -1056,16 +1046,14 @@ void resolve_function_parameters(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_function_parameters_impl(func_stmt, func_body, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static bool resolve_function_return_type_helper(
@@ -1272,16 +1260,14 @@ void resolve_function_symbol(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_function_symbol_impl(func_stmt, func_body, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static void resolve_function_impl(
@@ -1374,20 +1360,18 @@ void resolve_function(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	// this check is needed because of generic built-in functions like __builtin_slice_size
 	if (func_body.src_tokens.pivot != nullptr)
 	{
 		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-		if (original_file_id != stmt_file_id)
+		if (original_file_info.file_id != stmt_file_id)
 		{
 			context.set_current_file(stmt_file_id);
 		}
 	}
 	resolve_function_impl(func_stmt, func_body, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static ast::function_body parse_function_body(
@@ -1641,16 +1625,14 @@ void resolve_type_info_symbol(
 	}
 	bz_assert(info.state != ast::resolve_state::resolving_symbol);
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_type_info_symbol_impl(info, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static void resolve_type_info_impl(
@@ -1761,16 +1743,14 @@ void resolve_type_info(
 		return;
 	}
 
-	auto const original_file_id = context.current_file_id;
-	auto const origial_scope    = context.current_scope;
+	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
-	if (original_file_id != stmt_file_id)
+	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
 	}
 	resolve_type_info_impl(info, context);
-	context.current_file_id = original_file_id;
-	context.current_scope   = origial_scope;
+	context.set_current_file_info(original_file_info);
 }
 
 static ast::statement parse_decl_struct_impl(
@@ -2219,17 +2199,13 @@ ast::statement parse_global_statement(
 	}
 	else
 	{
-		auto const original_file_id = context.current_file_id;
-		auto const origial_scope    = context.current_scope;
-
-		if (stream->src_pos.file_id != original_file_id)
+		auto const original_file_info = context.get_current_file_info();
+		if (stream->src_pos.file_id != original_file_info.file_id)
 		{
 			context.set_current_file(stream->src_pos.file_id);
 		}
 		auto const result = parse_fn(stream, end, context);
-
-		context.current_file_id = original_file_id;
-		context.current_scope   = origial_scope;
+		context.set_current_file_info(original_file_info);
 		return result;
 	}
 }

@@ -268,6 +268,25 @@ struct parse_context
 
 	void set_current_file(uint32_t file_id);
 
+	struct src_file_info_t
+	{
+		uint32_t file_id;
+		bz::array_view<bz::u8string_view const> scope;
+		decl_set *global_decls;
+	};
+
+	src_file_info_t get_current_file_info(void) const noexcept
+	{
+		return { this->current_file_id, this->current_scope, this->global_decls };
+	}
+
+	void set_current_file_info(src_file_info_t info) noexcept
+	{
+		this->current_file_id = info.file_id;
+		this->current_scope   = info.scope;
+		this->global_decls    = info.global_decls;
+	}
+
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;

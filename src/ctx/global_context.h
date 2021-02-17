@@ -110,6 +110,18 @@ struct global_context
 		};
 	}
 
+	src_file &get_src_file(uint32_t file_id) noexcept
+	{
+		auto const it = std::find_if(
+			this->_src_files.begin(), this->_src_files.end(),
+			[&](auto const &src_file) {
+				return file_id == src_file._file_id;
+			}
+		);
+		bz_assert(it != this->_src_files.end());
+		return *it;
+	}
+
 	src_file const &get_src_file(uint32_t file_id) const noexcept
 	{
 		auto const it = std::find_if(
