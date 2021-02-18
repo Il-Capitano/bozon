@@ -207,7 +207,7 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		this->report_error(error{
 			warning_kind::_last,
 			id.tokens.begin->src_pos.file_id, id.tokens.begin->src_pos.line,
-			id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.end,
+			id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.begin, (id.tokens.end - 1)->src_pos.end,
 			bz::format("unable to find module '{}'", id.as_string()),
 			{}, {}
 		});
