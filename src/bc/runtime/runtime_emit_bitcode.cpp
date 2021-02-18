@@ -182,8 +182,13 @@ static val_ptr emit_bitcode(
 	}
 	case lex::token::minus:              // '-'
 	{
+		auto const expr_t = ast::remove_const_or_consteval(unary_op.expr.get_expr_type_and_kind().first);
+		bz_assert(expr_t.is<ast::ts_base_type>());
+		auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
 		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr).get_value(context.builder);
-		auto const res = context.builder.CreateNeg(val, "unary_minus_tmp");
+		auto const res = ctx::is_floating_point_kind(expr_kind)
+			? context.builder.CreateFNeg(val, "unary_minus_tmp")
+			: context.builder.CreateNeg(val, "unary_minus_tmp");
 		if (result_address == nullptr)
 		{
 			return { val_ptr::value, res };
