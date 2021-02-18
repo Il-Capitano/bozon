@@ -2750,7 +2750,7 @@ static match_level_t get_function_call_match_level(
 	match_level_t result = bz::vector<match_level_t>{};
 	auto &result_vec = result.get<bz::vector<match_level_t>>();
 	result_vec.push_back(get_type_match_level(func_body.params[0].var_type, lhs, context));
-	result_vec.push_back(get_type_match_level(func_body.params[0].var_type, rhs, context));
+	result_vec.push_back(get_type_match_level(func_body.params[1].var_type, rhs, context));
 	if (result_vec[0].is_null() || result_vec[1].is_null())
 	{
 		result.clear();
@@ -2916,7 +2916,6 @@ ast::expression parse_context::make_unary_operator_expression(
 	}
 
 	bz::vector<possible_func_t> possible_funcs = {};
-	bz::vector<size_t> scope_decl_counts = { 0 };
 
 	// we go through the scope decls for a matching declaration
 	for (
@@ -2925,10 +2924,6 @@ ast::expression parse_context::make_unary_operator_expression(
 		++scope
 	)
 	{
-		if (scope_decl_counts.back() != 0)
-		{
-			scope_decl_counts.push_back(0);
-		}
 		auto const set = std::find_if(
 			scope->op_sets.begin(), scope->op_sets.end(),
 			[op = op->kind](auto const &op_set) {
@@ -2944,15 +2939,9 @@ ast::expression parse_context::make_unary_operator_expression(
 				if (match_level.not_null())
 				{
 					possible_funcs.push_back({ std::move(match_level), op, &body });
-					scope_decl_counts.back() += 1;
 				}
 			}
 		}
-	}
-
-	if (scope_decl_counts.back() != 0)
-	{
-		scope_decl_counts.push_back(0);
 	}
 
 	auto &global_decls = *this->global_decls;
@@ -2971,7 +2960,6 @@ ast::expression parse_context::make_unary_operator_expression(
 			if (match_level.not_null())
 			{
 				possible_funcs.push_back({ std::move(match_level), op, &body });
-				scope_decl_counts.back() += 1;
 			}
 		}
 	}
@@ -3078,7 +3066,6 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 
 	bz::vector<possible_func_t> possible_funcs = {};
-	bz::vector<size_t> scope_decl_counts = { 0 };
 
 	// we go through the scope decls for a matching declaration
 	for (
@@ -3087,10 +3074,6 @@ ast::expression parse_context::make_binary_operator_expression(
 		++scope
 	)
 	{
-		if (scope_decl_counts.back() != 0)
-		{
-			scope_decl_counts.push_back(0);
-		}
 		auto const set = std::find_if(
 			scope->op_sets.begin(), scope->op_sets.end(),
 			[op = op->kind](auto const &op_set) {
@@ -3106,15 +3089,9 @@ ast::expression parse_context::make_binary_operator_expression(
 				if (match_level.not_null())
 				{
 					possible_funcs.push_back({ std::move(match_level), op, &body });
-					scope_decl_counts.back() += 1;
 				}
 			}
 		}
-	}
-
-	if (scope_decl_counts.back() != 0)
-	{
-		scope_decl_counts.push_back(0);
 	}
 
 	auto &global_decls = *this->global_decls;
@@ -3133,7 +3110,6 @@ ast::expression parse_context::make_binary_operator_expression(
 			if (match_level.not_null())
 			{
 				possible_funcs.push_back({ std::move(match_level), op, &body });
-				scope_decl_counts.back() += 1;
 			}
 		}
 	}
@@ -3524,6 +3500,12 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
+		if (info->state != ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(called.src_tokens, *info);
+			parse::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
