@@ -59,4 +59,6 @@ export function tgamma = __builtin_tgamma_f64;
 export function lgamma = __builtin_lgamma_f32;
 export function lgamma = __builtin_lgamma_f64;
 
-export consteval pi = 3.14159265358979323846;
+export consteval pi  = atan2(0.0, -1.0);
+export consteval tau = 2.0 * pi;
+export consteval e   = exp(1.0);
