@@ -104,6 +104,24 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind)
 	return &this->_builtin_functions[kind];
 }
 
+bz::array_view<ast::function_body * const> global_context::get_builtin_universal_functions(bz::u8string_view id)
+{
+	auto const it = std::find_if(
+		this->_builtin_universal_functions.begin(), this->_builtin_universal_functions.end(),
+		[id](auto const &set) {
+			return id == set.id;
+		}
+	);
+	if (it != this->_builtin_universal_functions.end())
+	{
+		return it->funcs;
+	}
+	else
+	{
+		return {};
+	}
+}
+
 
 bool global_context::has_errors(void) const
 {

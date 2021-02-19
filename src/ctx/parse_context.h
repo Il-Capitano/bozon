@@ -53,6 +53,7 @@ struct parse_context
 	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
 	ast::function_body *get_builtin_function(uint32_t kind) const;
+	bz::array_view<ast::function_body * const> get_builtin_universal_functions(bz::u8string_view id);
 
 	void report_error(lex::token_pos it) const;
 	void report_error(

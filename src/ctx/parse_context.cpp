@@ -35,6 +35,11 @@ ast::function_body *parse_context::get_builtin_function(uint32_t kind) const
 	return this->global_ctx.get_builtin_function(kind);
 }
 
+bz::array_view<ast::function_body * const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
+{
+	return this->global_ctx.get_builtin_universal_functions(id);
+}
+
 static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context const &context)
 {
 	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())
@@ -3425,23 +3430,13 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 	bz::vector<possible_func_t> possible_funcs = {};
 	if (id.values.size() == 1)
 	{
-		auto const id_value = id.values.front();
-		auto const &universal_functions = context.global_ctx._builtin_universal_functions;
-		auto const it = std::find_if(
-			universal_functions.begin(), universal_functions.end(),
-			[id_value](auto const &set) {
-				return id_value == set.id;
-			}
-		);
-		if (it != universal_functions.end())
+		auto const bodies = context.get_builtin_universal_functions(id.values.front());
+		for (auto const body : bodies)
 		{
-			for (auto const body : it->funcs)
+			auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
+			if (match_level.not_null())
 			{
-				auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), {}, body });
-				}
+				possible_funcs.push_back({ std::move(match_level), {}, body });
 			}
 		}
 	}
