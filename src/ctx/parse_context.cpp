@@ -3746,6 +3746,15 @@ ast::expression parse_context::make_member_access_expression(
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
 	auto const base_t = ast::remove_const_or_consteval(base_type);
+	if (
+		auto const info = base_t.is<ast::ts_base_type>() ? base_t.get<ast::ts_base_type>().info : nullptr;
+		info != nullptr && info->state != ast::resolve_state::all
+	)
+	{
+		this->add_to_resolve_queue(src_tokens, *info);
+		parse::resolve_type_info(*info, *this);
+		this->pop_resolve_queue();
+	}
 	auto const members = [&]() -> bz::array_view<ast::member_variable> {
 		if (base_t.is<ast::ts_base_type>())
 		{
