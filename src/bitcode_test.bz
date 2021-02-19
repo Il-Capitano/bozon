@@ -6,6 +6,7 @@ import std::file;
 import std::complex;
 
 import std::libc::math;
+import std::libc::stdlib;
 
 //	/*
 function assert(b: bool) -> void
@@ -149,11 +150,10 @@ function main(args: [: const str]) -> int32
 	std::println("\n==== struct_test ====");
 	struct_test();
 
+	std::println("\n==== complex_test ====");
+	complex_test();
+
 	std::println("\n==== end main ====");
-	const z1 = std::complex[1.0, -12.35];
-	const double_z = z1 + z1;
-	std::println(z1.abs());
-	std::println(double_z.abs());
 	std::println(std::exp(1.0));
 	static_assert(typeof std::exp(1.0) == float64);
 
@@ -169,6 +169,12 @@ function main(args: [: const str]) -> int32
 	std::println(std::tau);
 
 	arr2_tester();
+
+	for (let i = 0; i < 10; ++i)
+	{
+		std::print("rand(): ");
+		std::println(std::libc::rand());
+	}
 
 
 	return 0;
@@ -1098,4 +1104,30 @@ function struct_test()
 	let sum = v + v;
 	// static_assert(v + v - v == v);
 	std::print(sum.x), std::print(", "), std::println(sum.y);
+}
+
+function complex_test()
+{
+	function println(z: std::complex)
+	{
+		std::print(z.re);
+		if (z.im >= 0.0)
+		{
+			std::print('-');
+		}
+		std::print(z.im);
+		std::println('i');
+	}
+
+	const z1 = std::complex[1.0, -12.35];
+	const double_z = z1 + z1;
+	std::println(z1.abs());
+	std::println(double_z.abs());
+
+	println(z1);
+	println(z1 * z1);
+	println(z1 * z1.conjugate());
+	std::println(z1.abs());
+	std::println((z1 * z1).abs());
+	std::println(z1.abs_square());
 }
