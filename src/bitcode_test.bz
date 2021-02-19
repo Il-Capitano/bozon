@@ -53,11 +53,7 @@ function main(args: [: const str]) -> int32
 	// let i: void;
 	global[0] = 5;
 	// c = 3;
-	std::println(std::pi);
-	const size = __builtin_slice_size(args);
-	static_assert(typeof size == const uint64);
-	std::println(size);
-	for (let i = 0u64; i < size; ++i)
+	for (let i = 0u64; i < args.size(); ++i)
 	{
 		std::println(args[i]);
 	}
@@ -167,6 +163,10 @@ function main(args: [: const str]) -> int32
 	std::println(s1 != s2);
 	std::logln("Hello from stderr");
 	std::logln("Hello again from stderr");
+
+	std::println(std::pi);
+	std::println(std::e);
+	std::println(std::tau);
 
 	arr2_tester();
 
@@ -902,7 +902,7 @@ function phi_test(x: int32, b: bool) -> int32
 	return result;
 }
 
-export function str_pointer_test()
+function str_pointer_test()
 {
 	const s = "hello";
 	const begin = __builtin_str_begin_ptr(s);
@@ -974,11 +974,11 @@ function consteval_test(i: if (true) int32 else int64)
 	consteval a = (if (false) i else 234);
 	static_assert(a == 234);
 
-	consteval len = __builtin_str_length("Hello");
+	consteval len = "Hello".length();
 	static_assert(len == 5u);
 	consteval str = "Helló";
-	consteval len  = __builtin_str_length(str);
-	consteval size = __builtin_str_size(str);
+	consteval len  = str.length();
+	consteval size = str.size();
 	static_assert(len == 5u);
 	static_assert(size == 6u);
 	static_assert(len != size);
