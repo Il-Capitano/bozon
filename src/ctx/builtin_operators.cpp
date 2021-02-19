@@ -268,7 +268,7 @@ static ast::expression get_builtin_unary_address_of(
 	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
-	auto result_type = type;
+	ast::typespec result_type = type;
 	result_type.add_layer<ast::ts_pointer>(nullptr);
 	if (
 		type_kind == ast::expression_type_kind::lvalue
@@ -513,7 +513,7 @@ static ast::expression get_type_op_unary_reference(
 		? lex::src_tokens{ op, op, op + 1 }
 		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
-	auto result_type = expr.get_typename();
+	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "reference to consteval type is not allowed");
@@ -551,7 +551,7 @@ static ast::expression get_type_op_unary_pointer(
 		? lex::src_tokens{ op, op, op + 1 }
 		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
-	auto result_type = expr.get_typename();
+	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "pointer to reference is not allowed");
@@ -588,7 +588,7 @@ static ast::expression get_type_op_unary_const(
 		? lex::src_tokens{ op, op, op + 1 }
 		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
-	auto result_type = expr.get_typename();
+	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "a reference type cannot be 'const'");
@@ -693,17 +693,17 @@ static ast::expression get_builtin_unary_typeof(
 		return ast::expression(src_tokens);
 	}
 
-	auto res_type = type;
+	ast::typespec result_type = type;
 	bz_assert(type.has_value());
 	if (kind == ast::expression_type_kind::lvalue_reference)
 	{
-		res_type.add_layer<ast::ts_lvalue_reference>(nullptr);
+		result_type.add_layer<ast::ts_lvalue_reference>(nullptr);
 	}
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(res_type),
+		std::move(result_type),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
@@ -3204,7 +3204,7 @@ ast::expression make_builtin_subscript_operator(
 
 		auto const result_kind = called_kind;
 
-		auto result_type = [&]() {
+		ast::typespec result_type = [&]() {
 			auto &elem_type = array_t.elem_type;
 
 			if (array_t.sizes.size() == 1)

@@ -188,7 +188,7 @@ struct expression : bz::variant<
 		}
 	}
 
-	std::pair<typespec const &, expression_type_kind> get_expr_type_and_kind(void) const noexcept
+	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept
 	{
 		switch (this->kind())
 		{
@@ -203,31 +203,7 @@ struct expression : bz::variant<
 			return { dyn_expr.type, dyn_expr.kind };
 		}
 		default:
-			bz_unreachable;
-			return { ast::typespec(), static_cast<ast::expression_type_kind>(0) };
-		}
-	}
-
-	std::pair<typespec &, expression_type_kind> get_expr_type_and_kind(void) noexcept
-	{
-		switch (this->kind())
-		{
-		case ast::expression::index_of<ast::constant_expression>:
-		{
-			auto &const_expr = this->get<ast::constant_expression>();
-			return { const_expr.type, const_expr.kind };
-		}
-		case ast::expression::index_of<ast::dynamic_expression>:
-		{
-			auto &dyn_expr = this->get<ast::dynamic_expression>();
-			return { dyn_expr.type, dyn_expr.kind };
-		}
-		default:
-		{
-			bz_unreachable;
-			auto t = ast::typespec();
-			return { t, static_cast<expression_type_kind>(0) };
-		}
+			return { ast::typespec_view(), static_cast<ast::expression_type_kind>(0) };
 		}
 	}
 
