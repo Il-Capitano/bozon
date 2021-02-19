@@ -32,4 +32,45 @@ ast::expression parse_parenthesized_condition(
 	return condition;
 }
 
+ast::identifier get_identifier(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	if (
+		stream == end
+		|| (stream->kind != lex::token::identifier && stream->kind != lex::token::scope)
+	)
+	{
+		context.assert_token(stream, lex::token::identifier);
+		return ast::identifier{};
+	}
+
+	auto const begin_token = stream;
+	auto const is_qualified = stream->kind == lex::token::scope;
+	auto is_last_scope = !is_qualified;
+	while (stream != end)
+	{
+		if (is_last_scope && stream->kind == lex::token::identifier)
+		{
+			++stream;
+		}
+		else if (!is_last_scope && stream->kind == lex::token::scope)
+		{
+			++stream;
+		}
+		else
+		{
+			break;
+		}
+		is_last_scope = !is_last_scope;
+	}
+	auto const end_token = stream;
+	if (is_last_scope)
+	{
+		context.assert_token(stream, lex::token::identifier);
+	}
+	return ast::make_identifier({ begin_token, end_token });
+}
+
 } // namespace parse

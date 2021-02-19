@@ -324,6 +324,12 @@ struct parse_context
 		ast::expression called,
 		bz::vector<ast::expression> params
 	);
+	ast::expression make_universal_function_call_expression(
+		lex::src_tokens src_tokens,
+		ast::expression base,
+		ast::identifier id,
+		bz::vector<ast::expression> params
+	);
 	ast::expression make_subscript_operator_expression(
 		lex::src_tokens src_tokens,
 		ast::expression called,

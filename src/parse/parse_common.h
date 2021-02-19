@@ -464,6 +464,11 @@ ast::expression parse_if_expression(
 	ctx::parse_context &context
 );
 
+ast::identifier get_identifier(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
 } // namespace parse
 
 #endif // PARSE_PARSE_COMMON_H

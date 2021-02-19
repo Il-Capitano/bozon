@@ -71,7 +71,7 @@ static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context
 		}
 	}
 
-	for (auto const &required_from : bz::reversed(body.generic_required_from))
+	for (auto const &required_from : body.generic_required_from.reversed())
 	{
 		if (required_from.second == nullptr)
 		{
@@ -213,7 +213,7 @@ static bz::vector<note> get_circular_notes(T *decl, parse_context const &context
 {
 	bz::vector<note> notes = {};
 	int count = 0;
-	for (auto const &dep : bz::reversed(context.resolve_queue))
+	for (auto const &dep : context.resolve_queue.reversed())
 	{
 		if (!notes.empty())
 		{
@@ -1231,28 +1231,24 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	// in case there's shadowing
 	lex::src_tokens const src_tokens = { id.tokens.begin, id.tokens.begin, id.tokens.end };
 
-	for (
-		auto scope = this->scope_decls.rbegin();
-		scope != this->scope_decls.rend();
-		++scope
-	)
+	for (auto &scope : this->scope_decls.reversed())
 	{
-		if (auto const var_decl = find_var_decl_in_local_scope(*scope, id))
+		if (auto const var_decl = find_var_decl_in_local_scope(scope, id))
 		{
 			return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
 		}
 
-		if (auto const fn_set = find_func_set_in_local_scope(*scope, id))
+		if (auto const fn_set = find_func_set_in_local_scope(scope, id))
 		{
 			return make_function_name_expression(src_tokens, std::move(id), fn_set, *this);
 		}
 
-		if (auto const type = find_type_in_local_scope(*scope, id))
+		if (auto const type = find_type_in_local_scope(scope, id))
 		{
 			return make_type_expression(src_tokens, std::move(id), type, *this);
 		}
 
-		if (auto const type_alias = find_type_alias_in_local_scope(*scope, id))
+		if (auto const type_alias = find_type_alias_in_local_scope(scope, id))
 		{
 			return make_type_alias_expression(src_tokens, std::move(id), type_alias, *this);
 		}
@@ -2878,6 +2874,62 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	return { {}, nullptr };
 }
 
+static ast::expression make_expr_function_call_from_body(
+	lex::src_tokens src_tokens,
+	ast::function_body *body,
+	bz::vector<ast::expression> params,
+	parse_context &context,
+	ast::resolve_order resolve_order = ast::resolve_order::regular
+)
+{
+	if (body->is_generic())
+	{
+		auto required_from = get_generic_requirements(src_tokens, context);
+		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
+		context.add_to_resolve_queue(src_tokens, *specialized_body);
+		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+		{
+			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+		}
+		context.pop_resolve_queue();
+		body = body->add_specialized_body(std::move(specialized_body));
+		context.add_to_resolve_queue(src_tokens, *body);
+		bz_assert(!body->is_generic());
+		if (!context.generic_functions.contains(body))
+		{
+			context.generic_functions.push_back(body);
+		}
+	}
+	else
+	{
+		context.add_to_resolve_queue(src_tokens, *body);
+		for (auto const [param, func_body_param] : bz::zip(params, body->params))
+		{
+			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+		}
+	}
+	parse::resolve_function_symbol({}, *body, context);
+	context.pop_resolve_queue();
+	if (body->state == ast::resolve_state::error)
+	{
+		return ast::expression(src_tokens);
+	}
+
+	auto &ret_t = body->return_type;
+	auto return_type_kind = ast::expression_type_kind::rvalue;
+	auto return_type = ast::remove_const_or_consteval(ret_t);
+	if (ret_t.is<ast::ts_lvalue_reference>())
+	{
+		return_type_kind = ast::expression_type_kind::lvalue_reference;
+		return_type = ret_t.get<ast::ts_lvalue_reference>();
+	}
+	return ast::make_dynamic_expression(
+		src_tokens,
+		return_type_kind, return_type,
+		ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order)
+	);
+}
+
 ast::expression parse_context::make_unary_operator_expression(
 	lex::src_tokens src_tokens,
 	lex::token_pos op,
@@ -2918,19 +2970,15 @@ ast::expression parse_context::make_unary_operator_expression(
 	bz::vector<possible_func_t> possible_funcs = {};
 
 	// we go through the scope decls for a matching declaration
-	for (
-		auto scope = this->scope_decls.rbegin();
-		scope != this->scope_decls.rend();
-		++scope
-	)
+	for (auto &scope : this->scope_decls.reversed())
 	{
 		auto const set = std::find_if(
-			scope->op_sets.begin(), scope->op_sets.end(),
+			scope.op_sets.begin(), scope.op_sets.end(),
 			[op = op->kind](auto const &op_set) {
 				return op == op_set.op;
 			}
 		);
-		if (set != scope->op_sets.end())
+		if (set != scope.op_sets.end())
 		{
 			for (auto &op : set->op_decls)
 			{
@@ -2964,40 +3012,16 @@ ast::expression parse_context::make_unary_operator_expression(
 		}
 	}
 
-	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		bz_assert(!best_body->is_generic());
-		this->add_to_resolve_queue(src_tokens, *best_body);
-		match_expression_to_type_impl(expr, best_body->params[0].var_type, best_body->params[0].var_type, *this);
-		if (best_stmt.is<ast::decl_function>())
-		{
-			parse::resolve_function_symbol(best_stmt, *best_body, *this);
-		}
-		else
-		{
-			parse::resolve_function_symbol({}, *best_body, *this);
-		}
-		this->pop_resolve_queue();
-		auto &ret_t = best_body->return_type;
-		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = ast::remove_const_or_consteval(ret_t);
-		if (ret_t.is<ast::ts_lvalue_reference>())
-		{
-			return_type_kind = ast::expression_type_kind::lvalue_reference;
-			return_type = ret_t.get<ast::ts_lvalue_reference>();
-		}
-		bz::vector<ast::expression> params = {};
+		bz::vector<ast::expression> params;
 		params.emplace_back(std::move(expr));
-		return ast::make_dynamic_expression(
-			src_tokens,
-			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best_body, ast::resolve_order::regular)
-		);
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
 	}
 }
 
@@ -3068,19 +3092,15 @@ ast::expression parse_context::make_binary_operator_expression(
 	bz::vector<possible_func_t> possible_funcs = {};
 
 	// we go through the scope decls for a matching declaration
-	for (
-		auto scope = this->scope_decls.rbegin();
-		scope != this->scope_decls.rend();
-		++scope
-	)
+	for (auto &scope : this->scope_decls.reversed())
 	{
 		auto const set = std::find_if(
-			scope->op_sets.begin(), scope->op_sets.end(),
+			scope.op_sets.begin(), scope.op_sets.end(),
 			[op = op->kind](auto const &op_set) {
 				return op == op_set.op;
 			}
 		);
-		if (set != scope->op_sets.end())
+		if (set != scope.op_sets.end())
 		{
 			for (auto &op : set->op_decls)
 			{
@@ -3121,39 +3141,13 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 	else
 	{
-		bz_assert(!best_body->is_generic());
-		this->add_to_resolve_queue(src_tokens, *best_body);
-		match_expression_to_type_impl(lhs, best_body->params[0].var_type, best_body->params[0].var_type, *this);
-		match_expression_to_type_impl(rhs, best_body->params[1].var_type, best_body->params[1].var_type, *this);
-		if (best_stmt.is<ast::decl_function>())
-		{
-			parse::resolve_function_symbol(best_stmt, *best_body, *this);
-		}
-		else
-		{
-			parse::resolve_function_symbol({}, *best_body, *this);
-		}
-		this->pop_resolve_queue();
-		auto &ret_t = best_body->return_type;
-		auto return_type_kind = ast::expression_type_kind::rvalue;
-		auto return_type = ast::remove_const_or_consteval(ret_t);
-		if (ret_t.is<ast::ts_lvalue_reference>())
-		{
-			return_type_kind = ast::expression_type_kind::lvalue_reference;
-			return_type = ret_t.get<ast::ts_lvalue_reference>();
-		}
-		bz::vector<ast::expression> params = {};
-		params.reserve(2);
+		bz::vector<ast::expression> params;
 		params.emplace_back(std::move(lhs));
 		params.emplace_back(std::move(rhs));
 		auto const resolve_order = get_binary_precedence(op->kind).is_left_associative
 			? ast::resolve_order::regular
 			: ast::resolve_order::reversed;
-		return ast::make_dynamic_expression(
-			src_tokens,
-			return_type_kind, return_type,
-			ast::make_expr_function_call(src_tokens, std::move(params), best_body, resolve_order)
-		);
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this, resolve_order);
 	}
 }
 
@@ -3166,20 +3160,16 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 {
 	if (id.size() == 1)
 	{
-		for (
-			auto scope = context.scope_decls.rbegin();
-			scope != context.scope_decls.rend();
-			++scope
-		)
+		for (auto &scope : context.scope_decls.reversed())
 		{
 			auto const set = std::find_if(
-				scope->func_sets.begin(), scope->func_sets.end(),
+				scope.func_sets.begin(), scope.func_sets.end(),
 				[id](auto const &fn_set) {
 					bz_assert(!fn_set.id.is_qualified && fn_set.id.values.size() == 1);
 					return id.front() == fn_set.id.values.front();
 				}
 			);
-			if (set != scope->func_sets.end())
+			if (set != scope.func_sets.end())
 			{
 				bz::vector<possible_func_t> possible_funcs = {};
 				for (auto &fn : set->func_decls)
@@ -3320,7 +3310,7 @@ ast::expression parse_context::make_function_call_expression(
 		auto &const_called = called.get<ast::constant_expression>();
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
-			auto func_body = const_called.value.get<ast::constant_value::function>();
+			auto const func_body = const_called.value.get<ast::constant_value::function>();
 			if (get_function_call_match_level({}, *func_body, params, *this, src_tokens).is_null())
 			{
 				if (func_body->state != ast::resolve_state::error)
@@ -3344,51 +3334,7 @@ ast::expression parse_context::make_function_call_expression(
 				return ast::expression(src_tokens);
 			}
 
-			if (func_body->is_generic())
-			{
-				auto required_from = get_generic_requirements(src_tokens, *this);
-				auto specialized_body = func_body->get_copy_for_generic_specialization(std::move(required_from));
-				this->add_to_resolve_queue(src_tokens, *specialized_body);
-				for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
-				{
-					match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, *this);
-				}
-				this->pop_resolve_queue();
-				func_body = func_body->add_specialized_body(std::move(specialized_body));
-				this->add_to_resolve_queue(src_tokens, *func_body);
-				if (!this->generic_functions.contains(func_body))
-				{
-					this->generic_functions.push_back(func_body);
-				}
-			}
-			else
-			{
-				this->add_to_resolve_queue(src_tokens, *func_body);
-				for (auto const [param, func_body_param] : bz::zip(params, func_body->params))
-				{
-					match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, *this);
-				}
-			}
-			parse::resolve_function_symbol({}, *func_body, *this);
-			this->pop_resolve_queue();
-			if (func_body->state == ast::resolve_state::error)
-			{
-				return ast::expression(src_tokens);
-			}
-
-			auto &ret_t = func_body->return_type;
-			auto return_type_kind = ast::expression_type_kind::rvalue;
-			auto return_type = ast::remove_const_or_consteval(ret_t);
-			if (ret_t.is<ast::ts_lvalue_reference>())
-			{
-				return_type_kind = ast::expression_type_kind::lvalue_reference;
-				return_type = ret_t.get<ast::ts_lvalue_reference>();
-			}
-			return ast::make_dynamic_expression(
-				src_tokens,
-				return_type_kind, return_type,
-				ast::make_expr_function_call(src_tokens, std::move(params), func_body, ast::resolve_order::regular)
-			);
+			return make_expr_function_call_from_body(src_tokens, func_body, std::move(params), *this);
 		}
 		else
 		{
@@ -3406,66 +3352,14 @@ ast::expression parse_context::make_function_call_expression(
 					src_tokens, params, *this
 				);
 
-			auto [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-			if (best_stmt.is_null())
+			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+			if (best_body == nullptr)
 			{
 				return ast::expression(src_tokens);
 			}
 			else
 			{
-				if (best_body->is_generic())
-				{
-					auto required_from = get_generic_requirements(src_tokens, *this);
-					auto specialized_body = best_body->get_copy_for_generic_specialization(std::move(required_from));
-					this->add_to_resolve_queue(src_tokens, *specialized_body);
-					for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
-					{
-						match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, *this);
-					}
-					this->pop_resolve_queue();
-					best_body = best_body->add_specialized_body(std::move(specialized_body));
-					this->add_to_resolve_queue(src_tokens, *best_body);
-					bz_assert(!best_body->is_generic());
-					if (!this->generic_functions.contains(best_body))
-					{
-						this->generic_functions.push_back(best_body);
-					}
-				}
-				else
-				{
-					this->add_to_resolve_queue(src_tokens, *best_body);
-					for (auto const [param, func_body_param] : bz::zip(params, best_body->params))
-					{
-						match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, *this);
-					}
-				}
-				if (best_stmt.is<ast::decl_function>())
-				{
-					parse::resolve_function_symbol(best_stmt, *best_body, *this);
-				}
-				else
-				{
-					parse::resolve_function_symbol({}, *best_body, *this);
-				}
-				this->pop_resolve_queue();
-				if (best_body->state == ast::resolve_state::error)
-				{
-					return ast::expression(src_tokens);
-				}
-
-				auto &ret_t = best_body->return_type;
-				auto return_type_kind = ast::expression_type_kind::rvalue;
-				auto return_type = ast::remove_const_or_consteval(ret_t);
-				if (ret_t.is<ast::ts_lvalue_reference>())
-				{
-					return_type_kind = ast::expression_type_kind::lvalue_reference;
-					return_type = ret_t.get<ast::ts_lvalue_reference>();
-				}
-				return ast::make_dynamic_expression(
-					src_tokens,
-					return_type_kind, return_type,
-					ast::make_expr_function_call(src_tokens, std::move(params), best_body, ast::resolve_order::regular)
-				);
+				return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
 			}
 		}
 	}
@@ -3474,6 +3368,178 @@ ast::expression parse_context::make_function_call_expression(
 		// function call operator
 		this->report_error(src_tokens, "operator () not yet implemented");
 		return ast::expression(src_tokens);
+	}
+}
+
+static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_call(
+	lex::src_tokens src_tokens,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> base_scope,
+	bz::array_view<ast::expression> params,
+	parse_context &context
+)
+{
+	if (!id.is_qualified && id.values.size() == 1)
+	{
+		for (auto &scope : context.scope_decls.reversed())
+		{
+			auto const set = std::find_if(
+				scope.func_sets.begin(), scope.func_sets.end(),
+				[id](auto const &fn_set) {
+					bz_assert(!fn_set.id.is_qualified && fn_set.id.values.size() == 1);
+					return id.values.front() == fn_set.id.values.front();
+				}
+			);
+			if (set != scope.func_sets.end())
+			{
+				bz::vector<possible_func_t> possible_funcs = {};
+				for (auto &fn : set->func_decls)
+				{
+					auto &body = fn.get<ast::decl_function>().body;
+					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
+					if (match_level.not_null())
+					{
+						possible_funcs.push_back({ std::move(match_level), fn, &body });
+					}
+				}
+				for (auto &alias_decl : set->alias_decls)
+				{
+					auto &alias = alias_decl.get<ast::decl_function_alias>();
+					context.add_to_resolve_queue(src_tokens, alias);
+					parse::resolve_function_alias(alias, context);
+					context.pop_resolve_queue();
+					for (auto const body : alias.aliased_bodies)
+					{
+						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
+						if (match_level.not_null())
+						{
+							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+						}
+					}
+				}
+				return possible_funcs;
+			}
+		}
+	}
+
+	if (id.is_qualified)
+	{
+		bz::vector<possible_func_t> possible_funcs = {};
+		context.global_decls->func_sets
+			.filter([&id](auto const &fn_set) {
+				return id == fn_set.id;
+			})
+			.for_each([&](auto const &fn_set) {
+				for (auto &fn : fn_set.func_decls)
+				{
+					auto &body = fn.template get<ast::decl_function>().body;
+					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
+					if (match_level.not_null())
+					{
+						possible_funcs.push_back({ std::move(match_level), fn, &body });
+					}
+				}
+				for (auto &alias_decl : fn_set.alias_decls)
+				{
+					auto &alias = alias_decl.template get<ast::decl_function_alias>();
+					context.add_to_resolve_queue(src_tokens, alias);
+					parse::resolve_function_alias(alias, context);
+					context.pop_resolve_queue();
+					for (auto const body : alias.aliased_bodies)
+					{
+						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
+						if (match_level.not_null())
+						{
+							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+						}
+					}
+				}
+			});
+		return possible_funcs;
+	}
+	else
+	{
+		bz::vector<possible_func_t> possible_funcs = {};
+		context.global_decls->func_sets
+			.filter([&context, &id, base_scope](auto const &fn_set) {
+				return is_unqualified_equals(fn_set.id, id, context.current_scope)
+					|| is_unqualified_equals(fn_set.id, id, base_scope);
+			})
+			.for_each([&](auto const &fn_set) {
+				for (auto &fn : fn_set.func_decls)
+				{
+					auto &body = fn.template get<ast::decl_function>().body;
+					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
+					if (match_level.not_null())
+					{
+						possible_funcs.push_back({ std::move(match_level), fn, &body });
+					}
+				}
+				for (auto &alias_decl : fn_set.alias_decls)
+				{
+					auto &alias = alias_decl.template get<ast::decl_function_alias>();
+					context.add_to_resolve_queue(src_tokens, alias);
+					parse::resolve_function_alias(alias, context);
+					context.pop_resolve_queue();
+					for (auto const body : alias.aliased_bodies)
+					{
+						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
+						if (match_level.not_null())
+						{
+							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+						}
+					}
+				}
+			});
+		return possible_funcs;
+	}
+}
+
+ast::expression parse_context::make_universal_function_call_expression(
+	lex::src_tokens src_tokens,
+	ast::expression base,
+	ast::identifier id,
+	bz::vector<ast::expression> params
+)
+{
+	if (base.is_null())
+	{
+		bz_assert(this->has_errors());
+		return ast::expression(src_tokens);
+	}
+
+	for (auto &p : params)
+	{
+		if (p.is_null())
+		{
+			bz_assert(this->has_errors());
+			return ast::expression(src_tokens);
+		}
+	}
+
+	auto const base_scope = [&]() -> bz::array_view<bz::u8string_view const> {
+		auto const base_t = ast::remove_const_or_consteval(base.get_expr_type_and_kind().first);
+		if (base_t.is<ast::ts_base_type>())
+		{
+			auto const &id = base_t.get<ast::ts_base_type>().info->type_name;
+			if (id.is_qualified)
+			{
+				return id.values;
+			}
+		}
+		return {};
+	}();
+
+	params.push_front(std::move(base));
+	auto const possible_funcs = get_possible_funcs_for_universal_function_call( src_tokens, id, base_scope, params, *this);
+	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+	if (best_body == nullptr)
+	{
+		return ast::expression(src_tokens);
+	}
+	else
+	{
+		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
 	}
 }
 
@@ -3820,20 +3886,16 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_unquali
 {
 	if (id.size() == 1)
 	{
-		for (
-			auto scope = this->scope_decls.rbegin();
-			scope != this->scope_decls.rend();
-			++scope
-		)
+		for (auto &scope : this->scope_decls.reversed())
 		{
 			auto const set = std::find_if(
-				scope->func_sets.begin(), scope->func_sets.end(),
+				scope.func_sets.begin(), scope.func_sets.end(),
 				[id](auto const &fn_set) {
 					bz_assert(!fn_set.id.is_qualified && fn_set.id.values.size() == 1);
 					return id.front() == fn_set.id.values.front();
 				}
 			);
-			if (set != scope->func_sets.end())
+			if (set != scope.func_sets.end())
 			{
 				bz::vector<ast::function_body *> result;
 				result.append(set->func_decls.transform([](auto const view) { return &view.template get<ast::decl_function>().body; }));

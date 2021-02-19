@@ -739,16 +739,38 @@ static ast::expression parse_expression_helper(
 		{
 		case lex::token::dot:
 		{
-			auto const id = context.assert_token(stream, lex::token::identifier);
-			if (id->kind != lex::token::identifier)
+			auto id = get_identifier(stream, end, context);
+			if (id.values.empty())
 			{
 				lhs.clear();
 				break;
 			}
+			else if (!id.is_qualified && id.values.size() == 1 && (stream == end || stream->kind != lex::token::paren_open))
+			{
+				auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+				bz_assert(id.tokens.begin->kind == lex::token::identifier);
+				lhs = context.make_member_access_expression(src_tokens, std::move(lhs), id.tokens.begin);
+				break;
+			}
+			else
+			{
+				auto const open_paren = context.assert_token(stream, lex::token::paren_open);
+				if (open_paren->kind != lex::token::paren_open)
+				{
+					lhs.clear();
+					break;
+				}
+				auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
+				auto params = parse_expression_comma_list(inner_stream, inner_end, context);
+				if (inner_stream != inner_end)
+				{
+					context.report_error(inner_stream, "expected ',' or closing )");
+				}
 
-			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
-			lhs = context.make_member_access_expression(src_tokens, std::move(lhs), id);
-			break;
+				auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), open_paren, stream };
+				lhs = context.make_universal_function_call_expression(src_tokens, std::move(lhs), std::move(id), std::move(params));
+				break;
+			}
 		}
 		// function call operator
 		case lex::token::paren_open:
