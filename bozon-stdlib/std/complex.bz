@@ -1,0 +1,87 @@
+import math;
+
+
+export struct complex
+{
+	.re: float64;
+	.im: float64;
+}
+
+
+export function abs(z: complex) -> float64
+{ return hypot(z.re, z.im); }
+
+export function abs_square(z: complex) -> float64
+{ return z.re * z.re + z.im * z.im; }
+
+export function conjugate(z: complex) -> complex
+{ return complex[ z.re, -z.im ]; }
+
+export function phi(z: complex) -> float64
+{ return atan2(z.im, z.re); }
+
+
+export operator + (z: complex) -> complex
+{ return z; }
+
+export operator - (z: complex) -> complex
+{ return complex[ -z.re, -z.im ]; }
+
+
+export operator + (lhs: complex, rhs: complex) -> complex
+{ return complex[ lhs.re + rhs.re, lhs.im + rhs.im ]; }
+
+export operator + (lhs: complex, rhs: float64) -> complex
+{ return complex[ lhs.re + rhs, lhs.im ]; }
+
+export operator + (lhs: float64, rhs: complex) -> complex
+{ return complex[ lhs + rhs.re, rhs.im ]; }
+
+
+export operator - (lhs: complex, rhs: complex) -> complex
+{ return complex[ lhs.re - rhs.re, lhs.im - rhs.im ]; }
+
+export operator - (lhs: complex, rhs: float64) -> complex
+{ return complex[ lhs.re - rhs, lhs.im ]; }
+
+export operator - (lhs: float64, rhs: complex) -> complex
+{ return complex[ lhs - rhs.re, -rhs.im ]; }
+
+
+export operator * (lhs: complex, rhs: complex) -> complex
+{ return complex[ lhs.re * rhs.re - lhs.im * rhs.im, lhs.re * rhs.im + lhs.im * rhs.re ]; }
+
+export operator * (lhs: complex, rhs: float64) -> complex
+{ return complex[ lhs.re * rhs, lhs.im * rhs ]; }
+
+export operator * (lhs: float64, rhs: complex) -> complex
+{ return complex[ lhs * rhs.re, lhs * rhs.im ]; }
+
+
+export operator / (lhs: complex, rhs: complex) -> complex
+{ return lhs * (complex[ rhs.re, -rhs.im ] / abs_square(rhs)); }
+
+export operator / (lhs: complex, rhs: float64) -> complex
+{ return complex[ lhs.re / rhs, lhs.im / rhs ]; }
+
+export operator / (lhs: float64, rhs: complex) -> complex
+{ return complex[ rhs.re, -rhs.im ] * (lhs / abs_square(rhs)); }
+
+
+export operator == (lhs: complex, rhs: complex) -> bool
+{ return lhs.re == rhs.re & lhs.im == rhs.im; }
+
+export operator == (lhs: complex, rhs: float64) -> bool
+{ return lhs.re == rhs & lhs.im == 0.0; }
+
+export operator == (lhs: float64, rhs: complex) -> bool
+{ return lhs == rhs.re & 0.0 == rhs.im; }
+
+export operator != (lhs: complex, rhs: complex) -> bool
+{ return !(lhs == rhs); }
+
+export operator != (lhs: complex, rhs: float64) -> bool
+{ return !(lhs == rhs); }
+
+export operator != (lhs: float64, rhs: complex) -> bool
+{ return !(lhs == rhs); }
