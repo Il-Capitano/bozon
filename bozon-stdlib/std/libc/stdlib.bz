@@ -1,0 +1,46 @@
+import types;
+
+export struct div_t
+{
+	.quot: int;
+	.rem: int;
+}
+
+export struct ldiv_t
+{
+	.quot: long;
+	.rem: long;
+}
+
+@extern("atof", "c") export function atof(str: c_str) -> double;
+@extern("atoi", "c") export function atoi(str: c_str) -> int;
+@extern("atol", "c") export function atol(str: c_str) -> long;
+
+@extern("strtod",  "c") export function strtod(str: c_str, end_ptr: *mut_c_str) -> double;
+@extern("strtol",  "c") export function strtol(str: c_str, end_ptr: *mut_c_str, base: int) -> long;
+@extern("strtoul", "c") export function strtoul(str: c_str, end_ptr: *mut_c_str, base: int) -> unsigned_long;
+
+@extern("calloc",  "c") export function calloc(nitems: size_t, size: size_t) -> *void;
+@extern("malloc",  "c") export function malloc(size: size_t) -> *void;
+@extern("realloc", "c") export function realloc(ptr: *void, size: size_t) -> *void;
+@extern("free",    "c") export function free(ptr: *void);
+
+@extern("abort", "c") export function abort();
+// @extern"(atexit", "c") export function atexit(func: function() -> void) -> int;
+@extern("exit",  "c") export function exit(status: int);
+
+@extern("getenv", "c") export function getenv(name: c_str) -> mut_c_str;
+
+@extern("system", "c") export function system(string: c_str) -> int;
+
+// @extern("bsearch", "c") export function bsearch(key: *const void, base: *const void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int) -> *void;
+// @extern("qsort", "c") export function qsort(base: *void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int);
+
+@extern("abs",  "c") export function abs(x: int) -> int;
+@extern("labs", "c") export function labs(x: long) -> long;
+
+@extern("div", "c") export function div(number: int, denom: int) -> div_t;
+@extern("div", "c") export function div(number: long, denom: long) -> ldiv_t;
+
+@extern("rand",  "c") export function rand() -> int;
+@extern("srand", "c") export function srand(seed: unsigned_int);
