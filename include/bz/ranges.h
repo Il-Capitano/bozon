@@ -205,10 +205,11 @@ struct collection_base_append
 	void append_front_move(Range &&range);
 };
 
-template<typename Range>
-struct range_base_front
+template<typename Collection>
+struct collection_base_reversed
 {
-	decltype(auto) front(void);
+	auto reversed(void) noexcept;
+	auto reversed(void) const noexcept;
 };
 
 } // namespace internal
@@ -243,7 +244,8 @@ struct collection_base :
 	internal::collection_base_max      <Collection>,
 	internal::collection_base_min      <Collection>,
 	internal::collection_base_sort     <Collection>,
-	internal::collection_base_append   <Collection>
+	internal::collection_base_append   <Collection>,
+	internal::collection_base_reversed <Collection>
 {
 	constexpr auto as_range(void) const noexcept;
 	constexpr auto as_range(void) noexcept;
@@ -965,6 +967,20 @@ void collection_base_append<Collection>::append_front_move(Range &&range)
 	{
 		self->push_front(std::move(it));
 	}
+}
+
+template<typename Collection>
+auto collection_base_reversed<Collection>::reversed(void) noexcept
+{
+	auto const self = static_cast<Collection *>(this);
+	return basic_range{ self->rbegin(), self->rend() };
+}
+
+template<typename Collection>
+auto collection_base_reversed<Collection>::reversed(void) const noexcept
+{
+	auto const self = static_cast<Collection const *>(this);
+	return basic_range{ self->rbegin(), self->rend() };
 }
 
 } // namespace internal

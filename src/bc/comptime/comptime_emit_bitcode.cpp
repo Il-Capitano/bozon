@@ -2890,7 +2890,7 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 	{
 		auto &arr_t = ts.get<ast::ts_array>();
 		auto elem_t = get_llvm_type(arr_t.elem_type, context);
-		for (auto const size : bz::reversed(arr_t.sizes))
+		for (auto const size : arr_t.sizes.reversed())
 		{
 			elem_t = llvm::ArrayType::get(elem_t, size);
 		}

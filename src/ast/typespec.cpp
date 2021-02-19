@@ -7,7 +7,7 @@ namespace ast
 lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 {
 	lex::src_tokens src_tokens = {};
-	for (auto &node : bz::reversed(this->nodes))
+	for (auto &node : this->nodes.reversed())
 	{
 		node.visit(bz::overload{
 			[&](ts_unresolved const &unresolved) {
