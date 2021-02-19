@@ -3,6 +3,9 @@ import std::math;
 import std::utils;
 import std::generic;
 import std::file;
+import std::complex;
+
+import std::libc::math;
 
 //	/*
 function assert(b: bool) -> void
@@ -52,7 +55,6 @@ function main(args: [: const str]) -> int32
 	// c = 3;
 	std::println(std::pi);
 	const size = __builtin_slice_size(args);
-	let i: int64;
 	static_assert(typeof size == const uint64);
 	std::println(size);
 	for (let i = 0u64; i < size; ++i)
@@ -152,6 +154,10 @@ function main(args: [: const str]) -> int32
 	struct_test();
 
 	std::println("\n==== end main ====");
+	const z1 = std::complex[1.0, -12.35];
+	const double_z = z1 + z1;
+	std::println(z1.abs());
+	std::println(double_z.abs());
 	std::println(std::exp(1.0));
 	static_assert(typeof std::exp(1.0) == float64);
 
@@ -1073,6 +1079,7 @@ operator != (lhs: vec2, rhs: vec2) -> bool
 
 function struct_test()
 {
+	add_tester();
 	/*
 	function get_vec() -> &vec2d;
 	function modify_vec(v: vec2d) -> vec2d;
