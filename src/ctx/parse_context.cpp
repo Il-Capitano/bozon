@@ -3422,9 +3422,31 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		}
 	}
 
+	bz::vector<possible_func_t> possible_funcs = {};
+	if (id.values.size() == 1)
+	{
+		auto const id_value = id.values.front();
+		auto const &universal_functions = context.global_ctx._builtin_universal_functions;
+		auto const it = std::find_if(
+			universal_functions.begin(), universal_functions.end(),
+			[id_value](auto const &set) {
+				return id_value == set.id;
+			}
+		);
+		if (it != universal_functions.end())
+		{
+			for (auto const body : it->funcs)
+			{
+				auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
+				if (match_level.not_null())
+				{
+					possible_funcs.push_back({ std::move(match_level), {}, body });
+				}
+			}
+		}
+	}
 	if (id.is_qualified)
 	{
-		bz::vector<possible_func_t> possible_funcs = {};
 		context.global_decls->func_sets
 			.filter([&id](auto const &fn_set) {
 				return id == fn_set.id;
@@ -3459,7 +3481,6 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 	}
 	else
 	{
-		bz::vector<possible_func_t> possible_funcs = {};
 		context.global_decls->func_sets
 			.filter([&context, &id, base_scope](auto const &fn_set) {
 				return is_unqualified_equals(fn_set.id, id, context.current_scope)

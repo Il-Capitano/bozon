@@ -274,15 +274,15 @@ bz::vector<type_info> make_builtin_type_infos(void)
 	};
 }
 
-bz::vector<std::pair<bz::u8string_view, typespec>> make_builtin_types(bz::array_view<type_info> builtin_type_infos)
+bz::vector<type_and_name_pair> make_builtin_types(bz::array_view<type_info> builtin_type_infos)
 {
-	bz::vector<std::pair<bz::u8string_view, typespec>> result;
+	bz::vector<type_and_name_pair> result;
 	result.reserve(builtin_type_infos.size() + 1);
 	for (auto &type_info : builtin_type_infos)
 	{
-		result.emplace_back(type_info::decode_symbol_name(type_info.symbol_name), make_base_type_typespec({}, &type_info));
+		result.emplace_back(make_base_type_typespec({}, &type_info), type_info::decode_symbol_name(type_info.symbol_name));
 	}
-	result.emplace_back("void", make_void_typespec(nullptr));
+	result.emplace_back(make_void_typespec(nullptr), "void");
 	return result;
 }
 
@@ -467,6 +467,35 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 #undef add_builtin
 	bz_assert(result.size() == intrinsic_info.size());
 	return result;
+}
+
+bz::vector<universal_function_set> make_builtin_universal_functions(bz::array_view<function_body> builtin_functions)
+{
+	return {
+		{
+			"length", {
+				&builtin_functions[function_body::builtin_str_length]
+			}
+		},
+		{
+			"size", {
+				&builtin_functions[function_body::builtin_str_size],
+				&builtin_functions[function_body::builtin_slice_size]
+			}
+		},
+		{
+			"begin", {
+				&builtin_functions[function_body::builtin_slice_begin_ptr],
+				&builtin_functions[function_body::builtin_slice_begin_const_ptr]
+			}
+		},
+		{
+			"end", {
+				&builtin_functions[function_body::builtin_slice_end_ptr],
+				&builtin_functions[function_body::builtin_slice_end_const_ptr]
+			}
+		}
+	};
 }
 
 } // namespace ast

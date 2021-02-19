@@ -62,6 +62,21 @@ decl_set get_default_decls(void)
 	};
 }
 
+global_context::global_context(void)
+	: _compile_decls{},
+	  _errors{},
+	  _builtin_type_infos(ast::make_builtin_type_infos()),
+	  _builtin_types(ast::make_builtin_types(this->_builtin_type_infos)),
+	  _builtin_functions(ast::make_builtin_functions(this->_builtin_type_infos)),
+	  _builtin_universal_functions(ast::make_builtin_universal_functions(this->_builtin_functions)),
+	  _llvm_context(),
+	  _module("test", this->_llvm_context),
+	  _comptime_module("comptime_module", this->_llvm_context),
+	  _target_machine(nullptr),
+	  _data_layout(),
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
+{}
+
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
 {
 	bz_assert(kind <= ast::type_info::null_t_);
@@ -71,11 +86,11 @@ ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
 ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 {
 	auto const it = std::find_if(this->_builtin_types.begin(), this->_builtin_types.end(), [name](auto const &builtin_type) {
-		return builtin_type.first == name;
+		return builtin_type.name == name;
 	});
 	if (it != this->_builtin_types.end())
 	{
-		return it->second;
+		return it->type;
 	}
 	else
 	{
@@ -88,20 +103,6 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind)
 	bz_assert(kind < this->_builtin_functions.size());
 	return &this->_builtin_functions[kind];
 }
-
-global_context::global_context(void)
-	: _compile_decls{},
-	  _errors{},
-	  _builtin_type_infos(ast::make_builtin_type_infos()),
-	  _builtin_types(ast::make_builtin_types(this->_builtin_type_infos)),
-	  _builtin_functions(ast::make_builtin_functions(this->_builtin_type_infos)),
-	  _llvm_context(),
-	  _module("test", this->_llvm_context),
-	  _comptime_module("comptime_module", this->_llvm_context),
-	  _target_machine(nullptr),
-	  _data_layout(),
-	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
-{}
 
 
 bool global_context::has_errors(void) const

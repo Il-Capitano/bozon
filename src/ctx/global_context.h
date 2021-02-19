@@ -38,22 +38,23 @@ struct global_context
 	static constexpr uint32_t compiler_file_id     = std::numeric_limits<uint32_t>::max();
 	static constexpr uint32_t command_line_file_id = std::numeric_limits<uint32_t>::max() - 1;
 
-	decl_list _compile_decls;
+	decl_list         _compile_decls;
 	bz::vector<error> _errors;
 
-	bz::vector<ast::type_info> _builtin_type_infos;
-	bz::vector<std::pair<bz::u8string_view, ast::typespec>> _builtin_types;
-	bz::vector<ast::function_body> _builtin_functions;
+	bz::vector<ast::type_info>              _builtin_type_infos;
+	bz::vector<ast::type_and_name_pair>     _builtin_types;
+	bz::vector<ast::function_body>          _builtin_functions;
+	bz::vector<ast::universal_function_set> _builtin_universal_functions;
 
 	std::list<src_file> _src_files;
 
 	llvm::LLVMContext _llvm_context;
-	llvm::Module _module;
-	llvm::Module _comptime_module;
+	llvm::Module      _module;
+	llvm::Module      _comptime_module;
 	std::unique_ptr<llvm::TargetMachine> _target_machine;
-	bz::optional<llvm::DataLayout> _data_layout;
-	abi::platform_abi _platform_abi;
+	bz::optional<llvm::DataLayout>       _data_layout;
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
+	abi::platform_abi _platform_abi;
 
 	global_context(void);
 

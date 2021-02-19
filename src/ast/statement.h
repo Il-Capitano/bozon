@@ -878,9 +878,22 @@ def_make_fn(statement, stmt_static_assert)
 
 #undef def_make_fn
 
-bz::vector<type_info> make_builtin_type_infos(void);
-bz::vector<std::pair<bz::u8string_view, typespec>> make_builtin_types(bz::array_view<type_info> builtin_type_infos);
-bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos);
+struct type_and_name_pair
+{
+	typespec type;
+	bz::u8string_view name;
+};
+
+struct universal_function_set
+{
+	bz::u8string_view id;
+	bz::vector<function_body *> funcs;
+};
+
+bz::vector<type_info>              make_builtin_type_infos(void);
+bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info>     builtin_type_infos);
+bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info>     builtin_type_infos);
+bz::vector<universal_function_set> make_builtin_universal_functions(bz::array_view<function_body> builtin_functions);
 
 struct intrinsic_info_t
 {
