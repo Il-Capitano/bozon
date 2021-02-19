@@ -1,0 +1,12 @@
+export type int = int32;
+export type long = int32;
+export type long_long = int64;
+
+export type unsigned_int = uint32;
+export type unsigned_long = uint32;
+export type unsigned_long_long = uint64;
+
+export type float = float32;
+export type double = float64;
+
+export type bool = ::bool;

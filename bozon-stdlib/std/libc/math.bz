@@ -1,0 +1,414 @@
+import types;
+
+@extern("acosf", "c") export function acos(x: float)  -> float;
+@extern("acos",  "c") export function acos(x: double) -> double;
+
+@extern("asinf", "c") export function asin(x: float)  -> float;
+@extern("asin",  "c") export function asin(x: double) -> double;
+@extern("asinf", "c") export function asinf(x: float) -> float;
+
+@extern("atanf", "c") export function atan(x: float)  -> float;
+@extern("atan",  "c") export function atan(x: double) -> double;
+@extern("atanf", "c") export function atanf(x: float) -> float;
+
+@extern("atan2f", "c") export function atan2(y: float,  x: float)  -> float;
+@extern("atan2",  "c") export function atan2(y: double, x: double) -> double;
+@extern("atan2f", "c") export function atan2f(y: float, x: float) -> float;
+
+@extern("cosf", "c") export function cos(x: float)  -> float;
+@extern("cos",  "c") export function cos(x: double) -> double;
+@extern("cosf", "c") export function cosf(x: float) -> float;
+
+@extern("sinf", "c") export function sin(x: float)  -> float;
+@extern("sin",  "c") export function sin(x: double) -> double;
+@extern("sinf", "c") export function sinf(x: float) -> float;
+
+@extern("tanf", "c") export function tan(x: float)  -> float;
+@extern("tan",  "c") export function tan(x: double) -> double;
+@extern("tanf", "c") export function tanf(x: float) -> float;
+
+@extern("acoshf", "c") export function acosh(x: float)  -> float;
+@extern("acosh",  "c") export function acosh(x: double) -> double;
+@extern("acoshf", "c") export function acoshf(x: float) -> float;
+
+@extern("asinhf", "c") export function asinh(x: float)  -> float;
+@extern("asinh",  "c") export function asinh(x: double) -> double;
+@extern("asinhf", "c") export function asinhf(x: float) -> float;
+
+@extern("atanhf", "c") export function atanh(x: float)  -> float;
+@extern("atanh",  "c") export function atanh(x: double) -> double;
+@extern("atanhf", "c") export function atanhf(x: float) -> float;
+
+@extern("coshf", "c") export function cosh(x: float)  -> float;
+@extern("cosh",  "c") export function cosh(x: double) -> double;
+@extern("coshf", "c") export function coshf(x: float) -> float;
+
+@extern("sinhf", "c") export function sinh(x: float)  -> float;
+@extern("sinh",  "c") export function sinh(x: double) -> double;
+@extern("sinhf", "c") export function sinhf(x: float) -> float;
+
+@extern("tanhf", "c") export function tanh(x: float)  -> float;
+@extern("tanh",  "c") export function tanh(x: double) -> double;
+@extern("tanhf", "c") export function tanhf(x: float) -> float;
+
+@extern("expf", "c") export function exp(x: float)  -> float;
+@extern("exp",  "c") export function exp(x: double) -> double;
+@extern("expf", "c") export function expf(x: float) -> float;
+
+@extern("exp2f", "c") export function exp2(x: float)  -> float;
+@extern("exp2",  "c") export function exp2(x: double) -> double;
+@extern("exp2f", "c") export function exp2f(x: float) -> float;
+
+@extern("expm1f", "c") export function expm1(x: float)  -> float;
+@extern("expm1",  "c") export function expm1(x: double) -> double;
+@extern("expm1f", "c") export function expm1f(x: float) -> float;
+
+@extern("frexpf", "c") export function frexp(value: float,  exp: *int) -> float;
+@extern("frexp",  "c") export function frexp(value: double, exp: *int) -> double;
+@extern("frexpf", "c") export function frexpf(value: float, exp: *int) -> float;
+
+@extern("ilogbf", "c") export function ilogb(x: float)  -> int;
+@extern("ilogb",  "c") export function ilogb(x: double) -> int;
+@extern("ilogbf", "c") export function ilogbf(x: float) -> int;
+
+@extern("ldexpf", "c") export function ldexp(x: float,  exp: int) -> float;
+@extern("ldexp",  "c") export function ldexp(x: double, exp: int) -> double;
+@extern("ldexpf", "c") export function ldexpf(x: float, exp: int) -> float;
+
+@extern("logf", "c") export function log(x: float)  -> float;
+@extern("log",  "c") export function log(x: double) -> double;
+@extern("logf", "c") export function logf(x: float) -> float;
+
+@extern("log10f", "c") export function log10(x: float)  -> float;
+@extern("log10",  "c") export function log10(x: double) -> double;
+@extern("log10f", "c") export function log10f(x: float) -> float;
+
+@extern("log1pf", "c") export function log1p(x: float)  -> float;
+@extern("log1p",  "c") export function log1p(x: double) -> double;
+@extern("log1pf", "c") export function log1pf(x: float) -> float;
+
+@extern("log2f", "c") export function log2(x: float)  -> float;
+@extern("log2",  "c") export function log2(x: double) -> double;
+@extern("log2f", "c") export function log2f(x: float) -> float;
+
+@extern("logbf", "c") export function logb(x: float)  -> float;
+@extern("logb",  "c") export function logb(x: double) -> double;
+@extern("logbf", "c") export function logbf(x: float) -> float;
+
+@extern("modff", "c") export function modf(value: float,  iptr: *float)  -> float;
+@extern("modf",  "c") export function modf(value: double, iptr: *double) -> double;
+@extern("modff", "c") export function modff(value: float, iptr: *float) -> float;
+
+@extern("scalbnf", "c") export function scalbn(x: float,  n: int) -> float;
+@extern("scalbn",  "c") export function scalbn(x: double, n: int) -> double;
+@extern("scalbnf", "c") export function scalbnf(x: float, n: int) -> float;
+
+@extern("scalblnf", "c") export function scalbln(x: float,  n: long) -> float;
+@extern("scalbln",  "c") export function scalbln(x: double, n: long) -> double;
+@extern("scalblnf", "c") export function scalblnf(x: float, n: long) -> float;
+
+@extern("cbrtf", "c") export function cbrt(x: float)  -> float;
+@extern("cbrt",  "c") export function cbrt(x: double) -> double;
+@extern("cbrtf", "c") export function cbrtf(x: float) -> float;
+
+// absolute values
+/*
+function abs(j: int) -> int;
+// function abs(j: long) -> long; // long is either the same as int or long_long, so it's not needed
+function abs(j: long_long) -> long_long;
+function abs(j: float) -> float;
+function abs(j: double) -> double;
+*/
+
+@extern("fabsf", "c") export function fabs(x: float)  -> float;
+@extern("fabs",  "c") export function fabs(x: double) -> double;
+@extern("fabsf", "c") export function fabsf(x: float) -> float;
+
+@extern("hypotf", "c") export function hypot(x: float,  y: float)  -> float;
+@extern("hypot",  "c") export function hypot(x: double, y: double) -> double;
+@extern("hypotf", "c") export function hypotf(x: float, y: float) -> float;
+
+// three-dimensional hypotenuse
+@extern("hypotf", "c") export function hypot(x: float,  y: float,  z: float)  -> float;
+@extern("hypot",  "c") export function hypot(x: double, y: double, z: double) -> double;
+@extern("hypotf", "c") export function hypotf(x: float, y: float, z: float) -> float;
+
+@extern("powf", "c") export function pow(x: float,  y: float)  -> float;
+@extern("pow",  "c") export function pow(x: double, y: double) -> double;
+@extern("powf", "c") export function powf(x: float, y: float) -> float;
+
+@extern("sqrtf", "c") export function sqrt(x: float)  -> float;
+@extern("sqrt",  "c") export function sqrt(x: double) -> double;
+@extern("sqrtf", "c") export function sqrtf(x: float) -> float;
+
+@extern("erff", "c") export function erf(x: float)  -> float;
+@extern("erf",  "c") export function erf(x: double) -> double;
+@extern("erff", "c") export function erff(x: float) -> float;
+
+@extern("erfcf", "c") export function erfc(x: float)  -> float;
+@extern("erfc",  "c") export function erfc(x: double) -> double;
+@extern("erfcf", "c") export function erfcf(x: float) -> float;
+
+@extern("lgammaf", "c") export function lgamma(x: float)  -> float;
+@extern("lgamma",  "c") export function lgamma(x: double) -> double;
+@extern("lgammaf", "c") export function lgammaf(x: float) -> float;
+
+@extern("tgammaf", "c") export function tgamma(x: float)  -> float;
+@extern("tgamma",  "c") export function tgamma(x: double) -> double;
+@extern("tgammaf", "c") export function tgammaf(x: float) -> float;
+
+@extern("ceilf", "c") export function ceil(x: float)  -> float;
+@extern("ceil",  "c") export function ceil(x: double) -> double;
+@extern("ceilf", "c") export function ceilf(x: float) -> float;
+
+@extern("floorf", "c") export function floor(x: float)  -> float;
+@extern("floor",  "c") export function floor(x: double) -> double;
+@extern("floorf", "c") export function floorf(x: float) -> float;
+
+@extern("nearbyintf", "c") export function nearbyint(x: float)  -> float;
+@extern("nearbyint",  "c") export function nearbyint(x: double) -> double;
+@extern("nearbyintf", "c") export function nearbyintf(x: float) -> float;
+
+@extern("rintf", "c") export function rint(x: float)  -> float;
+@extern("rint",  "c") export function rint(x: double) -> double;
+@extern("rintf", "c") export function rintf(x: float) -> float;
+
+@extern("lrintf", "c") export function lrint(x: float)  -> long;
+@extern("lrint",  "c") export function lrint(x: double) -> long;
+@extern("lrintf", "c") export function lrintf(x: float) -> long;
+
+@extern("llrintf", "c") export function llrint(x: float)  -> long_long;
+@extern("llrint",  "c") export function llrint(x: double) -> long_long;
+@extern("llrintf", "c") export function llrintf(x: float) -> long_long;
+
+@extern("roundf", "c") export function round(x: float)  -> float;
+@extern("round",  "c") export function round(x: double) -> double;
+@extern("roundf", "c") export function roundf(x: float) -> float;
+
+@extern("lroundf", "c") export function lround(x: float)  -> long;
+@extern("lround",  "c") export function lround(x: double) -> long;
+@extern("lroundf", "c") export function lroundf(x: float) -> long;
+
+@extern("llroundf", "c") export function llround(x: float)  -> long_long;
+@extern("llround",  "c") export function llround(x: double) -> long_long;
+@extern("llroundf", "c") export function llroundf(x: float) -> long_long;
+
+@extern("truncf", "c") export function trunc(x: float)  -> float;
+@extern("trunc",  "c") export function trunc(x: double) -> double;
+@extern("truncf", "c") export function truncf(x: float) -> float;
+
+@extern("fmodf", "c") export function fmod(x: float,  y: float)  -> float;
+@extern("fmod",  "c") export function fmod(x: double, y: double) -> double;
+@extern("fmodf", "c") export function fmodf(x: float, y: float) -> float;
+
+@extern("remainderf", "c") export function remainder(x: float,  y: float)  -> float;
+@extern("remainder",  "c") export function remainder(x: double, y: double) -> double;
+@extern("remainderf", "c") export function remainderf(x: float, y: float) -> float;
+
+@extern("remquof", "c") export function remquo(x: float,  y: float,  quo: *int) -> float;
+@extern("remquo",  "c") export function remquo(x: double, y: double, quo: *int) -> double;
+@extern("remquof", "c") export function remquof(x: float, y: float, quo: *int) -> float;
+
+@extern("copysignf", "c") export function copysign(x: float,  y: float)  -> float;
+@extern("copysign",  "c") export function copysign(x: double, y: double) -> double;
+@extern("copysignf", "c") export function copysignf(x: float, y: float) -> float;
+
+/*
+double nan(const char* tagp);
+float nanf(const char* tagp);
+*/
+
+@extern("nextafterf", "c") export function nextafter(x: float,  y: float)  -> float;
+@extern("nextafter",  "c") export function nextafter(x: double, y: double) -> double;
+@extern("nextafterf", "c") export function nextafterf(x: float, y: float) -> float;
+
+/*
+float nexttoward(float x, long double y);
+double nexttoward(double x, long double y);
+long double nexttoward(long double x, long double y);
+float nexttowardf(float x, long double y);
+long double nexttowardl(long double x, long double y);
+*/
+
+@extern("fdimf", "c") export function fdim(x: float,  y: float)  -> float;
+@extern("fdim",  "c") export function fdim(x: double, y: double) -> double;
+@extern("fdimf", "c") export function fdimf(x: float, y: float) -> float;
+
+@extern("fmaxf", "c") export function fmax(x: float,  y: float)  -> float;
+@extern("fmax",  "c") export function fmax(x: double, y: double) -> double;
+@extern("fmaxf", "c") export function fmaxf(x: float, y: float) -> float;
+
+@extern("fminf", "c") export function fmin(x: float,  y: float)  -> float;
+@extern("fmin",  "c") export function fmin(x: double, y: double) -> double;
+@extern("fminf", "c") export function fminf(x: float, y: float) -> float;
+
+@extern("fmaf", "c") export function fma(x: float,  y: float,  z: float)  -> float;
+@extern("fma",  "c") export function fma(x: double, y: double, z: double) -> double;
+@extern("fmaf", "c") export function fmaf(x: float, y: float, z: float) -> float;
+
+// linear interpolation
+@extern("lerpf", "c") export function lerp(a: float,  b: float,  t: float)  -> float;
+@extern("lerp",  "c") export function lerp(a: double, b: double, t: double) -> double;
+@extern("lerpf", "c") export function lerpf(a: float, b: float, t: float) -> float;
+
+// classification / comparison functions
+@extern("fpclassifyf", "c") export function fpclassify(x: float)  -> int;
+@extern("fpclassify",  "c") export function fpclassify(x: double) -> int;
+@extern("fpclassifyf", "c") export function fpclassifyf(x: float) -> int;
+
+@extern("isfinitef", "c") export function isfinite(x: float)  -> bool;
+@extern("isfinite",  "c") export function isfinite(x: double) -> bool;
+@extern("isfinitef", "c") export function isfinitef(x: float) -> bool;
+
+@extern("isinff", "c") export function isinf(x: float)  -> bool;
+@extern("isinf",  "c") export function isinf(x: double) -> bool;
+@extern("isinff", "c") export function isinff(x: float) -> bool;
+
+@extern("isnanf", "c") export function isnan(x: float)  -> bool;
+@extern("isnan",  "c") export function isnan(x: double) -> bool;
+@extern("isnanf", "c") export function isnanf(x: float) -> bool;
+
+@extern("isnormalf", "c") export function isnormal(x: float)  -> bool;
+@extern("isnormal",  "c") export function isnormal(x: double) -> bool;
+@extern("isnormalf", "c") export function isnormalf(x: float) -> bool;
+
+@extern("signbitf", "c") export function signbit(x: float)  -> bool;
+@extern("signbit",  "c") export function signbit(x: double) -> bool;
+@extern("signbitf", "c") export function signbitf(x: float) -> bool;
+
+@extern("isgreaterf", "c") export function isgreater(x: float,  y: float)  -> bool;
+@extern("isgreater",  "c") export function isgreater(x: double, y: double) -> bool;
+@extern("isgreaterf", "c") export function isgreaterf(x: float, y: float) -> bool;
+
+@extern("isgreaterequalf", "c") export function isgreaterequal(x: float,  y: float)  -> bool;
+@extern("isgreaterequal",  "c") export function isgreaterequal(x: double, y: double) -> bool;
+@extern("isgreaterequalf", "c") export function isgreaterequalf(x: float, y: float) -> bool;
+
+@extern("islessf", "c") export function isless(x: float,  y: float)  -> bool;
+@extern("isless",  "c") export function isless(x: double, y: double) -> bool;
+@extern("islessf", "c") export function islessf(x: float, y: float) -> bool;
+
+@extern("islessequalf", "c") export function islessequal(x: float,  y: float)  -> bool;
+@extern("islessequal",  "c") export function islessequal(x: double, y: double) -> bool;
+@extern("islessequalf", "c") export function islessequalf(x: float, y: float) -> bool;
+
+@extern("islessgreaterf", "c") export function islessgreater(x: float,  y: float)  -> bool;
+@extern("islessgreater",  "c") export function islessgreater(x: double, y: double) -> bool;
+@extern("islessgreaterf", "c") export function islessgreaterf(x: float, y: float) -> bool;
+
+@extern("isunorderedf", "c") export function isunordered(x: float,  y: float)  -> bool;
+@extern("isunordered",  "c") export function isunordered(x: double, y: double) -> bool;
+@extern("isunorderedf", "c") export function isunorderedf(x: float, y: float) -> bool;
+
+/*
+// mathematical special functions
+
+// associated Laguerre polynomials
+@extern("assoc_laguerref", "c") export function assoc_laguerre(n: unsigned_int, m: unsigned_int, x: float)  -> float;
+@extern("assoc_laguerre",  "c") export function assoc_laguerre(n: unsigned_int, m: unsigned_int, x: double) -> double;
+@extern("assoc_laguerref", "c") export function assoc_laguerref(n: unsigned_int, m: unsigned_int, x: float) -> float;
+
+// associated Legendre functions
+@extern("assoc_legendref", "c") export function assoc_legendre(l: unsigned_int, m: unsigned_int, x: float)  -> float;
+@extern("assoc_legendre",  "c") export function assoc_legendre(l: unsigned_int, m: unsigned_int, x: double) -> double;
+@extern("assoc_legendref", "c") export function assoc_legendref(l: unsigned_int, m: unsigned_int, x: float) -> float;
+
+// beta function
+@extern("betaf", "c") export function beta(x: float,  y: float)  -> float;
+@extern("beta",  "c") export function beta(x: double, y: double) -> double;
+@extern("betaf", "c") export function betaf(x: float, y: float) -> float;
+
+// complete elliptic integral of the first kind
+@extern("comp_ellint_1f", "c") export function comp_ellint_1(k: float)  -> float;
+@extern("comp_ellint_1",  "c") export function comp_ellint_1(k: double) -> double;
+@extern("comp_ellint_1f", "c") export function comp_ellint_1f(k: float) -> float;
+
+// complete elliptic integral of the second kind
+@extern("comp_ellint_2f", "c") export function comp_ellint_2(k: float)  -> float;
+@extern("comp_ellint_2",  "c") export function comp_ellint_2(k: double) -> double;
+@extern("comp_ellint_2f", "c") export function comp_ellint_2f(k: float) -> float;
+
+// complete elliptic integral of the third kind
+@extern("comp_ellint_3f", "c") export function comp_ellint_3(k: float,  nu: float)  -> float;
+@extern("comp_ellint_3",  "c") export function comp_ellint_3(k: double, nu: double) -> double;
+@extern("comp_ellint_3f", "c") export function comp_ellint_3f(k: float, nu: float) -> float;
+
+// regular modified cylindrical Bessel functions
+@extern("cyl_bessel_if", "c") export function cyl_bessel_i(nu: float,  x: float)  -> float;
+@extern("cyl_bessel_i",  "c") export function cyl_bessel_i(nu: double, x: double) -> double;
+@extern("cyl_bessel_if", "c") export function cyl_bessel_if(nu: float, x: float) -> float;
+
+// cylindrical Bessel functions of the first kind
+@extern("cyl_bessel_jf", "c") export function cyl_bessel_j(nu: float,  x: float)  -> float;
+@extern("cyl_bessel_j",  "c") export function cyl_bessel_j(nu: double, x: double) -> double;
+@extern("cyl_bessel_jf", "c") export function cyl_bessel_jf(nu: float, x: float) -> float;
+
+// irregular modified cylindrical Bessel functions
+@extern("cyl_bessel_kf", "c") export function cyl_bessel_k(nu: float,  x: float)  -> float;
+@extern("cyl_bessel_k",  "c") export function cyl_bessel_k(nu: double, x: double) -> double;
+@extern("cyl_bessel_kf", "c") export function cyl_bessel_kf(nu: float, x: float) -> float;
+
+// cylindrical Neumann functions;
+// cylindrical Bessel functions of the second kind
+@extern("cyl_neumannf", "c") export function cyl_neumann(nu: float,  x: float)  -> float;
+@extern("cyl_neumann",  "c") export function cyl_neumann(nu: double, x: double) -> double;
+@extern("cyl_neumannf", "c") export function cyl_neumannf(nu: float, x: float) -> float;
+
+// incomplete elliptic integral of the first kind
+@extern("ellint_1f", "c") export function ellint_1(k: float,  phi: float)  -> float;
+@extern("ellint_1",  "c") export function ellint_1(k: double, phi: double) -> double;
+@extern("ellint_1f", "c") export function ellint_1f(k: float, phi: float) -> float;
+
+// incomplete elliptic integral of the second kind
+@extern("ellint_2f", "c") export function ellint_2(k: float,  phi: float)  -> float;
+@extern("ellint_2",  "c") export function ellint_2(k: double, phi: double) -> double;
+@extern("ellint_2f", "c") export function ellint_2f(k: float, phi: float) -> float;
+
+// incomplete elliptic integral of the third kind
+@extern("ellint_3f", "c") export function ellint_3(k: float,  nu: float,  phi: float)  -> float;
+@extern("ellint_3",  "c") export function ellint_3(k: double, nu: double, phi: double) -> double;
+@extern("ellint_3f", "c") export function ellint_3f(k: float, nu: float, phi: float) -> float;
+
+// exponential integral
+@extern("expintf", "c") export function expint(x: float)  -> float;
+@extern("expint",  "c") export function expint(x: double) -> double;
+@extern("expintf", "c") export function expintf(x: float) -> float;
+
+// Hermite polynomials
+@extern("hermitef", "c") export function hermite(n: unsigned_int, x: float)  -> float;
+@extern("hermite",  "c") export function hermite(n: unsigned_int, x: double) -> double;
+@extern("hermitef", "c") export function hermitef(n: unsigned_int, x: float) -> float;
+
+// Laguerre polynomials
+@extern("laguerref", "c") export function laguerre(n: unsigned_int, x: float)  -> float;
+@extern("laguerre",  "c") export function laguerre(n: unsigned_int, x: double) -> double;
+@extern("laguerref", "c") export function laguerref(n: unsigned_int, x: float) -> float;
+
+// Legendre polynomials
+@extern("legendref", "c") export function legendre(l: unsigned_int, x: float)  -> float;
+@extern("legendre",  "c") export function legendre(l: unsigned_int, x: double) -> double;
+@extern("legendref", "c") export function legendref(l: unsigned_int, x: float) -> float;
+
+// Riemann zeta function
+@extern("riemann_zetaf", "c") export function riemann_zeta(x: float)  -> float;
+@extern("riemann_zeta",  "c") export function riemann_zeta(x: double) -> double;
+@extern("riemann_zetaf", "c") export function riemann_zetaf(x: float) -> float;
+
+// spherical Bessel functions of the first kind
+@extern("sph_besself", "c") export function sph_bessel(n: unsigned_int, x: float)  -> float;
+@extern("sph_bessel",  "c") export function sph_bessel(n: unsigned_int, x: double) -> double;
+@extern("sph_besself", "c") export function sph_besself(n: unsigned_int, x: float) -> float;
+
+// spherical associated Legendre functions
+@extern("sph_legendref", "c") export function sph_legendre(l: unsigned_int, m: unsigned_int, theta: float)  -> float;
+@extern("sph_legendre",  "c") export function sph_legendre(l: unsigned_int, m: unsigned_int, theta: double) -> double;
+@extern("sph_legendref", "c") export function sph_legendref(l: unsigned_int, m: unsigned_int, theta: float) -> float;
+
+// spherical Neumann functions;
+// spherical Bessel functions of the second kind
+@extern("sph_neumannf", "c") export function sph_neumann(n: unsigned_int, x: float)  -> float;
+@extern("sph_neumann",  "c") export function sph_neumann(n: unsigned_int, x: double) -> double;
+@extern("sph_neumannf", "c") export function sph_neumannf(n: unsigned_int, x: float) -> float;
+*/
+
+
