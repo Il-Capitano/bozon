@@ -85,3 +85,43 @@ export operator != (lhs: complex, rhs: float64) -> bool
 
 export operator != (lhs: float64, rhs: complex) -> bool
 { return !(lhs == rhs); }
+
+
+export function exp(z: complex) -> complex
+{ return exp(z.re) * complex[ cos(z.im), sin(z.im) ]; }
+
+export function exp2(z: complex) -> complex
+{ return exp2(z.re) * complex[ cos(log(2.0) * z.im), sin(log(2.0) * z.im) ]; }
+
+// expm1 is not supported right now
+
+export function log(z: complex) -> complex
+{ return complex[ log(z.abs()), z.phi() ]; }
+
+export function log10(z: complex) -> complex
+{ return complex[ log10(z.abs()), z.phi() / log(10.0) ]; }
+
+export function log2(z: complex) -> complex
+{ return complex[ log2(z.abs()), z.phi() / log(2.0) ]; }
+
+// log1p is not supported right now
+
+
+// the returned value is such that sqrt(z).re >= 0
+export function sqrt(z: complex) -> complex
+{
+	const phi = z.phi();
+	const abs = z.abs();
+	return sqrt(abs) * complex[ cos(phi / 2.0), sin(phi / 2.0) ];
+}
+
+// cbrt is not supported right now
+
+export function pow(x: float64, w: complex) -> complex
+{ return exp(log(x) * w); }
+
+export function pow(z: complex, y: float64) -> complex
+{ return exp(log(z) * y); }
+
+export function pow(z: complex, w: complex) -> complex
+{ return exp(log(z) * w); }
