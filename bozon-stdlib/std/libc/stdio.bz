@@ -1,0 +1,40 @@
+import types;
+
+export struct FILE;
+
+@extern("fopen",   "c") export function fopen(filename: c_str, mode: c_str) -> *FILE;
+@extern("freopen", "c") export function freopen(filename: c_str, mode: c_str, stream: *FILE) -> *FILE;
+@extern("fclose",  "c") export function fclose(stream: *FILE) -> int;
+@extern("fflush",  "c") export function fflush(stream: *FILE) -> int;
+@extern("setbuf",  "c") export function setbuf(stream: *FILE, buffer: *uint8);
+@extern("setvbuf", "c") export function setvbuf(stream: *FILE, buffer: *uint8, mode: int, size: size_t) -> int;
+
+@extern("fread",   "c") export function fread(buffer: *void, size: size_t, count: size_t, stream: *FILE) -> size_t;
+@extern("fwrite",  "c") export function fwrite(buffer: *const void, size: size_t, count: size_t, stream: *FILE) -> size_t;
+
+@extern("fgetc",   "c") export function fgetc(stream: *FILE) -> int;
+@extern("getc",    "c") export function getc(stream: *FILE) -> int;
+@extern("fgets",   "c") export function fgets(str: mut_c_str, count: int, stream: *FILE) -> mut_c_str;
+@extern("fputc",   "c") export function fputc(ch: int, stream: *FILE) -> int;
+@extern("putc",    "c") export function putc(ch: int, stream: *FILE) -> int;
+@extern("fputs",   "c") export function fputs(str: c_str, stream: *FILE) -> int;
+@extern("getchar", "c") export function getchar() -> int;
+@extern("putchar", "c") export function putchar(ch: int) -> int;
+@extern("puts",    "c") export function puts(str: c_str) -> int;
+@extern("ungetc",  "c") export function ungetc(ch: int, stream: *FILE) -> int;
+
+@extern("ftell",   "c") export function ftell(stream: *FILE) -> long;
+// @extern("fgetpos", "c") export function fgetpos(stream: *FILE, pos: *fpos_t) -> int;
+@extern("fseek",   "c") export function fseek(stream: *FILE, offset: long, origin: int) -> int;
+// @extern("fsetpos", "c") export function fsetpos(stream: *FILE, pos: *const fpos_t) -> int;
+@extern("rewind",  "c") export function rewind(stream: *FILE);
+
+@extern("clearerr", "c") export function clearerr(stream: *FILE);
+@extern("feof",     "c") export function feof(stream: *FILE) -> int;
+@extern("ferror",   "c") export function ferror(stream: *FILE) -> int;
+@extern("perror",   "c") export function perror(s: c_str);
+
+@extern("remove",  "c") export function remove(fname: c_str) -> int;
+@extern("rename",  "c") export function rename(old_filename: c_str, new_filename: c_str) -> int;
+@extern("tmpfile", "c") export function tmpfile() -> *FILE;
+@extern("tmpnam",  "c") export function tmpnam(filename: mut_c_str) -> mut_c_str;
