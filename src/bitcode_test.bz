@@ -7,6 +7,7 @@ import std::complex;
 
 import std::libc::math;
 import std::libc::stdlib;
+import std::libc::stdio;
 
 //	/*
 function assert(b: bool) -> void
@@ -175,6 +176,8 @@ function main(args: [: const str]) -> int32
 		std::print("rand(): ");
 		std::println(std::libc::rand());
 	}
+
+	std::libc::puts(__builtin_str_begin_ptr("Hello puts()"));
 
 
 	return 0;
@@ -1130,4 +1133,10 @@ function complex_test()
 	std::println(z1.abs());
 	std::println((z1 * z1).abs());
 	std::println(z1.abs_square());
+
+	std::print("exp(1i) = ");
+	const exp1i = std::exp(std::complex[ 0.0, 1.0 ]);
+	println(exp1i);
+	std::println(exp1i.abs());
+	std::println(exp1i.phi());
 }
