@@ -79,6 +79,22 @@ bz::u8string function_body::get_symbol_name(void) const
 	return symbol_name;
 }
 
+bz::u8string function_body::get_candidate_message(void) const
+{
+	if (this->is_default_op_assign())
+	{
+		return bz::format("candidate (the default copy assignment operator) '{}'", this->get_signature());
+	}
+	else if (this->is_default_op_move_assign())
+	{
+		return bz::format("candidate (the default move assignment operator) '{}'", this->get_signature());
+	}
+	else
+	{
+		return bz::format("candidate '{}'", this->get_signature());
+	}
+}
+
 std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, function_body *>> required_from)
 {
 	auto result = std::make_unique<function_body>(*this);

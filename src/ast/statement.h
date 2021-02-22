@@ -442,6 +442,7 @@ struct function_body
 
 	bz::u8string get_signature(void) const;
 	bz::u8string get_symbol_name(void) const;
+	bz::u8string get_candidate_message(void) const;
 
 	std::unique_ptr<function_body> get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, function_body *>> required_from);
 	function_body *add_specialized_body(std::unique_ptr<function_body> body);

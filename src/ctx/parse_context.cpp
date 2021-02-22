@@ -2843,7 +2843,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 				for (auto &func : possible_funcs)
 				{
 					notes.emplace_back(context.make_note(
-						func.func_body->src_tokens, bz::format("candidate '{}'", func.func_body->get_signature())
+						func.func_body->src_tokens, func.func_body->get_candidate_message()
 					));
 					if (func.stmt.is<ast::decl_function_alias>())
 					{
@@ -2865,7 +2865,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	for (auto &func : possible_funcs)
 	{
 		notes.emplace_back(context.make_note(
-			func.func_body->src_tokens, bz::format("candidate '{}'", func.func_body->get_signature())
+			func.func_body->src_tokens, func.func_body->get_candidate_message()
 		));
 		if (func.stmt.is<ast::decl_function_alias>())
 		{
@@ -3428,7 +3428,7 @@ ast::expression parse_context::make_function_call_expression(
 						this->report_error(
 							src_tokens,
 							"couldn't match the function call to the function",
-							{ this->make_note(func_body->src_tokens, bz::format("candidate '{}'", func_body->get_signature())) }
+							{ this->make_note(func_body->src_tokens, func_body->get_candidate_message()) }
 						);
 					}
 				}
