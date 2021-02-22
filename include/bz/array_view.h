@@ -130,6 +130,14 @@ array_view(random_access_iterator<T>, size_t) -> array_view<T>;
 template<typename T>
 array_view(random_access_iterator<T const>, size_t) -> array_view<T const>;
 
+template<typename T, typename U>
+constexpr bool operator == (array_view<T> lhs, array_view<U> rhs)
+{ return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin()); }
+
+template<typename T, typename U>
+constexpr bool operator != (array_view<T> lhs, array_view<U> rhs)
+{ return !(lhs == rhs); }
+
 bz_end_namespace
 
 #endif // _bz_array_view_h__
