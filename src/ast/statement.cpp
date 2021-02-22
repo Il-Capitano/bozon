@@ -238,6 +238,63 @@ bz::u8string function_body::decode_symbol_name(
 	return result;
 }
 
+type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens src_tokens, type_info &info)
+{
+	auto lhs_t = [&]() {
+		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
+	auto rhs_t = [&]() {
+		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_const>(nullptr);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
+	auto ret_t = [&]() {
+		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
+
+	auto result = make_ast_unique<function_body>();
+	result->params.reserve(2);
+	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(lhs_t));
+	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(rhs_t));
+	result->return_type = std::move(ret_t);
+	result->function_name_or_operator_kind = lex::token::assign;
+	result->src_tokens = src_tokens;
+	result->state = resolve_state::symbol;
+	result->flags |= function_body::default_op_assign;
+	return result;
+}
+
+type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info)
+{
+	auto lhs_t = [&]() {
+		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
+	auto rhs_t = make_base_type_typespec({}, &info);
+	auto ret_t = [&]() {
+		typespec result = make_base_type_typespec({}, &info);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
+
+	auto result = make_ast_unique<function_body>();
+	result->params.reserve(2);
+	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(lhs_t));
+	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(rhs_t));
+	result->return_type = std::move(ret_t);
+	result->function_name_or_operator_kind = lex::token::assign;
+	result->src_tokens = src_tokens;
+	result->state = resolve_state::symbol;
+	result->flags |= function_body::default_op_move_assign;
+	return result;
+}
+
 static_assert(type_info::int8_    ==  0);
 static_assert(type_info::int16_   ==  1);
 static_assert(type_info::int32_   ==  2);
@@ -256,22 +313,23 @@ static_assert(type_info::null_t_  == 13);
 
 bz::vector<type_info> make_builtin_type_infos(void)
 {
-	return bz::vector{
-		type_info::make_builtin("int8",     type_info::int8_),
-		type_info::make_builtin("int16",    type_info::int16_),
-		type_info::make_builtin("int32",    type_info::int32_),
-		type_info::make_builtin("int64",    type_info::int64_),
-		type_info::make_builtin("uint8",    type_info::uint8_),
-		type_info::make_builtin("uint16",   type_info::uint16_),
-		type_info::make_builtin("uint32",   type_info::uint32_),
-		type_info::make_builtin("uint64",   type_info::uint64_),
-		type_info::make_builtin("float32",  type_info::float32_),
-		type_info::make_builtin("float64",  type_info::float64_),
-		type_info::make_builtin("char",     type_info::char_),
-		type_info::make_builtin("str",      type_info::str_),
-		type_info::make_builtin("bool",     type_info::bool_),
-		type_info::make_builtin("__null_t", type_info::null_t_),
-	};
+	bz::vector<type_info> result;
+	result.reserve(type_info::null_t_ + 1);
+	result.push_back(type_info::make_builtin("int8",     type_info::int8_));
+	result.push_back(type_info::make_builtin("int16",    type_info::int16_));
+	result.push_back(type_info::make_builtin("int32",    type_info::int32_));
+	result.push_back(type_info::make_builtin("int64",    type_info::int64_));
+	result.push_back(type_info::make_builtin("uint8",    type_info::uint8_));
+	result.push_back(type_info::make_builtin("uint16",   type_info::uint16_));
+	result.push_back(type_info::make_builtin("uint32",   type_info::uint32_));
+	result.push_back(type_info::make_builtin("uint64",   type_info::uint64_));
+	result.push_back(type_info::make_builtin("float32",  type_info::float32_));
+	result.push_back(type_info::make_builtin("float64",  type_info::float64_));
+	result.push_back(type_info::make_builtin("char",     type_info::char_));
+	result.push_back(type_info::make_builtin("str",      type_info::str_));
+	result.push_back(type_info::make_builtin("bool",     type_info::bool_));
+	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_));
+	return result;
 }
 
 bz::vector<type_and_name_pair> make_builtin_types(bz::array_view<type_info> builtin_type_infos)

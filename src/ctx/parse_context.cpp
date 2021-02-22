@@ -2935,6 +2935,81 @@ static ast::expression make_expr_function_call_from_body(
 	);
 }
 
+static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+	uint32_t op,
+	lex::src_tokens src_tokens,
+	ast::expression &expr,
+	parse_context &context
+)
+{
+	auto const expr_scope = [&]() -> bz::array_view<bz::u8string_view const> {
+		auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+		if (expr_t.is<ast::ts_base_type>())
+		{
+			auto const &id = expr_t.get<ast::ts_base_type>().info->type_name;
+			if (id.is_qualified)
+			{
+				return id.values;
+			}
+		}
+		return {};
+	}();
+	auto const current_scope = context.current_scope;
+
+	bz::vector<possible_func_t> possible_funcs = {};
+	auto const compare_scopes = [](
+		bz::array_view<bz::u8string_view const> op_scope,
+		bz::array_view<bz::u8string_view const> current_scope
+	) {
+		return op_scope.size() <= current_scope.size() && std::equal(op_scope.begin(), op_scope.end(), current_scope.begin());
+	};
+
+	// we go through the scope decls for a matching declaration
+	for (auto &scope : context.scope_decls.reversed())
+	{
+		auto const filtered_sets = scope.op_sets
+			.filter([op](auto const &op_set) {
+				return op == op_set.op;
+			});
+		for (auto const &op_set : filtered_sets)
+		{
+			for (auto &op : op_set.op_decls)
+			{
+				auto &body = op.get<ast::decl_operator>().body;
+				auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
+				if (match_level.not_null())
+				{
+					possible_funcs.push_back({ std::move(match_level), op, &body });
+				}
+			}
+		}
+	}
+
+	auto &global_decls = *context.global_decls;
+	auto const filtered_sets = global_decls.op_sets
+		.filter([op, expr_scope, current_scope, compare_scopes](auto const &op_set) {
+			return op == op_set.op
+				&& (
+					compare_scopes(op_set.scope, current_scope)
+					|| compare_scopes(op_set.scope, expr_scope)
+				);
+		});
+	for (auto const &op_set : filtered_sets)
+	{
+		for (auto &op : op_set.op_decls)
+		{
+			auto &body = op.get<ast::decl_operator>().body;
+			auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
+			if (match_level.not_null())
+			{
+				possible_funcs.push_back({ std::move(match_level), op, &body });
+			}
+		}
+	}
+
+	return possible_funcs;
+}
+
 ast::expression parse_context::make_unary_operator_expression(
 	lex::src_tokens src_tokens,
 	lex::token_pos op,
@@ -2972,51 +3047,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		return result;
 	}
 
-	bz::vector<possible_func_t> possible_funcs = {};
-
-	// we go through the scope decls for a matching declaration
-	for (auto &scope : this->scope_decls.reversed())
-	{
-		auto const set = std::find_if(
-			scope.op_sets.begin(), scope.op_sets.end(),
-			[op = op->kind](auto const &op_set) {
-				return op == op_set.op;
-			}
-		);
-		if (set != scope.op_sets.end())
-		{
-			for (auto &op : set->op_decls)
-			{
-				auto &body = op.get<ast::decl_operator>().body;
-				auto match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), op, &body });
-				}
-			}
-		}
-	}
-
-	auto &global_decls = *this->global_decls;
-	auto const global_set = std::find_if(
-		global_decls.op_sets.begin(), global_decls.op_sets.end(),
-		[op = op->kind](auto const &op_set) {
-			return op == op_set.op;
-		}
-	);
-	if (global_set != global_decls.op_sets.end())
-	{
-		for (auto &op : global_set->op_decls)
-		{
-			auto &body = op.get<ast::decl_operator>().body;
-			auto match_level = get_function_call_match_level(op, body, expr, *this, src_tokens);
-			if (match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(match_level), op, &body });
-			}
-		}
-	}
-
+	auto const possible_funcs = get_possible_funcs_for_operator(op->kind, src_tokens, expr, *this);
 	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{
@@ -3028,6 +3059,115 @@ ast::expression parse_context::make_unary_operator_expression(
 		params.emplace_back(std::move(expr));
 		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
 	}
+}
+
+static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+	uint32_t op,
+	lex::src_tokens src_tokens,
+	ast::expression &lhs,
+	ast::expression &rhs,
+	parse_context &context
+)
+{
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	auto const lhs_scope = [&]() -> bz::array_view<bz::u8string_view const> {
+		if (lhs_t.is<ast::ts_base_type>())
+		{
+			auto const &id = lhs_t.get<ast::ts_base_type>().info->type_name;
+			if (id.is_qualified)
+			{
+				return id.values;
+			}
+		}
+		return {};
+	}();
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const rhs_scope = [&]() -> bz::array_view<bz::u8string_view const> {
+		if (rhs_t.is<ast::ts_base_type>())
+		{
+			auto const &id = rhs_t.get<ast::ts_base_type>().info->type_name;
+			if (id.is_qualified)
+			{
+				return id.values;
+			}
+		}
+		return {};
+	}();
+	auto const current_scope = context.current_scope;
+
+	bz::vector<possible_func_t> possible_funcs = {};
+	auto const compare_scopes = [](
+		bz::array_view<bz::u8string_view const> op_scope,
+		bz::array_view<bz::u8string_view const> current_scope
+	) {
+		return op_scope.size() <= current_scope.size() && std::equal(op_scope.begin(), op_scope.end(), current_scope.begin());
+	};
+
+	// we go through the scope decls for a matching declaration
+	for (auto &scope : context.scope_decls.reversed())
+	{
+		auto const filtered_sets = scope.op_sets
+			.filter([op](auto const &op_set) {
+				return op == op_set.op;
+			});
+		for (auto const &op_set : filtered_sets)
+		{
+			for (auto &op : op_set.op_decls)
+			{
+				auto &body = op.get<ast::decl_operator>().body;
+				auto match_level = get_function_call_match_level(op, body, lhs, rhs, context, src_tokens);
+				if (match_level.not_null())
+				{
+					possible_funcs.push_back({ std::move(match_level), op, &body });
+				}
+			}
+		}
+	}
+
+	auto &global_decls = *context.global_decls;
+	auto const filtered_sets = global_decls.op_sets
+		.filter([op, lhs_scope, rhs_scope, current_scope, compare_scopes](auto const &op_set) {
+			return op == op_set.op
+				&& (
+					compare_scopes(op_set.scope, current_scope)
+					|| compare_scopes(op_set.scope, lhs_scope)
+					|| compare_scopes(op_set.scope, rhs_scope)
+				);
+		});
+	for (auto const &op_set : filtered_sets)
+	{
+		for (auto &op_decl : op_set.op_decls)
+		{
+			auto &body = op_decl.get<ast::decl_operator>().body;
+			auto match_level = get_function_call_match_level(op_decl, body, lhs, rhs, context, src_tokens);
+			if (match_level.not_null())
+			{
+				possible_funcs.push_back({ std::move(match_level), op_decl, &body });
+			}
+		}
+	}
+
+	if (op == lex::token::assign && lhs_t.is<ast::ts_base_type>())
+	{
+		auto const lhs_info = lhs_t.get<ast::ts_base_type>().info;
+		if (lhs_info->op_assign == nullptr && lhs_info->op_move_assign == nullptr)
+		{
+			auto &op_assign = *lhs_info->default_op_assign;
+			auto op_assign_match_level = get_function_call_match_level({}, op_assign, lhs, rhs, context, src_tokens);
+			if (op_assign_match_level.not_null())
+			{
+				possible_funcs.push_back({ std::move(op_assign_match_level), {}, &op_assign });
+			}
+			auto &op_move_assign = *lhs_info->default_op_move_assign;
+			auto op_move_assign_match_level = get_function_call_match_level({}, op_move_assign, lhs, rhs, context, src_tokens);
+			if (op_move_assign_match_level.not_null())
+			{
+				possible_funcs.push_back({ std::move(op_move_assign_match_level), {}, &op_move_assign });
+			}
+		}
+	}
+
+	return possible_funcs;
 }
 
 ast::expression parse_context::make_binary_operator_expression(
@@ -3094,51 +3234,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		return result;
 	}
 
-	bz::vector<possible_func_t> possible_funcs = {};
-
-	// we go through the scope decls for a matching declaration
-	for (auto &scope : this->scope_decls.reversed())
-	{
-		auto const set = std::find_if(
-			scope.op_sets.begin(), scope.op_sets.end(),
-			[op = op->kind](auto const &op_set) {
-				return op == op_set.op;
-			}
-		);
-		if (set != scope.op_sets.end())
-		{
-			for (auto &op : set->op_decls)
-			{
-				auto &body = op.get<ast::decl_operator>().body;
-				auto match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), op, &body });
-				}
-			}
-		}
-	}
-
-	auto &global_decls = *this->global_decls;
-	auto const global_set = std::find_if(
-		global_decls.op_sets.begin(), global_decls.op_sets.end(),
-		[op = op->kind](auto const &op_set) {
-			return op == op_set.op;
-		}
-	);
-	if (global_set != global_decls.op_sets.end())
-	{
-		for (auto &op : global_set->op_decls)
-		{
-			auto &body = op.get<ast::decl_operator>().body;
-			auto match_level = get_function_call_match_level(op, body, lhs, rhs, *this, src_tokens);
-			if (match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(match_level), op, &body });
-			}
-		}
-	}
-
+	auto const possible_funcs = get_possible_funcs_for_operator(op->kind, src_tokens, lhs, rhs, *this);
 	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{
@@ -3547,7 +3643,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 	}();
 
 	params.push_front(std::move(base));
-	auto const possible_funcs = get_possible_funcs_for_universal_function_call( src_tokens, id, base_scope, params, *this);
+	auto const possible_funcs = get_possible_funcs_for_universal_function_call(src_tokens, id, base_scope, params, *this);
 	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{

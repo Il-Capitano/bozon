@@ -1671,6 +1671,206 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static void create_function_call(
+	ast::function_body const *body,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+)
+{
+	bz_assert(lhs.kind == val_ptr::reference);
+	bz_assert(rhs.kind == val_ptr::reference);
+	bz::log("{}\n", body->get_signature());
+	auto const fn = context.get_function(body);
+	bz_assert(fn != nullptr);
+	auto const result_type = get_llvm_type(body->return_type, context);
+	auto const result_pass_kind = abi::get_pass_kind<abi>(result_type, context);
+
+	bz_assert(result_pass_kind != abi::pass_kind::reference);
+	bz_assert(body->params[0].var_type.is<ast::ts_lvalue_reference>());
+
+	bz::vector<llvm::Value *> params;
+	bool is_rhs_pass_by_ref = false;
+	params.reserve(2);
+	params.push_back(lhs.val);
+
+	{
+		auto const &rhs_p_t = body->params[1].var_type;
+		if (rhs_p_t.is<ast::ts_lvalue_reference>())
+		{
+			bz_assert(rhs.kind == val_ptr::reference);
+			params.push_back(rhs.val);
+		}
+		else
+		{
+			auto const rhs_llvm_type = get_llvm_type(rhs_p_t, context);
+			auto const rhs_pass_kind = abi::get_pass_kind<abi>(rhs_llvm_type, context);
+
+			switch (rhs_pass_kind)
+			{
+			case abi::pass_kind::reference:
+				// there's no need to provide a seperate copy for a byval argument,
+				// as a copy is made at the call site automatically
+				// see: https://reviews.llvm.org/D79636
+				params.push_back(rhs.val);
+				is_rhs_pass_by_ref = true;
+				break;
+			case abi::pass_kind::value:
+				params.push_back(rhs.get_value(context.builder));
+				break;
+			case abi::pass_kind::one_register:
+				params.push_back(context.create_bitcast(
+					rhs,
+					abi::get_one_register_type<abi>(rhs_llvm_type, context)
+				));
+				break;
+			case abi::pass_kind::two_registers:
+			{
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(rhs_llvm_type, context);
+				auto const cast_val = context.create_bitcast(rhs, llvm::StructType::get(first_type, second_type));
+				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
+				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
+				params.push_back(first_val);
+				params.push_back(second_val);
+				break;
+			}
+			}
+		}
+	}
+
+	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+	call->setCallingConv(fn->getCallingConv());
+	if (is_rhs_pass_by_ref)
+	{
+		auto const i = call->arg_size() - 1;
+		call->addParamAttr(i, llvm::Attribute::ByVal);
+		call->addParamAttr(i, llvm::Attribute::NoAlias);
+		call->addParamAttr(i, llvm::Attribute::NoCapture);
+		call->addParamAttr(i, llvm::Attribute::NonNull);
+	}
+}
+
+template<abi::platform_abi abi>
+static void emit_assign(
+	ast::type_info const *info,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+)
+{
+	bz_assert(rhs.kind != val_ptr::value);
+	if (info->op_assign == nullptr)
+	{
+		for (auto const [member, i] : info->member_variables.enumerate())
+		{
+			auto const lhs_ptr = context.builder.CreateStructGEP(lhs.val, i);
+			auto const rhs_ptr = context.builder.CreateStructGEP(rhs.val, i);
+			auto const member_t = ast::remove_const_or_consteval(member.type);
+			if (member_t.is<ast::ts_base_type>())
+			{
+				emit_assign<abi>(
+					member_t.get<ast::ts_base_type>().info,
+					{ val_ptr::reference, lhs_ptr },
+					{ val_ptr::reference, rhs_ptr },
+					context
+				);
+			}
+			else
+			{
+				auto const rhs_val = context.builder.CreateLoad(rhs_ptr);
+				context.builder.CreateStore(rhs_val, lhs_ptr);
+			}
+		}
+	}
+	else
+	{
+		create_function_call<abi>(info->op_assign, lhs, rhs, context);
+	}
+}
+
+template<abi::platform_abi abi>
+static void emit_move_assign(
+	ast::type_info const *info,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+)
+{
+	if (rhs.kind == val_ptr::value || info->kind != ast::type_info::aggregate)
+	{
+		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+	}
+	else if (info->op_move_assign == nullptr)
+	{
+		for (auto const [member, i] : info->member_variables.enumerate())
+		{
+			auto const lhs_ptr = context.builder.CreateStructGEP(lhs.val, i);
+			auto const rhs_ptr = context.builder.CreateStructGEP(rhs.val, i);
+			auto const member_t = ast::remove_const_or_consteval(member.type);
+			if (member_t.is<ast::ts_base_type>())
+			{
+				emit_move_assign<abi>(
+					member_t.get<ast::ts_base_type>().info,
+					{ val_ptr::reference, lhs_ptr },
+					{ val_ptr::reference, rhs_ptr },
+					context
+				);
+			}
+			else
+			{
+				auto const rhs_val = context.builder.CreateLoad(rhs_ptr);
+				context.builder.CreateStore(rhs_val, lhs_ptr);
+			}
+		}
+	}
+	else
+	{
+		create_function_call<abi>(info->op_move_assign, lhs, rhs, context);
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
+	auto const lhs_val = emit_bitcode<abi>(lhs, context, result_address);
+	bz_assert(rhs_val.kind == val_ptr::reference);
+	bz_assert(lhs_val.kind == val_ptr::reference);
+
+	auto const base_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	bz_assert(base_type.is<ast::ts_base_type>());
+	auto const info = base_type.get<ast::ts_base_type>().info;
+	emit_assign<abi>(info, lhs_val, rhs_val, context);
+
+	return lhs_val;
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_move_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
+	auto const lhs_val = emit_bitcode<abi>(lhs, context, result_address);
+	bz_assert(lhs_val.kind == val_ptr::reference);
+
+	auto const base_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	bz_assert(base_type.is<ast::ts_base_type>());
+	auto const info = base_type.get<ast::ts_base_type>().info;
+	emit_move_assign<abi>(info, lhs_val, rhs_val, context);
+
+	return lhs_val;
+}
+
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expr_function_call const &func_call,
 	ctx::bitcode_context &context,
@@ -1841,6 +2041,14 @@ static val_ptr emit_bitcode(
 			break;
 		}
 	}
+	else if (func_call.func_body->is_default_op_assign())
+	{
+		return emit_default_assign<abi>(func_call.params[0], func_call.params[1], context, result_address);
+	}
+	else if (func_call.func_body->is_default_op_move_assign())
+	{
+		return emit_default_move_assign<abi>(func_call.params[0], func_call.params[1], context, result_address);
+	}
 
 	bz_assert(func_call.func_body != nullptr);
 	auto const fn = context.get_function(func_call.func_body);
@@ -1923,13 +2131,13 @@ static val_ptr emit_bitcode(
 			case abi::pass_kind::one_register:
 				(params.*params_push)(context.create_bitcast(
 					param_val,
-					abi::get_one_register_type<abi>(param_val.get_type(), context)
+					abi::get_one_register_type<abi>(param_llvm_type, context)
 				));
 				(params_is_pass_by_ref.*ref_push)(false);
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(param_val.get_type(), context);
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(param_llvm_type, context);
 				auto const cast_val = context.create_bitcast(param_val, llvm::StructType::get(first_type, second_type));
 				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
 				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);

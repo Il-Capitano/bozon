@@ -321,6 +321,8 @@ struct function_body
 		intrinsic              = bit_at<3>,
 		generic                = bit_at<4>,
 		generic_specialization = bit_at<5>,
+		default_op_assign      = bit_at<6>,
+		default_op_move_assign = bit_at<7>,
 	};
 
 	enum : uint8_t
@@ -482,6 +484,16 @@ struct function_body
 		return (this->flags & generic_specialization) != 0;
 	}
 
+	bool is_default_op_assign(void) const noexcept
+	{
+		return (this->flags & default_op_assign) != 0;
+	}
+
+	bool is_default_op_move_assign(void) const noexcept
+	{
+		return (this->flags & default_op_move_assign) != 0;
+	}
+
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end
@@ -496,14 +508,14 @@ struct function_body
 
 struct decl_function
 {
-	identifier     id;
-	function_body  body;
+	identifier    id;
+	function_body body;
 
 	declare_default_5(decl_function)
 
 	decl_function(
-		identifier     _id,
-		function_body  _body
+		identifier    _id,
+		function_body _body
 	)
 		: id  (std::move(_id)),
 		  body(std::move(_body))
@@ -512,17 +524,20 @@ struct decl_function
 
 struct decl_operator
 {
-	lex::token_pos op;
-	function_body  body;
+	bz::vector<bz::u8string_view> scope;
+	lex::token_pos                op;
+	function_body                 body;
 
 	declare_default_5(decl_operator)
 
 	decl_operator(
-		lex::token_pos _op,
-		function_body  _body
+		bz::vector<bz::u8string_view> _scope,
+		lex::token_pos                _op,
+		function_body                 _body
 	)
-		: op  (_op),
-		  body(std::move(_body))
+		: scope(std::move(_scope)),
+		  op   (_op),
+		  body (std::move(_body))
 	{}
 };
 
@@ -615,7 +630,12 @@ struct type_info
 
 	bz::vector<member_variable> member_variables;
 
-	using function_body_ptr = std::unique_ptr<function_body>;
+	using function_body_ptr = ast_unique_ptr<function_body>;
+	function_body_ptr default_op_assign;
+	function_body_ptr default_op_move_assign;
+	function_body *op_assign;
+	function_body *op_move_assign;
+
 //	bz::vector<function_body_ptr> constructors;
 //	function_body *default_constructor;
 //	function_body *copy_constructor;
@@ -631,7 +651,11 @@ struct type_info
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body_tokens(range),
-		  member_variables{}
+		  member_variables{},
+		  default_op_assign(make_default_op_assign(src_tokens, *this)),
+		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
+		  op_assign(nullptr),
+		  op_move_assign(nullptr)
 //		  constructors{},
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
@@ -649,7 +673,11 @@ private:
 		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body_tokens{},
-		  member_variables{}
+		  member_variables{},
+		  default_op_assign(nullptr),
+		  default_op_move_assign(nullptr),
+		  op_assign(nullptr),
+		  op_move_assign(nullptr)
 //		  constructors{},
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
@@ -658,6 +686,9 @@ private:
 //		  move_destuctor(nullptr)
 	{}
 public:
+
+	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
+	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
 
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{

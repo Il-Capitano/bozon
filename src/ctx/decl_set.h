@@ -17,6 +17,7 @@ struct function_overload_set
 
 struct operator_overload_set
 {
+	bz::array_view<bz::u8string_view const> scope;
 	uint32_t op;
 	// will always be ast::decl_operator
 	bz::vector<ast::statement_view> op_decls;
@@ -74,16 +75,17 @@ struct decl_set
 	{
 		bz_assert(stmt.is<ast::decl_operator>());
 		auto &op_decl = stmt.get<ast::decl_operator>();
+		auto const scope = op_decl.scope.as_array_view();
 		auto const op = op_decl.op->kind;
 		auto const set = std::find_if(
 			this->op_sets.begin(), this->op_sets.end(),
-			[op](auto const &set) {
-				return op == set.op;
+			[op, scope](auto const &set) {
+				return op == set.op && scope == set.scope;
 			}
 		);
 		if (set == this->op_sets.end())
 		{
-			this->op_sets.push_back({ op, { ast::statement_view(stmt) } });
+			this->op_sets.push_back({ scope, op, { ast::statement_view(stmt) } });
 		}
 		else
 		{
@@ -93,6 +95,7 @@ struct decl_set
 
 	void add_operator(ast::decl_operator &op_decl)
 	{
+		auto const scope = op_decl.scope.as_array_view();
 		auto const op = op_decl.op->kind;
 		auto const set = std::find_if(
 			this->op_sets.begin(), this->op_sets.end(),
@@ -102,7 +105,7 @@ struct decl_set
 		);
 		if (set == this->op_sets.end())
 		{
-			this->op_sets.push_back({ op, { ast::statement_view(&op_decl) } });
+			this->op_sets.push_back({ scope, op, { ast::statement_view(&op_decl) } });
 		}
 		else
 		{
