@@ -1003,6 +1003,38 @@ static bool resolve_function_parameters_helper(
 	{
 		func_body.flags |= ast::function_body::generic;
 	}
+
+	if (
+		func_stmt.is<ast::decl_operator>()
+		&& func_stmt.get<ast::decl_operator>().op->kind == lex::token::assign
+	)
+	{
+		bz_assert(func_body.params.size() == 2);
+		auto const lhs_t = func_body.params[0].var_type.as_typespec_view();
+		auto const rhs_t = func_body.params[1].var_type.as_typespec_view();
+		if (
+			lhs_t.is<ast::ts_lvalue_reference>()
+			&& lhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_base_type>()
+			&& ((
+				rhs_t.is<ast::ts_lvalue_reference>()
+				&& rhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_const>()
+				&& rhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_const>() == lhs_t.get<ast::ts_lvalue_reference>()
+			) || (
+				ast::remove_const_or_consteval(rhs_t) == lhs_t.get<ast::ts_lvalue_reference>()
+			))
+		)
+		{
+			auto const info = lhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_base_type>().info;
+			if (rhs_t.is<ast::ts_lvalue_reference>())
+			{
+				info->op_assign = &func_body;
+			}
+			else
+			{
+				info->op_move_assign = &func_body;
+			}
+		}
+	}
 	return good;
 }
 
