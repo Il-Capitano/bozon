@@ -48,6 +48,19 @@ struct collection_base_transform
 };
 
 template<typename Range>
+struct range_base_enumerate
+{
+	constexpr auto enumerate(void) const noexcept;
+};
+
+template<typename Collection>
+struct collection_base_enumerate
+{
+	constexpr auto enumerate(void) noexcept;
+	constexpr auto enumerate(void) const noexcept;
+};
+
+template<typename Range>
 struct range_base_member
 {
 	template<auto MemberPtr>
@@ -219,6 +232,7 @@ template<typename Range>
 struct range_base :
 	internal::range_base_filter   <Range>,
 	internal::range_base_transform<Range>,
+	internal::range_base_enumerate<Range>,
 	internal::range_base_member   <Range>,
 	internal::range_base_collect  <Range>,
 	internal::range_base_count    <Range>,
@@ -235,6 +249,7 @@ template<typename Collection>
 struct collection_base :
 	internal::collection_base_filter   <Collection>,
 	internal::collection_base_transform<Collection>,
+	internal::collection_base_enumerate<Collection>,
 	internal::collection_base_member   <Collection>,
 	internal::collection_base_is_any   <Collection>,
 	internal::collection_base_is_all   <Collection>,
@@ -543,6 +558,60 @@ public:
 	{ return universal_end_sentinel<self_t>{}; }
 };
 
+template<typename ItType, typename EndType>
+struct enumerate_range
+{
+private:
+	using self_t = enumerate_range<ItType, EndType>;
+private:
+	ItType _it;
+	[[no_unique_address]] EndType _end;
+	std::size_t _index;
+
+public:
+	constexpr enumerate_range(ItType it, EndType end)
+		: _it(std::move(it)), _end(std::move(end)), _index(0)
+	{}
+
+	constexpr bool at_end(void) const noexcept
+	{ return this->_it == this->_end; }
+
+	constexpr self_t &operator ++ (void) noexcept
+	{
+		++this->_it;
+		++this->_index;
+		return *this;
+	}
+
+	constexpr auto operator * (void) const noexcept
+	{ return std::pair<decltype(*this->_it), std::size_t>(*this->_it, this->_index); }
+
+	constexpr auto const &operator -> (void) const noexcept
+	{ return this->_it; }
+
+	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return lhs.at_end(); }
+
+	constexpr friend bool operator == ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return rhs.at_end(); }
+
+	constexpr friend bool operator != (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
+	{ return !lhs.at_end(); }
+
+	constexpr friend bool operator != ([[maybe_unused]] universal_end_sentinel<self_t> lhs, self_t const &rhs) noexcept
+	{ return !rhs.at_end(); }
+
+	constexpr decltype(auto) front(void) const noexcept
+	{ return this->operator*(); }
+
+
+	constexpr self_t begin(void) const noexcept
+	{ return *this; }
+
+	constexpr universal_end_sentinel<self_t> end(void) const noexcept
+	{ return universal_end_sentinel<self_t>{}; }
+};
+
 
 template<typename ItType, typename EndType>
 basic_range(ItType it, EndType end) -> basic_range<ItType, EndType>;
@@ -655,6 +724,24 @@ template<typename Collection>
 template<typename Func>
 constexpr auto collection_base_transform<Collection>::transform(Func &&func) const noexcept
 { return static_cast<Collection const *>(this)->as_range().transform(std::forward<Func>(func)); }
+
+template<typename Range>
+constexpr auto range_base_enumerate<Range>::enumerate(void) const noexcept
+{
+	auto const self = static_cast<Range const *>(this);
+	return enumerate_range{
+		self->begin(),
+		self->end()
+	};
+}
+
+template<typename Collection>
+constexpr auto collection_base_enumerate<Collection>::enumerate(void) noexcept
+{ return static_cast<Collection *>(this)->as_range().enumerate(); }
+
+template<typename Collection>
+constexpr auto collection_base_enumerate<Collection>::enumerate(void) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().enumerate(); }
 
 template<typename Range>
 template<auto MemberPtr>
