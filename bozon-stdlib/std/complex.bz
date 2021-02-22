@@ -37,6 +37,19 @@ export operator + (lhs: complex, rhs: float64) -> complex
 export operator + (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs + rhs.re, rhs.im ]; }
 
+export operator += (lhs: &complex, rhs: complex) -> &complex
+{
+	lhs.re += rhs.re;
+	lhs.im += rhs.im;
+	return lhs;
+}
+
+export operator += (lhs: &complex, rhs: float64) -> &complex
+{
+	lhs.re += rhs;
+	return lhs;
+}
+
 
 export operator - (lhs: complex, rhs: complex) -> complex
 { return complex[ lhs.re - rhs.re, lhs.im - rhs.im ]; }
@@ -46,6 +59,19 @@ export operator - (lhs: complex, rhs: float64) -> complex
 
 export operator - (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs - rhs.re, -rhs.im ]; }
+
+export operator -= (lhs: &complex, rhs: complex) -> &complex
+{
+	lhs.re -= rhs.re;
+	lhs.im -= rhs.im;
+	return lhs;
+}
+
+export operator -= (lhs: &complex, rhs: float64) -> &complex
+{
+	lhs.re -= rhs;
+	return lhs;
+}
 
 
 export operator * (lhs: complex, rhs: complex) -> complex
@@ -57,6 +83,19 @@ export operator * (lhs: complex, rhs: float64) -> complex
 export operator * (lhs: float64, rhs: complex) -> complex
 { return complex[ lhs * rhs.re, lhs * rhs.im ]; }
 
+export operator *= (lhs: &complex, rhs: complex) -> &complex
+{
+	lhs = lhs * rhs;
+	return lhs;
+}
+
+export operator *= (lhs: &complex, rhs: float64) -> &complex
+{
+	lhs.re *= rhs;
+	lhs.im *= rhs;
+	return lhs;
+}
+
 
 export operator / (lhs: complex, rhs: complex) -> complex
 { return lhs * (complex[ rhs.re, -rhs.im ] / abs_square(rhs)); }
@@ -66,6 +105,19 @@ export operator / (lhs: complex, rhs: float64) -> complex
 
 export operator / (lhs: float64, rhs: complex) -> complex
 { return complex[ rhs.re, -rhs.im ] * (lhs / abs_square(rhs)); }
+
+export operator /= (lhs: &complex, rhs: complex) -> &complex
+{
+	lhs = lhs / rhs;
+	return lhs;
+}
+
+export operator /= (lhs: &complex, rhs: float64) -> &complex
+{
+	lhs.re /= rhs;
+	lhs.im /= rhs;
+	return lhs;
+}
 
 
 export operator == (lhs: complex, rhs: complex) -> bool
