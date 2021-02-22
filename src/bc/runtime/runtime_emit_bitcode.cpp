@@ -1759,7 +1759,11 @@ static void emit_assign(
 )
 {
 	bz_assert(rhs.kind != val_ptr::value);
-	if (info->op_assign == nullptr)
+	if (info->kind != ast::type_info::aggregate)
+	{
+		context.builder.CreateStore(rhs.get_value(context.builder), lhs.val);
+	}
+	else if (info->op_assign == nullptr)
 	{
 		for (auto const [member, i] : info->member_variables.enumerate())
 		{
