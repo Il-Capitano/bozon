@@ -116,6 +116,7 @@ struct token
 		kw_let,              // let
 		kw_const,            // const
 		kw_consteval,        // consteval
+		kw_move,             // move
 
 		kw_true,             // true
 		kw_false,            // false

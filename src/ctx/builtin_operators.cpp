@@ -708,6 +708,27 @@ static ast::expression get_builtin_unary_typeof(
 	);
 }
 
+// move (val) -> (typeof val without lvalue ref)
+static ast::expression get_builtin_unary_move(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op->kind == lex::token::kw_move);
+	bz_assert(expr.not_null());
+	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
+	// auto const [type, kind] = expr.get_expr_type_and_kind();
+	if (expr.is_typename())
+	{
+		context.report_error(src_tokens, "cannot 'move' a type");
+		return ast::expression(src_tokens);
+	}
+
+	context.report_error(src_tokens, "operator move is not yet implemented");
+	return ast::expression(src_tokens);
+}
+
 #undef undeclared_unary_message
 
 
@@ -3309,6 +3330,7 @@ constexpr auto builtin_unary_operators = []() {
 
 		T{ lex::token::kw_sizeof,   &get_builtin_unary_sizeof                }, // sizeof
 		T{ lex::token::kw_typeof,   &get_builtin_unary_typeof                }, // typeof
+		T{ lex::token::kw_move,     &get_builtin_unary_move                  }, // move
 	};
 
 	auto const builtin_unary_count = []() {
