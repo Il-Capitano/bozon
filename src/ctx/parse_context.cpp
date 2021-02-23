@@ -679,6 +679,7 @@ void parse_context::remove_scope(void)
 	auto const generic_functions_start_index = this->generic_function_scope_start.back();
 	for (std::size_t i = generic_functions_start_index ; i < this->generic_functions.size(); ++i)
 	{
+		bz_assert(!this->generic_functions[i]->is_generic());
 		this->add_to_resolve_queue({}, *this->generic_functions[i]);
 		parse::resolve_function({}, *this->generic_functions[i], *this);
 		this->pop_resolve_queue();
@@ -1129,6 +1130,17 @@ static ast::expression make_variable_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
 			init_expr.get<ast::constant_expression>().value,
+			ast::make_expr_identifier(std::move(id), var_decl)
+		);
+	}
+	else if (id_type.is_typename())
+	{
+		auto &init_expr = var_decl->init_expr;
+		bz_assert(init_expr.is_typename());
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
+			init_expr.get_typename(),
 			ast::make_expr_identifier(std::move(id), var_decl)
 		);
 	}
@@ -2042,6 +2054,12 @@ static bool is_implicitly_convertible(
 	[[maybe_unused]] parse_context &context
 )
 {
+	if (expr.is_if_expr())
+	{
+		auto const &if_expr = expr.get_if_expr();
+		return is_implicitly_convertible(dest, if_expr.then_block, context)
+			&& is_implicitly_convertible(dest, if_expr.else_block, context);
+	}
 	bz_assert(!dest.is<ast::ts_const>());
 	bz_assert(!dest.is<ast::ts_consteval>());
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
@@ -2166,6 +2184,44 @@ static match_level_t operator + (match_level_t lhs, int rhs)
 	return lhs;
 }
 
+static match_level_t get_strict_typename_match_level(
+	ast::typespec_view dest,
+	ast::typespec_view source
+)
+{
+	if (!ast::is_complete(source))
+	{
+		return match_level_t{};
+	}
+
+	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
+	{
+		dest = dest.blind_get();
+		source = source.blind_get();
+	}
+
+	if (dest.is<ast::ts_typename>())
+	{
+		return static_cast<int>(source.nodes.size());
+	}
+	else if (dest.kind() != source.kind())
+	{
+		return match_level_t{};
+	}
+	else if (dest.is<ast::ts_array>())
+	{
+		return get_strict_typename_match_level(dest.get<ast::ts_array>().elem_type, source.get<ast::ts_array>().elem_type);
+	}
+	else if (dest.is<ast::ts_array_slice>())
+	{
+		return get_strict_typename_match_level(dest.get<ast::ts_array_slice>().elem_type, source.get<ast::ts_array_slice>().elem_type);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static match_level_t get_strict_type_match_level(
 	ast::typespec_view dest,
 	ast::typespec_view source,
@@ -2181,14 +2237,14 @@ static match_level_t get_strict_type_match_level(
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	bz_assert(!source.is<ast::ts_unresolved>());
 
-	if (accept_void && dest.is<ast::ts_void>())
+	if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
 	{
-		return 1;
+		return static_cast<int>(source.nodes.size());
 	}
 	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
 		bz_assert(!source.is<ast::ts_consteval>());
-		return 1;
+		return static_cast<int>(source.nodes.size());
 	}
 	else if (dest == source)
 	{
@@ -2240,6 +2296,112 @@ static match_level_t get_type_match_level(
 			// + 2, because it didn't match reference and reference const qualifier
 			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context) + 2;
 		}
+	}
+
+	if (expr.is_if_expr())
+	{
+		auto &if_expr = expr.get_if_expr();
+		if (ast::is_complete(dest))
+		{
+			auto then_result = get_type_match_level(dest, if_expr.then_block, context);
+			auto else_result = get_type_match_level(dest, if_expr.else_block, context);
+			if (then_result.is_null() || else_result.is_null())
+			{
+				return match_level_t{};
+			}
+			else if (then_result < else_result)
+			{
+				return then_result;
+			}
+			else
+			{
+				return else_result;
+			}
+		}
+		else
+		{
+			auto then_result = get_type_match_level(dest, if_expr.then_block, context);
+			auto else_result = get_type_match_level(dest, if_expr.else_block, context);
+			if (then_result.is_null() || else_result.is_null())
+			{
+				return match_level_t{};
+			}
+
+			if (ast::is_complete(dest))
+			{
+				// return the worse match
+				if (then_result < else_result)
+				{
+					return else_result;
+				}
+				else
+				{
+					return then_result;
+				}
+			}
+
+			ast::typespec then_matched_type = dest;
+			ast::typespec else_matched_type = dest;
+			context.match_expression_to_type(if_expr.then_block, then_matched_type);
+			context.match_expression_to_type(if_expr.else_block, else_matched_type);
+
+			if (then_matched_type == else_matched_type)
+			{
+				// return the worse match
+				if (then_result < else_result)
+				{
+					return else_result;
+				}
+				else
+				{
+					return then_result;
+				}
+			}
+
+			auto after_match_then_result = get_type_match_level(else_matched_type, if_expr.then_block, context);
+			auto after_match_else_result = get_type_match_level(then_matched_type, if_expr.else_block, context);
+			if (after_match_then_result.is_null() && after_match_else_result.is_null())
+			{
+				return match_level_t{};
+			}
+			else if (after_match_then_result.is_null())
+			{
+				// return the worse match
+				if (then_result < after_match_else_result)
+				{
+					return after_match_else_result;
+				}
+				else
+				{
+					return then_result;
+				}
+			}
+			else if (after_match_else_result.is_null())
+			{
+				// return the worse match
+				if (after_match_then_result < else_result)
+				{
+					return else_result;
+				}
+				else
+				{
+					return after_match_then_result;
+				}
+			}
+			else
+			{
+				return match_level_t{};
+			}
+		}
+	}
+	else if (expr.is_typename())
+	{
+		if (!dest.is_typename())
+		{
+			return match_level_t{};
+		}
+
+		return get_strict_typename_match_level(dest, expr.get_typename());
 	}
 
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
@@ -2311,11 +2473,7 @@ static match_level_t get_type_match_level(
 
 	// only implicit type conversions are left
 	// + 2 needs to be added everywhere, because it didn't match reference and reference const qualifier
-	if (dest.is<ast::ts_auto>())
-	{
-		return 3;
-	}
-	else if (dest.is<ast::ts_auto>() && expr.is_tuple())
+	if (dest.is<ast::ts_auto>() && expr.is_tuple())
 	{
 		auto &tuple_expr = expr.get_tuple();
 		match_level_t result = bz::vector<match_level_t>{};
@@ -2377,6 +2535,10 @@ static match_level_t get_type_match_level(
 			return result;
 		}
 	}
+	else if (dest.is<ast::ts_auto>())
+	{
+		return get_strict_type_match_level(dest, expr_type_without_const, false) + 2;
+	}
 	else if (dest == expr_type_without_const)
 	{
 		return 2;
@@ -2431,6 +2593,67 @@ static void strict_match_expression_to_type_impl(
 	}
 }
 
+static void match_typename_to_type_impl(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view source,
+	ast::typespec_view dest,
+	parse_context &context
+)
+{
+	// this function doesn't modify dest, it just checks if there's an error or not
+	bz_assert(expr.is_typename());
+	bz_assert(dest.is_typename());
+
+	if (!ast::is_complete(source))
+	{
+		context.report_error(expr, bz::format("couldn't match non-complete type '{}' to typename type '{}'", expr.get_typename(), dest_container));
+		expr.clear();
+		dest_container.clear();
+		return;
+	}
+
+	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
+	{
+		dest = dest.blind_get();
+		source = source.blind_get();
+	}
+
+	if (dest.is<ast::ts_typename>())
+	{
+		return;
+	}
+	else if (dest.kind() != source.kind())
+	{
+		context.report_error(expr, bz::format("couldn't match type '{}' to typename type '{}'", expr.get_typename(), dest_container));
+		expr.clear();
+		dest_container.clear();
+		return;
+	}
+	else if (dest.is<ast::ts_array>())
+	{
+		match_typename_to_type_impl(
+			expr, dest_container,
+			source.get<ast::ts_array>().elem_type, dest.get<ast::ts_array>().elem_type,
+			context
+		);
+		return;
+	}
+	else if (dest.is<ast::ts_array_slice>())
+	{
+		match_typename_to_type_impl(
+			expr, dest_container,
+			source.get<ast::ts_array_slice>().elem_type, dest.get<ast::ts_array_slice>().elem_type,
+			context
+		);
+		return;
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
 static void match_expression_to_type_impl(
 	ast::expression &expr,
 	ast::typespec &dest_container,
@@ -2439,6 +2662,118 @@ static void match_expression_to_type_impl(
 )
 {
 	// a slightly different implementation of get_type_match_level
+	if (expr.is_if_expr())
+	{
+		auto &if_expr = expr.get_if_expr();
+		if (ast::is_complete(dest))
+		{
+			match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+			match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+			return;
+		}
+		else
+		{
+			ast::typespec then_matched_type = dest_container;
+			ast::typespec else_matched_type = dest_container;
+			context.match_expression_to_type(if_expr.then_block, then_matched_type);
+			context.match_expression_to_type(if_expr.else_block, else_matched_type);
+
+			if (then_matched_type.is_empty() || else_matched_type.is_empty())
+			{
+				expr.clear();
+				if (!ast::is_complete(dest_container))
+				{
+					dest_container.clear();
+				}
+				return;
+			}
+
+			if (then_matched_type == else_matched_type)
+			{
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				return;
+			}
+
+			auto after_match_then_result = get_type_match_level(else_matched_type, if_expr.then_block, context);
+			auto after_match_else_result = get_type_match_level(then_matched_type, if_expr.else_block, context);
+			if (after_match_then_result.is_null() && after_match_else_result.is_null())
+			{
+				context.report_error(
+					expr,
+					bz::format("couldn't match the two branches of the if expression at the same time to type '{}'", dest_container),
+					{
+						context.make_note(
+							if_expr.then_block,
+							bz::format("resulting type from matching the then branch is '{}'", then_matched_type)
+						),
+						context.make_note(
+							if_expr.else_block,
+							bz::format("resulting type from matching the else branch is '{}'", else_matched_type)
+						)
+					}
+				);
+				expr.clear();
+				if (!ast::is_complete(dest_container))
+				{
+					dest_container.clear();
+				}
+				return;
+			}
+			else if (after_match_then_result.is_null())
+			{
+				// match to the then branch first
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				return;
+			}
+			else if (after_match_else_result.is_null())
+			{
+				// match to the else branch first
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+				return;
+			}
+			else
+			{
+				context.report_error(
+					expr,
+					bz::format("matching the two branches of the if expression to type '{}' is ambiguous", dest_container),
+					{
+						context.make_note(
+							if_expr.then_block,
+							bz::format("resulting type from matching the then branch is '{}'", then_matched_type)
+						),
+						context.make_note(
+							if_expr.else_block,
+							bz::format("resulting type from matching the else branch is '{}'", else_matched_type)
+						)
+					}
+				);
+				expr.clear();
+				if (!ast::is_complete(dest_container))
+				{
+					dest_container.clear();
+				}
+				return;
+			}
+		}
+	}
+	else if (expr.is_typename())
+	{
+		if (!dest.is_typename())
+		{
+			context.report_error(expr, bz::format("cannot match type '{}' to a non-typename type '{}'", expr.get_typename(), dest_container));
+			expr.clear();
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			return;
+		}
+
+		match_typename_to_type_impl(expr, dest_container, expr.get_typename(), dest, context);
+	}
 
 	if (dest.is<ast::ts_const>())
 	{
@@ -2894,7 +3229,15 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 		{
-			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			if (param.is_typename())
+			{
+				bz_assert(get_type_match_level(func_body_param.var_type, param, context).not_null());
+				func_body_param.init_expr = param;
+			}
+			else
+			{
+				match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			}
 		}
 		context.pop_resolve_queue();
 		body = body->add_specialized_body(std::move(specialized_body));
@@ -3811,6 +4154,14 @@ ast::expression parse_context::make_cast_expression(
 	{
 		bz_assert(this->has_errors());
 		return ast::expression(src_tokens);
+	}
+
+	if (expr.is_if_expr())
+	{
+		auto &if_expr = expr.get_if_expr();
+		if_expr.then_block = this->make_cast_expression(src_tokens, std::move(if_expr.then_block), type);
+		if_expr.else_block = this->make_cast_expression(src_tokens, std::move(if_expr.else_block), std::move(type));
+		return expr;
 	}
 
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();

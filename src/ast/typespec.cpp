@@ -111,6 +111,60 @@ typespec_view typespec_view::blind_get(void) const noexcept
 	return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
 }
 
+bool typespec_view::is_typename(void) const noexcept
+{
+	if (this->nodes.empty())
+	{
+		return false;
+	}
+
+	return this->nodes.back().visit(bz::overload{
+		[&](ts_unresolved const &) {
+			return false;
+		},
+		[&](ts_base_type const &) {
+			return false;
+		},
+		[&](ts_void const &) {
+			return false;
+		},
+		[&](ts_function const &) {
+			return false;
+		},
+		[&](ts_array const &array_t) {
+			return array_t.elem_type.is_typename();
+		},
+		[&](ts_array_slice const &array_slice_t) {
+			return array_slice_t.elem_type.is_typename();
+		},
+		[&](ts_tuple const &) {
+			return false;
+		},
+		[&](ts_auto const &) {
+			return false;
+		},
+		[&](ts_typename const &) {
+			return true;
+		},
+		[&](ts_const const &) {
+			bz_unreachable;
+			return false;
+		},
+		[&](ts_consteval const &) {
+			bz_unreachable;
+			return false;
+		},
+		[&](ts_pointer const &) {
+			bz_unreachable;
+			return false;
+		},
+		[&](ts_lvalue_reference const &) {
+			bz_unreachable;
+			return false;
+		}
+	});
+}
+
 typespec::typespec(arena_vector<typespec_node_t> _nodes)
 	: nodes(std::move(_nodes))
 {}
@@ -313,6 +367,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 					result += '.';
 					result += elem_type.get_symbol_name();
 				}
+			},
+			[&](ts_typename const &) {
+				result += "0N";
 			},
 			[](auto const &) {
 				bz_unreachable;

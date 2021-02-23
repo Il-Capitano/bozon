@@ -79,6 +79,7 @@ struct typespec_view
 
 	bool is_safe_blind_get(void) const noexcept;
 	typespec_view blind_get(void) const noexcept;
+	bool is_typename(void) const noexcept;
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const;
@@ -128,6 +129,9 @@ struct typespec
 
 	uint64_t kind(void) const noexcept
 	{ return this->as_typespec_view().kind(); }
+
+	bool is_typename(void) const noexcept
+	{ return this->as_typespec_view().is_typename(); }
 
 	template<typename Fn>
 	decltype(auto) visit(Fn &&fn) const

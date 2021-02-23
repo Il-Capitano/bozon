@@ -994,7 +994,7 @@ static bool resolve_function_parameters_helper(
 		{
 			good = false;
 		}
-		else if (!ast::is_complete(p.var_type))
+		else if (!ast::is_complete(p.var_type) && !(p.var_type.is_typename() && p.init_expr.is<ast::constant_expression>()))
 		{
 			is_generic = true;
 		}

@@ -47,10 +47,10 @@ enum class expression_type_kind
 	lvalue,
 	lvalue_reference,
 	rvalue,
-	rvalue_reference,
 	function_name,
 	type_name,
 	tuple,
+	if_expr,
 	none,
 };
 
@@ -63,8 +63,7 @@ constexpr bool is_lvalue(expression_type_kind kind)
 
 constexpr bool is_rvalue(expression_type_kind kind)
 {
-	return kind == expression_type_kind::rvalue
-		|| kind == expression_type_kind::rvalue_reference;
+	return kind == expression_type_kind::rvalue;
 }
 
 struct unresolved_expression
@@ -154,7 +153,7 @@ struct expression : bz::variant<
 	{
 		auto const const_expr = this->get_if<constant_expression>();
 		return const_expr
-			&& const_expr->kind == expression_type_kind::type_name;
+			&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is<constant_value::type>());
 	}
 
 	typespec &get_typename(void) noexcept
@@ -185,6 +184,38 @@ struct expression : bz::variant<
 		else
 		{
 			return this->get<dynamic_expression>().expr.get<expr_tuple>();
+		}
+	}
+
+	bool is_if_expr(void) const noexcept
+	{
+		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::if_expr)
+			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::if_expr);
+	}
+
+	expr_if &get_if_expr(void) noexcept
+	{
+		bz_assert(this->is_if_expr());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr.get<expr_if>();
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr.get<expr_if>();
+		}
+	}
+
+	expr_if const &get_if_expr(void) const noexcept
+	{
+		bz_assert(this->is_if_expr());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr.get<expr_if>();
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr.get<expr_if>();
 		}
 	}
 

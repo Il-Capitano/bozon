@@ -1672,7 +1672,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 77);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -1824,6 +1824,17 @@ static val_ptr emit_bitcode(
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr{ val_ptr::value, result };
 			}
+		}
+		case ast::function_body::builtin_pointer_cast:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is_typename());
+			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
+			bz_assert(dest_type->isPointerTy());
+			auto const ptr = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			bz_assert(ptr->getType()->isPointerTy());
+			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
+			return { val_ptr::value, result };
 		}
 
 		default:

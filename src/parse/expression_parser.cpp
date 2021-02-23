@@ -256,28 +256,9 @@ ast::expression parse_if_expression(
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 		if (then_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
 		{
-			auto const [if_type, if_kind] = then_block.get_expr_type_and_kind();
-			auto const [else_type, else_kind] = else_block.get_expr_type_and_kind();
-			if (ast::remove_const_or_consteval(if_type) != ast::remove_const_or_consteval(else_type))
-			{
-				context.report_error(
-					src_tokens,
-					bz::format(
-						"mismatched types in if expression, '{}' and '{}'",
-						if_type, else_type
-					)
-				);
-				return ast::expression(src_tokens);
-			}
-			// TODO: this is not clean, nor right when there are rvalue references
-			auto const common_kind = std::max(if_kind, else_kind);
-			ast::typespec_view const common_type = common_kind == ast::expression_type_kind::lvalue_reference
-				? ast::typespec_view(if_type.is<ast::ts_const>() ? if_type : else_type)
-				: ast::remove_const_or_consteval(if_type);
-
 			return ast::make_dynamic_expression(
 				src_tokens,
-				common_kind, common_type,
+				ast::expression_type_kind::if_expr, ast::typespec(),
 				ast::make_expr_if(
 					std::move(condition),
 					std::move(then_block),

@@ -1423,7 +1423,7 @@ static ast::constant_value evaluate_function_call(
 
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 77);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -1484,6 +1484,14 @@ static ast::constant_value evaluate_function_call(
 	case ast::function_body::builtin_slice_from_const_ptrs:
 		return {};
 
+	case ast::function_body::builtin_pointer_cast:
+	{
+		bz_assert(func_call.params[0].is_typename());
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
+		return func_call.params[1].get<ast::constant_expression>().value;
+	}
+
 	// builtins end here
 
 	case ast::function_body::print_stdout:
@@ -1497,35 +1505,35 @@ static ast::constant_value evaluate_function_call(
 	case ast::function_body::memset:
 		return {};
 
-	case ast::function_body::exp_f32: case ast::function_body::exp_f64:
-	case ast::function_body::exp2_f32: case ast::function_body::exp2_f64:
+	case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
+	case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
 	case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
-	case ast::function_body::log_f32: case ast::function_body::log_f64:
+	case ast::function_body::log_f32:   case ast::function_body::log_f64:
 	case ast::function_body::log10_f32: case ast::function_body::log10_f64:
-	case ast::function_body::log2_f32: case ast::function_body::log2_f64:
+	case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
 	case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
 		[[fallthrough]];
-	case ast::function_body::pow_f32: case ast::function_body::pow_f64:
-	case ast::function_body::sqrt_f32: case ast::function_body::sqrt_f64:
-	case ast::function_body::cbrt_f32: case ast::function_body::cbrt_f64:
+	case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
+	case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
+	case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
 	case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
-	case ast::function_body::sin_f32: case ast::function_body::sin_f64:
-	case ast::function_body::cos_f32: case ast::function_body::cos_f64:
-	case ast::function_body::tan_f32: case ast::function_body::tan_f64:
-	case ast::function_body::asin_f32: case ast::function_body::asin_f64:
-	case ast::function_body::acos_f32: case ast::function_body::acos_f64:
-	case ast::function_body::atan_f32: case ast::function_body::atan_f64:
+	case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
+	case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
+	case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
+	case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
+	case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
+	case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
 	case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
 		[[fallthrough]];
-	case ast::function_body::sinh_f32: case ast::function_body::sinh_f64:
-	case ast::function_body::cosh_f32: case ast::function_body::cosh_f64:
-	case ast::function_body::tanh_f32: case ast::function_body::tanh_f64:
+	case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
+	case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
+	case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
 	case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
 	case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
 	case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
 		[[fallthrough]];
-	case ast::function_body::erf_f32: case ast::function_body::erf_f64:
-	case ast::function_body::erfc_f32: case ast::function_body::erfc_f64:
+	case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
+	case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
 	case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
 	case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
 		return evaluate_math_functions(original_expr, func_call, context);

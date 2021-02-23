@@ -1680,7 +1680,6 @@ static void create_function_call(
 {
 	bz_assert(lhs.kind == val_ptr::reference);
 	bz_assert(rhs.kind == val_ptr::reference);
-	bz::log("{}\n", body->get_signature());
 	auto const fn = context.get_function(body);
 	bz_assert(fn != nullptr);
 	auto const result_type = get_llvm_type(body->return_type, context);
@@ -1885,7 +1884,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 77);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2040,6 +2039,17 @@ static val_ptr emit_bitcode(
 				return val_ptr{ val_ptr::value, result };
 			}
 		}
+		case ast::function_body::builtin_pointer_cast:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is_typename());
+			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
+			bz_assert(dest_type->isPointerTy());
+			auto const ptr = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			bz_assert(ptr->getType()->isPointerTy());
+			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
+			return { val_ptr::value, result };
+		}
 
 		default:
 			break;
@@ -2088,7 +2098,12 @@ static val_ptr emit_bitcode(
 		auto &p = func_call.params[i];
 		auto &p_t = func_call.func_body->params[i].var_type;
 		auto const param_val = emit_bitcode<abi>(p, context, nullptr);
-		if (p_t.is<ast::ts_lvalue_reference>())
+		if (p_t.is_typename())
+		{
+			// do nothing for typename args
+			return;
+		}
+		else if (p_t.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(param_val.kind == val_ptr::reference);
 			(params.*params_push)(param_val.val);
@@ -3351,6 +3366,11 @@ static llvm::Function *create_function_from_symbol_impl(
 	{
 		for (auto &p : func_body.params)
 		{
+			if (p.var_type.is_typename())
+			{
+				// skip typename args
+				continue;
+			}
 			auto const t = get_llvm_type(p.var_type, context);
 			auto const pass_kind = abi::get_pass_kind<abi>(t, context);
 
@@ -3536,9 +3556,14 @@ static void emit_function_bitcode_impl(
 			++fn_it;
 		}
 
-		for (; p_it != p_end; ++fn_it, ++p_it)
+		while (p_it != p_end)
 		{
 			auto &p = *p_it;
+			if (p.var_type.is_typename())
+			{
+				++p_it;
+				continue;
+			}
 			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
 			{
 				auto const t = get_llvm_type(p.var_type, context);
@@ -3586,6 +3611,8 @@ static void emit_function_bitcode_impl(
 				bz_assert(fn_it->getType()->isPointerTy());
 				context.add_variable(&p, fn_it);
 			}
+			++p_it;
+			++fn_it;
 		}
 	}
 
