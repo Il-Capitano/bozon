@@ -1,8 +1,35 @@
 #include "constant_value.h"
 #include "escape_sequences.h"
+#include "statement.h"
 
 namespace ast
 {
+
+static bz::u8string get_aggregate_like_value_string(bz::array_view<constant_value const> values)
+{
+	if (values.empty())
+	{
+		return "[]";
+	}
+	bz::u8string result = "[";
+	bool first = true;
+	for (auto const &value : values)
+	{
+		if (first)
+		{
+			first = false;
+			result += ' ';
+			result += get_value_string(value);
+		}
+		else
+		{
+			result += ", ";
+			result += get_value_string(value);
+		}
+	}
+	result += " ]";
+	return result;
+}
 
 bz::u8string get_value_string(constant_value const &value)
 {
@@ -25,14 +52,43 @@ bz::u8string get_value_string(constant_value const &value)
 	case constant_value::null:
 		return "null";
 	case constant_value::array:
+		return get_aggregate_like_value_string(value.get<constant_value::array>());
 	case constant_value::tuple:
+		return get_aggregate_like_value_string(value.get<constant_value::tuple>());
 	case constant_value::function:
-	case constant_value::unqualified_function_set_id:
-	case constant_value::qualified_function_set_id:
 		return "";
+	case constant_value::unqualified_function_set_id:
+	{
+		bz::u8string result;
+		bool first = true;
+		for (auto const id : value.get<constant_value::qualified_function_set_id>())
+		{
+			if (first)
+			{
+				first = false;
+			}
+			else
+			{
+				result += "::";
+			}
+			result += id;
+		}
+		return result;
+	}
+	case constant_value::qualified_function_set_id:
+	{
+		bz::u8string result;
+		for (auto const id : value.get<constant_value::qualified_function_set_id>())
+		{
+			result += "::";
+			result += id;
+		}
+		return result;
+	}
 	case constant_value::type:
 		return bz::format("{}", value.get<constant_value::type>());
 	case constant_value::aggregate:
+		return get_aggregate_like_value_string(value.get<constant_value::aggregate>());
 	default:
 		return "";
 	}
