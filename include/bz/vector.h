@@ -929,6 +929,14 @@ auto range_base_collect<Range>::collect(void) const
 
 } // namespace internal
 
+template<typename T, typename Alloc1, typename Alloc2>
+bool operator == (vector<T, Alloc1> const &lhs, vector<T, Alloc2> const &rhs)
+{ return lhs.as_array_view() == rhs.as_array_view(); }
+
+template<typename T, typename Alloc1, typename Alloc2>
+bool operator != (vector<T, Alloc1> const &lhs, vector<T, Alloc2> const &rhs)
+{ return lhs.as_array_view() != rhs.as_array_view(); }
+
 bz_end_namespace
 
 #endif // _bz_vector_h__
