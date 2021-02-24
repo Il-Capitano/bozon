@@ -86,9 +86,17 @@ struct constant_value : bz::variant<
 	{ return this->base_t::index(); }
 
 	declare_default_5(constant_value)
+
+	template<typename T, bz::meta::enable_if<!bz::meta::is_same<bz::meta::remove_cv_reference<T>, constant_value>, int> = 0>
+	explicit constant_value(T &&t)
+		: base_t(std::forward<T>(t))
+	{}
 };
 
 bz::u8string get_value_string(constant_value const &value);
+
+bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept;
+bool operator != (constant_value const &lhs, constant_value const &rhs) noexcept;
 
 } // namespace ast
 

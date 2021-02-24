@@ -447,7 +447,7 @@ static ast::expression parse_array_type(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename())),
+		ast::constant_value(ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename()))),
 		ast::expr_t{}
 	);
 }
@@ -522,7 +522,7 @@ static ast::expression parse_array_slice_type(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::make_array_slice_typespec(src_tokens, std::move(type.get_typename())),
+		ast::constant_value(ast::make_array_slice_typespec(src_tokens, std::move(type.get_typename()))),
 		ast::expr_t{}
 	);
 }
@@ -608,7 +608,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::make_auto_typespec(auto_pos),
+			ast::constant_value(ast::make_auto_typespec(auto_pos)),
 			ast::make_expr_identifier(ast::make_identifier(auto_pos))
 		);
 	}
@@ -622,7 +622,7 @@ static ast::expression parse_primary_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::make_typename_typespec(typename_pos),
+			ast::constant_value(ast::make_typename_typespec(typename_pos)),
 			ast::make_expr_identifier(ast::make_identifier(typename_pos))
 		);
 	}

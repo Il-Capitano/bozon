@@ -532,7 +532,7 @@ static ast::expression get_type_op_unary_reference(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(result_type),
+		ast::constant_value(std::move(result_type)),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
@@ -569,7 +569,7 @@ static ast::expression get_type_op_unary_pointer(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(result_type),
+		ast::constant_value(std::move(result_type)),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
@@ -612,7 +612,7 @@ static ast::expression get_type_op_unary_const(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(result_type),
+		ast::constant_value(std::move(result_type)),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
@@ -655,7 +655,7 @@ static ast::expression get_type_op_unary_consteval(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(const_expr_type),
+		ast::constant_value(std::move(const_expr_type)),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
@@ -703,7 +703,7 @@ static ast::expression get_builtin_unary_typeof(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		std::move(result_type),
+		ast::constant_value(std::move(result_type)),
 		ast::make_expr_unary_op(op, std::move(expr))
 	);
 }
