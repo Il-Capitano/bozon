@@ -1140,7 +1140,7 @@ static ast::expression make_variable_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-			init_expr.get_typename(),
+			ast::constant_value(init_expr.get_typename()),
 			ast::make_expr_identifier(std::move(id), var_decl)
 		);
 	}
@@ -1175,7 +1175,7 @@ static ast::expression make_function_name_expression(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::function_name, ast::typespec(),
-			std::move(id_value),
+			ast::constant_value(std::move(id_value)),
 			ast::make_expr_identifier(id)
 		);
 	}
@@ -1207,7 +1207,7 @@ static ast::expression make_type_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			ast::make_base_type_typespec(src_tokens, &info),
+			ast::constant_value(ast::make_base_type_typespec(src_tokens, &info)),
 			ast::make_expr_identifier(std::move(id))
 		);
 	}
@@ -1231,7 +1231,7 @@ static ast::expression make_type_alias_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name,
 			ast::make_typename_typespec(nullptr),
-			type,
+			ast::constant_value(type),
 			ast::make_expr_identifier(std::move(id))
 		);
 	}
@@ -1398,7 +1398,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::make_base_type_typespec(src_tokens, &info),
+				ast::constant_value(ast::make_base_type_typespec(src_tokens, &info)),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -1420,7 +1420,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				type,
+				ast::constant_value(type),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -1453,7 +1453,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				std::move(type),
+				ast::constant_value(std::move(type)),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -2773,6 +2773,7 @@ static void match_expression_to_type_impl(
 		}
 
 		match_typename_to_type_impl(expr, dest_container, expr.get_typename(), dest, context);
+		return;
 	}
 
 	if (dest.is<ast::ts_const>())
@@ -2782,6 +2783,7 @@ static void match_expression_to_type_impl(
 	}
 	else if (dest.is<ast::ts_consteval>())
 	{
+		parse::consteval_try(expr, context);
 		if (!expr.is<ast::constant_expression>())
 		{
 			context.report_error(expr, "expression must be a constant expression");
@@ -2795,6 +2797,17 @@ static void match_expression_to_type_impl(
 		else
 		{
 			match_expression_to_type_impl(expr, dest_container, dest.get<ast::ts_consteval>(), context);
+			parse::consteval_try(expr, context);
+			if (!expr.is<ast::constant_expression>())
+			{
+				context.report_error(expr, "expression must be a constant expression");
+				if (!ast::is_complete(dest_container))
+				{
+					dest_container.clear();
+				}
+				expr.clear();
+				return;
+			}
 			return;
 		}
 	}
@@ -3229,14 +3242,10 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 		{
-			if (param.is_typename())
+			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			if (ast::is_generic_parameter(func_body_param))
 			{
-				bz_assert(get_type_match_level(func_body_param.var_type, param, context).not_null());
 				func_body_param.init_expr = param;
-			}
-			else
-			{
-				match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
 			}
 		}
 		context.pop_resolve_queue();

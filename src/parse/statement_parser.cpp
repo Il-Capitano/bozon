@@ -994,12 +994,12 @@ static bool resolve_function_parameters_helper(
 		{
 			good = false;
 		}
-		else if (!ast::is_complete(p.var_type) && !(p.var_type.is_typename() && p.init_expr.is<ast::constant_expression>()))
+		else if (ast::is_generic_parameter(p))
 		{
 			is_generic = true;
 		}
 	}
-	if (is_generic)
+	if (is_generic && !func_body.is_generic_specialization())
 	{
 		func_body.flags |= ast::function_body::generic;
 	}

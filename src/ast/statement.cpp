@@ -55,6 +55,15 @@ bz::u8string function_body::get_signature(void) const
 		{
 			result += bz::format(", : {}", p.var_type);
 		}
+
+		if (p.var_type.is_typename() && p.init_expr.is_typename())
+		{
+			result += bz::format(" = {}", p.init_expr.get_typename());
+		}
+		else if (p.var_type.is<ast::ts_consteval>() && p.init_expr.is<ast::constant_expression>())
+		{
+			result += bz::format(" = {}", get_value_string(p.init_expr.get<ast::constant_expression>().value));
+		}
 	}
 	result += ") -> ";
 	result += bz::format("{}", this->return_type);
@@ -116,11 +125,13 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 			{
 				return false;
 			}
-			else if (lhs_param.var_type.is_typename())
+			else if (is_generic_parameter(lhs_param))
 			{
-				bz_assert(lhs_param.init_expr.is_typename());
-				bz_assert(rhs_param.init_expr.is_typename());
-				if (lhs_param.init_expr.get_typename() != rhs_param.init_expr.get_typename())
+				bz_assert(lhs_param.init_expr.template is<ast::constant_expression>());
+				bz_assert(rhs_param.init_expr.template is<ast::constant_expression>());
+				auto const &lhs_val = lhs_param.init_expr.template get<ast::constant_expression>().value;
+				auto const &rhs_val = rhs_param.init_expr.template get<ast::constant_expression>().value;
+				if (lhs_val != rhs_val)
 				{
 					return false;
 				}
@@ -396,7 +407,7 @@ static function_body create_builtin_function(
 	auto const is_generic = [&]() {
 		for (auto const &param : params)
 		{
-			if (!is_complete(param.var_type))
+			if (is_generic_parameter(param))
 			{
 				return true;
 			}

@@ -309,6 +309,16 @@ struct decl_variable
 	lex::token_pos get_tokens_end(void) const;
 };
 
+inline bool is_generic_parameter(decl_variable const &var_decl)
+{
+	return !var_decl.var_type.is_empty()
+		&& (
+			!is_complete(var_decl.var_type)
+			|| var_decl.var_type.is_typename()
+			|| var_decl.var_type.is<ast::ts_consteval>()
+		);
+}
+
 struct function_body
 {
 	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
