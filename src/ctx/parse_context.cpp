@@ -4041,7 +4041,28 @@ ast::expression parse_context::make_subscript_operator_expression(
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
 			return ast::expression(src_tokens);
 		}
-		if (info->member_variables.size() != args.size())
+		else if (
+			this->current_file_id != info->file_id
+			&& info->member_variables.is_any([](auto const &member) { return member.identifier.starts_with('_'); })
+		)
+		{
+			auto notes = info->member_variables
+				.filter([](auto const &member) { return member.identifier.starts_with('_'); })
+				.transform([this, type](auto const &member) {
+					return this->make_note(
+						member.src_tokens,
+						bz::format("member '{}' in type '{}' is inaccessible in this context", member.identifier, type)
+					);
+				})
+				.collect();
+			if (do_verbose)
+			{
+				notes.push_back(this->make_note("members whose names start with '_' are only accessible in the same file"));
+			}
+			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type), std::move(notes));
+			return ast::expression(src_tokens);
+		}
+		else if (info->member_variables.size() != args.size())
 		{
 			auto const member_size = info->member_variables.size();
 			auto const args_size = args.size();
@@ -4221,6 +4242,16 @@ ast::expression parse_context::make_member_access_expression(
 			return {};
 		}
 	}();
+	auto const type_file_id = [&]() -> uint32_t {
+		if (base_t.is<ast::ts_base_type>())
+		{
+			return base_t.get<ast::ts_base_type>().info->file_id;
+		}
+		else
+		{
+			return 0;
+		}
+	}();
 	auto const it = std::find_if(
 		members.begin(), members.end(),
 		[member_value = member->value](auto const &member_variable) {
@@ -4231,6 +4262,28 @@ ast::expression parse_context::make_member_access_expression(
 	{
 		this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, base_t));
 		return ast::expression(src_tokens);
+	}
+	else if (this->current_file_id != type_file_id && it->identifier.starts_with('_'))
+	{
+		auto notes = [&]() -> bz::vector<note> {
+			if (do_verbose)
+			{
+				return {
+					this->make_note(it->src_tokens, "member is declared here"),
+					this->make_note("members whose names start with '_' are only accessible in the same file")
+				};
+			}
+			else
+			{
+				return { this->make_note(it->src_tokens, "member is declared here") };
+			}
+		}();
+		this->report_error(
+			member, bz::format("member '{}' in type '{}' is inaccessible in this context", member->value, base_t),
+			std::move(notes)
+		);
+		// no need to return here, the type of the member is available so the expression doesn't have to be in an error state
+		// return ast::expression(src_tokens);
 	}
 	auto const index = static_cast<uint32_t>(it - members.begin());
 	auto result_type = it->type;
