@@ -199,7 +199,8 @@ static bz::u8string get_highlighted_text(
 			}
 			++it;
 		}
-		return bz::internal::lg_uint(line_num);
+		auto const result = bz::internal::lg_uint(line_num);
+		return result > 4 ? result : 4;
 	}();
 
 	bz::u8string file_line;
