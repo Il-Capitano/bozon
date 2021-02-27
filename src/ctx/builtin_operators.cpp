@@ -2985,12 +2985,13 @@ ast::expression make_builtin_cast(
 		))
 	)
 	{
+		ast::typespec dest_t_copy = dest_t;
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			dest_t,
+			std::move(dest_t_copy),
 			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_cast(std::move(expr), dest_type)
+			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}
 	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
@@ -3021,11 +3022,12 @@ ast::expression make_builtin_cast(
 			)
 		)
 		{
+			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				dest_t,
-				ast::make_expr_cast(std::move(expr), dest_type)
+				std::move(dest_t_copy),
+				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
 		else
@@ -3036,6 +3038,16 @@ ast::expression make_builtin_cast(
 			);
 			return ast::expression(src_tokens);
 		}
+	}
+	else if (dest_t.is<ast::ts_array_slice>() && expr_t.is<ast::ts_array>())
+	{
+		ast::typespec dest_t_copy = dest_t;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			std::move(dest_t_copy),
+			ast::make_expr_cast(std::move(expr), std::move(dest_type))
+		);
 	}
 	else if (!dest_t.is<ast::ts_base_type>())
 	{
@@ -3050,10 +3062,12 @@ ast::expression make_builtin_cast(
 		auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
 		if (is_arithmetic_kind(expr_kind) && is_arithmetic_kind(dest_kind))
 		{
+			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(std::move(expr), dest_type)
+				ast::expression_type_kind::rvalue,
+				std::move(dest_t_copy),
+				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
 		else if (
@@ -3061,10 +3075,12 @@ ast::expression make_builtin_cast(
 			&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
 		)
 		{
+			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(std::move(expr), dest_type)
+				ast::expression_type_kind::rvalue,
+				std::move(dest_t_copy),
+				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
 		else if (
@@ -3072,10 +3088,12 @@ ast::expression make_builtin_cast(
 			&& dest_kind == ast::type_info::char_
 		)
 		{
+			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::rvalue, dest_t,
-				ast::make_expr_cast(std::move(expr), dest_type)
+				ast::expression_type_kind::rvalue,
+				std::move(dest_t_copy),
+				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
 

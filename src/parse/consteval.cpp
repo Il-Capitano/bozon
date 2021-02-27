@@ -1423,7 +1423,7 @@ static ast::constant_value evaluate_function_call(
 
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -1491,6 +1491,9 @@ static ast::constant_value evaluate_function_call(
 		bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
 		return func_call.params[1].get<ast::constant_expression>().value;
 	}
+	case ast::function_body::builtin_pointer_to_int:
+	case ast::function_body::builtin_int_to_pointer:
+		return {};
 
 	// builtins end here
 

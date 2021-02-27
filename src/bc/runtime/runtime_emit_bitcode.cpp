@@ -1884,7 +1884,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2048,7 +2048,49 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
-			return { val_ptr::value, result };
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
+		}
+		case ast::function_body::builtin_pointer_to_int:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			bz_assert(ptr->getType()->isPointerTy());
+			auto const result = context.builder.CreatePtrToInt(ptr, context.get_uint64_t());
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
+		}
+		case ast::function_body::builtin_int_to_pointer:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is_typename());
+			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
+			auto const val = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			bz_assert(val->getType()->isIntegerTy());
+			auto const result = context.builder.CreateIntToPtr(val, dest_type);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
 		}
 
 		default:
@@ -2500,6 +2542,49 @@ static val_ptr emit_bitcode(
 		{
 			context.builder.CreateStore(cast_result, result_address);
 			return { val_ptr::reference, result_address };
+		}
+	}
+	else if (expr_t.is<ast::ts_array>() && dest_t.is<ast::ts_array_slice>())
+	{
+		auto const expr_val = emit_bitcode<abi>(cast.expr, context, nullptr);
+		auto const [begin_ptr, end_ptr] = [&]() {
+			if (expr_val.kind == val_ptr::reference)
+			{
+				auto const begin_ptr = context.builder.CreateConstGEP2_64(expr_val.val, 0, 0);
+				auto const end_ptr   = context.builder.CreateConstGEP2_64(expr_val.val, 0, expr_t.get<ast::ts_array>().sizes.front());
+				return std::make_pair(begin_ptr, end_ptr);
+			}
+			else
+			{
+				auto const alloca = context.create_alloca(expr_val.get_type());
+				context.builder.CreateStore(expr_val.get_value(context.builder), alloca);
+				auto const begin_ptr = context.builder.CreateConstGEP2_64(alloca, 0, 0);
+				auto const end_ptr   = context.builder.CreateConstGEP2_64(alloca, 0, expr_t.get<ast::ts_array>().sizes.front());
+				return std::make_pair(begin_ptr, end_ptr);
+			}
+		}();
+		if (result_address == nullptr)
+		{
+			bz_assert(begin_ptr->getType()->isPointerTy());
+			auto const slice_t = get_llvm_type(dest_t, context);
+			bz_assert(slice_t->isStructTy());
+			auto const slice_struct_t = static_cast<llvm::StructType *>(slice_t);
+			auto const slice_member_t = slice_struct_t->getElementType(0);
+			llvm::Value *result = llvm::ConstantStruct::get(
+				slice_struct_t,
+				{ llvm::UndefValue::get(slice_member_t), llvm::UndefValue::get(slice_member_t) }
+			);
+			result = context.builder.CreateInsertValue(result, begin_ptr, 0);
+			result = context.builder.CreateInsertValue(result, end_ptr,   1);
+			return val_ptr{ val_ptr::value, result };
+		}
+		else
+		{
+			auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+			auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+			context.builder.CreateStore(begin_ptr, result_begin_ptr);
+			context.builder.CreateStore(end_ptr, result_end_ptr);
+			return val_ptr{ val_ptr::reference, result_address };
 		}
 	}
 	else

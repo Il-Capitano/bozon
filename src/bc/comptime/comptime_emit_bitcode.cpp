@@ -1672,7 +1672,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 78);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -1834,7 +1834,49 @@ static val_ptr emit_bitcode(
 			auto const ptr = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			bz_assert(ptr->getType()->isPointerTy());
 			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
-			return { val_ptr::value, result };
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
+		}
+		case ast::function_body::builtin_pointer_to_int:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			bz_assert(ptr->getType()->isPointerTy());
+			auto const result = context.builder.CreatePtrToInt(ptr, context.get_uint64_t());
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
+		}
+		case ast::function_body::builtin_int_to_pointer:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is_typename());
+			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
+			auto const val = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			bz_assert(val->getType()->isIntegerTy());
+			auto const result = context.builder.CreateIntToPtr(val, dest_type);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
 		}
 
 		default:

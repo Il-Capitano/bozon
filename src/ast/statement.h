@@ -357,6 +357,8 @@ struct function_body
 		builtin_slice_from_const_ptrs,
 
 		builtin_pointer_cast,
+		builtin_pointer_to_int,
+		builtin_int_to_pointer,
 
 		print_stdout,
 		println_stdout,
@@ -949,7 +951,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 78);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 80);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
@@ -969,7 +971,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
 		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
 
-		{ function_body::builtin_pointer_cast, "__builtin_pointer_cast" },
+		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
+		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
+		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::println_stdout, "__builtin_println_stdout" },

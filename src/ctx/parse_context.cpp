@@ -2042,6 +2042,8 @@ static bool is_builtin_type(ast::typespec_view ts)
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
 	case ast::typespec_node_t::index_of<ast::ts_function>:
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
+	case ast::typespec_node_t::index_of<ast::ts_array>:
+	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
 		return true;
 	default:
 		return false;
@@ -2570,7 +2572,8 @@ static void strict_match_expression_to_type_impl(
 
 	if (accept_void && dest.is<ast::ts_void>())
 	{
-		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+		auto const src_tokens = expr.src_tokens;
+		expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
 	}
 	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
@@ -2946,7 +2949,6 @@ static void match_expression_to_type_impl(
 				expr_elem_t_without_const, dest_elem_t.get<ast::ts_const>(),
 				false, context
 			);
-			return;
 		}
 		else if (!is_const_expr_elem_t)
 		{
@@ -2955,8 +2957,14 @@ static void match_expression_to_type_impl(
 				expr_elem_t_without_const, dest_elem_t,
 				false, context
 			);
-			return;
 		}
+
+		if (expr.not_null() && expr_type_without_const.is<ast::ts_array>())
+		{
+			auto const src_tokens = expr.src_tokens;
+			expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
+		}
+		return;
 	}
 	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
 	{
