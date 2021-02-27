@@ -638,6 +638,7 @@ struct type_info
 	resolve_state    state;
 	bool             is_export;
 	identifier       type_name;
+	uint32_t         file_id;
 	bz::u8string     symbol_name;
 	lex::token_range body_tokens;
 
@@ -662,6 +663,7 @@ struct type_info
 		  state(resolve_state::none),
 		  is_export(false),
 		  type_name(std::move(_type_name)),
+		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  symbol_name(),
 		  body_tokens(range),
 		  member_variables{},
@@ -684,6 +686,7 @@ private:
 		  state(resolve_state::all),
 		  is_export(false),
 		  type_name(),
+		  file_id(0),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body_tokens{},
 		  member_variables{},
