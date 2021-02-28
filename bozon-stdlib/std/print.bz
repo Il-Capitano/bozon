@@ -1,3 +1,5 @@
+import libc::stdlib;
+
 export function print   = __builtin_print_stdout;
 export function println = __builtin_println_stdout;
 
@@ -7,15 +9,92 @@ export function logln = __builtin_println_stderr;
 @extern("print_char",     "c") export function print(c: char)        -> void;
 @extern("print_int64",    "c") export function print(n: int64)       -> void;
 @extern("print_uint64",   "c") export function print(n: uint64)      -> void;
-@extern("print_void_ptr", "c") export function print(p: *const void) -> void;
 @extern("print_float32",  "c") export function print(x: float32)     -> void;
 @extern("print_float64",  "c") export function print(x: float64)     -> void;
-@extern("print_bool",     "c") export function print(b: bool)        -> void;
 
 @extern("println_char",     "c") export function println(c: char)        -> void;
 @extern("println_int64",    "c") export function println(n: int64)       -> void;
 @extern("println_uint64",   "c") export function println(n: uint64)      -> void;
-@extern("println_void_ptr", "c") export function println(p: *const void) -> void;
 @extern("println_float32",  "c") export function println(x: float32)     -> void;
 @extern("println_float64",  "c") export function println(x: float64)     -> void;
-@extern("println_bool",     "c") export function println(b: bool)        -> void;
+
+function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval uint64) -> *uint8
+{
+	if (val == 0u)
+	{
+		--it;
+		*it = '0' as uint32 as uint8;
+		return it;
+	}
+	while (val != 0u)
+	{
+		const digit_val = val % base;
+		val /= base;
+		if (digit_val < 10u)
+		{
+			--it;
+			*it = ('0' + digit_val) as uint32 as uint8;
+		}
+		else
+		{
+			--it;
+			*it = ('a' + digit_val - 10u) as uint32 as uint8;
+		}
+	}
+	return it;
+}
+
+export function print(p: *const void)
+{
+	const val = __builtin_pointer_to_int(p);
+	static_assert(typeof val == const uint64);
+	let buffer: [2 + 16: uint8];
+	let it = print_uint_to_reverse_buffer(buffer.end(), val, 16u);
+	--it;
+	*it = 'x' as uint32 as uint8;
+	--it;
+	*it = '0' as uint32 as uint8;
+	const result_str = __builtin_str_from_ptrs(it, buffer.end());
+	print(result_str);
+}
+
+export function println(p: *const void)
+{
+	let val = __builtin_pointer_to_int(p);
+	static_assert(typeof val == uint64);
+	let buffer: [2 + 16 + 1: uint8];
+	let it = buffer.end();
+	--it;
+	*it = '\n' as uint32 as uint8;
+	it = print_uint_to_reverse_buffer(it, val, 16u);
+	--it;
+	*it = 'x' as uint32 as uint8;
+	--it;
+	*it = '0' as uint32 as uint8;
+	const result_str = __builtin_str_from_ptrs(it, buffer.end());
+	print(result_str);
+}
+
+export function print(b: bool)
+{
+	if (b)
+	{
+		print("true");
+	}
+	else
+	{
+		print("false");
+	}
+}
+
+export function println(b: bool)
+{
+	if (b)
+	{
+		print("true\n");
+	}
+	else
+	{
+		print("false\n");
+	}
+}
