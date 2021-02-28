@@ -44,6 +44,7 @@
 			"linux": {
 				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ],
+				"link_flags": [ "-fuse-ld=lld" ],
 				"emit_compile_commands": false
 			},
 			"debug": {
