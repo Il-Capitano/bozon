@@ -16,6 +16,8 @@ parse_context::parse_context(global_context &_global_ctx)
 	  scope_decls{},
 	  generic_functions{},
 	  generic_function_scope_start{},
+	  current_file_id(std::numeric_limits<uint32_t>::max()),
+	  current_scope{},
 	  resolve_queue{},
 	  consteval_call_stack{}
 {}
