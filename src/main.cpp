@@ -1452,7 +1452,7 @@ consteval f = read_file("file_name.txt");
 
 
 
-struct vec2d 
+struct vec2d
 {
 	.x: float64;
 	.y: float64;
