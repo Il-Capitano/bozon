@@ -71,7 +71,6 @@ global_context::global_context(void)
 	  _builtin_universal_functions(ast::make_builtin_universal_functions(this->_builtin_functions)),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
-	  _comptime_module("comptime_module", this->_llvm_context),
 	  _target_machine(nullptr),
 	  _data_layout(),
 	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
@@ -486,7 +485,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 [[nodiscard]] bool global_context::emit_bitcode(void)
 {
-	bitcode_context context(*this, this->_module);
+	bitcode_context context(*this, &this->_module);
 
 	// add declarations to the module
 	bz_assert(this->_compile_decls.var_decls.size() == 0);

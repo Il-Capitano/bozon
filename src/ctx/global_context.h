@@ -50,7 +50,6 @@ struct global_context
 
 	llvm::LLVMContext _llvm_context;
 	llvm::Module      _module;
-	llvm::Module      _comptime_module;
 	std::unique_ptr<llvm::TargetMachine> _target_machine;
 	bz::optional<llvm::DataLayout>       _data_layout;
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;

@@ -22,7 +22,7 @@ struct global_context;
 
 struct bitcode_context
 {
-	bitcode_context(global_context &_global_ctx, llvm::Module &_module);
+	bitcode_context(global_context &_global_ctx, llvm::Module *_module);
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
@@ -37,6 +37,7 @@ struct bitcode_context
 	llvm::Function *get_function(ast::function_body const *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
+	llvm::DataLayout &get_data_layout(void) const noexcept;
 	llvm::Module &get_module(void) const noexcept;
 	abi::platform_abi get_platform_abi(void) const noexcept;
 
@@ -78,7 +79,7 @@ struct bitcode_context
 
 
 	global_context &global_ctx;
-	llvm::Module &module;
+	llvm::Module *module;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
