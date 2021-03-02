@@ -166,13 +166,17 @@ struct range_base_max
 {
 	template<typename T>
 	constexpr auto max(T &&val) const noexcept;
-	template<typename T, typename Func>
-	constexpr auto max(T &&val, Func cmp) const noexcept;
+	template<typename T, typename Cmp>
+	constexpr auto max(T &&val, Cmp cmp) const noexcept;
 };
 
 template<typename Collection>
 struct collection_base_max
 {
+	template<typename T>
+	constexpr auto max(T &&val) noexcept;
+	template<typename T, typename Cmp>
+	constexpr auto max(T &&val, Cmp cmp) noexcept;
 	template<typename T>
 	constexpr auto max(T &&val) const noexcept;
 	template<typename T, typename Cmp>
@@ -191,6 +195,10 @@ struct range_base_min
 template<typename Collection>
 struct collection_base_min
 {
+	template<typename T>
+	constexpr auto min(T &&val) noexcept;
+	template<typename T, typename Func>
+	constexpr auto min(T &&val, Func cmp) noexcept;
 	template<typename T>
 	constexpr auto min(T &&val) const noexcept;
 	template<typename T, typename Func>
@@ -559,7 +567,7 @@ public:
 };
 
 template<typename ItType, typename EndType>
-struct enumerate_range
+struct enumerate_range : range_base<enumerate_range<ItType, EndType>>
 {
 private:
 	using self_t = enumerate_range<ItType, EndType>;
@@ -931,6 +939,11 @@ constexpr auto range_base_max<Range>::max(T &&val) const noexcept
 
 template<typename Collection>
 template<typename T>
+constexpr auto collection_base_max<Collection>::max(T &&val) noexcept
+{ return static_cast<Collection *>(this)->as_range().max(std::forward<T>(val)); }
+
+template<typename Collection>
+template<typename T>
 constexpr auto collection_base_max<Collection>::max(T &&val) const noexcept
 { return static_cast<Collection const *>(this)->as_range().max(std::forward<T>(val)); }
 
@@ -949,6 +962,11 @@ constexpr auto range_base_max<Range>::max(T &&val, Cmp cmp) const noexcept
 	}
 	return result;
 }
+
+template<typename Collection>
+template<typename T, typename Cmp>
+constexpr auto collection_base_max<Collection>::max(T &&val, Cmp cmp) noexcept
+{ return static_cast<Collection *>(this)->as_range().max(std::forward<T>(val), std::move(cmp)); }
 
 template<typename Collection>
 template<typename T, typename Cmp>
@@ -973,6 +991,11 @@ constexpr auto range_base_min<Range>::min(T &&val) const noexcept
 
 template<typename Collection>
 template<typename T>
+constexpr auto collection_base_min<Collection>::min(T &&val) noexcept
+{ return static_cast<Collection *>(this)->as_range().min(std::forward<T>(val)); }
+
+template<typename Collection>
+template<typename T>
 constexpr auto collection_base_min<Collection>::min(T &&val) const noexcept
 { return static_cast<Collection const *>(this)->as_range().min(std::forward<T>(val)); }
 
@@ -991,6 +1014,11 @@ constexpr auto range_base_min<Range>::min(T &&val, Cmp cmp) const noexcept
 	}
 	return result;
 }
+
+template<typename Collection>
+template<typename T, typename Cmp>
+constexpr auto collection_base_min<Collection>::min(T &&val, Cmp cmp) noexcept
+{ return static_cast<Collection *>(this)->as_range().min(std::forward<T>(val), std::move(cmp)); }
 
 template<typename Collection>
 template<typename T, typename Cmp>
