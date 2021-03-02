@@ -5,6 +5,11 @@
 #include "parse/statement_parser.h"
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
 namespace ctx
 {
@@ -19,6 +24,11 @@ comptime_executor_context::comptime_executor_context(parse_context &_parse_ctx)
 	  alloca_bb(nullptr),
 	  output_pointer(nullptr),
 	  builder(_parse_ctx.global_ctx._llvm_context),
+	  error_strings{},
+	  error_string_ptr(nullptr),
+	  error_token_begin(nullptr),
+	  error_token_pivot(nullptr),
+	  error_token_end(nullptr),
 	  error_string_ptr_getter(nullptr),
 	  error_token_begin_getter(nullptr),
 	  error_token_pivot_getter(nullptr),
@@ -347,7 +357,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 	else
 	{
-		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params);
+		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		this->add_module(std::move(module));
 		this->engine->runFunction(
 			fn,
@@ -369,7 +379,19 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	builder
 		.setErrorStr(&err)
 		.setOptLevel(llvm::CodeGenOpt::None);
-	auto const result = builder.create(this->parse_ctx.global_ctx._target_machine.get());
+	auto const is_native_target = target == "" || target == "native";
+	auto const target_triple = is_native_target
+		? llvm::sys::getDefaultTargetTriple()
+		: std::string(target.data_as_char_ptr(), target.size());
+	auto const cpu = "generic";
+	auto const features = "";
+	llvm::TargetOptions options;
+	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	auto const target_machine = this->parse_ctx.global_ctx._target->createTargetMachine(
+		target_triple,
+		cpu, features, options, rm
+	);
+	auto const result = builder.create(std::move(target_machine));
 	if (result == nullptr)
 	{
 		bz::log("execution engine creation failed: {}\n", err.c_str());
@@ -380,13 +402,14 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 
 void comptime_executor_context::add_base_functions_to_module(llvm::Module &module)
 {
-	auto const int8_ptr_type = llvm::Type::getInt8PtrTy(this->get_llvm_context());
-	auto const error_string_ptr  = module.getOrInsertGlobal("__error_string_ptr",  int8_ptr_type);
-	auto const error_token_begin = module.getOrInsertGlobal("__error_token_begin", int8_ptr_type);
-	auto const error_token_pivot = module.getOrInsertGlobal("__error_token_pivot", int8_ptr_type);
-	auto const error_token_end   = module.getOrInsertGlobal("__error_token_end",   int8_ptr_type);
+	static_assert(sizeof (void *) == sizeof (uint64_t));
+	auto const intptr_type = llvm::Type::getInt64Ty(this->get_llvm_context());
+	this->error_string_ptr  = module.getOrInsertGlobal("__error_string_ptr",  intptr_type);
+	this->error_token_begin = module.getOrInsertGlobal("__error_token_begin", intptr_type);
+	this->error_token_pivot = module.getOrInsertGlobal("__error_token_pivot", intptr_type);
+	this->error_token_end   = module.getOrInsertGlobal("__error_token_end",   intptr_type);
 
-	auto const getter_func_t = llvm::FunctionType::get(int8_ptr_type, false);
+	auto const getter_func_t = llvm::FunctionType::get(intptr_type, false);
 
 	{ // error_string_ptr_getter function
 		this->error_string_ptr_getter = llvm::Function::Create(
@@ -395,7 +418,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_string_ptr_getter);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(error_string_ptr);
+		auto const ptr_val = this->builder.CreateLoad(this->error_string_ptr);
 		this->builder.CreateRet(ptr_val);
 	}
 
@@ -406,7 +429,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_begin_getter);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(error_token_begin);
+		auto const ptr_val = this->builder.CreateLoad(this->error_token_begin);
 		this->builder.CreateRet(ptr_val);
 	}
 
@@ -417,7 +440,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_pivot_getter);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(error_token_pivot);
+		auto const ptr_val = this->builder.CreateLoad(this->error_token_pivot);
 		this->builder.CreateRet(ptr_val);
 	}
 
@@ -428,7 +451,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_end_getter);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(error_token_end);
+		auto const ptr_val = this->builder.CreateLoad(this->error_token_end);
 		this->builder.CreateRet(ptr_val);
 	}
 }
@@ -437,11 +460,59 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
 	if (this->engine == nullptr)
 	{
+		this->add_base_functions_to_module(*module);
 		this->engine = this->create_engine(std::move(module));
 	}
 	else
 	{
 		this->engine->addModule(std::move(module));
+	}
+}
+
+bz::u8string_view comptime_executor_context::get_error_message(void)
+{
+	if (this->engine == nullptr)
+	{
+		return bz::u8string_view{};
+	}
+	else
+	{
+		bz_assert(this->error_string_ptr_getter != nullptr);
+		auto const string_ptr_int_val = this->engine->runFunction(this->error_string_ptr_getter, {});
+		auto const string_ptr = reinterpret_cast<bz::u8string const *>(string_ptr_int_val.IntVal.getLimitedValue());
+		if (string_ptr == nullptr)
+		{
+			return bz::u8string_view{};
+		}
+		else
+		{
+			return *string_ptr;
+		}
+	}
+}
+
+lex::src_tokens comptime_executor_context::get_error_position(void)
+{
+	if (this->engine == nullptr)
+	{
+		return {};
+	}
+	else
+	{
+		bz_assert(this->error_token_begin_getter != nullptr);
+		bz_assert(this->error_token_pivot_getter != nullptr);
+		bz_assert(this->error_token_end_getter   != nullptr);
+		auto const begin_ptr_int_val = this->engine->runFunction(this->error_token_begin_getter, {});
+		auto const pivot_ptr_int_val = this->engine->runFunction(this->error_token_pivot_getter, {});
+		auto const end_ptr_int_val   = this->engine->runFunction(this->error_token_end_getter,   {});
+		auto const begin_ptr = reinterpret_cast<lex::token_pos::const_pointer>(begin_ptr_int_val.IntVal.getLimitedValue());
+		auto const pivot_ptr = reinterpret_cast<lex::token_pos::const_pointer>(pivot_ptr_int_val.IntVal.getLimitedValue());
+		auto const end_ptr   = reinterpret_cast<lex::token_pos::const_pointer>(end_ptr_int_val  .IntVal.getLimitedValue());
+		bz_assert(
+			(begin_ptr != nullptr && pivot_ptr != nullptr && end_ptr != nullptr)
+			|| (begin_ptr == nullptr && pivot_ptr == nullptr && end_ptr == nullptr)
+		);
+		return lex::src_tokens{ begin_ptr, pivot_ptr, end_ptr };
 	}
 }
 

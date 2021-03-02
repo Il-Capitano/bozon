@@ -82,6 +82,9 @@ struct comptime_executor_context
 	void add_base_functions_to_module(llvm::Module &module);
 	void add_module(std::unique_ptr<llvm::Module> module);
 
+	bz::u8string_view get_error_message(void);
+	lex::src_tokens get_error_position(void);
+
 	static error make_error(
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
@@ -102,6 +105,11 @@ struct comptime_executor_context
 	llvm::Value *output_pointer;
 	llvm::IRBuilder<> builder;
 
+	std::list<bz::u8string> error_strings;  // a list is used, so pointers to the strings are stable
+	llvm::Value *error_string_ptr;
+	llvm::Value *error_token_begin;
+	llvm::Value *error_token_pivot;
+	llvm::Value *error_token_end;
 	llvm::Function *error_string_ptr_getter;
 	llvm::Function *error_token_begin_getter;
 	llvm::Function *error_token_pivot_getter;

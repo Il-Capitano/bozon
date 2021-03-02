@@ -3838,8 +3838,181 @@ void emit_necessary_functions(ctx::comptime_executor_context &context)
 	bz_unreachable;
 }
 
-llvm::Function *create_function_for_comptime_execution(ast::function_body *body, bz::array_view<ast::constant_value const> params)
+template<abi::platform_abi abi>
+static llvm::Function *create_function_for_comptime_execution_impl(
+	ast::function_body *body,
+	bz::array_view<ast::constant_value const> params,
+	ctx::comptime_executor_context &context
+)
 {
+	auto const called_fn = context.get_function(body);
+	bz_assert(called_fn != nullptr);
+
+	auto const result_type = get_llvm_type(body->return_type, context);
+
+	auto const result_func_type = llvm::FunctionType::get(result_type, false);
+	auto const result = llvm::Function::Create(
+		result_func_type,
+		llvm::Function::InternalLinkage,
+		"__anon_comptime_func_call",
+		&context.get_module()
+	);
+
+	auto const bb = llvm::BasicBlock::Create(context.get_llvm_context(), "entry", result);
+	context.builder.SetInsertPoint(bb);
+
+	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+
+	bz::vector<llvm::Value *> args;
+	bz::vector<bool> args_is_pass_by_ref;
+	args.reserve(params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
+	args_is_pass_by_ref.reserve(params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
+
+	if (result_kind == abi::pass_kind::reference)
+	{
+		auto const output_ptr = context.create_alloca(result_type);
+		args.push_back(output_ptr);
+		args_is_pass_by_ref.push_back(false);
+	}
+
+	for (auto const [value, i] : params.enumerate())
+	{
+		if (ast::is_generic_parameter(body->params[i]))
+		{
+			continue;
+		}
+		auto const param_t = body->params[i].var_type.as_typespec_view();
+		auto const param_type = get_llvm_type(param_t, context);
+		auto const param_val = get_value<abi>(value, param_t, nullptr, context);
+
+		auto const pass_kind = abi::get_pass_kind<abi>(param_type, context.get_data_layout(), context.get_llvm_context());
+		switch (pass_kind)
+		{
+		case abi::pass_kind::reference:
+		{
+			auto const alloca = context.create_alloca(param_type);
+			context.builder.CreateStore(param_val, alloca);
+			args.push_back(alloca);
+			args_is_pass_by_ref.push_back(true);
+			break;
+		}
+		case abi::pass_kind::value:
+			args.push_back(param_val);
+			args_is_pass_by_ref.push_back(false);
+			break;
+		case abi::pass_kind::one_register:
+		{
+			auto const register_type = abi::get_one_register_type<abi>(param_type, context.get_data_layout(), context.get_llvm_context());
+			auto const alloca = context.create_alloca(param_type);
+			context.builder.CreateStore(param_val, alloca);
+			auto const ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(register_type, 0));
+			auto const register_value = context.builder.CreateLoad(ptr);
+			args.push_back(register_value);
+			args_is_pass_by_ref.push_back(false);
+			break;
+		}
+		case abi::pass_kind::two_registers:
+		{
+			auto const [first_register_type, second_register_type] = abi::get_two_register_types<abi>(
+				param_type, context.get_data_layout(), context.get_llvm_context()
+			);
+			auto const register_struct_type = llvm::StructType::get(first_register_type, second_register_type);
+			auto const alloca = context.create_alloca(param_type);
+			context.builder.CreateStore(param_val, alloca);
+			auto const ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(register_struct_type, 0));
+			auto const first_ptr = context.builder.CreateStructGEP(ptr, 0);
+			auto const first_val = context.builder.CreateLoad(first_ptr);
+			auto const second_ptr = context.builder.CreateStructGEP(ptr, 1);
+			auto const second_val = context.builder.CreateLoad(second_ptr);
+			args.push_back(first_val);
+			args.push_back(second_val);
+			args_is_pass_by_ref.push_back(false);
+			args_is_pass_by_ref.push_back(false);
+			break;
+		}
+		}
+	}
+
+	auto const call = context.builder.CreateCall(called_fn, llvm::ArrayRef(args.data(), args.size()));
+	call->setCallingConv(called_fn->getCallingConv());
+	auto is_pass_by_ref_it = args_is_pass_by_ref.begin();
+	auto const is_pass_by_ref_end = args_is_pass_by_ref.end();
+	unsigned i = 0;
+	bz_assert(called_fn->arg_size() == call->arg_size());
+	if (result_kind == abi::pass_kind::reference)
+	{
+		call->addParamAttr(0, llvm::Attribute::StructRet);
+		bz_assert(is_pass_by_ref_it != is_pass_by_ref_end);
+		++is_pass_by_ref_it, ++i;
+	}
+	for (; is_pass_by_ref_it != is_pass_by_ref_end; ++is_pass_by_ref_it, ++i)
+	{
+		auto const is_pass_by_ref = *is_pass_by_ref_it;
+		if (is_pass_by_ref)
+		{
+			call->addParamAttr(i, llvm::Attribute::ByVal);
+			call->addParamAttr(i, llvm::Attribute::NoAlias);
+			call->addParamAttr(i, llvm::Attribute::NoCapture);
+			call->addParamAttr(i, llvm::Attribute::NonNull);
+		}
+	}
+	switch (result_kind)
+	{
+	case abi::pass_kind::reference:
+		context.builder.CreateRet(context.builder.CreateLoad(args.front()));
+		break;
+	case abi::pass_kind::value:
+		if (call->getType()->isVoidTy())
+		{
+			return {};
+		}
+		else if (body->return_type.is<ast::ts_lvalue_reference>())
+		{
+			bz_unreachable;
+		}
+		context.builder.CreateRet(call);
+		break;
+	case abi::pass_kind::one_register:
+	case abi::pass_kind::two_registers:
+	{
+		auto const call_result_type = call->getType();
+		if (result_type == call_result_type)
+		{
+			context.builder.CreateRet(call);
+		}
+		else
+		{
+			auto const result_ptr = context.create_alloca(result_type);
+			auto const result_ptr_cast = context.builder.CreatePointerCast(
+				result_ptr,
+				llvm::PointerType::get(call_result_type, 0)
+			);
+			context.builder.CreateStore(call, result_ptr_cast);
+			context.builder.CreateRet(context.builder.CreateLoad(result_ptr));
+		}
+		break;
+	}
+	}
+
+	return result;
+}
+
+llvm::Function *create_function_for_comptime_execution(
+	ast::function_body *body,
+	bz::array_view<ast::constant_value const> params,
+	ctx::comptime_executor_context &context
+)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::generic>(body, params, context);
+	case abi::platform_abi::microsoft_x64:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::microsoft_x64>(body, params, context);
+	case abi::platform_abi::systemv_amd64:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::systemv_amd64>(body, params, context);
+	}
 	bz_unreachable;
 }
 

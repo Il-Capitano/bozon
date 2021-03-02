@@ -71,6 +71,7 @@ global_context::global_context(void)
 	  _builtin_universal_functions(ast::make_builtin_universal_functions(this->_builtin_functions)),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
+	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
 	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
@@ -369,8 +370,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 
 	std::string target_error = "";
-	auto const target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
-	if (target == nullptr)
+	this->_target = llvm::TargetRegistry::lookupTarget(target_triple, target_error);
+	if (this->_target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
 		bz::vector<ctx::note> notes;
@@ -438,7 +439,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	llvm::TargetOptions options;
 	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	this->_target_machine.reset(target->createTargetMachine(target_triple, cpu, features, options, rm));
+	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
