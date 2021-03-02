@@ -4,7 +4,7 @@
 namespace ctx
 {
 
-bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module &_module)
+bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
 	  module(_module),
 	  vars_{},
@@ -71,9 +71,14 @@ llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
 	return this->global_ctx._llvm_context;
 }
 
+llvm::DataLayout &bitcode_context::get_data_layout(void) const noexcept
+{
+	return this->global_ctx._data_layout.get();
+}
+
 llvm::Module &bitcode_context::get_module(void) const noexcept
 {
-	return this->module;
+	return *this->module;
 }
 
 abi::platform_abi bitcode_context::get_platform_abi(void) const noexcept
