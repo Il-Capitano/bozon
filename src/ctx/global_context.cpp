@@ -74,7 +74,8 @@ global_context::global_context(void)
 	  _target(nullptr),
 	  _target_machine(nullptr),
 	  _data_layout(),
-	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context))
+	  _llvm_builtin_types(get_llvm_builtin_types(this->_llvm_context)),
+	  _comptime_executor(*this)
 {}
 
 ast::type_info *global_context::get_builtin_type_info(uint32_t kind)

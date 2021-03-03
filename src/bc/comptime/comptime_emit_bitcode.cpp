@@ -3515,7 +3515,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
-	bz_assert(func_body.symbol_name != "");
+	// bz_assert(func_body.symbol_name != "");
 	auto const name = func_body.is_main()
 		? llvm::StringRef("__bozon_main")
 		: llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
@@ -3615,10 +3615,12 @@ static void emit_function_bitcode_impl(
 {
 	auto const fn = context.get_function(&func_body);
 	bz_assert(fn != nullptr);
-	bz_assert(fn->size() == 0);
+	if (fn->size() != 0)
+	{
+		return;
+	}
 
 	context.current_function = { &func_body, fn };
-	bz_assert(fn->arg_size() >= 2);
 
 	auto const alloca_bb = context.add_basic_block("alloca");
 	context.alloca_bb = alloca_bb;
@@ -3805,7 +3807,7 @@ void add_builtin_functions(ctx::comptime_executor_context &context)
 	}
 }
 
-void emit_necessary_functions(ctx::comptime_executor_context &context)
+bool emit_necessary_functions(ctx::comptime_executor_context &context)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
@@ -3813,27 +3815,36 @@ void emit_necessary_functions(ctx::comptime_executor_context &context)
 	case abi::platform_abi::generic:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::generic>(
-				*context.functions_to_compile[i], context
-			);
+			auto const body = context.functions_to_compile[i];
+			if (!context.resolve_function(body))
+			{
+				return false;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::generic>(*body, context);
 		}
-		return;
+		return true;
 	case abi::platform_abi::microsoft_x64:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
-				*context.functions_to_compile[i], context
-			);
+			auto const body = context.functions_to_compile[i];
+			if (!context.resolve_function(body))
+			{
+				return false;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(*body, context);
 		}
-		return;
+		return true;
 	case abi::platform_abi::systemv_amd64:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
-				*context.functions_to_compile[i], context
-			);
+			auto const body = context.functions_to_compile[i];
+			if (!context.resolve_function(body))
+			{
+				return false;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(*body, context);
 		}
-		return;
+		return true;
 	}
 	bz_unreachable;
 }
@@ -3859,6 +3870,7 @@ static llvm::Function *create_function_for_comptime_execution_impl(
 	);
 
 	auto const bb = llvm::BasicBlock::Create(context.get_llvm_context(), "entry", result);
+	context.alloca_bb = bb;
 	context.builder.SetInsertPoint(bb);
 
 	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());

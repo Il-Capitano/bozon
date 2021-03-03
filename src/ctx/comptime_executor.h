@@ -18,7 +18,12 @@ struct parse_context;
 
 struct comptime_executor_context
 {
-	comptime_executor_context(parse_context &_parse_ctx);
+	comptime_executor_context(global_context &_global_ctx);
+
+	comptime_executor_context(comptime_executor_context const &) = delete;
+	comptime_executor_context(comptime_executor_context &&)      = delete;
+	comptime_executor_context &operator = (comptime_executor_context const &) = delete;
+	comptime_executor_context &operator = (comptime_executor_context &&)      = delete;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
@@ -71,6 +76,7 @@ struct comptime_executor_context
 	static bool has_terminator(llvm::BasicBlock *bb);
 
 	void ensure_function_emission(ast::function_body *func);
+	[[nodiscard]] bool resolve_function(ast::function_body *body);
 
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
@@ -78,6 +84,7 @@ struct comptime_executor_context
 		ast::function_body *body,
 		bz::array_view<ast::constant_value const> params
 	);
+	void initialize_engine(void);
 	std::unique_ptr<llvm::ExecutionEngine> create_engine(std::unique_ptr<llvm::Module> module);
 	void add_base_functions_to_module(llvm::Module &module);
 	void add_module(std::unique_ptr<llvm::Module> module);
@@ -85,14 +92,20 @@ struct comptime_executor_context
 	bz::u8string_view get_error_message(void);
 	lex::src_tokens get_error_position(void);
 
-	static error make_error(
+	[[nodiscard]] static error make_error(
+		bz::u8string message,
+		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+	);
+	[[nodiscard]] static error make_error(
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
 	);
 
 
-	parse_context &parse_ctx;
+	global_context &global_ctx;
+	parse_context *current_parse_ctx;
 	llvm::Module *current_module;
+	bz::vector<error> errors;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
@@ -115,6 +128,7 @@ struct comptime_executor_context
 	llvm::Function *error_token_pivot_getter;
 	llvm::Function *error_token_end_getter;
 
+	llvm::TargetMachine *target_machine;
 	std::unique_ptr<llvm::ExecutionEngine> engine;
 };
 

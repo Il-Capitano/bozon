@@ -20,6 +20,7 @@
 #include "abi/platform_abi.h"
 
 #include "decl_set.h"
+#include "comptime_executor.h"
 
 namespace ctx
 {
@@ -56,7 +57,13 @@ struct global_context
 	bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1> _llvm_builtin_types;
 	abi::platform_abi _platform_abi;
 
+	comptime_executor_context _comptime_executor;
+
 	global_context(void);
+	global_context(global_context const &) = delete;
+	global_context(global_context &&)      = delete;
+	global_context &operator = (global_context const &) = delete;
+	global_context &operator = (global_context &&)      = delete;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::typespec_view get_builtin_type(bz::u8string_view name);

@@ -45,10 +45,13 @@ struct parse_context
 	bz::array_view<bz::u8string_view const> current_scope;
 
 	bz::vector<resolve_queue_t>        resolve_queue;
-	bz::vector<consteval_call_stack_t> consteval_call_stack;
 
 
 	parse_context(global_context &_global_ctx);
+	parse_context(parse_context const &other);
+	parse_context(parse_context &&)      = delete;
+	parse_context &operator = (parse_context const &) = delete;
+	parse_context &operator = (parse_context &&)      = delete;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind) const;
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
@@ -365,6 +368,12 @@ struct parse_context
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
+	ast::constant_value execute_function(
+		lex::src_tokens src_tokens,
+		ast::function_body *body,
+		bz::array_view<ast::constant_value const> params
+	);
+
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 
@@ -381,12 +390,6 @@ struct parse_context
 
 	void pop_resolve_queue(void)
 	{ this->resolve_queue.pop_back(); }
-
-	void add_to_consteval_call_stack(lex::src_tokens tokens, bz::u8string message)
-	{ this->consteval_call_stack.emplace_back(tokens, std::move(message)); }
-
-	void pop_consteval_call_stack(void)
-	{ this->consteval_call_stack.pop_back(); }
 };
 
 } // namespace ctx

@@ -5,6 +5,7 @@
 #include "parse/statement_parser.h"
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
@@ -14,16 +15,18 @@
 namespace ctx
 {
 
-comptime_executor_context::comptime_executor_context(parse_context &_parse_ctx)
-	: parse_ctx(_parse_ctx),
+comptime_executor_context::comptime_executor_context(global_context &_global_ctx)
+	: global_ctx(_global_ctx),
+	  current_parse_ctx(nullptr),
 	  current_module(nullptr),
+	  errors{},
 	  vars_{},
 	  types_{},
 	  functions_to_compile{},
 	  current_function{ nullptr, nullptr },
 	  alloca_bb(nullptr),
 	  output_pointer(nullptr),
-	  builder(_parse_ctx.global_ctx._llvm_context),
+	  builder(_global_ctx._llvm_context),
 	  error_strings{},
 	  error_string_ptr(nullptr),
 	  error_token_begin(nullptr),
@@ -38,17 +41,17 @@ comptime_executor_context::comptime_executor_context(parse_context &_parse_ctx)
 
 ast::type_info *comptime_executor_context::get_builtin_type_info(uint32_t kind)
 {
-	return this->parse_ctx.global_ctx.get_builtin_type_info(kind);
+	return this->global_ctx.get_builtin_type_info(kind);
 }
 
 ast::typespec_view comptime_executor_context::get_builtin_type(bz::u8string_view name)
 {
-	return this->parse_ctx.global_ctx.get_builtin_type(name);
+	return this->global_ctx.get_builtin_type(name);
 }
 
 ast::function_body *comptime_executor_context::get_builtin_function(uint32_t kind)
 {
-	return this->parse_ctx.global_ctx.get_builtin_function(kind);
+	return this->global_ctx.get_builtin_function(kind);
 }
 
 llvm::Value *comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
@@ -66,9 +69,10 @@ llvm::Type *comptime_executor_context::get_base_type(ast::type_info *info)
 {
 	if (info->state != ast::resolve_state::all)
 	{
-		this->parse_ctx.add_to_resolve_queue({}, *info);
-		parse::resolve_type_info(*info, this->parse_ctx);
-		this->parse_ctx.pop_resolve_queue();
+		bz_assert(this->current_parse_ctx != nullptr);
+		this->current_parse_ctx->add_to_resolve_queue({}, *info);
+		parse::resolve_type_info(*info, *this->current_parse_ctx);
+		this->current_parse_ctx->pop_resolve_queue();
 	}
 	auto const it = this->types_.find(info);
 	if (it == this->types_.end())
@@ -96,8 +100,9 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
 	{
-		auto const result = bc::comptime::add_function_to_module(func_body, *this);
-		return result;
+		bz_assert(func_body->state != ast::resolve_state::error);
+		bz_assert(func_body->state >= ast::resolve_state::symbol);
+		return bc::comptime::add_function_to_module(func_body, *this);
 	}
 	else
 	{
@@ -107,12 +112,12 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 
 llvm::LLVMContext &comptime_executor_context::get_llvm_context(void) const noexcept
 {
-	return this->parse_ctx.global_ctx._llvm_context;
+	return this->global_ctx._llvm_context;
 }
 
 llvm::DataLayout &comptime_executor_context::get_data_layout(void) const noexcept
 {
-	return this->parse_ctx.global_ctx._data_layout.get();
+	return this->global_ctx._data_layout.get();
 }
 
 llvm::Module &comptime_executor_context::get_module(void) const noexcept
@@ -122,17 +127,17 @@ llvm::Module &comptime_executor_context::get_module(void) const noexcept
 
 abi::platform_abi comptime_executor_context::get_platform_abi(void) const noexcept
 {
-	return this->parse_ctx.global_ctx._platform_abi;
+	return this->global_ctx._platform_abi;
 }
 
 size_t comptime_executor_context::get_size(llvm::Type *t) const
 {
-	return this->parse_ctx.global_ctx._data_layout->getTypeAllocSize(t);
+	return this->global_ctx._data_layout->getTypeAllocSize(t);
 }
 
 size_t comptime_executor_context::get_align(llvm::Type *t) const
 {
-	return this->parse_ctx.global_ctx._data_layout->getPrefTypeAlign(t).value();
+	return this->global_ctx._data_layout->getPrefTypeAlign(t).value();
 #if LLVM_VERSION_MAJOR < 11
 #error LLVM 11 is required
 #endif // llvm < 11
@@ -141,24 +146,24 @@ size_t comptime_executor_context::get_align(llvm::Type *t) const
 size_t comptime_executor_context::get_offset(llvm::Type *t, size_t elem) const
 {
 	bz_assert(t->isStructTy());
-	return this->parse_ctx.global_ctx._data_layout->getStructLayout(static_cast<llvm::StructType *>(t))->getElementOffset(elem);
+	return this->global_ctx._data_layout->getStructLayout(static_cast<llvm::StructType *>(t))->getElementOffset(elem);
 }
 
 
 size_t comptime_executor_context::get_register_size(void) const
 {
-	switch (this->parse_ctx.global_ctx._platform_abi)
+	switch (this->global_ctx._platform_abi)
 	{
 	case abi::platform_abi::generic:
 	{
-		static size_t register_size = this->parse_ctx.global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() / 8;
+		static size_t register_size = this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() / 8;
 		return register_size;
 	}
 	case abi::platform_abi::microsoft_x64:
-		bz_assert(this->parse_ctx.global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
+		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
 		return 8;
 	case abi::platform_abi::systemv_amd64:
-		bz_assert(this->parse_ctx.global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
+		bz_assert(this->global_ctx._data_layout->getLargestLegalIntTypeSizeInBits() == 64);
 		return 8;
 	}
 	bz_unreachable;
@@ -167,7 +172,7 @@ size_t comptime_executor_context::get_register_size(void) const
 llvm::BasicBlock *comptime_executor_context::add_basic_block(bz::u8string_view name)
 {
 	return llvm::BasicBlock::Create(
-		this->parse_ctx.global_ctx._llvm_context,
+		this->global_ctx._llvm_context,
 		llvm::StringRef(name.data(), name.length()),
 		this->current_function.second
 	);
@@ -251,50 +256,50 @@ llvm::Value *comptime_executor_context::create_cast_to_int(bc::val_ptr val)
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
-	return this->parse_ctx.global_ctx._llvm_builtin_types[kind];
+	return this->global_ctx._llvm_builtin_types[kind];
 }
 
 llvm::Type *comptime_executor_context::get_int8_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int8_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int8_)]; }
 
 llvm::Type *comptime_executor_context::get_int16_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int16_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int16_)]; }
 
 llvm::Type *comptime_executor_context::get_int32_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int32_)]; }
 
 llvm::Type *comptime_executor_context::get_int64_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::int64_)]; }
 
 llvm::Type *comptime_executor_context::get_uint8_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint8_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint8_)]; }
 
 llvm::Type *comptime_executor_context::get_uint16_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint16_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint16_)]; }
 
 llvm::Type *comptime_executor_context::get_uint32_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint32_)]; }
 
 llvm::Type *comptime_executor_context::get_uint64_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::uint64_)]; }
 
 llvm::Type *comptime_executor_context::get_float32_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float32_)]; }
 
 llvm::Type *comptime_executor_context::get_float64_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::float64_)]; }
 
 llvm::Type *comptime_executor_context::get_str_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::str_)]; }
 
 llvm::Type *comptime_executor_context::get_char_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::char_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::char_)]; }
 
 llvm::Type *comptime_executor_context::get_bool_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::bool_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::bool_)]; }
 
 llvm::Type *comptime_executor_context::get_null_t(void) const
-{ return this->parse_ctx.global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
+{ return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
 
 llvm::StructType *comptime_executor_context::get_slice_t(llvm::Type *elem_type) const
 {
@@ -314,18 +319,142 @@ bool comptime_executor_context::has_terminator(llvm::BasicBlock *bb)
 	return bb->size() != 0 && bb->back().isTerminator();
 }
 
-void comptime_executor_context::ensure_function_emission(ast::function_body *func)
+void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	// no need to emit functions with no definition
-	if (func->body.is_null())
+	if (!this->functions_to_compile.contains(body))
 	{
-		return;
+		this->functions_to_compile.push_back(body);
 	}
+}
 
-	if (!this->functions_to_compile.contains(func))
+bool comptime_executor_context::resolve_function(ast::function_body *body)
+{
+	bz_assert(this->current_parse_ctx != nullptr);
+	this->current_parse_ctx->add_to_resolve_queue({}, *body);
+	parse::resolve_function({}, *body, *this->current_parse_ctx);
+	this->current_parse_ctx->pop_resolve_queue();
+	if (body->state == ast::resolve_state::error)
 	{
-		this->functions_to_compile.push_back(func);
+		return false;
 	}
+	else if (body->state != ast::resolve_state::all)
+	{
+		if (body->is_intrinsic())
+		{
+			this->errors.push_back(this->make_error(
+				bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
+			));
+		}
+		else
+		{
+			this->errors.push_back(this->make_error(
+				body->src_tokens,
+				bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
+			));
+		}
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
+{
+	ast::constant_value result;
+	ast::remove_const_or_consteval(result_type).visit(bz::overload{
+		[&](ast::ts_base_type const &base_t) {
+			switch (base_t.info->kind)
+			{
+			case ast::type_info::int8_:
+			case ast::type_info::int16_:
+			case ast::type_info::int32_:
+			case ast::type_info::int64_:
+				result.emplace<ast::constant_value::sint>(value.IntVal.getSExtValue());
+				break;
+			case ast::type_info::uint8_:
+			case ast::type_info::uint16_:
+			case ast::type_info::uint32_:
+			case ast::type_info::uint64_:
+				result.emplace<ast::constant_value::uint>(value.IntVal.getLimitedValue());
+				break;
+			case ast::type_info::float32_:
+				result.emplace<ast::constant_value::float32>(value.FloatVal);
+				break;
+			case ast::type_info::float64_:
+				result.emplace<ast::constant_value::float64>(value.DoubleVal);
+				break;
+			case ast::type_info::char_:
+				result.emplace<ast::constant_value::u8char>(static_cast<bz::u8char>(value.IntVal.getLimitedValue()));
+				break;
+			case ast::type_info::str_:
+				bz_unreachable;
+			case ast::type_info::bool_:
+				result.emplace<ast::constant_value::boolean>(value.IntVal.getBoolValue());
+				break;
+			case ast::type_info::null_t_:
+				result.emplace<ast::constant_value::null>();
+				break;
+			case ast::type_info::aggregate:
+			{
+				result.emplace<ast::constant_value::aggregate>(
+					bz::zip(value.AggregateVal, base_t.info->member_variables)
+					.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second.type); })
+					.collect()
+				);
+				break;
+			}
+			case ast::type_info::forward_declaration:
+				bz_unreachable;
+			}
+		},
+		[&](ast::ts_void const &) {
+			// nothing
+		},
+		[&](ast::ts_function const &) {
+			bz_unreachable;
+		},
+		[&](ast::ts_array const &array_t) {
+			result.emplace<ast::constant_value::array>(
+				bz::basic_range(value.AggregateVal.begin(), value.AggregateVal.end())
+				.transform([&](auto const &val) { return constant_value_from_generic_value(val, array_t.elem_type); })
+				.collect()
+			);
+		},
+		[&](ast::ts_array_slice const &) {
+			bz_unreachable;
+		},
+		[&](ast::ts_tuple const &tuple_t) {
+			result.emplace<ast::constant_value::tuple>(
+				bz::zip(value.AggregateVal, tuple_t.types)
+				.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second); })
+				.collect()
+			);
+		},
+		[&](ast::ts_pointer const &) {
+			bz_unreachable;
+		},
+		[&](ast::ts_lvalue_reference const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_unresolved const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_const const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_consteval const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_auto const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_typename const &) {
+			bz_unreachable;
+		},
+	});
+	return result;
 }
 
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
@@ -336,10 +465,15 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 {
 	auto const original_module = this->current_module;
 	auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
+	module->setDataLayout(this->get_data_layout());
+	auto const is_native_target = target == "" || target == "native";
+	auto const target_triple = is_native_target
+		? llvm::sys::getDefaultTargetTriple()
+		: std::string(target.data_as_char_ptr(), target.size());
+	module->setTargetTriple(target_triple);
 	this->current_module = module.get();
-	this->ensure_function_emission(body);
-	bc::comptime::emit_necessary_functions(*this);
 
+	(void)this->resolve_function(body);
 	std::pair<ast::constant_value, bz::vector<error>> result;
 	if (body->state == ast::resolve_state::error)
 	{
@@ -357,41 +491,58 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 	else
 	{
+		this->initialize_engine();
+		this->ensure_function_emission(body);
+		if (!bc::comptime::emit_necessary_functions(*this))
+		{
+			result.second.append_move(this->errors);
+			this->errors.clear();
+			this->current_module = original_module;
+			return result;
+		}
+
 		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		this->add_module(std::move(module));
-		this->engine->runFunction(
-			fn,
-			{
-				llvm::GenericValue(&result.first),
-				llvm::GenericValue(&result.second),
-				llvm::GenericValue(&this->parse_ctx)
-			}
-		);
+		auto const call_result = this->engine->runFunction(fn, {});
+		result.first = constant_value_from_generic_value(call_result, body->return_type);
 		this->current_module = original_module;
 		return result;
 	}
 }
 
+void comptime_executor_context::initialize_engine(void)
+{
+	if (this->engine == nullptr)
+	{
+		auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
+		module->setDataLayout(this->get_data_layout());
+		auto const is_native_target = target == "" || target == "native";
+		auto const target_triple = is_native_target
+			? llvm::sys::getDefaultTargetTriple()
+			: std::string(target.data_as_char_ptr(), target.size());
+		module->setTargetTriple(target_triple);
+		this->add_base_functions_to_module(*module);
+		this->engine = this->create_engine(std::move(module));
+	}
+}
+
 std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(std::unique_ptr<llvm::Module> module)
 {
+	if (debug_ir_output)
+	{
+		std::error_code ec;
+		auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text);
+		if (!ec)
+		{
+			module->print(output_file, nullptr);
+		}
+	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
 	builder
 		.setErrorStr(&err)
 		.setOptLevel(llvm::CodeGenOpt::None);
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::sys::getDefaultTargetTriple()
-		: std::string(target.data_as_char_ptr(), target.size());
-	auto const cpu = "generic";
-	auto const features = "";
-	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
-	auto const target_machine = this->parse_ctx.global_ctx._target->createTargetMachine(
-		target_triple,
-		cpu, features, options, rm
-	);
-	auto const result = builder.create(std::move(target_machine));
+	auto const result = builder.create();
 	if (result == nullptr)
 	{
 		bz::log("execution engine creation failed: {}\n", err.c_str());
@@ -414,7 +565,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	{ // error_string_ptr_getter function
 		this->error_string_ptr_getter = llvm::Function::Create(
 			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_string_ptr_getter"
+			"__error_string_ptr_getter", &module
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_string_ptr_getter);
 		this->builder.SetInsertPoint(bb);
@@ -425,7 +576,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	{ // error_token_begin_getter function
 		this->error_token_begin_getter = llvm::Function::Create(
 			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_begin_getter"
+			"__error_token_begin_getter", &module
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_begin_getter);
 		this->builder.SetInsertPoint(bb);
@@ -436,7 +587,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	{ // error_token_pivot_getter function
 		this->error_token_pivot_getter = llvm::Function::Create(
 			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_pivot_getter"
+			"__error_token_pivot_getter", &module
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_pivot_getter);
 		this->builder.SetInsertPoint(bb);
@@ -447,7 +598,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	{ // error_token_end_getter function
 		this->error_token_end_getter = llvm::Function::Create(
 			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_end_getter"
+			"__error_token_end_getter", &module
 		);
 		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_end_getter);
 		this->builder.SetInsertPoint(bb);
@@ -458,15 +609,17 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
-	if (this->engine == nullptr)
+	bz_assert(this->engine != nullptr);
+	if (debug_ir_output)
 	{
-		this->add_base_functions_to_module(*module);
-		this->engine = this->create_engine(std::move(module));
+		std::error_code ec;
+		auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text | llvm::sys::fs::OF_Append);
+		if (!ec)
+		{
+			module->print(output_file, nullptr);
+		}
 	}
-	else
-	{
-		this->engine->addModule(std::move(module));
-	}
+	this->engine->addModule(std::move(module));
 }
 
 bz::u8string_view comptime_executor_context::get_error_message(void)
@@ -514,6 +667,20 @@ lex::src_tokens comptime_executor_context::get_error_position(void)
 		);
 		return lex::src_tokens{ begin_ptr, pivot_ptr, end_ptr };
 	}
+}
+
+error comptime_executor_context::make_error(
+	bz::u8string message,
+	bz::vector<note> notes, bz::vector<suggestion> suggestions
+)
+{
+	return error{
+		warning_kind::_last,
+		global_context::compiler_file_id, 0,
+		char_pos(), char_pos(), char_pos(),
+		std::move(message),
+		std::move(notes), std::move(suggestions)
+	};
 }
 
 error comptime_executor_context::make_error(

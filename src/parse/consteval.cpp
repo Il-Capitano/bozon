@@ -1413,136 +1413,148 @@ case ast::function_body::func_name##_f64:                                       
 static ast::constant_value evaluate_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call const &func_call,
+	bool force_evaluate,
 	ctx::parse_context &context
 )
 {
-	if (!func_call.func_body->is_intrinsic())
+	if (func_call.func_body->is_intrinsic())
 	{
-		return {};
+		switch (func_call.func_body->intrinsic_kind)
+		{
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
+		case ast::function_body::builtin_str_eq:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+			bz_assert(func_call.params[1].is<ast::constant_expression>());
+			auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+			bz_assert(lhs_value.is<ast::constant_value::string>());
+			bz_assert(rhs_value.is<ast::constant_value::string>());
+			return ast::constant_value(
+				lhs_value.get<ast::constant_value::string>()
+				== rhs_value.get<ast::constant_value::string>()
+			);
+		}
+		case ast::function_body::builtin_str_neq:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+			bz_assert(func_call.params[1].is<ast::constant_expression>());
+			auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+			bz_assert(lhs_value.is<ast::constant_value::string>());
+			bz_assert(rhs_value.is<ast::constant_value::string>());
+			return ast::constant_value(
+				lhs_value.get<ast::constant_value::string>()
+				!= rhs_value.get<ast::constant_value::string>()
+			);
+		}
+		case ast::function_body::builtin_str_length:
+		{
+			bz_assert(func_call.params.size() == 1);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+			bz_assert(str_value.is<ast::constant_value::string>());
+			return ast::constant_value(str_value.get<ast::constant_value::string>().length());
+		}
+
+		case ast::function_body::builtin_str_begin_ptr:
+		case ast::function_body::builtin_str_end_ptr:
+			return {};
+		case ast::function_body::builtin_str_size:
+		{
+			bz_assert(func_call.params.size() == 1);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+			bz_assert(str_value.is<ast::constant_value::string>());
+			return ast::constant_value(str_value.get<ast::constant_value::string>().size());
+		}
+		case ast::function_body::builtin_str_from_ptrs:
+			return {};
+
+		case ast::function_body::builtin_slice_begin_ptr:
+		case ast::function_body::builtin_slice_begin_const_ptr:
+		case ast::function_body::builtin_slice_end_ptr:
+		case ast::function_body::builtin_slice_end_const_ptr:
+		case ast::function_body::builtin_slice_size:
+		case ast::function_body::builtin_slice_from_ptrs:
+		case ast::function_body::builtin_slice_from_const_ptrs:
+			return {};
+
+		case ast::function_body::builtin_pointer_cast:
+		{
+			bz_assert(func_call.params[0].is_typename());
+			bz_assert(func_call.params[1].is<ast::constant_expression>());
+			bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
+			return func_call.params[1].get<ast::constant_expression>().value;
+		}
+		case ast::function_body::builtin_pointer_to_int:
+		case ast::function_body::builtin_int_to_pointer:
+			return {};
+
+		// builtins end here
+
+		case ast::function_body::print_stdout:
+		case ast::function_body::println_stdout:
+		case ast::function_body::print_stderr:
+		case ast::function_body::println_stderr:
+			return {};
+
+		case ast::function_body::memcpy:
+		case ast::function_body::memmove:
+		case ast::function_body::memset:
+			return {};
+
+		case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
+		case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
+		case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
+		case ast::function_body::log_f32:   case ast::function_body::log_f64:
+		case ast::function_body::log10_f32: case ast::function_body::log10_f64:
+		case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
+		case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
+			[[fallthrough]];
+		case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
+		case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
+		case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
+		case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
+		case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
+		case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
+		case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
+		case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
+		case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
+		case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
+		case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
+			[[fallthrough]];
+		case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
+		case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
+		case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
+		case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
+		case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
+		case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
+			[[fallthrough]];
+		case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
+		case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
+		case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
+		case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
+			return evaluate_math_functions(original_expr, func_call, context);
+
+		default:
+			bz_unreachable;
+		}
 	}
-
-	switch (func_call.func_body->intrinsic_kind)
+	else if (force_evaluate)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
-	case ast::function_body::builtin_str_eq:
-	{
-		bz_assert(func_call.params.size() == 2);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
-		bz_assert(func_call.params[1].is<ast::constant_expression>());
-		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
-		bz_assert(lhs_value.is<ast::constant_value::string>());
-		bz_assert(rhs_value.is<ast::constant_value::string>());
-		return ast::constant_value(
-			lhs_value.get<ast::constant_value::string>()
-			== rhs_value.get<ast::constant_value::string>()
-		);
+		auto const body = func_call.func_body;
+		auto const params = bz::zip(func_call.params, body->params)
+			.filter([](auto const &pair) { return !ast::is_generic_parameter(pair.second); })
+			.transform([](auto const &pair) { return pair.first.template get<ast::constant_expression>().value; })
+			.collect();
+		return context.execute_function(original_expr.src_tokens, body, params);
 	}
-	case ast::function_body::builtin_str_neq:
+	else
 	{
-		bz_assert(func_call.params.size() == 2);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
-		bz_assert(func_call.params[1].is<ast::constant_expression>());
-		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
-		bz_assert(lhs_value.is<ast::constant_value::string>());
-		bz_assert(rhs_value.is<ast::constant_value::string>());
-		return ast::constant_value(
-			lhs_value.get<ast::constant_value::string>()
-			!= rhs_value.get<ast::constant_value::string>()
-		);
-	}
-	case ast::function_body::builtin_str_length:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
-		bz_assert(str_value.is<ast::constant_value::string>());
-		return ast::constant_value(str_value.get<ast::constant_value::string>().length());
-	}
-
-	case ast::function_body::builtin_str_begin_ptr:
-	case ast::function_body::builtin_str_end_ptr:
 		return {};
-	case ast::function_body::builtin_str_size:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
-		bz_assert(str_value.is<ast::constant_value::string>());
-		return ast::constant_value(str_value.get<ast::constant_value::string>().size());
-	}
-	case ast::function_body::builtin_str_from_ptrs:
-		return {};
-
-	case ast::function_body::builtin_slice_begin_ptr:
-	case ast::function_body::builtin_slice_begin_const_ptr:
-	case ast::function_body::builtin_slice_end_ptr:
-	case ast::function_body::builtin_slice_end_const_ptr:
-	case ast::function_body::builtin_slice_size:
-	case ast::function_body::builtin_slice_from_ptrs:
-	case ast::function_body::builtin_slice_from_const_ptrs:
-		return {};
-
-	case ast::function_body::builtin_pointer_cast:
-	{
-		bz_assert(func_call.params[0].is_typename());
-		bz_assert(func_call.params[1].is<ast::constant_expression>());
-		bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
-		return func_call.params[1].get<ast::constant_expression>().value;
-	}
-	case ast::function_body::builtin_pointer_to_int:
-	case ast::function_body::builtin_int_to_pointer:
-		return {};
-
-	// builtins end here
-
-	case ast::function_body::print_stdout:
-	case ast::function_body::println_stdout:
-	case ast::function_body::print_stderr:
-	case ast::function_body::println_stderr:
-		return {};
-
-	case ast::function_body::memcpy:
-	case ast::function_body::memmove:
-	case ast::function_body::memset:
-		return {};
-
-	case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
-	case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
-	case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
-	case ast::function_body::log_f32:   case ast::function_body::log_f64:
-	case ast::function_body::log10_f32: case ast::function_body::log10_f64:
-	case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
-	case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
-		[[fallthrough]];
-	case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
-	case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
-	case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
-	case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
-	case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
-	case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
-	case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
-	case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
-	case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
-	case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
-	case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
-		[[fallthrough]];
-	case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
-	case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
-	case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
-	case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
-	case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
-	case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
-		[[fallthrough]];
-	case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
-	case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
-	case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
-	case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
-		return evaluate_math_functions(original_expr, func_call, context);
-
-	default:
-		bz_unreachable;
 	}
 }
 
@@ -1899,7 +1911,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			else
 			{
-				return evaluate_function_call(expr, func_call, context);
+				return evaluate_function_call(expr, func_call, false, context);
 			}
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
@@ -2105,7 +2117,7 @@ static ast::constant_value try_evaluate_expr(
 			}
 			else
 			{
-				return evaluate_function_call(expr, func_call, context);
+				return evaluate_function_call(expr, func_call, true, context);
 			}
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {

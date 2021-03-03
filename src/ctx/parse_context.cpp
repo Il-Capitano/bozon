@@ -18,9 +18,29 @@ parse_context::parse_context(global_context &_global_ctx)
 	  generic_function_scope_start{},
 	  current_file_id(std::numeric_limits<uint32_t>::max()),
 	  current_scope{},
-	  resolve_queue{},
-	  consteval_call_stack{}
+	  resolve_queue{}
 {}
+
+parse_context::parse_context(parse_context const &other)
+	: global_ctx(other.global_ctx),
+	  global_decls(other.global_decls),
+	  scope_decls{},
+	  generic_functions(other.generic_functions),
+	  generic_function_scope_start(other.generic_function_scope_start),
+	  current_file_id(other.current_file_id),
+	  current_scope(other.current_scope),
+	  resolve_queue(other.resolve_queue)
+{
+	this->scope_decls.resize(other.scope_decls.size());
+	for (auto const [self_scope, other_scope] : bz::zip(this->scope_decls, other.scope_decls))
+	{
+		self_scope.func_sets = other_scope.func_sets;
+		self_scope.op_sets = other_scope.op_sets;
+		self_scope.type_aliases = other_scope.type_aliases;
+		self_scope.types = other_scope.types;
+		// self_scope.var_decls isn't copied
+	}
+}
 
 ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
 {
@@ -266,8 +286,14 @@ static bz::vector<note> get_circular_notes(T *decl, parse_context const &context
 				break;
 			}
 		}
-		bz_assert(dep.requester.pivot != nullptr);
-		notes.emplace_back(make_note(dep.requester, "required from here"));
+		if (dep.requester.pivot == nullptr)
+		{
+			notes.emplace_back(context.make_note("required from unknown location"));
+		}
+		else
+		{
+			notes.emplace_back(context.make_note(dep.requester, "required from here"));
+		}
 	}
 	return notes;
 }
@@ -4518,6 +4544,27 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 	result.values = this->current_scope;
 	result.values.push_back(id->value);
 	result.tokens = { id, id + 1 };
+	return result;
+}
+
+ast::constant_value parse_context::execute_function(
+	lex::src_tokens src_tokens,
+	ast::function_body *body,
+	bz::array_view<ast::constant_value const> params
+)
+{
+	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
+	this->global_ctx._comptime_executor.current_parse_ctx = this;
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
+		src_tokens,
+		body,
+		params
+	);
+	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
+	for (auto &error : errors)
+	{
+		this->global_ctx.report_error(std::move(error));
+	}
 	return result;
 }
 
