@@ -61,13 +61,13 @@ struct parse_context
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_error(
 		lex::src_tokens src_tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_error(lex::src_tokens src_tokens) const
 	{
@@ -82,8 +82,8 @@ struct parse_context
 	}
 	void report_error(
 		lex::token_range range, bz::u8string message,
-		bz::vector<note> notes = {},
-		bz::vector<suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	)
 	{
 		this->report_error(
@@ -94,14 +94,14 @@ struct parse_context
 	}
 	void report_error(
 		bz::u8string message,
-		bz::vector<note> notes = {},
-		bz::vector<suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	template<typename T>
 	void report_error(
 		T const &tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const
 	{
 		this->report_error(
@@ -112,7 +112,7 @@ struct parse_context
 
 	void report_paren_match_error(
 		lex::token_pos it, lex::token_pos open_paren_it,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 
 	void report_circular_dependency_error(ast::function_body &func_body) const;
@@ -124,21 +124,21 @@ struct parse_context
 	void report_warning(
 		warning_kind kind,
 		lex::token_pos it, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_warning(
 		warning_kind kind,
 		lex::src_tokens src_tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	template<typename T>
 	void report_warning(
 		warning_kind kind,
 		T const &tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const
 	{
 		this->report_warning(
@@ -152,23 +152,23 @@ struct parse_context
 		int parens_count,
 		warning_kind kind,
 		lex::token_pos it, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_parenthesis_suppressed_warning(
 		int parens_count,
 		warning_kind kind,
 		lex::src_tokens src_tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const;
 	template<typename T>
 	void report_parenthesis_suppressed_warning(
 		int parens_count,
 		warning_kind kind,
 		T const &tokens, bz::u8string message,
-		bz::vector<ctx::note> notes = {},
-		bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
 	) const
 	{
 		this->report_parenthesis_suppressed_warning(
@@ -178,15 +178,15 @@ struct parse_context
 		);
 	}
 
-	[[nodiscard]] static note make_note(uint32_t file_id, uint32_t line, bz::u8string message);
-	[[nodiscard]] static note make_note(lex::token_pos it, bz::u8string message);
-	[[nodiscard]] static note make_note(lex::src_tokens src_tokens, bz::u8string message);
-	[[nodiscard]] static note make_note(lex::token_range range, bz::u8string message)
+	[[nodiscard]] static source_highlight make_note(uint32_t file_id, uint32_t line, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::token_pos it, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::token_range range, bz::u8string message)
 	{
 		return make_note({ range.begin, range.begin, range.end }, std::move(message));
 	}
 	template<typename T>
-	[[nodiscard]] static note make_note(T const &tokens, bz::u8string message)
+	[[nodiscard]] static source_highlight make_note(T const &tokens, bz::u8string message)
 	{
 		return make_note(
 			{ tokens.get_tokens_begin(), tokens.get_tokens_pivot(), tokens.get_tokens_end() },
@@ -194,23 +194,29 @@ struct parse_context
 		);
 	}
 
-	[[nodiscard]] static note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		lex::token_pos it, bz::u8string message,
 		char_pos suggestion_pos, bz::u8string suggestion_str
 	);
-	[[nodiscard]] static note make_paren_match_note(
+	[[nodiscard]] static source_highlight make_paren_match_note(
 		lex::token_pos it, lex::token_pos open_paren_it
 	);
 	// should only be used for generic intrinsic instantiation reporting
-	[[nodiscard]] static note make_note(bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(bz::u8string message);
+	[[nodiscard]] static source_highlight make_note_with_suggestion_around(
+		lex::src_tokens src_tokens,
+		lex::token_pos begin, bz::u8string first_suggestion,
+		lex::token_pos end, bz::u8string second_suggestion,
+		bz::u8string message
+	);
 
-	[[nodiscard]] static suggestion make_suggestion_before(
+	[[nodiscard]] static source_highlight make_suggestion_before(
 		lex::token_pos it,
 		char_pos erase_begin, char_pos erase_end,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
-	[[nodiscard]] static suggestion make_suggestion_before(
+	[[nodiscard]] static source_highlight make_suggestion_before(
 		lex::token_pos first_it,
 		char_pos first_erase_begin, char_pos first_erase_end,
 		bz::u8string first_suggestion_str,
@@ -219,13 +225,13 @@ struct parse_context
 		bz::u8string second_suggestion_str,
 		bz::u8string message
 	);
-	[[nodiscard]] static suggestion make_suggestion_after(
+	[[nodiscard]] static source_highlight make_suggestion_after(
 		lex::token_pos it,
 		char_pos erase_begin, char_pos erase_end,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
-	[[nodiscard]] static suggestion make_suggestion_around(
+	[[nodiscard]] static source_highlight make_suggestion_around(
 		lex::token_pos first,
 		char_pos first_erase_begin, char_pos first_erase_end,
 		bz::u8string first_suggestion_str,
@@ -235,7 +241,7 @@ struct parse_context
 		bz::u8string message
 	);
 
-	[[nodiscard]] static suggestion make_suggestion_before(
+	[[nodiscard]] static source_highlight make_suggestion_before(
 		lex::token_pos it, bz::u8string suggestion_str,
 		bz::u8string message
 	)
@@ -246,7 +252,7 @@ struct parse_context
 		);
 	}
 
-	[[nodiscard]] static suggestion make_suggestion_after(
+	[[nodiscard]] static source_highlight make_suggestion_after(
 		lex::token_pos it, bz::u8string suggestion_str,
 		bz::u8string message
 	)
@@ -257,7 +263,7 @@ struct parse_context
 		);
 	}
 
-	[[nodiscard]] static suggestion make_suggestion_around(
+	[[nodiscard]] static source_highlight make_suggestion_around(
 		lex::token_pos first, bz::u8string first_suggestion_str,
 		lex::token_pos last, bz::u8string last_suggestion_str,
 		bz::u8string message

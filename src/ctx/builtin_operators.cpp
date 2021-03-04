@@ -58,7 +58,7 @@ static precedence get_expr_precedence(ast::expression const &expression)
 	}
 }
 
-[[nodiscard]] static suggestion create_explicit_cast_suggestion(
+[[nodiscard]] static source_highlight create_explicit_cast_suggestion(
 	ast::expression const &expr,
 	precedence op_prec,
 	bz::u8string_view type,
@@ -732,7 +732,7 @@ static ast::expression get_builtin_unary_move(
 #undef undeclared_unary_message
 
 
-static std::pair<bz::vector<note>, bz::vector<suggestion>>
+static std::pair<bz::vector<source_highlight>, bz::vector<source_highlight>>
 make_arithmetic_assign_error_notes_and_suggestions(
 	lex::src_tokens src_tokens,
 	precedence op_prec,
@@ -742,7 +742,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 	parse_context &context
 )
 {
-	std::pair<bz::vector<note>, bz::vector<suggestion>> result;
+	std::pair<bz::vector<source_highlight>, bz::vector<source_highlight>> result;
 
 	auto &notes = std::get<0>(result);
 	auto &suggestions = std::get<1>(result);
@@ -805,7 +805,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 	return result;
 }
 
-static std::pair<bz::vector<note>, bz::vector<suggestion>>
+static std::pair<bz::vector<source_highlight>, bz::vector<source_highlight>>
 make_arithmetic_error_notes_and_suggestions(
 	lex::src_tokens src_tokens,
 	precedence op_prec,
@@ -816,7 +816,7 @@ make_arithmetic_error_notes_and_suggestions(
 	parse_context &context
 )
 {
-	std::pair<bz::vector<note>, bz::vector<suggestion>> result;
+	std::pair<bz::vector<source_highlight>, bz::vector<source_highlight>> result;
 
 	auto &notes = std::get<0>(result);
 	auto &suggestions = std::get<1>(result);
@@ -880,9 +880,9 @@ make_arithmetic_error_notes_and_suggestions(
 	return result;
 }
 
-static bz::vector<note> get_declared_constant_notes(ast::expression &expr, parse_context &context)
+static bz::vector<source_highlight> get_declared_constant_notes(ast::expression &expr, parse_context &context)
 {
-	bz::vector<note> result;
+	bz::vector<source_highlight> result;
 	if (expr.is_constant_or_dynamic() && expr.get_expr().is<ast::expr_identifier>())
 	{
 		auto const &id_expr = expr.get_expr().get<ast::expr_identifier>();
@@ -1014,8 +1014,8 @@ static ast::expression get_builtin_binary_assign(
 		);
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1229,8 +1229,8 @@ static ast::expression get_builtin_binary_plus(
 		);
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1410,8 +1410,8 @@ static ast::expression get_builtin_binary_minus(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1544,8 +1544,8 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		);
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1674,8 +1674,8 @@ static ast::expression get_builtin_binary_multiply_divide(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1783,8 +1783,8 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1897,8 +1897,8 @@ static ast::expression get_builtin_binary_modulo(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2006,8 +2006,8 @@ static ast::expression get_builtin_binary_modulo_eq(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2257,8 +2257,8 @@ static ast::expression get_builtin_binary_equals_not_equals(
 		);
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2432,8 +2432,8 @@ static ast::expression get_builtin_binary_compare(
 		);
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2523,8 +2523,8 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2654,8 +2654,8 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2741,8 +2741,8 @@ static ast::expression get_builtin_binary_bit_shift(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2833,8 +2833,8 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 		}
 	}
 
-	bz::vector<note> notes = {};
-	bz::vector<suggestion> suggestions = {};
+	bz::vector<source_highlight> notes = {};
+	bz::vector<source_highlight> suggestions = {};
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{

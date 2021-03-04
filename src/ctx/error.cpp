@@ -62,22 +62,20 @@ static bz::u8string convert_string_for_message(bz::u8string_view str)
 static bz::u8string get_highlighted_text(
 	bz::u8string_view highlight_color,
 	char_pos file_begin_it, char_pos file_end_it,
-	char_pos src_begin_it, char_pos src_pivot_it, char_pos src_end_it,
-	suggestion_range first_suggestion, suggestion_range second_suggestion,
-	size_t line
+	source_highlight const &src_highlight
 )
 {
 	auto const file_begin = file_begin_it.data();
 	auto const file_end   = file_end_it.data();
-	auto const src_begin = src_begin_it.data();
-	auto const src_pivot = src_pivot_it.data();
-	auto const src_end   = src_end_it.data();
-	auto const first_erase_begin = first_suggestion.erase_begin.data();
-	auto const first_erase_end   = first_suggestion.erase_end.data();
-	auto const first_str_pos     = first_suggestion.suggestion_pos.data();
-	auto const second_erase_begin = second_suggestion.erase_begin.data();
-	auto const second_erase_end   = second_suggestion.erase_end.data();
-	auto const second_str_pos     = second_suggestion.suggestion_pos.data();
+	auto const src_begin = src_highlight.src_begin.data();
+	auto const src_pivot = src_highlight.src_pivot.data();
+	auto const src_end   = src_highlight.src_end.data();
+	auto const first_erase_begin = src_highlight.first_suggestion.erase_begin.data();
+	auto const first_erase_end   = src_highlight.first_suggestion.erase_end.data();
+	auto const first_str_pos     = src_highlight.first_suggestion.suggestion_pos.data();
+	auto const second_erase_begin = src_highlight.second_suggestion.erase_begin.data();
+	auto const second_erase_end   = src_highlight.second_suggestion.erase_end.data();
+	auto const second_str_pos     = src_highlight.second_suggestion.suggestion_pos.data();
 
 	if ((src_begin == nullptr || src_begin == src_end) && first_erase_begin == nullptr && first_str_pos == nullptr)
 	{
@@ -175,7 +173,7 @@ static bz::u8string get_highlighted_text(
 
 	auto const first_line_num = [&]() {
 		auto it = src_pivot == nullptr ? first_str_pos : src_pivot;
-		auto line_num = line;
+		auto line_num = src_highlight.line;
 		while (it != first_line_begin)
 		{
 			--it;
@@ -190,7 +188,7 @@ static bz::u8string get_highlighted_text(
 
 	auto const max_line_chars_width = [&]() {
 		auto it = src_pivot == nullptr ? first_str_pos : src_pivot;
-		auto line_num = line;
+		auto line_num = src_highlight.line;
 		while (it != last_line_end)
 		{
 			if (*it == '\n')
@@ -285,10 +283,10 @@ static bz::u8string get_highlighted_text(
 		if (it == first_str_pos)
 		{
 			ret_val = true;
-			auto const len = first_suggestion.suggestion_str.length();
+			auto const len = src_highlight.first_suggestion.suggestion_str.length();
 			file_line      += colors::suggestion_color;
 			highlight_line += colors::suggestion_color;
-			file_line += first_suggestion.suggestion_str;
+			file_line += src_highlight.first_suggestion.suggestion_str;
 			highlight_line += bz::format("{:~<{}}", len, "");
 			file_line      += colors::clear;
 			highlight_line += colors::clear;
@@ -317,10 +315,10 @@ static bz::u8string get_highlighted_text(
 		if (it == second_str_pos)
 		{
 			ret_val = true;
-			auto const len = second_suggestion.suggestion_str.length();
+			auto const len = src_highlight.second_suggestion.suggestion_str.length();
 			file_line      += colors::suggestion_color;
 			highlight_line += colors::suggestion_color;
-			file_line += second_suggestion.suggestion_str;
+			file_line += src_highlight.second_suggestion.suggestion_str;
 			highlight_line += bz::format("{:~<{}}", len, "");
 			file_line      += colors::clear;
 			highlight_line += colors::clear;
@@ -441,28 +439,28 @@ static bz::u8string get_highlighted_text(
 
 void print_error_or_warning(error const &err, global_context &context)
 {
-	auto const [err_file_begin, err_file_end] = context.get_file_begin_and_end(err.file_id);
+	auto const [err_file_begin, err_file_end] = context.get_file_begin_and_end(err.src_highlight.file_id);
 	auto const src_pos = [&, err_file_begin = err_file_begin]() {
-		if (err.file_id == global_context::compiler_file_id)
+		if (err.src_highlight.file_id == global_context::compiler_file_id)
 		{
 			return bz::format("{}bozon:{}", colors::bright_white, colors::clear);
 		}
-		else if (err.src_begin == err.src_end)
+		else if (err.src_highlight.src_begin == err.src_highlight.src_end)
 		{
 			return bz::format(
 				"{}{}:{}:{}",
 				colors::bright_white,
-				context.get_file_name(err.file_id), err.line,
+				context.get_file_name(err.src_highlight.file_id), err.src_highlight.line,
 				colors::clear
 			);
 		}
 		else
 		{
-			auto const file_name = context.get_file_name(err.file_id);
+			auto const file_name = context.get_file_name(err.src_highlight.file_id);
 			return bz::format(
 				"{}{}:{}:{}:{}",
 				colors::bright_white,
-				file_name, err.line, get_column_number(err_file_begin, err.src_pivot),
+				file_name, err.src_highlight.line, get_column_number(err_file_begin, err.src_highlight.src_pivot),
 				colors::clear
 			);
 		}
@@ -472,7 +470,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		{
 			return bz::format(
 				"{}error:{} {}",
-				colors::error_color, colors::clear, convert_string_for_message(err.message)
+				colors::error_color, colors::clear, convert_string_for_message(err.src_highlight.message)
 			);
 		}
 		else if (is_warning_error(err.kind))
@@ -480,7 +478,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			return bz::format(
 				"{}error:{} {} {}[-W error={}]{}",
 				colors::error_color, colors::clear,
-				convert_string_for_message(err.message),
+				convert_string_for_message(err.src_highlight.message),
 				colors::bright_white, get_warning_name(err.kind), colors::clear
 			);
 		}
@@ -489,7 +487,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			return bz::format(
 				"{}warning:{} {} {}[-W {}]{}",
 				colors::warning_color, colors::clear,
-				convert_string_for_message(err.message),
+				convert_string_for_message(err.src_highlight.message),
 				colors::bright_white, get_warning_name(err.kind), colors::clear
 			);
 		}
@@ -509,9 +507,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			src_pos, error_or_warning_line,
 			get_highlighted_text(
 				err.is_error() || is_warning_error(err.kind) ? colors::error_color : colors::warning_color,
-				err_file_begin, err_file_end,
-				err.src_begin, err.src_pivot, err.src_end,
-				{}, {}, err.line
+				err_file_begin, err_file_end, err.src_highlight
 			)
 		);
 	}
@@ -573,13 +569,7 @@ void print_error_or_warning(error const &err, global_context &context)
 				"{} {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
 				convert_string_for_message(n.message),
-				get_highlighted_text(
-					colors::note_color,
-					note_file_begin, note_file_end,
-					n.src_begin, n.src_pivot, n.src_end,
-					n.first_suggestion, n.second_suggestion,
-					n.line
-				)
+				get_highlighted_text(colors::note_color, note_file_begin, note_file_end, n)
 			);
 		}
 	}
@@ -614,13 +604,7 @@ void print_error_or_warning(error const &err, global_context &context)
 				colors::clear,
 				colors::suggestion_color, colors::clear,
 				convert_string_for_message(s.message),
-				get_highlighted_text(
-					"",
-					suggestion_file_begin, suggestion_file_end,
-					char_pos{}, char_pos{}, char_pos{},
-					s.first_suggestion, s.second_suggestion,
-					s.line
-				)
+				get_highlighted_text("", suggestion_file_begin, suggestion_file_end, s)
 			);
 		}
 	}

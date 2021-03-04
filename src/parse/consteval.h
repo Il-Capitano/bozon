@@ -10,7 +10,7 @@ namespace parse
 void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context);
 void consteval_try(ast::expression &expr, ctx::parse_context &context);
 
-bz::vector<ctx::note> get_consteval_fail_notes(ast::expression const &expr);
+bz::vector<ctx::source_highlight> get_consteval_fail_notes(ast::expression const &expr);
 
 } // namespace parse
 

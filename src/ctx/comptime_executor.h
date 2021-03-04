@@ -94,11 +94,11 @@ struct comptime_executor_context
 
 	[[nodiscard]] static error make_error(
 		bz::u8string message,
-		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	);
 	[[nodiscard]] static error make_error(
 		lex::src_tokens src_tokens, bz::u8string message,
-		bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	);
 
 

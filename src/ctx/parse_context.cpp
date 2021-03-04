@@ -62,7 +62,7 @@ bz::array_view<ast::function_body * const> parse_context::get_builtin_universal_
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
 
-static void add_generic_requirement_notes(bz::vector<note> &notes, parse_context const &context)
+static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, parse_context const &context)
 {
 	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())
 	{
@@ -172,33 +172,35 @@ void parse_context::report_error(lex::token_pos it) const
 void parse_context::report_error(
 	lex::token_pos it,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
-	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_error(ctx::make_error(
-		it, std::move(message),
-		std::move(notes), std::move(suggestions)
-	));
+	this->report_error({ it, it, it + 1 }, std::move(message), std::move(notes), std::move(suggestions));
 }
 
 void parse_context::report_error(
 	lex::src_tokens src_tokens,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
 	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_error(ctx::make_error(
-		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
+	this->global_ctx.report_error(error{
+		warning_kind::_last,
+		{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
 		std::move(notes), std::move(suggestions)
-	));
+	});
 }
 
 void parse_context::report_error(
 	bz::u8string message,
-	bz::vector<note> notes,
-	bz::vector<suggestion> suggestions
+	bz::vector<source_highlight> notes,
+	bz::vector<source_highlight> suggestions
 ) const
 {
 	this->global_ctx.report_error(std::move(message), std::move(notes), std::move(suggestions));
@@ -206,7 +208,7 @@ void parse_context::report_error(
 
 void parse_context::report_paren_match_error(
 	lex::token_pos it, lex::token_pos open_paren_it,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
 	auto const message = [&]() {
@@ -236,9 +238,9 @@ void parse_context::report_paren_match_error(
 }
 
 template<typename T>
-static bz::vector<note> get_circular_notes(T *decl, parse_context const &context)
+static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context const &context)
 {
-	bz::vector<note> notes = {};
+	bz::vector<source_highlight> notes = {};
 	int count = 0;
 	for (auto const &dep : context.resolve_queue.reversed())
 	{
@@ -367,30 +369,30 @@ void parse_context::report_warning(
 	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
-	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_warning(ctx::make_warning(
-		kind,
-		it, std::move(message),
-		std::move(notes), std::move(suggestions)
-	));
+	this->report_warning(kind, { it, it, it + 1 }, std::move(message), std::move(notes), std::move(suggestions));
 }
 
 void parse_context::report_warning(
 	warning_kind kind,
 	lex::src_tokens src_tokens,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
 	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_warning(ctx::make_warning(
+	this->global_ctx.report_warning(error{
 		kind,
-		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
+		{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
 		std::move(notes), std::move(suggestions)
-	));
+	});
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
@@ -398,23 +400,18 @@ void parse_context::report_parenthesis_suppressed_warning(
 	warning_kind kind,
 	lex::token_pos it,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
 	auto const open_paren  = bz::u8string(static_cast<size_t>(parens_count), '(');
 	auto const close_paren = bz::u8string(static_cast<size_t>(parens_count), ')');
-	notes.emplace_back(ctx::make_note_with_suggestion(
+	notes.emplace_back(this->make_note_with_suggestion_around(
 		{},
 		it, open_paren, it + 1, close_paren,
 		"put parenthesis around the expression to suppress this warning"
 	));
 
-	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_warning(ctx::make_warning(
-		kind,
-		it, std::move(message),
-		std::move(notes), std::move(suggestions)
-	));
+	this->report_warning(kind, it, std::move(message), std::move(notes), std::move(suggestions));
 }
 
 void parse_context::report_parenthesis_suppressed_warning(
@@ -422,28 +419,23 @@ void parse_context::report_parenthesis_suppressed_warning(
 	warning_kind kind,
 	lex::src_tokens src_tokens,
 	bz::u8string message,
-	bz::vector<ctx::note> notes, bz::vector<ctx::suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
 {
 	auto const open_paren  = bz::u8string(static_cast<size_t>(parens_count), '(');
 	auto const close_paren = bz::u8string(static_cast<size_t>(parens_count), ')');
-	notes.emplace_back(ctx::make_note_with_suggestion(
+	notes.emplace_back(this->make_note_with_suggestion_around(
 		{},
 		src_tokens.begin, open_paren, src_tokens.end, close_paren,
 		"put parenthesis around the expression to suppress this warning"
 	));
 
-	add_generic_requirement_notes(notes, *this);
-	this->global_ctx.report_warning(ctx::make_warning(
-		kind,
-		src_tokens.begin, src_tokens.pivot, src_tokens.end, std::move(message),
-		std::move(notes), std::move(suggestions)
-	));
+	this->report_warning(kind, src_tokens, std::move(message), std::move(notes), std::move(suggestions));
 }
 
-[[nodiscard]] note parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string message)
+[[nodiscard]] source_highlight parse_context::make_note(uint32_t file_id, uint32_t line, bz::u8string message)
 {
-	return note{
+	return source_highlight{
 		file_id, line,
 		char_pos(), char_pos(), char_pos(),
 		{}, {},
@@ -451,9 +443,9 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] note parse_context::make_note(lex::token_pos it, bz::u8string message)
+[[nodiscard]] source_highlight parse_context::make_note(lex::token_pos it, bz::u8string message)
 {
-	return note{
+	return source_highlight{
 		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{}, {},
@@ -461,9 +453,9 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] note parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+[[nodiscard]] source_highlight parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
 {
-	return note{
+	return source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 		{}, {},
@@ -471,12 +463,12 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] note parse_context::make_note(
+[[nodiscard]] source_highlight parse_context::make_note(
 	lex::token_pos it, bz::u8string message,
-	ctx::char_pos suggestion_pos, bz::u8string suggestion_str
+	char_pos suggestion_pos, bz::u8string suggestion_str
 )
 {
-	return note{
+	return source_highlight{
 		it->src_pos.file_id, it->src_pos.line,
 		it->src_pos.begin, it->src_pos.begin, it->src_pos.end,
 		{ char_pos(), char_pos(), suggestion_pos, std::move(suggestion_str) },
@@ -485,9 +477,9 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] note parse_context::make_note(bz::u8string message)
+[[nodiscard]] source_highlight parse_context::make_note(bz::u8string message)
 {
-	return note{
+	return source_highlight{
 		global_context::compiler_file_id, 0,
 		char_pos(), char_pos(), char_pos(),
 		{}, {},
@@ -495,7 +487,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] ctx::note parse_context::make_paren_match_note(
+[[nodiscard]] source_highlight parse_context::make_paren_match_note(
 	lex::token_pos it, lex::token_pos open_paren_it
 )
 {
@@ -545,23 +537,54 @@ void parse_context::report_parenthesis_suppressed_warning(
 	}
 }
 
+[[nodiscard]] source_highlight parse_context::make_note_with_suggestion_around(
+	lex::src_tokens src_tokens,
+	lex::token_pos begin, bz::u8string first_suggestion,
+	lex::token_pos end, bz::u8string second_suggestion,
+	bz::u8string message
+)
+{
+	bz_assert(begin != nullptr && end != nullptr);
+	if (src_tokens.pivot == nullptr)
+	{
+		return source_highlight{
+			begin->src_pos.file_id, begin->src_pos.line,
+			char_pos(), char_pos(), char_pos(),
+			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(first_suggestion) },
+			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(second_suggestion) },
+			std::move(message)
+		};
+	}
+	else
+	{
+		return source_highlight{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			{ char_pos(), char_pos(), begin->src_pos.begin, std::move(first_suggestion) },
+			{ char_pos(), char_pos(), (end - 1)->src_pos.end, std::move(second_suggestion) },
+			std::move(message)
+		};
+	}
+}
 
-[[nodiscard]] suggestion parse_context::make_suggestion_before(
+
+[[nodiscard]] source_highlight parse_context::make_suggestion_before(
 	lex::token_pos it,
 	char_pos erase_begin, char_pos erase_end,
 	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
-	return suggestion{
+	return source_highlight{
 		it->src_pos.file_id, it->src_pos.line,
+		char_pos(), char_pos(), char_pos(),
 		{ erase_begin, erase_end, it->src_pos.begin, std::move(suggestion_str) },
 		{},
 		std::move(message)
 	};
 }
 
-[[nodiscard]] suggestion parse_context::make_suggestion_before(
+[[nodiscard]] source_highlight parse_context::make_suggestion_before(
 	lex::token_pos first_it,
 	char_pos first_erase_begin, char_pos first_erase_end,
 	bz::u8string first_suggestion_str,
@@ -571,30 +594,32 @@ void parse_context::report_parenthesis_suppressed_warning(
 	bz::u8string message
 )
 {
-	return suggestion{
+	return source_highlight{
 		first_it->src_pos.file_id, first_it->src_pos.line,
+		char_pos(), char_pos(), char_pos(),
 		{ first_erase_begin, first_erase_end, first_it->src_pos.begin, std::move(first_suggestion_str) },
 		{ second_erase_begin, second_erase_end, second_it->src_pos.begin, std::move(second_suggestion_str) },
 		std::move(message)
 	};
 }
 
-[[nodiscard]] suggestion parse_context::make_suggestion_after(
+[[nodiscard]] source_highlight parse_context::make_suggestion_after(
 	lex::token_pos it,
 	char_pos erase_begin, char_pos erase_end,
 	bz::u8string suggestion_str,
 	bz::u8string message
 )
 {
-	return suggestion{
+	return source_highlight{
 		it->src_pos.file_id, it->src_pos.line,
+		char_pos(), char_pos(), char_pos(),
 		{ erase_begin, erase_end, it->src_pos.end, std::move(suggestion_str) },
 		{},
 		std::move(message)
 	};
 }
 
-[[nodiscard]] suggestion parse_context::make_suggestion_around(
+[[nodiscard]] source_highlight parse_context::make_suggestion_around(
 	lex::token_pos first,
 	char_pos first_erase_begin, char_pos first_erase_end,
 	bz::u8string first_suggestion_str,
@@ -604,8 +629,9 @@ void parse_context::report_parenthesis_suppressed_warning(
 	bz::u8string message
 )
 {
-	return suggestion{
+	return source_highlight{
 		first->src_pos.file_id, first->src_pos.line,
+		char_pos(), char_pos(), char_pos(),
 		{ first_erase_begin, first_erase_end, first->src_pos.begin, std::move(first_suggestion_str) },
 		{ second_erase_begin, second_erase_end, (last - 1)->src_pos.end, std::move(last_suggestion_str) },
 		std::move(message)
@@ -630,15 +656,15 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 	if (stream->kind != kind)
 	{
 		auto suggestions = kind == lex::token::semi_colon
-			? bz::vector<suggestion>{ make_suggestion_after(stream - 1, ";", "add ';' here:") }
-			: bz::vector<suggestion>{};
-		this->global_ctx.report_error(ctx::make_error(
+			? bz::vector<source_highlight>{ make_suggestion_after(stream - 1, ";", "add ';' here:") }
+			: bz::vector<source_highlight>{};
+		this->report_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format("expected {} before end-of-file", lex::get_token_name_for_message(kind))
 			: bz::format("expected {}", lex::get_token_name_for_message(kind)),
 			{}, std::move(suggestions)
-		));
+		);
 		return stream;
 	}
 	else
@@ -653,7 +679,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 {
 	if (stream->kind != kind1 && stream->kind != kind2)
 	{
-		this->global_ctx.report_error(ctx::make_error(
+		this->report_error(
 			stream,
 			stream->kind == lex::token::eof
 			? bz::format(
@@ -664,7 +690,7 @@ lex::token_pos parse_context::assert_token(lex::token_pos &stream, uint32_t kind
 				"expected {} or {}",
 				lex::get_token_name_for_message(kind1), lex::get_token_name_for_message(kind2)
 			)
-		));
+		);
 		return stream;
 	}
 	else
@@ -970,7 +996,6 @@ static bool is_unqualified_equals(
 		&& lhs.values.size() <= rhs_size + current_scope.size()
 		&& std::equal(lhs.values.end() - rhs_size, lhs.values.end(), rhs.values.begin())
 		&& std::equal(lhs.values.begin(), lhs.values.end() - rhs_size, current_scope.begin());
-
 }
 
 static ast::decl_variable *find_var_decl_in_global_scope(
@@ -1131,7 +1156,7 @@ static ast::expression make_variable_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
 	ast::decl_variable *var_decl,
-	ctx::parse_context &context
+	parse_context &context
 )
 {
 	var_decl->is_used = true;
@@ -1186,7 +1211,7 @@ static ast::expression make_function_name_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
 	function_overload_set *fn_set,
-	ctx::parse_context &
+	parse_context &
 )
 {
 	if (
@@ -1222,7 +1247,7 @@ static ast::expression make_type_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
 	ast::decl_struct *type,
-	ctx::parse_context &context
+	parse_context &context
 )
 {
 	auto &info = type->info;
@@ -1249,7 +1274,7 @@ static ast::expression make_type_alias_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
 	ast::decl_type_alias *type_alias,
-	ctx::parse_context &
+	parse_context &
 )
 {
 	auto const type = type_alias->get_type();
@@ -3222,7 +3247,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 			}
 			else
 			{
-				bz::vector<note> notes;
+				bz::vector<source_highlight> notes;
 				notes.reserve(possible_funcs.size());
 				for (auto &func : possible_funcs)
 				{
@@ -3244,7 +3269,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	}
 
 	// report undeclared function error
-	bz::vector<note> notes;
+	bz::vector<source_highlight> notes;
 	notes.reserve(possible_funcs.size());
 	for (auto &func : possible_funcs)
 	{
@@ -4301,7 +4326,7 @@ ast::expression parse_context::make_member_access_expression(
 	}
 	else if (this->current_file_id != type_file_id && it->identifier.starts_with('_'))
 	{
-		auto notes = [&]() -> bz::vector<note> {
+		auto notes = [&]() -> bz::vector<source_highlight> {
 			if (do_verbose)
 			{
 				return {

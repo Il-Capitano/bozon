@@ -226,9 +226,12 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 	{
 		this->report_error(error{
 			warning_kind::_last,
-			id.tokens.begin->src_pos.file_id, id.tokens.begin->src_pos.line,
-			id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.begin, (id.tokens.end - 1)->src_pos.end,
-			bz::format("unable to find module '{}'", id.as_string()),
+			{
+				id.tokens.begin->src_pos.file_id, id.tokens.begin->src_pos.line,
+				id.tokens.begin->src_pos.begin, id.tokens.begin->src_pos.begin, (id.tokens.end - 1)->src_pos.end,
+				suggestion_range{}, suggestion_range{},
+				bz::format("unable to find module '{}'", id.as_string()),
+			},
 			{}, {}
 		});
 		return std::numeric_limits<uint32_t>::max();
@@ -277,7 +280,7 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 	return file._file_id;
 }
 
-ctx::decl_set const &global_context::get_file_export_decls(uint32_t file_id)
+decl_set const &global_context::get_file_export_decls(uint32_t file_id)
 {
 	return this->get_src_file(file_id)._export_decls;
 }
@@ -306,10 +309,13 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		this->report_error(error{
 			warning_kind::_last,
-			command_line_file_id,
-			static_cast<uint32_t>(err.flag_position),
-			char_pos(), char_pos(), char_pos(),
-			err.message,
+			{
+				command_line_file_id,
+				static_cast<uint32_t>(err.flag_position),
+				char_pos(), char_pos(), char_pos(),
+				suggestion_range{}, suggestion_range{},
+				err.message,
+			},
 			{}, {}
 		});
 	}
@@ -375,7 +381,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	if (this->_target == nullptr)
 	{
 		constexpr std::string_view default_start = "No available targets are compatible with triple \"";
-		bz::vector<ctx::note> notes;
+		bz::vector<source_highlight> notes;
 		if (do_verbose)
 		{
 			bz::u8string message = "available targets are: ";

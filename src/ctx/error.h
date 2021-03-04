@@ -18,7 +18,7 @@ struct suggestion_range
 	bz::u8string  suggestion_str = {};
 };
 
-struct note
+struct source_highlight
 {
 	uint32_t file_id;
 	uint32_t line;
@@ -26,17 +26,6 @@ struct note
 	char_pos src_begin;
 	char_pos src_pivot;
 	char_pos src_end;
-
-	suggestion_range first_suggestion;
-	suggestion_range second_suggestion;
-
-	bz::u8string message;
-};
-
-struct suggestion
-{
-	uint32_t file_id;
-	uint32_t line;
 
 	suggestion_range first_suggestion;
 	suggestion_range second_suggestion;
@@ -48,17 +37,10 @@ struct error
 {
 	// equals warning_kind::_last if it's an error
 	warning_kind kind;
-	uint32_t file_id;
-	uint32_t line;
+	source_highlight src_highlight;
 
-	char_pos src_begin;
-	char_pos src_pivot;
-	char_pos src_end;
-
-	bz::u8string message;
-
-	bz::vector<note> notes;
-	bz::vector<suggestion> suggestions;
+	bz::vector<source_highlight> notes;
+	bz::vector<source_highlight> suggestions;
 
 	bool is_error(void) const noexcept
 	{ return this->kind == warning_kind::_last; }
@@ -66,6 +48,8 @@ struct error
 	bool is_warning(void) const noexcept
 	{ return this->kind != warning_kind::_last; }
 };
+
+/*
 
 [[nodiscard]] inline error make_error(
 	lex::token_pos it
@@ -277,6 +261,8 @@ template<typename T>
 		std::move(message)
 	};
 }
+
+*/
 
 struct global_context;
 

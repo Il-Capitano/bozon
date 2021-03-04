@@ -2282,7 +2282,7 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 }
 
 
-static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::note> &notes)
+static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vector<ctx::source_highlight> &notes)
 {
 	if (expr.is_null())
 	{
@@ -2458,9 +2458,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 	});
 }
 
-bz::vector<ctx::note> get_consteval_fail_notes(ast::expression const &expr)
+bz::vector<ctx::source_highlight> get_consteval_fail_notes(ast::expression const &expr)
 {
-	bz::vector<ctx::note> result = {};
+	bz::vector<ctx::source_highlight> result = {};
 	if (!expr.has_consteval_failed())
 	{
 		return result;

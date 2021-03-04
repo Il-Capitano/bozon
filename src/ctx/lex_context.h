@@ -22,78 +22,78 @@ struct lex_context
 	void bad_char(
 		file_iterator const &stream,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 	void bad_char(
 		file_iterator const &stream,
 		char_pos end,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 	void bad_chars(
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+		char_pos begin, char_pos pivot, char_pos end,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 	void bad_eof(
 		file_iterator const &stream,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 
 	void report_warning(
 		warning_kind kind,
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+		char_pos begin, char_pos pivot, char_pos end,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_warning(
 		warning_kind kind,
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos it,
+		char_pos it,
 		bz::u8string message,
-		bz::vector<ctx::note> notes = {}, bz::vector<ctx::suggestion> suggestions = {}
+		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	) const;
 
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		file_iterator const &pos,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		uint32_t file_id, uint32_t line,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos pivot,
+		char_pos pivot,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos begin, ctx::char_pos pivot, ctx::char_pos end,
+		char_pos begin, char_pos pivot, char_pos end,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::note make_note(
+	[[nodiscard]] static source_highlight make_note(
 		uint32_t file_id, uint32_t line,
-		ctx::char_pos pivot, bz::u8string message,
-		ctx::char_pos suggesetion_pos, bz::u8string suggestion_str
+		char_pos pivot, bz::u8string message,
+		char_pos suggesetion_pos, bz::u8string suggestion_str
 	);
 
-	[[nodiscard]] static ctx::suggestion make_suggestion(
+	[[nodiscard]] static source_highlight make_suggestion(
 		file_iterator const &pos,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::suggestion make_suggestion(
-		uint32_t file_id, uint32_t line, ctx::char_pos pos,
+	[[nodiscard]] static source_highlight make_suggestion(
+		uint32_t file_id, uint32_t line, char_pos pos,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);
-	[[nodiscard]] static ctx::suggestion make_suggestion(
-		uint32_t file_id, uint32_t line, ctx::char_pos pos,
-		ctx::char_pos erase_begin, ctx::char_pos erase_end,
+	[[nodiscard]] static source_highlight make_suggestion(
+		uint32_t file_id, uint32_t line, char_pos pos,
+		char_pos erase_begin, char_pos erase_end,
 		bz::u8string suggestion_str,
 		bz::u8string message
 	);

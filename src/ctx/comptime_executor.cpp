@@ -9,6 +9,7 @@
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 
@@ -502,6 +503,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		}
 
 		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params, *this);
+		bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
 		result.first = constant_value_from_generic_value(call_result, body->return_type);
@@ -671,28 +673,34 @@ lex::src_tokens comptime_executor_context::get_error_position(void)
 
 error comptime_executor_context::make_error(
 	bz::u8string message,
-	bz::vector<note> notes, bz::vector<suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 )
 {
 	return error{
 		warning_kind::_last,
-		global_context::compiler_file_id, 0,
-		char_pos(), char_pos(), char_pos(),
-		std::move(message),
+		{
+			global_context::compiler_file_id, 0,
+			char_pos(), char_pos(), char_pos(),
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
 		std::move(notes), std::move(suggestions)
 	};
 }
 
 error comptime_executor_context::make_error(
 	lex::src_tokens src_tokens, bz::u8string message,
-	bz::vector<note> notes, bz::vector<suggestion> suggestions
+	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 )
 {
 	return error{
 		warning_kind::_last,
-		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
-		std::move(message),
+		{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
+			std::move(message),
+		},
 		std::move(notes), std::move(suggestions)
 	};
 }

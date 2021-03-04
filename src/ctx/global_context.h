@@ -76,13 +76,16 @@ struct global_context
 		this->_errors.emplace_back(std::move(err));
 	}
 
-	void report_error(bz::u8string message, bz::vector<note> notes = {}, bz::vector<suggestion> suggestions = {})
+	void report_error(bz::u8string message, bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {})
 	{
 		this->_errors.emplace_back(error{
 			warning_kind::_last,
-			global_context::compiler_file_id, 0,
-			char_pos(), char_pos(), char_pos(),
-			std::move(message),
+			{
+				global_context::compiler_file_id, 0,
+				char_pos(), char_pos(), char_pos(),
+				suggestion_range{}, suggestion_range{},
+				std::move(message),
+			},
 			std::move(notes), std::move(suggestions)
 		});
 	}
@@ -102,17 +105,20 @@ struct global_context
 		{
 			this->_errors.emplace_back(error{
 				kind,
-				global_context::compiler_file_id, 0,
-				char_pos(), char_pos(), char_pos(),
-				std::move(message),
+				{
+					global_context::compiler_file_id, 0,
+					char_pos(), char_pos(), char_pos(),
+					suggestion_range{}, suggestion_range{},
+					std::move(message),
+				},
 				{}, {}
 			});
 		}
 	}
 
-	[[nodiscard]] static note make_note(bz::u8string message)
+	[[nodiscard]] static source_highlight make_note(bz::u8string message)
 	{
-		return note{
+		return source_highlight{
 			global_context::compiler_file_id, 0,
 			char_pos(), char_pos(), char_pos(),
 			{}, {}, std::move(message)

@@ -268,7 +268,7 @@ inline void verify_escape_sequence(file_iterator &stream, ctx::char_pos end, ctx
 		static_assert('\\' <= 127);
 		auto const escape_char = ctx::char_pos(stream.it.data() - 1);
 
-		bz::vector<ctx::note> notes = {};
+		bz::vector<ctx::source_highlight> notes = {};
 		if (do_verbose)
 		{
 			notes.push_back(context.make_note(
