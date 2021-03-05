@@ -9,6 +9,8 @@ import std::libc::math;
 import std::libc::stdlib;
 import std::libc::stdio;
 
+import private_member_test;
+
 //	/*
 function assert(b: bool) -> void
 {
@@ -68,6 +70,12 @@ function main(args: [: const str]) -> int32
 	std::println("hello again!!!!\nand on a new line\n");
 
 	foo();
+
+	consteval i = factorial(3);
+	static_assert(i == 6);
+	static_assert(factorial_recursive(10) == 3628800);
+	static_assert(factorial(10) == 3628800);
+	// static_assert((assert(true), true));
 
 	let good = true;
 	for (let i = 0; i < 20; ++i)
@@ -980,7 +988,7 @@ function consteval_test(i: if (true) int32 else int64)
 {
 	static_assert(typeof i == int32);
 
-	consteval a = (if (false) i else 234);
+	consteval a = (if (false) 123 else 234);
 	static_assert(a == 234);
 
 	consteval len = "Hello".length();
@@ -991,6 +999,23 @@ function consteval_test(i: if (true) int32 else int64)
 	static_assert(len == 5u);
 	static_assert(size == 6u);
 	static_assert(len != size);
+
+	function consteval_param(n: consteval int32) -> int32
+	{
+		static_assert(n > 0);
+		return n;
+	}
+
+	consteval_param(3);
+	// consteval_param(0);
+
+	function index(t: &const auto, n: consteval int64) -> typeof t[n]
+	{
+		return t[n];
+	}
+
+	const t = [ 3, 1.123, "Hello" ];
+	let &const s = index(t, 0);
 }
 
 function generic_test()
@@ -1048,6 +1073,11 @@ function ambiguous_function_test()
 	function bar(n: int32, m: int64) {}
 	function bar(n: int64, m: int32) {}
 	// bar(3, 3);
+
+	function baz(p: auto) {}
+	function baz(p: *auto) {}
+	let n: int32;
+	baz(&n);
 }
 
 function add_tester()
@@ -1122,6 +1152,8 @@ function complex_test()
 		std::println('i');
 	}
 
+	// static_assert(std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ] == std::complex[ -1.0, 0.0 ]);
+
 	const z1 = std::complex[1.0, -12.35];
 	const double_z = z1 + z1;
 	std::println(z1.abs());
@@ -1139,4 +1171,38 @@ function complex_test()
 	println(exp1i);
 	std::println(exp1i.abs());
 	std::println(exp1i.phi());
+
+	let z = std::complex[ 0.0, 0.0 ];
+	z.im = 1.0;
+	z = exp1i;
+	println(z);
+	// move z;
+
+	let n = (if (z == std::complex[ 0.0, 1.0 ]) 1 else 1i64);
+	static_assert(typeof n == int64);
+
+	function void_ptr(p: *const void) {}
+	void_ptr(&z);
+
+	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
+	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	type_test(int32, 3);
+	type_test(uint32, 2);
+	type_test(float32, 1);
+	// type_test(str, 1);
+	static_assert(typeof type_test(char, 10) == char);
+}
+
+function type_test(T: typename, n: int32) -> T
+{
+	let i: T = n as T;
+	return i;
+}
+
+function private_member_test()
+{
+	// const s = some_struct[ 2 ];
+	const s = make_some_struct(0);
+	// std::println(s._i);
+	std::println(s.get_i());
 }
