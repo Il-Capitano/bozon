@@ -20,23 +20,18 @@ comptime_executor_context::comptime_executor_context(global_context &_global_ctx
 	: global_ctx(_global_ctx),
 	  current_parse_ctx(nullptr),
 	  current_module(nullptr),
-	  errors{},
 	  vars_{},
 	  types_{},
 	  functions_to_compile{},
 	  current_function{ nullptr, nullptr },
+	  error_bb(nullptr),
 	  alloca_bb(nullptr),
 	  output_pointer(nullptr),
 	  builder(_global_ctx._llvm_context),
-	  error_strings{},
-	  error_string_ptr(nullptr),
-	  error_token_begin(nullptr),
-	  error_token_pivot(nullptr),
-	  error_token_end(nullptr),
-	  error_string_ptr_getter(nullptr),
-	  error_token_begin_getter(nullptr),
-	  error_token_pivot_getter(nullptr),
-	  error_token_end_getter(nullptr),
+	  execution_errors{},
+	  error_ptr(nullptr),
+	  error_ptr_getter(nullptr),
+	  error_ptr_clearer(nullptr),
 	  engine(nullptr)
 {}
 
@@ -330,29 +325,13 @@ void comptime_executor_context::ensure_function_emission(ast::function_body *bod
 
 bool comptime_executor_context::resolve_function(ast::function_body *body)
 {
+	bz_assert(body->body.not_null());
 	bz_assert(this->current_parse_ctx != nullptr);
 	this->current_parse_ctx->add_to_resolve_queue({}, *body);
 	parse::resolve_function({}, *body, *this->current_parse_ctx);
 	this->current_parse_ctx->pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
-		return false;
-	}
-	else if (body->state != ast::resolve_state::all)
-	{
-		if (body->is_intrinsic())
-		{
-			this->errors.push_back(this->make_error(
-				bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
-			));
-		}
-		else
-		{
-			this->errors.push_back(this->make_error(
-				body->src_tokens,
-				bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
-			));
-		}
 		return false;
 	}
 	else
@@ -458,7 +437,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 	return result;
 }
 
-std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
+std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_context::execute_function(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
 	bz::array_view<ast::constant_value const> params
@@ -475,7 +454,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	this->current_module = module.get();
 
 	(void)this->resolve_function(body);
-	std::pair<ast::constant_value, bz::vector<error>> result;
+	std::pair<ast::constant_value, bz::vector<source_highlight>> result;
 	if (body->state == ast::resolve_state::error)
 	{
 		this->current_module = original_module;
@@ -483,30 +462,39 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 	else if (body->state != ast::resolve_state::all)
 	{
-		result.second.push_back(this->make_error(
-			src_tokens,
+		result.second.push_back(source_highlight{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			suggestion_range{}, suggestion_range{},
 			bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
-		));
+		});
 		this->current_module = original_module;
 		return result;
 	}
 	else
 	{
 		this->initialize_engine();
+		auto const error_ptr_type = this->error_ptr->getType();
+		bz_assert(error_ptr_type->isPointerTy());
+		this->error_ptr = module->getOrInsertGlobal("__error_ptr", static_cast<llvm::PointerType *>(error_ptr_type)->getElementType());
 		this->ensure_function_emission(body);
 		if (!bc::comptime::emit_necessary_functions(*this))
 		{
-			result.second.append_move(this->errors);
-			this->errors.clear();
-			this->current_module = original_module;
 			return result;
 		}
 
 		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params, *this);
-		bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
+		// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
-		result.first = constant_value_from_generic_value(call_result, body->return_type);
+		if (this->has_error())
+		{
+			result.second.push_back(this->consume_error());
+		}
+		else
+		{
+			result.first = constant_value_from_generic_value(call_result, body->return_type);
+		}
 		this->current_module = original_module;
 		return result;
 	}
@@ -556,56 +544,34 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 void comptime_executor_context::add_base_functions_to_module(llvm::Module &module)
 {
 	static_assert(sizeof (void *) == sizeof (uint64_t));
-	auto const intptr_type = llvm::Type::getInt64Ty(this->get_llvm_context());
-	this->error_string_ptr  = module.getOrInsertGlobal("__error_string_ptr",  intptr_type);
-	this->error_token_begin = module.getOrInsertGlobal("__error_token_begin", intptr_type);
-	this->error_token_pivot = module.getOrInsertGlobal("__error_token_pivot", intptr_type);
-	this->error_token_end   = module.getOrInsertGlobal("__error_token_end",   intptr_type);
+	auto const intptr_type = this->get_uint64_t();
+	this->error_ptr  = module.getOrInsertGlobal("__error_ptr",  intptr_type);
+	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(this->error_ptr) != nullptr);
+	static_cast<llvm::GlobalVariable *>(this->error_ptr)->setInitializer(llvm::ConstantInt::get(intptr_type, 0));
 
 	auto const getter_func_t = llvm::FunctionType::get(intptr_type, false);
+	auto const setter_func_t = llvm::FunctionType::get(llvm::Type::getVoidTy(this->get_llvm_context()), false);
 
-	{ // error_string_ptr_getter function
-		this->error_string_ptr_getter = llvm::Function::Create(
+	{ // error_ptr_getter function
+		this->error_ptr_getter = llvm::Function::Create(
 			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_string_ptr_getter", &module
+			"__error_ptr_getter", &module
 		);
-		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_string_ptr_getter);
+		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_ptr_getter);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(this->error_string_ptr);
+		auto const ptr_val = this->builder.CreateLoad(this->error_ptr);
 		this->builder.CreateRet(ptr_val);
 	}
 
-	{ // error_token_begin_getter function
-		this->error_token_begin_getter = llvm::Function::Create(
-			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_begin_getter", &module
+	{ // error_ptr_clearer function
+		this->error_ptr_clearer = llvm::Function::Create(
+			setter_func_t, llvm::Function::InternalLinkage,
+			"__error_ptr_clearer", &module
 		);
-		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_begin_getter);
+		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_ptr_clearer);
 		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(this->error_token_begin);
-		this->builder.CreateRet(ptr_val);
-	}
-
-	{ // error_token_pivot_getter function
-		this->error_token_pivot_getter = llvm::Function::Create(
-			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_pivot_getter", &module
-		);
-		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_pivot_getter);
-		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(this->error_token_pivot);
-		this->builder.CreateRet(ptr_val);
-	}
-
-	{ // error_token_end_getter function
-		this->error_token_end_getter = llvm::Function::Create(
-			getter_func_t, llvm::Function::InternalLinkage,
-			"__error_token_end_getter", &module
-		);
-		auto const bb = llvm::BasicBlock::Create(this->get_llvm_context(), "entry", this->error_token_end_getter);
-		this->builder.SetInsertPoint(bb);
-		auto const ptr_val = this->builder.CreateLoad(this->error_token_end);
-		this->builder.CreateRet(ptr_val);
+		this->builder.CreateStore(llvm::ConstantInt::get(intptr_type, 0), this->error_ptr);
+		this->builder.CreateRetVoid();
 	}
 }
 
@@ -624,51 +590,59 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 	this->engine->addModule(std::move(module));
 }
 
-bz::u8string_view comptime_executor_context::get_error_message(void)
+bool comptime_executor_context::has_error(void)
 {
 	if (this->engine == nullptr)
 	{
-		return bz::u8string_view{};
+		return false;
 	}
 	else
 	{
-		bz_assert(this->error_string_ptr_getter != nullptr);
-		auto const string_ptr_int_val = this->engine->runFunction(this->error_string_ptr_getter, {});
-		auto const string_ptr = reinterpret_cast<bz::u8string const *>(string_ptr_int_val.IntVal.getLimitedValue());
-		if (string_ptr == nullptr)
-		{
-			return bz::u8string_view{};
-		}
-		else
-		{
-			return *string_ptr;
-		}
+		bz_assert(this->error_ptr_getter != nullptr);
+		auto const error_ptr_int_val = this->engine->runFunction(this->error_ptr_getter, {});
+		auto const error_ptr = reinterpret_cast<source_highlight const *>(error_ptr_int_val.IntVal.getLimitedValue());
+		return error_ptr != nullptr;
 	}
 }
 
-lex::src_tokens comptime_executor_context::get_error_position(void)
+source_highlight const &comptime_executor_context::get_error(void)
 {
-	if (this->engine == nullptr)
+	bz_assert(this->engine != nullptr);
+	bz_assert(this->error_ptr_getter != nullptr);
+	auto const error_ptr_int_val = this->engine->runFunction(this->error_ptr_getter, {});
+	auto const error_ptr = reinterpret_cast<source_highlight const *>(error_ptr_int_val.IntVal.getLimitedValue());
+	bz_assert(error_ptr != nullptr);
+	return *error_ptr;
+}
+
+source_highlight const &comptime_executor_context::consume_error(void)
+{
+	bz_assert(this->engine != nullptr);
+	bz_assert(this->error_ptr_getter != nullptr);
+	auto const error_ptr_int_val = this->engine->runFunction(this->error_ptr_getter, {});
+	auto const error_ptr = reinterpret_cast<source_highlight const *>(error_ptr_int_val.IntVal.getLimitedValue());
+	this->engine->runFunction(this->error_ptr_clearer, {});
+	bz_assert(error_ptr != nullptr);
+	return *error_ptr;
+}
+
+void comptime_executor_context::clear_error(void) {
+	if (this->engine != nullptr)
 	{
-		return {};
+		bz_assert(this->error_ptr_clearer != nullptr);
+		this->engine->runFunction(this->error_ptr_clearer, {});
 	}
-	else
-	{
-		bz_assert(this->error_token_begin_getter != nullptr);
-		bz_assert(this->error_token_pivot_getter != nullptr);
-		bz_assert(this->error_token_end_getter   != nullptr);
-		auto const begin_ptr_int_val = this->engine->runFunction(this->error_token_begin_getter, {});
-		auto const pivot_ptr_int_val = this->engine->runFunction(this->error_token_pivot_getter, {});
-		auto const end_ptr_int_val   = this->engine->runFunction(this->error_token_end_getter,   {});
-		auto const begin_ptr = reinterpret_cast<lex::token_pos::const_pointer>(begin_ptr_int_val.IntVal.getLimitedValue());
-		auto const pivot_ptr = reinterpret_cast<lex::token_pos::const_pointer>(pivot_ptr_int_val.IntVal.getLimitedValue());
-		auto const end_ptr   = reinterpret_cast<lex::token_pos::const_pointer>(end_ptr_int_val  .IntVal.getLimitedValue());
-		bz_assert(
-			(begin_ptr != nullptr && pivot_ptr != nullptr && end_ptr != nullptr)
-			|| (begin_ptr == nullptr && pivot_ptr == nullptr && end_ptr == nullptr)
-		);
-		return lex::src_tokens{ begin_ptr, pivot_ptr, end_ptr };
-	}
+}
+
+source_highlight const *comptime_executor_context::insert_error(lex::src_tokens src_tokens, bz::u8string message)
+{
+	auto const &result = this->execution_errors.emplace_back( source_highlight{
+		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+		suggestion_range{}, suggestion_range{},
+		std::move(message)
+	});
+	return &result;
 }
 
 error comptime_executor_context::make_error(

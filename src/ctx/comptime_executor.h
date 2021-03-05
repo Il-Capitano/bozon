@@ -79,7 +79,7 @@ struct comptime_executor_context
 	[[nodiscard]] bool resolve_function(ast::function_body *body);
 
 
-	std::pair<ast::constant_value, bz::vector<error>> execute_function(
+	std::pair<ast::constant_value, bz::vector<source_highlight>> execute_function(
 		lex::src_tokens src_tokens,
 		ast::function_body *body,
 		bz::array_view<ast::constant_value const> params
@@ -89,8 +89,12 @@ struct comptime_executor_context
 	void add_base_functions_to_module(llvm::Module &module);
 	void add_module(std::unique_ptr<llvm::Module> module);
 
-	bz::u8string_view get_error_message(void);
-	lex::src_tokens get_error_position(void);
+	bool has_error(void);
+	source_highlight const &get_error(void);
+	source_highlight const &consume_error(void);
+	void clear_error(void);
+
+	source_highlight const *insert_error(lex::src_tokens src_tokens, bz::u8string message);
 
 	[[nodiscard]] static error make_error(
 		bz::u8string message,
@@ -105,7 +109,6 @@ struct comptime_executor_context
 	global_context &global_ctx;
 	parse_context *current_parse_ctx;
 	llvm::Module *current_module;
-	bz::vector<error> errors;
 
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
@@ -114,19 +117,15 @@ struct comptime_executor_context
 	bz::vector<ast::function_body *> functions_to_compile;
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function;
+	llvm::BasicBlock *error_bb;
 	llvm::BasicBlock *alloca_bb;
 	llvm::Value *output_pointer;
 	llvm::IRBuilder<> builder;
 
-	std::list<bz::u8string> error_strings;  // a list is used, so pointers to the strings are stable
-	llvm::Value *error_string_ptr;
-	llvm::Value *error_token_begin;
-	llvm::Value *error_token_pivot;
-	llvm::Value *error_token_end;
-	llvm::Function *error_string_ptr_getter;
-	llvm::Function *error_token_begin_getter;
-	llvm::Function *error_token_pivot_getter;
-	llvm::Function *error_token_end_getter;
+	std::list<source_highlight> execution_errors;  // a list is used, so pointers to the errors are stable
+	llvm::Value *error_ptr;
+	llvm::Function *error_ptr_getter;
+	llvm::Function *error_ptr_clearer;
 
 	llvm::TargetMachine *target_machine;
 	std::unique_ptr<llvm::ExecutionEngine> engine;

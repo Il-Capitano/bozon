@@ -101,6 +101,32 @@ static llvm::Value *get_constant_zero(
 	}
 }
 
+static void emit_error_check(ctx::comptime_executor_context &context)
+{
+	bz_assert(context.error_bb != nullptr);
+	auto const error_ptr = context.builder.CreateLoad(context.error_ptr);
+	auto const null_val = llvm::ConstantInt::get(error_ptr->getType(), 0);
+	auto const has_error_val = context.builder.CreateICmp(llvm::CmpInst::ICMP_NE, error_ptr, null_val);
+	auto const continue_bb = context.add_basic_block("");
+	context.builder.CreateCondBr(has_error_val, context.error_bb, continue_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
+static void emit_error(
+	lex::src_tokens src_tokens,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
+	auto const error_ptr_int_val = llvm::ConstantInt::get(
+		context.error_ptr_getter->getReturnType(),
+		reinterpret_cast<uint64_t>(error_ptr)
+	);
+	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
+	context.builder.CreateBr(context.error_bb);
+}
+
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
@@ -2106,12 +2132,32 @@ static val_ptr emit_bitcode(
 		return emit_default_move_assign<abi>(func_call.params[0], func_call.params[1], context, result_address);
 	}
 
-	bz_assert(func_call.func_body != nullptr);
-	auto const fn = context.get_function(func_call.func_body);
-	bz_assert(fn != nullptr);
-
 	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
 	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+
+	bz_assert(func_call.func_body != nullptr);
+	if (func_call.func_body->body.is_null())
+	{
+		emit_error(
+			func_call.src_tokens,
+			bz::format("unable to call external function '{}' in compile time execution", func_call.func_body->get_signature()),
+			context
+		);
+		if (result_address != nullptr)
+		{
+			return val_ptr{ val_ptr::reference, result_address };
+		}
+		else if (result_type->isVoidTy())
+		{
+			return {};
+		}
+		else
+		{
+			return val_ptr{ val_ptr::value, llvm::UndefValue::get(result_type) };
+		}
+	}
+	auto const fn = context.get_function(func_call.func_body);
+	bz_assert(fn != nullptr);
 
 	bz::vector<llvm::Value *> params = {};
 	bz::vector<bool> params_is_pass_by_ref = {};
@@ -2262,6 +2308,9 @@ static val_ptr emit_bitcode(
 			call->addParamAttr(i, llvm::Attribute::NonNull);
 		}
 	}
+
+	emit_error_check(context);
+
 	switch (result_kind)
 	{
 	case abi::pass_kind::reference:
@@ -3516,9 +3565,17 @@ static llvm::Function *create_function_from_symbol_impl(
 	}();
 
 	// bz_assert(func_body.symbol_name != "");
-	auto const name = func_body.is_main()
-		? llvm::StringRef("__bozon_main")
-		: llvm::StringRef(func_body.symbol_name.data_as_char_ptr(), func_body.symbol_name.size());
+	auto const name_string = [&]() -> bz::u8string {
+		if (func_body.function_name_or_operator_kind.is<ast::identifier>())
+		{
+			return func_body.function_name_or_operator_kind.get<ast::identifier>().as_string();
+		}
+		else
+		{
+			return bz::format("operator.{}", func_body.function_name_or_operator_kind.get<uint32_t>());
+		}
+	}();
+	auto const name = llvm::StringRef(name_string.data_as_char_ptr(), name_string.size());
 
 	auto const linkage = func_body.is_external_linkage()
 		? llvm::Function::ExternalLinkage
@@ -3623,7 +3680,21 @@ static void emit_function_bitcode_impl(
 	context.current_function = { &func_body, fn };
 
 	auto const alloca_bb = context.add_basic_block("alloca");
+	auto const error_bb = context.add_basic_block("error");
 	context.alloca_bb = alloca_bb;
+	context.error_bb = error_bb;
+
+	context.builder.SetInsertPoint(error_bb);
+	auto const fn_return_type = fn->getReturnType();
+	if (fn_return_type->isVoidTy())
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		auto const return_val = llvm::UndefValue::get(fn_return_type);
+		context.builder.CreateRet(return_val);
+	}
 
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
@@ -3728,9 +3799,9 @@ static void emit_function_bitcode_impl(
 	context.builder.CreateBr(entry_bb);
 
 	// true means it failed
-	if (llvm::verifyFunction(*fn) == true)
+	if (llvm::verifyFunction(*fn, &llvm::dbgs()) == true)
 	{
-		bz::print(
+		bz::log(
 			"{}verifyFunction failed on '{}' !!!{}\n",
 			colors::bright_red,
 			func_body.get_signature(),
@@ -3739,6 +3810,7 @@ static void emit_function_bitcode_impl(
 	}
 	context.current_function = {};
 	context.alloca_bb = nullptr;
+	context.error_bb = nullptr;
 	context.output_pointer = nullptr;
 }
 
@@ -3968,6 +4040,7 @@ static llvm::Function *create_function_for_comptime_execution_impl(
 			call->addParamAttr(i, llvm::Attribute::NonNull);
 		}
 	}
+
 	switch (result_kind)
 	{
 	case abi::pass_kind::reference:
@@ -3976,13 +4049,16 @@ static llvm::Function *create_function_for_comptime_execution_impl(
 	case abi::pass_kind::value:
 		if (call->getType()->isVoidTy())
 		{
-			return {};
+			context.builder.CreateRetVoid();
 		}
 		else if (body->return_type.is<ast::ts_lvalue_reference>())
 		{
 			bz_unreachable;
 		}
-		context.builder.CreateRet(call);
+		else
+		{
+			context.builder.CreateRet(call);
+		}
 		break;
 	case abi::pass_kind::one_register:
 	case abi::pass_kind::two_registers:

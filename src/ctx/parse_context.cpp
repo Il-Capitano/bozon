@@ -4580,15 +4580,19 @@ ast::constant_value parse_context::execute_function(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
+	auto [result, fail_notes] = this->global_ctx._comptime_executor.execute_function(
 		src_tokens,
 		body,
 		params
 	);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	for (auto &error : errors)
+	if (!fail_notes.empty())
 	{
-		this->global_ctx.report_error(std::move(error));
+		this->report_error(
+			src_tokens,
+			"failed to evaluate function call in a constant expression",
+			std::move(fail_notes)
+		);
 	}
 	return result;
 }
