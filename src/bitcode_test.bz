@@ -79,6 +79,14 @@ function main(args: [: const str]) -> int32
 	static_assert(factorial(10) == 3628800);
 	// static_assert((assert(true), true));
 
+	static_assert({
+		if (factorial(3) == 7)
+		{
+			return 0;
+		}
+		true
+	});
+
 	consteval fact6 = {
 		let result = 1;
 		const count = 6;
@@ -1148,7 +1156,7 @@ function struct_test()
 	static_assert(v.x == 1.2);
 
 	let sum = v + v;
-	// static_assert(v + v - v == v);
+	static_assert(v + v - v == v);
 	std::print(sum.x), std::print(", "), std::println(sum.y);
 }
 
@@ -1165,7 +1173,8 @@ function complex_test()
 		std::println('i');
 	}
 
-	// static_assert(std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ] == std::complex[ -1.0, 0.0 ]);
+	consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
+	static_assert(z == std::complex[ -1.0, 0.0 ]);
 
 	const z1 = std::complex[1.0, -12.35];
 	const double_z = z1 + z1;

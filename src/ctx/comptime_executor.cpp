@@ -437,6 +437,55 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 	return result;
 }
 
+static ast::constant_value constant_value_from_global_getters(
+	ast::typespec_view result_type,
+	bz::vector<llvm::Function *>::const_iterator &getter_it,
+	comptime_executor_context &context
+)
+{
+	return ast::remove_const_or_consteval(result_type).visit(bz::overload{
+		[&](ast::ts_base_type const &base_t) -> ast::constant_value {
+			if (base_t.info->kind == ast::type_info::aggregate)
+			{
+				ast::constant_value result;
+				result.emplace<ast::constant_value::aggregate>();
+				auto &agg = result.get<ast::constant_value::aggregate>();
+				agg.reserve(base_t.info->member_variables.size());
+				for (auto const &[_, __, type] : base_t.info->member_variables)
+				{
+					agg.push_back(constant_value_from_global_getters(type, getter_it, context));
+				}
+				return result;
+			}
+			else
+			{
+				auto const call_result = context.engine->runFunction(*getter_it, {});
+				++getter_it;
+				return constant_value_from_generic_value(call_result, result_type);
+			}
+		},
+		[&](ast::ts_array const &array_t) -> ast::constant_value {
+			bz_unreachable;
+		},
+		[&](ast::ts_tuple const &tuple_t) -> ast::constant_value {
+			ast::constant_value result;
+			result.emplace<ast::constant_value::tuple>();
+			auto &tuple = result.get<ast::constant_value::tuple>();
+			tuple.reserve(tuple_t.types.size());
+			for (auto const &type : tuple_t.types)
+			{
+				tuple.push_back(constant_value_from_global_getters(type, getter_it, context));
+			}
+			return result;
+		},
+		[&](auto const &) -> ast::constant_value {
+			auto const call_result = context.engine->runFunction(*getter_it, {});
+			++getter_it;
+			return constant_value_from_generic_value(call_result, result_type);
+		}
+	});
+}
+
 std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_context::execute_function(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
@@ -483,7 +532,7 @@ std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_c
 			return result;
 		}
 
-		auto const fn = bc::comptime::create_function_for_comptime_execution(body, params, *this);
+		auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
@@ -491,9 +540,14 @@ std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_c
 		{
 			result.second.push_back(this->consume_error());
 		}
-		else
+		else if (global_result_getters.empty())
 		{
 			result.first = constant_value_from_generic_value(call_result, body->return_type);
+		}
+		else
+		{
+			auto getter_it = global_result_getters.cbegin();
+			result.first = constant_value_from_global_getters(body->return_type, getter_it, *this);
 		}
 		this->current_module = original_module;
 		return result;
@@ -518,7 +572,7 @@ std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_c
 	bz_assert(error_ptr_type->isPointerTy());
 	this->error_ptr = module->getOrInsertGlobal("__error_ptr", static_cast<llvm::PointerType *>(error_ptr_type)->getElementType());
 
-	auto const fn = bc::comptime::create_function_for_comptime_execution(expr, *this);
+	auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(expr, *this);
 	if (!bc::comptime::emit_necessary_functions(*this))
 	{
 		return result;
@@ -531,11 +585,17 @@ std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_c
 	{
 		result.second.push_back(this->consume_error());
 	}
-	else
+	else if (global_result_getters.empty())
 	{
 		bz_assert(expr.final_expr.not_null());
 		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
 		result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
+	}
+	else
+	{
+		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
+		auto getter_it = global_result_getters.cbegin();
+		result.first = constant_value_from_global_getters(result_type, getter_it, *this);
 	}
 	this->current_module = original_module;
 	return result;
