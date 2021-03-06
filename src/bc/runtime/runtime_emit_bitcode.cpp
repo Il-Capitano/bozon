@@ -2551,7 +2551,7 @@ static val_ptr emit_bitcode(
 			if (expr_val.kind == val_ptr::reference)
 			{
 				auto const begin_ptr = context.builder.CreateConstGEP2_64(expr_val.val, 0, 0);
-				auto const end_ptr   = context.builder.CreateConstGEP2_64(expr_val.val, 0, expr_t.get<ast::ts_array>().sizes.front());
+				auto const end_ptr   = context.builder.CreateConstGEP2_64(expr_val.val, 0, expr_t.get<ast::ts_array>().size);
 				return std::make_pair(begin_ptr, end_ptr);
 			}
 			else
@@ -2559,7 +2559,7 @@ static val_ptr emit_bitcode(
 				auto const alloca = context.create_alloca(expr_val.get_type());
 				context.builder.CreateStore(expr_val.get_value(context.builder), alloca);
 				auto const begin_ptr = context.builder.CreateConstGEP2_64(alloca, 0, 0);
-				auto const end_ptr   = context.builder.CreateConstGEP2_64(alloca, 0, expr_t.get<ast::ts_array>().sizes.front());
+				auto const end_ptr   = context.builder.CreateConstGEP2_64(alloca, 0, expr_t.get<ast::ts_array>().size);
 				return std::make_pair(begin_ptr, end_ptr);
 			}
 		}();
@@ -3365,12 +3365,7 @@ static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::bitcode_context &co
 	{
 		auto &arr_t = ts.get<ast::ts_array>();
 		auto elem_t = get_llvm_type(arr_t.elem_type, context);
-		for (auto const size : arr_t.sizes.reversed())
-		{
-			elem_t = llvm::ArrayType::get(elem_t, size);
-		}
-
-		return elem_t;
+		return llvm::ArrayType::get(elem_t, arr_t.size);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_array_slice>:
 	{

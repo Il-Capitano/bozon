@@ -181,9 +181,9 @@ struct ts_function
 
 struct ts_array
 {
-	lex::src_tokens      src_tokens;
-	bz::vector<uint64_t> sizes;
-	typespec             elem_type;
+	lex::src_tokens src_tokens;
+	uint64_t        size;
+	typespec        elem_type;
 };
 
 struct ts_array_slice
@@ -267,11 +267,11 @@ inline typespec make_void_typespec(lex::token_pos void_pos)
 
 inline typespec make_array_typespec(
 	lex::src_tokens src_tokens,
-	bz::vector<uint64_t> sizes,
+	uint64_t size,
 	typespec elem_type
 )
 {
-	return typespec{ { ts_array{ src_tokens, std::move(sizes), std::move(elem_type) } } };
+	return typespec{ { ts_array{ src_tokens, size, std::move(elem_type) } } };
 }
 
 inline typespec make_array_slice_typespec(

@@ -1234,9 +1234,8 @@ static ast::constant_value evaluate_subscript(
 
 		if (base_type.is<ast::ts_array>())
 		{
-			auto const &array_sizes = base_type.get<ast::ts_array>().sizes;
-			bz_assert(!array_sizes.empty());
-			if (index_value >= array_sizes.front())
+			auto const size = base_type.get<ast::ts_array>().size;
+			if (index_value >= size)
 			{
 				is_consteval = false;
 				if (index.paren_level < 2)
@@ -1244,7 +1243,7 @@ static ast::constant_value evaluate_subscript(
 					context.report_parenthesis_suppressed_warning(
 						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
 						index.src_tokens,
-						bz::format("index {} is out of bounds for an array of size {}", index_value, array_sizes.front())
+						bz::format("index {} is out of bounds for an array of size {}", index_value, size)
 					);
 				}
 			}

@@ -3242,23 +3242,7 @@ ast::expression make_builtin_subscript_operator(
 		}
 
 		auto const result_kind = called_kind;
-
-		ast::typespec result_type = [&]() {
-			auto &elem_type = array_t.elem_type;
-
-			if (array_t.sizes.size() == 1)
-			{
-				return elem_type;
-			}
-
-			bz::vector<uint64_t> sizes = {};
-			for (size_t i = 1; i < array_t.sizes.size(); ++i)
-			{
-				sizes.push_back(array_t.sizes[i]);
-			}
-
-			return ast::make_array_typespec({}, std::move(sizes), elem_type);
-		}();
+		ast::typespec result_type = array_t.elem_type;
 
 		if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
 		{

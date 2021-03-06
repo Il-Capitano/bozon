@@ -335,11 +335,7 @@ bz::u8string typespec_view::get_symbol_name(void) const
 				result += base_type.info->symbol_name;
 			},
 			[&](ts_array const &array_t) {
-				result += bz::format("0A.{}.", array_t.sizes.size());
-				for (auto const size : array_t.sizes)
-				{
-					result += bz::format("{}.", size);
-				}
+				result += bz::format("0A.{}.", array_t.size);
 				result += array_t.elem_type.get_symbol_name();
 			},
 			[&](ts_array_slice const &array_slice_t) {
@@ -433,26 +429,22 @@ bz::u8string typespec::decode_symbol_name(
 		else if (symbol_name.starts_with(array))
 		{
 			result += "[";
-			auto const dim_begin = bz::u8string_view::const_iterator(it.data() + array.size());
-			auto const dim_end = symbol_name.find(dim_begin, '.');
-			auto const dim = parse_int(bz::u8string_view(dim_begin, dim_end));
-
-			auto size_begin = dim_end + 1;
-			for (auto const i : bz::iota(0, dim))
+			bool first = true;
+			do
 			{
-				auto const size_end = symbol_name.find(size_begin, '.');
-				auto const size = parse_int(bz::u8string_view(size_begin, size_end));
-				if (i == 0)
+				auto const size_end = symbol_name.find(it, '.');
+				auto const size = parse_int(bz::u8string_view(it, size_end));
+				if (first)
 				{
+					first = false;
 					result += bz::format("{}", size);
 				}
 				else
 				{
 					result += bz::format(", {}", size);
 				}
-				size_begin = size_end + 1;
-			}
-			it = size_begin;
+				it = size_end + 1;
+			} while (bz::u8string_view(it, end).starts_with(array));
 			result += ": ";
 			result += decode_symbol_name(it, end);
 			result += "]";
@@ -559,19 +551,7 @@ bool operator == (typespec_view lhs, typespec_view rhs)
 		auto const &lhs_array_t = lhs_last.get<ts_array>();
 		auto const &rhs_array_t = rhs_last.get<ts_array>();
 
-		if (lhs_array_t.sizes.size() != rhs_array_t.sizes.size())
-		{
-			return false;
-		}
-
-		for (auto const [lhs_size, rhs_size] : bz::zip(lhs_array_t.sizes, rhs_array_t.sizes))
-		{
-			if (lhs_size != rhs_size)
-			{
-				return false;
-			}
-		}
-		return lhs_array_t.elem_type == rhs_array_t.elem_type;
+		return lhs_array_t.size == rhs_array_t.size && lhs_array_t.elem_type == rhs_array_t.elem_type;
 	}
 	case typespec_node_t::index_of<ts_array_slice>:
 	{
@@ -645,12 +625,14 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_array const &array_t) {
 				result += "[";
-				bz_assert(array_t.sizes.size() != 0);
-				for (auto const size : bz::array_view{ array_t.sizes.begin(), array_t.sizes.end() - 1 })
+				ast::ts_array const *current_array_t = &array_t;
+				result += bz::format("{}", current_array_t->size);
+				while (current_array_t->elem_type.is<ast::ts_array>())
 				{
-					result += bz::format("{}, ", size);
+					current_array_t = &current_array_t->elem_type.get<ast::ts_array>();
+					result += bz::format(", {}", current_array_t->size);
 				}
-				result += bz::format("{}: {}]", array_t.sizes.back(), array_t.elem_type);
+				result += bz::format(": {}]", current_array_t->elem_type);
 			},
 			[&](ast::ts_array_slice const &array_slice_t) {
 				result += bz::format("[: {}]", array_slice_t.elem_type);

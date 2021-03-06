@@ -443,11 +443,16 @@ static ast::expression parse_array_type(
 		return ast::expression(src_tokens);
 	}
 
+	auto result_type = std::move(type.get_typename());
+	for (auto const size : sizes.reversed())
+	{
+		result_type = ast::make_array_typespec(src_tokens, size, std::move(result_type));
+	}
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(ast::make_array_typespec(src_tokens, std::move(sizes), std::move(type.get_typename()))),
+		ast::constant_value(std::move(result_type)),
 		ast::expr_t{}
 	);
 }
