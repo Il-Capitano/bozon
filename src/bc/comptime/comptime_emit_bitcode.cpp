@@ -107,8 +107,30 @@ static void emit_error_check(ctx::comptime_executor_context &context)
 	auto const error_ptr = context.builder.CreateLoad(context.error_ptr);
 	auto const null_val = llvm::ConstantInt::get(error_ptr->getType(), 0);
 	auto const has_error_val = context.builder.CreateICmp(llvm::CmpInst::ICMP_NE, error_ptr, null_val);
-	auto const continue_bb = context.add_basic_block("");
+	auto const continue_bb = context.add_basic_block("error_check_continue");
 	context.builder.CreateCondBr(has_error_val, context.error_bb, continue_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
+static void emit_error_assert(
+	llvm::Value *bool_val,
+	lex::src_tokens src_tokens,
+	bz::u8string message,
+	ctx::comptime_executor_context &context
+)
+{
+	bz_assert(context.error_bb != nullptr);
+	auto const fail_bb = context.add_basic_block("error_assert_fail");
+	auto const continue_bb = context.add_basic_block("error_assert_continue");
+	context.builder.CreateCondBr(bool_val, continue_bb, fail_bb);
+	context.builder.SetInsertPoint(fail_bb);
+	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
+	auto const error_ptr_int_val = llvm::ConstantInt::get(
+		context.error_ptr_getter->getReturnType(),
+		reinterpret_cast<uint64_t>(error_ptr)
+	);
+	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
+	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
 
@@ -124,7 +146,7 @@ static void emit_error(
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
 	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
-	auto const continue_bb = context.add_basic_block("");
+	auto const continue_bb = context.add_basic_block("error_dummy_continue");
 	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
@@ -2409,9 +2431,30 @@ static val_ptr emit_bitcode(
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-		if (ctx::is_unsigned_integer_kind(kind))
+		bz_assert(context.get_register_size() == 8);
+		// cast to pointer-size integers
+		if (ctx::is_integer_kind(kind))
 		{
-			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
+			index_val = context.builder.CreateIntCast(index_val, context.get_int64_t(), ctx::is_signed_integer_kind(kind));
+		}
+
+		// array bounds check
+		{
+			auto const array_size = base_type.get<ast::ts_array>().sizes.front();
+			auto const array_size_val = llvm::ConstantInt::get(context.get_uint64_t(), array_size);
+			auto const is_in_bounds = [&]() -> llvm::Value * {
+				if (ctx::is_unsigned_integer_kind(kind))
+				{
+					return context.builder.CreateICmp(llvm::CmpInst::ICMP_ULT, index_val, array_size_val);
+				}
+				else
+				{
+					auto const is_less_than = context.builder.CreateICmp(llvm::CmpInst::ICMP_SLT, index_val, array_size_val);
+					auto const is_positive_or_zero = context.builder.CreateICmp(llvm::CmpInst::ICMP_SGE, index_val, llvm::ConstantInt::get(array_size_val->getType(), 0));
+					return context.builder.CreateAnd(is_less_than, is_positive_or_zero);
+				}
+			}();
+			emit_error_assert(is_in_bounds, subscript.index.src_tokens, "index value is out-of-bounds", context);
 		}
 
 		llvm::Value *result_ptr;
@@ -2443,7 +2486,8 @@ static val_ptr emit_bitcode(
 	else if (base_type.is<ast::ts_array_slice>())
 	{
 		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
-		auto const begin_ptr = context.builder.CreateExtractValue(array.get_value(context.builder), 0);
+		auto const array_val = array.get_value(context.builder);
+		auto const begin_ptr = context.builder.CreateExtractValue(array_val, 0);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
@@ -2451,6 +2495,26 @@ static val_ptr emit_bitcode(
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
 		}
+
+		// array bounds check
+		{
+			auto const end_ptr = context.builder.CreateExtractValue(array_val, 1);
+			auto const array_size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			auto const is_in_bounds = [&]() -> llvm::Value * {
+				if (ctx::is_unsigned_integer_kind(kind))
+				{
+					return context.builder.CreateICmp(llvm::CmpInst::ICMP_ULT, index_val, array_size);
+				}
+				else
+				{
+					auto const is_less_than = context.builder.CreateICmp(llvm::CmpInst::ICMP_SLT, index_val, array_size);
+					auto const is_positive_or_zero = context.builder.CreateICmp(llvm::CmpInst::ICMP_SGE, index_val, llvm::ConstantInt::get(array_size->getType(), 0));
+					return context.builder.CreateAnd(is_less_than, is_positive_or_zero);
+				}
+			}();
+			emit_error_assert(is_in_bounds, subscript.index.src_tokens, "index value is out-of-bounds", context);
+		}
+
 		auto const result_ptr = context.builder.CreateGEP(begin_ptr, index_val);
 
 		if (result_address == nullptr)

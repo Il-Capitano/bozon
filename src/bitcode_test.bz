@@ -1175,6 +1175,14 @@ function complex_test()
 
 	consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
 	static_assert(z == std::complex[ -1.0, 0.0 ]);
+	static_assert({
+		let arr: [3: int32];
+		for (let i = 0u; i < arr.size(); ++i)
+		{
+			arr[i] = 3;
+		}
+		true
+	});
 
 	const z1 = std::complex[1.0, -12.35];
 	const double_z = z1 + z1;
