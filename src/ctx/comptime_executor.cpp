@@ -465,7 +465,15 @@ static ast::constant_value constant_value_from_global_getters(
 			}
 		},
 		[&](ast::ts_array const &array_t) -> ast::constant_value {
-			bz_unreachable;
+			ast::constant_value result;
+			result.emplace<ast::constant_value::array>();
+			auto &arr = result.get<ast::constant_value::array>();
+			arr.reserve(array_t.size);
+			for ([[maybe_unused]] auto const _ : bz::iota(0, array_t.size))
+			{
+				arr.push_back(constant_value_from_global_getters(array_t.elem_type, getter_it, context));
+			}
+			return result;
 		},
 		[&](ast::ts_tuple const &tuple_t) -> ast::constant_value {
 			ast::constant_value result;
