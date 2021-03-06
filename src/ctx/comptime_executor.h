@@ -84,6 +84,7 @@ struct comptime_executor_context
 		ast::function_body *body,
 		bz::array_view<ast::constant_value const> params
 	);
+	std::pair<ast::constant_value, bz::vector<source_highlight>> execute_compound_expression(ast::expr_compound &expr);
 	void initialize_engine(void);
 	std::unique_ptr<llvm::ExecutionEngine> create_engine(std::unique_ptr<llvm::Module> module);
 	void add_base_functions_to_module(llvm::Module &module);

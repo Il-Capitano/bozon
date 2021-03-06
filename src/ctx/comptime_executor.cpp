@@ -500,6 +500,47 @@ std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_c
 	}
 }
 
+std::pair<ast::constant_value, bz::vector<source_highlight>> comptime_executor_context::execute_compound_expression(ast::expr_compound &expr)
+{
+	auto const original_module = this->current_module;
+	auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
+	module->setDataLayout(this->get_data_layout());
+	auto const is_native_target = target == "" || target == "native";
+	auto const target_triple = is_native_target
+		? llvm::sys::getDefaultTargetTriple()
+		: std::string(target.data_as_char_ptr(), target.size());
+	module->setTargetTriple(target_triple);
+	this->current_module = module.get();
+
+	std::pair<ast::constant_value, bz::vector<source_highlight>> result;
+	this->initialize_engine();
+	auto const error_ptr_type = this->error_ptr->getType();
+	bz_assert(error_ptr_type->isPointerTy());
+	this->error_ptr = module->getOrInsertGlobal("__error_ptr", static_cast<llvm::PointerType *>(error_ptr_type)->getElementType());
+
+	auto const fn = bc::comptime::create_function_for_comptime_execution(expr, *this);
+	if (!bc::comptime::emit_necessary_functions(*this))
+	{
+		return result;
+	}
+
+	// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
+	this->add_module(std::move(module));
+	auto const call_result = this->engine->runFunction(fn, {});
+	if (this->has_error())
+	{
+		result.second.push_back(this->consume_error());
+	}
+	else
+	{
+		bz_assert(expr.final_expr.not_null());
+		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
+		result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
+	}
+	this->current_module = original_module;
+	return result;
+}
+
 void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)

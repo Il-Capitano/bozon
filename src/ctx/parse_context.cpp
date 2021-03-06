@@ -4597,6 +4597,26 @@ ast::constant_value parse_context::execute_function(
 	return result;
 }
 
+ast::constant_value parse_context::execute_compound_expression(
+	lex::src_tokens src_tokens,
+	ast::expr_compound &expr
+)
+{
+	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
+	this->global_ctx._comptime_executor.current_parse_ctx = this;
+	auto [result, fail_notes] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
+	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
+	if (!fail_notes.empty())
+	{
+		this->report_error(
+			src_tokens,
+			"failed to evaluate compound expression in a constant expression",
+			std::move(fail_notes)
+		);
+	}
+	return result;
+}
+
 /*
 auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
 	-> std::pair<ast::function_body *, ast::expression::expr_type_t>

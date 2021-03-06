@@ -1960,7 +1960,15 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
-		[](ast::expr_compound &) -> ast::constant_value {
+		[&context](ast::expr_compound &compound_expr) -> ast::constant_value {
+			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
+			{
+				consteval_guaranteed(compound_expr.final_expr, context);
+				if (compound_expr.final_expr.has_consteval_succeeded())
+				{
+					return compound_expr.final_expr.get<ast::constant_expression>().value;
+				}
+			}
 			return {};
 		},
 		[&context](ast::expr_if &if_expr) -> ast::constant_value {
@@ -2165,8 +2173,23 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 		},
-		[](ast::expr_compound &) -> ast::constant_value {
-			return {};
+		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
+			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
+			{
+				consteval_try(compound_expr.final_expr, context);
+				if (compound_expr.final_expr.has_consteval_succeeded())
+				{
+					return compound_expr.final_expr.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				return context.execute_compound_expression(expr.src_tokens, compound_expr);
+			}
 		},
 		[&context](ast::expr_if &if_expr) -> ast::constant_value {
 			consteval_try(if_expr.condition, context);

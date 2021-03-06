@@ -380,6 +380,11 @@ struct parse_context
 		bz::array_view<ast::constant_value const> params
 	);
 
+	ast::constant_value execute_compound_expression(
+		lex::src_tokens src_tokens,
+		ast::expr_compound &expr
+	);
+
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 

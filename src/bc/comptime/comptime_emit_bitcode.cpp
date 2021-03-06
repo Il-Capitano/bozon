@@ -124,7 +124,9 @@ static void emit_error(
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
 	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
-	context.builder.CreateBr(context.error_bb);
+	auto const continue_bb = context.add_basic_block("");
+	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
 }
 
 // ================================================================
@@ -139,16 +141,35 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const val_ptr = context.get_variable(id.decl);
-	bz_assert(val_ptr != nullptr);
-	if (result_address == nullptr)
+	if (val_ptr == nullptr)
 	{
-		return { val_ptr::reference, val_ptr };
+		emit_error(
+			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
+			bz::format("variable '{}' cannot be used in a constant expression", id.id.format_as_unqualified()),
+			context
+		);
+		if (result_address == nullptr)
+		{
+			auto const result_type = llvm::PointerType::get(get_llvm_type(id.decl->var_type, context), 0);
+			return { val_ptr::reference, llvm::UndefValue::get(result_type) };
+		}
+		else
+		{
+			return { val_ptr::reference, result_address };
+		}
 	}
 	else
 	{
-		auto const loaded_var = context.builder.CreateLoad(val_ptr);
-		context.builder.CreateStore(loaded_var, result_address);
-		return { val_ptr::reference, result_address };
+		if (result_address == nullptr)
+		{
+			return { val_ptr::reference, val_ptr };
+		}
+		else
+		{
+			auto const loaded_var = context.builder.CreateLoad(val_ptr);
+			context.builder.CreateStore(loaded_var, result_address);
+			return { val_ptr::reference, result_address };
+		}
 	}
 }
 
@@ -4100,6 +4121,78 @@ llvm::Function *create_function_for_comptime_execution(
 		return create_function_for_comptime_execution_impl<abi::platform_abi::microsoft_x64>(body, params, context);
 	case abi::platform_abi::systemv_amd64:
 		return create_function_for_comptime_execution_impl<abi::platform_abi::systemv_amd64>(body, params, context);
+	}
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static llvm::Function *create_function_for_comptime_execution_impl(
+	ast::expr_compound &expr,
+	ctx::comptime_executor_context &context
+)
+{
+	bz_assert(expr.final_expr.not_null());
+	auto const result_type = get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
+	auto const func_t = llvm::FunctionType::get(result_type, false);
+	auto const result = llvm::Function::Create(
+		func_t, llvm::Function::InternalLinkage,
+		"__anon_comptime_compound_expr", &context.get_module()
+	);
+	context.current_function = { nullptr, result };
+	auto const alloca_bb = context.add_basic_block("alloca");
+	context.alloca_bb = alloca_bb;
+
+	auto const error_bb = context.add_basic_block("error");
+	context.error_bb = error_bb;
+	context.builder.SetInsertPoint(error_bb);
+	if (result->getReturnType()->isVoidTy())
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		context.builder.CreateRet(llvm::UndefValue::get(result->getReturnType()));
+	}
+
+	auto const entry_bb = context.add_basic_block("entry");
+	context.builder.SetInsertPoint(entry_bb);
+
+	for (auto &stmt : expr.statements)
+	{
+		emit_bitcode<abi>(stmt, context);
+	}
+
+	if (!context.has_terminator())
+	{
+		auto const result_val = emit_bitcode<abi>(expr.final_expr, context, nullptr).get_value(context.builder);
+		context.builder.CreateRet(result_val);
+	}
+
+	context.builder.SetInsertPoint(alloca_bb);
+	context.builder.CreateBr(entry_bb);
+
+	context.current_function = {};
+	context.alloca_bb = nullptr;
+	context.error_bb = nullptr;
+	context.output_pointer = nullptr;
+
+	return result;
+}
+
+llvm::Function *create_function_for_comptime_execution(
+	ast::expr_compound &expr,
+	ctx::comptime_executor_context &context
+)
+{
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::generic>(expr, context);
+	case abi::platform_abi::microsoft_x64:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::microsoft_x64>(expr, context);
+	case abi::platform_abi::systemv_amd64:
+		return create_function_for_comptime_execution_impl<abi::platform_abi::systemv_amd64>(expr, context);
 	}
 	bz_unreachable;
 }

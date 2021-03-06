@@ -22,6 +22,11 @@ llvm::Function *create_function_for_comptime_execution(
 	ctx::comptime_executor_context &context
 );
 
+llvm::Function *create_function_for_comptime_execution(
+	ast::expr_compound &expr,
+	ctx::comptime_executor_context &context
+);
+
 } // namespace bc::comptime
 
 #endif // BC_EMIT_BITCODE_H
