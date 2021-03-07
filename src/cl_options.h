@@ -155,7 +155,8 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt adce")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::adce)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt sccp")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::sccp)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt aggressive-instcombine")> = &optimizations[static_cast<size_t>(bc::optimization_kind::aggressive_instcombine)];
-static_assert(static_cast<size_t>(bc::optimization_kind::_last) == 10);
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt aggressive-consteval")>   = &optimizations[static_cast<size_t>(bc::optimization_kind::aggressive_consteval)];
+static_assert(static_cast<size_t>(bc::optimization_kind::_last) == 11);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")> = &max_opt_iter_count;
 
