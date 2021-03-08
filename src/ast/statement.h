@@ -15,8 +15,8 @@ namespace ast
 
 struct attribute
 {
-	lex::token_pos              name;
-	lex::token_range            arg_tokens;
+	lex::token_pos         name;
+	lex::token_range       arg_tokens;
 	bz::vector<expression> args;
 
 	declare_default_5(attribute)

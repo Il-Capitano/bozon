@@ -1924,6 +1924,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[](ast::expr_take_reference const &) -> ast::constant_value {
+			return {};
+		},
 		[&context](ast::expr_struct_init &struct_init_expr) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &expr : struct_init_expr.exprs)
@@ -2137,6 +2140,9 @@ static ast::constant_value try_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[](ast::expr_take_reference const &) -> ast::constant_value {
+			return {};
 		},
 		[&context](ast::expr_struct_init &struct_init_expr) -> ast::constant_value {
 			bool is_consteval = true;
@@ -2431,6 +2437,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			{
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
+		},
+		[&expr, &notes](ast::expr_take_reference const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
 		[&notes](ast::expr_struct_init const &struct_init_expr) {
 			bool any_failed = false;

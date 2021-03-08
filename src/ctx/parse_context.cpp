@@ -2947,6 +2947,15 @@ static void match_expression_to_type_impl(
 				expr_type_without_const, inner_dest.get<ast::ts_const>(),
 				false, context
 			);
+			if (expr.not_null())
+			{
+				ast::typespec result_type = expr_type;
+				expr = ast::make_dynamic_expression(
+					expr.src_tokens,
+					ast::expression_type_kind::lvalue_reference, std::move(result_type),
+					ast::make_expr_take_reference(std::move(expr))
+				);
+			}
 			return;
 		}
 		else

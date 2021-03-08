@@ -2596,6 +2596,16 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	ast::expr_take_reference const &take_ref,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	return emit_bitcode<abi>(take_ref.expr, context, result_address);
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	ast::expr_struct_init const &struct_init,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address

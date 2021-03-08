@@ -21,6 +21,7 @@ struct expr_binary_op;
 struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
+struct expr_take_reference;
 struct expr_struct_init;
 struct expr_member_access;
 struct expr_compound;
@@ -36,6 +37,7 @@ using expr_t = node<
 	expr_subscript,
 	expr_function_call,
 	expr_cast,
+	expr_take_reference,
 	expr_struct_init,
 	expr_member_access,
 	expr_compound,
@@ -425,8 +427,8 @@ struct expr_function_call
 
 struct expr_cast
 {
-	expression     expr;
-	typespec       type;
+	expression expr;
+	typespec   type;
 
 	declare_default_5(expr_cast)
 
@@ -436,6 +438,17 @@ struct expr_cast
 	)
 		: expr(std::move(_expr)),
 		  type(std::move(_type))
+	{}
+};
+
+struct expr_take_reference
+{
+	expression expr;
+
+	declare_default_5(expr_take_reference)
+
+	expr_take_reference(expression _expr)
+		: expr(std::move(_expr))
 	{}
 };
 
@@ -540,6 +553,7 @@ def_make_fn(expr_t, expr_binary_op)
 def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
+def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_struct_init)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)

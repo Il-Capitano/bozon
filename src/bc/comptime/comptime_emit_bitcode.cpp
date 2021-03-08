@@ -26,6 +26,14 @@ static void emit_bitcode(
 	ctx::comptime_executor_context &context
 );
 
+template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	ctx::comptime_executor_context &context
+);
+
 
 static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level = true);
 
@@ -162,8 +170,9 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	bz_assert(id.decl != nullptr);
 	auto const val_ptr = context.get_variable(id.decl);
-	if (val_ptr == nullptr)
+	if (val_ptr == nullptr && !id.decl->var_type.is<ast::ts_consteval>())
 	{
 		emit_error(
 			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
@@ -178,6 +187,22 @@ static val_ptr emit_bitcode(
 		else
 		{
 			return { val_ptr::reference, result_address };
+		}
+	}
+	else if (val_ptr == nullptr /* && consteval */)
+	{
+		bz_assert(id.decl->init_expr.not_null() && id.decl->init_expr.is<ast::constant_expression>());
+		auto &const_expr = id.decl->init_expr.get<ast::constant_expression>();
+		auto const value = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		if (result_address == nullptr)
+		{
+			return { val_ptr::value, value };
+		}
+		else
+		{
+			auto const loaded_var = context.builder.CreateLoad(val_ptr);
+			context.builder.CreateStore(loaded_var, result_address);
+			return { val_ptr::reference, result_address, value };
 		}
 	}
 	else
@@ -2725,6 +2750,39 @@ static val_ptr emit_bitcode(
 	{
 		bz_unreachable;
 		return {};
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expr_take_reference const &take_ref,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const result = emit_bitcode<abi>(take_ref.expr, context, result_address);
+	if (result.kind != val_ptr::reference)
+	{
+		if (auto const id_expr = take_ref.expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+		{
+			emit_error(
+				take_ref.expr.src_tokens,
+				bz::format("unable to take reference to variable '{}'", id_expr->decl->id.format_as_unqualified()),
+				context
+			);
+		}
+		else
+		{
+			emit_error(take_ref.expr.src_tokens, "unable to take refernce to value", context);
+		}
+		// just make sure the returned value is valid
+		bz_assert(result_address == nullptr);
+		auto const alloca = context.create_alloca(result.get_type());
+		return { val_ptr::reference, alloca };
+	}
+	else
+	{
+		return result;
 	}
 }
 

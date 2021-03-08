@@ -32,6 +32,20 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 	T &get(void) const noexcept
 	{ return *this->base_t::template get<ast_unique_ptr<T>>(); }
 
+	template<typename T>
+	T *get_if(void) noexcept
+	{
+		auto const result = this->base_t::template get_if<ast_unique_ptr<T>>();
+		return result != nullptr ? result->get() : nullptr;
+	}
+
+	template<typename T>
+	T *get_if(void) const noexcept
+	{
+		auto const result = this->base_t::template get_if<ast_unique_ptr<T>>();
+		return result != nullptr ? result->get() : nullptr;
+	}
+
 	node(void) = default;
 
 	template<typename T>
@@ -57,7 +71,7 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 						make_ast_unique<Ts>(other.template get<Ts>())
 					);
 				}
-				else 
+				else
 				{
 					bz_unreachable;
 				}
