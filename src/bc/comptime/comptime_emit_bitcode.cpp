@@ -254,15 +254,42 @@ static val_ptr emit_bitcode(
 	case lex::token::address_of:         // '&'
 	{
 		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr);
-		bz_assert(val.kind == val_ptr::reference);
-		if (result_address == nullptr)
+		if (val.kind != val_ptr::reference)
 		{
-			return { val_ptr::value, val.val };
+			if (auto const id_expr = unary_op.expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+			{
+				emit_error(
+					unary_op.expr.src_tokens,
+					bz::format("unable to take address of variable '{}'", id_expr->decl->id.format_as_unqualified()),
+					context
+				);
+			}
+			else
+			{
+				emit_error(unary_op.expr.src_tokens, "unable to take address of value", context);
+			}
+			// just make sure the returned value is valid
+			if (result_address == nullptr)
+			{
+				auto const ptr_type = llvm::PointerType::get(val.val->getType(), 0);
+				return { val_ptr::value, llvm::Constant::getNullValue(ptr_type) };
+			}
+			else
+			{
+				return { val_ptr::reference, result_address };
+			}
 		}
 		else
 		{
-			context.builder.CreateStore(val.val, result_address);
-			return { val_ptr::reference, result_address };
+			if (result_address == nullptr)
+			{
+				return { val_ptr::value, val.val };
+			}
+			else
+			{
+				context.builder.CreateStore(val.val, result_address);
+				return { val_ptr::reference, result_address };
+			}
 		}
 	}
 	case lex::token::kw_sizeof:          // 'sizeof'
@@ -3181,7 +3208,8 @@ static val_ptr emit_bitcode(
 		return emit_bitcode<abi>(expr.get<ast::dynamic_expression>(), context, result_address);
 
 	default:
-		bz_unreachable;
+		emit_error(expr.src_tokens, "failed to resolve expression", context);
+		// we can safely return {} here, because errors should have been propagated enough while parsing for this to not matter
 		return {};
 	}
 }
