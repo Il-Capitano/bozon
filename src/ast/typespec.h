@@ -23,6 +23,8 @@ struct ts_const;
 struct ts_consteval;
 struct ts_pointer;
 struct ts_lvalue_reference;
+struct ts_auto_reference;
+struct ts_auto_reference_const;
 
 using typespec_types = bz::meta::type_pack<
 	ts_unresolved,
@@ -37,7 +39,9 @@ using typespec_types = bz::meta::type_pack<
 	ts_const,
 	ts_consteval,
 	ts_pointer,
-	ts_lvalue_reference
+	ts_lvalue_reference,
+	ts_auto_reference,
+	ts_auto_reference_const
 >;
 
 using terminator_typespec_types = bz::meta::type_pack<
@@ -226,6 +230,16 @@ struct ts_pointer
 struct ts_lvalue_reference
 {
 	lex::token_pos reference_pos;
+};
+
+struct ts_auto_reference
+{
+	lex::token_pos auto_reference_pos;
+};
+
+struct ts_auto_reference_const
+{
+	lex::token_pos auto_reference_const_pos;
 };
 
 

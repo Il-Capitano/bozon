@@ -103,6 +103,8 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::bit_not,            {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::bool_not,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::address_of,         {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::auto_ref,           {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::auto_ref_const,     {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dereference,        {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_const,           {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_consteval,       {  3, false } },
@@ -217,6 +219,9 @@ constexpr auto token_info = []() {
 	result[lex::token::divide_eq]    = { lex::token::divide_eq,   "/=", "", binary_builtin_flags | binary_overloadable_flags };
 	result[lex::token::modulo]       = { lex::token::modulo,      "%",  "", binary_builtin_flags | binary_overloadable_flags };
 	result[lex::token::modulo_eq]    = { lex::token::modulo_eq,   "%=", "", binary_builtin_flags | binary_overloadable_flags };
+
+	result[lex::token::auto_ref]       = { lex::token::auto_ref,       "#",  "", unary_type_op_flags };
+	result[lex::token::auto_ref_const] = { lex::token::auto_ref_const, "##", "", unary_type_op_flags };
 
 	// bit_and, address_of
 	result[lex::token::ampersand]          = { lex::token::ampersand,          "&",   "", both_builtin_flags   | binary_overloadable_flags | unary_type_op_flags };

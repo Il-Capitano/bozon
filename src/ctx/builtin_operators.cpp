@@ -523,9 +523,123 @@ static ast::expression get_type_op_unary_reference(
 	{
 		result_type.nodes.front().get<ast::ts_lvalue_reference>().reference_pos = op;
 	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "reference to auto reference type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "reference to auto reference-const type is not allowed");
+		return ast::expression(src_tokens);
+	}
 	else
 	{
 		result_type.add_layer<ast::ts_lvalue_reference>(op);
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(result_type)),
+		ast::make_expr_unary_op(op, std::move(expr))
+	);
+}
+
+// #(typename) -> (#typename)
+static ast::expression get_type_op_unary_auto_ref(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op->kind == lex::token::auto_ref);
+	bz_assert(expr.not_null());
+	bz_assert(expr.is_typename());
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
+
+	ast::typespec result_type = expr.get_typename();
+	if (result_type.is<ast::ts_consteval>())
+	{
+		context.report_error(src_tokens, "auto reference to consteval type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_lvalue_reference>())
+	{
+		context.report_error(src_tokens, "auto reference to reference type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		result_type.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos = op;
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "auto reference to auto reference-const type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else
+	{
+		result_type.add_layer<ast::ts_auto_reference>(op);
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(result_type)),
+		ast::make_expr_unary_op(op, std::move(expr))
+	);
+}
+
+// ##(typename) -> (##typename)
+static ast::expression get_type_op_unary_auto_ref_const(
+	lex::token_pos op,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op->kind == lex::token::auto_ref_const);
+	bz_assert(expr.not_null());
+	bz_assert(expr.is_typename());
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ op, op, op + 1 }
+		: lex::src_tokens{ op, op, expr.get_tokens_end() };
+
+	ast::typespec result_type = expr.get_typename();
+	if (result_type.is<ast::ts_consteval>())
+	{
+		context.report_error(src_tokens, "auto reference-const to consteval type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_const>())
+	{
+		bz_assert(op != nullptr);
+		context.report_error(src_tokens, "auto reference-const to const type is not allowed", {}, {
+			context.make_suggestion_before(op, op->src_pos.begin, op->src_pos.end, "#", "use auto reference instead")
+		});
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_lvalue_reference>())
+	{
+		context.report_error(src_tokens, "auto reference-const to reference type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "auto reference-const to auto reference type is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		result_type.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos = op;
+	}
+	else
+	{
+		result_type.add_layer<ast::ts_auto_reference_const>(op);
 	}
 
 	return ast::make_constant_expression(
@@ -555,6 +669,16 @@ static ast::expression get_type_op_unary_pointer(
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "pointer to reference is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "pointer to auto reference is not allowed");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "pointer to auto reference-const is not allowed");
 		return ast::expression(src_tokens);
 	}
 	else if (result_type.is<ast::ts_consteval>())
@@ -594,8 +718,17 @@ static ast::expression get_type_op_unary_const(
 		context.report_error(src_tokens, "a reference type cannot be 'const'");
 		return ast::expression(src_tokens);
 	}
-
-	if (result_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "an auto reference type cannot be 'const'");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "an auto reference-const type cannot be 'const'");
+		return ast::expression(src_tokens);
+	}
+	else if (result_type.is<ast::ts_const>())
 	{
 		result_type.nodes.front().get<ast::ts_const>().const_pos = op;
 	}
@@ -637,8 +770,17 @@ static ast::expression get_type_op_unary_consteval(
 		context.report_error(src_tokens, "a reference type cannot be 'consteval'");
 		return ast::expression(src_tokens);
 	}
-
-	if (const_expr_type.is<ast::ts_const>())
+	else if (const_expr_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "an auto reference type cannot be 'consteval'");
+		return ast::expression(src_tokens);
+	}
+	else if (const_expr_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "an auto reference-const type cannot be 'consteval'");
+		return ast::expression(src_tokens);
+	}
+	else if (const_expr_type.is<ast::ts_const>())
 	{
 		const_expr_type.nodes.front() = ast::ts_consteval{ op };
 	}
@@ -3370,10 +3512,12 @@ constexpr auto builtin_unary_operators = []() {
 constexpr auto type_op_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
 	auto result = bz::array{
-		T{ lex::token::address_of,   &get_type_op_unary_reference }, // &
-		T{ lex::token::dereference,  &get_type_op_unary_pointer   }, // *
-		T{ lex::token::kw_const,     &get_type_op_unary_const     }, // const
-		T{ lex::token::kw_consteval, &get_type_op_unary_consteval }, // consteval
+		T{ lex::token::address_of,     &get_type_op_unary_reference      }, // &
+		T{ lex::token::auto_ref,       &get_type_op_unary_auto_ref       }, // #
+		T{ lex::token::auto_ref_const, &get_type_op_unary_auto_ref_const }, // ##
+		T{ lex::token::dereference,    &get_type_op_unary_pointer        }, // *
+		T{ lex::token::kw_const,       &get_type_op_unary_const          }, // const
+		T{ lex::token::kw_consteval,   &get_type_op_unary_consteval      }, // consteval
 	};
 
 	auto const type_op_unary_count = []() {

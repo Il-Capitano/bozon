@@ -46,6 +46,7 @@ struct token
 		bool_not      = '!',
 		address_of    = '&',
 		dereference   = '*',
+		auto_ref      = '#',
 
 		star          = '*',
 		ampersand     = '&',
@@ -89,6 +90,7 @@ struct token
 		dot_dot,             // ..
 		dot_dot_eq,          // ..=
 		dot_dot_dot,         // ...
+		auto_ref_const,      // ##
 
 
 		// keywords

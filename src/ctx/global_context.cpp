@@ -31,7 +31,7 @@ static bz::array<llvm::Type *, static_cast<int>(ast::type_info::null_t_) + 1>
 get_llvm_builtin_types(llvm::LLVMContext &context)
 {
 	auto const i8_ptr = llvm::Type::getInt8PtrTy(context);
-	auto const str_t = llvm::StructType::create("builtin.str", i8_ptr, i8_ptr);
+	auto const str_t  = llvm::StructType::create("builtin.str", i8_ptr, i8_ptr);
 	auto const null_t = llvm::StructType::create(context, {}, "builtin.__null_t");
 	return {
 		llvm::Type::getInt8Ty(context),   // int8_

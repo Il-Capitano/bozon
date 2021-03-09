@@ -39,7 +39,6 @@ function factorial_recursive(n: auto) -> typeof n
 	}
 	else
 	{
-		std::println("recursize case");
 		return n * factorial_recursive(n - 1);
 	}
 }
@@ -74,7 +73,7 @@ function main(args: [: const str]) -> int32
 
 	consteval i = factorial(3);
 	static_assert(i == 6);
-	// static_assert(factorial_recursive(10) == 3628800);
+	static_assert(factorial_recursive(10) == 3628800);
 	static_assert(factorial_recursive(1) == 1);
 	static_assert(factorial(10) == 3628800);
 	// static_assert((assert(true), true));
@@ -92,8 +91,25 @@ function main(args: [: const str]) -> int32
 		{
 			arr[i] = 3;
 		}
-		true
+		arr[0] == 3
 	});
+
+
+	const m = 4;
+	consteval n = 5;
+	static_assert({
+		const res = factorial(n);
+		res == factorial(5)
+	});
+
+	let #const r = m;
+	static_assert(typeof r == &const int32);
+	let #const r = 4;
+	static_assert(typeof r == const int32);
+	let ##r = m;
+	static_assert(typeof r == &const int32);
+	let ##r = 8;
+	static_assert(typeof r == int32);
 
 	consteval fact6 = {
 		let result = 1;

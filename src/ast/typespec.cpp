@@ -93,6 +93,38 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 					src_tokens.begin = reference.reference_pos;
 					src_tokens.pivot = reference.reference_pos;
 				}
+			},
+			[&](ts_auto_reference const &auto_ref) {
+				if (src_tokens.begin == nullptr && auto_ref.auto_reference_pos != nullptr)
+				{
+					src_tokens = {
+						auto_ref.auto_reference_pos,
+						auto_ref.auto_reference_pos,
+						auto_ref.auto_reference_pos + 1
+					};
+				}
+				else if (auto_ref.auto_reference_pos != nullptr)
+				{
+					bz_assert(auto_ref.auto_reference_pos < src_tokens.begin);
+					src_tokens.begin = auto_ref.auto_reference_pos;
+					src_tokens.pivot = auto_ref.auto_reference_pos;
+				}
+			},
+			[&](ts_auto_reference_const const &auto_const_ref) {
+				if (src_tokens.begin == nullptr && auto_const_ref.auto_reference_const_pos != nullptr)
+				{
+					src_tokens = {
+						auto_const_ref.auto_reference_const_pos,
+						auto_const_ref.auto_reference_const_pos,
+						auto_const_ref.auto_reference_const_pos + 1
+					};
+				}
+				else if (auto_const_ref.auto_reference_const_pos != nullptr)
+				{
+					bz_assert(auto_const_ref.auto_reference_const_pos < src_tokens.begin);
+					src_tokens.begin = auto_const_ref.auto_reference_const_pos;
+					src_tokens.pivot = auto_const_ref.auto_reference_const_pos;
+				}
 			}
 		});
 	}
@@ -161,7 +193,15 @@ bool typespec_view::is_typename(void) const noexcept
 		[&](ts_lvalue_reference const &) {
 			bz_unreachable;
 			return false;
-		}
+		},
+		[&](ts_auto_reference const &) {
+			bz_unreachable;
+			return false;
+		},
+		[&](ts_auto_reference_const const &) {
+			bz_unreachable;
+			return false;
+		},
 	});
 }
 
@@ -286,7 +326,11 @@ bool is_complete(typespec_view ts) noexcept
 		return false;
 	}
 
-	return ts.nodes.back().visit(bz::overload{
+	auto const is_auto_ref = ts.nodes.is_any([](auto const &node) {
+		return node.template is<ts_auto_reference>() || node.template is<ts_auto_reference_const>();
+	});
+
+	return is_auto_ref || ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &) {
 			return true;
 		},
@@ -673,6 +717,12 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_lvalue_reference const &) {
 				result += '&';
+			},
+			[&](ast::ts_auto_reference const &) {
+				result += '#';
+			},
+			[&](ast::ts_auto_reference_const const &) {
+				result += "##";
 			},
 			[&](auto const &) {
 				result += "<error-type>";

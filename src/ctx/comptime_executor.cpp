@@ -10,6 +10,10 @@
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Utils.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 
@@ -32,6 +36,8 @@ comptime_executor_context::comptime_executor_context(global_context &_global_ctx
 	  error_ptr(nullptr),
 	  error_ptr_getter(nullptr),
 	  error_ptr_clearer(nullptr),
+	  target_machine(nullptr),
+	  pass_manager(),
 	  engine(nullptr)
 {}
 
@@ -389,10 +395,10 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				bz_unreachable;
 			}
 		},
-		[&](ast::ts_void const &) {
+		[](ast::ts_void const &) {
 			// nothing
 		},
-		[&](ast::ts_function const &) {
+		[](ast::ts_function const &) {
 			bz_unreachable;
 		},
 		[&](ast::ts_array const &array_t) {
@@ -402,7 +408,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				.collect()
 			);
 		},
-		[&](ast::ts_array_slice const &) {
+		[](ast::ts_array_slice const &) {
 			bz_unreachable;
 		},
 		[&](ast::ts_tuple const &tuple_t) {
@@ -412,10 +418,16 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				.collect()
 			);
 		},
-		[&](ast::ts_pointer const &) {
+		[](ast::ts_pointer const &) {
 			bz_unreachable;
 		},
-		[&](ast::ts_lvalue_reference const &) {
+		[](ast::ts_lvalue_reference const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_auto_reference const &) {
+			bz_unreachable;
+		},
+		[](ast::ts_auto_reference_const const &) {
 			bz_unreachable;
 		},
 		[](ast::ts_unresolved const &) {
@@ -622,12 +634,18 @@ void comptime_executor_context::initialize_engine(void)
 		module->setTargetTriple(target_triple);
 		this->add_base_functions_to_module(*module);
 		this->engine = this->create_engine(std::move(module));
+
+		this->pass_manager.add(llvm::createInstructionCombiningPass());
+		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
+		this->pass_manager.add(llvm::createReassociatePass());
+		this->pass_manager.add(llvm::createCFGSimplificationPass());
+		// this->pass_manager.add(llvm::createGVNPass());
 	}
 }
 
 std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(std::unique_ptr<llvm::Module> module)
 {
-	if (debug_ir_output)
+	if (debug_comptime_ir_output)
 	{
 		std::error_code ec;
 		auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text);
@@ -687,7 +705,8 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
 	bz_assert(this->engine != nullptr);
-	if (debug_ir_output)
+	this->pass_manager.run(*module);
+	if (debug_comptime_ir_output)
 	{
 		std::error_code ec;
 		auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text | llvm::sys::fs::OF_Append);

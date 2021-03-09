@@ -2333,6 +2333,7 @@ static match_level_t get_type_match_level(
 	// T
 	//     -> if type of expr is T, then there's nothing to do
 	//     -> else try to implicitly cast expr to T
+	//     -> +2 match level because it didn't match reference and reference const qualifier
 	// const T -> match to T (no need to worry about const)
 	if (dest.is<ast::ts_const>())
 	{
@@ -2523,6 +2524,38 @@ static match_level_t get_type_match_level(
 		else
 		{
 			return get_strict_type_match_level(inner_dest, expr_type, false);
+		}
+	}
+	else if (dest.is<ast::ts_auto_reference>())
+	{
+		auto const inner_dest = dest.get<ast::ts_auto_reference>();
+		if (inner_dest.is<ast::ts_const>())
+		{
+			if (expr_type.is<ast::ts_const>())
+			{
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+			}
+			else
+			{
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false) + 1;
+			}
+		}
+		else
+		{
+			return get_strict_type_match_level(inner_dest, expr_type, false);
+		}
+	}
+	else if (dest.is<ast::ts_auto_reference_const>())
+	{
+		auto const inner_dest = dest.get<ast::ts_auto_reference_const>();
+		bz_assert(!inner_dest.is<ast::ts_const>());
+		if (expr_type.is<ast::ts_const>())
+		{
+			return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+		}
+		else
+		{
+			return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
 		}
 	}
 
@@ -2947,7 +2980,7 @@ static void match_expression_to_type_impl(
 				expr_type_without_const, inner_dest.get<ast::ts_const>(),
 				false, context
 			);
-			if (expr.not_null())
+			if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
 			{
 				ast::typespec result_type = expr_type;
 				expr = ast::make_dynamic_expression(
@@ -2967,6 +3000,89 @@ static void match_expression_to_type_impl(
 			);
 			return;
 		}
+	}
+	else if (dest.is<ast::ts_auto_reference>())
+	{
+		bz_assert(dest_container.nodes.front().is<ast::ts_auto_reference>());
+		auto const inner_dest = dest.get<ast::ts_auto_reference>();
+		if (inner_dest.is<ast::ts_const>())
+		{
+			strict_match_expression_to_type_impl(
+				expr, dest_container,
+				expr_type_without_const, inner_dest.get<ast::ts_const>(),
+				false, context
+			);
+			if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
+			{
+				ast::typespec result_type = expr_type;
+				expr = ast::make_dynamic_expression(
+					expr.src_tokens,
+					ast::expression_type_kind::lvalue_reference, std::move(result_type),
+					ast::make_expr_take_reference(std::move(expr))
+				);
+			}
+		}
+		else
+		{
+			strict_match_expression_to_type_impl(
+				expr, dest_container,
+				expr_type, inner_dest,
+				false, context
+			);
+		}
+		if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type_kind == ast::expression_type_kind::lvalue_reference)
+		{
+			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos;
+			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>(ref_pos);
+		}
+		else
+		{
+			dest_container.remove_layer();
+		}
+		return;
+	}
+	else if (dest.is<ast::ts_auto_reference_const>())
+	{
+		bz_assert(dest_container.nodes.front().is<ast::ts_auto_reference_const>());
+		auto const inner_dest = dest.get<ast::ts_auto_reference_const>();
+		bz_assert(!inner_dest.is<ast::ts_const>());
+		strict_match_expression_to_type_impl(
+			expr, dest_container,
+			expr_type_without_const, inner_dest,
+			false, context
+		);
+		if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
+		{
+			ast::typespec result_type = expr_type;
+			expr = ast::make_dynamic_expression(
+				expr.src_tokens,
+				ast::expression_type_kind::lvalue_reference, std::move(result_type),
+				ast::make_expr_take_reference(std::move(expr))
+			);
+		}
+
+		if (
+			expr_type.is<ast::ts_const>()
+			&& (
+				expr_type_kind == ast::expression_type_kind::lvalue
+				|| expr_type_kind == ast::expression_type_kind::lvalue_reference
+			)
+		)
+		{
+			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos;
+			dest_container.nodes.front().emplace<ast::ts_const>(ref_pos);
+			dest_container.add_layer<ast::ts_lvalue_reference>(ref_pos);
+		}
+		else if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type_kind == ast::expression_type_kind::lvalue_reference)
+		{
+			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos;
+			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>(ref_pos);
+		}
+		else
+		{
+			dest_container.remove_layer();
+		}
+		return;
 	}
 
 	// only implicit type conversions are left
@@ -4469,6 +4585,12 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 			},
 			[](ast::ts_lvalue_reference const &) {
 				return 1;
+			},
+			[](ast::ts_auto_reference const &) {
+				return -1;
+			},
+			[](ast::ts_auto_reference_const const &) {
+				return -1;
 			},
 			[](ast::ts_unresolved const &) {
 				bz_unreachable;

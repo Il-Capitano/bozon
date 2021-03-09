@@ -435,6 +435,18 @@ static ast::expression parse_array_type(
 				) }
 			);
 		}
+		else if (elem_type.is<ast::ts_lvalue_reference>())
+		{
+			context.report_error(type, "array element type cannot be a reference type");
+		}
+		else if (elem_type.is<ast::ts_auto_reference>())
+		{
+			context.report_error(type, "array element type cannot be an auto reference type");
+		}
+		else if (elem_type.is<ast::ts_auto_reference_const>())
+		{
+			context.report_error(type, "array element type cannot be an auto reference-const type");
+		}
 	}
 
 	lex::src_tokens const src_tokens = { begin_token, begin_token, end };

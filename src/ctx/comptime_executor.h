@@ -9,6 +9,7 @@
 
 #include <llvm/IR/Module.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 namespace ctx
 {
@@ -129,6 +130,7 @@ struct comptime_executor_context
 	llvm::Function *error_ptr_clearer;
 
 	llvm::TargetMachine *target_machine;
+	llvm::legacy::PassManager pass_manager;
 	std::unique_ptr<llvm::ExecutionEngine> engine;
 };
 
