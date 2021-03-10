@@ -43,6 +43,9 @@ struct comptime_executor_context
 	llvm::Module &get_module(void) const noexcept;
 	abi::platform_abi get_platform_abi(void) const noexcept;
 
+	size_t get_size(ast::typespec_view ts);
+	size_t get_align(ast::typespec_view ts);
+
 	size_t get_size(llvm::Type *t) const;
 	size_t get_align(llvm::Type *t) const;
 	size_t get_offset(llvm::Type *t, size_t elem) const;
@@ -80,21 +83,19 @@ struct comptime_executor_context
 	[[nodiscard]] bool resolve_function(ast::function_body *body);
 
 
-	std::pair<ast::constant_value, bz::vector<source_highlight>> execute_function(
+	std::pair<ast::constant_value, bz::vector<error>> execute_function(
 		lex::src_tokens src_tokens,
 		ast::function_body *body,
 		bz::array_view<ast::constant_value const> params
 	);
-	std::pair<ast::constant_value, bz::vector<source_highlight>> execute_compound_expression(ast::expr_compound &expr);
+	std::pair<ast::constant_value, bz::vector<error>> execute_compound_expression(ast::expr_compound &expr);
 	void initialize_engine(void);
 	std::unique_ptr<llvm::ExecutionEngine> create_engine(std::unique_ptr<llvm::Module> module);
 	void add_base_functions_to_module(llvm::Module &module);
 	void add_module(std::unique_ptr<llvm::Module> module);
 
 	bool has_error(void);
-	source_highlight const &get_error(void);
-	source_highlight const &consume_error(void);
-	void clear_error(void);
+	bz::vector<std::pair<warning_kind, source_highlight const *>> consume_errors(void);
 
 	source_highlight const *insert_error(lex::src_tokens src_tokens, bz::u8string message);
 
@@ -125,9 +126,14 @@ struct comptime_executor_context
 	llvm::IRBuilder<> builder;
 
 	std::list<source_highlight> execution_errors;  // a list is used, so pointers to the errors are stable
-	llvm::Value *error_ptr;
-	llvm::Function *error_ptr_getter;
-	llvm::Function *error_ptr_clearer;
+	ast::decl_variable *errors_array;
+	std::pair<ast::function_body *, llvm::Function *> free_errors_func;
+	std::pair<ast::function_body *, llvm::Function *> get_error_count_func;
+	std::pair<ast::function_body *, llvm::Function *> get_error_kind_by_index_func;
+	std::pair<ast::function_body *, llvm::Function *> get_error_ptr_by_index_func;
+	std::pair<ast::function_body *, llvm::Function *> has_errors_func;
+	std::pair<ast::function_body *, llvm::Function *> add_error_func;
+	std::pair<ast::function_body *, llvm::Function *> clear_errors_func;
 
 	llvm::TargetMachine *target_machine;
 	llvm::legacy::PassManager pass_manager;

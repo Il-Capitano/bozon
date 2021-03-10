@@ -36,6 +36,7 @@ enum class resolve_state : int8_t
 
 struct stmt_while;
 struct stmt_for;
+struct stmt_foreach;
 struct stmt_return;
 struct stmt_no_op;
 struct stmt_static_assert;
@@ -53,6 +54,7 @@ struct decl_import;
 using statement_types = bz::meta::type_pack<
 	stmt_while,
 	stmt_for,
+	stmt_foreach,
 	stmt_return,
 	stmt_no_op,
 	stmt_static_assert,
@@ -197,6 +199,37 @@ struct stmt_for
 	{}
 };
 
+struct stmt_foreach
+{
+	statement  range_var_decl;
+	statement  begin_var_decl;
+	statement  end_var_decl;
+	statement  iter_var_decl;
+	expression condition;
+	expression iteration;
+	statement  for_block;
+
+	declare_default_5(stmt_foreach)
+
+	stmt_foreach(
+		statement  _range_var_decl,
+		statement  _begin_var_decl,
+		statement  _end_var_decl,
+		statement  _iter_var_decl,
+		expression _condition,
+		expression _iteration,
+		statement  _for_block
+	)
+		: range_var_decl(std::move(_range_var_decl)),
+		  begin_var_decl(std::move(_begin_var_decl)),
+		  end_var_decl  (std::move(_end_var_decl)),
+		  iter_var_decl (std::move(_iter_var_decl)),
+		  condition(std::move(_condition)),
+		  iteration(std::move(_iteration)),
+		  for_block(std::move(_for_block))
+	{}
+};
+
 struct stmt_return
 {
 	expression expr;
@@ -333,6 +366,7 @@ struct function_body
 		generic_specialization = bit_at<5>,
 		default_op_assign      = bit_at<6>,
 		default_op_move_assign = bit_at<7>,
+		no_comptime_checking   = bit_at<8>,
 	};
 
 	enum : uint8_t
@@ -364,6 +398,9 @@ struct function_body
 		println_stdout,
 		print_stderr,
 		println_stderr,
+
+		comptime_malloc,
+		comptime_free,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -507,6 +544,11 @@ struct function_body
 	bool is_default_op_move_assign(void) const noexcept
 	{
 		return (this->flags & default_op_move_assign) != 0;
+	}
+
+	bool is_no_comptime_checking(void) const noexcept
+	{
+		return (this->flags & no_comptime_checking) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(
@@ -920,6 +962,7 @@ def_make_fn(statement, decl_import)
 
 def_make_fn(statement, stmt_while)
 def_make_fn(statement, stmt_for)
+def_make_fn(statement, stmt_foreach)
 def_make_fn(statement, stmt_return)
 def_make_fn(statement, stmt_no_op)
 def_make_fn(statement, stmt_expression)
@@ -951,7 +994,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 80);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 82);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
@@ -979,6 +1022,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::println_stdout, "__builtin_println_stdout" },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
 		{ function_body::println_stderr, "__builtin_println_stderr" },
+
+		{ function_body::comptime_malloc, "__builtin_comptime_malloc" },
+		{ function_body::comptime_free,   "__builtin_comptime_free"   },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

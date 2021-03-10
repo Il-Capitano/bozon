@@ -62,6 +62,11 @@ function main(args: [: const str]) -> int32
 		std::println(args[i]);
 	}
 
+	consteval pointer_size = sizeof *void;
+	static_assert(pointer_size == 8u);
+	consteval tuple_size = sizeof [int32, int64];
+	static_assert(tuple_size == 16u);
+
 	std::println("");
 	std::println("hello");
 	std::println(123);

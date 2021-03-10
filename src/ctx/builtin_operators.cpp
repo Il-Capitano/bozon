@@ -808,9 +808,57 @@ static ast::expression get_builtin_unary_sizeof(
 	parse_context &context
 )
 {
-	auto const src_tokens = lex::src_tokens{ sizeof_pos, sizeof_pos, expr.get_tokens_end() };
-	context.report_error(src_tokens, "operator sizeof is not yet implemented");
-	return ast::expression(src_tokens);
+	bz_assert(sizeof_pos->kind == lex::token::kw_sizeof);
+	bz_assert(expr.not_null());
+	auto const src_tokens = expr.get_tokens_begin() == nullptr
+		? lex::src_tokens{ sizeof_pos, sizeof_pos, sizeof_pos + 1 }
+		: lex::src_tokens{ sizeof_pos, sizeof_pos, expr.get_tokens_end() };
+
+	if (expr.is_typename())
+	{
+		auto const type = expr.get_typename().as_typespec_view();
+		if (!ast::is_complete(type))
+		{
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an incomplete type '{}'", type));
+			return ast::expression(src_tokens);
+		}
+		else if (!context.is_instantiable(type))
+		{
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of a non-instantiable type '{}'", type));
+			return ast::expression(src_tokens);
+		}
+		auto const size = context.get_sizeof(type);
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::constant_value(size),
+			ast::make_expr_unary_op(sizeof_pos, std::move(expr))
+		);
+	}
+	else
+	{
+		auto const type = expr.get_expr_type_and_kind().first;
+		if (!ast::is_complete(type))
+		{
+			// this is in case type is empty; I don't see how we could get here otherwise
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an exprssion with incomplete type '{}'", type));
+			return ast::expression(src_tokens);
+		}
+		else if (!context.is_instantiable(type))
+		{
+			context.report_error(src_tokens, bz::format("cannot take 'sizeof' of an expression with non-instantiable type '{}'", type));
+			return ast::expression(src_tokens);
+		}
+		auto const size = context.get_sizeof(type);
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::constant_value(size),
+			ast::make_expr_unary_op(sizeof_pos, std::move(expr))
+		);
+	}
 }
 
 // typeof (val) -> (typeof val)

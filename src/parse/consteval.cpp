@@ -1420,7 +1420,7 @@ static ast::constant_value evaluate_function_call(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 82);
 		case ast::function_body::builtin_str_eq:
 		{
 			bz_assert(func_call.params.size() == 2);
@@ -1498,6 +1498,10 @@ static ast::constant_value evaluate_function_call(
 		case ast::function_body::println_stdout:
 		case ast::function_body::print_stderr:
 		case ast::function_body::println_stderr:
+			return {};
+
+		case ast::function_body::comptime_malloc:
+		case ast::function_body::comptime_free:
 			return {};
 
 		case ast::function_body::memcpy:

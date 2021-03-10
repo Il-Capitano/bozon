@@ -35,9 +35,6 @@ static llvm::Constant *get_value(
 );
 
 
-static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level = true);
-
-
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
 	llvm::Type *llvm_type,
@@ -111,10 +108,12 @@ static llvm::Value *get_constant_zero(
 
 static void emit_error_check(ctx::comptime_executor_context &context)
 {
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
 	bz_assert(context.error_bb != nullptr);
-	auto const error_ptr = context.builder.CreateLoad(context.error_ptr);
-	auto const null_val = llvm::ConstantInt::get(error_ptr->getType(), 0);
-	auto const has_error_val = context.builder.CreateICmp(llvm::CmpInst::ICMP_NE, error_ptr, null_val);
+	auto const has_error_val = context.builder.CreateCall(context.has_errors_func.second);
 	auto const continue_bb = context.add_basic_block("error_check_continue");
 	context.builder.CreateCondBr(has_error_val, context.error_bb, continue_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -127,17 +126,23 @@ static void emit_error_assert(
 	ctx::comptime_executor_context &context
 )
 {
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
 	bz_assert(context.error_bb != nullptr);
 	auto const fail_bb = context.add_basic_block("error_assert_fail");
 	auto const continue_bb = context.add_basic_block("error_assert_continue");
 	context.builder.CreateCondBr(bool_val, continue_bb, fail_bb);
 	context.builder.SetInsertPoint(fail_bb);
+	auto const error_kind_val = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
 	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
+	static_assert(sizeof(void *) == 8);
 	auto const error_ptr_int_val = llvm::ConstantInt::get(
-		context.error_ptr_getter->getReturnType(),
+		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
-	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
+	context.builder.CreateCall(context.add_error_func.second, { error_kind_val, error_ptr_int_val });
 	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
@@ -148,12 +153,18 @@ static void emit_error(
 	ctx::comptime_executor_context &context
 )
 {
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	auto const error_kind_val = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
 	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
+	static_assert(sizeof(void *) == 8);
 	auto const error_ptr_int_val = llvm::ConstantInt::get(
-		context.error_ptr_getter->getReturnType(),
+		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
-	context.builder.CreateStore(error_ptr_int_val, context.error_ptr);
+	context.builder.CreateCall(context.add_error_func.second, { error_kind_val, error_ptr_int_val });
 	auto const continue_bb = context.add_basic_block("error_dummy_continue");
 	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -2005,7 +2016,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 82);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2231,7 +2242,7 @@ static val_ptr emit_bitcode(
 	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
 
 	bz_assert(func_call.func_body != nullptr);
-	if (func_call.func_body->body.is_null())
+	if (!func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
 		emit_error(
 			func_call.src_tokens,
@@ -2928,6 +2939,19 @@ static val_ptr emit_bitcode(
 		return {};
 	}
 
+	llvm::Value *then_val_value = nullptr;
+	llvm::Value *else_val_value = nullptr;
+	if (
+		then_val.has_value() && else_val.has_value()
+		&& (then_val.kind != val_ptr::reference || else_val.kind != val_ptr::reference)
+	)
+	{
+		context.builder.SetInsertPoint(then_bb_end);
+		then_val_value = then_val.get_value(context.builder);
+		context.builder.SetInsertPoint(else_bb_end);
+		else_val_value = else_val.get_value(context.builder);
+	}
+
 	auto const end_bb = context.add_basic_block("endif");
 	// create branches for the entry block
 	context.builder.SetInsertPoint(entry_bb);
@@ -2966,8 +2990,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		auto const then_val_value = then_val.get_value(context.builder);
-		auto const else_val_value = else_val.get_value(context.builder);
+		bz_assert(then_val_value != nullptr && else_val_value != nullptr);
 		auto const result = context.builder.CreatePHI(then_val_value->getType(), 2);
 		result->addIncoming(then_val_value, then_bb_end);
 		result->addIncoming(else_val_value, else_bb_end);
@@ -3548,7 +3571,7 @@ static llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, ctx::comp
 	}
 }
 
-static llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level)
+llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level)
 {
 	switch (ts.kind())
 	{
@@ -3743,7 +3766,11 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	// bz_assert(func_body.symbol_name != "");
 	auto const name_string = [&]() -> bz::u8string {
-		if (func_body.function_name_or_operator_kind.is<ast::identifier>())
+		if (func_body.symbol_name != "")
+		{
+			return func_body.symbol_name;
+		}
+		else if (func_body.function_name_or_operator_kind.is<ast::identifier>())
 		{
 			return func_body.function_name_or_operator_kind.get<ast::identifier>().as_string();
 		}
@@ -3976,6 +4003,7 @@ static void emit_function_bitcode_impl(
 	context.builder.CreateBr(entry_bb);
 
 	// true means it failed
+	/*
 	if (llvm::verifyFunction(*fn, &llvm::dbgs()) == true)
 	{
 		bz::log(
@@ -3985,6 +4013,7 @@ static void emit_function_bitcode_impl(
 			colors::clear
 		);
 	}
+	*/
 	context.current_function = {};
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;
@@ -4012,6 +4041,50 @@ void emit_function_bitcode(
 	case abi::platform_abi::systemv_amd64:
 		emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
 			func_body, context
+		);
+		return;
+	}
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
+static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::comptime_executor_context &context)
+{
+	auto const name = var_decl.id.format_for_symbol();
+	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
+	auto const type = get_llvm_type(var_decl.var_type, context);
+	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
+	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
+	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
+	bz_assert(var_decl.init_expr.is<ast::constant_expression>());
+	auto const &const_expr = var_decl.init_expr.get<ast::constant_expression>();
+	auto const init_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+	global_var->setInitializer(init_val);
+	context.add_variable(&var_decl, global_var);
+}
+
+void emit_global_variable(ast::decl_variable const &var_decl, ctx::comptime_executor_context &context)
+{
+	if (context.vars_.find(&var_decl) != context.vars_.end())
+	{
+		return;
+	}
+	auto const abi = context.get_platform_abi();
+	switch (abi)
+	{
+	case abi::platform_abi::generic:
+		emit_global_variable_impl<abi::platform_abi::generic>(
+			var_decl, context
+		);
+		return;
+	case abi::platform_abi::microsoft_x64:
+		emit_global_variable_impl<abi::platform_abi::microsoft_x64>(
+			var_decl, context
+		);
+		return;
+	case abi::platform_abi::systemv_amd64:
+		emit_global_variable_impl<abi::platform_abi::systemv_amd64>(
+			var_decl, context
 		);
 		return;
 	}

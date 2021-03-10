@@ -362,6 +362,7 @@ struct parse_context
 	);
 
 	bool is_instantiable(ast::typespec_view ts);
+	size_t get_sizeof(ast::typespec_view ts);
 
 	bz::vector<ast::function_body *> get_function_bodies_from_unqualified_id(
 		lex::src_tokens requester,

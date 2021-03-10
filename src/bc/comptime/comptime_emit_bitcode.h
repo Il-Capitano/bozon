@@ -11,6 +11,7 @@ namespace bc::comptime
 
 llvm::Function *add_function_to_module(ast::function_body *func_body, ctx::comptime_executor_context &context);
 void emit_function_bitcode(ast::function_body &func_body, ctx::comptime_executor_context &context);
+void emit_global_variable(ast::decl_variable const &var_decl, ctx::comptime_executor_context &context);
 
 void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_executor_context &context);
 void add_builtin_functions(ctx::comptime_executor_context &context);
@@ -26,6 +27,8 @@ std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_co
 	ast::expr_compound &expr,
 	ctx::comptime_executor_context &context
 );
+
+llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level = true);
 
 } // namespace bc::comptime
 

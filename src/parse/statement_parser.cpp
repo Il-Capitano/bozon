@@ -3,6 +3,7 @@
 #include "consteval.h"
 #include "parse_common.h"
 #include "token_info.h"
+#include "ctx/global_context.h"
 
 namespace parse
 {
@@ -2311,6 +2312,19 @@ static void apply_attribute(
 }
 
 static void apply_attribute(
+	ast::stmt_foreach &,
+	ast::attribute const &attribute,
+	ctx::parse_context &context
+)
+{
+	context.report_warning(
+		ctx::warning_kind::unknown_attribute,
+		attribute.name,
+		bz::format("unknown attribute '{}'", attribute.name->value)
+	);
+}
+
+static void apply_attribute(
 	ast::stmt_return &,
 	ast::attribute const &attribute,
 	ctx::parse_context &context
@@ -2364,7 +2378,7 @@ static void apply_attribute(
 
 static void apply_attribute(
 	ast::decl_variable &var_decl,
-	ast::attribute const &attribute,
+	ast::attribute &attribute,
 	ctx::parse_context &context
 )
 {
@@ -2378,6 +2392,37 @@ static void apply_attribute(
 			);
 		}
 		var_decl.is_used = true;
+	}
+	else if (attribute.name->value == "comptime_error_checking")
+	{
+		if (attribute.args.size() != 1)
+		{
+			context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+			return;
+		}
+
+		{
+			consteval_try(attribute.args[0], context);
+			auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			if (
+				!type_without_const.is<ast::ts_base_type>()
+				|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+			)
+			{
+				context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
+				return;
+			}
+		}
+
+		auto const kind = attribute.args[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::string>().as_string_view();
+
+		if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
+		{
+			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+		}
 	}
 	else
 	{
@@ -2509,6 +2554,57 @@ static void apply_symbol_name(
 	func_body.symbol_name = symbol_name;
 }
 
+static void apply_no_comptime_checking(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (!attribute.args.empty())
+	{
+		context.report_error(attribute.name, "@no_comptime_checking expects no arguments");
+	}
+
+	func_body.flags |= ast::function_body::no_comptime_checking;
+}
+
+static void apply_comptime_error_checking(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.args.size() != 1)
+	{
+		context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+		return;
+	}
+
+	{
+		consteval_try(attribute.args[0], context);
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
+			return;
+		}
+	}
+
+	auto const kind = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+
+	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
+	{
+		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+	}
+	func_body.flags |= ast::function_body::no_comptime_checking;
+}
+
 static void apply_attribute(
 	ast::decl_function &func_decl,
 	ast::attribute &attribute,
@@ -2545,6 +2641,14 @@ static void apply_attribute(
 	{
 		apply_symbol_name(func_decl.body, attribute, context);
 	}
+	else if (attr_name == "no_comptime_checking")
+	{
+		apply_no_comptime_checking(func_decl.body, attribute, context);
+	}
+	else if (attr_name == "comptime_error_checking")
+	{
+		apply_comptime_error_checking(func_decl.body, attribute, context);
+	}
 	else
 	{
 		context.report_warning(
@@ -2569,6 +2673,14 @@ static void apply_attribute(
 	else if (attr_name == "symbol_name")
 	{
 		apply_symbol_name(op_decl.body, attribute, context);
+	}
+	else if (attr_name == "no_comptime_checking")
+	{
+		apply_no_comptime_checking(op_decl.body, attribute, context);
+	}
+	else if (attr_name == "comptime_error_checking")
+	{
+		apply_comptime_error_checking(op_decl.body, attribute, context);
 	}
 	else
 	{
@@ -2658,21 +2770,21 @@ static void resolve_attributes(
 			return;
 		}
 		auto [stream, end] = attribute.arg_tokens;
-		if (stream == end)
-		{
-			continue;
-		}
-		attribute.args = parse_expression_comma_list(stream, end, context);
 		if (stream != end)
 		{
-			context.report_error({ stream, stream, end });
-		}
-
-		for (auto &arg : attribute.args)
-		{
-			if (arg.not_null() && !arg.is<ast::constant_expression>())
+			attribute.args = parse_expression_comma_list(stream, end, context);
+			if (stream != end)
 			{
-				context.report_error(arg, "attribute argument must be a constant expression");
+				context.report_error({ stream, stream, end });
+			}
+
+			for (auto &arg : attribute.args)
+			{
+				parse::consteval_try(arg, context);
+				if (arg.not_null() && !arg.is<ast::constant_expression>())
+				{
+					context.report_error(arg, "attribute argument must be a constant expression");
+				}
 			}
 		}
 

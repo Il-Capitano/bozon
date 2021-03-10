@@ -1884,7 +1884,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 80);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 82);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2719,6 +2719,19 @@ static val_ptr emit_bitcode(
 		return {};
 	}
 
+	llvm::Value *then_val_value = nullptr;
+	llvm::Value *else_val_value = nullptr;
+	if (
+		then_val.has_value() && else_val.has_value()
+		&& (then_val.kind != val_ptr::reference || else_val.kind != val_ptr::reference)
+	)
+	{
+		context.builder.SetInsertPoint(then_bb_end);
+		then_val_value = then_val.get_value(context.builder);
+		context.builder.SetInsertPoint(else_bb_end);
+		else_val_value = else_val.get_value(context.builder);
+	}
+
 	auto const end_bb = context.add_basic_block("endif");
 	// create branches for the entry block
 	context.builder.SetInsertPoint(entry_bb);
@@ -2757,8 +2770,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		auto const then_val_value = then_val.get_value(context.builder);
-		auto const else_val_value = else_val.get_value(context.builder);
+		bz_assert(then_val_value != nullptr && else_val_value != nullptr);
 		auto const result = context.builder.CreatePHI(then_val_value->getType(), 2);
 		result->addIncoming(then_val_value, then_bb_end);
 		result->addIncoming(else_val_value, else_bb_end);

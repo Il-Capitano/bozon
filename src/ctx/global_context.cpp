@@ -285,6 +285,62 @@ decl_set const &global_context::get_file_export_decls(uint32_t file_id)
 	return this->get_src_file(file_id)._export_decls;
 }
 
+bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
+{
+	if (kind == "free_errors")
+	{
+		this->_comptime_executor.free_errors_func.first = func_body;
+		return true;
+	}
+	else if (kind == "get_error_count")
+	{
+		this->_comptime_executor.get_error_count_func.first = func_body;
+		return true;
+	}
+	else if (kind == "get_error_kind_by_index")
+	{
+		this->_comptime_executor.get_error_kind_by_index_func.first = func_body;
+		return true;
+	}
+	else if (kind == "get_error_ptr_by_index")
+	{
+		this->_comptime_executor.get_error_ptr_by_index_func.first = func_body;
+		return true;
+	}
+	else if (kind == "has_errors")
+	{
+		this->_comptime_executor.has_errors_func.first = func_body;
+		return true;
+	}
+	else if (kind == "add_error")
+	{
+		this->_comptime_executor.add_error_func.first = func_body;
+		return true;
+	}
+	else if (kind == "clear_errors")
+	{
+		this->_comptime_executor.clear_errors_func.first = func_body;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl)
+{
+	if (kind == "errors_var")
+	{
+		this->_comptime_executor.errors_array = var_decl;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 
 void global_context::report_and_clear_errors_and_warnings(void)
 {
@@ -465,6 +521,15 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	else if (!source_file.ends_with(".bz"))
 	{
 		this->report_error("source file name must end in '.bz'");
+		return false;
+	}
+
+	auto const comptime_checking_file_path = fs::path("./bozon-stdlib/std/comptime_checking.bz");
+	auto &comptime_checking_file = this->_src_files.emplace_back(
+		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
+	);
+	if (!comptime_checking_file.parse_global_symbols(*this))
+	{
 		return false;
 	}
 

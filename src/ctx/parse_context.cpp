@@ -4346,14 +4346,23 @@ ast::expression parse_context::make_subscript_operator_expression(
 			}
 			else
 			{
-				this->report_error(
-					src_tokens,
-					bz::format(
-						"invalid operator [] with types '{}' and '{}'",
-						called.get_expr_type_and_kind().first, arg.get_expr_type_and_kind().first
-					)
-				);
-				return ast::expression(src_tokens);
+				auto const possible_funcs = get_possible_funcs_for_operator(lex::token::square_open, src_tokens, called, arg, *this);
+				auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+				if (best_body == nullptr)
+				{
+					return ast::expression(src_tokens);
+				}
+				else
+				{
+					bz::vector<ast::expression> params;
+					params.reserve(2);
+					params.emplace_back(std::move(called));
+					params.emplace_back(std::move(arg));
+					called = make_expr_function_call_from_body(
+						src_tokens, best_body, std::move(params),
+						*this, ast::resolve_order::regular
+					);
+				}
 			}
 		}
 		return called;
@@ -4605,6 +4614,12 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 	return false;
 }
 
+size_t parse_context::get_sizeof(ast::typespec_view ts)
+{
+	// constexpr uint64_t invalid_size = std::numeric_limits<uint64_t>::max();
+	return this->global_ctx._comptime_executor.get_size(ts);
+}
+
 bz::vector<ast::function_body *> parse_context::get_function_bodies_from_unqualified_id(
 	lex::src_tokens requester,
 	bz::array_view<bz::u8string_view const> id
@@ -4711,19 +4726,19 @@ ast::constant_value parse_context::execute_function(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, fail_notes] = this->global_ctx._comptime_executor.execute_function(
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
 		src_tokens,
 		body,
 		params
 	);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!fail_notes.empty())
+	if (!errors.empty())
 	{
-		this->report_error(
-			src_tokens,
-			"failed to evaluate function call in a constant expression",
-			std::move(fail_notes)
-		);
+		for (auto &error : errors)
+		{
+			error.notes.push_back(this->make_note(src_tokens, "while evaluating function call in a constant expression"));
+			this->global_ctx.report_error(std::move(error));
+		}
 	}
 	return result;
 }
@@ -4735,15 +4750,15 @@ ast::constant_value parse_context::execute_compound_expression(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
-	auto [result, fail_notes] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
-	if (!fail_notes.empty())
+	if (!errors.empty())
 	{
-		this->report_error(
-			src_tokens,
-			"failed to evaluate compound expression in a constant expression",
-			std::move(fail_notes)
-		);
+		for (auto &error : errors)
+		{
+			error.notes.push_back(this->make_note(src_tokens, "while evaluating compound expression in a constant expression"));
+			this->global_ctx.report_error(std::move(error));
+		}
 	}
 	return result;
 }

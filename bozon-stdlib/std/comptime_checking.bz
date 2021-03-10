@@ -1,0 +1,137 @@
+struct error_t
+{
+	.kind: uint32;
+	.ptr:  uint64;
+}
+
+struct error_array_t
+{
+	.data_begin: *error_t;
+	.data_end:   *error_t;
+	.alloc_end:  *error_t;
+}
+
+@no_comptime_checking
+function push_back(arr: &error_array_t, val: error_t)
+{
+	if (arr.data_begin == null)
+	{
+		const new_array = __builtin_pointer_cast(*error_t, __builtin_comptime_malloc(sizeof error_t));
+		arr.data_begin = new_array;
+		arr.data_end   = new_array;
+		arr.alloc_end  = new_array + 1;
+	}
+	else if (arr.data_end == arr.alloc_end)
+	{
+		const old_capacity = (arr.alloc_end - arr.data_begin) as uint64;
+		const new_capacity = 2u * old_capacity;
+		const new_array = __builtin_pointer_cast(*error_t, __builtin_comptime_malloc(new_capacity * sizeof error_t));
+		for (let i = 0u64; i < old_capacity; ++i)
+		{
+			*(new_array + i) = *(arr.data_begin + i);
+		}
+		__builtin_comptime_free(arr.data_begin);
+		arr.data_begin = new_array;
+		arr.data_end   = new_array + old_capacity;
+		arr.alloc_end  = new_array + new_capacity;
+	}
+
+	*arr.data_end = val;
+	++arr.data_end;
+}
+
+@no_comptime_checking
+function size(arr: &const error_array_t) -> uint64
+{
+	return (arr.data_end - arr.data_begin) as uint64;
+}
+
+@no_comptime_checking
+function empty(arr: &const error_array_t) -> bool
+{
+	return arr.data_begin == arr.data_end;
+}
+
+@no_comptime_checking
+function clear(arr: &error_array_t)
+{
+	arr.data_end = arr.data_begin;
+}
+
+@no_comptime_checking
+function free_array(arr: &error_array_t)
+{
+	__builtin_comptime_free(arr.data_end);
+	arr.data_begin = null;
+	arr.data_end   = null;
+	arr.alloc_end  = null;
+}
+
+@no_comptime_checking
+operator [] (arr: &error_array_t, i: uint64) -> &error_t
+{
+	return *(arr.data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (arr: &const error_array_t, i: uint64) -> &const error_t
+{
+	return *(arr.data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (arr: &error_array_t, i: int64) -> &error_t
+{
+	return *(arr.data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (arr: &const error_array_t, i: int64) -> &const error_t
+{
+	return *(arr.data_begin + i);
+}
+
+@comptime_error_checking("errors_var")
+let errors = error_array_t[ null, null, null ];
+
+@comptime_error_checking("free_errors")
+function free_errors()
+{
+	errors.free_array();
+}
+
+@comptime_error_checking("get_error_count")
+function get_error_count() -> uint64
+{
+	return errors.size();
+}
+
+@comptime_error_checking("get_error_kind_by_index")
+function get_error_kind_by_index(i: uint64) -> uint32
+{
+	return if (i < errors.size()) { errors[i].kind } else { 0u32 };
+}
+
+@comptime_error_checking("get_error_ptr_by_index")
+function get_error_ptr_by_index(i: uint64) -> uint64
+{
+	return if (i < errors.size()) { errors[i].ptr } else { 0u64 };
+}
+
+@comptime_error_checking("has_errors")
+function has_errors() -> bool
+{
+	return !errors.empty();
+}
+
+@comptime_error_checking("add_error")
+function add_error(kind: uint32, err: uint64)
+{
+	errors.push_back(error_t[ kind, err ]);
+}
+
+@comptime_error_checking("clear_errors")
+function clear_errors()
+{
+	errors.clear();
+}
