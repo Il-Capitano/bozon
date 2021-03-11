@@ -102,6 +102,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
 	ctcli::create_hidden_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),
 	ctcli::create_hidden_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
+	ctcli::create_hidden_option("--use-interpreter",              "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
 
@@ -119,6 +120,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--outp
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-ir-output")> = &debug_comptime_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--use-interpreter")>          = &use_interpreter;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;

@@ -658,13 +658,14 @@ void comptime_executor_context::initialize_engine(void)
 			: std::string(target.data_as_char_ptr(), target.size());
 		module->setTargetTriple(target_triple);
 		this->add_base_functions_to_module(*module);
-		this->engine = this->create_engine(std::move(module));
-
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
 		this->pass_manager.add(llvm::createReassociatePass());
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
 		// this->pass_manager.add(llvm::createGVNPass());
+		this->pass_manager.run(*module);
+
+		this->engine = this->create_engine(std::move(module));
 	}
 }
 
@@ -682,6 +683,7 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
 	builder
+		.setEngineKind(use_interpreter ? llvm::EngineKind::Interpreter : llvm::EngineKind::Either)
 		.setErrorStr(&err)
 		.setOptLevel(llvm::CodeGenOpt::None);
 	auto const result = builder.create();
