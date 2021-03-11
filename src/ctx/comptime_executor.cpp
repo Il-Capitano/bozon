@@ -647,8 +647,8 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
 		// this->pass_manager.add(llvm::createGVNPass());
 
-		// this->pass_manager.run(*module);
-		// this->pass_manager.run(*module);
+		this->pass_manager.run(*module);
+		this->pass_manager.run(*module);
 
 		this->engine = this->create_engine(std::move(module));
 	}
