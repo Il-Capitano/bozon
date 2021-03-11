@@ -851,7 +851,12 @@ ast::statement parse_decl_type_alias(
 			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
 		);
 		bz_assert(result.is<ast::decl_type_alias>());
-		resolve_type_alias(result.get<ast::decl_type_alias>(), context);
+		auto &type_alias = result.get<ast::decl_type_alias>();
+		resolve_type_alias(type_alias, context);
+		if (type_alias.state != ast::resolve_state::error)
+		{
+			context.add_local_type_alias(type_alias);
+		}
 		return result;
 	}
 }

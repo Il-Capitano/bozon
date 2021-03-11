@@ -3300,6 +3300,7 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_operator>:
 	case ast::statement::index<ast::decl_struct>:
 	case ast::statement::index<ast::decl_import>:
+	case ast::statement::index<ast::decl_type_alias>:
 		break;
 	default:
 		bz_unreachable;

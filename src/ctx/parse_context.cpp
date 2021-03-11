@@ -762,6 +762,12 @@ void parse_context::add_local_operator(ast::decl_operator &op_decl)
 	this->scope_decls.back().add_operator(op_decl);
 }
 
+void parse_context::add_local_type_alias(ast::decl_type_alias &type_alias)
+{
+	bz_assert(this->scope_decls.size() != 0);
+	this->scope_decls.back().add_type_alias(type_alias);
+}
+
 /*
 void parse_context::add_local_struct(ast::decl_struct &struct_decl)
 {

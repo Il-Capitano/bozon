@@ -310,6 +310,7 @@ struct parse_context
 	void add_local_function(ast::decl_function &func_decl);
 	void add_local_operator(ast::decl_operator &op_decl);
 	void add_local_struct(ast::decl_struct &struct_decl);
+	void add_local_type_alias(ast::decl_type_alias &type_alias);
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
