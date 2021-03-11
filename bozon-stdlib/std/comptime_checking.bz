@@ -1,7 +1,15 @@
+struct call_stack_t
+{
+	.data_begin: *uint64;
+	.data_end:   *uint64;
+	.alloc_end:  *uint64;
+}
+
 struct error_t
 {
 	.kind: uint32;
 	.ptr:  uint64;
+	.call_stack: [: const uint64];
 }
 
 struct error_array_t
@@ -12,11 +20,25 @@ struct error_array_t
 }
 
 @no_comptime_checking
-function push_back(arr: &error_array_t, val: error_t)
+function alloc(T: typename, count: uint64) -> *T
 {
+	return __builtin_pointer_cast(*T, __builtin_comptime_malloc(count * sizeof T));
+}
+
+@no_comptime_checking
+function free(p: *const void)
+{
+	__builtin_comptime_free(p);
+}
+
+@no_comptime_checking
+function push_back(arr: &auto, val: auto)
+{
+	type value_type = typeof *arr.data_begin;
+	static_assert(value_type == error_t || value_type == uint64);
 	if (arr.data_begin == null)
 	{
-		const new_array = __builtin_pointer_cast(*error_t, __builtin_comptime_malloc(sizeof error_t));
+		const new_array = alloc(value_type, 1u);
 		arr.data_begin = new_array;
 		arr.data_end   = new_array;
 		arr.alloc_end  = new_array + 1;
@@ -25,12 +47,12 @@ function push_back(arr: &error_array_t, val: error_t)
 	{
 		const old_capacity = (arr.alloc_end - arr.data_begin) as uint64;
 		const new_capacity = 2u * old_capacity;
-		const new_array = __builtin_pointer_cast(*error_t, __builtin_comptime_malloc(new_capacity * sizeof error_t));
+		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0u64; i < old_capacity; ++i)
 		{
 			*(new_array + i) = *(arr.data_begin + i);
 		}
-		__builtin_comptime_free(arr.data_begin);
+		free(arr.data_begin);
 		arr.data_begin = new_array;
 		arr.data_end   = new_array + old_capacity;
 		arr.alloc_end  = new_array + new_capacity;
@@ -41,52 +63,99 @@ function push_back(arr: &error_array_t, val: error_t)
 }
 
 @no_comptime_checking
+function pop_back(arr: &call_stack_t)
+{
+	if (arr.data_begin == arr.data_end)
+	{
+		return;
+	}
+	--arr.data_end;
+}
+
+// this is in conflict with the builtin size() function for slices if it's auto
+@no_comptime_checking
+function size(arr: &const call_stack_t) -> uint64
+{
+	return (arr.data_end - arr.data_begin) as uint64;
+}
+
+@no_comptime_checking
 function size(arr: &const error_array_t) -> uint64
 {
 	return (arr.data_end - arr.data_begin) as uint64;
 }
 
 @no_comptime_checking
-function empty(arr: &const error_array_t) -> bool
+function empty(arr: &const auto) -> bool
 {
 	return arr.data_begin == arr.data_end;
 }
 
 @no_comptime_checking
-function clear(arr: &error_array_t)
+function clear(arr: &call_stack_t)
 {
 	arr.data_end = arr.data_begin;
 }
 
 @no_comptime_checking
-function free_array(arr: &error_array_t)
+function clear(arr: &error_array_t)
 {
-	__builtin_comptime_free(arr.data_end);
+	for (let it = arr.data_end; it != arr.data_begin;)
+	{
+		--it;
+		(*it).destruct();
+	}
+	arr.data_end = arr.data_begin;
+}
+
+@no_comptime_checking
+function destruct(arr: &call_stack_t)
+{
+	free(arr.data_begin);
 	arr.data_begin = null;
 	arr.data_end   = null;
 	arr.alloc_end  = null;
 }
 
 @no_comptime_checking
-operator [] (arr: &error_array_t, i: uint64) -> &error_t
+function destruct(err: &error_t)
+{
+	if (err.call_stack.begin() != null)
+	{
+		free(err.call_stack.begin());
+	}
+}
+
+@no_comptime_checking
+function destruct(arr: &error_array_t)
+{
+	arr.clear();
+	free(arr.data_begin);
+	arr.data_begin = null;
+	arr.data_end   = null;
+	arr.alloc_end  = null;
+}
+
+@no_comptime_checking
+operator [] (arr: &auto, i: uint64) -> &typeof *arr.data_begin
 {
 	return *(arr.data_begin + i);
 }
 
 @no_comptime_checking
-operator [] (arr: &const error_array_t, i: uint64) -> &const error_t
+operator [] (arr: &const auto, i: uint64) -> &const typeof *arr.data_begin
 {
 	return *(arr.data_begin + i);
 }
 
 @no_comptime_checking
-operator [] (arr: &error_array_t, i: int64) -> &error_t
+operator [] (arr: &auto, i: int64) -> &typeof *arr.data_begin
 {
 	return *(arr.data_begin + i);
 }
 
 @no_comptime_checking
-operator [] (arr: &const error_array_t, i: int64) -> &const error_t
+operator [] (arr: &const auto, i: int64) -> &const typeof *arr.data_begin
 {
 	return *(arr.data_begin + i);
 }
@@ -94,10 +163,15 @@ operator [] (arr: &const error_array_t, i: int64) -> &const error_t
 @comptime_error_checking("errors_var")
 let errors = error_array_t[ null, null, null ];
 
-@comptime_error_checking("free_errors")
+@comptime_error_checking("call_stack_var")
+let call_stack = call_stack_t[ null, null, null ];
+
+
+@comptime_error_checking("free_arrays")
 function free_errors()
 {
-	errors.free_array();
+	errors.destruct();
+	call_stack.destruct();
 }
 
 @comptime_error_checking("get_error_count")
@@ -118,6 +192,18 @@ function get_error_ptr_by_index(i: uint64) -> uint64
 	return if (i < errors.size()) { errors[i].ptr } else { 0u64 };
 }
 
+@comptime_error_checking("get_error_call_stack_size_by_index")
+function get_error_call_stack_size_by_index(i: uint64) -> uint64
+{
+	return if (i < errors.size()) { errors[i].call_stack.size() } else { 0u64 };
+}
+
+@comptime_error_checking("get_error_call_stack_element_by_index")
+function get_error_call_stack_element_by_index(i: uint64, j: uint64) -> uint64
+{
+	return if (i < errors.size() && j < errors[i].call_stack.size()) { errors[i].call_stack[j] } else { 0u64 };
+}
+
 @comptime_error_checking("has_errors")
 function has_errors() -> bool
 {
@@ -127,7 +213,31 @@ function has_errors() -> bool
 @comptime_error_checking("add_error")
 function add_error(kind: uint32, err: uint64)
 {
-	errors.push_back(error_t[ kind, err ]);
+	const call_stack_size = call_stack.size();
+	const call_stack_array = if (call_stack_size == 0u) {
+			__builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64)
+		} else {
+			const ptr = alloc(uint64, call_stack_size);
+			const result = __builtin_slice_from_ptrs(ptr, ptr + call_stack_size);
+			for (let i = 0u; i < call_stack_size; ++i)
+			{
+				result[i] = call_stack[i];
+			}
+			result
+		};
+	errors.push_back(error_t[ kind, err, call_stack_array ]);
+}
+
+@comptime_error_checking("push_call")
+function push_call(call: uint64)
+{
+	call_stack.push_back(call);
+}
+
+@comptime_error_checking("pop_call")
+function pop_call()
+{
+	call_stack.pop_back();
 }
 
 @comptime_error_checking("clear_errors")

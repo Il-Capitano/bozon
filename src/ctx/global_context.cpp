@@ -287,9 +287,9 @@ decl_set const &global_context::get_file_export_decls(uint32_t file_id)
 
 bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	if (kind == "free_errors")
+	if (kind == "free_arrays")
 	{
-		this->_comptime_executor.free_errors_func.first = func_body;
+		this->_comptime_executor.free_arrays_func.first = func_body;
 		return true;
 	}
 	else if (kind == "get_error_count")
@@ -307,6 +307,16 @@ bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast:
 		this->_comptime_executor.get_error_ptr_by_index_func.first = func_body;
 		return true;
 	}
+	else if (kind == "get_error_call_stack_size_by_index")
+	{
+		this->_comptime_executor.get_error_call_stack_size_by_index_func.first = func_body;
+		return true;
+	}
+	else if (kind == "get_error_call_stack_element_by_index")
+	{
+		this->_comptime_executor.get_error_call_stack_element_by_index_func.first = func_body;
+		return true;
+	}
 	else if (kind == "has_errors")
 	{
 		this->_comptime_executor.has_errors_func.first = func_body;
@@ -315,6 +325,16 @@ bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast:
 	else if (kind == "add_error")
 	{
 		this->_comptime_executor.add_error_func.first = func_body;
+		return true;
+	}
+	else if (kind == "push_call")
+	{
+		this->_comptime_executor.push_call_func.first = func_body;
+		return true;
+	}
+	else if (kind == "pop_call")
+	{
+		this->_comptime_executor.pop_call_func.first = func_body;
 		return true;
 	}
 	else if (kind == "clear_errors")
@@ -333,6 +353,11 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 	if (kind == "errors_var")
 	{
 		this->_comptime_executor.errors_array = var_decl;
+		return true;
+	}
+	else if (kind == "call_stack_var")
+	{
+		this->_comptime_executor.call_stack = var_decl;
 		return true;
 	}
 	else

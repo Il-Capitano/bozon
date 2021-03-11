@@ -22,35 +22,14 @@ namespace ctx
 
 comptime_executor_context::comptime_executor_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
-	  current_parse_ctx(nullptr),
-	  current_module(nullptr),
-	  vars_{},
-	  types_{},
-	  functions_to_compile{},
-	  current_function{ nullptr, nullptr },
-	  error_bb(nullptr),
-	  alloca_bb(nullptr),
-	  output_pointer(nullptr),
-	  builder(_global_ctx._llvm_context),
-	  execution_errors{},
-	  errors_array(nullptr),
-	  free_errors_func{ nullptr, nullptr },
-	  get_error_count_func{ nullptr, nullptr },
-	  get_error_kind_by_index_func{ nullptr, nullptr },
-	  get_error_ptr_by_index_func{ nullptr, nullptr },
-	  has_errors_func{ nullptr, nullptr },
-	  add_error_func{ nullptr, nullptr },
-	  clear_errors_func{ nullptr, nullptr },
-	  target_machine(nullptr),
-	  pass_manager(),
-	  engine(nullptr)
+	  builder(_global_ctx._llvm_context)
 {}
 
 comptime_executor_context::~comptime_executor_context(void)
 {
 	if (this->engine != nullptr)
 	{
-		this->engine->runFunction(this->free_errors_func.second, {});
+		this->engine->runFunction(this->free_arrays_func.second, {});
 	}
 }
 
@@ -588,10 +567,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		auto const call_result = this->engine->runFunction(fn, {});
 		if (this->has_error())
 		{
-			auto const errors = this->consume_errors();
-			result.second.append(errors.transform([](auto const &pair) {
-				return error{ pair.first, *pair.second, {}, {} };
-			}));
+			auto errors = this->consume_errors();
+			result.second.append_move(errors);
 		}
 		else if (global_result_getters.empty())
 		{
@@ -633,10 +610,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	auto const call_result = this->engine->runFunction(fn, {});
 	if (this->has_error())
 	{
-		auto const errors = this->consume_errors();
-		result.second.append(errors.transform([](auto const &pair) {
-			return error{ pair.first, *pair.second, {}, {} };
-		}));
+		auto errors = this->consume_errors();
+		result.second.append_move(errors);
 	}
 	else if (global_result_getters.empty())
 	{
@@ -672,8 +647,8 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
 		// this->pass_manager.add(llvm::createGVNPass());
 
-		this->pass_manager.run(*module);
-		this->pass_manager.run(*module);
+		// this->pass_manager.run(*module);
+		// this->pass_manager.run(*module);
 
 		this->engine = this->create_engine(std::move(module));
 	}
@@ -717,10 +692,12 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 
 	bz_assert(this->errors_array != nullptr);
 	bc::comptime::emit_global_variable(*this->errors_array, *this);
+	bz_assert(this->call_stack != nullptr);
+	bc::comptime::emit_global_variable(*this->call_stack, *this);
 
-	bz_assert(this->free_errors_func.first != nullptr);
-	this->free_errors_func.second = bc::comptime::add_function_to_module(this->free_errors_func.first, *this);
-	this->functions_to_compile.push_back(this->free_errors_func.first);
+	bz_assert(this->free_arrays_func.first != nullptr);
+	this->free_arrays_func.second = bc::comptime::add_function_to_module(this->free_arrays_func.first, *this);
+	this->functions_to_compile.push_back(this->free_arrays_func.first);
 
 	bz_assert(this->get_error_count_func.first != nullptr);
 	this->get_error_count_func.second = bc::comptime::add_function_to_module(this->get_error_count_func.first, *this);
@@ -734,6 +711,14 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	this->get_error_ptr_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_ptr_by_index_func.first, *this);
 	this->functions_to_compile.push_back(this->get_error_ptr_by_index_func.first);
 
+	bz_assert(this->get_error_call_stack_size_by_index_func.first != nullptr);
+	this->get_error_call_stack_size_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_call_stack_size_by_index_func.first, *this);
+	this->functions_to_compile.push_back(this->get_error_call_stack_size_by_index_func.first);
+
+	bz_assert(this->get_error_call_stack_element_by_index_func.first != nullptr);
+	this->get_error_call_stack_element_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_call_stack_element_by_index_func.first, *this);
+	this->functions_to_compile.push_back(this->get_error_call_stack_element_by_index_func.first);
+
 	bz_assert(this->has_errors_func.first != nullptr);
 	this->has_errors_func.second = bc::comptime::add_function_to_module(this->has_errors_func.first, *this);
 	this->functions_to_compile.push_back(this->has_errors_func.first);
@@ -741,6 +726,14 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	bz_assert(this->add_error_func.first != nullptr);
 	this->add_error_func.second = bc::comptime::add_function_to_module(this->add_error_func.first, *this);
 	this->functions_to_compile.push_back(this->add_error_func.first);
+
+	bz_assert(this->push_call_func.first != nullptr);
+	this->push_call_func.second = bc::comptime::add_function_to_module(this->push_call_func.first, *this);
+	this->functions_to_compile.push_back(this->push_call_func.first);
+
+	bz_assert(this->pop_call_func.first != nullptr);
+	this->pop_call_func.second = bc::comptime::add_function_to_module(this->pop_call_func.first, *this);
+	this->functions_to_compile.push_back(this->pop_call_func.first);
 
 	bz_assert(this->clear_errors_func.first != nullptr);
 	this->clear_errors_func.second = bc::comptime::add_function_to_module(this->clear_errors_func.first, *this);
@@ -782,11 +775,11 @@ bool comptime_executor_context::has_error(void)
 	}
 }
 
-bz::vector<std::pair<warning_kind, source_highlight const *>> comptime_executor_context::consume_errors(void)
+bz::vector<error> comptime_executor_context::consume_errors(void)
 {
 	bz_assert(this->engine != nullptr);
 	auto const error_count = this->engine->runFunction(this->get_error_count_func.second, {}).IntVal.getLimitedValue();
-	bz::vector<std::pair<warning_kind, source_highlight const *>> result;
+	bz::vector<error> result;
 	result.reserve(error_count);
 	llvm::GenericValue index;
 	for (size_t i = 0; i < error_count; ++i)
@@ -814,8 +807,58 @@ bz::vector<std::pair<warning_kind, source_highlight const *>> comptime_executor_
 				return this->engine->runFunction(this->get_error_ptr_by_index_func.second, index).IntVal.getLimitedValue();
 			}
 		}();
+		auto const call_stack_notes = [&]() {
+			bz::vector<source_highlight> notes;
+			auto const call_stack_size = [&]() -> uint64_t {
+				auto const func_ptr = this->engine->getFunctionAddress(
+					this->get_error_call_stack_size_by_index_func.second->getName().str()
+				);
+				if (func_ptr != 0)
+				{
+					return reinterpret_cast<uint64_t (*)(uint64_t)>(func_ptr)(i);
+				}
+				else
+				{
+					return this->engine->runFunction(this->get_error_ptr_by_index_func.second, index).IntVal.getLimitedValue();
+				}
+			}();
+			notes.reserve(call_stack_size);
+			llvm::GenericValue call_stack_index;
+			for (uint64_t j = call_stack_size; j != 0;)
+			{
+				--j;
+				auto const call_ptr_int_val = [&]() -> uint64_t {
+					auto const func_ptr = this->engine->getFunctionAddress(
+						this->get_error_call_stack_element_by_index_func.second->getName().str()
+					);
+					if (func_ptr != 0)
+					{
+						return reinterpret_cast<uint64_t (*)(uint64_t, uint64_t)>(func_ptr)(i, j);
+					}
+					else
+					{
+						call_stack_index.IntVal = j;
+						return this->engine->runFunction(
+							this->get_error_ptr_by_index_func.second,
+							{ index, call_stack_index }
+						).IntVal.getLimitedValue();
+					}
+				}();
+				bz_assert(call_ptr_int_val != 0);
+				auto const call_ptr = reinterpret_cast<comptime_func_call const *>(call_ptr_int_val);
+				notes.emplace_back(this->make_note(
+					call_ptr->src_tokens,
+					bz::format("in call to '{}'", call_ptr->func_body->get_signature())
+				));
+			}
+			return notes;
+		}();
 		bz_assert(error_ptr != 0);
-		result.push_back({ static_cast<warning_kind>(error_kind), reinterpret_cast<source_highlight const *>(error_ptr) });
+		result.push_back({
+			static_cast<warning_kind>(error_kind),
+			*reinterpret_cast<source_highlight const *>(error_ptr),
+			std::move(call_stack_notes), {}
+		});
 	}
 	this->engine->runFunction(this->clear_errors_func.second, {});
 	return result;
@@ -823,12 +866,18 @@ bz::vector<std::pair<warning_kind, source_highlight const *>> comptime_executor_
 
 source_highlight const *comptime_executor_context::insert_error(lex::src_tokens src_tokens, bz::u8string message)
 {
-	auto const &result = this->execution_errors.emplace_back( source_highlight{
+	auto const &result = this->execution_errors.emplace_back(source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 		suggestion_range{}, suggestion_range{},
 		std::move(message)
 	});
+	return &result;
+}
+
+comptime_func_call const *comptime_executor_context::insert_call(lex::src_tokens src_tokens, ast::function_body const *body)
+{
+	auto const &result = this->execution_calls.emplace_back(comptime_func_call{ src_tokens, body });
 	return &result;
 }
 
@@ -863,6 +912,16 @@ error comptime_executor_context::make_error(
 			std::move(message),
 		},
 		std::move(notes), std::move(suggestions)
+	};
+}
+
+source_highlight comptime_executor_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+{
+	return source_highlight{
+		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+		src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+		suggestion_range{}, suggestion_range{},
+		std::move(message),
 	};
 }
 

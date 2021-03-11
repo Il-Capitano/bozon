@@ -17,6 +17,12 @@ namespace ctx
 struct global_context;
 struct parse_context;
 
+struct comptime_func_call
+{
+	lex::src_tokens src_tokens;
+	ast::function_body const *func_body;
+};
+
 struct comptime_executor_context
 {
 	comptime_executor_context(global_context &_global_ctx);
@@ -97,9 +103,10 @@ struct comptime_executor_context
 	void add_module(std::unique_ptr<llvm::Module> module);
 
 	bool has_error(void);
-	bz::vector<std::pair<warning_kind, source_highlight const *>> consume_errors(void);
+	bz::vector<error> consume_errors(void);
 
 	source_highlight const *insert_error(lex::src_tokens src_tokens, bz::u8string message);
+	comptime_func_call const *insert_call(lex::src_tokens src_tokens, ast::function_body const *body);
 
 	[[nodiscard]] static error make_error(
 		bz::u8string message,
@@ -109,37 +116,45 @@ struct comptime_executor_context
 		lex::src_tokens src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	);
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
 
 
 	global_context &global_ctx;
-	parse_context *current_parse_ctx;
-	llvm::Module *current_module;
+	parse_context *current_parse_ctx = nullptr;
+	llvm::Module *current_module = nullptr;
 
-	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
-	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
-	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
+	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
+	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
+	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
-	bz::vector<ast::function_body *> functions_to_compile;
+	bz::vector<ast::function_body *> functions_to_compile{};
 
-	std::pair<ast::function_body const *, llvm::Function *> current_function;
-	llvm::BasicBlock *error_bb;
-	llvm::BasicBlock *alloca_bb;
-	llvm::Value *output_pointer;
+	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
+	llvm::BasicBlock *error_bb  = nullptr;
+	llvm::BasicBlock *alloca_bb = nullptr;
+	llvm::Value *output_pointer = nullptr;
 	llvm::IRBuilder<> builder;
 
-	std::list<source_highlight> execution_errors;  // a list is used, so pointers to the errors are stable
-	ast::decl_variable *errors_array;
-	std::pair<ast::function_body *, llvm::Function *> free_errors_func;
-	std::pair<ast::function_body *, llvm::Function *> get_error_count_func;
-	std::pair<ast::function_body *, llvm::Function *> get_error_kind_by_index_func;
-	std::pair<ast::function_body *, llvm::Function *> get_error_ptr_by_index_func;
-	std::pair<ast::function_body *, llvm::Function *> has_errors_func;
-	std::pair<ast::function_body *, llvm::Function *> add_error_func;
-	std::pair<ast::function_body *, llvm::Function *> clear_errors_func;
+	std::list<source_highlight>   execution_errors{}; // a list is used, so pointers are stable
+	std::list<comptime_func_call> execution_calls{};  // a list is used, so pointers are stable
 
-	llvm::TargetMachine *target_machine;
-	llvm::legacy::PassManager pass_manager;
-	std::unique_ptr<llvm::ExecutionEngine> engine;
+	ast::decl_variable *errors_array = nullptr;
+	ast::decl_variable *call_stack   = nullptr;
+	std::pair<ast::function_body *, llvm::Function *> free_arrays_func                           = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> get_error_count_func                       = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> get_error_kind_by_index_func               = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> get_error_ptr_by_index_func                = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> get_error_call_stack_size_by_index_func    = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> get_error_call_stack_element_by_index_func = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> has_errors_func                            = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> add_error_func                             = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> push_call_func                             = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> pop_call_func                              = { nullptr, nullptr };
+	std::pair<ast::function_body *, llvm::Function *> clear_errors_func                          = { nullptr, nullptr };
+
+	llvm::TargetMachine *target_machine = nullptr;
+	llvm::legacy::PassManager pass_manager{};
+	std::unique_ptr<llvm::ExecutionEngine> engine{};
 };
 
 } // namespace ctx

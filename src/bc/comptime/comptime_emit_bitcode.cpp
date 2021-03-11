@@ -170,6 +170,33 @@ static void emit_error(
 	context.builder.SetInsertPoint(continue_bb);
 }
 
+static void emit_push_call(
+	lex::src_tokens src_tokens,
+	ast::function_body const *func_body,
+	ctx::comptime_executor_context &context
+)
+{
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	auto const call_ptr = context.insert_call(src_tokens, func_body);
+	auto const call_ptr_int_val = llvm::ConstantInt::get(
+		context.get_uint64_t(),
+		reinterpret_cast<uint64_t>(call_ptr)
+	);
+	context.builder.CreateCall(context.push_call_func.second, { call_ptr_int_val });
+}
+
+static void emit_pop_call(ctx::comptime_executor_context &context)
+{
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	context.builder.CreateCall(context.pop_call_func.second);
+}
+
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
@@ -2391,6 +2418,10 @@ static val_ptr emit_bitcode(
 		}
 	}
 
+	if (!func_call.func_body->is_no_comptime_checking())
+	{
+		emit_push_call(func_call.src_tokens, func_call.func_body, context);
+	}
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
 	call->setCallingConv(fn->getCallingConv());
 	auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
@@ -2415,6 +2446,10 @@ static val_ptr emit_bitcode(
 		}
 	}
 
+	if (!func_call.func_body->is_no_comptime_checking())
+	{
+		emit_pop_call(context);
+	}
 	emit_error_check(context);
 
 	switch (result_kind)
@@ -3532,6 +3567,7 @@ static void emit_bitcode(
 	case ast::statement::index<ast::decl_operator>:
 	case ast::statement::index<ast::decl_struct>:
 	case ast::statement::index<ast::decl_import>:
+	case ast::statement::index<ast::decl_type_alias>:
 		break;
 	default:
 		bz_unreachable;
