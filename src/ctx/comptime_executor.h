@@ -26,6 +26,8 @@ struct comptime_executor_context
 	comptime_executor_context &operator = (comptime_executor_context const &) = delete;
 	comptime_executor_context &operator = (comptime_executor_context &&)      = delete;
 
+	~comptime_executor_context(void);
+
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);

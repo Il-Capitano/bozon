@@ -46,6 +46,14 @@ comptime_executor_context::comptime_executor_context(global_context &_global_ctx
 	  engine(nullptr)
 {}
 
+comptime_executor_context::~comptime_executor_context(void)
+{
+	if (this->engine != nullptr)
+	{
+		this->engine->runFunction(this->free_errors_func.second, {});
+	}
+}
+
 ast::type_info *comptime_executor_context::get_builtin_type_info(uint32_t kind)
 {
 	return this->global_ctx.get_builtin_type_info(kind);
@@ -663,6 +671,8 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createReassociatePass());
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
 		// this->pass_manager.add(llvm::createGVNPass());
+
+		this->pass_manager.run(*module);
 		this->pass_manager.run(*module);
 
 		this->engine = this->create_engine(std::move(module));
@@ -746,6 +756,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
 	bz_assert(this->engine != nullptr);
+	this->pass_manager.run(*module);
 	this->pass_manager.run(*module);
 	if (debug_comptime_ir_output)
 	{
