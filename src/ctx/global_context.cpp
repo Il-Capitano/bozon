@@ -68,7 +68,7 @@ global_context::global_context(void)
 	  _builtin_type_infos(ast::make_builtin_type_infos()),
 	  _builtin_types(ast::make_builtin_types(this->_builtin_type_infos)),
 	  _builtin_functions(ast::make_builtin_functions(this->_builtin_type_infos)),
-	  _builtin_universal_functions(ast::make_builtin_universal_functions(this->_builtin_functions)),
+	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -102,10 +102,26 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
 	bz_assert(kind < this->_builtin_functions.size());
+	if (kind == ast::function_body::builtin_str_eq)
+	{
+		bz_assert(this->_builtin_str_eq_func != nullptr);
+		return this->_builtin_str_eq_func;
+	}
+	else if (kind == ast::function_body::builtin_str_neq)
+	{
+		bz_assert(this->_builtin_str_neq_func != nullptr);
+		return this->_builtin_str_neq_func;
+	}
+	else if (kind == ast::function_body::builtin_str_length)
+	{
+		bz_assert(this->_builtin_str_length_func != nullptr);
+		return this->_builtin_str_length_func;
+	}
+
 	return &this->_builtin_functions[kind];
 }
 
-bz::array_view<ast::function_body * const> global_context::get_builtin_universal_functions(bz::u8string_view id)
+bz::array_view<uint32_t const> global_context::get_builtin_universal_functions(bz::u8string_view id)
 {
 	auto const it = std::find_if(
 		this->_builtin_universal_functions.begin(), this->_builtin_universal_functions.end(),
@@ -115,7 +131,7 @@ bz::array_view<ast::function_body * const> global_context::get_builtin_universal
 	);
 	if (it != this->_builtin_universal_functions.end())
 	{
-		return it->funcs;
+		return it->func_kinds;
 	}
 	else
 	{
@@ -366,6 +382,35 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 	}
 }
 
+bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
+{
+	if (kind == "str_eq")
+	{
+		bz_assert(this->_builtin_str_eq_func == nullptr);
+		func_body->intrinsic_kind = ast::function_body::builtin_str_eq;
+		this->_builtin_str_eq_func = func_body;
+		return true;
+	}
+	else if (kind == "str_neq")
+	{
+		bz_assert(this->_builtin_str_neq_func == nullptr);
+		func_body->intrinsic_kind = ast::function_body::builtin_str_neq;
+		this->_builtin_str_neq_func = func_body;
+		return true;
+	}
+	else if (kind == "str_length")
+	{
+		bz_assert(this->_builtin_str_length_func == nullptr);
+		func_body->intrinsic_kind = ast::function_body::builtin_str_length;
+		this->_builtin_str_length_func = func_body;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 
 void global_context::report_and_clear_errors_and_warnings(void)
 {
@@ -605,7 +650,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
-		func->resolve_symbol_name();
 		bc::runtime::add_function_to_module(func, context);
 		if (func->is_external_linkage())
 		{

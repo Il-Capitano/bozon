@@ -2449,8 +2449,8 @@ static val_ptr emit_bitcode(
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
 		emit_pop_call(context);
+		emit_error_check(context);
 	}
-	emit_error_check(context);
 
 	switch (result_kind)
 	{

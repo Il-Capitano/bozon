@@ -57,7 +57,7 @@ ast::function_body *parse_context::get_builtin_function(uint32_t kind) const
 	return this->global_ctx.get_builtin_function(kind);
 }
 
-bz::array_view<ast::function_body * const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
+bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz::u8string_view id)
 {
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
@@ -2255,15 +2255,17 @@ static match_level_t get_strict_typename_match_level(
 		return match_level_t{};
 	}
 
+	int result = 0;
 	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
 	{
 		dest = dest.blind_get();
 		source = source.blind_get();
+		++result;
 	}
 
 	if (dest.is<ast::ts_typename>())
 	{
-		return static_cast<int>(source.nodes.size());
+		return result;
 	}
 	else if (dest.kind() != source.kind())
 	{
@@ -2271,11 +2273,11 @@ static match_level_t get_strict_typename_match_level(
 	}
 	else if (dest.is<ast::ts_array>())
 	{
-		return get_strict_typename_match_level(dest.get<ast::ts_array>().elem_type, source.get<ast::ts_array>().elem_type);
+		return get_strict_typename_match_level(dest.get<ast::ts_array>().elem_type, source.get<ast::ts_array>().elem_type) + result;
 	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
-		return get_strict_typename_match_level(dest.get<ast::ts_array_slice>().elem_type, source.get<ast::ts_array_slice>().elem_type);
+		return get_strict_typename_match_level(dest.get<ast::ts_array_slice>().elem_type, source.get<ast::ts_array_slice>().elem_type) + result;
 	}
 	else
 	{
@@ -2290,26 +2292,28 @@ static match_level_t get_strict_type_match_level(
 )
 {
 	bz_assert(ast::is_complete(source));
+	int result = 0;
 	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
 	{
 		dest = dest.blind_get();
 		source = source.blind_get();
+		++result;
 	}
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	bz_assert(!source.is<ast::ts_unresolved>());
 
-	if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
-	{
-		return static_cast<int>(source.nodes.size());
-	}
-	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
+	if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
 		bz_assert(!source.is<ast::ts_consteval>());
-		return static_cast<int>(source.nodes.size());
+		return result + 1;
 	}
 	else if (dest == source)
 	{
-		return 0;
+		return result + 2;
+	}
+	else if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
+	{
+		return result;
 	}
 	else
 	{
@@ -2329,22 +2333,22 @@ static match_level_t get_type_match_level(
 	//     -> else expr is some base type, try implicitly casting it
 	//     -> special case for *void
 	// *const T
-	//     -> same as before, but U doesn't have to be const (no need to strict match), +1 match level if U is not const
+	//     -> same as before, but U doesn't have to be const (no need to strict match), +1 match level if U is const
 	// &T
 	//     -> expr must be an lvalue
 	//     -> strict match type of expr to T
+	//     -> +1 match level because it matched the refererence
 	// &const T
 	//     -> expr must be an lvalue
-	//     -> type of expr doesn't need to be const, +1 match level if U is not const
+	//     -> type of expr doesn't need to be const, +1 match level if U is const
+	//     -> +1 match level because it matched the refererence
 	// T
 	//     -> if type of expr is T, then there's nothing to do
 	//     -> else try to implicitly cast expr to T
-	//     -> +2 match level because it didn't match reference and reference const qualifier
 	// const T -> match to T (no need to worry about const)
 	if (dest.is<ast::ts_const>())
 	{
-		// + 2, because it didn't match reference and reference const qualifier
-		return get_type_match_level(dest.get<ast::ts_const>(), expr, context) + 2;
+		return get_type_match_level(dest.get<ast::ts_const>(), expr, context);
 	}
 	else if (dest.is<ast::ts_consteval>())
 	{
@@ -2355,8 +2359,7 @@ static match_level_t get_type_match_level(
 		}
 		else
 		{
-			// + 2, because it didn't match reference and reference const qualifier
-			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context) + 2;
+			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
 		}
 	}
 
@@ -2394,11 +2397,11 @@ static match_level_t get_type_match_level(
 				// return the worse match
 				if (then_result < else_result)
 				{
-					return else_result;
+					return then_result;
 				}
 				else
 				{
-					return then_result;
+					return else_result;
 				}
 			}
 
@@ -2412,11 +2415,11 @@ static match_level_t get_type_match_level(
 				// return the worse match
 				if (then_result < else_result)
 				{
-					return else_result;
+					return then_result;
 				}
 				else
 				{
-					return then_result;
+					return else_result;
 				}
 			}
 
@@ -2431,11 +2434,11 @@ static match_level_t get_type_match_level(
 				// return the worse match
 				if (then_result < after_match_else_result)
 				{
-					return after_match_else_result;
+					return then_result;
 				}
 				else
 				{
-					return then_result;
+					return after_match_else_result;
 				}
 			}
 			else if (after_match_else_result.is_null())
@@ -2443,11 +2446,11 @@ static match_level_t get_type_match_level(
 				// return the worse match
 				if (after_match_then_result < else_result)
 				{
-					return else_result;
+					return after_match_then_result;
 				}
 				else
 				{
-					return after_match_then_result;
+					return else_result;
 				}
 			}
 			else
@@ -2471,7 +2474,6 @@ static match_level_t get_type_match_level(
 
 	if (dest.is<ast::ts_pointer>())
 	{
-		// + 2 needs to be added everywhere, because it didn't match reference and reference const qualifier
 		if (expr_type_without_const.is<ast::ts_pointer>())
 		{
 			auto const inner_dest = dest.get<ast::ts_pointer>();
@@ -2484,7 +2486,7 @@ static match_level_t get_type_match_level(
 				}
 				else
 				{
-					return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type, true) + 3;
+					return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), inner_expr_type, true) + 1;
 				}
 			}
 			else
@@ -2500,7 +2502,8 @@ static match_level_t get_type_match_level(
 		{
 			if (ast::is_complete(dest))
 			{
-				return 3;
+				// a conversion takes place, so its match level is 0
+				return 0;
 			}
 			else
 			{
@@ -2520,16 +2523,16 @@ static match_level_t get_type_match_level(
 		{
 			if (expr_type.is<ast::ts_const>())
 			{
-				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false) + 5;
 			}
 			else
 			{
-				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false) + 1;
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false) + 2;
 			}
 		}
 		else
 		{
-			return get_strict_type_match_level(inner_dest, expr_type, false);
+			return get_strict_type_match_level(inner_dest, expr_type, false) + 5;
 		}
 	}
 	else if (dest.is<ast::ts_auto_reference>())
@@ -2539,7 +2542,7 @@ static match_level_t get_type_match_level(
 		{
 			if (expr_type.is<ast::ts_const>())
 			{
-				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
+				return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false) + 4;
 			}
 			else
 			{
@@ -2548,21 +2551,14 @@ static match_level_t get_type_match_level(
 		}
 		else
 		{
-			return get_strict_type_match_level(inner_dest, expr_type, false);
+			return get_strict_type_match_level(inner_dest, expr_type, false) + 4;
 		}
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
 	{
 		auto const inner_dest = dest.get<ast::ts_auto_reference_const>();
 		bz_assert(!inner_dest.is<ast::ts_const>());
-		if (expr_type.is<ast::ts_const>())
-		{
-			return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
-		}
-		else
-		{
-			return get_strict_type_match_level(inner_dest.get<ast::ts_const>(), expr_type_without_const, false);
-		}
+		return get_strict_type_match_level(inner_dest, expr_type_without_const, false) + 3;
 	}
 
 	// only implicit type conversions are left
@@ -2591,15 +2587,16 @@ static match_level_t get_type_match_level(
 			? expr_type.is<ast::ts_const>()
 			: expr_elem_t.is<ast::ts_const>();
 		auto const expr_elem_t_without_const = ast::remove_const_or_consteval(expr_elem_t);
+		int const is_slice = expr_type_without_const.is<ast::ts_array_slice>() ? 1 : 0;
 		if (dest_elem_t.is<ast::ts_const>())
 		{
 			if (is_const_expr_elem_t)
 			{
-				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + 2;
+				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + (2 + is_slice);
 			}
 			else
 			{
-				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + 3;
+				return get_strict_type_match_level(dest_elem_t.get<ast::ts_const>(), expr_elem_t_without_const, false) + (1 + is_slice);
 			}
 		}
 		else
@@ -2610,7 +2607,7 @@ static match_level_t get_type_match_level(
 			}
 			else
 			{
-				return get_strict_type_match_level(dest_elem_t, expr_elem_t_without_const, false) + 2;
+				return get_strict_type_match_level(dest_elem_t, expr_elem_t_without_const, false) + (2 + is_slice);
 			}
 		}
 	}
@@ -2631,7 +2628,7 @@ static match_level_t get_type_match_level(
 	}
 	else if (dest.is<ast::ts_auto>())
 	{
-		return get_strict_type_match_level(dest, expr_type_without_const, false) + 2;
+		return get_strict_type_match_level(dest, expr_type_without_const, false);
 	}
 	else if (dest == expr_type_without_const)
 	{
@@ -2639,7 +2636,7 @@ static match_level_t get_type_match_level(
 	}
 	else if (is_implicitly_convertible(dest, expr, context))
 	{
-		return 3;
+		return 1;
 	}
 	return match_level_t{};
 }
@@ -3363,18 +3360,18 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 {
 	if (!possible_funcs.empty())
 	{
-		auto const min_match_it = std::min_element(possible_funcs.begin(), possible_funcs.end(), [](auto const &lhs, auto const &rhs) {
+		auto const max_match_it = std::max_element(possible_funcs.begin(), possible_funcs.end(), [](auto const &lhs, auto const &rhs) {
 			return lhs.match_level < rhs.match_level;
 		});
-		bz_assert(min_match_it != possible_funcs.end());
-		if (min_match_it->match_level.not_null())
+		bz_assert(max_match_it != possible_funcs.end());
+		if (max_match_it->match_level.not_null())
 		{
 			// search for possible ambiguity
 			auto filtered_funcs = possible_funcs
-				.filter([&](auto const &func) { return &*min_match_it == &func || match_level_compare(min_match_it->match_level, func.match_level) == 0; });
+				.filter([&](auto const &func) { return &*max_match_it == &func || match_level_compare(max_match_it->match_level, func.match_level) == 0; });
 			if (filtered_funcs.count() == 1)
 			{
-				return { min_match_it->stmt, min_match_it->func_body };
+				return { max_match_it->stmt, max_match_it->func_body };
 			}
 			else
 			{
@@ -4070,8 +4067,8 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 	bz::vector<possible_func_t> possible_funcs = {};
 	if (id.values.size() == 1)
 	{
-		auto const bodies = context.get_builtin_universal_functions(id.values.front());
-		for (auto const body : bodies)
+		auto const kinds = context.get_builtin_universal_functions(id.values.front());
+		for (auto const body : kinds.transform([&](auto const kind) { return context.global_ctx.get_builtin_function(kind); }))
 		{
 			auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
 			if (match_level.not_null())

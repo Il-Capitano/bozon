@@ -1254,6 +1254,7 @@ static bool resolve_function_symbol_helper(
 	{
 		report_invalid_main_error(func_body, context);
 	}
+	func_body.resolve_symbol_name();
 	context.add_function_for_compilation(func_body);
 	return true;
 }
@@ -2610,6 +2611,43 @@ static void apply_comptime_error_checking(
 	func_body.flags |= ast::function_body::no_comptime_checking;
 }
 
+static void apply_builtin(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.args.size() != 1)
+	{
+		context.report_error(attribute.name, "@builtin expects exactly one argument");
+		return;
+	}
+
+	{
+		consteval_try(attribute.args[0], context);
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "kind in @builtin must have type 'str'");
+			return;
+		}
+	}
+
+	auto const kind = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+
+	if (!context.global_ctx.add_builtin_function(kind, &func_body))
+	{
+		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @builtin", kind));
+	}
+	func_body.flags |= ast::function_body::intrinsic;
+}
+
 static void apply_attribute(
 	ast::decl_function &func_decl,
 	ast::attribute &attribute,
@@ -2654,6 +2692,10 @@ static void apply_attribute(
 	{
 		apply_comptime_error_checking(func_decl.body, attribute, context);
 	}
+	else if (attr_name == "builtin")
+	{
+		apply_builtin(func_decl.body, attribute, context);
+	}
 	else
 	{
 		context.report_warning(
@@ -2686,6 +2728,10 @@ static void apply_attribute(
 	else if (attr_name == "comptime_error_checking")
 	{
 		apply_comptime_error_checking(op_decl.body, attribute, context);
+	}
+	else if (attr_name == "builtin")
+	{
+		apply_builtin(op_decl.body, attribute, context);
 	}
 	else
 	{

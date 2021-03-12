@@ -979,13 +979,13 @@ struct type_and_name_pair
 struct universal_function_set
 {
 	bz::u8string_view id;
-	bz::vector<function_body *> funcs;
+	bz::vector<uint32_t> func_kinds;
 };
 
 bz::vector<type_info>              make_builtin_type_infos(void);
 bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info>     builtin_type_infos);
 bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info>     builtin_type_infos);
-bz::vector<universal_function_set> make_builtin_universal_functions(bz::array_view<function_body> builtin_functions);
+bz::vector<universal_function_set> make_builtin_universal_functions(void);
 
 struct intrinsic_info_t
 {

@@ -3542,6 +3542,14 @@ static llvm::Function *create_function_from_symbol_impl(
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
+	if (func_body.body.is_null())
+	{
+		if (auto const prev_fn = context.get_module().getFunction(name))
+		{
+			return prev_fn;
+		}
+	}
+
 	auto const fn = llvm::Function::Create(
 		func_t, linkage,
 		name, context.get_module()

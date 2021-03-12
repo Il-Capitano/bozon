@@ -493,9 +493,9 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
 	bz::vector result = {
-		add_builtin( 0, function_body::builtin_str_eq,     "__bozon_builtin_str_eq",     bool_type,   str_type, str_type),
-		add_builtin( 1, function_body::builtin_str_neq,    "__bozon_builtin_str_neq",    bool_type,   str_type, str_type),
-		add_builtin( 2, function_body::builtin_str_length, "__bozon_builtin_str_length", uint64_type, str_type),
+		add_builtin( 0, function_body::builtin_str_eq,     "", bool_type,   str_type, str_type),
+		add_builtin( 1, function_body::builtin_str_neq,    "", bool_type,   str_type, str_type),
+		add_builtin( 2, function_body::builtin_str_length, "", uint64_type, str_type),
 
 		add_builtin( 3, function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
 		add_builtin( 4, function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
@@ -592,32 +592,13 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 	return result;
 }
 
-bz::vector<universal_function_set> make_builtin_universal_functions(bz::array_view<function_body> builtin_functions)
+bz::vector<universal_function_set> make_builtin_universal_functions(void)
 {
 	return {
-		{
-			"length", {
-				&builtin_functions[function_body::builtin_str_length]
-			}
-		},
-		{
-			"size", {
-				&builtin_functions[function_body::builtin_str_size],
-				&builtin_functions[function_body::builtin_slice_size]
-			}
-		},
-		{
-			"begin", {
-				&builtin_functions[function_body::builtin_slice_begin_ptr],
-				&builtin_functions[function_body::builtin_slice_begin_const_ptr]
-			}
-		},
-		{
-			"end", {
-				&builtin_functions[function_body::builtin_slice_end_ptr],
-				&builtin_functions[function_body::builtin_slice_end_const_ptr]
-			}
-		}
+		{ "length", { function_body::builtin_str_length                                                    } },
+		{ "size",   { function_body::builtin_str_size,        function_body::builtin_slice_size            } },
+		{ "begin",  { function_body::builtin_slice_begin_ptr, function_body::builtin_slice_begin_const_ptr } },
+		{ "end",    { function_body::builtin_slice_end_ptr,   function_body::builtin_slice_end_const_ptr   } },
 	};
 }
 
