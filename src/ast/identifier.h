@@ -88,6 +88,15 @@ inline identifier make_identifier(lex::token_pos id)
 	};
 }
 
+inline identifier make_identifier(bz::u8string_view id)
+{
+	return {
+		{},
+		{ id },
+		false
+	};
+}
+
 inline identifier make_identifier(lex::token_range tokens)
 {
 	bz_assert(tokens.begin != nullptr);

@@ -349,36 +349,36 @@ struct expr_tuple
 
 struct expr_unary_op
 {
-	lex::token_pos op;
-	expression     expr;
+	uint32_t   op;
+	expression expr;
 
 	declare_default_5(expr_unary_op)
 
 	expr_unary_op(
-		lex::token_pos _op,
-		expression     _expr
+		uint32_t   _op,
+		expression _expr
 	)
-		: op     (_op),
-		  expr   (std::move(_expr))
+		: op  (_op),
+		  expr(std::move(_expr))
 	{}
 };
 
 struct expr_binary_op
 {
-	lex::token_pos op;
-	expression     lhs;
-	expression     rhs;
+	uint32_t   op;
+	expression lhs;
+	expression rhs;
 
 	declare_default_5(expr_binary_op)
 
 	expr_binary_op(
-		lex::token_pos _op,
-		expression     _lhs,
-		expression     _rhs
+		uint32_t   _op,
+		expression _lhs,
+		expression _rhs
 	)
-		: op     (_op),
-		  lhs    (std::move(_lhs)),
-		  rhs    (std::move(_rhs))
+		: op (_op),
+		  lhs(std::move(_lhs)),
+		  rhs(std::move(_rhs))
 	{}
 };
 

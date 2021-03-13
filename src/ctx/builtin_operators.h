@@ -39,26 +39,30 @@ constexpr bool is_arithmetic_kind(uint32_t kind)
 
 
 ast::expression make_builtin_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 );
 
 ast::expression make_builtin_type_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 );
 
 ast::expression make_builtin_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 );
 
 ast::expression make_builtin_type_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context

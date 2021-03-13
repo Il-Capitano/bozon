@@ -3553,7 +3553,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 
 ast::expression parse_context::make_unary_operator_expression(
 	lex::src_tokens src_tokens,
-	lex::token_pos op,
+	uint32_t op_kind,
 	ast::expression expr
 )
 {
@@ -3563,32 +3563,31 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
-	if (is_unary_type_op(op->kind) && expr.is_typename())
+	if (is_unary_type_op(op_kind) && expr.is_typename())
 	{
-		auto result = make_builtin_type_operation(op, std::move(expr), *this);
-		result.src_tokens = src_tokens;
+		auto result = make_builtin_type_operation(src_tokens, op_kind, std::move(expr), *this);
 		return result;
 	}
-	else if (is_unary_type_op(op->kind) && !is_unary_builtin_operator(op->kind))
+	else if (is_unary_type_op(op_kind) && !is_unary_builtin_operator(op_kind))
 	{
-		bz_assert(!is_overloadable_operator(op->kind));
-		this->report_error(expr, bz::format("expected a type after '{}'", op->value));
+		bz_assert(!is_overloadable_operator(op_kind));
+		this->report_error(expr, bz::format("expected a type after '{}'", token_info[op_kind].token_value));
 	}
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
-		!is_unary_overloadable_operator(op->kind)
-		|| (is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op->kind))
+		!is_unary_overloadable_operator(op_kind)
+		|| (is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op_kind))
 	)
 	{
-		auto result = make_builtin_operation(op, std::move(expr), *this);
+		auto result = make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
 
-	auto const possible_funcs = get_possible_funcs_for_operator(op->kind, src_tokens, expr, *this);
+	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, expr, *this);
 	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{
@@ -3713,7 +3712,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 
 ast::expression parse_context::make_binary_operator_expression(
 	lex::src_tokens src_tokens,
-	lex::token_pos op,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs
 )
@@ -3724,7 +3723,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		return ast::expression(src_tokens);
 	}
 
-	if (op->kind == lex::token::kw_as)
+	if (op_kind == lex::token::kw_as)
 	{
 		bool good = true;
 		if (lhs.is_typename())
@@ -3745,13 +3744,13 @@ ast::expression parse_context::make_binary_operator_expression(
 		return this->make_cast_expression(src_tokens, std::move(lhs), std::move(rhs.get_typename()));
 	}
 
-	if (is_binary_type_op(op->kind) && lhs.is_typename() && rhs.is_typename())
+	if (is_binary_type_op(op_kind) && lhs.is_typename() && rhs.is_typename())
 	{
-		auto result = make_builtin_type_operation(op, std::move(lhs), std::move(rhs), *this);
+		auto result = make_builtin_type_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
-	else if (is_binary_type_op(op->kind) && !is_binary_builtin_operator(op->kind))
+	else if (is_binary_type_op(op_kind) && !is_binary_builtin_operator(op_kind))
 	{
 		// there's no operator such as this ('as' is handled earlier)
 		bz_unreachable;
@@ -3762,20 +3761,20 @@ ast::expression parse_context::make_binary_operator_expression(
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
 	if (
-		!is_binary_overloadable_operator(op->kind)
+		!is_binary_overloadable_operator(op_kind)
 		|| (
 			is_builtin_type(ast::remove_const_or_consteval(lhs_type))
 			&& is_builtin_type(ast::remove_const_or_consteval(rhs_type))
-			&& is_binary_builtin_operator(op->kind)
+			&& is_binary_builtin_operator(op_kind)
 		)
 	)
 	{
-		auto result = make_builtin_operation(op, std::move(lhs), std::move(rhs), *this);
+		auto result = make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
 		result.src_tokens = src_tokens;
 		return result;
 	}
 
-	auto const possible_funcs = get_possible_funcs_for_operator(op->kind, src_tokens, lhs, rhs, *this);
+	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, lhs, rhs, *this);
 	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 	if (best_body == nullptr)
 	{
@@ -3786,7 +3785,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		bz::vector<ast::expression> params;
 		params.emplace_back(std::move(lhs));
 		params.emplace_back(std::move(rhs));
-		auto const resolve_order = get_binary_precedence(op->kind).is_left_associative
+		auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
 			? ast::resolve_order::regular
 			: ast::resolve_order::reversed;
 		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this, resolve_order);

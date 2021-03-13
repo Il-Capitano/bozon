@@ -202,9 +202,9 @@ struct stmt_for
 struct stmt_foreach
 {
 	statement  range_var_decl;
-	statement  begin_var_decl;
-	statement  end_var_decl;
 	statement  iter_var_decl;
+	statement  end_var_decl;
+	statement  iter_deref_var_decl;
 	expression condition;
 	expression iteration;
 	statement  for_block;
@@ -213,17 +213,17 @@ struct stmt_foreach
 
 	stmt_foreach(
 		statement  _range_var_decl,
-		statement  _begin_var_decl,
-		statement  _end_var_decl,
 		statement  _iter_var_decl,
+		statement  _end_var_decl,
+		statement  _iter_deref_var_decl,
 		expression _condition,
 		expression _iteration,
 		statement  _for_block
 	)
-		: range_var_decl(std::move(_range_var_decl)),
-		  begin_var_decl(std::move(_begin_var_decl)),
-		  end_var_decl  (std::move(_end_var_decl)),
-		  iter_var_decl (std::move(_iter_var_decl)),
+		: range_var_decl     (std::move(_range_var_decl)),
+		  iter_var_decl      (std::move(_iter_var_decl)),
+		  end_var_decl       (std::move(_end_var_decl)),
+		  iter_deref_var_decl(std::move(_iter_deref_var_decl)),
 		  condition(std::move(_condition)),
 		  iteration(std::move(_iteration)),
 		  for_block(std::move(_for_block))

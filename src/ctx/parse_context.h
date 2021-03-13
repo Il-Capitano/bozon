@@ -321,12 +321,12 @@ struct parse_context
 
 	ast::expression make_unary_operator_expression(
 		lex::src_tokens src_tokens,
-		lex::token_pos op,
+		uint32_t op_kind,
 		ast::expression expr
 	);
 	ast::expression make_binary_operator_expression(
 		lex::src_tokens src_tokens,
-		lex::token_pos op,
+		uint32_t op_kind,
 		ast::expression lhs,
 		ast::expression rhs
 	);

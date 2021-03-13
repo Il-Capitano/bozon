@@ -1849,7 +1849,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 
-			return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
+			return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_guaranteed(binary_op.lhs, context);
@@ -1858,7 +1858,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// special case for bool_and and bool_or shortcircuiting
 			if (binary_op.lhs.has_consteval_succeeded())
 			{
-				auto const op = binary_op.op->kind;
+				auto const op = binary_op.op;
 				if (op == lex::token::bool_and)
 				{
 					bz_assert(binary_op.lhs.is<ast::constant_expression>());
@@ -1885,7 +1885,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 
 			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
 			{
-				return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
+				return evaluate_binary_op(expr, binary_op.op, binary_op.lhs, binary_op.rhs, context);
 			}
 			else
 			{
@@ -2061,7 +2061,7 @@ static ast::constant_value try_evaluate_expr(
 			consteval_try(unary_op.expr, context);
 			if (unary_op.expr.has_consteval_succeeded())
 			{
-				return evaluate_unary_op(expr, unary_op.op->kind, unary_op.expr, context);
+				return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
 			}
 			else
 			{
@@ -2075,7 +2075,7 @@ static ast::constant_value try_evaluate_expr(
 			// special case for bool_and and bool_or shortcircuiting
 			if (binary_op.lhs.has_consteval_succeeded())
 			{
-				auto const op = binary_op.op->kind;
+				auto const op = binary_op.op;
 				if (op == lex::token::bool_and)
 				{
 					bz_assert(binary_op.lhs.is<ast::constant_expression>());
@@ -2102,7 +2102,7 @@ static ast::constant_value try_evaluate_expr(
 
 			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
 			{
-				return evaluate_binary_op(expr, binary_op.op->kind, binary_op.lhs, binary_op.rhs, context);
+				return evaluate_binary_op(expr, binary_op.op, binary_op.lhs, binary_op.rhs, context);
 			}
 			else
 			{
@@ -2351,7 +2351,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					expr.src_tokens,
 					bz::format(
 						"subexpression '{}{}' is not a constant expression",
-						unary_op.op->value,
+						token_info[unary_op.op].token_value,
 						ast::get_value_string(unary_op.expr.get<ast::constant_expression>().value)
 					)
 				));
@@ -2372,7 +2372,7 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					bz::format(
 						"subexpression '{} {} {}' is not a constant expression",
 						ast::get_value_string(binary_op.lhs.get<ast::constant_expression>().value),
-						binary_op.op->value,
+						token_info[binary_op.op].token_value,
 						ast::get_value_string(binary_op.rhs.get<ast::constant_expression>().value)
 					)
 				));

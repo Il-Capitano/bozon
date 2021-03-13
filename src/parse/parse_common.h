@@ -232,8 +232,8 @@ inline lex::token_range get_paren_matched_range(
 
 inline lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::token_pos end)
 {
-	size_t paren_level = 0;
-	for (auto it = begin; it != end; ++it)
+	int paren_level = 0;
+	for (auto it = begin; paren_level >= 0 && it != end; ++it)
 	{
 		if (paren_level == 0 && it->kind == kind)
 		{
@@ -249,7 +249,7 @@ inline lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::tok
 		case lex::token::paren_close:
 		case lex::token::square_close:
 		case lex::token::curly_close:
-			++paren_level;
+			--paren_level;
 			break;
 		default:
 			break;
@@ -320,7 +320,7 @@ ast::statement parse_stmt_while(
 	ctx::parse_context &context
 );
 
-ast::statement parse_stmt_for(
+ast::statement parse_stmt_for_or_foreach(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -378,7 +378,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_operator,      &parse_decl_operator<false>,          only_local  },
 	statement_parser{ lex::token::at,               &parse_attribute_statement<false>,    only_local  },
 	statement_parser{ lex::token::kw_while,         &parse_stmt_while,                    only_local  },
-	statement_parser{ lex::token::kw_for,           &parse_stmt_for,                      only_local  },
+	statement_parser{ lex::token::kw_for,           &parse_stmt_for_or_foreach,           only_local  },
 	statement_parser{ lex::token::kw_return,        &parse_stmt_return,                   only_local  },
 	statement_parser{ lex::token::semi_colon,       &parse_stmt_no_op,                    only_local  },
 	statement_parser{ lex::token::kw_export,        &parse_local_export_statement,        only_local  },

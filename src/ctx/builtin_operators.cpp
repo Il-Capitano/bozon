@@ -159,16 +159,16 @@ static auto get_constant_expression_values(
 // +uintN -> uintN
 // +floatN -> floatN
 static ast::expression get_builtin_unary_plus(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::plus);
+	bz_assert(op_kind == lex::token::plus);
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
 	{
@@ -188,23 +188,23 @@ static ast::expression get_builtin_unary_plus(
 		src_tokens,
 		ast::expression_type_kind::rvalue,
 		std::move(result_type),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // -sintN -> sintN
 // -floatN -> floatN
 static ast::expression get_builtin_unary_minus(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::minus);
+	bz_assert(op_kind == lex::token::minus);
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
 	{
@@ -224,7 +224,7 @@ static ast::expression get_builtin_unary_minus(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 
@@ -258,14 +258,14 @@ static ast::expression get_builtin_unary_minus(
 
 // &val -> *typeof val
 static ast::expression get_builtin_unary_address_of(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::address_of);
+	bz_assert(op_kind == lex::token::address_of);
 	bz_assert(expr.not_null());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	ast::typespec result_type = type;
@@ -279,7 +279,7 @@ static ast::expression get_builtin_unary_address_of(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 
@@ -289,14 +289,14 @@ static ast::expression get_builtin_unary_address_of(
 
 // *ptr -> &typeof *ptr
 static ast::expression get_builtin_unary_dereference(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::dereference);
+	bz_assert(op_kind == lex::token::dereference);
 	bz_assert(expr.not_null());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
@@ -315,23 +315,23 @@ static ast::expression get_builtin_unary_dereference(
 		src_tokens,
 		ast::expression_type_kind::lvalue,
 		result_type,
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // ~uintN -> uintN
 // ~bool -> bool   (it's the same as !bool)
 static ast::expression get_builtin_unary_bit_not(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::bit_not);
+	bz_assert(op_kind == lex::token::bit_not);
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
 	{
@@ -351,7 +351,7 @@ static ast::expression get_builtin_unary_bit_not(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 
@@ -380,16 +380,16 @@ static ast::expression get_builtin_unary_bit_not(
 
 // !bool -> bool
 static ast::expression get_builtin_unary_bool_not(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::bool_not);
+	bz_assert(op_kind == lex::token::bool_not);
 	bz_assert(expr.not_null());
 	auto const [type, _] = expr.get_expr_type_and_kind();
 	auto const expr_t = ast::remove_const_or_consteval(type);
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (!expr_t.is<ast::ts_base_type>())
 	{
@@ -408,7 +408,7 @@ static ast::expression get_builtin_unary_bool_not(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 
@@ -424,15 +424,15 @@ static ast::expression get_builtin_unary_bool_not(
 // ++--char -> &char
 // ++--ptr -> &ptr
 static ast::expression get_builtin_unary_plus_plus_minus_minus(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::plus_plus || op->kind == lex::token::minus_minus);
+	bz_assert(op_kind == lex::token::plus_plus || op_kind == lex::token::minus_minus);
 	bz_assert(expr.not_null());
 	auto const [type, type_kind] = expr.get_expr_type_and_kind();
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 
 	if (
 		type_kind != ast::expression_type_kind::lvalue
@@ -443,7 +443,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 			src_tokens,
 			bz::format(
 				"cannot {} an rvalue",
-				op->kind == lex::token::plus_plus ? "increment" : "decrement"
+				op_kind == lex::token::plus_plus ? "increment" : "decrement"
 			)
 		);
 		return ast::expression(src_tokens);
@@ -455,7 +455,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 			src_tokens,
 			bz::format(
 				"cannot {} a constant value",
-				op->kind == lex::token::plus_plus ? "increment" : "decrement"
+				op_kind == lex::token::plus_plus ? "increment" : "decrement"
 			)
 		);
 		return ast::expression(src_tokens);
@@ -474,7 +474,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				std::move(result_type),
-				ast::make_expr_unary_op(op, std::move(expr))
+				ast::make_expr_unary_op(op_kind, std::move(expr))
 			);
 		}
 	}
@@ -485,7 +485,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			std::move(result_type),
-			ast::make_expr_unary_op(op, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 
@@ -493,7 +493,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 		src_tokens,
 		bz::format(
 			undeclared_unary_message("{}"),
-			op->kind == lex::token::plus_plus ? "++" : "--", type
+			op_kind == lex::token::plus_plus ? "++" : "--", type
 		)
 	);
 	return ast::expression(src_tokens);
@@ -501,17 +501,15 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 
 // &(typename) -> (&typename)
 static ast::expression get_type_op_unary_reference(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::ampersand);
+	bz_assert(op_kind == lex::token::ampersand);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_consteval>())
@@ -521,7 +519,7 @@ static ast::expression get_type_op_unary_reference(
 	}
 	else if (result_type.is<ast::ts_lvalue_reference>())
 	{
-		result_type.nodes.front().get<ast::ts_lvalue_reference>().reference_pos = op;
+		result_type.nodes.front().get<ast::ts_lvalue_reference>().reference_pos = src_tokens.pivot;
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
@@ -535,7 +533,7 @@ static ast::expression get_type_op_unary_reference(
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_lvalue_reference>(op);
+		result_type.add_layer<ast::ts_lvalue_reference>(src_tokens.pivot);
 	}
 
 	return ast::make_constant_expression(
@@ -543,23 +541,21 @@ static ast::expression get_type_op_unary_reference(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // #(typename) -> (#typename)
 static ast::expression get_type_op_unary_auto_ref(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::auto_ref);
+	bz_assert(op_kind == lex::token::auto_ref);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_consteval>())
@@ -574,7 +570,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
-		result_type.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos = op;
+		result_type.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos = src_tokens.pivot;
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
@@ -583,7 +579,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_auto_reference>(op);
+		result_type.add_layer<ast::ts_auto_reference>(src_tokens.pivot);
 	}
 
 	return ast::make_constant_expression(
@@ -591,23 +587,21 @@ static ast::expression get_type_op_unary_auto_ref(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // ##(typename) -> (##typename)
 static ast::expression get_type_op_unary_auto_ref_const(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::auto_ref_const);
+	bz_assert(op_kind == lex::token::auto_ref_const);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_consteval>())
@@ -617,9 +611,13 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else if (result_type.is<ast::ts_const>())
 	{
-		bz_assert(op != nullptr);
+		bz_assert(src_tokens.pivot != nullptr);
 		context.report_error(src_tokens, "auto reference-const to const type is not allowed", {}, {
-			context.make_suggestion_before(op, op->src_pos.begin, op->src_pos.end, "#", "use auto reference instead")
+			context.make_suggestion_before(
+				src_tokens.pivot,
+				src_tokens.pivot->src_pos.begin, src_tokens.pivot->src_pos.end, "#",
+				"use auto reference instead"
+			)
 		});
 		return ast::expression(src_tokens);
 	}
@@ -635,11 +633,11 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		result_type.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos = op;
+		result_type.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos = src_tokens.pivot;
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_auto_reference_const>(op);
+		result_type.add_layer<ast::ts_auto_reference_const>(src_tokens.pivot);
 	}
 
 	return ast::make_constant_expression(
@@ -647,23 +645,21 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // *(typename) -> (*typename)
 static ast::expression get_type_op_unary_pointer(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::star);
+	bz_assert(op_kind == lex::token::star);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
@@ -687,30 +683,28 @@ static ast::expression get_type_op_unary_pointer(
 		return ast::expression(src_tokens);
 	}
 
-	result_type.add_layer<ast::ts_pointer>(op);
+	result_type.add_layer<ast::ts_pointer>(src_tokens.pivot);
 
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // const (typename) -> (const typename)
 static ast::expression get_type_op_unary_const(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::kw_const);
+	bz_assert(op_kind == lex::token::kw_const);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	ast::typespec result_type = expr.get_typename();
 	if (result_type.is<ast::ts_lvalue_reference>())
@@ -730,15 +724,15 @@ static ast::expression get_type_op_unary_const(
 	}
 	else if (result_type.is<ast::ts_const>())
 	{
-		result_type.nodes.front().get<ast::ts_const>().const_pos = op;
+		result_type.nodes.front().get<ast::ts_const>().const_pos = src_tokens.pivot;
 	}
 	else if (result_type.is<ast::ts_consteval>())
 	{
-		result_type.nodes.front().get<ast::ts_consteval>().consteval_pos = op;
+		result_type.nodes.front().get<ast::ts_consteval>().consteval_pos = src_tokens.pivot;
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_const>(op);
+		result_type.add_layer<ast::ts_const>(src_tokens.pivot);
 	}
 
 	return ast::make_constant_expression(
@@ -746,23 +740,21 @@ static ast::expression get_type_op_unary_const(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // consteval (typename) -> (consteval typename)
 static ast::expression get_type_op_unary_consteval(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::kw_consteval);
+	bz_assert(op_kind == lex::token::kw_consteval);
 	bz_assert(expr.not_null());
 	bz_assert(expr.is_typename());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ op, op, op + 1 }
-		: lex::src_tokens{ op, op, expr.get_tokens_end() };
 
 	auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
 	if (const_expr_type.is<ast::ts_lvalue_reference>())
@@ -782,15 +774,15 @@ static ast::expression get_type_op_unary_consteval(
 	}
 	else if (const_expr_type.is<ast::ts_const>())
 	{
-		const_expr_type.nodes.front() = ast::ts_consteval{ op };
+		const_expr_type.nodes.front() = ast::ts_consteval{ src_tokens.pivot };
 	}
 	else if (const_expr_type.is<ast::ts_consteval>())
 	{
-		const_expr_type.nodes.front().get<ast::ts_consteval>().consteval_pos = op;
+		const_expr_type.nodes.front().get<ast::ts_consteval>().consteval_pos = src_tokens.pivot;
 	}
 	else
 	{
-		const_expr_type.add_layer<ast::ts_consteval>(op);
+		const_expr_type.add_layer<ast::ts_consteval>(src_tokens.pivot);
 	}
 
 	return ast::make_constant_expression(
@@ -798,21 +790,19 @@ static ast::expression get_type_op_unary_consteval(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(const_expr_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 static ast::expression get_builtin_unary_sizeof(
-	lex::token_pos sizeof_pos,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(sizeof_pos->kind == lex::token::kw_sizeof);
+	bz_assert(op_kind == lex::token::kw_sizeof);
 	bz_assert(expr.not_null());
-	auto const src_tokens = expr.get_tokens_begin() == nullptr
-		? lex::src_tokens{ sizeof_pos, sizeof_pos, sizeof_pos + 1 }
-		: lex::src_tokens{ sizeof_pos, sizeof_pos, expr.get_tokens_end() };
 
 	if (expr.is_typename())
 	{
@@ -833,7 +823,7 @@ static ast::expression get_builtin_unary_sizeof(
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
 			ast::constant_value(size),
-			ast::make_expr_unary_op(sizeof_pos, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 	else
@@ -856,21 +846,21 @@ static ast::expression get_builtin_unary_sizeof(
 			ast::expression_type_kind::rvalue,
 			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
 			ast::constant_value(size),
-			ast::make_expr_unary_op(sizeof_pos, std::move(expr))
+			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
 	}
 }
 
 // typeof (val) -> (typeof val)
 static ast::expression get_builtin_unary_typeof(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::kw_typeof);
+	bz_assert(op_kind == lex::token::kw_typeof);
 	bz_assert(expr.not_null());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 	auto const [type, kind] = expr.get_expr_type_and_kind();
 	if (expr.is_overloaded_function())
 	{
@@ -894,20 +884,20 @@ static ast::expression get_builtin_unary_typeof(
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
 		ast::constant_value(std::move(result_type)),
-		ast::make_expr_unary_op(op, std::move(expr))
+		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
 
 // move (val) -> (typeof val without lvalue ref)
 static ast::expression get_builtin_unary_move(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::kw_move);
+	bz_assert(op_kind == lex::token::kw_move);
 	bz_assert(expr.not_null());
-	lex::src_tokens const src_tokens = { op, op, expr.get_tokens_end() };
 	// auto const [type, kind] = expr.get_expr_type_and_kind();
 	if (expr.is_typename())
 	{
@@ -1096,20 +1086,20 @@ static bz::vector<source_highlight> get_declared_constant_notes(ast::expression 
 // bool = bool -> &bool
 // ptr = ptr -> &ptr
 static ast::expression get_builtin_binary_assign(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::assign);
+	bz_assert(op_kind == lex::token::assign);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
 		lhs_type_kind != ast::expression_type_kind::lvalue
@@ -1137,7 +1127,7 @@ static ast::expression get_builtin_binary_assign(
 				src_tokens,
 				result_type_kind,
 				std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1151,7 +1141,7 @@ static ast::expression get_builtin_binary_assign(
 				src_tokens,
 				result_type_kind,
 				std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1165,7 +1155,7 @@ static ast::expression get_builtin_binary_assign(
 				src_tokens,
 				result_type_kind,
 				std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		// floating point are covered earlier with lhs_kind == rhs_kind
@@ -1182,7 +1172,7 @@ static ast::expression get_builtin_binary_assign(
 				src_tokens,
 				result_type_kind,
 				std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1200,7 +1190,7 @@ static ast::expression get_builtin_binary_assign(
 			src_tokens,
 			result_type_kind,
 			std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 
@@ -1266,20 +1256,20 @@ static ast::expression get_builtin_binary_assign(
 // ptr + int -> ptr
 // int + ptr -> ptr
 static ast::expression get_builtin_binary_plus(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::plus);
+	bz_assert(op_kind == lex::token::plus);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1316,7 +1306,7 @@ static ast::expression get_builtin_binary_plus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1351,7 +1341,7 @@ static ast::expression get_builtin_binary_plus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1364,7 +1354,7 @@ static ast::expression get_builtin_binary_plus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1376,7 +1366,7 @@ static ast::expression get_builtin_binary_plus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1388,7 +1378,7 @@ static ast::expression get_builtin_binary_plus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1402,7 +1392,7 @@ static ast::expression get_builtin_binary_plus(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue, std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 	else if (
@@ -1415,7 +1405,7 @@ static ast::expression get_builtin_binary_plus(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue, std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 
@@ -1447,20 +1437,20 @@ static ast::expression get_builtin_binary_plus(
 // ptr - int -> ptr
 // ptr - ptr -> int64
 static ast::expression get_builtin_binary_minus(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::minus);
+	bz_assert(op_kind == lex::token::minus);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1497,7 +1487,7 @@ static ast::expression get_builtin_binary_minus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1532,7 +1522,7 @@ static ast::expression get_builtin_binary_minus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1545,7 +1535,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1557,7 +1547,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1569,7 +1559,7 @@ static ast::expression get_builtin_binary_minus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::int32_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1583,7 +1573,7 @@ static ast::expression get_builtin_binary_minus(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue, std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 	else if (lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>())
@@ -1595,7 +1585,7 @@ static ast::expression get_builtin_binary_minus(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::int64_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1626,20 +1616,20 @@ static ast::expression get_builtin_binary_minus(
 // char +-= int
 // ptr +-= int
 static ast::expression get_builtin_binary_plus_minus_eq(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::plus_eq || op->kind == lex::token::minus_eq);
+	bz_assert(op_kind == lex::token::plus_eq || op_kind == lex::token::minus_eq);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
 		lhs_type_kind != ast::expression_type_kind::lvalue
@@ -1674,7 +1664,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1690,7 +1680,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1706,7 +1696,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1717,7 +1707,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1730,7 +1720,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			result_type_kind, std::move(result_type),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 
@@ -1752,7 +1742,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
-			op->kind == lex::token::plus_eq ? "+=" : "-=", lhs_type, rhs_type
+			op_kind == lex::token::plus_eq ? "+=" : "-=", lhs_type, rhs_type
 		),
 		std::move(notes), std::move(suggestions)
 	);
@@ -1763,22 +1753,22 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 // uint */ uint -> uint
 // float */ float -> float
 static ast::expression get_builtin_binary_multiply_divide(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::multiply || op->kind == lex::token::divide);
+	bz_assert(op_kind == lex::token::multiply || op_kind == lex::token::divide);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const is_multiply = op->kind == lex::token::multiply;
+	auto const is_multiply = op_kind == lex::token::multiply;
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1813,7 +1803,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1846,7 +1836,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1859,7 +1849,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1890,20 +1880,20 @@ static ast::expression get_builtin_binary_multiply_divide(
 // uintN */= uintM    N >= M
 // floatN */= floatN
 static ast::expression get_builtin_binary_multiply_divide_eq(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::multiply_eq || op->kind == lex::token::divide_eq);
+	bz_assert(op_kind == lex::token::multiply_eq || op_kind == lex::token::divide_eq);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
 		lhs_type_kind != ast::expression_type_kind::lvalue
@@ -1939,7 +1929,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1956,7 +1946,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -1968,7 +1958,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -1991,7 +1981,7 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
-			op->kind == lex::token::multiply_eq ? "*=" : "/=", lhs_type, rhs_type
+			op_kind == lex::token::multiply_eq ? "*=" : "/=", lhs_type, rhs_type
 		),
 		std::move(notes), std::move(suggestions)
 	);
@@ -2001,20 +1991,20 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 // sint % sint
 // uint % uint
 static ast::expression get_builtin_binary_modulo(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::modulo);
+	bz_assert(op_kind == lex::token::modulo);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2049,7 +2039,7 @@ static ast::expression get_builtin_binary_modulo(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2082,7 +2072,7 @@ static ast::expression get_builtin_binary_modulo(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2124,21 +2114,20 @@ static ast::expression get_builtin_binary_modulo(
 // sintN %= sintM  N >= M
 // uintN %= uintM  N >= M
 static ast::expression get_builtin_binary_modulo_eq(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::modulo_eq);
+	bz_assert(op_kind == lex::token::modulo_eq);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
 		lhs_type_kind != ast::expression_type_kind::lvalue
@@ -2174,7 +2163,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2191,7 +2180,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2252,22 +2241,22 @@ static ast::expression get_builtin_binary_modulo_eq(
 // bool !== bool
 // ptr !== ptr
 static ast::expression get_builtin_binary_equals_not_equals(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::equals || op->kind == lex::token::not_equals);
+	bz_assert(op_kind == lex::token::equals || op_kind == lex::token::not_equals);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	const auto is_equals = op->kind == lex::token::equals;
+	const auto is_equals = op_kind == lex::token::equals;
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2301,7 +2290,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2334,7 +2323,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2347,7 +2336,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2359,7 +2348,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2394,7 +2383,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2409,7 +2398,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 	// ptr !== null
@@ -2426,7 +2415,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 	// null !== ptr
@@ -2443,7 +2432,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 
@@ -2479,17 +2468,18 @@ static ast::expression get_builtin_binary_equals_not_equals(
 // ptr <=> ptr
 // (no bool and str (for now))
 static ast::expression get_builtin_binary_compare(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
 	bz_assert(
-		op->kind == lex::token::less_than
-		|| op->kind == lex::token::less_than_eq
-		|| op->kind == lex::token::greater_than
-		|| op->kind == lex::token::greater_than_eq
+		op_kind == lex::token::less_than
+		|| op_kind == lex::token::less_than_eq
+		|| op_kind == lex::token::greater_than
+		|| op_kind == lex::token::greater_than_eq
 	);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
@@ -2497,9 +2487,8 @@ static ast::expression get_builtin_binary_compare(
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const op_str = [op_kind = op->kind]() -> bz::u8string_view {
+	auto const op_str = [op_kind]() -> bz::u8string_view {
 		switch (op_kind)
 		{
 		case lex::token::less_than:
@@ -2547,7 +2536,7 @@ static ast::expression get_builtin_binary_compare(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2578,7 +2567,7 @@ static ast::expression get_builtin_binary_compare(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2591,7 +2580,7 @@ static ast::expression get_builtin_binary_compare(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2603,7 +2592,7 @@ static ast::expression get_builtin_binary_compare(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2618,7 +2607,7 @@ static ast::expression get_builtin_binary_compare(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
-			ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
 
@@ -2651,16 +2640,17 @@ static ast::expression get_builtin_binary_compare(
 // uintN &^| uintN -> uintN
 // bool &^| bool -> bool      this has no short-circuiting
 static ast::expression get_builtin_binary_bit_and_xor_or(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
 	bz_assert(
-		op->kind == lex::token::bit_and
-		|| op->kind == lex::token::bit_xor
-		|| op->kind == lex::token::bit_or
+		op_kind == lex::token::bit_and
+		|| op_kind == lex::token::bit_xor
+		|| op_kind == lex::token::bit_or
 	);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
@@ -2668,9 +2658,8 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const op_str = [op_kind = op->kind]() -> bz::u8char {
+	auto const op_str = [op_kind]() -> bz::u8char {
 		switch (op_kind)
 		{
 		case lex::token::bit_and:
@@ -2696,7 +2685,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 		else if (
@@ -2708,7 +2697,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2718,7 +2707,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
-		auto const op_prec = get_binary_precedence(op->kind);
+		auto const op_prec = get_binary_precedence(op_kind);
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
 		{
@@ -2778,16 +2767,17 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 // uintN &^|= uintN
 // bool &^|= bool
 static ast::expression get_builtin_binary_bit_and_xor_or_eq(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
 	bz_assert(
-		op->kind == lex::token::bit_and_eq
-		|| op->kind == lex::token::bit_xor_eq
-		|| op->kind == lex::token::bit_or_eq
+		op_kind == lex::token::bit_and_eq
+		|| op_kind == lex::token::bit_xor_eq
+		|| op_kind == lex::token::bit_or_eq
 	);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
@@ -2795,9 +2785,8 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const op_str = [op_kind = op->kind]() -> bz::u8string_view {
+	auto const op_str = [op_kind]() -> bz::u8string_view {
 		switch (op_kind)
 		{
 		case lex::token::bit_and_eq:
@@ -2839,7 +2828,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2895,22 +2884,22 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 
 // uintN <<>> uintM -> uintN
 static ast::expression get_builtin_binary_bit_shift(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::bit_left_shift || op->kind == lex::token::bit_right_shift);
+	bz_assert(op_kind == lex::token::bit_left_shift || op_kind == lex::token::bit_right_shift);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const is_left_shift = op->kind == lex::token::bit_left_shift;
+	auto const is_left_shift = op_kind == lex::token::bit_left_shift;
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2926,7 +2915,7 @@ static ast::expression get_builtin_binary_bit_shift(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -2973,20 +2962,20 @@ static ast::expression get_builtin_binary_bit_shift(
 
 // uint <<>>= uint
 static ast::expression get_builtin_binary_bit_shift_eq(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::bit_left_shift_eq || op->kind == lex::token::bit_right_shift_eq);
+	bz_assert(op_kind == lex::token::bit_left_shift_eq || op_kind == lex::token::bit_right_shift_eq);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto &lhs_t = lhs_type;
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
 	if (
 		lhs_type_kind != ast::expression_type_kind::lvalue
@@ -3018,7 +3007,7 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				result_type_kind, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -3056,7 +3045,7 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 		src_tokens,
 		bz::format(
 			undeclared_binary_message("{}"),
-			op->kind == lex::token::bit_left_shift_eq ? "<<=" : ">>=", lhs_type, rhs_type
+			op_kind == lex::token::bit_left_shift_eq ? "<<=" : ">>=", lhs_type, rhs_type
 		),
 		std::move(notes), std::move(suggestions)
 	);
@@ -3065,16 +3054,17 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 
 // bool &&^^|| bool -> bool
 static ast::expression get_builtin_binary_bool_and_xor_or(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
 	bz_assert(
-		op->kind == lex::token::bool_and
-		|| op->kind == lex::token::bool_xor
-		|| op->kind == lex::token::bool_or
+		op_kind == lex::token::bool_and
+		|| op_kind == lex::token::bool_xor
+		|| op_kind == lex::token::bool_or
 	);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
@@ -3082,9 +3072,8 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	auto const lhs_t = ast::remove_const_or_consteval(lhs_type);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs_type);
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const op_str = [op_kind = op->kind]() -> bz::u8string_view {
+	auto const op_str = [op_kind]() -> bz::u8string_view {
 		switch (op_kind)
 		{
 		case lex::token::bool_and:
@@ -3110,7 +3099,7 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue, std::move(result_type),
-				ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
 	}
@@ -3124,15 +3113,14 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 
 // T, U -> U
 static ast::expression get_builtin_binary_comma(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	[[maybe_unused]] parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::comma);
 	// TODO add warning if lhs has no side effects
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 	auto const [type, type_kind] = rhs.get_expr_type_and_kind();
 	auto result_type = type;
 
@@ -3140,7 +3128,7 @@ static ast::expression get_builtin_binary_comma(
 		src_tokens,
 		type_kind,
 		std::move(result_type),
-		ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 	);
 }
 
@@ -3448,20 +3436,20 @@ ast::expression make_builtin_subscript_operator(
 }
 
 static ast::expression get_type_op_binary_equals_not_equals(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	bz_assert(op->kind == lex::token::equals || op->kind == lex::token::not_equals);
+	bz_assert(op_kind == lex::token::equals || op_kind == lex::token::not_equals);
 	bz_assert(lhs.not_null());
 	bz_assert(rhs.not_null());
 	bz_assert(lhs.is_typename());
 	bz_assert(rhs.is_typename());
-	lex::src_tokens const src_tokens = { lhs.get_tokens_begin(), op, rhs.get_tokens_end() };
 
-	auto const op_str = op->value;
+	auto const op_str = token_info[op_kind].token_value;
 
 	auto &lhs_type = lhs.get_typename();
 	auto &rhs_type = rhs.get_typename();
@@ -3489,20 +3477,20 @@ static ast::expression get_type_op_binary_equals_not_equals(
 	}
 
 	auto const are_types_equal = lhs_type == rhs_type;
-	auto const result = op->kind == lex::token::equals ? are_types_equal : !are_types_equal;
+	auto const result = op_kind == lex::token::equals ? are_types_equal : !are_types_equal;
 
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::rvalue,
 		ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
 		ast::constant_value(result),
-		ast::make_expr_binary_op(op, std::move(lhs), std::move(rhs))
+		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 	);
 }
 
 struct unary_operator_parse_function_t
 {
-	using fn_t = ast::expression (*)(lex::token_pos, ast::expression, parse_context &);
+	using fn_t = ast::expression (*)(lex::src_tokens, uint32_t, ast::expression, parse_context &);
 
 	uint32_t kind;
 	fn_t     parse_function;
@@ -3602,7 +3590,7 @@ constexpr auto type_op_unary_operators = []() {
 
 struct binary_operator_parse_function_t
 {
-	using fn_t = ast::expression (*)(lex::token_pos, ast::expression, ast::expression, parse_context &);
+	using fn_t = ast::expression (*)(lex::src_tokens, uint32_t, ast::expression, ast::expression, parse_context &);
 
 	uint32_t kind;
 	fn_t     parse_function;
@@ -3717,17 +3705,17 @@ constexpr auto type_op_binary_operators = []() {
 }();
 
 ast::expression make_builtin_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	auto const op_kind = op->kind;
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
 		((
 			op_kind == builtin_unary_operators[Ns].kind
-			? (void)(result = builtin_unary_operators[Ns].parse_function(op, std::move(expr), context))
+			? (void)(result = builtin_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
 			: (void)0
 		), ...);
 		return result;
@@ -3735,17 +3723,17 @@ ast::expression make_builtin_operation(
 }
 
 ast::expression make_builtin_type_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 )
 {
-	auto const op_kind = op->kind;
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
 		((
 			op_kind == type_op_unary_operators[Ns].kind
-			? (void)(result = type_op_unary_operators[Ns].parse_function(op, std::move(expr), context))
+			? (void)(result = type_op_unary_operators[Ns].parse_function(src_tokens, op_kind, std::move(expr), context))
 			: (void)0
 		), ...);
 		return result;
@@ -3753,18 +3741,18 @@ ast::expression make_builtin_type_operation(
 }
 
 ast::expression make_builtin_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	auto const op_kind = op->kind;
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
 		((
 			op_kind == builtin_binary_operators[Ns].kind
-			? (void)(result = builtin_binary_operators[Ns].parse_function(op, std::move(lhs), std::move(rhs), context))
+			? (void)(result = builtin_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
 			: (void)0
 		), ...);
 		return result;
@@ -3772,18 +3760,18 @@ ast::expression make_builtin_operation(
 }
 
 ast::expression make_builtin_type_operation(
-	lex::token_pos op,
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
 	parse_context &context
 )
 {
-	auto const op_kind = op->kind;
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		ast::expression result;
 		((
 			op_kind == type_op_binary_operators[Ns].kind
-			? (void)(result = type_op_binary_operators[Ns].parse_function(op, std::move(lhs), std::move(rhs), context))
+			? (void)(result = type_op_binary_operators[Ns].parse_function(src_tokens, op_kind, std::move(lhs), std::move(rhs), context))
 			: (void)0
 		), ...);
 		return result;

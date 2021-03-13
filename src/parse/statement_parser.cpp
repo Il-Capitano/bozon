@@ -1,4 +1,6 @@
 #include "statement_parser.h"
+#include "ast/expression.h"
+#include "ast/typespec.h"
 #include "expression_parser.h"
 #include "consteval.h"
 #include "parse_common.h"
@@ -20,7 +22,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 	if (cond.expr.is<ast::expr_binary_op>())
 	{
 		auto const &binary_op = cond.expr.get<ast::expr_binary_op>();
-		switch (binary_op.op->kind)
+		switch (binary_op.op)
 		{
 		case lex::token::equals:
 		case lex::token::not_equals:
@@ -32,7 +34,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 		case lex::token::bool_xor:
 		case lex::token::bool_or:
 		{
-			auto const op_str = token_info[binary_op.op->kind].token_value;
+			auto const op_str = token_info[binary_op.op].token_value;
 			auto const &lhs = binary_op.lhs;
 			bz_assert(lhs.is<ast::constant_expression>());
 			auto const lhs_str = ast::get_value_string(lhs.get<ast::constant_expression>().value);
@@ -377,7 +379,10 @@ static void resolve_variable_type(
 )
 {
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
-	bz_assert(var_decl.var_type.is<ast::ts_unresolved>());
+	if (!var_decl.var_type.is<ast::ts_unresolved>())
+	{
+		return;
+	}
 	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
 	auto type = stream == end
 		? ast::make_constant_expression(
@@ -429,7 +434,7 @@ static void resolve_variable_type(
 		{
 			--op;
 			auto const src_tokens = lex::src_tokens{ op, op, type.src_tokens.end };
-			type = context.make_unary_operator_expression(src_tokens, op, std::move(type));
+			type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
 		}
 		if (type.is_typename())
 		{
@@ -456,29 +461,31 @@ static void resolve_variable_init_expr_and_match_type(
 	bz_assert(!var_decl.var_type.is_empty());
 	if (var_decl.init_expr.not_null())
 	{
-		bz_assert(var_decl.init_expr.is<ast::unresolved_expression>());
-		auto const begin = var_decl.init_expr.src_tokens.begin;
-		auto const end   = var_decl.init_expr.src_tokens.end;
-		auto stream = begin;
-		var_decl.init_expr = parse_expression(stream, end, context, no_comma);
-		if (stream != end)
+		if (var_decl.init_expr.is<ast::unresolved_expression>())
 		{
-			if (stream->kind == lex::token::comma)
+			auto const begin = var_decl.init_expr.src_tokens.begin;
+			auto const end   = var_decl.init_expr.src_tokens.end;
+			auto stream = begin;
+			var_decl.init_expr = parse_expression(stream, end, context, no_comma);
+			if (stream != end)
 			{
-				auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
-				context.report_error(
-					stream,
-					"'operator ,' is not allowed in variable initialization expression",
-					{}, { context.make_suggestion_around(
-						begin,          ctx::char_pos(), ctx::char_pos(), "(",
-						suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
-						"put parenthesis around the initialization expression"
-					) }
-				);
-			}
-			else
-			{
-				context.assert_token(stream, lex::token::semi_colon);
+				if (stream->kind == lex::token::comma)
+				{
+					auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+					context.report_error(
+						stream,
+						"'operator ,' is not allowed in variable initialization expression",
+						{}, { context.make_suggestion_around(
+							begin,          ctx::char_pos(), ctx::char_pos(), "(",
+							suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+							"put parenthesis around the initialization expression"
+						) }
+					);
+				}
+				else
+				{
+					context.assert_token(stream, lex::token::semi_colon);
+				}
 			}
 		}
 		context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
@@ -622,7 +629,9 @@ void resolve_variable(
 	}
 
 	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
+	auto const stmt_file_id = var_decl.id.tokens.begin == nullptr
+		? original_file_info.file_id
+		: var_decl.id.tokens.begin->src_pos.file_id;
 	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
@@ -2026,16 +2035,13 @@ ast::statement parse_stmt_while(
 	);
 }
 
-ast::statement parse_stmt_for(
+static ast::statement parse_stmt_for_impl(
 	lex::token_pos &stream, lex::token_pos end,
+	lex::token_pos open_paren,
 	ctx::parse_context &context
 )
 {
-	bz_assert(stream != end);
-	bz_assert(stream->kind == lex::token::kw_for);
-	++stream; // 'for'
-	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
-
+	// 'for' and '(' have already been consumed
 	context.add_scope();
 
 	if (stream == end)
@@ -2085,11 +2091,19 @@ ast::statement parse_stmt_for(
 		: parse_expression(stream, end, context, precedence{});
 	if (stream != end && stream->kind == lex::token::paren_close)
 	{
-		++stream;
+		++stream; // ')'
 	}
 	else if (open_paren->kind == lex::token::paren_open)
 	{
 		context.report_paren_match_error(stream, open_paren);
+		get_expression_tokens<
+			lex::token::curly_open,
+			lex::token::kw_if,
+			lex::token::paren_close
+		>(stream, end, context);
+	}
+	else
+	{
 		get_expression_tokens<
 			lex::token::curly_open,
 			lex::token::kw_if,
@@ -2107,6 +2121,242 @@ ast::statement parse_stmt_for(
 		std::move(iteration),
 		std::move(body)
 	);
+}
+
+static ast::statement parse_stmt_foreach_impl(
+	lex::token_pos &stream, lex::token_pos end,
+	lex::token_pos open_paren, lex::token_pos in_pos,
+	ctx::parse_context &context
+)
+{
+	// 'for' and '(' have already been consumed
+	if (stream->kind != lex::token::kw_let && stream->kind != lex::token::kw_const)
+	{
+		context.report_error(stream, "expected a variable declaration");
+	}
+	else if (stream->kind == lex::token::kw_let)
+	{
+		++stream; // 'let'
+	}
+	auto const [prototype, id, type] = parse_decl_variable_id_and_type(stream, end, context);
+
+	if (stream->kind != lex::token::kw_in)
+	{
+		context.report_error({ stream, stream, in_pos });
+		stream = in_pos;
+	}
+	++stream; // 'in'
+
+	auto range_expr = parse_expression(stream, end, context, precedence{});
+	if (stream != end && stream->kind == lex::token::paren_close)
+	{
+		++stream; // ')'
+	}
+	else if (open_paren->kind == lex::token::paren_open)
+	{
+		context.report_paren_match_error(stream, open_paren);
+		get_expression_tokens<
+			lex::token::curly_open,
+			lex::token::kw_if,
+			lex::token::paren_close
+		>(stream, end, context);
+	}
+	else
+	{
+		get_expression_tokens<
+			lex::token::curly_open,
+			lex::token::kw_if,
+			lex::token::paren_close
+		>(stream, end, context);
+	}
+
+	auto range_var_type = ast::make_auto_typespec(nullptr);
+	range_var_type.add_layer<ast::ts_auto_reference_const>();
+	auto const range_expr_src_tokens = range_expr.src_tokens;
+	auto range_var_decl_stmt = ast::make_decl_variable(
+		range_expr_src_tokens,
+		ast::identifier{}, lex::token_range{},
+		std::move(range_var_type),
+		std::move(range_expr)
+	);
+	bz_assert(range_var_decl_stmt.is<ast::decl_variable>());
+	auto &range_var_decl = range_var_decl_stmt.get<ast::decl_variable>();
+	range_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	resolve_variable(range_var_decl, context);
+
+	if (range_var_decl.var_type.is_empty())
+	{
+		return {};
+	}
+
+	auto range_begin_expr = [&]() {
+		if (range_var_decl.var_type.is_empty())
+		{
+			return ast::expression(range_expr_src_tokens);
+		}
+		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: ast::expression_type_kind::lvalue;
+		auto const type = ast::remove_lvalue_reference(range_var_decl.var_type);
+
+		auto range_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			type_kind, type,
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+		);
+		return context.make_universal_function_call_expression(
+			range_expr_src_tokens,
+			std::move(range_var_expr),
+			ast::make_identifier("begin"), {}
+		);
+	}();
+
+	auto iter_var_decl_stmt = ast::make_decl_variable(
+		range_expr_src_tokens,
+		ast::identifier{}, lex::token_range{},
+		ast::make_auto_typespec(nullptr),
+		std::move(range_begin_expr)
+	);
+	bz_assert(iter_var_decl_stmt.is<ast::decl_variable>());
+	auto &iter_var_decl = iter_var_decl_stmt.get<ast::decl_variable>();
+	iter_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	resolve_variable(iter_var_decl, context);
+
+	auto range_end_expr = [&]() {
+		if (range_var_decl.var_type.is_empty())
+		{
+			return ast::expression(range_expr_src_tokens);
+		}
+		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: ast::expression_type_kind::lvalue;
+		auto const type = ast::remove_lvalue_reference(range_var_decl.var_type);
+
+		auto range_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			type_kind, type,
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+		);
+		return context.make_universal_function_call_expression(
+			range_expr_src_tokens,
+			std::move(range_var_expr),
+			ast::make_identifier("end"), {}
+		);
+	}();
+
+	auto end_var_decl_stmt = ast::make_decl_variable(
+		range_expr_src_tokens,
+		ast::identifier{}, lex::token_range{},
+		ast::make_auto_typespec(nullptr),
+		std::move(range_end_expr)
+	);
+	bz_assert(end_var_decl_stmt.is<ast::decl_variable>());
+	auto &end_var_decl = end_var_decl_stmt.get<ast::decl_variable>();
+	end_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	resolve_variable(end_var_decl, context);
+
+	auto condition = [&]() {
+		if (iter_var_decl.var_type.is_empty() || end_var_decl.var_type.is_empty())
+		{
+			return ast::expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+		);
+		auto end_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, end_var_decl.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
+		);
+		return context.make_binary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::not_equals,
+			std::move(iter_var_expr),
+			std::move(end_var_expr)
+		);
+	}();
+
+	auto iteration = [&]() {
+		if (iter_var_decl.var_type.is_empty())
+		{
+			return ast::expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+		);
+		return context.make_unary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::plus_plus,
+			std::move(iter_var_expr)
+		);
+	}();
+
+	context.add_scope();
+
+	auto iter_deref_expr = [&]() {
+		if (iter_var_decl.var_type.is_empty())
+		{
+			return ast::expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+		);
+		return context.make_unary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::dereference,
+			std::move(iter_var_expr)
+		);
+	}();
+	auto iter_deref_var_decl_stmt = ast::make_decl_variable(
+		range_expr_src_tokens,
+		ast::make_identifier(id), prototype,
+		ast::make_unresolved_typespec(type),
+		std::move(iter_deref_expr)
+	);
+	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
+	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
+	resolve_variable(iter_deref_var_decl, context);
+	context.add_local_variable(iter_deref_var_decl);
+
+	auto body = parse_local_statement(stream, end, context);
+
+	context.remove_scope();
+
+	return ast::make_stmt_foreach(
+		std::move(range_var_decl_stmt),
+		std::move(iter_var_decl_stmt),
+		std::move(end_var_decl_stmt),
+		std::move(iter_deref_var_decl_stmt),
+		std::move(condition),
+		std::move(iteration),
+		std::move(body)
+	);
+}
+
+ast::statement parse_stmt_for_or_foreach(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_for);
+	++stream; // 'for'
+	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
+	auto const in_pos = search_token(lex::token::kw_in, stream, end);
+	if (in_pos != end)
+	{
+		return parse_stmt_foreach_impl(stream, end, open_paren, in_pos, context);
+	}
+	else
+	{
+		return parse_stmt_for_impl(stream, end, open_paren, context);
+	}
 }
 
 ast::statement parse_stmt_return(

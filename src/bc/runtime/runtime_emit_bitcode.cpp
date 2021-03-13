@@ -154,7 +154,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	switch (unary_op.op->kind)
+	switch (unary_op.op)
 	{
 	// ==== non-overloadable ====
 	case lex::token::address_of:         // '&'
@@ -990,7 +990,7 @@ static val_ptr emit_builtin_binary_cmp(
 	llvm::Value *result_address
 )
 {
-	auto const op = binary_op.op->kind;
+	auto const op = binary_op.op;
 	bz_assert(
 		op == lex::token::equals
 		|| op == lex::token::not_equals
@@ -1595,7 +1595,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	switch (binary_op.op->kind)
+	switch (binary_op.op)
 	{
 	// ==== non-overloadable ====
 	case lex::token::comma:              // ','
@@ -3145,6 +3145,38 @@ static void emit_bitcode(
 
 template<abi::platform_abi abi>
 static void emit_bitcode(
+	ast::stmt_foreach const &foreach_stmt,
+	ctx::bitcode_context &context
+)
+{
+	emit_bitcode<abi>(foreach_stmt.range_var_decl, context);
+	emit_bitcode<abi>(foreach_stmt.iter_var_decl, context);
+	emit_bitcode<abi>(foreach_stmt.end_var_decl, context);
+
+	auto const condition_check = context.add_basic_block("foreach_condition_check");
+	context.builder.CreateBr(condition_check);
+	context.builder.SetInsertPoint(condition_check);
+	auto const condition = emit_bitcode<abi>(foreach_stmt.condition, context, nullptr).get_value(context.builder);
+	auto const condition_check_end = context.builder.GetInsertBlock();
+
+	auto const foreach_bb = context.add_basic_block("foreach");
+	context.builder.SetInsertPoint(foreach_bb);
+	emit_bitcode<abi>(foreach_stmt.iter_deref_var_decl, context);
+	emit_bitcode<abi>(foreach_stmt.for_block, context);
+	if (!context.has_terminator())
+	{
+		emit_bitcode<abi>(foreach_stmt.iteration, context, nullptr);
+		context.builder.CreateBr(condition_check);
+	}
+
+	auto const end_bb = context.add_basic_block("endforeach");
+	context.builder.SetInsertPoint(condition_check_end);
+	context.builder.CreateCondBr(condition, foreach_bb, end_bb);
+	context.builder.SetInsertPoint(end_bb);
+}
+
+template<abi::platform_abi abi>
+static void emit_bitcode(
 	ast::stmt_return const &ret_stmt,
 	ctx::bitcode_context &context
 )
@@ -3278,6 +3310,9 @@ static void emit_bitcode(
 		break;
 	case ast::statement::index<ast::stmt_for>:
 		emit_bitcode<abi>(stmt.get<ast::stmt_for>(), context);
+		break;
+	case ast::statement::index<ast::stmt_foreach>:
+		emit_bitcode<abi>(stmt.get<ast::stmt_foreach>(), context);
 		break;
 	case ast::statement::index<ast::stmt_return>:
 		emit_bitcode<abi>(stmt.get<ast::stmt_return>(), context);
@@ -3750,7 +3785,7 @@ static void emit_function_bitcode_impl(
 	context.builder.CreateBr(entry_bb);
 
 	// true means it failed
-	if (llvm::verifyFunction(*fn) == true)
+	if (llvm::verifyFunction(*fn, &llvm::dbgs()) == true)
 	{
 		bz::print(
 			"{}verifyFunction failed on '{}' !!!{}\n",

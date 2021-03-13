@@ -705,7 +705,7 @@ static ast::expression parse_primary_expression(
 			++stream;
 			auto expr = parse_expression_impl(stream, end, context, prec);
 
-			return context.make_unary_operator_expression({ op, op, stream }, op, std::move(expr));
+			return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
 		}
 		else
 		{
@@ -815,7 +815,7 @@ static ast::expression parse_expression_helper(
 			}
 
 			auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
-			lhs = context.make_binary_operator_expression(src_tokens, op, std::move(lhs), std::move(rhs));
+			lhs = context.make_binary_operator_expression(src_tokens, op->kind, std::move(lhs), std::move(rhs));
 			break;
 		}
 		}
