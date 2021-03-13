@@ -111,6 +111,7 @@ struct token
 		kw_using,            // using
 		kw_export,           // export
 		kw_import,           // import
+		kw_in,               // in
 
 		kw_as,               // as
 

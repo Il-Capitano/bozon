@@ -290,6 +290,7 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_static_assert] = { lex::token::kw_static_assert, "static_assert", "", keyword_flags                   };
 	result[lex::token::kw_export]        = { lex::token::kw_export,        "export",        "", keyword_flags                   };
 	result[lex::token::kw_import]        = { lex::token::kw_import,        "import",        "", keyword_flags                   };
+	result[lex::token::kw_in]            = { lex::token::kw_in,            "in",            "", keyword_flags                   };
 
 	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_operator_flags | unary_builtin_flags };
 	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_operator_flags | unary_builtin_flags };
