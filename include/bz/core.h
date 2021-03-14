@@ -11,12 +11,16 @@
 #define bz_likely
 #define bz_unlikely
 
+#ifndef NDEBUG
 #define bz_assert(expr, ...)                                                                         \
 (!!(expr)                                                                                            \
 ? (void)0                                                                                            \
 : (void)(                                                                                            \
     bz::_assert_begin(#expr, __FILE__, __LINE__), bz::_assert_message(__VA_ARGS__), __builtin_trap() \
 ))
+#else
+#define bz_assert(expr, ...)
+#endif
 
 #define bz_unreachable \
 (bz::_unreachable_message(__FILE__, __LINE__), __builtin_trap())
