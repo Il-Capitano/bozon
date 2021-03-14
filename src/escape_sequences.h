@@ -223,8 +223,8 @@ inline bz::u8char get_unicode_big(bz::u8iterator &it)
 
 constexpr bz::array escape_sequence_parsers = {
 	escape_sequence_parser{ '\\', '\\',                                   "\\\\",        &default_verify<'\\'>,   &default_get<'\\', '\\'> },
-	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &default_verify<'\\'>,   &default_get<'\'', '\''> },
-	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &default_verify<'\\'>,   &default_get<'\"', '\"'> },
+	escape_sequence_parser{ '\'', '\'',                                   "\\\'",        &default_verify<'\''>,   &default_get<'\'', '\''> },
+	escape_sequence_parser{ '\"', '\"',                                   "\\\"",        &default_verify<'\"'>,   &default_get<'\"', '\"'> },
 	escape_sequence_parser{ 'n',  '\n',                                   "\\n",         &default_verify<'n'>,    &default_get<'n',  '\n'> },
 	escape_sequence_parser{ 't',  '\t',                                   "\\t",         &default_verify<'t'>,    &default_get<'t',  '\t'> },
 	escape_sequence_parser{ 'r',  '\r',                                   "\\r",         &default_verify<'r'>,    &default_get<'r',  '\r'> },
