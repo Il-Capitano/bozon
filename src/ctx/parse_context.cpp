@@ -2014,7 +2014,14 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	bz::u8string result = "";
 	for (; it != end; ++it)
 	{
-		result += get_string_value(it);
+		if (it->kind == lex::token::raw_string_literal)
+		{
+			result += it->value;
+		}
+		else
+		{
+			result += get_string_value(it);
+		}
 	}
 
 	auto const postfix = (end - 1)->postfix;

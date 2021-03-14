@@ -60,6 +60,7 @@ struct token
 		oct_literal,
 		bin_literal,
 		string_literal,
+		raw_string_literal,
 		character_literal,
 
 		// multi-char tokens

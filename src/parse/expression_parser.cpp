@@ -605,11 +605,15 @@ static ast::expression parse_primary_expression(
 	}
 
 	case lex::token::string_literal:
+	case lex::token::raw_string_literal:
 	{
 		// consecutive string literals are concatenated
 		auto const first = stream;
 		++stream;
-		while (stream != end && (stream - 1)->postfix == "" && stream->kind == lex::token::string_literal)
+		while (
+			stream != end && (stream - 1)->postfix == ""
+			&& (stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal)
+		)
 		{
 			++stream;
 		}

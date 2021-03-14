@@ -268,6 +268,7 @@ constexpr auto token_info = []() {
 	result[lex::token::oct_literal]            = { lex::token::oct_literal,            "", "octal literal",          expr_type_flags };
 	result[lex::token::bin_literal]            = { lex::token::bin_literal,            "", "binary literal",         expr_type_flags };
 	result[lex::token::string_literal]         = { lex::token::string_literal,         "", "string literal",         expr_type_flags };
+	result[lex::token::raw_string_literal]     = { lex::token::raw_string_literal,     "", "raw string literal",     expr_type_flags };
 	result[lex::token::character_literal]      = { lex::token::character_literal,      "", "character literal",      expr_type_flags };
 
 	result[lex::token::kw_true]  = { lex::token::kw_true,  "true",  "", keyword_flags | expr_type_flags };

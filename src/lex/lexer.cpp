@@ -348,6 +348,69 @@ static token get_string_token(
 	);
 }
 
+static token get_raw_string_token(
+	file_iterator &stream,
+	ctx::char_pos const end,
+	ctx::lex_context &context
+)
+{
+	bz_assert(stream.it != end);
+	bz_assert(*stream.it == '\"');
+	bz_assert(stream.it + 1 != end);
+	bz_assert(*(stream.it + 1) == '\"');
+	bz_assert(stream.it + 2 != end);
+	bz_assert(*(stream.it + 2) == '\"');
+	auto const begin_it = stream.it;
+	auto const line = stream.line;
+	++stream; ++stream; ++stream;
+	auto const str_begin = stream.it;
+
+	while (
+		(stream.it != end && *stream.it != '\"')
+		|| (stream.it + 1 != end && *(stream.it + 1) != '\"')
+		|| (stream.it + 2 != end && *(stream.it + 2) != '\"')
+	)
+	{
+		++stream;
+	}
+
+	auto const str_end = stream.it;
+	if (stream.it == end)
+	{
+		context.bad_eof(
+			stream,
+			"expected closing \"\"\" before end-of-file",
+			{ context.make_note(stream.file_id, line, begin_it, begin_it, str_begin, "to match this:") }
+		);
+	}
+	else
+	{
+		// bz_assert(stream.it != end);
+		bz_assert(*stream.it == '\"');
+		bz_assert(stream.it + 1 != end);
+		bz_assert(*(stream.it + 1) == '\"');
+		bz_assert(stream.it + 2 != end);
+		bz_assert(*(stream.it + 2) == '\"');
+		++stream; ++stream; ++stream;
+	}
+
+	auto const postfix_begin = stream.it;
+	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
+	{
+		++stream;
+	} while (stream.it != end && is_identifier_char(*stream.it));
+	auto const postfix_end = stream.it;
+
+	auto const end_it = stream.it;
+
+	return token(
+		token::raw_string_literal,
+		bz::u8string_view(str_begin, str_end),
+		bz::u8string_view(postfix_begin, postfix_end),
+		stream.file_id, line, begin_it, end_it
+	);
+}
+
 static token get_hex_number_token(
 	file_iterator &stream,
 	ctx::char_pos const end
@@ -648,7 +711,14 @@ static token get_next_token(
 		return get_character_token(stream, end, context);
 	// string
 	case '\"':
-		return get_string_token(stream, end, context);
+		if (stream.it + 1 != end && *(stream.it + 1) == '\"' && stream.it + 2 != end && *(stream.it + 2) == '\"')
+		{
+			return get_raw_string_token(stream, end, context);
+		}
+		else
+		{
+			return get_string_token(stream, end, context);
+		}
 	// number
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
