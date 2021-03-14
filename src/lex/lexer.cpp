@@ -365,11 +365,11 @@ static token get_raw_string_token(
 	++stream; ++stream; ++stream;
 	auto const str_begin = stream.it;
 
-	while (
-		(stream.it != end && *stream.it != '\"')
-		|| (stream.it + 1 != end && *(stream.it + 1) != '\"')
-		|| (stream.it + 2 != end && *(stream.it + 2) != '\"')
-	)
+	while (!(
+		stream.it != end && *stream.it == '\"'
+		&& stream.it + 1 != end && *(stream.it + 1) == '\"'
+		&& stream.it + 2 != end && *(stream.it + 2) == '\"'
+	))
 	{
 		++stream;
 	}
