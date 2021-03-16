@@ -2218,37 +2218,16 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_pointer_to_int:
-		{
-			bz_assert(func_call.params.size() == 1);
-			auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			bz_assert(ptr->getType()->isPointerTy());
-			auto const result = context.builder.CreatePtrToInt(ptr, context.get_uint64_t());
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(result, result_address);
-				return val_ptr{ val_ptr::reference, result_address };
-			}
-			else
-			{
-				return { val_ptr::value, result };
-			}
-		}
 		case ast::function_body::builtin_int_to_pointer:
 		{
-			bz_assert(func_call.params.size() == 2);
-			bz_assert(func_call.params[0].is_typename());
-			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
-			auto const val = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
-			bz_assert(val->getType()->isIntegerTy());
-			auto const result = context.builder.CreateIntToPtr(val, dest_type);
+			emit_error(func_call.src_tokens, bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()), context);
 			if (result_address != nullptr)
 			{
-				context.builder.CreateStore(result, result_address);
 				return val_ptr{ val_ptr::reference, result_address };
 			}
 			else
 			{
-				return { val_ptr::value, result };
+				return { val_ptr::value, llvm::UndefValue::get(get_llvm_type(func_call.func_body->return_type, context)) };
 			}
 		}
 
