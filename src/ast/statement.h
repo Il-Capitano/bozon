@@ -983,8 +983,8 @@ struct universal_function_set
 };
 
 bz::vector<type_info>              make_builtin_type_infos(void);
-bz::vector<type_and_name_pair>     make_builtin_types(bz::array_view<type_info>     builtin_type_infos);
-bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info>     builtin_type_infos);
+bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
+bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
 
 struct intrinsic_info_t

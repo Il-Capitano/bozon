@@ -68,7 +68,7 @@ struct constant_value : bz::variant<
 		array,
 		tuple,
 		function        = base_t::index_of<function_body *>,
-		unqualified_function_set_id = base_t::index_of<arena_vector<bz::u8string_view>>,
+		unqualified_function_set_id,
 		qualified_function_set_id,
 		type            = base_t::index_of<ast::typespec>,
 		aggregate,
@@ -78,6 +78,9 @@ struct constant_value : bz::variant<
 	static_assert(bz::meta::is_same<base_t::value_type<tuple>, bz::vector<constant_value>>);
 	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, bz::vector<constant_value>>);
 	static_assert(array != tuple && array != aggregate && tuple != aggregate);
+	static_assert(bz::meta::is_same<base_t::value_type<unqualified_function_set_id>, arena_vector<bz::u8string_view>>);
+	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, arena_vector<bz::u8string_view>>);
+	static_assert(unqualified_function_set_id != qualified_function_set_id);
 
 	using base_t::variant;
 	using base_t::operator =;

@@ -2170,6 +2170,8 @@ static ast::statement parse_stmt_foreach_impl(
 		>(stream, end, context);
 	}
 
+	context.add_scope();
+
 	auto range_var_type = ast::make_auto_typespec(nullptr);
 	range_var_type.add_layer<ast::ts_auto_reference_const>();
 	auto const range_expr_src_tokens = range_expr.src_tokens;
@@ -2182,10 +2184,15 @@ static ast::statement parse_stmt_foreach_impl(
 	bz_assert(range_var_decl_stmt.is<ast::decl_variable>());
 	auto &range_var_decl = range_var_decl_stmt.get<ast::decl_variable>();
 	range_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	range_var_decl.id.values = { "" };
+	range_var_decl.id.is_qualified = false;
 	resolve_variable(range_var_decl, context);
+	range_var_decl.is_used = true;
+	context.add_local_variable(range_var_decl);
 
 	if (range_var_decl.var_type.is_empty())
 	{
+		context.remove_scope();
 		return {};
 	}
 
@@ -2220,7 +2227,11 @@ static ast::statement parse_stmt_foreach_impl(
 	bz_assert(iter_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_var_decl = iter_var_decl_stmt.get<ast::decl_variable>();
 	iter_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	iter_var_decl.id.values = { "" };
+	iter_var_decl.id.is_qualified = false;
 	resolve_variable(iter_var_decl, context);
+	iter_var_decl.is_used = true;
+	context.add_local_variable(iter_var_decl);
 
 	auto range_end_expr = [&]() {
 		if (range_var_decl.var_type.is_empty())
@@ -2253,7 +2264,11 @@ static ast::statement parse_stmt_foreach_impl(
 	bz_assert(end_var_decl_stmt.is<ast::decl_variable>());
 	auto &end_var_decl = end_var_decl_stmt.get<ast::decl_variable>();
 	end_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	end_var_decl.id.values = { "" };
+	end_var_decl.id.is_qualified = false;
 	resolve_variable(end_var_decl, context);
+	end_var_decl.is_used = true;
+	context.add_local_variable(end_var_decl);
 
 	auto condition = [&]() {
 		if (iter_var_decl.var_type.is_empty() || end_var_decl.var_type.is_empty())
@@ -2326,6 +2341,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto body = parse_local_statement(stream, end, context);
 
+	context.remove_scope();
 	context.remove_scope();
 
 	return ast::make_stmt_foreach(

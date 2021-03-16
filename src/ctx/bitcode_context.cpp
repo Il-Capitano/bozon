@@ -263,6 +263,40 @@ llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
 	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
 }
 
+llvm::Type *bitcode_context::get_usize_t(void) const
+{
+	switch (this->global_ctx.get_data_layout().getPointerSize())
+	{
+	case 8:
+		return this->get_uint64_t();
+	case 4:
+		return this->get_uint32_t();
+	case 2:
+		return this->get_uint16_t();
+	case 1:
+		return this->get_uint8_t();
+	default:
+		bz_unreachable;
+	}
+}
+
+llvm::Type *bitcode_context::get_isize_t(void) const
+{
+	switch (this->global_ctx.get_data_layout().getPointerSize())
+	{
+	case 8:
+		return this->get_int64_t();
+	case 4:
+		return this->get_int32_t();
+	case 2:
+		return this->get_int16_t();
+	case 1:
+		return this->get_int8_t();
+	default:
+		bz_unreachable;
+	}
+}
+
 
 bool bitcode_context::has_terminator(void) const
 {

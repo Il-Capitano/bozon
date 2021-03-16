@@ -51,19 +51,18 @@ function builtin_str_neq(lhs: str, rhs: str) -> bool
 }
 
 @builtin("str_length")
-function builtin_str_length(s: str) -> uint64
+function builtin_str_length(s: str) -> usize
 {
-	let it = __builtin_str_begin_ptr(s);
-	const end = __builtin_str_end_ptr(s);
-	const size = __builtin_str_size(s);
 	let continuation_byte_count = 0u64;
-	for (; it != end; ++it)
+	const str_as_slice = __builtin_slice_from_const_ptrs(__builtin_str_begin_ptr(s), __builtin_str_end_ptr(s));
+	for (const c in str_as_slice)
 	{
-		if ((*it & 0b1100'0000u8) == 0b1000'0000u8)
+		if ((c & 0b1100'0000u8) == 0b1000'0000u8)
 		{
 			continuation_byte_count += 1u;
 		}
 	}
+	const size = __builtin_str_size(s);
 	return size - continuation_byte_count;
 }
 
@@ -89,7 +88,7 @@ struct error_array_t
 }
 
 @no_comptime_checking
-function alloc(T: typename, count: uint64) -> *T
+function alloc(T: typename, count: usize) -> *T
 {
 	return __builtin_pointer_cast(*T, __builtin_comptime_malloc(count * sizeof T));
 }
@@ -114,7 +113,7 @@ function push_back(arr: &auto, val: auto)
 	}
 	else if (arr.data_end == arr.alloc_end)
 	{
-		const old_capacity = (arr.alloc_end - arr.data_begin) as uint64;
+		const old_capacity = (arr.alloc_end - arr.data_begin) as usize;
 		const new_capacity = 2u * old_capacity;
 		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0u64; i < old_capacity; ++i)
@@ -142,9 +141,9 @@ function pop_back(arr: &call_stack_t)
 }
 
 @no_comptime_checking
-function size(arr: &const auto) -> uint64
+function size(arr: &const auto) -> usize
 {
-	return (arr.data_end - arr.data_begin) as uint64;
+	return (arr.data_end - arr.data_begin) as usize;
 }
 
 @no_comptime_checking

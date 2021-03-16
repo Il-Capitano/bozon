@@ -385,13 +385,34 @@ bz::vector<type_info> make_builtin_type_infos(void)
 	return result;
 }
 
-bz::vector<type_and_name_pair> make_builtin_types(bz::array_view<type_info> builtin_type_infos)
+bz::vector<type_and_name_pair> make_builtin_types(bz::array_view<type_info> builtin_type_infos, size_t pointer_size)
 {
 	bz::vector<type_and_name_pair> result;
-	result.reserve(builtin_type_infos.size() + 1);
+	result.reserve(builtin_type_infos.size() + 3);
 	for (auto &type_info : builtin_type_infos)
 	{
 		result.emplace_back(make_base_type_typespec({}, &type_info), type_info::decode_symbol_name(type_info.symbol_name));
+	}
+	switch (pointer_size)
+	{
+	case 8:
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]), "usize");
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::int64_]),  "isize");
+		break;
+	case 4:
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::uint32_]), "usize");
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::int32_]),  "isize");
+		break;
+	case 2:
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::uint16_]), "usize");
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::int16_]),  "isize");
+		break;
+	case 1:
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]), "usize");
+		result.emplace_back(make_base_type_typespec({}, &builtin_type_infos[type_info::int8_]),  "isize");
+		break;
+	default:
+		bz_unreachable;
 	}
 	result.emplace_back(make_void_typespec(nullptr), "void");
 	return result;
@@ -438,7 +459,7 @@ static function_body create_builtin_function(
 	return result;
 }
 
-bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos)
+bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size)
 {
 	auto const bool_type    = make_base_type_typespec({}, &builtin_type_infos[type_info::bool_]);
 	auto const uint64_type  = make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
@@ -447,6 +468,21 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 	auto const float64_type = make_base_type_typespec({}, &builtin_type_infos[type_info::float64_]);
 	auto const str_type     = make_base_type_typespec({}, &builtin_type_infos[type_info::str_]);
 	auto const void_type    = make_void_typespec(nullptr);
+	auto const usize_type = [&]() {
+		switch (pointer_size)
+		{
+		case 8:
+			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
+		case 4:
+			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint32_]);
+		case 2:
+			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint16_]);
+		case 1:
+			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
+		default:
+			bz_unreachable;
+		}
+	}();
 	auto const void_ptr_type = [&]() {
 		typespec result = make_void_typespec(nullptr);
 		result.add_layer<ts_pointer>(nullptr);
@@ -493,33 +529,33 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
 	bz::vector result = {
-		add_builtin( 0, function_body::builtin_str_eq,     "", bool_type,   str_type, str_type),
-		add_builtin( 1, function_body::builtin_str_neq,    "", bool_type,   str_type, str_type),
-		add_builtin( 2, function_body::builtin_str_length, "", uint64_type, str_type),
+		add_builtin( 0, function_body::builtin_str_eq,     "", bool_type,  str_type, str_type),
+		add_builtin( 1, function_body::builtin_str_neq,    "", bool_type,  str_type, str_type),
+		add_builtin( 2, function_body::builtin_str_length, "", usize_type, str_type),
 
 		add_builtin( 3, function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type),
 		add_builtin( 4, function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type),
-		add_builtin( 5, function_body::builtin_str_size,              "", uint64_type, str_type),
+		add_builtin( 5, function_body::builtin_str_size,              "", usize_type, str_type),
 		add_builtin( 6, function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type),
 
 		add_builtin( 7, function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type),
 		add_builtin( 8, function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type),
 		add_builtin( 9, function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type),
 		add_builtin(10, function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type),
-		add_builtin(11, function_body::builtin_slice_size,            "", uint64_type, slice_const_auto_type),
+		add_builtin(11, function_body::builtin_slice_size,            "", usize_type, slice_const_auto_type),
 		add_builtin(12, function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type),
 		add_builtin(13, function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type),
 
 		add_builtin(14, function_body::builtin_pointer_cast,   "", {}, typename_ptr_type, void_const_ptr_type),
-		add_builtin(15, function_body::builtin_pointer_to_int, "", uint64_type, void_const_ptr_type),
-		add_builtin(16, function_body::builtin_int_to_pointer, "", {}, typename_ptr_type, uint64_type),
+		add_builtin(15, function_body::builtin_pointer_to_int, "", usize_type, void_const_ptr_type),
+		add_builtin(16, function_body::builtin_int_to_pointer, "", {}, typename_ptr_type, usize_type),
 
 		add_builtin(17, function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type),
 		add_builtin(18, function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type),
 		add_builtin(19, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type),
 		add_builtin(20, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type),
 
-		add_builtin(21, function_body::comptime_malloc, "malloc", void_ptr_type, uint64_type),
+		add_builtin(21, function_body::comptime_malloc, "malloc", void_ptr_type, usize_type),
 		add_builtin(22, function_body::comptime_free,   "free",   void_type,     void_const_ptr_type),
 
 		add_builtin(23, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),

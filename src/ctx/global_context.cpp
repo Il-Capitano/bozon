@@ -66,8 +66,8 @@ global_context::global_context(void)
 	: _compile_decls{},
 	  _errors{},
 	  _builtin_type_infos(ast::make_builtin_type_infos()),
-	  _builtin_types(ast::make_builtin_types(this->_builtin_type_infos)),
-	  _builtin_functions(ast::make_builtin_functions(this->_builtin_type_infos)),
+	  _builtin_types{},
+	  _builtin_functions{},
 	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
@@ -577,6 +577,10 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_data_layout = this->_target_machine->createDataLayout();
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
+
+	auto const pointer_size = this->_data_layout->getPointerSize();
+	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
+	this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
 
 	return true;
 }

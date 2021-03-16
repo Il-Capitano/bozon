@@ -2081,7 +2081,8 @@ static val_ptr emit_bitcode(
 			bz_assert(str->getType()->isStructTy());
 			auto const begin_ptr = context.builder.CreateExtractValue(str, 0);
 			auto const end_ptr   = context.builder.CreateExtractValue(str, 1);
-			auto const size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			auto const size_ptr_diff = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			auto const size = context.builder.CreateIntCast(size_ptr_diff, context.get_usize_t(), false);
 			if (result_address != nullptr)
 			{
 				context.builder.CreateStore(size, result_address);
@@ -2158,7 +2159,8 @@ static val_ptr emit_bitcode(
 			bz_assert(slice->getType()->isStructTy());
 			auto const begin_ptr = context.builder.CreateExtractValue(slice, 0);
 			auto const end_ptr   = context.builder.CreateExtractValue(slice, 1);
-			auto const size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			auto const size_ptr_diff = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			auto const size = context.builder.CreateIntCast(size_ptr_diff, context.get_usize_t(), false);
 			if (result_address != nullptr)
 			{
 				context.builder.CreateStore(size, result_address);
