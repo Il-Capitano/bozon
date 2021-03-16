@@ -2261,6 +2261,19 @@ static void format_match_level_impl(match_level_t const &match_level, bz::u8stri
 // returns -1 if lhs < rhs, 0 if lhs == rhs or they are ambiguous and 1 if lhs > rhs
 static int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 {
+	if (lhs.is_null() && rhs.is_null())
+	{
+		return 0;
+	}
+	else if (lhs.is_null())
+	{
+		return -1;
+	}
+	else if (rhs.is_null())
+	{
+		return 1;
+	}
+
 	bz_assert(lhs.index() == rhs.index());
 	if (lhs.is<int>() && rhs.is<int>())
 	{
@@ -3431,52 +3444,57 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	parse_context &context
 )
 {
-	if (!possible_funcs.empty())
+	bz_assert(!possible_funcs.empty());
+	auto const max_match_it = std::max_element(possible_funcs.begin(), possible_funcs.end(), [](auto const &lhs, auto const &rhs) {
+		return lhs.match_level < rhs.match_level;
+	});
+	bz_assert(max_match_it != possible_funcs.end());
+	if (max_match_it->match_level.not_null())
 	{
-		auto const max_match_it = std::max_element(possible_funcs.begin(), possible_funcs.end(), [](auto const &lhs, auto const &rhs) {
-			return lhs.match_level < rhs.match_level;
-		});
-		bz_assert(max_match_it != possible_funcs.end());
-		if (max_match_it->match_level.not_null())
+		// search for possible ambiguity
+		auto filtered_funcs = possible_funcs
+			.filter([&](auto const &func) { return &*max_match_it == &func || match_level_compare(max_match_it->match_level, func.match_level) == 0; });
+		if (filtered_funcs.count() == 1)
 		{
-			// search for possible ambiguity
-			auto filtered_funcs = possible_funcs
-				.filter([&](auto const &func) { return &*max_match_it == &func || match_level_compare(max_match_it->match_level, func.match_level) == 0; });
-			if (filtered_funcs.count() == 1)
+			return { max_match_it->stmt, max_match_it->func_body };
+		}
+		else
+		{
+			bz::vector<source_highlight> notes;
+			notes.reserve(possible_funcs.size());
+			for (auto &func : possible_funcs)
 			{
-				return { max_match_it->stmt, max_match_it->func_body };
-			}
-			else
-			{
-				bz::vector<source_highlight> notes;
-				notes.reserve(possible_funcs.size());
-				for (auto &func : possible_funcs)
+				notes.emplace_back(context.make_note(
+					func.func_body->src_tokens, func.func_body->get_candidate_message()
+				));
+				if (func.stmt.is<ast::decl_function_alias>())
 				{
+					auto &alias = func.stmt.get<ast::decl_function_alias>();
 					notes.emplace_back(context.make_note(
-						func.func_body->src_tokens, func.func_body->get_candidate_message()
+						alias.src_tokens, bz::format("via alias 'function {}'", alias.id.format_as_unqualified())
 					));
-					if (func.stmt.is<ast::decl_function_alias>())
-					{
-						auto &alias = func.stmt.get<ast::decl_function_alias>();
-						notes.emplace_back(context.make_note(
-							alias.src_tokens, bz::format("via alias 'function {}'", alias.id.format_as_unqualified())
-						));
-					}
 				}
-				context.report_error(src_tokens, "function call is ambiguous", std::move(notes));
-				return { {}, nullptr };
 			}
+			context.report_error(src_tokens, "function call is ambiguous", std::move(notes));
+			return { {}, nullptr };
 		}
 	}
 
-	// report undeclared function error
+	// report all failed function error
 	bz::vector<source_highlight> notes;
 	notes.reserve(possible_funcs.size());
 	for (auto &func : possible_funcs)
 	{
-		notes.emplace_back(context.make_note(
-			func.func_body->src_tokens, func.func_body->get_candidate_message()
-		));
+		if (func.func_body->src_tokens.pivot == nullptr)
+		{
+			notes.emplace_back(context.make_note(func.func_body->get_candidate_message()));
+		}
+		else
+		{
+			notes.emplace_back(context.make_note(
+				func.func_body->src_tokens, func.func_body->get_candidate_message()
+			));
+		}
 		if (func.stmt.is<ast::decl_function_alias>())
 		{
 			auto &alias = func.stmt.get<ast::decl_function_alias>();
@@ -3485,7 +3503,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 			));
 		}
 	}
-	context.report_error(src_tokens, "couldn't match the function call to any of the overloads", std::move(notes));
+	context.report_error(src_tokens, "couldn't match the function call to any of the candidates", std::move(notes));
 	return { {}, nullptr };
 }
 
@@ -3591,10 +3609,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 			{
 				auto &body = op.get<ast::decl_operator>().body;
 				auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), op, &body });
-				}
+				possible_funcs.push_back({ std::move(match_level), op, &body });
 			}
 		}
 	}
@@ -3614,10 +3629,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		{
 			auto &body = op.get<ast::decl_operator>().body;
 			auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
-			if (match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(match_level), op, &body });
-			}
+			possible_funcs.push_back({ std::move(match_level), op, &body });
 		}
 	}
 
@@ -3661,16 +3673,30 @@ ast::expression parse_context::make_unary_operator_expression(
 	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, expr, *this);
-	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-	if (best_body == nullptr)
+	if (possible_funcs.empty())
 	{
+		this->report_error(
+			src_tokens,
+			bz::format(
+				"no candidate found for unary 'operator {}' with type '{}'",
+				token_info[op_kind].token_value, expr.get_expr_type_and_kind().first
+			)
+		);
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		bz::vector<ast::expression> params;
-		params.emplace_back(std::move(expr));
-		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		if (best_body == nullptr)
+		{
+			return ast::expression(src_tokens);
+		}
+		else
+		{
+			bz::vector<ast::expression> params;
+			params.emplace_back(std::move(expr));
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+		}
 	}
 }
 
@@ -3729,10 +3755,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 			{
 				auto &body = op.get<ast::decl_operator>().body;
 				auto match_level = get_function_call_match_level(op, body, lhs, rhs, context, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), op, &body });
-				}
+				possible_funcs.push_back({ std::move(match_level), op, &body });
 			}
 		}
 	}
@@ -3753,10 +3776,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		{
 			auto &body = op_decl.get<ast::decl_operator>().body;
 			auto match_level = get_function_call_match_level(op_decl, body, lhs, rhs, context, src_tokens);
-			if (match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(match_level), op_decl, &body });
-			}
+			possible_funcs.push_back({ std::move(match_level), op_decl, &body });
 		}
 	}
 
@@ -3767,16 +3787,10 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		{
 			auto &op_assign = *lhs_info->default_op_assign;
 			auto op_assign_match_level = get_function_call_match_level({}, op_assign, lhs, rhs, context, src_tokens);
-			if (op_assign_match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(op_assign_match_level), {}, &op_assign });
-			}
+			possible_funcs.push_back({ std::move(op_assign_match_level), {}, &op_assign });
 			auto &op_move_assign = *lhs_info->default_op_move_assign;
 			auto op_move_assign_match_level = get_function_call_match_level({}, op_move_assign, lhs, rhs, context, src_tokens);
-			if (op_move_assign_match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(op_move_assign_match_level), {}, &op_move_assign });
-			}
+			possible_funcs.push_back({ std::move(op_move_assign_match_level), {}, &op_move_assign });
 		}
 	}
 
@@ -3848,20 +3862,34 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 
 	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, lhs, rhs, *this);
-	auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-	if (best_body == nullptr)
+	if (possible_funcs.empty())
 	{
+		this->report_error(
+			src_tokens,
+			bz::format(
+				"no candidate found for binary 'operator {}' with types '{}' and '{}'",
+				token_info[op_kind].token_value, lhs.get_expr_type_and_kind().first, rhs.get_expr_type_and_kind().first
+			)
+		);
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		bz::vector<ast::expression> params;
-		params.emplace_back(std::move(lhs));
-		params.emplace_back(std::move(rhs));
-		auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
-			? ast::resolve_order::regular
-			: ast::resolve_order::reversed;
-		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this, resolve_order);
+		auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		if (best_body == nullptr)
+		{
+			return ast::expression(src_tokens);
+		}
+		else
+		{
+			bz::vector<ast::expression> params;
+			params.emplace_back(std::move(lhs));
+			params.emplace_back(std::move(rhs));
+			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
+				? ast::resolve_order::regular
+				: ast::resolve_order::reversed;
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this, resolve_order);
+		}
 	}
 }
 
@@ -3890,10 +3918,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 				{
 					auto &body = fn.get<ast::decl_function>().body;
 					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), fn, &body });
-					}
+					possible_funcs.push_back({ std::move(match_level), fn, &body });
 				}
 				for (auto &alias_decl : set->alias_decls)
 				{
@@ -3904,10 +3929,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 					for (auto const body : alias.aliased_bodies)
 					{
 						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-						if (match_level.not_null())
-						{
-							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-						}
+						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 					}
 				}
 				return possible_funcs;
@@ -3929,10 +3951,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 			{
 				auto &body = fn.template get<ast::decl_function>().body;
 				auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), fn, &body });
-				}
+				possible_funcs.push_back({ std::move(match_level), fn, &body });
 			}
 			for (auto &alias_decl : fn_set.alias_decls)
 			{
@@ -3943,10 +3962,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 				for (auto const body : alias.aliased_bodies)
 				{
 					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-					}
+					possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 				}
 			}
 		});
@@ -3971,10 +3987,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 			{
 				auto &body = fn.template get<ast::decl_function>().body;
 				auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-				if (match_level.not_null())
-				{
-					possible_funcs.push_back({ std::move(match_level), fn, &body });
-				}
+				possible_funcs.push_back({ std::move(match_level), fn, &body });
 			}
 			for (auto &alias_decl : fn_set.alias_decls)
 			{
@@ -3985,10 +3998,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 				for (auto const body : alias.aliased_bodies)
 				{
 					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-					}
+					possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 				}
 			}
 		});
@@ -4066,14 +4076,42 @@ ast::expression parse_context::make_function_call_expression(
 					src_tokens, params, *this
 				);
 
-			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-			if (best_body == nullptr)
+			if (possible_funcs.empty())
 			{
+				auto const func_id_value = [&]() {
+					auto const id_values = const_called.value.is<ast::constant_value::unqualified_function_set_id>()
+						? const_called.value.get<ast::constant_value::unqualified_function_set_id>().as_array_view()
+						: const_called.value.get<ast::constant_value::qualified_function_set_id>().as_array_view();
+					bz::u8string result;
+					bool skip_scope = const_called.value.is<ast::constant_value::unqualified_function_set_id>();
+					for (auto const id : id_values)
+					{
+						if (skip_scope)
+						{
+							skip_scope = false;
+						}
+						else
+						{
+							result += "::";
+						}
+						result += id;
+					}
+					return result;
+				}();
+				this->report_error(src_tokens, bz::format("no candidate found for function call to '{}'", func_id_value));
 				return ast::expression(src_tokens);
 			}
 			else
 			{
-				return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+				auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+				if (best_body == nullptr)
+				{
+					return ast::expression(src_tokens);
+				}
+				else
+				{
+					return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+				}
 			}
 		}
 	}
@@ -4111,10 +4149,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &body = fn.get<ast::decl_function>().body;
 					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), fn, &body });
-					}
+					possible_funcs.push_back({ std::move(match_level), fn, &body });
 				}
 				for (auto &alias_decl : set->alias_decls)
 				{
@@ -4125,10 +4160,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 					for (auto const body : alias.aliased_bodies)
 					{
 						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-						if (match_level.not_null())
-						{
-							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-						}
+						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 					}
 				}
 				return possible_funcs;
@@ -4143,10 +4175,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		for (auto const body : kinds.transform([&](auto const kind) { return context.global_ctx.get_builtin_function(kind); }))
 		{
 			auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-			if (match_level.not_null())
-			{
-				possible_funcs.push_back({ std::move(match_level), {}, body });
-			}
+			possible_funcs.push_back({ std::move(match_level), {}, body });
 		}
 	}
 	if (id.is_qualified)
@@ -4160,10 +4189,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &body = fn.template get<ast::decl_function>().body;
 					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), fn, &body });
-					}
+					possible_funcs.push_back({ std::move(match_level), fn, &body });
 				}
 				for (auto &alias_decl : fn_set.alias_decls)
 				{
@@ -4174,10 +4200,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 					for (auto const body : alias.aliased_bodies)
 					{
 						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-						if (match_level.not_null())
-						{
-							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-						}
+						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 					}
 				}
 			});
@@ -4195,10 +4218,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &body = fn.template get<ast::decl_function>().body;
 					auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-					if (match_level.not_null())
-					{
-						possible_funcs.push_back({ std::move(match_level), fn, &body });
-					}
+					possible_funcs.push_back({ std::move(match_level), fn, &body });
 				}
 				for (auto &alias_decl : fn_set.alias_decls)
 				{
@@ -4209,10 +4229,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 					for (auto const body : alias.aliased_bodies)
 					{
 						auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-						if (match_level.not_null())
-						{
-							possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-						}
+						possible_funcs.push_back({ std::move(match_level), alias_decl, body });
 					}
 				}
 			});
@@ -4257,14 +4274,22 @@ ast::expression parse_context::make_universal_function_call_expression(
 
 	params.push_front(std::move(base));
 	auto const possible_funcs = get_possible_funcs_for_universal_function_call(src_tokens, id, base_scope, params, *this);
-	auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-	if (best_body == nullptr)
+	if (possible_funcs.empty())
 	{
+		this->report_error(src_tokens, bz::format("no candidate found for universal function call to '{}'", id.as_string()));
 		return ast::expression(src_tokens);
 	}
 	else
 	{
-		return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		if (best_body == nullptr)
+		{
+			return ast::expression(src_tokens);
+		}
+		else
+		{
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+		}
 	}
 }
 

@@ -490,6 +490,14 @@ static void resolve_variable_init_expr_and_match_type(
 		}
 		context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
 	}
+	else if (var_decl.init_expr.src_tokens.pivot != nullptr)
+	{
+		if (!ast::is_complete(var_decl.var_type))
+		{
+			var_decl.var_type.clear();
+		}
+		var_decl.state = ast::resolve_state::error;
+	}
 	else
 	{
 		if (!ast::is_complete(var_decl.var_type))
@@ -527,9 +535,31 @@ static void resolve_variable_init_expr_and_match_type(
 		&& var_decl.state != ast::resolve_state::error
 	)
 	{
-		auto const src_tokens = var_decl.var_type.get_src_tokens();
+		auto const var_decl_src_tokens = var_decl.var_type.get_src_tokens();
+		auto const src_tokens = [&]() {
+			if (var_decl_src_tokens.pivot != nullptr)
+			{
+				return var_decl_src_tokens;
+			}
+			else if (var_decl.id.tokens.begin != nullptr)
+			{
+				return lex::src_tokens{
+					var_decl.id.tokens.begin,
+					var_decl.id.tokens.begin,
+					var_decl.id.tokens.end
+				};
+			}
+			else if (var_decl.init_expr.src_tokens.pivot != nullptr)
+			{
+				return var_decl.init_expr.src_tokens;
+			}
+			else
+			{
+				return lex::src_tokens{};
+			}
+		}();
 		bz_assert(src_tokens.pivot != nullptr);
-		context.report_error(src_tokens, "variable type is not instantiable");
+		context.report_error(src_tokens, bz::format("variable type '{}' is not instantiable", var_decl.var_type));
 		var_decl.state = ast::resolve_state::error;
 		var_decl.var_type.clear();
 	}
@@ -2192,6 +2222,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	if (range_var_decl.var_type.is_empty())
 	{
+		context.report_error(range_expr.src_tokens, "invalid range in foreach loop");
 		context.remove_scope();
 		return {};
 	}
