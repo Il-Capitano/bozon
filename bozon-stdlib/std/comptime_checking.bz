@@ -53,13 +53,13 @@ function builtin_str_neq(lhs: str, rhs: str) -> bool
 @builtin("str_length")
 function builtin_str_length(s: str) -> usize
 {
-	let continuation_byte_count = 0u64;
+	let continuation_byte_count = 0uz;
 	const str_as_slice = __builtin_slice_from_const_ptrs(__builtin_str_begin_ptr(s), __builtin_str_end_ptr(s));
 	for (const c in str_as_slice)
 	{
 		if ((c & 0b1100'0000u8) == 0b1000'0000u8)
 		{
-			continuation_byte_count += 1u;
+			continuation_byte_count += 1uz;
 		}
 	}
 	const size = __builtin_str_size(s);

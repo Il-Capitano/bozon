@@ -1605,7 +1605,7 @@ if (postfix == postfix_str)                                                     
         this->report_error(literal, "literal value is too large to fit in type '" #type "'"); \
     }                                                                                         \
     value = static_cast<wide_type>(static_cast<type##_t>(num));                               \
-    type_info = this->get_builtin_type_info(ast::type_info::type##_);                            \
+    type_info = this->get_builtin_type_info(ast::type_info::type##_);                         \
 }
 		else postfix_check("i8",  int8,   int64_t)
 		else postfix_check("i16", int16,  int64_t)
@@ -1616,6 +1616,72 @@ if (postfix == postfix_str)                                                     
 		else postfix_check("u32", uint32, uint64_t)
 		else postfix_check("u64", uint64, uint64_t)
 #undef postfix_check
+		else if (postfix == "uz")
+		{
+			uint64_t max_value;
+			switch (this->global_ctx.get_data_layout().getPointerSize())
+			{
+			case 8:
+				max_value = static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
+				value = static_cast<uint64_t>(static_cast<uint64_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
+				break;
+			case 4:
+				max_value = static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
+				value = static_cast<uint64_t>(static_cast<uint32_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::uint32_);
+				break;
+			case 2:
+				max_value = static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
+				value = static_cast<uint64_t>(static_cast<uint16_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::uint16_);
+				break;
+			case 1:
+				max_value = static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
+				value = static_cast<uint64_t>(static_cast<uint8_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::uint8_);
+				break;
+			default:
+				bz_unreachable;
+			}
+			if (num > max_value)
+			{
+				this->report_error(literal, "literal value is too large to fit in type 'usize'");
+			}
+		}
+		else if (postfix == "iz")
+		{
+			uint64_t max_value;
+			switch (this->global_ctx.get_data_layout().getPointerSize())
+			{
+			case 8:
+				max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+				value = static_cast<int64_t>(static_cast<int64_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::int64_);
+				break;
+			case 4:
+				max_value = static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
+				value = static_cast<int64_t>(static_cast<int32_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::int32_);
+				break;
+			case 2:
+				max_value = static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
+				value = static_cast<int64_t>(static_cast<int16_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::int16_);
+				break;
+			case 1:
+				max_value = static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
+				value = static_cast<int64_t>(static_cast<int8_t>(num));
+				type_info = this->get_builtin_type_info(ast::type_info::int8_);
+				break;
+			default:
+				bz_unreachable;
+			}
+			if (num > max_value)
+			{
+				this->report_error(literal, "literal value is too large to fit in type 'isize'");
+			}
+		}
 		else
 		{
 			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
