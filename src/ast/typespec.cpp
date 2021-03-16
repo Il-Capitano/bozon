@@ -330,7 +330,7 @@ bool is_complete(typespec_view ts) noexcept
 		return node.template is<ts_auto_reference>() || node.template is<ts_auto_reference_const>();
 	});
 
-	return is_auto_ref || ts.nodes.back().visit(bz::overload{
+	return !is_auto_ref && ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &) {
 			return true;
 		},
