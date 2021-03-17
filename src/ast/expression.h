@@ -26,6 +26,7 @@ struct expr_struct_init;
 struct expr_member_access;
 struct expr_compound;
 struct expr_if;
+struct expr_switch;
 
 
 using expr_t = node<
@@ -41,7 +42,8 @@ using expr_t = node<
 	expr_struct_init,
 	expr_member_access,
 	expr_compound,
-	expr_if
+	expr_if,
+	expr_switch
 >;
 
 enum class expression_type_kind
@@ -53,6 +55,7 @@ enum class expression_type_kind
 	type_name,
 	tuple,
 	if_expr,
+	switch_expr,
 	none,
 };
 
@@ -218,6 +221,62 @@ struct expression : bz::variant<
 		else
 		{
 			return this->get<dynamic_expression>().expr.get<expr_if>();
+		}
+	}
+
+	bool is_switch_expr(void) const noexcept
+	{
+		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::switch_expr)
+			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::switch_expr);
+	}
+
+	expr_switch &get_switch_expr(void) noexcept
+	{
+		bz_assert(this->is_switch_expr());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr.get<expr_switch>();
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr.get<expr_switch>();
+		}
+	}
+
+	expr_switch const &get_switch_expr(void) const noexcept
+	{
+		bz_assert(this->is_switch_expr());
+		if (this->is<constant_expression>())
+		{
+			return this->get<constant_expression>().expr.get<expr_switch>();
+		}
+		else
+		{
+			return this->get<dynamic_expression>().expr.get<expr_switch>();
+		}
+	}
+
+	void set_type(ast::typespec new_type)
+	{
+		if (this->is<ast::constant_expression>())
+		{
+			this->get<ast::constant_expression>().type = std::move(new_type);
+		}
+		else if (this->is<ast::dynamic_expression>())
+		{
+			this->get<ast::dynamic_expression>().type = std::move(new_type);
+		}
+	}
+
+	void set_type_kind(expression_type_kind new_kind)
+	{
+		if (this->is<ast::constant_expression>())
+		{
+			this->get<ast::constant_expression>().kind = new_kind;
+		}
+		else if (this->is<ast::dynamic_expression>())
+		{
+			this->get<ast::dynamic_expression>().kind = new_kind;
 		}
 	}
 
@@ -488,14 +547,14 @@ struct statement;
 
 struct expr_compound
 {
-	bz::vector<statement> statements;
-	expression            final_expr;
+	arena_vector<statement> statements;
+	expression              final_expr;
 
 	declare_default_5(expr_compound)
 
 	expr_compound(
-		bz::vector<statement> _statements,
-		expression            _final_expr
+		arena_vector<statement> _statements,
+		expression              _final_expr
 	);
 };
 
@@ -524,6 +583,31 @@ struct expr_if
 		: condition (std::move(_condition)),
 		  then_block(std::move(_then_block)),
 		  else_block()
+	{}
+};
+
+struct switch_case
+{
+	arena_vector<expression> values;
+	expression expr;
+};
+
+struct expr_switch
+{
+	expression                matched_expr;
+	expression                default_case;
+	arena_vector<switch_case> cases;
+
+	declare_default_5(expr_switch)
+
+	expr_switch(
+		expression                _matched_expr,
+		expression                _default_case,
+		arena_vector<switch_case> _cases
+	)
+		: matched_expr(std::move(_matched_expr)),
+		  default_case(std::move(_default_case)),
+		  cases       (std::move(_cases))
 	{}
 };
 
@@ -558,6 +642,7 @@ def_make_fn(expr_t, expr_struct_init)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
+def_make_fn(expr_t, expr_switch)
 
 #undef def_make_fn
 

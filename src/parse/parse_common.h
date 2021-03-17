@@ -463,6 +463,10 @@ ast::expression parse_if_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
+ast::expression parse_switch_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 ast::identifier get_identifier(
 	lex::token_pos &stream, lex::token_pos end,

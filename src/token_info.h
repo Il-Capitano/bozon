@@ -278,6 +278,7 @@ constexpr auto token_info = []() {
 
 	result[lex::token::kw_if]            = { lex::token::kw_if,            "if",            "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_else]          = { lex::token::kw_else,          "else",          "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_switch]        = { lex::token::kw_switch,        "switch",        "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_while]         = { lex::token::kw_while,         "while",         "", keyword_flags                   };
 	result[lex::token::kw_for]           = { lex::token::kw_for,           "for",           "", keyword_flags                   };
 	result[lex::token::kw_return]        = { lex::token::kw_return,        "return",        "", keyword_flags                   };

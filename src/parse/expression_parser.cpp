@@ -2,6 +2,8 @@
 #include "statement_parser.h"
 #include "consteval.h"
 #include "parse_common.h"
+#include "global_data.h"
+#include "ctx/builtin_operators.h"
 
 namespace parse
 {
@@ -33,6 +35,13 @@ ast::expression parse_expression_without_semi_colon(
 		consteval_guaranteed(result, context);
 		return result;
 	}
+	// top level switch expression
+	case lex::token::kw_switch:
+	{
+		auto result = parse_switch_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	default:
 		// parse_expression already calls consteval_guaranteed
 		return parse_expression(stream, end, context, precedence{});
@@ -61,10 +70,7 @@ void consume_semi_colon_at_end_of_expression(
 					return;
 				}
 				auto dummy_stream = compound_expr.final_expr.src_tokens.end;
-				consume_semi_colon_at_end_of_expression(
-					dummy_stream, end, context,
-					compound_expr.final_expr
-				);
+				consume_semi_colon_at_end_of_expression(dummy_stream, end, context, compound_expr.final_expr);
 			}
 			else
 			{
@@ -76,17 +82,11 @@ void consume_semi_colon_at_end_of_expression(
 			if (expression.src_tokens.begin->kind == lex::token::kw_if)
 			{
 				auto if_dummy_stream = if_expr.then_block.src_tokens.end;
-				consume_semi_colon_at_end_of_expression(
-					if_dummy_stream, end, context,
-					if_expr.then_block
-				);
+				consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
 				auto else_dummy_stream = if_expr.else_block.src_tokens.end;
 				if (else_dummy_stream != nullptr)
 				{
-					consume_semi_colon_at_end_of_expression(
-						else_dummy_stream, end, context,
-						if_expr.else_block
-					);
+					consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
 				}
 			}
 			else
@@ -94,6 +94,9 @@ void consume_semi_colon_at_end_of_expression(
 				bz_assert(expression.src_tokens.end == stream);
 				context.assert_token(stream, lex::token::semi_colon);
 			}
+		},
+		[&](ast::expr_switch const &) {
+			// nothing here
 		},
 		[&](auto const &) {
 			context.assert_token(stream, lex::token::semi_colon);
@@ -120,7 +123,7 @@ ast::expression parse_compound_expression(
 	auto const begin = stream;
 	++stream; // '{'
 	context.add_scope();
-	bz::vector<ast::statement> statements;
+	ast::arena_vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
 		if (!statements.empty() && statements.back().is<ast::stmt_expression>())
@@ -181,11 +184,20 @@ ast::expression parse_compound_expression(
 	{
 		auto expr = std::move(statements.back().get<ast::stmt_expression>().expr);
 		statements.pop_back();
+		if (expr.get_expr_type_and_kind().second == ast::expression_type_kind::tuple)
+		{
+			auto type = ast::make_auto_typespec(nullptr);
+			context.match_expression_to_type(expr, type);
+		}
 		if (expr.is<ast::constant_expression>() && statements.size() == 0)
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
 			auto result_type = const_expr.type;
-			auto const result_kind = const_expr.kind;
+			auto result_kind = const_expr.kind;
+			if (result_kind == ast::expression_type_kind::tuple)
+			{
+				result_kind = ast::expression_type_kind::rvalue;
+			}
 			auto result_value = const_expr.value;
 			return ast::make_constant_expression(
 				{ begin, begin, stream },
@@ -196,8 +208,12 @@ ast::expression parse_compound_expression(
 		}
 		else if (expr.is_constant_or_dynamic())
 		{
-			auto const [type, kind] = expr.get_expr_type_and_kind();
-			auto result_type = type;
+			auto [type, kind] = expr.get_expr_type_and_kind();
+			if (kind == ast::expression_type_kind::tuple)
+			{
+				kind = ast::expression_type_kind::rvalue;
+			}
+			ast::typespec result_type = type;
 			return ast::make_dynamic_expression(
 				{ begin, begin, stream },
 				kind, std::move(result_type),
@@ -254,7 +270,19 @@ ast::expression parse_if_expression(
 			++stream; // ';'
 		}
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
-		if (then_block.is_constant_or_dynamic() && else_block.is_constant_or_dynamic())
+		if (then_block.is_none() || else_block.is_none())
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+				ast::make_expr_if(
+					std::move(condition),
+					std::move(then_block),
+					std::move(else_block)
+				)
+			);
+		}
+		else if (then_block.not_null() && else_block.not_null())
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
@@ -288,6 +316,125 @@ ast::expression parse_if_expression(
 		{
 			return ast::expression(src_tokens);
 		}
+	}
+}
+
+ast::expression parse_switch_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_switch);
+	auto const begin = stream;
+	++stream; // 'switch'
+	auto matched_expr = parse_parenthesized_condition(stream, end, context);
+	auto const open_curly = context.assert_token(stream, lex::token::curly_open);
+	ast::typespec match_type = ast::remove_const_or_consteval(matched_expr.get_expr_type_and_kind().first);
+	if (!match_type.is<ast::ts_base_type>())
+	{
+		if (do_verbose)
+		{
+			context.report_error(
+				matched_expr, bz::format("invalid type '{}' for switch expression", match_type),
+				{ context.make_note("only integral types can be used in switch expressions") }
+			);
+		}
+		else
+		{
+			context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type));
+		}
+		get_tokens_in_curly<>(stream, end, context);
+		return ast::expression({ begin, begin, stream });
+	}
+	else if (
+		auto const info = match_type.get<ast::ts_base_type>().info;
+		!ctx::is_integer_kind(info->kind) && info->kind != ast::type_info::char_
+	)
+	{
+		if (do_verbose)
+		{
+			context.report_error(
+				matched_expr, bz::format("invalid type '{}' for switch expression", match_type),
+				{ context.make_note("only integral types can be used in switch expressions") }
+			);
+		}
+		else
+		{
+			context.report_error(matched_expr, bz::format("invalid type '{}' for switch expression", match_type));
+		}
+		get_tokens_in_curly<>(stream, end, context);
+		return ast::expression({ begin, begin, stream });
+	}
+
+	ast::arena_vector<ast::switch_case> cases;
+	ast::expression default_case;
+
+	do
+	{
+		if (stream->kind == lex::token::kw_else)
+		{
+			++stream; // 'else'
+			context.assert_token(stream, lex::token::fat_arrow);
+			default_case = parse_expression(stream, end, context, no_comma);
+		}
+		else
+		{
+			ast::arena_vector<ast::expression> case_values;
+			auto [case_stream, case_end] = get_expression_tokens<lex::token::curly_close, lex::token::fat_arrow>(
+				stream, end, context
+			);
+			do
+			{
+				case_values.emplace_back(parse_expression(case_stream, end, context, no_comma));
+			} while (case_stream != case_end && case_stream->kind == lex::token::comma && (++case_stream, true));
+			context.assert_token(stream, lex::token::fat_arrow);
+			for (auto &value : case_values)
+			{
+				context.match_expression_to_type(value, match_type);
+				consteval_try(value, context);
+			}
+			auto case_expr = parse_expression(stream, end, context, no_comma);
+			cases.push_back({ std::move(case_values), std::move(case_expr) });
+		}
+	} while (stream != end && stream->kind == lex::token::comma && (++stream, true));
+
+	if (stream != end && stream->kind == lex::token::curly_close)
+	{
+		++stream; // '}'
+	}
+	else if (stream != end && open_curly->kind == lex::token::curly_open)
+	{
+		context.report_paren_match_error(stream, open_curly);
+	}
+	else
+	{
+		context.assert_token(stream, lex::token::curly_close);
+	}
+
+	bool const is_good = cases.is_all([](auto const &switch_case) {
+		return switch_case.expr.not_null()
+			&& switch_case.values.is_all([](auto const &value) {
+				return value.not_null();
+			});
+	});
+
+	lex::src_tokens src_tokens = { begin, begin, stream };
+	if (!is_good)
+	{
+		return ast::expression(src_tokens);
+	}
+	else
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::switch_expr, ast::typespec(),
+			ast::make_expr_switch(
+				std::move(matched_expr),
+				std::move(default_case),
+				std::move(cases)
+			)
+		);
 	}
 }
 
@@ -699,6 +846,8 @@ static ast::expression parse_primary_expression(
 		return parse_compound_expression(stream, end, context);
 	case lex::token::kw_if:
 		return parse_if_expression(stream, end, context);
+	case lex::token::kw_switch:
+		return parse_switch_expression(stream, end, context);
 
 	// unary operators
 	default:

@@ -2870,6 +2870,7 @@ static void match_expression_to_type_impl(
 			{
 				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
 				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				expr.set_type(std::move(then_matched_type));
 				return;
 			}
 
@@ -2903,6 +2904,7 @@ static void match_expression_to_type_impl(
 				// match to the then branch first
 				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
 				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				expr.set_type(std::move(then_matched_type));
 				return;
 			}
 			else if (after_match_else_result.is_null())
@@ -2910,6 +2912,7 @@ static void match_expression_to_type_impl(
 				// match to the else branch first
 				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
 				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+				expr.set_type(std::move(else_matched_type));
 				return;
 			}
 			else
@@ -2936,6 +2939,10 @@ static void match_expression_to_type_impl(
 				return;
 			}
 		}
+	}
+	else if (expr.is_switch_expr())
+	{
+		bz_unreachable;
 	}
 	else if (expr.is_typename())
 	{
@@ -3194,8 +3201,24 @@ static void match_expression_to_type_impl(
 		{
 			match_expression_to_type_impl(expr, type, type, context);
 		}
+		expr.set_type(tuple_type);
 		dest_container.move_from(dest, tuple_type);
 		return;
+	}
+	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
+		auto &dest_tuple_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
+		auto &expr_tuple_elems = expr.get_tuple().elems;
+		if (dest_tuple_types.size() == expr_tuple_elems.size())
+		{
+			for (auto const &[expr, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
+			{
+				match_expression_to_type_impl(expr, type, type, context);
+			}
+			expr.set_type(dest);
+			return;
+		}
 	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
@@ -3232,20 +3255,6 @@ static void match_expression_to_type_impl(
 			expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
 		}
 		return;
-	}
-	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
-	{
-		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
-		auto &dest_tuple_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
-		auto &expr_tuple_elems = expr.get_tuple().elems;
-		if (dest_tuple_types.size() == expr_tuple_elems.size())
-		{
-			for (auto const &[expr, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
-			{
-				match_expression_to_type_impl(expr, type, type, context);
-			}
-			return;
-		}
 	}
 	else if (dest == expr_type_without_const)
 	{

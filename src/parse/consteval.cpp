@@ -2016,6 +2016,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
+			return {};
+		},
 	});
 }
 
@@ -2238,6 +2241,9 @@ static ast::constant_value try_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
+			return {};
 		},
 	});
 }
@@ -2491,6 +2497,8 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					get_consteval_fail_notes_helper(if_expr.else_block, notes);
 				}
 			}
+		},
+		[&notes](ast::expr_switch const &switch_expr) {
 		},
 	});
 }

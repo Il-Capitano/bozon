@@ -97,6 +97,7 @@ struct token
 		// keywords
 		kw_if,               // if
 		kw_else,             // else
+		kw_switch,           // switch
 		kw_while,            // while
 		kw_for,              // for
 		kw_return,           // return

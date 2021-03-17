@@ -2781,6 +2781,114 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expr_switch const &switch_expr,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const matched_value = emit_bitcode<abi>(switch_expr.matched_expr, context, nullptr).get_value(context.builder);
+	bz_assert(matched_value->getType()->isIntegerTy());
+	auto const default_bb = context.add_basic_block("switch_else");
+	auto const has_default = switch_expr.default_case.not_null();
+	bz_assert(result_address == nullptr || has_default);
+
+	auto const case_count = switch_expr.cases.transform([](auto const &switch_case) { return switch_case.values.size(); }).sum();
+
+	auto const switch_inst = context.builder.CreateSwitch(matched_value, default_bb, static_cast<unsigned>(case_count));
+	bz::vector<std::pair<llvm::BasicBlock *, val_ptr>> case_result_vals;
+	case_result_vals.reserve(switch_expr.cases.size() + 1);
+	if (has_default)
+	{
+		context.builder.SetInsertPoint(default_bb);
+		auto const default_val = emit_bitcode<abi>(switch_expr.default_case, context, result_address);
+		case_result_vals.push_back({ context.builder.GetInsertBlock(), default_val });
+	}
+	for (auto const &[case_vals, case_expr] : switch_expr.cases)
+	{
+		auto const bb = context.add_basic_block("case");
+		for (auto const &expr : case_vals)
+		{
+			bz_assert(expr.is<ast::constant_expression>());
+			auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
+			bz_assert(llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
+			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
+			switch_inst->addCase(const_int_val, bb);
+		}
+		context.builder.SetInsertPoint(bb);
+		auto const case_val = emit_bitcode<abi>(case_expr, context, result_address);
+		case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
+	}
+	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
+	auto const has_value = case_result_vals.is_any([](auto const &pair) {
+		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
+	});
+	if (result_address == nullptr && has_default && has_value)
+	{
+		auto const is_all_ref = case_result_vals.is_all([&](auto const &pair) {
+			return context.has_terminator(pair.first) || (pair.second.val != nullptr && pair.second.kind == val_ptr::reference);
+		});
+		context.builder.SetInsertPoint(end_bb);
+		auto const phi_type = is_all_ref
+			? case_result_vals.filter([](auto const &pair) { return pair.second.val != nullptr; }).front().second.val->getType()
+			: case_result_vals.filter([](auto const &pair) { return pair.second.val != nullptr; }).front().second.get_type();
+		auto const phi = context.builder.CreatePHI(phi_type, case_result_vals.size());
+		if (is_all_ref)
+		{
+			for (auto const &[bb, val] : case_result_vals)
+			{
+				if (context.has_terminator(bb))
+				{
+					continue;
+				}
+				context.builder.SetInsertPoint(bb);
+				context.builder.CreateBr(end_bb);
+				phi->addIncoming(val.val, bb);
+			}
+		}
+		else
+		{
+			for (auto const &[bb, val] : case_result_vals)
+			{
+				if (context.has_terminator(bb))
+				{
+					continue;
+				}
+				context.builder.SetInsertPoint(bb);
+				phi->addIncoming(val.get_value(context.builder), bb);
+				context.builder.CreateBr(end_bb);
+				bz_assert(context.builder.GetInsertBlock() == bb);
+			}
+		}
+		context.builder.SetInsertPoint(end_bb);
+		return is_all_ref
+			? val_ptr{ val_ptr::reference, phi }
+			: val_ptr{ val_ptr::value, phi };
+	}
+	else
+	{
+		for (auto const &[bb, _] : case_result_vals)
+		{
+			if (context.has_terminator(bb))
+			{
+				continue;
+			}
+			context.builder.SetInsertPoint(bb);
+			context.builder.CreateBr(end_bb);
+		}
+		context.builder.SetInsertPoint(end_bb);
+		if (result_address != nullptr)
+		{
+			return { val_ptr::reference, result_address };
+		}
+		else
+		{
+			return {};
+		}
+	}
+}
+
+template<abi::platform_abi abi>
 static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
