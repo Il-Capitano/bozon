@@ -303,59 +303,13 @@ decl_set const &global_context::get_file_export_decls(uint32_t file_id)
 
 bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	if (kind == "free_arrays")
+	auto const it = std::find_if(
+		comptime_function_info.begin(), comptime_function_info.end(),
+		[kind](auto const &info) { return info.name == kind; }
+	);
+	if (it != comptime_function_info.end())
 	{
-		this->_comptime_executor.free_arrays_func.first = func_body;
-		return true;
-	}
-	else if (kind == "get_error_count")
-	{
-		this->_comptime_executor.get_error_count_func.first = func_body;
-		return true;
-	}
-	else if (kind == "get_error_kind_by_index")
-	{
-		this->_comptime_executor.get_error_kind_by_index_func.first = func_body;
-		return true;
-	}
-	else if (kind == "get_error_ptr_by_index")
-	{
-		this->_comptime_executor.get_error_ptr_by_index_func.first = func_body;
-		return true;
-	}
-	else if (kind == "get_error_call_stack_size_by_index")
-	{
-		this->_comptime_executor.get_error_call_stack_size_by_index_func.first = func_body;
-		return true;
-	}
-	else if (kind == "get_error_call_stack_element_by_index")
-	{
-		this->_comptime_executor.get_error_call_stack_element_by_index_func.first = func_body;
-		return true;
-	}
-	else if (kind == "has_errors")
-	{
-		this->_comptime_executor.has_errors_func.first = func_body;
-		return true;
-	}
-	else if (kind == "add_error")
-	{
-		this->_comptime_executor.add_error_func.first = func_body;
-		return true;
-	}
-	else if (kind == "push_call")
-	{
-		this->_comptime_executor.push_call_func.first = func_body;
-		return true;
-	}
-	else if (kind == "pop_call")
-	{
-		this->_comptime_executor.pop_call_func.first = func_body;
-		return true;
-	}
-	else if (kind == "clear_errors")
-	{
-		this->_comptime_executor.clear_errors_func.first = func_body;
+		this->_comptime_executor.set_comptime_function(it->kind, func_body);
 		return true;
 	}
 	else

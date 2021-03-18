@@ -23,6 +23,31 @@ struct comptime_func_call
 	ast::function_body const *func_body;
 };
 
+enum class comptime_function_kind : uint32_t
+{
+	_first = 0,
+	cleanup = 0,
+	get_error_count,
+	get_error_kind_by_index,
+	get_error_ptr_by_index,
+	get_error_call_stack_size_by_index,
+	get_error_call_stack_element_by_index,
+	has_errors,
+	add_error,
+	push_call,
+	pop_call,
+	clear_errors,
+
+	_last,
+};
+
+struct comptime_function
+{
+	comptime_function_kind kind;
+	ast::function_body    *func_body;
+	llvm::Function        *llvm_func;
+};
+
 struct comptime_executor_context
 {
 	comptime_executor_context(global_context &_global_ctx);
@@ -92,6 +117,10 @@ struct comptime_executor_context
 	void ensure_function_emission(ast::function_body *func);
 	[[nodiscard]] bool resolve_function(ast::function_body *body);
 
+	llvm::Function *get_comptime_function(comptime_function_kind kind);
+	void set_comptime_function(comptime_function_kind kind, ast::function_body *func_body);
+	void set_comptime_function(comptime_function_kind kind, llvm::Function *llvm_func);
+
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
 		lex::src_tokens src_tokens,
@@ -142,22 +171,38 @@ struct comptime_executor_context
 
 	ast::decl_variable *errors_array = nullptr;
 	ast::decl_variable *call_stack   = nullptr;
-	std::pair<ast::function_body *, llvm::Function *> free_arrays_func                           = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> get_error_count_func                       = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> get_error_kind_by_index_func               = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> get_error_ptr_by_index_func                = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> get_error_call_stack_size_by_index_func    = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> get_error_call_stack_element_by_index_func = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> has_errors_func                            = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> add_error_func                             = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> push_call_func                             = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> pop_call_func                              = { nullptr, nullptr };
-	std::pair<ast::function_body *, llvm::Function *> clear_errors_func                          = { nullptr, nullptr };
+	bz::vector<comptime_function> comptime_functions;
 
 	llvm::TargetMachine *target_machine = nullptr;
 	llvm::legacy::PassManager pass_manager{};
 	std::unique_ptr<llvm::ExecutionEngine> engine{};
 };
+
+struct comptime_function_info_t
+{
+	bz::u8string_view name;
+	comptime_function_kind kind;
+};
+
+#define def_element(kind) \
+comptime_function_info_t{ #kind, comptime_function_kind::kind }
+
+constexpr bz::array comptime_function_info = {
+	def_element(cleanup),
+	def_element(get_error_count),
+	def_element(get_error_kind_by_index),
+	def_element(get_error_ptr_by_index),
+	def_element(get_error_call_stack_size_by_index),
+	def_element(get_error_call_stack_element_by_index),
+	def_element(has_errors),
+	def_element(add_error),
+	def_element(push_call),
+	def_element(pop_call),
+	def_element(clear_errors),
+};
+static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
+
+#undef def_element
 
 } // namespace ctx
 

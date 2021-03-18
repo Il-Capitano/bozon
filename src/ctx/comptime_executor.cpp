@@ -20,16 +20,28 @@
 namespace ctx
 {
 
+static bz::vector<comptime_function> create_empty_comptime_functions(void)
+{
+	bz::vector<comptime_function> result;
+	result.resize(static_cast<uint32_t>(comptime_function_kind::_last) - static_cast<uint32_t>(comptime_function_kind::_first));
+	for (auto const kind : bz::iota(0, static_cast<uint32_t>(comptime_function_kind::_last)))
+	{
+		result[kind] = { static_cast<comptime_function_kind>(kind), nullptr, nullptr };
+	}
+	return result;
+}
+
 comptime_executor_context::comptime_executor_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
-	  builder(_global_ctx._llvm_context)
+	  builder(_global_ctx._llvm_context),
+	  comptime_functions(create_empty_comptime_functions())
 {}
 
 comptime_executor_context::~comptime_executor_context(void)
 {
 	if (this->engine != nullptr)
 	{
-		this->engine->runFunction(this->free_arrays_func.second, {});
+		this->engine->runFunction(this->get_comptime_function(comptime_function_kind::cleanup), {});
 	}
 }
 
@@ -388,6 +400,26 @@ bool comptime_executor_context::resolve_function(ast::function_body *body)
 	}
 }
 
+llvm::Function *comptime_executor_context::get_comptime_function(comptime_function_kind kind)
+{
+	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func != nullptr);
+	return this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func;
+}
+
+void comptime_executor_context::set_comptime_function(comptime_function_kind kind, ast::function_body *func_body)
+{
+	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].func_body == nullptr);
+	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func == nullptr);
+	this->comptime_functions[static_cast<uint32_t>(kind)].func_body = func_body;
+}
+
+void comptime_executor_context::set_comptime_function(comptime_function_kind kind, llvm::Function *llvm_func)
+{
+	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].func_body != nullptr);
+	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func == nullptr);
+	this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func = llvm_func;
+}
+
 static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
 {
 	ast::constant_value result;
@@ -729,49 +761,13 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	bz_assert(this->call_stack != nullptr);
 	bc::comptime::emit_global_variable(*this->call_stack, *this);
 
-	bz_assert(this->free_arrays_func.first != nullptr);
-	this->free_arrays_func.second = bc::comptime::add_function_to_module(this->free_arrays_func.first, *this);
-	this->functions_to_compile.push_back(this->free_arrays_func.first);
-
-	bz_assert(this->get_error_count_func.first != nullptr);
-	this->get_error_count_func.second = bc::comptime::add_function_to_module(this->get_error_count_func.first, *this);
-	this->functions_to_compile.push_back(this->get_error_count_func.first);
-
-	bz_assert(this->get_error_kind_by_index_func.first != nullptr);
-	this->get_error_kind_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_kind_by_index_func.first, *this);
-	this->functions_to_compile.push_back(this->get_error_kind_by_index_func.first);
-
-	bz_assert(this->get_error_ptr_by_index_func.first != nullptr);
-	this->get_error_ptr_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_ptr_by_index_func.first, *this);
-	this->functions_to_compile.push_back(this->get_error_ptr_by_index_func.first);
-
-	bz_assert(this->get_error_call_stack_size_by_index_func.first != nullptr);
-	this->get_error_call_stack_size_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_call_stack_size_by_index_func.first, *this);
-	this->functions_to_compile.push_back(this->get_error_call_stack_size_by_index_func.first);
-
-	bz_assert(this->get_error_call_stack_element_by_index_func.first != nullptr);
-	this->get_error_call_stack_element_by_index_func.second = bc::comptime::add_function_to_module(this->get_error_call_stack_element_by_index_func.first, *this);
-	this->functions_to_compile.push_back(this->get_error_call_stack_element_by_index_func.first);
-
-	bz_assert(this->has_errors_func.first != nullptr);
-	this->has_errors_func.second = bc::comptime::add_function_to_module(this->has_errors_func.first, *this);
-	this->functions_to_compile.push_back(this->has_errors_func.first);
-
-	bz_assert(this->add_error_func.first != nullptr);
-	this->add_error_func.second = bc::comptime::add_function_to_module(this->add_error_func.first, *this);
-	this->functions_to_compile.push_back(this->add_error_func.first);
-
-	bz_assert(this->push_call_func.first != nullptr);
-	this->push_call_func.second = bc::comptime::add_function_to_module(this->push_call_func.first, *this);
-	this->functions_to_compile.push_back(this->push_call_func.first);
-
-	bz_assert(this->pop_call_func.first != nullptr);
-	this->pop_call_func.second = bc::comptime::add_function_to_module(this->pop_call_func.first, *this);
-	this->functions_to_compile.push_back(this->pop_call_func.first);
-
-	bz_assert(this->clear_errors_func.first != nullptr);
-	this->clear_errors_func.second = bc::comptime::add_function_to_module(this->clear_errors_func.first, *this);
-	this->functions_to_compile.push_back(this->clear_errors_func.first);
+	for (auto &func : this->comptime_functions)
+	{
+		bz_assert(func.func_body != nullptr);
+		bz_assert(func.llvm_func == nullptr);
+		func.llvm_func = bc::comptime::add_function_to_module(func.func_body, *this);
+		this->functions_to_compile.push_back(func.func_body);
+	}
 
 	[[maybe_unused]] auto const emit_result = bc::comptime::emit_necessary_functions(*this);
 	bz_assert(emit_result);
@@ -805,14 +801,15 @@ bool comptime_executor_context::has_error(void)
 	}
 	else
 	{
-		return this->engine->runFunction(this->has_errors_func.second, {}).IntVal.getBoolValue();
+		return this->engine->runFunction(this->get_comptime_function(comptime_function_kind::has_errors), {}).IntVal.getBoolValue();
 	}
 }
 
 bz::vector<error> comptime_executor_context::consume_errors(void)
 {
 	bz_assert(this->engine != nullptr);
-	auto const error_count = this->engine->runFunction(this->get_error_count_func.second, {}).IntVal.getLimitedValue();
+	auto const error_count = this->engine->runFunction(this->get_comptime_function(comptime_function_kind::get_error_count), {})
+		.IntVal.getLimitedValue();
 	bz::vector<error> result;
 	result.reserve(error_count);
 	llvm::GenericValue index;
@@ -820,40 +817,41 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 	{
 		index.IntVal = i;
 		auto const error_kind = [&]() -> uint32_t {
-			auto const func_ptr = this->engine->getFunctionAddress(this->get_error_kind_by_index_func.second->getName().str());
+			auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_kind_by_index);
+			auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
 			if (func_ptr != 0)
 			{
 				return reinterpret_cast<uint32_t (*)(uint64_t)>(func_ptr)(i);
 			}
 			else
 			{
-				return this->engine->runFunction(this->get_error_kind_by_index_func.second, index).IntVal.getLimitedValue();
+				return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
 			}
 		}();
 		auto const error_ptr = [&]() -> uint64_t {
-			auto const func_ptr = this->engine->getFunctionAddress(this->get_error_ptr_by_index_func.second->getName().str());
+			auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_ptr_by_index);
+			auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
 			if (func_ptr != 0)
 			{
 				return reinterpret_cast<uint64_t (*)(uint64_t)>(func_ptr)(i);
 			}
 			else
 			{
-				return this->engine->runFunction(this->get_error_ptr_by_index_func.second, index).IntVal.getLimitedValue();
+				return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
 			}
 		}();
 		auto const call_stack_notes = [&]() {
 			bz::vector<source_highlight> notes;
 			auto const call_stack_size = [&]() -> uint64_t {
-				auto const func_ptr = this->engine->getFunctionAddress(
-					this->get_error_call_stack_size_by_index_func.second->getName().str()
-				);
+				auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_size_by_index);
+				auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
 				if (func_ptr != 0)
 				{
 					return reinterpret_cast<uint64_t (*)(uint64_t)>(func_ptr)(i);
 				}
 				else
 				{
-					return this->engine->runFunction(this->get_error_ptr_by_index_func.second, index).IntVal.getLimitedValue();
+					return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
 				}
 			}();
 			notes.reserve(call_stack_size);
@@ -862,9 +860,8 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 			{
 				--j;
 				auto const call_ptr_int_val = [&]() -> uint64_t {
-					auto const func_ptr = this->engine->getFunctionAddress(
-						this->get_error_call_stack_element_by_index_func.second->getName().str()
-					);
+					auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_element_by_index);
+					auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
 					if (func_ptr != 0)
 					{
 						return reinterpret_cast<uint64_t (*)(uint64_t, uint64_t)>(func_ptr)(i, j);
@@ -872,10 +869,7 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 					else
 					{
 						call_stack_index.IntVal = j;
-						return this->engine->runFunction(
-							this->get_error_ptr_by_index_func.second,
-							{ index, call_stack_index }
-						).IntVal.getLimitedValue();
+						return this->engine->runFunction(llvm_func, { index, call_stack_index }).IntVal.getLimitedValue();
 					}
 				}();
 				bz_assert(call_ptr_int_val != 0);
@@ -894,7 +888,7 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 			std::move(call_stack_notes), {}
 		});
 	}
-	this->engine->runFunction(this->clear_errors_func.second, {});
+	this->engine->runFunction(this->get_comptime_function(comptime_function_kind::clear_errors), {});
 	return result;
 }
 

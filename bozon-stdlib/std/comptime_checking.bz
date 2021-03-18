@@ -228,8 +228,8 @@ let errors = error_array_t[ null, null, null ];
 let call_stack = call_stack_t[ null, null, null ];
 
 
-@comptime_error_checking("free_arrays")
-function free_errors()
+@comptime_error_checking("cleanup")
+function cleanup()
 {
 	errors.destruct();
 	call_stack.destruct();

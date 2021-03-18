@@ -113,7 +113,7 @@ static void emit_error_check(ctx::comptime_executor_context &context)
 		return;
 	}
 	bz_assert(context.error_bb != nullptr);
-	auto const has_error_val = context.builder.CreateCall(context.has_errors_func.second);
+	auto const has_error_val = context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::has_errors));
 	auto const continue_bb = context.add_basic_block("error_check_continue");
 	context.builder.CreateCondBr(has_error_val, context.error_bb, continue_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -142,7 +142,7 @@ static void emit_error_assert(
 		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
-	context.builder.CreateCall(context.add_error_func.second, { error_kind_val, error_ptr_int_val });
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::add_error), { error_kind_val, error_ptr_int_val });
 	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
@@ -164,7 +164,7 @@ static void emit_error(
 		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(error_ptr)
 	);
-	context.builder.CreateCall(context.add_error_func.second, { error_kind_val, error_ptr_int_val });
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::add_error), { error_kind_val, error_ptr_int_val });
 	auto const continue_bb = context.add_basic_block("error_dummy_continue");
 	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -185,7 +185,7 @@ static void emit_push_call(
 		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(call_ptr)
 	);
-	context.builder.CreateCall(context.push_call_func.second, { call_ptr_int_val });
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::push_call), { call_ptr_int_val });
 }
 
 static void emit_pop_call(ctx::comptime_executor_context &context)
@@ -194,7 +194,7 @@ static void emit_pop_call(ctx::comptime_executor_context &context)
 	{
 		return;
 	}
-	context.builder.CreateCall(context.pop_call_func.second);
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::pop_call));
 }
 
 // ================================================================
