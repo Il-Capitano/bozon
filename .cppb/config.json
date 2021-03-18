@@ -6,7 +6,7 @@
 
 		"c_compiler_flags": [],
 		"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
-		"link_flags": [],
+		"link_flags": [ "-fuse-ld=lld" ],
 		"emit_compile_commands": true,
 
 		"run_args": [
@@ -34,6 +34,7 @@
 			"windows-debug": {},
 			"windows-release": {},
 			"linux-debug": {
+				"optimization": "1",
 				"cpp_compiler_flags": [ "-fsanitize=address" ],
 				"link_flags": [ "-fsanitize=address" ]
 			},
@@ -44,11 +45,10 @@
 			"linux": {
 				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ],
-				"link_flags": [ "-fuse-ld=lld" ],
 				"emit_compile_commands": false
 			},
 			"debug": {
-				"optimization": "1"
+				"optimization": "0"
 			},
 			"release": {
 				"defines": [ "NDEBUG" ],
