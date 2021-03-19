@@ -1615,13 +1615,13 @@ int main(int argc, char const **argv)
 		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
 		auto const file_emission_time        = after_file_emission - before_file_emission;
 
-		bz::print("successful compilation in {:7.3f}ms\n", in_ms(compilation_time));
-		bz::print("front-end time:           {:7.3f}ms\n", in_ms(front_end_time));
-		bz::print("command line parse time:  {:7.3f}ms\n", in_ms(command_line_parsing_time));
-		bz::print("global symbol parse time: {:7.3f}ms\n", in_ms(first_pass_parse_time));
-		bz::print("parse time:               {:7.3f}ms\n", in_ms(resolve_time));
-		bz::print("bitcode emission time:    {:7.3f}ms\n", in_ms(bitcode_emission_time));
-		bz::print("file emission time:       {:7.3f}ms\n", in_ms(file_emission_time));
+		bz::print("successful compilation in {:8.3f}ms\n", in_ms(compilation_time));
+		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
+		bz::print("command line parse time:  {:8.3f}ms\n", in_ms(command_line_parsing_time));
+		bz::print("global symbol parse time: {:8.3f}ms\n", in_ms(first_pass_parse_time));
+		bz::print("parse time:               {:8.3f}ms\n", in_ms(resolve_time));
+		bz::print("bitcode emission time:    {:8.3f}ms\n", in_ms(bitcode_emission_time));
+		bz::print("file emission time:       {:8.3f}ms\n", in_ms(file_emission_time));
 	}
 
 	return 0;
