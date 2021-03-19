@@ -3576,6 +3576,68 @@ static ast::expression make_expr_function_call_from_body(
 	);
 }
 
+static ast::expression make_expr_function_call_from_body(
+	lex::src_tokens src_tokens,
+	ast::function_body *body,
+	bz::vector<ast::expression> params,
+	ast::constant_value value,
+	parse_context &context,
+	ast::resolve_order resolve_order = ast::resolve_order::regular
+)
+{
+	if (body->is_generic())
+	{
+		auto required_from = get_generic_requirements(src_tokens, context);
+		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
+		context.add_to_resolve_queue(src_tokens, *specialized_body);
+		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+		{
+			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			if (ast::is_generic_parameter(func_body_param))
+			{
+				func_body_param.init_expr = param;
+			}
+		}
+		context.pop_resolve_queue();
+		body = body->add_specialized_body(std::move(specialized_body));
+		context.add_to_resolve_queue(src_tokens, *body);
+		bz_assert(!body->is_generic());
+		if (!context.generic_functions.contains(body))
+		{
+			context.generic_functions.push_back(body);
+		}
+	}
+	else
+	{
+		context.add_to_resolve_queue(src_tokens, *body);
+		for (auto const [param, func_body_param] : bz::zip(params, body->params))
+		{
+			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+		}
+	}
+	parse::resolve_function_symbol({}, *body, context);
+	context.pop_resolve_queue();
+	if (body->state == ast::resolve_state::error)
+	{
+		return ast::expression(src_tokens);
+	}
+
+	auto &ret_t = body->return_type;
+	auto return_type_kind = ast::expression_type_kind::rvalue;
+	auto return_type = ast::remove_const_or_consteval(ret_t);
+	if (ret_t.is<ast::ts_lvalue_reference>())
+	{
+		return_type_kind = ast::expression_type_kind::lvalue_reference;
+		return_type = ret_t.get<ast::ts_lvalue_reference>();
+	}
+	return ast::make_constant_expression(
+		src_tokens,
+		return_type_kind, return_type,
+		std::move(value),
+		ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order)
+	);
+}
+
 static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	uint32_t op,
 	lex::src_tokens src_tokens,
@@ -4294,6 +4356,17 @@ ast::expression parse_context::make_universal_function_call_expression(
 		if (best_body == nullptr)
 		{
 			return ast::expression(src_tokens);
+		}
+		else if (
+			best_body->is_intrinsic()
+			&& best_body->intrinsic_kind == ast::function_body::builtin_slice_size
+			&& ast::remove_const_or_consteval(params.front().get_expr_type_and_kind().first).is<ast::ts_array>()
+		)
+		{
+			auto const &array_t = ast::remove_const_or_consteval(params.front().get_expr_type_and_kind().first).get<ast::ts_array>();
+			ast::constant_value size;
+			size.emplace<ast::constant_value::uint>(array_t.size);
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), std::move(size), *this);
 		}
 		else
 		{
