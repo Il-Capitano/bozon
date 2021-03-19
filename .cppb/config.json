@@ -53,7 +53,8 @@
 			"release": {
 				"defines": [ "NDEBUG" ],
 				"optimization": "3",
-				"link_flags": [ "-flto" ]
+				"link_flags": [ "-flto" ],
+				"cpp_compiler_flags": [ "-flto" ]
 			}
 		}
 	}
