@@ -2222,7 +2222,28 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_pointer_to_int:
 		case ast::function_body::builtin_int_to_pointer:
 		{
-			emit_error(func_call.src_tokens, bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()), context);
+			emit_error(
+				func_call.src_tokens,
+				bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()), context
+			);
+			if (result_address != nullptr)
+			{
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, llvm::UndefValue::get(get_llvm_type(func_call.func_body->return_type, context)) };
+			}
+		}
+		case ast::function_body::print_stdout:
+		case ast::function_body::print_stderr:
+		case ast::function_body::println_stdout:
+		case ast::function_body::println_stderr:
+		{
+			emit_error(
+				func_call.src_tokens,
+				bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()), context
+			);
 			if (result_address != nullptr)
 			{
 				return val_ptr{ val_ptr::reference, result_address };
@@ -3205,6 +3226,8 @@ static llvm::Constant *get_value(
 				llvm::dyn_cast<llvm::StructType>(context.get_null_t())
 			);
 		}
+	case ast::constant_value::void_:
+		return nullptr;
 	case ast::constant_value::array:
 	{
 		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_array>());

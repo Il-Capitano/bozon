@@ -469,8 +469,8 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				bz_unreachable;
 			}
 		},
-		[](ast::ts_void const &) {
-			// nothing
+		[&](ast::ts_void const &) {
+			result.emplace<ast::constant_value::void_>();
 		},
 		[](ast::ts_function const &) {
 			bz_unreachable;

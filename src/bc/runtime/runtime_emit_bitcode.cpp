@@ -2971,6 +2971,8 @@ static llvm::Constant *get_value(
 				llvm::dyn_cast<llvm::StructType>(context.get_null_t())
 			);
 		}
+	case ast::constant_value::void_:
+		return nullptr;
 	case ast::constant_value::array:
 	{
 		bz_assert(ast::remove_const_or_consteval(type).is<ast::ts_array>());

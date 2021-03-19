@@ -11,13 +11,20 @@ namespace ast
 struct function_body;
 
 struct constant_value;
-namespace internal { struct null_t {}; }
+namespace internal
+{
+
+struct null_t {};
+struct void_t {};
+
+} // namespace internal
 
 struct constant_value : bz::variant<
 	int64_t, uint64_t,
 	float32_t, float64_t,
 	bz::u8char, bz::u8string,
 	bool, internal::null_t,
+	internal::void_t,
 
 	// arrays
 	bz::vector<constant_value>,
@@ -39,6 +46,7 @@ struct constant_value : bz::variant<
 		float32_t, float64_t,
 		bz::u8char, bz::u8string,
 		bool, internal::null_t,
+		internal::void_t,
 
 		// arrays
 		bz::vector<constant_value>,
@@ -65,6 +73,7 @@ struct constant_value : bz::variant<
 		string          = base_t::index_of<bz::u8string>,
 		boolean         = base_t::index_of<bool>,
 		null            = base_t::index_of<internal::null_t>,
+		void_           = base_t::index_of<internal::void_t>,
 		array,
 		tuple,
 		function        = base_t::index_of<function_body *>,
