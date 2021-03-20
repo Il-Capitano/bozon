@@ -658,7 +658,7 @@ bool global_context::emit_obj(void)
 	bz::u8string const &output_file = output_file_name != ""
 		? output_file_name
 		: []() {
-			auto const slash_it = source_file.rfind('/');
+			auto const slash_it = source_file.rfind_any("/\\");
 			auto const dot = source_file.rfind('.');
 			bz_assert(dot != bz::u8iterator{});
 			return bz::format("{}.o", bz::u8string(
