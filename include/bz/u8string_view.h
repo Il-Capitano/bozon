@@ -618,6 +618,66 @@ public:
 		return const_iterator(static_cast<char const *>(nullptr));
 	}
 
+	constexpr const_iterator rfind_any(u8string_view str) const noexcept
+	{
+		if (str.is_ascii())
+		{
+			auto const str_begin = str._data_begin;
+			auto const str_end   = str._data_end;
+			auto it = this->_data_end;
+			auto const begin = this->_data_begin;
+
+			while (it != begin)
+			{
+				--it;
+				for (auto str_it = str_begin; str_it != str_end; ++str_it)
+				{
+					if (*it == *str_it)
+					{
+						return const_iterator(it);
+					}
+				}
+			}
+		}
+		else
+		{
+			auto const is_char = [str_begin = str._data_begin, str_end = str._data_end](char const *ptr) {
+				uint8_t const first_c = static_cast<uint8_t>(*ptr);
+				if ((first_c & 0b1100'0000) == 0b1000'0000)
+				{
+					// continuation byte
+					return false;
+				}
+				auto const size = (first_c & 0b1000'0000) == 0b0000'0000 ? 1 :
+					(first_c & 0b1110'0000) == 0b1100'0000 ? 2 :
+					(first_c & 0b1111'0000) == 0b1110'0000 ? 3 :
+					4;
+				auto const self_begin = ptr;
+				auto const self_end = ptr + size;
+				for (auto str_it = str_begin; str_it != str_end; ++str_it)
+				{
+					if (bz::u8string_view(str_it, str_end).starts_with(bz::u8string_view(self_begin, self_end)))
+					{
+						return true;
+					}
+				}
+				return false;
+			};
+
+			auto it = this->_data_end;
+			auto const begin = this->_data_begin;
+			while (it != begin)
+			{
+				--it;
+				if (is_char(it))
+				{
+					return const_iterator(it);
+				}
+			}
+		}
+		return const_iterator(static_cast<char const *>(nullptr));
+	}
+
 	constexpr bool starts_with(u8string_view str) const noexcept
 	{
 		if (str.size() > this->size())
@@ -771,6 +831,12 @@ constexpr bool operator == (u8string_view lhs, u8string_view rhs) noexcept
 	return true;
 }
 
+constexpr bool operator == (u8string_view lhs, char const *rhs) noexcept
+{ return lhs == u8string_view(rhs); }
+
+constexpr bool operator == (char const *lhs, u8string_view rhs) noexcept
+{ return u8string_view(lhs) == rhs; }
+
 constexpr bool constexpr_equals(u8string_view lhs, u8string_view rhs) noexcept
 {
 	if (lhs.size() != rhs.size())
@@ -794,6 +860,12 @@ constexpr bool constexpr_equals(u8string_view lhs, u8string_view rhs) noexcept
 
 constexpr bool operator != (u8string_view lhs, u8string_view rhs) noexcept
 { return !(lhs == rhs); }
+
+constexpr bool operator != (u8string_view lhs, char const *rhs) noexcept
+{ return lhs != u8string_view(rhs); }
+
+constexpr bool operator != (char const *lhs, u8string_view rhs) noexcept
+{ return u8string_view(lhs) != rhs; }
 
 constexpr bool constexpr_not_equals(u8string_view lhs, u8string_view rhs) noexcept
 { return !constexpr_equals(lhs, rhs); }

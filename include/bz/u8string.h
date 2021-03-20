@@ -654,6 +654,9 @@ public:
 	const_iterator rfind(u8char c) const noexcept
 	{ return this->as_string_view().rfind(c); }
 
+	const_iterator rfind_any(u8string_view str) const noexcept
+	{ return this->as_string_view().rfind_any(str); }
+
 	bool contains(u8char c) const noexcept
 	{ return this->as_string_view().contains(c); }
 
