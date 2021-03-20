@@ -138,6 +138,8 @@ static void resolve_stmt_static_assert_impl(
 		}
 		else
 		{
+			auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+			context.match_expression_to_type(static_assert_stmt.condition, bool_type);
 			consteval_try(static_assert_stmt.condition, context);
 			if (static_assert_stmt.condition.has_consteval_failed())
 			{
@@ -165,6 +167,8 @@ static void resolve_stmt_static_assert_impl(
 			}
 			else
 			{
+				auto str_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::str_));
+				context.match_expression_to_type(static_assert_stmt.message, str_type);
 				consteval_try(static_assert_stmt.message, context);
 				if (static_assert_stmt.message.has_consteval_failed())
 				{
@@ -1384,24 +1388,45 @@ static void resolve_function_impl(
 
 	bz::optional<ctx::parse_context> new_context{};
 	auto context_ptr = [&]() {
-		auto const var_count = context.scope_decls
-			.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
-			.sum();
-		if (var_count == 0)
+		if (func_body.is_local())
 		{
-			return &context;
+			auto const var_count = context.scope_decls
+				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
+				.sum();
+			if (var_count == 0)
+			{
+				return &context;
+			}
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::local_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
 		}
 		else
 		{
-			new_context.emplace(context);
-			for (auto &decl_set : new_context->scope_decls)
+			if (context.scope_decls.empty())
 			{
-				decl_set.var_decls.clear();
+				return &context;
 			}
-			return &new_context.get();
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::global_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
 		}
 	}();
 
+	auto const prev_function = context_ptr->current_function;
+	context_ptr->current_function = &func_body;
 	context_ptr->add_scope();
 	for (auto &p : func_body.params)
 	{
@@ -1416,6 +1441,7 @@ static void resolve_function_impl(
 	func_body.state = ast::resolve_state::all;
 
 	context_ptr->remove_scope();
+	context_ptr->current_function = prev_function;
 }
 
 void resolve_function(
@@ -1588,6 +1614,7 @@ ast::statement parse_decl_function_or_alias(
 			auto result = ast::make_decl_function(ast::make_identifier(id), std::move(body));
 			bz_assert(result.is<ast::decl_function>());
 			auto &func_decl = result.get<ast::decl_function>();
+			func_decl.body.flags |= ast::function_body::local;
 			resolve_function(result, func_decl.body, context);
 			if (func_decl.body.state != ast::resolve_state::error)
 			{
@@ -1657,6 +1684,7 @@ ast::statement parse_decl_operator(
 		auto result = ast::make_decl_operator(context.current_scope, op, std::move(body));
 		bz_assert(result.is<ast::decl_operator>());
 		auto &op_decl = result.get<ast::decl_operator>();
+		op_decl.body.flags |= ast::function_body::local;
 		resolve_function(result, op_decl.body, context);
 		if (op_decl.body.state != ast::resolve_state::error)
 		{

@@ -238,6 +238,10 @@ ast::expression parse_if_expression(
 	auto const begin = stream;
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
+	{
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		context.match_expression_to_type(condition, bool_type);
+	}
 	if (!condition.is_null())
 	{
 		auto const [type, _] = condition.get_expr_type_and_kind();

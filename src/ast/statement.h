@@ -367,6 +367,7 @@ struct function_body
 		default_op_assign      = bit_at<6>,
 		default_op_move_assign = bit_at<7>,
 		no_comptime_checking   = bit_at<8>,
+		local                  = bit_at<9>,
 	};
 
 	enum : uint8_t
@@ -549,6 +550,11 @@ struct function_body
 	bool is_no_comptime_checking(void) const noexcept
 	{
 		return (this->flags & no_comptime_checking) != 0;
+	}
+
+	bool is_local(void) const noexcept
+	{
+		return (this->flags & local) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(

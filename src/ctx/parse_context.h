@@ -37,19 +37,25 @@ struct parse_context
 	};
 
 	global_context      &global_ctx;
-	decl_set            *global_decls;
-	bz::vector<decl_set> scope_decls;
-	bz::vector<ast::function_body *> generic_functions;
-	bz::vector<std::size_t>          generic_function_scope_start;
-	uint32_t                                current_file_id;
-	bz::array_view<bz::u8string_view const> current_scope;
+	decl_set            *global_decls = nullptr;
+	bz::vector<decl_set> scope_decls{};
+	bz::vector<ast::function_body *> generic_functions{};
+	bz::vector<std::size_t>          generic_function_scope_start{};
+	uint32_t                                current_file_id = std::numeric_limits<uint32_t>::max();
+	bz::array_view<bz::u8string_view const> current_scope{};
+	ast::function_body                     *current_function = nullptr;
 
-	bz::vector<resolve_queue_t>        resolve_queue;
+	bz::vector<resolve_queue_t> resolve_queue{};
 
+
+	struct local_copy_t {};
+	struct global_copy_t {};
 
 	parse_context(global_context &_global_ctx);
-	parse_context(parse_context const &other);
-	parse_context(parse_context &&)      = delete;
+	parse_context(parse_context const &other, local_copy_t);
+	parse_context(parse_context const &other, global_copy_t);
+	parse_context(parse_context const &other) = delete;
+	parse_context(parse_context &&)           = delete;
 	parse_context &operator = (parse_context const &) = delete;
 	parse_context &operator = (parse_context &&)      = delete;
 

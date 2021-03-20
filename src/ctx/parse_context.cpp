@@ -11,24 +11,18 @@ namespace ctx
 {
 
 parse_context::parse_context(global_context &_global_ctx)
-	: global_ctx(_global_ctx),
-	  global_decls(nullptr),
-	  scope_decls{},
-	  generic_functions{},
-	  generic_function_scope_start{},
-	  current_file_id(std::numeric_limits<uint32_t>::max()),
-	  current_scope{},
-	  resolve_queue{}
+	: global_ctx(_global_ctx)
 {}
 
-parse_context::parse_context(parse_context const &other)
+parse_context::parse_context(parse_context const &other, local_copy_t)
 	: global_ctx(other.global_ctx),
 	  global_decls(other.global_decls),
 	  scope_decls{},
-	  generic_functions(other.generic_functions),
-	  generic_function_scope_start(other.generic_function_scope_start),
+	  // generic_functions(other.generic_functions),
+	  // generic_function_scope_start(other.generic_function_scope_start),
 	  current_file_id(other.current_file_id),
 	  current_scope(other.current_scope),
+	  current_function(nullptr),
 	  resolve_queue(other.resolve_queue)
 {
 	this->scope_decls.resize(other.scope_decls.size());
@@ -41,6 +35,13 @@ parse_context::parse_context(parse_context const &other)
 		// self_scope.var_decls isn't copied
 	}
 }
+
+parse_context::parse_context(parse_context const &other, global_copy_t)
+	: global_ctx(other.global_ctx),
+	  global_decls(other.global_decls),
+	  current_file_id(other.current_file_id),
+	  current_scope(other.current_scope)
+{}
 
 ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
 {
@@ -3541,7 +3542,7 @@ static ast::expression make_expr_function_call_from_body(
 		body = body->add_specialized_body(std::move(specialized_body));
 		context.add_to_resolve_queue(src_tokens, *body);
 		bz_assert(!body->is_generic());
-		if (!context.generic_functions.contains(body))
+		if (body != context.current_function && !context.generic_functions.contains(body))
 		{
 			context.generic_functions.push_back(body);
 		}
