@@ -4,6 +4,7 @@ import std::utils;
 import std::generic;
 import std::file;
 import std::complex;
+import std::algorithm;
 
 import std::libc::math;
 import std::libc::stdlib;
@@ -57,15 +58,45 @@ function main(args: [: const str]) -> int32
 	// let i: void;
 	global[0] = 5;
 	// c = 3;
-	for (let i = 0u64; i < args.size(); ++i)
+	for (const arg in args)
 	{
-		std::println(args[i]);
+		std::println(arg);
+		std::println(arg.length());
+		std::println(arg.size());
 	}
+
+	const n = 3;
+	switch (n)
+	{
+		0, 1, 2 => {
+			std::println(" < 3");
+		},
+		else => {
+			std::println("something else");
+		}
+	}
+
+	//const m = switch (n) {
+	//	3 => 2,
+	//	else => 0
+	//};
+
+	const t = [ 2, "hello" ];
+	@maybe_unused const t2 = if (false) { t } else { [ 3, "world" ] };
+	// const t2 = (if (false) { t } else [ 3, "world" ]);
+
+	std::println("""hello "raw string"\jasdf \\\""" "\"\"\"" """ <- this was a the end of a "raw string""" "\"");
 
 	consteval pointer_size = sizeof *void;
 	static_assert(pointer_size == 8u);
 	consteval tuple_size = sizeof [int32, int64];
 	static_assert(tuple_size == 16u);
+	static_assert(sizeof "" == 16u);
+	static_assert(usize == uint64);
+
+	let arr: [12: int32];
+	@maybe_unused consteval n = arr.size();
+	// static_assert((assert(true), true));
 
 	std::println("");
 	std::println("hello");
@@ -81,7 +112,9 @@ function main(args: [: const str]) -> int32
 	static_assert(factorial_recursive(10) == 3628800);
 	static_assert(factorial_recursive(1) == 1);
 	static_assert(factorial(10) == 3628800);
-	// static_assert((assert(true), true));
+	static_assert((assert(true), true));
+	static_assert({ assert(true); true });
+	// static_assert(switch (3) { 3 => true, else => false });
 
 	static_assert({
 		if (factorial(3) == 7)
@@ -212,6 +245,9 @@ function main(args: [: const str]) -> int32
 	std::println("\n==== complex_test ====");
 	complex_test();
 
+	std::println("\n==== algorithm_test ====");
+	algorithm_test();
+
 	std::println("\n==== end main ====");
 	std::println(std::exp(1.0));
 	static_assert(typeof std::exp(1.0) == float64);
@@ -229,11 +265,13 @@ function main(args: [: const str]) -> int32
 
 	arr2_tester();
 
+	/*
 	for (let i = 0; i < 10; ++i)
 	{
 		std::print("rand(): ");
 		std::println(std::libc::rand());
 	}
+	*/
 
 	std::libc::puts(__builtin_str_begin_ptr("Hello puts()"));
 
@@ -274,12 +312,16 @@ function foo() -> void
 //	i8 == u8;
 	i8 == i16;
 	i16 == i8;
+	i64 == i8;
+	i8 == i64;
 	u8 == u64;
 	u64 == u8;
 	i8 < i16;
 	i16 < i8;
 	u8 < u64;
 	u64 < u8;
+	u32 < u8;
+	u32 < u64;
 
 	u16 -= u8;
 	let p = &i8;
@@ -301,7 +343,7 @@ function foo() -> void
 	std::println(11 * 111 + 13);
 
 	let a = 'a';
-	let b = 'c' + -1i8;
+	@maybe_unused let b = 'c' + -1i8;
 
 	if (a == 'a')
 		std::println("a == 'a'");
@@ -402,7 +444,7 @@ function cast_test() -> void
 //	let v: vec2;
 }
 
-function asdfasdf(t: [int32, int32, int32, int32, int32, int32]) -> void
+function asdfasdf(: [int32, int32, int32, int32, int32, int32]) -> void
 {}
 
 function const_expr_test() -> void
@@ -417,10 +459,10 @@ function const_expr_test() -> void
 	assert(9'223'372'036'854'775'808 == 1u64 << 63u);
 	assert(((9'223'372'036'854'775'808 as uint32)) == 0u);
 
-	let a = false || false;
+	@maybe_unused let a = false || false;
 	const FALSE: bool = false;
-	let b = false && FALSE;
-	let c = true || FALSE;
+	@maybe_unused let b = false && FALSE;
+	@maybe_unused let c = true || FALSE;
 
 	const p = null as *int32;
 	assert(p == null);
@@ -446,30 +488,31 @@ function scope_test() -> void
 
 	foo();
 
-	function foo(n: const int32) -> void { std::println("foo(n: const int32)"); }
+	function foo(: const int32) -> void { std::println("foo(: const int32)"); }
 	const n = 0;
 
 	{
-		function foo(n: &const int32) -> void { std::println("foo(n: &const int32)"); }
+		function foo(: &const int32) -> void { std::println("foo(: &const int32)"); }
+		function foo(:  const int32) -> void { std::println("foo(: const int32)"); }
 		foo(n);
-		// foo(3); // this doesn't work now, because foo(: &const int32) shadows foo(: const int32)
+		foo(3); // this doesn't work now, because foo(: &const int32) shadows foo(: const int32)
 	}
 
 	foo(n);
 
 	function ambiguous_test_in_scope() -> void { std::println("test1"); }
 
-	const f = ambiguous_test_in_scope;
+	@maybe_unused const f = ambiguous_test_in_scope;
 	{
 		function ambiguous_test_in_scope() -> void { std::println("test2"); }
 //		const f = ambiguous_test_in_scope;
 		ambiguous_test_in_scope();
 	}
-	const f = ambiguous_test_in_scope;
+	@maybe_unused const f = ambiguous_test_in_scope;
 
-	let n = 40 + 2;
+	@maybe_unused let n = 40 + 2;
 
-	let n = 0 - -2147483648;
+	@maybe_unused let n = 0 - -2147483648;
 //	255 / 0;
 //	n / 0;
 //	n /= 0;
@@ -516,8 +559,8 @@ function scope_test() -> void
 	b = false;
 //	b = 3;
 
-	const f32 = 1.23464234 as typeof 1.0f32;
-	const f32: typeof f32 = 0.0f32;
+	@maybe_unused const f32 = 1.23464234 as typeof 1.0f32;
+	@maybe_unused const f32: typeof f32 = 0.0f32;
 
 	std::println(((0x8000'0000 as int32)));
 
@@ -703,15 +746,15 @@ function static_assert_test() -> void
 
 //	uint64_max + ('\n' + 1) + uint64_max;
 
-	consteval c = '\ud7ff';
+	@maybe_unused consteval c = '\ud7ff';
 //	c + 1;
 
 	consteval s = "Hello!";
 	static_assert(s != "Hello!!");
 
-	let n = null;
+	@maybe_unused let n = null;
 	let i: int32;
-	let p: *int32;
+	@maybe_unused let p: *int32;
 //	const p: *int32;
 //	let ref: &int32;
 	consteval p: *int32 = null;
@@ -719,7 +762,7 @@ function static_assert_test() -> void
 
 	let &i_ref = i;
 //	let i_ref_: typeof i_ref;
-	let i_ref_: typeof *&i_ref;
+	@maybe_unused let i_ref_: typeof *&i_ref;
 
 	static_assert(const int32 == const const int32);
 	static_assert(&int32 == & &int32);
@@ -817,19 +860,19 @@ function print_matrix(arr: [4, 4: float64]) -> void
 
 function built_in_op_error_test() -> void
 {
-	let i8  = 0i8;
-	let i16 = 0i16;
-	let i32 = 0i32;
-	let i64 = 0i64;
-	let u8  = 0u8;
-	let u16 = 0u16;
-	let u32 = 0u32;
-	let u64 = 0u64;
-	let f32 = 0.0f32;
-	let f64 = 0.0f64;
-	let c = ' ';
-	let p = null as *int32;
-	let s = "";
+	@maybe_unused let i8  = 0i8;
+	@maybe_unused let i16 = 0i16;
+	@maybe_unused let i32 = 0i32;
+	@maybe_unused let i64 = 0i64;
+	@maybe_unused let u8  = 0u8;
+	@maybe_unused let u16 = 0u16;
+	@maybe_unused let u32 = 0u32;
+	@maybe_unused let u64 = 0u64;
+	@maybe_unused let f32 = 0.0f32;
+	@maybe_unused let f64 = 0.0f64;
+	@maybe_unused let c = ' ';
+	@maybe_unused let p = null as *int32;
+	@maybe_unused let s = "";
 
 //	-(u32 + u8);
 //	~i32;
@@ -899,22 +942,22 @@ function arr2_tester() -> void
 {
 	let arr: [2: int32];
 	arr2_test(arr, "hello", 3);
-	const arr = arr;
+	@maybe_unused const arr = arr;
 }
 
 function tuple_test() -> void
 {
-	let t: [int32, float64];
+	@maybe_unused let t: [int32, float64];
 	std::println([2, 2.234][1]);
 
 	consteval t = [0, 1.53, "hello"];
 	consteval str = t[2];
 	static_assert(str == t[2]);
-	let &const num = t[1];
-	const t = [t, 234.5f32, 0b0000'1000];
+	@maybe_unused let &const num = t[1];
+	@maybe_unused const t = [t, 234.5f32, 0b0000'1000];
 	let t: const [int32, auto] = [123, 3.5f32];
 	static_assert(typeof t == const [int32, float32]);
-	let t: [int32, float64] = [0, 2.5];
+	@maybe_unused let t: [int32, float64] = [0, 2.5];
 
 	let t = [ 123, 123.123, "HELLO!!"];
 	let &i32 = t[0];
@@ -952,7 +995,7 @@ function optimization_test() -> void
 	let arr: [2: int32];
 	arr[0] = 123;
 	arr[1] = 456;
-	const arr = do_work(arr);
+	@maybe_unused const arr = do_work(arr);
 }
 
 function phi_test(x: int32, b: bool) -> int32
@@ -1065,7 +1108,7 @@ function consteval_test(i: if (true) int32 else int64)
 	}
 
 	const t = [ 3, 1.123, "Hello" ];
-	let &const s = index(t, 0);
+	@maybe_unused let &const s = index(t, 0);
 }
 
 function generic_test()
@@ -1102,8 +1145,8 @@ function generic_test()
 	add_wrapper(a, b);
 	add_wrapper(a as int64, b);
 
-	const s1 = "string 1";
-	const s2 = "string 2";
+	@maybe_unused const s1 = "string 1";
+	@maybe_unused const s2 = "string 2";
 //	add_wrapper(s1, s2);
 
 	function circular1(n) -> typeof circular2(n) {}
@@ -1115,17 +1158,17 @@ function generic_test()
 
 function ambiguous_function_test()
 {
-	function foo(n: int32) {}
-	function foo(n: int64) {}
+	function foo(: int32) {}
+	function foo(: int64) {}
 	foo(3);
 	// foo(3i8);
 
-	function bar(n: int32, m: int64) {}
-	function bar(n: int64, m: int32) {}
+	function bar(: int32, : int64) {}
+	function bar(: int64, : int32) {}
 	// bar(3, 3);
 
-	function baz(p: auto) {}
-	function baz(p: *auto) {}
+	function baz(: auto) {}
+	function baz(: *auto) {}
 	let n: int32;
 	baz(&n);
 }
@@ -1133,6 +1176,7 @@ function ambiguous_function_test()
 function add_tester()
 {
 	std::add(3, 4);
+	// std::add(std::complex[ 0.0, 1.0 ], std::complex[ 1.0, -2.0 ]);
 //	add_wrapper("", ' ');
 }
 
@@ -1180,7 +1224,7 @@ function struct_test()
 	// const v = get_vec();
 	// const v = modify_vec(v);
 
-	const v = vec2[ 0.0, 0.0 ];
+	@maybe_unused const v = vec2[ 0.0, 0.0 ];
 	consteval v = vec2[ 1.2, -4.3 ];
 	static_assert(v.x == 1.2);
 
@@ -1232,11 +1276,11 @@ function complex_test()
 	let n = (if (z == std::complex[ 0.0, 1.0 ]) 1 else 1i64);
 	static_assert(typeof n == int64);
 
-	function void_ptr(p: *const void) {}
+	function void_ptr(: *const void) {}
 	void_ptr(&z);
 
-	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
-	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	@maybe_unused const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
+	@maybe_unused const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
 	type_test(int32, 3);
 	type_test(uint32, 2);
 	type_test(float32, 1);
@@ -1256,4 +1300,25 @@ function private_member_test()
 	const s = make_some_struct(0);
 	// std::println(s._i);
 	std::println(s.get_i());
+}
+
+function algorithm_test()
+{
+	const arr = {
+		let arr: [10: int32];
+		arr.std::fill(3)
+	};
+	const it = arr.std::find(3);
+	assert(it != arr.end());
+	std::println(&*it);
+	std::println(*it);
+	std::println(it - arr.begin());
+
+	const it = arr.std::find(23);
+	assert(it == arr.end());
+	std::println(&*it);
+	std::println(it - arr.begin());
+
+	std::println(arr.std::count(3));
+	std::println(arr.std::count(2));
 }
