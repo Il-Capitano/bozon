@@ -1,0 +1,40 @@
+export function find(##range, ##val) -> typeof range.begin()
+{
+	let it = range.begin();
+	const end = range.end();
+	for (; it != end; ++it)
+	{
+		if (*it == val)
+		{
+			return it;
+		}
+	}
+	return end;
+}
+
+export function count(##range, ##val) -> usize
+{
+	let result = 0uz;
+	let it = range.begin();
+	const end = range.end();
+	for (; it != end; ++it)
+	{
+		if (*it == val)
+		{
+			++result;
+		}
+	}
+	return result;
+}
+
+export function fill(&range, ##val) -> typeof range
+{
+	static_assert(typeof range == &typeof range, "sanity check");
+	let it = range.begin();
+	const end = range.end();
+	for (; it != end; ++it)
+	{
+		*it = val;
+	}
+	return range;
+}
