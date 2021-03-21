@@ -635,7 +635,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 		else
 		{
-			bz::print("{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
+			bz::print(stderr, "{}unable to write output.ll{}\n", colors::bright_red, colors::clear);
 		}
 	}
 

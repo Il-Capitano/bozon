@@ -3900,6 +3900,7 @@ static void emit_function_bitcode_impl(
 	if (llvm::verifyFunction(*fn, &llvm::dbgs()) == true)
 	{
 		bz::print(
+			stderr,
 			"{}verifyFunction failed on '{}' !!!{}\n",
 			colors::bright_red,
 			func_body.get_signature(),

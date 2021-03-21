@@ -496,6 +496,7 @@ void print_error_or_warning(error const &err, global_context &context)
 	if (no_error_highlight)
 	{
 		bz::print(
+			stderr,
 			"{} {}\n",
 			src_pos, error_or_warning_line
 		);
@@ -503,6 +504,7 @@ void print_error_or_warning(error const &err, global_context &context)
 	else
 	{
 		bz::print(
+			stderr,
 			"{} {}\n{}",
 			src_pos, error_or_warning_line,
 			get_highlighted_text(
@@ -558,6 +560,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		if (no_error_highlight)
 		{
 			bz::print(
+				stderr,
 				"{} {}note:{} {}\n",
 				note_src_pos, colors::note_color, colors::clear,
 				convert_string_for_message(n.message)
@@ -566,6 +569,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		else
 		{
 			bz::print(
+				stderr,
 				"{} {}note:{} {}\n{}",
 				note_src_pos, colors::note_color, colors::clear,
 				convert_string_for_message(n.message),
@@ -587,6 +591,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		if (no_error_highlight)
 		{
 			bz::print(
+				stderr,
 				"{}{}:{}:{}:{} {}suggestion:{} {}\n",
 				colors::bright_white,
 				context.get_file_name(s.file_id), s.line, actual_column,
@@ -598,6 +603,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		else
 		{
 			bz::print(
+				stderr,
 				"{}{}:{}:{}:{} {}suggestion:{} {}\n{}",
 				colors::bright_white,
 				context.get_file_name(s.file_id), s.line, actual_column,
