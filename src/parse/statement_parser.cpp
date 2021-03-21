@@ -1275,7 +1275,7 @@ static bool resolve_function_symbol_helper(
 	auto const return_type_good = resolve_function_return_type_helper(func_body, context);
 	for (auto &p : func_body.params)
 	{
-		p.is_used = true;
+		p.flags |= ast::decl_variable::used;
 	}
 	auto const good = parameters_good && return_type_good;
 	if (!good)
@@ -1417,7 +1417,7 @@ static void resolve_function_impl(
 	for (auto &p : func_body.params)
 	{
 		context_ptr->add_local_variable(p);
-		p.is_used = false;
+		p.flags &= ~(ast::decl_variable::used);
 	}
 
 	func_body.state = ast::resolve_state::resolving_all;
@@ -1536,7 +1536,7 @@ static ast::function_body parse_function_body(
 	{
 		for (auto &var_decl : result.params)
 		{
-			var_decl.is_used = true;
+			var_decl.flags |= ast::decl_variable::used;
 		}
 		context.assert_token(stream, lex::token::curly_open, lex::token::semi_colon);
 	}
@@ -1544,7 +1544,7 @@ static ast::function_body parse_function_body(
 	{
 		for (auto &var_decl : result.params)
 		{
-			var_decl.is_used = true;
+			var_decl.flags |= ast::decl_variable::used;
 		}
 		++stream; // ';'
 		result.flags |= ast::function_body::external_linkage;
@@ -2027,7 +2027,8 @@ ast::statement parse_export_statement(
 				alias_decl.is_export = true;
 			},
 			[](ast::decl_variable &var_decl) {
-				var_decl.is_export = true;
+				var_decl.flags |= ast::decl_variable::module_export;
+				var_decl.flags |= ast::decl_variable::external_linkage;
 			},
 			[](ast::decl_struct &struct_decl) {
 				struct_decl.info.is_export = true;
@@ -2233,7 +2234,7 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id.values = { "" };
 	range_var_decl.id.is_qualified = false;
 	resolve_variable(range_var_decl, context);
-	range_var_decl.is_used = true;
+	range_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(range_var_decl);
 
 	if (range_var_decl.var_type.is_empty())
@@ -2277,7 +2278,7 @@ static ast::statement parse_stmt_foreach_impl(
 	iter_var_decl.id.values = { "" };
 	iter_var_decl.id.is_qualified = false;
 	resolve_variable(iter_var_decl, context);
-	iter_var_decl.is_used = true;
+	iter_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(iter_var_decl);
 
 	auto range_end_expr = [&]() {
@@ -2314,7 +2315,7 @@ static ast::statement parse_stmt_foreach_impl(
 	end_var_decl.id.values = { "" };
 	end_var_decl.id.is_qualified = false;
 	resolve_variable(end_var_decl, context);
-	end_var_decl.is_used = true;
+	end_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(end_var_decl);
 
 	auto condition = [&]() {
@@ -2710,7 +2711,7 @@ static void apply_attribute(
 				"@maybe_unused expects no arguments"
 			);
 		}
-		var_decl.is_used = true;
+		var_decl.flags |= ast::decl_variable::maybe_unused;
 	}
 	else if (attribute.name->value == "comptime_error_checking")
 	{

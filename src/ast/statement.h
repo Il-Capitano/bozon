@@ -277,14 +277,21 @@ struct stmt_static_assert
 
 struct decl_variable
 {
+	enum : uint8_t
+	{
+		maybe_unused     = bit_at<0>,
+		used             = bit_at<1>,
+		module_export    = bit_at<2>,
+		external_linkage = bit_at<3>,
+	};
+
 	lex::src_tokens  src_tokens;
 	identifier       id;
 	lex::token_range prototype_range;
 	typespec         var_type;
 	expression       init_expr; // is null if there's no initializer
 	resolve_state    state;
-	bool             is_used;
-	bool             is_export;
+	uint8_t          flags;
 
 	declare_default_5(decl_variable)
 
@@ -301,8 +308,7 @@ struct decl_variable
 		  var_type       (std::move(_var_type)),
 		  init_expr      (std::move(_init_expr)),
 		  state          (resolve_state::none),
-		  is_used        (false),
-		  is_export      (false)
+		  flags          (0)
 	{}
 
 	decl_variable(
@@ -317,8 +323,7 @@ struct decl_variable
 		  var_type       (std::move(_var_type)),
 		  init_expr      (),
 		  state          (resolve_state::none),
-		  is_used        (false),
-		  is_export      (false)
+		  flags          (0)
 	{}
 
 	decl_variable(
@@ -333,13 +338,24 @@ struct decl_variable
 		  var_type       (make_auto_typespec(nullptr)),
 		  init_expr      (std::move(_init_expr)),
 		  state          (resolve_state::none),
-		  is_used        (false),
-		  is_export      (false)
+		  flags          (0)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
 	lex::token_pos get_tokens_pivot(void) const;
 	lex::token_pos get_tokens_end(void) const;
+
+	bool is_maybe_unused(void) const noexcept
+	{ return (this->flags & maybe_unused) != 0; }
+
+	bool is_used(void) const noexcept
+	{ return (this->flags & used) != 0; }
+
+	bool is_module_export(void) const noexcept
+	{ return (this->flags & module_export) != 0; }
+
+	bool is_external_linkage(void) const noexcept
+	{ return (this->flags & external_linkage) != 0; }
 };
 
 inline bool is_generic_parameter(decl_variable const &var_decl)

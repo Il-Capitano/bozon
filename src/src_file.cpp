@@ -129,7 +129,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
 			this->_global_decls.add_variable(var_decl);
-			if (var_decl.is_export)
+			if (var_decl.is_module_export())
 			{
 				this->_export_decls.add_variable(var_decl);
 			}

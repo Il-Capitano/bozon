@@ -721,7 +721,7 @@ void parse_context::remove_scope(void)
 	{
 		for (auto const var_decl : this->scope_decls.back().var_decls)
 		{
-			if (!var_decl->is_used && !var_decl->id.values.empty())
+			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && !var_decl->id.values.empty())
 			{
 				this->report_warning(
 					warning_kind::unused_variable,
@@ -1166,7 +1166,7 @@ static ast::expression make_variable_expression(
 	parse_context &context
 )
 {
-	var_decl->is_used = true;
+	var_decl->flags |= ast::decl_variable::used;
 	auto id_type_kind = ast::expression_type_kind::lvalue;
 	ast::typespec_view id_type = var_decl->var_type;
 	if (id_type.is<ast::ts_lvalue_reference>())
@@ -1339,7 +1339,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		this->add_to_resolve_queue(src_tokens, *var_decl);
 		parse::resolve_variable(*var_decl, *this);
 		this->pop_resolve_queue();
-		var_decl->is_used = true;
+		var_decl->flags |= ast::decl_variable::used;
 		auto id_type_kind = ast::expression_type_kind::lvalue;
 		ast::typespec_view id_type = var_decl->var_type;
 		if (id_type.is<ast::ts_lvalue_reference>())
