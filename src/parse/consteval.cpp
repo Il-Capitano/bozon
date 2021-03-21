@@ -2017,7 +2017,49 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 		},
 		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
-			return {};
+			consteval_guaranteed(switch_expr.matched_expr, context);
+			for (auto &[_, case_expr] : switch_expr.cases)
+			{
+				consteval_guaranteed(case_expr, context);
+			}
+			consteval_guaranteed(switch_expr.default_case, context);
+
+			if (!switch_expr.matched_expr.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const case_it = std::find_if(
+				switch_expr.cases.begin(), switch_expr.cases.end(),
+				[&](auto const &switch_case) {
+					return switch_case.values
+						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.is_any(matched_value);
+				}
+			);
+			if (case_it == switch_expr.cases.end())
+			{
+				if (switch_expr.default_case.has_consteval_succeeded())
+				{
+					return switch_expr.default_case.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				if (case_it->expr.has_consteval_succeeded())
+				{
+					return case_it->expr.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
 		},
 	});
 }
@@ -2243,7 +2285,49 @@ static ast::constant_value try_evaluate_expr(
 			}
 		},
 		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
-			return {};
+			consteval_try(switch_expr.matched_expr, context);
+			for (auto &[_, case_expr] : switch_expr.cases)
+			{
+				consteval_try(case_expr, context);
+			}
+			consteval_try(switch_expr.default_case, context);
+
+			if (!switch_expr.matched_expr.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const case_it = std::find_if(
+				switch_expr.cases.begin(), switch_expr.cases.end(),
+				[&](auto const &switch_case) {
+					return switch_case.values
+						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.is_any(matched_value);
+				}
+			);
+			if (case_it == switch_expr.cases.end())
+			{
+				if (switch_expr.default_case.has_consteval_succeeded())
+				{
+					return switch_expr.default_case.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				if (case_it->expr.has_consteval_succeeded())
+				{
+					return case_it->expr.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
 		},
 	});
 }
@@ -2498,7 +2582,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				}
 			}
 		},
-		[&notes](ast::expr_switch const &switch_expr) {
+		[&expr, &notes](ast::expr_switch const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
 	});
 }
