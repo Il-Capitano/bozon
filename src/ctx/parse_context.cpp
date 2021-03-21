@@ -921,8 +921,8 @@ static ast::decl_variable *find_var_decl_in_local_scope(decl_set &scope, ast::id
 		auto const it = std::find_if(
 			scope.var_decls.rbegin(), scope.var_decls.rend(),
 			[&id](auto const var) {
-				bz_assert(!var->id.is_qualified && var->id.values.size() == 1);
-				return var->id.values.front() == id.values.front();
+				bz_assert(!var->id.is_qualified && var->id.values.size() <= 1);
+				return !var->id.values.empty() && var->id.values.front() == id.values.front();
 			}
 		);
 		return it == scope.var_decls.rend() ? nullptr : *it;
@@ -2545,6 +2545,10 @@ static match_level_t get_type_match_level(
 				return match_level_t{};
 			}
 		}
+	}
+	else if (expr.is_switch_expr())
+	{
+		bz_unreachable;
 	}
 	else if (expr.is_typename())
 	{

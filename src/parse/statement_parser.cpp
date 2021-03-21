@@ -701,9 +701,7 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
-			auto var_id = is_global
-				? context.make_qualified_identifier(id)
-				: ast::make_identifier(id);
+			auto var_id = context.make_qualified_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
 				std::move(var_id), prototype,
@@ -713,9 +711,7 @@ ast::statement parse_decl_variable(
 		}
 		else
 		{
-			auto var_id = is_global
-				? context.make_qualified_identifier(id)
-				: ast::make_identifier(id);
+			auto var_id = ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
 				std::move(var_id), prototype,
@@ -735,9 +731,7 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
-			auto var_id = is_global
-				? context.make_qualified_identifier(id)
-				: ast::make_identifier(id);
+			auto var_id = context.make_qualified_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
 				std::move(var_id), prototype,
@@ -746,9 +740,7 @@ ast::statement parse_decl_variable(
 		}
 		else
 		{
-			auto var_id = is_global
-				? context.make_qualified_identifier(id)
-				: ast::make_identifier(id);
+			auto var_id = ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
 				std::move(var_id), prototype,
@@ -1094,7 +1086,6 @@ static void resolve_function_parameters_impl(
 )
 {
 	func_body.state = ast::resolve_state::resolving_parameters;
-	context.add_scope();
 	if (resolve_function_parameters_helper(func_stmt, func_body, context))
 	{
 		func_body.state = ast::resolve_state::parameters;
@@ -1103,11 +1094,6 @@ static void resolve_function_parameters_impl(
 	{
 		func_body.state = ast::resolve_state::error;
 	}
-	for (auto &var_decl : func_body.params)
-	{
-		var_decl.is_used = true;
-	}
-	context.remove_scope();
 }
 
 void resolve_function_parameters(
@@ -1287,6 +1273,10 @@ static bool resolve_function_symbol_helper(
 		return parameters_good;
 	}
 	auto const return_type_good = resolve_function_return_type_helper(func_body, context);
+	for (auto &p : func_body.params)
+	{
+		p.is_used = true;
+	}
 	auto const good = parameters_good && return_type_good;
 	if (!good)
 	{
@@ -1317,10 +1307,6 @@ static void resolve_function_symbol_impl(
 	else
 	{
 		func_body.state = ast::resolve_state::error;
-	}
-	for (auto &var_decl : func_body.params)
-	{
-		var_decl.is_used = true;
 	}
 	context.remove_scope();
 }
@@ -1358,34 +1344,6 @@ static void resolve_function_impl(
 	ctx::parse_context &context
 )
 {
-	if (func_body.state <= ast::resolve_state::parameters)
-	{
-		func_body.state = ast::resolve_state::resolving_symbol;
-		context.add_scope();
-		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
-		{
-			func_body.state = ast::resolve_state::error;
-			context.remove_scope();
-			return;
-		}
-		else if (func_body.is_generic())
-		{
-			func_body.state = ast::resolve_state::parameters;
-			context.remove_scope();
-			return;
-		}
-		else
-		{
-			func_body.state = ast::resolve_state::symbol;
-			context.remove_scope();
-		}
-	}
-
-	if (func_body.body.is_null())
-	{
-		return;
-	}
-
 	bz::optional<ctx::parse_context> new_context{};
 	auto context_ptr = [&]() {
 		if (func_body.is_local())
@@ -1425,12 +1383,41 @@ static void resolve_function_impl(
 		}
 	}();
 
+	if (func_body.state <= ast::resolve_state::parameters)
+	{
+		func_body.state = ast::resolve_state::resolving_symbol;
+		context_ptr->add_scope();
+		if (!resolve_function_symbol_helper(func_stmt, func_body, *context_ptr))
+		{
+			func_body.state = ast::resolve_state::error;
+			context_ptr->remove_scope();
+			return;
+		}
+		else if (func_body.is_generic())
+		{
+			func_body.state = ast::resolve_state::parameters;
+			context_ptr->remove_scope();
+			return;
+		}
+		else
+		{
+			func_body.state = ast::resolve_state::symbol;
+			context_ptr->remove_scope();
+		}
+	}
+
+	if (func_body.body.is_null())
+	{
+		return;
+	}
+
 	auto const prev_function = context_ptr->current_function;
 	context_ptr->current_function = &func_body;
 	context_ptr->add_scope();
 	for (auto &p : func_body.params)
 	{
 		context_ptr->add_local_variable(p);
+		p.is_used = false;
 	}
 
 	func_body.state = ast::resolve_state::resolving_all;
@@ -1511,7 +1498,8 @@ static ast::function_body parse_function_body(
 		);
 		result.params.emplace_back(
 			lex::src_tokens{ begin, id, param_stream },
-			ast::make_identifier(id), prototype,
+			id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier(),
+			prototype,
 			ast::make_unresolved_typespec(type)
 		);
 		if (param_stream != param_end)
