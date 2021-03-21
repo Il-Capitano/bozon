@@ -9,7 +9,7 @@ namespace ast
 struct arena_allocator
 {
 	static void *sized_allocate(size_t size);
-	static inline void sized_free([[maybe_unused]] void *p, [[maybe_unused]] size_t size) {}
+	static void sized_free([[maybe_unused]] void *p, [[maybe_unused]] size_t size);
 	static inline void unsized_free([[maybe_unused]] void *p) {}
 
 	template<typename T, typename ...Ts>

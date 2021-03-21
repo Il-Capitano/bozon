@@ -114,12 +114,15 @@ void *arena_allocator::sized_allocate(size_t size)
 	}
 }
 
-/*
-void arena_allocator::sized_free([[maybe_unused]] void *p, [[maybe_unused]] size_t size)
+void arena_allocator::sized_free(void *p, size_t size)
 {
-	// nothing
+	if (arena.last_node->data + arena.last_node->size - size == p)
+	{
+		arena.last_node->size -= size;
+	}
 }
 
+/*
 void arena_allocator::unsized_free([[maybe_unused]] void *p)
 {
 	// nothing
