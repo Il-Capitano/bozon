@@ -106,9 +106,8 @@ inline void set_console_attribute(HANDLE h, uint32_t n)
 	SetConsoleTextAttribute(h, new_foreground | new_background | new_other);
 }
 
-inline void set_console_attributes(u8string_view str)
+inline void set_console_attributes(HANDLE h, u8string_view str)
 {
-	auto const h = GetStdHandle(STD_OUTPUT_HANDLE);
 	int32_t n = 0;
 	for (auto it = str.begin(); it != str.end(); ++it)
 	{
@@ -139,108 +138,88 @@ inline void fprint_string_view(u8string_view str, std::FILE *file)
 
 inline void fprint(u8string_view str, std::FILE *file)
 {
-	auto begin = str.begin();
-	auto const end = str.end();
-	while (begin != end)
+	if (file != stdout && file != stderr)
 	{
-		auto const coloring_char = std::find(begin, end, '\033');
-		if (coloring_char == end)
+		fprint_string_view(str, file);
+	}
+	else
+	{
+		auto const h = file == stdout ? GetStdHandle(STD_OUTPUT_HANDLE) : GetStdHandle(STD_ERROR_HANDLE);
+		auto begin = str.begin();
+		auto const end = str.end();
+		while (begin != end)
 		{
-			// we are done
-			fprint_string_view(u8string_view(begin, end), file);
-			break;
-		}
-		auto it = coloring_char;
-		++it;
-		if (it == end)
-		{
-			// we are done
-			fprint_string_view(u8string_view(begin, end), file);
-			break;
-		}
+			auto const coloring_char = std::find(begin, end, '\033');
+			if (coloring_char == end)
+			{
+				// we are done
+				fprint_string_view(u8string_view(begin, end), file);
+				break;
+			}
+			auto it = coloring_char;
+			++it;
+			if (it == end)
+			{
+				// we are done
+				fprint_string_view(u8string_view(begin, end), file);
+				break;
+			}
 
-		if (*it != '[')
-		{
-			// invalid coloring sequence
-			// we go to the next iteration
-			fprint_string_view(u8string_view(begin, it), file);
-			begin = it;
-			continue;
-		}
+			if (*it != '[')
+			{
+				// invalid coloring sequence
+				// we go to the next iteration
+				fprint_string_view(u8string_view(begin, it), file);
+				begin = it;
+				continue;
+			}
 
-		++it; // '['
-		auto const closing_m = std::find(it, end, 'm');
-		if (closing_m == end)
-		{
-			// we are done
-			fprint_string_view(u8string_view(begin, end), file);
-			break;
-		}
+			++it; // '['
+			auto const closing_m = std::find(it, end, 'm');
+			if (closing_m == end)
+			{
+				// we are done
+				fprint_string_view(u8string_view(begin, end), file);
+				break;
+			}
 
-		fprint_string_view(u8string_view(begin, coloring_char), file);
-		internal::set_console_attributes(u8string_view(it, closing_m));
-		begin = closing_m;
-		++begin;
+			fprint_string_view(u8string_view(begin, coloring_char), file);
+			internal::set_console_attributes(h, u8string_view(it, closing_m));
+			begin = closing_m;
+			++begin;
+		}
 	}
 }
 
 } // namespace internal
 
 template<typename ...Ts>
-void print(u8string_view fmt, Ts const &...ts)
+void print(std::FILE *file, u8string_view fmt, Ts const &...ts)
 {
 	if constexpr (sizeof... (Ts) == 0)
 	{
-		internal::fprint(fmt, stdout);
+		internal::fprint(fmt, file);
 	}
 	else
 	{
 		auto const str = format(fmt, ts...);
-		internal::fprint(str, stdout);
-	}
-}
-
-template<typename ...Ts>
-void log(u8string_view fmt, Ts const &...ts)
-{
-	if constexpr (sizeof... (Ts) == 0)
-	{
-		internal::fprint(fmt, stderr);
-	}
-	else
-	{
-		auto const str = format(fmt, ts...);
-		internal::fprint(str, stderr);
+		internal::fprint(str, file);
 	}
 }
 
 #else
 
 template<typename ...Ts>
-void print(u8string_view fmt, Ts const &...ts)
+void print(std::FILE *file, u8string_view fmt, Ts const &...ts)
 {
 	if constexpr (sizeof... (Ts) == 0)
 	{
-		fwrite(fmt.data(), sizeof (char), fmt.size(), stdout);
+		fwrite(fmt.data(), sizeof (char), fmt.size(), file);
 	}
 	else
 	{
 		auto const str = format(fmt, ts...);
-		fwrite(str.data(), sizeof (char), str.size(), stdout);
-	}
-}
-
-template<typename ...Ts>
-void log(u8string_view fmt, Ts const &...ts)
-{
-	if constexpr (sizeof... (Ts) == 0)
-	{
-		fwrite(fmt.data(), sizeof (char), fmt.size(), stderr);
-	}
-	else
-	{
-		auto const str = format(fmt, ts...);
-		fwrite(str.data(), sizeof (char), str.size(), stderr);
+		fwrite(str.data(), sizeof (char), str.size(), file);
 	}
 }
 
@@ -257,6 +236,18 @@ void print(std::ostream &os, u8string_view fmt, Ts const &...ts)
 	{
 		os << format(fmt, ts...);
 	}
+}
+
+template<typename ...Ts>
+void print(u8string_view fmt, Ts const &...ts)
+{
+	print(stdout, fmt, ts...);
+}
+
+template<typename ...Ts>
+void log(u8string_view fmt, Ts const &...ts)
+{
+	print(stderr, fmt, ts...);
 }
 
 
