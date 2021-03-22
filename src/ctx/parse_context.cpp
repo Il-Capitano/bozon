@@ -1178,7 +1178,7 @@ static ast::expression make_variable_expression(
 	if (id_type.is_empty())
 	{
 		bz_assert(context.has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
 	}
 	else if (id_type.is<ast::ts_consteval>())
 	{
@@ -1273,7 +1273,7 @@ static ast::expression make_type_expression(
 	}
 	else
 	{
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 	}
 }
 
@@ -1297,7 +1297,7 @@ static ast::expression make_type_alias_expression(
 	}
 	else
 	{
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 	}
 }
 
@@ -1351,7 +1351,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		if (id_type.is_empty())
 		{
 			bz_assert(this->has_errors());
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 		}
 		else if (id_type.is<ast::ts_consteval>())
 		{
@@ -1412,7 +1412,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 				.sum();
 		if (func_count == 0)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 		}
 		else if (func_count == 1)
 		{
@@ -1464,7 +1464,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 		else
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 		}
 	}
 
@@ -1486,7 +1486,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 		else
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 		}
 	}
 
@@ -1537,7 +1537,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	}
 
 	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
-	return ast::expression(src_tokens);
+	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 }
 
 static bz::u8char get_character(bz::u8string_view::const_iterator &it)
@@ -1727,7 +1727,7 @@ if (postfix == postfix_str)                                                     
 			)
 			{
 				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(src_tokens, ast::make_expr_literal(literal));
 			}
 			num = num10 + (c - '0');
 		}
@@ -2121,7 +2121,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 	auto const has_error = [&]() {
 		for (auto const &e : elems)
 		{
-			if (e.is_null())
+			if (e.is_error())
 			{
 				return true;
 			}
@@ -2131,7 +2131,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector
 
 	if (has_error)
 	{
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_tuple(std::move(elems)));
 	}
 	else if (is_typename)
 	{
@@ -2766,13 +2766,13 @@ static void strict_match_expression_to_type_impl(
 	}
 	else
 	{
-		bz_assert(expr.not_null());
+		bz_assert(expr.not_error());
 		context.report_error(expr, bz::format("cannot convert expression from type '{}' to '{}'", expr.get_expr_type_and_kind().first, dest_container));
 		if (!ast::is_complete(dest_container))
 		{
 			dest_container.clear();
 		}
-		expr.clear();
+		expr.to_error();
 	}
 }
 
@@ -2791,7 +2791,7 @@ static void match_typename_to_type_impl(
 	if (!ast::is_complete(source))
 	{
 		context.report_error(expr, bz::format("couldn't match non-complete type '{}' to typename type '{}'", expr.get_typename(), dest_container));
-		expr.clear();
+		expr.to_error();
 		dest_container.clear();
 		return;
 	}
@@ -2809,7 +2809,7 @@ static void match_typename_to_type_impl(
 	else if (dest.kind() != source.kind())
 	{
 		context.report_error(expr, bz::format("couldn't match type '{}' to typename type '{}'", expr.get_typename(), dest_container));
-		expr.clear();
+		expr.to_error();
 		dest_container.clear();
 		return;
 	}
@@ -2863,7 +2863,7 @@ static void match_expression_to_type_impl(
 
 			if (then_matched_type.is_empty() || else_matched_type.is_empty())
 			{
-				expr.clear();
+				expr.to_error();
 				if (!ast::is_complete(dest_container))
 				{
 					dest_container.clear();
@@ -2897,7 +2897,7 @@ static void match_expression_to_type_impl(
 						)
 					}
 				);
-				expr.clear();
+				expr.to_error();
 				if (!ast::is_complete(dest_container))
 				{
 					dest_container.clear();
@@ -2936,7 +2936,7 @@ static void match_expression_to_type_impl(
 						)
 					}
 				);
-				expr.clear();
+				expr.to_error();
 				if (!ast::is_complete(dest_container))
 				{
 					dest_container.clear();
@@ -2954,7 +2954,7 @@ static void match_expression_to_type_impl(
 		if (!dest.is_typename())
 		{
 			context.report_error(expr, bz::format("cannot match type '{}' to a non-typename type '{}'", expr.get_typename(), dest_container));
-			expr.clear();
+			expr.to_error();
 			if (!ast::is_complete(dest_container))
 			{
 				dest_container.clear();
@@ -2981,7 +2981,7 @@ static void match_expression_to_type_impl(
 			{
 				dest_container.clear();
 			}
-			expr.clear();
+			expr.to_error();
 			return;
 		}
 		else
@@ -2995,7 +2995,7 @@ static void match_expression_to_type_impl(
 				{
 					dest_container.clear();
 				}
-				expr.clear();
+				expr.to_error();
 				return;
 			}
 			return;
@@ -3055,7 +3055,7 @@ static void match_expression_to_type_impl(
 				bz_assert(!ast::is_complete(dest_container));
 				context.report_error(expr, bz::format("cannot convert 'null' to incomplete type '{}'", dest_container));
 				dest_container.clear();
-				expr.clear();
+				expr.to_error();
 				return;
 			}
 		}
@@ -3069,7 +3069,7 @@ static void match_expression_to_type_impl(
 			{
 				dest_container.clear();
 			}
-			expr.clear();
+			expr.to_error();
 			return;
 		}
 
@@ -3081,7 +3081,7 @@ static void match_expression_to_type_impl(
 				expr_type_without_const, inner_dest.get<ast::ts_const>(),
 				false, context
 			);
-			if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
+			if (expr.not_error() && expr_type_kind == ast::expression_type_kind::lvalue)
 			{
 				ast::typespec result_type = expr_type;
 				expr = ast::make_dynamic_expression(
@@ -3113,7 +3113,7 @@ static void match_expression_to_type_impl(
 				expr_type_without_const, inner_dest.get<ast::ts_const>(),
 				false, context
 			);
-			if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
+			if (expr.not_error() && expr_type_kind == ast::expression_type_kind::lvalue)
 			{
 				ast::typespec result_type = expr_type;
 				expr = ast::make_dynamic_expression(
@@ -3152,7 +3152,7 @@ static void match_expression_to_type_impl(
 			expr_type_without_const, inner_dest,
 			false, context
 		);
-		if (expr.not_null() && expr_type_kind == ast::expression_type_kind::lvalue)
+		if (expr.not_error() && expr_type_kind == ast::expression_type_kind::lvalue)
 		{
 			ast::typespec result_type = expr_type;
 			expr = ast::make_dynamic_expression(
@@ -3254,7 +3254,7 @@ static void match_expression_to_type_impl(
 			);
 		}
 
-		if (expr.not_null() && expr_type_without_const.is<ast::ts_array>())
+		if (expr.not_error() && expr_type_without_const.is<ast::ts_array>())
 		{
 			auto const src_tokens = expr.src_tokens;
 			expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
@@ -3276,7 +3276,7 @@ static void match_expression_to_type_impl(
 	{
 		dest_container.clear();
 	}
-	expr.clear();
+	expr.to_error();
 }
 
 static match_level_t get_function_call_match_level(
@@ -3563,7 +3563,7 @@ static ast::expression make_expr_function_call_from_body(
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order));
 	}
 
 	auto &ret_t = body->return_type;
@@ -3624,7 +3624,7 @@ static ast::expression make_expr_function_call_from_body(
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order));
 	}
 
 	auto &ret_t = body->return_type;
@@ -3718,10 +3718,10 @@ ast::expression parse_context::make_unary_operator_expression(
 	ast::expression expr
 )
 {
-	if (expr.is_null())
+	if (expr.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 
 	if (is_unary_type_op(op_kind) && expr.is_typename())
@@ -3758,14 +3758,14 @@ ast::expression parse_context::make_unary_operator_expression(
 				token_info[op_kind].token_value, expr.get_expr_type_and_kind().first
 			)
 		);
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
 	{
 		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 		if (best_body == nullptr)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
 		else
 		{
@@ -3880,10 +3880,10 @@ ast::expression parse_context::make_binary_operator_expression(
 	ast::expression rhs
 )
 {
-	if (lhs.is_null() || rhs.is_null())
+	if (lhs.is_error() || rhs.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 	}
 
 	if (op_kind == lex::token::kw_as)
@@ -3901,7 +3901,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		}
 		if (!good)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 		}
 
 		return this->make_cast_expression(src_tokens, std::move(lhs), std::move(rhs.get_typename()));
@@ -3947,14 +3947,14 @@ ast::expression parse_context::make_binary_operator_expression(
 				token_info[op_kind].token_value, lhs.get_expr_type_and_kind().first, rhs.get_expr_type_and_kind().first
 			)
 		);
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 	}
 	else
 	{
 		auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 		if (best_body == nullptr)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 		}
 		else
 		{
@@ -4087,18 +4087,24 @@ ast::expression parse_context::make_function_call_expression(
 	bz::vector<ast::expression> params
 )
 {
-	if (called.is_null())
+	if (called.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
 	}
 
 	for (auto &p : params)
 	{
-		if (p.is_null())
+		if (p.is_error())
 		{
 			bz_assert(this->has_errors());
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+			);
 		}
 	}
 
@@ -4131,7 +4137,10 @@ ast::expression parse_context::make_function_call_expression(
 						);
 					}
 				}
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(
+					src_tokens,
+					ast::make_expr_function_call(src_tokens, std::move(params), func_body, ast::resolve_order::regular)
+				);
 			}
 
 			return make_expr_function_call_from_body(src_tokens, func_body, std::move(params), *this);
@@ -4175,14 +4184,20 @@ ast::expression parse_context::make_function_call_expression(
 					return result;
 				}();
 				this->report_error(src_tokens, bz::format("no candidate found for function call to '{}'", func_id_value));
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(
+					src_tokens,
+					ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+				);
 			}
 			else
 			{
 				auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 				if (best_body == nullptr)
 				{
-					return ast::expression(src_tokens);
+					return ast::make_error_expression(
+						src_tokens,
+						ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+					);
 				}
 				else
 				{
@@ -4195,7 +4210,10 @@ ast::expression parse_context::make_function_call_expression(
 	{
 		// function call operator
 		this->report_error(src_tokens, "operator () not yet implemented");
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
 	}
 }
 
@@ -4320,18 +4338,26 @@ ast::expression parse_context::make_universal_function_call_expression(
 	bz::vector<ast::expression> params
 )
 {
-	if (base.is_null())
+	if (base.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		params.push_front(std::move(base));
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
 	}
 
 	for (auto &p : params)
 	{
-		if (p.is_null())
+		if (p.is_error())
 		{
 			bz_assert(this->has_errors());
-			return ast::expression(src_tokens);
+			params.push_front(std::move(base));
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+			);
 		}
 	}
 
@@ -4353,14 +4379,20 @@ ast::expression parse_context::make_universal_function_call_expression(
 	if (possible_funcs.empty())
 	{
 		this->report_error(src_tokens, bz::format("no candidate found for universal function call to '{}'", id.as_string()));
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
 	}
 	else
 	{
 		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 		if (best_body == nullptr)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+			);
 		}
 		else if (
 			best_body->is_intrinsic()
@@ -4386,10 +4418,10 @@ ast::expression parse_context::make_subscript_operator_expression(
 	bz::vector<ast::expression> args
 )
 {
-	if (called.is_null())
+	if (called.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 	}
 
 	if (called.is_typename())
@@ -4399,7 +4431,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (!type_without_const.is<ast::ts_base_type>())
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
@@ -4412,7 +4444,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 		}
 		else if (
 			this->current_file_id != info->file_id
@@ -4433,7 +4465,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 				notes.push_back(this->make_note("members whose names start with '_' are only accessible in the same file"));
 			}
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type), std::move(notes));
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 		}
 		else if (info->member_variables.size() != args.size())
 		{
@@ -4449,7 +4481,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
 					) }
 				);
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 			}
 			else if (member_size - args_size == 1)
 			{
@@ -4461,7 +4493,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
 					) }
 				);
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 			}
 			else
 			{
@@ -4483,7 +4515,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
 					) }
 				);
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 			}
 		}
 
@@ -4491,11 +4523,11 @@ ast::expression parse_context::make_subscript_operator_expression(
 		for (auto const [expr, member] : bz::zip(args, info->member_variables))
 		{
 			this->match_expression_to_type(expr, member.type);
-			is_good = is_good && expr.not_null();
+			is_good = is_good && expr.not_error();
 		}
 		if (!is_good)
 		{
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 		}
 
 		return ast::make_dynamic_expression(
@@ -4510,14 +4542,14 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (args.size() == 0)
 		{
 			this->report_error(src_tokens, "subscript expression expects at least one index");
-			return ast::expression(src_tokens);
+			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 		}
 		for (auto &arg : args)
 		{
-			if (arg.is_null())
+			if (arg.is_error())
 			{
 				bz_assert(this->has_errors());
-				return ast::expression(src_tokens);
+				return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 			}
 
 			auto const [type, kind] = called.get_expr_type_and_kind();
@@ -4537,7 +4569,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 				auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
 				if (best_body == nullptr)
 				{
-					return ast::expression(src_tokens);
+					return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 				}
 				else
 				{
@@ -4562,10 +4594,10 @@ ast::expression parse_context::make_cast_expression(
 	ast::typespec type
 )
 {
-	if (expr.is_null() || type.is_empty())
+	if (expr.is_error() || type.is_empty())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
 	}
 
 	if (expr.is_if_expr())
@@ -4587,7 +4619,7 @@ ast::expression parse_context::make_cast_expression(
 	else
 	{
 		this->report_error(src_tokens, "invalid cast");
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(expr), std::move(type)));
 	}
 }
 
@@ -4597,10 +4629,10 @@ ast::expression parse_context::make_member_access_expression(
 	lex::token_pos member
 )
 {
-	if (base.is_null())
+	if (base.is_error())
 	{
 		bz_assert(this->has_errors());
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
@@ -4643,7 +4675,7 @@ ast::expression parse_context::make_member_access_expression(
 	if (it == members.end())
 	{
 		this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, base_t));
-		return ast::expression(src_tokens);
+		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
 	else if (this->current_file_id != type_file_id && it->identifier.starts_with('_'))
 	{
@@ -4665,7 +4697,7 @@ ast::expression parse_context::make_member_access_expression(
 			std::move(notes)
 		);
 		// no need to return here, the type of the member is available so the expression doesn't have to be in an error state
-		// return ast::expression(src_tokens);
+		// return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
 	auto const index = static_cast<uint32_t>(it - members.begin());
 	auto result_type = it->type;
@@ -4700,9 +4732,9 @@ void parse_context::match_expression_to_type(
 {
 	if (dest_type.is_empty())
 	{
-		expr.clear();
+		expr.to_error();
 	}
-	else if (expr.is_null())
+	else if (expr.is_error())
 	{
 		if (!ast::is_complete(dest_type))
 		{

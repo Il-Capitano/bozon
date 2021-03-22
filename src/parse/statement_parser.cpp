@@ -132,7 +132,7 @@ static void resolve_stmt_static_assert_impl(
 		};
 
 		static_assert_stmt.condition = std::move(args[0]);
-		if (static_assert_stmt.condition.is_null())
+		if (static_assert_stmt.condition.is_error())
 		{
 			good = false;
 		}
@@ -161,7 +161,7 @@ static void resolve_stmt_static_assert_impl(
 		if (args.size() == 2)
 		{
 			static_assert_stmt.message = std::move(args[1]);
-			if (static_assert_stmt.message.is_null())
+			if (static_assert_stmt.message.is_error())
 			{
 				good = false;
 			}
@@ -206,7 +206,7 @@ static void resolve_stmt_static_assert_impl(
 		{
 			error_message += bz::format(" due to requirement '{}'", expression_string);
 		}
-		if (static_assert_stmt.message.not_null())
+		if (static_assert_stmt.message.not_error())
 		{
 			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
@@ -351,7 +351,7 @@ static void resolve_typespec(
 	}
 
 	consteval_try(type, context);
-	if (type.not_null() && !type.has_consteval_succeeded())
+	if (type.not_error() && !type.has_consteval_succeeded())
 	{
 		auto notes = get_consteval_fail_notes(type);
 		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
@@ -362,7 +362,7 @@ static void resolve_typespec(
 		);
 		ts.clear();
 	}
-	else if (type.not_null() && !type.is_typename())
+	else if (type.not_error() && !type.is_typename())
 	{
 		context.report_error(type, "expected a type");
 		ts.clear();
@@ -398,7 +398,7 @@ static void resolve_variable_type(
 		)
 		: parse_expression(stream, end, context, no_assign);
 	consteval_try(type, context);
-	if (type.not_null() && !type.has_consteval_succeeded())
+	if (type.not_error() && !type.has_consteval_succeeded())
 	{
 		context.report_error(
 			type.src_tokens,
@@ -408,7 +408,7 @@ static void resolve_variable_type(
 		var_decl.var_type.clear();
 		var_decl.state = ast::resolve_state::error;
 	}
-	else if (type.not_null() && !type.is_typename())
+	else if (type.not_error() && !type.is_typename())
 	{
 		if (stream != end && is_binary_operator(stream->kind))
 		{
@@ -798,7 +798,7 @@ static void resolve_type_alias_impl(
 			context.assert_token(stream, lex::token::semi_colon);
 		}
 	}
-	else if (alias_decl.alias_expr.is_null())
+	else if (alias_decl.alias_expr.is_error())
 	{
 		alias_decl.state = ast::resolve_state::error;
 		return;
@@ -1782,17 +1782,17 @@ static void resolve_type_info_impl(
 		context.assert_token(stream, lex::token::colon);
 		auto type = parse_expression(stream, end, context, no_assign);
 		consteval_try(type, context);
-		if (type.not_null() && !type.has_consteval_succeeded())
+		if (type.not_error() && !type.has_consteval_succeeded())
 		{
 			context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
 			info.state = ast::resolve_state::error;
 		}
-		else if (type.not_null() && !type.is_typename())
+		else if (type.not_error() && !type.is_typename())
 		{
 			context.report_error(type, "expected a type");
 			info.state = ast::resolve_state::error;
 		}
-		else if (type.is_null())
+		else if (type.is_error())
 		{
 			info.state = ast::resolve_state::error;
 		}
@@ -2063,7 +2063,7 @@ ast::statement parse_stmt_while(
 	auto const begin = stream;
 	++stream; // 'while'
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	if (!condition.is_null())
+	if (condition.not_error())
 	{
 		auto const [type, _] = condition.get_expr_type_and_kind();
 		if (
@@ -2115,17 +2115,11 @@ static ast::statement parse_stmt_for_impl(
 			lex::token::paren_close
 		>(stream, end, context);
 	}
-	if (!condition.is_null())
+
+	if (condition.not_null())
 	{
-		auto const [type, _] = condition.get_expr_type_and_kind();
-		if (
-			auto const type_without_const = ast::remove_const_or_consteval(type);
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
-		)
-		{
-			context.report_error(condition, "condition for for statement must have type 'bool'");
-		}
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		context.match_expression_to_type(condition, bool_type);
 	}
 
 	if (stream == end)
@@ -2247,7 +2241,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto range_begin_expr = [&]() {
 		if (range_var_decl.var_type.is_empty())
 		{
-			return ast::expression(range_expr_src_tokens);
+			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
@@ -2284,7 +2278,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto range_end_expr = [&]() {
 		if (range_var_decl.var_type.is_empty())
 		{
-			return ast::expression(range_expr_src_tokens);
+			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
@@ -2321,7 +2315,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto condition = [&]() {
 		if (iter_var_decl.var_type.is_empty() || end_var_decl.var_type.is_empty())
 		{
-			return ast::expression(range_expr_src_tokens);
+			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -2344,7 +2338,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto iteration = [&]() {
 		if (iter_var_decl.var_type.is_empty())
 		{
-			return ast::expression(range_expr_src_tokens);
+			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -2363,7 +2357,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto iter_deref_expr = [&]() {
 		if (iter_var_decl.var_type.is_empty())
 		{
-			return ast::expression(range_expr_src_tokens);
+			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -3146,7 +3140,7 @@ static void resolve_attributes(
 			for (auto &arg : attribute.args)
 			{
 				parse::consteval_try(arg, context);
-				if (arg.not_null() && !arg.is<ast::constant_expression>())
+				if (arg.not_error() && !arg.is<ast::constant_expression>())
 				{
 					context.report_error(arg, "attribute argument must be a constant expression");
 				}

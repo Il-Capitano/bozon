@@ -93,16 +93,23 @@ struct dynamic_expression
 	declare_default_5(dynamic_expression)
 };
 
+struct error_expression
+{
+	expr_t expr;
+};
+
 struct expression : bz::variant<
 	unresolved_expression,
 	constant_expression,
-	dynamic_expression
+	dynamic_expression,
+	error_expression
 >
 {
 	using base_t = bz::variant<
 		unresolved_expression,
 		constant_expression,
-		dynamic_expression
+		dynamic_expression,
+		error_expression
 	>;
 
 	using base_t::get;
@@ -127,6 +134,8 @@ struct expression : bz::variant<
 
 	declare_default_5(expression)
 
+	expression(lex::src_tokens _src_tokens) = delete;
+
 	template<typename ...Ts>
 	expression(lex::src_tokens _src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
@@ -138,6 +147,26 @@ struct expression : bz::variant<
 	lex::token_pos get_tokens_begin(void) const { return this->src_tokens.begin; }
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
 	lex::token_pos get_tokens_end(void) const   { return this->src_tokens.end; }
+
+	void to_error(void)
+	{
+		if (this->is<constant_expression>())
+		{
+			auto expr = std::move(this->get<constant_expression>().expr);
+			this->emplace<error_expression>(std::move(expr));
+		}
+		else if (this->is<dynamic_expression>())
+		{
+			auto expr = std::move(this->get<dynamic_expression>().expr);
+			this->emplace<error_expression>(std::move(expr));
+		}
+	}
+
+	bool is_error(void) const
+	{ return this->is<error_expression>(); }
+
+	bool not_error(void) const
+	{ return !this->is<error_expression>(); }
 
 	bool is_function(void) const noexcept
 	{
@@ -622,6 +651,10 @@ expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
 template<typename ...Args>
 expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
+
+template<typename ...Args>
+expression make_error_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, error_expression{ std::forward<Args>(args)... }); }
 
 
 #define def_make_fn(ret_type, node_type)                                       \

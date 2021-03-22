@@ -229,7 +229,7 @@ static val_ptr emit_bitcode(
 	}
 	else if (val_ptr == nullptr /* && consteval */)
 	{
-		bz_assert(id.decl->init_expr.not_null() && id.decl->init_expr.is<ast::constant_expression>());
+		bz_assert(id.decl->init_expr.not_error() && id.decl->init_expr.is<ast::constant_expression>());
 		auto &const_expr = id.decl->init_expr.get<ast::constant_expression>();
 		auto const value = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 		if (result_address == nullptr)
@@ -3376,6 +3376,9 @@ static val_ptr emit_bitcode(
 		return emit_bitcode<abi>(expr.get<ast::constant_expression>(), context, result_address);
 	case ast::expression::index_of<ast::dynamic_expression>:
 		return emit_bitcode<abi>(expr.get<ast::dynamic_expression>(), context, result_address);
+	case ast::expression::index_of<ast::error_expression>:
+		emit_error(expr.src_tokens, "failed to resolve expression", context);
+		return {};
 
 	default:
 		emit_error(expr.src_tokens, "failed to resolve expression", context);
@@ -3570,6 +3573,10 @@ static void emit_bitcode(
 		{
 			context.builder.CreateRetVoid();
 		}
+	}
+	else if (ret_stmt.expr.is_error())
+	{
+		emit_error(ret_stmt.expr.src_tokens, "failed to evaluate expression", context);
 	}
 	else
 	{
