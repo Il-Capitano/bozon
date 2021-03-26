@@ -1,10 +1,14 @@
-#include "parser.cpp"
-#include "test.h"
+#include "parse/parse_common.cpp"
+#include "parse/expression_parser.cpp"
+#include "parse/statement_parser.cpp"
 
+#include "test.h"
 #include "lex/lexer.h"
 #include "ctx/global_context.h"
 #include "ctx/lex_context.h"
 #include "ctx/parse_context.h"
+
+using namespace parse;
 
 #define xxx(fn, str, it_pos, error_assert, custom_assert)  \
 do {                                                       \
@@ -14,8 +18,8 @@ do {                                                       \
     auto it = tokens.begin();                              \
     auto res = fn(it, tokens.end() - 1, parse_ctx);        \
     assert_eq(it, it_pos);                                 \
-    assert_true(error_assert);                             \
     assert_true(custom_assert);                            \
+    assert_true(error_assert);                             \
     global_ctx.clear_errors_and_warnings();                \
 } while (false)
 
@@ -31,73 +35,83 @@ xxx(fn, str, it_pos, !global_ctx.has_errors() && global_ctx.has_warnings(), cust
 #define xx_err(fn, str, it_pos, custom_assert)               \
 xxx(fn, str, it_pos, global_ctx.has_errors(), custom_assert)
 
-std::list<bz::vector<lex::token>> var_tokens = {};
-bz::vector<ast::decl_variable_ptr> var_decls = {};
 
-#define declare_var(id_str, type_str)                                      \
-do {                                                                       \
-    var_tokens.emplace_back(lex::get_tokens(id_str, 0, lex_ctx));          \
-    auto const &name_tokens = var_tokens.back();                           \
-    assert_eq(name_tokens.size(), 2);                                      \
-    assert_eq(name_tokens[0].kind, lex::token::identifier);                \
-    auto const id = name_tokens.begin();                                   \
-    var_tokens.emplace_back(lex::get_tokens(type_str, 0, lex_ctx));        \
-    auto const &type_tokens = var_tokens.back();                           \
-    assert_false(global_ctx.has_errors());                                 \
-    lex::src_tokens type_src_tokens = {                                    \
-        type_tokens.begin(),                                               \
-        type_tokens.begin(),                                               \
-        type_tokens.end() - 1,                                             \
-    };                                                                     \
-    lex::token_range type_token_range = {                                  \
-        type_src_tokens.begin,                                             \
-        type_src_tokens.end,                                               \
-    };                                                                     \
-    auto decl = ast::make_decl_variable(                                   \
-        lex::token_range{id, id + 1},                                      \
-        id,                                                                \
-        lex::token_range{},                                                \
-        ast::make_unresolved_typespec(type_token_range)                    \
-    );                                                                     \
-    auto &var_decl = *decl.get<ast::decl_variable_ptr>();                  \
-    resolve(var_decl, parse_ctx, true);                                    \
-    var_decls.emplace_back(std::move(decl.get<ast::decl_variable_ptr>())); \
-    assert_false(global_ctx.has_errors());                                 \
-    parse_ctx.add_local_variable(*var_decls.back());                       \
-    assert_false(global_ctx.has_errors());                                 \
+#define declare_var(id_str, type_str, init_expr_str)                          \
+do {                                                                          \
+    static std::list<bz::vector<lex::token>> var_tokens;                      \
+    static bz::vector<ast::statement> var_decls;                              \
+    var_tokens.emplace_back(lex::get_tokens(id_str, 0, lex_ctx));             \
+    auto const &name_tokens = var_tokens.back();                              \
+    assert_eq(name_tokens.size(), 2);                                         \
+    assert_eq(name_tokens[0].kind, lex::token::identifier);                   \
+    auto const id = name_tokens.begin();                                      \
+    var_tokens.emplace_back(lex::get_tokens(type_str, 0, lex_ctx));           \
+    auto const &type_tokens = var_tokens.back();                              \
+    assert_false(global_ctx.has_errors());                                    \
+    auto const init_expr_tokens = lex::get_tokens(init_expr_str, 0, lex_ctx); \
+    var_tokens.push_back(init_expr_tokens);                                   \
+    auto init_expr = sizeof init_expr_str == 1                                \
+        ? ast::expression()                                                   \
+        : ast::make_unresolved_expression({                                   \
+            init_expr_tokens.begin(),                                         \
+            init_expr_tokens.begin(),                                         \
+            init_expr_tokens.end() - 1,                                       \
+        });                                                                   \
+    lex::src_tokens type_src_tokens = {                                       \
+        type_tokens.begin(),                                                  \
+        type_tokens.begin(),                                                  \
+        type_tokens.end() - 1,                                                \
+    };                                                                        \
+    lex::token_range type_token_range = {                                     \
+        type_src_tokens.begin,                                                \
+        type_src_tokens.end,                                                  \
+    };                                                                        \
+    auto decl = ast::make_decl_variable(                                      \
+        lex::src_tokens{id, id, id + 1},                                      \
+        ast::make_identifier(id),                                             \
+        lex::token_range{},                                                   \
+        ast::make_unresolved_typespec(type_token_range),                      \
+        std::move(init_expr)                                                  \
+    );                                                                        \
+    auto &var_decl = decl.get<ast::decl_variable>();                          \
+    resolve_variable_impl(var_decl, parse_ctx);                               \
+    var_decls.emplace_back(std::move(decl));                                  \
+    assert_false(global_ctx.has_errors());                                    \
+    parse_ctx.add_local_variable(var_decl);                                   \
+    assert_false(global_ctx.has_errors());                                    \
 } while (false)
-
-
-
-
 
 static void get_paren_matched_range_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
 #define x(str, it_pos)                                     \
 do {                                                       \
     bz::u8string_view const file = str;                    \
     auto const tokens = lex::get_tokens(file, 0, lex_ctx); \
     assert_false(global_ctx.has_errors());                 \
-    auto it = tokens.begin();                              \
-    get_paren_matched_range(it, tokens.end());             \
+    auto it = tokens.begin() + 1;                          \
+    get_paren_matched_range(it, tokens.end(), parse_ctx);  \
     assert_eq(it, it_pos);                                 \
 } while (false)
 
 	// the function expects that the leading parenthesis has been consumed
 
-	x(") a", tokens.begin() + 1);
-	//   ^ tokens.begin() + 1
-	x("] a", tokens.begin() + 1);
-	//   ^ tokens.begin() + 1
-	x("} a", tokens.begin() + 1);
-	//   ^ tokens.begin() + 1
-	x("()) a", tokens.begin() + 3);
-	//     ^ tokens.begin() + 3
-	x("(())[][]{{}}] a", tokens.begin() + 13);
-	//               ^ tokens.begin() + 13
+	// the opening parenthesis will be skipped
+	x("() a", tokens.begin() + 2);
+	//    ^ tokens.begin() + 2
+	x("[] a", tokens.begin() + 2);
+	//    ^ tokens.begin() + 2
+	x("(()) a", tokens.begin() + 4);
+	//      ^ tokens.begin() + 4
+	x("[(())[][]{{}}] a", tokens.begin() + 14);
+	//                ^ tokens.begin() + 14
 
 #undef x
 }
@@ -108,25 +122,29 @@ static constexpr bool operator == (ast::internal::null_t, ast::internal::null_t)
 static void parse_primary_expression_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
-#define x(str) xx(parse_primary_expression, str, tokens.end() - 1, true)
-#define x_warn(str) xx_warn(parse_primary_expression, str, tokens.end() - 1, true)
-#define x_err(str) xx_err(parse_primary_expression, str, tokens.end() - 1, true)
+#define x(str) xx(parse_primary_expression, str, tokens.end() - 1, (consteval_guaranteed(res, parse_ctx), true))
+#define x_warn(str) xx_warn(parse_primary_expression, str, tokens.end() - 1, (consteval_guaranteed(res, parse_ctx), true))
+#define x_err(str) xx_err(parse_primary_expression, str, tokens.end() - 1, (consteval_guaranteed(res, parse_ctx), true))
 
 #define x_const_expr(str, _type, const_expr_kind, const_expr_value)                                 \
 xx_compiles(                                                                                        \
     parse_primary_expression,                                                                       \
     str,                                                                                            \
     tokens.end() - 1,                                                                               \
-    (                                                                                               \
+    (consteval_guaranteed(res, parse_ctx), (                                                        \
         res.is<ast::constant_expression>()                                                          \
         && res.get<ast::constant_expression>().type.is<ast::ts_base_type>()                         \
         && res.get<ast::constant_expression>().type.get<ast::ts_base_type>().info->kind == _type    \
         && res.get<ast::constant_expression>().value.kind() == const_expr_kind                      \
         && (res.get<ast::constant_expression>().value.get<const_expr_kind>()) == (const_expr_value) \
-    )                                                                                               \
+    ))                                                                                              \
 )
 
 	// add scope to allow variables
@@ -135,7 +153,7 @@ xx_compiles(                                                                    
 
 	x_err("");
 
-	declare_var("a", "int32");
+	declare_var("a", "int32", "");
 	x("a");
 	x_err("this_doesnt_exist");
 
@@ -220,15 +238,15 @@ xx_compiles(                                                                    
 	x_warn(test_str);
 	x_const_expr(test_str, ast::type_info::int64_, ast::constant_value::sint, std::numeric_limits<int64_t>::min());
 
-	declare_var("a", "int32");
+	declare_var("a", "int32", "");
 	x("++a");
-	declare_var("p", "*int32");
+	declare_var("p", "*int32", "");
 	x("++p");
-	declare_var("c", "char");
+	declare_var("c", "char", "");
 	x("++c");
-	declare_var("b", "bool");
+	declare_var("b", "bool", "");
 	x_err("++b");
-	declare_var("const_a", "const int32");
+	declare_var("const_a", "const int32", "0");
 	x_err("++const_a");
 	x_err("++0");
 
@@ -259,7 +277,7 @@ xx_compiles(                                                                    
 	x_err("&(a + 1)");
 
 	x("*&a");
-	x_warn("*(null as *int32)");
+	// x_warn("*(null as *int32)");
 	x_err("*a");
 	x_err("*0");
 
@@ -286,16 +304,20 @@ xx_compiles(                                                                    
 static void parse_expression_comma_list_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
 #define x(str, res_size) xx(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
 #define x_warn(str, res_size) xx_warn(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
 
 	x("0, 1, 2, \"hello\"", 4);
 	// there's a warning because the lhs of a comma expression has no effect
-	x_warn("(0, 0, 0), 1, 2", 3);
-	x_warn("('a', 'b', 0, 1.5), 'a'", 2);
+	// x_warn("(0, 0, 0), 1, 2", 3);
+	// x_warn("('a', 'b', 0, 1.5), 'a'", 2);
 
 #undef x
 #undef x_warn
@@ -314,8 +336,12 @@ static auto parse_expression_alt(
 static void parse_expression_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
 #define x(str) xx(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
@@ -371,19 +397,19 @@ xx(                                                                             
 	// add scope to allow variables
 	parse_ctx.add_scope();
 
-	declare_var("i8",  "int8");
-	declare_var("i16", "int16");
-	declare_var("i32", "int32");
-	declare_var("i64", "int64");
-	declare_var("u8",  "uint8");
-	declare_var("u16", "uint16");
-	declare_var("u32", "uint32");
-	declare_var("u64", "uint64");
-	declare_var("f32", "float32");
-	declare_var("f64", "float64");
-	declare_var("c", "char");
-	declare_var("s", "str");
-	declare_var("p", "*int32");
+	declare_var("i8",  "int8", "");
+	declare_var("i16", "int16", "");
+	declare_var("i32", "int32", "");
+	declare_var("i64", "int64", "");
+	declare_var("u8",  "uint8", "");
+	declare_var("u16", "uint16", "");
+	declare_var("u32", "uint32", "");
+	declare_var("u64", "uint64", "");
+	declare_var("f32", "float32", "");
+	declare_var("f64", "float64", "");
+	declare_var("c", "char", "");
+	declare_var("s", "str", "");
+	declare_var("p", "*int32", "");
 
 	x_err("");
 
@@ -952,8 +978,12 @@ do {                                                                            
 static void constant_expression_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
 #define x(str) xx(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
@@ -979,7 +1009,7 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 	x_const_expr("40u32 + 2u32", ast::constant_value::uint, 42u);
 	x_const_expr("255u8 + 3u8", ast::constant_value::uint, uint8_t(258));
 	x_warn("255u8 + 3u8");
-	x("(255u8 + 3u8)");
+	x("((255u8 + 3u8))");
 	x_const_expr("~0u64", ast::constant_value::uint, std::numeric_limits<uint64_t>::max());
 
 /*
@@ -1032,8 +1062,12 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 static void parse_typespec_test(void)
 {
 	ctx::global_context global_ctx;
+	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
+	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
 
 #define x(str, it_pos, kind_) xx(parse_typespec, str, it_pos, res.kind() == kind_)
 #define x_err(str, it_pos, kind_) xx_err(parse_typespec, str, it_pos, res.kind() == kind_)

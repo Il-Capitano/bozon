@@ -31,6 +31,7 @@ int main(void)
 
 	auto const begin = timer::now();
 	add_to_total(lexer_test());
+	add_to_total(parser_test());
 	auto const end = timer::now();
 
 	auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);

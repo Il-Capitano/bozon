@@ -21,10 +21,7 @@
 #include "ast/typespec.cpp"
 
 #include "parse/consteval.cpp"
-#include "parse/parse_common.cpp"
 #include "parse/safe_operations.cpp"
-#include "parse/expression_parser.cpp"
-#include "parse/statement_parser.cpp"
 
 #include "abi/generic.cpp"
 #include "abi/microsoft_x64.cpp"
