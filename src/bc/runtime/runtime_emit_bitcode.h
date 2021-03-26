@@ -1,5 +1,5 @@
-#ifndef BC_EMIT_BITCODE_H
-#define BC_EMIT_BITCODE_H
+#ifndef BC_RUNTIME_EMIT_BITCODE_H
+#define BC_RUNTIME_EMIT_BITCODE_H
 
 #include "ast/typespec.h"
 #include "ast/expression.h"
@@ -26,4 +26,4 @@ void emit_necessary_functions(ctx::bitcode_context &context);
 
 } // namespace bc::runtime
 
-#endif // BC_EMIT_BITCODE_H
+#endif // BC_RUNTIME_EMIT_BITCODE_H

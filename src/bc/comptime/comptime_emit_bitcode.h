@@ -1,5 +1,5 @@
-#ifndef BC_EMIT_BITCODE_H
-#define BC_EMIT_BITCODE_H
+#ifndef BC_COMPTIME_EMIT_BITCODE_H
+#define BC_COMPTIME_EMIT_BITCODE_H
 
 #include "ast/typespec.h"
 #include "ast/expression.h"
@@ -32,4 +32,4 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context 
 
 } // namespace bc::comptime
 
-#endif // BC_EMIT_BITCODE_H
+#endif // BC_COMPTIME_EMIT_BITCODE_H
