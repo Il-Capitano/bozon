@@ -192,7 +192,7 @@ xx_compiles(                                                                    
 	x_err("0x1'ffff'ffff'ffff'ffff");
 
 	x_const_expr("0o42", ast::type_info::uint32_, ast::constant_value::uint, (4 * 8 + 2));
-	auto const min_uint64_oct_str = bz::format("0o{:o}", 1ull << 32);
+	auto const min_uint64_oct_str = bz::format("0o{:o}", uint64_t(1) << 32);
 	x_const_expr(min_uint64_oct_str, ast::type_info::uint64_, ast::constant_value::uint, static_cast<uint64_t>(1ull << 32));
 	x_const_expr("0o42i8", ast::type_info::int8_, ast::constant_value::sint, (4 * 8 + 2));
 	x_err("0o200i8");
@@ -969,8 +969,6 @@ do {                                                                            
 #undef x
 #undef x_err
 #undef x_warn
-#undef x_const_expr
-#undef x_const_expr_bool
 #undef x_base_t
 }
 //	*/
