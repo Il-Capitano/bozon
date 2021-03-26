@@ -56,5 +56,9 @@
 				"cpp_compiler_flags": [ "-flto" ]
 			}
 		}
+	},
+	"test": {
+		"depends_on": "default",
+		"source_directory": "test"
 	}
 }
