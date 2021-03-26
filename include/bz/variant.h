@@ -337,6 +337,7 @@ public:
 				meta::remove_cv_reference<T>,
 				self_t
 			>
+			&& (meta::is_constructible_v<Ts, T> || ...)
 		>
 	>
 	variant(T &&val) noexcept(
