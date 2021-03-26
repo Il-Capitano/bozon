@@ -49,6 +49,8 @@ inline std::string build_str(Ts &&...ts)
 	return ss.str();
 }
 
+#if __cpp_exceptions
+
 #define assert_true(x)                                                             \
 do { if (!(x)) {                                                                   \
     throw test_fail_exception(build_str(                                           \
@@ -81,11 +83,6 @@ do { if (!((x) != (y))) {                                     \
     ));                                                       \
 } } while (false)
 
-#define test_begin()     \
-size_t test_count = 0;   \
-size_t passed_count = 0; \
-bz::print("Running {}\n", __FUNCTION__)
-
 #define test_fn(fn)                                                 \
 do {                                                                \
     bz::print("    {:.<60}", #fn);                                  \
@@ -102,6 +99,61 @@ do {                                                                \
         bz::print(e.what());                                        \
     }                                                               \
 } while (false)
+
+#else
+
+#define assert_true(x)                                                               \
+do { if (!(x)) {                                                                     \
+    std::cerr << (build_str(                                                         \
+        "\nassert_true failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
+    ));                                                                              \
+    bz_unreachable;                                                                  \
+} } while (false)
+
+#define assert_false(x)                                                               \
+do { if (!!(x)) {                                                                     \
+    std::cerr << (build_str(                                                          \
+        "\nassert_false failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
+    ));                                                                               \
+    bz_unreachable;                                                                   \
+} } while (false)
+
+#define assert_eq(x, y)                                        \
+do { if (!((x) == (y))) {                                      \
+    std::cerr << (build_str(                                   \
+        "\nassert_eq failed in " __FILE__ ":", __LINE__, ":\n" \
+        "lhs: " #x " == ", (x), "\n"                           \
+        "rhs: " #y " == ", (y), "\n"                           \
+    ));                                                        \
+    bz_unreachable;                                            \
+} } while (false)
+
+#define assert_neq(x, y)                                        \
+do { if (!((x) != (y))) {                                       \
+    std::cerr << (build_str(                                    \
+        "\nassert_neq failed in " __FILE__ ":", __LINE__, ":\n" \
+        "lhs: " #x " == ", (x), "\n"                            \
+        "rhs: " #y " == ", (y), "\n"                            \
+    ));                                                         \
+    bz_unreachable;                                             \
+} } while (false)
+
+#define test_fn(fn)                                             \
+do {                                                            \
+    bz::print("    {:.<60}", #fn);                              \
+	++test_count;                                               \
+	fn();                                                       \
+	bz::print("{}OK{}\n", colors::bright_green, colors::clear); \
+	++passed_count;                                             \
+} while (false)
+
+#endif // exceptions
+
+
+#define test_begin()                    \
+size_t test_count = 0;                  \
+size_t passed_count = 0;                \
+bz::print("Running {}\n", __FUNCTION__)
 
 #define test_end()                                                          \
 bz::print(                                                                  \

@@ -3,12 +3,22 @@
 #include "global_data.h"
 
 test_result lexer_test(void);
-test_result first_pass_parser_test(void);
 test_result parser_test(void);
 
 int main(void)
 {
-	enable_Wall();
+	auto in_ms = [](auto time)
+	{
+		return static_cast<double>(
+			std::chrono::duration_cast<std::chrono::nanoseconds>(time).count()
+		) * 1e-6;
+	};
+
+	// enable all warnings
+	for (auto &warning : warnings)
+	{
+		warning = true;
+	}
 
 	size_t test_count = 0;
 	size_t passed_count = 0;
@@ -19,36 +29,27 @@ int main(void)
 		passed_count += res.passed_count;
 	};
 
-	try
-	{
-		auto const begin = timer::now();
-		add_to_total(lexer_test());
-		add_to_total(first_pass_parser_test());
-		add_to_total(parser_test());
-		auto const end = timer::now();
+	auto const begin = timer::now();
+	add_to_total(lexer_test());
+	auto const end = timer::now();
 
-		auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
-		auto const highlight_color =
-			passed_count == test_count
-			? colors::bright_green
-			: colors::bright_red;
+	auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
+	auto const highlight_color =
+		passed_count == test_count
+		? colors::bright_green
+		: colors::bright_red;
 
-		bz::print(
-			"\nFinished running all tests in {:.3f}ms\n"
-			"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
-			(end - begin).count() * 1000.0,
-			highlight_color,
-			passed_count, test_count,
-			colors::clear,
-			highlight_color,
-			passed_percentage,
-			colors::clear
-		);
-	}
-	catch (std::exception &e)
-	{
-		bz::print("\nan exception occurred: {}", e.what());
-	}
+	bz::print(
+		"\nFinished running all tests in {:.3f}ms\n"
+		"{}{}/{}{} ({}{:.2f}%{}) tests passed\n",
+		in_ms(end - begin),
+		highlight_color,
+		passed_count, test_count,
+		colors::clear,
+		highlight_color,
+		passed_percentage,
+		colors::clear
+	);
 
 	return 0;
 }
