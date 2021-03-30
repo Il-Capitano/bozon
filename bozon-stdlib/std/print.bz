@@ -6,17 +6,77 @@ export function println = __builtin_println_stdout;
 export function log   = __builtin_print_stderr;
 export function logln = __builtin_println_stderr;
 
-@extern("print_char",     "c") export function print(c: char)        -> void;
 @extern("print_int64",    "c") export function print(n: int64)       -> void;
 @extern("print_uint64",   "c") export function print(n: uint64)      -> void;
 @extern("print_float32",  "c") export function print(x: float32)     -> void;
 @extern("print_float64",  "c") export function print(x: float64)     -> void;
 
-@extern("println_char",     "c") export function println(c: char)        -> void;
 @extern("println_int64",    "c") export function println(n: int64)       -> void;
 @extern("println_uint64",   "c") export function println(n: uint64)      -> void;
 @extern("println_float32",  "c") export function println(x: float32)     -> void;
 @extern("println_float64",  "c") export function println(x: float64)     -> void;
+
+export function print(c: char)
+{
+	let buffer: [4: uint8];
+	if (c as uint32 < 1u << 7u)
+	{
+		buffer[0] = c as uint32 as uint8;
+		print(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 1));
+	}
+	else if (c as uint32 < 1u << 11u)
+	{
+		buffer[0] = (((c as uint32 >> 6u) & 0b0001'1111) | 0b1100'0000) as uint8;
+		buffer[1] = (((c as uint32 >> 0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		print(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 2));
+	}
+	else if (c as uint32 < 1u << 16u)
+	{
+		buffer[0] = (((c as uint32 >> 12u) & 0b0000'1111) | 0b1110'0000) as uint8;
+		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		print(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 3));
+	}
+	else
+	{
+		buffer[0] = (((c as uint32 >> 18u) & 0b0000'0111) | 0b1111'0000) as uint8;
+		buffer[1] = (((c as uint32 >> 12u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[3] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		print(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 4));
+	}
+}
+
+export function println(c: char)
+{
+	let buffer: [4: uint8];
+	if (c as uint32 >= 1u << 7u)
+	{
+		buffer[0] = c as uint32 as uint8;
+		println(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 1));
+	}
+	else if (c as uint32 >= 1u << 11u)
+	{
+		buffer[0] = (((c as uint32 >> 0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[1] = (((c as uint32 >> 6u) & 0b0001'1111) | 0b1100'0000) as uint8;
+		println(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 2));
+	}
+	else if (c as uint32 >= 1u << 16u)
+	{
+		buffer[0] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >> 12u) & 0b0000'1111) | 0b1110'0000) as uint8;
+		println(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 3));
+	}
+	else
+	{
+		buffer[0] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >> 12u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[3] = (((c as uint32 >> 18u) & 0b0000'0111) | 0b1111'0000) as uint8;
+		println(__builtin_str_from_ptrs(buffer.begin(), buffer.begin() + 4));
+	}
+}
 
 function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval uint64) -> *uint8
 {
