@@ -206,7 +206,7 @@ static void resolve_stmt_static_assert_impl(
 		{
 			error_message += bz::format(" due to requirement '{}'", expression_string);
 		}
-		if (static_assert_stmt.message.not_error())
+		if (static_assert_stmt.message.not_null() && static_assert_stmt.message.not_error())
 		{
 			auto &message_const_expr = static_assert_stmt.message.get<ast::constant_expression>();
 			bz_assert(message_const_expr.value.kind() == ast::constant_value::string);
@@ -2431,6 +2431,9 @@ ast::statement parse_stmt_return(
 	}
 	auto expr = parse_expression(stream, end, context, precedence{});
 	context.assert_token(stream, lex::token::semi_colon);
+	bz_assert(context.current_function != nullptr);
+	bz_assert(ast::is_complete(context.current_function->return_type));
+	context.match_expression_to_type(expr, context.current_function->return_type);
 	return ast::make_stmt_return(std::move(expr));
 }
 
