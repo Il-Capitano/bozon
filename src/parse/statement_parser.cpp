@@ -2427,6 +2427,10 @@ ast::statement parse_stmt_return(
 	++stream; // 'return'
 	if (stream != end && stream->kind == lex::token::semi_colon)
 	{
+		if (!context.current_function->return_type.is<ast::ts_void>())
+		{
+			context.report_error(stream, "a function with a non-void return type must return a value");
+		}
 		return ast::make_stmt_return();
 	}
 	auto expr = parse_expression(stream, end, context, precedence{});
