@@ -4328,6 +4328,10 @@ bool emit_necessary_functions(ctx::comptime_executor_context &context)
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
+			if (context.contains_function(body))
+			{
+				continue;
+			}
 			if (!context.resolve_function(body))
 			{
 				return false;
@@ -4339,6 +4343,10 @@ bool emit_necessary_functions(ctx::comptime_executor_context &context)
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
+			if (context.contains_function(body))
+			{
+				continue;
+			}
 			if (!context.resolve_function(body))
 			{
 				return false;
@@ -4350,6 +4358,10 @@ bool emit_necessary_functions(ctx::comptime_executor_context &context)
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
+			if (context.contains_function(body))
+			{
+				continue;
+			}
 			if (!context.resolve_function(body))
 			{
 				return false;

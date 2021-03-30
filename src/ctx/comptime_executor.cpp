@@ -116,6 +116,12 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 	}
 }
 
+bool comptime_executor_context::contains_function(ast::function_body *func_body)
+{
+	auto const it = this->funcs_.find(func_body);
+	return it != this->funcs_.end() && it->second->size() != 0;
+}
+
 llvm::LLVMContext &comptime_executor_context::get_llvm_context(void) const noexcept
 {
 	return this->global_ctx._llvm_context;

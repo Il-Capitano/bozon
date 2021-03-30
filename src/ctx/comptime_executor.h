@@ -70,6 +70,7 @@ struct comptime_executor_context
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
 
 	llvm::Function *get_function(ast::function_body *func_body);
+	bool contains_function(ast::function_body *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::DataLayout &get_data_layout(void) const noexcept;
