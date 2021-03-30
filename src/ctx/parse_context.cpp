@@ -4955,7 +4955,10 @@ ast::constant_value parse_context::execute_function(
 	{
 		for (auto &error : errors)
 		{
-			error.notes.push_back(this->make_note(src_tokens, "while evaluating function call in a constant expression"));
+			error.notes.push_back(this->make_note(
+				src_tokens,
+				bz::format("while evaluating call to '{}' in a constant expression", body->get_signature())
+			));
 			this->global_ctx.report_error(std::move(error));
 		}
 	}

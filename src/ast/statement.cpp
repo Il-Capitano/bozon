@@ -49,11 +49,11 @@ bz::u8string function_body::get_signature(void) const
 		if (first)
 		{
 			first = false;
-			result += bz::format(": {}", p.var_type);
+			result += bz::format("{}: {}", p.id.as_string(), p.var_type);
 		}
 		else
 		{
-			result += bz::format(", : {}", p.var_type);
+			result += bz::format(", {}: {}", p.id.as_string(), p.var_type);
 		}
 
 		if (p.var_type.is_typename() && p.init_expr.is_typename())
