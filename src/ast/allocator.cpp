@@ -4,6 +4,8 @@
 namespace ast
 {
 
+#ifndef BOZON_NO_ARENA
+
 constexpr size_t default_node_capacity =  1024 * 1024;
 
 struct node_t
@@ -122,11 +124,28 @@ void arena_allocator::sized_free(void *p, size_t size)
 	}
 }
 
-/*
 void arena_allocator::unsized_free([[maybe_unused]] void *p)
 {
 	// nothing
 }
-*/
+
+#else
+
+void *arena_allocator::sized_allocate(size_t size)
+{
+	return std::malloc(size);
+}
+
+void arena_allocator::sized_free(void *p, [[maybe_unused]] size_t size)
+{
+	std::free(p);
+}
+
+void arena_allocator::unsized_free(void *p)
+{
+	std::free(p);
+}
+
+#endif // BOZON_NO_ARENA
 
 } // namespace ast
