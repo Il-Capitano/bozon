@@ -532,9 +532,27 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_module.setDataLayout(*this->_data_layout);
 	this->_module.setTargetTriple(target_triple);
 
+	return true;
+}
+
+[[nodiscard]] bool global_context::initialize_builtins(void)
+{
 	auto const pointer_size = this->_data_layout->getPointerSize();
 	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
 	this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
+
+	auto const comptime_checking_file_path = fs::path("./bozon-stdlib/std/comptime_checking.bz");
+	auto &comptime_checking_file = this->_src_files.emplace_back(
+		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
+	);
+	if (!comptime_checking_file.parse_global_symbols(*this))
+	{
+		return false;
+	}
+	if (!comptime_checking_file.parse(*this))
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -549,15 +567,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	else if (!source_file.ends_with(".bz"))
 	{
 		this->report_error("source file name must end in '.bz'");
-		return false;
-	}
-
-	auto const comptime_checking_file_path = fs::path("./bozon-stdlib/std/comptime_checking.bz");
-	auto &comptime_checking_file = this->_src_files.emplace_back(
-		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
-	);
-	if (!comptime_checking_file.parse_global_symbols(*this))
-	{
 		return false;
 	}
 

@@ -211,6 +211,10 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 [[nodiscard]] bool src_file::parse(ctx::global_context &global_ctx)
 {
+	if (this->_stage > parsed_global_symbols)
+	{
+		return true;
+	}
 	bz_assert(this->_stage == parsed_global_symbols);
 
 	ctx::parse_context context(global_ctx);

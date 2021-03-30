@@ -1550,6 +1550,11 @@ int main(int argc, char const **argv)
 		global_ctx.report_and_clear_errors_and_warnings();
 		return 2;
 	}
+	if (!global_ctx.initialize_builtins())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		return 2;
+	}
 
 	auto const before_parse_global_symbols = timer::now();
 	if (!global_ctx.parse_global_symbols())
