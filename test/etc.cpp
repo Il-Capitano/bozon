@@ -20,7 +20,6 @@
 #include "ast/statement.cpp"
 #include "ast/typespec.cpp"
 
-#include "parse/consteval.cpp"
 #include "parse/safe_operations.cpp"
 
 #include "abi/generic.cpp"

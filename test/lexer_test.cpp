@@ -31,7 +31,7 @@ constexpr bool is_reverse_sorted(T const &arr)
 static_assert(is_reverse_sorted(multi_char_tokens), "multi_char_tokens is not sorted");
 static_assert(is_reverse_sorted(keywords), "keywords is not sorted");
 
-static void file_iterator_test(void)
+static bz::optional<bz::u8string> file_iterator_test(void)
 {
 	bz::u8string_view file = "\nthis is line #2\n";
 	file_iterator it = {
@@ -46,9 +46,11 @@ static void file_iterator_test(void)
 	assert_eq(it.line, 2);
 	++it;
 	assert_eq(it.line, 2);
+
+	return {};
 }
 
-static void get_token_value_test(void)
+static bz::optional<bz::u8string> get_token_value_test(void)
 {
 	for (auto t : multi_char_tokens)
 	{
@@ -73,9 +75,11 @@ static void get_token_value_test(void)
 	assert_eq(get_token_value(token::bin_literal), "binary literal");
 	assert_eq(get_token_value(token::string_literal), "string literal");
 	assert_eq(get_token_value(token::character_literal), "character literal");
+
+	return {};
 }
 
-static void skip_comments_and_whitespace_test(void)
+static bz::optional<bz::u8string> skip_comments_and_whitespace_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
@@ -177,10 +181,12 @@ skip_comments_and_whitespace(it, file.end(), lex_ctx)
 		assert_eq(it.it, file.begin() + 7);
 	}
 
+	return {};
+
 #undef x
 }
 
-static void get_identifier_or_keyword_token_test(void)
+static bz::optional<bz::u8string> get_identifier_or_keyword_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -270,11 +276,13 @@ assert_eq(t.kind, kw_kind)
 		assert_eq(t.value, "False");
 	}
 
+	return {};
+
 #undef x_id
 #undef x_kw
 }
 
-static void get_character_token_test(void)
+static bz::optional<bz::u8string> get_character_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -320,11 +328,13 @@ do {                                              \
 	x_err("'\\x0'", file.end());
 	x_err("'\\x80'", file.end());
 
+	return {};
+
 #undef x
 #undef x_err
 }
 
-static void get_string_token_test(void)
+static bz::optional<bz::u8string> get_string_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -364,11 +374,13 @@ do {                                           \
 	x_err(R"("\j")", file.end());
 	x_err(R"("\)", file.end());
 
+	return {};
+
 #undef x
 #undef x_err
 }
 
-static void get_number_token_test(void)
+static bz::optional<bz::u8string> get_number_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -413,10 +425,12 @@ do {                                                          \
 	x("0b01010101", file.end());
 	x("0B01010101", file.end());
 
+	return {};
+
 #undef x
 }
 
-static void get_single_char_token_test(void)
+static bz::optional<bz::u8string> get_single_char_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -431,9 +445,11 @@ static void get_single_char_token_test(void)
 		assert_eq(t.value, file);
 		assert_false(global_ctx.has_errors());
 	}
+
+	return {};
 }
 
-static void get_next_token_test(void)
+static bz::optional<bz::u8string> get_next_token_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
@@ -488,31 +504,39 @@ do {                                                        \
 		x(kw.first, kw.second);
 	}
 
+	return {};
+
 #undef x
 }
 
-void get_tokens_test(void)
+static bz::optional<bz::u8string> get_tokens_test(void)
 {
 	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
-#define assert_eqs                                                  \
-([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) \
-{                                                                   \
-    assert_eq(ts.size(), kinds.size() + 1);                         \
-    for (size_t i = 0; i < kinds.size(); ++i)                       \
-    {                                                               \
-        assert_eq(ts[i].kind, kinds[i]);                            \
-    }                                                               \
-    assert_eq(ts.back().kind, token::eof);                          \
+#define assert_eqs                                                                                \
+([](bz::vector<token> const &ts, bz::vector<uint32_t> const &kinds) -> bz::optional<bz::u8string> \
+{                                                                                                 \
+    assert_eq(ts.size(), kinds.size() + 1);                                                       \
+    for (size_t i = 0; i < kinds.size(); ++i)                                                     \
+    {                                                                                             \
+        assert_eq(ts[i].kind, kinds[i]);                                                          \
+    }                                                                                             \
+    assert_eq(ts.back().kind, token::eof);                                                        \
+                                                                                                  \
+	return {};                                                                                    \
 })
 
-#define x(str, ...)                               \
-do {                                              \
-    bz::u8string_view const file = str;           \
-    auto const ts = get_tokens(file, 0, context); \
-    assert_false(global_ctx.has_errors());        \
-    assert_eqs(ts, { __VA_ARGS__ });              \
+#define x(str, ...)                                      \
+do {                                                     \
+    bz::u8string_view const file = str;                  \
+    auto const ts = get_tokens(file, 0, context);        \
+    assert_false(global_ctx.has_errors());               \
+    auto const result = assert_eqs(ts, { __VA_ARGS__ }); \
+    if (result.has_value())                              \
+    {                                                    \
+        return result;                                   \
+    }                                                    \
 } while (false)
 
 	x("");
@@ -536,6 +560,8 @@ do {                                              \
 		token::identifier
 	);
 	x("./**/.", token::dot, token::dot);
+
+	return {};
 
 #undef assert_eqs
 #undef x

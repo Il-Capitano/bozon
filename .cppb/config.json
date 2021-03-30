@@ -34,7 +34,7 @@
 			"windows-release": {},
 			"linux-debug": {
 				"optimization": "1",
-				"cpp_compiler_flags": [ "-fsanitize=address" ],
+				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address" ],
 				"link_flags": [ "-fsanitize=address" ]
 			},
 			"linux-release": {},
@@ -42,11 +42,13 @@
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
+				"compiler": "clang-11",
 				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ],
 				"emit_compile_commands": false
 			},
 			"debug": {
+				"defines": [ "BOZON_NO_ARENA" ],
 				"optimization": "0"
 			},
 			"release": {
@@ -59,6 +61,7 @@
 	},
 	"test": {
 		"depends_on": "default",
-		"source_directory": "test"
+		"source_directory": "test",
+		"run_args": []
 	}
 }

@@ -4,6 +4,7 @@
 
 test_result lexer_test(void);
 test_result parser_test(void);
+test_result consteval_test(void);
 
 int main(void)
 {
@@ -32,6 +33,7 @@ int main(void)
 	auto const begin = timer::now();
 	add_to_total(lexer_test());
 	add_to_total(parser_test());
+	add_to_total(consteval_test());
 	auto const end = timer::now();
 
 	auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);

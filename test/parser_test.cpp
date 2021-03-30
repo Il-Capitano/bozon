@@ -81,7 +81,7 @@ do {                                                                          \
     assert_false(global_ctx.has_errors());                                    \
 } while (false)
 
-static void get_paren_matched_range_test(void)
+static bz::optional<bz::u8string> get_paren_matched_range_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -113,13 +113,15 @@ do {                                                       \
 	x("[(())[][]{{}}] a", tokens.begin() + 14);
 	//                ^ tokens.begin() + 14
 
+	return {};
+
 #undef x
 }
 
 static constexpr bool operator == (ast::internal::null_t, ast::internal::null_t) noexcept
 { return true; }
 
-static void parse_primary_expression_test(void)
+static bz::optional<bz::u8string> parse_primary_expression_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -295,13 +297,15 @@ xx_compiles(                                                                    
 	x_err("++3");
 	x_err("&0");
 
+	return {};
+
 #undef x
 #undef x_err
 #undef x_warn
 #undef x_const_expr
 }
 
-static void parse_expression_comma_list_test(void)
+static bz::optional<bz::u8string> parse_expression_comma_list_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -319,6 +323,8 @@ static void parse_expression_comma_list_test(void)
 	// x_warn("(0, 0, 0), 1, 2", 3);
 	// x_warn("('a', 'b', 0, 1.5), 'a'", 2);
 
+	return {};
+
 #undef x
 #undef x_warn
 #undef x_err
@@ -333,7 +339,7 @@ static auto parse_expression_alt(
 }
 
 //	/*
-static void parse_expression_test(void)
+static bz::optional<bz::u8string> parse_expression_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -966,6 +972,8 @@ do {                                                                            
 	x_cf("||", false, 0);
 	x_cc("||", false, 0);
 
+	return {};
+
 #undef x
 #undef x_err
 #undef x_warn
@@ -973,7 +981,7 @@ do {                                                                            
 }
 //	*/
 
-static void constant_expression_test(void)
+static bz::optional<bz::u8string> constant_expression_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -1050,14 +1058,16 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 	x_const_expr_bool("'a' != 'a'", false);
 	x_const_expr_bool("'a' != 'b'", true);
 */
+
+	return {};
 #undef x
 #undef x_err
 #undef x_warn
 #undef x_const_expr
 #undef x_const_expr_bool
 }
-/*
-static void parse_typespec_test(void)
+
+static bz::optional<bz::u8string> parse_typespec_test(void)
 {
 	ctx::global_context global_ctx;
 	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
@@ -1067,36 +1077,37 @@ static void parse_typespec_test(void)
 	ctx::decl_set global_decls = ctx::get_default_decls();
 	parse_ctx.global_decls = &global_decls;
 
-#define x(str, it_pos, kind_) xx(parse_typespec, str, it_pos, res.kind() == kind_)
-#define x_err(str, it_pos, kind_) xx_err(parse_typespec, str, it_pos, res.kind() == kind_)
+#define x(str, it_pos, kind_) xx(parse_expression_alt, str, it_pos, res.is_typename() && res.get_typename().is<kind_>())
+#define x_err(str, it_pos) xx_err(parse_expression_alt, str, it_pos, res.is_error())
 
-	x("int32", tokens.begin() + 1, ast::typespec::index<ast::ts_base_type>);
-	x("int32 a", tokens.begin() + 1, ast::typespec::index<ast::ts_base_type>);
-	x("void", tokens.begin() + 1, ast::typespec::index<ast::ts_void>);
+	x("int32", tokens.begin() + 1, ast::ts_base_type);
+	x("int32 a", tokens.begin() + 1, ast::ts_base_type);
+	x("void", tokens.begin() + 1, ast::ts_void);
 
-	x("*int32", tokens.begin() + 2, ast::typespec::index<ast::ts_pointer>);
+	x("*int32", tokens.begin() + 2, ast::ts_pointer);
 
-	x("const int32", tokens.begin() + 2, ast::typespec::index<ast::ts_constant>);
+	x("const int32", tokens.begin() + 2, ast::ts_const);
 
-	x("&int32", tokens.begin() + 2, ast::typespec::index<ast::ts_reference>);
+	x("&int32", tokens.begin() + 2, ast::ts_lvalue_reference);
 
-	x("[]", tokens.begin() + 2, ast::typespec::index<ast::ts_tuple>);
-	x("[int32, float64, null_t]", tokens.begin() + 7, ast::typespec::index<ast::ts_tuple>);
+	x("[]", tokens.begin() + 2, ast::ts_tuple);
+	x("[int32, float64, __null_t]", tokens.begin() + 7, ast::ts_tuple);
 
-	x("function() -> void", tokens.begin() + 5, ast::typespec::index<ast::ts_function>);
-	x("function(int32, int32) -> void", tokens.begin() + 8, ast::typespec::index<ast::ts_function>);
+	// x("function() -> void", tokens.begin() + 5, ast::ts_function);
+	// x("function(int32, int32) -> void", tokens.begin() + 8, ast::ts_function);
 
-	x_err("", tokens.begin(), size_t(-1));
-	x_err("foo", tokens.begin() + 1, size_t(-1));
-	x_err("*foo", tokens.begin() + 2, ast::typespec::index<ast::ts_pointer>);
-	x_err("function()", tokens.begin() + 3, ast::typespec::index<ast::ts_function>);
-	x_err("function(,) -> void", tokens.begin() + 6, ast::typespec::index<ast::ts_function>);
-	x_err("function(, int32) -> void", tokens.begin() + 7, ast::typespec::index<ast::ts_function>);
+	x_err("", tokens.begin());
+	x_err("foo", tokens.begin() + 1);
+	x_err("*foo", tokens.begin() + 2);
+	// x_err("function()", tokens.begin() + 3);
+	// x_err("function(,) -> void", tokens.begin() + 6);
+	// x_err("function(, int32) -> void", tokens.begin() + 7);
+
+	return {};
 
 #undef x
 #undef x_err
 }
-*/
 
 test_result parser_test(void)
 {
@@ -1107,7 +1118,7 @@ test_result parser_test(void)
 	test_fn(parse_expression_comma_list_test);
 	test_fn(parse_expression_test);
 	test_fn(constant_expression_test);
-//	test_fn(parse_typespec_test);
+	test_fn(parse_typespec_test);
 
 	test_end();
 }

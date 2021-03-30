@@ -9,18 +9,8 @@
 #include <bz/format.h>
 
 #include "colors.h"
-
-struct test_fail_exception : std::exception
-{
-	std::string _what;
-
-	test_fail_exception(std::string what)
-		: _what(std::move(what))
-	{}
-
-	virtual char const *what(void) const noexcept override
-	{ return this->_what.c_str(); }
-};
+#include "ast/constant_value.h"
+#include "ast/statement.h"
 
 struct test_result
 {
@@ -41,113 +31,130 @@ inline std::ostream &operator << (std::ostream &os, bz::u8iterator it)
 	return os;
 }
 
+inline std::ostream &operator << (std::ostream &os, ast::constant_value const &value)
+{
+	switch (value.kind())
+	{
+	case ast::constant_value::sint:
+		os << "sint: " << value.get<ast::constant_value::sint>();
+		break;
+	case ast::constant_value::uint:
+		os << "uint: " << value.get<ast::constant_value::uint>();
+		break;
+	case ast::constant_value::float32:
+		os << "float32: " << value.get<ast::constant_value::float32>();
+		break;
+	case ast::constant_value::float64:
+		os << "float64: " << value.get<ast::constant_value::float64>();
+		break;
+	case ast::constant_value::u8char:
+		os << "u8char: " << value.get<ast::constant_value::u8char>();
+		break;
+	case ast::constant_value::string:
+		os << "string: " << value.get<ast::constant_value::string>();
+		break;
+	case ast::constant_value::boolean:
+		os << "boolean: " << value.get<ast::constant_value::boolean>();
+		break;
+	case ast::constant_value::null:
+		os << "null: []";
+		break;
+	case ast::constant_value::void_:
+		os << "void: []";
+		break;
+	case ast::constant_value::array:
+		os << "array: [...]";
+		break;
+	case ast::constant_value::tuple:
+		os << "tuple: [...]";
+		break;
+	case ast::constant_value::function:
+		os << "function: " << value.get<ast::constant_value::function>()->get_signature();
+		break;
+	case ast::constant_value::unqualified_function_set_id:
+		os << "unqualified_function_set_id: ...";
+		break;
+	case ast::constant_value::qualified_function_set_id:
+		os << "qualified_function_set_id: ...";
+		break;
+	case ast::constant_value::type:
+		os << "type: " << bz::format("{}", value.get<ast::constant_value::type>());
+		break;
+	case ast::constant_value::aggregate:
+		os << "aggreate: [...]";
+		break;
+	default:
+		bz_unreachable;
+	}
+
+	return os;
+}
+
 template<typename ...Ts>
-inline std::string build_str(Ts &&...ts)
+inline bz::u8string build_str(Ts &&...ts)
 {
 	std::ostringstream ss;
 	((ss << std::forward<Ts>(ts)), ...);
-	return ss.str();
+	return ss.str().c_str();
 }
 
-#if __cpp_exceptions
 
-#define assert_true(x)                                                             \
-do { if (!(x)) {                                                                   \
-    throw test_fail_exception(build_str(                                           \
-        "assert_true failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
-    ));                                                                            \
-} } while (false)
+#define assert_true(x)                                                                               \
+do {                                                                                                 \
+    if (!(x))                                                                                        \
+    {                                                                                                \
+        return build_str("assert_true failed at " __FILE__ ":", __LINE__, "\nexpression: " #x "\n"); \
+    }                                                                                                \
+} while (false)
 
-#define assert_false(x)                                                             \
-do { if (!!(x)) {                                                                   \
-    throw test_fail_exception(build_str(                                            \
-        "assert_false failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
-    ));                                                                             \
-} } while (false)
+#define assert_false(x)                                                                               \
+do {                                                                                                  \
+    if (!!(x))                                                                                        \
+    {                                                                                                 \
+        return build_str("assert_false failed at " __FILE__ ":", __LINE__, "\nexpression: " #x "\n"); \
+    }                                                                                                 \
+} while (false)
 
-#define assert_eq(x, y)                                      \
-do { if (!((x) == (y))) {                                    \
-    throw test_fail_exception(build_str(                     \
-        "assert_eq failed in " __FILE__ ":", __LINE__, ":\n" \
-        "lhs: " #x " == ", (x), "\n"                         \
-        "rhs: " #y " == ", (y), "\n"                         \
-    ));                                                      \
-} } while (false)
+#define assert_eq(x, y)                                         \
+do {                                                            \
+    if (!((x) == (y)))                                          \
+    {                                                           \
+        return build_str(                                       \
+            "assert_eq failed at " __FILE__ ":", __LINE__, "\n" \
+            "lhs: " #x " == ", (x), "\n"                        \
+            "rhs: " #y " == ", (y), "\n"                        \
+        );                                                      \
+    }                                                           \
+} while (false)
 
-#define assert_neq(x, y)                                      \
-do { if (!((x) != (y))) {                                     \
-    throw test_fail_exception(build_str(                      \
-        "assert_neq failed in " __FILE__ ":", __LINE__, ":\n" \
-        "lhs: " #x " == ", (x), "\n"                          \
-        "rhs: " #y " == ", (y), "\n"                          \
-    ));                                                       \
-} } while (false)
+#define assert_neq(x, y)                                         \
+do {                                                             \
+    if (!((x) != (y)))                                           \
+    {                                                            \
+        return build_str(                                        \
+            "assert_neq failed at " __FILE__ ":", __LINE__, "\n" \
+            "lhs: " #x " == ", (x), "\n"                         \
+            "rhs: " #y " == ", (y), "\n"                         \
+        );                                                       \
+    }                                                            \
+} while (false)
 
-#define test_fn(fn)                                                 \
+#define test_fn(fn, ...)                                            \
 do {                                                                \
     bz::print("    {:.<60}", #fn);                                  \
-    try                                                             \
+    ++test_count;                                                   \
+    auto const result = fn(__VA_ARGS__);                            \
+    if (result.has_value())                                         \
     {                                                               \
-        ++test_count;                                               \
-        fn();                                                       \
+        bz::print("{}FAIL{}\n", colors::bright_red, colors::clear); \
+        bz::print("{}", *result);                                   \
+    }                                                               \
+    else                                                            \
+    {                                                               \
         bz::print("{}OK{}\n", colors::bright_green, colors::clear); \
         ++passed_count;                                             \
     }                                                               \
-    catch (test_fail_exception &e)                                  \
-    {                                                               \
-        bz::print("{}FAIL{}\n", colors::bright_red, colors::clear); \
-        bz::print(e.what());                                        \
-    }                                                               \
 } while (false)
-
-#else
-
-#define assert_true(x)                                                               \
-do { if (!(x)) {                                                                     \
-    std::cerr << (build_str(                                                         \
-        "\nassert_true failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
-    ));                                                                              \
-    bz_unreachable;                                                                  \
-} } while (false)
-
-#define assert_false(x)                                                               \
-do { if (!!(x)) {                                                                     \
-    std::cerr << (build_str(                                                          \
-        "\nassert_false failed at " __FILE__ ":", __LINE__, ":\nexpression: " #x "\n" \
-    ));                                                                               \
-    bz_unreachable;                                                                   \
-} } while (false)
-
-#define assert_eq(x, y)                                        \
-do { if (!((x) == (y))) {                                      \
-    std::cerr << (build_str(                                   \
-        "\nassert_eq failed in " __FILE__ ":", __LINE__, ":\n" \
-        "lhs: " #x " == ", (x), "\n"                           \
-        "rhs: " #y " == ", (y), "\n"                           \
-    ));                                                        \
-    bz_unreachable;                                            \
-} } while (false)
-
-#define assert_neq(x, y)                                        \
-do { if (!((x) != (y))) {                                       \
-    std::cerr << (build_str(                                    \
-        "\nassert_neq failed in " __FILE__ ":", __LINE__, ":\n" \
-        "lhs: " #x " == ", (x), "\n"                            \
-        "rhs: " #y " == ", (y), "\n"                            \
-    ));                                                         \
-    bz_unreachable;                                             \
-} } while (false)
-
-#define test_fn(fn)                                             \
-do {                                                            \
-    bz::print("    {:.<60}", #fn);                              \
-	++test_count;                                               \
-	fn();                                                       \
-	bz::print("{}OK{}\n", colors::bright_green, colors::clear); \
-	++passed_count;                                             \
-} while (false)
-
-#endif // exceptions
 
 
 #define test_begin()                    \
