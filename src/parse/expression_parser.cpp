@@ -352,7 +352,9 @@ ast::expression parse_switch_expression(
 	}
 	else if (
 		auto const info = match_type.get<ast::ts_base_type>().info;
-		!ctx::is_integer_kind(info->kind) && info->kind != ast::type_info::char_
+		!ctx::is_integer_kind(info->kind)
+		&& info->kind != ast::type_info::char_
+		&& info->kind != ast::type_info::bool_
 	)
 	{
 		if (do_verbose)
@@ -425,8 +427,75 @@ ast::expression parse_switch_expression(
 			});
 	});
 
+	bool const is_all_unique = [&]() {
+		ast::arena_vector<ast::expression const *> case_values;
+		for (auto const &switch_case : cases)
+		{
+			for (auto const &value : switch_case.values)
+			{
+				if (value.is_error())
+				{
+					return true;
+				}
+				bz_assert(value.is<ast::constant_expression>());
+				case_values.push_back(&value);
+			}
+		}
+		for (size_t i = 0; i < case_values.size() - 1; ++i)
+		{
+			auto const &lhs = *case_values[i];
+			auto const &lhs_value = lhs.get<ast::constant_expression>().value;
+			for (size_t j = i + 1; j < case_values.size(); ++j)
+			{
+				auto const &rhs = *case_values[j];
+				auto const &rhs_value = rhs.get<ast::constant_expression>().value;
+				if (lhs_value == rhs_value)
+				{
+					switch (rhs_value.kind())
+					{
+					case ast::constant_value::sint:
+						context.report_error(
+							rhs,
+							bz::format("duplicate value '{}' in switch expression", lhs_value.get<ast::constant_value::sint>()),
+							{ context.make_note(lhs, "value previously used here") }
+						);
+						break;
+					case ast::constant_value::uint:
+						context.report_error(
+							rhs,
+							bz::format("duplicate value '{}' in switch expression", lhs_value.get<ast::constant_value::uint>()),
+							{ context.make_note(lhs, "value previously used here") }
+						);
+						break;
+					case ast::constant_value::u8char:
+						context.report_error(
+							rhs,
+							bz::format(
+								"duplicate value '{}' in switch expression",
+								lhs_value.get<ast::constant_value::u8char>()
+							),
+							{ context.make_note(lhs, "value previously used here") }
+						);
+						break;
+					case ast::constant_value::boolean:
+						context.report_error(
+							rhs,
+							bz::format("duplicate value '{}' in switch expression", lhs_value.get<ast::constant_value::boolean>()),
+							{ context.make_note(lhs, "value previously used here") }
+						);
+						break;
+					default:
+						bz_unreachable;
+					}
+					return false;
+				}
+			}
+		}
+		return true;
+	}();
+
 	lex::src_tokens src_tokens = { begin, begin, stream };
-	if (!is_good)
+	if (!is_all_unique || !is_good)
 	{
 		return ast::make_error_expression(
 			src_tokens,
