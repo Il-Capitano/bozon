@@ -17,6 +17,10 @@ bz::vector<token> get_tokens(
 )
 {
 	bz::vector<token> tokens = {};
+	// file.size() / 4  seems like a good estimate of the final token count,
+	// uncomment the commented out code in this function to check whether it's really good or not
+	tokens.reserve(file.size() / 4);
+	// auto const capacity_before = tokens.capacity();
 	file_iterator stream = { file.begin(), file_id };
 	auto const end = file.end();
 
@@ -24,6 +28,10 @@ bz::vector<token> get_tokens(
 	{
 		tokens.push_back(get_next_token(stream, end, context));
 	} while (tokens.back().kind != token::eof);
+
+	// auto const capacity_after = tokens.capacity();
+
+	// bz::log("{:3}: {:5} bytes, {:4} tokens, {:%}, ({} -> {})\n", file_id, file.size(), tokens.size(), (double)tokens.size() / (double)file.size(), capacity_before, capacity_after);
 
 	return tokens;
 }
@@ -636,23 +644,18 @@ static token get_single_char_token(
 			stream.file_id, line, begin_it, end_it
 		);
 	}
-	// U+037E: ';' greek question mark
-	else if (char_value == 0x37e)
-	{
-		context.report_warning(
-			ctx::warning_kind::greek_question_mark,
-			stream.file_id, line, begin_it,
-			"unicode character U+037E (greek question mark) looks the same as a semicolon, but it is not"
-		);
-		return token(
-			token::non_ascii_character,
-			bz::u8string_view(begin_it, end_it),
-			stream.file_id, line, begin_it, end_it
-		);
-	}
 	// non-ascii
 	else
 	{
+		// U+037E: ';' greek question mark
+		if (char_value == 0x037e)
+		{
+			context.report_warning(
+				ctx::warning_kind::greek_question_mark,
+				stream.file_id, line, begin_it,
+				"unicode character U+037E (greek question mark) looks the same as a semicolon, but it is not"
+			);
+		}
 		return token(
 			token::non_ascii_character,
 			bz::u8string_view(begin_it, end_it),
