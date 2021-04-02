@@ -271,12 +271,27 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	ast::expr_tuple const &,
-	ctx::comptime_executor_context &,
-	llvm::Value *
+	ast::expr_tuple const &tuple_expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
 )
 {
-	bz_unreachable;
+	if (result_address == nullptr)
+	{
+		auto const types = tuple_expr.elems
+			.transform([](auto const &expr) { return expr.get_expr_type_and_kind().first; })
+			.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
+			.template collect<ast::arena_vector>();
+		auto const result_type = context.get_tuple_t(types);
+		result_address = context.create_alloca(result_type);
+	}
+
+	for (unsigned i = 0; i < tuple_expr.elems.size(); ++i)
+	{
+		auto const elem_result_address = context.builder.CreateStructGEP(result_address, i);
+		emit_bitcode<abi>(tuple_expr.elems[i], context, elem_result_address);
+	}
+	return { val_ptr::reference, result_address };
 }
 
 template<abi::platform_abi abi>
@@ -1847,7 +1862,7 @@ static void create_function_call(
 	bz_assert(result_pass_kind != abi::pass_kind::reference);
 	bz_assert(body->params[0].var_type.is<ast::ts_lvalue_reference>());
 
-	bz::vector<llvm::Value *> params;
+	ast::arena_vector<llvm::Value *> params;
 	bool is_rhs_pass_by_ref = false;
 	params.reserve(2);
 	params.push_back(lhs.val);
@@ -2294,8 +2309,8 @@ static val_ptr emit_bitcode(
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
 
-	bz::vector<llvm::Value *> params = {};
-	bz::vector<bool> params_is_pass_by_ref = {};
+	ast::arena_vector<llvm::Value *> params = {};
+	ast::arena_vector<bool> params_is_pass_by_ref = {};
 	params.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
 	params_is_pass_by_ref.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
 
@@ -3051,7 +3066,7 @@ static val_ptr emit_bitcode(
 	auto const case_count = switch_expr.cases.transform([](auto const &switch_case) { return switch_case.values.size(); }).sum();
 
 	auto const switch_inst = context.builder.CreateSwitch(matched_value, default_bb, static_cast<unsigned>(case_count));
-	bz::vector<std::pair<llvm::BasicBlock *, val_ptr>> case_result_vals;
+	ast::arena_vector<std::pair<llvm::BasicBlock *, val_ptr>> case_result_vals;
 	case_result_vals.reserve(switch_expr.cases.size() + 1);
 	if (has_default)
 	{
@@ -3236,7 +3251,7 @@ static llvm::Constant *get_value(
 		auto const array_type = llvm::dyn_cast<llvm::ArrayType>(get_llvm_type(type, context));
 		bz_assert(array_type != nullptr);
 		auto const &array_values = value.get<ast::constant_value::array>();
-		bz::vector<llvm::Constant *> elems = {};
+		ast::arena_vector<llvm::Constant *> elems = {};
 		elems.reserve(array_values.size());
 		for (auto const &val : array_values)
 		{
@@ -3247,8 +3262,8 @@ static llvm::Constant *get_value(
 	case ast::constant_value::tuple:
 	{
 		auto const &tuple_values = value.get<ast::constant_value::tuple>();
-		bz::vector<llvm::Type     *> types = {};
-		bz::vector<llvm::Constant *> elems = {};
+		ast::arena_vector<llvm::Type     *> types = {};
+		ast::arena_vector<llvm::Constant *> elems = {};
 		types.reserve(tuple_values.size());
 		elems.reserve(tuple_values.size());
 		if (const_expr != nullptr && const_expr->expr.is<ast::expr_tuple>())
@@ -3272,10 +3287,7 @@ static llvm::Constant *get_value(
 				types.push_back(elems.back()->getType());
 			}
 		}
-		auto const tuple_type = llvm::StructType::get(
-			context.get_llvm_context(),
-			llvm::ArrayRef(types.data(), types.size())
-		);
+		auto const tuple_type = context.get_tuple_t(types);
 		return llvm::ConstantStruct::get(tuple_type, llvm::ArrayRef(elems.data(), elems.size()));
 	}
 	case ast::constant_value::function:
@@ -3795,7 +3807,7 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context 
 	{
 		auto &fn_t = ts.get<ast::ts_function>();
 		auto const result_t = get_llvm_type(fn_t.return_type, context);
-		bz::vector<llvm::Type *> args = {};
+		ast::arena_vector<llvm::Type *> args = {};
 		for (auto &p : fn_t.param_types)
 		{
 			args.push_back(get_llvm_type(p, context));
@@ -3815,19 +3827,15 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context 
 	{
 		auto &arr_slice_t = ts.get<ast::ts_array_slice>();
 		auto const elem_t = get_llvm_type(arr_slice_t.elem_type, context);
-		auto const elem_ptr_t = llvm::PointerType::get(elem_t, 0);
-		return llvm::StructType::get(elem_ptr_t, elem_ptr_t);
+		return context.get_slice_t(elem_t);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 	{
 		auto &tuple_t = ts.get<ast::ts_tuple>();
-		bz::vector<llvm::Type *> types = {};
-		types.reserve(tuple_t.types.size());
-		for (auto &type : tuple_t.types)
-		{
-			types.push_back(get_llvm_type(type, context));
-		}
-		return llvm::StructType::get(context.get_llvm_context(), llvm::ArrayRef(types.data(), types.size()));
+		auto const types = tuple_t.types
+			.transform([&context](auto const &ts) { return get_llvm_type(ts, context); })
+			.collect<ast::arena_vector>();
+		return context.get_tuple_t(types);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 		bz_unreachable;
@@ -4150,7 +4158,10 @@ static void emit_function_bitcode_impl(
 					++fn_it;
 					auto const second_val = fn_it;
 					auto const second_type = fn_it->getType();
-					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(llvm::StructType::get(first_type, second_type), 0));
+					auto const alloca_cast = context.builder.CreatePointerCast(
+						alloca,
+						llvm::PointerType::get(llvm::StructType::get(first_type, second_type), 0)
+					);
 					auto const first_address  = context.builder.CreateStructGEP(alloca_cast, 0);
 					auto const second_address = context.builder.CreateStructGEP(alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);

@@ -325,12 +325,6 @@ llvm::Type *comptime_executor_context::get_bool_t(void) const
 llvm::Type *comptime_executor_context::get_null_t(void) const
 { return this->global_ctx._llvm_builtin_types[static_cast<int>(ast::type_info::null_t_)]; }
 
-llvm::StructType *comptime_executor_context::get_slice_t(llvm::Type *elem_type) const
-{
-	auto const elem_ptr_type = llvm::PointerType::get(elem_type, 0);
-	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
-}
-
 llvm::Type *comptime_executor_context::get_usize_t(void) const
 {
 	switch (this->global_ctx.get_data_layout().getPointerSize())
@@ -363,6 +357,17 @@ llvm::Type *comptime_executor_context::get_isize_t(void) const
 	default:
 		bz_unreachable;
 	}
+}
+
+llvm::StructType *comptime_executor_context::get_slice_t(llvm::Type *elem_type) const
+{
+	auto const elem_ptr_type = llvm::PointerType::get(elem_type, 0);
+	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
+}
+
+llvm::StructType *comptime_executor_context::get_tuple_t(bz::array_view<llvm::Type * const> types)
+{
+	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
 }
 
 
