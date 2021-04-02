@@ -15,6 +15,43 @@ struct universal_end_sentinel {};
 namespace internal
 {
 
+struct has_difference_impl
+{
+	using yes = int;
+	using no = char;
+
+	template<typename T, typename U>
+	static auto test(int) -> decltype(static_cast<std::size_t>(std::declval<U const &>() - std::declval<T const &>()), yes{});
+
+	template<typename T, typename U>
+	static auto test(...) -> no;
+
+	template<typename T, typename U>
+	static constexpr bool value = meta::is_same<decltype(test<T, U>()), yes>;
+};
+
+template<typename T, typename U>
+constexpr bool has_difference = has_difference_impl::value<T, U>;
+
+struct has_size_impl
+{
+	using yes = int;
+	using no = char;
+
+	template<typename T>
+	static auto test(int) -> decltype(static_cast<std::size_t>(std::declval<T const &>().size()), yes{});
+
+	template<typename T>
+	static auto test(...) -> no;
+
+	template<typename T>
+	static constexpr bool value = meta::is_same<decltype(test<T>()), yes>;
+};
+
+template<typename T>
+constexpr bool has_size = has_size_impl::value<T>;
+
+
 template<typename Range>
 struct range_base_filter
 {
@@ -308,6 +345,14 @@ public:
 		return *this;
 	}
 
+	template<typename T = ItType, typename U = EndType, meta::enable_if<internal::has_difference<T, U>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<T, ItType>);
+		static_assert(meta::is_same<U, EndType>);
+		return static_cast<std::size_t>(this->_end - this->_it);
+	}
+
 	constexpr decltype(auto) operator * (void) const noexcept
 	{ return *this->_it; }
 
@@ -363,6 +408,13 @@ public:
 	{
 		++this->_it;
 		return *this;
+	}
+
+	template<typename U = T, meta::enable_if<internal::has_difference<U, U>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<U, T>);
+		return static_cast<std::size_t>(this->_end - this->_it);
 	}
 
 	constexpr decltype(auto) operator * (void) const noexcept
@@ -479,6 +531,13 @@ public:
 		return *this;
 	}
 
+	template<typename T = ItType, meta::enable_if<internal::has_size<T>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<T, ItType>);
+		return static_cast<std::size_t>(this->_it.size());
+	}
+
 	constexpr decltype(auto) operator * (void) const noexcept
 	{ return this->_transform_func(*this->_it); }
 
@@ -589,6 +648,13 @@ public:
 		++this->_it;
 		++this->_index;
 		return *this;
+	}
+
+	template<typename T = ItType, meta::enable_if<internal::has_size<T>, int> = 0>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<T, ItType>);
+		return static_cast<std::size_t>(this->_it.size());
 	}
 
 	constexpr auto operator * (void) const noexcept
@@ -784,6 +850,10 @@ constexpr auto range_base_collect<Range>::collect(void) const
 {
 	auto const self = static_cast<Range const *>(this);
 	Vec<std::decay_t<decltype(self->operator*())>> result;
+	if constexpr (internal::has_size<Range>)
+	{
+		result.reserve(self->size());
+	}
 	for (auto &&it : *self)
 	{
 		result.emplace_back(std::forward<decltype(it)>(it));
@@ -794,14 +864,21 @@ constexpr auto range_base_collect<Range>::collect(void) const
 template<typename Range>
 constexpr std::size_t range_base_count<Range>::count(void) const noexcept
 {
-	auto self_copy = static_cast<Range const *>(this)->begin();
-	std::size_t result = 0;
-	while (!self_copy.at_end())
+	if constexpr (internal::has_size<Range>)
 	{
-		++self_copy;
-		++result;
+		return static_cast<Range const *>(this)->size();
 	}
-	return result;
+	else
+	{
+		auto self_copy = static_cast<Range const *>(this)->begin();
+		std::size_t result = 0;
+		while (!self_copy.at_end())
+		{
+			++self_copy;
+			++result;
+		}
+		return result;
+	}
 }
 
 template<typename Range>
