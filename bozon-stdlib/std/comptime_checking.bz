@@ -221,9 +221,11 @@ operator [] (arr: &const auto, i: int64) -> &const typeof *arr.data_begin
 	return *(arr.data_begin + i);
 }
 
+@no_runtime_emit
 @comptime_error_checking("errors_var")
 let errors = error_array_t[ null, null, null ];
 
+@no_runtime_emit
 @comptime_error_checking("call_stack_var")
 let call_stack = call_stack_t[ null, null, null ];
 
