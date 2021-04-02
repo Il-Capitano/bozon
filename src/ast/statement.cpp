@@ -72,20 +72,27 @@ bz::u8string function_body::get_signature(void) const
 
 bz::u8string function_body::get_symbol_name(void) const
 {
-	bz_assert(this->function_name_or_operator_kind.not_null());
-	auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();
-	auto symbol_name = is_op
-		? bz::format("op.{}", this->function_name_or_operator_kind.get<uint32_t>())
-		: bz::format("func.{}", this->function_name_or_operator_kind.get<identifier>().format_for_symbol());
-	symbol_name += bz::format("..{}", this->params.size());
-	for (auto &p : this->params)
+	if (this->is_destructor())
 	{
-		symbol_name += '.';
-		symbol_name += p.var_type.get_symbol_name();
+		return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->destructor_of->symbol_name));
 	}
-	symbol_name += '.';
-	symbol_name += this->return_type.get_symbol_name();
-	return symbol_name;
+	else
+	{
+		bz_assert(this->function_name_or_operator_kind.not_null());
+		auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();
+		auto symbol_name = is_op
+			? bz::format("op.{}", this->function_name_or_operator_kind.get<uint32_t>())
+			: bz::format("func.{}", this->function_name_or_operator_kind.get<identifier>().format_for_symbol());
+		symbol_name += bz::format("..{}", this->params.size());
+		for (auto &p : this->params)
+		{
+			symbol_name += '.';
+			symbol_name += p.var_type.get_symbol_name();
+		}
+		symbol_name += '.';
+		symbol_name += this->return_type.get_symbol_name();
+		return symbol_name;
+	}
 }
 
 bz::u8string function_body::get_candidate_message(void) const
@@ -210,6 +217,7 @@ bz::u8string function_body::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
+	constexpr bz::u8string_view destructor_ = "dtor.";
 	constexpr bz::u8string_view function_ = "func.";
 	constexpr bz::u8string_view operator_ = "op.";
 
@@ -254,6 +262,12 @@ bz::u8string function_body::decode_symbol_name(
 		result += func_name;
 		result += '(';
 		it = bz::u8string_view::const_iterator(name_end.data() + 2);
+	}
+	else if (symbol_name.starts_with(destructor_))
+	{
+		auto type_begin = bz::u8string_view::const_iterator(it.data() + destructor_.size());
+		auto const type = typespec::decode_symbol_name(type_begin, end);
+		return bz::format("destructor(: &{})", type);
 	}
 	else
 	{

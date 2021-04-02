@@ -266,6 +266,7 @@ enum statement_globalness
 	both,
 	only_local,
 };
+
 struct statement_parser
 {
 	uint32_t   kind;

@@ -283,6 +283,7 @@ struct decl_variable
 		used             = bit_at<1>,
 		module_export    = bit_at<2>,
 		external_linkage = bit_at<3>,
+		no_runtime_emit  = bit_at<4>,
 	};
 
 	lex::src_tokens  src_tokens;
@@ -356,6 +357,9 @@ struct decl_variable
 
 	bool is_external_linkage(void) const noexcept
 	{ return (this->flags & external_linkage) != 0; }
+
+	bool is_no_runtime_emit(void) const noexcept
+	{ return (this->flags & no_runtime_emit) != 0; }
 };
 
 inline bool is_generic_parameter(decl_variable const &var_decl)
@@ -374,16 +378,17 @@ struct function_body
 
 	enum : uint32_t
 	{
-		module_export          = bit_at<0>,
-		main                   = bit_at<1>,
-		external_linkage       = bit_at<2>,
-		intrinsic              = bit_at<3>,
-		generic                = bit_at<4>,
-		generic_specialization = bit_at<5>,
-		default_op_assign      = bit_at<6>,
-		default_op_move_assign = bit_at<7>,
-		no_comptime_checking   = bit_at<8>,
-		local                  = bit_at<9>,
+		module_export          = bit_at< 0>,
+		main                   = bit_at< 1>,
+		external_linkage       = bit_at< 2>,
+		intrinsic              = bit_at< 3>,
+		generic                = bit_at< 4>,
+		generic_specialization = bit_at< 5>,
+		default_op_assign      = bit_at< 6>,
+		default_op_move_assign = bit_at< 7>,
+		no_comptime_checking   = bit_at< 8>,
+		local                  = bit_at< 9>,
+		destructor             = bit_at<10>,
 	};
 
 	enum : uint8_t
@@ -474,6 +479,9 @@ struct function_body
 	abi::calling_convention   cc = abi::calling_convention::bozon;
 	uint8_t                   intrinsic_kind = 0;
 	uint32_t                  flags = 0;
+
+	type_info *destructor_of;
+
 	bz::vector<std::unique_ptr<function_body>>              generic_specializations;
 	bz::vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
 
@@ -492,6 +500,7 @@ struct function_body
 		  cc            (other.cc),
 		  intrinsic_kind(other.intrinsic_kind),
 		  flags         (other.flags),
+		  destructor_of (nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from)
 	{}
@@ -571,6 +580,11 @@ struct function_body
 	bool is_local(void) const noexcept
 	{
 		return (this->flags & local) != 0;
+	}
+
+	bool is_destructor(void) const noexcept
+	{
+		return (this->flags & destructor) != 0;
 	}
 
 	static bz::u8string decode_symbol_name(
@@ -715,12 +729,12 @@ struct type_info
 	function_body_ptr default_op_move_assign;
 	function_body *op_assign;
 	function_body *op_move_assign;
+	function_body_ptr destructor;
 
 //	bz::vector<function_body_ptr> constructors;
 //	function_body *default_constructor;
 //	function_body *copy_constructor;
 //	function_body *move_constructor;
-//	function_body_ptr destructor;
 //	function_body_ptr move_destuctor;
 
 	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range)
@@ -736,12 +750,12 @@ struct type_info
 		  default_op_assign(make_default_op_assign(src_tokens, *this)),
 		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
 		  op_assign(nullptr),
-		  op_move_assign(nullptr)
+		  op_move_assign(nullptr),
+		  destructor(nullptr)
 //		  constructors{},
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
 //		  move_constructor(nullptr),
-//		  destructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
 
@@ -759,12 +773,12 @@ private:
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  op_assign(nullptr),
-		  op_move_assign(nullptr)
+		  op_move_assign(nullptr),
+		  destructor(nullptr)
 //		  constructors{},
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
 //		  move_constructor(nullptr),
-//		  destructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
 public:

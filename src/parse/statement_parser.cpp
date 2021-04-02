@@ -1046,7 +1046,8 @@ static bool resolve_function_parameters_helper(
 	}
 
 	if (
-		func_stmt.is<ast::decl_operator>()
+		good
+		&& func_stmt.is<ast::decl_operator>()
 		&& func_stmt.get<ast::decl_operator>().op->kind == lex::token::assign
 	)
 	{
@@ -1073,6 +1074,69 @@ static bool resolve_function_parameters_helper(
 			else
 			{
 				info->op_move_assign = &func_body;
+			}
+		}
+	}
+	else if (good && func_body.is_destructor())
+	{
+		if (func_body.params.size() != 1)
+		{
+			context.report_error(
+				func_body.src_tokens,
+				bz::format(
+					"destructor of type '{}' must have one parameter",
+					ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name)
+				)
+			);
+			return false;
+		}
+
+		if (func_body.is_generic())
+		{
+			func_body.flags &= ~ast::function_body::generic;
+
+			auto const param_type = func_body.params[0].var_type.as_typespec_view();
+			// if the parameter is generic, then it must be &auto
+			// either as `destructor(&self)` or `destructor(self: &auto)`
+			if (
+				param_type.nodes.size() != 2
+				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| !param_type.nodes[1].is<ast::ts_auto>()
+			)
+			{
+				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
+				context.report_error(
+					func_body.params[0].src_tokens,
+					bz::format(
+						"invalid parameter type '{}' in destructor of type '{}'",
+						param_type, destructor_of_type
+					),
+					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+				);
+				return false;
+			}
+		}
+		else
+		{
+			auto const param_type = func_body.params[0].var_type.as_typespec_view();
+			// if the parameter is non-generic, then it must be &<type>
+			if (
+				param_type.nodes.size() != 2
+				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| !param_type.nodes[1].is<ast::ts_base_type>()
+				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.destructor_of
+			)
+			{
+				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
+				context.report_error(
+					func_body.params[0].src_tokens,
+					bz::format(
+						"invalid parameter type '{}' in destructor of type '{}'",
+						param_type, destructor_of_type
+					),
+					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+				);
+				return false;
 			}
 		}
 	}
@@ -1136,7 +1200,23 @@ static bool resolve_function_return_type_helper(
 
 	resolve_typespec(func_body.return_type, context, precedence{});
 	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
-	return !func_body.return_type.is_empty();
+	if (func_body.is_destructor())
+	{
+		if (!func_body.return_type.is_empty() && !func_body.return_type.is<ast::ts_void>())
+		{
+			auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
+			context.report_error(
+				func_body.return_type.get_src_tokens(),
+				bz::format("return type must be 'void' for destructor of type '{}'", destructor_of_type)
+			);
+			return false;
+		}
+		return !func_body.return_type.is_empty();
+	}
+	else
+	{
+		return !func_body.return_type.is_empty();
+	}
 }
 
 static bool is_valid_main(ast::function_body const &body)
@@ -1729,6 +1809,99 @@ void resolve_type_info_symbol(
 	context.set_current_file_info(original_file_info);
 }
 
+static void parse_type_info_destructor(
+	ast::type_info &info,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::identifier && stream->value == "destructor");
+	if (info.destructor != nullptr)
+	{
+		context.report_error(
+			stream, bz::format("redefinition of destructor for type '{}'", ast::type_info::decode_symbol_name(info.symbol_name)),
+			{ context.make_note(info.destructor->src_tokens, "previously defined here") }
+		);
+	}
+	auto const begin_token = stream;
+	++stream; // 'destructor'
+
+	info.destructor = ast::make_ast_unique<ast::function_body>(
+		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
+	);
+	info.destructor->flags |= ast::function_body::destructor;
+	info.destructor->destructor_of = &info;
+}
+
+static void parse_type_info_member(
+	ast::type_info &info,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	auto const begin_token = stream;
+	if (stream->kind != lex::token::dot)
+	{
+		if (
+			stream->kind == lex::token::identifier
+			&& stream + 1 != end && (stream + 1)->kind == lex::token::colon
+		)
+		{
+			context.report_error(
+				stream, "expected '.'",
+				{}, { context.make_suggestion_before(stream, ".", "add '.' here") }
+			);
+		}
+		else
+		{
+			context.assert_token(stream, lex::token::dot);
+		}
+	}
+	else
+	{
+		++stream; // '.'
+	}
+
+	bz_assert(stream != end);
+	auto const id = context.assert_token(stream, lex::token::identifier);
+	if (id->kind != lex::token::identifier)
+	{
+		info.state = ast::resolve_state::error;
+	}
+	bz_assert(stream != end);
+	context.assert_token(stream, lex::token::colon);
+	auto type = parse_expression(stream, end, context, no_assign);
+	consteval_try(type, context);
+	if (type.not_error() && !type.has_consteval_succeeded())
+	{
+		context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
+		info.state = ast::resolve_state::error;
+	}
+	else if (type.not_error() && !type.is_typename())
+	{
+		context.report_error(type, "expected a type");
+		info.state = ast::resolve_state::error;
+	}
+	else if (type.is_error())
+	{
+		info.state = ast::resolve_state::error;
+	}
+	else if (!context.is_instantiable(type.get_typename()))
+	{
+		context.report_error(type, "struct member type is not instantiable");
+		info.state = ast::resolve_state::error;
+	}
+	else
+	{
+		info.member_variables.push_back({
+			{ begin_token, id, stream },
+			id->value,
+			std::move(type.get_typename())
+		});
+	}
+	context.assert_token(stream, lex::token::semi_colon);
+}
+
 static void resolve_type_info_impl(
 	ast::type_info &info,
 	ctx::parse_context &context
@@ -1749,68 +1922,21 @@ static void resolve_type_info_impl(
 
 	while (stream != end)
 	{
-		auto const begin_token = stream;
-		if (stream->kind != lex::token::dot)
+		if (stream->kind == lex::token::identifier && stream->value == "destructor")
 		{
-			if (
-				stream->kind == lex::token::identifier
-				&& stream + 1 != end && (stream + 1)->kind == lex::token::colon
-			)
-			{
-				context.report_error(
-					stream, "expected '.'",
-					{}, { context.make_suggestion_before(stream, ".", "add '.' here") }
-				);
-			}
-			else
-			{
-				context.assert_token(stream, lex::token::dot);
-			}
+			parse_type_info_destructor(info, stream, end, context);
 		}
 		else
 		{
-			++stream; // '.'
+			parse_type_info_member(info, stream, end, context);
 		}
-
-		bz_assert(stream != end);
-		auto const id = context.assert_token(stream, lex::token::identifier);
-		if (id->kind != lex::token::identifier)
-		{
-			info.state = ast::resolve_state::error;
-		}
-		bz_assert(stream != end);
-		context.assert_token(stream, lex::token::colon);
-		auto type = parse_expression(stream, end, context, no_assign);
-		consteval_try(type, context);
-		if (type.not_error() && !type.has_consteval_succeeded())
-		{
-			context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
-			info.state = ast::resolve_state::error;
-		}
-		else if (type.not_error() && !type.is_typename())
-		{
-			context.report_error(type, "expected a type");
-			info.state = ast::resolve_state::error;
-		}
-		else if (type.is_error())
-		{
-			info.state = ast::resolve_state::error;
-		}
-		else if (!context.is_instantiable(type.get_typename()))
-		{
-			context.report_error(type, "struct member type is not instantiable");
-			info.state = ast::resolve_state::error;
-		}
-		else
-		{
-			info.member_variables.push_back({
-				{ begin_token, id, stream },
-				id->value,
-				std::move(type.get_typename())
-			});
-		}
-		context.assert_token(stream, lex::token::semi_colon);
 	}
+
+	if (info.destructor != nullptr)
+	{
+		resolve_function({}, *info.destructor, context);
+	}
+
 	if (info.state == ast::resolve_state::error)
 	{
 		return;
@@ -1863,8 +1989,6 @@ static ast::statement parse_decl_struct_impl(
 	{
 		++stream; // '{'
 		auto const range = get_tokens_in_curly<>(stream, end, context);
-		constexpr bool is_global = true; // here becuase if local structs are enabled, we have to change id construction below
-		static_assert(is_global);
 		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range);
 	}
 	else if (stream == end || stream->kind != lex::token::semi_colon)
@@ -2744,6 +2868,17 @@ static void apply_attribute(
 		{
 			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
 		}
+	}
+	else if (attribute.name->value == "no_runtime_emit")
+	{
+		if (attribute.args.size() != 0)
+		{
+			context.report_error(
+				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
+				"@no_runtime_emit expects no arguments"
+			);
+		}
+		var_decl.flags |= ast::decl_variable::no_runtime_emit;
 	}
 	else
 	{
