@@ -16,38 +16,6 @@ typedef struct
 	str *end;
 } str_slice;
 
-bool __bozon_builtin_str_eq(str lhs, str rhs)
-{
-	size_t const lhs_size = (size_t)(lhs.end - lhs.begin);
-	size_t const rhs_size = (size_t)(rhs.end - rhs.begin);
-	if (lhs_size != rhs_size)
-	{
-		return false;
-	}
-	return lhs.begin == rhs.begin || memcmp(lhs.begin, rhs.begin, lhs_size) == 0;
-}
-
-bool __bozon_builtin_str_neq(str lhs, str rhs)
-{
-	return !__bozon_builtin_str_eq(lhs, rhs);
-}
-
-uint64_t __bozon_builtin_str_length(str s)
-{
-	uint8_t const *it = s.begin;
-	uint8_t const *const end = s.end;
-	uint64_t const size = (uint64_t)(s.end - s.begin);
-	uint64_t continuation_byte_count = 0;
-	for (; it != end; ++it)
-	{
-		if ((*it & 0b11000000) == 0b10000000)
-		{
-			continuation_byte_count += 1;
-		}
-	}
-	return size - continuation_byte_count;
-}
-
 void __bozon_builtin_print_stdout(str s)
 {
 	fwrite(s.begin, 1, (size_t)(s.end - s.begin), stdout);
