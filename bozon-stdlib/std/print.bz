@@ -6,15 +6,11 @@ export function println = __builtin_println_stdout;
 export function log   = __builtin_print_stderr;
 export function logln = __builtin_println_stderr;
 
-@extern("print_int64",    "c") export function print(n: int64)       -> void;
-@extern("print_uint64",   "c") export function print(n: uint64)      -> void;
-@extern("print_float32",  "c") export function print(x: float32)     -> void;
-@extern("print_float64",  "c") export function print(x: float64)     -> void;
+@extern("print_float32", "c") export function print(x: float32);
+@extern("print_float64", "c") export function print(x: float64);
 
-@extern("println_int64",    "c") export function println(n: int64)       -> void;
-@extern("println_uint64",   "c") export function println(n: uint64)      -> void;
-@extern("println_float32",  "c") export function println(x: float32)     -> void;
-@extern("println_float64",  "c") export function println(x: float64)     -> void;
+@extern("println_float32", "c") export function println(x: float32);
+@extern("println_float64", "c") export function println(x: float64);
 
 function encode_char_utf8(c: char) -> [[4: uint8], uint32]
 {
@@ -138,4 +134,109 @@ export function println(b: bool)
 	{
 		print("false\n");
 	}
+}
+
+consteval max_uint_string_length = {
+	let uint64_max = ~0u64;
+	let result = 0uz;
+	while (uint64_max != 0u)
+	{
+		uint64_max /= 10u;
+		++result;
+	}
+	result
+};
+
+function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
+{
+	let result: [[max_uint_string_length: uint8], uint32];
+	if (n < 10u)
+	{
+		result[0, max_uint_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[1] = 1u;
+	}
+	else
+	{
+		let it = result[0].end();
+		while (n != 0u)
+		{
+			const digit = n % 10u;
+			n /= 10u;
+			--it;
+			*it = ('0' + digit) as uint32 as uint8;
+		}
+		result[1] = (result[0].end() - it) as uint32;
+	}
+	return result;
+}
+
+export function print(n: uint64)
+{
+	const string_and_size = get_uint_as_string(n);
+	const string = __builtin_str_from_ptrs(string_and_size[0].end() - string_and_size[1], string_and_size[0].end());
+	print(string);
+}
+
+export function println(n: uint64)
+{
+	const string_and_size = get_uint_as_string(n);
+	const string = __builtin_str_from_ptrs(string_and_size[0].end() - string_and_size[1], string_and_size[0].end());
+	println(string);
+}
+
+consteval max_int_string_length = {
+	// this is actually -int64_min, but its absolute value is larger than int64_max, so we use this instead
+	let int64_max = 1u64 << 63u;
+	let result = 0uz;
+	while (int64_max != 0u)
+	{
+		int64_max /= 10u;
+		++result;
+	}
+	result + 1u
+};
+
+function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
+{
+	let n = abs_val;
+	let result: [[max_int_string_length: uint8], uint32];
+	if (n < 10u)
+	{
+		result[0, max_uint_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[1] = 1u;
+	}
+	else
+	{
+		let it = result[0].end();
+		while (n != 0u)
+		{
+			const digit = n % 10u;
+			n /= 10u;
+			--it;
+			*it = ('0' + digit) as uint32 as uint8;
+		}
+		result[1] = (result[0].end() - it) as uint32;
+	}
+	if (is_negative)
+	{
+		*(result[0].end() - result[1] - 1u) = '-' as uint32 as uint8;
+		++result[1];
+	}
+	return result;
+}
+
+export function print(n: int64)
+{
+	// -n as uint64 works for int64_min as well
+	const string_and_size = get_int_as_string(if (n < 0) { -n as uint64 } else { n as uint64 }, n < 0);
+	const string = __builtin_str_from_ptrs(string_and_size[0].end() - string_and_size[1], string_and_size[0].end());
+	print(string);
+}
+
+export function println(n: int64)
+{
+	// -n as uint64 works for int64_min as well
+	const string_and_size = get_int_as_string(if (n < 0) { -n as uint64 } else { n as uint64 }, n < 0);
+	const string = __builtin_str_from_ptrs(string_and_size[0].end() - string_and_size[1], string_and_size[0].end());
+	println(string);
 }
