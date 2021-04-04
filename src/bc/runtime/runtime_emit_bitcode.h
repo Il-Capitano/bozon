@@ -5,6 +5,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "ctx/bitcode_context.h"
+#include "bc/common.h"
 
 namespace bc::runtime
 {

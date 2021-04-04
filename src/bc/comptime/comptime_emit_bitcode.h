@@ -5,6 +5,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "ctx/comptime_executor.h"
+#include "bc/common.h"
 
 namespace bc::comptime
 {
@@ -27,8 +28,6 @@ std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_co
 	ast::expr_compound &expr,
 	ctx::comptime_executor_context &context
 );
-
-llvm::Type *get_llvm_type(ast::typespec_view ts, ctx::comptime_executor_context &context, bool is_top_level = true);
 
 } // namespace bc::comptime
 
