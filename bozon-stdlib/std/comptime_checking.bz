@@ -132,32 +132,51 @@ function free(p: *const void)
 }
 
 @no_comptime_checking
-function push_back(arr: &auto, val: auto)
+function reserve(arr: &auto, new_capacity: usize)
 {
 	type value_type = typeof *arr.data_begin;
 	static_assert(value_type == error_t || value_type == uint64);
 	if (arr.data_begin == null)
 	{
-		const new_array = alloc(value_type, 1u);
+		const new_array = alloc(value_type, new_capacity);
 		arr.data_begin = new_array;
 		arr.data_end   = new_array;
-		arr.alloc_end  = new_array + 1;
+		arr.alloc_end  = new_array + new_capacity;
 	}
-	else if (arr.data_end == arr.alloc_end)
+	else if (arr.capacity() < new_capacity)
 	{
-		const old_capacity = (arr.alloc_end - arr.data_begin) as usize;
-		const new_capacity = 2u * old_capacity;
-		const new_array = alloc(value_type, new_capacity);
-		for (let i = 0u64; i < old_capacity; ++i)
+		const size = arr.size();
+		const old_capacity = arr.capacity();
+		let rounded_new_capacity = old_capacity;
+		while (rounded_new_capacity < new_capacity)
+		{
+			rounded_new_capacity *= 2u;
+		}
+		const new_array = alloc(value_type, rounded_new_capacity);
+		for (let i = 0uz; i < size; ++i)
 		{
 			*(new_array + i) = *(arr.data_begin + i);
 		}
 		free(arr.data_begin);
 		arr.data_begin = new_array;
-		arr.data_end   = new_array + old_capacity;
-		arr.alloc_end  = new_array + new_capacity;
+		arr.data_end   = new_array + size;
+		arr.alloc_end  = new_array + rounded_new_capacity;
 	}
+}
 
+@no_comptime_checking
+function push_back(arr: &error_array_t, val: error_t)
+{
+	arr.reserve(arr.size() + 1u);
+	*arr.data_end = val;
+	++arr.data_end;
+	val.call_stack = __builtin_slice_from_const_ptrs(null as *uint64, null as *uint64);
+}
+
+@no_comptime_checking
+function push_back(arr: &call_stack_t, val: uint64)
+{
+	arr.reserve(arr.size() + 1u);
 	*arr.data_end = val;
 	++arr.data_end;
 }
@@ -176,6 +195,12 @@ function pop_back(arr: &call_stack_t)
 function size(arr: &const auto) -> usize
 {
 	return (arr.data_end - arr.data_begin) as usize;
+}
+
+@no_comptime_checking
+function capacity(arr: &const auto) -> usize
+{
+	return (arr.alloc_end - arr.data_begin) as usize;
 }
 
 @no_comptime_checking
