@@ -1193,6 +1193,21 @@ static ast::expression get_builtin_binary_assign(
 			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
+	else if (
+		lhs_t.is<ast::ts_array_slice>()
+		&& rhs_t.is<ast::ts_array_slice>()
+		&& lhs_t.get<ast::ts_array_slice>().elem_type == rhs_t.get<ast::ts_array_slice>().elem_type
+	)
+	{
+		auto result_type = lhs_t;
+		auto const result_type_kind = lhs_type_kind;
+		return ast::make_dynamic_expression(
+			src_tokens,
+			result_type_kind,
+			std::move(result_type),
+			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
+		);
+	}
 
 	bz::vector<source_highlight> notes = {};
 	bz::vector<source_highlight> suggestions = {};
