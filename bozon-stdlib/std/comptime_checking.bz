@@ -71,6 +71,19 @@ struct call_stack_t
 	.data_begin: *uint64;
 	.data_end:   *uint64;
 	.alloc_end:  *uint64;
+
+	// @no_comptime_checking
+	destructor(&self)
+	{
+		for (let it = self.data_begin; it != self.data_end; ++it)
+		{
+			__builtin_call_destructor(*it);
+		}
+		free(self.data_begin);
+		self.data_begin = null;
+		self.data_end   = null;
+		self.alloc_end  = null;
+	}
 }
 
 struct error_t
@@ -78,6 +91,12 @@ struct error_t
 	.kind: uint32;
 	.ptr:  uint64;
 	.call_stack: [: const uint64];
+
+	// @no_comptime_checking
+	destructor(&self)
+	{
+		free(self.call_stack.begin());
+	}
 }
 
 struct error_array_t
@@ -85,6 +104,19 @@ struct error_array_t
 	.data_begin: *error_t;
 	.data_end:   *error_t;
 	.alloc_end:  *error_t;
+
+	// @no_comptime_checking
+	destructor(&self)
+	{
+		for (let it = self.data_begin; it != self.data_end; ++it)
+		{
+			__builtin_call_destructor(*it);
+		}
+		free(self.data_begin);
+		self.data_begin = null;
+		self.data_end   = null;
+		self.alloc_end  = null;
+	}
 }
 
 @no_comptime_checking
@@ -155,6 +187,11 @@ function empty(arr: &const auto) -> bool
 @no_comptime_checking
 function clear(arr: &call_stack_t)
 {
+	for (let it = arr.data_end; it != arr.data_begin;)
+	{
+		--it;
+		__builtin_call_destructor(*it);
+	}
 	arr.data_end = arr.data_begin;
 }
 
@@ -164,37 +201,9 @@ function clear(arr: &error_array_t)
 	for (let it = arr.data_end; it != arr.data_begin;)
 	{
 		--it;
-		(*it).destruct();
+		__builtin_call_destructor(*it);
 	}
 	arr.data_end = arr.data_begin;
-}
-
-@no_comptime_checking
-function destruct(arr: &call_stack_t)
-{
-	free(arr.data_begin);
-	arr.data_begin = null;
-	arr.data_end   = null;
-	arr.alloc_end  = null;
-}
-
-@no_comptime_checking
-function destruct(err: &error_t)
-{
-	if (err.call_stack.begin() != null)
-	{
-		free(err.call_stack.begin());
-	}
-}
-
-@no_comptime_checking
-function destruct(arr: &error_array_t)
-{
-	arr.clear();
-	free(arr.data_begin);
-	arr.data_begin = null;
-	arr.data_end   = null;
-	arr.alloc_end  = null;
 }
 
 @no_comptime_checking
@@ -233,8 +242,8 @@ let call_stack = call_stack_t[ null, null, null ];
 @comptime_error_checking("cleanup")
 function cleanup()
 {
-	errors.destruct();
-	call_stack.destruct();
+	__builtin_call_destructor(errors);
+	__builtin_call_destructor(call_stack);
 }
 
 @comptime_error_checking("get_error_count")
