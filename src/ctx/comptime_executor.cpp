@@ -629,6 +629,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	bz::array_view<ast::constant_value const> params
 )
 {
+	bz_assert(this->destructor_calls.empty());
 	auto const original_module = this->current_module;
 	auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
 	module->setDataLayout(this->get_data_layout());
@@ -664,8 +665,9 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	else
 	{
 		this->initialize_engine();
+		auto const start_index = this->functions_to_compile.size();
 		this->ensure_function_emission(body);
-		if (!bc::comptime::emit_necessary_functions(*this))
+		if (!bc::comptime::emit_necessary_functions(start_index, *this))
 		{
 			return result;
 		}
@@ -695,6 +697,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_compound_expression(ast::expr_compound &expr)
 {
+	bz_assert(this->destructor_calls.empty());
 	auto const original_module = this->current_module;
 	auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
 	module->setDataLayout(this->get_data_layout());
@@ -708,8 +711,9 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	std::pair<ast::constant_value, bz::vector<error>> result;
 	this->initialize_engine();
 
+	auto const start_index = this->functions_to_compile.size();
 	auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(expr, *this);
-	if (!bc::comptime::emit_necessary_functions(*this))
+	if (!bc::comptime::emit_necessary_functions(start_index, *this))
 	{
 		return result;
 	}
@@ -813,7 +817,7 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 		this->functions_to_compile.push_back(func.func_body);
 	}
 
-	[[maybe_unused]] auto const emit_result = bc::comptime::emit_necessary_functions(*this);
+	[[maybe_unused]] auto const emit_result = bc::comptime::emit_necessary_functions(0, *this);
 	bz_assert(emit_result);
 	this->functions_to_compile.clear();
 

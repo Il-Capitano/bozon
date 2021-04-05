@@ -4515,13 +4515,13 @@ void add_builtin_functions(ctx::comptime_executor_context &context)
 	}
 }
 
-bool emit_necessary_functions(ctx::comptime_executor_context &context)
+bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context)
 {
 	auto const abi = context.get_platform_abi();
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
 			if (context.contains_function(body))
@@ -4536,7 +4536,7 @@ bool emit_necessary_functions(ctx::comptime_executor_context &context)
 		}
 		return true;
 	case abi::platform_abi::microsoft_x64:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
 			if (context.contains_function(body))
@@ -4551,7 +4551,7 @@ bool emit_necessary_functions(ctx::comptime_executor_context &context)
 		}
 		return true;
 	case abi::platform_abi::systemv_amd64:
-		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
+		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
 			if (context.contains_function(body))
@@ -4898,6 +4898,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
 
+	context.push_expression_scope();
 	for (auto &stmt : expr.statements)
 	{
 		emit_bitcode<abi>(stmt, context);
@@ -4912,9 +4913,11 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		else
 		{
 			auto const result_val = emit_bitcode<abi>(expr.final_expr, context, nullptr).get_value(context.builder);
+			context.pop_expression_scope();
 			context.builder.CreateRet(result_val);
 		}
 	}
+	context.pop_expression_scope();
 
 	context.builder.SetInsertPoint(alloca_bb);
 	context.builder.CreateBr(entry_bb);

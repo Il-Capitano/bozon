@@ -16,7 +16,7 @@ void emit_global_variable(ast::decl_variable const &var_decl, ctx::comptime_exec
 
 void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_executor_context &context);
 void add_builtin_functions(ctx::comptime_executor_context &context);
-[[nodiscard]] bool emit_necessary_functions(ctx::comptime_executor_context &context);
+[[nodiscard]] bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context);
 
 std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution(
 	ast::function_body *body,
