@@ -45,6 +45,7 @@
 				"compiler": "clang-11",
 				"libraries": [ "LLVM-11" ],
 				"warnings": [ "no-unused-parameter" ],
+				"run_args": [ "--use-interpreter" ],
 				"emit_compile_commands": false
 			},
 			"debug": {
