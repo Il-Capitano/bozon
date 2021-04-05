@@ -28,12 +28,33 @@ class vector : public collection_base<vector<T, Alloc>>
 private:
 	using self_t = vector<T, Alloc>;
 
+#if __cpp_exceptions
+
 	static constexpr bool nothrow_alloc   = false;
 	static constexpr bool nothrow_dealloc = true;
 
-	static constexpr bool nothrow_move_value     = meta::is_nothrow_move_constructible_v<T>;
-	static constexpr bool nothrow_copy_value     = meta::is_nothrow_copy_constructible_v<T>;
-	static constexpr bool nothrow_destruct_value = meta::is_nothrow_destructible_v<T>;
+	static constexpr bool nothrow_move_value        = meta::is_nothrow_move_constructible_v<T>;
+	static constexpr bool nothrow_move_assign_value = meta::is_nothrow_move_assignable_v<T>;
+	static constexpr bool nothrow_copy_value        = meta::is_nothrow_copy_constructible_v<T>;
+	static constexpr bool nothrow_destruct_value    = meta::is_nothrow_destructible_v<T>;
+
+	template<typename ...Args>
+	static constexpr bool nothrow_construct_value = meta::is_nothrow_constructible_v<T, Args...>;
+
+#else
+
+	static constexpr bool nothrow_alloc   = true;
+	static constexpr bool nothrow_dealloc = true;
+
+	static constexpr bool nothrow_move_value        = true;
+	static constexpr bool nothrow_move_assign_value = true;
+	static constexpr bool nothrow_copy_value        = true;
+	static constexpr bool nothrow_destruct_value    = true;
+
+	template<typename ...Args>
+	static constexpr bool nothrow_construct_value = true;
+
+#endif // __cpp_exceptions
 
 	static constexpr bool trivial_alloc = std::is_trivial_v<Alloc> || std::is_empty_v<Alloc>;
 
@@ -88,10 +109,10 @@ private:
 
 	template<typename ...Args>
 	void try_emplace(value_type *p, Args &&...args) noexcept(
-		meta::is_nothrow_constructible_v<value_type, Args...>
+		nothrow_construct_value<Args...>
 	)
 	{
-		if constexpr (meta::is_nothrow_constructible_v<value_type, Args...>)
+		if constexpr (nothrow_construct_value<Args...>)
 		{
 			// if it's not constructible with the provided args, we try to use
 			// value_type{ args... } syntax instead
@@ -130,10 +151,7 @@ private:
 	template<bool assign_alloc = true>
 	void no_clear_assign(self_t const &other) noexcept(
 		nothrow_alloc
-		&& (
-			!assign_alloc
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		&& (!assign_alloc || trivial_alloc || meta::is_nothrow_copy_assignable_v<allocator_type>)
 	)
 	{
 		auto other_cap = other.capacity();
@@ -178,10 +196,9 @@ private:
 
 	void copy_to_new_alloc(value_type *new_data, size_type new_cap) noexcept(
 		nothrow_dealloc  // no_null_clear
-		&& meta::is_nothrow_destructible_v<value_type> // no_null_clear
+		&& nothrow_destruct_value  // no_null_clear
 		&& (  // data copying
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
+			nothrow_move_value || nothrow_copy_value
 		)
 	)
 	{
@@ -189,14 +206,11 @@ private:
 		auto old_end = this->_data_end;
 		auto new_it  = new_data;
 
-		if constexpr (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		if constexpr (nothrow_move_value || nothrow_copy_value)
 		{
 			for (; old_it != old_end; ++new_it, ++old_it)
 			{
-				if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+				if constexpr (nothrow_move_value)
 				{
 					this->try_emplace(new_it, std::move(*old_it));
 				}
@@ -243,10 +257,7 @@ private:
 	}
 
 public:
-	void clear(void) noexcept(
-		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-	)
+	void clear(void) noexcept(nothrow_dealloc && nothrow_destruct_value)
 	{
 		this->no_null_clear();
 		this->set_to_null();
@@ -255,8 +266,8 @@ public:
 	void assign(self_t const &other) noexcept(
 		nothrow_alloc
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& meta::is_nothrow_copy_constructible_v<value_type>
+		&& nothrow_destruct_value
+		&& nothrow_copy_value
 	)
 	{
 		if (this == &other)
@@ -269,7 +280,7 @@ public:
 
 	void assign(self_t &&other) noexcept(
 		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
+		&& nothrow_destruct_value
 		&& (trivial_alloc || meta::is_nothrow_move_assignable_v<allocator_type>)
 	)
 	{
@@ -308,15 +319,16 @@ public:
 
 	~vector(void) noexcept(
 		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
+		&& nothrow_destruct_value
 	)
 	{ this->no_null_clear(); }
 
 	self_t &operator = (self_t const &other) noexcept(
 		nothrow_alloc
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& meta::is_nothrow_copy_constructible_v<value_type>
+		&& nothrow_destruct_value
+		&& nothrow_copy_value
+		&& meta::is_nothrow_copy_assignable_v<allocator_type>
 	)
 	{
 		this->assign(other);
@@ -325,7 +337,7 @@ public:
 
 	self_t &operator = (self_t &&other) noexcept(
 		nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
+		&& nothrow_destruct_value
 		&& meta::is_nothrow_move_assignable_v<allocator_type>
 	)
 	{
@@ -336,10 +348,7 @@ public:
 	vector(std::initializer_list<value_type> init_list) noexcept(
 		nothrow_alloc
 		&& meta::is_nothrow_destructible_v<std::initializer_list<value_type>>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		&& nothrow_copy_value
 	)
 		: self_t()
 	{
@@ -348,20 +357,13 @@ public:
 		auto list_end = init_list.end();
 		for (; list_it != list_end; ++this->_data_end, ++list_it)
 		{
-			if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
-			{
-				this->try_emplace(this->_data_end, std::move(*list_it));
-			}
-			else
-			{
-				this->try_emplace(this->_data_end, *list_it);
-			}
+			this->try_emplace(this->_data_end, *list_it);
 		}
 	}
 
 	vector(size_type size) noexcept(
 		nothrow_alloc       // size change
-		&& meta::is_nothrow_default_constructible_v<value_type>  // new_size > current_size
+		&& meta::is_nothrow_default_constructible_v<value_type>
 	)
 		: self_t()
 	{
@@ -370,7 +372,7 @@ public:
 
 	vector(size_type size, value_type const &val) noexcept(
 		nothrow_alloc       // size change
-		&& meta::is_nothrow_copy_constructible_v<value_type>     // new_size > current_size
+		&& nothrow_copy_value
 	)
 		: self_t()
 	{
@@ -379,7 +381,7 @@ public:
 
 	vector(const_iterator begin, const_iterator end) noexcept(
 		nothrow_alloc
-		&& meta::is_nothrow_copy_constructible_v<value_type>
+		&& nothrow_copy_value
 	)
 		: self_t()
 	{
@@ -396,7 +398,7 @@ public:
 	template<typename U>
 	vector(array_view<U> arr_view) noexcept(
 		nothrow_alloc
-		&& meta::is_nothrow_constructible_v<value_type, U const &>
+		&& nothrow_construct_value<U const &>
 	)
 		: self_t()
 	{
@@ -416,8 +418,8 @@ public:
 	void resize(size_type new_size) noexcept(
 		nothrow_alloc       // size change
 		&& nothrow_dealloc  // size change
-		&& meta::is_nothrow_destructible_v<value_type>           // new_size < current_size
-		&& meta::is_nothrow_copy_constructible_v<value_type>     // shrink_to_fit
+		&& nothrow_destruct_value                                // new_size < current_size
+		&& (nothrow_move_value || nothrow_copy_value)            // shrink_to_fit
 		&& meta::is_nothrow_default_constructible_v<value_type>  // new_size > current_size
 	)
 	{
@@ -449,8 +451,8 @@ public:
 	void resize(size_type new_size, value_type const &val) noexcept(
 		nothrow_alloc       // size change
 		&& nothrow_dealloc  // size change
-		&& meta::is_nothrow_destructible_v<value_type>           // new_size < current_size
-		&& meta::is_nothrow_copy_constructible_v<value_type>     // new_size > current_size, shrink_to_fit
+		&& nothrow_destruct_value  // new_size < current_size
+		&& nothrow_copy_value      // new_size > current_size, shrink_to_fit
 	)
 	{
 		auto current_size = this->size();
@@ -481,11 +483,8 @@ public:
 	void reserve(size_type reserve_size) noexcept(
 		nothrow_alloc  // alloc_new
 		&& nothrow_dealloc  // rest is for data copying
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
 	)
 	{
 		auto current_cap = this->capacity();
@@ -510,11 +509,8 @@ public:
 	void shrink_to_fit(void) noexcept(
 		nothrow_alloc  // alloc_new
 		&& nothrow_dealloc  // rest is for data copying
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
 	)
 	{
 		if (this->_data_begin == nullptr)
@@ -567,12 +563,9 @@ public:
 	auto push_back(value_type const &val) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
-		&& meta::is_nothrow_copy_constructible_v<value_type>  // val construction
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_copy_value  // val construction
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
@@ -588,18 +581,16 @@ public:
 	auto push_back(value_type &&val) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_move_value  // val construction
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
 		{
 			this->reserve(this->capacity() + 1);
 		}
-		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		if constexpr (nothrow_move_value)
 		{
 			this->try_emplace(this->_data_end, std::move(val));
 		}
@@ -615,12 +606,9 @@ public:
 	auto push_front(value_type const &val) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
-		&& meta::is_nothrow_copy_constructible_v<value_type>  // val construction
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_copy_value  // val construction
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
@@ -668,12 +656,9 @@ public:
 	auto push_front(value_type &&val) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
-		&& meta::is_nothrow_copy_constructible_v<value_type>  // val construction
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_move_value  // val construction
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
@@ -681,7 +666,7 @@ public:
 			this->reserve(this->capacity() + 1);
 		}
 		// shift every element by one
-		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		if constexpr (nothrow_move_value)
 		{
 			auto move_from_it = this->_data_end;
 			auto end_it = move_from_it;
@@ -722,12 +707,9 @@ public:
 	auto emplace_back(Args &&...args) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
-		&& meta::is_nothrow_constructible_v<value_type, Args...>
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_construct_value<Args...>
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
@@ -744,12 +726,9 @@ public:
 	auto emplace_front(Args &&...args) noexcept(
 		nothrow_alloc  // reserve
 		&& nothrow_dealloc
-		&& meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
-		&& meta::is_nothrow_constructible_v<value_type, Args...>  // val construction
+		&& nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
+		&& nothrow_construct_value<Args...>  // val construction
 	) -> value_type &
 	{
 		if (this->_data_end == this->_alloc_end)
@@ -757,7 +736,7 @@ public:
 			this->reserve(this->capacity() + 1);
 		}
 		// shift every element by one
-		if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+		if constexpr (nothrow_move_value)
 		{
 			auto move_from_it = this->_data_end;
 			auto end_it = move_from_it;
@@ -795,9 +774,7 @@ public:
 		}
 	}
 
-	void pop_back(void) noexcept(
-		meta::is_nothrow_destructible_v<value_type>
-	)
+	void pop_back(void) noexcept(nothrow_destruct_value)
 	{
 		if (this->_data_end == this->_data_begin)
 		{
@@ -808,11 +785,8 @@ public:
 	}
 
 	void pop_front(void) noexcept(
-		meta::is_nothrow_destructible_v<value_type>
-		&& (
-			meta::is_nothrow_move_constructible_v<value_type>
-			|| meta::is_nothrow_copy_constructible_v<value_type>
-		)
+		nothrow_destruct_value
+		&& (nothrow_move_value || nothrow_copy_value)
 	)
 	{
 		if (this->_data_end == this->_data_begin)
@@ -827,7 +801,7 @@ public:
 		for (; it != end; ++it, ++trace)
 		{
 			trace->~value_type();
-			if constexpr (meta::is_nothrow_move_constructible_v<value_type>)
+			if constexpr (nothrow_move_value)
 			{
 				this->try_emplace(trace, std::move(*it));
 			}
