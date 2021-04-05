@@ -8,6 +8,9 @@ test_result consteval_test(void);
 
 int main(void)
 {
+	debug_comptime_ir_output = true;
+	use_interpreter = true;
+
 	auto in_ms = [](auto time)
 	{
 		return static_cast<double>(
