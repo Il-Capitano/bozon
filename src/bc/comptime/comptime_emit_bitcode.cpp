@@ -2211,6 +2211,7 @@ static val_ptr emit_copy_constructor(
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
 				emit_copy_constructor<abi>(
+					src_tokens,
 					{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
 					member.type,
 					context,
@@ -2229,6 +2230,7 @@ static val_ptr emit_copy_constructor(
 		for (auto const i : bz::iota(0, expr_type.get<ast::ts_array>().size))
 		{
 			emit_copy_constructor<abi>(
+				src_tokens,
 				{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
 				type,
 				context,
@@ -2241,6 +2243,7 @@ static val_ptr emit_copy_constructor(
 		for (auto const &[member_type, i] : expr_type.get<ast::ts_tuple>().types.enumerate())
 		{
 			emit_copy_constructor<abi>(
+				src_tokens,
 				{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
 				member_type,
 				context,
