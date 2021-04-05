@@ -4288,6 +4288,7 @@ static void emit_function_bitcode_impl(
 	bz::vector<llvm::Value *> params = {};
 	params.reserve(func_body.params.size());
 
+	context.push_expression_scope();
 	// initialization of function parameters
 	{
 		auto p_it = func_body.params.begin();
@@ -4309,19 +4310,26 @@ static void emit_function_bitcode_impl(
 				++p_it;
 				continue;
 			}
-			if (!p.var_type.is<ast::ts_lvalue_reference>() && !fn_it->hasAttribute(llvm::Attribute::ByVal))
+			if (p.var_type.is<ast::ts_lvalue_reference>())
+			{
+				bz_assert(fn_it->getType()->isPointerTy());
+				context.add_variable(&p, fn_it);
+			}
+			else
 			{
 				auto const t = get_llvm_type(p.var_type, context);
 				auto const pass_kind = abi::get_pass_kind<abi>(t, context.get_data_layout(), context.get_llvm_context());
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
+					push_destructor_call(p.src_tokens, fn_it, p.var_type, context);
 					context.add_variable(&p, fn_it);
 					break;
 				case abi::pass_kind::value:
 				{
 					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
+					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
 					context.add_variable(&p, alloca);
 					break;
 				}
@@ -4330,6 +4338,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca = context.create_alloca(t);
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
+					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
 					context.add_variable(&p, alloca);
 					break;
 				}
@@ -4349,22 +4358,17 @@ static void emit_function_bitcode_impl(
 					auto const second_address = context.builder.CreateStructGEP(alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
+					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
 					context.add_variable(&p, alloca);
 					break;
 				}
 				}
-			}
-			else
-			{
-				bz_assert(fn_it->getType()->isPointerTy());
-				context.add_variable(&p, fn_it);
 			}
 			++p_it;
 			++fn_it;
 		}
 	}
 
-	context.push_expression_scope();
 	// code emission for statements
 	for (auto &stmt : func_body.get_statements())
 	{
