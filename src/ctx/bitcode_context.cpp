@@ -7,12 +7,6 @@ namespace ctx
 bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
 	  module(_module),
-	  vars_{},
-	  types_{},
-	  functions_to_compile{},
-	  current_function{ nullptr, nullptr },
-	  alloca_bb(nullptr),
-	  output_pointer(nullptr),
 	  builder(_global_ctx._llvm_context)
 {}
 
@@ -312,6 +306,36 @@ bool bitcode_context::has_terminator(void) const
 bool bitcode_context::has_terminator(llvm::BasicBlock *bb)
 {
 	return bb->size() != 0 && bb->back().isTerminator();
+}
+
+void bitcode_context::push_expression_scope(void)
+{
+	this->destructor_calls.emplace_back();
+}
+
+void bitcode_context::pop_expression_scope(void)
+{
+	if (!this->has_terminator())
+	{
+		this->emit_destructor_calls();
+	}
+	this->destructor_calls.pop_back();
+}
+
+void bitcode_context::push_destructor_call(llvm::Function *dtor_func, llvm::Value *ptr)
+{
+	bz_assert(!this->destructor_calls.empty());
+	this->destructor_calls.back().push_back({ dtor_func, ptr });
+}
+
+void bitcode_context::emit_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &[func, val] : this->destructor_calls.back().reversed())
+	{
+		this->builder.CreateCall(func, val);
+	}
 }
 
 void bitcode_context::ensure_function_emission(ast::function_body const *func)

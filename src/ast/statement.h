@@ -378,17 +378,19 @@ struct function_body
 
 	enum : uint32_t
 	{
-		module_export          = bit_at< 0>,
-		main                   = bit_at< 1>,
-		external_linkage       = bit_at< 2>,
-		intrinsic              = bit_at< 3>,
-		generic                = bit_at< 4>,
-		generic_specialization = bit_at< 5>,
-		default_op_assign      = bit_at< 6>,
-		default_op_move_assign = bit_at< 7>,
-		no_comptime_checking   = bit_at< 8>,
-		local                  = bit_at< 9>,
-		destructor             = bit_at<10>,
+		module_export            = bit_at< 0>,
+		main                     = bit_at< 1>,
+		external_linkage         = bit_at< 2>,
+		intrinsic                = bit_at< 3>,
+		generic                  = bit_at< 4>,
+		generic_specialization   = bit_at< 5>,
+		default_op_assign        = bit_at< 6>,
+		default_op_move_assign   = bit_at< 7>,
+		no_comptime_checking     = bit_at< 8>,
+		local                    = bit_at< 9>,
+		destructor               = bit_at<10>,
+		constructor              = bit_at<11>,
+		default_copy_constructor = bit_at<12>,
 	};
 
 	enum : uint8_t
@@ -415,6 +417,8 @@ struct function_body
 		builtin_pointer_cast,
 		builtin_pointer_to_int,
 		builtin_int_to_pointer,
+
+		builtin_call_destructor,
 
 		print_stdout,
 		println_stdout,
@@ -480,7 +484,7 @@ struct function_body
 	uint8_t                   intrinsic_kind = 0;
 	uint32_t                  flags = 0;
 
-	type_info *destructor_of;
+	type_info *constructor_or_destructor_of;
 
 	bz::vector<std::unique_ptr<function_body>>              generic_specializations;
 	bz::vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
@@ -500,7 +504,7 @@ struct function_body
 		  cc            (other.cc),
 		  intrinsic_kind(other.intrinsic_kind),
 		  flags         (other.flags),
-		  destructor_of (nullptr),
+		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from)
 	{}
@@ -585,6 +589,28 @@ struct function_body
 	bool is_destructor(void) const noexcept
 	{
 		return (this->flags & destructor) != 0;
+	}
+
+	bool is_constructor(void) const noexcept
+	{
+		return (this->flags & constructor) != 0;
+	}
+
+	bool is_default_copy_constructor(void) const noexcept
+	{
+		return (this->flags & default_copy_constructor) != 0;
+	}
+
+	type_info *get_destructor_of(void) const noexcept
+	{
+		bz_assert(this->is_destructor());
+		return this->constructor_or_destructor_of;
+	}
+
+	type_info *get_constructor_of(void) const noexcept
+	{
+		bz_assert(this->is_constructor());
+		return this->constructor_or_destructor_of;
 	}
 
 	static bz::u8string decode_symbol_name(
@@ -727,11 +753,18 @@ struct type_info
 	using function_body_ptr = ast_unique_ptr<function_body>;
 	function_body_ptr default_op_assign;
 	function_body_ptr default_op_move_assign;
+
+	function_body_ptr default_copy_constructor;
+
 	function_body *op_assign;
 	function_body *op_move_assign;
+
+	function_body *copy_constructor;
+
 	function_body_ptr destructor;
 
-//	bz::vector<function_body_ptr> constructors;
+	bz::vector<function_body_ptr> constructors;
+
 //	function_body *default_constructor;
 //	function_body *copy_constructor;
 //	function_body *move_constructor;
@@ -749,10 +782,12 @@ struct type_info
 		  member_variables{},
 		  default_op_assign(make_default_op_assign(src_tokens, *this)),
 		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
+		  default_copy_constructor(make_default_copy_constructor(src_tokens, *this)),
 		  op_assign(nullptr),
 		  op_move_assign(nullptr),
-		  destructor(nullptr)
-//		  constructors{},
+		  copy_constructor(nullptr),
+		  destructor(nullptr),
+		  constructors{}
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
 //		  move_constructor(nullptr),
@@ -772,10 +807,12 @@ private:
 		  member_variables{},
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
+		  default_copy_constructor(nullptr),
 		  op_assign(nullptr),
 		  op_move_assign(nullptr),
-		  destructor(nullptr)
-//		  constructors{},
+		  copy_constructor(nullptr),
+		  destructor(nullptr),
+		  constructors{}
 //		  default_constructor(nullptr),
 //		  copy_constructor(nullptr),
 //		  move_constructor(nullptr),
@@ -785,6 +822,7 @@ public:
 
 	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
+	static function_body_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
 
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{
@@ -1030,7 +1068,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 82);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 83);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
@@ -1053,6 +1091,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
+
+		{ function_body::builtin_call_destructor, "__builtin_call_destructor" },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::println_stdout, "__builtin_println_stdout" },

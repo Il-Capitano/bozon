@@ -1085,7 +1085,7 @@ static bool resolve_function_parameters_helper(
 				func_body.src_tokens,
 				bz::format(
 					"destructor of type '{}' must have one parameter",
-					ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name)
+					ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name)
 				)
 			);
 			return false;
@@ -1104,7 +1104,34 @@ static bool resolve_function_parameters_helper(
 				|| !param_type.nodes[1].is<ast::ts_auto>()
 			)
 			{
-				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
+				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
+				context.report_error(
+					func_body.params[0].src_tokens,
+					bz::format(
+						"invalid parameter type '{}' in destructor of type '{}'",
+						param_type, destructor_of_type
+					),
+					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
+				);
+				return false;
+			}
+
+			auto const auto_pos = func_body.params[0].var_type.nodes[1].get<ast::ts_auto>().auto_pos;
+			auto const param_type_src_tokens = lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
+			func_body.params[0].var_type.nodes[1] = ast::ts_base_type{ param_type_src_tokens, func_body.get_destructor_of() };
+		}
+		else
+		{
+			auto const param_type = func_body.params[0].var_type.as_typespec_view();
+			// if the parameter is non-generic, then it must be &<type>
+			if (
+				param_type.nodes.size() != 2
+				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
+				|| !param_type.nodes[1].is<ast::ts_base_type>()
+				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.get_destructor_of()
+			)
+			{
+				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
 				context.report_error(
 					func_body.params[0].src_tokens,
 					bz::format(
@@ -1116,28 +1143,19 @@ static bool resolve_function_parameters_helper(
 				return false;
 			}
 		}
-		else
+	}
+	else if (good && func_body.is_constructor())
+	{
+		if (
+			func_body.params.size() == 1
+			&& func_body.params[0].var_type.nodes.size() == 3
+			&& func_body.params[0].var_type.nodes[0].is<ast::ts_lvalue_reference>()
+			&& func_body.params[0].var_type.nodes[1].is<ast::ts_const>()
+			&& func_body.params[0].var_type.nodes[2].is<ast::ts_base_type>()
+			&& func_body.params[0].var_type.nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+		)
 		{
-			auto const param_type = func_body.params[0].var_type.as_typespec_view();
-			// if the parameter is non-generic, then it must be &<type>
-			if (
-				param_type.nodes.size() != 2
-				|| !param_type.nodes[0].is<ast::ts_lvalue_reference>()
-				|| !param_type.nodes[1].is<ast::ts_base_type>()
-				|| param_type.nodes[1].get<ast::ts_base_type>().info != func_body.destructor_of
-			)
-			{
-				auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
-				context.report_error(
-					func_body.params[0].src_tokens,
-					bz::format(
-						"invalid parameter type '{}' in destructor of type '{}'",
-						param_type, destructor_of_type
-					),
-					{ context.make_note(bz::format("it must be either '&auto' or '&{}'", destructor_of_type)) }
-				);
-				return false;
-			}
+			func_body.get_constructor_of()->copy_constructor = &func_body;
 		}
 	}
 	return good;
@@ -1204,7 +1222,7 @@ static bool resolve_function_return_type_helper(
 	{
 		if (!func_body.return_type.is_empty() && !func_body.return_type.is<ast::ts_void>())
 		{
-			auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.destructor_of->symbol_name);
+			auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
 			context.report_error(
 				func_body.return_type.get_src_tokens(),
 				bz::format("return type must be 'void' for destructor of type '{}'", destructor_of_type)
@@ -1212,6 +1230,11 @@ static bool resolve_function_return_type_helper(
 			return false;
 		}
 		return !func_body.return_type.is_empty();
+	}
+	else if (func_body.is_constructor())
+	{
+		func_body.return_type = ast::make_base_type_typespec({}, func_body.get_constructor_of());
+		return true;
 	}
 	else
 	{
@@ -1830,7 +1853,39 @@ static void parse_type_info_destructor(
 		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
 	);
 	info.destructor->flags |= ast::function_body::destructor;
-	info.destructor->destructor_of = &info;
+	info.destructor->constructor_or_destructor_of = &info;
+}
+
+static void parse_type_info_constructor(
+	ast::type_info &info,
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream->kind == lex::token::identifier && stream->value == "constructor");
+	auto const begin_token = stream;
+	++stream; // 'constructor'
+
+	info.constructors.push_back(ast::make_ast_unique<ast::function_body>(
+		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
+	));
+	auto &body = *info.constructors.back();
+	body.flags |= ast::function_body::constructor;
+	body.constructor_or_destructor_of = &info;
+
+	if (body.return_type.is<ast::ts_unresolved>())
+	{
+		auto const tokens = body.return_type.get<ast::ts_unresolved>().tokens;
+		auto const constructor_of_type = ast::type_info::decode_symbol_name(info.symbol_name);
+		context.report_error(
+			{ tokens.begin, tokens.begin, tokens.end },
+			"a return type cannot be provided for a constructor",
+			{ context.make_note(
+				{ begin_token, begin_token, begin_token + 1 },
+				bz::format("in constructor for type '{}'", constructor_of_type)
+			) }
+		);
+	}
 }
 
 static void parse_type_info_member(
@@ -1926,15 +1981,14 @@ static void resolve_type_info_impl(
 		{
 			parse_type_info_destructor(info, stream, end, context);
 		}
+		else if (stream->kind == lex::token::identifier && stream->value == "constructor")
+		{
+			parse_type_info_constructor(info, stream, end, context);
+		}
 		else
 		{
 			parse_type_info_member(info, stream, end, context);
 		}
-	}
-
-	if (info.destructor != nullptr)
-	{
-		resolve_function({}, *info.destructor, context);
 	}
 
 	if (info.state == ast::resolve_state::error)
@@ -1944,6 +1998,20 @@ static void resolve_type_info_impl(
 	else
 	{
 		info.state = ast::resolve_state::all;
+	}
+
+	if (info.destructor != nullptr)
+	{
+		context.add_to_resolve_queue(info.src_tokens, *info.destructor);
+		resolve_function({}, *info.destructor, context);
+		context.pop_resolve_queue();
+	}
+
+	for (auto &ctor : info.constructors)
+	{
+		context.add_to_resolve_queue(info.src_tokens, *ctor);
+		resolve_function({}, *ctor, context);
+		context.pop_resolve_queue();
 	}
 }
 

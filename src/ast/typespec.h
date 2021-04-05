@@ -249,6 +249,8 @@ typespec_view remove_const_or_consteval(typespec_view ts) noexcept;
 
 bool is_complete(typespec_view ts) noexcept;
 
+bool needs_destructor(typespec_view ts) noexcept;
+
 bool operator == (typespec_view lhs, typespec_view rhs);
 inline bool operator != (typespec_view lhs, typespec_view rhs)
 { return !(lhs == rhs); }

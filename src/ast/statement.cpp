@@ -19,7 +19,19 @@ bz::u8string function_body::get_signature(void) const
 	auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();
 	bz::u8string result = "";
 
-	if (is_op)
+	if (this->is_constructor())
+	{
+		auto const info = this->get_constructor_of();
+		result += type_info::decode_symbol_name(info->symbol_name);
+		result += "::constructor(";
+	}
+	else if (this->is_destructor())
+	{
+		auto const info = this->get_destructor_of();
+		result += type_info::decode_symbol_name(info->symbol_name);
+		result += "::destructor(";
+	}
+	else if (is_op)
 	{
 		result += "operator ";
 		auto const kind = this->function_name_or_operator_kind.get<uint32_t>();
@@ -43,6 +55,7 @@ bz::u8string function_body::get_signature(void) const
 		result += this->function_name_or_operator_kind.get<identifier>().format_as_unqualified();
 		result += '(';
 	}
+
 	bool first = true;
 	for (auto &p : this->params)
 	{
@@ -65,8 +78,16 @@ bz::u8string function_body::get_signature(void) const
 			result += bz::format(" = {}", get_value_string(p.init_expr.get<ast::constant_expression>().value));
 		}
 	}
-	result += ") -> ";
-	result += bz::format("{}", this->return_type);
+
+	if (this->is_constructor() || this->is_destructor())
+	{
+		result += ')';
+	}
+	else
+	{
+		result += ") -> ";
+		result += bz::format("{}", this->return_type);
+	}
 	return result;
 }
 
@@ -74,7 +95,18 @@ bz::u8string function_body::get_symbol_name(void) const
 {
 	if (this->is_destructor())
 	{
-		return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->destructor_of->symbol_name));
+		return bz::format("dtor.{}", ast::type_info::decode_symbol_name(this->get_destructor_of()->symbol_name));
+	}
+	else if (this->is_constructor())
+	{
+		auto symbol_name = bz::format("ctor.{}", ast::type_info::decode_symbol_name(this->get_constructor_of()->symbol_name));
+		symbol_name += bz::format("..{}", this->params.size());
+		for (auto &p : this->params)
+		{
+			symbol_name += '.';
+			symbol_name += p.var_type.get_symbol_name();
+		}
+		return symbol_name;
 	}
 	else
 	{
@@ -199,7 +231,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				break;
 			}
 
-			static_assert(_builtin_last - _builtin_first == 82);
+			static_assert(_builtin_last - _builtin_first == 83);
 			default:
 				break;
 			}
@@ -218,6 +250,7 @@ bz::u8string function_body::decode_symbol_name(
 )
 {
 	constexpr bz::u8string_view destructor_ = "dtor.";
+	constexpr bz::u8string_view constructor_ = "ctor.";
 	constexpr bz::u8string_view function_ = "func.";
 	constexpr bz::u8string_view operator_ = "op.";
 
@@ -267,7 +300,16 @@ bz::u8string function_body::decode_symbol_name(
 	{
 		auto type_begin = bz::u8string_view::const_iterator(it.data() + destructor_.size());
 		auto const type = typespec::decode_symbol_name(type_begin, end);
-		return bz::format("destructor(: &{})", type);
+		return bz::format("{}::destructor(: &{})", type, type);
+	}
+	else if (symbol_name.starts_with(constructor_))
+	{
+		auto type_begin = bz::u8string_view::const_iterator(it.data() + constructor_.size());
+		auto const type_end = symbol_name.find(type_begin, "..");
+		auto const type = typespec::decode_symbol_name(type_begin, type_end);
+		it = bz::u8string_view::const_iterator(type_end.data() + 2);
+		result += type;
+		result += "::constructor(";
 	}
 	else
 	{
@@ -296,11 +338,18 @@ bz::u8string function_body::decode_symbol_name(
 		}
 	}
 
-	bz_assert(it != end && *it == '.');
-	++it;
+	if (it == end)
+	{
+		result += ")";
+	}
+	else
+	{
+		bz_assert(it != end && *it == '.');
+		++it;
 
-	result += ") -> ";
-	result += typespec::decode_symbol_name(it, end);
+		result += ") -> ";
+		result += typespec::decode_symbol_name(it, end);
+	}
 
 	return result;
 }
@@ -359,6 +408,25 @@ type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tok
 	result->src_tokens = src_tokens;
 	result->state = resolve_state::symbol;
 	result->flags |= function_body::default_op_move_assign;
+	return result;
+}
+
+type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info)
+{
+	auto param_t = make_base_type_typespec({}, &info);
+	param_t.add_layer<ts_const>();
+	param_t.add_layer<ts_lvalue_reference>();
+
+	auto ret_t = make_base_type_typespec({}, &info);
+
+	auto result = make_ast_unique<function_body>();
+	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(param_t));
+	result->return_type = std::move(ret_t);
+	result->src_tokens = src_tokens;
+	result->state = resolve_state::symbol;
+	result->flags |= function_body::default_copy_constructor;
+	result->flags |= function_body::constructor;
+	result->constructor_or_destructor_of = &info;
 	return result;
 }
 
@@ -539,6 +607,11 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		result.add_layer<ts_pointer>(nullptr);
 		return result;
 	}();
+	auto const ref_auto_type = [&]() {
+		typespec result = make_auto_typespec(nullptr);
+		result.add_layer<ts_lvalue_reference>(nullptr);
+		return result;
+	}();
 
 #define add_builtin(pos, kind, symbol_name, ...) \
 ((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__))
@@ -564,78 +637,80 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		add_builtin(15, function_body::builtin_pointer_to_int, "", usize_type, void_const_ptr_type),
 		add_builtin(16, function_body::builtin_int_to_pointer, "", {}, typename_ptr_type, usize_type),
 
-		add_builtin(17, function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type),
-		add_builtin(18, function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type),
-		add_builtin(19, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type),
-		add_builtin(20, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type),
+		add_builtin(17, function_body::builtin_call_destructor, "", void_type, ref_auto_type),
 
-		add_builtin(21, function_body::comptime_malloc, "malloc", void_ptr_type, usize_type),
-		add_builtin(22, function_body::comptime_free,   "free",   void_type,     void_const_ptr_type),
+		add_builtin(18, function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type),
+		add_builtin(19, function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type),
+		add_builtin(20, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type),
+		add_builtin(21, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type),
 
-		add_builtin(23, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
-		add_builtin(24, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
-		add_builtin(25, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type, bool_type),
+		add_builtin(22, function_body::comptime_malloc, "malloc", void_ptr_type, usize_type),
+		add_builtin(23, function_body::comptime_free,   "free",   void_type,     void_const_ptr_type),
 
-		add_builtin(26, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type),
-		add_builtin(27, function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type),
-		add_builtin(28, function_body::exp2_f32,  "llvm.exp2.f32",  float32_type, float32_type),
-		add_builtin(29, function_body::exp2_f64,  "llvm.exp2.f64",  float64_type, float64_type),
-		add_builtin(30, function_body::expm1_f32, "expm1f",         float32_type, float32_type),
-		add_builtin(31, function_body::expm1_f64, "expm1",          float64_type, float64_type),
-		add_builtin(32, function_body::log_f32,   "llvm.log.f32",   float32_type, float32_type),
-		add_builtin(33, function_body::log_f64,   "llvm.log.f64",   float64_type, float64_type),
-		add_builtin(34, function_body::log10_f32, "llvm.log10.f32", float32_type, float32_type),
-		add_builtin(35, function_body::log10_f64, "llvm.log10.f64", float64_type, float64_type),
-		add_builtin(36, function_body::log2_f32,  "llvm.log2.f32",  float32_type, float32_type),
-		add_builtin(37, function_body::log2_f64,  "llvm.log2.f64",  float64_type, float64_type),
-		add_builtin(38, function_body::log1p_f32, "log1pf",         float32_type, float32_type),
-		add_builtin(39, function_body::log1p_f64, "log1p",          float64_type, float64_type),
+		add_builtin(24, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
+		add_builtin(25, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
+		add_builtin(26, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type, bool_type),
 
-		add_builtin(40, function_body::sqrt_f32,  "llvm.sqrt.f32", float32_type, float32_type),
-		add_builtin(41, function_body::sqrt_f64,  "llvm.sqrt.f64", float64_type, float64_type),
-		add_builtin(42, function_body::pow_f32,   "llvm.pow.f32",  float32_type, float32_type, float32_type),
-		add_builtin(43, function_body::pow_f64,   "llvm.pow.f64",  float64_type, float64_type, float64_type),
-		add_builtin(44, function_body::cbrt_f32,  "cbrtf",         float32_type, float32_type),
-		add_builtin(45, function_body::cbrt_f64,  "cbrt",          float64_type, float64_type),
-		add_builtin(46, function_body::hypot_f32, "hypotf",        float32_type, float32_type, float32_type),
-		add_builtin(47, function_body::hypot_f64, "hypot",         float64_type, float64_type, float64_type),
+		add_builtin(27, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type),
+		add_builtin(28, function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type),
+		add_builtin(29, function_body::exp2_f32,  "llvm.exp2.f32",  float32_type, float32_type),
+		add_builtin(30, function_body::exp2_f64,  "llvm.exp2.f64",  float64_type, float64_type),
+		add_builtin(31, function_body::expm1_f32, "expm1f",         float32_type, float32_type),
+		add_builtin(32, function_body::expm1_f64, "expm1",          float64_type, float64_type),
+		add_builtin(33, function_body::log_f32,   "llvm.log.f32",   float32_type, float32_type),
+		add_builtin(34, function_body::log_f64,   "llvm.log.f64",   float64_type, float64_type),
+		add_builtin(35, function_body::log10_f32, "llvm.log10.f32", float32_type, float32_type),
+		add_builtin(36, function_body::log10_f64, "llvm.log10.f64", float64_type, float64_type),
+		add_builtin(37, function_body::log2_f32,  "llvm.log2.f32",  float32_type, float32_type),
+		add_builtin(38, function_body::log2_f64,  "llvm.log2.f64",  float64_type, float64_type),
+		add_builtin(39, function_body::log1p_f32, "log1pf",         float32_type, float32_type),
+		add_builtin(40, function_body::log1p_f64, "log1p",          float64_type, float64_type),
 
-		add_builtin(48, function_body::sin_f32,   "llvm.sin.f32", float32_type, float32_type),
-		add_builtin(49, function_body::sin_f64,   "llvm.sin.f64", float64_type, float64_type),
-		add_builtin(50, function_body::cos_f32,   "llvm.cos.f32", float32_type, float32_type),
-		add_builtin(51, function_body::cos_f64,   "llvm.cos.f64", float64_type, float64_type),
-		add_builtin(52, function_body::tan_f32,   "tanf",         float32_type, float32_type),
-		add_builtin(53, function_body::tan_f64,   "tan",          float64_type, float64_type),
-		add_builtin(54, function_body::asin_f32,  "asinf",        float32_type, float32_type),
-		add_builtin(55, function_body::asin_f64,  "asin",         float64_type, float64_type),
-		add_builtin(56, function_body::acos_f32,  "acosf",        float32_type, float32_type),
-		add_builtin(57, function_body::acos_f64,  "acos",         float64_type, float64_type),
-		add_builtin(58, function_body::atan_f32,  "atanf",        float32_type, float32_type),
-		add_builtin(59, function_body::atan_f64,  "atan",         float64_type, float64_type),
-		add_builtin(60, function_body::atan2_f32, "atan2f",       float32_type, float32_type, float32_type),
-		add_builtin(61, function_body::atan2_f64, "atan2",        float64_type, float64_type, float64_type),
+		add_builtin(41, function_body::sqrt_f32,  "llvm.sqrt.f32", float32_type, float32_type),
+		add_builtin(42, function_body::sqrt_f64,  "llvm.sqrt.f64", float64_type, float64_type),
+		add_builtin(43, function_body::pow_f32,   "llvm.pow.f32",  float32_type, float32_type, float32_type),
+		add_builtin(44, function_body::pow_f64,   "llvm.pow.f64",  float64_type, float64_type, float64_type),
+		add_builtin(45, function_body::cbrt_f32,  "cbrtf",         float32_type, float32_type),
+		add_builtin(46, function_body::cbrt_f64,  "cbrt",          float64_type, float64_type),
+		add_builtin(47, function_body::hypot_f32, "hypotf",        float32_type, float32_type, float32_type),
+		add_builtin(48, function_body::hypot_f64, "hypot",         float64_type, float64_type, float64_type),
 
-		add_builtin(62, function_body::sinh_f32,  "sinhf",  float32_type, float32_type),
-		add_builtin(63, function_body::sinh_f64,  "sinh",   float64_type, float64_type),
-		add_builtin(64, function_body::cosh_f32,  "coshf",  float32_type, float32_type),
-		add_builtin(65, function_body::cosh_f64,  "cosh",   float64_type, float64_type),
-		add_builtin(66, function_body::tanh_f32,  "tanhf",  float32_type, float32_type),
-		add_builtin(67, function_body::tanh_f64,  "tanh",   float64_type, float64_type),
-		add_builtin(68, function_body::asinh_f32, "asinhf", float32_type, float32_type),
-		add_builtin(69, function_body::asinh_f64, "asinh",  float64_type, float64_type),
-		add_builtin(70, function_body::acosh_f32, "acoshf", float32_type, float32_type),
-		add_builtin(71, function_body::acosh_f64, "acosh",  float64_type, float64_type),
-		add_builtin(72, function_body::atanh_f32, "atanhf", float32_type, float32_type),
-		add_builtin(73, function_body::atanh_f64, "atanh",  float64_type, float64_type),
+		add_builtin(49, function_body::sin_f32,   "llvm.sin.f32", float32_type, float32_type),
+		add_builtin(50, function_body::sin_f64,   "llvm.sin.f64", float64_type, float64_type),
+		add_builtin(51, function_body::cos_f32,   "llvm.cos.f32", float32_type, float32_type),
+		add_builtin(52, function_body::cos_f64,   "llvm.cos.f64", float64_type, float64_type),
+		add_builtin(53, function_body::tan_f32,   "tanf",         float32_type, float32_type),
+		add_builtin(54, function_body::tan_f64,   "tan",          float64_type, float64_type),
+		add_builtin(55, function_body::asin_f32,  "asinf",        float32_type, float32_type),
+		add_builtin(56, function_body::asin_f64,  "asin",         float64_type, float64_type),
+		add_builtin(57, function_body::acos_f32,  "acosf",        float32_type, float32_type),
+		add_builtin(58, function_body::acos_f64,  "acos",         float64_type, float64_type),
+		add_builtin(59, function_body::atan_f32,  "atanf",        float32_type, float32_type),
+		add_builtin(60, function_body::atan_f64,  "atan",         float64_type, float64_type),
+		add_builtin(61, function_body::atan2_f32, "atan2f",       float32_type, float32_type, float32_type),
+		add_builtin(62, function_body::atan2_f64, "atan2",        float64_type, float64_type, float64_type),
 
-		add_builtin(74, function_body::erf_f32,    "erff",    float32_type, float32_type),
-		add_builtin(75, function_body::erf_f64,    "erf",     float64_type, float64_type),
-		add_builtin(76, function_body::erfc_f32,   "erfcf",   float32_type, float32_type),
-		add_builtin(77, function_body::erfc_f64,   "erfc",    float64_type, float64_type),
-		add_builtin(78, function_body::tgamma_f32, "tgammaf", float32_type, float32_type),
-		add_builtin(79, function_body::tgamma_f64, "tgamma",  float64_type, float64_type),
-		add_builtin(80, function_body::lgamma_f32, "lgammaf", float32_type, float32_type),
-		add_builtin(81, function_body::lgamma_f64, "lgamma",  float64_type, float64_type),
+		add_builtin(63, function_body::sinh_f32,  "sinhf",  float32_type, float32_type),
+		add_builtin(64, function_body::sinh_f64,  "sinh",   float64_type, float64_type),
+		add_builtin(65, function_body::cosh_f32,  "coshf",  float32_type, float32_type),
+		add_builtin(66, function_body::cosh_f64,  "cosh",   float64_type, float64_type),
+		add_builtin(67, function_body::tanh_f32,  "tanhf",  float32_type, float32_type),
+		add_builtin(68, function_body::tanh_f64,  "tanh",   float64_type, float64_type),
+		add_builtin(69, function_body::asinh_f32, "asinhf", float32_type, float32_type),
+		add_builtin(70, function_body::asinh_f64, "asinh",  float64_type, float64_type),
+		add_builtin(71, function_body::acosh_f32, "acoshf", float32_type, float32_type),
+		add_builtin(72, function_body::acosh_f64, "acosh",  float64_type, float64_type),
+		add_builtin(73, function_body::atanh_f32, "atanhf", float32_type, float32_type),
+		add_builtin(74, function_body::atanh_f64, "atanh",  float64_type, float64_type),
+
+		add_builtin(75, function_body::erf_f32,    "erff",    float32_type, float32_type),
+		add_builtin(76, function_body::erf_f64,    "erf",     float64_type, float64_type),
+		add_builtin(77, function_body::erfc_f32,   "erfcf",   float32_type, float32_type),
+		add_builtin(78, function_body::erfc_f64,   "erfc",    float64_type, float64_type),
+		add_builtin(79, function_body::tgamma_f32, "tgammaf", float32_type, float32_type),
+		add_builtin(80, function_body::tgamma_f64, "tgamma",  float64_type, float64_type),
+		add_builtin(81, function_body::lgamma_f32, "lgammaf", float32_type, float32_type),
+		add_builtin(82, function_body::lgamma_f64, "lgamma",  float64_type, float64_type),
 	};
 #undef add_builtin
 	bz_assert(result.size() == intrinsic_info.size());

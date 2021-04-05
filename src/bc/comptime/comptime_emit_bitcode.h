@@ -29,6 +29,14 @@ std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_co
 	ctx::comptime_executor_context &context
 );
 
+void emit_push_call(
+	lex::src_tokens src_tokens,
+	ast::function_body const *func_body,
+	ctx::comptime_executor_context &context
+);
+
+void emit_pop_call(ctx::comptime_executor_context &context);
+
 } // namespace bc::comptime
 
 #endif // BC_COMPTIME_EMIT_BITCODE_H

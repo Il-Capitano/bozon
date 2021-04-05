@@ -116,6 +116,14 @@ struct comptime_executor_context
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
 
+
+	void push_expression_scope(void);
+	void pop_expression_scope(void);
+
+	void push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
+	void emit_destructor_calls(void);
+
+
 	void ensure_function_emission(ast::function_body *func);
 	[[nodiscard]] bool resolve_function(ast::function_body *body);
 
@@ -161,6 +169,16 @@ struct comptime_executor_context
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
 	bz::vector<ast::function_body *> functions_to_compile{};
+
+	struct destructor_call_t
+	{
+		lex::src_tokens src_tokens;
+		ast::function_body *dtor_func;
+		llvm::Value *ptr;
+	};
+
+	bz::vector<bz::vector<destructor_call_t>> destructor_calls{};
+
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
 	llvm::BasicBlock *error_bb  = nullptr;

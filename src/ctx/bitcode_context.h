@@ -77,6 +77,12 @@ struct bitcode_context
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
 
+	void push_expression_scope(void);
+	void pop_expression_scope(void);
+
+	void push_destructor_call(llvm::Function *dtor_func, llvm::Value *ptr);
+	void emit_destructor_calls(void);
+
 
 	void ensure_function_emission(ast::function_body const *func);
 
@@ -84,15 +90,17 @@ struct bitcode_context
 	global_context &global_ctx;
 	llvm::Module *module;
 
-	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_;
-	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_;
-	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_;
+	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
+	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
+	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
-	bz::vector<ast::function_body const *> functions_to_compile;
+	bz::vector<ast::function_body const *> functions_to_compile{};
 
-	std::pair<ast::function_body const *, llvm::Function *> current_function;
-	llvm::BasicBlock *alloca_bb;
-	llvm::Value *output_pointer;
+	bz::vector<bz::vector<std::pair<llvm::Function *, llvm::Value *>>> destructor_calls{};
+
+	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
+	llvm::BasicBlock *alloca_bb = nullptr;
+	llvm::Value *output_pointer = nullptr;
 
 	llvm::IRBuilder<> builder;
 };

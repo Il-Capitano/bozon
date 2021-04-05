@@ -10,6 +10,14 @@
 namespace ctx
 {
 
+static ast::expression make_expr_function_call_from_body(
+	lex::src_tokens src_tokens,
+	ast::function_body *body,
+	bz::vector<ast::expression> params,
+	parse_context &context,
+	ast::resolve_order resolve_order = ast::resolve_order::regular
+);
+
 parse_context::parse_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx)
 {}
@@ -2767,7 +2775,10 @@ static void strict_match_expression_to_type_impl(
 	else
 	{
 		bz_assert(expr.not_error());
-		context.report_error(expr, bz::format("cannot convert expression from type '{}' to '{}'", expr.get_expr_type_and_kind().first, dest_container));
+		context.report_error(
+			expr,
+			bz::format("cannot convert expression from type '{}' to '{}'", expr.get_expr_type_and_kind().first, dest_container)
+		);
 		if (!ast::is_complete(dest_container))
 		{
 			dest_container.clear();
@@ -2790,7 +2801,10 @@ static void match_typename_to_type_impl(
 
 	if (!ast::is_complete(source))
 	{
-		context.report_error(expr, bz::format("couldn't match non-complete type '{}' to typename type '{}'", expr.get_typename(), dest_container));
+		context.report_error(
+			expr,
+			bz::format("couldn't match non-complete type '{}' to typename type '{}'", expr.get_typename(), dest_container)
+		);
 		expr.to_error();
 		dest_container.clear();
 		return;
@@ -3190,9 +3204,10 @@ static void match_expression_to_type_impl(
 	if (dest.is<ast::ts_auto>() && ast::is_complete(expr_type_without_const))
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
-		return;
+		dest = ast::remove_const_or_consteval(dest_container);
 	}
-	else if (dest.is<ast::ts_auto>() && expr.is_tuple())
+
+	if (dest.is<ast::ts_auto>() && expr.is_tuple())
 	{
 		auto &tuple_expr = expr.get_tuple();
 		ast::typespec tuple_type = ast::make_tuple_typespec(dest.get_src_tokens(), {});
@@ -3263,6 +3278,32 @@ static void match_expression_to_type_impl(
 	}
 	else if (dest == expr_type_without_const)
 	{
+		if (expr_type_kind == ast::expression_type_kind::rvalue)
+		{
+			return;
+		}
+
+		if (dest.is<ast::ts_base_type>())
+		{
+			auto &info = *dest.get<ast::ts_base_type>().info;
+			if (info.kind != ast::type_info::aggregate)
+			{
+				return;
+			}
+			auto const copy_ctor = info.copy_constructor == nullptr ? info.default_copy_constructor.get() : info.copy_constructor;
+			auto const src_tokens = expr.src_tokens;
+			bz::vector<ast::expression> params;
+			params.emplace_back(std::move(expr));
+			expr = make_expr_function_call_from_body(src_tokens, copy_ctor, std::move(params), context);
+		}
+		else if (dest.is<ast::ts_array>())
+		{
+			// bz_unreachable;
+		}
+		else if (dest.is<ast::ts_tuple>())
+		{
+			// bz_unreachable;
+		}
 		return;
 	}
 	else if (is_implicitly_convertible(dest, expr, context))
@@ -3476,11 +3517,18 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 		{
 			bz::vector<source_highlight> notes;
 			notes.reserve(possible_funcs.size());
-			for (auto &func : possible_funcs)
+			for (auto &func : filtered_funcs)
 			{
-				notes.emplace_back(context.make_note(
-					func.func_body->src_tokens, func.func_body->get_candidate_message()
-				));
+				if (func.func_body->src_tokens.pivot == nullptr)
+				{
+					notes.emplace_back(context.make_note(func.func_body->get_candidate_message()));
+				}
+				else
+				{
+					notes.emplace_back(context.make_note(
+						func.func_body->src_tokens, func.func_body->get_candidate_message()
+					));
+				}
 				if (func.stmt.is<ast::decl_function_alias>())
 				{
 					auto &alias = func.stmt.get<ast::decl_function_alias>();
@@ -3526,7 +3574,7 @@ static ast::expression make_expr_function_call_from_body(
 	ast::function_body *body,
 	bz::vector<ast::expression> params,
 	parse_context &context,
-	ast::resolve_order resolve_order = ast::resolve_order::regular
+	ast::resolve_order resolve_order
 )
 {
 	if (body->is_generic())

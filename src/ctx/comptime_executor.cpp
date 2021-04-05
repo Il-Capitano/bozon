@@ -144,13 +144,13 @@ abi::platform_abi comptime_executor_context::get_platform_abi(void) const noexce
 
 size_t comptime_executor_context::get_size(ast::typespec_view ts)
 {
-	auto const llvm_t = bc::comptime::get_llvm_type(ts, *this);
+	auto const llvm_t = bc::get_llvm_type(ts, *this);
 	return this->get_size(llvm_t);
 }
 
 size_t comptime_executor_context::get_align(ast::typespec_view ts)
 {
-	auto const llvm_t = bc::comptime::get_llvm_type(ts, *this);
+	auto const llvm_t = bc::get_llvm_type(ts, *this);
 	return this->get_align(llvm_t);
 }
 
@@ -380,6 +380,38 @@ bool comptime_executor_context::has_terminator(void) const
 bool comptime_executor_context::has_terminator(llvm::BasicBlock *bb)
 {
 	return bb->size() != 0 && bb->back().isTerminator();
+}
+
+void comptime_executor_context::push_expression_scope(void)
+{
+	this->destructor_calls.emplace_back();
+}
+
+void comptime_executor_context::pop_expression_scope(void)
+{
+	if (!this->has_terminator())
+	{
+		this->emit_destructor_calls();
+	}
+	this->destructor_calls.pop_back();
+}
+
+void comptime_executor_context::push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
+{
+	bz_assert(!this->destructor_calls.empty());
+	this->destructor_calls.back().push_back({ src_tokens, dtor_func, ptr });
+}
+
+void comptime_executor_context::emit_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
+	{
+		bc::comptime::emit_push_call(src_tokens, func, *this);
+		this->builder.CreateCall(this->get_function(func), val);
+		bc::comptime::emit_pop_call(*this);
+	}
 }
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
