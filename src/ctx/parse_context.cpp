@@ -1361,7 +1361,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 			bz_assert(this->has_errors());
 			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 		}
-		else if (id_type.is<ast::ts_consteval>())
+		else if (id_type.is<ast::ts_consteval>() && var_decl->init_expr.is<ast::constant_expression>())
 		{
 			auto &init_expr = var_decl->init_expr;
 			bz_assert(init_expr.is<ast::constant_expression>());
