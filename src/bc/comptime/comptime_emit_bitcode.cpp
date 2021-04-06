@@ -2561,7 +2561,6 @@ static val_ptr emit_bitcode(
 			: static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_back);
 		auto &p = func_call.params[i];
 		auto &p_t = func_call.func_body->params[i].var_type;
-		auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 		if (p_t.is_typename())
 		{
 			// do nothing for typename args
@@ -2569,6 +2568,7 @@ static val_ptr emit_bitcode(
 		}
 		else if (p_t.is<ast::ts_lvalue_reference>())
 		{
+			auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 			bz_assert(param_val.kind == val_ptr::reference);
 			(params.*params_push)(param_val.val);
 			(params_is_pass_by_ref.*ref_push)(false);
@@ -2576,6 +2576,7 @@ static val_ptr emit_bitcode(
 		// *void and *const void
 		else if (ast::remove_const_or_consteval(ast::remove_pointer(p_t)).is<ast::ts_void>())
 		{
+			auto const param_val = emit_bitcode<abi>(p, context, nullptr);
 			auto const void_ptr_val = context.builder.CreatePointerCast(
 				param_val.get_value(context.builder),
 				llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
@@ -2587,6 +2588,10 @@ static val_ptr emit_bitcode(
 		{
 			auto const param_llvm_type = get_llvm_type(p_t, context);
 			auto const pass_kind = abi::get_pass_kind<abi>(param_llvm_type, context.get_data_layout(), context.get_llvm_context());
+
+			auto const param_val = ast::needs_destructor(p_t)
+				? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
+				: emit_bitcode<abi>(p, context, nullptr);
 
 			switch (pass_kind)
 			{
