@@ -132,27 +132,32 @@ function free(p: *const void)
 }
 
 @no_comptime_checking
+function round_to_next_power_of_two(n: usize) -> usize
+{
+	// https://stackoverflow.com/a/466242/11488457
+	n -= 1u;
+	n |= n >> 1u;
+	n |= n >> 2u;
+	n |= n >> 4u;
+	n |= n >> 8u;
+	n |= n >> 16u;
+	n |= n >> 32u;
+	n += 1u;
+	return n;
+}
+
+@no_comptime_checking
 function reserve(arr: &auto, new_capacity: usize)
 {
 	type value_type = typeof *arr.data_begin;
 	static_assert(value_type == error_t || value_type == uint64);
-	if (arr.data_begin == null)
-	{
-		const new_array = alloc(value_type, new_capacity);
-		arr.data_begin = new_array;
-		arr.data_end   = new_array;
-		arr.alloc_end  = new_array + new_capacity;
-	}
-	else if (arr.capacity() < new_capacity)
+
+	new_capacity = round_to_next_power_of_two(new_capacity);
+
+	if (arr.capacity() < new_capacity)
 	{
 		const size = arr.size();
-		const old_capacity = arr.capacity();
-		let rounded_new_capacity = old_capacity;
-		while (rounded_new_capacity < new_capacity)
-		{
-			rounded_new_capacity *= 2u;
-		}
-		const new_array = alloc(value_type, rounded_new_capacity);
+		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0uz; i < size; ++i)
 		{
 			*(new_array + i) = *(arr.data_begin + i);
@@ -160,7 +165,7 @@ function reserve(arr: &auto, new_capacity: usize)
 		free(arr.data_begin);
 		arr.data_begin = new_array;
 		arr.data_end   = new_array + size;
-		arr.alloc_end  = new_array + rounded_new_capacity;
+		arr.alloc_end  = new_array + new_capacity;
 	}
 }
 
