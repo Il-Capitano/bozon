@@ -2465,6 +2465,15 @@ static val_ptr emit_bitcode(
 		}
 	}
 
+	if (
+		func_call.func_body->intrinsic_kind == ast::function_body::memcpy
+		|| func_call.func_body->intrinsic_kind == ast::function_body::memmove
+	)
+	{
+		params.push_back(llvm::ConstantInt::getFalse(context.get_llvm_context()));
+		params_is_pass_by_ref.push_back(false);
+	}
+
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
 	call->setCallingConv(fn->getCallingConv());
 	auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
@@ -3824,6 +3833,12 @@ static llvm::Function *create_function_from_symbol_impl(
 			}
 		}
 	}
+	if (func_body.intrinsic_kind == ast::function_body::memcpy || func_body.intrinsic_kind == ast::function_body::memmove)
+	{
+		args.push_back(context.get_bool_t());
+		pass_arg_by_ref.push_back(false);
+	}
+
 	auto const func_t = [&]() {
 		llvm::Type *real_result_t;
 		if (func_body.is_main())

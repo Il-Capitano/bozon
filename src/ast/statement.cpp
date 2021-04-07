@@ -647,8 +647,8 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		add_builtin(22, function_body::comptime_malloc, "malloc", void_ptr_type, usize_type),
 		add_builtin(23, function_body::comptime_free,   "free",   void_type,     void_const_ptr_type),
 
-		add_builtin(24, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
-		add_builtin(25, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type, bool_type),
+		add_builtin(24, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type),
+		add_builtin(25, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type),
 		add_builtin(26, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type, bool_type),
 
 		add_builtin(27, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type),
