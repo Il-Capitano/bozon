@@ -6,7 +6,6 @@
 
 		"c_compiler_flags": [],
 		"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
-		"link_flags": [ "-fuse-ld=lld" ],
 		"emit_compile_commands": true,
 
 		"run_args": [
@@ -39,13 +38,14 @@
 			},
 			"linux-release": {},
 			"windows": {
+				"link_flags": [ "-fuse-ld=lld" ],
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
 				"compiler": "clang-11",
 				"libraries": [ "LLVM-11" ],
+				"link_flags": [ "-fuse-ld=lld-11" ],
 				"warnings": [ "no-unused-parameter" ],
-				"run_args": [ "--use-interpreter" ],
 				"emit_compile_commands": false
 			},
 			"debug": {
