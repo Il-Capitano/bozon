@@ -3188,7 +3188,7 @@ static void match_expression_to_type_impl(
 			dest_container.nodes.front().emplace<ast::ts_const>(ref_pos);
 			dest_container.add_layer<ast::ts_lvalue_reference>(ref_pos);
 		}
-		else if (expr_type_kind == ast::expression_type_kind::lvalue || expr_type_kind == ast::expression_type_kind::lvalue_reference)
+		else if (ast::is_lvalue(expr_type_kind))
 		{
 			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos;
 			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>(ref_pos);
@@ -3205,6 +3205,16 @@ static void match_expression_to_type_impl(
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
 		dest = ast::remove_const_or_consteval(dest_container);
+	}
+
+	if (expr.is<ast::constant_expression>() && expr.is_tuple())
+	{
+		auto &const_expr = expr.get<ast::constant_expression>();
+		auto kind = const_expr.kind;
+		auto type = std::move(const_expr.type);
+		auto inner_expr = std::move(const_expr.expr);
+		expr.emplace<ast::dynamic_expression>(kind, std::move(type), std::move(inner_expr));
+		expr.consteval_state = ast::expression::consteval_never_tried;
 	}
 
 	if (dest.is<ast::ts_auto>() && expr.is_tuple())
@@ -4254,6 +4264,48 @@ ast::expression parse_context::make_function_call_expression(
 			}
 		}
 	}
+	else if (called.is_typename())
+	{
+		auto const called_type = ast::remove_const_or_consteval(called.get_typename());
+		if (called_type.is<ast::ts_base_type>())
+		{
+			auto const info = called_type.get<ast::ts_base_type>().info;
+			parse::resolve_type_info(*info, *this);
+		}
+		auto const possible_funcs = called_type.is<ast::ts_base_type>()
+			? called_type.get<ast::ts_base_type>().info->constructors
+				.transform([&](auto const &ptr) {
+					return possible_func_t{ get_function_call_match_level({}, *ptr, params, *this, src_tokens), {}, ptr.get() };
+				})
+				.collect<ast::arena_vector>()
+			: ast::arena_vector<possible_func_t>{};
+		if (possible_funcs.empty())
+		{
+			this->report_error(
+				src_tokens,
+				bz::format("no constructors found for type '{}'", called_type)
+			);
+			return ast::make_error_expression(
+				src_tokens,
+				ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+			);
+		}
+		else
+		{
+			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+			if (best_body == nullptr)
+			{
+				return ast::make_error_expression(
+					src_tokens,
+					ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+				);
+			}
+			else
+			{
+				return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+			}
+		}
+	}
 	else
 	{
 		// function call operator
@@ -4614,21 +4666,35 @@ ast::expression parse_context::make_subscript_operator_expression(
 			else
 			{
 				auto const possible_funcs = get_possible_funcs_for_operator(lex::token::square_open, src_tokens, called, arg, *this);
-				auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
-				if (best_body == nullptr)
+				if (possible_funcs.empty())
 				{
+					this->report_error(
+						src_tokens,
+						bz::format(
+							"no candidate found for binary 'operator []' with types '{}' and '{}'",
+							type, arg.get_expr_type_and_kind().first
+						)
+					);
 					return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
 				}
 				else
 				{
-					bz::vector<ast::expression> params;
-					params.reserve(2);
-					params.emplace_back(std::move(called));
-					params.emplace_back(std::move(arg));
-					called = make_expr_function_call_from_body(
-						src_tokens, best_body, std::move(params),
-						*this, ast::resolve_order::regular
-					);
+					auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+					if (best_body == nullptr)
+					{
+						return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
+					}
+					else
+					{
+						bz::vector<ast::expression> params;
+						params.reserve(2);
+						params.emplace_back(std::move(called));
+						params.emplace_back(std::move(arg));
+						called = make_expr_function_call_from_body(
+							src_tokens, best_body, std::move(params),
+							*this, ast::resolve_order::regular
+						);
+					}
 				}
 			}
 		}
@@ -4792,6 +4858,7 @@ void parse_context::match_expression_to_type(
 	else
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, *this);
+		parse::consteval_guaranteed(expr, *this);
 	}
 }
 
