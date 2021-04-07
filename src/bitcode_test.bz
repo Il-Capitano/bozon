@@ -10,6 +10,8 @@ import std::libc::math;
 import std::libc::stdlib;
 import std::libc::stdio;
 
+import std::string;
+
 import private_member_test;
 
 //	/*
@@ -258,6 +260,9 @@ function main(args: [: const str]) -> int32
 
 	std::println("\n==== destructor_test ====");
 	destructor_test();
+
+	std::println("\n==== string_test ====");
+	string_test();
 
 	std::println("\n==== end main ====");
 	std::println(std::exp(1.0));
@@ -1379,4 +1384,55 @@ function destructor_test()
 
 	const res1 = make_resource();
 	@maybe_unused const res2 = res1;
+}
+
+function string_test()
+{
+	let s = std::string("hello");
+	std::println(s);
+	std::println(std::string("world that is a long string").size());
+	std::println(std::string("world that is a long string").capacity());
+	std::print("short string capacity: "), std::println(std::string().capacity());
+
+	s = "asdf";
+	std::println(s);
+	std::println(s.size());
+	std::println(s.capacity());
+	s = "this is a very long string that won't have short string optimization";
+	std::println(s);
+	std::println(s.size());
+	std::println(s.capacity());
+	s = "asdf";
+	std::println(s);
+	std::println(s.size());
+	std::println(s.capacity());
+	s.clear();
+	std::println(s);
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('h');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('e');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('l');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('ó');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('\u0470ó');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
 }

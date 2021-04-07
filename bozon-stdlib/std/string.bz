@@ -1,0 +1,293 @@
+import libc::stdlib;
+import print;
+
+consteval short_string_max_size = 2u * sizeof *uint8;
+
+export struct string
+{
+	._data_begin: *uint8;
+	._data_end:   *uint8;
+	._alloc_end:  *uint8;
+
+	destructor(&self)
+	{
+		if (!self.is_short_string())
+		{
+			libc::free(self._data_begin);
+		}
+	}
+
+	constructor()
+	{
+		return string[ null, null, null ];
+	}
+
+	constructor(s: str)
+	{
+		const size = s.size();
+		if (size == 0u)
+		{
+			return string[ null, null, null ];
+		}
+		else if (size <= short_string_max_size)
+		{
+			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
+			let data_and_alloc_end: [2: *uint8];
+			__builtin_memcpy(data_and_alloc_end.begin(), __builtin_str_begin_ptr(s), size);
+			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
+		}
+		else
+		{
+			const data_begin_and_size = rounded_alloc(size);
+			const data_begin = data_begin_and_size[0];
+			const alloc_size = data_begin_and_size[1];
+			__builtin_memcpy(data_begin, __builtin_str_begin_ptr(s), size);
+			return string[ data_begin, data_begin + size, data_begin + alloc_size ];
+		}
+	}
+
+	constructor(other: &const string)
+	{
+		return string(other.as_str());
+	}
+}
+
+export operator = (self: &string, other: &const string) -> &string
+{
+	const size = other.size();
+	self.reserve(size);
+	__builtin_memcpy(self.begin_ptr(), other.begin_ptr(), size);
+	if (self.is_short_string())
+	{
+		self.set_short_string_size(size);
+	}
+	else
+	{
+		self._data_end = self._data_begin + size;
+	}
+	return self;
+}
+
+export operator = (self: &string, other: string) -> &string
+{
+	if (!self.is_short_string())
+	{
+		libc::free(self._data_begin);
+	}
+
+	self._data_begin = other._data_begin;
+	self._data_end   = other._data_end;
+	self._alloc_end  = other._alloc_end;
+
+	other._data_begin = null;
+	other._data_end   = null;
+	other._alloc_end  = null;
+
+	return self;
+}
+
+export operator = (self: &string, rhs: str) -> &string
+{
+	const size = rhs.size();
+	if (self.capacity() >= size)
+	{
+		__builtin_memcpy(self.begin_ptr(), __builtin_str_begin_ptr(rhs), size);
+		if (self.is_short_string())
+		{
+			self.set_short_string_size(size);
+		}
+		else
+		{
+			self._data_end = self._data_begin + size;
+		}
+	}
+	else
+	{
+		self = string(rhs);
+	}
+	return self;
+}
+
+function round_to_next_power_of_two(n: usize) -> usize
+{
+	// https://stackoverflow.com/a/466242/11488457
+	n -= 1u;
+	n |= n >> 1u;
+	n |= n >> 2u;
+	n |= n >> 4u;
+	n |= n >> 8u;
+	n |= n >> 16u;
+	n |= n >> 32u;
+	n += 1u;
+	return n;
+}
+
+function rounded_alloc(n: usize) -> [ *uint8, usize ]
+{
+	if (n == 0u)
+	{
+		return [ null, 0u ];
+	}
+	else
+	{
+		const rounded_n = round_to_next_power_of_two(n);
+		return [ __builtin_pointer_cast(*uint8, libc::malloc(rounded_n)), rounded_n ];
+	}
+}
+
+function is_short_string(s: &const string) -> bool
+{
+	const data_begin_int = __builtin_pointer_to_int(s._data_begin);
+	return s._data_begin == null || (data_begin_int & 1uz) != 0u;
+}
+
+function short_string_size(s: &const string) -> usize
+{
+	const data_begin_int = __builtin_pointer_to_int(s._data_begin);
+	return data_begin_int >> 1u;
+}
+
+function begin_ptr(s: &const string) -> *uint8
+{
+	if (s.is_short_string())
+	{
+		return __builtin_pointer_cast(*uint8, &s._data_end);
+	}
+	else
+	{
+		return s._data_begin;
+	}
+}
+
+function end_ptr(s: &const string) -> *uint8
+{
+	if (s.is_short_string())
+	{
+		const size = s.short_string_size();
+		return __builtin_pointer_cast(*uint8, &s._data_end) + size;
+	}
+	else
+	{
+		return s._data_end;
+	}
+}
+
+function set_short_string_size(s: &string, size: usize)
+{
+	if (size == 0u)
+	{
+		s._data_begin = null;
+	}
+	else
+	{
+		s._data_begin = __builtin_int_to_pointer(*uint8, (size << 1u) | 1uz);
+	}
+}
+
+export function as_str(s: &const string) -> str
+{
+	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
+}
+
+export function length(s: #const string) -> usize
+{
+	return s.as_str().length();
+}
+
+export function size(s: #const string) -> usize
+{
+	return s.as_str().size();
+}
+
+export function capacity(self: #const string) -> usize
+{
+	return if (self.is_short_string()) { short_string_max_size } else { (self._alloc_end - self._data_begin) as usize };
+}
+
+export function reserve(self: &string, new_capacity: usize)
+{
+	if (new_capacity > self.capacity())
+	{
+		const data_begin_and_size = rounded_alloc(new_capacity);
+		const data_begin = data_begin_and_size[0];
+		const alloc_size = data_begin_and_size[1];
+		const size = self.size();
+		__builtin_memcpy(data_begin, self.begin_ptr(), size);
+		if (!self.is_short_string())
+		{
+			libc::free(self._data_begin);
+		}
+		self._data_begin = data_begin;
+		self._data_end   = data_begin + size;
+		self._alloc_end  = data_begin + alloc_size;
+	}
+}
+
+export function clear(self: &string)
+{
+	if (self.is_short_string())
+	{
+		self.set_short_string_size(0u);
+	}
+	else
+	{
+		self._data_end = self._data_begin;
+	}
+}
+
+function encode_char_utf8(c: char) -> [[4: uint8], uint32]
+{
+	let buffer: [4: uint8];
+	if (c as uint32 < 1u << 7u)
+	{
+		buffer[0] = c as uint32 as uint8;
+		return [buffer, 1u];
+	}
+	else if (c as uint32 < 1u << 11u)
+	{
+		buffer[0] = (((c as uint32 >> 6u) & 0b0001'1111) | 0b1100'0000) as uint8;
+		buffer[1] = (((c as uint32 >> 0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		return [buffer, 2u];
+	}
+	else if (c as uint32 < 1u << 16u)
+	{
+		buffer[0] = (((c as uint32 >> 12u) & 0b0000'1111) | 0b1110'0000) as uint8;
+		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		return [buffer, 3u];
+	}
+	else
+	{
+		buffer[0] = (((c as uint32 >> 18u) & 0b0000'0111) | 0b1111'0000) as uint8;
+		buffer[1] = (((c as uint32 >> 12u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[2] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		buffer[3] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
+		return [buffer, 4u];
+	}
+}
+
+export function push_back(self: &string, c: char)
+{
+	const char_and_size = encode_char_utf8(c);
+	self.reserve(self.size() + char_and_size[1]);
+	__builtin_memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
+	if (self.is_short_string())
+	{
+		self.set_short_string_size(self.size() + char_and_size[1]);
+	}
+	else
+	{
+		self._data_end += char_and_size[1];
+	}
+}
+
+
+export function print(s: #const string)
+{
+	print(s.as_str());
+}
+
+export function println(s: #const string)
+{
+	println(s.as_str());
+}
