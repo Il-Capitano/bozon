@@ -2465,7 +2465,7 @@ formatter_int_spec(uint16_t, uint32_t)
 template<>
 struct formatter<char>
 {
-	static u8string format(char val, u8string_view spec)
+	static u8string format(char val, [[maybe_unused]] u8string_view spec)
 	{
 		bz_assert(spec.size() == 0);
 		return u8string(1, static_cast<u8char>(val));
@@ -2475,7 +2475,7 @@ struct formatter<char>
 template<>
 struct formatter<bool>
 {
-	static u8string format(bool val, u8string_view spec)
+	static u8string format(bool val, [[maybe_unused]] u8string_view spec)
 	{
 		bz_assert(spec.size() == 0);
 
