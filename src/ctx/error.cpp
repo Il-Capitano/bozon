@@ -406,10 +406,12 @@ static bz::u8string get_highlighted_text(
 				}
 				else
 				{
-					file_line += *it;
+					auto utf8_it = bz::u8string_view::const_iterator(it);
+					file_line += *utf8_it;
 					highlight_line += ' ';
 					++column;
-					++it;
+					++utf8_it;
+					it = utf8_it.data();
 				}
 			}
 			if (it != last_line_end && *it == '\t')
