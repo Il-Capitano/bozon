@@ -4,6 +4,30 @@ import print;
 static_assert(sizeof string == 3u * sizeof *uint8);
 consteval short_string_max_size = 2u * sizeof *uint8;
 
+function malloc(n: usize) -> *uint8
+{
+	if (__builtin_is_comptime())
+	{
+		return __builtin_pointer_cast(*uint8, __builtin_comptime_malloc(n));
+	}
+	else
+	{
+		return __builtin_pointer_cast(*uint8, libc::malloc(n));
+	}
+}
+
+function free(p: *void)
+{
+	if (__builtin_is_comptime())
+	{
+		__builtin_comptime_free(p);
+	}
+	else
+	{
+		free(p);
+	}
+}
+
 export struct string
 {
 	._data_begin: *uint8;
@@ -14,7 +38,7 @@ export struct string
 	{
 		if (!self.is_short_string())
 		{
-			libc::free(self._data_begin);
+			free(self._data_begin);
 		}
 	}
 
@@ -30,7 +54,7 @@ export struct string
 		{
 			return string[ null, null, null ];
 		}
-		else if (size <= short_string_max_size)
+		else if (!__builtin_is_comptime() && size <= short_string_max_size)
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
 			let data_and_alloc_end: [2: *uint8];
@@ -66,7 +90,7 @@ export operator = (self: &string, other: string) -> &string
 {
 	if (!self.is_short_string())
 	{
-		libc::free(self._data_begin);
+		free(self._data_begin);
 	}
 
 	self._data_begin = other._data_begin;
@@ -118,14 +142,21 @@ function rounded_alloc(n: usize) -> [ *uint8, usize ]
 	else
 	{
 		const rounded_n = round_to_next_power_of_two(n);
-		return [ __builtin_pointer_cast(*uint8, libc::malloc(rounded_n)), rounded_n ];
+		return [ malloc(rounded_n), rounded_n ];
 	}
 }
 
 function is_short_string(s: &const string) -> bool
 {
-	const data_begin_int = __builtin_pointer_to_int(s._data_begin);
-	return s._data_begin == null || (data_begin_int & 1uz) != 0u;
+	if (__builtin_is_comptime())
+	{
+		return false;
+	}
+	else
+	{
+		const data_begin_int = __builtin_pointer_to_int(s._data_begin);
+		return s._data_begin == null || (data_begin_int & 1uz) != 0u;
+	}
 }
 
 function short_string_size(s: &const string) -> usize
@@ -224,7 +255,7 @@ export function reserve(self: &string, new_capacity: usize)
 		__builtin_memcpy(data_begin, self.begin_ptr(), size);
 		if (!self.is_short_string())
 		{
-			libc::free(self._data_begin);
+			free(self._data_begin);
 		}
 		self._data_begin = data_begin;
 		self._data_end   = data_begin + size;
