@@ -3,6 +3,11 @@
 #include "global_context.h"
 #include "global_data.h"
 
+constexpr auto error_color      = colors::bright_red;
+constexpr auto warning_color    = colors::bright_magenta;
+constexpr auto note_color       = colors::bright_cyan;
+constexpr auto suggestion_color = colors::bright_green;
+
 namespace ctx
 {
 
@@ -284,8 +289,8 @@ static bz::u8string get_highlighted_text(
 		{
 			ret_val = true;
 			auto const len = src_highlight.first_suggestion.suggestion_str.length();
-			file_line      += colors::suggestion_color;
-			highlight_line += colors::suggestion_color;
+			file_line      += suggestion_color;
+			highlight_line += suggestion_color;
 			file_line += src_highlight.first_suggestion.suggestion_str;
 			highlight_line += bz::format("{:~<{}}", len, "");
 			file_line      += colors::clear;
@@ -316,8 +321,8 @@ static bz::u8string get_highlighted_text(
 		{
 			ret_val = true;
 			auto const len = src_highlight.second_suggestion.suggestion_str.length();
-			file_line      += colors::suggestion_color;
-			highlight_line += colors::suggestion_color;
+			file_line      += suggestion_color;
+			highlight_line += suggestion_color;
 			file_line += src_highlight.second_suggestion.suggestion_str;
 			highlight_line += bz::format("{:~<{}}", len, "");
 			file_line      += colors::clear;
@@ -472,14 +477,14 @@ void print_error_or_warning(error const &err, global_context &context)
 		{
 			return bz::format(
 				"{}error:{} {}",
-				colors::error_color, colors::clear, convert_string_for_message(err.src_highlight.message)
+				error_color, colors::clear, convert_string_for_message(err.src_highlight.message)
 			);
 		}
 		else if (is_warning_error(err.kind))
 		{
 			return bz::format(
 				"{}error:{} {} {}[-W error={}]{}",
-				colors::error_color, colors::clear,
+				error_color, colors::clear,
 				convert_string_for_message(err.src_highlight.message),
 				colors::bright_white, get_warning_name(err.kind), colors::clear
 			);
@@ -488,7 +493,7 @@ void print_error_or_warning(error const &err, global_context &context)
 		{
 			return bz::format(
 				"{}warning:{} {} {}[-W {}]{}",
-				colors::warning_color, colors::clear,
+				warning_color, colors::clear,
 				convert_string_for_message(err.src_highlight.message),
 				colors::bright_white, get_warning_name(err.kind), colors::clear
 			);
@@ -510,7 +515,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			"{} {}\n{}",
 			src_pos, error_or_warning_line,
 			get_highlighted_text(
-				err.is_error() || is_warning_error(err.kind) ? colors::error_color : colors::warning_color,
+				err.is_error() || is_warning_error(err.kind) ? error_color : warning_color,
 				err_file_begin, err_file_end, err.src_highlight
 			)
 		);
@@ -564,7 +569,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			bz::print(
 				stderr,
 				"{} {}note:{} {}\n",
-				note_src_pos, colors::note_color, colors::clear,
+				note_src_pos, note_color, colors::clear,
 				convert_string_for_message(n.message)
 			);
 		}
@@ -573,9 +578,9 @@ void print_error_or_warning(error const &err, global_context &context)
 			bz::print(
 				stderr,
 				"{} {}note:{} {}\n{}",
-				note_src_pos, colors::note_color, colors::clear,
+				note_src_pos, note_color, colors::clear,
 				convert_string_for_message(n.message),
-				get_highlighted_text(colors::note_color, note_file_begin, note_file_end, n)
+				get_highlighted_text(note_color, note_file_begin, note_file_end, n)
 			);
 		}
 	}
@@ -598,7 +603,7 @@ void print_error_or_warning(error const &err, global_context &context)
 				colors::bright_white,
 				context.get_file_name(s.file_id), s.line, actual_column,
 				colors::clear,
-				colors::suggestion_color, colors::clear,
+				suggestion_color, colors::clear,
 				convert_string_for_message(s.message)
 			);
 		}
@@ -610,7 +615,7 @@ void print_error_or_warning(error const &err, global_context &context)
 				colors::bright_white,
 				context.get_file_name(s.file_id), s.line, actual_column,
 				colors::clear,
-				colors::suggestion_color, colors::clear,
+				suggestion_color, colors::clear,
 				convert_string_for_message(s.message),
 				get_highlighted_text("", suggestion_file_begin, suggestion_file_end, s)
 			);
