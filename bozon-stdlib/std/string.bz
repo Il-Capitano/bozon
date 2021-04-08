@@ -1,6 +1,7 @@
 import libc::stdlib;
 import print;
 
+static_assert(sizeof string == 3u * sizeof *uint8);
 consteval short_string_max_size = 2u * sizeof *uint8;
 
 export struct string
@@ -57,14 +58,7 @@ export operator = (self: &string, other: &const string) -> &string
 	const size = other.size();
 	self.reserve(size);
 	__builtin_memcpy(self.begin_ptr(), other.begin_ptr(), size);
-	if (self.is_short_string())
-	{
-		self.set_short_string_size(size);
-	}
-	else
-	{
-		self._data_end = self._data_begin + size;
-	}
+	self.set_size_unsafe(size);
 	return self;
 }
 
@@ -92,14 +86,7 @@ export operator = (self: &string, rhs: str) -> &string
 	if (self.capacity() >= size)
 	{
 		__builtin_memcpy(self.begin_ptr(), __builtin_str_begin_ptr(rhs), size);
-		if (self.is_short_string())
-		{
-			self.set_short_string_size(size);
-		}
-		else
-		{
-			self._data_end = self._data_begin + size;
-		}
+		self.set_size_unsafe(size);
 	}
 	else
 	{
@@ -184,6 +171,18 @@ function set_short_string_size(s: &string, size: usize)
 	}
 }
 
+function set_size_unsafe(s: &string, size: usize)
+{
+	if (s.is_short_string())
+	{
+		s.set_short_string_size(size);
+	}
+	else
+	{
+		s._data_end = s._data_begin + size;
+	}
+}
+
 export function as_str(s: &const string) -> str
 {
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
@@ -202,6 +201,16 @@ export function size(s: #const string) -> usize
 export function capacity(self: #const string) -> usize
 {
 	return if (self.is_short_string()) { short_string_max_size } else { (self._alloc_end - self._data_begin) as usize };
+}
+
+export function empty(self: #const string) -> bool
+{
+	return self._data_begin == null | self._data_begin == self._data_end;
+}
+
+export function not_empty(self: #const string) -> bool
+{
+	return !self.empty();
 }
 
 export function reserve(self: &string, new_capacity: usize)
@@ -225,14 +234,7 @@ export function reserve(self: &string, new_capacity: usize)
 
 export function clear(self: &string)
 {
-	if (self.is_short_string())
-	{
-		self.set_short_string_size(0u);
-	}
-	else
-	{
-		self._data_end = self._data_begin;
-	}
+	self.set_size_unsafe(0u);
 }
 
 function encode_char_utf8(c: char) -> [[4: uint8], uint32]
@@ -271,14 +273,7 @@ export function push_back(self: &string, c: char)
 	const char_and_size = encode_char_utf8(c);
 	self.reserve(self.size() + char_and_size[1]);
 	__builtin_memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
-	if (self.is_short_string())
-	{
-		self.set_short_string_size(self.size() + char_and_size[1]);
-	}
-	else
-	{
-		self._data_end += char_and_size[1];
-	}
+	self.set_size_unsafe(self.size() + char_and_size[1]);
 }
 
 
@@ -290,4 +285,140 @@ export function print(s: #const string)
 export function println(s: #const string)
 {
 	println(s.as_str());
+}
+
+
+export operator .. (lhs: #const string, rhs: #const string) -> string
+{
+	const lhs_begin = lhs.begin_ptr();
+	const lhs_size = lhs.size();
+	const rhs_begin = rhs.begin_ptr();
+	const rhs_size = rhs.size();
+
+	const result_size = lhs_size + rhs_size;
+
+	const result_alloc_and_size = rounded_alloc(result_size);
+	const result_alloc = result_alloc_and_size[0];
+	const result_alloc_size = result_alloc_and_size[1];
+
+	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
+	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+
+	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
+}
+
+export operator .. (lhs: #const string, rhs: str) -> string
+{
+	const lhs_begin = lhs.begin_ptr();
+	const lhs_size = lhs.size();
+	const rhs_begin = __builtin_str_begin_ptr(rhs);
+	const rhs_size = rhs.size();
+
+	const result_size = lhs_size + rhs_size;
+
+	const result_alloc_and_size = rounded_alloc(result_size);
+	const result_alloc = result_alloc_and_size[0];
+	const result_alloc_size = result_alloc_and_size[1];
+
+	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
+	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+
+	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
+}
+
+export operator .. (lhs: str, rhs: #const string) -> string
+{
+	const lhs_begin = __builtin_str_begin_ptr(lhs);
+	const lhs_size = lhs.size();
+	const rhs_begin = rhs.begin_ptr();
+	const rhs_size = rhs.size();
+
+	const result_size = lhs_size + rhs_size;
+
+	const result_alloc_and_size = rounded_alloc(result_size);
+	const result_alloc = result_alloc_and_size[0];
+	const result_alloc_size = result_alloc_and_size[1];
+
+	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
+	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+
+	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
+}
+
+export operator .. (lhs: #const string, rhs: char) -> string
+{
+	const lhs_begin = lhs.begin_ptr();
+	const lhs_size = lhs.size();
+	const rhs_encoded = encode_char_utf8(rhs);
+	const rhs_begin = rhs_encoded[0].begin();
+	const rhs_size = rhs_encoded[1] as usize;
+
+	const result_size = lhs_size + rhs_size;
+
+	const result_alloc_and_size = rounded_alloc(result_size);
+	const result_alloc = result_alloc_and_size[0];
+	const result_alloc_size = result_alloc_and_size[1];
+
+	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
+	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+
+	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
+}
+
+export operator .. (lhs: char, rhs: #const string) -> string
+{
+	const lhs_encoded = encode_char_utf8(lhs);
+	const lhs_begin = lhs_encoded[0].begin();
+	const lhs_size = lhs_encoded[1] as usize;
+	const rhs_begin = rhs.begin_ptr();
+	const rhs_size = rhs.size();
+
+	const result_size = lhs_size + rhs_size;
+
+	const result_alloc_and_size = rounded_alloc(result_size);
+	const result_alloc = result_alloc_and_size[0];
+	const result_alloc_size = result_alloc_and_size[1];
+
+	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
+	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+
+	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
+}
+
+
+export operator ..= (lhs: &string, rhs: #const string) -> &string
+{
+	const rhs_begin = rhs.begin_ptr();
+	const rhs_size = rhs.size();
+
+	const result_size = lhs.size() + rhs_size;
+	lhs.reserve(result_size);
+	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	lhs.set_size_unsafe(result_size);
+	return lhs;
+}
+
+export operator ..= (lhs: &string, rhs: str) -> &string
+{
+	const rhs_begin = __builtin_str_begin_ptr(rhs);
+	const rhs_size = rhs.size();
+
+	const result_size = lhs.size() + rhs_size;
+	lhs.reserve(result_size);
+	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	lhs.set_size_unsafe(result_size);
+	return lhs;
+}
+
+export operator ..= (lhs: &string, rhs: char) -> &string
+{
+	const rhs_encoded = encode_char_utf8(rhs);
+	const rhs_begin = rhs_encoded[0].begin();
+	const rhs_size = rhs_encoded[1] as usize;
+
+	const result_size = lhs.size() + rhs_size;
+	lhs.reserve(result_size);
+	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	lhs.set_size_unsafe(result_size);
+	return lhs;
 }
