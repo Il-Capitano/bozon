@@ -4,6 +4,8 @@
 		"c_standard": "c11",
 		"cpp_standard": "c++17",
 
+		"cpp_precompiled_header": "src/core.h",
+
 		"c_compiler_flags": [],
 		"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
 		"emit_compile_commands": true,

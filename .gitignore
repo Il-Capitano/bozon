@@ -12,3 +12,5 @@ compile_commands.json
 *.exe
 *.out
 *.ll
+*.pch
+*.gch
