@@ -1297,8 +1297,10 @@ function complex_test()
 	function void_ptr(: *const void) {}
 	void_ptr(&z);
 
-	@maybe_unused const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
-	@maybe_unused const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
+	std::libc::free(p);
+	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	std::libc::free(p);
 	type_test(int32, 3);
 	type_test(uint32, 2);
 	type_test(float32, 1);
@@ -1430,7 +1432,12 @@ function string_test()
 	std::println(s.length());
 	std::println(s.size());
 	std::println(s.capacity());
-	s.push_back('\u0470ó');
+	s.push_back('\u0470');
+	std::println(s);
+	std::println(s.length());
+	std::println(s.size());
+	std::println(s.capacity());
+	s.push_back('\u0470');
 	std::println(s);
 	std::println(s.length());
 	std::println(s.size());
