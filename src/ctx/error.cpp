@@ -5,7 +5,7 @@
 
 constexpr auto error_color      = colors::bright_red;
 constexpr auto warning_color    = colors::bright_magenta;
-constexpr auto note_color       = colors::bright_cyan;
+constexpr auto note_color       = colors::bright_black;
 constexpr auto suggestion_color = colors::bright_green;
 
 namespace ctx
