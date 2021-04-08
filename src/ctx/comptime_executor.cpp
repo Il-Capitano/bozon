@@ -1,4 +1,5 @@
 #include "comptime_executor.h"
+#include "ast/statement.h"
 #include "global_context.h"
 #include "parse_context.h"
 #include "bc/comptime/comptime_emit_bitcode.h"
@@ -416,7 +417,15 @@ void comptime_executor_context::emit_destructor_calls(void)
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	if (!body->is_intrinsic() && !this->functions_to_compile.contains(body))
+	if (
+		(
+			!body->is_intrinsic()
+			|| body->intrinsic_kind == ast::function_body::builtin_str_eq
+			|| body->intrinsic_kind == ast::function_body::builtin_str_neq
+			|| body->intrinsic_kind == ast::function_body::builtin_str_length
+		)
+		&& !this->functions_to_compile.contains(body)
+	)
 	{
 		this->functions_to_compile.push_back(body);
 	}

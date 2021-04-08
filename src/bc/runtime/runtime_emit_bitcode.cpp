@@ -2088,7 +2088,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 83);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 84);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2306,6 +2306,19 @@ static val_ptr emit_bitcode(
 			bz_assert(arg.kind == val_ptr::reference);
 			emit_destructor_call(arg.val, type, context);
 			return {};
+		}
+		case ast::function_body::builtin_is_comptime:
+		{
+			auto const result_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result_val, result_address);
+				return { val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result_val };
+			}
 		}
 
 		default:

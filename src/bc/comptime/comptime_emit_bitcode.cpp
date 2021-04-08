@@ -2269,7 +2269,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 83);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 84);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2469,6 +2469,19 @@ static val_ptr emit_bitcode(
 			bz_assert(arg.kind == val_ptr::reference);
 			emit_destructor_call(func_call.src_tokens, arg.val, type, context);
 			return {};
+		}
+		case ast::function_body::builtin_is_comptime:
+		{
+			auto const result_val = llvm::ConstantInt::getTrue(context.get_llvm_context());
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result_val, result_address);
+				return { val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result_val };
+			}
 		}
 		case ast::function_body::print_stdout:
 		case ast::function_body::print_stderr:
@@ -4398,7 +4411,7 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-		bz_assert(func_body.return_type.is<ast::ts_void>());
+		// bz_assert(func_body.return_type.is<ast::ts_void>());
 		if (context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
@@ -4535,8 +4548,17 @@ void add_builtin_functions(ctx::comptime_executor_context &context)
 		if (body->symbol_name != "")
 		{
 			add_function_to_module(body, context);
+			if (
+				body->intrinsic_kind == ast::function_body::builtin_str_eq
+				|| body->intrinsic_kind == ast::function_body::builtin_str_neq
+				|| body->intrinsic_kind == ast::function_body::builtin_str_length
+			)
+			{
+				context.ensure_function_emission(body);
+			}
 		}
 	}
+	[[maybe_unused]] auto const result = emit_necessary_functions(0, context);
 }
 
 bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context)
