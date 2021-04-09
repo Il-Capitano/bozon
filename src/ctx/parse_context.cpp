@@ -4183,7 +4183,8 @@ ast::expression parse_context::make_function_call_expression(
 					{
 						this->report_error(
 							src_tokens,
-							"couldn't match the function call to the function"
+							"couldn't match the function call to the function",
+							{ this->make_note(func_body->get_candidate_message()) }
 						);
 					}
 					else
