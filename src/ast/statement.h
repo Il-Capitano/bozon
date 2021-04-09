@@ -428,6 +428,7 @@ struct function_body
 		println_stderr,
 
 		comptime_malloc,
+		comptime_malloc_type,
 		comptime_free,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
@@ -1070,7 +1071,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 84);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 85);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
@@ -1103,8 +1104,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
 		{ function_body::println_stderr, "__builtin_println_stderr" },
 
-		{ function_body::comptime_malloc, "__builtin_comptime_malloc" },
-		{ function_body::comptime_free,   "__builtin_comptime_free"   },
+		{ function_body::comptime_malloc,      "__builtin_comptime_malloc"      },
+		{ function_body::comptime_malloc_type, "__builtin_comptime_malloc_type" },
+		{ function_body::comptime_free,        "__builtin_comptime_free"        },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

@@ -82,6 +82,7 @@ struct bitcode_context
 
 	void push_destructor_call(llvm::Function *dtor_func, llvm::Value *ptr);
 	void emit_destructor_calls(void);
+	void emit_all_destructor_calls(void);
 
 
 	void ensure_function_emission(ast::function_body const *func);

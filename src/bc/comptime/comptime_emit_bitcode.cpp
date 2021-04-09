@@ -2269,7 +2269,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 84);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 85);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2428,21 +2428,17 @@ static val_ptr emit_bitcode(
 		}
 		case ast::function_body::builtin_pointer_cast:
 		{
-			bz_assert(func_call.params.size() == 2);
-			bz_assert(func_call.params[0].is_typename());
-			auto const dest_type = get_llvm_type(func_call.params[0].get_typename(), context);
-			bz_assert(dest_type->isPointerTy());
-			auto const ptr = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
-			bz_assert(ptr->getType()->isPointerTy());
-			auto const result = context.builder.CreatePointerCast(ptr, dest_type);
+			emit_error(
+				func_call.src_tokens,
+				bz::format("'{}' cannot be used in a constant expression", func_call.func_body->get_signature()), context
+			);
 			if (result_address != nullptr)
 			{
-				context.builder.CreateStore(result, result_address);
 				return val_ptr{ val_ptr::reference, result_address };
 			}
 			else
 			{
-				return { val_ptr::value, result };
+				return { val_ptr::value, llvm::UndefValue::get(get_llvm_type(func_call.func_body->return_type, context)) };
 			}
 		}
 		case ast::function_body::builtin_pointer_to_int:
@@ -2494,11 +2490,34 @@ static val_ptr emit_bitcode(
 			);
 			if (result_address != nullptr)
 			{
-				return val_ptr{ val_ptr::reference, result_address };
+				return { val_ptr::reference, result_address };
 			}
 			else
 			{
 				return { val_ptr::value, llvm::UndefValue::get(get_llvm_type(func_call.func_body->return_type, context)) };
+			}
+		}
+
+		case ast::function_body::comptime_malloc_type:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+			bz_assert(result_type->isPointerTy());
+			auto const alloc_type_size = context.get_size(result_type->getPointerElementType());
+			auto const type_size_val = llvm::ConstantInt::get(context.get_usize_t(), alloc_type_size);
+			auto const count = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const alloc_size = context.builder.CreateMul(count, type_size_val);
+			auto const malloc_fn = context.get_function(context.get_builtin_function(ast::function_body::comptime_malloc));
+			auto const result_void_ptr = context.builder.CreateCall(malloc_fn, alloc_size);
+			auto const result = context.builder.CreatePointerCast(result_void_ptr, result_type);
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return { val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
 			}
 		}
 
@@ -3869,12 +3888,13 @@ static void emit_bitcode(
 			"return statement is not allowed in compile time evaluation of compound expression",
 			context
 		);
+		context.builder.CreateRet(llvm::UndefValue::get(context.current_function.second->getReturnType()));
 		return;
 	}
 
 	if (ret_stmt.expr.is_null())
 	{
-		context.emit_destructor_calls();
+		context.emit_all_destructor_calls();
 		if (context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
@@ -3893,14 +3913,14 @@ static void emit_bitcode(
 		if (context.current_function.first->return_type.is<ast::ts_lvalue_reference>())
 		{
 			auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
-			context.emit_destructor_calls();
+			context.emit_all_destructor_calls();
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
 		}
 		else if (context.output_pointer != nullptr)
 		{
 			auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
-			context.emit_destructor_calls();
+			context.emit_all_destructor_calls();
 			bz_assert(ret_val.val == context.output_pointer);
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRetVoid();
@@ -3916,7 +3936,7 @@ static void emit_bitcode(
 			case abi::pass_kind::value:
 			{
 				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
-				context.emit_destructor_calls();
+				context.emit_all_destructor_calls();
 				context.builder.CreateRet(ret_val.get_value(context.builder));
 				break;
 			}
@@ -3928,7 +3948,7 @@ static void emit_bitcode(
 				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
 				auto const result = context.builder.CreateLoad(result_ptr);
-				context.emit_destructor_calls();
+				context.emit_all_destructor_calls();
 				context.builder.CreateRet(result);
 				break;
 			}

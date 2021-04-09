@@ -122,6 +122,7 @@ struct comptime_executor_context
 
 	void push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
 	void emit_destructor_calls(void);
+	void emit_all_destructor_calls(void);
 
 
 	void ensure_function_emission(ast::function_body *func);

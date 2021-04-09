@@ -338,6 +338,19 @@ void bitcode_context::emit_destructor_calls(void)
 	}
 }
 
+void bitcode_context::emit_all_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &scope_calls : this->destructor_calls.reversed())
+	{
+		for (auto const &[func, val] : scope_calls.reversed())
+		{
+			this->builder.CreateCall(func, val);
+		}
+	}
+}
+
 void bitcode_context::ensure_function_emission(ast::function_body const *func)
 {
 	// no need to emit functions with no definition

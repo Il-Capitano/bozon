@@ -111,6 +111,8 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 		bz_unreachable;
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 		bz_unreachable;
+	case ast::typespec_node_t::index_of<ast::ts_typename>:
+		bz_unreachable;
 	default:
 		bz_unreachable;
 	}

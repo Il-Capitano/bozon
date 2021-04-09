@@ -415,6 +415,21 @@ void comptime_executor_context::emit_destructor_calls(void)
 	}
 }
 
+void comptime_executor_context::emit_all_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &scope_calls : this->destructor_calls.reversed())
+	{
+		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		{
+			bc::comptime::emit_push_call(src_tokens, func, *this);
+			this->builder.CreateCall(this->get_function(func), val);
+			bc::comptime::emit_pop_call(*this);
+		}
+	}
+}
+
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
 	if (
