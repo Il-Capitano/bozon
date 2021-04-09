@@ -8,7 +8,7 @@ function malloc(n: usize) -> *uint8
 {
 	if (__builtin_is_comptime())
 	{
-		return __builtin_pointer_cast(*uint8, __builtin_comptime_malloc(n));
+		return __builtin_comptime_malloc_type(uint8, n);
 	}
 	else
 	{
@@ -24,7 +24,7 @@ function free(p: *void)
 	}
 	else
 	{
-		free(p);
+		libc::free(p);
 	}
 }
 
@@ -214,6 +214,12 @@ function set_size_unsafe(s: &string, size: usize)
 	}
 }
 
+
+function as_slice(s: &const string) -> [: const uint8]
+{
+	return __builtin_slice_from_const_ptrs(s.begin_ptr(), s.end_ptr());
+}
+
 export function as_str(s: &const string) -> str
 {
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
@@ -243,6 +249,19 @@ export function not_empty(self: #const string) -> bool
 {
 	return !self.empty();
 }
+
+export function is_ascii(self: #const string) -> bool
+{
+	for (const c in self.as_slice())
+	{
+		if ((c & 0b1000'0000u8) != 0u)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 
 export function reserve(self: &string, new_capacity: usize)
 {
