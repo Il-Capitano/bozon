@@ -1,71 +1,3 @@
-@builtin("str_eq")
-function builtin_str_eq(lhs: str, rhs: str) -> bool
-{
-	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
-	{
-		return false;
-	}
-
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
-	if (lhs_it == rhs_it)
-	{
-		return true;
-	}
-
-	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
-	{
-		if (*lhs_it != *rhs_it)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-@builtin("str_neq")
-function builtin_str_neq(lhs: str, rhs: str) -> bool
-{
-	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
-	{
-		return true;
-	}
-
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
-	if (lhs_it == rhs_it)
-	{
-		return false;
-	}
-
-	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
-	{
-		if (*lhs_it != *rhs_it)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-@builtin("str_length")
-function builtin_str_length(s: str) -> usize
-{
-	let continuation_byte_count = 0uz;
-	const str_as_slice = __builtin_slice_from_const_ptrs(__builtin_str_begin_ptr(s), __builtin_str_end_ptr(s));
-	for (const c in str_as_slice)
-	{
-		if ((c & 0b1100'0000u8) == 0b1000'0000u8)
-		{
-			continuation_byte_count += 1uz;
-		}
-	}
-	const size = __builtin_str_size(s);
-	return size - continuation_byte_count;
-}
-
 struct call_stack_t
 {
 	.data_begin: *uint64;
@@ -122,7 +54,7 @@ struct error_array_t
 @no_comptime_checking
 function alloc(T: typename, count: usize) -> *T
 {
-	return __builtin_pointer_cast(*T, __builtin_comptime_malloc(count * sizeof T));
+	return __builtin_comptime_malloc_type(T, count);
 }
 
 @no_comptime_checking
