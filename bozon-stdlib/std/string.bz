@@ -262,6 +262,26 @@ export function is_ascii(self: #const string) -> bool
 	return true;
 }
 
+export function data(self: &string) -> *uint8
+{
+	return self.begin_ptr();
+}
+
+export function data(self: &const string) -> *const uint8
+{
+	return self.begin_ptr();
+}
+
+export function data_end(self: &string) -> *uint8
+{
+	return self.end_ptr();
+}
+
+export function data_end(self: &const string) -> *const uint8
+{
+	return self.end_ptr();
+}
+
 
 export function reserve(self: &string, new_capacity: usize)
 {
@@ -324,6 +344,20 @@ export function push_back(self: &string, c: char)
 	self.reserve(self.size() + char_and_size[1]);
 	__builtin_memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
 	self.set_size_unsafe(self.size() + char_and_size[1]);
+}
+
+function swap(a: &*uint8, b: &*uint8)
+{
+	const temp = a;
+	a = b;
+	b = temp;
+}
+
+export function swap(a: &string, b: &string)
+{
+	swap(a._data_begin, b._data_begin);
+	swap(a._data_end,   b._data_end);
+	swap(a._alloc_end,  b._alloc_end);
 }
 
 

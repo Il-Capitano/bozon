@@ -419,6 +419,7 @@ struct function_body
 		builtin_int_to_pointer,
 
 		builtin_call_destructor,
+		builtin_inplace_construct,
 
 		builtin_is_comptime,
 
@@ -1071,7 +1072,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 85);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 86);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
@@ -1095,7 +1096,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
 
-		{ function_body::builtin_call_destructor, "__builtin_call_destructor" },
+		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
+		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 
 		{ function_body::builtin_is_comptime, "__builtin_is_comptime" },
 

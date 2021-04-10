@@ -1,3 +1,12 @@
+import ::std::string;
+
+struct src_tokens_t
+{
+	.begin: uint64;
+	.pivot: uint64;
+	.end:   uint64;
+}
+
 struct call_stack_t
 {
 	.data_begin: *uint64;
@@ -21,13 +30,24 @@ struct call_stack_t
 struct error_t
 {
 	.kind: uint32;
-	.ptr:  uint64;
+	.src_tokens: src_tokens_t;
+	.message: std::string;
 	.call_stack: [: const uint64];
+
+	constructor()
+	{
+		return error_t[
+			0u,
+			src_tokens_t[ 0u, 0u, 0u ],
+			std::string(),
+			__builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64)
+		];
+	}
 
 	// @no_comptime_checking
 	destructor(&self)
 	{
-		free(self.call_stack.begin());
+		__builtin_comptime_free(self.call_stack.begin());
 	}
 }
 
@@ -52,9 +72,50 @@ struct error_array_t
 }
 
 @no_comptime_checking
+function swap(a: &auto, b: &auto)
+{
+	static_assert(typeof a != &std::string);
+	const temp = a;
+	a = b;
+	b = temp;
+}
+
+@no_comptime_checking
+function swap(a: &call_stack_t, b: &call_stack_t)
+{
+	a.data_begin.swap(b.data_begin);
+	a.data_end.swap(b.data_end);
+	a.alloc_end.swap(b.alloc_end);
+}
+
+@no_comptime_checking
+function swap(a: &error_t, b: &error_t)
+{
+	a.kind.swap(b.kind);
+	a.src_tokens.swap(b.src_tokens);
+	a.message.swap(b.message);
+	a.call_stack.swap(b.call_stack);
+}
+
+@no_comptime_checking
+function swap(a: &error_array_t, b: &error_array_t)
+{
+	a.data_begin.swap(b.data_begin);
+	a.data_end.swap(b.data_end);
+	a.alloc_end.swap(b.alloc_end);
+}
+
+@no_comptime_checking
+operator = (lhs: &error_t, rhs: error_t)
+{
+	lhs.swap(rhs);
+}
+
+@no_comptime_checking
 function alloc(T: typename, count: usize) -> *T
 {
-	return __builtin_comptime_malloc_type(T, count);
+	const result = __builtin_comptime_malloc_type(T, count);
+	return result;
 }
 
 @no_comptime_checking
@@ -92,7 +153,8 @@ function reserve(arr: &auto, new_capacity: usize)
 		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0uz; i < size; ++i)
 		{
-			*(new_array + i) = *(arr.data_begin + i);
+			(*(new_array + i)).swap(*(arr.data_begin + i));
+			__builtin_call_destructor(*(arr.data_begin + i));
 		}
 		free(arr.data_begin);
 		arr.data_begin = new_array;
@@ -105,9 +167,10 @@ function reserve(arr: &auto, new_capacity: usize)
 function push_back(arr: &error_array_t, val: error_t)
 {
 	arr.reserve(arr.size() + 1u);
-	*arr.data_end = val;
-	++arr.data_end;
-	val.call_stack = __builtin_slice_from_const_ptrs(null as *uint64, null as *uint64);
+	let &pushed_val = *(arr.data_end);
+	__builtin_inplace_construct(&pushed_val, error_t());
+	val.swap(pushed_val);
+	arr.data_end += 1;
 }
 
 @no_comptime_checking
@@ -129,19 +192,37 @@ function pop_back(arr: &call_stack_t)
 }
 
 @no_comptime_checking
-function size(arr: &const auto) -> usize
+function size(arr: &const call_stack_t) -> usize
 {
 	return (arr.data_end - arr.data_begin) as usize;
 }
 
 @no_comptime_checking
-function capacity(arr: &const auto) -> usize
+function size(arr: &const error_array_t) -> usize
+{
+	return (arr.data_end - arr.data_begin) as usize;
+}
+
+@no_comptime_checking
+function capacity(arr: &const call_stack_t) -> usize
 {
 	return (arr.alloc_end - arr.data_begin) as usize;
 }
 
 @no_comptime_checking
-function empty(arr: &const auto) -> bool
+function capacity(arr: &const error_array_t) -> usize
+{
+	return (arr.alloc_end - arr.data_begin) as usize;
+}
+
+@no_comptime_checking
+function empty(arr: &const call_stack_t) -> bool
+{
+	return arr.data_begin == arr.data_end;
+}
+
+@no_comptime_checking
+function empty(arr: &const error_array_t) -> bool
 {
 	return arr.data_begin == arr.data_end;
 }
@@ -220,10 +301,34 @@ function get_error_kind_by_index(i: uint64) -> uint32
 	return if (i < errors.size()) { errors[i].kind } else { 0u32 };
 }
 
-@comptime_error_checking("get_error_ptr_by_index")
+@comptime_error_checking("get_error_begin_by_index")
+function get_error_begin_by_index(i: uint64) -> uint64
+{
+	return if (i < errors.size()) { errors[i].src_tokens.begin } else { 0u64 };
+}
+
+@comptime_error_checking("get_error_pivot_by_index")
+function get_error_pivot_by_index(i: uint64) -> uint64
+{
+	return if (i < errors.size()) { errors[i].src_tokens.pivot } else { 0u64 };
+}
+
+@comptime_error_checking("get_error_end_by_index")
+function get_error_end_by_index(i: uint64) -> uint64
+{
+	return if (i < errors.size()) { errors[i].src_tokens.end } else { 0u64 };
+}
+
+@comptime_error_checking("get_error_message_size_by_index")
 function get_error_ptr_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].ptr } else { 0u64 };
+	return if (i < errors.size()) { errors[i].message.size() } else { 0u64 };
+}
+
+@comptime_error_checking("get_error_message_char_by_index")
+function get_error_ptr_by_index(i: uint64, j: uint64) -> uint8
+{
+	return if (i < errors.size() && j < errors[i].message.size()) { *(errors[i].message.data() + j) } else { 0u8 };
 }
 
 @comptime_error_checking("get_error_call_stack_size_by_index")
@@ -244,22 +349,44 @@ function has_errors() -> bool
 	return !errors.empty();
 }
 
-@comptime_error_checking("add_error")
-function add_error(kind: uint32, err: uint64)
+@no_comptime_checking
+function str_from_c_str(c_str: *const uint8) -> str
+{
+	let it = c_str;
+	while (*it != 0u)
+	{
+		++it;
+	}
+	return __builtin_str_from_ptrs(c_str, it);
+}
+
+@no_comptime_checking
+function get_call_stack_array_copy() -> [: const uint64]
 {
 	const call_stack_size = call_stack.size();
-	const call_stack_array = if (call_stack_size == 0u) {
-			__builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64)
-		} else {
-			const ptr = alloc(uint64, call_stack_size);
-			const result = __builtin_slice_from_ptrs(ptr, ptr + call_stack_size);
-			for (let i = 0u; i < call_stack_size; ++i)
-			{
-				result[i] = call_stack[i];
-			}
-			result
-		};
-	errors.push_back(error_t[ kind, err, call_stack_array ]);
+	if (call_stack_size == 0u)
+	{
+		const result = __builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64);
+		return result;
+	}
+	else
+	{
+		const ptr = alloc(uint64, call_stack_size);
+		const result = __builtin_slice_from_ptrs(ptr, ptr + call_stack_size);
+		for (let i = 0u; i < call_stack_size; ++i)
+		{
+			result[i] = call_stack[i];
+		}
+		return result;
+	}
+}
+
+@comptime_error_checking("add_error")
+function add_error(kind: uint32, begin: uint64, pivot: uint64, end: uint64, message: *const uint8)
+{
+	const call_stack_array = get_call_stack_array_copy();
+	const message_str = str_from_c_str(message);
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message_str), call_stack_array ]);
 }
 
 @comptime_error_checking("push_call")

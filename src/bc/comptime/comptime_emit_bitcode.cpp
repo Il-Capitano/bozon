@@ -201,14 +201,20 @@ static void emit_destructor_call(
 	}
 }
 
-static void emit_error_check(ctx::comptime_executor_context &context)
+static llvm::Value *emit_get_error_count(ctx::comptime_executor_context &context)
+{
+	return context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::get_error_count));
+}
+
+static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
 	{
 		return;
 	}
 	bz_assert(context.error_bb != nullptr);
-	auto const has_error_val = context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::has_errors));
+	auto const error_count = emit_get_error_count(context);
+	auto const has_error_val = context.builder.CreateICmpNE(pre_call_error_count, error_count);
 	auto const continue_bb = context.add_basic_block("error_check_continue");
 	context.builder.CreateCondBr(has_error_val, context.error_bb, continue_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -230,14 +236,15 @@ static void emit_error_assert(
 	auto const continue_bb = context.add_basic_block("error_assert_continue");
 	context.builder.CreateCondBr(bool_val, continue_bb, fail_bb);
 	context.builder.SetInsertPoint(fail_bb);
-	auto const error_kind_val = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
-	static_assert(sizeof(void *) == 8);
-	auto const error_ptr_int_val = llvm::ConstantInt::get(
-		context.get_uint64_t(),
-		reinterpret_cast<uint64_t>(error_ptr)
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	auto const message_val = context.builder.CreateConstGEP2_64(context.create_string(message), 0, 0);
+	context.builder.CreateCall(
+		context.get_comptime_function(ctx::comptime_function_kind::add_error),
+		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
 	);
-	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::add_error), { error_kind_val, error_ptr_int_val });
 	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
@@ -252,14 +259,15 @@ static void emit_error(
 	{
 		return;
 	}
-	auto const error_kind_val = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const error_ptr = context.insert_error(src_tokens, std::move(message));
-	static_assert(sizeof(void *) == 8);
-	auto const error_ptr_int_val = llvm::ConstantInt::get(
-		context.get_uint64_t(),
-		reinterpret_cast<uint64_t>(error_ptr)
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	auto const message_val = context.builder.CreateConstGEP2_64(context.create_string(message), 0, 0);
+	context.builder.CreateCall(
+		context.get_comptime_function(ctx::comptime_function_kind::add_error),
+		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
 	);
-	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::add_error), { error_kind_val, error_ptr_int_val });
 	auto const continue_bb = context.add_basic_block("error_dummy_continue");
 	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
@@ -2269,7 +2277,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 85);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 86);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2442,6 +2450,21 @@ static val_ptr emit_bitcode(
 			}
 		}
 		case ast::function_body::builtin_pointer_to_int:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			bz_assert(ptr->getType()->isPointerTy());
+			auto const result = context.builder.CreatePtrToInt(ptr, context.get_usize_t());
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(result, result_address);
+				return val_ptr{ val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, result };
+			}
+		}
 		case ast::function_body::builtin_int_to_pointer:
 		{
 			emit_error(
@@ -2464,6 +2487,25 @@ static val_ptr emit_bitcode(
 			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
 			bz_assert(arg.kind == val_ptr::reference);
 			emit_destructor_call(func_call.src_tokens, arg.val, type, context);
+			return {};
+		}
+		case ast::function_body::builtin_inplace_construct:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const dest_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const result_type = get_llvm_type(func_call.params[1].get_expr_type_and_kind().first, context);
+			auto const alloca = context.create_alloca(result_type);
+			emit_bitcode<abi>(func_call.params[1], context, alloca);
+			auto const void_ptr_t = llvm::PointerType::get(context.get_int8_t(), 0);
+			context.builder.CreateCall(
+				context.get_function(context.get_builtin_function(ast::function_body::memcpy)),
+				{
+					context.builder.CreatePointerCast(dest_ptr, void_ptr_t),
+					context.builder.CreatePointerCast(alloca, void_ptr_t),
+					llvm::ConstantInt::get(context.get_uint64_t(), context.get_size(result_type)),
+					llvm::ConstantInt::getFalse(context.get_llvm_context())
+				}
+			);
 			return {};
 		}
 		case ast::function_body::builtin_is_comptime:
@@ -2707,10 +2749,13 @@ static val_ptr emit_bitcode(
 		params_is_pass_by_ref.push_back(false);
 	}
 
+	llvm::Value *pre_call_error_count = nullptr;
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
+		pre_call_error_count = emit_get_error_count(context);
 		emit_push_call(func_call.src_tokens, func_call.func_body, context);
 	}
+
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
 	call->setCallingConv(fn->getCallingConv());
 	auto is_pass_by_ref_it = params_is_pass_by_ref.begin();
@@ -2738,7 +2783,7 @@ static val_ptr emit_bitcode(
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
 		emit_pop_call(context);
-		emit_error_check(context);
+		emit_error_check(pre_call_error_count, context);
 	}
 
 	switch (result_kind)
@@ -4215,9 +4260,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	}();
 	auto const name = llvm::StringRef(name_string.data_as_char_ptr(), name_string.size());
 
-	auto const linkage = func_body.is_external_linkage()
-		? llvm::Function::ExternalLinkage
-		: llvm::Function::InternalLinkage;
+	auto const linkage = llvm::Function::ExternalLinkage;
 
 	auto const fn = llvm::Function::Create(
 		func_t, linkage,

@@ -766,6 +766,24 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	return result;
 }
 
+struct str_t
+{
+	uint8_t const *begin;
+	uint8_t const *end;
+};
+
+static void bozon_print_stdout(str_t s)
+{
+	fwrite(s.begin, 1, s.end - s.begin, stdout);
+}
+
+static void bozon_println_stdout(str_t s)
+{
+	fwrite(s.begin, 1, s.end - s.begin, stdout);
+	char new_line = '\n';
+	fwrite(&new_line, 1, 1, stdout);
+}
+
 void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)
@@ -788,6 +806,8 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.run(*module);
 
 		this->engine = this->create_engine(std::move(module));
+		this->engine->addGlobalMapping("__bozon_builtin_print_stdout",   reinterpret_cast<uint64_t>(&bozon_print_stdout));
+		this->engine->addGlobalMapping("__bozon_builtin_println_stdout", reinterpret_cast<uint64_t>(&bozon_println_stdout));
 	}
 }
 
@@ -877,6 +897,30 @@ bool comptime_executor_context::has_error(void)
 	}
 }
 
+template<typename Ret, typename ...Args>
+static Ret call_llvm_func(llvm::ExecutionEngine *engine, llvm::Function *llvm_func, Args ...args)
+{
+	auto const func_ptr = engine->getFunctionAddress(llvm_func->getName().str());
+	if (func_ptr != 0)
+	{
+		return reinterpret_cast<Ret (*)(Args...)>(func_ptr)(args...);
+	}
+	else
+	{
+		static_assert(std::is_integral_v<Ret>);
+		return engine->runFunction(
+			llvm_func,
+			{
+				[&]() {
+					llvm::GenericValue value;
+					value.IntVal = args;
+					return value;
+				}()...
+			}
+		).IntVal.getLimitedValue();
+	}
+}
+
 bz::vector<error> comptime_executor_context::consume_errors(void)
 {
 	bz_assert(this->engine != nullptr);
@@ -884,66 +928,49 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 		.IntVal.getLimitedValue();
 	bz::vector<error> result;
 	result.reserve(error_count);
-	llvm::GenericValue index;
-	for (size_t i = 0; i < error_count; ++i)
+	for (uint64_t i = 0; i < error_count; ++i)
 	{
-		index.IntVal = i;
 		auto const error_kind = [&]() -> uint32_t {
 			auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_kind_by_index);
-			auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
-			if (func_ptr != 0)
-			{
-				return reinterpret_cast<uint32_t (*)(uint64_t)>(func_ptr)(i);
-			}
-			else
-			{
-				return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
-			}
+			return call_llvm_func<uint32_t>(this->engine.get(), llvm_func, i);
 		}();
-		auto const error_ptr = [&]() -> uint64_t {
-			auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_ptr_by_index);
-			auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
-			if (func_ptr != 0)
+		auto const src_tokens = [&]() -> lex::src_tokens {
+			auto const begin_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_begin_by_index);
+			auto const begin_ptr_int_val = call_llvm_func<uint64_t>(this->engine.get(), begin_llvm_func, i);
+			auto const pivot_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_pivot_by_index);
+			auto const pivot_ptr_int_val = call_llvm_func<uint64_t>(this->engine.get(), pivot_llvm_func, i);
+			auto const end_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_end_by_index);
+			auto const end_ptr_int_val = call_llvm_func<uint64_t>(this->engine.get(), end_llvm_func, i);
+
+			return lex::src_tokens{
+				lex::token_pos(reinterpret_cast<lex::token const *>(begin_ptr_int_val)),
+				lex::token_pos(reinterpret_cast<lex::token const *>(pivot_ptr_int_val)),
+				lex::token_pos(reinterpret_cast<lex::token const *>(end_ptr_int_val)),
+			};
+		}();
+		auto error_message = [&]() -> bz::u8string {
+			auto const size_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_message_size_by_index);
+			auto const size = call_llvm_func<uint64_t>(this->engine.get(), size_llvm_func, i);
+			ast::arena_vector<uint8_t> message_bytes;
+			message_bytes.resize(size);
+			for (uint64_t j = 0; j < size; ++j)
 			{
-				return reinterpret_cast<uint64_t (*)(uint64_t)>(func_ptr)(i);
+				auto const byte_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_message_char_by_index);
+				message_bytes[j] = call_llvm_func<uint8_t>(this->engine.get(), byte_llvm_func, i, j);
 			}
-			else
-			{
-				return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
-			}
+			return bz::u8string_view(message_bytes.data(), message_bytes.data() + message_bytes.size());
 		}();
 		auto const call_stack_notes = [&]() {
 			bz::vector<source_highlight> notes;
-			auto const call_stack_size = [&]() -> uint64_t {
-				auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_size_by_index);
-				auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
-				if (func_ptr != 0)
-				{
-					return reinterpret_cast<uint64_t (*)(uint64_t)>(func_ptr)(i);
-				}
-				else
-				{
-					return this->engine->runFunction(llvm_func, index).IntVal.getLimitedValue();
-				}
-			}();
+			auto const size_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_size_by_index);
+			auto const call_stack_size = call_llvm_func<uint64_t>(this->engine.get(), size_llvm_func, i);
 			notes.reserve(call_stack_size);
 			llvm::GenericValue call_stack_index;
 			for (uint64_t j = call_stack_size; j != 0;)
 			{
 				--j;
-				auto const call_ptr_int_val = [&]() -> uint64_t {
-					auto const llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_element_by_index);
-					auto const func_ptr = this->engine->getFunctionAddress(llvm_func->getName().str());
-					if (func_ptr != 0)
-					{
-						return reinterpret_cast<uint64_t (*)(uint64_t, uint64_t)>(func_ptr)(i, j);
-					}
-					else
-					{
-						call_stack_index.IntVal = j;
-						return this->engine->runFunction(llvm_func, { index, call_stack_index }).IntVal.getLimitedValue();
-					}
-				}();
+				auto const ptr_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_call_stack_element_by_index);
+				auto const call_ptr_int_val = call_llvm_func<uint64_t>(this->engine.get(), ptr_llvm_func, i, j);
 				bz_assert(call_ptr_int_val != 0);
 				auto const call_ptr = reinterpret_cast<comptime_func_call const *>(call_ptr_int_val);
 				notes.emplace_back(this->make_note(
@@ -953,10 +980,14 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 			}
 			return notes;
 		}();
-		bz_assert(error_ptr != 0);
 		result.push_back({
 			static_cast<warning_kind>(error_kind),
-			*reinterpret_cast<source_highlight const *>(error_ptr),
+			source_highlight{
+				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+				src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+				{}, {},
+				std::move(error_message)
+			},
 			std::move(call_stack_notes), {}
 		});
 	}

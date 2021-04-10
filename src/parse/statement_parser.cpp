@@ -1017,10 +1017,6 @@ static bool resolve_function_parameters_helper(
 )
 {
 	bz_assert(func_body.state == ast::resolve_state::resolving_parameters || func_body.state == ast::resolve_state::resolving_symbol);
-	if (!func_stmt.get_attributes().empty())
-	{
-		resolve_attributes(func_stmt, context);
-	}
 	bool good = true;
 	bool is_generic = false;
 	for (auto &p : func_body.params)
@@ -3041,6 +3037,12 @@ static void apply_extern(
 	func_body.flags |= ast::function_body::external_linkage;
 	func_body.symbol_name = extern_name;
 	func_body.cc = cc;
+	for (auto const &specialization : func_body.generic_specializations)
+	{
+		specialization->flags |= ast::function_body::external_linkage;
+		specialization->symbol_name = extern_name;
+		specialization->cc = cc;
+	}
 }
 
 static void apply_symbol_name(
@@ -3053,6 +3055,13 @@ static void apply_symbol_name(
 	if (attribute.args.size() != 1)
 	{
 		context.report_error(attribute.name, "@symbol_name expects exactly one argument");
+		return;
+	}
+
+	bz_assert(func_body.state >= ast::resolve_state::parameters);
+	if (func_body.is_generic())
+	{
+		context.report_error(attribute.name, "@symbol_name cannot be applied to generic functions");
 		return;
 	}
 
@@ -3090,6 +3099,10 @@ static void apply_no_comptime_checking(
 	}
 
 	func_body.flags |= ast::function_body::no_comptime_checking;
+	for (auto const &specialization : func_body.generic_specializations)
+	{
+		specialization->flags |= ast::function_body::no_comptime_checking;
+	}
 }
 
 static void apply_comptime_error_checking(
@@ -3196,6 +3209,10 @@ static void apply_attribute(
 		else
 		{
 			func_decl.body.cc = abi::calling_convention::c;
+			for (auto const &specialization : func_decl.body.generic_specializations)
+			{
+				specialization->cc = abi::calling_convention::c;
+			}
 		}
 	}
 	else if (attr_name == "symbol_name")
