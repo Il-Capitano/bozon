@@ -2635,7 +2635,7 @@ static val_ptr emit_bitcode(
 			: static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_back);
 		auto &p = func_call.params[i];
 		auto &p_t = func_call.func_body->params[i].var_type;
-		if (p_t.is_typename())
+		if (ast::is_generic_parameter(func_call.func_body->params[i]))
 		{
 			// do nothing for typename args
 			return;
@@ -4173,7 +4173,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	{
 		for (auto &p : func_body.params)
 		{
-			if (p.var_type.is_typename())
+			if (ast::is_generic_parameter(p))
 			{
 				// skip typename args
 				continue;
@@ -4403,6 +4403,18 @@ static void emit_function_bitcode_impl(
 			auto &p = *p_it;
 			if (p.var_type.is_typename())
 			{
+				++p_it;
+				continue;
+			}
+			else if (ast::is_generic_parameter(p))
+			{
+				bz_assert(p.var_type.is<ast::ts_consteval>());
+				bz_assert(p.init_expr.is<ast::constant_expression>());
+				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
+				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+				auto const alloca = context.create_alloca(val->getType());
+				context.builder.CreateStore(val, alloca);
+				context.add_variable(&p, alloca);
 				++p_it;
 				continue;
 			}
