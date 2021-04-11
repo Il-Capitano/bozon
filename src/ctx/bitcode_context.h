@@ -34,8 +34,8 @@ struct bitcode_context
 	llvm::Type *get_base_type(ast::type_info const *info) const;
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
 
-	bool contains_function(ast::function_body const *func_body);
 	llvm::Function *get_function(ast::function_body const *func_body);
+	bool contains_function(ast::function_body const *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::DataLayout &get_data_layout(void) const noexcept;
