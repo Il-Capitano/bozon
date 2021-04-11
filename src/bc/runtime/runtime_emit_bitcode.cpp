@@ -2078,6 +2078,97 @@ static val_ptr emit_copy_constructor(
 }
 
 template<abi::platform_abi abi>
+static val_ptr emit_default_constructor(
+	ast::typespec_view type,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	if (result_address == nullptr)
+	{
+		result_address = context.create_alloca(get_llvm_type(type, context));
+	}
+
+	auto const llvm_type = get_llvm_type(type, context);
+	if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->default_constructor != nullptr)
+		{
+			auto const fn = context.get_function(info->default_constructor);
+			auto const ret_kind = abi::get_pass_kind<abi>(llvm_type, context.get_data_layout(), context.get_llvm_context());
+			switch (ret_kind)
+			{
+			case abi::pass_kind::value:
+			{
+				auto const call = context.builder.CreateCall(fn);
+				context.builder.CreateStore(call, result_address);
+				break;
+			}
+			case abi::pass_kind::reference:
+			{
+				context.builder.CreateCall(fn, result_address);
+				break;
+			}
+			case abi::pass_kind::one_register:
+			case abi::pass_kind::two_registers:
+			{
+				auto const call = context.builder.CreateCall(fn);
+				auto const cast_result_address = context.builder.CreatePointerCast(
+					result_address, llvm::PointerType::get(call->getType(), 0)
+				);
+				context.builder.CreateStore(call, cast_result_address);
+				break;
+			}
+			}
+		}
+		else if (info->default_default_constructor != nullptr)
+		{
+			for (auto const &[member, i] : info->member_variables.enumerate())
+			{
+				emit_default_constructor<abi>(
+					member.type,
+					context,
+					context.builder.CreateStructGEP(result_address, i)
+				);
+			}
+		}
+		else
+		{
+			context.builder.CreateStore(get_constant_zero(type, llvm_type, context), result_address);
+		}
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
+		for (auto const i : bz::iota(0, type.get<ast::ts_array>().size))
+		{
+			emit_default_constructor<abi>(
+				elem_type,
+				context,
+				context.builder.CreateStructGEP(result_address, i)
+			);
+		}
+	}
+	else if (type.is<ast::ts_tuple>())
+	{
+		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
+		{
+			emit_default_constructor<abi>(
+				member_type,
+				context,
+				context.builder.CreateStructGEP(result_address, i)
+			);
+		}
+	}
+	else
+	{
+		context.builder.CreateStore(get_constant_zero(type, llvm_type, context), result_address);
+	}
+	return { val_ptr::reference, result_address };
+}
+
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	ast::expr_function_call const &func_call,
 	ctx::bitcode_context &context,
@@ -2378,8 +2469,12 @@ static val_ptr emit_bitcode(
 	else if (func_call.func_body->is_default_copy_constructor())
 	{
 		auto const expr_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-		auto const expr_type = ast::remove_const_or_consteval(func_call.params[0].get_expr_type_and_kind().first);
+		auto const expr_type = func_call.func_body->return_type.as_typespec_view();
 		return emit_copy_constructor<abi>(expr_val, expr_type, context, result_address);
+	}
+	else if (func_call.func_body->is_default_default_constructor())
+	{
+		return emit_default_constructor<abi>(func_call.func_body->return_type, context, result_address);
 	}
 
 	bz_assert(func_call.func_body != nullptr);
@@ -3743,8 +3838,7 @@ static void emit_bitcode(
 		}
 		else
 		{
-			auto const init = get_constant_zero(var_decl.var_type, type, context);
-			context.builder.CreateStore(init, alloca);
+			emit_default_constructor<abi>(var_decl.var_type, context, alloca);
 		}
 		context.add_variable(&var_decl, alloca);
 	}
@@ -3804,13 +3898,13 @@ static void emit_bitcode(
 
 template<abi::platform_abi abi>
 static llvm::Function *create_function_from_symbol_impl(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 )
 {
-	if (auto const fn = context.get_function(&func_body); fn != nullptr)
+	if (context.contains_function(&func_body))
 	{
-		return fn;
+		return context.get_function(&func_body);
 	}
 
 	auto const result_t = get_llvm_type(func_body.return_type, context);
@@ -3893,7 +3987,12 @@ static llvm::Function *create_function_from_symbol_impl(
 			}
 		}
 	}
-	if (func_body.intrinsic_kind == ast::function_body::memcpy || func_body.intrinsic_kind == ast::function_body::memmove)
+	if (
+		func_body.is_intrinsic()
+		&& (func_body.intrinsic_kind == ast::function_body::memcpy
+		|| func_body.intrinsic_kind == ast::function_body::memmove
+		|| func_body.intrinsic_kind == ast::function_body::memset)
+	)
 	{
 		args.push_back(context.get_bool_t());
 		pass_arg_by_ref.push_back(false);
@@ -3938,7 +4037,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
 
-	if (func_body.body.is_null())
+	if (func_body.is_external_linkage())
 	{
 		if (auto const prev_fn = context.get_module().getFunction(name))
 		{
@@ -3996,7 +4095,7 @@ static llvm::Function *create_function_from_symbol_impl(
 }
 
 static llvm::Function *create_function_from_symbol(
-	ast::function_body &func_body,
+	ast::function_body const &func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -4020,7 +4119,7 @@ static llvm::Function *create_function_from_symbol(
 }
 
 void add_function_to_module(
-	ast::function_body *func_body,
+	ast::function_body const *func_body,
 	ctx::bitcode_context &context
 )
 {

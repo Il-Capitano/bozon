@@ -532,6 +532,28 @@ static void resolve_variable_init_expr_and_match_type(
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
+		else if (var_decl.var_type.is<ast::ts_base_type>())
+		{
+			auto const info = var_decl.var_type.get<ast::ts_base_type>().info;
+			auto const def_ctor = info->default_constructor != nullptr
+				? info->default_constructor
+				: info->default_default_constructor.get();
+			if (def_ctor != nullptr)
+			{
+				var_decl.init_expr = ast::make_dynamic_expression(
+					var_decl.src_tokens,
+					ast::expression_type_kind::rvalue,
+					var_decl.var_type,
+					ast::make_expr_function_call(
+						var_decl.src_tokens,
+						bz::vector<ast::expression>{},
+						def_ctor,
+						ast::resolve_order::regular
+					)
+				);
+				parse::consteval_guaranteed(var_decl.init_expr, context);
+			}
+		}
 	}
 	if (
 		!var_decl.var_type.is_empty()
@@ -1142,7 +1164,11 @@ static bool resolve_function_parameters_helper(
 	}
 	else if (good && func_body.is_constructor())
 	{
-		if (
+		if (func_body.params.empty())
+		{
+			func_body.get_constructor_of()->default_constructor = &func_body;
+		}
+		else if (
 			func_body.params.size() == 1
 			&& func_body.params[0].var_type.nodes.size() == 3
 			&& func_body.params[0].var_type.nodes[0].is<ast::ts_lvalue_reference>()

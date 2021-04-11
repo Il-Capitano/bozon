@@ -390,7 +390,8 @@ struct function_body
 		local                    = bit_at< 9>,
 		destructor               = bit_at<10>,
 		constructor              = bit_at<11>,
-		default_copy_constructor = bit_at<12>,
+		default_default_constructor = bit_at<12>,
+		default_copy_constructor = bit_at<13>,
 	};
 
 	enum : uint8_t
@@ -600,6 +601,11 @@ struct function_body
 		return (this->flags & constructor) != 0;
 	}
 
+	bool is_default_default_constructor(void) const noexcept
+	{
+		return (this->flags & default_default_constructor) != 0;
+	}
+
 	bool is_default_copy_constructor(void) const noexcept
 	{
 		return (this->flags & default_copy_constructor) != 0;
@@ -758,11 +764,13 @@ struct type_info
 	function_body_ptr default_op_assign;
 	function_body_ptr default_op_move_assign;
 
+	function_body_ptr default_default_constructor;
 	function_body_ptr default_copy_constructor;
 
 	function_body *op_assign;
 	function_body *op_move_assign;
 
+	function_body *default_constructor;
 	function_body *copy_constructor;
 
 	function_body_ptr destructor;
@@ -786,9 +794,11 @@ struct type_info
 		  member_variables{},
 		  default_op_assign(make_default_op_assign(src_tokens, *this)),
 		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
+		  default_default_constructor(make_default_default_constructor(src_tokens, *this)),
 		  default_copy_constructor(make_default_copy_constructor(src_tokens, *this)),
 		  op_assign(nullptr),
 		  op_move_assign(nullptr),
+		  default_constructor(nullptr),
 		  copy_constructor(nullptr),
 		  destructor(nullptr),
 		  constructors{}
@@ -811,9 +821,11 @@ private:
 		  member_variables{},
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
+		  default_default_constructor(nullptr),
 		  default_copy_constructor(nullptr),
 		  op_assign(nullptr),
 		  op_move_assign(nullptr),
+		  default_constructor(nullptr),
 		  copy_constructor(nullptr),
 		  destructor(nullptr),
 		  constructors{}
@@ -826,6 +838,7 @@ public:
 
 	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
+	static function_body_ptr make_default_default_constructor(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
 
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)

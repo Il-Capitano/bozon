@@ -463,6 +463,24 @@ type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_t
 	return result;
 }
 
+type_info::function_body_ptr type_info::make_default_default_constructor(lex::src_tokens src_tokens, type_info &info)
+{
+	auto param_t = make_base_type_typespec({}, &info);
+	param_t.add_layer<ts_const>();
+	param_t.add_layer<ts_lvalue_reference>();
+
+	auto ret_t = make_base_type_typespec({}, &info);
+
+	auto result = make_ast_unique<function_body>();
+	result->return_type = std::move(ret_t);
+	result->src_tokens = src_tokens;
+	result->state = resolve_state::symbol;
+	result->flags |= function_body::default_default_constructor;
+	result->flags |= function_body::constructor;
+	result->constructor_or_destructor_of = &info;
+	return result;
+}
+
 static_assert(type_info::int8_    ==  0);
 static_assert(type_info::int16_   ==  1);
 static_assert(type_info::int32_   ==  2);
