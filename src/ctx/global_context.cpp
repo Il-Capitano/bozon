@@ -626,7 +626,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	for (auto const func : this->_compile_decls.funcs)
 	{
-		bc::runtime::add_function_to_module(func, context);
 		if (func->is_external_linkage())
 		{
 			context.ensure_function_emission(func);

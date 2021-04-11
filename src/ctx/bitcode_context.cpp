@@ -1,5 +1,6 @@
 #include "bitcode_context.h"
 #include "global_context.h"
+#include "bc/runtime/runtime_emit_bitcode.h"
 
 namespace ctx
 {
@@ -51,13 +52,22 @@ llvm::Function *bitcode_context::get_function(ast::function_body const *func_bod
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
 	{
-		return nullptr;
+		bc::runtime::add_function_to_module(func_body, *this);
+		this->ensure_function_emission(func_body);
+		it = this->funcs_.find(func_body);
+		bz_assert(it != this->funcs_.end());
+		return it->second;
 	}
 	else
 	{
 		this->ensure_function_emission(func_body);
 		return it->second;
 	}
+}
+
+bool bitcode_context::contains_function(ast::function_body const *func_body)
+{
+	return this->funcs_.find(func_body) != this->funcs_.end();
 }
 
 llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
