@@ -105,6 +105,12 @@ bz::u8string function_body::get_symbol_name(void) const
 		{
 			symbol_name += '.';
 			symbol_name += p.var_type.get_symbol_name();
+			if (p.var_type.is<ts_consteval>())
+			{
+				bz_assert(p.init_expr.is<constant_expression>());
+				symbol_name += '.';
+				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get<constant_expression>().value);
+			}
 		}
 		return symbol_name;
 	}
@@ -120,6 +126,12 @@ bz::u8string function_body::get_symbol_name(void) const
 		{
 			symbol_name += '.';
 			symbol_name += p.var_type.get_symbol_name();
+			if (p.var_type.is<ts_consteval>())
+			{
+				bz_assert(p.init_expr.is<constant_expression>());
+				symbol_name += '.';
+				constant_value::encode_for_symbol_name(symbol_name, p.init_expr.get<constant_expression>().value);
+			}
 		}
 		symbol_name += '.';
 		symbol_name += this->return_type.get_symbol_name();
@@ -342,12 +354,20 @@ bz::u8string function_body::decode_symbol_name(
 		if (i == 0)
 		{
 			result += ": ";
-			result += typespec::decode_symbol_name(it, end);
 		}
 		else
 		{
 			result += ", : ";
-			result += typespec::decode_symbol_name(it, end);
+		}
+		auto const type = typespec::decode_symbol_name(it, end);
+		result += type;
+		if (type.starts_with("consteval"))
+		{
+			bz_assert(it != end);
+			bz_assert(*it == '.');
+			++it;
+			result += " = ";
+			result += constant_value::decode_from_symbol_name(it, end);
 		}
 	}
 

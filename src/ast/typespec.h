@@ -155,6 +155,13 @@ struct typespec
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end
 	);
+
+	static bz::u8string decode_symbol_name(bz::u8string_view symbol)
+	{
+		auto it = symbol.begin();
+		auto const end = symbol.end();
+		return decode_symbol_name(it, end);
+	}
 };
 
 

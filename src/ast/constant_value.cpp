@@ -94,6 +94,310 @@ bz::u8string get_value_string(constant_value const &value)
 	}
 }
 
+static void encode_array_like(bz::u8string &out, bz::array_view<constant_value const> values)
+{
+	out += bz::format("{}", values.size());
+	for (auto const &value : values)
+	{
+		out += '.';
+		constant_value::encode_for_symbol_name(out, value);
+	}
+}
+
+static void encode_identifier(bz::u8string &out, bz::array_view<bz::u8string_view const> ids)
+{
+	out += bz::format("{}", ids.size());
+	for (auto const &id : ids)
+	{
+		// '.' is not allowed in identifiers so this should be ok
+		out += '.';
+		out += id;
+	}
+	out += '.';
+}
+
+void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
+{
+	switch (value.kind())
+	{
+	case sint:
+		out += 'i';
+		out += bz::format("{}", bit_cast<uint64_t>(value.get<sint>()));
+		break;
+	case uint:
+		out += 'u';
+		out += bz::format("{}", value.get<uint>());
+		break;
+	case float32:
+		out += 'f';
+		out += bz::format("{:8x}", bit_cast<uint32_t>(value.get<float32>()));
+		break;
+	case float64:
+		out += 'd';
+		out += bz::format("{:16x}", bit_cast<uint64_t>(value.get<float64>()));
+		break;
+	case u8char:
+		out += 'c';
+		out += bz::format("{}", bit_cast<uint32_t>(value.get<u8char>()));
+		break;
+	case string:
+	{
+		auto const str = value.get<string>().as_string_view();
+		out += 's';
+		out += bz::format("{}", str.size());
+		out += '.';
+		out += str;
+		break;
+	}
+	case boolean:
+		out += 'b';
+		out += value.get<boolean>() ? '1' : '0';
+		break;
+	case null:
+		out += 'n';
+		break;
+	case void_:
+		out += 'v';
+		break;
+	case array:
+		out += 'A';
+		encode_array_like(out, value.get<array>());
+		break;
+	case tuple:
+		out += 'T';
+		encode_array_like(out, value.get<tuple>());
+		break;
+	case function:
+	{
+		auto const func = value.get<function>();
+		auto const func_symbol = func->symbol_name.as_string_view();
+		out += 'F';
+		out += bz::format("{}", func_symbol.size());
+		out += '.';
+		out += func_symbol;
+		break;
+	}
+	case unqualified_function_set_id:
+	{
+		out += 'U';
+		encode_identifier(out, value.get<unqualified_function_set_id>());
+		break;
+	}
+	case qualified_function_set_id:
+	{
+		out += 'Q';
+		encode_identifier(out, value.get<qualified_function_set_id>());
+		break;
+	}
+	case type:
+	{
+		auto const symbol = value.get<type>().get_symbol_name();
+		out += 't';
+		out += bz::format("{}", symbol.size());
+		out += '.';
+		out += symbol;
+		break;
+	}
+	case aggregate:
+		out += 'a';
+		encode_array_like(out, value.get<aggregate>());
+		break;
+	default:
+		bz_unreachable;
+	}
+}
+
+template<typename Int>
+static Int parse_int(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
+{
+	Int result = 0;
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		if (c < '0' || c > '9')
+		{
+			break;
+		}
+		result *= 10;
+		result += c - '0';
+	}
+	return result;
+}
+
+template<typename Int>
+static Int parse_hex(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
+{
+	Int result = 0;
+	for (; it != end; ++it)
+	{
+		auto const c = *it;
+		if ((c < '0' || c > '9') && (c < 'a' || c > 'f'))
+		{
+			break;
+		}
+		result *= 16;
+		if (c >= '0' && c <= '9')
+		{
+			result += c - '0';
+		}
+		else
+		{
+			result += c - 'a' + 10;
+		}
+	}
+	return result;
+}
+
+static void decode_array_like(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	out += "[ ";
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += ", ";
+		}
+		bz_assert(*it == '.');
+		++it;
+		out += constant_value::decode_from_symbol_name(it, end);
+	}
+	out += " ]";
+}
+
+static void decode_identifier(
+	bz::u8string_view::const_iterator &it,
+	bz::u8string_view::const_iterator end,
+	bz::u8string &out
+)
+{
+	auto const size = parse_int<size_t>(it, end);
+	for (auto const i : bz::iota(0, size))
+	{
+		if (i != 0)
+		{
+			out += "::";
+		}
+		bz_assert(it != end);
+		bz_assert(*it == '.');
+		++it;
+		auto const next_dot = bz::u8string_view(it, end).find('.');
+		out += bz::u8string_view(it, next_dot);
+		it = next_dot;
+	}
+	bz_assert(it != end);
+	bz_assert(*it == '.');
+	++it;
+}
+
+bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
+{
+	switch (*it)
+	{
+	case 'i':
+		++it;
+		return bz::format("{}", bit_cast<int64_t>(parse_int<uint64_t>(it, end)));
+	case 'u':
+		++it;
+		return bz::format("{}", parse_int<uint64_t>(it, end));
+	case 'f':
+		++it;
+		return bz::format("{}", bit_cast<float32_t>(parse_hex<uint32_t>(it, end)));
+	case 'd':
+		++it;
+		return bz::format("{}", bit_cast<float64_t>(parse_hex<uint64_t>(it, end)));
+	case 'c':
+		++it;
+		return bz::format("'{:c}'", parse_int<bz::u8char>(it, end));
+	case 's':
+	{
+		++it;
+		auto const size = parse_int<size_t>(it, end);
+		bz_assert(it != end);
+		bz_assert(*it == '.');
+		++it;
+		auto const str_end = bz::u8string_view::const_iterator(it.data() + size);
+		auto const result = bz::u8string_view(it, str_end);
+		it = str_end;
+		return result;
+	}
+	case 'b':
+	{
+		++it;
+		auto const c = *it;
+		++it;
+		return c == '1' ? "true" : "false";
+	}
+	case 'n':
+		return "null";
+	case 'v':
+		return "void";
+	case 'A':
+	{
+		++it;
+		bz::u8string result;
+		decode_array_like(it, end, result);
+		return result;
+	}
+	case 'T':
+	{
+		++it;
+		bz::u8string result;
+		decode_array_like(it, end, result);
+		return result;
+	}
+	case 'F':
+	{
+		++it;
+		auto const size = parse_int<size_t>(it, end);
+		bz_assert(it != end);
+		bz_assert(*it == '.');
+		auto const str_end = bz::u8string_view::const_iterator(it.data() + size);
+		auto const result_symbol = bz::u8string_view(it, str_end);
+		it = str_end;
+		return ast::function_body::decode_symbol_name(result_symbol);
+	}
+	case 'U':
+	{
+		++it;
+		bz::u8string result;
+		decode_identifier(it, end, result);
+		return result;
+	}
+	case 'Q':
+	{
+		++it;
+		bz::u8string result = "::";
+		decode_identifier(it, end, result);
+		return result;
+	}
+	case 't':
+	{
+		++it;
+		auto const size = parse_int<size_t>(it, end);
+		bz_assert(it != end);
+		bz_assert(*it == '.');
+		auto const str_end = bz::u8string_view::const_iterator(it.data() + size);
+		auto const result_symbol = bz::u8string_view(it, str_end);
+		it = str_end;
+		return ast::typespec::decode_symbol_name(result_symbol);
+	}
+	case 'a':
+	{
+		++it;
+		bz::u8string result;
+		decode_array_like(it, end, result);
+		return result;
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 {
 	if (lhs.kind() != rhs.kind())

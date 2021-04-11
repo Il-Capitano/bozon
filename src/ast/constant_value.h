@@ -91,7 +91,6 @@ struct constant_value : bz::variant<
 	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, arena_vector<bz::u8string_view>>);
 	static_assert(unqualified_function_set_id != qualified_function_set_id);
 
-	using base_t::variant;
 	using base_t::operator =;
 
 	size_t kind(void) const noexcept
@@ -103,6 +102,15 @@ struct constant_value : bz::variant<
 	explicit constant_value(T &&t)
 		: base_t(std::forward<T>(t))
 	{}
+
+	static void encode_for_symbol_name(bz::u8string &out, constant_value const &value);
+	static bz::u8string decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end);
+	static bz::u8string decode_from_symbol_name(bz::u8string_view str)
+	{
+		auto it = str.begin();
+		auto const end = str.end();
+		return decode_from_symbol_name(it, end);
+	}
 };
 
 bz::u8string get_value_string(constant_value const &value);
