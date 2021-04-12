@@ -65,3 +65,45 @@ function builtin_str_length(s: str) -> usize
 	const size = __builtin_str_size(s);
 	return size - continuation_byte_count;
 }
+
+@builtin("str_starts_with")
+function builtin_str_starts_with(s: str, prefix: str) -> bool
+{
+	if (s.size() < prefix.size())
+	{
+		return false;
+	}
+
+	let s_it = __builtin_str_begin_ptr(s);
+	let prefix_it = __builtin_str_begin_ptr(prefix);
+	const prefix_end = __builtin_str_end_ptr(prefix);
+	for (; prefix_it != prefix_end; ++s_it, ++prefix_it)
+	{
+		if (*s_it != *prefix_it)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+@builtin("str_ends_with")
+function builtin_str_ends_with(s: str, postfix: str) -> bool
+{
+	if (s.size() < postfix.size())
+	{
+		return false;
+	}
+
+	let s_it = __builtin_str_end_ptr(s) - postfix.size();
+	let postfix_it = __builtin_str_begin_ptr(postfix);
+	const postfix_end = __builtin_str_end_ptr(postfix);
+	for (; postfix_it != postfix_end; ++s_it, ++postfix_it)
+	{
+		if (*s_it != *postfix_it)
+		{
+			return false;
+		}
+	}
+	return true;
+}

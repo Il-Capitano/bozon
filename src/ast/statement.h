@@ -401,6 +401,8 @@ struct function_body
 		builtin_str_eq = _builtin_first,
 		builtin_str_neq,
 		builtin_str_length,
+		builtin_str_starts_with,
+		builtin_str_ends_with,
 
 		builtin_str_begin_ptr,
 		builtin_str_end_ptr,
@@ -1085,12 +1087,14 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 86);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 88);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
-		{ function_body::builtin_str_eq,     "__builtin_str_eq"     },
-		{ function_body::builtin_str_neq,    "__builtin_str_neq"    },
-		{ function_body::builtin_str_length, "__builtin_str_length" },
+		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
+		{ function_body::builtin_str_neq,         "__builtin_str_neq"         },
+		{ function_body::builtin_str_length,      "__builtin_str_length"      },
+		{ function_body::builtin_str_starts_with, "__builtin_str_starts_with" },
+		{ function_body::builtin_str_ends_with,   "__builtin_str_ends_with"   },
 
 		{ function_body::builtin_str_begin_ptr, "__builtin_str_begin_ptr" },
 		{ function_body::builtin_str_end_ptr,   "__builtin_str_end_ptr"   },

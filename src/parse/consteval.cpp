@@ -1420,7 +1420,7 @@ static ast::constant_value evaluate_function_call(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 86);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
 		case ast::function_body::builtin_str_eq:
 		{
 			bz_assert(func_call.params.size() == 2);
@@ -1456,6 +1456,28 @@ static ast::constant_value evaluate_function_call(
 			auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
 			bz_assert(str_value.is<ast::constant_value::string>());
 			return ast::constant_value(str_value.get<ast::constant_value::string>().length());
+		}
+		case ast::function_body::builtin_str_starts_with:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			bz_assert(func_call.params[1].is<ast::constant_expression>());
+			auto const &s = func_call.params[0].get<ast::constant_expression>().value;
+			auto const &prefix = func_call.params[1].get<ast::constant_expression>().value;
+			bz_assert(s.is<ast::constant_value::string>());
+			bz_assert(prefix.is<ast::constant_value::string>());
+			return ast::constant_value(s.get<ast::constant_value::string>().starts_with(prefix.get<ast::constant_value::string>()));
+		}
+		case ast::function_body::builtin_str_ends_with:
+		{
+			bz_assert(func_call.params.size() == 2);
+			bz_assert(func_call.params[0].is<ast::constant_expression>());
+			bz_assert(func_call.params[1].is<ast::constant_expression>());
+			auto const &s = func_call.params[0].get<ast::constant_expression>().value;
+			auto const &postfix = func_call.params[1].get<ast::constant_expression>().value;
+			bz_assert(s.is<ast::constant_value::string>());
+			bz_assert(postfix.is<ast::constant_value::string>());
+			return ast::constant_value(s.get<ast::constant_value::string>().ends_with(postfix.get<ast::constant_value::string>()));
 		}
 
 		case ast::function_body::builtin_str_begin_ptr:

@@ -101,6 +101,7 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
 	bz_assert(kind < this->_builtin_functions.size());
 	if (kind == ast::function_body::builtin_str_eq)
 	{
@@ -116,6 +117,16 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind)
 	{
 		bz_assert(this->_builtin_str_length_func != nullptr);
 		return this->_builtin_str_length_func;
+	}
+	else if (kind == ast::function_body::builtin_str_starts_with)
+	{
+		bz_assert(this->_builtin_str_starts_with_func != nullptr);
+		return this->_builtin_str_starts_with_func;
+	}
+	else if (kind == ast::function_body::builtin_str_ends_with)
+	{
+		bz_assert(this->_builtin_str_ends_with_func != nullptr);
+		return this->_builtin_str_ends_with_func;
 	}
 
 	return &this->_builtin_functions[kind];
@@ -338,25 +349,55 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 
 bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
 {
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
 	if (kind == "str_eq")
 	{
-		bz_assert(this->_builtin_str_eq_func == nullptr);
+		if (this->_builtin_str_eq_func != nullptr)
+		{
+			return false;
+		}
 		func_body->intrinsic_kind = ast::function_body::builtin_str_eq;
 		this->_builtin_str_eq_func = func_body;
 		return true;
 	}
 	else if (kind == "str_neq")
 	{
-		bz_assert(this->_builtin_str_neq_func == nullptr);
+		if (this->_builtin_str_neq_func != nullptr)
+		{
+			return false;
+		}
 		func_body->intrinsic_kind = ast::function_body::builtin_str_neq;
 		this->_builtin_str_neq_func = func_body;
 		return true;
 	}
 	else if (kind == "str_length")
 	{
-		bz_assert(this->_builtin_str_length_func == nullptr);
+		if (this->_builtin_str_length_func != nullptr)
+		{
+			return false;
+		}
 		func_body->intrinsic_kind = ast::function_body::builtin_str_length;
 		this->_builtin_str_length_func = func_body;
+		return true;
+	}
+	else if (kind == "str_starts_with")
+	{
+		if (this->_builtin_str_starts_with_func != nullptr)
+		{
+			return false;
+		}
+		func_body->intrinsic_kind = ast::function_body::builtin_str_starts_with;
+		this->_builtin_str_starts_with_func = func_body;
+		return true;
+	}
+	else if (kind == "str_ends_with")
+	{
+		if (this->_builtin_str_ends_with_func != nullptr)
+		{
+			return false;
+		}
+		func_body->intrinsic_kind = ast::function_body::builtin_str_ends_with;
+		this->_builtin_str_ends_with_func = func_body;
 		return true;
 	}
 	else

@@ -2463,7 +2463,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 86);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -4820,14 +4820,7 @@ void add_builtin_functions(ctx::comptime_executor_context &context)
 		if (body->symbol_name != "")
 		{
 			add_function_to_module(body, context);
-			if (
-				body->intrinsic_kind == ast::function_body::builtin_str_eq
-				|| body->intrinsic_kind == ast::function_body::builtin_str_neq
-				|| body->intrinsic_kind == ast::function_body::builtin_str_length
-			)
-			{
-				context.ensure_function_emission(body);
-			}
+			context.ensure_function_emission(body);
 		}
 	}
 	[[maybe_unused]] auto const result = emit_necessary_functions(0, context);

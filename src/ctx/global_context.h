@@ -49,6 +49,8 @@ struct global_context
 	ast::function_body *_builtin_str_eq_func     = nullptr;
 	ast::function_body *_builtin_str_neq_func    = nullptr;
 	ast::function_body *_builtin_str_length_func = nullptr;
+	ast::function_body *_builtin_str_starts_with_func = nullptr;
+	ast::function_body *_builtin_str_ends_with_func = nullptr;
 
 	std::list<src_file> _src_files;
 

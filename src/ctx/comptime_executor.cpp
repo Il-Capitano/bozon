@@ -432,12 +432,15 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
 	if (
 		(
 			!body->is_intrinsic()
 			|| body->intrinsic_kind == ast::function_body::builtin_str_eq
 			|| body->intrinsic_kind == ast::function_body::builtin_str_neq
 			|| body->intrinsic_kind == ast::function_body::builtin_str_length
+			|| body->intrinsic_kind == ast::function_body::builtin_str_starts_with
+			|| body->intrinsic_kind == ast::function_body::builtin_str_ends_with
 		)
 		&& !this->functions_to_compile.contains(body)
 	)

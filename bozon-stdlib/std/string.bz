@@ -79,6 +79,10 @@ export struct string
 
 export operator = (self: &string, other: &const string) -> &string
 {
+	if (&self as *const string == &other)
+	{
+		return self;
+	}
 	const size = other.size();
 	self.reserve(size);
 	__builtin_memcpy(self.begin_ptr(), other.begin_ptr(), size);
@@ -88,19 +92,7 @@ export operator = (self: &string, other: &const string) -> &string
 
 export operator = (self: &string, other: string) -> &string
 {
-	if (!self.is_short_string())
-	{
-		free(self._data_begin);
-	}
-
-	self._data_begin = other._data_begin;
-	self._data_end   = other._data_end;
-	self._alloc_end  = other._alloc_end;
-
-	other._data_begin = null;
-	other._data_end   = null;
-	other._alloc_end  = null;
-
+	self.swap(other);
 	return self;
 }
 
@@ -505,4 +497,56 @@ export operator ..= (lhs: &string, rhs: char) -> &string
 	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
+}
+
+
+export operator == (lhs: #const string, rhs: #const string) -> bool
+{
+	return lhs.as_str() == rhs.as_str();
+}
+
+export operator == (lhs: str, rhs: #const string) -> bool
+{
+	return lhs == rhs.as_str();
+}
+
+export operator == (lhs: #const string, rhs: str) -> bool
+{
+	return lhs.as_str() == rhs;
+}
+
+export operator != (lhs: #const string, rhs: #const string) -> bool
+{
+	return lhs.as_str() != rhs.as_str();
+}
+
+export operator != (lhs: str, rhs: #const string) -> bool
+{
+	return lhs != rhs.as_str();
+}
+
+export operator != (lhs: #const string, rhs: str) -> bool
+{
+	return lhs.as_str() != rhs;
+}
+
+
+export function starts_with(s: #const string, prefix: #const string) -> bool
+{
+	return s.as_str().starts_with(prefix.as_str());
+}
+
+export function starts_with(s: #const string, prefix: str) -> bool
+{
+	return s.as_str().starts_with(prefix);
+}
+
+export function ends_with(s: #const string, postfix: #const string) -> bool
+{
+	return s.as_str().ends_with(postfix.as_str());
+}
+
+export function ends_with(s: #const string, postfix: str) -> bool
+{
+	return s.as_str().ends_with(postfix);
 }
