@@ -2,6 +2,7 @@
 #include "global_context.h"
 #include "parse_context.h"
 #include "token_info.h"
+#include "parse/consteval.h"
 
 namespace ctx
 {
@@ -907,6 +908,28 @@ static ast::expression get_builtin_unary_move(
 
 	context.report_error(src_tokens, "operator move is not yet implemented");
 	return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+}
+
+// consteval (val) -> (force evaluate val at compile time)
+static ast::expression get_builtin_unary_consteval(
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::kw_consteval);
+	bz_assert(expr.not_error());
+	parse::consteval_try(expr, context);
+	if (expr.has_consteval_succeeded())
+	{
+		return expr;
+	}
+	else
+	{
+		context.report_error(expr.src_tokens, "failed to evaluate expression at compile time", parse::get_consteval_fail_notes(expr));
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 }
 
 #undef undeclared_unary_message
@@ -3523,9 +3546,10 @@ constexpr auto builtin_unary_operators = []() {
 		T{ lex::token::plus_plus,   &get_builtin_unary_plus_plus_minus_minus }, // ++
 		T{ lex::token::minus_minus, &get_builtin_unary_plus_plus_minus_minus }, // --
 
-		T{ lex::token::kw_sizeof,   &get_builtin_unary_sizeof                }, // sizeof
-		T{ lex::token::kw_typeof,   &get_builtin_unary_typeof                }, // typeof
-		T{ lex::token::kw_move,     &get_builtin_unary_move                  }, // move
+		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
+		T{ lex::token::kw_typeof,    &get_builtin_unary_typeof                }, // typeof
+		T{ lex::token::kw_move,      &get_builtin_unary_move                  }, // move
+		T{ lex::token::kw_consteval, &get_builtin_unary_consteval             }, // consteval
 	};
 
 	auto const builtin_unary_count = []() {

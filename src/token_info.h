@@ -294,18 +294,18 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_import]        = { lex::token::kw_import,        "import",        "", keyword_flags                   };
 	result[lex::token::kw_in]            = { lex::token::kw_in,            "in",            "", keyword_flags                   };
 
-	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_operator_flags | unary_builtin_flags };
-	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_operator_flags | unary_builtin_flags };
-	result[lex::token::kw_move]   = { lex::token::kw_move,   "move",   "", keyword_flags | unary_operator_flags | unary_builtin_flags };
+	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags };
+	result[lex::token::kw_move]   = { lex::token::kw_move,   "move",   "", keyword_flags | unary_builtin_flags };
 
 	result[lex::token::kw_auto]     = { lex::token::kw_auto,     "auto",     "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_typename] = { lex::token::kw_typename, "typename", "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_let]      = { lex::token::kw_let,      "let",      "", keyword_flags                   };
 
-	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_type_op_flags                  };
-	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_type_op_flags                  };
+	result[lex::token::kw_consteval] = { lex::token::kw_consteval, "consteval", "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
+	result[lex::token::kw_const]     = { lex::token::kw_const,     "const",     "", keyword_flags | unary_type_op_flags                       };
 	// the flags for 'as' are not ideal, as it's hard to express that it takes a non-type lhs and a type rhs
-	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | overloadable_flags | binary_operator };
+	result[lex::token::kw_as]        = { lex::token::kw_as,        "as",        "", keyword_flags | overloadable_flags | binary_operator      };
 
 
 	for (auto p : operator_precedences)
