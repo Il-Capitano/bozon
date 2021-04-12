@@ -10,6 +10,7 @@ int main(void)
 {
 	debug_comptime_ir_output = true;
 	use_interpreter = true;
+	import_dirs.push_back("bozon-stdlib");
 
 	auto in_ms = [](auto time)
 	{

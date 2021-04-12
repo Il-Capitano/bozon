@@ -130,10 +130,17 @@ test_result consteval_test(void)
 
 	if (!global_ctx.initialize_llvm())
 	{
+		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
 	}
 	if (!global_ctx.initialize_builtins())
 	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (!global_ctx.parse())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
 	}
 
