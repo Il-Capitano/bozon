@@ -3270,10 +3270,10 @@ string get_additional_help_string(
 
 	[&]<std::size_t ...Is>(std::index_sequence<Is...>) {
 		(([&]() {
-			if constexpr (command_line_options<ID>[Is].group_id != group_id_t::invalid)
+			constexpr auto &option = command_line_options<ID>[Is];
+			constexpr auto group_id = option.group_id;
+			if constexpr (group_id != group_id_t::invalid)
 			{
-				constexpr auto &option = command_line_options<ID>[Is];
-				constexpr auto group_id = option.group_id;
 				if constexpr (add_help_to_group<group_id>)
 				{
 					constexpr auto flag_name = internal::get_flag_names_with_dashes(option.usage);
