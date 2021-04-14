@@ -147,7 +147,8 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-float-math")>           = &warnings[static_cast<size_t>(ctx::warning_kind::bad_float_math)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
-static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 18);
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>  = &warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
+static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 19);
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt instcombine")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::instcombine)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt mem2reg")>                = &optimizations[static_cast<size_t>(bc::optimization_kind::mem2reg)];

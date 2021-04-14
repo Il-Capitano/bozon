@@ -26,6 +26,7 @@ enum class warning_kind
 	out_of_bounds_index,
 	bad_float_math,
 	binary_stdout,
+	is_comptime_always_true,
 
 	_last,
 };
@@ -60,6 +61,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::out_of_bounds_index,      "out-of-bounds-index",      "Index is out of bounds in array subscript"                                 },
 		T{ warning_kind::bad_float_math,           "bad-float-math",           "Invalid arguments for floating-point math functions"                       },
 		T{ warning_kind::binary_stdout,            "binary-stdout",            "Using stdout as output for binary emission types"                          },
+		T{ warning_kind::is_comptime_always_true,  "is-comptime-always-true",  "'__builtin_is_comptime()' was forced to evaluate at compile time"          },
 	};
 
 	constexpr_bubble_sort(

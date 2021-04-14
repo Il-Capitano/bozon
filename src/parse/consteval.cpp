@@ -1521,6 +1521,15 @@ static ast::constant_value evaluate_function_call(
 		case ast::function_body::builtin_is_comptime:
 			if (force_evaluate)
 			{
+				if (original_expr.paren_level < 2)
+				{
+					context.report_parenthesis_suppressed_warning(
+						2 - original_expr.paren_level,
+						ctx::warning_kind::is_comptime_always_true,
+						original_expr.src_tokens,
+						"'__builtin_is_comptime()' was forced to evaluate to always be 'true'"
+					);
+				}
 				return ast::constant_value(true);
 			}
 			else
