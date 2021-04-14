@@ -66,5 +66,53 @@
 		"depends_on": "default",
 		"source_directory": "test",
 		"run_args": []
+	},
+	"gcc": {
+		"compiler": "gcc",
+		"depends_on": "default",
+		"cpp_precompiled_header": "",
+
+		"c_compiler_flags": [],
+		"cpp_compiler_flags": [ "-march=native", "-mtune=native" ],
+		"emit_compile_commands": false,
+
+		"warnings": [
+			"all",
+			"extra"
+		],
+
+		"configs": {
+			"windows-debug": {},
+			"windows-release": {},
+			"linux-debug": {
+				"optimization": "1",
+				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address" ],
+				"link_flags": [ "-fsanitize=address" ]
+			},
+			"linux-release": {},
+			"windows": {
+				"link_flags": [ "-fuse-ld=lld" ],
+				"libraries": [ "LLVM" ]
+			},
+			"linux": {
+				"compiler": "gcc-10",
+				"libraries": [ "LLVM-11" ],
+				"link_flags": [ "-fuse-ld=lld-11" ],
+				"warnings": [ "no-unused-parameter" ]
+			},
+			"debug": {
+				"defines": [ "BOZON_NO_ARENA" ],
+				"optimization": "0"
+			},
+			"release": {
+				"defines": [ "NDEBUG" ],
+				"optimization": "3"
+			}
+		}
+	},
+	"test-gcc": {
+		"depends_on": "gcc",
+		"source_directory": "test",
+		"run_args": []
 	}
 }
