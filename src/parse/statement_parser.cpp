@@ -297,7 +297,7 @@ parse_decl_variable_id_and_type(
 	auto const prototype = lex::token_range{ prototype_begin, stream };
 	if (stream == end)
 	{
-		return { {}, nullptr, {} };
+		return { {}, lex::token_pos(nullptr), {} };
 	}
 
 	auto const id = [&]() {
@@ -2751,7 +2751,7 @@ ast::statement parse_global_statement(
 		{
 			context.set_current_file(stream->src_pos.file_id);
 		}
-		auto const result = parse_fn(stream, end, context);
+		auto result = parse_fn(stream, end, context);
 		context.set_current_file_info(original_file_info);
 		return result;
 	}
