@@ -275,6 +275,29 @@ struct stmt_static_assert
 };
 
 
+struct var_id_and_type
+{
+	identifier id;
+	lex::token_range prototype_range;
+	typespec var_type;
+
+	var_id_and_type(void)
+		: id{}, prototype_range{}, var_type{}
+	{}
+
+	var_id_and_type(identifier _id, lex::token_range _prototype_range, typespec _var_type)
+		: id(std::move(_id)), prototype_range(_prototype_range), var_type(std::move(_var_type))
+	{}
+
+	var_id_and_type(identifier _id, typespec _var_type)
+		: id(std::move(_id)), prototype_range{}, var_type(std::move(_var_type))
+	{}
+
+	var_id_and_type(identifier _id, lex::token_range _prototype_range)
+		: id(std::move(_id)), prototype_range(_prototype_range), var_type{}
+	{}
+};
+
 struct decl_variable
 {
 	enum : uint8_t
@@ -286,60 +309,68 @@ struct decl_variable
 		no_runtime_emit  = bit_at<4>,
 	};
 
-	lex::src_tokens  src_tokens;
-	identifier       id;
-	lex::token_range prototype_range;
-	typespec         var_type;
-	expression       init_expr; // is null if there's no initializer
-	resolve_state    state;
-	uint8_t          flags;
+	lex::src_tokens src_tokens;
+	var_id_and_type id_and_type;
+	arena_vector<decl_variable> tuple_decls;
+
+	expression    init_expr; // is null if there's no initializer
+	resolve_state state;
+	uint8_t       flags;
 
 	declare_default_5(decl_variable)
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,
-		identifier       _id,
-		lex::token_range _prototype_range,
-		typespec         _var_type,
+		var_id_and_type  _id_and_type,
 		expression       _init_expr
 	)
-		: src_tokens     (_src_tokens),
-		  id             (std::move(_id)),
-		  prototype_range(_prototype_range),
-		  var_type       (std::move(_var_type)),
-		  init_expr      (std::move(_init_expr)),
-		  state          (resolve_state::none),
-		  flags          (0)
+		: src_tokens (_src_tokens),
+		  id_and_type(std::move(_id_and_type)),
+		  tuple_decls{},
+		  init_expr  (std::move(_init_expr)),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	decl_variable(
-		lex::src_tokens  _src_tokens,
-		identifier       _id,
-		lex::token_range _prototype_range,
-		typespec         _var_type
+		lex::src_tokens _src_tokens,
+		var_id_and_type _id_and_type
 	)
-		: src_tokens     (_src_tokens),
-		  id             (std::move(_id)),
-		  prototype_range(_prototype_range),
-		  var_type       (std::move(_var_type)),
-		  init_expr      (),
-		  state          (resolve_state::none),
-		  flags          (0)
+		: src_tokens (_src_tokens),
+		  id_and_type(std::move(_id_and_type)),
+		  tuple_decls{},
+		  init_expr  (),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	decl_variable(
-		lex::src_tokens  _src_tokens,
-		identifier       _id,
-		lex::token_range _prototype_range,
-		expression       _init_expr
+		lex::src_tokens _src_tokens,
+		bz::array_view<var_id_and_type> _tuple_id_and_type,
+		expression      _init_expr
 	)
-		: src_tokens     (_src_tokens),
-		  id             (std::move(_id)),
-		  prototype_range(_prototype_range),
-		  var_type       (make_auto_typespec(nullptr)),
-		  init_expr      (std::move(_init_expr)),
-		  state          (resolve_state::none),
-		  flags          (0)
+		: src_tokens (_src_tokens),
+		  id_and_type{},
+		  tuple_decls(_tuple_id_and_type.transform([_src_tokens](auto &id_and_type) {
+			  return decl_variable(_src_tokens, std::move(id_and_type));
+		  }).collect<arena_vector>()),
+		  init_expr  (std::move(_init_expr)),
+		  state      (resolve_state::none),
+		  flags      (0)
+	{}
+
+	decl_variable(
+		lex::src_tokens _src_tokens,
+		bz::array_view<var_id_and_type> _tuple_id_and_type
+	)
+		: src_tokens (_src_tokens),
+		  id_and_type{},
+		  tuple_decls(_tuple_id_and_type.transform([_src_tokens](auto &id_and_type) {
+			  return decl_variable(_src_tokens, std::move(id_and_type));
+		  }).collect<arena_vector>()),
+		  init_expr  (),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -360,15 +391,36 @@ struct decl_variable
 
 	bool is_no_runtime_emit(void) const noexcept
 	{ return (this->flags & no_runtime_emit) != 0; }
+
+	typespec &get_type(void)
+	{ return this->id_and_type.var_type; }
+
+	typespec const &get_type(void) const
+	{ return this->id_and_type.var_type; }
+
+	void clear_type(void)
+	{
+		this->id_and_type.var_type.clear();
+		for (auto &decl : this->tuple_decls)
+		{
+			decl.clear_type();
+		}
+	}
+
+	identifier const &get_id(void) const
+	{ return this->id_and_type.id; }
+
+	lex::token_range get_prototype_range(void) const
+	{ return this->id_and_type.prototype_range; }
 };
 
 inline bool is_generic_parameter(decl_variable const &var_decl)
 {
-	return !var_decl.var_type.is_empty()
+	return !var_decl.get_type().is_empty()
 		&& (
-			!is_complete(var_decl.var_type)
-			|| var_decl.var_type.is_typename()
-			|| var_decl.var_type.is<ast::ts_consteval>()
+			!is_complete(var_decl.get_type())
+			|| var_decl.get_type().is_typename()
+			|| var_decl.get_type().is<ast::ts_consteval>()
 		);
 }
 

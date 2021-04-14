@@ -317,7 +317,7 @@ static void create_function_call(
 	auto const result_pass_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
 
 	bz_assert(result_pass_kind != abi::pass_kind::reference);
-	bz_assert(body->params[0].var_type.is<ast::ts_lvalue_reference>());
+	bz_assert(body->params[0].get_type().is<ast::ts_lvalue_reference>());
 
 	ast::arena_vector<llvm::Value *> params;
 	bool is_rhs_pass_by_ref = false;
@@ -325,7 +325,7 @@ static void create_function_call(
 	params.push_back(lhs.val);
 
 	{
-		auto const &rhs_p_t = body->params[1].var_type;
+		auto const &rhs_p_t = body->params[1].get_type();
 		if (rhs_p_t.is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(rhs.kind == val_ptr::reference);
@@ -814,7 +814,7 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(id.decl != nullptr);
 	auto const val_ptr = context.get_variable(id.decl);
-	if (val_ptr == nullptr && !id.decl->var_type.is<ast::ts_consteval>())
+	if (val_ptr == nullptr && !id.decl->get_type().is<ast::ts_consteval>())
 	{
 		emit_error(
 			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
@@ -823,7 +823,7 @@ static val_ptr emit_bitcode(
 		);
 		if (result_address == nullptr)
 		{
-			auto const result_type = llvm::PointerType::get(get_llvm_type(id.decl->var_type, context), 0);
+			auto const result_type = llvm::PointerType::get(get_llvm_type(id.decl->get_type(), context), 0);
 			return { val_ptr::reference, llvm::UndefValue::get(result_type) };
 		}
 		else
@@ -920,7 +920,7 @@ static val_ptr emit_bitcode(
 			{
 				emit_error(
 					unary_op.expr.src_tokens,
-					bz::format("unable to take address of variable '{}'", id_expr->decl->id.format_as_unqualified()),
+					bz::format("unable to take address of variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
 					context
 				);
 			}
@@ -2824,7 +2824,7 @@ static val_ptr emit_bitcode(
 			? static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_front)
 			: static_cast<ref_push_type>(&decltype(params_is_pass_by_ref)::push_back);
 		auto &p = func_call.params[i];
-		auto &p_t = func_call.func_body->params[i].var_type;
+		auto &p_t = func_call.func_body->params[i].get_type();
 		if (ast::is_generic_parameter(func_call.func_body->params[i]))
 		{
 			// do nothing for typename args
@@ -3036,6 +3036,8 @@ static val_ptr emit_bitcode(
 			return { val_ptr::reference, result_ptr };
 		}
 	}
+	default:
+		bz_unreachable;
 	}
 }
 
@@ -3367,7 +3369,7 @@ static val_ptr emit_bitcode(
 		{
 			emit_error(
 				take_ref.expr.src_tokens,
-				bz::format("unable to take reference to variable '{}'", id_expr->decl->id.format_as_unqualified()),
+				bz::format("unable to take reference to variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
 				context
 			);
 		}
@@ -3600,7 +3602,7 @@ static val_ptr emit_bitcode(
 		auto const bb = context.add_basic_block("case");
 		for (auto const &expr : case_vals)
 		{
-			bz_assert(expr.is<ast::constant_expression>());
+			bz_assert(expr.template is<ast::constant_expression>());
 			auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
 			bz_assert(llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
 			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
@@ -4240,7 +4242,7 @@ static void emit_bitcode(
 	ctx::comptime_executor_context &context
 )
 {
-	if (var_decl.var_type.is<ast::ts_lvalue_reference>())
+	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
 		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
@@ -4249,9 +4251,9 @@ static void emit_bitcode(
 	}
 	else
 	{
-		auto const type = get_llvm_type(var_decl.var_type, context);
+		auto const type = get_llvm_type(var_decl.get_type(), context);
 		auto const alloca = context.create_alloca(type);
-		push_destructor_call(var_decl.src_tokens, alloca, var_decl.var_type, context);
+		push_destructor_call(var_decl.src_tokens, alloca, var_decl.get_type(), context);
 		if (var_decl.init_expr.not_null())
 		{
 			context.push_expression_scope();
@@ -4260,7 +4262,7 @@ static void emit_bitcode(
 		}
 		else
 		{
-			emit_default_constructor<abi>(var_decl.src_tokens, var_decl.var_type, context, alloca);
+			emit_default_constructor<abi>(var_decl.src_tokens, var_decl.get_type(), context, alloca);
 		}
 		context.add_variable(&var_decl, alloca);
 	}
@@ -4375,7 +4377,7 @@ static llvm::Function *create_function_from_symbol_impl(
 				// skip typename args
 				continue;
 			}
-			auto const t = get_llvm_type(p.var_type, context);
+			auto const t = get_llvm_type(p.get_type(), context);
 			auto const pass_kind = abi::get_pass_kind<abi>(t, context.get_data_layout(), context.get_llvm_context());
 
 			switch (pass_kind)
@@ -4435,6 +4437,8 @@ static llvm::Function *create_function_from_symbol_impl(
 				real_result_t = llvm::StructType::get(first_type, second_type);
 				break;
 			}
+			default:
+				bz_unreachable;
 			}
 		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
@@ -4598,14 +4602,14 @@ static void emit_function_bitcode_impl(
 		while (p_it != p_end)
 		{
 			auto &p = *p_it;
-			if (p.var_type.is_typename())
+			if (p.get_type().is_typename())
 			{
 				++p_it;
 				continue;
 			}
 			else if (ast::is_generic_parameter(p))
 			{
-				bz_assert(p.var_type.is<ast::ts_consteval>());
+				bz_assert(p.get_type().is<ast::ts_consteval>());
 				bz_assert(p.init_expr.is<ast::constant_expression>());
 				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
@@ -4615,26 +4619,26 @@ static void emit_function_bitcode_impl(
 				++p_it;
 				continue;
 			}
-			if (p.var_type.is<ast::ts_lvalue_reference>())
+			if (p.get_type().is<ast::ts_lvalue_reference>())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
 				context.add_variable(&p, fn_it);
 			}
 			else
 			{
-				auto const t = get_llvm_type(p.var_type, context);
+				auto const t = get_llvm_type(p.get_type(), context);
 				auto const pass_kind = abi::get_pass_kind<abi>(t, context.get_data_layout(), context.get_llvm_context());
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
-					push_destructor_call(p.src_tokens, fn_it, p.var_type, context);
+					push_destructor_call(p.src_tokens, fn_it, p.get_type(), context);
 					context.add_variable(&p, fn_it);
 					break;
 				case abi::pass_kind::value:
 				{
 					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
-					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					context.add_variable(&p, alloca);
 					break;
 				}
@@ -4643,7 +4647,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca = context.create_alloca(t);
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
-					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					context.add_variable(&p, alloca);
 					break;
 				}
@@ -4663,7 +4667,7 @@ static void emit_function_bitcode_impl(
 					auto const second_address = context.builder.CreateStructGEP(alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
-					push_destructor_call(p.src_tokens, alloca, p.var_type, context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					context.add_variable(&p, alloca);
 					break;
 				}
@@ -4745,9 +4749,9 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::comptime_executor_context &context)
 {
-	auto const name = var_decl.id.format_for_symbol();
+	auto const name = var_decl.get_id().format_for_symbol();
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
-	auto const type = get_llvm_type(var_decl.var_type, context);
+	auto const type = get_llvm_type(var_decl.get_type(), context);
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
 	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
 	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
@@ -4985,7 +4989,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		{
 			continue;
 		}
-		auto const param_t = body->params[i].var_type.as_typespec_view();
+		auto const param_t = body->params[i].get_type().as_typespec_view();
 		auto const param_type = get_llvm_type(param_t, context);
 		auto const param_val = get_value<abi>(value, param_t, nullptr, context);
 

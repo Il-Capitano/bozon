@@ -369,7 +369,7 @@ void parse_context::report_circular_dependency_error(ast::decl_variable &var_dec
 
 	this->report_error(
 		var_decl.src_tokens,
-		bz::format("circular dependency encountered while resolving variable '{}'", var_decl.id.format_as_unqualified()),
+		bz::format("circular dependency encountered while resolving variable '{}'", var_decl.get_id().format_as_unqualified()),
 		std::move(notes)
 	);
 }
@@ -729,12 +729,12 @@ void parse_context::remove_scope(void)
 	{
 		for (auto const var_decl : this->scope_decls.back().var_decls)
 		{
-			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && !var_decl->id.values.empty())
+			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && !var_decl->get_id().values.empty())
 			{
 				this->report_warning(
 					warning_kind::unused_variable,
 					*var_decl,
-					bz::format("unused variable '{}'", var_decl->id.format_as_unqualified())
+					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified())
 				);
 			}
 		}
@@ -917,7 +917,7 @@ static ast::typespec get_function_type(ast::function_body &body)
 	param_types.reserve(body.params.size());
 	for (auto &p : body.params)
 	{
-		param_types.emplace_back(p.var_type);
+		param_types.emplace_back(p.get_type());
 	}
 	return ast::typespec({ ast::ts_function{ {}, std::move(param_types), return_type } });
 }
@@ -929,8 +929,8 @@ static ast::decl_variable *find_var_decl_in_local_scope(decl_set &scope, ast::id
 		auto const it = std::find_if(
 			scope.var_decls.rbegin(), scope.var_decls.rend(),
 			[&id](auto const var) {
-				bz_assert(!var->id.is_qualified && var->id.values.size() <= 1);
-				return !var->id.values.empty() && var->id.values.front() == id.values.front();
+				bz_assert(!var->get_id().is_qualified && var->get_id().values.size() <= 1);
+				return !var->get_id().values.empty() && var->get_id().values.front() == id.values.front();
 			}
 		);
 		return it == scope.var_decls.rend() ? nullptr : *it;
@@ -1024,8 +1024,8 @@ static ast::decl_variable *find_var_decl_in_global_scope(
 		auto const it = std::find_if(
 			global_decls.var_decls.begin(), global_decls.var_decls.end(),
 			[&id](auto const var) {
-				bz_assert(var->id.is_qualified);
-				return var->id == id;
+				bz_assert(var->get_id().is_qualified);
+				return var->get_id() == id;
 			}
 		);
 		return it == global_decls.var_decls.end() ? nullptr : *it;
@@ -1033,7 +1033,7 @@ static ast::decl_variable *find_var_decl_in_global_scope(
 	else
 	{
 		return global_decls.var_decls
-			.filter([&id, current_scope](auto const var) { return is_unqualified_equals(var->id, id, current_scope); })
+			.filter([&id, current_scope](auto const var) { return is_unqualified_equals(var->get_id(), id, current_scope); })
 			.max(nullptr, [](auto const lhs, auto const rhs) {
 				if (rhs == nullptr)
 				{
@@ -1045,7 +1045,7 @@ static ast::decl_variable *find_var_decl_in_global_scope(
 				}
 				else
 				{
-					return lhs->id.values.size() < rhs->id.values.size();
+					return lhs->get_id().values.size() < rhs->get_id().values.size();
 				}
 			});
 	}
@@ -1176,11 +1176,11 @@ static ast::expression make_variable_expression(
 {
 	var_decl->flags |= ast::decl_variable::used;
 	auto id_type_kind = ast::expression_type_kind::lvalue;
-	ast::typespec_view id_type = var_decl->var_type;
+	ast::typespec_view id_type = var_decl->get_type();
 	if (id_type.is<ast::ts_lvalue_reference>())
 	{
 		id_type_kind = ast::expression_type_kind::lvalue_reference;
-		id_type = var_decl->var_type.get<ast::ts_lvalue_reference>();
+		id_type = id_type.get<ast::ts_lvalue_reference>();
 	}
 
 	if (id_type.is_empty())
@@ -1349,11 +1349,11 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		this->pop_resolve_queue();
 		var_decl->flags |= ast::decl_variable::used;
 		auto id_type_kind = ast::expression_type_kind::lvalue;
-		ast::typespec_view id_type = var_decl->var_type;
+		ast::typespec_view id_type = var_decl->get_type();
 		if (id_type.is<ast::ts_lvalue_reference>())
 		{
 			id_type_kind = ast::expression_type_kind::lvalue_reference;
-			id_type = var_decl->var_type.get<ast::ts_lvalue_reference>();
+			id_type = id_type.get<ast::ts_lvalue_reference>();
 		}
 
 		if (id_type.is_empty())
@@ -3371,7 +3371,7 @@ static match_level_t get_function_call_match_level(
 	auto const types_end = func_body.params.end();
 	for (; params_it != types_end; ++call_it, ++params_it)
 	{
-		add_to_result(get_type_match_level(params_it->var_type, *call_it, context));
+		add_to_result(get_type_match_level(params_it->get_type(), *call_it, context));
 	}
 	if (result_vec.size() != func_body.params.size())
 	{
@@ -3406,7 +3406,7 @@ static match_level_t get_function_call_match_level(
 		return match_level_t{};
 	}
 
-	return get_type_match_level(func_body.params[0].var_type, expr, context);
+	return get_type_match_level(func_body.params[0].get_type(), expr, context);
 }
 
 static match_level_t get_function_call_match_level(
@@ -3438,8 +3438,8 @@ static match_level_t get_function_call_match_level(
 
 	match_level_t result = bz::vector<match_level_t>{};
 	auto &result_vec = result.get<bz::vector<match_level_t>>();
-	result_vec.push_back(get_type_match_level(func_body.params[0].var_type, lhs, context));
-	result_vec.push_back(get_type_match_level(func_body.params[1].var_type, rhs, context));
+	result_vec.push_back(get_type_match_level(func_body.params[0].get_type(), lhs, context));
+	result_vec.push_back(get_type_match_level(func_body.params[1].get_type(), rhs, context));
 	if (result_vec[0].is_null() || result_vec[1].is_null())
 	{
 		result.clear();
@@ -3594,7 +3594,7 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 		{
-			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			context.match_expression_to_variable(param, func_body_param);
 			if (ast::is_generic_parameter(func_body_param))
 			{
 				func_body_param.init_expr = param;
@@ -3614,7 +3614,7 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *body);
 		for (auto const [param, func_body_param] : bz::zip(params, body->params))
 		{
-			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			context.match_expression_to_variable(param, func_body_param);
 		}
 	}
 	parse::resolve_function_symbol({}, *body, context);
@@ -3655,7 +3655,7 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 		{
-			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			context.match_expression_to_variable(param, func_body_param);
 			if (ast::is_generic_parameter(func_body_param))
 			{
 				func_body_param.init_expr = param;
@@ -3675,7 +3675,7 @@ static ast::expression make_expr_function_call_from_body(
 		context.add_to_resolve_queue(src_tokens, *body);
 		for (auto const [param, func_body_param] : bz::zip(params, body->params))
 		{
-			match_expression_to_type_impl(param, func_body_param.var_type, func_body_param.var_type, context);
+			context.match_expression_to_variable(param, func_body_param);
 		}
 	}
 	parse::resolve_function_symbol({}, *body, context);
@@ -4860,6 +4860,40 @@ void parse_context::match_expression_to_type(
 	{
 		match_expression_to_type_impl(expr, dest_type, dest_type, *this);
 		parse::consteval_guaranteed(expr, *this);
+	}
+}
+
+static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		var_decl.get_type() = type;
+	}
+	else
+	{
+		bz_assert(type.is<ast::ts_tuple>());
+		auto const &inner_types = type.get<ast::ts_tuple>().types;
+		bz_assert(inner_types.size() == var_decl.tuple_decls.size());
+		for (auto const &[inner_decl, inner_type] : bz::zip(var_decl.tuple_decls, inner_types))
+		{
+			set_type(inner_decl, inner_type);
+		}
+	}
+}
+
+void parse_context::match_expression_to_variable(
+	ast::expression &expr,
+	ast::decl_variable &var_decl
+)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		this->match_expression_to_type(expr, var_decl.get_type());
+	}
+	else
+	{
+		this->match_expression_to_type(expr, var_decl.get_type());
+		set_type(var_decl, var_decl.get_type());
 	}
 }
 

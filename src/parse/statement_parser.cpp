@@ -383,11 +383,39 @@ static void resolve_variable_type(
 )
 {
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
-	if (!var_decl.var_type.is<ast::ts_unresolved>())
+	if (!var_decl.tuple_decls.empty())
+	{
+		for (auto &decl : var_decl.tuple_decls)
+		{
+			bz_assert(decl.state < ast::resolve_state::symbol);
+			decl.state = ast::resolve_state::resolving_symbol;
+			resolve_variable_type(decl, context);
+			if (decl.state != ast::resolve_state::error)
+			{
+				decl.state = ast::resolve_state::symbol;
+			}
+			else
+			{
+				var_decl.state = ast::resolve_state::error;
+			}
+		}
+		if (var_decl.state != ast::resolve_state::error)
+		{
+			var_decl.get_type() = ast::make_tuple_typespec(
+				{},
+				var_decl.tuple_decls.transform([](auto const &decl) -> ast::typespec {
+					return decl.get_type();
+				}
+			).collect<bz::vector>());
+		}
+		return;
+	}
+
+	if (!var_decl.get_type().is<ast::ts_unresolved>())
 	{
 		return;
 	}
-	auto [stream, end] = var_decl.var_type.get<ast::ts_unresolved>().tokens;
+	auto [stream, end] = var_decl.get_type().get<ast::ts_unresolved>().tokens;
 	auto type = stream == end
 		? ast::make_constant_expression(
 			{},
@@ -405,7 +433,7 @@ static void resolve_variable_type(
 			"variable type must be a constant expression",
 			get_consteval_fail_notes(type)
 		);
-		var_decl.var_type.clear();
+		var_decl.clear_type();
 		var_decl.state = ast::resolve_state::error;
 	}
 	else if (type.not_error() && !type.is_typename())
@@ -428,12 +456,12 @@ static void resolve_variable_type(
 		}
 
 		context.report_error(type.src_tokens, "expected a type");
-		var_decl.var_type.clear();
+		var_decl.clear_type();
 		var_decl.state = ast::resolve_state::error;
 	}
 	else if (type.is_typename())
 	{
-		auto const prototype = var_decl.prototype_range;
+		auto const prototype = var_decl.get_prototype_range();
 		for (auto op = prototype.end; op != prototype.begin;)
 		{
 			--op;
@@ -442,17 +470,17 @@ static void resolve_variable_type(
 		}
 		if (type.is_typename())
 		{
-			var_decl.var_type = std::move(type.get_typename());
+			var_decl.get_type() = std::move(type.get_typename());
 		}
 		else
 		{
-			var_decl.var_type.clear();
+			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 		}
 	}
 	else
 	{
-		var_decl.var_type.clear();
+		var_decl.clear_type();
 		var_decl.state = ast::resolve_state::error;
 	}
 }
@@ -462,7 +490,7 @@ static void resolve_variable_init_expr_and_match_type(
 	ctx::parse_context &context
 )
 {
-	bz_assert(!var_decl.var_type.is_empty());
+	bz_assert(!var_decl.get_type().is_empty());
 	if (var_decl.init_expr.not_null())
 	{
 		if (var_decl.init_expr.is<ast::unresolved_expression>())
@@ -492,49 +520,49 @@ static void resolve_variable_init_expr_and_match_type(
 				}
 			}
 		}
-		context.match_expression_to_type(var_decl.init_expr, var_decl.var_type);
+		context.match_expression_to_variable(var_decl.init_expr, var_decl);
 	}
 	else if (var_decl.init_expr.src_tokens.pivot != nullptr)
 	{
-		if (!ast::is_complete(var_decl.var_type))
+		if (!ast::is_complete(var_decl.get_type()))
 		{
-			var_decl.var_type.clear();
+			var_decl.clear_type();
 		}
 		var_decl.state = ast::resolve_state::error;
 	}
 	else
 	{
-		if (!ast::is_complete(var_decl.var_type))
+		if (!ast::is_complete(var_decl.get_type()))
 		{
 			context.report_error(
-				var_decl.id.tokens,
+				var_decl.get_id().tokens,
 				bz::format(
 					"a variable with an incomplete type '{}' must be initialized",
-					var_decl.var_type
+					var_decl.get_type()
 				)
 			);
-			var_decl.var_type.clear();
+			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.var_type.is<ast::ts_const>())
+		else if (var_decl.get_type().is<ast::ts_const>())
 		{
 			context.report_error(
-				var_decl.id.tokens,
+				var_decl.get_id().tokens,
 				"a variable with a 'const' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.var_type.is<ast::ts_consteval>())
+		else if (var_decl.get_type().is<ast::ts_consteval>())
 		{
 			context.report_error(
-				var_decl.id.tokens,
+				var_decl.get_id().tokens,
 				"a variable with a 'consteval' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
-		else if (var_decl.var_type.is<ast::ts_base_type>())
+		else if (var_decl.get_type().is<ast::ts_base_type>())
 		{
-			auto const info = var_decl.var_type.get<ast::ts_base_type>().info;
+			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
 			auto const def_ctor = info->default_constructor != nullptr
 				? info->default_constructor
 				: info->default_default_constructor.get();
@@ -543,7 +571,7 @@ static void resolve_variable_init_expr_and_match_type(
 				var_decl.init_expr = ast::make_dynamic_expression(
 					var_decl.src_tokens,
 					ast::expression_type_kind::rvalue,
-					var_decl.var_type,
+					var_decl.get_type(),
 					ast::make_expr_function_call(
 						var_decl.src_tokens,
 						bz::vector<ast::expression>{},
@@ -556,23 +584,23 @@ static void resolve_variable_init_expr_and_match_type(
 		}
 	}
 	if (
-		!var_decl.var_type.is_empty()
-		&& !context.is_instantiable(var_decl.var_type)
+		!var_decl.get_type().is_empty()
+		&& !context.is_instantiable(var_decl.get_type())
 		&& var_decl.state != ast::resolve_state::error
 	)
 	{
-		auto const var_decl_src_tokens = var_decl.var_type.get_src_tokens();
+		auto const var_decl_src_tokens = var_decl.get_type().get_src_tokens();
 		auto const src_tokens = [&]() {
 			if (var_decl_src_tokens.pivot != nullptr)
 			{
 				return var_decl_src_tokens;
 			}
-			else if (var_decl.id.tokens.begin != nullptr)
+			else if (var_decl.get_id().tokens.begin != nullptr)
 			{
 				return lex::src_tokens{
-					var_decl.id.tokens.begin,
-					var_decl.id.tokens.begin,
-					var_decl.id.tokens.end
+					var_decl.get_id().tokens.begin,
+					var_decl.get_id().tokens.begin,
+					var_decl.get_id().tokens.end
 				};
 			}
 			else if (var_decl.init_expr.src_tokens.pivot != nullptr)
@@ -581,13 +609,13 @@ static void resolve_variable_init_expr_and_match_type(
 			}
 			else
 			{
-				return lex::src_tokens{};
+				return var_decl.src_tokens;
 			}
 		}();
 		bz_assert(src_tokens.pivot != nullptr);
-		context.report_error(src_tokens, bz::format("variable type '{}' is not instantiable", var_decl.var_type));
+		context.report_error(src_tokens, bz::format("variable type '{}' is not instantiable", var_decl.get_type()));
 		var_decl.state = ast::resolve_state::error;
-		var_decl.var_type.clear();
+		var_decl.clear_type();
 	}
 }
 
@@ -603,7 +631,7 @@ static void resolve_variable_symbol_impl(
 		return;
 	}
 
-	if (!ast::is_complete(var_decl.var_type) || var_decl.var_type.is<ast::ts_consteval>())
+	if (!ast::is_complete(var_decl.get_type()) || var_decl.get_type().is<ast::ts_consteval>())
 	{
 		var_decl.state = ast::resolve_state::resolving_all;
 		resolve_variable_init_expr_and_match_type(var_decl, context);
@@ -636,7 +664,7 @@ void resolve_variable_symbol(
 	}
 
 	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = var_decl.id.tokens.begin->src_pos.file_id;
+	auto const stmt_file_id = var_decl.src_tokens.pivot->src_pos.file_id;
 	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
@@ -685,9 +713,7 @@ void resolve_variable(
 	}
 
 	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = var_decl.id.tokens.begin == nullptr
-		? original_file_info.file_id
-		: var_decl.id.tokens.begin->src_pos.file_id;
+	auto const stmt_file_id = var_decl.src_tokens.pivot->src_pos.file_id;
 	if (original_file_info.file_id != stmt_file_id)
 	{
 		context.set_current_file(stmt_file_id);
@@ -726,8 +752,7 @@ ast::statement parse_decl_variable(
 			auto var_id = context.make_qualified_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				std::move(var_id), prototype,
-				ast::make_unresolved_typespec(type),
+				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type)),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
 			);
 		}
@@ -736,8 +761,7 @@ ast::statement parse_decl_variable(
 			auto var_id = ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				std::move(var_id), prototype,
-				ast::make_unresolved_typespec(type),
+				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type)),
 				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
 			);
 			bz_assert(result.is<ast::decl_variable>());
@@ -756,8 +780,7 @@ ast::statement parse_decl_variable(
 			auto var_id = context.make_qualified_identifier(id);
 			return ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				std::move(var_id), prototype,
-				ast::make_unresolved_typespec(type)
+				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type))
 			);
 		}
 		else
@@ -765,8 +788,7 @@ ast::statement parse_decl_variable(
 			auto var_id = ast::make_identifier(id);
 			auto result = ast::make_decl_variable(
 				lex::src_tokens{ begin_token, id, end_token },
-				std::move(var_id), prototype,
-				ast::make_unresolved_typespec(type)
+				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type))
 			);
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
@@ -1049,7 +1071,7 @@ static bool resolve_function_parameters_helper(
 			resolve_variable_type(p, context);
 			p.state = ast::resolve_state::symbol;
 		}
-		if (p.var_type.is_empty())
+		if (p.get_type().is_empty())
 		{
 			good = false;
 		}
@@ -1070,8 +1092,8 @@ static bool resolve_function_parameters_helper(
 	)
 	{
 		bz_assert(func_body.params.size() == 2);
-		auto const lhs_t = func_body.params[0].var_type.as_typespec_view();
-		auto const rhs_t = func_body.params[1].var_type.as_typespec_view();
+		auto const lhs_t = func_body.params[0].get_type().as_typespec_view();
+		auto const rhs_t = func_body.params[1].get_type().as_typespec_view();
 		if (
 			lhs_t.is<ast::ts_lvalue_reference>()
 			&& lhs_t.get<ast::ts_lvalue_reference>().is<ast::ts_base_type>()
@@ -1113,7 +1135,7 @@ static bool resolve_function_parameters_helper(
 		{
 			func_body.flags &= ~ast::function_body::generic;
 
-			auto const param_type = func_body.params[0].var_type.as_typespec_view();
+			auto const param_type = func_body.params[0].get_type().as_typespec_view();
 			// if the parameter is generic, then it must be &auto
 			// either as `destructor(&self)` or `destructor(self: &auto)`
 			if (
@@ -1134,13 +1156,13 @@ static bool resolve_function_parameters_helper(
 				return false;
 			}
 
-			auto const auto_pos = func_body.params[0].var_type.nodes[1].get<ast::ts_auto>().auto_pos;
+			auto const auto_pos = func_body.params[0].get_type().nodes[1].get<ast::ts_auto>().auto_pos;
 			auto const param_type_src_tokens = lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
-			func_body.params[0].var_type.nodes[1] = ast::ts_base_type{ param_type_src_tokens, func_body.get_destructor_of() };
+			func_body.params[0].get_type().nodes[1] = ast::ts_base_type{ param_type_src_tokens, func_body.get_destructor_of() };
 		}
 		else
 		{
-			auto const param_type = func_body.params[0].var_type.as_typespec_view();
+			auto const param_type = func_body.params[0].get_type().as_typespec_view();
 			// if the parameter is non-generic, then it must be &<type>
 			if (
 				param_type.nodes.size() != 2
@@ -1170,11 +1192,11 @@ static bool resolve_function_parameters_helper(
 		}
 		else if (
 			func_body.params.size() == 1
-			&& func_body.params[0].var_type.nodes.size() == 3
-			&& func_body.params[0].var_type.nodes[0].is<ast::ts_lvalue_reference>()
-			&& func_body.params[0].var_type.nodes[1].is<ast::ts_const>()
-			&& func_body.params[0].var_type.nodes[2].is<ast::ts_base_type>()
-			&& func_body.params[0].var_type.nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
+			&& func_body.params[0].get_type().nodes.size() == 3
+			&& func_body.params[0].get_type().nodes[0].is<ast::ts_lvalue_reference>()
+			&& func_body.params[0].get_type().nodes[1].is<ast::ts_const>()
+			&& func_body.params[0].get_type().nodes[2].is<ast::ts_base_type>()
+			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
 			func_body.get_constructor_of()->copy_constructor = &func_body;
@@ -1293,7 +1315,7 @@ static bool is_valid_main(ast::function_body const &body)
 
 	for (auto const &param : body.params)
 	{
-		auto const param_t = ast::remove_const_or_consteval(param.var_type);
+		auto const param_t = ast::remove_const_or_consteval(param.get_type());
 		if (!param_t.is<ast::ts_array_slice>())
 		{
 			return false;
@@ -1356,12 +1378,12 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 
 	for (auto const &param : body.params)
 	{
-		auto const param_t = ast::remove_const_or_consteval(param.var_type);
+		auto const param_t = ast::remove_const_or_consteval(param.get_type());
 		if (!param_t.is<ast::ts_array_slice>())
 		{
 			context.report_error(
 				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.id.tokens, "parameter type must be '[: const str]'") }
+				{ context.make_note(param.src_tokens, "parameter type must be '[: const str]'") }
 			);
 			return;
 		}
@@ -1376,7 +1398,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		{
 			context.report_error(
 				body.src_tokens, "invalid declaration for main function",
-				{ context.make_note(param.id.tokens, "parameter type must be '[: const str]'") }
+				{ context.make_note(param.src_tokens, "parameter type must be '[: const str]'") }
 			);
 			return;
 		}
@@ -1623,9 +1645,11 @@ static ast::function_body parse_function_body(
 		);
 		result.params.emplace_back(
 			lex::src_tokens{ begin, id, param_stream },
-			id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier(),
-			prototype,
-			ast::make_unresolved_typespec(type)
+			ast::var_id_and_type(
+				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier(),
+				prototype,
+				ast::make_unresolved_typespec(type)
+			)
 		);
 		if (param_stream != param_end)
 		{
@@ -2432,20 +2456,19 @@ static ast::statement parse_stmt_foreach_impl(
 	auto const range_expr_src_tokens = range_expr.src_tokens;
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
-		ast::identifier{}, lex::token_range{},
-		std::move(range_var_type),
+		ast::var_id_and_type(ast::identifier{}, std::move(range_var_type)),
 		std::move(range_expr)
 	);
 	bz_assert(range_var_decl_stmt.is<ast::decl_variable>());
 	auto &range_var_decl = range_var_decl_stmt.get<ast::decl_variable>();
-	range_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
-	range_var_decl.id.values = { "" };
-	range_var_decl.id.is_qualified = false;
+	range_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	range_var_decl.id_and_type.id.values = { "" };
+	range_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(range_var_decl, context);
 	range_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(range_var_decl);
 
-	if (range_var_decl.var_type.is_empty())
+	if (range_var_decl.id_and_type.var_type.is_empty())
 	{
 		context.report_error(range_expr.src_tokens, "invalid range in foreach loop");
 		context.remove_scope();
@@ -2453,14 +2476,14 @@ static ast::statement parse_stmt_foreach_impl(
 	}
 
 	auto range_begin_expr = [&]() {
-		if (range_var_decl.var_type.is_empty())
+		if (range_var_decl.id_and_type.var_type.is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
+		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.var_type);
+		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -2476,28 +2499,27 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto iter_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
-		ast::identifier{}, lex::token_range{},
-		ast::make_auto_typespec(nullptr),
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_begin_expr)
 	);
 	bz_assert(iter_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_var_decl = iter_var_decl_stmt.get<ast::decl_variable>();
-	iter_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
-	iter_var_decl.id.values = { "" };
-	iter_var_decl.id.is_qualified = false;
+	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	iter_var_decl.id_and_type.id.values = { "" };
+	iter_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(iter_var_decl, context);
 	iter_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(iter_var_decl);
 
 	auto range_end_expr = [&]() {
-		if (range_var_decl.var_type.is_empty())
+		if (range_var_decl.id_and_type.var_type.is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.var_type.is<ast::ts_lvalue_reference>()
+		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.var_type);
+		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -2513,32 +2535,31 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto end_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
-		ast::identifier{}, lex::token_range{},
-		ast::make_auto_typespec(nullptr),
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_end_expr)
 	);
 	bz_assert(end_var_decl_stmt.is<ast::decl_variable>());
 	auto &end_var_decl = end_var_decl_stmt.get<ast::decl_variable>();
-	end_var_decl.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
-	end_var_decl.id.values = { "" };
-	end_var_decl.id.is_qualified = false;
+	end_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	end_var_decl.id_and_type.id.values = { "" };
+	end_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(end_var_decl, context);
 	end_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(end_var_decl);
 
 	auto condition = [&]() {
-		if (iter_var_decl.var_type.is_empty() || end_var_decl.var_type.is_empty())
+		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, end_var_decl.var_type,
+			ast::expression_type_kind::lvalue, end_var_decl.id_and_type.var_type,
 			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
 		);
 		return context.make_binary_operator_expression(
@@ -2550,13 +2571,13 @@ static ast::statement parse_stmt_foreach_impl(
 	}();
 
 	auto iteration = [&]() {
-		if (iter_var_decl.var_type.is_empty())
+		if (iter_var_decl.id_and_type.var_type.is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		return context.make_unary_operator_expression(
@@ -2569,13 +2590,13 @@ static ast::statement parse_stmt_foreach_impl(
 	context.add_scope();
 
 	auto iter_deref_expr = [&]() {
-		if (iter_var_decl.var_type.is_empty())
+		if (iter_var_decl.id_and_type.var_type.is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		return context.make_unary_operator_expression(
@@ -2586,8 +2607,7 @@ static ast::statement parse_stmt_foreach_impl(
 	}();
 	auto iter_deref_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
-		ast::make_identifier(id), prototype,
-		ast::make_unresolved_typespec(type),
+		ast::var_id_and_type(ast::make_identifier(id), prototype, ast::make_unresolved_typespec(type)),
 		std::move(iter_deref_expr)
 	);
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());

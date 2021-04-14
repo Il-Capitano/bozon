@@ -62,18 +62,18 @@ bz::u8string function_body::get_signature(void) const
 		if (first)
 		{
 			first = false;
-			result += bz::format("{}: {}", p.id.as_string(), p.var_type);
+			result += bz::format("{}: {}", p.get_id().as_string(), p.get_type());
 		}
 		else
 		{
-			result += bz::format(", {}: {}", p.id.as_string(), p.var_type);
+			result += bz::format(", {}: {}", p.get_id().as_string(), p.get_type());
 		}
 
-		if (p.var_type.is_typename() && p.init_expr.is_typename())
+		if (p.get_type().is_typename() && p.init_expr.is_typename())
 		{
 			result += bz::format(" = {}", p.init_expr.get_typename());
 		}
-		else if (p.var_type.is<ast::ts_consteval>() && p.init_expr.is<ast::constant_expression>())
+		else if (p.get_type().is<ast::ts_consteval>() && p.init_expr.is<ast::constant_expression>())
 		{
 			result += bz::format(" = {}", get_value_string(p.init_expr.get<ast::constant_expression>().value));
 		}
@@ -104,8 +104,8 @@ bz::u8string function_body::get_symbol_name(void) const
 		for (auto &p : this->params)
 		{
 			symbol_name += '.';
-			symbol_name += p.var_type.get_symbol_name();
-			if (p.var_type.is<ts_consteval>())
+			symbol_name += p.get_type().get_symbol_name();
+			if (p.get_type().is<ts_consteval>())
 			{
 				bz_assert(p.init_expr.is<constant_expression>());
 				symbol_name += '.';
@@ -125,8 +125,8 @@ bz::u8string function_body::get_symbol_name(void) const
 		for (auto &p : this->params)
 		{
 			symbol_name += '.';
-			symbol_name += p.var_type.get_symbol_name();
-			if (p.var_type.is<ts_consteval>())
+			symbol_name += p.get_type().get_symbol_name();
+			if (p.get_type().is<ts_consteval>())
 			{
 				bz_assert(p.init_expr.is<constant_expression>());
 				symbol_name += '.';
@@ -172,7 +172,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
 		for (auto const &[lhs_param, rhs_param] : bz::zip(lhs, rhs))
 		{
-			if (lhs_param.var_type != rhs_param.var_type)
+			if (lhs_param.get_type() != rhs_param.get_type())
 			{
 				return false;
 			}
@@ -211,7 +211,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 			case builtin_slice_end_const_ptr:
 			{
 				bz_assert(func_body->params.size() == 1);
-				typespec_view const arg_type = func_body->params[0].var_type;
+				typespec_view const arg_type = func_body->params[0].get_type();
 				bz_assert(arg_type.is<ts_array_slice>());
 				func_body->return_type = arg_type.get<ts_array_slice>().elem_type;
 				func_body->return_type.add_layer<ts_pointer>();
@@ -221,7 +221,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 			case builtin_slice_from_const_ptrs:
 			{
 				bz_assert(func_body->params.size() == 2);
-				typespec_view const arg_type = func_body->params[0].var_type;
+				typespec_view const arg_type = func_body->params[0].get_type();
 				bz_assert(arg_type.is<ts_pointer>());
 				func_body->return_type = make_array_slice_typespec({}, arg_type.get<ts_pointer>());
 				break;
@@ -408,8 +408,8 @@ type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens s
 
 	auto result = make_ast_unique<function_body>();
 	result->params.reserve(2);
-	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(lhs_t));
-	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(rhs_t));
+	result->params.emplace_back(lex::src_tokens{}, var_id_and_type(identifier{}, std::move(lhs_t)));
+	result->params.emplace_back(lex::src_tokens{}, var_id_and_type(identifier{}, std::move(rhs_t)));
 	result->return_type = std::move(ret_t);
 	result->function_name_or_operator_kind = lex::token::assign;
 	result->src_tokens = src_tokens;
@@ -434,8 +434,8 @@ type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tok
 
 	auto result = make_ast_unique<function_body>();
 	result->params.reserve(2);
-	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(lhs_t));
-	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(rhs_t));
+	result->params.emplace_back(lex::src_tokens{}, var_id_and_type(identifier{}, std::move(lhs_t)));
+	result->params.emplace_back(lex::src_tokens{}, var_id_and_type(identifier{}, std::move(rhs_t)));
 	result->return_type = std::move(ret_t);
 	result->function_name_or_operator_kind = lex::token::assign;
 	result->src_tokens = src_tokens;
@@ -453,7 +453,7 @@ type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_t
 	auto ret_t = make_base_type_typespec({}, &info);
 
 	auto result = make_ast_unique<function_body>();
-	result->params.emplace_back(lex::src_tokens{}, identifier{}, lex::token_range{}, std::move(param_t));
+	result->params.emplace_back(lex::src_tokens{}, var_id_and_type(identifier{}, std::move(param_t)));
 	result->return_type = std::move(ret_t);
 	result->src_tokens = src_tokens;
 	result->state = resolve_state::symbol;
@@ -563,8 +563,8 @@ static function_body create_builtin_function(
 	bz::vector<decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
-		lex::src_tokens{}, identifier{}, lex::token_range{},
-		std::move(arg_types)
+		lex::src_tokens{},
+		var_id_and_type(identifier{}, std::move(arg_types))
 	)), ...);
 	auto const is_generic = [&]() {
 		for (auto const &param : params)
