@@ -505,7 +505,7 @@ public:
 	}
 
 	using iterator         = random_access_iterator<T>;
-	using reverse_iterator = reverse_iterator<iterator>;
+	using reverse_iterator = ::bz::reverse_iterator<iterator>;
 
 	iterator begin(void)
 	{ return this->_data; }
