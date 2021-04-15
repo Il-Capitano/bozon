@@ -2787,6 +2787,8 @@ static val_ptr emit_bitcode(
 			return { val_ptr::reference, result_ptr };
 		}
 	}
+	default:
+		bz_unreachable;
 	}
 }
 
