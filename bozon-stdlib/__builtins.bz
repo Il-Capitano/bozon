@@ -1,5 +1,5 @@
-@builtin("str_eq")
-function builtin_str_eq(lhs: str, rhs: str) -> bool
+@__builtin("str_eq")
+function __builtin_str_eq(lhs: str, rhs: str) -> bool
 {
 	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
 	{
@@ -24,8 +24,8 @@ function builtin_str_eq(lhs: str, rhs: str) -> bool
 	return true;
 }
 
-@builtin("str_neq")
-function builtin_str_neq(lhs: str, rhs: str) -> bool
+@__builtin("str_neq")
+function __builtin_str_neq(lhs: str, rhs: str) -> bool
 {
 	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
 	{
@@ -50,8 +50,8 @@ function builtin_str_neq(lhs: str, rhs: str) -> bool
 	return false;
 }
 
-@builtin("str_length")
-function builtin_str_length(s: str) -> usize
+@__builtin("str_length")
+function __builtin_str_length(s: str) -> usize
 {
 	let continuation_byte_count = 0uz;
 	const str_as_slice = __builtin_slice_from_const_ptrs(__builtin_str_begin_ptr(s), __builtin_str_end_ptr(s));
@@ -66,8 +66,8 @@ function builtin_str_length(s: str) -> usize
 	return size - continuation_byte_count;
 }
 
-@builtin("str_starts_with")
-function builtin_str_starts_with(s: str, prefix: str) -> bool
+@__builtin("str_starts_with")
+function __builtin_str_starts_with(s: str, prefix: str) -> bool
 {
 	if (s.size() < prefix.size())
 	{
@@ -87,8 +87,8 @@ function builtin_str_starts_with(s: str, prefix: str) -> bool
 	return true;
 }
 
-@builtin("str_ends_with")
-function builtin_str_ends_with(s: str, postfix: str) -> bool
+@__builtin("str_ends_with")
+function __builtin_str_ends_with(s: str, postfix: str) -> bool
 {
 	if (s.size() < postfix.size())
 	{

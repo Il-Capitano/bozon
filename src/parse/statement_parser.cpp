@@ -3196,7 +3196,7 @@ static void apply_builtin(
 {
 	if (attribute.args.size() != 1)
 	{
-		context.report_error(attribute.name, "@builtin expects exactly one argument");
+		context.report_error(attribute.name, "@__builtin expects exactly one argument");
 		return;
 	}
 
@@ -3209,7 +3209,7 @@ static void apply_builtin(
 			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
 		)
 		{
-			context.report_error(attribute.args[0], "kind in @builtin must have type 'str'");
+			context.report_error(attribute.args[0], "kind in @__builtin must have type 'str'");
 			return;
 		}
 	}
@@ -3220,7 +3220,7 @@ static void apply_builtin(
 
 	if (!context.global_ctx.add_builtin_function(kind, &func_body))
 	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @builtin", kind));
+		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @__builtin", kind));
 	}
 	func_body.flags |= ast::function_body::intrinsic;
 }
@@ -3273,7 +3273,7 @@ static void apply_attribute(
 	{
 		apply_comptime_error_checking(func_decl.body, attribute, context);
 	}
-	else if (attr_name == "builtin")
+	else if (attr_name == "__builtin")
 	{
 		apply_builtin(func_decl.body, attribute, context);
 	}
