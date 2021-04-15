@@ -301,7 +301,7 @@ llvm::StructType *bitcode_context::get_slice_t(llvm::Type *elem_type) const
 	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
 }
 
-llvm::StructType *bitcode_context::get_tuple_t(bz::array_view<llvm::Type * const> types)
+llvm::StructType *bitcode_context::get_tuple_t(bz::array_view<llvm::Type * const> types) const
 {
 	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
 }

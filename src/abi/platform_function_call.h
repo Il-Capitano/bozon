@@ -16,6 +16,7 @@ enum class pass_kind
 	reference,
 	one_register,
 	two_registers,
+	non_trivial,
 };
 
 template<platform_abi abi>

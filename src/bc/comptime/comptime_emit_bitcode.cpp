@@ -313,8 +313,7 @@ static void create_function_call(
 	bz_assert(rhs.kind == val_ptr::reference);
 	auto const fn = context.get_function(body);
 	bz_assert(fn != nullptr);
-	auto const result_type = get_llvm_type(body->return_type, context);
-	auto const result_pass_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+	auto const result_pass_kind = context.get_pass_kind<abi>(body->return_type);
 
 	bz_assert(result_pass_kind != abi::pass_kind::reference);
 	bz_assert(body->params[0].get_type().is<ast::ts_lvalue_reference>());
@@ -334,7 +333,7 @@ static void create_function_call(
 		else
 		{
 			auto const rhs_llvm_type = get_llvm_type(rhs_p_t, context);
-			auto const rhs_pass_kind = abi::get_pass_kind<abi>(rhs_llvm_type, context.get_data_layout(), context.get_llvm_context());
+			auto const rhs_pass_kind = context.get_pass_kind<abi>(rhs_p_t, rhs_llvm_type);
 
 			switch (rhs_pass_kind)
 			{
@@ -342,6 +341,7 @@ static void create_function_call(
 				// there's no need to provide a seperate copy for a byval argument,
 				// as a copy is made at the call site automatically
 				// see: https://reviews.llvm.org/D79636
+				bz_assert(rhs.kind == val_ptr::reference);
 				params.push_back(rhs.val);
 				is_rhs_pass_by_ref = true;
 				break;
@@ -356,7 +356,11 @@ static void create_function_call(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(rhs_llvm_type, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					rhs_llvm_type,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				auto const cast_val = context.create_bitcast(rhs, llvm::StructType::get(first_type, second_type));
 				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
 				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
@@ -364,6 +368,10 @@ static void create_function_call(
 				params.push_back(second_val);
 				break;
 			}
+			case abi::pass_kind::non_trivial:
+				bz_assert(rhs.kind == val_ptr::reference);
+				params.push_back(rhs.val);
+				break;
 			}
 		}
 	}
@@ -413,7 +421,7 @@ static val_ptr emit_copy_constructor(
 		{
 			emit_push_call(src_tokens, info->copy_constructor, context);
 			auto const fn = context.get_function(info->copy_constructor);
-			auto const ret_kind = abi::get_pass_kind<abi>(expr_val.get_type(), context.get_data_layout(), context.get_llvm_context());
+			auto const ret_kind = context.get_pass_kind<abi>(expr_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
@@ -425,14 +433,20 @@ static val_ptr emit_copy_constructor(
 				break;
 			}
 			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
 			{
-				context.builder.CreateCall(fn, { result_address, expr_val.val });
+				emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
+				call->addParamAttr(0, llvm::Attribute::StructRet);
+				emit_pop_call(context);
 				break;
 			}
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
+				emit_push_call(src_tokens, info->copy_constructor, context);
 				auto const call = context.builder.CreateCall(fn, expr_val.val);
+				emit_pop_call(context);
 				auto const cast_result_address = context.builder.CreatePointerCast(
 					result_address, llvm::PointerType::get(call->getType(), 0)
 				);
@@ -514,7 +528,7 @@ static val_ptr emit_default_constructor(
 		if (info->default_constructor != nullptr)
 		{
 			auto const fn = context.get_function(info->default_constructor);
-			auto const ret_kind = abi::get_pass_kind<abi>(llvm_type, context.get_data_layout(), context.get_llvm_context());
+			auto const ret_kind = context.get_pass_kind<abi>(type, llvm_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
@@ -526,9 +540,11 @@ static val_ptr emit_default_constructor(
 				break;
 			}
 			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
 			{
 				emit_push_call(src_tokens, info->default_constructor, context);
-				context.builder.CreateCall(fn, result_address);
+				auto const call = context.builder.CreateCall(fn, result_address);
+				call->addParamAttr(0, llvm::Attribute::StructRet);
 				emit_pop_call(context);
 				break;
 			}
@@ -2679,19 +2695,7 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 2);
 			auto const dest_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const result_type = get_llvm_type(func_call.params[1].get_expr_type_and_kind().first, context);
-			auto const alloca = context.create_alloca(result_type);
-			emit_bitcode<abi>(func_call.params[1], context, alloca);
-			auto const void_ptr_t = llvm::PointerType::get(context.get_int8_t(), 0);
-			context.builder.CreateCall(
-				context.get_function(context.get_builtin_function(ast::function_body::memcpy)),
-				{
-					context.builder.CreatePointerCast(dest_ptr, void_ptr_t),
-					context.builder.CreatePointerCast(alloca, void_ptr_t),
-					llvm::ConstantInt::get(context.get_uint64_t(), context.get_size(result_type)),
-					llvm::ConstantInt::getFalse(context.get_llvm_context())
-				}
-			);
+			emit_bitcode<abi>(func_call.params[1], context, dest_ptr);
 			return {};
 		}
 		case ast::function_body::builtin_is_comptime:
@@ -2773,7 +2777,7 @@ static val_ptr emit_bitcode(
 	}
 
 	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
-	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+	auto const result_kind = context.get_pass_kind<abi>(func_call.func_body->return_type, result_type);
 
 	bz_assert(func_call.func_body != nullptr);
 	if (!func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
@@ -2801,10 +2805,16 @@ static val_ptr emit_bitcode(
 
 	ast::arena_vector<llvm::Value *> params = {};
 	ast::arena_vector<bool> params_is_pass_by_ref = {};
-	params.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
-	params_is_pass_by_ref.reserve(func_call.params.size() + (result_kind == abi::pass_kind::reference ? 1 : 0));
+	params.reserve(
+		func_call.params.size()
+		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
+	);
+	params_is_pass_by_ref.reserve(
+		func_call.params.size()
+		+ (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial ? 1 : 0)
+	);
 
-	if (result_kind == abi::pass_kind::reference)
+	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
 	{
 		auto const output_ptr = result_address != nullptr
 			? result_address
@@ -2851,9 +2861,9 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(p_t, context);
-			auto const pass_kind = abi::get_pass_kind<abi>(param_llvm_type, context.get_data_layout(), context.get_llvm_context());
+			auto const pass_kind = context.get_pass_kind<abi>(p_t, param_llvm_type);
 
-			auto const param_val = ast::needs_destructor(p_t)
+			auto const param_val = ast::is_non_trivial(p_t)
 				? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
 				: emit_bitcode<abi>(p, context, nullptr);
 
@@ -2889,7 +2899,11 @@ static val_ptr emit_bitcode(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(param_llvm_type, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					param_llvm_type,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				auto const cast_val = context.create_bitcast(param_val, llvm::StructType::get(first_type, second_type));
 				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
 				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
@@ -2909,6 +2923,11 @@ static val_ptr emit_bitcode(
 				}
 				break;
 			}
+			case abi::pass_kind::non_trivial:
+				bz_assert(param_val.kind == val_ptr::reference);
+				(params.*params_push)(param_val.val);
+				(params_is_pass_by_ref.*ref_push)(true);
+				break;
 			}
 		}
 	};
@@ -2952,7 +2971,7 @@ static val_ptr emit_bitcode(
 	auto const is_pass_by_ref_end = params_is_pass_by_ref.end();
 	unsigned i = 0;
 	bz_assert(fn->arg_size() == call->arg_size());
-	if (result_kind == abi::pass_kind::reference)
+	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
 	{
 		call->addParamAttr(0, llvm::Attribute::StructRet);
 		bz_assert(is_pass_by_ref_it != is_pass_by_ref_end);
@@ -2979,6 +2998,7 @@ static val_ptr emit_bitcode(
 	switch (result_kind)
 	{
 	case abi::pass_kind::reference:
+	case abi::pass_kind::non_trivial:
 		bz_assert(result_address == nullptr || params.front() == result_address);
 		return { val_ptr::reference, params.front() };
 	case abi::pass_kind::value:
@@ -4164,19 +4184,18 @@ static void emit_bitcode(
 		}
 		else if (context.output_pointer != nullptr)
 		{
-			auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
+			emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
 			context.emit_all_destructor_calls();
-			bz_assert(ret_val.val == context.output_pointer);
-			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRetVoid();
 		}
 		else
 		{
 			auto const result_type = get_llvm_type(context.current_function.first->return_type, context);
-			auto const ret_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
+			auto const ret_kind = context.get_pass_kind<abi>(context.current_function.first->return_type, result_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
 				bz_unreachable;
 			case abi::pass_kind::value:
 			{
@@ -4327,20 +4346,24 @@ static llvm::Function *create_function_from_symbol_impl(
 )
 {
 	auto const result_t = get_llvm_type(func_body.return_type, context);
-	auto const return_kind = abi::get_pass_kind<abi>(result_t, context.get_data_layout(), context.get_llvm_context());
+	auto const return_kind = context.get_pass_kind<abi>(func_body.return_type, result_t);
 
 	bz::vector<bool> pass_arg_by_ref = {};
 	bz::vector<llvm::Type *> args = {};
 	pass_arg_by_ref.reserve(func_body.params.size());
-	args.reserve(func_body.params.size() + (return_kind == abi::pass_kind::reference ? 1 : 0));
+	args.reserve(
+		func_body.params.size()
+		+ (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial ? 1 : 0)
+	);
 
-	if (return_kind == abi::pass_kind::reference)
+	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
 		args.push_back(llvm::PointerType::get(result_t, 0));
 	}
 	if (func_body.is_main())
 	{
 		auto const str_slice = context.get_slice_t(context.get_str_t());
+		// str_slice is known to be not non_trivial
 		auto const pass_kind = abi::get_pass_kind<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
 
 		switch (pass_kind)
@@ -4366,6 +4389,8 @@ static llvm::Function *create_function_from_symbol_impl(
 			args.push_back(second_type);
 			break;
 		}
+		case abi::pass_kind::non_trivial:
+			bz_unreachable;
 		}
 	}
 	else
@@ -4378,7 +4403,7 @@ static llvm::Function *create_function_from_symbol_impl(
 				continue;
 			}
 			auto const t = get_llvm_type(p.get_type(), context);
-			auto const pass_kind = abi::get_pass_kind<abi>(t, context.get_data_layout(), context.get_llvm_context());
+			auto const pass_kind = context.get_pass_kind<abi>(p.get_type(), t);
 
 			switch (pass_kind)
 			{
@@ -4403,6 +4428,10 @@ static llvm::Function *create_function_from_symbol_impl(
 				args.push_back(second_type);
 				break;
 			}
+			case abi::pass_kind::non_trivial:
+				pass_arg_by_ref.push_back(false);
+				args.push_back(llvm::PointerType::get(t, 0));
+				break;
 			}
 		}
 	}
@@ -4423,6 +4452,7 @@ static llvm::Function *create_function_from_symbol_impl(
 			switch (return_kind)
 			{
 			case abi::pass_kind::reference:
+			case abi::pass_kind::non_trivial:
 				real_result_t = llvm::Type::getVoidTy(context.get_llvm_context());
 				break;
 			case abi::pass_kind::value:
@@ -4433,12 +4463,14 @@ static llvm::Function *create_function_from_symbol_impl(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(result_t, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					result_t,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				real_result_t = llvm::StructType::get(first_type, second_type);
 				break;
 			}
-			default:
-				bz_unreachable;
 			}
 		}
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
@@ -4488,7 +4520,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	auto is_by_ref_end = pass_arg_by_ref.end();
 	auto arg_it = fn->arg_begin();
 
-	if (return_kind == abi::pass_kind::reference)
+	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
 		arg_it->addAttr(llvm::Attribute::StructRet);
 		arg_it->addAttr(llvm::Attribute::NoAlias);
@@ -4627,10 +4659,11 @@ static void emit_function_bitcode_impl(
 			else
 			{
 				auto const t = get_llvm_type(p.get_type(), context);
-				auto const pass_kind = abi::get_pass_kind<abi>(t, context.get_data_layout(), context.get_llvm_context());
+				auto const pass_kind = context.get_pass_kind<abi>(p.get_type(), t);
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
+				case abi::pass_kind::non_trivial:
 					push_destructor_call(p.src_tokens, fn_it, p.get_type(), context);
 					context.add_variable(&p, fn_it);
 					break;
@@ -5038,6 +5071,8 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			args_is_pass_by_ref.push_back(false);
 			break;
 		}
+		case abi::pass_kind::non_trivial:
+			bz_unreachable;
 		}
 	}
 
@@ -5106,6 +5141,8 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			}
 			break;
 		}
+		case abi::pass_kind::non_trivial:
+			bz_unreachable;
 		}
 		context.builder.CreateRetVoid();
 		bz::vector<uint32_t> gep_indicies = { 0 };
@@ -5152,6 +5189,8 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			}
 			break;
 		}
+		case abi::pass_kind::non_trivial:
+			bz_unreachable;
 		}
 	}
 

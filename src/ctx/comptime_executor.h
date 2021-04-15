@@ -5,7 +5,9 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "abi/platform_abi.h"
+#include "abi/platform_function_call.h"
 #include "bc/val_ptr.h"
+#include "bc/common.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -89,6 +91,33 @@ struct comptime_executor_context
 	size_t get_offset(llvm::Type *t, size_t elem) const;
 	size_t get_register_size(void) const;
 
+	template<abi::platform_abi abi>
+	abi::pass_kind get_pass_kind(ast::typespec_view ts)
+	{
+		if (ast::is_non_trivial(ts))
+		{
+			return abi::pass_kind::non_trivial;
+		}
+		else
+		{
+			auto const llvm_type = bc::get_llvm_type(ts, *this);
+			return abi::get_pass_kind<abi>(llvm_type, this->get_data_layout(), this->get_llvm_context());
+		}
+	}
+
+	template<abi::platform_abi abi>
+	abi::pass_kind get_pass_kind(ast::typespec_view ts, llvm::Type *llvm_type)
+	{
+		if (ast::is_non_trivial(ts))
+		{
+			return abi::pass_kind::non_trivial;
+		}
+		else
+		{
+			return abi::get_pass_kind<abi>(llvm_type, this->get_data_layout(), this->get_llvm_context());
+		}
+	}
+
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
 	llvm::Value *create_alloca(llvm::Type *t, size_t align);
@@ -115,7 +144,7 @@ struct comptime_executor_context
 	llvm::Type *get_usize_t(void) const;
 	llvm::Type *get_isize_t(void) const;
 	llvm::StructType *get_slice_t(llvm::Type *elem_type) const;
-	llvm::StructType *get_tuple_t(bz::array_view<llvm::Type * const> types);
+	llvm::StructType *get_tuple_t(bz::array_view<llvm::Type * const> types) const;
 
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);

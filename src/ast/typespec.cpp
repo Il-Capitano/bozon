@@ -396,6 +396,33 @@ bool needs_destructor(typespec_view ts) noexcept
 	}
 }
 
+bool is_non_trivial(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		auto const &info = *ts.get<ts_base_type>().info;
+		return info.destructor != nullptr || info.copy_constructor != nullptr
+			|| info.member_variables.is_any([](auto const &member) {
+				return is_non_trivial(member.type);
+			});
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_any([](auto const &type) {
+			return is_non_trivial(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_non_trivial(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz::u8string result = "";

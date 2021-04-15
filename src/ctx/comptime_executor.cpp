@@ -366,7 +366,7 @@ llvm::StructType *comptime_executor_context::get_slice_t(llvm::Type *elem_type) 
 	return llvm::StructType::get(elem_ptr_type, elem_ptr_type);
 }
 
-llvm::StructType *comptime_executor_context::get_tuple_t(bz::array_view<llvm::Type * const> types)
+llvm::StructType *comptime_executor_context::get_tuple_t(bz::array_view<llvm::Type * const> types) const
 {
 	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
 }
