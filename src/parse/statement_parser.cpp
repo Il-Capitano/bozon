@@ -1239,14 +1239,53 @@ void resolve_function_parameters(
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
+	bz::optional<ctx::parse_context> new_context{};
+	auto context_ptr = [&]() {
+		if (func_body.is_local())
+		{
+			auto const var_count = context.scope_decls
+				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
+				.sum();
+			if (var_count == 0)
+			{
+				return &context;
+			}
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::local_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
+		}
+		else
+		{
+			if (context.scope_decls.empty())
+			{
+				return &context;
+			}
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::global_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
+		}
+	}();
+
+	auto const original_file_info = context_ptr->get_current_file_info();
 	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
 	if (original_file_info.file_id != stmt_file_id)
 	{
-		context.set_current_file(stmt_file_id);
+		context_ptr->set_current_file(stmt_file_id);
 	}
-	resolve_function_parameters_impl(func_stmt, func_body, context);
-	context.set_current_file_info(original_file_info);
+	resolve_function_parameters_impl(func_stmt, func_body, *context_ptr);
+	context_ptr->set_current_file_info(original_file_info);
 }
 
 static bool resolve_function_return_type_helper(
@@ -1475,22 +1514,6 @@ void resolve_function_symbol(
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
-	resolve_function_symbol_impl(func_stmt, func_body, context);
-	context.set_current_file_info(original_file_info);
-}
-
-static void resolve_function_impl(
-	ast::statement_view func_stmt,
-	ast::function_body &func_body,
-	ctx::parse_context &context
-)
-{
 	bz::optional<ctx::parse_context> new_context{};
 	auto context_ptr = [&]() {
 		if (func_body.is_local())
@@ -1530,26 +1553,42 @@ static void resolve_function_impl(
 		}
 	}();
 
+	auto const original_file_info = context_ptr->get_current_file_info();
+	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
+	if (original_file_info.file_id != stmt_file_id)
+	{
+		context_ptr->set_current_file(stmt_file_id);
+	}
+	resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
+	context_ptr->set_current_file_info(original_file_info);
+}
+
+static void resolve_function_impl(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
 	if (func_body.state <= ast::resolve_state::parameters)
 	{
 		func_body.state = ast::resolve_state::resolving_symbol;
-		context_ptr->add_scope();
-		if (!resolve_function_symbol_helper(func_stmt, func_body, *context_ptr))
+		context.add_scope();
+		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context_ptr->remove_scope();
+			context.remove_scope();
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context_ptr->remove_scope();
+			context.remove_scope();
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context_ptr->remove_scope();
+			context.remove_scope();
 		}
 	}
 
@@ -1558,12 +1597,12 @@ static void resolve_function_impl(
 		return;
 	}
 
-	auto const prev_function = context_ptr->current_function;
-	context_ptr->current_function = &func_body;
-	context_ptr->add_scope();
+	auto const prev_function = context.current_function;
+	context.current_function = &func_body;
+	context.add_scope();
 	for (auto &p : func_body.params)
 	{
-		context_ptr->add_local_variable(p);
+		context.add_local_variable(p);
 		p.flags &= ~(ast::decl_variable::used);
 	}
 
@@ -1571,11 +1610,11 @@ static void resolve_function_impl(
 
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
-	func_body.body = parse_local_statements(stream, end, *context_ptr);
+	func_body.body = parse_local_statements(stream, end, context);
 	func_body.state = ast::resolve_state::all;
 
-	context_ptr->remove_scope();
-	context_ptr->current_function = prev_function;
+	context.remove_scope();
+	context.current_function = prev_function;
 }
 
 void resolve_function(
@@ -1598,18 +1637,57 @@ void resolve_function(
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
+	bz::optional<ctx::parse_context> new_context{};
+	auto context_ptr = [&]() {
+		if (func_body.is_local())
+		{
+			auto const var_count = context.scope_decls
+				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
+				.sum();
+			if (var_count == 0)
+			{
+				return &context;
+			}
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::local_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
+		}
+		else
+		{
+			if (context.scope_decls.empty())
+			{
+				return &context;
+			}
+			else
+			{
+				new_context.emplace(context, ctx::parse_context::global_copy_t{});
+				for (auto &decl_set : new_context->scope_decls)
+				{
+					decl_set.var_decls.clear();
+				}
+				return &new_context.get();
+			}
+		}
+	}();
+
+	auto const original_file_info = context_ptr->get_current_file_info();
 	// this check is needed because of generic built-in functions like __builtin_slice_size
 	if (func_body.src_tokens.pivot != nullptr)
 	{
 		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
 		if (original_file_info.file_id != stmt_file_id)
 		{
-			context.set_current_file(stmt_file_id);
+			context_ptr->set_current_file(stmt_file_id);
 		}
 	}
-	resolve_function_impl(func_stmt, func_body, context);
-	context.set_current_file_info(original_file_info);
+	resolve_function_impl(func_stmt, func_body, *context_ptr);
+	context_ptr->set_current_file_info(original_file_info);
 }
 
 static ast::function_body parse_function_body(
@@ -2606,7 +2684,7 @@ static ast::statement parse_stmt_foreach_impl(
 		);
 	}();
 	auto iter_deref_var_decl_stmt = ast::make_decl_variable(
-		range_expr_src_tokens,
+		lex::src_tokens{ id, id, id + 1 },
 		ast::var_id_and_type(ast::make_identifier(id), prototype, ast::make_unresolved_typespec(type)),
 		std::move(iter_deref_expr)
 	);
