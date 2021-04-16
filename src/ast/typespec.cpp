@@ -783,5 +783,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			}
 		});
 	}
+	if (result == "")
+	{
+		result = "<error-type>";
+	}
 	return result;
 }
