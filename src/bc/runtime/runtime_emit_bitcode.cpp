@@ -150,7 +150,11 @@ static void create_function_call(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(rhs_llvm_type, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					rhs_llvm_type,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				auto const cast_val = context.create_bitcast(rhs, llvm::StructType::get(first_type, second_type));
 				auto const first_val = context.builder.CreateExtractValue(cast_val, 0);
 				auto const second_val = context.builder.CreateExtractValue(cast_val, 1);
@@ -4024,7 +4028,11 @@ static llvm::Function *create_function_from_symbol_impl(
 			break;
 		case abi::pass_kind::two_registers:
 		{
-			auto const [first_type, second_type] = abi::get_two_register_types<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
+			auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+				str_slice,
+				context.get_data_layout(),
+				context.get_llvm_context()
+			);
 			pass_arg_by_ref.push_back(false);
 			args.push_back(first_type);
 			pass_arg_by_ref.push_back(false);
@@ -4063,7 +4071,11 @@ static llvm::Function *create_function_from_symbol_impl(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(t, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					t,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				pass_arg_by_ref.push_back(false);
 				args.push_back(first_type);
 				pass_arg_by_ref.push_back(false);
@@ -4110,7 +4122,11 @@ static llvm::Function *create_function_from_symbol_impl(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(result_t, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					result_t,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				real_result_t = llvm::StructType::get(first_type, second_type);
 				break;
 			}
