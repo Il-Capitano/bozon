@@ -2926,7 +2926,7 @@ static val_ptr emit_bitcode(
 			case abi::pass_kind::non_trivial:
 				bz_assert(param_val.kind == val_ptr::reference);
 				(params.*params_push)(param_val.val);
-				(params_is_pass_by_ref.*ref_push)(true);
+				(params_is_pass_by_ref.*ref_push)(false);
 				break;
 			}
 		}
@@ -4382,7 +4382,11 @@ static llvm::Function *create_function_from_symbol_impl(
 			break;
 		case abi::pass_kind::two_registers:
 		{
-			auto const [first_type, second_type] = abi::get_two_register_types<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
+			auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+				str_slice,
+				context.get_data_layout(),
+				context.get_llvm_context()
+			);
 			pass_arg_by_ref.push_back(false);
 			args.push_back(first_type);
 			pass_arg_by_ref.push_back(false);
@@ -4421,7 +4425,11 @@ static llvm::Function *create_function_from_symbol_impl(
 				break;
 			case abi::pass_kind::two_registers:
 			{
-				auto const [first_type, second_type] = abi::get_two_register_types<abi>(t, context.get_data_layout(), context.get_llvm_context());
+				auto const [first_type, second_type] = abi::get_two_register_types<abi>(
+					t,
+					context.get_data_layout(),
+					context.get_llvm_context()
+				);
 				pass_arg_by_ref.push_back(false);
 				args.push_back(first_type);
 				pass_arg_by_ref.push_back(false);
@@ -5055,7 +5063,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		case abi::pass_kind::two_registers:
 		{
 			auto const [first_register_type, second_register_type] = abi::get_two_register_types<abi>(
-				param_type, context.get_data_layout(), context.get_llvm_context()
+				param_type,
+				context.get_data_layout(),
+				context.get_llvm_context()
 			);
 			auto const register_struct_type = llvm::StructType::get(first_register_type, second_register_type);
 			auto const alloca = context.create_alloca(param_type);
