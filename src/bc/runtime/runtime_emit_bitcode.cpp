@@ -4405,6 +4405,7 @@ static void emit_function_bitcode_impl(
 			func_body.get_signature(),
 			colors::clear
 		);
+		fn->print(llvm::dbgs());
 	}
 	context.current_function = {};
 	context.alloca_bb = nullptr;
