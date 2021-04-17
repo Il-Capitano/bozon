@@ -346,14 +346,12 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
-		bz::array_view<var_id_and_type> _tuple_id_and_type,
+		arena_vector<decl_variable> _tuple_decls,
 		expression      _init_expr
 	)
 		: src_tokens (_src_tokens),
 		  id_and_type{},
-		  tuple_decls(_tuple_id_and_type.transform([_src_tokens](auto &id_and_type) {
-			  return decl_variable(_src_tokens, std::move(id_and_type));
-		  }).collect<arena_vector>()),
+		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (std::move(_init_expr)),
 		  state      (resolve_state::none),
 		  flags      (0)
@@ -361,13 +359,11 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
-		bz::array_view<var_id_and_type> _tuple_id_and_type
+		arena_vector<decl_variable> _tuple_decls
 	)
 		: src_tokens (_src_tokens),
 		  id_and_type{},
-		  tuple_decls(_tuple_id_and_type.transform([_src_tokens](auto &id_and_type) {
-			  return decl_variable(_src_tokens, std::move(id_and_type));
-		  }).collect<arena_vector>()),
+		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (),
 		  state      (resolve_state::none),
 		  flags      (0)

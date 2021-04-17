@@ -4255,6 +4255,26 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
+static void add_variable_helper(
+	ast::decl_variable const &var_decl,
+	llvm::Value *ptr,
+	ctx::comptime_executor_context &context
+)
+{
+		if (var_decl.tuple_decls.empty())
+		{
+			context.add_variable(&var_decl, ptr);
+		}
+		else
+		{
+			for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
+			{
+				auto const gep_ptr = context.builder.CreateStructGEP(ptr, i);
+				add_variable_helper(decl, gep_ptr, context);
+			}
+		}
+}
+
 template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::decl_variable const &var_decl,
@@ -4283,7 +4303,7 @@ static void emit_bitcode(
 		{
 			emit_default_constructor<abi>(var_decl.src_tokens, var_decl.get_type(), context, alloca);
 		}
-		context.add_variable(&var_decl, alloca);
+		add_variable_helper(var_decl, alloca, context);
 	}
 }
 

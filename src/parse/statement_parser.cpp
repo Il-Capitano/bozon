@@ -282,8 +282,7 @@ template ast::statement parse_stmt_static_assert<true>(
 	ctx::parse_context &context
 );
 
-static std::tuple<lex::token_range, lex::token_pos, lex::token_range>
-parse_decl_variable_id_and_type(
+static ast::decl_variable parse_decl_variable_id_and_type(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
 	bool needs_id = true
@@ -295,42 +294,80 @@ parse_decl_variable_id_and_type(
 		++stream;
 	}
 	auto const prototype = lex::token_range{ prototype_begin, stream };
-	if (stream == end)
-	{
-		return { {}, lex::token_pos(nullptr), {} };
-	}
 
-	auto const id = [&]() {
-		if (needs_id)
+	if (stream != end && stream->kind == lex::token::square_open)
+	{
+		auto const open_square = stream;
+		++stream; // '['
+		auto [inner_stream, inner_end] = get_paren_matched_range(stream, end, context);
+		ast::arena_vector<ast::decl_variable> tuple_decls;
+		if (inner_stream == inner_end)
 		{
-			return context.assert_token(stream, lex::token::identifier);
-		}
-		else if (stream->kind == lex::token::identifier)
-		{
-			auto const id = stream;
-			++stream;
-			return id;
+			return ast::decl_variable(
+				{ prototype_begin, open_square, stream },
+				std::move(tuple_decls)
+			);
 		}
 		else
 		{
-			return stream;
+			do
+			{
+				tuple_decls.emplace_back(parse_decl_variable_id_and_type(inner_stream, inner_end, context, needs_id));
+			} while (inner_stream != inner_end && inner_stream->kind == lex::token::comma && (++inner_stream, true));
+			return ast::decl_variable(
+				{ prototype_begin, open_square, stream },
+				std::move(tuple_decls)
+			);
 		}
-	}();
-
-	if (stream == end || stream->kind != lex::token::colon)
-	{
-		return { prototype, id, {} };
 	}
+	else
+	{
+		auto const id = [&]() {
+			if (needs_id)
+			{
+				return context.assert_token(stream, lex::token::identifier);
+			}
+			else if (stream != end && stream->kind == lex::token::identifier)
+			{
+				auto const id = stream;
+				++stream;
+				return id;
+			}
+			else
+			{
+				return stream;
+			}
+		}();
 
-	++stream; // ':'
-	auto const type = get_expression_tokens<
-		lex::token::assign,
-		lex::token::comma,
-		lex::token::paren_close,
-		lex::token::square_close
-	>(stream, end, context);
+		if (stream == end || stream->kind != lex::token::colon)
+		{
+			return ast::decl_variable(
+				{ prototype_begin, id == end ? prototype_begin : id, stream },
+				ast::var_id_and_type(
+					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
+					prototype,
+					ast::make_unresolved_typespec({ stream, stream })
+				)
+			);
+		}
 
-	return { prototype, id, type };
+		++stream; // ':'
+		auto const type = get_expression_tokens<
+			lex::token::assign,
+			lex::token::comma,
+			lex::token::paren_close,
+			lex::token::square_close
+		>(stream, end, context);
+
+		return ast::decl_variable(
+			{ prototype_begin, id, stream },
+			ast::var_id_and_type(
+				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
+				prototype,
+				ast::make_unresolved_typespec(type)
+			)
+		);
+	}
 }
 
 static void resolve_typespec(
@@ -535,7 +572,7 @@ static void resolve_variable_init_expr_and_match_type(
 		if (!ast::is_complete(var_decl.get_type()))
 		{
 			context.report_error(
-				var_decl.get_id().tokens,
+				var_decl.src_tokens,
 				bz::format(
 					"a variable with an incomplete type '{}' must be initialized",
 					var_decl.get_type()
@@ -547,7 +584,7 @@ static void resolve_variable_init_expr_and_match_type(
 		else if (var_decl.get_type().is<ast::ts_const>())
 		{
 			context.report_error(
-				var_decl.get_id().tokens,
+				var_decl.src_tokens,
 				"a variable with a 'const' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
@@ -555,7 +592,7 @@ static void resolve_variable_init_expr_and_match_type(
 		else if (var_decl.get_type().is<ast::ts_consteval>())
 		{
 			context.report_error(
-				var_decl.get_id().tokens,
+				var_decl.src_tokens,
 				"a variable with a 'consteval' type must be initialized"
 			);
 			var_decl.state = ast::resolve_state::error;
@@ -740,7 +777,7 @@ ast::statement parse_decl_variable(
 		++stream;
 	}
 
-	auto const [prototype, id, type] = parse_decl_variable_id_and_type(stream, end, context);
+	auto result_decl = parse_decl_variable_id_and_type(stream, end, context);
 	if (stream != end && stream->kind == lex::token::assign)
 	{
 		++stream; // '='
@@ -749,23 +786,30 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
-			auto var_id = context.make_qualified_identifier(id);
-			return ast::make_decl_variable(
-				lex::src_tokens{ begin_token, id, end_token },
-				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type)),
-				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
-			);
+			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
+			bz_assert(result.is<ast::decl_variable>());
+			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.init_expr = ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end });
+			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			auto const id_tokens = var_decl.id_and_type.id.tokens;
+			bz_assert(id_tokens.end - id_tokens.begin <= 1);
+			if (id_tokens.begin != nullptr)
+			{
+				var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
+			}
+			else
+			{
+				var_decl.id_and_type.id.is_qualified = true;
+			}
+			return result;
 		}
 		else
 		{
-			auto var_id = ast::make_identifier(id);
-			auto result = ast::make_decl_variable(
-				lex::src_tokens{ begin_token, id, end_token },
-				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type)),
-				ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end })
-			);
+			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.init_expr = ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end });
+			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			resolve_variable(var_decl, context);
 			context.add_local_variable(var_decl);
 			return result;
@@ -777,21 +821,28 @@ ast::statement parse_decl_variable(
 		context.assert_token(stream, lex::token::semi_colon);
 		if constexpr (is_global)
 		{
-			auto var_id = context.make_qualified_identifier(id);
-			return ast::make_decl_variable(
-				lex::src_tokens{ begin_token, id, end_token },
-				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type))
-			);
+			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
+			bz_assert(result.is<ast::decl_variable>());
+			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
+			auto const id_tokens = var_decl.id_and_type.id.tokens;
+			bz_assert(id_tokens.end - id_tokens.begin <= 1);
+			if (id_tokens.begin != nullptr)
+			{
+				var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
+			}
+			else
+			{
+				var_decl.id_and_type.id.is_qualified = true;
+			}
+			return result;
 		}
 		else
 		{
-			auto var_id = ast::make_identifier(id);
-			auto result = ast::make_decl_variable(
-				lex::src_tokens{ begin_token, id, end_token },
-				ast::var_id_and_type(std::move(var_id), prototype, ast::make_unresolved_typespec(type))
-			);
+			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			resolve_variable(var_decl, context);
 			context.add_local_variable(var_decl);
 			return result;
@@ -1717,18 +1768,15 @@ static ast::function_body parse_function_body(
 	while (param_stream != param_end)
 	{
 		auto const begin = param_stream;
-		auto const [prototype, id, type] = parse_decl_variable_id_and_type(
+		result.params.emplace_back(parse_decl_variable_id_and_type(
 			param_stream, param_end,
 			context, false
-		);
-		result.params.emplace_back(
-			lex::src_tokens{ begin, id, param_stream },
-			ast::var_id_and_type(
-				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier(),
-				prototype,
-				ast::make_unresolved_typespec(type)
-			)
-		);
+		));
+		auto &param_decl = result.params.back();
+		if (param_decl.get_id().values.empty())
+		{
+			param_decl.flags |= ast::decl_variable::maybe_unused;
+		}
 		if (param_stream != param_end)
 		{
 			context.assert_token(param_stream, lex::token::comma, lex::token::paren_close);
@@ -2495,7 +2543,9 @@ static ast::statement parse_stmt_foreach_impl(
 	{
 		++stream; // 'let'
 	}
-	auto const [prototype, id, type] = parse_decl_variable_id_and_type(stream, end, context);
+	auto iter_deref_var_decl_stmt = ast::statement(ast::make_ast_unique<ast::decl_variable>(
+		parse_decl_variable_id_and_type(stream, end, context)
+	));
 
 	if (stream->kind != lex::token::kw_in)
 	{
@@ -2683,13 +2733,9 @@ static ast::statement parse_stmt_foreach_impl(
 			std::move(iter_var_expr)
 		);
 	}();
-	auto iter_deref_var_decl_stmt = ast::make_decl_variable(
-		lex::src_tokens{ id, id, id + 1 },
-		ast::var_id_and_type(ast::make_identifier(id), prototype, ast::make_unresolved_typespec(type)),
-		std::move(iter_deref_expr)
-	);
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
+	iter_deref_var_decl.init_expr = std::move(iter_deref_expr);
 	resolve_variable(iter_deref_var_decl, context);
 	context.add_local_variable(iter_deref_var_decl);
 
@@ -3009,6 +3055,15 @@ static void apply_attribute(
 	);
 }
 
+static void apply_maybe_unused_to_var_decl(ast::decl_variable &var_decl)
+{
+	var_decl.flags |= ast::decl_variable::maybe_unused;
+	for (auto &decl : var_decl.tuple_decls)
+	{
+		apply_maybe_unused_to_var_decl(decl);
+	}
+}
+
 static void apply_attribute(
 	ast::decl_variable &var_decl,
 	ast::attribute &attribute,
@@ -3024,7 +3079,7 @@ static void apply_attribute(
 				"@maybe_unused expects no arguments"
 			);
 		}
-		var_decl.flags |= ast::decl_variable::maybe_unused;
+		apply_maybe_unused_to_var_decl(var_decl);
 	}
 	else if (attribute.name->value == "comptime_error_checking")
 	{

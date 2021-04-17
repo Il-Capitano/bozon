@@ -3896,6 +3896,26 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
+static void add_variable_helper(
+	ast::decl_variable const &var_decl,
+	llvm::Value *ptr,
+	ctx::bitcode_context &context
+)
+{
+		if (var_decl.tuple_decls.empty())
+		{
+			context.add_variable(&var_decl, ptr);
+		}
+		else
+		{
+			for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
+			{
+				auto const gep_ptr = context.builder.CreateStructGEP(ptr, i);
+				add_variable_helper(decl, gep_ptr, context);
+			}
+		}
+}
+
 template<abi::platform_abi abi>
 static void emit_bitcode(
 	ast::decl_variable const &var_decl,
@@ -3924,7 +3944,7 @@ static void emit_bitcode(
 		{
 			emit_default_constructor<abi>(var_decl.get_type(), context, alloca);
 		}
-		context.add_variable(&var_decl, alloca);
+		add_variable_helper(var_decl, alloca, context);
 	}
 }
 
@@ -4358,14 +4378,17 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-		bz_assert(func_body.return_type.is<ast::ts_void>());
 		if (context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
 		}
-		else
+		else if (auto const ret_t = context.current_function.second->getReturnType(); ret_t->isVoidTy())
 		{
 			context.builder.CreateRetVoid();
+		}
+		else
+		{
+			context.builder.CreateRet(llvm::UndefValue::get(ret_t));
 		}
 	}
 

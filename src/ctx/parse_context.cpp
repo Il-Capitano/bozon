@@ -756,7 +756,17 @@ void parse_context::remove_scope(void)
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
 	bz_assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().var_decls.push_back(&var_decl);
+	if (var_decl.tuple_decls.empty())
+	{
+		this->scope_decls.back().var_decls.push_back(&var_decl);
+	}
+	else
+	{
+		for (auto &decl : var_decl.tuple_decls)
+		{
+			this->add_local_variable(decl);
+		}
+	}
 }
 
 void parse_context::add_local_function(ast::decl_function &func_decl)
@@ -4865,6 +4875,10 @@ void parse_context::match_expression_to_type(
 
 static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
 {
+	if (type.is_empty())
+	{
+		return;
+	}
 	if (var_decl.tuple_decls.empty())
 	{
 		var_decl.get_type() = type;
