@@ -165,9 +165,9 @@ static void emit_destructor_call(
 		if (info.destructor != nullptr)
 		{
 			auto const dtor_func = context.get_function(info.destructor.get());
-			emit_push_call(src_tokens, info.destructor.get(), context);
+			auto const error_count = emit_push_call(src_tokens, info.destructor.get(), context);
 			context.builder.CreateCall(dtor_func, ptr);
-			emit_pop_call(context);
+			emit_pop_call(error_count, context);
 		}
 		auto const members_count = info.member_variables.size();
 		for (auto const &[member, i] : info.member_variables.reversed().enumerate())
@@ -273,7 +273,7 @@ static void emit_error(
 	context.builder.SetInsertPoint(continue_bb);
 }
 
-void emit_push_call(
+[[nodiscard]] llvm::Value *emit_push_call(
 	lex::src_tokens src_tokens,
 	ast::function_body const *func_body,
 	ctx::comptime_executor_context &context
@@ -281,22 +281,25 @@ void emit_push_call(
 {
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
 	{
-		return;
+		return nullptr;
 	}
 	auto const call_ptr = context.insert_call(src_tokens, func_body);
 	auto const call_ptr_int_val = llvm::ConstantInt::get(
 		context.get_uint64_t(),
 		reinterpret_cast<uint64_t>(call_ptr)
 	);
+	auto const error_count = emit_get_error_count(context);
 	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::push_call), { call_ptr_int_val });
+	return error_count;
 }
 
-void emit_pop_call(ctx::comptime_executor_context &context)
+void emit_pop_call(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
 	{
 		return;
 	}
+	emit_error_check(pre_call_error_count, context);
 	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::pop_call));
 }
 
@@ -376,9 +379,9 @@ static void create_function_call(
 		}
 	}
 
-	emit_push_call(src_tokens, body, context);
+	auto const error_count = emit_push_call(src_tokens, body, context);
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
-	emit_pop_call(context);
+	emit_pop_call(error_count, context);
 	call->setCallingConv(fn->getCallingConv());
 	if (is_rhs_pass_by_ref)
 	{
@@ -419,34 +422,33 @@ static val_ptr emit_copy_constructor(
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		if (info->copy_constructor != nullptr)
 		{
-			emit_push_call(src_tokens, info->copy_constructor, context);
 			auto const fn = context.get_function(info->copy_constructor);
 			auto const ret_kind = context.get_pass_kind<abi>(expr_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
 			{
-				emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
 				auto const call = context.builder.CreateCall(fn, expr_val.val);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				context.builder.CreateStore(call, result_address);
 				break;
 			}
 			case abi::pass_kind::reference:
 			case abi::pass_kind::non_trivial:
 			{
-				emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
 				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
 				call->addParamAttr(0, llvm::Attribute::StructRet);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				break;
 			}
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
-				emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
 				auto const call = context.builder.CreateCall(fn, expr_val.val);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				auto const cast_result_address = context.builder.CreatePointerCast(
 					result_address, llvm::PointerType::get(call->getType(), 0)
 				);
@@ -454,7 +456,6 @@ static val_ptr emit_copy_constructor(
 				break;
 			}
 			}
-			emit_pop_call(context);
 		}
 		else if (info->default_copy_constructor != nullptr)
 		{
@@ -533,27 +534,27 @@ static val_ptr emit_default_constructor(
 			{
 			case abi::pass_kind::value:
 			{
-				emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
 				auto const call = context.builder.CreateCall(fn);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				context.builder.CreateStore(call, result_address);
 				break;
 			}
 			case abi::pass_kind::reference:
 			case abi::pass_kind::non_trivial:
 			{
-				emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
 				auto const call = context.builder.CreateCall(fn, result_address);
 				call->addParamAttr(0, llvm::Attribute::StructRet);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				break;
 			}
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
-				emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
 				auto const call = context.builder.CreateCall(fn);
-				emit_pop_call(context);
+				emit_pop_call(error_count, context);
 				auto const cast_result_address = context.builder.CreatePointerCast(
 					result_address, llvm::PointerType::get(call->getType(), 0)
 				);
@@ -2961,8 +2962,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *pre_call_error_count = nullptr;
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
-		pre_call_error_count = emit_get_error_count(context);
-		emit_push_call(func_call.src_tokens, func_call.func_body, context);
+		pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
 	}
 
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
@@ -2991,8 +2991,7 @@ static val_ptr emit_bitcode(
 
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
-		emit_pop_call(context);
-		emit_error_check(pre_call_error_count, context);
+		emit_pop_call(pre_call_error_count, context);
 	}
 
 	switch (result_kind)

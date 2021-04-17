@@ -409,9 +409,9 @@ void comptime_executor_context::emit_destructor_calls(void)
 	bz_assert(!this->destructor_calls.empty());
 	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
 	{
-		bc::comptime::emit_push_call(src_tokens, func, *this);
+		auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
 		this->builder.CreateCall(this->get_function(func), val);
-		bc::comptime::emit_pop_call(*this);
+		bc::comptime::emit_pop_call(error_count, *this);
 	}
 }
 
@@ -423,9 +423,9 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 	{
 		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
 		{
-			bc::comptime::emit_push_call(src_tokens, func, *this);
+			auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
 			this->builder.CreateCall(this->get_function(func), val);
-			bc::comptime::emit_pop_call(*this);
+			bc::comptime::emit_pop_call(error_count, *this);
 		}
 	}
 }
