@@ -1,5 +1,72 @@
 import libc::stdlib;
 import print;
+import unicode;
+
+/*
+@no_comptime_checking
+function print_ascii_char(c: char)
+{
+	const c_int_val = c as uint32 as uint8;
+	std::print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
+}
+
+@no_comptime_checking
+function print_uint_impl(n: uint64, base: consteval uint64)
+{
+	if (n < 10u)
+	{
+		print_ascii_char('0' + n);
+	}
+	else if (n < base)
+	{
+		print_ascii_char('a' + n - 10);
+	}
+	else
+	{
+		print_uint_impl(n / base, base);
+		const mod = n % base;
+		const c = if (mod < 10u) { '0' + mod } else { 'a' + mod - 10 };
+		print_ascii_char(c);
+	}
+}
+
+@no_comptime_checking
+function print_uint(n: uint64, base: consteval uint64)
+{
+	if (n == 0u)
+	{
+		std::print("0");
+	}
+	else
+	{
+		print_uint_impl(n, base);
+	}
+}
+
+@no_comptime_checking
+export function comptime_print(n: uint64)
+{
+	print_uint(n, 10u);
+}
+
+@no_comptime_checking
+export function comptime_print(p: *const void)
+{
+	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
+}
+
+@no_comptime_checking
+export function comptime_println(n: uint64)
+{
+	print_uint(n, 10u), std::println("");
+}
+
+@no_comptime_checking
+export function comptime_println(p: *const void)
+{
+	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), std::println("");
+}
+*/
 
 static_assert(sizeof string == 3u * sizeof *uint8);
 consteval short_string_max_size = 2u * sizeof *uint8;
@@ -8,7 +75,8 @@ function malloc(n: usize) -> *uint8
 {
 	if (__builtin_is_comptime())
 	{
-		return __builtin_comptime_malloc_type(uint8, n);
+		const result = __builtin_comptime_malloc_type(uint8, n);
+		return result;
 	}
 	else
 	{
@@ -125,7 +193,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-function rounded_alloc(n: usize) -> [ *uint8, usize ]
+function rounded_alloc(n: usize) -> [*uint8, usize]
 {
 	if (n == 0u)
 	{
@@ -299,37 +367,6 @@ export function clear(self: &string)
 	self.set_size_unsafe(0u);
 }
 
-function encode_char_utf8(c: char) -> [[4: uint8], uint32]
-{
-	let buffer: [4: uint8];
-	if (c as uint32 < 1u << 7u)
-	{
-		buffer[0] = c as uint32 as uint8;
-		return [buffer, 1u];
-	}
-	else if (c as uint32 < 1u << 11u)
-	{
-		buffer[0] = (((c as uint32 >> 6u) & 0b0001'1111) | 0b1100'0000) as uint8;
-		buffer[1] = (((c as uint32 >> 0u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		return [buffer, 2u];
-	}
-	else if (c as uint32 < 1u << 16u)
-	{
-		buffer[0] = (((c as uint32 >> 12u) & 0b0000'1111) | 0b1110'0000) as uint8;
-		buffer[1] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[2] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		return [buffer, 3u];
-	}
-	else
-	{
-		buffer[0] = (((c as uint32 >> 18u) & 0b0000'0111) | 0b1111'0000) as uint8;
-		buffer[1] = (((c as uint32 >> 12u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[2] = (((c as uint32 >>  6u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		buffer[3] = (((c as uint32 >>  0u) & 0b0011'1111) | 0b1000'0000) as uint8;
-		return [buffer, 4u];
-	}
-}
-
 export function push_back(self: &string, c: char)
 {
 	const char_and_size = encode_char_utf8(c);
@@ -464,11 +501,12 @@ export operator .. (lhs: char, rhs: #const string) -> string
 
 export operator ..= (lhs: &string, rhs: #const string) -> &string
 {
-	const rhs_begin = rhs.begin_ptr();
 	const rhs_size = rhs.size();
-
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
+
+	// lhs.reserve could change rhs, if you write something like s ..= s
+	const rhs_begin = rhs.begin_ptr();
 	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
@@ -476,11 +514,11 @@ export operator ..= (lhs: &string, rhs: #const string) -> &string
 
 export operator ..= (lhs: &string, rhs: str) -> &string
 {
-	const rhs_begin = __builtin_str_begin_ptr(rhs);
 	const rhs_size = rhs.size();
-
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
+
+	const rhs_begin = __builtin_str_begin_ptr(rhs);
 	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
