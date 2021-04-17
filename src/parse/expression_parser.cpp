@@ -912,7 +912,7 @@ static ast::expression parse_primary_expression(
 		}
 		else
 		{
-			auto const elems = parse_expression_comma_list(inner_stream, inner_end, context);
+			auto elems = parse_expression_comma_list(inner_stream, inner_end, context);
 			auto const end_token = stream;
 			if (inner_stream != inner_end)
 			{
