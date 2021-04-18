@@ -131,9 +131,7 @@ export struct string
 		}
 		else
 		{
-			const data_begin_and_size = rounded_alloc(size);
-			const data_begin = data_begin_and_size[0];
-			const alloc_size = data_begin_and_size[1];
+			let [data_begin, alloc_size] = rounded_alloc(size);
 			__builtin_memcpy(data_begin, __builtin_str_begin_ptr(s), size);
 			return string[ data_begin, data_begin + size, data_begin + alloc_size ];
 		}
@@ -347,9 +345,7 @@ export function reserve(self: &string, new_capacity: usize)
 {
 	if (new_capacity > self.capacity())
 	{
-		const data_begin_and_size = rounded_alloc(new_capacity);
-		const data_begin = data_begin_and_size[0];
-		const alloc_size = data_begin_and_size[1];
+		let [data_begin, alloc_size] = rounded_alloc(new_capacity);
 		const size = self.size();
 		__builtin_memcpy(data_begin, self.begin_ptr(), size);
 		if (!self.is_short_string())
@@ -410,9 +406,7 @@ export operator .. (lhs: #const string, rhs: #const string) -> string
 
 	const result_size = lhs_size + rhs_size;
 
-	const result_alloc_and_size = rounded_alloc(result_size);
-	const result_alloc = result_alloc_and_size[0];
-	const result_alloc_size = result_alloc_and_size[1];
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
 	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -429,9 +423,7 @@ export operator .. (lhs: #const string, rhs: str) -> string
 
 	const result_size = lhs_size + rhs_size;
 
-	const result_alloc_and_size = rounded_alloc(result_size);
-	const result_alloc = result_alloc_and_size[0];
-	const result_alloc_size = result_alloc_and_size[1];
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
 	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -448,9 +440,7 @@ export operator .. (lhs: str, rhs: #const string) -> string
 
 	const result_size = lhs_size + rhs_size;
 
-	const result_alloc_and_size = rounded_alloc(result_size);
-	const result_alloc = result_alloc_and_size[0];
-	const result_alloc_size = result_alloc_and_size[1];
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
 	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -468,9 +458,7 @@ export operator .. (lhs: #const string, rhs: char) -> string
 
 	const result_size = lhs_size + rhs_size;
 
-	const result_alloc_and_size = rounded_alloc(result_size);
-	const result_alloc = result_alloc_and_size[0];
-	const result_alloc_size = result_alloc_and_size[1];
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
 	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
@@ -488,9 +476,7 @@ export operator .. (lhs: char, rhs: #const string) -> string
 
 	const result_size = lhs_size + rhs_size;
 
-	const result_alloc_and_size = rounded_alloc(result_size);
-	const result_alloc = result_alloc_and_size[0];
-	const result_alloc_size = result_alloc_and_size[1];
+	let [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
 	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
 	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
