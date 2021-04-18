@@ -278,23 +278,18 @@ struct stmt_static_assert
 struct var_id_and_type
 {
 	identifier id;
-	lex::token_range prototype_range;
 	typespec var_type;
 
 	var_id_and_type(void)
-		: id{}, prototype_range{}, var_type{}
-	{}
-
-	var_id_and_type(identifier _id, lex::token_range _prototype_range, typespec _var_type)
-		: id(std::move(_id)), prototype_range(_prototype_range), var_type(std::move(_var_type))
+		: id{}, var_type{}
 	{}
 
 	var_id_and_type(identifier _id, typespec _var_type)
-		: id(std::move(_id)), prototype_range{}, var_type(std::move(_var_type))
+		: id(std::move(_id)), var_type(std::move(_var_type))
 	{}
 
-	var_id_and_type(identifier _id, lex::token_range _prototype_range)
-		: id(std::move(_id)), prototype_range(_prototype_range), var_type{}
+	var_id_and_type(identifier _id)
+		: id(std::move(_id)), var_type{}
 	{}
 };
 
@@ -310,6 +305,7 @@ struct decl_variable
 	};
 
 	lex::src_tokens src_tokens;
+	lex::token_range prototype_range;
 	var_id_and_type id_and_type;
 	arena_vector<decl_variable> tuple_decls;
 
@@ -321,10 +317,12 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,
+		lex::token_range _prototype_range,
 		var_id_and_type  _id_and_type,
 		expression       _init_expr
 	)
 		: src_tokens (_src_tokens),
+		  prototype_range(_prototype_range),
 		  id_and_type(std::move(_id_and_type)),
 		  tuple_decls{},
 		  init_expr  (std::move(_init_expr)),
@@ -334,9 +332,11 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
+		lex::token_range _prototype_range,
 		var_id_and_type _id_and_type
 	)
 		: src_tokens (_src_tokens),
+		  prototype_range(_prototype_range),
 		  id_and_type(std::move(_id_and_type)),
 		  tuple_decls{},
 		  init_expr  (),
@@ -346,10 +346,12 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
+		lex::token_range _prototype_range,
 		arena_vector<decl_variable> _tuple_decls,
 		expression      _init_expr
 	)
 		: src_tokens (_src_tokens),
+		  prototype_range(_prototype_range),
 		  id_and_type{},
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (std::move(_init_expr)),
@@ -359,9 +361,11 @@ struct decl_variable
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
+		lex::token_range _prototype_range,
 		arena_vector<decl_variable> _tuple_decls
 	)
 		: src_tokens (_src_tokens),
+		  prototype_range(_prototype_range),
 		  id_and_type{},
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (),
@@ -407,7 +411,7 @@ struct decl_variable
 	{ return this->id_and_type.id; }
 
 	lex::token_range get_prototype_range(void) const
-	{ return this->id_and_type.prototype_range; }
+	{ return this->prototype_range; }
 };
 
 inline bool is_generic_parameter(decl_variable const &var_decl)

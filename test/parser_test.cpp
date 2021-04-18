@@ -68,6 +68,7 @@ do {                                                                          \
     };                                                                        \
     auto decl = ast::make_decl_variable(                                      \
         lex::src_tokens{id, id, id + 1},                                      \
+        lex::token_range{},                                                   \
         ast::var_id_and_type(                                                 \
             ast::make_identifier(id),                                         \
             ast::make_unresolved_typespec(type_token_range)                   \

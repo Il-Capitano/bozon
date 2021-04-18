@@ -305,6 +305,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 		{
 			return ast::decl_variable(
 				{ prototype_begin, open_square, stream },
+				prototype,
 				std::move(tuple_decls)
 			);
 		}
@@ -316,6 +317,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			} while (inner_stream != inner_end && inner_stream->kind == lex::token::comma && (++inner_stream, true));
 			return ast::decl_variable(
 				{ prototype_begin, open_square, stream },
+				prototype,
 				std::move(tuple_decls)
 			);
 		}
@@ -343,9 +345,9 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 		{
 			return ast::decl_variable(
 				{ prototype_begin, id == end ? prototype_begin : id, stream },
+				prototype,
 				ast::var_id_and_type(
 					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-					prototype,
 					ast::make_unresolved_typespec({ stream, stream })
 				)
 			);
@@ -361,9 +363,9 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 
 		return ast::decl_variable(
 			{ prototype_begin, id, stream },
+			prototype,
 			ast::var_id_and_type(
 				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-				prototype,
 				ast::make_unresolved_typespec(type)
 			)
 		);
@@ -414,6 +416,45 @@ static void resolve_typespec(
 	}
 }
 
+static void apply_prototype(
+	lex::token_range prototype,
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	if (!var_decl.tuple_decls.empty())
+	{
+		for (auto &decl : var_decl.tuple_decls)
+		{
+			apply_prototype(prototype, decl, context);
+		}
+	}
+	else
+	{
+		ast::expression type = ast::make_constant_expression(
+			var_decl.src_tokens,
+			ast::expression_type_kind::type_name,
+			ast::make_typename_typespec(nullptr),
+			ast::constant_value(var_decl.get_type()),
+			ast::expr_t{}
+		);
+		for (auto op = prototype.end; op != prototype.begin;)
+		{
+			--op;
+			auto const src_tokens = lex::src_tokens{ op, op, var_decl.src_tokens.end };
+			type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
+		}
+		if (type.is_typename())
+		{
+			var_decl.get_type() = std::move(type.get_typename());
+		}
+		else
+		{
+			var_decl.state = ast::resolve_state::error;
+		}
+	}
+}
+
 static void resolve_variable_type(
 	ast::decl_variable &var_decl,
 	ctx::parse_context &context
@@ -427,6 +468,7 @@ static void resolve_variable_type(
 			bz_assert(decl.state < ast::resolve_state::symbol);
 			decl.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(decl, context);
+			apply_prototype(var_decl.get_prototype_range(), decl, context);
 			if (decl.state != ast::resolve_state::error)
 			{
 				decl.state = ast::resolve_state::symbol;
@@ -2584,6 +2626,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto const range_expr_src_tokens = range_expr.src_tokens;
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
+		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, std::move(range_var_type)),
 		std::move(range_expr)
 	);
@@ -2627,6 +2670,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto iter_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
+		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_begin_expr)
 	);
@@ -2663,6 +2707,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto end_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
+		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
 		std::move(range_end_expr)
 	);
