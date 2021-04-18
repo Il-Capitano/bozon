@@ -417,6 +417,25 @@ static val_ptr emit_copy_constructor(
 		result_address = context.create_alloca(get_llvm_type(expr_type, context));
 	}
 
+	if (!ast::is_non_trivial(expr_type))
+	{
+		if (auto const size = context.get_size(expr_val.get_type()); size > 16)
+		{
+			auto const memcpy_fn = context.get_function(context.get_builtin_function(ast::function_body::memcpy));
+			bz_assert(expr_val.kind == val_ptr::reference);
+			auto const dest_ptr = context.builder.CreatePointerCast(result_address, llvm::PointerType::get(context.get_uint8_t(), 0));
+			auto const src_ptr = context.builder.CreatePointerCast(expr_val.val, llvm::PointerType::get(context.get_uint8_t(), 0));
+			auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			context.builder.CreateCall(memcpy_fn, { dest_ptr, src_ptr, size_val, false_val });
+		}
+		else
+		{
+			context.builder.CreateStore(expr_val.get_value(context.builder), result_address);
+		}
+		return { val_ptr::reference, result_address };
+	}
+
 	if (expr_type.is<ast::ts_base_type>())
 	{
 		auto const info = expr_type.get<ast::ts_base_type>().info;
