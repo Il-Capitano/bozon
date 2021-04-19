@@ -2046,32 +2046,22 @@ void resolve_type_info_symbol(
 	context.set_current_file_info(original_file_info);
 }
 
-static void parse_type_info_destructor(
-	ast::type_info &info,
+static ast::statement parse_type_info_destructor(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
 {
 	bz_assert(stream->kind == lex::token::identifier && stream->value == "destructor");
-	if (info.destructor != nullptr)
-	{
-		context.report_error(
-			stream, bz::format("redefinition of destructor for type '{}'", ast::type_info::decode_symbol_name(info.symbol_name)),
-			{ context.make_note(info.destructor->src_tokens, "previously defined here") }
-		);
-	}
 	auto const begin_token = stream;
 	++stream; // 'destructor'
 
-	info.destructor = ast::make_ast_unique<ast::function_body>(
+	return ast::make_decl_function(
+		ast::identifier{},
 		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
 	);
-	info.destructor->flags |= ast::function_body::destructor;
-	info.destructor->constructor_or_destructor_of = &info;
 }
 
-static void parse_type_info_constructor(
-	ast::type_info &info,
+static ast::statement parse_type_info_constructor(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -2080,30 +2070,13 @@ static void parse_type_info_constructor(
 	auto const begin_token = stream;
 	++stream; // 'constructor'
 
-	info.constructors.push_back(ast::make_ast_unique<ast::function_body>(
+	return ast::make_decl_function(
+		ast::identifier{},
 		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
-	));
-	auto &body = *info.constructors.back();
-	body.flags |= ast::function_body::constructor;
-	body.constructor_or_destructor_of = &info;
-
-	if (body.return_type.is<ast::ts_unresolved>())
-	{
-		auto const tokens = body.return_type.get<ast::ts_unresolved>().tokens;
-		auto const constructor_of_type = ast::type_info::decode_symbol_name(info.symbol_name);
-		context.report_error(
-			{ tokens.begin, tokens.begin, tokens.end },
-			"a return type cannot be provided for a constructor",
-			{ context.make_note(
-				{ begin_token, begin_token, begin_token + 1 },
-				bz::format("in constructor for type '{}'", constructor_of_type)
-			) }
-		);
-	}
+	);
 }
 
-static void parse_type_info_member(
-	ast::type_info &info,
+static ast::statement parse_type_info_member(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -2135,40 +2108,41 @@ static void parse_type_info_member(
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	if (id->kind != lex::token::identifier)
 	{
-		info.state = ast::resolve_state::error;
+		return ast::statement();
 	}
 	bz_assert(stream != end);
 	context.assert_token(stream, lex::token::colon);
 	auto type = parse_expression(stream, end, context, no_assign);
+	context.assert_token(stream, lex::token::semi_colon);
 	consteval_try(type, context);
 	if (type.not_error() && !type.has_consteval_succeeded())
 	{
 		context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
-		info.state = ast::resolve_state::error;
+		return ast::statement();
 	}
 	else if (type.not_error() && !type.is_typename())
 	{
 		context.report_error(type, "expected a type");
-		info.state = ast::resolve_state::error;
+		return ast::statement();
 	}
 	else if (type.is_error())
 	{
-		info.state = ast::resolve_state::error;
+		return ast::statement();
 	}
 	else if (!context.is_instantiable(type.get_typename()))
 	{
 		context.report_error(type, "struct member type is not instantiable");
-		info.state = ast::resolve_state::error;
+		return ast::statement();
 	}
 	else
 	{
-		info.member_variables.push_back({
-			{ begin_token, id, stream },
-			id->value,
-			std::move(type.get_typename())
-		});
+		auto result = ast::make_decl_variable(
+			lex::src_tokens{ begin_token, id, stream },
+			lex::token_range{},
+			ast::var_id_and_type(ast::make_identifier(id), std::move(type.get_typename()))
+		);
+		return result;
 	}
-	context.assert_token(stream, lex::token::semi_colon);
 }
 
 static void resolve_type_info_impl(
@@ -2186,22 +2160,75 @@ static void resolve_type_info_impl(
 	}
 
 	info.state = ast::resolve_state::resolving_all;
-	auto stream = info.body_tokens.begin;
-	auto const end = info.body_tokens.end;
+	bz_assert(info.body.is<lex::token_range>());
+	auto [stream, end] = info.body.get<lex::token_range>();
+	info.body.emplace<bz::vector<ast::statement>>();
+	auto &info_body = info.body.get<bz::vector<ast::statement>>();
 
 	while (stream != end)
 	{
 		if (stream->kind == lex::token::identifier && stream->value == "destructor")
 		{
-			parse_type_info_destructor(info, stream, end, context);
+			auto result = parse_type_info_destructor(stream, end, context);
+			if (result.not_null())
+			{
+				bz_assert(result.is<ast::decl_function>());
+				auto &body = result.get<ast::decl_function>().body;
+				body.flags |= ast::function_body::destructor;
+				body.constructor_or_destructor_of = &info;
+
+				if (info.destructor != nullptr)
+				{
+					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
+					context.report_error(
+						stream, bz::format("redefinition of destructor for type '{}'", type_name),
+						{ context.make_note(info.destructor->src_tokens, "previously defined here") }
+					);
+				}
+
+				info.destructor = &body;
+				info_body.push_back(std::move(result));
+			}
 		}
 		else if (stream->kind == lex::token::identifier && stream->value == "constructor")
 		{
-			parse_type_info_constructor(info, stream, end, context);
+			auto result = parse_type_info_constructor(stream, end, context);
+			if (result.not_null())
+			{
+				bz_assert(result.is<ast::decl_function>());
+				auto &body = result.get<ast::decl_function>().body;
+				body.flags |= ast::function_body::constructor;
+				body.constructor_or_destructor_of = &info;
+				info.constructors.push_back(&body);
+
+				if (body.return_type.is<ast::ts_unresolved>())
+				{
+					auto const tokens = body.return_type.get<ast::ts_unresolved>().tokens;
+					auto const constructor_of_type = ast::type_info::decode_symbol_name(info.symbol_name);
+					context.report_error(
+						{ tokens.begin, tokens.begin, tokens.end },
+						"a return type cannot be provided for a constructor",
+						{ context.make_note(
+							body.src_tokens,
+							bz::format("in constructor for type '{}'", constructor_of_type)
+						) }
+					);
+				}
+
+				info_body.push_back(std::move(result));
+			}
 		}
 		else
 		{
-			parse_type_info_member(info, stream, end, context);
+			auto result = parse_type_info_member(stream, end, context);
+			if (result.not_null())
+			{
+				bz_assert(result.is<ast::decl_variable>());
+				auto &var_decl = result.get<ast::decl_variable>();
+				var_decl.flags |= ast::decl_variable::member;
+				info.member_variables.push_back(&var_decl);
+				info_body.push_back(std::move(result));
+			}
 		}
 	}
 

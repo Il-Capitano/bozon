@@ -376,8 +376,8 @@ bool needs_destructor(typespec_view ts) noexcept
 	{
 		auto const &info = *ts.get<ts_base_type>().info;
 		return info.destructor != nullptr
-			|| info.member_variables.is_any([](auto const &member) {
-				return needs_destructor(member.type);
+			|| info.member_variables.is_any([](auto const member) {
+				return needs_destructor(member->get_type());
 			});
 	}
 	else if (ts.is<ts_tuple>())
@@ -403,8 +403,8 @@ bool is_non_trivial(typespec_view ts) noexcept
 	{
 		auto const &info = *ts.get<ts_base_type>().info;
 		return info.destructor != nullptr || info.copy_constructor != nullptr
-			|| info.member_variables.is_any([](auto const &member) {
-				return is_non_trivial(member.type);
+			|| info.member_variables.is_any([](auto const member) {
+				return is_non_trivial(member->get_type());
 			});
 	}
 	else if (ts.is<ts_tuple>())

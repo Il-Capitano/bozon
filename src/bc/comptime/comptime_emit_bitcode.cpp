@@ -120,11 +120,11 @@ static void push_destructor_call(
 		for (auto const &[member, i] : info.member_variables.enumerate())
 		{
 			auto const member_ptr = context.builder.CreateStructGEP(ptr, i);
-			push_destructor_call(src_tokens, member_ptr, member.type, context);
+			push_destructor_call(src_tokens, member_ptr, member->get_type(), context);
 		}
 		if (info.destructor != nullptr)
 		{
-			context.push_destructor_call(src_tokens, info.destructor.get(), ptr);
+			context.push_destructor_call(src_tokens, info.destructor, ptr);
 		}
 	}
 	else if (type.is<ast::ts_tuple>())
@@ -164,8 +164,8 @@ static void emit_destructor_call(
 		auto const &info = *type.get<ast::ts_base_type>().info;
 		if (info.destructor != nullptr)
 		{
-			auto const dtor_func = context.get_function(info.destructor.get());
-			auto const error_count = emit_push_call(src_tokens, info.destructor.get(), context);
+			auto const dtor_func = context.get_function(info.destructor);
+			auto const error_count = emit_push_call(src_tokens, info.destructor, context);
 			context.builder.CreateCall(dtor_func, ptr);
 			emit_pop_call(error_count, context);
 		}
@@ -173,7 +173,7 @@ static void emit_destructor_call(
 		for (auto const &[member, i] : info.member_variables.reversed().enumerate())
 		{
 			auto const member_ptr = context.builder.CreateStructGEP(ptr, members_count - i - 1);
-			emit_destructor_call(src_tokens, member_ptr, member.type, context);
+			emit_destructor_call(src_tokens, member_ptr, member->get_type(), context);
 		}
 	}
 	else if (type.is<ast::ts_tuple>())
@@ -483,7 +483,7 @@ static val_ptr emit_copy_constructor(
 				emit_copy_constructor<abi>(
 					src_tokens,
 					{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
-					member.type,
+					member->get_type(),
 					context,
 					context.builder.CreateStructGEP(result_address, i)
 				);
@@ -588,7 +588,7 @@ static val_ptr emit_default_constructor(
 			{
 				emit_default_constructor<abi>(
 					src_tokens,
-					member.type,
+					member->get_type(),
 					context,
 					context.builder.CreateStructGEP(result_address, i)
 				);
@@ -661,7 +661,7 @@ static void emit_copy_assign(
 			{
 				emit_copy_assign<abi>(
 					src_tokens,
-					member.type,
+					member->get_type(),
 					{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
 					{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
 					context
@@ -740,7 +740,7 @@ static void emit_move_assign(
 			{
 				emit_move_assign<abi>(
 					src_tokens,
-					member.type,
+					member->get_type(),
 					{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
 					{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
 					context
@@ -3866,7 +3866,7 @@ static llvm::Constant *get_value(
 		auto const val_struct_type = static_cast<llvm::StructType *>(val_type);
 		auto const members = bz::zip(aggregate, info->member_variables)
 			.transform([&context](auto const pair) {
-				return get_value<abi>(pair.first, pair.second.type, nullptr, context);
+				return get_value<abi>(pair.first, pair.second->get_type(), nullptr, context);
 			})
 			.collect();
 		return llvm::ConstantStruct::get(val_struct_type, llvm::ArrayRef(members.data(), members.size()));
@@ -4881,7 +4881,7 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 	case ast::type_info::aggregate:
 	{
 		auto const types = info->member_variables
-			.transform([&](auto const &member) { return get_llvm_type(member.type, context); })
+			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
 			.collect();
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
 		break;

@@ -4345,7 +4345,7 @@ ast::expression parse_context::make_function_call_expression(
 		auto const possible_funcs = called_type.is<ast::ts_base_type>()
 			? called_type.get<ast::ts_base_type>().info->constructors
 				.transform([&](auto const &ptr) {
-					return possible_func_t{ get_function_call_match_level({}, *ptr, params, *this, src_tokens), {}, ptr.get() };
+					return possible_func_t{ get_function_call_match_level({}, *ptr, params, *this, src_tokens), {}, ptr };
 				})
 				.collect<ast::arena_vector>()
 			: ast::arena_vector<possible_func_t>{};
@@ -4618,15 +4618,15 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 		else if (
 			this->current_file_id != info->file_id
-			&& info->member_variables.is_any([](auto const &member) { return member.identifier.starts_with('_'); })
+			&& info->member_variables.is_any([](auto const member) { return member->get_unqualified_id_value().starts_with('_'); })
 		)
 		{
 			auto notes = info->member_variables
-				.filter([](auto const &member) { return member.identifier.starts_with('_'); })
-				.transform([this, type](auto const &member) {
+				.filter([](auto const &member) { return member->get_unqualified_id_value().starts_with('_'); })
+				.transform([this, type](auto const member) {
 					return this->make_note(
-						member.src_tokens,
-						bz::format("member '{}' in type '{}' is inaccessible in this context", member.identifier, type)
+						member->src_tokens,
+						bz::format("member '{}' in type '{}' is inaccessible in this context", member->get_unqualified_id_value(), type)
 					);
 				})
 				.collect();
@@ -4657,7 +4657,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			{
 				this->report_error(
 					src_tokens,
-					bz::format("missing initializer for field '{}' in type '{}'", info->member_variables.back().identifier, type),
+					bz::format("missing initializer for field '{}' in type '{}'", info->member_variables.back()->get_unqualified_id_value(), type),
 					{ this->make_note(
 						info->src_tokens,
 						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
@@ -4669,12 +4669,12 @@ ast::expression parse_context::make_subscript_operator_expression(
 			{
 				auto const message = [&]() {
 					bz::u8string result = "missing initializers for fields ";
-					result += bz::format("'{}'", info->member_variables[args_size].identifier);
+					result += bz::format("'{}'", info->member_variables[args_size]->get_unqualified_id_value());
 					for (size_t i = args_size + 1; i < member_size - 1; ++i)
 					{
-						result += bz::format(", '{}'", info->member_variables[i].identifier);
+						result += bz::format(", '{}'", info->member_variables[i]->get_unqualified_id_value());
 					}
-					result += bz::format(" and '{}' in type '{}'", info->member_variables.back().identifier, type);
+					result += bz::format(" and '{}' in type '{}'", info->member_variables.back()->get_unqualified_id_value(), type);
 					return result;
 				}();
 				this->report_error(
@@ -4692,7 +4692,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		bool is_good = true;
 		for (auto const [expr, member] : bz::zip(args, info->member_variables))
 		{
-			this->match_expression_to_type(expr, member.type);
+			this->match_expression_to_type(expr, member->get_type());
 			is_good = is_good && expr.not_error();
 		}
 		if (!is_good)
@@ -4830,7 +4830,7 @@ ast::expression parse_context::make_member_access_expression(
 		parse::resolve_type_info(*info, *this);
 		this->pop_resolve_queue();
 	}
-	auto const members = [&]() -> bz::array_view<ast::member_variable> {
+	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
 		if (base_t.is<ast::ts_base_type>())
 		{
 			return base_t.get<ast::ts_base_type>().info->member_variables.as_array_view();
@@ -4852,8 +4852,8 @@ ast::expression parse_context::make_member_access_expression(
 	}();
 	auto const it = std::find_if(
 		members.begin(), members.end(),
-		[member_value = member->value](auto const &member_variable) {
-			return member_value == member_variable.identifier;
+		[member_value = member->value](auto const member_variable) {
+			return member_value == member_variable->get_unqualified_id_value();
 		}
 	);
 	if (it == members.end())
@@ -4861,19 +4861,19 @@ ast::expression parse_context::make_member_access_expression(
 		this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, base_t));
 		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
-	else if (this->current_file_id != type_file_id && it->identifier.starts_with('_'))
+	else if (auto const member_ptr = *it; this->current_file_id != type_file_id && member_ptr->get_unqualified_id_value().starts_with('_'))
 	{
 		auto notes = [&]() -> bz::vector<source_highlight> {
 			if (do_verbose)
 			{
 				return {
-					this->make_note(it->src_tokens, "member is declared here"),
+					this->make_note(member_ptr->src_tokens, "member is declared here"),
 					this->make_note("members whose names start with '_' are only accessible in the same file")
 				};
 			}
 			else
 			{
-				return { this->make_note(it->src_tokens, "member is declared here") };
+				return { this->make_note(member_ptr->src_tokens, "member is declared here") };
 			}
 		}();
 		this->report_error(
@@ -4884,7 +4884,7 @@ ast::expression parse_context::make_member_access_expression(
 		// return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
 	auto const index = static_cast<uint32_t>(it - members.begin());
-	auto result_type = it->type;
+	auto result_type = (*it)->get_type();
 	if (
 		!result_type.is<ast::ts_const>()
 		&& !result_type.is<ast::ts_lvalue_reference>()

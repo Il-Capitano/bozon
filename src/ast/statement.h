@@ -302,6 +302,7 @@ struct decl_variable
 		module_export    = bit_at<2>,
 		external_linkage = bit_at<3>,
 		no_runtime_emit  = bit_at<4>,
+		member           = bit_at<5>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -392,6 +393,9 @@ struct decl_variable
 	bool is_no_runtime_emit(void) const noexcept
 	{ return (this->flags & no_runtime_emit) != 0; }
 
+	bool is_member(void) const noexcept
+	{ return (this->flags & member) != 0; }
+
 	typespec &get_type(void)
 	{ return this->id_and_type.var_type; }
 
@@ -409,6 +413,13 @@ struct decl_variable
 
 	identifier const &get_id(void) const
 	{ return this->id_and_type.id; }
+
+	bz::u8string_view get_unqualified_id_value(void) const
+	{
+		auto const &id = this->get_id();
+		bz_assert(!id.is_qualified && id.values.size() == 1);
+		return id.values.front();
+	}
 
 	lex::token_range get_prototype_range(void) const
 	{ return this->prototype_range; }
@@ -782,15 +793,10 @@ struct decl_type_alias
 	}
 };
 
-struct member_variable
-{
-	lex::src_tokens   src_tokens;
-	bz::u8string_view identifier;
-	typespec          type;
-};
-
 struct type_info
 {
+	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
+
 	enum : uint8_t
 	{
 		int8_, int16_, int32_, int64_,
@@ -803,16 +809,16 @@ struct type_info
 		forward_declaration,
 	};
 
-	lex::src_tokens  src_tokens;
-	uint8_t          kind;
-	resolve_state    state;
-	bool             is_export;
-	identifier       type_name;
-	uint32_t         file_id;
-	bz::u8string     symbol_name;
-	lex::token_range body_tokens;
+	lex::src_tokens src_tokens;
+	uint8_t         kind;
+	resolve_state   state;
+	bool            is_export;
+	identifier      type_name;
+	uint32_t        file_id;
+	bz::u8string    symbol_name;
+	body_t          body;
 
-	bz::vector<member_variable> member_variables;
+	bz::vector<ast::decl_variable *> member_variables;
 
 	using function_body_ptr = ast_unique_ptr<function_body>;
 	function_body_ptr default_op_assign;
@@ -827,9 +833,8 @@ struct type_info
 	function_body *default_constructor;
 	function_body *copy_constructor;
 
-	function_body_ptr destructor;
-
-	bz::vector<function_body_ptr> constructors;
+	function_body *destructor;
+	bz::vector<function_body *> constructors;
 
 //	function_body *default_constructor;
 //	function_body *copy_constructor;
@@ -844,7 +849,7 @@ struct type_info
 		  type_name(std::move(_type_name)),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  symbol_name(),
-		  body_tokens(range),
+		  body(range),
 		  member_variables{},
 		  default_op_assign(make_default_op_assign(src_tokens, *this)),
 		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
@@ -871,7 +876,7 @@ private:
 		  type_name(),
 		  file_id(0),
 		  symbol_name(bz::format("builtin.{}", name)),
-		  body_tokens{},
+		  body(bz::vector<statement>{}),
 		  member_variables{},
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),

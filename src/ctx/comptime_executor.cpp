@@ -530,7 +530,7 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			{
 				result.emplace<ast::constant_value::aggregate>(
 					bz::zip(value.AggregateVal, base_t.info->member_variables)
-					.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second.type); })
+					.transform([](auto const &pair) { return constant_value_from_generic_value(pair.first, pair.second->get_type()); })
 					.collect()
 				);
 				break;
@@ -607,9 +607,9 @@ static ast::constant_value constant_value_from_global_getters(
 				result.emplace<ast::constant_value::aggregate>();
 				auto &agg = result.get<ast::constant_value::aggregate>();
 				agg.reserve(base_t.info->member_variables.size());
-				for (auto const &[_, __, type] : base_t.info->member_variables)
+				for (auto const decl : base_t.info->member_variables)
 				{
-					agg.push_back(constant_value_from_global_getters(type, getter_it, context));
+					agg.push_back(constant_value_from_global_getters(decl->get_type(), getter_it, context));
 				}
 				return result;
 			}
