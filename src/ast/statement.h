@@ -441,20 +441,20 @@ struct function_body
 
 	enum : uint32_t
 	{
-		module_export            = bit_at< 0>,
-		main                     = bit_at< 1>,
-		external_linkage         = bit_at< 2>,
-		intrinsic                = bit_at< 3>,
-		generic                  = bit_at< 4>,
-		generic_specialization   = bit_at< 5>,
-		default_op_assign        = bit_at< 6>,
-		default_op_move_assign   = bit_at< 7>,
-		no_comptime_checking     = bit_at< 8>,
-		local                    = bit_at< 9>,
-		destructor               = bit_at<10>,
-		constructor              = bit_at<11>,
+		module_export               = bit_at< 0>,
+		main                        = bit_at< 1>,
+		external_linkage            = bit_at< 2>,
+		intrinsic                   = bit_at< 3>,
+		generic                     = bit_at< 4>,
+		generic_specialization      = bit_at< 5>,
+		default_op_assign           = bit_at< 6>,
+		default_op_move_assign      = bit_at< 7>,
+		no_comptime_checking        = bit_at< 8>,
+		local                       = bit_at< 9>,
+		destructor                  = bit_at<10>,
+		constructor                 = bit_at<11>,
 		default_default_constructor = bit_at<12>,
-		default_copy_constructor = bit_at<13>,
+		default_copy_constructor    = bit_at<13>,
 	};
 
 	enum : uint8_t

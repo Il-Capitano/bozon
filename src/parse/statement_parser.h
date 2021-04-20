@@ -17,6 +17,10 @@ ast::statement parse_local_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
+ast::statement parse_struct_body_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 ast::statement parse_local_statement_without_semi_colon(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -27,6 +31,10 @@ bz::vector<ast::statement> parse_global_statements(
 	ctx::parse_context &context
 );
 bz::vector<ast::statement> parse_local_statements(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+bz::vector<ast::statement> parse_struct_body_statements(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );

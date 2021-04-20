@@ -260,18 +260,28 @@ inline lex::token_pos search_token(uint32_t kind, lex::token_pos begin, lex::tok
 
 
 using parse_fn_t = ast::statement (*)(lex::token_pos &, lex::token_pos, ctx::parse_context &);
-enum statement_globalness
-{
-	only_global,
-	both,
-	only_local,
-};
 
 struct statement_parser
 {
+	enum : uint32_t
+	{
+		global      = bit_at<0>,
+		local       = bit_at<1>,
+		struct_body = bit_at<2>,
+	};
+
 	uint32_t   kind;
+	uint32_t   flags;
 	parse_fn_t parse_fn;
-	int        globalness;
+
+	constexpr bool is_global(void) const noexcept
+	{ return (this->flags & global) != 0; }
+
+	constexpr bool is_local(void) const noexcept
+	{ return (this->flags & local) != 0; }
+
+	constexpr bool is_struct_body(void) const noexcept
+	{ return (this->flags & struct_body) != 0; }
 };
 
 template<bool is_global>
@@ -356,54 +366,61 @@ ast::statement parse_decl_import(
 	ctx::parse_context &context
 );
 
+ast::statement default_parse_type_info_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
 
 constexpr bz::array statement_parsers = {
-	statement_parser{ lex::token::kw_static_assert, &parse_stmt_static_assert<true>,      only_global },
-	statement_parser{ lex::token::kw_let,           &parse_decl_variable<true>,           only_global },
-	statement_parser{ lex::token::kw_const,         &parse_decl_variable<true>,           only_global },
-	statement_parser{ lex::token::kw_consteval,     &parse_decl_variable<true>,           only_global },
-	statement_parser{ lex::token::kw_type,          &parse_decl_type_alias<true>,         only_global },
-	statement_parser{ lex::token::kw_function,      &parse_decl_function_or_alias<true>,  only_global },
-	statement_parser{ lex::token::kw_operator,      &parse_decl_operator<true>,           only_global },
-	statement_parser{ lex::token::kw_struct,        &parse_decl_struct<true>,             only_global },
-	statement_parser{ lex::token::at,               &parse_attribute_statement<true>,     only_global },
-	statement_parser{ lex::token::kw_export,        &parse_export_statement,              only_global },
-	statement_parser{ lex::token::kw_import,        &parse_decl_import,                   only_global },
+	statement_parser{ lex::token::kw_static_assert, statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert<true>,     },
+	statement_parser{ lex::token::kw_let,           statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
+	statement_parser{ lex::token::kw_const,         statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
+	statement_parser{ lex::token::kw_type,          statement_parser::global | statement_parser::struct_body, &parse_decl_type_alias<true>,        },
+	statement_parser{ lex::token::kw_function,      statement_parser::global, &parse_decl_function_or_alias<true>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::global, &parse_decl_operator<true>,          },
+	statement_parser{ lex::token::kw_struct,        statement_parser::global, &parse_decl_struct<true>,            },
+	statement_parser{ lex::token::at,               statement_parser::global, &parse_attribute_statement<true>,    },
+	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,             },
+	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                  },
 
-	statement_parser{ lex::token::kw_static_assert, &parse_stmt_static_assert<false>,     only_local  },
-	statement_parser{ lex::token::kw_let,           &parse_decl_variable<false>,          only_local  },
-	statement_parser{ lex::token::kw_const,         &parse_decl_variable<false>,          only_local  },
-	statement_parser{ lex::token::kw_consteval,     &parse_decl_variable<false>,          only_local  },
-	statement_parser{ lex::token::kw_type,          &parse_decl_type_alias<false>,        only_local  },
-	statement_parser{ lex::token::kw_function,      &parse_decl_function_or_alias<false>, only_local  },
-	statement_parser{ lex::token::kw_operator,      &parse_decl_operator<false>,          only_local  },
-	statement_parser{ lex::token::at,               &parse_attribute_statement<false>,    only_local  },
-	statement_parser{ lex::token::kw_while,         &parse_stmt_while,                    only_local  },
-	statement_parser{ lex::token::kw_for,           &parse_stmt_for_or_foreach,           only_local  },
-	statement_parser{ lex::token::kw_return,        &parse_stmt_return,                   only_local  },
-	statement_parser{ lex::token::semi_colon,       &parse_stmt_no_op,                    only_local  },
-	statement_parser{ lex::token::kw_export,        &parse_local_export_statement,        only_local  },
+	statement_parser{ lex::token::kw_static_assert, statement_parser::local, &parse_stmt_static_assert<false>,     },
+	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<false>,          },
+	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<false>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_decl_variable<false>,          },
+	statement_parser{ lex::token::kw_type,          statement_parser::local, &parse_decl_type_alias<false>,        },
+	statement_parser{ lex::token::kw_function,      statement_parser::local, &parse_decl_function_or_alias<false>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::local, &parse_decl_operator<false>,          },
+	statement_parser{ lex::token::at,               statement_parser::local, &parse_attribute_statement<false>,    },
+	statement_parser{ lex::token::kw_while,         statement_parser::local, &parse_stmt_while,                    },
+	statement_parser{ lex::token::kw_for,           statement_parser::local, &parse_stmt_for_or_foreach,           },
+	statement_parser{ lex::token::kw_return,        statement_parser::local, &parse_stmt_return,                   },
+	statement_parser{ lex::token::semi_colon,       statement_parser::local, &parse_stmt_no_op,                    },
+	statement_parser{ lex::token::kw_export,        statement_parser::local, &parse_local_export_statement,        },
 };
 
-constexpr auto global_statement_parsers = []() {
-	constexpr auto global_statement_kind_count = []() {
+template<uint32_t flag>
+constexpr auto generate_parsers(void)
+{
+	constexpr auto parser_count = []() {
 		size_t count = 0;
 		for (auto const p : statement_parsers)
 		{
-			if (p.globalness == only_global || p.globalness == both)
+			if ((p.flags & flag) != 0)
 			{
 				++count;
 			}
 		}
 		return count;
 	}();
-	using result_t = bz::array<statement_parser, global_statement_kind_count>;
+	static_assert(parser_count != 0, "no statement parser found");
+	using result_t = bz::array<statement_parser, parser_count>;
 	result_t result{};
 
 	size_t i = 0;
 	for (auto const p : statement_parsers)
 	{
-		if (p.globalness == only_global || p.globalness == both)
+		if ((p.flags & flag) != 0)
 		{
 			result[i] = p;
 			++i;
@@ -411,35 +428,11 @@ constexpr auto global_statement_parsers = []() {
 	}
 	bz_assert(i == result.size());
 	return result;
-}();
+}
 
-constexpr auto local_statement_parsers = []() {
-	constexpr auto local_statement_kind_count = []() {
-		size_t count = 0;
-		for (auto const p : statement_parsers)
-		{
-			if (p.globalness == only_local || p.globalness == both)
-			{
-				++count;
-			}
-		}
-		return count;
-	}();
-	using result_t = bz::array<statement_parser, local_statement_kind_count>;
-	result_t result{};
-
-	size_t i = 0;
-	for (auto const p : statement_parsers)
-	{
-		if (p.globalness == only_local || p.globalness == both)
-		{
-			result[i] = p;
-			++i;
-		}
-	}
-	bz_assert(i == result.size());
-	return result;
-}();
+constexpr auto global_statement_parsers      = generate_parsers<statement_parser::global>();
+constexpr auto local_statement_parsers       = generate_parsers<statement_parser::local>();
+constexpr auto struct_body_statement_parsers = generate_parsers<statement_parser::struct_body>();
 
 ast::expression parse_expression_without_semi_colon(
 	lex::token_pos &stream, lex::token_pos end,

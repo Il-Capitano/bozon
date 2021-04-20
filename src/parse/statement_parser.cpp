@@ -2055,10 +2055,13 @@ static ast::statement parse_type_info_destructor(
 	auto const begin_token = stream;
 	++stream; // 'destructor'
 
-	return ast::make_decl_function(
+	auto result = ast::make_decl_function(
 		ast::identifier{},
 		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
 	);
+	auto &body = result.get<ast::decl_function>().body;
+	body.flags |= ast::function_body::destructor;
+	return result;
 }
 
 static ast::statement parse_type_info_constructor(
@@ -2070,13 +2073,16 @@ static ast::statement parse_type_info_constructor(
 	auto const begin_token = stream;
 	++stream; // 'constructor'
 
-	return ast::make_decl_function(
+	auto result = ast::make_decl_function(
 		ast::identifier{},
 		parse_function_body({ begin_token, begin_token, begin_token + 1 }, {}, stream, end, context)
 	);
+	auto &body = result.get<ast::decl_function>().body;
+	body.flags |= ast::function_body::constructor;
+	return result;
 }
 
-static ast::statement parse_type_info_member(
+static ast::statement parse_type_info_member_variable(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -2141,7 +2147,29 @@ static ast::statement parse_type_info_member(
 			lex::token_range{},
 			ast::var_id_and_type(ast::make_identifier(id), std::move(type.get_typename()))
 		);
+		auto &var_decl = result.get<ast::decl_variable>();
+		var_decl.flags |= ast::decl_variable::member;
 		return result;
+	}
+}
+
+ast::statement default_parse_type_info_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	if (stream->kind == lex::token::identifier && stream->value == "destructor")
+	{
+		return parse_type_info_destructor(stream, end, context);
+	}
+	else if (stream->kind == lex::token::identifier && stream->value == "constructor")
+	{
+		return parse_type_info_constructor(stream, end, context);
+	}
+	else
+	{
+		return parse_type_info_member_variable(stream, end, context);
 	}
 }
 
@@ -2165,18 +2193,14 @@ static void resolve_type_info_impl(
 	info.body.emplace<bz::vector<ast::statement>>();
 	auto &info_body = info.body.get<bz::vector<ast::statement>>();
 
-	while (stream != end)
+	info_body = parse_struct_body_statements(stream, end, context);
+	for (auto &stmt : info_body)
 	{
-		if (stream->kind == lex::token::identifier && stream->value == "destructor")
+		if (stmt.is<ast::decl_function>())
 		{
-			auto result = parse_type_info_destructor(stream, end, context);
-			if (result.not_null())
+			auto &body = stmt.get<ast::decl_function>().body;
+			if (body.is_destructor())
 			{
-				bz_assert(result.is<ast::decl_function>());
-				auto &body = result.get<ast::decl_function>().body;
-				body.flags |= ast::function_body::destructor;
-				body.constructor_or_destructor_of = &info;
-
 				if (info.destructor != nullptr)
 				{
 					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
@@ -2186,21 +2210,11 @@ static void resolve_type_info_impl(
 					);
 				}
 
-				info.destructor = &body;
-				info_body.push_back(std::move(result));
-			}
-		}
-		else if (stream->kind == lex::token::identifier && stream->value == "constructor")
-		{
-			auto result = parse_type_info_constructor(stream, end, context);
-			if (result.not_null())
-			{
-				bz_assert(result.is<ast::decl_function>());
-				auto &body = result.get<ast::decl_function>().body;
-				body.flags |= ast::function_body::constructor;
 				body.constructor_or_destructor_of = &info;
-				info.constructors.push_back(&body);
-
+				info.destructor = &body;
+			}
+			else if (body.is_constructor())
+			{
 				if (body.return_type.is<ast::ts_unresolved>())
 				{
 					auto const tokens = body.return_type.get<ast::ts_unresolved>().tokens;
@@ -2215,21 +2229,23 @@ static void resolve_type_info_impl(
 					);
 				}
 
-				info_body.push_back(std::move(result));
+				body.constructor_or_destructor_of = &info;
+				info.constructors.push_back(&body);
 			}
 		}
-		else
+		else if (stmt.is<ast::decl_variable>())
 		{
-			auto result = parse_type_info_member(stream, end, context);
-			if (result.not_null())
+			auto &var_decl = stmt.get<ast::decl_variable>();
+			if (var_decl.is_member())
 			{
-				bz_assert(result.is<ast::decl_variable>());
-				auto &var_decl = result.get<ast::decl_variable>();
-				var_decl.flags |= ast::decl_variable::member;
 				info.member_variables.push_back(&var_decl);
-				info_body.push_back(std::move(result));
 			}
 		}
+	}
+
+	for (auto const member : info.member_variables)
+	{
+		resolve_variable(*member, context);
 	}
 
 	if (info.state == ast::resolve_state::error)
@@ -2241,18 +2257,9 @@ static void resolve_type_info_impl(
 		info.state = ast::resolve_state::all;
 	}
 
-	if (info.destructor != nullptr)
+	for (auto &stmt : info_body)
 	{
-		context.add_to_resolve_queue(info.src_tokens, *info.destructor);
-		resolve_function({}, *info.destructor, context);
-		context.pop_resolve_queue();
-	}
-
-	for (auto &ctor : info.constructors)
-	{
-		context.add_to_resolve_queue(info.src_tokens, *ctor);
-		resolve_function({}, *ctor, context);
-		context.pop_resolve_queue();
+		resolve_global_statement(stmt, context);
 	}
 }
 
@@ -2973,6 +2980,25 @@ ast::statement parse_local_statement(
 	}
 }
 
+ast::statement parse_struct_body_statement(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	constexpr auto parse_fn = create_parse_fn<
+		lex::token_pos, ctx::parse_context,
+		struct_body_statement_parsers, &default_parse_type_info_statement
+	>();
+	if (stream == end)
+	{
+		return {};
+	}
+	else
+	{
+		return parse_fn(stream, end, context);
+	}
+}
+
 static constexpr auto parse_local_statement_without_semi_colon_default_parser = +[](
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -3032,6 +3058,23 @@ bz::vector<ast::statement> parse_local_statements(
 	while (stream != end)
 	{
 		result.emplace_back(parse_local_statement(stream, end, context));
+	}
+	return result;
+}
+
+bz::vector<ast::statement> parse_struct_body_statements(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz::vector<ast::statement> result = {};
+	while (stream != end)
+	{
+		result.emplace_back(parse_struct_body_statement(stream, end, context));
+		if (result.back().is_null())
+		{
+			result.pop_back();
+		}
 	}
 	return result;
 }
@@ -3664,7 +3707,7 @@ void resolve_global_statement(
 			context.add_to_resolve_queue({}, var_decl);
 			resolve_variable(var_decl, context);
 			context.pop_resolve_queue();
-			if (var_decl.state != ast::resolve_state::error)
+			if (!var_decl.is_member() && var_decl.state != ast::resolve_state::error && var_decl.init_expr.not_null())
 			{
 				consteval_try(var_decl.init_expr, context);
 				if (!var_decl.init_expr.has_consteval_succeeded())
