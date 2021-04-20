@@ -103,14 +103,21 @@ constexpr auto create_parse_fn() -> decltype(default_parser)
 	static_assert(bz::meta::is_same<args_t, bz::meta::type_pack<Stream &, Stream, Context &>>);
 	return [&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 		return +[](Stream &stream, Stream end, Context &context) -> ret_t {
+			alignas(ret_t) char buffer[sizeof(ret_t)];
+			ret_t *result_ptr = nullptr;
 			auto const kind = stream->kind;
-			auto parse_fn = default_parser;
 			((
 				kind == parsers[Ns].kind
-				? (void)(parse_fn = parsers[Ns].parse_fn)
+				? (void)(result_ptr = new(buffer) ret_t(parsers[Ns].parse_fn(stream, end, context)))
 				: (void)0
 			), ...);
-			return parse_fn(stream, end, context);
+			if (result_ptr == nullptr)
+			{
+				result_ptr = new(buffer) ret_t(default_parser(stream, end, context));
+			}
+			auto result = std::move(*result_ptr);
+			result_ptr->~ret_t();
+			return result;
 		};
 	}(bz::meta::make_index_sequence<parsers.size()>{});
 }
