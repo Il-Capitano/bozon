@@ -708,7 +708,7 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 
 		add_builtin(29, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type),
 		add_builtin(30, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type),
-		add_builtin(31, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type, bool_type),
+		add_builtin(31, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type),
 
 		add_builtin(32, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type),
 		add_builtin(33, function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type),
