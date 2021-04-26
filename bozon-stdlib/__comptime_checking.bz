@@ -1,11 +1,70 @@
 import ::std::string;
 
-struct src_tokens_t
+/*
+@no_comptime_checking
+function print_ascii_char(c: char)
 {
-	.begin: uint64;
-	.pivot: uint64;
-	.end:   uint64;
+	const c_int_val = c as uint32 as uint8;
+	std::print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
 }
+
+@no_comptime_checking
+function print_uint_impl(n: uint64, base: consteval uint64)
+{
+	if (n < 10u)
+	{
+		print_ascii_char('0' + n);
+	}
+	else if (n < base)
+	{
+		print_ascii_char('a' + n - 10);
+	}
+	else
+	{
+		print_uint_impl(n / base, base);
+		const mod = n % base;
+		const c = if (mod < 10u) { '0' + mod } else { 'a' + mod - 10 };
+		print_ascii_char(c);
+	}
+}
+
+@no_comptime_checking
+function print_uint(n: uint64, base: consteval uint64)
+{
+	if (n == 0u)
+	{
+		std::print("0");
+	}
+	else
+	{
+		print_uint_impl(n, base);
+	}
+}
+
+@no_comptime_checking
+export function print(n: uint64)
+{
+	print_uint(n, 10u);
+}
+
+@no_comptime_checking
+export function print(p: *const void)
+{
+	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
+}
+
+@no_comptime_checking
+export function println(n: uint64)
+{
+	print_uint(n, 10u), std::println("");
+}
+
+@no_comptime_checking
+export function println(p: *const void)
+{
+	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), std::println("");
+}
+*/
 
 struct call_stack_t
 {
@@ -25,6 +84,13 @@ struct call_stack_t
 		self.data_end   = null;
 		self.alloc_end  = null;
 	}
+}
+
+struct src_tokens_t
+{
+	.begin: uint64;
+	.pivot: uint64;
+	.end:   uint64;
 }
 
 struct error_t
