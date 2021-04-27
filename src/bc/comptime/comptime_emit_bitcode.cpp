@@ -5252,7 +5252,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	bz_assert(expr.final_expr.not_null());
 	auto const result_type = get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
 	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
-	auto const return_result_as_global = result_type->isAggregateType() || result_type->isStructTy() || result_type->isArrayTy();
+	auto const return_result_as_global = result_type->isAggregateType();
 
 	auto const func_t = llvm::FunctionType::get(return_result_as_global ? void_type : result_type, false);
 	std::pair<llvm::Function *, bz::vector<llvm::Function *>> result;
