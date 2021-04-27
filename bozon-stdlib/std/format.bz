@@ -1,0 +1,274 @@
+import string;
+import print;
+
+export struct format_buffer
+{
+	._str: string;
+}
+
+export function write_into(buffer: &format_buffer, s: str)
+{
+	buffer._str ..= s;
+}
+
+export function write_into(buffer: &format_buffer, c: char)
+{
+	buffer._str ..= c;
+}
+
+function count_args_in_str(fmt_str: str) -> usize
+{
+	let it = __builtin_str_begin_ptr(fmt_str);
+	const end = __builtin_str_end_ptr(fmt_str);
+
+	let result = 0uz;
+	for (; it != end; ++it)
+	{
+		if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		{
+			++result;
+		}
+	}
+	return result;
+}
+
+function get_slices(fmt_str: str, out: [: str])
+{
+	let it = __builtin_str_begin_ptr(fmt_str);
+	let prev_begin = it;
+	const end = __builtin_str_end_ptr(fmt_str);
+	let index = 0uz;
+
+	for (; it != end; ++it)
+	{
+		if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		{
+			out[index] = __builtin_str_from_ptrs(prev_begin, it);
+			index += 1u;
+			prev_begin = it + 2;
+			// other increment will happen at the next start of the loop
+			it += 1;
+		}
+	}
+	out[index] = __builtin_str_from_ptrs(prev_begin, it);
+}
+
+function get_slices(fmt_str: str, args_count: consteval usize) -> [args_count + 1u: str]
+{
+	let result: [args_count + 1u: str];
+	get_slices(fmt_str, result);
+	return result;
+}
+
+function get_indicies(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
+{
+	let result: [(if (end - start == 0u) { 1u } else { end - start }): usize];
+	for (let [i, counter] = [ 0uz, start]; counter != end; ++i, ++counter)
+	{
+		result[i] = counter;
+	}
+	return result;
+}
+
+function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], slices: [: const str], args: &const auto)
+{
+	consteval index = index[0];
+	buffer.write_into(slices[index]);
+	args[index].format_to(buffer);
+}
+
+function format_into_impl(buffer: &format_buffer, indicies: consteval auto, slices: [: const str], args: &const auto)
+{
+	consteval index = indicies[0];
+	buffer.write_into(slices[index]);
+	args[index].format_to(buffer);
+	consteval rest_indicies = get_indicies(indicies[1], indicies[indicies.size() - 1u] + 1u);
+	buffer.format_into_impl(rest_indicies, slices, args);
+}
+
+export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: auto)
+{
+	consteval args_count = count_args_in_str(fmt_str);
+	static_assert(args_count > 0u, "at least one argument must be provided to format_into");
+	consteval indicies = get_indicies(0uz, args_count);
+	const slices = get_slices(fmt_str, args_count);
+	buffer.format_into_impl(indicies, slices, args);
+	buffer.write_into(slices[args_count]);
+}
+
+export function format(fmt_str: consteval str, args: auto) -> string
+{
+	let buf = format_buffer[ string() ];
+	buf.format_into(fmt_str, args);
+	return buf._str;
+}
+
+export function printf(fmt_str: consteval str, args: auto)
+{
+	let buf = format_buffer[ string() ];
+	buf.format_into(fmt_str, args);
+	print(buf._str.as_str());
+}
+
+
+function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval uint64) -> *uint8
+{
+	if (val == 0u)
+	{
+		--it;
+		*it = '0' as uint32 as uint8;
+		return it;
+	}
+	while (val != 0u)
+	{
+		const digit_val = val % base;
+		val /= base;
+		if (digit_val < 10u)
+		{
+			--it;
+			*it = ('0' + digit_val) as uint32 as uint8;
+		}
+		else
+		{
+			--it;
+			*it = ('a' + digit_val - 10u) as uint32 as uint8;
+		}
+	}
+	return it;
+}
+
+consteval max_uint_string_length = {
+	let uint64_max = ~0u64;
+	let result = 0uz;
+	while (uint64_max != 0u)
+	{
+		uint64_max /= 10u;
+		++result;
+	}
+	result
+};
+
+function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
+{
+	let result: [[max_uint_string_length: uint8], uint32];
+	if (n < 10u)
+	{
+		result[0, max_uint_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[1] = 1u;
+	}
+	else
+	{
+		let it = result[0].end();
+		while (n != 0u)
+		{
+			const digit = n % 10u;
+			n /= 10u;
+			--it;
+			*it = ('0' + digit) as uint32 as uint8;
+		}
+		result[1] = (result[0].end() - it) as uint32;
+	}
+	return result;
+}
+
+consteval max_int_string_length = {
+	// this is actually -int64_min, but its absolute value is larger than int64_max, so we use this instead
+	let int64_max = 1u64 << 63u;
+	let result = 0uz;
+	while (int64_max != 0u)
+	{
+		int64_max /= 10u;
+		++result;
+	}
+	result + 1u
+};
+
+function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
+{
+	let n = abs_val;
+	let result: [[max_int_string_length: uint8], uint32];
+	if (n < 10u)
+	{
+		result[0, max_uint_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[1] = 1u;
+	}
+	else
+	{
+		let it = result[0].end();
+		while (n != 0u)
+		{
+			const digit = n % 10u;
+			n /= 10u;
+			--it;
+			*it = ('0' + digit) as uint32 as uint8;
+		}
+		result[1] = (result[0].end() - it) as uint32;
+	}
+	if (is_negative)
+	{
+		*(result[0].end() - result[1] - 1u) = '-' as uint32 as uint8;
+		++result[1];
+	}
+	return result;
+}
+
+function format_to(s: str, buffer: &format_buffer)
+{
+	buffer.write_into(s);
+}
+
+function format_to(c: char, buffer: &format_buffer)
+{
+	buffer.write_into(c);
+}
+
+function format_to(n: uint64, buffer: &format_buffer)
+{
+	const [result_buffer, size] = get_uint_as_string(n);
+	const result_str = __builtin_str_from_ptrs(result_buffer.end() - size, result_buffer.end());
+	buffer.write_into(result_str);
+}
+
+function format_to(n: int64, buffer: &format_buffer)
+{
+	// -n as uint64 works for int64_min
+	const [result_buffer, size] = get_int_as_string(if (n < 0) { -n as uint64 } else { n as uint64 }, n < 0);
+	const result_str = __builtin_str_from_ptrs(result_buffer.end() - size, result_buffer.end());
+	buffer.write_into(result_str);
+}
+
+function format_to(p: *const void, buffer: &format_buffer)
+{
+	const val = __builtin_pointer_to_int(p);
+	static_assert(typeof val == const uint64);
+	let result_buffer: [2 + 16: uint8];
+	let it = print_uint_to_reverse_buffer(result_buffer.end(), val, 16u);
+	--it;
+	*it = 'x' as uint32 as uint8;
+	--it;
+	*it = '0' as uint32 as uint8;
+	const result_str = __builtin_str_from_ptrs(it, result_buffer.end());
+	buffer.write_into(result_str);
+}
+
+function format_to(b: bool, buffer: &format_buffer)
+{
+	if (b)
+	{
+		buffer.write_into("true");
+	}
+	else
+	{
+		buffer.write_into("false");
+	}
+}
+
+function format_to(x: float32, buffer: &format_buffer)
+{
+	buffer.write_into("<float32>");
+}
+
+function format_to(x: float64, buffer: &format_buffer)
+{
+	buffer.write_into("<float64>");
+}
