@@ -33,6 +33,7 @@ static llvm::Value *get_constant_zero(
 	ctx::bitcode_context &context
 )
 {
+
 	switch (type.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
@@ -868,8 +869,12 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const loaded_val = context.builder.CreateLoad(val);
-			context.builder.CreateStore(loaded_val, result_address);
+			emit_copy_constructor<abi>(
+				{ val_ptr::reference, val },
+				ast::remove_const_or_consteval(unary_op.expr.get_expr_type_and_kind().first),
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}
@@ -2830,8 +2835,12 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const loaded_val = context.builder.CreateLoad(result_ptr);
-			context.builder.CreateStore(loaded_val, result_address);
+			emit_copy_constructor<abi>(
+				{ val_ptr::reference, result_ptr },
+				base_type.get<ast::ts_array>().elem_type,
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}
@@ -2854,8 +2863,12 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const loaded_val = context.builder.CreateLoad(result_ptr);
-			context.builder.CreateStore(loaded_val, result_address);
+			emit_copy_constructor<abi>(
+				{ val_ptr::reference, result_ptr },
+				base_type.get<ast::ts_array_slice>().elem_type,
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}
@@ -2886,8 +2899,12 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const loaded_val = context.builder.CreateLoad(result_ptr);
-			context.builder.CreateStore(loaded_val, result_address);
+			emit_copy_constructor<abi>(
+				{ val_ptr::reference, result_ptr },
+				ast::remove_lvalue_reference(base_type.get<ast::ts_tuple>().types[index_int_value]),
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}
@@ -3103,8 +3120,14 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const val = context.builder.CreateLoad(ptr);
-			context.builder.CreateStore(val, result_address);
+			auto const base_type = ast::remove_const_or_consteval(member_access.base.get_expr_type_and_kind().first);
+			bz_assert(base_type.is<ast::ts_base_type>());
+			emit_copy_constructor<abi>(
+				{ val_ptr::reference, ptr },
+				base_type.get<ast::ts_base_type>().info->member_variables[member_access.index]->get_type(),
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}

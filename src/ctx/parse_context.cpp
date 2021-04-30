@@ -5163,7 +5163,7 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 ast::constant_value parse_context::execute_function(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	bz::array_view<ast::constant_value const> params
+	bz::array_view<ast::expression const> params
 )
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;

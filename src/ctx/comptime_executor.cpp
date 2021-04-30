@@ -21,6 +21,12 @@
 namespace ctx
 {
 
+static int get_unique_id()
+{
+	static int i = 0;
+	return i++;
+}
+
 static bz::vector<comptime_function> create_empty_comptime_functions(void)
 {
 	bz::vector<comptime_function> result;
@@ -225,7 +231,9 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t alig
 llvm::Value *comptime_executor_context::create_string(bz::u8string_view str)
 {
 	auto const str_ref = llvm::StringRef(str.data(), str.size());
-	return this->builder.CreateGlobalString(str_ref, ".str", 0, &this->get_module());
+	auto const symbol_name = bz::format(".str.{}", get_unique_id());
+	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
+	return this->builder.CreateGlobalString(str_ref, symbol_name_ref, 0, &this->get_module());
 }
 
 llvm::Value *comptime_executor_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_type)
@@ -653,7 +661,7 @@ static ast::constant_value constant_value_from_global_getters(
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	bz::array_view<ast::constant_value const> params
+	bz::array_view<ast::expression const> params
 )
 {
 	bz_assert(this->destructor_calls.empty());
@@ -777,6 +785,7 @@ struct str_t
 
 static void bozon_print_stdout(str_t s)
 {
+	bz::log("got string: {}, {}; size {}\n", s.begin, s.end, s.end - s.begin);
 	fwrite(s.begin, 1, s.end - s.begin, stdout);
 }
 
@@ -827,7 +836,7 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
-	auto const is_native = target == "" || target == "native";
+	auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
 	builder
 		.setEngineKind(use_interpreter || !is_native ? llvm::EngineKind::Interpreter : llvm::EngineKind::Either)
 		.setErrorStr(&err)

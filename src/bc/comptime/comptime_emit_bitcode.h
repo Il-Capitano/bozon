@@ -20,7 +20,7 @@ void add_builtin_functions(ctx::comptime_executor_context &context);
 
 std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_comptime_execution(
 	ast::function_body *body,
-	bz::array_view<ast::constant_value const> params,
+	bz::array_view<ast::expression const> params,
 	ctx::comptime_executor_context &context
 );
 

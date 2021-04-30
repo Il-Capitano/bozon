@@ -106,6 +106,19 @@ do {                                                                            
 		}
 		factorial(10u)
 	})", ast::constant_value::uint, 3628800);
+	x(R"({
+		function foo() -> [10: int32]
+		{
+			let result: [10: int32];
+			for (let i = 0; i < 10; ++i)
+			{
+				result[i] = i;
+			}
+			return result;
+		}
+		consteval vals = foo();
+		vals[3]
+	})", ast::constant_value::sint, 3);
 
 	x_fail(R"asdf({
 		function foo() -> int32
@@ -142,6 +155,16 @@ test_result consteval_test(void)
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
+	}
+
+	if (global_ctx.has_errors())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (global_ctx.has_errors_or_warnings())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
 	}
 
 	test_fn(consteval_try_test, global_ctx);
