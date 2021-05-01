@@ -5064,10 +5064,24 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		symbol_name_ref,
 		&context.get_module()
 	);
+	context.current_function = { nullptr, result.first };
+	auto const alloca_bb = context.add_basic_block("alloca");
+	context.alloca_bb = alloca_bb;
 
-	auto const bb = llvm::BasicBlock::Create(context.get_llvm_context(), "entry", result.first);
-	context.alloca_bb = bb;
-	context.builder.SetInsertPoint(bb);
+	auto const error_bb = context.add_basic_block("error");
+	context.error_bb = error_bb;
+	context.builder.SetInsertPoint(error_bb);
+	if (result.first->getReturnType()->isVoidTy())
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
+	}
+
+	auto const entry_bb = context.add_basic_block("entry");
+	context.builder.SetInsertPoint(entry_bb);
 
 	auto const result_kind = abi::get_pass_kind<abi>(result_type, context.get_data_layout(), context.get_llvm_context());
 
@@ -5219,6 +5233,15 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	}
 
 	context.pop_expression_scope();
+
+	context.builder.SetInsertPoint(alloca_bb);
+	context.builder.CreateBr(entry_bb);
+
+	context.current_function = {};
+	context.alloca_bb = nullptr;
+	context.error_bb = nullptr;
+	context.output_pointer = nullptr;
+
 	return result;
 }
 
