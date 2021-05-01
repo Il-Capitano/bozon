@@ -84,6 +84,7 @@ inline bool do_profile = false;
 inline bool debug_ir_output = false;
 inline bool debug_comptime_ir_output = false;
 inline bool use_interpreter = false;
+inline bool force_use_jit = false;
 inline bool do_verbose = false;
 
 inline bz::u8string target;

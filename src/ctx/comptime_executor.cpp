@@ -837,8 +837,10 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
 	auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
+	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT
+		: (use_interpreter || !is_native ? llvm::EngineKind::Interpreter : llvm::EngineKind::Either);
 	builder
-		.setEngineKind(use_interpreter || !is_native ? llvm::EngineKind::Interpreter : llvm::EngineKind::Either)
+		.setEngineKind(engine_kind)
 		.setErrorStr(&err)
 		.setOptLevel(llvm::CodeGenOpt::None);
 	auto const result = builder.create();
