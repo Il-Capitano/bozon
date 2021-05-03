@@ -3122,8 +3122,8 @@ static void match_typename_to_type_impl(
 	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
-		bz_assert(dest_container.is<ast::ts_array_slice>());
-		auto &inner_container = dest_container.nodes.front().get<ast::ts_array_slice>().elem_type;
+		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
+		auto &inner_container = dest_container.nodes.back().get<ast::ts_array_slice>().elem_type;
 		auto const inner_dest = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		if (expr_type_without_const.is<ast::ts_array_slice>())
 		{
@@ -3366,9 +3366,47 @@ static void match_expression_to_type_impl(
 				return;
 			}
 		}
+		else if (dest_without_const.is<ast::ts_array>())
+		{
+			bz_assert(dest_container.nodes.back().is<ast::ts_array>());
+			auto &dest_array_type = dest_container.nodes.back().get<ast::ts_array>().elem_type;
+			auto const array_size = dest_container.nodes.back().get<ast::ts_array>().size;
+			auto &expr_tuple_elems = expr.get_tuple().elems;
+			if (array_size == expr_tuple_elems.size())
+			{
+				bool error = false;
+				for (auto &expr : expr_tuple_elems)
+				{
+					match_expression_to_type_impl(expr, dest_array_type, dest_array_type, context);
+					if (expr.is_error())
+					{
+						error = true;
+					}
+				}
+				if (error)
+				{
+					if (!ast::is_complete(dest_container))
+					{
+						dest_container.clear();
+					}
+					expr.to_error();
+					return;
+				}
+				else
+				{
+					expr.set_type(dest_without_const);
+					return;
+				}
+			}
+		}
 		else
 		{
 			context.report_error(expr.src_tokens, bz::format("unable to match tuple expression to type '{}'", dest_container));
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			expr.to_error();
 			return;
 		}
 	}
