@@ -3312,6 +3312,16 @@ ast::expression make_builtin_cast(
 				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
+		else if (expr_kind == ast::type_info::bool_ && is_integer_kind(dest_kind))
+		{
+			ast::typespec dest_t_copy = dest_t;
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue,
+				std::move(dest_t_copy),
+				ast::make_expr_cast(std::move(expr), std::move(dest_type))
+			);
+		}
 
 		context.report_error(
 			src_tokens,

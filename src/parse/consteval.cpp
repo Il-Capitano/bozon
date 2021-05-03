@@ -1791,6 +1791,8 @@ static ast::constant_value evaluate_cast(
 		case ast::constant_value::u8char:
 			// no overflow possible in constant expressions
 			return ast::constant_value(static_cast<int64_t>(value.get<ast::constant_value::u8char>()));
+		case ast::constant_value::boolean:
+			return ast::constant_value(static_cast<int64_t>(value.get<ast::constant_value::boolean>()));
 		default:
 			bz_unreachable;
 		}
@@ -1864,6 +1866,8 @@ static ast::constant_value evaluate_cast(
 		case ast::constant_value::u8char:
 			// no overflow possible in constant expressions
 			return ast::constant_value(static_cast<uint64_t>(value.get<ast::constant_value::u8char>()));
+		case ast::constant_value::boolean:
+			return ast::constant_value(static_cast<uint64_t>(value.get<ast::constant_value::boolean>()));
 		default:
 			bz_unreachable;
 		}
@@ -1961,7 +1965,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// literals are always constant expressions
 			bz_unreachable;
 		},
-		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
+		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &elem : tuple.elems)
 			{
@@ -1974,8 +1978,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			result.emplace<ast::constant_value::tuple>();
-			auto &elem_values = result.get<ast::constant_value::tuple>();
+			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+			auto &elem_values = expr_type.is<ast::ts_array>()
+				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
+				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
 			for (auto &elem : tuple.elems)
 			{

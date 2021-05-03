@@ -2919,7 +2919,7 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type_and_kind().first);
-	auto &dest_t = cast.type;
+	auto const dest_t = ast::remove_const_or_consteval(cast.type);
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
 	{
@@ -2977,9 +2977,22 @@ static val_ptr emit_bitcode(
 		}
 		else if (ctx::is_integer_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind))
 		{
-			auto const res = ctx::is_signed_integer_kind(dest_kind)
+			auto const res = ctx::is_signed_integer_kind(expr_kind)
 				? context.builder.CreateSIToFP(expr, llvm_dest_t, "cast_tmp")
 				: context.builder.CreateUIToFP(expr, llvm_dest_t, "cast_tmp");
+			if (result_address == nullptr)
+			{
+				return { val_ptr::value, res };
+			}
+			else
+			{
+				context.builder.CreateStore(res, result_address);
+				return { val_ptr::reference, result_address };
+			}
+		}
+		else if (expr_kind == ast::type_info::bool_ && ctx::is_integer_kind(dest_kind))
+		{
+			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, false, "cast_tmp");
 			if (result_address == nullptr)
 			{
 				return { val_ptr::value, res };
