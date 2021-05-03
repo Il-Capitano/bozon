@@ -137,7 +137,8 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 	return it;
 }
 
-consteval max_uint_string_length = {
+consteval max_uint_string_length = 20uz;
+static_assert(max_uint_string_length == {
 	let uint64_max = ~0u64;
 	let result = 0uz;
 	while (uint64_max != 0u)
@@ -146,7 +147,7 @@ consteval max_uint_string_length = {
 		++result;
 	}
 	result
-};
+});
 
 function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
 {
@@ -171,7 +172,8 @@ function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint
 	return result;
 }
 
-consteval max_int_string_length = {
+consteval max_int_string_length = 20uz;
+static_assert(max_int_string_length == {
 	// this is actually -int64_min, but its absolute value is larger than int64_max, so we use this instead
 	let int64_max = 1u64 << 63u;
 	let result = 0uz;
@@ -181,7 +183,7 @@ consteval max_int_string_length = {
 		++result;
 	}
 	result + 1u
-};
+});
 
 function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
 {
@@ -265,10 +267,12 @@ function format_to(b: bool, buffer: &format_buffer)
 
 function format_to(x: float32, buffer: &format_buffer)
 {
+	x as float32;
 	buffer.write_into("<float32>");
 }
 
 function format_to(x: float64, buffer: &format_buffer)
 {
+	x as float64;
 	buffer.write_into("<float64>");
 }

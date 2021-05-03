@@ -822,7 +822,7 @@ static ast::expression get_builtin_unary_sizeof(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::make_base_type_typespec({}, context.get_usize_type_info()),
 			ast::constant_value(size),
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);
@@ -845,7 +845,7 @@ static ast::expression get_builtin_unary_sizeof(
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::make_base_type_typespec({}, context.get_usize_type_info()),
 			ast::constant_value(size),
 			ast::make_expr_unary_op(op_kind, std::move(expr))
 		);

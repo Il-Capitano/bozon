@@ -84,6 +84,20 @@ ast::type_info *global_context::get_builtin_type_info(uint32_t kind)
 	return &this->_builtin_type_infos[kind];
 }
 
+ast::type_info *global_context::get_usize_type_info(void) const
+{
+	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 1].name == "usize");
+	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 1].type.is<ast::ts_base_type>());
+	return this->_builtin_types[ast::type_info::null_t_ + 1].type.get<ast::ts_base_type>().info;
+}
+
+ast::type_info *global_context::get_isize_type_info(void) const
+{
+	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 2].name == "isize");
+	bz_assert(this->_builtin_types[ast::type_info::null_t_ + 2].type.is<ast::ts_base_type>());
+	return this->_builtin_types[ast::type_info::null_t_ + 2].type.get<ast::ts_base_type>().info;
+}
+
 ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 {
 	auto const it = std::find_if(this->_builtin_types.begin(), this->_builtin_types.end(), [name](auto const &builtin_type) {

@@ -226,6 +226,18 @@ static void emit_error_check(llvm::Value *pre_call_error_count, ctx::comptime_ex
 	context.builder.SetInsertPoint(continue_bb);
 }
 
+static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_context &context)
+{
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+	bz_assert(context.error_bb != nullptr);
+	auto const continue_bb = context.add_basic_block("error_assert_continue");
+	context.builder.CreateCondBr(bool_val, continue_bb, context.error_bb);
+	context.builder.SetInsertPoint(continue_bb);
+}
+
 static void emit_error_assert(
 	llvm::Value *bool_val,
 	lex::src_tokens src_tokens,
@@ -253,6 +265,36 @@ static void emit_error_assert(
 	);
 	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
+}
+
+static void emit_index_bounds_check(
+	lex::src_tokens src_tokens,
+	llvm::Value *index_val,
+	llvm::Value *array_size,
+	bool is_index_unsigned,
+	ctx::comptime_executor_context &context
+)
+{
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	if (is_index_unsigned)
+	{
+		auto const is_in_bounds = context.builder.CreateCall(
+			context.get_comptime_function(ctx::comptime_function_kind::index_check_unsigned),
+			{ index_val, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
+		);
+		emit_error_assert(is_in_bounds, context);
+	}
+	else
+	{
+		auto const is_in_bounds = context.builder.CreateCall(
+			context.get_comptime_function(ctx::comptime_function_kind::index_check_signed),
+			{ index_val, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
+		);
+		emit_error_assert(is_in_bounds, context);
+	}
 }
 
 static void emit_error(
@@ -1296,10 +1338,10 @@ static val_ptr emit_builtin_binary_plus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		auto const result_val = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1318,10 +1360,10 @@ static val_ptr emit_builtin_binary_plus(
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(lhs_kind))
 		{
-			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_uint64_t(), false);
+			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
 		auto const result_val = context.builder.CreateGEP(rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1413,10 +1455,10 @@ static val_ptr emit_builtin_binary_plus_eq(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
@@ -1517,10 +1559,10 @@ static val_ptr emit_builtin_binary_minus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
@@ -1635,10 +1677,10 @@ static val_ptr emit_builtin_binary_minus_eq(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
@@ -1965,8 +2007,8 @@ static val_ptr emit_builtin_binary_cmp(
 		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
 		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_uint64_t());
-		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_uint64_t());
+		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -2799,9 +2841,9 @@ static val_ptr emit_bitcode(
 				return { val_ptr::value, result_val };
 			}
 		}
-		case ast::function_body::print_stdout:
+		// case ast::function_body::print_stdout:
 		case ast::function_body::print_stderr:
-		case ast::function_body::println_stdout:
+		// case ast::function_body::println_stdout:
 		case ast::function_body::println_stderr:
 		{
 			emit_error(
@@ -3076,36 +3118,28 @@ static val_ptr emit_bitcode(
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-		bz_assert(context.get_register_size() == 8);
-		// cast to pointer-size integers
-		if (ctx::is_integer_kind(kind))
+		if (ctx::is_unsigned_integer_kind(kind))
 		{
-			index_val = context.builder.CreateIntCast(index_val, context.get_int64_t(), ctx::is_signed_integer_kind(kind));
+			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
 
 		// array bounds check
 		{
 			auto const array_size = base_type.get<ast::ts_array>().size;
-			auto const array_size_val = llvm::ConstantInt::get(context.get_uint64_t(), array_size);
-			auto const is_in_bounds = [&]() -> llvm::Value * {
-				if (ctx::is_unsigned_integer_kind(kind))
-				{
-					return context.builder.CreateICmp(llvm::CmpInst::ICMP_ULT, index_val, array_size_val);
-				}
-				else
-				{
-					auto const is_less_than = context.builder.CreateICmp(llvm::CmpInst::ICMP_SLT, index_val, array_size_val);
-					auto const is_positive_or_zero = context.builder.CreateICmp(llvm::CmpInst::ICMP_SGE, index_val, llvm::ConstantInt::get(array_size_val->getType(), 0));
-					return context.builder.CreateAnd(is_less_than, is_positive_or_zero);
-				}
-			}();
-			emit_error_assert(is_in_bounds, subscript.index.src_tokens, "index value is out-of-bounds", context);
+			auto const array_size_val = llvm::ConstantInt::get(context.get_usize_t(), array_size);
+			emit_index_bounds_check(
+				src_tokens,
+				context.builder.CreateIntCast(index_val, array_size_val->getType(), ctx::is_signed_integer_kind(kind)),
+				array_size_val,
+				ctx::is_unsigned_integer_kind(kind),
+				context
+			);
 		}
 
 		llvm::Value *result_ptr;
 		if (array.kind == val_ptr::reference)
 		{
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_uint64_t(), 0), index_val };
+			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
 			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies));
 		}
 		else
@@ -3113,7 +3147,8 @@ static val_ptr emit_bitcode(
 			auto const array_value = array.get_value(context.builder);
 			auto const array_type = array_value->getType();
 			auto const array_address = context.create_alloca(array_type);
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_uint64_t(), 0), index_val };
+			context.builder.CreateStore(array_value, array_address);
+			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
 			result_ptr = context.builder.CreateGEP(array_address, llvm::ArrayRef(indicies));
 		}
 
@@ -3143,26 +3178,20 @@ static val_ptr emit_bitcode(
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		if (ctx::is_unsigned_integer_kind(kind))
 		{
-			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
+			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
 
 		// array bounds check
 		{
 			auto const end_ptr = context.builder.CreateExtractValue(array_val, 1);
-			auto const array_size = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
-			auto const is_in_bounds = [&]() -> llvm::Value * {
-				if (ctx::is_unsigned_integer_kind(kind))
-				{
-					return context.builder.CreateICmp(llvm::CmpInst::ICMP_ULT, index_val, array_size);
-				}
-				else
-				{
-					auto const is_less_than = context.builder.CreateICmp(llvm::CmpInst::ICMP_SLT, index_val, array_size);
-					auto const is_positive_or_zero = context.builder.CreateICmp(llvm::CmpInst::ICMP_SGE, index_val, llvm::ConstantInt::get(array_size->getType(), 0));
-					return context.builder.CreateAnd(is_less_than, is_positive_or_zero);
-				}
-			}();
-			emit_error_assert(is_in_bounds, subscript.index.src_tokens, "index value is out-of-bounds", context);
+			auto const array_size_val = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
+			emit_index_bounds_check(
+				src_tokens,
+				context.builder.CreateIntCast(index_val, array_size_val->getType(), ctx::is_signed_integer_kind(kind)),
+				array_size_val,
+				ctx::is_unsigned_integer_kind(kind),
+				context
+			);
 		}
 
 		auto const result_ptr = context.builder.CreateGEP(begin_ptr, index_val);

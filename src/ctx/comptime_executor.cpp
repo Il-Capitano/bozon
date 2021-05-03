@@ -785,7 +785,6 @@ struct str_t
 
 static void bozon_print_stdout(str_t s)
 {
-	bz::log("got string: {}, {}; size {}\n", s.begin, s.end, s.end - s.begin);
 	fwrite(s.begin, 1, s.end - s.begin, stdout);
 }
 
@@ -927,6 +926,7 @@ static Ret call_llvm_func(llvm::ExecutionEngine *engine, llvm::Function *llvm_fu
 			{
 				[&]() {
 					llvm::GenericValue value;
+					value.IntVal = value.IntVal.zextOrTrunc(64);
 					value.IntVal = args;
 					return value;
 				}()...

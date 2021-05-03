@@ -43,6 +43,8 @@ enum class comptime_function_kind : uint32_t
 	push_call,
 	pop_call,
 	clear_errors,
+	index_check_unsigned,
+	index_check_signed,
 
 	_last,
 };
@@ -257,6 +259,8 @@ constexpr bz::array comptime_function_info = {
 	def_element(push_call),
 	def_element(pop_call),
 	def_element(clear_errors),
+	def_element(index_check_unsigned),
+	def_element(index_check_signed),
 };
 static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
 

@@ -56,6 +56,16 @@ ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
 	return this->global_ctx.get_builtin_type_info(kind);
 }
 
+ast::type_info *parse_context::get_usize_type_info(void) const
+{
+	return this->global_ctx.get_usize_type_info();
+}
+
+ast::type_info *parse_context::get_isize_type_info(void) const
+{
+	return this->global_ctx.get_isize_type_info();
+}
+
 ast::typespec_view parse_context::get_builtin_type(bz::u8string_view name) const
 {
 	return this->global_ctx.get_builtin_type(name);

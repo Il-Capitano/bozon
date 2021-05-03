@@ -1219,11 +1219,23 @@ static ast::constant_value evaluate_subscript(
 				is_consteval = false;
 				if (index.paren_level < 2)
 				{
-					context.report_parenthesis_suppressed_warning(
-						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
-						index.src_tokens,
-						bz::format("negative index {} in subscript", signed_index_value)
-					);
+					if (base_type.is<ast::ts_array>())
+					{
+						auto const size = base_type.get<ast::ts_array>().size;
+						context.report_parenthesis_suppressed_warning(
+							2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
+							index.src_tokens,
+							bz::format("negative index {} in subscript for an array of size {}", signed_index_value, size)
+						);
+					}
+					else
+					{
+						context.report_parenthesis_suppressed_warning(
+							2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
+							index.src_tokens,
+							bz::format("negative index {} in array subscript", signed_index_value)
+						);
+					}
 				}
 			}
 			else
@@ -1243,7 +1255,7 @@ static ast::constant_value evaluate_subscript(
 					context.report_parenthesis_suppressed_warning(
 						2 - index.paren_level, ctx::warning_kind::out_of_bounds_index,
 						index.src_tokens,
-						bz::format("index {} is out of bounds for an array of size {}", index_value, size)
+						bz::format("index {} is out-of-bounds for an array of size {}", index_value, size)
 					);
 				}
 			}

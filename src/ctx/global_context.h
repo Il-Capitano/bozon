@@ -71,6 +71,8 @@ struct global_context
 	global_context &operator = (global_context &&)      = delete;
 
 	ast::type_info *get_builtin_type_info(uint32_t kind);
+	ast::type_info *get_usize_type_info(void) const;
+	ast::type_info *get_isize_type_info(void) const;
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);

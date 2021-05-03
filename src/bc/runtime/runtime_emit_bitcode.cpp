@@ -356,7 +356,7 @@ static val_ptr emit_copy_constructor(
 			bz_assert(expr_val.kind == val_ptr::reference);
 			auto const dest_ptr = context.builder.CreatePointerCast(result_address, llvm::PointerType::get(context.get_uint8_t(), 0));
 			auto const src_ptr = context.builder.CreatePointerCast(expr_val.val, llvm::PointerType::get(context.get_uint8_t(), 0));
-			auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
+			auto const size_val = llvm::ConstantInt::get(context.get_usize_t(), size);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
 			context.builder.CreateCall(memcpy_fn, { dest_ptr, src_ptr, size_val, false_val });
 		}
@@ -1075,10 +1075,10 @@ static val_ptr emit_builtin_binary_plus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		auto const result_val = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1097,10 +1097,10 @@ static val_ptr emit_builtin_binary_plus(
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(lhs_kind))
 		{
-			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_uint64_t(), false);
+			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
 		auto const result_val = context.builder.CreateGEP(rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
@@ -1192,10 +1192,10 @@ static val_ptr emit_builtin_binary_plus_eq(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
@@ -1296,10 +1296,10 @@ static val_ptr emit_builtin_binary_minus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
@@ -1414,10 +1414,10 @@ static val_ptr emit_builtin_binary_minus_eq(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		// we need to cast unsigned integers to uint64, otherwise big values might count as a negative index
+		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
 		if (ctx::is_unsigned_integer_kind(rhs_kind))
 		{
-			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_uint64_t(), false);
+			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
@@ -1744,8 +1744,8 @@ static val_ptr emit_builtin_binary_cmp(
 		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
 		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_uint64_t());
-		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_uint64_t());
+		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -2811,13 +2811,13 @@ static val_ptr emit_bitcode(
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
 		if (ctx::is_unsigned_integer_kind(kind))
 		{
-			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
+			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
 
 		llvm::Value *result_ptr;
 		if (array.kind == val_ptr::reference)
 		{
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_uint64_t(), 0), index_val };
+			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
 			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies));
 		}
 		else
@@ -2825,7 +2825,8 @@ static val_ptr emit_bitcode(
 			auto const array_value = array.get_value(context.builder);
 			auto const array_type = array_value->getType();
 			auto const array_address = context.create_alloca(array_type);
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_uint64_t(), 0), index_val };
+			context.builder.CreateStore(array_value, array_address);
+			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
 			result_ptr = context.builder.CreateGEP(array_address, llvm::ArrayRef(indicies));
 		}
 
@@ -2853,7 +2854,7 @@ static val_ptr emit_bitcode(
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		if (ctx::is_unsigned_integer_kind(kind))
 		{
-			index_val = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
+			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
 		auto const result_ptr = context.builder.CreateGEP(begin_ptr, index_val);
 

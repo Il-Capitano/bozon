@@ -17,13 +17,13 @@ pass_kind get_pass_kind<platform_abi::generic>(
 
 	auto const size = data_layout.getTypeAllocSize(t);
 	auto const register_size = data_layout.getTypeAllocSize(data_layout.getIntPtrType(context));
-	if (size > register_size)
-	{
-		return pass_kind::reference;
-	}
-	else if (t->isIntegerTy() || t->isFloatingPointTy() || t->isPointerTy())
+	if (t->isIntegerTy() || t->isFloatingPointTy() || t->isPointerTy())
 	{
 		return pass_kind::value;
+	}
+	else if (size > register_size)
+	{
+		return pass_kind::reference;
 	}
 	else
 	{
