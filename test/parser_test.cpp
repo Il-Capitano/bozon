@@ -83,11 +83,8 @@ do {                                                                          \
     assert_false(global_ctx.has_errors());                                    \
 } while (false)
 
-static bz::optional<bz::u8string> get_paren_matched_range_test(void)
+static bz::optional<bz::u8string> get_paren_matched_range_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -123,11 +120,8 @@ do {                                                       \
 static constexpr bool operator == (ast::internal::null_t, ast::internal::null_t) noexcept
 { return true; }
 
-static bz::optional<bz::u8string> parse_primary_expression_test(void)
+static bz::optional<bz::u8string> parse_primary_expression_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -307,11 +301,8 @@ xx_compiles(                                                                    
 #undef x_const_expr
 }
 
-static bz::optional<bz::u8string> parse_expression_comma_list_test(void)
+static bz::optional<bz::u8string> parse_expression_comma_list_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -341,11 +332,8 @@ static auto parse_expression_alt(
 }
 
 //	/*
-static bz::optional<bz::u8string> parse_expression_test(void)
+static bz::optional<bz::u8string> parse_expression_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -983,11 +971,8 @@ do {                                                                            
 }
 //	*/
 
-static bz::optional<bz::u8string> constant_expression_test(void)
+static bz::optional<bz::u8string> constant_expression_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -1069,11 +1054,8 @@ x_const_expr(str, ast::type_info::bool_, ast::constant_value::boolean, value)
 #undef x_const_expr_bool
 }
 
-static bz::optional<bz::u8string> parse_typespec_test(void)
+static bz::optional<bz::u8string> parse_typespec_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
-	global_ctx._builtin_types     = ast::make_builtin_types    (global_ctx._builtin_type_infos, 8);
-	global_ctx._builtin_functions = ast::make_builtin_functions(global_ctx._builtin_type_infos, 8);
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
 	ctx::decl_set global_decls = ctx::get_default_decls();
@@ -1111,16 +1093,16 @@ static bz::optional<bz::u8string> parse_typespec_test(void)
 #undef x_err
 }
 
-test_result parser_test(void)
+test_result parser_test(ctx::global_context &global_ctx)
 {
 	test_begin();
 
-	test_fn(get_paren_matched_range_test);
-	test_fn(parse_primary_expression_test);
-	test_fn(parse_expression_comma_list_test);
-	test_fn(parse_expression_test);
-	test_fn(constant_expression_test);
-	test_fn(parse_typespec_test);
+	test_fn(get_paren_matched_range_test, global_ctx);
+	test_fn(parse_primary_expression_test, global_ctx);
+	test_fn(parse_expression_comma_list_test, global_ctx);
+	test_fn(parse_expression_test, global_ctx);
+	test_fn(constant_expression_test, global_ctx);
+	test_fn(parse_typespec_test, global_ctx);
 
 	test_end();
 }

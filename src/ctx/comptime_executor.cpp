@@ -111,8 +111,12 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 {
 	this->ensure_function_emission(func_body);
 	auto it = this->funcs_.find(func_body);
-	if (it == this->funcs_.end())
+	if (it == this->funcs_.end() || it->second->getName().str().c_str() != func_body->symbol_name)
 	{
+		if (it != this->funcs_.end())
+		{
+			this->funcs_.erase(it);
+		}
 		bz_assert(func_body->state != ast::resolve_state::error);
 		bz_assert(func_body->state >= ast::resolve_state::symbol);
 		return bc::comptime::add_function_to_module(func_body, *this);

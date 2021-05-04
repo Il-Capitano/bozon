@@ -1,16 +1,48 @@
 #include "test.h"
 #include "timer.h"
 #include "global_data.h"
+#include "ctx/global_context.h"
 
-test_result lexer_test(void);
-test_result parser_test(void);
-test_result consteval_test(void);
+test_result lexer_test(ctx::global_context &global_ctx);
+test_result parser_test(ctx::global_context &global_ctx);
+test_result consteval_test(ctx::global_context &global_ctx);
 
-int main(void)
+int main(int argc, char const **argv)
 {
-	debug_comptime_ir_output = true;
-	use_interpreter = true;
 	import_dirs.push_back("bozon-stdlib");
+
+	ctx::global_context global_ctx;
+
+	if (!global_ctx.parse_command_line(argc, argv))
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (!global_ctx.initialize_llvm())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (!global_ctx.initialize_builtins())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (!global_ctx.parse())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+
+	if (global_ctx.has_errors())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		bz_unreachable;
+	}
+	if (global_ctx.has_errors_or_warnings())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+	}
 
 	auto in_ms = [](auto time)
 	{
@@ -35,9 +67,9 @@ int main(void)
 	};
 
 	auto const begin = timer::now();
-	add_to_total(lexer_test());
-	add_to_total(parser_test());
-	add_to_total(consteval_test());
+	add_to_total(lexer_test(global_ctx));
+	add_to_total(parser_test(global_ctx));
+	add_to_total(consteval_test(global_ctx));
 	auto const end = timer::now();
 
 	auto const passed_percentage = 100 * (static_cast<double>(passed_count) / test_count);
@@ -58,5 +90,7 @@ int main(void)
 		colors::clear
 	);
 
-	return 0;
+	global_ctx.report_and_clear_errors_and_warnings();
+
+	return passed_count == test_count ? 0 : 1;
 }

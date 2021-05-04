@@ -79,9 +79,8 @@ static bz::optional<bz::u8string> get_token_value_test(void)
 	return {};
 }
 
-static bz::optional<bz::u8string> skip_comments_and_whitespace_test(void)
+static bz::optional<bz::u8string> skip_comments_and_whitespace_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context lex_ctx(global_ctx);
 
 	{
@@ -186,9 +185,8 @@ skip_comments_and_whitespace(it, file.end(), lex_ctx)
 #undef x
 }
 
-static bz::optional<bz::u8string> get_identifier_or_keyword_token_test(void)
+static bz::optional<bz::u8string> get_identifier_or_keyword_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define x_id(str)                                                        \
@@ -282,9 +280,8 @@ assert_eq(t.kind, kw_kind)
 #undef x_kw
 }
 
-static bz::optional<bz::u8string> get_character_token_test(void)
+static bz::optional<bz::u8string> get_character_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define x(str, c, it_pos)                                        \
@@ -334,9 +331,8 @@ do {                                              \
 #undef x_err
 }
 
-static bz::optional<bz::u8string> get_string_token_test(void)
+static bz::optional<bz::u8string> get_string_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define x(str, c, it_pos)                                     \
@@ -380,9 +376,8 @@ do {                                           \
 #undef x_err
 }
 
-static bz::optional<bz::u8string> get_number_token_test(void)
+static bz::optional<bz::u8string> get_number_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define x(str, it_pos)                                        \
@@ -430,9 +425,8 @@ do {                                                          \
 #undef x
 }
 
-static bz::optional<bz::u8string> get_single_char_token_test(void)
+static bz::optional<bz::u8string> get_single_char_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 	for (unsigned char c = ' '; c != 128; ++c)
@@ -449,9 +443,8 @@ static bz::optional<bz::u8string> get_single_char_token_test(void)
 	return {};
 }
 
-static bz::optional<bz::u8string> get_next_token_test(void)
+static bz::optional<bz::u8string> get_next_token_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define x(str, token_kind)                                  \
@@ -509,9 +502,8 @@ do {                                                        \
 #undef x
 }
 
-static bz::optional<bz::u8string> get_tokens_test(void)
+static bz::optional<bz::u8string> get_tokens_test(ctx::global_context &global_ctx)
 {
-	ctx::global_context global_ctx;
 	ctx::lex_context context(global_ctx);
 
 #define assert_eqs                                                                                \
@@ -567,20 +559,20 @@ do {                                                     \
 #undef x
 }
 
-test_result lexer_test(void)
+test_result lexer_test(ctx::global_context &global_ctx)
 {
 	test_begin();
 
 	test_fn(file_iterator_test);
 	test_fn(get_token_value_test);
-	test_fn(skip_comments_and_whitespace_test);
-	test_fn(get_identifier_or_keyword_token_test);
-	test_fn(get_character_token_test);
-	test_fn(get_string_token_test);
-	test_fn(get_number_token_test);
-	test_fn(get_single_char_token_test);
-	test_fn(get_next_token_test);
-	test_fn(get_tokens_test);
+	test_fn(skip_comments_and_whitespace_test, global_ctx);
+	test_fn(get_identifier_or_keyword_token_test, global_ctx);
+	test_fn(get_character_token_test, global_ctx);
+	test_fn(get_string_token_test, global_ctx);
+	test_fn(get_number_token_test, global_ctx);
+	test_fn(get_single_char_token_test, global_ctx);
+	test_fn(get_next_token_test, global_ctx);
+	test_fn(get_tokens_test, global_ctx);
 
 	test_end();
 }

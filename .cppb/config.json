@@ -65,7 +65,8 @@
 	"test": {
 		"depends_on": "default",
 		"source_directory": "test",
-		"run_args": []
+		"defines": [ "BOZON_NO_ARENA" ],
+		"run_args": [ "-Wall", "--debug-comptime-ir-output" ]
 	},
 	"gcc": {
 		"compiler": "gcc",
@@ -113,6 +114,7 @@
 	"test-gcc": {
 		"depends_on": "gcc",
 		"source_directory": "test",
-		"run_args": []
+		"defines": [ "BOZON_NO_ARENA" ],
+		"run_args": [ "-Wall", "--debug-comptime-ir-output" ]
 	}
 }

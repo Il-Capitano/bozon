@@ -228,7 +228,7 @@ struct global_context
 
 	void report_and_clear_errors_and_warnings(void);
 
-	[[nodiscard]] bool parse_command_line(int argc, char const **argv);
+	[[nodiscard]] bool parse_command_line(int argc, char const * const*argv);
 	[[nodiscard]] bool initialize_llvm(void);
 	[[nodiscard]] bool initialize_builtins(void);
 	[[nodiscard]] bool parse_global_symbols(void);

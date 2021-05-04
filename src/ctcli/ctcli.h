@@ -2066,7 +2066,7 @@ inline bool is_command_set(void) noexcept
 namespace internal
 {
 
-inline vector<string_view> create_args_vector(int argc, char const **argv)
+inline vector<string_view> create_args_vector(int argc, char const * const*argv)
 {
 	vector<string_view> args;
 	args.reserve(static_cast<std::size_t>(argc));
@@ -2903,7 +2903,7 @@ template<commands_id_t ID = commands_id_t::def>
 }
 
 template<auto ID = &internal::default_parse_tag>
-[[nodiscard]] vector<error> parse_command_line(int argc, char const **argv)
+[[nodiscard]] vector<error> parse_command_line(int argc, char const * const*argv)
 {
 	static_assert(
 		ID == &internal::default_parse_tag

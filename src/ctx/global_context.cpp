@@ -430,7 +430,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->clear_errors_and_warnings();
 }
 
-[[nodiscard]] bool global_context::parse_command_line(int argc, char const **argv)
+[[nodiscard]] bool global_context::parse_command_line(int argc, char const * const*argv)
 {
 	if (argc == 1)
 	{

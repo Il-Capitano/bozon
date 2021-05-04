@@ -128,6 +128,24 @@ do {                                                                            
 		}
 		foo()
 	})asdf");
+	x_fail(R"({
+		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		let index = -1;
+		arr[index] = 3;
+		0
+	})");
+	x_fail(R"({
+		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		let index = 4;
+		arr[index] = 3;
+		0
+	})");
+	x_fail(R"({
+		let arr: [4: int32] = [ 1, 2, 3, 4 ];
+		let index = 4u;
+		arr[index] = 3;
+		0
+	})");
 
 	return {};
 
@@ -135,37 +153,9 @@ do {                                                                            
 #undef x_fail
 }
 
-test_result consteval_test(void)
+test_result consteval_test(ctx::global_context &global_ctx)
 {
 	test_begin();
-
-	ctx::global_context global_ctx;
-
-	if (!global_ctx.initialize_llvm())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		bz_unreachable;
-	}
-	if (!global_ctx.initialize_builtins())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		bz_unreachable;
-	}
-	if (!global_ctx.parse())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		bz_unreachable;
-	}
-
-	if (global_ctx.has_errors())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-		bz_unreachable;
-	}
-	if (global_ctx.has_errors_or_warnings())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-	}
 
 	test_fn(consteval_try_test, global_ctx);
 
