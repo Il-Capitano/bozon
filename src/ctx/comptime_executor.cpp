@@ -444,7 +444,7 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
 	if (
 		(
 			!body->is_intrinsic()

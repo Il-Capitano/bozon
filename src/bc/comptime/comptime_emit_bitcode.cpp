@@ -2609,7 +2609,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2995,6 +2995,14 @@ static val_ptr emit_bitcode(
 			func_call.func_body->intrinsic_kind == ast::function_body::memcpy
 			|| func_call.func_body->intrinsic_kind == ast::function_body::memmove
 			|| func_call.func_body->intrinsic_kind == ast::function_body::memset
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::clz_u64
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u8
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u16
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u32
+			|| func_call.func_body->intrinsic_kind == ast::function_body::ctz_u64
 		)
 	)
 	{
@@ -4541,6 +4549,14 @@ static llvm::Function *create_function_from_symbol_impl(
 			func_body.intrinsic_kind == ast::function_body::memcpy
 			|| func_body.intrinsic_kind == ast::function_body::memmove
 			|| func_body.intrinsic_kind == ast::function_body::memset
+			|| func_body.intrinsic_kind == ast::function_body::clz_u8
+			|| func_body.intrinsic_kind == ast::function_body::clz_u16
+			|| func_body.intrinsic_kind == ast::function_body::clz_u32
+			|| func_body.intrinsic_kind == ast::function_body::clz_u64
+			|| func_body.intrinsic_kind == ast::function_body::ctz_u8
+			|| func_body.intrinsic_kind == ast::function_body::ctz_u16
+			|| func_body.intrinsic_kind == ast::function_body::ctz_u32
+			|| func_body.intrinsic_kind == ast::function_body::ctz_u64
 		)
 	)
 	{

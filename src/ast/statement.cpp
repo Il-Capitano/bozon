@@ -256,7 +256,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				break;
 			}
 
-			static_assert(_builtin_last - _builtin_first == 88);
+			static_assert(_builtin_last - _builtin_first == 115);
 			default:
 				break;
 			}
@@ -595,8 +595,10 @@ static function_body create_builtin_function(
 bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size)
 {
 	auto const bool_type     = make_base_type_typespec({}, &builtin_type_infos[type_info::bool_]);
-	auto const uint64_type   = make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
 	auto const uint8_type    = make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
+	auto const uint16_type   = make_base_type_typespec({}, &builtin_type_infos[type_info::uint16_]);
+	auto const uint32_type   = make_base_type_typespec({}, &builtin_type_infos[type_info::uint32_]);
+	auto const uint64_type   = make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
 	auto const float32_type  = make_base_type_typespec({}, &builtin_type_infos[type_info::float32_]);
 	auto const float64_type  = make_base_type_typespec({}, &builtin_type_infos[type_info::float64_]);
 	auto const str_type      = make_base_type_typespec({}, &builtin_type_infos[type_info::str_]);
@@ -770,6 +772,35 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		add_builtin(85, function_body::tgamma_f64, "tgamma",  float64_type, float64_type),
 		add_builtin(86, function_body::lgamma_f32, "lgammaf", float32_type, float32_type),
 		add_builtin(87, function_body::lgamma_f64, "lgamma",  float64_type, float64_type),
+
+		add_builtin(88, function_body::bitreverse_u8,  "llvm.bitreverse.i8",  uint8_type,  uint8_type),
+		add_builtin(89, function_body::bitreverse_u16, "llvm.bitreverse.i16", uint16_type, uint16_type),
+		add_builtin(90, function_body::bitreverse_u32, "llvm.bitreverse.i32", uint32_type, uint32_type),
+		add_builtin(91, function_body::bitreverse_u64, "llvm.bitreverse.i64", uint64_type, uint64_type),
+		add_builtin(92, function_body::popcount_u8,    "llvm.ctpop.i8",  uint8_type,  uint8_type),
+		add_builtin(93, function_body::popcount_u16,   "llvm.ctpop.i16", uint16_type, uint16_type),
+		add_builtin(94, function_body::popcount_u32,   "llvm.ctpop.i32", uint32_type, uint32_type),
+		add_builtin(95, function_body::popcount_u64,   "llvm.ctpop.i64", uint64_type, uint64_type),
+		add_builtin(96, function_body::byteswap_u16,   "llvm.bswap.i16", uint16_type, uint16_type),
+		add_builtin(97, function_body::byteswap_u32,   "llvm.bswap.i32", uint32_type, uint32_type),
+		add_builtin(98, function_body::byteswap_u64,   "llvm.bswap.i64", uint64_type, uint64_type),
+
+		add_builtin( 99, function_body::clz_u8,   "llvm.ctlz.i8",  uint8_type,  uint8_type),
+		add_builtin(100, function_body::clz_u16,  "llvm.ctlz.i16", uint16_type, uint16_type),
+		add_builtin(101, function_body::clz_u32,  "llvm.ctlz.i32", uint32_type, uint32_type),
+		add_builtin(102, function_body::clz_u64,  "llvm.ctlz.i64", uint64_type, uint64_type),
+		add_builtin(103, function_body::ctz_u8,   "llvm.cttz.i8",  uint8_type,  uint8_type),
+		add_builtin(104, function_body::ctz_u16,  "llvm.cttz.i16", uint16_type, uint16_type),
+		add_builtin(105, function_body::ctz_u32,  "llvm.cttz.i32", uint32_type, uint32_type),
+		add_builtin(106, function_body::ctz_u64,  "llvm.cttz.i64", uint64_type, uint64_type),
+		add_builtin(107, function_body::fshl_u8,  "llvm.fshl.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type),
+		add_builtin(108, function_body::fshl_u16, "llvm.fshl.i16", uint16_type, uint16_type, uint16_type, uint16_type),
+		add_builtin(109, function_body::fshl_u32, "llvm.fshl.i32", uint32_type, uint32_type, uint32_type, uint32_type),
+		add_builtin(110, function_body::fshl_u64, "llvm.fshl.i64", uint64_type, uint64_type, uint64_type, uint64_type),
+		add_builtin(111, function_body::fshr_u8,  "llvm.fshr.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type),
+		add_builtin(112, function_body::fshr_u16, "llvm.fshr.i16", uint16_type, uint16_type, uint16_type, uint16_type),
+		add_builtin(113, function_body::fshr_u32, "llvm.fshr.i32", uint32_type, uint32_type, uint32_type, uint32_type),
+		add_builtin(114, function_body::fshr_u64, "llvm.fshr.i64", uint64_type, uint64_type, uint64_type, uint64_type),
 	};
 #undef add_builtin
 	bz_assert(result.size() == intrinsic_info.size());

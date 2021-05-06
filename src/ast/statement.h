@@ -540,6 +540,16 @@ struct function_body
 		tgamma_f32, tgamma_f64,
 		lgamma_f32, lgamma_f64,
 
+		// bit manipulation intrinsics
+
+		bitreverse_u8, bitreverse_u16, bitreverse_u32, bitreverse_u64,
+		popcount_u8,   popcount_u16,   popcount_u32,   popcount_u64,
+		byteswap_u16,  byteswap_u32,   byteswap_u64,
+		clz_u8,  clz_u16,  clz_u32,  clz_u64,
+		ctz_u8,  ctz_u16,  ctz_u32,  ctz_u64,
+		fshl_u8, fshl_u16, fshl_u32, fshl_u64,
+		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
+
 		_builtin_last,
 	};
 
@@ -1144,7 +1154,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 88);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 115);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
@@ -1253,6 +1263,35 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::tgamma_f64, "__builtin_tgamma_f64" },
 		{ function_body::lgamma_f32, "__builtin_lgamma_f32" },
 		{ function_body::lgamma_f64, "__builtin_lgamma_f64" },
+
+		{ function_body::bitreverse_u8,  "__builtin_bitreverse_u8"  },
+		{ function_body::bitreverse_u16, "__builtin_bitreverse_u16" },
+		{ function_body::bitreverse_u32, "__builtin_bitreverse_u32" },
+		{ function_body::bitreverse_u64, "__builtin_bitreverse_u64" },
+		{ function_body::popcount_u8,    "__builtin_popcount_u8"    },
+		{ function_body::popcount_u16,   "__builtin_popcount_u16"   },
+		{ function_body::popcount_u32,   "__builtin_popcount_u32"   },
+		{ function_body::popcount_u64,   "__builtin_popcount_u64"   },
+		{ function_body::byteswap_u16,   "__builtin_byteswap_u16"   },
+		{ function_body::byteswap_u32,   "__builtin_byteswap_u32"   },
+		{ function_body::byteswap_u64,   "__builtin_byteswap_u64"   },
+
+		{ function_body::clz_u8,   "__builtin_clz_u8"   },
+		{ function_body::clz_u16,  "__builtin_clz_u16"  },
+		{ function_body::clz_u32,  "__builtin_clz_u32"  },
+		{ function_body::clz_u64,  "__builtin_clz_u64"  },
+		{ function_body::ctz_u8,   "__builtin_ctz_u8"   },
+		{ function_body::ctz_u16,  "__builtin_ctz_u16"  },
+		{ function_body::ctz_u32,  "__builtin_ctz_u32"  },
+		{ function_body::ctz_u64,  "__builtin_ctz_u64"  },
+		{ function_body::fshl_u8,  "__builtin_fshl_u8"  },
+		{ function_body::fshl_u16, "__builtin_fshl_u16" },
+		{ function_body::fshl_u32, "__builtin_fshl_u32" },
+		{ function_body::fshl_u64, "__builtin_fshl_u64" },
+		{ function_body::fshr_u8,  "__builtin_fshr_u8"  },
+		{ function_body::fshr_u16, "__builtin_fshr_u16" },
+		{ function_body::fshr_u32, "__builtin_fshr_u32" },
+		{ function_body::fshr_u64, "__builtin_fshr_u64" },
 	}};
 }();
 

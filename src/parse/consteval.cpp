@@ -1263,6 +1263,10 @@ static ast::constant_value evaluate_subscript(
 		// tuple types shouldn't be handled, as index value checking
 		// should already happen in built_in_operators
 	}
+	else
+	{
+		is_consteval = false;
+	}
 
 	if (!is_consteval || !subscript_expr.base.has_consteval_succeeded())
 	{
@@ -1428,6 +1432,328 @@ case ast::function_body::func_name##_f64:                                       
 	}
 }
 
+#ifdef __clang__
+
+static uint8_t bitreverse8(uint8_t value)
+{
+	return __builtin_bitreverse8(value);
+}
+
+static uint16_t bitreverse16(uint16_t value)
+{
+	return __builtin_bitreverse16(value);
+}
+
+static uint32_t bitreverse32(uint32_t value)
+{
+	return __builtin_bitreverse32(value);
+}
+
+static uint64_t bitreverse64(uint64_t value)
+{
+	return __builtin_bitreverse64(value);
+}
+
+#else
+
+// implementation from https://www.geeksforgeeks.org/reverse-actual-bits-given-number/
+
+static uint8_t bitreverse8(uint8_t value)
+{
+	uint8_t rev = 0;
+	for (int i = 0; i < 8; ++i)
+	{
+		rev <<= 1;
+		rev |= value & 1u;
+		value >>= 1;
+	}
+	return rev;
+}
+
+static uint16_t bitreverse16(uint16_t value)
+{
+	uint16_t rev = 0;
+	for (int i = 0; i < 16; ++i)
+	{
+		rev <<= 1;
+		rev |= value & 1u;
+		value >>= 1;
+	}
+	return rev;
+}
+
+static uint32_t bitreverse32(uint32_t value)
+{
+	uint8_t rev = 0;
+	for (int i = 0; i < 32; ++i)
+	{
+		rev <<= 1;
+		rev |= value & 1u;
+		value >>= 1;
+	}
+	return rev;
+}
+
+static uint64_t bitreverse64(uint64_t value)
+{
+	uint8_t rev = 0;
+	for (int i = 0; i < 64; ++i)
+	{
+		rev <<= 1;
+		rev |= value & 1u;
+		value >>= 1;
+	}
+	return rev;
+}
+
+#endif // __clang__
+
+static ast::constant_value evaluate_bit_manipulation(
+	ast::expression const &original_expr,
+	ast::expr_function_call const &func_call,
+	ctx::parse_context &context
+)
+{
+	for (auto &param : func_call.params)
+	{
+		if (!param.has_consteval_succeeded())
+		{
+			return {};
+		}
+	}
+
+	auto const get_u8 = [&func_call](size_t i = 0) -> uint8_t {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::uint>());
+		return static_cast<uint8_t>(value.get<ast::constant_value::uint>());
+	};
+
+	auto const get_u16 = [&func_call](size_t i = 0) -> uint16_t {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::uint>());
+		return static_cast<uint16_t>(value.get<ast::constant_value::uint>());
+	};
+
+	auto const get_u32 = [&func_call](size_t i = 0) -> uint32_t {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::uint>());
+		return static_cast<uint32_t>(value.get<ast::constant_value::uint>());
+	};
+
+	auto const get_u64 = [&func_call](size_t i = 0) -> uint64_t {
+		bz_assert(i < func_call.params.size());
+		bz_assert(func_call.params[i].is<ast::constant_expression>());
+		auto const &value = func_call.params[i].get<ast::constant_expression>().value;
+		bz_assert(value.is<ast::constant_value::uint>());
+		return static_cast<uint64_t>(value.get<ast::constant_value::uint>());
+	};
+
+	auto const paren_level = original_expr.paren_level;
+	auto const &src_tokens = original_expr.src_tokens;
+
+	switch (func_call.func_body->intrinsic_kind)
+	{
+	case ast::function_body::bitreverse_u8:
+		return ast::constant_value(static_cast<uint64_t>(bitreverse8(get_u8())));
+	case ast::function_body::bitreverse_u16:
+		return ast::constant_value(static_cast<uint64_t>(bitreverse16(get_u16())));
+	case ast::function_body::bitreverse_u32:
+		return ast::constant_value(static_cast<uint64_t>(bitreverse32(get_u32())));
+	case ast::function_body::bitreverse_u64:
+		return ast::constant_value(static_cast<uint64_t>(bitreverse64(get_u64())));
+	case ast::function_body::popcount_u8:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_popcount(get_u8())));
+	case ast::function_body::popcount_u16:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_popcount(get_u16())));
+	case ast::function_body::popcount_u32:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_popcount(get_u32())));
+	case ast::function_body::popcount_u64:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_popcountll(get_u64())));
+	case ast::function_body::byteswap_u16:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_bswap16(get_u16())));
+	case ast::function_body::byteswap_u32:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_bswap32(get_u32())));
+	case ast::function_body::byteswap_u64:
+		return ast::constant_value(static_cast<uint64_t>(__builtin_bswap64(get_u64())));
+	case ast::function_body::clz_u8:
+	{
+		auto const val = get_u8();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 8 : __builtin_clzll(val) - 56));
+	}
+	case ast::function_body::clz_u16:
+	{
+		auto const val = get_u16();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 16 : __builtin_clzll(val) - 48));
+	}
+	case ast::function_body::clz_u32:
+	{
+		auto const val = get_u32();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 32 : __builtin_clzll(val) - 32));
+	}
+	case ast::function_body::clz_u64:
+	{
+		auto const val = get_u64();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 64 : __builtin_clzll(val)));
+	}
+	case ast::function_body::ctz_u8:
+	{
+		auto const val = get_u8();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 8 : __builtin_ctzll(val)));
+	}
+	case ast::function_body::ctz_u16:
+	{
+		auto const val = get_u16();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 16 : __builtin_ctzll(val)));
+	}
+	case ast::function_body::ctz_u32:
+	{
+		auto const val = get_u32();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 32 : __builtin_ctzll(val)));
+	}
+	case ast::function_body::ctz_u64:
+	{
+		auto const val = get_u64();
+		return ast::constant_value(static_cast<uint64_t>(val == 0 ? 64 : __builtin_ctzll(val)));
+	}
+	case ast::function_body::fshl_u8:
+	{
+		auto const a = get_u8(0);
+		auto const b = get_u8(1);
+		auto const amount = get_u8(2);
+		if (amount > 8)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshl_u8' exceeds bit count of 'uint8'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint8_t>((a << amount) | (b >> (8 - amount)));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshl_u16:
+	{
+		auto const a = get_u16(0);
+		auto const b = get_u16(1);
+		auto const amount = get_u16(2);
+		if (amount > 16)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshl_u16' exceeds bit count of 'uint16'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint16_t>((a << amount) | (b >> (16 - amount)));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshl_u32:
+	{
+		auto const a = get_u32(0);
+		auto const b = get_u32(1);
+		auto const amount = get_u32(2);
+		if (amount > 32)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshl_u32' exceeds bit count of 'uint32'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint32_t>((a << amount) | (b >> (32 - amount)));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshl_u64:
+	{
+		auto const a = get_u64(0);
+		auto const b = get_u64(1);
+		auto const amount = get_u64(2);
+		if (amount > 64)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshl_u64' exceeds bit count of 'uint64'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint64_t>((a << amount) | (b >> (64 - amount)));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshr_u8:
+	{
+		auto const a = get_u8(0);
+		auto const b = get_u8(1);
+		auto const amount = get_u8(2);
+		if (amount > 8)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshr_u8' exceeds bit count of 'uint8'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint8_t>((a << (8 - amount)) | (b >> amount));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshr_u16:
+	{
+		auto const a = get_u16(0);
+		auto const b = get_u16(1);
+		auto const amount = get_u16(2);
+		if (amount > 16)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshr_u16' exceeds bit count of 'uint16'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint16_t>((a << (16 - amount)) | (b >> amount));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshr_u32:
+	{
+		auto const a = get_u32(0);
+		auto const b = get_u32(1);
+		auto const amount = get_u32(2);
+		if (amount > 32)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshr_u32' exceeds bit count of 'uint32'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint32_t>((a << (32 - amount)) | (b >> amount));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	case ast::function_body::fshr_u64:
+	{
+		auto const a = get_u64(0);
+		auto const b = get_u64(1);
+		auto const amount = get_u64(2);
+		if (amount > 64)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens, bz::format("shift amount of {} in '__builtin_fshr_u64' exceeds bit count of 'uint64'", amount)
+			);
+			return {};
+		}
+		auto const result = static_cast<uint64_t>((a << (64 - amount)) | (b >> amount));
+		return ast::constant_value(static_cast<uint64_t>(result));
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
 static ast::constant_value evaluate_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
@@ -1439,7 +1765,7 @@ static ast::constant_value evaluate_function_call(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 88);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
 		case ast::function_body::builtin_str_eq:
 		{
 			bz_assert(func_call.params.size() == 2);
@@ -1673,6 +1999,43 @@ static ast::constant_value evaluate_function_call(
 				}
 			}
 			return evaluate_math_functions(original_expr, func_call, context);
+
+		case ast::function_body::bitreverse_u8:
+		case ast::function_body::bitreverse_u16:
+		case ast::function_body::bitreverse_u32:
+		case ast::function_body::bitreverse_u64:
+		case ast::function_body::popcount_u8:
+		case ast::function_body::popcount_u16:
+		case ast::function_body::popcount_u32:
+		case ast::function_body::popcount_u64:
+		case ast::function_body::byteswap_u16:
+		case ast::function_body::byteswap_u32:
+		case ast::function_body::byteswap_u64:
+			[[fallthrough]];
+		case ast::function_body::clz_u8:
+		case ast::function_body::clz_u16:
+		case ast::function_body::clz_u32:
+		case ast::function_body::clz_u64:
+		case ast::function_body::ctz_u8:
+		case ast::function_body::ctz_u16:
+		case ast::function_body::ctz_u32:
+		case ast::function_body::ctz_u64:
+		case ast::function_body::fshl_u8:
+		case ast::function_body::fshl_u16:
+		case ast::function_body::fshl_u32:
+		case ast::function_body::fshl_u64:
+		case ast::function_body::fshr_u8:
+		case ast::function_body::fshr_u16:
+		case ast::function_body::fshr_u32:
+		case ast::function_body::fshr_u64:
+			if (force_evaluate)
+			{
+				for (auto &param : func_call.params)
+				{
+					consteval_try(param, context);
+				}
+			}
+			return evaluate_bit_manipulation(original_expr, func_call, context);
 
 		default:
 			bz_unreachable;
