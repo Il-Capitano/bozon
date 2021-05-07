@@ -1,5 +1,7 @@
 import string;
 import print;
+import ryu::d2s;
+import ryu::f2s;
 
 export struct format_buffer
 {
@@ -267,12 +269,16 @@ function format_to(b: bool, buffer: &format_buffer)
 
 function format_to(x: float32, buffer: &format_buffer)
 {
-	x as float32;
-	buffer.write_into("<float32>");
+	let result_buffer: [15: uint8];
+	const end = ryu::f2s_shortest(x, result_buffer.begin());
+	const s = __builtin_str_from_ptrs(result_buffer.begin(), end);
+	buffer.write_into(s);
 }
 
 function format_to(x: float64, buffer: &format_buffer)
 {
-	x as float64;
-	buffer.write_into("<float64>");
+	let result_buffer: [24: uint8];
+	const end = ryu::d2s_shortest(x, result_buffer.begin());
+	const s = __builtin_str_from_ptrs(result_buffer.begin(), end);
+	buffer.write_into(s);
 }

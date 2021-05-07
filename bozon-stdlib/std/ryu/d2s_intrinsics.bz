@@ -1,0 +1,227 @@
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+
+// Defines RYU_32_BIT_PLATFORM if applicable.
+import common;
+
+// ABSL avoids uint128_t on Win32 even if __SIZEOF_INT128__ is defined.
+// Let's do the same for now.
+// #if defined(__SIZEOF_INT128__) && !defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS)
+// #define HAS_UINT128
+// #elif defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS) && defined(_M_X64)
+// #define HAS_64_BIT_INTRINSICS
+// #endif
+
+// #if defined(HAS_UINT128)
+// typedef __uint128_t uint128_t;
+// #endif
+
+export function umul128(a: uint64, b: uint64, productHi: *uint64) -> uint64
+{
+	// The casts here help MSVC to avoid calls to the __allmul library function.
+	const aLo = a as uint32;
+	const aHi = (a >> 32u) as uint32;
+	const bLo = b as uint32;
+	const bHi = (b >> 32u) as uint32;
+
+	const b00 = aLo as uint64 * bLo;
+	const b01 = aLo as uint64 * bHi;
+	const b10 = aHi as uint64 * bLo;
+	const b11 = aHi as uint64 * bHi;
+
+	const b00Lo = b00 as uint32;
+	const b00Hi = (b00 >> 32u) as uint32;
+
+	const mid1 = b10 + b00Hi;
+	const mid1Lo = mid1 as uint32;
+	const mid1Hi = (mid1 >> 32u) as uint32;
+
+	const mid2 = b01 + mid1Lo;
+	const mid2Lo = mid2 as uint32;
+	const mid2Hi = (mid2 >> 32u) as uint32;
+
+	const pHi = b11 + mid1Hi + mid2Hi;
+	const pLo = (mid2Lo as uint64 << 32u) | b00Lo as uint64;
+
+	*productHi = pHi;
+	return pLo;
+}
+
+export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
+{
+	// We don't need to handle the case dist >= 64 here (see above).
+	// assert(dist < 64);
+	// assert(dist > 0);
+	return (hi << (64u - dist)) | (lo >> dist);
+}
+
+export function div5(x: uint64) -> uint64
+{
+	return x / 5u;
+}
+
+export function div10(x: uint64) -> uint64
+{
+	return x / 10u;
+}
+
+export function div100(x: uint64) -> uint64
+{
+	return x / 100u;
+}
+
+export function div1e8(x: uint64) -> uint64
+{
+	return x / 100000000u;
+}
+
+export function div1e9(x: uint64) -> uint64
+{
+	return x / 1000000000u;
+}
+
+export function mod1e9(x: uint64) -> uint32
+{
+	return (x - 1000000000u * div1e9(x)) as uint32;
+}
+
+export function pow5Factor(value: uint64) -> uint32
+{
+	const m_inv_5 = 14757395258967641293u64; // 5 * m_inv_5 = 1 (mod 2^64)
+	const n_div_5 = 3689348814741910323u64;  // #{ n | n = 0 (mod 2^64) } = 2^64 / 5
+	let count = 0u32;
+	// assert(value != 0);
+	value *= m_inv_5;
+	for (; value <= n_div_5; ++count)
+	{
+		value *= m_inv_5;
+	}
+	return count;
+}
+
+// Returns true if value is divisible by 5^p.
+export function multipleOfPowerOf5(value: uint64, p: uint32) -> bool
+{
+	// I tried a case distinction on p, but there was no performance difference.
+	return pow5Factor(value) >= p;
+}
+
+// Returns true if value is divisible by 2^p.
+export function multipleOfPowerOf2(value: uint64, p: uint32) -> bool
+{
+	// assert(value != 0);
+	// assert(p < 64);
+	// __builtin_ctzll doesn't appear to be faster here.
+	return (value & ((1u64 << p) - 1u)) == 0u;
+}
+
+// We need a 64x128-bit multiplication and a subsequent 128-bit shift.
+// Multiplication:
+//   The 64-bit factor is variable and passed in, the 128-bit factor comes
+//   from a lookup table. We know that the 64-bit factor only has 55
+//   significant bits (i.e., the 9 topmost bits are zeros). The 128-bit
+//   factor only has 124 significant bits (i.e., the 4 topmost bits are
+//   zeros).
+// Shift:
+//   In principle, the multiplication result requires 55 + 124 = 179 bits to
+//   represent. However, we then shift this value to the right by j, which is
+//   at least j >= 115, so the result is guaranteed to fit into 179 - 115 = 64
+//   bits. This means that we only need the topmost 64 significant bits of
+//   the 64x128-bit multiplication.
+//
+// There are several ways to do this:
+// 1. Best case: the compiler exposes a 128-bit type.
+//    We perform two 64x64-bit multiplications, add the higher 64 bits of the
+//    lower result to the higher result, and shift by j - 64 bits.
+//
+//    We explicitly cast from 64-bit to 128-bit, so the compiler can tell
+//    that these are only 64-bit inputs, and can map these to the best
+//    possible sequence of assembly instructions.
+//    x64 machines happen to have matching assembly instructions for
+//    64x64-bit multiplications and 128-bit shifts.
+//
+// 2. Second best case: the compiler exposes intrinsics for the x64 assembly
+//    instructions mentioned in 1.
+//
+// 3. We only have 64x64 bit instructions that return the lower 64 bits of
+//    the result, i.e., we have to use plain C.
+//    Our inputs are less than the full width, so we have three options:
+//    a. Ignore this fact and just implement the intrinsics manually.
+//    b. Split both into 31-bit pieces, which guarantees no internal overflow,
+//       but requires extra work upfront (unless we change the lookup table).
+//    c. Split only the first factor into 31-bit pieces, which also guarantees
+//       no internal overflow, but requires extra work since the intermediate
+//       results are not perfectly aligned.
+
+export function mulShift64(m: uint64, mul: *const uint64, j: uint32) -> uint64
+{
+	// m is maximum 55 bits
+	let high1: uint64;                           // 128
+	const low1 = umul128(m, *(mul + 1), &high1); // 64
+	let high0: uint64;                           // 64
+	umul128(m, *(mul), &high0);                  // 0
+	const sum = high0 + low1;
+	if (sum < high0)
+	{
+		++high1; // overflow into high1
+	}
+	return shiftright128(sum, high1, j - 64u);
+}
+
+// This is faster if we don't have a 64x64->128-bit multiplication.
+export function mulShiftAll64(
+	m: uint64, mul: *const uint64, j: uint32,
+	vp: *uint64, vm: *uint64, mmShift: uint32
+) -> uint64
+{
+	m <<= 1u;
+	// m is maximum 55 bits
+	let tmp: uint64;
+	const lo = umul128(m, *mul, &tmp);
+	let hi: uint64;
+	const mid = tmp + umul128(m, *(mul + 1), &hi);
+	// hi += mid < tmp; // overflow into hi
+	if (mid < tmp)
+	{
+		hi += 1u;
+	}
+
+	const lo2 = lo + *mul;
+	const mid2 = mid + *(mul + 1) + (lo2 < lo) as uint64;
+	const hi2 = hi + (mid2 < mid) as uint64;
+	*vp = shiftright128(mid2, hi2, j - 64u - 1u);
+
+	if (mmShift == 1u)
+	{
+		const lo3 = lo - *mul;
+		const mid3 = mid - *(mul + 1) - (lo3 > lo) as uint64;
+		const hi3 = hi - (mid3 > mid) as uint64;
+		*vm = shiftright128(mid3, hi3, j - 64u - 1u);
+	}
+	else
+	{
+		const lo3 = lo + lo;
+		const mid3 = mid + mid + (lo3 < lo) as uint64;
+		const hi3 = hi + hi + (mid3 < mid) as uint64;
+		const lo4 = lo3 - *mul;
+		const mid4 = mid3 - *(mul + 1) - (lo4 > lo3) as uint64;
+		const hi4 = hi3 - (mid4 > mid3) as uint64;
+		*vm = shiftright128(mid4, hi4, j - 64u);
+	}
+
+	return shiftright128(mid, hi, j - 64u - 1u);
+}

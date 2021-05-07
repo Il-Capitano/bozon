@@ -65,7 +65,7 @@ function main(args: [: const str]) -> int32
 	// c = 3;
 	for (const arg in args)
 	{
-		std::println(arg);
+		std::printf("{}\n", [ arg ]);
 		// std::println(arg.length());
 		// std::println(arg.size());
 	}
@@ -268,7 +268,10 @@ function main(args: [: const str]) -> int32
 	string_test();
 
 	std::println("\n==== end main ====");
-	std::println(std::exp(1.0));
+	std::printf("e  = {}\n", [ std::exp(1.0) ]);
+	std::printf("pi = {}\n", [ std::atan2(0.0, -1.0) ]);
+	std::printf("e  = {}\n", [ std::exp(1.0f32) ]);
+	std::printf("pi = {}\n", [ std::atan2(0.0f32, -1.0f32) ]);
 	static_assert(typeof std::exp(1.0) == float64);
 
 	/*
@@ -448,7 +451,7 @@ function cast_test() -> void
 {
 	const f32 = 1.5f32;
 //	std::println(f32);
-	std::println(f32 as float64);
+	std::printf("{}\n", [ f32 as float64 ]);
 	std::printf("{}\n", [ f32 as int32 ]);
 	std::printf("{}\n", [ 'A' as uint32 ]);
 	std::printf("{}\n", [ ' ' as uint32 ]);
@@ -718,8 +721,8 @@ function for_test() -> void
 	std::print("\n");
 
 	consteval inf = ((1.0 / 0.0));
-	std::println(inf);
-	std::println(((inf - inf)) + 1.0);
+	std::printf("{}\n", [ inf ]);
+	std::printf("{}\n", [ ((inf - inf)) + 1.0 ]);
 }
 
 // static_assert(false);
@@ -798,11 +801,11 @@ function array_test() -> void
 	std::printf("arr[0] = {}\n", [ arr[0] ]);
 
 	let multi_d_array: [4, 4: float64];
-	std::print("multi_d_array[0, 0] = "), std::println(multi_d_array[0, 0]);
+	std::printf("multi_d_array[0, 0] = {}\n", [ multi_d_array[0, 0] ]);
 	multi_d_array[0, 0] = 123.0;
-	std::print("multi_d_array[0, 0] = "), std::println(multi_d_array[0, 0]);
+	std::printf("multi_d_array[0, 0] = {}\n", [ multi_d_array[0, 0] ]);
 	multi_d_array[0][0] = 246.0;
-	std::print("multi_d_array[0][0] = "), std::println(multi_d_array[0][0]);
+	std::printf("multi_d_array[0][0] = {}\n", [ multi_d_array[0][0] ]);
 //	multi_d_array[0, 4] = 246.0;
 
 	for (let i = 0; i < 4; ++i)
@@ -964,7 +967,7 @@ function arr2_tester() -> void
 function tuple_test() -> void
 {
 	@maybe_unused let t: [int32, float64];
-	std::println([2, 2.234][1]);
+	std::printf("{}\n", [ [2, 2.234][1] ]);
 
 	consteval t = [0, 1.53, "hello"];
 	consteval str = t[2];
@@ -988,7 +991,7 @@ function tuple_test() -> void
 	f64 = i32 as float64 + 0.456;
 	std::printf("[{}, {}, {}]\n", t);
 	const val = (f64 * 3.2) + (3.2 * f64);
-	std::println(val);
+	std::printf("{}\n", [ val ]);
 }
 
 function optimization_test() -> void
@@ -1245,42 +1248,43 @@ function struct_test()
 
 	let sum = v + v;
 	// static_assert(v + v - v == v);
-	std::print(sum.x), std::print(", "), std::println(sum.y);
+	std::printf("{}, {}\n", [ sum.x, sum.y ]);
 }
 
 function complex_test()
 {
 	function println(z: std::complex)
 	{
-		std::print(z.re);
 		if (z.im >= 0.0)
 		{
-			std::printf("{}", [ '+' ]);
+			std::printf("{}+{}i\n", [ z.re, z.im ]);
 		}
-		std::print(z.im);
-		std::printf("{}\n", [ 'i' ]);
+		else
+		{
+			std::printf("{}{}i\n", [ z.re, z.im ]);
+		}
 	}
 
-	consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
+	// consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
 	// static_assert(z == std::complex[ -1.0, 0.0 ]);
 
 	const z1 = std::complex[1.0, -12.35];
 	const double_z = z1 + z1;
-	std::println(z1.abs());
-	std::println(double_z.abs());
+	std::printf("{}\n", [ z1.abs() ]);
+	std::printf("{}\n", [ double_z.abs() ]);
 
 	println(z1);
 	println(z1 * z1);
 	println(z1 * z1.conjugate());
-	std::println(z1.abs());
-	std::println((z1 * z1).abs());
-	std::println(z1.abs_square());
+	std::printf("{}\n", [ z1.abs() ]);
+	std::printf("{}\n", [ (z1 * z1).abs() ]);
+	std::printf("{}\n", [ z1.abs_square() ]);
 
 	std::print("exp(1i) = ");
 	const exp1i = std::exp(std::complex[ 0.0, 1.0 ]);
 	println(exp1i);
-	std::println(exp1i.abs());
-	std::println(exp1i.phi());
+	std::printf("{}\n", [ exp1i.abs() ]);
+	std::printf("{}\n", [ exp1i.phi() ]);
 
 	let z = std::complex[ 0.0, 0.0 ];
 	z.im = 1.0;
@@ -1373,7 +1377,6 @@ function destructor_test()
 {
 	function inner() -> int32
 	{
-		@maybe_unused
 		const res = make_resource();
 		std::printf("{}\n", [ res.i ]);
 		return res.i;
@@ -1423,9 +1426,12 @@ function string_test()
 		std::printf("{}\n", [ world.not_empty() ]);
 	}
 
-	// consteval n = { std::println("hello"); 3 };
-
 	@maybe_unused
+	consteval n = {
+		const s = std::format("{}\n", [ "hello" ]);
+		s.length()
+	};
+
 	consteval n = {
 		let s = std::string("hello");
 		s ..= " world!";
@@ -1449,7 +1455,8 @@ function string_test()
 	std::printf("{}\n", [ std::string("???").starts_with("?") ]);
 	// (consteval { std::print("hello"); 0 });
 
-	// let val = consteval (std::string("hello") == "hello");
+	@maybe_unused
+	let val = consteval (std::string("hello") == "hello");
 	static_assert(((__builtin_is_comptime())));
 
 	(consteval {
@@ -1463,5 +1470,11 @@ function string_test()
 	static_assert(typeof a_ref == const int32);
 	static_assert(typeof b_val == const int32);
 
-	std::printf("hello {}{}\n", [ "world", 42 ]);
+	std::printf("hello {}{}\n", [ "world", '!' ]);
+
+	@maybe_unused
+	let arr: [3: int32] = [ 0, 1, 2 ];
+
+	consteval i = true as uint32;
+	static_assert(i == 1u);
 }

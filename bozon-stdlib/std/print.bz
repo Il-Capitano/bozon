@@ -1,13 +1,5 @@
-import libc::stdlib;
-
 export function print   = __builtin_print_stdout;
 export function println = __builtin_println_stdout;
 
 export function log   = __builtin_print_stderr;
 export function logln = __builtin_println_stderr;
-
-@extern("print_float32", "c") export function print(x: float32);
-@extern("print_float64", "c") export function print(x: float64);
-
-@extern("println_float32", "c") export function println(x: float32);
-@extern("println_float64", "c") export function println(x: float64);

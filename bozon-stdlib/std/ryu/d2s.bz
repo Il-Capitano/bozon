@@ -1,0 +1,737 @@
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+
+// Runtime compiler options:
+// -DRYU_DEBUG Generate verbose debugging output to stdout.
+//
+// -DRYU_ONLY_64_BIT_OPS Avoid using uint128_t or 64-bit intrinsics. Slower,
+//     depending on your compiler.
+//
+// -DRYU_OPTIMIZE_SIZE Use smaller lookup tables. Instead of storing every
+//     required power of 5, only store every 26th entry, and compute
+//     intermediate values with a multiplication. This reduces the lookup table
+//     size by about 10x (only one case, and only double) at the cost of some
+//     performance. Currently requires MSVC intrinsics.
+
+import common;
+import digit_table;
+import d2s_intrinsics;
+import d2s_full_table;
+
+import std::libc::stdlib;
+import std::utils;
+
+consteval DOUBLE_MANTISSA_BITS = 52;
+consteval DOUBLE_EXPONENT_BITS = 11;
+consteval DOUBLE_BIAS = 1023;
+
+function decimalLength17(v: uint64) -> uint32
+{
+	// This is slightly faster than a loop.
+	// The average output length is 16.38 digits, so we check high-to-low.
+	// Function precondition: v is not an 18, 19, or 20-digit number.
+	// (17 digits are sufficient for round-tripping.)
+	// assert(v < 100000000000000000u64);
+	return if (v >= 10000000000000000u64) { 17u }
+		else if (v >= 1000000000000000u64) { 16u }
+		else if (v >= 100000000000000u64) { 15u }
+		else if (v >= 10000000000000u64) { 14u }
+		else if (v >= 1000000000000u64) { 13u }
+		else if (v >= 100000000000u64) { 12u }
+		else if (v >= 10000000000u64) { 11u }
+		else if (v >= 1000000000u64) { 10u }
+		else if (v >= 100000000u64) { 9u }
+		else if (v >= 10000000u64) { 8u }
+		else if (v >= 1000000u64) { 7u }
+		else if (v >= 100000u64) { 6u }
+		else if (v >= 10000u64) { 5u }
+		else if (v >= 1000u64) { 4u }
+		else if (v >= 100u64) { 3u }
+		else if (v >= 10u64) { 2u }
+		else { 1u };
+}
+
+// A floating decimal representing m * 10^e.
+export struct floating_decimal_64
+{
+	.mantissa: uint64;
+	// Decimal exponent's range is -324 to 308
+	// inclusive, and can fit in a short if needed.
+	.exponent: int32;
+}
+
+function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
+{
+	let e2: int32;
+	let m2: uint64;
+	if (ieeeExponent == 0u)
+	{
+		// We subtract 2 so that the bounds computation has 2 additional bits.
+		e2 = 1 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS - 2;
+		m2 = ieeeMantissa;
+	}
+	else
+	{
+		e2 = ieeeExponent as int32 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS - 2;
+		m2 = (1u64 << DOUBLE_MANTISSA_BITS as uint32) | ieeeMantissa;
+	}
+	const even = (m2 & 1u64) == 0u;
+	const acceptBounds = even;
+
+	// Step 2: Determine the interval of valid decimal representations.
+	const mv = 4u * m2;
+	// Implicit bool -> int conversion. True is 1, false is 0.
+	const mmShift = (ieeeMantissa != 0u || ieeeExponent <= 1u) as uint32;
+	// We would compute mp and mm like this:
+	// uint64_t mp = 4 * m2 + 2;
+	// uint64_t mm = mv - 1 - mmShift;
+
+	// Step 3: Convert to a decimal power base using 128-bit arithmetic.
+	let vr: uint64;
+	let vp: uint64;
+	let vm: uint64;
+	let e10: int32;
+	let vmIsTrailingZeros = false;
+	let vrIsTrailingZeros = false;
+	if (e2 >= 0)
+	{
+		// I tried special-casing q == 0, but there was no effect on performance.
+		// This expression is slightly faster than max(0, log10Pow2(e2) - 1).
+		const q = log10Pow2(e2 as uint32) - (e2 > 3) as uint32;
+		e10 = q as int32;
+		const k = DOUBLE_POW5_INV_BITCOUNT + pow5bits(q) as int32 - 1;
+		const i = -e2 + q as int32 + k;
+		vr = mulShiftAll64(m2, DOUBLE_POW5_INV_SPLIT[q].begin(), i as uint32, &vp, &vm, mmShift);
+		if (q <= 21u)
+		{
+			// This should use q <= 22, but I think 21 is also safe. Smaller values
+			// may still be safe, but it's more difficult to reason about them.
+			// Only one of mp, mv, and mm can be a multiple of 5, if any.
+			const mvMod5 = mv as uint32 - 5u * div5(mv) as uint32;
+			if (mvMod5 == 0u)
+			{
+				vrIsTrailingZeros = multipleOfPowerOf5(mv, q);
+			}
+			else if (acceptBounds)
+			{
+				// Same as min(e2 + (~mm & 1), pow5Factor(mm)) >= q
+				// <=> e2 + (~mm & 1) >= q && pow5Factor(mm) >= q
+				// <=> true && pow5Factor(mm) >= q, since e2 >= q.
+				vmIsTrailingZeros = multipleOfPowerOf5(mv - 1u - mmShift, q);
+			}
+			else
+			{
+				// Same as min(e2 + 1, pow5Factor(mp)) >= q.
+				vp -= multipleOfPowerOf5(mv + 2u, q) as uint64;
+			}
+		}
+	}
+	else
+	{
+		// This expression is slightly faster than max(0, log10Pow5(-e2) - 1).
+		const q = log10Pow5(-e2 as uint32) - (-e2 > 1) as uint32;
+		e10 = q as int32 + e2;
+		const i = -e2 - q as int32;
+		const k = pow5bits(i as uint32) as int32 - DOUBLE_POW5_BITCOUNT;
+		const j = q as int32 - k;
+		vr = mulShiftAll64(m2, DOUBLE_POW5_SPLIT[i].begin(), j as uint32, &vp, &vm, mmShift);
+		if (q <= 1u)
+		{
+			// {vr,vp,vm} is trailing zeros if {mv,mp,mm} has at least q trailing 0 bits.
+			// mv = 4 * m2, so it always has at least two trailing 0 bits.
+			vrIsTrailingZeros = true;
+			if (acceptBounds)
+			{
+				// mm = mv - 1 - mmShift, so it has 1 trailing 0 bit iff mmShift == 1.
+				vmIsTrailingZeros = mmShift == 1u;
+			}
+			else
+			{
+				// mp = mv + 2, so it always has at least one trailing 0 bit.
+				--vp;
+			}
+		}
+		else if (q < 63u) // TODO(ulfjack): Use a tighter bound here.
+		{
+			// We want to know if the full product has at least q trailing zeros.
+			// We need to compute min(p2(mv), p5(mv) - e2) >= q
+			// <=> p2(mv) >= q && p5(mv) - e2 >= q
+			// <=> p2(mv) >= q (because -e2 >= q)
+			vrIsTrailingZeros = multipleOfPowerOf2(mv, q);
+		}
+	}
+
+	// Step 4: Find the shortest decimal representation in the interval of valid representations.
+	let removed = 0i32;
+	let lastRemovedDigit = 0u8;
+	let output: uint64;
+	// On average, we remove ~2 digits.
+	if (vmIsTrailingZeros || vrIsTrailingZeros)
+	{
+		// General case, which happens rarely (~0.7%).
+		let vpDiv10 = div10(vp);
+		let vmDiv10 = div10(vm);
+		for (; vpDiv10 > vmDiv10; ++removed)
+		{
+			const vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
+			const vrDiv10 = div10(vr);
+			const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
+			vmIsTrailingZeros &= vmMod10 == 0u;
+			vrIsTrailingZeros &= lastRemovedDigit == 0u;
+			lastRemovedDigit = vrMod10 as uint8;
+			vr = vrDiv10;
+			vp = vpDiv10;
+			vm = vmDiv10;
+			vpDiv10 = div10(vp);
+			vmDiv10 = div10(vm);
+		}
+		if (vmIsTrailingZeros)
+		{
+			let vmDiv10 = div10(vm);
+			let vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
+			for (; vmMod10 == 0u; ++removed)
+			{
+				const vpDiv10 = div10(vp);
+				const vrDiv10 = div10(vr);
+				const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
+				vrIsTrailingZeros &= lastRemovedDigit == 0u;
+				lastRemovedDigit = vrMod10 as uint8;
+				vr = vrDiv10;
+				vp = vpDiv10;
+				vm = vmDiv10;
+				vmDiv10 = div10(vm);
+				vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
+			}
+		}
+		if (vrIsTrailingZeros && lastRemovedDigit == 5u && vr % 2u == 0u) {
+			// Round even if the exact number is .....50..0.
+			lastRemovedDigit = 4u8;
+		}
+		// We need to take vr + 1 if vr is outside bounds or we need to round up.
+		output = vr + ((vr == vm && (!acceptBounds || !vmIsTrailingZeros)) || lastRemovedDigit >= 5u) as uint64;
+	}
+	else
+	{
+		// Specialized for the common case (~99.3%). Percentages below are relative to this.
+		let roundUp = false;
+		const vpDiv100 = div100(vp);
+		const vmDiv100 = div100(vm);
+		if (vpDiv100 > vmDiv100) // Optimization: remove two digits at a time (~86.2%).
+		{
+			const vrDiv100 = div100(vr);
+			const vrMod100 = vr as uint32 - 100u * vrDiv100 as uint32;
+			roundUp = vrMod100 >= 50u;
+			vr = vrDiv100;
+			vp = vpDiv100;
+			vm = vmDiv100;
+			removed += 2;
+		}
+		// Loop iterations below (approximately), without optimization above:
+		// 0: 0.03%, 1: 13.8%, 2: 70.6%, 3: 14.0%, 4: 1.40%, 5: 0.14%, 6+: 0.02%
+		// Loop iterations below (approximately), with optimization above:
+		// 0: 70.6%, 1: 27.8%, 2: 1.40%, 3: 0.14%, 4+: 0.02%
+		let vpDiv10 = div10(vp);
+		let vmDiv10 = div10(vm);
+		for (; vpDiv10 > vmDiv10; ++removed)
+		{
+			const vrDiv10 = div10(vr);
+			const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
+			roundUp = vrMod10 >= 5u;
+			vr = vrDiv10;
+			vp = vpDiv10;
+			vm = vmDiv10;
+			vpDiv10 = div10(vp);
+			vmDiv10 = div10(vm);
+		}
+		// We need to take vr + 1 if vr is outside bounds or we need to round up.
+		output = vr + (vr == vm || roundUp) as uint64;
+	}
+	const exp = e10 + removed;
+
+	let fd: floating_decimal_64;
+	fd.exponent = exp;
+	fd.mantissa = output;
+	return fd;
+}
+
+function to_chars(v: floating_decimal_64, sign: bool, result: *uint8) -> int32
+{
+	// Step 5: Print the decimal representation.
+	let index = 0;
+	if (sign)
+	{
+		*(result + index) = '-' as uint32 as uint8;
+		++index;
+	}
+
+	let output = v.mantissa;
+	const olength = decimalLength17(output);
+
+	// Print the decimal digits.
+	// The following code is equivalent to:
+	// for (uint32_t i = 0; i < olength - 1; ++i) {
+	//   const uint32_t c = output % 10; output /= 10;
+	//   result[index + olength - i] = (char) ('0' + c);
+	// }
+	// result[index] = '0' + output % 10;
+
+	let i = 0u32;
+	// We prefer 32-bit operations, even on 64-bit platforms.
+	// We have at most 17 digits, and uint32_t can store 9 digits.
+	// If output doesn't fit into uint32_t, we cut off 8 digits,
+	// so the rest will fit into uint32_t.
+	if ((output >> 32u) != 0u)
+	{
+		// Expensive 64-bit division.
+		const q = div1e8(output);
+		let output2 = output as uint32 - 100000000u * q as uint32;
+		output = q;
+
+		const c = output2 % 10000u;
+		output2 /= 10000u;
+		const d = output2 % 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		const d0 = (d % 100u) << 1u;
+		const d1 = (d / 100u) << 1u;
+		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
+		std::memcpy(result + index + olength - i - 5u, DIGIT_TABLE.begin() + d0, 2u);
+		std::memcpy(result + index + olength - i - 7u, DIGIT_TABLE.begin() + d1, 2u);
+		i += 8u;
+	}
+	let output2 = output as uint32;
+	while (output2 >= 10000u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = output2 - 10000u * (output2 / 10000u);
+		output2 /= 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
+		i += 4u;
+	}
+	if (output2 >= 100u)
+	{
+		const c = (output2 % 100u) << 1u;
+		output2 /= 100u;
+		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
+		i += 2u;
+	}
+	if (output2 >= 10u)
+	{
+		const c = output2 << 1u;
+		// We can't use memcpy here: the decimal dot goes between these two digits.
+		*(result + index + olength - i) = DIGIT_TABLE[c + 1u];
+		*(result + index) = DIGIT_TABLE[c];
+	}
+	else
+	{
+		*(result + index) = ('0' + output2) as uint32 as uint8;
+	}
+
+	// Print decimal point if needed.
+	if (olength > 1u)
+	{
+		*(result + index + 1) = '.' as uint32 as uint8;
+		index += olength as int32 + 1;
+	}
+	else
+	{
+		++index;
+	}
+
+	// Print the exponent.
+	*(result + index) = 'E' as uint32 as uint8;
+	++index;
+	let exp = v.exponent + olength as int32 - 1;
+	if (exp < 0)
+	{
+		*(result + index) = '-' as uint32 as uint8;
+		++index;
+		exp = -exp;
+	}
+
+	if (exp >= 100)
+	{
+		let c = exp % 10;
+		std::memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
+		*(result + index + 2) = ('0' + c) as uint32 as uint8;
+		index += 3;
+	}
+	else if (exp >= 10)
+	{
+		std::memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2u);
+		index += 2;
+	}
+	else
+	{
+		*(result + index) = ('0' + exp) as uint32 as uint8;
+		++index;
+	}
+
+	return index;
+}
+
+function d2d_small_int(
+	ieeeMantissa: uint64, ieeeExponent: uint32,
+	v: *floating_decimal_64
+) -> bool
+{
+	const m2 = (1u64 << DOUBLE_MANTISSA_BITS as uint32) | ieeeMantissa;
+	const e2 = ieeeExponent as int32 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+
+	if (e2 > 0)
+	{
+		// f = m2 * 2^e2 >= 2^53 is an integer.
+		// Ignore this case for now.
+		return false;
+	}
+
+	if (e2 < -52) {
+		// f < 1.
+		return false;
+	}
+
+	// Since 2^52 <= m2 < 2^53 and 0 <= -e2 <= 52: 1 <= f = m2 / 2^-e2 < 2^53.
+	// Test if the lower -e2 bits of the significand are 0, i.e. whether the fraction is 0.
+	const mask = (1u64 << -e2 as uint32) - 1u;
+	const fraction = m2 & mask;
+	if (fraction != 0u)
+	{
+		return false;
+	}
+
+	// f is an integer in the range [1, 2^53).
+	// Note: mantissa might contain trailing (decimal) 0's.
+	// Note: since 2^53 < 10^16, there is no need to adjust decimalLength17().
+	(*v).mantissa = m2 >> -e2 as uint32;
+	(*v).exponent = 0;
+	return true;
+}
+
+export function d2s_buffered_n(f: float64, result: *uint8) -> int32
+{
+	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
+	const bits = double_to_bits(f);
+
+	// Decode bits into sign, mantissa, and exponent.
+	const ieeeSign = ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS) as uint32) & 1u64) != 0u;
+	const ieeeMantissa = bits & ((1u64 << DOUBLE_MANTISSA_BITS as uint32) - 1u);
+	const ieeeExponent = ((bits >> DOUBLE_MANTISSA_BITS as uint32) & ((1u64 << DOUBLE_EXPONENT_BITS as uint32) - 1u)) as uint32;
+	// Case distinction; exit early for the easy cases.
+	if (ieeeExponent == ((1u32 << DOUBLE_EXPONENT_BITS as uint32) - 1u) || (ieeeExponent == 0u && ieeeMantissa == 0u))
+	{
+		return copy_special_str(result, ieeeSign, ieeeExponent != 0u, ieeeMantissa != 0u);
+	}
+
+	let v: floating_decimal_64;
+	const isSmallInt = d2d_small_int(ieeeMantissa, ieeeExponent, &v);
+	if (isSmallInt)
+	{
+		// For small integers in the range [1, 2^53), v.mantissa might contain trailing (decimal) zeros.
+		// For scientific notation we need to move these zeros into the exponent.
+		// (This is not needed for fixed-point notation, so it might be beneficial to trim
+		// trailing zeros in to_chars only if needed - once fixed-point notation output is implemented.)
+		let q = div10(v.mantissa);
+		let r = v.mantissa as uint32 - 10u * q as uint32;
+		for (; r == 0u; ++v.exponent)
+		{
+			v.mantissa = q;
+			q = div10(v.mantissa);
+			r = v.mantissa as uint32 - 10u * q as uint32;
+		}
+	}
+	else
+	{
+		v = d2d(ieeeMantissa, ieeeExponent);
+	}
+
+	return to_chars(v, ieeeSign, result);
+}
+
+export function d2s_buffered(f: float64, result: *uint8)
+{
+	const index = d2s_buffered_n(f, result);
+
+	// Terminate the string.
+	*(result + index) = 0u8;
+}
+
+export function d2s(f: float64) -> *uint8
+{
+	const result = __builtin_pointer_cast(*uint8, std::libc::malloc(25u));
+	d2s_buffered(f, result);
+	return result;
+}
+
+
+//
+// addition by me
+//
+
+export function d2s_shortest(f: float64, result: *uint8) -> *uint8
+{
+	// Step 1: Decode the floating-point number, and unify normalized and subnormal cases.
+	const bits = double_to_bits(f);
+
+	// Decode bits into sign, mantissa, and exponent.
+	const ieeeSign = ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS) as uint32) & 1u64) != 0u;
+	const ieeeMantissa = bits & ((1u64 << DOUBLE_MANTISSA_BITS as uint32) - 1u);
+	const ieeeExponent = ((bits >> DOUBLE_MANTISSA_BITS as uint32) & ((1u64 << DOUBLE_EXPONENT_BITS as uint32) - 1u)) as uint32;
+	// Case distinction; exit early for the easy cases.
+	if (ieeeExponent == ((1u32 << DOUBLE_EXPONENT_BITS as uint32) - 1u) || (ieeeExponent == 0u && ieeeMantissa == 0u))
+	{
+		return copy_short_special_str(result, ieeeSign, ieeeExponent != 0u, ieeeMantissa != 0u);
+	}
+
+	let v: floating_decimal_64;
+	const isSmallInt = d2d_small_int(ieeeMantissa, ieeeExponent, &v);
+	if (isSmallInt)
+	{
+		// For small integers in the range [1, 2^53), v.mantissa might contain trailing (decimal) zeros.
+		// For scientific notation we need to move these zeros into the exponent.
+		// (This is not needed for fixed-point notation, so it might be beneficial to trim
+		// trailing zeros in to_chars only if needed - once fixed-point notation output is implemented.)
+		let q = div10(v.mantissa);
+		let r = v.mantissa as uint32 - 10u * q as uint32;
+		for (; r == 0u; ++v.exponent)
+		{
+			v.mantissa = q;
+			q = div10(v.mantissa);
+			r = v.mantissa as uint32 - 10u * q as uint32;
+		}
+	}
+	else
+	{
+		v = d2d(ieeeMantissa, ieeeExponent);
+	}
+
+	return to_chars_shortest(v, ieeeSign, result);
+}
+
+function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
+{
+	let output = v.mantissa;
+	const olength = decimalLength17(output);
+
+	const actual_exponent = olength as int32 - 1 + v.exponent;
+
+	if (actual_exponent < 0)
+	{
+		consteval s = "0.000";
+		std::memcpy(out, __builtin_str_begin_ptr(s), (-actual_exponent + 1) as usize);
+		out += -actual_exponent;
+	}
+
+	let i = 0u32;
+	// We prefer 32-bit operations, even on 64-bit platforms.
+	// We have at most 17 digits, and uint32_t can store 9 digits.
+	// If output doesn't fit into uint32_t, we cut off 8 digits,
+	// so the rest will fit into uint32_t.
+	if ((output >> 32u) != 0u)
+	{
+		// Expensive 64-bit division.
+		const q = div1e8(output);
+		let output2 = output as uint32 - 100000000u * q as uint32;
+		output = q;
+
+		const c = output2 % 10000u;
+		output2 /= 10000u;
+		const d = output2 % 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		const d0 = (d % 100u) << 1u;
+		const d1 = (d / 100u) << 1u;
+		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		std::memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
+		std::memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
+		i += 8u;
+	}
+	let output2 = output as uint32;
+	while (output2 >= 10000u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = output2 - 10000u * (output2 / 10000u);
+		output2 /= 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		i += 4u;
+	}
+	if (output2 >= 100u)
+	{
+		const c = (output2 % 100u) << 1u;
+		output2 /= 100u;
+		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2u);
+		i += 2u;
+	}
+	if (output2 >= 10u)
+	{
+		const c = output2 << 1u;
+		// We can't use memcpy here: the decimal dot goes between these two digits.
+		std::memcpy(out + 1, DIGIT_TABLE.begin() + c, 2u);
+		// *(out + olength - i) = DIGIT_TABLE[c + 1u];
+		// *out = DIGIT_TABLE[c];
+	}
+	else
+	{
+		*(out + 1) = ('0' + output2) as uint32 as uint8;
+	}
+
+	if (actual_exponent >= 0)
+	{
+		std::memcpy(out, out + 1, (actual_exponent + 1) as usize);
+		// Print decimal point
+		*(out + actual_exponent + 1) = '.' as uint32 as uint8;
+	}
+	out += olength + 1u;
+	if (v.exponent >= 0)
+	{
+		*out = '0' as uint32 as uint8;
+		++out;
+	}
+	return out;
+}
+
+function to_chars_scientific(v: floating_decimal_64, out: *uint8) -> *uint8
+{
+	let output = v.mantissa;
+	const olength = decimalLength17(output);
+
+	let i = 0u32;
+	// We prefer 32-bit operations, even on 64-bit platforms.
+	// We have at most 17 digits, and uint32_t can store 9 digits.
+	// If output doesn't fit into uint32_t, we cut off 8 digits,
+	// so the rest will fit into uint32_t.
+	if ((output >> 32u) != 0u)
+	{
+		// Expensive 64-bit division.
+		const q = div1e8(output);
+		let output2 = output as uint32 - 100000000u * q as uint32;
+		output = q;
+
+		const c = output2 % 10000u;
+		output2 /= 10000u;
+		const d = output2 % 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		const d0 = (d % 100u) << 1u;
+		const d1 = (d / 100u) << 1u;
+		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		std::memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
+		std::memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
+		i += 8u;
+	}
+	let output2 = output as uint32;
+	while (output2 >= 10000u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = output2 - 10000u * (output2 / 10000u);
+		output2 /= 10000u;
+		const c0 = (c % 100u) << 1u;
+		const c1 = (c / 100u) << 1u;
+		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		i += 4u;
+	}
+	if (output2 >= 100u)
+	{
+		const c = (output2 % 100u) << 1u;
+		output2 /= 100u;
+		std::memcpy(out + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
+		i += 2u;
+	}
+	if (output2 >= 10u)
+	{
+		const c = output2 << 1u;
+		// We can't use memcpy here: the decimal dot goes between these two digits.
+		*(out + olength - i) = DIGIT_TABLE[c + 1u];
+		*out = DIGIT_TABLE[c];
+	}
+	else
+	{
+		*out = ('0' + output2) as uint32 as uint8;
+	}
+
+	// Print decimal point if needed.
+	if (olength > 1u)
+	{
+		*(out + 1) = '.' as uint32 as uint8;
+		out += olength + 1u;
+	}
+	else
+	{
+		++out;
+	}
+
+	// Print the exponent.
+	*out = 'e' as uint32 as uint8;
+	++out;
+	let exp = v.exponent + olength as int32 - 1;
+	if (exp < 0)
+	{
+		*out = '-' as uint32 as uint8;
+		++out;
+		exp = -exp;
+	}
+	else
+	{
+		*out = '+' as uint32 as uint8;
+		++out;
+	}
+
+	if (exp >= 100)
+	{
+		let c = exp % 10;
+		std::memcpy(out, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
+		*(out + 2) = ('0' + c) as uint32 as uint8;
+		out += 3;
+	}
+	else
+	{
+		std::memcpy(out, DIGIT_TABLE.begin() + 2 * exp, 2u);
+		out += 2;
+	}
+
+	return out;
+}
+
+function to_chars_shortest(v: floating_decimal_64, sign: bool, out: *uint8) -> *uint8
+{
+	if (sign)
+	{
+		*out = '-' as uint32 as uint8;
+		++out;
+	}
+
+	const olength = decimalLength17(v.mantissa) as int32;
+	const actual_exponent = olength - 1 + v.exponent;
+
+	if (actual_exponent >= -4 && actual_exponent <= 14)
+	{
+		return to_chars_fixed(v, out);
+	}
+	else
+	{
+		return to_chars_scientific(v, out);
+	}
+}
