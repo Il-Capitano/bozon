@@ -663,7 +663,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	// add declarations to the module
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
-	bc::runtime::add_builtin_functions(context);
 	for (auto const &file : this->_src_files)
 	{
 		for (auto const type : file._global_decls.types)

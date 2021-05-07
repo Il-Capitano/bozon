@@ -863,8 +863,6 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	this->current_module = &module;
 	bz_assert(this->functions_to_compile.empty());
 
-	bc::comptime::add_builtin_functions(*this);
-
 	bz_assert(this->errors_array != nullptr);
 	bc::comptime::emit_global_variable(*this->errors_array, *this);
 	bz_assert(this->call_stack != nullptr);

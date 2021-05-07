@@ -4968,24 +4968,6 @@ void resolve_global_type(ast::type_info *info, llvm::Type *type, ctx::comptime_e
 	}
 }
 
-void add_builtin_functions(ctx::comptime_executor_context &context)
-{
-	for (
-		uint32_t kind = ast::function_body::_builtin_first;
-		kind < ast::function_body::_builtin_last;
-		++kind
-	)
-	{
-		auto const body = context.get_builtin_function(kind);
-		if (body->symbol_name != "")
-		{
-			add_function_to_module(body, context);
-			context.ensure_function_emission(body);
-		}
-	}
-	[[maybe_unused]] auto const result = emit_necessary_functions(0, context);
-}
-
 bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context &context)
 {
 	auto const abi = context.get_platform_abi();

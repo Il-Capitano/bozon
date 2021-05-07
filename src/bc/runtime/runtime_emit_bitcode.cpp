@@ -4592,22 +4592,6 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 	}
 }
 
-void add_builtin_functions(ctx::bitcode_context &context)
-{
-	for (
-		uint32_t kind = ast::function_body::_builtin_first;
-		kind < ast::function_body::_builtin_last;
-		++kind
-	)
-	{
-		auto const body = context.get_builtin_function(kind);
-		if (body->symbol_name != "")
-		{
-			add_function_to_module(body, context);
-		}
-	}
-}
-
 void emit_necessary_functions(ctx::bitcode_context &context)
 {
 	auto const abi = context.get_platform_abi();
