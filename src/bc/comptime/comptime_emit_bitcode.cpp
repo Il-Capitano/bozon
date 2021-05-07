@@ -5061,7 +5061,13 @@ static void add_global_result_getters(
 	default:
 	{
 		auto const func_type = llvm::FunctionType::get(type, false);
-		auto const func = llvm::Function::Create(func_type, llvm::Function::InternalLinkage, "__global_result_getter", &context.get_module());
+		auto const symbol_name = bz::format("__global_result_getter.{}", get_unique_id());
+		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
+		auto const func = llvm::Function::Create(
+			func_type, llvm::Function::InternalLinkage,
+			symbol_name_ref,
+			&context.get_module()
+		);
 		getters.push_back(func);
 		auto const bb = llvm::BasicBlock::Create(
 			context.get_llvm_context(),
