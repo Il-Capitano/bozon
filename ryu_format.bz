@@ -1,0 +1,14 @@
+import std::ryu::d2s;
+import std::ryu::f2s;
+
+@symbol_name("d2s_short")
+export function d2s_short(x: float64, buffer: *uint8) -> *uint8
+{
+	return std::ryu::d2s_shortest(x, buffer);
+}
+
+@symbol_name("f2s_short")
+export function f2s_short(x: float32, buffer: *uint8) -> *uint8
+{
+	return std::ryu::f2s_shortest(x, buffer);
+}

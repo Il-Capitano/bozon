@@ -1710,12 +1710,28 @@ u8string float_to_string_exp(
 */
 }
 
+extern "C" char *d2s_short(double x, char *buffer);
+extern "C" char *f2s_short(float x, char *buffer);
+
 template<typename Float, typename = std::enable_if_t<
 	std::is_same_v<Float, float>
 	|| std::is_same_v<Float, double>
 >>
 u8string float_to_string(Float val, format_spec spec)
 {
+	if (spec.type == '\0' && spec.precision == format_spec::precision_none && !spec.zero_pad)
+	{
+		char buffer[std::is_same_v<Float, float> ? 15 : 24];
+		auto begin = buffer;
+		if ((spec.sign == ' ' || spec.sign == '+') && std::isfinite(val) && !std::signbit(val))
+		{
+			*begin = spec.sign;
+		}
+		auto const end = std::is_same_v<Float, float> ? f2s_short(val, begin) : d2s_short(val, begin);
+		auto const str = u8string_view(buffer, end);
+		return format_str(str, spec);
+	}
+
 	if (spec.align == '\0')
 	{
 		spec.align = '>';

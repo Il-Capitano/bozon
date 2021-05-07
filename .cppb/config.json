@@ -40,13 +40,13 @@
 			},
 			"linux-release": {},
 			"windows": {
-				"link_flags": [ "-fuse-ld=lld" ],
+				"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
 				"compiler": "clang-11",
 				"libraries": [ "LLVM-11" ],
-				"link_flags": [ "-fuse-ld=lld-11" ],
+				"link_flags": [ "-fuse-ld=lld-11", "ryu_format.linux.o" ],
 				"warnings": [ "no-unused-parameter" ],
 				"emit_compile_commands": false
 			},
