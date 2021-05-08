@@ -17,15 +17,50 @@
 
 // A table of all two-digit numbers. This is used to speed up decimal digit
 // generation by copying pairs of digits into the final output.
-export consteval DIGIT_TABLE = {
-	let result: [200: uint8];
-	for (let i = 0u; i < 200u; i += 2u)
+export consteval DIGIT_TABLE: [200: uint8] = [
+	// "00" starts here
+	48u8, 48u8, 48u8, 49u8, 48u8, 50u8, 48u8, 51u8, 48u8, 52u8,
+	48u8, 53u8, 48u8, 54u8, 48u8, 55u8, 48u8, 56u8, 48u8, 57u8,
+	// "10" starts here
+	49u8, 48u8, 49u8, 49u8, 49u8, 50u8, 49u8, 51u8, 49u8, 52u8,
+	49u8, 53u8, 49u8, 54u8, 49u8, 55u8, 49u8, 56u8, 49u8, 57u8,
+	// "20" starts here
+	50u8, 48u8, 50u8, 49u8, 50u8, 50u8, 50u8, 51u8, 50u8, 52u8,
+	50u8, 53u8, 50u8, 54u8, 50u8, 55u8, 50u8, 56u8, 50u8, 57u8,
+	// "30" starts here
+	51u8, 48u8, 51u8, 49u8, 51u8, 50u8, 51u8, 51u8, 51u8, 52u8,
+	51u8, 53u8, 51u8, 54u8, 51u8, 55u8, 51u8, 56u8, 51u8, 57u8,
+	// "40" starts here
+	52u8, 48u8, 52u8, 49u8, 52u8, 50u8, 52u8, 51u8, 52u8, 52u8,
+	52u8, 53u8, 52u8, 54u8, 52u8, 55u8, 52u8, 56u8, 52u8, 57u8,
+	// "50" starts here
+	53u8, 48u8, 53u8, 49u8, 53u8, 50u8, 53u8, 51u8, 53u8, 52u8,
+	53u8, 53u8, 53u8, 54u8, 53u8, 55u8, 53u8, 56u8, 53u8, 57u8,
+	// "60" starts here
+	54u8, 48u8, 54u8, 49u8, 54u8, 50u8, 54u8, 51u8, 54u8, 52u8,
+	54u8, 53u8, 54u8, 54u8, 54u8, 55u8, 54u8, 56u8, 54u8, 57u8,
+	// "70" starts here
+	55u8, 48u8, 55u8, 49u8, 55u8, 50u8, 55u8, 51u8, 55u8, 52u8,
+	55u8, 53u8, 55u8, 54u8, 55u8, 55u8, 55u8, 56u8, 55u8, 57u8,
+	// "80" starts here
+	56u8, 48u8, 56u8, 49u8, 56u8, 50u8, 56u8, 51u8, 56u8, 52u8,
+	56u8, 53u8, 56u8, 54u8, 56u8, 55u8, 56u8, 56u8, 56u8, 57u8,
+	// "90" starts here
+	57u8, 48u8, 57u8, 49u8, 57u8, 50u8, 57u8, 51u8, 57u8, 52u8,
+	57u8, 53u8, 57u8, 54u8, 57u8, 55u8, 57u8, 56u8, 57u8, 57u8
+];
+
+static_assert({
+	let good = true;
+	const table = DIGIT_TABLE;
+	for (let i = 0u; i < 100u; ++i)
 	{
-		result[i]      = ('0' + (i / 2u / 10u)) as uint32 as uint8;
-		result[i + 1u] = ('0' + (i / 2u % 10u)) as uint32 as uint8;
+		good &= table[2u * i]      == ('0' + i / 10u) as uint32;
+		good &= table[2u * i + 1u] == ('0' + i % 10u) as uint32;
 	}
-	result
-};
+	good
+});
+
 /*
 export consteval DIGIT_TABLE: [200: uint8] = [
 	'0','0','0','1','0','2','0','3','0','4',
