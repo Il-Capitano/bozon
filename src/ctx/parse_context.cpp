@@ -48,7 +48,8 @@ parse_context::parse_context(parse_context const &other, global_copy_t)
 	: global_ctx(other.global_ctx),
 	  global_decls(other.global_decls),
 	  current_file_id(other.current_file_id),
-	  current_scope(other.current_scope)
+	  current_scope(other.current_scope),
+	  resolve_queue(other.resolve_queue)
 {}
 
 ast::type_info *parse_context::get_builtin_type_info(uint32_t kind) const
@@ -119,7 +120,11 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 
 	for (auto const &required_from : body.generic_required_from.reversed())
 	{
-		if (required_from.second == nullptr)
+		if (required_from.first.pivot == nullptr)
+		{
+			notes.emplace_back(context.make_note("required from unknown location"));
+		}
+		else if (required_from.second == nullptr)
 		{
 			notes.emplace_back(context.make_note(required_from.first, "required from here"));
 		}
@@ -150,36 +155,24 @@ static bz::vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_
 	parse_context &context
 )
 {
+	bz_assert(src_tokens.pivot != nullptr);
 	bz::vector<std::pair<lex::src_tokens, ast::function_body *>> result;
-	auto it = context.resolve_queue.rbegin();
-	auto const end = context.resolve_queue.rend();
 	auto const is_generic_specialization_dep = [](auto const &dep) {
 		auto const body = dep.requested.template get_if<ast::function_body *>();
 		return body != nullptr && (*body)->is_generic_specialization();
 	};
-	if (it != end && is_generic_specialization_dep(*it))
+	if (!context.resolve_queue.empty() && is_generic_specialization_dep(context.resolve_queue.back()))
 	{
-		// we need to accumulate everything on the front, but prefer using push_back for the first
-		// few elements that are known
-		if (it->requester.pivot != nullptr)
-		{
-			result.push_back({ it->requester, nullptr });
-		}
-		result.push_back({ src_tokens, it->requested.get<ast::function_body *>() });
-		++it;
-		for (; it != end && is_generic_specialization_dep(*it); ++it)
-		{
-			auto &dep = *it;
-			auto const body = it->requested.get<ast::function_body *>();
-			bz_assert(body != nullptr);
-			result.front().second = body;
-			result.push_front({ dep.requester, nullptr });
-		}
+		// inherit dependencies from parent function
+		auto &dep = context.resolve_queue.back();
+		result = dep.requested.get<ast::function_body *>()->generic_required_from;
+		result.push_back({ src_tokens, dep.requested.get<ast::function_body *>() });
 	}
 	else
 	{
 		result.push_back({ src_tokens, nullptr });
 	}
+	bz_assert(result.front().first.pivot != nullptr);
 	return result;
 }
 
@@ -3707,6 +3700,7 @@ static ast::expression make_expr_function_call_from_body(
 	if (body->is_generic())
 	{
 		auto required_from = get_generic_requirements(src_tokens, context);
+		bz_assert(required_from.front().first.pivot != nullptr);
 		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
