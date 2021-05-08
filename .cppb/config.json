@@ -92,13 +92,13 @@
 			},
 			"linux-release": {},
 			"windows": {
-				"link_flags": [ "-fuse-ld=lld" ],
+				"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
 				"compiler": "gcc-10",
 				"libraries": [ "LLVM-11" ],
-				"link_flags": [ "-fuse-ld=lld" ],
+				"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 				"warnings": [ "no-unused-parameter" ]
 			},
 			"debug": {
