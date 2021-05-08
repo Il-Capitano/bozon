@@ -423,6 +423,35 @@ bool is_non_trivial(typespec_view ts) noexcept
 	}
 }
 
+bool is_default_zero_initialized(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		auto const &info = *ts.get<ts_base_type>().info;
+		return info.default_constructor == nullptr
+			// will be true for built-in types
+			&& info.member_variables.is_all([](auto const member) {
+				return is_default_zero_initialized(member->get_type());
+			});
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_default_zero_initialized(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_default_zero_initialized(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are zero initialized
+		return true;
+	}
+}
+
 bz::u8string typespec_view::get_symbol_name(void) const
 {
 	bz::u8string result = "";

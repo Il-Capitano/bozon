@@ -643,12 +643,33 @@ static val_ptr emit_default_constructor(
 	llvm::Value *result_address
 )
 {
+	type = ast::remove_const_or_consteval(type);
 	if (result_address == nullptr)
 	{
 		result_address = context.create_alloca(get_llvm_type(type, context));
 	}
 
 	auto const llvm_type = get_llvm_type(type, context);
+
+	if (ast::is_default_zero_initialized(type))
+	{
+		if (auto const size = context.get_size(llvm_type); size > 16)
+		{
+			auto const memset_fn = context.get_function(context.get_builtin_function(ast::function_body::memset));
+			auto const dest_ptr = context.builder.CreatePointerCast(result_address, llvm::PointerType::get(context.get_uint8_t(), 0));
+			auto const zero_val = llvm::ConstantInt::get(context.get_uint8_t(), 0);
+			auto const size_val = llvm::ConstantInt::get(context.get_uint64_t(), size);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			context.builder.CreateCall(memset_fn, { dest_ptr, zero_val, size_val, false_val });
+		}
+		else
+		{
+			auto const zero_init_val = get_constant_zero(type, llvm_type, context);
+			context.builder.CreateStore(zero_init_val, result_address);
+		}
+		return { val_ptr::reference, result_address };
+	}
+
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
