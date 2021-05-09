@@ -2173,27 +2173,12 @@ ast::statement default_parse_type_info_statement(
 	}
 }
 
-static void resolve_type_info_impl(
+static void add_type_info_members(
 	ast::type_info &info,
 	ctx::parse_context &context
 )
 {
-	if (info.state < ast::resolve_state::symbol)
-	{
-		resolve_type_info_symbol_impl(info, context);
-	}
-	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
-	{
-		return;
-	}
-
-	info.state = ast::resolve_state::resolving_all;
-	bz_assert(info.body.is<lex::token_range>());
-	auto [stream, end] = info.body.get<lex::token_range>();
-	info.body.emplace<bz::vector<ast::statement>>();
 	auto &info_body = info.body.get<bz::vector<ast::statement>>();
-
-	info_body = parse_struct_body_statements(stream, end, context);
 	for (auto &stmt : info_body)
 	{
 		if (stmt.is<ast::decl_function>())
@@ -2205,7 +2190,7 @@ static void resolve_type_info_impl(
 				{
 					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
 					context.report_error(
-						stream, bz::format("redefinition of destructor for type '{}'", type_name),
+						body.src_tokens, bz::format("redefinition of destructor for type '{}'", type_name),
 						{ context.make_note(info.destructor->src_tokens, "previously defined here") }
 					);
 				}
@@ -2247,6 +2232,31 @@ static void resolve_type_info_impl(
 	{
 		resolve_variable(*member, context);
 	}
+}
+
+static void resolve_type_info_impl(
+	ast::type_info &info,
+	ctx::parse_context &context
+)
+{
+	if (info.state < ast::resolve_state::symbol)
+	{
+		resolve_type_info_symbol_impl(info, context);
+	}
+	if (info.state == ast::resolve_state::error || info.kind == ast::type_info::forward_declaration)
+	{
+		return;
+	}
+
+	info.state = ast::resolve_state::resolving_all;
+	bz_assert(info.body.is<lex::token_range>());
+	auto [stream, end] = info.body.get<lex::token_range>();
+
+	info.body.emplace<bz::vector<ast::statement>>();
+	auto &info_body = info.body.get<bz::vector<ast::statement>>();
+	info_body = parse_struct_body_statements(stream, end, context);
+
+	add_type_info_members(info, context);
 
 	if (info.state == ast::resolve_state::error)
 	{
@@ -3710,7 +3720,7 @@ void resolve_global_statement(
 			if (!var_decl.is_member() && var_decl.state != ast::resolve_state::error && var_decl.init_expr.not_null())
 			{
 				consteval_try(var_decl.init_expr, context);
-				if (!var_decl.init_expr.has_consteval_succeeded())
+				if (var_decl.init_expr.not_error() && !var_decl.init_expr.has_consteval_succeeded())
 				{
 					context.report_error(
 						var_decl.src_tokens,

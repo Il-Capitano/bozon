@@ -377,9 +377,10 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_const,         statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
 	statement_parser{ lex::token::kw_type,          statement_parser::global | statement_parser::struct_body, &parse_decl_type_alias<true>,        },
-	statement_parser{ lex::token::kw_function,      statement_parser::global, &parse_decl_function_or_alias<true>, },
-	statement_parser{ lex::token::kw_operator,      statement_parser::global, &parse_decl_operator<true>,          },
-	statement_parser{ lex::token::kw_struct,        statement_parser::global, &parse_decl_struct<true>,            },
+	statement_parser{ lex::token::kw_function,      statement_parser::global | statement_parser::struct_body, &parse_decl_function_or_alias<true>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::global | statement_parser::struct_body, &parse_decl_operator<true>,          },
+	statement_parser{ lex::token::kw_struct,        statement_parser::global | statement_parser::struct_body, &parse_decl_struct<true>,            },
+
 	statement_parser{ lex::token::at,               statement_parser::global, &parse_attribute_statement<true>,    },
 	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,             },
 	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                  },
