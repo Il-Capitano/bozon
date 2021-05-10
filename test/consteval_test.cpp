@@ -120,6 +120,7 @@ do {                                                                            
 		vals[3]
 	})", ast::constant_value::sint, 3);
 
+	x_fail(R"({ if (x) { 0 } else { 1 } })");
 	x_fail(R"asdf({
 		function foo() -> int32
 		{
