@@ -3594,7 +3594,11 @@ static val_ptr emit_bitcode(
 )
 {
 	context.push_expression_scope();
-	auto const condition = emit_bitcode<abi>(if_expr.condition, context, nullptr).get_value(context.builder);
+	auto condition = emit_bitcode<abi>(if_expr.condition, context, nullptr).get_value(context.builder);
+	if (condition == nullptr)
+	{
+		condition = llvm::UndefValue::get(context.get_bool_t());
+	}
 	context.pop_expression_scope();
 	// assert that the condition is an i1 (bool)
 	bz_assert(condition->getType()->isIntegerTy() && condition->getType()->getIntegerBitWidth() == 1);
@@ -4382,7 +4386,11 @@ static void emit_bitcode(
 	ctx::comptime_executor_context &context
 )
 {
-	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+	if (var_decl.get_type().is_empty())
+	{
+		emit_error(var_decl.src_tokens, "failed to resolve variable declaration", context);
+	}
+	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
 		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);

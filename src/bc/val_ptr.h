@@ -32,6 +32,11 @@ struct val_ptr
 			return this->consteval_val;
 		}
 
+		if (this->val == nullptr)
+		{
+			return this->val;
+		}
+
 		if (this->kind == reference)
 		{
 			auto const loaded_val = builder.CreateLoad(this->val, "load_tmp");
