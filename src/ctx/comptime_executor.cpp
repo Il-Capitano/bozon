@@ -50,6 +50,7 @@ comptime_executor_context::~comptime_executor_context(void)
 	{
 		this->engine->runFunction(this->get_comptime_function(comptime_function_kind::cleanup), {});
 	}
+	this->engine.reset();
 }
 
 ast::type_info *comptime_executor_context::get_builtin_type_info(uint32_t kind)
@@ -839,9 +840,9 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
-	auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
-	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT
-		: (use_interpreter || !is_native ? llvm::EngineKind::Interpreter : llvm::EngineKind::Either);
+	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
+	// prefer Interpreter for now even for native targets
+	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
 	builder
 		.setEngineKind(engine_kind)
 		.setErrorStr(&err)
