@@ -31,6 +31,7 @@ struct arena_t
 			auto const next_node = node->next_node;
 			// size += node->size;
 			// capacity += node->capacity;
+			// bz::log("freeing node {}\n", node);
 			std::free(node);
 			node = next_node;
 		}
@@ -40,9 +41,16 @@ struct arena_t
 
 static arena_t arena = { nullptr, nullptr };
 
+static size_t round_up_to_alignment(size_t size)
+{
+	return size % arena_allocator::min_alignment == 0
+		? size
+		: size + arena_allocator::min_alignment - size % arena_allocator::min_alignment;
+}
+
 void *arena_allocator::sized_allocate(size_t size)
 {
-	size = size % min_alignment == 0 ? size : size + min_alignment - size % min_alignment;
+	size = round_up_to_alignment(size);
 	if (size > default_node_capacity)
 	{
 		auto const new_node_memory = std::malloc(sizeof (node_t) + size);
@@ -118,6 +126,7 @@ void *arena_allocator::sized_allocate(size_t size)
 
 void arena_allocator::sized_free(void *p, size_t size)
 {
+	size = round_up_to_alignment(size);
 	if (arena.last_node->data + arena.last_node->size - size == p)
 	{
 		arena.last_node->size -= size;
