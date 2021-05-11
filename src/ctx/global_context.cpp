@@ -490,8 +490,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 {
 	auto const is_native_target = target == "" || target == "native";
 	auto const target_triple = is_native_target
-		? llvm::sys::getDefaultTargetTriple()
-		: std::string(target.data_as_char_ptr(), target.size());
+		? llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
+		: llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size()));
 	llvm::InitializeAllDisassemblers();
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
