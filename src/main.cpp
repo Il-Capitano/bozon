@@ -3,8 +3,29 @@
 TODO:
 	- user-defined type implementation
 
+match_expression_to_type:
+()(if) -> match_if
+()(switch) -> match_switch
+(typename)(typename) -> strict_type_match
+(&mut)(&mut) -> strict
+(&const)(&const) -> strict_prop_const
+(&const)(&mut) -> strict_prop_const
+(#const)()
+(#const)(&mut)
+(#const)(&const)
+(#mut)()
+(#mut)(&mut)
+(##)()
+(##)(&mut)
+(##)(&const)
+(*mut)(*mut) -> strict
+(*const)(*const) -> strict_prop_const
+(*const)(*mut) -> strict_prop_const
+()() -> non-strict
 
-
+strict:
+(T)(T)
+(auto)(T)
 
 
 
@@ -1592,6 +1613,8 @@ int main(int argc, char const **argv)
 	}
 	auto const after_bitcode_emission = timer::now();
 
+	global_ctx.report_and_clear_errors_and_warnings();
+
 	auto const before_file_emission = timer::now();
 	if (!global_ctx.emit_file())
 	{
@@ -1608,11 +1631,9 @@ int main(int argc, char const **argv)
 
 	auto const end = timer::now();
 
-	global_ctx.report_and_clear_errors_and_warnings();
-
 	if (do_profile)
 	{
-		auto const compilation_time          = end - begin;
+		auto const compilation_time          = (after_bitcode_emission - begin) + (end - before_file_emission);
 		auto const front_end_time            = after_bitcode_emission - begin;
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
 		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
