@@ -639,7 +639,7 @@ auto get_if(variant<Ts...> const &v) noexcept -> decltype(v.template get_if<T>()
 
 template<typename ...Ts>
 void swap(variant<Ts...> &v1, variant<Ts...> &v2) noexcept(std::is_nothrow_invocable_v<
-	variant<Ts...>::swap, variant<Ts...>, variant<Ts...>
+	decltype(&variant<Ts...>::swap), variant<Ts...>, variant<Ts...>
 >)
 { v1.swap(v2); }
 

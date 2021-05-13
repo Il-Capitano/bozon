@@ -545,7 +545,7 @@ public:
 
 	// ==== size queries ====
 	auto max_size(void) noexcept(
-		meta::is_nothrow_invocable_v<allocator_type::max_size>
+		meta::is_nothrow_invocable_v<decltype(&allocator_type::max_size)>
 	)
 	{ return this->_allocator.max_size(); }
 
