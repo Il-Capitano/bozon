@@ -41,30 +41,30 @@ target triple = "x86_64-w64-windows-gnu"
 @.str.8 = private unnamed_addr constant [6 x i8] c"0.000\00", align 1
 @.str.9 = private unnamed_addr constant [6 x i8] c"0.000\00", align 1
 
-define void @"func.std.as_str..1.0R.const.struct.std::string.builtin.str"(%builtin.str* noalias nocapture nonnull sret %0, %"struct.std::string.4"* %1) {
+define void @"func.std.as_str..1.0R.const.struct.std::string.builtin.str"(%builtin.str* noalias nocapture nonnull sret(%builtin.str) %0, %"struct.std::string.4"* %1) {
 alloca:
-  %2 = bitcast %"struct.std::string.4"* %1 to i64*
-  %load_tmp3.i.i = load i64, i64* %2, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
-  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
-  %5 = bitcast i8** %4 to i8*
+  %2 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %2, align 8
+  %3 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %3, 1
+  %4 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %4
+  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
+  %6 = bitcast i8** %5 to i8*
   br i1 %bool_or_tmp.i.i, label %then.i5, label %else.i6
 
 then.i5:                                          ; preds = %alloca
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i, 1
-  %ptr_add_tmp.i = getelementptr i8, i8* %5, i64 %rshift_tmp.i.i
+  %rshift_tmp.i.i = lshr i64 %3, 1
+  %ptr_add_tmp.i = getelementptr i8, i8* %6, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 else.i6:                                          ; preds = %alloca
-  %6 = inttoptr i64 %load_tmp3.i.i to i8*
-  %load_tmp1.i = load i8*, i8** %4, align 8
+  %load_tmp1.i = load i8*, i8** %5, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 "func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i6, %then.i5
-  %7 = phi i8* [ %6, %else.i6 ], [ %5, %then.i5 ]
+  %7 = phi i8* [ %load_tmp.i.i, %else.i6 ], [ %6, %then.i5 ]
   %8 = phi i8* [ %load_tmp1.i, %else.i6 ], [ %ptr_add_tmp.i, %then.i5 ]
   %9 = getelementptr inbounds %builtin.str, %builtin.str* %0, i64 0, i32 0
   %10 = getelementptr inbounds %builtin.str, %builtin.str* %0, i64 0, i32 1
@@ -75,161 +75,156 @@ else.i6:                                          ; preds = %alloca
 
 define void @"func.std.swap..2.0R.struct.std::string.0R.struct.std::string.void"(%"struct.std::string.4"* %0, %"struct.std::string.4"* %1) {
 alloca:
-  %2 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i = load i64, i64* %2, align 8
-  %3 = bitcast %"struct.std::string.4"* %1 to i64*
-  %load_tmp14.i = load i64, i64* %3, align 8
-  store i64 %load_tmp14.i, i64* %2, align 8
-  store i64 %load_tmp3.i, i64* %3, align 8
+  %2 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 0
+  %load_tmp.i = load i8*, i8** %2, align 8
+  %load_tmp1.i = load i8*, i8** %3, align 8
+  store i8* %load_tmp1.i, i8** %2, align 8
+  store i8* %load_tmp.i, i8** %3, align 8
   %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
   %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
-  %6 = bitcast i8** %4 to i64*
-  %load_tmp3.i3 = load i64, i64* %6, align 8
-  %7 = bitcast i8** %5 to i64*
-  %load_tmp14.i4 = load i64, i64* %7, align 8
-  store i64 %load_tmp14.i4, i64* %6, align 8
-  store i64 %load_tmp3.i3, i64* %7, align 8
-  %8 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %9 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 2
-  %10 = bitcast i8** %8 to i64*
-  %load_tmp3.i1 = load i64, i64* %10, align 8
-  %11 = bitcast i8** %9 to i64*
-  %load_tmp14.i2 = load i64, i64* %11, align 8
-  store i64 %load_tmp14.i2, i64* %10, align 8
-  store i64 %load_tmp3.i1, i64* %11, align 8
+  %load_tmp.i3 = load i8*, i8** %4, align 8
+  %load_tmp1.i4 = load i8*, i8** %5, align 8
+  store i8* %load_tmp1.i4, i8** %4, align 8
+  store i8* %load_tmp.i3, i8** %5, align 8
+  %6 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 2
+  %load_tmp.i1 = load i8*, i8** %6, align 8
+  %load_tmp1.i2 = load i8*, i8** %7, align 8
+  store i8* %load_tmp1.i2, i8** %6, align 8
+  store i8* %load_tmp.i1, i8** %7, align 8
   ret void
 }
 
 define i64 @"func.std.size..1.0R.const.struct.std::string.builtin.uint64"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i.i = load i64, i64* %1, align 8, !noalias !0
-  %cmp_tmp.i.i.i = icmp eq i64 %load_tmp3.i.i.i, 0
-  %bit_and_tmp.i.i.i = and i64 %load_tmp3.i.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i.i, 0
-  %bool_or_tmp.i.i.i = or i1 %cmp_tmp.i.i.i, %2
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %4 = bitcast i8** %3 to i8*
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i.i = load i8*, i8** %1, align 8, !noalias !0
+  %2 = ptrtoint i8* %load_tmp.i.i.i to i64
+  %cmp_tmp.i.i.i = icmp eq i8* %load_tmp.i.i.i, null
+  %bit_and_tmp.i.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i.i, 0
+  %bool_or_tmp.i.i.i = or i1 %cmp_tmp.i.i.i, %3
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
   br i1 %bool_or_tmp.i.i.i, label %then.i5.i, label %else.i6.i
 
 then.i5.i:                                        ; preds = %alloca
-  %rshift_tmp.i.i.i = lshr i64 %load_tmp3.i.i.i, 1
-  %ptr_add_tmp.i.i = getelementptr i8, i8* %4, i64 %rshift_tmp.i.i.i
+  %5 = bitcast i8** %4 to i8*
+  %rshift_tmp.i.i.i = lshr i64 %2, 1
+  %ptr_add_tmp.i.i = getelementptr i8, i8* %5, i64 %rshift_tmp.i.i.i
+  %.pre = ptrtoint i8** %4 to i64
   br label %"func.std.as_str..1.0R.const.struct.std::string.builtin.str.exit"
 
 else.i6.i:                                        ; preds = %alloca
-  %5 = inttoptr i64 %load_tmp3.i.i.i to i8*
-  %load_tmp1.i.i = load i8*, i8** %3, align 8, !noalias !0
+  %load_tmp1.i.i = load i8*, i8** %4, align 8, !noalias !0
   br label %"func.std.as_str..1.0R.const.struct.std::string.builtin.str.exit"
 
 "func.std.as_str..1.0R.const.struct.std::string.builtin.str.exit": ; preds = %then.i5.i, %else.i6.i
-  %6 = phi i8* [ %4, %then.i5.i ], [ %5, %else.i6.i ]
-  %7 = phi i8* [ %ptr_add_tmp.i.i, %then.i5.i ], [ %load_tmp1.i.i, %else.i6.i ]
-  %load_tmp.unpack4.cast = ptrtoint i8* %6 to i64
-  %load_tmp.unpack25.cast = ptrtoint i8* %7 to i64
-  %8 = sub i64 %load_tmp.unpack25.cast, %load_tmp.unpack4.cast
+  %.pre-phi = phi i64 [ %.pre, %then.i5.i ], [ %2, %else.i6.i ]
+  %6 = phi i8* [ %ptr_add_tmp.i.i, %then.i5.i ], [ %load_tmp1.i.i, %else.i6.i ]
+  %7 = ptrtoint i8* %6 to i64
+  %8 = sub i64 %7, %.pre-phi
   ret i64 %8
 }
 
 define i8* @"func.std.data..1.0R.struct.std::string.0P.builtin.uint8"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %1, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %2
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %4 = bitcast i8** %3 to i8*
-  %5 = inttoptr i64 %load_tmp3.i.i to i8*
-  %6 = select i1 %bool_or_tmp.i.i, i8* %4, i8* %5
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %5 = bitcast i8** %4 to i8*
+  %6 = select i1 %bool_or_tmp.i.i, i8* %5, i8* %load_tmp.i.i
   ret i8* %6
 }
 
-define %"struct.std::string.4"* @"op.290..2.0R.struct.std::string.builtin.str.0R.struct.std::string"(%"struct.std::string.4"* %0, %builtin.str* noalias nocapture nonnull byval %1) {
+define %"struct.std::string.4"* @"op.290..2.0R.struct.std::string.builtin.str.0R.struct.std::string"(%"struct.std::string.4"* %0, %builtin.str* noalias nocapture nonnull byval(%builtin.str) %1) {
 alloca:
-  %2 = bitcast %builtin.str* %1 to i64*
-  %load_tmp.unpack10 = load i64, i64* %2, align 8
+  %load_tmp.elt = getelementptr inbounds %builtin.str, %builtin.str* %1, i64 0, i32 0
+  %load_tmp.unpack = load i8*, i8** %load_tmp.elt, align 8
   %load_tmp.elt7 = getelementptr inbounds %builtin.str, %builtin.str* %1, i64 0, i32 1
-  %3 = bitcast i8** %load_tmp.elt7 to i64*
-  %load_tmp.unpack811 = load i64, i64* %3, align 8
-  %4 = sub i64 %load_tmp.unpack811, %load_tmp.unpack10
-  %5 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i.i.i = load i64, i64* %5, align 8, !noalias !3
-  %cmp_tmp.i.i.i.i = icmp eq i64 %load_tmp3.i.i.i.i, 0
-  %bit_and_tmp.i.i.i.i = and i64 %load_tmp3.i.i.i.i, 1
-  %6 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
-  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %6
-  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %8 = bitcast i8** %7 to i8*
-  %9 = inttoptr i64 %load_tmp3.i.i.i.i to i8*
-  %10 = select i1 %bool_or_tmp.i.i.i.i, i8* %8, i8* %9
+  %load_tmp.unpack8 = load i8*, i8** %load_tmp.elt7, align 8
+  %2 = ptrtoint i8* %load_tmp.unpack8 to i64
+  %3 = ptrtoint i8* %load_tmp.unpack to i64
+  %4 = sub i64 %2, %3
+  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i.i.i = load i8*, i8** %5, align 8, !noalias !3
+  %6 = ptrtoint i8* %load_tmp.i.i.i.i to i64
+  %cmp_tmp.i.i.i.i = icmp eq i8* %load_tmp.i.i.i.i, null
+  %bit_and_tmp.i.i.i.i = and i64 %6, 1
+  %7 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
+  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %7
+  %8 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %9 = bitcast i8** %8 to i8*
+  %10 = select i1 %bool_or_tmp.i.i.i.i, i8* %9, i8* %load_tmp.i.i.i.i
   br i1 %bool_or_tmp.i.i.i.i, label %then.i5.i.i, label %else.i6.i.i
 
 then.i5.i.i:                                      ; preds = %alloca
-  %rshift_tmp.i.i.i.i = lshr i64 %load_tmp3.i.i.i.i, 1
-  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i.i.i
+  %rshift_tmp.i.i.i.i = lshr i64 %6, 1
+  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %9, i64 %rshift_tmp.i.i.i.i
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 else.i6.i.i:                                      ; preds = %alloca
-  %load_tmp1.i.i.i = load i8*, i8** %7, align 8, !noalias !3
+  %load_tmp1.i.i.i = load i8*, i8** %8, align 8, !noalias !3
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %then.i5.i.i, %else.i6.i.i
   %11 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
-  %load_tmp.unpack4.i.cast = ptrtoint i8* %10 to i64
-  %load_tmp.unpack25.i.cast = ptrtoint i8* %11 to i64
-  %12 = sub i64 %load_tmp.unpack25.i.cast, %load_tmp.unpack4.i.cast
-  %add_tmp = add i64 %12, %4
+  %12 = ptrtoint i8* %11 to i64
+  %13 = ptrtoint i8* %10 to i64
+  %14 = sub i64 %12, %13
+  %add_tmp = add i64 %14, %4
   call void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %add_tmp)
-  %13 = inttoptr i64 %load_tmp.unpack10 to i8*
-  %load_tmp3.i.i17 = load i64, i64* %5, align 8
-  %cmp_tmp.i.i18 = icmp eq i64 %load_tmp3.i.i17, 0
-  %bit_and_tmp.i.i19 = and i64 %load_tmp3.i.i17, 1
-  %14 = icmp ne i64 %bit_and_tmp.i.i19, 0
-  %bool_or_tmp.i.i20 = or i1 %cmp_tmp.i.i18, %14
-  br i1 %bool_or_tmp.i.i20, label %then.i22, label %else.i24
+  %load_tmp.i.i13 = load i8*, i8** %5, align 8
+  %15 = ptrtoint i8* %load_tmp.i.i13 to i64
+  %cmp_tmp.i.i14 = icmp eq i8* %load_tmp.i.i13, null
+  %bit_and_tmp.i.i15 = and i64 %15, 1
+  %16 = icmp ne i64 %bit_and_tmp.i.i15, 0
+  %bool_or_tmp.i.i16 = or i1 %cmp_tmp.i.i14, %16
+  br i1 %bool_or_tmp.i.i16, label %then.i18, label %else.i20
 
-then.i22:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i17, 1
-  %ptr_add_tmp.i21 = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i
+then.i18:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
+  %rshift_tmp.i.i = lshr i64 %15, 1
+  %ptr_add_tmp.i17 = getelementptr i8, i8* %9, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
-else.i24:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %load_tmp1.i23 = load i8*, i8** %7, align 8
+else.i20:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
+  %load_tmp1.i19 = load i8*, i8** %8, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
-"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i24, %then.i22
-  %15 = phi i8* [ %ptr_add_tmp.i21, %then.i22 ], [ %load_tmp1.i23, %else.i24 ]
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %15, i8* align 1 %13, i64 %4, i1 false)
-  %load_tmp3.i.i = load i64, i64* %5, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %16 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %16
+"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i20, %then.i18
+  %17 = phi i8* [ %ptr_add_tmp.i17, %then.i18 ], [ %load_tmp1.i19, %else.i20 ]
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %17, i8* align 1 %load_tmp.unpack, i64 %4, i1 false)
+  %load_tmp.i.i = load i8*, i8** %5, align 8
+  %18 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %18, 1
+  %19 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %19
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %17 = icmp eq i64 %add_tmp, 0
-  br i1 %17, label %then.i.i, label %else.i.i
+  %20 = icmp eq i64 %add_tmp, 0
+  br i1 %20, label %then.i.i, label %else.i.i
 
 then.i.i:                                         ; preds = %then.i
-  %18 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %18, align 8
+  store i8* null, i8** %5, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i.i:                                         ; preds = %then.i
   %lshift_tmp.i.i = shl i64 %add_tmp, 1
   %bit_or_tmp.i.i = or i64 %lshift_tmp.i.i, 1
-  %19 = inttoptr i64 %bit_or_tmp.i.i to i8*
-  %20 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* %19, i8** %20, align 8
+  %21 = inttoptr i64 %bit_or_tmp.i.i to i8*
+  store i8* %21, i8** %5, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i:                                           ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %21 = inttoptr i64 %load_tmp3.i.i to i8*
-  %ptr_add_tmp.i = getelementptr i8, i8* %21, i64 %add_tmp
-  store i8* %ptr_add_tmp.i, i8** %7, align 8
+  %ptr_add_tmp.i = getelementptr i8, i8* %load_tmp.i.i, i64 %add_tmp
+  store i8* %ptr_add_tmp.i, i8** %8, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 "func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit": ; preds = %then.i.i, %else.i.i, %else.i
@@ -238,31 +233,28 @@ else.i:                                           ; preds = %"func.std.end_ptr..
 
 define void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %1) {
 alloca:
-  %2 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %2, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
+  %2 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %2, align 8
+  %3 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %3, 1
+  %4 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %4
   br i1 %bool_or_tmp.i.i, label %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit", label %else.i
 
 else.i:                                           ; preds = %alloca
-  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %5 = bitcast i8** %4 to i64*
-  %load_tmp2.i = load i64, i64* %5, align 8
-  %6 = sub i64 %load_tmp2.i, %load_tmp3.i.i
+  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  %load_tmp.i = load i8*, i8** %5, align 8
+  %6 = ptrtoint i8* %load_tmp.i to i64
+  %7 = sub i64 %6, %3
   br label %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %alloca, %else.i
-  %7 = phi i64 [ %6, %else.i ], [ 16, %alloca ]
-  %8 = icmp ult i64 %7, %1
-  br i1 %8, label %then, label %endif12
+  %8 = phi i64 [ %7, %else.i ], [ 16, %alloca ]
+  %9 = icmp ult i64 %8, %1
+  br i1 %9, label %then, label %endif12
 
 then:                                             ; preds = %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %9 = icmp eq i64 %1, 0
-  br i1 %9, label %func.std.rounded_alloc..1.builtin.uint64.0T.2.0P.builtin.uint8.builtin.uint64.exit, label %else.i14
-
-else.i14:                                         ; preds = %then
   %sub_tmp.i.i = add i64 %1, -1
   %rshift_tmp.i.i = lshr i64 %sub_tmp.i.i, 1
   %bit_or_tmp.i.i = or i64 %rshift_tmp.i.i, %sub_tmp.i.i
@@ -278,65 +270,58 @@ else.i14:                                         ; preds = %then
   %bit_or_tmp22.i.i = or i64 %rshift_tmp20.i.i, %bit_or_tmp18.i.i
   %add_tmp.i.i = add i64 %bit_or_tmp22.i.i, 1
   %10 = call i8* @malloc(i64 %add_tmp.i.i), !noalias !6
-  %load_tmp3.i.i.i.i.pre = load i64, i64* %2, align 8, !noalias !9
-  br label %func.std.rounded_alloc..1.builtin.uint64.0T.2.0P.builtin.uint8.builtin.uint64.exit
-
-func.std.rounded_alloc..1.builtin.uint64.0T.2.0P.builtin.uint8.builtin.uint64.exit: ; preds = %then, %else.i14
-  %load_tmp10 = phi i64 [ %add_tmp.i.i, %else.i14 ], [ 0, %then ]
-  %load_tmp.i.in = phi i64 [ %load_tmp3.i.i.i.i.pre, %else.i14 ], [ %load_tmp3.i.i, %then ]
-  %load_tmp2 = phi i8* [ %10, %else.i14 ], [ null, %then ]
-  %load_tmp.i = inttoptr i64 %load_tmp.i.in to i8*
-  %cmp_tmp.i.i.i.i = icmp eq i64 %load_tmp.i.in, 0
-  %bit_and_tmp.i.i.i.i = and i64 %load_tmp.i.in, 1
-  %11 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
-  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %11
-  %12 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %13 = bitcast i8** %12 to i8*
-  %14 = select i1 %bool_or_tmp.i.i.i.i, i8* %13, i8* %load_tmp.i
+  %load_tmp.i.i.i.i = load i8*, i8** %2, align 8, !noalias !9
+  %11 = ptrtoint i8* %load_tmp.i.i.i.i to i64
+  %cmp_tmp.i.i.i.i = icmp eq i8* %load_tmp.i.i.i.i, null
+  %bit_and_tmp.i.i.i.i = and i64 %11, 1
+  %12 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
+  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %12
+  %13 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %14 = bitcast i8** %13 to i8*
+  %15 = select i1 %bool_or_tmp.i.i.i.i, i8* %14, i8* %load_tmp.i.i.i.i
   br i1 %bool_or_tmp.i.i.i.i, label %then.i5.i.i, label %else.i6.i.i
 
-then.i5.i.i:                                      ; preds = %func.std.rounded_alloc..1.builtin.uint64.0T.2.0P.builtin.uint8.builtin.uint64.exit
-  %rshift_tmp.i.i.i.i = lshr i64 %load_tmp.i.in, 1
-  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %13, i64 %rshift_tmp.i.i.i.i
+then.i5.i.i:                                      ; preds = %then
+  %rshift_tmp.i.i.i.i = lshr i64 %11, 1
+  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %14, i64 %rshift_tmp.i.i.i.i
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
-else.i6.i.i:                                      ; preds = %func.std.rounded_alloc..1.builtin.uint64.0T.2.0P.builtin.uint8.builtin.uint64.exit
-  %load_tmp1.i.i.i = load i8*, i8** %12, align 8, !noalias !9
+else.i6.i.i:                                      ; preds = %then
+  %load_tmp1.i.i.i = load i8*, i8** %13, align 8, !noalias !9
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %then.i5.i.i, %else.i6.i.i
-  %15 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
-  %load_tmp.unpack4.i.cast = ptrtoint i8* %14 to i64
-  %load_tmp.unpack25.i.cast = ptrtoint i8* %15 to i64
-  %16 = sub i64 %load_tmp.unpack25.i.cast, %load_tmp.unpack4.i.cast
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %load_tmp2, i8* align 1 %14, i64 %16, i1 false)
-  %load_tmp3.i = load i64, i64* %2, align 8
-  %cmp_tmp.i = icmp eq i64 %load_tmp3.i, 0
-  %bit_and_tmp.i = and i64 %load_tmp3.i, 1
-  %17 = icmp ne i64 %bit_and_tmp.i, 0
-  %bool_or_tmp.i = or i1 %cmp_tmp.i, %17
-  %18 = ptrtoint i8* %load_tmp2 to i64
+  %16 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
+  %17 = ptrtoint i8* %16 to i64
+  %18 = ptrtoint i8* %15 to i64
+  %19 = sub i64 %17, %18
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %10, i8* align 1 %15, i64 %19, i1 false)
+  %load_tmp.i14 = load i8*, i8** %2, align 8
+  %20 = ptrtoint i8* %load_tmp.i14 to i64
+  %cmp_tmp.i = icmp eq i8* %load_tmp.i14, null
+  %bit_and_tmp.i = and i64 %20, 1
+  %21 = icmp ne i64 %bit_and_tmp.i, 0
+  %bool_or_tmp.i = or i1 %cmp_tmp.i, %21
   br i1 %bool_or_tmp.i, label %endif, label %then4
 
 then4:                                            ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %19 = inttoptr i64 %load_tmp3.i to i8*
-  call void @free(i8* %19)
+  call void @free(i8* %load_tmp.i14)
   br label %endif
 
-endif:                                            ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit", %then4
-  store i64 %18, i64* %2, align 8
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp2, i64 %16
-  store i8* %ptr_add_tmp, i8** %12, align 8
-  %ptr_add_tmp11 = getelementptr i8, i8* %load_tmp2, i64 %load_tmp10
-  %20 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  store i8* %ptr_add_tmp11, i8** %20, align 8
+endif:                                            ; preds = %then4, %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
+  store i8* %10, i8** %2, align 8
+  %ptr_add_tmp = getelementptr i8, i8* %10, i64 %19
+  store i8* %ptr_add_tmp, i8** %13, align 8
+  %ptr_add_tmp11 = getelementptr i8, i8* %10, i64 %add_tmp.i.i
+  %22 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  store i8* %ptr_add_tmp11, i8** %22, align 8
   br label %endif12
 
 endif12:                                          ; preds = %endif, %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
   ret void
 }
 
-; Function Attrs: argmemonly nounwind willreturn
+; Function Attrs: argmemonly nofree nosync nounwind willreturn
 declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg) #0
 
 define %"struct.std::string.4"* @"op.61..2.0R.struct.std::string.0R.const.struct.std::string.0R.struct.std::string"(%"struct.std::string.4"* %0, %"struct.std::string.4"* %1) {
@@ -348,271 +333,248 @@ then:                                             ; preds = %then.i.i, %else.i.i
   ret %"struct.std::string.4"* %0
 
 endif:                                            ; preds = %alloca
-  %2 = bitcast %"struct.std::string.4"* %1 to i64*
-  %load_tmp3.i.i.i.i = load i64, i64* %2, align 8, !noalias !12
-  %cmp_tmp.i.i.i.i = icmp eq i64 %load_tmp3.i.i.i.i, 0
-  %bit_and_tmp.i.i.i.i = and i64 %load_tmp3.i.i.i.i, 1
-  %3 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
-  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %3
-  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
-  %5 = bitcast i8** %4 to i8*
-  %6 = inttoptr i64 %load_tmp3.i.i.i.i to i8*
-  %7 = select i1 %bool_or_tmp.i.i.i.i, i8* %5, i8* %6
+  %2 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 0
+  %load_tmp.i.i.i.i = load i8*, i8** %2, align 8, !noalias !12
+  %3 = ptrtoint i8* %load_tmp.i.i.i.i to i64
+  %cmp_tmp.i.i.i.i = icmp eq i8* %load_tmp.i.i.i.i, null
+  %bit_and_tmp.i.i.i.i = and i64 %3, 1
+  %4 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
+  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %4
+  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
+  %6 = bitcast i8** %5 to i8*
+  %7 = select i1 %bool_or_tmp.i.i.i.i, i8* %6, i8* %load_tmp.i.i.i.i
   br i1 %bool_or_tmp.i.i.i.i, label %then.i5.i.i, label %else.i6.i.i
 
 then.i5.i.i:                                      ; preds = %endif
-  %rshift_tmp.i.i.i.i = lshr i64 %load_tmp3.i.i.i.i, 1
-  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %5, i64 %rshift_tmp.i.i.i.i
+  %rshift_tmp.i.i.i.i = lshr i64 %3, 1
+  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %6, i64 %rshift_tmp.i.i.i.i
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 else.i6.i.i:                                      ; preds = %endif
-  %load_tmp1.i.i.i = load i8*, i8** %4, align 8, !noalias !12
+  %load_tmp1.i.i.i = load i8*, i8** %5, align 8, !noalias !12
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %then.i5.i.i, %else.i6.i.i
   %8 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
-  %load_tmp.unpack4.i.cast = ptrtoint i8* %7 to i64
-  %load_tmp.unpack25.i.cast = ptrtoint i8* %8 to i64
-  %9 = sub i64 %load_tmp.unpack25.i.cast, %load_tmp.unpack4.i.cast
-  call void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %9)
-  %10 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i9 = load i64, i64* %10, align 8
-  %cmp_tmp.i.i10 = icmp eq i64 %load_tmp3.i.i9, 0
-  %bit_and_tmp.i.i11 = and i64 %load_tmp3.i.i9, 1
-  %11 = icmp ne i64 %bit_and_tmp.i.i11, 0
-  %bool_or_tmp.i.i12 = or i1 %cmp_tmp.i.i10, %11
-  %12 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %13 = bitcast i8** %12 to i8*
-  %14 = inttoptr i64 %load_tmp3.i.i9 to i8*
-  %15 = select i1 %bool_or_tmp.i.i12, i8* %13, i8* %14
-  %load_tmp3.i.i3 = load i64, i64* %2, align 8
-  %cmp_tmp.i.i4 = icmp eq i64 %load_tmp3.i.i3, 0
-  %bit_and_tmp.i.i5 = and i64 %load_tmp3.i.i3, 1
-  %16 = icmp ne i64 %bit_and_tmp.i.i5, 0
-  %bool_or_tmp.i.i6 = or i1 %cmp_tmp.i.i4, %16
-  %17 = inttoptr i64 %load_tmp3.i.i3 to i8*
-  %18 = select i1 %bool_or_tmp.i.i6, i8* %5, i8* %17
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %15, i8* align 1 %18, i64 %9, i1 false)
-  %load_tmp3.i.i = load i64, i64* %10, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %19 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %19
+  %9 = ptrtoint i8* %8 to i64
+  %10 = ptrtoint i8* %7 to i64
+  %11 = sub i64 %9, %10
+  call void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %11)
+  %12 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i9 = load i8*, i8** %12, align 8
+  %13 = ptrtoint i8* %load_tmp.i.i9 to i64
+  %cmp_tmp.i.i10 = icmp eq i8* %load_tmp.i.i9, null
+  %bit_and_tmp.i.i11 = and i64 %13, 1
+  %14 = icmp ne i64 %bit_and_tmp.i.i11, 0
+  %bool_or_tmp.i.i12 = or i1 %cmp_tmp.i.i10, %14
+  %15 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %16 = bitcast i8** %15 to i8*
+  %17 = select i1 %bool_or_tmp.i.i12, i8* %16, i8* %load_tmp.i.i9
+  %load_tmp.i.i3 = load i8*, i8** %2, align 8
+  %18 = ptrtoint i8* %load_tmp.i.i3 to i64
+  %cmp_tmp.i.i4 = icmp eq i8* %load_tmp.i.i3, null
+  %bit_and_tmp.i.i5 = and i64 %18, 1
+  %19 = icmp ne i64 %bit_and_tmp.i.i5, 0
+  %bool_or_tmp.i.i6 = or i1 %cmp_tmp.i.i4, %19
+  %20 = select i1 %bool_or_tmp.i.i6, i8* %6, i8* %load_tmp.i.i3
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %17, i8* align 1 %20, i64 %11, i1 false)
+  %load_tmp.i.i = load i8*, i8** %12, align 8
+  %21 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %21, 1
+  %22 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %22
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %20 = icmp eq i64 %9, 0
-  br i1 %20, label %then.i.i, label %else.i.i
+  %23 = icmp eq i64 %11, 0
+  br i1 %23, label %then.i.i, label %else.i.i
 
 then.i.i:                                         ; preds = %then.i
-  %21 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %21, align 8
+  store i8* null, i8** %12, align 8
   br label %then
 
 else.i.i:                                         ; preds = %then.i
-  %lshift_tmp.i.i = shl i64 %9, 1
+  %lshift_tmp.i.i = shl i64 %11, 1
   %bit_or_tmp.i.i = or i64 %lshift_tmp.i.i, 1
-  %22 = inttoptr i64 %bit_or_tmp.i.i to i8*
-  %23 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* %22, i8** %23, align 8
+  %24 = inttoptr i64 %bit_or_tmp.i.i to i8*
+  store i8* %24, i8** %12, align 8
   br label %then
 
 else.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %24 = inttoptr i64 %load_tmp3.i.i to i8*
-  %ptr_add_tmp.i = getelementptr i8, i8* %24, i64 %9
-  store i8* %ptr_add_tmp.i, i8** %12, align 8
+  %ptr_add_tmp.i = getelementptr i8, i8* %load_tmp.i.i, i64 %11
+  store i8* %ptr_add_tmp.i, i8** %15, align 8
   br label %then
 }
 
 define i64 @"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i = load i64, i64* %1, align 8
-  %cmp_tmp.i = icmp eq i64 %load_tmp3.i, 0
-  %bit_and_tmp.i = and i64 %load_tmp3.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i, 0
-  %bool_or_tmp.i = or i1 %cmp_tmp.i, %2
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i to i64
+  %cmp_tmp.i = icmp eq i8* %load_tmp.i, null
+  %bit_and_tmp.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i, 0
+  %bool_or_tmp.i = or i1 %cmp_tmp.i, %3
   br i1 %bool_or_tmp.i, label %endif, label %else
 
 else:                                             ; preds = %alloca
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %4 = bitcast i8** %3 to i64*
-  %load_tmp2 = load i64, i64* %4, align 8
-  %5 = sub i64 %load_tmp2, %load_tmp3.i
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  %load_tmp = load i8*, i8** %4, align 8
+  %5 = ptrtoint i8* %load_tmp to i64
+  %6 = sub i64 %5, %2
   br label %endif
 
 endif:                                            ; preds = %alloca, %else
-  %6 = phi i64 [ %5, %else ], [ 16, %alloca ]
-  ret i64 %6
+  %7 = phi i64 [ %6, %else ], [ 16, %alloca ]
+  ret i64 %7
 }
 
 define %"struct.std::string.4"* @"op.61..2.0R.struct.std::string.struct.std::string.0R.struct.std::string"(%"struct.std::string.4"* %0, %"struct.std::string.4"* %1) {
 alloca:
-  %2 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %2, align 8
-  %3 = bitcast %"struct.std::string.4"* %1 to i64*
-  %load_tmp14.i.i = load i64, i64* %3, align 8
-  store i64 %load_tmp14.i.i, i64* %2, align 8
-  store i64 %load_tmp3.i.i, i64* %3, align 8
+  %2 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %2, align 8
+  %load_tmp1.i.i = load i8*, i8** %3, align 8
+  store i8* %load_tmp1.i.i, i8** %2, align 8
+  store i8* %load_tmp.i.i, i8** %3, align 8
   %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
   %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 1
-  %6 = bitcast i8** %4 to i64*
-  %load_tmp3.i3.i = load i64, i64* %6, align 8
-  %7 = bitcast i8** %5 to i64*
-  %load_tmp14.i4.i = load i64, i64* %7, align 8
-  store i64 %load_tmp14.i4.i, i64* %6, align 8
-  store i64 %load_tmp3.i3.i, i64* %7, align 8
-  %8 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %9 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 2
-  %10 = bitcast i8** %8 to i64*
-  %load_tmp3.i1.i = load i64, i64* %10, align 8
-  %11 = bitcast i8** %9 to i64*
-  %load_tmp14.i2.i = load i64, i64* %11, align 8
-  store i64 %load_tmp14.i2.i, i64* %10, align 8
-  store i64 %load_tmp3.i1.i, i64* %11, align 8
-  %load_tmp3.i.i1 = load i64, i64* %3, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i1, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i1, 1
-  %12 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %12
+  %load_tmp.i3.i = load i8*, i8** %4, align 8
+  %load_tmp1.i4.i = load i8*, i8** %5, align 8
+  store i8* %load_tmp1.i4.i, i8** %4, align 8
+  store i8* %load_tmp.i3.i, i8** %5, align 8
+  %6 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %1, i64 0, i32 2
+  %load_tmp.i1.i = load i8*, i8** %6, align 8
+  %load_tmp1.i2.i = load i8*, i8** %7, align 8
+  store i8* %load_tmp1.i2.i, i8** %6, align 8
+  store i8* %load_tmp.i1.i, i8** %7, align 8
+  %load_tmp.i.i1 = load i8*, i8** %3, align 8
+  %8 = ptrtoint i8* %load_tmp.i.i1 to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i1, null
+  %bit_and_tmp.i.i = and i64 %8, 1
+  %9 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %9
   br i1 %bool_or_tmp.i.i, label %"dtor.std::string.exit", label %then.i
 
 then.i:                                           ; preds = %alloca
-  %13 = inttoptr i64 %load_tmp3.i.i1 to i8*
-  call void @free(i8* %13)
+  call void @free(i8* %load_tmp.i.i1)
   br label %"dtor.std::string.exit"
 
 "dtor.std::string.exit":                          ; preds = %alloca, %then.i
   ret %"struct.std::string.4"* %0
 }
 
-define %"struct.std::string.4"* @"op.61..2.0R.struct.std::string.builtin.str.0R.struct.std::string"(%"struct.std::string.4"* %0, %builtin.str* noalias nocapture nonnull byval %1) {
+define %"struct.std::string.4"* @"op.61..2.0R.struct.std::string.builtin.str.0R.struct.std::string"(%"struct.std::string.4"* %0, %builtin.str* noalias nocapture nonnull byval(%builtin.str) %1) {
 alloca:
   %2 = alloca [2 x i8*], align 8
   %3 = alloca %builtin.str, align 8
-  %4 = alloca %"struct.std::string.4", align 8
-  %5 = bitcast %builtin.str* %1 to i64*
-  %load_tmp.unpack8 = load i64, i64* %5, align 8
+  %load_tmp.elt = getelementptr inbounds %builtin.str, %builtin.str* %1, i64 0, i32 0
+  %load_tmp.unpack = load i8*, i8** %load_tmp.elt, align 8
   %load_tmp.elt5 = getelementptr inbounds %builtin.str, %builtin.str* %1, i64 0, i32 1
-  %6 = bitcast i8** %load_tmp.elt5 to i64*
-  %load_tmp.unpack69 = load i64, i64* %6, align 8
-  %7 = sub i64 %load_tmp.unpack69, %load_tmp.unpack8
-  %8 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %8, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
+  %load_tmp.unpack6 = load i8*, i8** %load_tmp.elt5, align 8
+  %4 = ptrtoint i8* %load_tmp.unpack6 to i64
+  %5 = ptrtoint i8* %load_tmp.unpack to i64
+  %6 = sub i64 %4, %5
+  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %7, align 8
+  %8 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %8, 1
   %9 = icmp ne i64 %bit_and_tmp.i.i, 0
   %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %9
-  %10 = inttoptr i64 %load_tmp3.i.i to i8*
   br i1 %bool_or_tmp.i.i, label %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit", label %else.i
 
 else.i:                                           ; preds = %alloca
-  %11 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %12 = bitcast i8** %11 to i64*
-  %load_tmp2.i = load i64, i64* %12, align 8
-  %13 = sub i64 %load_tmp2.i, %load_tmp3.i.i
+  %10 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  %load_tmp.i = load i8*, i8** %10, align 8
+  %11 = ptrtoint i8* %load_tmp.i to i64
+  %12 = sub i64 %11, %8
   br label %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %alloca, %else.i
-  %14 = phi i64 [ %13, %else.i ], [ 16, %alloca ]
-  %.not = icmp ult i64 %14, %7
+  %13 = phi i64 [ %12, %else.i ], [ 16, %alloca ]
+  %.not = icmp ult i64 %13, %6
   br i1 %.not, label %else, label %then
 
 then:                                             ; preds = %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %15 = inttoptr i64 %load_tmp.unpack8 to i8*
-  %16 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %17 = bitcast i8** %16 to i8*
-  %18 = select i1 %bool_or_tmp.i.i, i8* %17, i8* %10
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %18, i8* align 1 %15, i64 %7, i1 false)
-  %load_tmp3.i.i20 = load i64, i64* %8, align 8
-  %cmp_tmp.i.i21 = icmp eq i64 %load_tmp3.i.i20, 0
-  %bit_and_tmp.i.i22 = and i64 %load_tmp3.i.i20, 1
-  %19 = icmp ne i64 %bit_and_tmp.i.i22, 0
-  %bool_or_tmp.i.i23 = or i1 %cmp_tmp.i.i21, %19
-  br i1 %bool_or_tmp.i.i23, label %then.i24, label %else.i28
+  %14 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %15 = bitcast i8** %14 to i8*
+  %16 = select i1 %bool_or_tmp.i.i, i8* %15, i8* %load_tmp.i.i
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %16, i8* align 1 %load_tmp.unpack, i64 %6, i1 false)
+  %load_tmp.i.i20 = load i8*, i8** %7, align 8
+  %17 = ptrtoint i8* %load_tmp.i.i20 to i64
+  %cmp_tmp.i.i21 = icmp eq i8* %load_tmp.i.i20, null
+  %bit_and_tmp.i.i22 = and i64 %17, 1
+  %18 = icmp ne i64 %bit_and_tmp.i.i22, 0
+  %bool_or_tmp.i.i23 = or i1 %cmp_tmp.i.i21, %18
+  br i1 %bool_or_tmp.i.i23, label %then.i24, label %else.i29
 
 then.i24:                                         ; preds = %then
-  %20 = icmp eq i64 %7, 0
-  br i1 %20, label %then.i.i25, label %else.i.i26
+  %19 = icmp eq i64 %6, 0
+  br i1 %19, label %then.i.i25, label %else.i.i26
 
 then.i.i25:                                       ; preds = %then.i24
-  %21 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %21, align 8
+  store i8* null, i8** %7, align 8
   br label %endif
 
 else.i.i26:                                       ; preds = %then.i24
-  %lshift_tmp.i.i = shl i64 %7, 1
+  %lshift_tmp.i.i = shl i64 %6, 1
   %bit_or_tmp.i.i = or i64 %lshift_tmp.i.i, 1
-  %22 = inttoptr i64 %bit_or_tmp.i.i to i8*
-  %23 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* %22, i8** %23, align 8
+  %20 = inttoptr i64 %bit_or_tmp.i.i to i8*
+  store i8* %20, i8** %7, align 8
   br label %endif
 
-else.i28:                                         ; preds = %then
-  %24 = inttoptr i64 %load_tmp3.i.i20 to i8*
-  %ptr_add_tmp.i27 = getelementptr i8, i8* %24, i64 %7
-  store i8* %ptr_add_tmp.i27, i8** %16, align 8
+else.i29:                                         ; preds = %then
+  %ptr_add_tmp.i28 = getelementptr i8, i8* %load_tmp.i.i20, i64 %6
+  store i8* %ptr_add_tmp.i28, i8** %14, align 8
   br label %endif
 
 else:                                             ; preds = %"func.std.capacity..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %25 = bitcast %builtin.str* %3 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %25)
-  %26 = bitcast [2 x i8*]* %2 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %26)
-  %27 = bitcast %builtin.str* %1 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %25, i8* nonnull align 1 dereferenceable(16) %27, i64 16, i1 false)
-  %28 = bitcast %builtin.str* %3 to i64*
-  %load_tmp.unpack24.i = load i64, i64* %28, align 8, !alias.scope !15, !noalias !18
+  call void @llvm.experimental.noalias.scope.decl(metadata !15)
+  %21 = bitcast %builtin.str* %3 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %21)
+  %22 = bitcast [2 x i8*]* %2 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %22)
+  %23 = bitcast %builtin.str* %1 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %21, i8* nonnull align 1 dereferenceable(16) %23, i64 16, i1 false)
+  %load_tmp.elt.i = getelementptr inbounds %builtin.str, %builtin.str* %3, i64 0, i32 0
+  %load_tmp.unpack.i = load i8*, i8** %load_tmp.elt.i, align 8, !alias.scope !15, !noalias !18
   %load_tmp.elt21.i = getelementptr inbounds %builtin.str, %builtin.str* %3, i64 0, i32 1
-  %29 = bitcast i8** %load_tmp.elt21.i to i64*
-  %load_tmp.unpack2225.i = load i64, i64* %29, align 8, !alias.scope !15, !noalias !18
-  %30 = sub i64 %load_tmp.unpack2225.i, %load_tmp.unpack24.i
-  %31 = icmp eq i64 %30, 0
-  %32 = inttoptr i64 %load_tmp.unpack24.i to i8*
-  br i1 %31, label %then.i18, label %bool_and_rhs.i
+  %load_tmp.unpack22.i = load i8*, i8** %load_tmp.elt21.i, align 8, !alias.scope !15, !noalias !18
+  %24 = ptrtoint i8* %load_tmp.unpack22.i to i64
+  %25 = ptrtoint i8* %load_tmp.unpack.i to i64
+  %26 = sub i64 %24, %25
+  %27 = icmp eq i64 %26, 0
+  br i1 %27, label %then.i18, label %bool_and_rhs.i
 
 then.i18:                                         ; preds = %else
-  %.repack.i = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 0
-  store i8* null, i8** %.repack.i, align 8, !alias.scope !18, !noalias !15
-  %.repack36.i = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 1
-  store i8* null, i8** %.repack36.i, align 8, !alias.scope !18, !noalias !15
-  %.repack37.i = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 2
-  store i8* null, i8** %.repack37.i, align 8, !alias.scope !18, !noalias !15
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %25)
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %26)
-  %.pre = bitcast %"struct.std::string.4"* %4 to i64*
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %21)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
   br label %"ctor.std::string..1.builtin.str.exit"
 
 bool_and_rhs.i:                                   ; preds = %else
-  %33 = icmp ult i64 %30, 17
-  br i1 %33, label %then3.i, label %else.i.i
+  %28 = icmp ult i64 %26, 17
+  br i1 %28, label %then3.i, label %else10.i
 
 then3.i:                                          ; preds = %bool_and_rhs.i
-  %lshift_tmp.i = shl i64 %30, 1
+  %lshift_tmp.i = shl i64 %26, 1
   %bit_or_tmp.i = or i64 %lshift_tmp.i, 1
-  %34 = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 0
-  store i8* null, i8** %34, align 8, !noalias !20
-  %35 = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 1
-  store i8* null, i8** %35, align 8, !noalias !20
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %26, i8* align 1 %32, i64 %30, i1 false), !noalias !20
-  %36 = bitcast %"struct.std::string.4"* %4 to i64*
-  store i64 %bit_or_tmp.i, i64* %36, align 8, !alias.scope !18, !noalias !15
-  %37 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 1
-  %38 = bitcast [2 x i8*]* %2 to i64*
-  %load_tmp834.i = load i64, i64* %38, align 8, !noalias !20
-  %39 = bitcast i8** %37 to i64*
-  store i64 %load_tmp834.i, i64* %39, align 8, !alias.scope !18, !noalias !15
-  %40 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 2
-  %41 = bitcast i8** %35 to i64*
-  %load_tmp935.i = load i64, i64* %41, align 8, !noalias !20
-  %42 = bitcast i8** %40 to i64*
-  store i64 %load_tmp935.i, i64* %42, align 8, !alias.scope !18, !noalias !15
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %25)
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %26)
+  %29 = inttoptr i64 %bit_or_tmp.i to i8*
+  %.repack.i = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 0
+  store i8* null, i8** %.repack.i, align 8, !noalias !20
+  %.repack27.i = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 1
+  store i8* null, i8** %.repack27.i, align 8, !noalias !20
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %22, i8* align 1 %load_tmp.unpack.i, i64 %26, i1 false), !noalias !20
+  %load_tmp8.i = load i8*, i8** %.repack.i, align 8, !noalias !20
+  %load_tmp9.i = load i8*, i8** %.repack27.i, align 8, !noalias !20
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %21)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
   br label %"ctor.std::string..1.builtin.str.exit"
 
-else.i.i:                                         ; preds = %bool_and_rhs.i
-  %sub_tmp.i.i.i = add i64 %30, -1
+else10.i:                                         ; preds = %bool_and_rhs.i
+  %sub_tmp.i.i.i = add i64 %26, -1
   %rshift_tmp.i.i.i = lshr i64 %sub_tmp.i.i.i, 1
   %bit_or_tmp.i.i.i = or i64 %rshift_tmp.i.i.i, %sub_tmp.i.i.i
   %rshift_tmp4.i.i.i = lshr i64 %bit_or_tmp.i.i.i, 2
@@ -626,150 +588,130 @@ else.i.i:                                         ; preds = %bool_and_rhs.i
   %rshift_tmp20.i.i.i = lshr i64 %bit_or_tmp18.i.i.i, 32
   %bit_or_tmp22.i.i.i = or i64 %rshift_tmp20.i.i.i, %bit_or_tmp18.i.i.i
   %add_tmp.i.i.i = add i64 %bit_or_tmp22.i.i.i, 1
-  %43 = call i8* @malloc(i64 %add_tmp.i.i.i), !noalias !20
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %43, i8* align 1 %32, i64 %30, i1 false), !noalias !20
-  %load_tmp1529.cast.i = ptrtoint i8* %43 to i64
-  %44 = bitcast %"struct.std::string.4"* %4 to i64*
-  store i64 %load_tmp1529.cast.i, i64* %44, align 8, !alias.scope !18, !noalias !15
-  %45 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 1
-  %ptr_add_tmp.i = getelementptr i8, i8* %43, i64 %30
-  store i8* %ptr_add_tmp.i, i8** %45, align 8, !alias.scope !18, !noalias !15
-  %46 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 2
-  %ptr_add_tmp20.i = getelementptr i8, i8* %43, i64 %add_tmp.i.i.i
-  store i8* %ptr_add_tmp20.i, i8** %46, align 8, !alias.scope !18, !noalias !15
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %25)
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %26)
-  %load_tmp3.i.i.i.pre = load i64, i64* %8, align 8
-  %47 = ptrtoint i8* %ptr_add_tmp.i to i64
-  %48 = ptrtoint i8* %ptr_add_tmp20.i to i64
-  %.pre33 = inttoptr i64 %load_tmp3.i.i.i.pre to i8*
+  %30 = call i8* @malloc(i64 %add_tmp.i.i.i), !noalias !20
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %30, i8* align 1 %load_tmp.unpack.i, i64 %26, i1 false), !noalias !20
+  %ptr_add_tmp.i = getelementptr i8, i8* %30, i64 %26
+  %ptr_add_tmp20.i = getelementptr i8, i8* %30, i64 %add_tmp.i.i.i
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %21)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
+  %load_tmp.i.i.i.pre = load i8*, i8** %7, align 8
+  %.pre = ptrtoint i8* %load_tmp.i.i.i.pre to i64
   br label %"ctor.std::string..1.builtin.str.exit"
 
-"ctor.std::string..1.builtin.str.exit":           ; preds = %else.i.i, %then3.i, %then.i18
-  %.pre-phi34 = phi i8* [ %.pre33, %else.i.i ], [ %10, %then3.i ], [ %10, %then.i18 ]
-  %.pre-phi = phi i64* [ %44, %else.i.i ], [ %36, %then3.i ], [ %.pre, %then.i18 ]
-  %load_tmp14.i2.i.i = phi i64 [ %48, %else.i.i ], [ %load_tmp935.i, %then3.i ], [ 0, %then.i18 ]
-  %load_tmp14.i4.i.i = phi i64 [ %47, %else.i.i ], [ %load_tmp834.i, %then3.i ], [ 0, %then.i18 ]
-  %load_tmp14.i.i.i = phi i64 [ %load_tmp1529.cast.i, %else.i.i ], [ %bit_or_tmp.i, %then3.i ], [ 0, %then.i18 ]
-  %load_tmp3.i.i.i = phi i64 [ %load_tmp3.i.i.i.pre, %else.i.i ], [ %load_tmp3.i.i, %then3.i ], [ %load_tmp3.i.i, %then.i18 ]
-  store i64 %load_tmp14.i.i.i, i64* %8, align 8
-  store i64 %load_tmp3.i.i.i, i64* %.pre-phi, align 8
-  %49 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %50 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 1
-  %51 = bitcast i8** %49 to i64*
-  %load_tmp3.i3.i.i = load i64, i64* %51, align 8
-  %52 = bitcast i8** %50 to i64*
-  store i64 %load_tmp14.i4.i.i, i64* %51, align 8
-  store i64 %load_tmp3.i3.i.i, i64* %52, align 8
-  %53 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  %54 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %4, i64 0, i32 2
-  %55 = bitcast i8** %53 to i64*
-  %load_tmp3.i1.i.i = load i64, i64* %55, align 8
-  %56 = bitcast i8** %54 to i64*
-  store i64 %load_tmp14.i2.i.i, i64* %55, align 8
-  store i64 %load_tmp3.i1.i.i, i64* %56, align 8
-  %cmp_tmp.i.i.i = icmp eq i64 %load_tmp3.i.i.i, 0
-  %bit_and_tmp.i.i.i = and i64 %load_tmp3.i.i.i, 1
-  %57 = icmp ne i64 %bit_and_tmp.i.i.i, 0
-  %bool_or_tmp.i.i.i = or i1 %cmp_tmp.i.i.i, %57
+"ctor.std::string..1.builtin.str.exit":           ; preds = %else10.i, %then3.i, %then.i18
+  %.pre-phi = phi i64 [ %.pre, %else10.i ], [ %8, %then3.i ], [ %8, %then.i18 ]
+  %load_tmp1.i2.i.i = phi i8* [ %ptr_add_tmp20.i, %else10.i ], [ %load_tmp9.i, %then3.i ], [ null, %then.i18 ]
+  %load_tmp1.i4.i.i = phi i8* [ %ptr_add_tmp.i, %else10.i ], [ %load_tmp8.i, %then3.i ], [ null, %then.i18 ]
+  %load_tmp1.i.i.i = phi i8* [ %30, %else10.i ], [ %29, %then3.i ], [ null, %then.i18 ]
+  %load_tmp.i.i11 = phi i8* [ %load_tmp.i.i.i.pre, %else10.i ], [ %load_tmp.i.i, %then3.i ], [ %load_tmp.i.i, %then.i18 ]
+  store i8* %load_tmp1.i.i.i, i8** %7, align 8
+  %31 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  store i8* %load_tmp1.i4.i.i, i8** %31, align 8
+  %32 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  store i8* %load_tmp1.i2.i.i, i8** %32, align 8
+  %cmp_tmp.i.i.i = icmp eq i8* %load_tmp.i.i11, null
+  %bit_and_tmp.i.i.i = and i64 %.pre-phi, 1
+  %33 = icmp ne i64 %bit_and_tmp.i.i.i, 0
+  %bool_or_tmp.i.i.i = or i1 %33, %cmp_tmp.i.i.i
   br i1 %bool_or_tmp.i.i.i, label %endif, label %then.i.i
 
 then.i.i:                                         ; preds = %"ctor.std::string..1.builtin.str.exit"
-  call void @free(i8* %.pre-phi34)
+  call void @free(i8* %load_tmp.i.i11)
   br label %endif
 
-endif:                                            ; preds = %then.i.i, %"ctor.std::string..1.builtin.str.exit", %else.i28, %else.i.i26, %then.i.i25
+endif:                                            ; preds = %then.i.i, %"ctor.std::string..1.builtin.str.exit", %else.i29, %else.i.i26, %then.i.i25
   ret %"struct.std::string.4"* %0
 }
 
 define i8* @"func.std.data..1.0R.const.struct.std::string.0P.const.builtin.uint8"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %1, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %2
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %4 = bitcast i8** %3 to i8*
-  %5 = inttoptr i64 %load_tmp3.i.i to i8*
-  %6 = select i1 %bool_or_tmp.i.i, i8* %4, i8* %5
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %5 = bitcast i8** %4 to i8*
+  %6 = select i1 %bool_or_tmp.i.i, i8* %5, i8* %load_tmp.i.i
   ret i8* %6
 }
 
 define i8* @"func.std.data_end..1.0R.struct.std::string.0P.builtin.uint8"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %1, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %2
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %alloca
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i, 1
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %4 = bitcast i8** %3 to i8*
-  %ptr_add_tmp.i = getelementptr i8, i8* %4, i64 %rshift_tmp.i.i
+  %rshift_tmp.i.i = lshr i64 %2, 1
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %5 = bitcast i8** %4 to i8*
+  %ptr_add_tmp.i = getelementptr i8, i8* %5, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 else.i:                                           ; preds = %alloca
-  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %load_tmp1.i = load i8*, i8** %5, align 8
+  %6 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %load_tmp1.i = load i8*, i8** %6, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 "func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i, %then.i
-  %6 = phi i8* [ %ptr_add_tmp.i, %then.i ], [ %load_tmp1.i, %else.i ]
-  ret i8* %6
+  %7 = phi i8* [ %ptr_add_tmp.i, %then.i ], [ %load_tmp1.i, %else.i ]
+  ret i8* %7
 }
 
 define i8* @"func.std.data_end..1.0R.const.struct.std::string.0P.const.builtin.uint8"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %1, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %2
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %alloca
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i, 1
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %4 = bitcast i8** %3 to i8*
-  %ptr_add_tmp.i = getelementptr i8, i8* %4, i64 %rshift_tmp.i.i
+  %rshift_tmp.i.i = lshr i64 %2, 1
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %5 = bitcast i8** %4 to i8*
+  %ptr_add_tmp.i = getelementptr i8, i8* %5, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 else.i:                                           ; preds = %alloca
-  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %load_tmp1.i = load i8*, i8** %5, align 8
+  %6 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %load_tmp1.i = load i8*, i8** %6, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 "func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i, %then.i
-  %6 = phi i8* [ %ptr_add_tmp.i, %then.i ], [ %load_tmp1.i, %else.i ]
-  ret i8* %6
+  %7 = phi i8* [ %ptr_add_tmp.i, %then.i ], [ %load_tmp1.i, %else.i ]
+  ret i8* %7
 }
 
 define void @"func.std.clear..1.0R.struct.std::string.void"(%"struct.std::string.4"* %0) {
 alloca:
-  %1 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i = load i64, i64* %1, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %2 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %2
+  %1 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i = load i8*, i8** %1, align 8
+  %2 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %2, 1
+  %3 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %3
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %alloca
-  %3 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %3, align 8
+  store i8* null, i8** %1, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i:                                           ; preds = %alloca
   %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %5 = bitcast i8** %4 to i64*
-  store i64 %load_tmp3.i.i, i64* %5, align 8
+  store i8* %load_tmp.i.i, i8** %4, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 "func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit": ; preds = %then.i, %else.i
@@ -781,101 +723,100 @@ alloca:
   %2 = alloca i64, align 8
   %3 = call i64 @func.std.encode_char_utf8..1.builtin.char.0T.2.0A.4.builtin.uint8.builtin.uint32(i32 %1)
   store i64 %3, i64* %2, align 8
-  %4 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i.i.i = load i64, i64* %4, align 8, !noalias !21
-  %cmp_tmp.i.i.i.i = icmp eq i64 %load_tmp3.i.i.i.i, 0
-  %bit_and_tmp.i.i.i.i = and i64 %load_tmp3.i.i.i.i, 1
-  %5 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
-  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %5
-  %6 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %7 = bitcast i8** %6 to i8*
-  %8 = inttoptr i64 %load_tmp3.i.i.i.i to i8*
-  %9 = select i1 %bool_or_tmp.i.i.i.i, i8* %7, i8* %8
+  %4 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i.i.i = load i8*, i8** %4, align 8, !noalias !21
+  %5 = ptrtoint i8* %load_tmp.i.i.i.i to i64
+  %cmp_tmp.i.i.i.i = icmp eq i8* %load_tmp.i.i.i.i, null
+  %bit_and_tmp.i.i.i.i = and i64 %5, 1
+  %6 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
+  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %6
+  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %8 = bitcast i8** %7 to i8*
+  %9 = select i1 %bool_or_tmp.i.i.i.i, i8* %8, i8* %load_tmp.i.i.i.i
   br i1 %bool_or_tmp.i.i.i.i, label %then.i5.i.i, label %else.i6.i.i
 
 then.i5.i.i:                                      ; preds = %alloca
-  %rshift_tmp.i.i.i.i = lshr i64 %load_tmp3.i.i.i.i, 1
-  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %7, i64 %rshift_tmp.i.i.i.i
+  %rshift_tmp.i.i.i.i = lshr i64 %5, 1
+  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i.i.i
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 else.i6.i.i:                                      ; preds = %alloca
-  %load_tmp1.i.i.i = load i8*, i8** %6, align 8, !noalias !21
+  %load_tmp1.i.i.i = load i8*, i8** %7, align 8, !noalias !21
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %then.i5.i.i, %else.i6.i.i
   %10 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
-  %load_tmp.unpack4.i.cast = ptrtoint i8* %9 to i64
-  %load_tmp.unpack25.i.cast = ptrtoint i8* %10 to i64
-  %11 = lshr i64 %3, 32
-  %12 = sub i64 %11, %load_tmp.unpack4.i.cast
-  %add_tmp = add i64 %12, %load_tmp.unpack25.i.cast
+  %11 = ptrtoint i8* %10 to i64
+  %12 = ptrtoint i8* %9 to i64
+  %13 = lshr i64 %3, 32
+  %14 = sub i64 %13, %12
+  %add_tmp = add i64 %14, %11
   call void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %add_tmp)
-  %load_tmp3.i.i29 = load i64, i64* %4, align 8
-  %cmp_tmp.i.i30 = icmp eq i64 %load_tmp3.i.i29, 0
-  %bit_and_tmp.i.i31 = and i64 %load_tmp3.i.i29, 1
-  %13 = icmp ne i64 %bit_and_tmp.i.i31, 0
-  %bool_or_tmp.i.i32 = or i1 %cmp_tmp.i.i30, %13
-  br i1 %bool_or_tmp.i.i32, label %then.i34, label %else.i36
+  %load_tmp.i.i30 = load i8*, i8** %4, align 8
+  %15 = ptrtoint i8* %load_tmp.i.i30 to i64
+  %cmp_tmp.i.i31 = icmp eq i8* %load_tmp.i.i30, null
+  %bit_and_tmp.i.i32 = and i64 %15, 1
+  %16 = icmp ne i64 %bit_and_tmp.i.i32, 0
+  %bool_or_tmp.i.i33 = or i1 %cmp_tmp.i.i31, %16
+  br i1 %bool_or_tmp.i.i33, label %then.i35, label %else.i37
 
-then.i34:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i29, 1
-  %ptr_add_tmp.i33 = getelementptr i8, i8* %7, i64 %rshift_tmp.i.i
+then.i35:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
+  %rshift_tmp.i.i = lshr i64 %15, 1
+  %ptr_add_tmp.i34 = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
-else.i36:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %load_tmp1.i35 = load i8*, i8** %6, align 8
+else.i37:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
+  %load_tmp1.i36 = load i8*, i8** %7, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
-"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i36, %then.i34
-  %14 = phi i8* [ %ptr_add_tmp.i33, %then.i34 ], [ %load_tmp1.i35, %else.i36 ]
-  %15 = bitcast i64* %2 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %14, i8* nonnull align 8 %15, i64 %11, i1 false)
-  %load_tmp3.i.i.i.i7 = load i64, i64* %4, align 8, !noalias !24
-  %cmp_tmp.i.i.i.i8 = icmp eq i64 %load_tmp3.i.i.i.i7, 0
-  %bit_and_tmp.i.i.i.i9 = and i64 %load_tmp3.i.i.i.i7, 1
-  %16 = icmp ne i64 %bit_and_tmp.i.i.i.i9, 0
-  %bool_or_tmp.i.i.i.i10 = or i1 %cmp_tmp.i.i.i.i8, %16
-  %17 = inttoptr i64 %load_tmp3.i.i.i.i7 to i8*
-  %18 = select i1 %bool_or_tmp.i.i.i.i10, i8* %7, i8* %17
+"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i37, %then.i35
+  %17 = phi i8* [ %ptr_add_tmp.i34, %then.i35 ], [ %load_tmp1.i36, %else.i37 ]
+  %18 = bitcast i64* %2 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %17, i8* nonnull align 8 %18, i64 %13, i1 false)
+  %load_tmp.i.i.i.i7 = load i8*, i8** %4, align 8, !noalias !24
+  %19 = ptrtoint i8* %load_tmp.i.i.i.i7 to i64
+  %cmp_tmp.i.i.i.i8 = icmp eq i8* %load_tmp.i.i.i.i7, null
+  %bit_and_tmp.i.i.i.i9 = and i64 %19, 1
+  %20 = icmp ne i64 %bit_and_tmp.i.i.i.i9, 0
+  %bool_or_tmp.i.i.i.i10 = or i1 %cmp_tmp.i.i.i.i8, %20
+  %21 = select i1 %bool_or_tmp.i.i.i.i10, i8* %8, i8* %load_tmp.i.i.i.i7
   br i1 %bool_or_tmp.i.i.i.i10, label %then.i5.i.i22, label %else.i6.i.i24
 
 then.i5.i.i22:                                    ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %rshift_tmp.i.i.i.i20 = lshr i64 %load_tmp3.i.i.i.i7, 1
-  %ptr_add_tmp.i.i.i21 = getelementptr i8, i8* %7, i64 %rshift_tmp.i.i.i.i20
-  br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit28"
+  %rshift_tmp.i.i.i.i20 = lshr i64 %19, 1
+  %ptr_add_tmp.i.i.i21 = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i.i.i20
+  br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit29"
 
 else.i6.i.i24:                                    ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %load_tmp1.i.i.i23 = load i8*, i8** %6, align 8, !noalias !24
-  br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit28"
+  %load_tmp1.i.i.i23 = load i8*, i8** %7, align 8, !noalias !24
+  br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit29"
 
-"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit28": ; preds = %then.i5.i.i22, %else.i6.i.i24
-  %19 = phi i8* [ %ptr_add_tmp.i.i.i21, %then.i5.i.i22 ], [ %load_tmp1.i.i.i23, %else.i6.i.i24 ]
-  %load_tmp.unpack4.i25.cast = ptrtoint i8* %18 to i64
-  %load_tmp.unpack25.i27.cast = ptrtoint i8* %19 to i64
-  %20 = sub i64 %load_tmp.unpack25.i27.cast, %load_tmp.unpack4.i25.cast
-  %add_tmp6 = add i64 %20, %11
+"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit29": ; preds = %then.i5.i.i22, %else.i6.i.i24
+  %22 = phi i8* [ %ptr_add_tmp.i.i.i21, %then.i5.i.i22 ], [ %load_tmp1.i.i.i23, %else.i6.i.i24 ]
+  %23 = ptrtoint i8* %22 to i64
+  %24 = ptrtoint i8* %21 to i64
+  %25 = sub i64 %23, %24
+  %add_tmp6 = add i64 %25, %13
   br i1 %bool_or_tmp.i.i.i.i10, label %then.i, label %else.i
 
-then.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit28"
-  %21 = icmp eq i64 %add_tmp6, 0
-  br i1 %21, label %then.i.i, label %else.i.i
+then.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit29"
+  %26 = icmp eq i64 %add_tmp6, 0
+  br i1 %26, label %then.i.i, label %else.i.i
 
 then.i.i:                                         ; preds = %then.i
-  %22 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %22, align 8
+  store i8* null, i8** %4, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i.i:                                         ; preds = %then.i
   %lshift_tmp.i.i = shl i64 %add_tmp6, 1
   %bit_or_tmp.i.i = or i64 %lshift_tmp.i.i, 1
-  %23 = inttoptr i64 %bit_or_tmp.i.i to i8*
-  %24 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* %23, i8** %24, align 8
+  %27 = inttoptr i64 %bit_or_tmp.i.i to i8*
+  store i8* %27, i8** %4, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
-else.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit28"
-  %ptr_add_tmp.i = getelementptr i8, i8* %17, i64 %add_tmp6
-  store i8* %ptr_add_tmp.i, i8** %6, align 8
+else.i:                                           ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit29"
+  %ptr_add_tmp.i = getelementptr i8, i8* %load_tmp.i.i.i.i7, i64 %add_tmp6
+  store i8* %ptr_add_tmp.i, i8** %7, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 "func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit": ; preds = %then.i.i, %else.i.i, %else.i
@@ -884,114 +825,118 @@ else.i:                                           ; preds = %"func.std.size..1.0
 
 define i64 @func.std.encode_char_utf8..1.builtin.char.0T.2.0A.4.builtin.uint8.builtin.uint32(i32 %0) {
 alloca:
-  %1 = alloca i32, align 4
-  %tmpcast55 = bitcast i32* %1 to [4 x i8]*
+  %1 = alloca i64, align 8
   %2 = alloca i64, align 8
   %3 = alloca i64, align 8
   %4 = alloca i64, align 8
-  %5 = alloca i64, align 8
-  %6 = bitcast i32* %1 to i8*
-  store i8 0, i8* %6, align 4
-  %7 = getelementptr inbounds [4 x i8], [4 x i8]* %tmpcast55, i64 0, i64 1
-  store i8 0, i8* %7, align 1
-  %8 = getelementptr inbounds [4 x i8], [4 x i8]* %tmpcast55, i64 0, i64 2
-  store i8 0, i8* %8, align 2
-  %9 = getelementptr inbounds [4 x i8], [4 x i8]* %tmpcast55, i64 0, i64 3
-  store i8 0, i8* %9, align 1
-  %10 = icmp ult i32 %0, 127
-  br i1 %10, label %then, label %else
+  %5 = icmp ult i32 %0, 127
+  br i1 %5, label %then, label %else
 
 then:                                             ; preds = %alloca
-  %tmpcast60 = bitcast i64* %2 to { [4 x i8], i32 }*
+  %tmpcast101 = bitcast i64* %1 to { [4 x i8], i32 }*
   %cast_tmp = trunc i32 %0 to i8
-  store i8 %cast_tmp, i8* %6, align 4
-  %load_tmp261 = load i32, i32* %1, align 4
-  %11 = bitcast i64* %2 to i32*
-  store i32 %load_tmp261, i32* %11, align 8
-  %12 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast60, i64 0, i32 1
-  store i32 1, i32* %12, align 4
-  %13 = load i64, i64* %2, align 8
-  ret i64 %13
+  %6 = bitcast i64* %1 to [4 x i8]*
+  %.repack109 = bitcast i64* %1 to i8*
+  store i8 %cast_tmp, i8* %.repack109, align 8
+  %.repack110 = getelementptr inbounds [4 x i8], [4 x i8]* %6, i64 0, i64 1
+  store i8 0, i8* %.repack110, align 1
+  %.repack112 = getelementptr inbounds [4 x i8], [4 x i8]* %6, i64 0, i64 2
+  store i8 0, i8* %.repack112, align 2
+  %.repack114 = getelementptr inbounds [4 x i8], [4 x i8]* %6, i64 0, i64 3
+  store i8 0, i8* %.repack114, align 1
+  %7 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast101, i64 0, i32 1
+  store i32 1, i32* %7, align 4
+  %8 = load i64, i64* %1, align 8
+  ret i64 %8
 
 else:                                             ; preds = %alloca
-  %14 = icmp ult i32 %0, 2047
-  br i1 %14, label %then4, label %else13
+  %9 = icmp ult i32 %0, 2047
+  br i1 %9, label %then4, label %else13
 
 then4:                                            ; preds = %else
-  %tmpcast58 = bitcast i64* %3 to { [4 x i8], i32 }*
+  %tmpcast86 = bitcast i64* %2 to { [4 x i8], i32 }*
   %rshift_tmp = lshr i32 %0, 6
-  %15 = trunc i32 %rshift_tmp to i8
-  %16 = and i8 %15, 31
-  %cast_tmp6 = or i8 %16, -64
-  store i8 %cast_tmp6, i8* %6, align 4
-  %17 = trunc i32 %0 to i8
-  %18 = and i8 %17, 63
-  %cast_tmp11 = or i8 %18, -128
-  store i8 %cast_tmp11, i8* %7, align 1
-  %load_tmp1259 = load i32, i32* %1, align 4
-  %19 = bitcast i64* %3 to i32*
-  store i32 %load_tmp1259, i32* %19, align 8
-  %20 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast58, i64 0, i32 1
-  store i32 2, i32* %20, align 4
-  %21 = load i64, i64* %3, align 8
-  ret i64 %21
+  %10 = trunc i32 %rshift_tmp to i8
+  %11 = and i8 %10, 31
+  %cast_tmp6 = or i8 %11, -64
+  %12 = trunc i32 %0 to i8
+  %13 = and i8 %12, 63
+  %cast_tmp11 = or i8 %13, -128
+  %14 = bitcast i64* %2 to [4 x i8]*
+  %.repack94 = bitcast i64* %2 to i8*
+  store i8 %cast_tmp6, i8* %.repack94, align 8
+  %.repack95 = getelementptr inbounds [4 x i8], [4 x i8]* %14, i64 0, i64 1
+  store i8 %cast_tmp11, i8* %.repack95, align 1
+  %.repack97 = getelementptr inbounds [4 x i8], [4 x i8]* %14, i64 0, i64 2
+  store i8 0, i8* %.repack97, align 2
+  %.repack99 = getelementptr inbounds [4 x i8], [4 x i8]* %14, i64 0, i64 3
+  store i8 0, i8* %.repack99, align 1
+  %15 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast86, i64 0, i32 1
+  store i32 2, i32* %15, align 4
+  %16 = load i64, i64* %2, align 8
+  ret i64 %16
 
 else13:                                           ; preds = %else
-  %22 = icmp ult i32 %0, 65535
-  br i1 %22, label %then15, label %else32
+  %17 = icmp ult i32 %0, 65535
+  br i1 %17, label %then15, label %else32
 
 then15:                                           ; preds = %else13
-  %tmpcast56 = bitcast i64* %4 to { [4 x i8], i32 }*
+  %tmpcast71 = bitcast i64* %3 to { [4 x i8], i32 }*
   %rshift_tmp17 = lshr i32 %0, 12
-  %23 = trunc i32 %rshift_tmp17 to i8
-  %24 = and i8 %23, 15
-  %cast_tmp20 = or i8 %24, -32
-  store i8 %cast_tmp20, i8* %6, align 4
+  %18 = trunc i32 %rshift_tmp17 to i8
+  %19 = and i8 %18, 15
+  %cast_tmp20 = or i8 %19, -32
   %rshift_tmp22 = lshr i32 %0, 6
-  %25 = trunc i32 %rshift_tmp22 to i8
-  %26 = and i8 %25, 63
-  %cast_tmp25 = or i8 %26, -128
-  store i8 %cast_tmp25, i8* %7, align 1
-  %27 = trunc i32 %0 to i8
-  %28 = and i8 %27, 63
-  %cast_tmp30 = or i8 %28, -128
-  store i8 %cast_tmp30, i8* %8, align 2
-  %load_tmp3157 = load i32, i32* %1, align 4
-  %29 = bitcast i64* %4 to i32*
-  store i32 %load_tmp3157, i32* %29, align 8
-  %30 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast56, i64 0, i32 1
-  store i32 3, i32* %30, align 4
-  %31 = load i64, i64* %4, align 8
-  ret i64 %31
+  %20 = trunc i32 %rshift_tmp22 to i8
+  %21 = and i8 %20, 63
+  %cast_tmp25 = or i8 %21, -128
+  %22 = trunc i32 %0 to i8
+  %23 = and i8 %22, 63
+  %cast_tmp30 = or i8 %23, -128
+  %24 = bitcast i64* %3 to [4 x i8]*
+  %.repack79 = bitcast i64* %3 to i8*
+  store i8 %cast_tmp20, i8* %.repack79, align 8
+  %.repack80 = getelementptr inbounds [4 x i8], [4 x i8]* %24, i64 0, i64 1
+  store i8 %cast_tmp25, i8* %.repack80, align 1
+  %.repack82 = getelementptr inbounds [4 x i8], [4 x i8]* %24, i64 0, i64 2
+  store i8 %cast_tmp30, i8* %.repack82, align 2
+  %.repack84 = getelementptr inbounds [4 x i8], [4 x i8]* %24, i64 0, i64 3
+  store i8 0, i8* %.repack84, align 1
+  %25 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast71, i64 0, i32 1
+  store i32 3, i32* %25, align 4
+  %26 = load i64, i64* %3, align 8
+  ret i64 %26
 
 else32:                                           ; preds = %else13
-  %tmpcast = bitcast i64* %5 to { [4 x i8], i32 }*
+  %tmpcast = bitcast i64* %4 to { [4 x i8], i32 }*
   %rshift_tmp34 = lshr i32 %0, 18
-  %32 = trunc i32 %rshift_tmp34 to i8
-  %33 = and i8 %32, 7
-  %cast_tmp37 = or i8 %33, -16
-  store i8 %cast_tmp37, i8* %6, align 4
+  %27 = trunc i32 %rshift_tmp34 to i8
+  %28 = and i8 %27, 7
+  %cast_tmp37 = or i8 %28, -16
   %rshift_tmp39 = lshr i32 %0, 12
-  %34 = trunc i32 %rshift_tmp39 to i8
-  %35 = and i8 %34, 63
-  %cast_tmp42 = or i8 %35, -128
-  store i8 %cast_tmp42, i8* %7, align 1
+  %29 = trunc i32 %rshift_tmp39 to i8
+  %30 = and i8 %29, 63
+  %cast_tmp42 = or i8 %30, -128
   %rshift_tmp44 = lshr i32 %0, 6
-  %36 = trunc i32 %rshift_tmp44 to i8
-  %37 = and i8 %36, 63
-  %cast_tmp47 = or i8 %37, -128
-  store i8 %cast_tmp47, i8* %8, align 2
-  %38 = trunc i32 %0 to i8
-  %39 = and i8 %38, 63
-  %cast_tmp52 = or i8 %39, -128
-  store i8 %cast_tmp52, i8* %9, align 1
-  %load_tmp5354 = load i32, i32* %1, align 4
-  %40 = bitcast i64* %5 to i32*
-  store i32 %load_tmp5354, i32* %40, align 8
-  %41 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast, i64 0, i32 1
-  store i32 4, i32* %41, align 4
-  %42 = load i64, i64* %5, align 8
-  ret i64 %42
+  %31 = trunc i32 %rshift_tmp44 to i8
+  %32 = and i8 %31, 63
+  %cast_tmp47 = or i8 %32, -128
+  %33 = trunc i32 %0 to i8
+  %34 = and i8 %33, 63
+  %cast_tmp52 = or i8 %34, -128
+  %35 = bitcast i64* %4 to [4 x i8]*
+  %.repack64 = bitcast i64* %4 to i8*
+  store i8 %cast_tmp37, i8* %.repack64, align 8
+  %.repack65 = getelementptr inbounds [4 x i8], [4 x i8]* %35, i64 0, i64 1
+  store i8 %cast_tmp42, i8* %.repack65, align 1
+  %.repack67 = getelementptr inbounds [4 x i8], [4 x i8]* %35, i64 0, i64 2
+  store i8 %cast_tmp47, i8* %.repack67, align 2
+  %.repack69 = getelementptr inbounds [4 x i8], [4 x i8]* %35, i64 0, i64 3
+  store i8 %cast_tmp52, i8* %.repack69, align 1
+  %36 = getelementptr inbounds { [4 x i8], i32 }, { [4 x i8], i32 }* %tmpcast, i64 0, i32 1
+  store i32 4, i32* %36, align 4
+  %37 = load i64, i64* %4, align 8
+  ret i64 %37
 }
 
 define %"struct.std::string.4"* @"op.290..2.0R.struct.std::string.builtin.char.0R.struct.std::string"(%"struct.std::string.4"* %0, i32 %1) {
@@ -1000,138 +945,135 @@ alloca:
   %3 = call i64 @func.std.encode_char_utf8..1.builtin.char.0T.2.0A.4.builtin.uint8.builtin.uint32(i32 %1)
   store i64 %3, i64* %2, align 8
   %4 = lshr i64 %3, 32
-  %5 = bitcast %"struct.std::string.4"* %0 to i64*
-  %load_tmp3.i.i.i.i = load i64, i64* %5, align 8, !noalias !27
-  %cmp_tmp.i.i.i.i = icmp eq i64 %load_tmp3.i.i.i.i, 0
-  %bit_and_tmp.i.i.i.i = and i64 %load_tmp3.i.i.i.i, 1
-  %6 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
-  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %6
-  %7 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  %8 = bitcast i8** %7 to i8*
-  %9 = inttoptr i64 %load_tmp3.i.i.i.i to i8*
-  %10 = select i1 %bool_or_tmp.i.i.i.i, i8* %8, i8* %9
+  %5 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
+  %load_tmp.i.i.i.i = load i8*, i8** %5, align 8, !noalias !27
+  %6 = ptrtoint i8* %load_tmp.i.i.i.i to i64
+  %cmp_tmp.i.i.i.i = icmp eq i8* %load_tmp.i.i.i.i, null
+  %bit_and_tmp.i.i.i.i = and i64 %6, 1
+  %7 = icmp ne i64 %bit_and_tmp.i.i.i.i, 0
+  %bool_or_tmp.i.i.i.i = or i1 %cmp_tmp.i.i.i.i, %7
+  %8 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  %9 = bitcast i8** %8 to i8*
+  %10 = select i1 %bool_or_tmp.i.i.i.i, i8* %9, i8* %load_tmp.i.i.i.i
   br i1 %bool_or_tmp.i.i.i.i, label %then.i5.i.i, label %else.i6.i.i
 
 then.i5.i.i:                                      ; preds = %alloca
-  %rshift_tmp.i.i.i.i = lshr i64 %load_tmp3.i.i.i.i, 1
-  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i.i.i
+  %rshift_tmp.i.i.i.i = lshr i64 %6, 1
+  %ptr_add_tmp.i.i.i = getelementptr i8, i8* %9, i64 %rshift_tmp.i.i.i.i
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 else.i6.i.i:                                      ; preds = %alloca
-  %load_tmp1.i.i.i = load i8*, i8** %7, align 8, !noalias !27
+  %load_tmp1.i.i.i = load i8*, i8** %8, align 8, !noalias !27
   br label %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
 
 "func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit": ; preds = %then.i5.i.i, %else.i6.i.i
   %11 = phi i8* [ %ptr_add_tmp.i.i.i, %then.i5.i.i ], [ %load_tmp1.i.i.i, %else.i6.i.i ]
-  %load_tmp.unpack4.i.cast = ptrtoint i8* %10 to i64
-  %load_tmp.unpack25.i.cast = ptrtoint i8* %11 to i64
-  %12 = sub i64 %load_tmp.unpack25.i.cast, %load_tmp.unpack4.i.cast
-  %add_tmp = add i64 %12, %4
+  %12 = ptrtoint i8* %11 to i64
+  %13 = ptrtoint i8* %10 to i64
+  %14 = sub i64 %12, %13
+  %add_tmp = add i64 %14, %4
   call void @"func.std.reserve..2.0R.struct.std::string.builtin.uint64.void"(%"struct.std::string.4"* %0, i64 %add_tmp)
-  %load_tmp3.i.i7 = load i64, i64* %5, align 8
-  %cmp_tmp.i.i8 = icmp eq i64 %load_tmp3.i.i7, 0
-  %bit_and_tmp.i.i9 = and i64 %load_tmp3.i.i7, 1
-  %13 = icmp ne i64 %bit_and_tmp.i.i9, 0
-  %bool_or_tmp.i.i10 = or i1 %cmp_tmp.i.i8, %13
+  %load_tmp.i.i7 = load i8*, i8** %5, align 8
+  %15 = ptrtoint i8* %load_tmp.i.i7 to i64
+  %cmp_tmp.i.i8 = icmp eq i8* %load_tmp.i.i7, null
+  %bit_and_tmp.i.i9 = and i64 %15, 1
+  %16 = icmp ne i64 %bit_and_tmp.i.i9, 0
+  %bool_or_tmp.i.i10 = or i1 %cmp_tmp.i.i8, %16
   br i1 %bool_or_tmp.i.i10, label %then.i12, label %else.i14
 
 then.i12:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %rshift_tmp.i.i = lshr i64 %load_tmp3.i.i7, 1
-  %ptr_add_tmp.i11 = getelementptr i8, i8* %8, i64 %rshift_tmp.i.i
+  %rshift_tmp.i.i = lshr i64 %15, 1
+  %ptr_add_tmp.i11 = getelementptr i8, i8* %9, i64 %rshift_tmp.i.i
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 else.i14:                                         ; preds = %"func.std.size..1.0R.const.struct.std::string.builtin.uint64.exit"
-  %load_tmp1.i13 = load i8*, i8** %7, align 8
+  %load_tmp1.i13 = load i8*, i8** %8, align 8
   br label %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
 
 "func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit": ; preds = %else.i14, %then.i12
-  %14 = phi i8* [ %ptr_add_tmp.i11, %then.i12 ], [ %load_tmp1.i13, %else.i14 ]
-  %15 = bitcast i64* %2 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %14, i8* nonnull align 8 %15, i64 %4, i1 false)
-  %load_tmp3.i.i = load i64, i64* %5, align 8
-  %cmp_tmp.i.i = icmp eq i64 %load_tmp3.i.i, 0
-  %bit_and_tmp.i.i = and i64 %load_tmp3.i.i, 1
-  %16 = icmp ne i64 %bit_and_tmp.i.i, 0
-  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %16
+  %17 = phi i8* [ %ptr_add_tmp.i11, %then.i12 ], [ %load_tmp1.i13, %else.i14 ]
+  %18 = bitcast i64* %2 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %17, i8* nonnull align 8 %18, i64 %4, i1 false)
+  %load_tmp.i.i = load i8*, i8** %5, align 8
+  %19 = ptrtoint i8* %load_tmp.i.i to i64
+  %cmp_tmp.i.i = icmp eq i8* %load_tmp.i.i, null
+  %bit_and_tmp.i.i = and i64 %19, 1
+  %20 = icmp ne i64 %bit_and_tmp.i.i, 0
+  %bool_or_tmp.i.i = or i1 %cmp_tmp.i.i, %20
   br i1 %bool_or_tmp.i.i, label %then.i, label %else.i
 
 then.i:                                           ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %17 = icmp eq i64 %add_tmp, 0
-  br i1 %17, label %then.i.i, label %else.i.i
+  %21 = icmp eq i64 %add_tmp, 0
+  br i1 %21, label %then.i.i, label %else.i.i
 
 then.i.i:                                         ; preds = %then.i
-  %18 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* null, i8** %18, align 8
+  store i8* null, i8** %5, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i.i:                                         ; preds = %then.i
   %lshift_tmp.i.i = shl i64 %add_tmp, 1
   %bit_or_tmp.i.i = or i64 %lshift_tmp.i.i, 1
-  %19 = inttoptr i64 %bit_or_tmp.i.i to i8*
-  %20 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 0
-  store i8* %19, i8** %20, align 8
+  %22 = inttoptr i64 %bit_or_tmp.i.i to i8*
+  store i8* %22, i8** %5, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 else.i:                                           ; preds = %"func.std.end_ptr..1.0R.const.struct.std::string.0P.builtin.uint8.exit"
-  %21 = inttoptr i64 %load_tmp3.i.i to i8*
-  %ptr_add_tmp.i = getelementptr i8, i8* %21, i64 %add_tmp
-  store i8* %ptr_add_tmp.i, i8** %7, align 8
+  %ptr_add_tmp.i = getelementptr i8, i8* %load_tmp.i.i, i64 %add_tmp
+  store i8* %ptr_add_tmp.i, i8** %8, align 8
   br label %"func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit"
 
 "func.std.set_size_unsafe..2.0R.struct.std::string.builtin.uint64.void.exit": ; preds = %then.i.i, %else.i.i, %else.i
   ret %"struct.std::string.4"* %0
 }
 
-define void @func.std.decode_char_utf8..2.0P.builtin.uint8.0P.builtin.uint8.0T.2.builtin.char.0P.builtin.uint8({ i32, i8* }* noalias nocapture nonnull sret %0, i8* %1, i8* %2) {
+define void @func.std.decode_char_utf8..2.0P.builtin.uint8.0P.builtin.uint8.0T.2.builtin.char.0P.builtin.uint8({ i32, i8* }* noalias nocapture nonnull sret({ i32, i8* }) %0, i8* %1, i8* %2) {
 alloca:
-  %load_tmp128.cast = ptrtoint i8* %2 to i64
-  %load_tmp1129.cast = ptrtoint i8* %1 to i64
-  %3 = sub i64 %load_tmp128.cast, %load_tmp1129.cast
-  %4 = icmp eq i64 %3, 0
-  br i1 %4, label %then, label %endif
+  %3 = ptrtoint i8* %2 to i64
+  %4 = ptrtoint i8* %1 to i64
+  %5 = sub i64 %3, %4
+  %6 = icmp eq i64 %5, 0
+  br i1 %6, label %then, label %endif
 
 then:                                             ; preds = %alloca
-  %5 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 0, i32* %5, align 8
-  %6 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
-  %7 = bitcast i8** %6 to i64*
-  store i64 %load_tmp1129.cast, i64* %7, align 8
+  %7 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 0, i32* %7, align 8
+  %8 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  store i8* %1, i8** %8, align 8
   ret void
 
 endif:                                            ; preds = %alloca
   %load_tmp5 = load i8, i8* %1, align 1
-  %8 = icmp ult i8 %load_tmp5, 127
-  br i1 %8, label %then7, label %else
+  %9 = icmp ult i8 %load_tmp5, 127
+  br i1 %9, label %then7, label %else
 
 then7:                                            ; preds = %endif
-  %9 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  %10 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
   %cast_tmp = zext i8 %load_tmp5 to i32
-  store i32 %cast_tmp, i32* %9, align 8
-  %10 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  store i32 %cast_tmp, i32* %10, align 8
+  %11 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
   %ptr_add_tmp = getelementptr i8, i8* %1, i64 1
-  store i8* %ptr_add_tmp, i8** %10, align 8
+  store i8* %ptr_add_tmp, i8** %11, align 8
   ret void
 
 else:                                             ; preds = %endif
-  %11 = icmp sgt i64 %3, 1
+  %12 = icmp sgt i64 %5, 1
   %bit_and_tmp = and i8 %load_tmp5, -32
-  %12 = icmp eq i8 %bit_and_tmp, -64
-  %bool_and_tmp = and i1 %11, %12
+  %13 = icmp eq i8 %bit_and_tmp, -64
+  %bool_and_tmp = and i1 %12, %13
   br i1 %bool_and_tmp, label %then12, label %else32
 
 then12:                                           ; preds = %else
   %ptr_add_tmp15 = getelementptr i8, i8* %1, i64 1
   %load_tmp16 = load i8, i8* %ptr_add_tmp15, align 1
   %bit_and_tmp18 = and i8 %load_tmp16, -64
-  %.not134 = icmp eq i8 %bit_and_tmp18, -128
-  br i1 %.not134, label %endif21, label %then19
+  %.not129 = icmp eq i8 %bit_and_tmp18, -128
+  br i1 %.not129, label %endif21, label %then19
 
 then19:                                           ; preds = %then12
-  %13 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 0, i32* %13, align 8
-  %14 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
-  %15 = bitcast i8** %14 to i64*
-  store i64 %load_tmp1129.cast, i64* %15, align 8
+  %14 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 0, i32* %14, align 8
+  %15 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  store i8* %1, i8** %15, align 8
   ret void
 
 endif21:                                          ; preds = %then12
@@ -1149,7 +1091,7 @@ endif21:                                          ; preds = %then12
   ret void
 
 else32:                                           ; preds = %else
-  %18 = icmp sgt i64 %3, 2
+  %18 = icmp sgt i64 %5, 2
   %bit_and_tmp36 = and i8 %load_tmp5, -16
   %19 = icmp eq i8 %bit_and_tmp36, -32
   %bool_and_tmp38 = and i1 %18, %19
@@ -1161,18 +1103,17 @@ then39:                                           ; preds = %else32
   %ptr_add_tmp45 = getelementptr i8, i8* %1, i64 2
   %load_tmp46 = load i8, i8* %ptr_add_tmp45, align 1
   %bit_and_tmp48 = and i8 %load_tmp43, -64
-  %.not132 = icmp ne i8 %bit_and_tmp48, -128
+  %.not128 = icmp ne i8 %bit_and_tmp48, -128
   %bit_and_tmp50 = and i8 %load_tmp46, -64
   %20 = icmp ne i8 %bit_and_tmp50, -128
-  %bool_or_tmp = or i1 %.not132, %20
+  %bool_or_tmp = or i1 %.not128, %20
   br i1 %bool_or_tmp, label %then51, label %endif53
 
 then51:                                           ; preds = %then39
   %21 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
   store i32 0, i32* %21, align 8
   %22 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
-  %23 = bitcast i8** %22 to i64*
-  store i64 %load_tmp1129.cast, i64* %23, align 8
+  store i8* %1, i8** %22, align 8
   ret void
 
 endif53:                                          ; preds = %then39
@@ -1186,18 +1127,18 @@ endif53:                                          ; preds = %then39
   %bit_and_tmp64 = and i8 %load_tmp46, 63
   %cast_tmp65 = zext i8 %bit_and_tmp64 to i32
   %bit_or_tmp67 = or i32 %bit_or_tmp62, %cast_tmp65
-  %24 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 %bit_or_tmp67, i32* %24, align 8
-  %25 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  %23 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 %bit_or_tmp67, i32* %23, align 8
+  %24 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
   %ptr_add_tmp70 = getelementptr i8, i8* %1, i64 3
-  store i8* %ptr_add_tmp70, i8** %25, align 8
+  store i8* %ptr_add_tmp70, i8** %24, align 8
   ret void
 
 else71:                                           ; preds = %else32
-  %26 = icmp sgt i64 %3, 3
+  %25 = icmp sgt i64 %5, 3
   %bit_and_tmp75 = and i8 %load_tmp5, -8
-  %27 = icmp eq i8 %bit_and_tmp75, -16
-  %bool_and_tmp77 = and i1 %26, %27
+  %26 = icmp eq i8 %bit_and_tmp75, -16
+  %bool_and_tmp77 = and i1 %25, %26
   br i1 %bool_and_tmp77, label %then78, label %else126
 
 then78:                                           ; preds = %else71
@@ -1210,19 +1151,18 @@ then78:                                           ; preds = %else71
   %bit_and_tmp90 = and i8 %load_tmp82, -64
   %.not = icmp ne i8 %bit_and_tmp90, -128
   %bit_and_tmp93 = and i8 %load_tmp85, -64
-  %28 = icmp ne i8 %bit_and_tmp93, -128
-  %bool_or_tmp95 = or i1 %.not, %28
+  %27 = icmp ne i8 %bit_and_tmp93, -128
+  %bool_or_tmp95 = or i1 %.not, %27
   %bit_and_tmp98 = and i8 %load_tmp88, -64
-  %29 = icmp ne i8 %bit_and_tmp98, -128
-  %bool_or_tmp100 = or i1 %bool_or_tmp95, %29
+  %28 = icmp ne i8 %bit_and_tmp98, -128
+  %bool_or_tmp100 = or i1 %bool_or_tmp95, %28
   br i1 %bool_or_tmp100, label %then101, label %endif103
 
 then101:                                          ; preds = %then78
-  %30 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 0, i32* %30, align 8
-  %31 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
-  %32 = bitcast i8** %31 to i64*
-  store i64 %load_tmp1129.cast, i64* %32, align 8
+  %29 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 0, i32* %29, align 8
+  %30 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  store i8* %1, i8** %30, align 8
   ret void
 
 endif103:                                         ; preds = %then78
@@ -1240,19 +1180,18 @@ endif103:                                         ; preds = %then78
   %bit_and_tmp119 = and i8 %load_tmp88, 63
   %cast_tmp120 = zext i8 %bit_and_tmp119 to i32
   %bit_or_tmp122 = or i32 %bit_or_tmp117, %cast_tmp120
-  %33 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 %bit_or_tmp122, i32* %33, align 8
-  %34 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  %31 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 %bit_or_tmp122, i32* %31, align 8
+  %32 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
   %ptr_add_tmp125 = getelementptr i8, i8* %1, i64 4
-  store i8* %ptr_add_tmp125, i8** %34, align 8
+  store i8* %ptr_add_tmp125, i8** %32, align 8
   ret void
 
 else126:                                          ; preds = %else71
-  %35 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
-  store i32 0, i32* %35, align 8
-  %36 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
-  %37 = bitcast i8** %36 to i64*
-  store i64 %load_tmp1129.cast, i64* %37, align 8
+  %33 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 0
+  store i32 0, i32* %33, align 8
+  %34 = getelementptr inbounds { i32, i8* }, { i32, i8* }* %0, i64 0, i32 1
+  store i8* %1, i8** %34, align 8
   ret void
 }
 
@@ -1321,29 +1260,27 @@ func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.boo
   ret i8* %11
 
 endif:                                            ; preds = %alloca, %bool_and_rhs
-  %12 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
-  store i64 0, i64* %12, align 8
-  %13 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
-  store i32 0, i32* %13, align 8
+  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %5, align 8
   %bit_or_tmp.i = or i64 %bit_and_tmp3, 4503599627370496
   %cast_tmp.off = add nsw i32 %cast_tmp, -1023
-  %14 = icmp ugt i32 %cast_tmp.off, 52
-  br i1 %14, label %else, label %endif6.i
+  %12 = icmp ugt i32 %cast_tmp.off, 52
+  br i1 %12, label %else, label %endif6.i
 
 endif6.i:                                         ; preds = %endif
-  %sub_tmp2.i = add nsw i32 %cast_tmp, -1075
-  %unary_minus_tmp.i = sub nsw i32 0, %sub_tmp2.i
-  %15 = zext i32 %unary_minus_tmp.i to i64
-  %notmask.i = shl nsw i64 -1, %15
+  %unary_minus_tmp.i = sub nsw i32 1075, %cast_tmp
+  %13 = zext i32 %unary_minus_tmp.i to i64
+  %notmask.i = shl nsw i64 -1, %13
   %sub_tmp8.i = xor i64 %notmask.i, -1
   %bit_and_tmp.i = and i64 %bit_or_tmp.i, %sub_tmp8.i
   %.not.i = icmp eq i64 %bit_and_tmp.i, 0
   br i1 %.not.i, label %endif13.i, label %else
 
 endif13.i:                                        ; preds = %endif6.i
-  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %15
-  store i64 %rshift_tmp.i, i64* %12, align 8
-  store i32 0, i32* %13, align 8
+  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %13
+  %14 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  store i64 %rshift_tmp.i, i64* %14, align 8
+  %15 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
+  store i32 0, i32* %15, align 8
   %div_tmp.i45 = udiv i64 %rshift_tmp.i, 10
   %cast_tmp20 = trunc i64 %rshift_tmp.i to i32
   %cast_tmp22 = trunc i64 %div_tmp.i45 to i32
@@ -1359,197 +1296,205 @@ for_condition_check:                              ; preds = %for, %endif13.i
   br i1 %16, label %for, label %endif37
 
 for:                                              ; preds = %for_condition_check
-  store i64 %.040, i64* %12, align 8
+  store i64 %.040, i64* %14, align 8
   %div_tmp.i = udiv i64 %.040, 10
   %cast_tmp27 = trunc i64 %.040 to i32
   %cast_tmp29 = trunc i64 %div_tmp.i to i32
   %mul_tmp30.neg = mul i32 %cast_tmp29, -10
   %sub_tmp31 = add i32 %mul_tmp30.neg, %cast_tmp27
   %17 = add i32 %load_tmp32, 1
-  store i32 %17, i32* %13, align 8
+  store i32 %17, i32* %15, align 8
   br label %for_condition_check
 
 else:                                             ; preds = %endif6.i, %endif
-  call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret %6, i64 %bit_and_tmp3, i32 %cast_tmp)
-  %18 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 0
-  %load_tmp35 = load i64, i64* %18, align 8
-  store i64 %load_tmp35, i64* %12, align 8
-  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 1
-  %load_tmp36 = load i32, i32* %19, align 8
-  store i32 %load_tmp36, i32* %13, align 8
+  call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret(%"struct.std::ryu::floating_decimal_64") %6, i64 %bit_and_tmp3, i32 %cast_tmp)
+  %18 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 0
+  %load_tmp35 = load i64, i64* %19, align 8
+  store i64 %load_tmp35, i64* %18, align 8
+  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
+  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 1
+  %load_tmp36 = load i32, i32* %21, align 8
+  store i32 %load_tmp36, i32* %20, align 8
   br label %endif37
 
 endif37:                                          ; preds = %for_condition_check, %else
-  %20 = bitcast %"struct.std::ryu::floating_decimal_64"* %4 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %20)
-  %21 = bitcast %"struct.std::ryu::floating_decimal_64"* %5 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %20, i8* nonnull align 8 dereferenceable(16) %21, i64 16, i1 false)
+  call void @llvm.experimental.noalias.scope.decl(metadata !30)
+  %22 = bitcast %"struct.std::ryu::floating_decimal_64"* %4 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %22)
+  %23 = bitcast %"struct.std::ryu::floating_decimal_64"* %5 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %22, i8* nonnull align 8 dereferenceable(16) %23, i64 16, i1 false)
   br i1 %7, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %endif37
   store i8 45, i8* %1, align 1, !noalias !30
-  %22 = getelementptr i8, i8* %1, i64 1
+  %24 = getelementptr i8, i8* %1, i64 1
   br label %endif.i
 
 endif.i:                                          ; preds = %then.i, %endif37
-  %.0.i = phi i8* [ %22, %then.i ], [ %1, %endif37 ]
-  %23 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
-  %load_tmp3.i = load i64, i64* %23, align 8, !alias.scope !30
-  %24 = icmp ugt i64 %load_tmp3.i, 9999999999999999
-  br i1 %24, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else.i.i
+  %.0.i = phi i8* [ %24, %then.i ], [ %1, %endif37 ]
+  %25 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
+  %load_tmp3.i = load i64, i64* %25, align 8, !alias.scope !30
+  %26 = icmp ugt i64 %load_tmp3.i, 9999999999999999
+  br i1 %26, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else.i.i
 
 else.i.i:                                         ; preds = %endif.i
-  %25 = icmp ugt i64 %load_tmp3.i, 999999999999999
-  br i1 %25, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else3.i.i
+  %27 = icmp ugt i64 %load_tmp3.i, 999999999999999
+  br i1 %27, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else3.i.i
 
 else3.i.i:                                        ; preds = %else.i.i
-  %26 = icmp ugt i64 %load_tmp3.i, 99999999999999
-  br i1 %26, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else6.i.i
+  %28 = icmp ugt i64 %load_tmp3.i, 99999999999999
+  br i1 %28, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else6.i.i
 
 else6.i.i:                                        ; preds = %else3.i.i
-  %27 = icmp ugt i64 %load_tmp3.i, 9999999999999
-  br i1 %27, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else9.i.i
+  %29 = icmp ugt i64 %load_tmp3.i, 9999999999999
+  br i1 %29, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else9.i.i
 
 else9.i.i:                                        ; preds = %else6.i.i
-  %28 = icmp ugt i64 %load_tmp3.i, 999999999999
-  br i1 %28, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else12.i.i
+  %30 = icmp ugt i64 %load_tmp3.i, 999999999999
+  br i1 %30, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else12.i.i
 
 else12.i.i:                                       ; preds = %else9.i.i
-  %29 = icmp ugt i64 %load_tmp3.i, 99999999999
-  br i1 %29, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else15.i.i
+  %31 = icmp ugt i64 %load_tmp3.i, 99999999999
+  br i1 %31, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else15.i.i
 
 else15.i.i:                                       ; preds = %else12.i.i
-  %30 = icmp ugt i64 %load_tmp3.i, 9999999999
-  br i1 %30, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else18.i.i
+  %32 = icmp ugt i64 %load_tmp3.i, 9999999999
+  br i1 %32, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else18.i.i
 
 else18.i.i:                                       ; preds = %else15.i.i
-  %31 = icmp ugt i64 %load_tmp3.i, 999999999
-  br i1 %31, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else21.i.i
+  %33 = icmp ugt i64 %load_tmp3.i, 999999999
+  br i1 %33, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else21.i.i
 
 else21.i.i:                                       ; preds = %else18.i.i
-  %32 = icmp ugt i64 %load_tmp3.i, 99999999
-  br i1 %32, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else24.i.i
+  %34 = icmp ugt i64 %load_tmp3.i, 99999999
+  br i1 %34, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else24.i.i
 
 else24.i.i:                                       ; preds = %else21.i.i
-  %33 = icmp ugt i64 %load_tmp3.i, 9999999
-  br i1 %33, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else27.i.i
+  %35 = icmp ugt i64 %load_tmp3.i, 9999999
+  br i1 %35, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else27.i.i
 
 else27.i.i:                                       ; preds = %else24.i.i
-  %34 = icmp ugt i64 %load_tmp3.i, 999999
-  br i1 %34, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else30.i.i
+  %36 = icmp ugt i64 %load_tmp3.i, 999999
+  br i1 %36, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else30.i.i
 
 else30.i.i:                                       ; preds = %else27.i.i
-  %35 = icmp ugt i64 %load_tmp3.i, 99999
-  br i1 %35, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else33.i.i
+  %37 = icmp ugt i64 %load_tmp3.i, 99999
+  br i1 %37, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else33.i.i
 
 else33.i.i:                                       ; preds = %else30.i.i
-  %36 = icmp ugt i64 %load_tmp3.i, 9999
-  br i1 %36, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else36.i.i
+  %38 = icmp ugt i64 %load_tmp3.i, 9999
+  br i1 %38, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else36.i.i
 
 else36.i.i:                                       ; preds = %else33.i.i
-  %37 = icmp ugt i64 %load_tmp3.i, 999
-  br i1 %37, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else39.i.i
+  %39 = icmp ugt i64 %load_tmp3.i, 999
+  br i1 %39, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else39.i.i
 
 else39.i.i:                                       ; preds = %else36.i.i
-  %38 = icmp ugt i64 %load_tmp3.i, 99
-  %39 = icmp ugt i64 %load_tmp3.i, 9
-  %..i.i = select i1 %39, i32 2, i32 1
-  %40 = select i1 %38, i32 3, i32 %..i.i
+  %40 = icmp ugt i64 %load_tmp3.i, 99
+  br i1 %40, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else42.i.i
+
+else42.i.i:                                       ; preds = %else39.i.i
+  %41 = icmp ugt i64 %load_tmp3.i, 9
+  %42 = select i1 %41, i32 2, i32 1
   br label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i
 
-func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i: ; preds = %else39.i.i, %else36.i.i, %else33.i.i, %else30.i.i, %else27.i.i, %else24.i.i, %else21.i.i, %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
-  %41 = phi i32 [ 17, %endif.i ], [ 16, %else.i.i ], [ 15, %else3.i.i ], [ 14, %else6.i.i ], [ 13, %else9.i.i ], [ 12, %else12.i.i ], [ 11, %else15.i.i ], [ 10, %else18.i.i ], [ 9, %else21.i.i ], [ 8, %else24.i.i ], [ 7, %else27.i.i ], [ 6, %else30.i.i ], [ 5, %else33.i.i ], [ 4, %else36.i.i ], [ %40, %else39.i.i ]
-  %42 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
-  %load_tmp5.i = load i32, i32* %42, align 8, !alias.scope !30
-  %add_tmp.i = add i32 %41, 3
+func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i: ; preds = %else42.i.i, %else39.i.i, %else36.i.i, %else33.i.i, %else30.i.i, %else27.i.i, %else24.i.i, %else21.i.i, %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
+  %43 = phi i32 [ 17, %endif.i ], [ 16, %else.i.i ], [ 15, %else3.i.i ], [ 14, %else6.i.i ], [ 13, %else9.i.i ], [ 12, %else12.i.i ], [ 11, %else15.i.i ], [ 10, %else18.i.i ], [ 9, %else21.i.i ], [ 8, %else24.i.i ], [ 7, %else27.i.i ], [ 6, %else30.i.i ], [ 5, %else33.i.i ], [ 4, %else36.i.i ], [ 3, %else39.i.i ], [ %42, %else42.i.i ]
+  %44 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
+  %load_tmp5.i = load i32, i32* %44, align 8, !alias.scope !30
+  %add_tmp.i = add nuw nsw i32 %43, 3
   %add_tmp.i.off = add i32 %add_tmp.i, %load_tmp5.i
-  %43 = icmp ult i32 %add_tmp.i.off, 19
-  br i1 %43, label %then8.i, label %else.i
+  %45 = icmp ult i32 %add_tmp.i.off, 19
+  br i1 %45, label %then8.i, label %else.i
 
 then8.i:                                          ; preds = %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i
-  %44 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %44), !noalias !30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %44, i8* nonnull align 8 dereferenceable(16) %20, i64 16, i1 false)
-  %45 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 0
-  %load_tmp.i12.i = load i64, i64* %45, align 8, !alias.scope !33, !noalias !30
-  %46 = icmp ugt i64 %load_tmp.i12.i, 9999999999999999
-  br i1 %46, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else.i.i13.i
+  call void @llvm.experimental.noalias.scope.decl(metadata !33), !noalias !30
+  %46 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %46), !noalias !30
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %46, i8* nonnull align 8 dereferenceable(16) %22, i64 16, i1 false)
+  %47 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 0
+  %load_tmp.i12.i = load i64, i64* %47, align 8, !alias.scope !33, !noalias !30
+  %48 = icmp ugt i64 %load_tmp.i12.i, 9999999999999999
+  br i1 %48, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else.i.i13.i
 
 else.i.i13.i:                                     ; preds = %then8.i
-  %47 = icmp ugt i64 %load_tmp.i12.i, 999999999999999
-  br i1 %47, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else3.i.i14.i
+  %49 = icmp ugt i64 %load_tmp.i12.i, 999999999999999
+  br i1 %49, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else3.i.i14.i
 
 else3.i.i14.i:                                    ; preds = %else.i.i13.i
-  %48 = icmp ugt i64 %load_tmp.i12.i, 99999999999999
-  br i1 %48, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else6.i.i15.i
+  %50 = icmp ugt i64 %load_tmp.i12.i, 99999999999999
+  br i1 %50, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else6.i.i15.i
 
 else6.i.i15.i:                                    ; preds = %else3.i.i14.i
-  %49 = icmp ugt i64 %load_tmp.i12.i, 9999999999999
-  br i1 %49, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else9.i.i16.i
+  %51 = icmp ugt i64 %load_tmp.i12.i, 9999999999999
+  br i1 %51, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else9.i.i16.i
 
 else9.i.i16.i:                                    ; preds = %else6.i.i15.i
-  %50 = icmp ugt i64 %load_tmp.i12.i, 999999999999
-  br i1 %50, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else12.i.i17.i
+  %52 = icmp ugt i64 %load_tmp.i12.i, 999999999999
+  br i1 %52, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else12.i.i17.i
 
 else12.i.i17.i:                                   ; preds = %else9.i.i16.i
-  %51 = icmp ugt i64 %load_tmp.i12.i, 99999999999
-  br i1 %51, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else15.i.i18.i
+  %53 = icmp ugt i64 %load_tmp.i12.i, 99999999999
+  br i1 %53, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else15.i.i18.i
 
 else15.i.i18.i:                                   ; preds = %else12.i.i17.i
-  %52 = icmp ugt i64 %load_tmp.i12.i, 9999999999
-  br i1 %52, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else18.i.i19.i
+  %54 = icmp ugt i64 %load_tmp.i12.i, 9999999999
+  br i1 %54, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else18.i.i19.i
 
 else18.i.i19.i:                                   ; preds = %else15.i.i18.i
-  %53 = icmp ugt i64 %load_tmp.i12.i, 999999999
-  br i1 %53, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else21.i.i20.i
+  %55 = icmp ugt i64 %load_tmp.i12.i, 999999999
+  br i1 %55, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else21.i.i20.i
 
 else21.i.i20.i:                                   ; preds = %else18.i.i19.i
-  %54 = icmp ugt i64 %load_tmp.i12.i, 99999999
-  br i1 %54, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else24.i.i21.i
+  %56 = icmp ugt i64 %load_tmp.i12.i, 99999999
+  br i1 %56, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else24.i.i21.i
 
 else24.i.i21.i:                                   ; preds = %else21.i.i20.i
-  %55 = icmp ugt i64 %load_tmp.i12.i, 9999999
-  br i1 %55, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else27.i.i22.i
+  %57 = icmp ugt i64 %load_tmp.i12.i, 9999999
+  br i1 %57, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else27.i.i22.i
 
 else27.i.i22.i:                                   ; preds = %else24.i.i21.i
-  %56 = icmp ugt i64 %load_tmp.i12.i, 999999
-  br i1 %56, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else30.i.i23.i
+  %58 = icmp ugt i64 %load_tmp.i12.i, 999999
+  br i1 %58, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else30.i.i23.i
 
 else30.i.i23.i:                                   ; preds = %else27.i.i22.i
-  %57 = icmp ugt i64 %load_tmp.i12.i, 99999
-  br i1 %57, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else33.i.i24.i
+  %59 = icmp ugt i64 %load_tmp.i12.i, 99999
+  br i1 %59, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else33.i.i24.i
 
 else33.i.i24.i:                                   ; preds = %else30.i.i23.i
-  %58 = icmp ugt i64 %load_tmp.i12.i, 9999
-  br i1 %58, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else36.i.i25.i
+  %60 = icmp ugt i64 %load_tmp.i12.i, 9999
+  br i1 %60, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else36.i.i25.i
 
 else36.i.i25.i:                                   ; preds = %else33.i.i24.i
-  %59 = icmp ugt i64 %load_tmp.i12.i, 999
-  br i1 %59, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else39.i.i27.i
+  %61 = icmp ugt i64 %load_tmp.i12.i, 999
+  br i1 %61, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else39.i.i26.i
 
-else39.i.i27.i:                                   ; preds = %else36.i.i25.i
-  %60 = icmp ugt i64 %load_tmp.i12.i, 99
-  %61 = icmp ugt i64 %load_tmp.i12.i, 9
-  %..i.i26.i = select i1 %61, i32 2, i32 1
-  %62 = select i1 %60, i32 3, i32 %..i.i26.i
+else39.i.i26.i:                                   ; preds = %else36.i.i25.i
+  %62 = icmp ugt i64 %load_tmp.i12.i, 99
+  br i1 %62, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i, label %else42.i.i27.i
+
+else42.i.i27.i:                                   ; preds = %else39.i.i26.i
+  %63 = icmp ugt i64 %load_tmp.i12.i, 9
+  %64 = select i1 %63, i32 2, i32 1
   br label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i
 
-func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i: ; preds = %else39.i.i27.i, %else36.i.i25.i, %else33.i.i24.i, %else30.i.i23.i, %else27.i.i22.i, %else24.i.i21.i, %else21.i.i20.i, %else18.i.i19.i, %else15.i.i18.i, %else12.i.i17.i, %else9.i.i16.i, %else6.i.i15.i, %else3.i.i14.i, %else.i.i13.i, %then8.i
-  %63 = phi i32 [ 17, %then8.i ], [ 16, %else.i.i13.i ], [ 15, %else3.i.i14.i ], [ 14, %else6.i.i15.i ], [ 13, %else9.i.i16.i ], [ 12, %else12.i.i17.i ], [ 11, %else15.i.i18.i ], [ 10, %else18.i.i19.i ], [ 9, %else21.i.i20.i ], [ 8, %else24.i.i21.i ], [ 7, %else27.i.i22.i ], [ 6, %else30.i.i23.i ], [ 5, %else33.i.i24.i ], [ 4, %else36.i.i25.i ], [ %62, %else39.i.i27.i ]
-  %64 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 1
-  %load_tmp3.i.i = load i32, i32* %64, align 8, !alias.scope !33, !noalias !30
-  %sub_tmp.i28.i = add i32 %load_tmp3.i.i, %63
+func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i: ; preds = %else42.i.i27.i, %else39.i.i26.i, %else36.i.i25.i, %else33.i.i24.i, %else30.i.i23.i, %else27.i.i22.i, %else24.i.i21.i, %else21.i.i20.i, %else18.i.i19.i, %else15.i.i18.i, %else12.i.i17.i, %else9.i.i16.i, %else6.i.i15.i, %else3.i.i14.i, %else.i.i13.i, %then8.i
+  %65 = phi i32 [ 17, %then8.i ], [ 16, %else.i.i13.i ], [ 15, %else3.i.i14.i ], [ 14, %else6.i.i15.i ], [ 13, %else9.i.i16.i ], [ 12, %else12.i.i17.i ], [ 11, %else15.i.i18.i ], [ 10, %else18.i.i19.i ], [ 9, %else21.i.i20.i ], [ 8, %else24.i.i21.i ], [ 7, %else27.i.i22.i ], [ 6, %else30.i.i23.i ], [ 5, %else33.i.i24.i ], [ 4, %else36.i.i25.i ], [ 3, %else39.i.i26.i ], [ %64, %else42.i.i27.i ]
+  %66 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 1
+  %load_tmp3.i.i = load i32, i32* %66, align 8, !alias.scope !33, !noalias !30
+  %sub_tmp.i28.i = add i32 %load_tmp3.i.i, %65
   %add_tmp.i.i = add i32 %sub_tmp.i28.i, -1
-  %65 = icmp slt i32 %add_tmp.i.i, 0
-  br i1 %65, label %then.i32.i, label %endif.i34.i
+  %67 = icmp slt i32 %add_tmp.i.i, 0
+  br i1 %67, label %then.i32.i, label %endif.i34.i
 
 then.i32.i:                                       ; preds = %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i
   %add_tmp7.i.i = sub i32 2, %sub_tmp.i28.i
   %cast_tmp.i30.i = sext i32 %add_tmp7.i.i to i64
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i, i8* align 1 getelementptr inbounds ([6 x i8], [6 x i8]* @.str.7, i64 0, i64 0), i64 %cast_tmp.i30.i, i1 false), !noalias !36
-  %unary_minus_tmp9.i.i = sub i32 0, %add_tmp.i.i
-  %66 = sext i32 %unary_minus_tmp9.i.i to i64
-  %ptr_add_tmp.i31.i = getelementptr i8, i8* %.0.i, i64 %66
+  %unary_minus_tmp9.i.i = sub i32 1, %sub_tmp.i28.i
+  %68 = sext i32 %unary_minus_tmp9.i.i to i64
+  %ptr_add_tmp.i31.i = getelementptr i8, i8* %.0.i, i64 %68
   br label %endif.i34.i
 
 endif.i34.i:                                      ; preds = %then.i32.i, %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i29.i
@@ -1578,36 +1523,36 @@ then12.i.i:                                       ; preds = %endif.i34.i
   %lshift_tmp31.i.i = shl nuw nsw i32 %mod_tmp30.i.i, 1
   %div_tmp33.i.i = udiv i32 %mod_tmp23.i.i, 100
   %lshift_tmp34.i.i = shl nuw nsw i32 %div_tmp33.i.i, 1
-  %67 = zext i32 %63 to i64
-  %ptr_add_tmp37.i.i = getelementptr i8, i8* %.0.i.i, i64 %67
+  %69 = zext i32 %65 to i64
+  %ptr_add_tmp37.i.i = getelementptr i8, i8* %.0.i.i, i64 %69
   %ptr_sub_tmp39.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i, i64 -1
-  %68 = zext i32 %lshift_tmp.i40.i to i64
-  %ptr_add_tmp41.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %68
-  %69 = bitcast i8* %ptr_add_tmp41.i.i to i16*
-  %70 = bitcast i8* %ptr_sub_tmp39.i.i to i16*
-  %71 = load i16, i16* %69, align 2, !noalias !36
-  store i16 %71, i16* %70, align 1, !noalias !36
+  %70 = zext i32 %lshift_tmp.i40.i to i64
+  %ptr_add_tmp41.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %70
+  %71 = bitcast i8* %ptr_add_tmp41.i.i to i16*
+  %72 = bitcast i8* %ptr_sub_tmp39.i.i to i16*
+  %73 = load i16, i16* %71, align 2, !noalias !36
+  store i16 %73, i16* %72, align 1, !noalias !36
   %ptr_sub_tmp47.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i, i64 -3
-  %72 = zext i32 %lshift_tmp28.i.i to i64
-  %ptr_add_tmp49.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %72
-  %73 = bitcast i8* %ptr_add_tmp49.i.i to i16*
-  %74 = bitcast i8* %ptr_sub_tmp47.i.i to i16*
-  %75 = load i16, i16* %73, align 2, !noalias !36
-  store i16 %75, i16* %74, align 1, !noalias !36
+  %74 = zext i32 %lshift_tmp28.i.i to i64
+  %ptr_add_tmp49.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %74
+  %75 = bitcast i8* %ptr_add_tmp49.i.i to i16*
+  %76 = bitcast i8* %ptr_sub_tmp47.i.i to i16*
+  %77 = load i16, i16* %75, align 2, !noalias !36
+  store i16 %77, i16* %76, align 1, !noalias !36
   %ptr_sub_tmp55.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i, i64 -5
-  %76 = zext i32 %lshift_tmp31.i.i to i64
-  %ptr_add_tmp57.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %76
-  %77 = bitcast i8* %ptr_add_tmp57.i.i to i16*
-  %78 = bitcast i8* %ptr_sub_tmp55.i.i to i16*
-  %79 = load i16, i16* %77, align 2, !noalias !36
-  store i16 %79, i16* %78, align 1, !noalias !36
+  %78 = zext i32 %lshift_tmp31.i.i to i64
+  %ptr_add_tmp57.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %78
+  %79 = bitcast i8* %ptr_add_tmp57.i.i to i16*
+  %80 = bitcast i8* %ptr_sub_tmp55.i.i to i16*
+  %81 = load i16, i16* %79, align 2, !noalias !36
+  store i16 %81, i16* %80, align 1, !noalias !36
   %ptr_sub_tmp63.i.i = getelementptr i8, i8* %ptr_add_tmp37.i.i, i64 -7
-  %80 = zext i32 %lshift_tmp34.i.i to i64
-  %ptr_add_tmp65.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %80
-  %81 = bitcast i8* %ptr_add_tmp65.i.i to i16*
-  %82 = bitcast i8* %ptr_sub_tmp63.i.i to i16*
-  %83 = load i16, i16* %81, align 2, !noalias !36
-  store i16 %83, i16* %82, align 1, !noalias !36
+  %82 = zext i32 %lshift_tmp34.i.i to i64
+  %ptr_add_tmp65.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %82
+  %83 = bitcast i8* %ptr_add_tmp65.i.i to i16*
+  %84 = bitcast i8* %ptr_sub_tmp63.i.i to i16*
+  %85 = load i16, i16* %83, align 2, !noalias !36
+  store i16 %85, i16* %84, align 1, !noalias !36
   br label %endif68.i.i
 
 endif68.i.i:                                      ; preds = %then12.i.i, %endif.endif68_crit_edge.i.i
@@ -1618,187 +1563,190 @@ endif68.i.i:                                      ; preds = %then12.i.i, %endif.
 while_condition_check.i41.i:                      ; preds = %while.i42.i, %endif68.i.i
   %.1162.i.i = phi i32 [ %.0161.i.i, %endif68.i.i ], [ %add_tmp102.i.i, %while.i42.i ]
   %.0159.i.i = phi i32 [ %cast_tmp70.pre-phi.i.i, %endif68.i.i ], [ %div_tmp78.i.i, %while.i42.i ]
-  %84 = icmp ugt i32 %.0159.i.i, 9999
-  br i1 %84, label %while.i42.i, label %endwhile.i43.i
+  %86 = icmp ugt i32 %.0159.i.i, 9999
+  br i1 %86, label %while.i42.i, label %endwhile.i43.i
 
 while.i42.i:                                      ; preds = %while_condition_check.i41.i
-  %85 = urem i32 %.0159.i.i, 10000
+  %87 = urem i32 %.0159.i.i, 10000
   %div_tmp78.i.i = udiv i32 %.0159.i.i, 10000
-  %mod_tmp80.i.i = urem i32 %85, 100
+  %mod_tmp80.i.i = urem i32 %87, 100
   %lshift_tmp81.i.i = shl nuw nsw i32 %mod_tmp80.i.i, 1
-  %div_tmp83.i.i = udiv i32 %85, 100
+  %div_tmp83.i.i = udiv i32 %87, 100
   %lshift_tmp84.i.i = shl nuw nsw i32 %div_tmp83.i.i, 1
-  %86 = zext i32 %63 to i64
+  %88 = zext i32 %65 to i64
   %ptr_add_tmp87.i.i = getelementptr i8, i8* %.0.i.i, i64 -1
-  %87 = zext i32 %.1162.i.i to i64
-  %88 = sub nsw i64 0, %87
-  %ptr_sub_tmp89.i.i = getelementptr i8, i8* %ptr_add_tmp87.i.i, i64 %86
-  %ptr_sub_tmp90.i.i = getelementptr i8, i8* %ptr_sub_tmp89.i.i, i64 %88
-  %89 = zext i32 %lshift_tmp81.i.i to i64
-  %ptr_add_tmp92.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %89
-  %90 = bitcast i8* %ptr_add_tmp92.i.i to i16*
-  %91 = bitcast i8* %ptr_sub_tmp90.i.i to i16*
-  %92 = load i16, i16* %90, align 2, !noalias !36
-  store i16 %92, i16* %91, align 1, !noalias !36
+  %89 = zext i32 %.1162.i.i to i64
+  %90 = sub nsw i64 0, %89
+  %ptr_sub_tmp89.i.i = getelementptr i8, i8* %ptr_add_tmp87.i.i, i64 %88
+  %ptr_sub_tmp90.i.i = getelementptr i8, i8* %ptr_sub_tmp89.i.i, i64 %90
+  %91 = zext i32 %lshift_tmp81.i.i to i64
+  %ptr_add_tmp92.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %91
+  %92 = bitcast i8* %ptr_add_tmp92.i.i to i16*
+  %93 = bitcast i8* %ptr_sub_tmp90.i.i to i16*
+  %94 = load i16, i16* %92, align 2, !noalias !36
+  store i16 %94, i16* %93, align 1, !noalias !36
   %ptr_add_tmp95.i.i = getelementptr i8, i8* %.0.i.i, i64 -3
-  %ptr_sub_tmp97.i.i = getelementptr i8, i8* %ptr_add_tmp95.i.i, i64 %86
-  %ptr_sub_tmp98.i.i = getelementptr i8, i8* %ptr_sub_tmp97.i.i, i64 %88
-  %93 = zext i32 %lshift_tmp84.i.i to i64
-  %ptr_add_tmp100.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %93
-  %94 = bitcast i8* %ptr_add_tmp100.i.i to i16*
-  %95 = bitcast i8* %ptr_sub_tmp98.i.i to i16*
-  %96 = load i16, i16* %94, align 2, !noalias !36
-  store i16 %96, i16* %95, align 1, !noalias !36
+  %ptr_sub_tmp97.i.i = getelementptr i8, i8* %ptr_add_tmp95.i.i, i64 %88
+  %ptr_sub_tmp98.i.i = getelementptr i8, i8* %ptr_sub_tmp97.i.i, i64 %90
+  %95 = zext i32 %lshift_tmp84.i.i to i64
+  %ptr_add_tmp100.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %95
+  %96 = bitcast i8* %ptr_add_tmp100.i.i to i16*
+  %97 = bitcast i8* %ptr_sub_tmp98.i.i to i16*
+  %98 = load i16, i16* %96, align 2, !noalias !36
+  store i16 %98, i16* %97, align 1, !noalias !36
   %add_tmp102.i.i = add i32 %.1162.i.i, 4
   br label %while_condition_check.i41.i
 
 endwhile.i43.i:                                   ; preds = %while_condition_check.i41.i
-  %97 = icmp ugt i32 %.0159.i.i, 99
-  br i1 %97, label %then104.i.i, label %endif120.i.i
+  %99 = icmp ugt i32 %.0159.i.i, 99
+  br i1 %99, label %then104.i.i, label %endif120.i.i
 
 then104.i.i:                                      ; preds = %endwhile.i43.i
   %mod_tmp106.i.i = urem i32 %.0159.i.i, 100
   %lshift_tmp107.i.i = shl nuw nsw i32 %mod_tmp106.i.i, 1
   %div_tmp109.i.i = udiv i32 %.0159.i.i, 100
-  %98 = zext i32 %63 to i64
-  %ptr_add_tmp112.i.i = getelementptr i8, i8* %.0.i.i, i64 %98
-  %99 = zext i32 %.1162.i.i to i64
-  %100 = sub nsw i64 0, %99
-  %ptr_sub_tmp114.i.i = getelementptr i8, i8* %ptr_add_tmp112.i.i, i64 %100
+  %100 = zext i32 %65 to i64
+  %ptr_add_tmp112.i.i = getelementptr i8, i8* %.0.i.i, i64 %100
+  %101 = zext i32 %.1162.i.i to i64
+  %102 = sub nsw i64 0, %101
+  %ptr_sub_tmp114.i.i = getelementptr i8, i8* %ptr_add_tmp112.i.i, i64 %102
   %ptr_sub_tmp115.i.i = getelementptr i8, i8* %ptr_sub_tmp114.i.i, i64 -1
-  %101 = zext i32 %lshift_tmp107.i.i to i64
-  %ptr_add_tmp117.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %101
-  %102 = bitcast i8* %ptr_add_tmp117.i.i to i16*
-  %103 = bitcast i8* %ptr_sub_tmp115.i.i to i16*
-  %104 = load i16, i16* %102, align 2, !noalias !36
-  store i16 %104, i16* %103, align 1, !noalias !36
+  %103 = zext i32 %lshift_tmp107.i.i to i64
+  %ptr_add_tmp117.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %103
+  %104 = bitcast i8* %ptr_add_tmp117.i.i to i16*
+  %105 = bitcast i8* %ptr_sub_tmp115.i.i to i16*
+  %106 = load i16, i16* %104, align 2, !noalias !36
+  store i16 %106, i16* %105, align 1, !noalias !36
   br label %endif120.i.i
 
 endif120.i.i:                                     ; preds = %then104.i.i, %endwhile.i43.i
   %.1160.i.i = phi i32 [ %div_tmp109.i.i, %then104.i.i ], [ %.0159.i.i, %endwhile.i43.i ]
-  %105 = icmp ugt i32 %.1160.i.i, 9
-  br i1 %105, label %then122.i.i, label %else.i45.i
+  %107 = icmp ugt i32 %.1160.i.i, 9
+  br i1 %107, label %then122.i.i, label %else.i45.i
 
 then122.i.i:                                      ; preds = %endif120.i.i
   %lshift_tmp124.i.i = shl i32 %.1160.i.i, 1
   %ptr_add_tmp126.i.i = getelementptr i8, i8* %.0.i.i, i64 1
-  %106 = zext i32 %lshift_tmp124.i.i to i64
-  %ptr_add_tmp128.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %106
-  %107 = bitcast i8* %ptr_add_tmp128.i.i to i16*
-  %108 = bitcast i8* %ptr_add_tmp126.i.i to i16*
-  %109 = load i16, i16* %107, align 2, !noalias !36
-  store i16 %109, i16* %108, align 1, !noalias !36
+  %108 = zext i32 %lshift_tmp124.i.i to i64
+  %ptr_add_tmp128.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %108
+  %109 = bitcast i8* %ptr_add_tmp128.i.i to i16*
+  %110 = bitcast i8* %ptr_add_tmp126.i.i to i16*
+  %111 = load i16, i16* %109, align 2, !noalias !36
+  store i16 %111, i16* %110, align 1, !noalias !36
   br label %endif134.i.i
 
 else.i45.i:                                       ; preds = %endif120.i.i
-  %110 = trunc i32 %.1160.i.i to i8
-  %cast_tmp131.i.i = add i8 %110, 48
+  %112 = trunc i32 %.1160.i.i to i8
+  %cast_tmp131.i.i = add i8 %112, 48
   %ptr_add_tmp133.i44.i = getelementptr i8, i8* %.0.i.i, i64 1
   store i8 %cast_tmp131.i.i, i8* %ptr_add_tmp133.i44.i, align 1, !noalias !36
   br label %endif134.i.i
 
 endif134.i.i:                                     ; preds = %else.i45.i, %then122.i.i
-  %111 = icmp sgt i32 %add_tmp.i.i, -1
-  br i1 %111, label %then136.i.i, label %endif147.i.i
+  %113 = icmp sgt i32 %add_tmp.i.i, -1
+  br i1 %113, label %then136.i.i, label %endif147.i.i
 
 then136.i.i:                                      ; preds = %endif134.i.i
   %ptr_add_tmp139.i.i = getelementptr i8, i8* %.0.i.i, i64 1
   %cast_tmp142.i.i = sext i32 %sub_tmp.i28.i to i64
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i.i, i8* align 1 %ptr_add_tmp139.i.i, i64 %cast_tmp142.i.i, i1 false), !noalias !36
-  %112 = sext i32 %add_tmp.i.i to i64
-  %ptr_add_tmp145.i.i = getelementptr i8, i8* %.0.i.i, i64 %112
+  %114 = sext i32 %add_tmp.i.i to i64
+  %ptr_add_tmp145.i.i = getelementptr i8, i8* %.0.i.i, i64 %114
   %ptr_add_tmp146.i.i = getelementptr i8, i8* %ptr_add_tmp145.i.i, i64 1
   store i8 46, i8* %ptr_add_tmp146.i.i, align 1, !noalias !36
   br label %endif147.i.i
 
 endif147.i.i:                                     ; preds = %then136.i.i, %endif134.i.i
-  %add_tmp149.i.i = add i32 %63, 1
-  %113 = zext i32 %add_tmp149.i.i to i64
-  %ptr_add_tmp151.i.i = getelementptr i8, i8* %.0.i.i, i64 %113
-  %114 = icmp sgt i32 %load_tmp3.i.i, -1
-  br i1 %114, label %then153.i47.i, label %"func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i"
+  %add_tmp149.i.i = add nuw nsw i32 %65, 1
+  %115 = zext i32 %add_tmp149.i.i to i64
+  %ptr_add_tmp151.i.i = getelementptr i8, i8* %.0.i.i, i64 %115
+  %116 = icmp sgt i32 %load_tmp3.i.i, -1
+  br i1 %116, label %then153.i47.i, label %"func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i"
 
 then153.i47.i:                                    ; preds = %endif147.i.i
   store i8 48, i8* %ptr_add_tmp151.i.i, align 1, !noalias !36
-  %115 = getelementptr i8, i8* %ptr_add_tmp151.i.i, i64 1
+  %117 = getelementptr i8, i8* %ptr_add_tmp151.i.i, i64 1
   br label %"func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i"
 
 "func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i": ; preds = %then153.i47.i, %endif147.i.i
-  %.1.i48.i = phi i8* [ %115, %then153.i47.i ], [ %ptr_add_tmp151.i.i, %endif147.i.i ]
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %44), !noalias !30
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %20)
+  %.1.i48.i = phi i8* [ %117, %then153.i47.i ], [ %ptr_add_tmp151.i.i, %endif147.i.i ]
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %46), !noalias !30
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 
 else.i:                                           ; preds = %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i
-  %116 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %116), !noalias !30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %116, i8* nonnull align 8 dereferenceable(16) %20, i64 16, i1 false)
-  %117 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
-  %load_tmp.i.i = load i64, i64* %117, align 8, !alias.scope !37, !noalias !30
-  %118 = icmp ugt i64 %load_tmp.i.i, 9999999999999999
-  br i1 %118, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else.i.i.i
+  call void @llvm.experimental.noalias.scope.decl(metadata !37), !noalias !30
+  %118 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %118), !noalias !30
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %118, i8* nonnull align 8 dereferenceable(16) %22, i64 16, i1 false)
+  %119 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
+  %load_tmp.i.i = load i64, i64* %119, align 8, !alias.scope !37, !noalias !30
+  %120 = icmp ugt i64 %load_tmp.i.i, 9999999999999999
+  br i1 %120, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else.i.i.i
 
 else.i.i.i:                                       ; preds = %else.i
-  %119 = icmp ugt i64 %load_tmp.i.i, 999999999999999
-  br i1 %119, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else3.i.i.i
+  %121 = icmp ugt i64 %load_tmp.i.i, 999999999999999
+  br i1 %121, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else3.i.i.i
 
 else3.i.i.i:                                      ; preds = %else.i.i.i
-  %120 = icmp ugt i64 %load_tmp.i.i, 99999999999999
-  br i1 %120, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else6.i.i.i
+  %122 = icmp ugt i64 %load_tmp.i.i, 99999999999999
+  br i1 %122, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else6.i.i.i
 
 else6.i.i.i:                                      ; preds = %else3.i.i.i
-  %121 = icmp ugt i64 %load_tmp.i.i, 9999999999999
-  br i1 %121, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else9.i.i.i
+  %123 = icmp ugt i64 %load_tmp.i.i, 9999999999999
+  br i1 %123, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else9.i.i.i
 
 else9.i.i.i:                                      ; preds = %else6.i.i.i
-  %122 = icmp ugt i64 %load_tmp.i.i, 999999999999
-  br i1 %122, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else12.i.i.i
+  %124 = icmp ugt i64 %load_tmp.i.i, 999999999999
+  br i1 %124, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else12.i.i.i
 
 else12.i.i.i:                                     ; preds = %else9.i.i.i
-  %123 = icmp ugt i64 %load_tmp.i.i, 99999999999
-  br i1 %123, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else15.i.i.i
+  %125 = icmp ugt i64 %load_tmp.i.i, 99999999999
+  br i1 %125, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else15.i.i.i
 
 else15.i.i.i:                                     ; preds = %else12.i.i.i
-  %124 = icmp ugt i64 %load_tmp.i.i, 9999999999
-  br i1 %124, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else18.i.i.i
+  %126 = icmp ugt i64 %load_tmp.i.i, 9999999999
+  br i1 %126, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else18.i.i.i
 
 else18.i.i.i:                                     ; preds = %else15.i.i.i
-  %125 = icmp ugt i64 %load_tmp.i.i, 999999999
-  br i1 %125, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else21.i.i.i
+  %127 = icmp ugt i64 %load_tmp.i.i, 999999999
+  br i1 %127, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else21.i.i.i
 
 else21.i.i.i:                                     ; preds = %else18.i.i.i
-  %126 = icmp ugt i64 %load_tmp.i.i, 99999999
-  br i1 %126, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else24.i.i.i
+  %128 = icmp ugt i64 %load_tmp.i.i, 99999999
+  br i1 %128, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else24.i.i.i
 
 else24.i.i.i:                                     ; preds = %else21.i.i.i
-  %127 = icmp ugt i64 %load_tmp.i.i, 9999999
-  br i1 %127, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else27.i.i.i
+  %129 = icmp ugt i64 %load_tmp.i.i, 9999999
+  br i1 %129, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else27.i.i.i
 
 else27.i.i.i:                                     ; preds = %else24.i.i.i
-  %128 = icmp ugt i64 %load_tmp.i.i, 999999
-  br i1 %128, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else30.i.i.i
+  %130 = icmp ugt i64 %load_tmp.i.i, 999999
+  br i1 %130, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else30.i.i.i
 
 else30.i.i.i:                                     ; preds = %else27.i.i.i
-  %129 = icmp ugt i64 %load_tmp.i.i, 99999
-  br i1 %129, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else33.i.i.i
+  %131 = icmp ugt i64 %load_tmp.i.i, 99999
+  br i1 %131, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else33.i.i.i
 
 else33.i.i.i:                                     ; preds = %else30.i.i.i
-  %130 = icmp ugt i64 %load_tmp.i.i, 9999
-  br i1 %130, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else36.i.i.i
+  %132 = icmp ugt i64 %load_tmp.i.i, 9999
+  br i1 %132, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else36.i.i.i
 
 else36.i.i.i:                                     ; preds = %else33.i.i.i
-  %131 = icmp ugt i64 %load_tmp.i.i, 999
-  br i1 %131, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else39.i.i.i
+  %133 = icmp ugt i64 %load_tmp.i.i, 999
+  br i1 %133, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else39.i.i.i
 
 else39.i.i.i:                                     ; preds = %else36.i.i.i
-  %132 = icmp ugt i64 %load_tmp.i.i, 99
-  %133 = icmp ugt i64 %load_tmp.i.i, 9
-  %..i.i.i = select i1 %133, i32 2, i32 1
-  %134 = select i1 %132, i32 3, i32 %..i.i.i
+  %134 = icmp ugt i64 %load_tmp.i.i, 99
+  br i1 %134, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i, label %else42.i.i.i
+
+else42.i.i.i:                                     ; preds = %else39.i.i.i
+  %135 = icmp ugt i64 %load_tmp.i.i, 9
+  %136 = select i1 %135, i32 2, i32 1
   br label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i
 
-func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i: ; preds = %else39.i.i.i, %else36.i.i.i, %else33.i.i.i, %else30.i.i.i, %else27.i.i.i, %else24.i.i.i, %else21.i.i.i, %else18.i.i.i, %else15.i.i.i, %else12.i.i.i, %else9.i.i.i, %else6.i.i.i, %else3.i.i.i, %else.i.i.i, %else.i
-  %135 = phi i32 [ 17, %else.i ], [ 16, %else.i.i.i ], [ 15, %else3.i.i.i ], [ 14, %else6.i.i.i ], [ 13, %else9.i.i.i ], [ 12, %else12.i.i.i ], [ 11, %else15.i.i.i ], [ 10, %else18.i.i.i ], [ 9, %else21.i.i.i ], [ 8, %else24.i.i.i ], [ 7, %else27.i.i.i ], [ 6, %else30.i.i.i ], [ 5, %else33.i.i.i ], [ 4, %else36.i.i.i ], [ %134, %else39.i.i.i ]
+func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i.i: ; preds = %else42.i.i.i, %else39.i.i.i, %else36.i.i.i, %else33.i.i.i, %else30.i.i.i, %else27.i.i.i, %else24.i.i.i, %else21.i.i.i, %else18.i.i.i, %else15.i.i.i, %else12.i.i.i, %else9.i.i.i, %else6.i.i.i, %else3.i.i.i, %else.i.i.i, %else.i
+  %137 = phi i32 [ 17, %else.i ], [ 16, %else.i.i.i ], [ 15, %else3.i.i.i ], [ 14, %else6.i.i.i ], [ 13, %else9.i.i.i ], [ 12, %else12.i.i.i ], [ 11, %else15.i.i.i ], [ 10, %else18.i.i.i ], [ 9, %else21.i.i.i ], [ 8, %else24.i.i.i ], [ 7, %else27.i.i.i ], [ 6, %else30.i.i.i ], [ 5, %else33.i.i.i ], [ 4, %else36.i.i.i ], [ 3, %else39.i.i.i ], [ %136, %else42.i.i.i ]
   %.not.i.i = icmp ult i64 %load_tmp.i.i, 4294967296
   br i1 %.not.i.i, label %alloca.endif_crit_edge.i.i, label %then.i.i
 
@@ -1823,36 +1771,36 @@ then.i.i:                                         ; preds = %func.std.ryu.decima
   %lshift_tmp19.i.i = shl nuw nsw i32 %mod_tmp18.i.i, 1
   %div_tmp21.i.i = udiv i32 %mod_tmp11.i.i, 100
   %lshift_tmp22.i.i = shl nuw nsw i32 %div_tmp21.i.i, 1
-  %136 = zext i32 %135 to i64
-  %ptr_add_tmp.i.i = getelementptr i8, i8* %.0.i, i64 %136
+  %138 = zext i32 %137 to i64
+  %ptr_add_tmp.i.i = getelementptr i8, i8* %.0.i, i64 %138
   %ptr_sub_tmp26.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 -1
-  %137 = zext i32 %lshift_tmp.i.i to i64
-  %ptr_add_tmp28.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %137
-  %138 = bitcast i8* %ptr_add_tmp28.i.i to i16*
-  %139 = bitcast i8* %ptr_sub_tmp26.i.i to i16*
-  %140 = load i16, i16* %138, align 2, !noalias !40
-  store i16 %140, i16* %139, align 1, !noalias !40
+  %139 = zext i32 %lshift_tmp.i.i to i64
+  %ptr_add_tmp28.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %139
+  %140 = bitcast i8* %ptr_add_tmp28.i.i to i16*
+  %141 = bitcast i8* %ptr_sub_tmp26.i.i to i16*
+  %142 = load i16, i16* %140, align 2, !noalias !40
+  store i16 %142, i16* %141, align 1, !noalias !40
   %ptr_sub_tmp34.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 -3
-  %141 = zext i32 %lshift_tmp16.i.i to i64
-  %ptr_add_tmp36.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %141
-  %142 = bitcast i8* %ptr_add_tmp36.i.i to i16*
-  %143 = bitcast i8* %ptr_sub_tmp34.i.i to i16*
-  %144 = load i16, i16* %142, align 2, !noalias !40
-  store i16 %144, i16* %143, align 1, !noalias !40
+  %143 = zext i32 %lshift_tmp16.i.i to i64
+  %ptr_add_tmp36.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %143
+  %144 = bitcast i8* %ptr_add_tmp36.i.i to i16*
+  %145 = bitcast i8* %ptr_sub_tmp34.i.i to i16*
+  %146 = load i16, i16* %144, align 2, !noalias !40
+  store i16 %146, i16* %145, align 1, !noalias !40
   %ptr_sub_tmp42.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 -5
-  %145 = zext i32 %lshift_tmp19.i.i to i64
-  %ptr_add_tmp44.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %145
-  %146 = bitcast i8* %ptr_add_tmp44.i.i to i16*
-  %147 = bitcast i8* %ptr_sub_tmp42.i.i to i16*
-  %148 = load i16, i16* %146, align 2, !noalias !40
-  store i16 %148, i16* %147, align 1, !noalias !40
+  %147 = zext i32 %lshift_tmp19.i.i to i64
+  %ptr_add_tmp44.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %147
+  %148 = bitcast i8* %ptr_add_tmp44.i.i to i16*
+  %149 = bitcast i8* %ptr_sub_tmp42.i.i to i16*
+  %150 = load i16, i16* %148, align 2, !noalias !40
+  store i16 %150, i16* %149, align 1, !noalias !40
   %ptr_sub_tmp50.i.i = getelementptr i8, i8* %ptr_add_tmp.i.i, i64 -7
-  %149 = zext i32 %lshift_tmp22.i.i to i64
-  %ptr_add_tmp52.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %149
-  %150 = bitcast i8* %ptr_add_tmp52.i.i to i16*
-  %151 = bitcast i8* %ptr_sub_tmp50.i.i to i16*
-  %152 = load i16, i16* %150, align 2, !noalias !40
-  store i16 %152, i16* %151, align 1, !noalias !40
+  %151 = zext i32 %lshift_tmp22.i.i to i64
+  %ptr_add_tmp52.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %151
+  %152 = bitcast i8* %ptr_add_tmp52.i.i to i16*
+  %153 = bitcast i8* %ptr_sub_tmp50.i.i to i16*
+  %154 = load i16, i16* %152, align 2, !noalias !40
+  store i16 %154, i16* %153, align 1, !noalias !40
   br label %endif.i.i
 
 endif.i.i:                                        ; preds = %then.i.i, %alloca.endif_crit_edge.i.i
@@ -1863,143 +1811,147 @@ endif.i.i:                                        ; preds = %then.i.i, %alloca.e
 while_condition_check.i.i:                        ; preds = %while.i.i, %endif.i.i
   %.0182.i.i = phi i32 [ %cast_tmp55.pre-phi.i.i, %endif.i.i ], [ %div_tmp63.i.i, %while.i.i ]
   %.1.i.i = phi i32 [ %.0181.i.i, %endif.i.i ], [ %add_tmp87.i.i, %while.i.i ]
-  %153 = icmp ugt i32 %.0182.i.i, 9999
-  br i1 %153, label %while.i.i, label %endwhile.i.i
+  %155 = icmp ugt i32 %.0182.i.i, 9999
+  br i1 %155, label %while.i.i, label %endwhile.i.i
 
 while.i.i:                                        ; preds = %while_condition_check.i.i
-  %154 = urem i32 %.0182.i.i, 10000
+  %156 = urem i32 %.0182.i.i, 10000
   %div_tmp63.i.i = udiv i32 %.0182.i.i, 10000
-  %mod_tmp65.i.i = urem i32 %154, 100
+  %mod_tmp65.i.i = urem i32 %156, 100
   %lshift_tmp66.i.i = shl nuw nsw i32 %mod_tmp65.i.i, 1
-  %div_tmp68.i.i = udiv i32 %154, 100
+  %div_tmp68.i.i = udiv i32 %156, 100
   %lshift_tmp69.i.i = shl nuw nsw i32 %div_tmp68.i.i, 1
-  %155 = zext i32 %135 to i64
+  %157 = zext i32 %137 to i64
   %ptr_add_tmp72.i.i = getelementptr i8, i8* %.0.i, i64 -1
-  %156 = zext i32 %.1.i.i to i64
-  %157 = sub nsw i64 0, %156
-  %ptr_sub_tmp74.i.i = getelementptr i8, i8* %ptr_add_tmp72.i.i, i64 %155
-  %ptr_sub_tmp75.i.i = getelementptr i8, i8* %ptr_sub_tmp74.i.i, i64 %157
-  %158 = zext i32 %lshift_tmp66.i.i to i64
-  %ptr_add_tmp77.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %158
-  %159 = bitcast i8* %ptr_add_tmp77.i.i to i16*
-  %160 = bitcast i8* %ptr_sub_tmp75.i.i to i16*
-  %161 = load i16, i16* %159, align 2, !noalias !40
-  store i16 %161, i16* %160, align 1, !noalias !40
+  %158 = zext i32 %.1.i.i to i64
+  %159 = sub nsw i64 0, %158
+  %ptr_sub_tmp74.i.i = getelementptr i8, i8* %ptr_add_tmp72.i.i, i64 %157
+  %ptr_sub_tmp75.i.i = getelementptr i8, i8* %ptr_sub_tmp74.i.i, i64 %159
+  %160 = zext i32 %lshift_tmp66.i.i to i64
+  %ptr_add_tmp77.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %160
+  %161 = bitcast i8* %ptr_add_tmp77.i.i to i16*
+  %162 = bitcast i8* %ptr_sub_tmp75.i.i to i16*
+  %163 = load i16, i16* %161, align 2, !noalias !40
+  store i16 %163, i16* %162, align 1, !noalias !40
   %ptr_add_tmp80.i.i = getelementptr i8, i8* %.0.i, i64 -3
-  %ptr_sub_tmp82.i.i = getelementptr i8, i8* %ptr_add_tmp80.i.i, i64 %155
-  %ptr_sub_tmp83.i.i = getelementptr i8, i8* %ptr_sub_tmp82.i.i, i64 %157
-  %162 = zext i32 %lshift_tmp69.i.i to i64
-  %ptr_add_tmp85.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %162
-  %163 = bitcast i8* %ptr_add_tmp85.i.i to i16*
-  %164 = bitcast i8* %ptr_sub_tmp83.i.i to i16*
-  %165 = load i16, i16* %163, align 2, !noalias !40
-  store i16 %165, i16* %164, align 1, !noalias !40
+  %ptr_sub_tmp82.i.i = getelementptr i8, i8* %ptr_add_tmp80.i.i, i64 %157
+  %ptr_sub_tmp83.i.i = getelementptr i8, i8* %ptr_sub_tmp82.i.i, i64 %159
+  %164 = zext i32 %lshift_tmp69.i.i to i64
+  %ptr_add_tmp85.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %164
+  %165 = bitcast i8* %ptr_add_tmp85.i.i to i16*
+  %166 = bitcast i8* %ptr_sub_tmp83.i.i to i16*
+  %167 = load i16, i16* %165, align 2, !noalias !40
+  store i16 %167, i16* %166, align 1, !noalias !40
   %add_tmp87.i.i = add i32 %.1.i.i, 4
   br label %while_condition_check.i.i
 
 endwhile.i.i:                                     ; preds = %while_condition_check.i.i
-  %166 = icmp ugt i32 %.0182.i.i, 99
-  br i1 %166, label %then89.i.i, label %endif105.i.i
+  %168 = icmp ugt i32 %.0182.i.i, 99
+  br i1 %168, label %then89.i.i, label %endif105.i.i
 
 then89.i.i:                                       ; preds = %endwhile.i.i
   %mod_tmp91.i.i = urem i32 %.0182.i.i, 100
   %lshift_tmp92.i.i = shl nuw nsw i32 %mod_tmp91.i.i, 1
   %div_tmp94.i.i = udiv i32 %.0182.i.i, 100
-  %167 = zext i32 %135 to i64
-  %ptr_add_tmp97.i.i = getelementptr i8, i8* %.0.i, i64 %167
-  %168 = zext i32 %.1.i.i to i64
-  %169 = sub nsw i64 0, %168
-  %ptr_sub_tmp99.i.i = getelementptr i8, i8* %ptr_add_tmp97.i.i, i64 %169
+  %169 = zext i32 %137 to i64
+  %ptr_add_tmp97.i.i = getelementptr i8, i8* %.0.i, i64 %169
+  %170 = zext i32 %.1.i.i to i64
+  %171 = sub nsw i64 0, %170
+  %ptr_sub_tmp99.i.i = getelementptr i8, i8* %ptr_add_tmp97.i.i, i64 %171
   %ptr_sub_tmp100.i.i = getelementptr i8, i8* %ptr_sub_tmp99.i.i, i64 -1
-  %170 = zext i32 %lshift_tmp92.i.i to i64
-  %ptr_add_tmp102.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %170
-  %171 = bitcast i8* %ptr_add_tmp102.i.i to i16*
-  %172 = bitcast i8* %ptr_sub_tmp100.i.i to i16*
-  %173 = load i16, i16* %171, align 2, !noalias !40
-  store i16 %173, i16* %172, align 1, !noalias !40
+  %172 = zext i32 %lshift_tmp92.i.i to i64
+  %ptr_add_tmp102.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %172
+  %173 = bitcast i8* %ptr_add_tmp102.i.i to i16*
+  %174 = bitcast i8* %ptr_sub_tmp100.i.i to i16*
+  %175 = load i16, i16* %173, align 2, !noalias !40
+  store i16 %175, i16* %174, align 1, !noalias !40
   %add_tmp104.i.i = or i32 %.1.i.i, 2
   br label %endif105.i.i
 
 endif105.i.i:                                     ; preds = %then89.i.i, %endwhile.i.i
   %.1183.i.i = phi i32 [ %div_tmp94.i.i, %then89.i.i ], [ %.0182.i.i, %endwhile.i.i ]
   %.2.i.i = phi i32 [ %add_tmp104.i.i, %then89.i.i ], [ %.1.i.i, %endwhile.i.i ]
-  %174 = icmp ugt i32 %.1183.i.i, 9
-  br i1 %174, label %then107.i.i, label %else.i11.i
+  %176 = icmp ugt i32 %.1183.i.i, 9
+  br i1 %176, label %then107.i.i, label %else.i11.i
 
 then107.i.i:                                      ; preds = %endif105.i.i
   %lshift_tmp109.i.i = shl i32 %.1183.i.i, 1
   %add_tmp111.i.i = or i32 %lshift_tmp109.i.i, 1
-  %175 = zext i32 %add_tmp111.i.i to i64
-  %176 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %175
-  %177 = zext i32 %135 to i64
-  %ptr_add_tmp114.i.i = getelementptr i8, i8* %.0.i, i64 %177
-  %178 = zext i32 %.2.i.i to i64
-  %179 = sub nsw i64 0, %178
-  %ptr_sub_tmp116.i.i = getelementptr i8, i8* %ptr_add_tmp114.i.i, i64 %179
-  %load_tmp117.i.i = load i8, i8* %176, align 1, !noalias !40
+  %177 = zext i32 %add_tmp111.i.i to i64
+  %178 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %177
+  %179 = zext i32 %137 to i64
+  %ptr_add_tmp114.i.i = getelementptr i8, i8* %.0.i, i64 %179
+  %180 = zext i32 %.2.i.i to i64
+  %181 = sub nsw i64 0, %180
+  %ptr_sub_tmp116.i.i = getelementptr i8, i8* %ptr_add_tmp114.i.i, i64 %181
+  %load_tmp117.i.i = load i8, i8* %178, align 1, !noalias !40
   store i8 %load_tmp117.i.i, i8* %ptr_sub_tmp116.i.i, align 1, !noalias !40
-  %180 = zext i32 %lshift_tmp109.i.i to i64
-  %181 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %180
-  %load_tmp120.i.i = load i8, i8* %181, align 2, !noalias !40
+  %182 = zext i32 %lshift_tmp109.i.i to i64
+  %183 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %182
+  %load_tmp120.i.i = load i8, i8* %183, align 2, !noalias !40
   br label %endif125.i.i
 
 else.i11.i:                                       ; preds = %endif105.i.i
-  %182 = trunc i32 %.1183.i.i to i8
-  %cast_tmp123.i.i = add i8 %182, 48
+  %184 = trunc i32 %.1183.i.i to i8
+  %cast_tmp123.i.i = add i8 %184, 48
   br label %endif125.i.i
 
 endif125.i.i:                                     ; preds = %else.i11.i, %then107.i.i
   %storemerge = phi i8 [ %cast_tmp123.i.i, %else.i11.i ], [ %load_tmp120.i.i, %then107.i.i ]
   store i8 %storemerge, i8* %.0.i, align 1, !noalias !40
-  %183 = icmp ugt i32 %135, 1
-  %ptr_add_tmp129.i.i = getelementptr i8, i8* %.0.i, i64 1
-  br i1 %183, label %then127.i.i, label %endif136.i.i
+  %185 = icmp ugt i32 %137, 1
+  br i1 %185, label %then127.i.i, label %else134.i.i
 
 then127.i.i:                                      ; preds = %endif125.i.i
+  %ptr_add_tmp129.i.i = getelementptr i8, i8* %.0.i, i64 1
   store i8 46, i8* %ptr_add_tmp129.i.i, align 1, !noalias !40
-  %add_tmp131.i.i = add i32 %135, 1
-  %184 = zext i32 %add_tmp131.i.i to i64
-  %ptr_add_tmp133.i.i = getelementptr i8, i8* %.0.i, i64 %184
+  %add_tmp131.i.i = add nuw nsw i32 %137, 1
+  %186 = zext i32 %add_tmp131.i.i to i64
+  %ptr_add_tmp133.i.i = getelementptr i8, i8* %.0.i, i64 %186
   br label %endif136.i.i
 
-endif136.i.i:                                     ; preds = %then127.i.i, %endif125.i.i
-  %storemerge.i.i = phi i8* [ %ptr_add_tmp133.i.i, %then127.i.i ], [ %ptr_add_tmp129.i.i, %endif125.i.i ]
+else134.i.i:                                      ; preds = %endif125.i.i
+  %187 = getelementptr i8, i8* %.0.i, i64 1
+  br label %endif136.i.i
+
+endif136.i.i:                                     ; preds = %else134.i.i, %then127.i.i
+  %storemerge.i.i = phi i8* [ %187, %else134.i.i ], [ %ptr_add_tmp133.i.i, %then127.i.i ]
   store i8 101, i8* %storemerge.i.i, align 1, !noalias !40
-  %185 = getelementptr i8, i8* %storemerge.i.i, i64 1
-  %186 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
-  %load_tmp139.i.i = load i32, i32* %186, align 8, !alias.scope !37, !noalias !30
-  %add_tmp141.i.i = add i32 %135, -1
+  %188 = getelementptr i8, i8* %storemerge.i.i, i64 1
+  %189 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
+  %load_tmp139.i.i = load i32, i32* %189, align 8, !alias.scope !37, !noalias !30
+  %add_tmp141.i.i = add nsw i32 %137, -1
   %sub_tmp142.i.i = add i32 %add_tmp141.i.i, %load_tmp139.i.i
-  %187 = icmp slt i32 %sub_tmp142.i.i, 0
-  br i1 %187, label %then144.i.i, label %else148.i.i
+  %190 = icmp slt i32 %sub_tmp142.i.i, 0
+  br i1 %190, label %then144.i.i, label %else148.i.i
 
 then144.i.i:                                      ; preds = %endif136.i.i
-  store i8 45, i8* %185, align 1, !noalias !40
+  store i8 45, i8* %188, align 1, !noalias !40
   %unary_minus_tmp.i.i = sub i32 0, %sub_tmp142.i.i
   br label %endif151.i.i
 
 else148.i.i:                                      ; preds = %endif136.i.i
-  store i8 43, i8* %185, align 1, !noalias !40
+  store i8 43, i8* %188, align 1, !noalias !40
   br label %endif151.i.i
 
 endif151.i.i:                                     ; preds = %else148.i.i, %then144.i.i
   %.0180.i.i = phi i32 [ %unary_minus_tmp.i.i, %then144.i.i ], [ %sub_tmp142.i.i, %else148.i.i ]
-  %load_tmp156179.i.i.in = getelementptr i8, i8* %storemerge.i.i, i64 2
-  %load_tmp156179.i.i = bitcast i8* %load_tmp156179.i.i.in to i16*
-  %188 = icmp sgt i32 %.0180.i.i, 99
-  br i1 %188, label %then153.i.i, label %else168.i.i
+  %.048 = getelementptr i8, i8* %storemerge.i.i, i64 2
+  %load_tmp169177.i.i = bitcast i8* %.048 to i16*
+  %191 = icmp sgt i32 %.0180.i.i, 99
+  br i1 %191, label %then153.i.i, label %else168.i.i
 
 then153.i.i:                                      ; preds = %endif151.i.i
   %mod_tmp155.i.i = srem i32 %.0180.i.i, 10
   %div_tmp158.i.i = sdiv i32 %.0180.i.i, 10
   %mul_tmp159.i.i = shl nsw i32 %div_tmp158.i.i, 1
-  %189 = sext i32 %mul_tmp159.i.i to i64
-  %ptr_add_tmp160.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %189
-  %190 = bitcast i8* %ptr_add_tmp160.i.i to i16*
-  %191 = load i16, i16* %190, align 2, !noalias !40
-  store i16 %191, i16* %load_tmp156179.i.i, align 1, !noalias !40
-  %192 = trunc i32 %mod_tmp155.i.i to i8
-  %cast_tmp163.i.i = add i8 %192, 48
+  %192 = sext i32 %mul_tmp159.i.i to i64
+  %ptr_add_tmp160.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %192
+  %193 = bitcast i8* %ptr_add_tmp160.i.i to i16*
+  %194 = load i16, i16* %193, align 2, !noalias !40
+  store i16 %194, i16* %load_tmp169177.i.i, align 1, !noalias !40
+  %195 = trunc i32 %mod_tmp155.i.i to i8
+  %cast_tmp163.i.i = add i8 %195, 48
   %ptr_add_tmp165.i.i = getelementptr i8, i8* %storemerge.i.i, i64 4
   store i8 %cast_tmp163.i.i, i8* %ptr_add_tmp165.i.i, align 1, !noalias !40
   %ptr_add_tmp167.i.i = getelementptr i8, i8* %storemerge.i.i, i64 5
@@ -2007,18 +1959,18 @@ then153.i.i:                                      ; preds = %endif151.i.i
 
 else168.i.i:                                      ; preds = %endif151.i.i
   %mul_tmp171.i.i = shl i32 %.0180.i.i, 1
-  %193 = sext i32 %mul_tmp171.i.i to i64
-  %ptr_add_tmp172.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %193
-  %194 = bitcast i8* %ptr_add_tmp172.i.i to i16*
-  %195 = load i16, i16* %194, align 2, !noalias !40
-  store i16 %195, i16* %load_tmp156179.i.i, align 1, !noalias !40
+  %196 = sext i32 %mul_tmp171.i.i to i64
+  %ptr_add_tmp172.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %196
+  %197 = bitcast i8* %ptr_add_tmp172.i.i to i16*
+  %198 = load i16, i16* %197, align 2, !noalias !40
+  store i16 %198, i16* %load_tmp169177.i.i, align 1, !noalias !40
   %ptr_add_tmp174.i.i = getelementptr i8, i8* %storemerge.i.i, i64 4
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i"
 
 "func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i": ; preds = %else168.i.i, %then153.i.i
   %storemerge178.i.i = phi i8* [ %ptr_add_tmp174.i.i, %else168.i.i ], [ %ptr_add_tmp167.i.i, %then153.i.i ]
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %116), !noalias !30
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %20)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %118), !noalias !30
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 }
 
@@ -2066,7 +2018,7 @@ alloca:
   ret i64 %div_tmp
 }
 
-define internal void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* noalias nocapture nonnull sret %0, i64 %1, i32 %2) {
+define internal void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* noalias nocapture nonnull sret(%"struct.std::ryu::floating_decimal_64") %0, i64 %1, i32 %2) {
 alloca:
   %3 = alloca i64, align 8
   %4 = alloca i64, align 8
@@ -2226,21 +2178,21 @@ endif98:                                          ; preds = %then84, %else88, %t
   %.0270 = phi i32 [ %sub_tmp16, %then12 ], [ %sub_tmp16, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit342 ], [ %sub_tmp16, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %sub_tmp16, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit334 ], [ %add_tmp69, %else88 ], [ %add_tmp69, %then93 ], [ %add_tmp69, %else91 ], [ %add_tmp69, %then84 ]
   %.0268 = phi i64 [ %13, %then12 ], [ %13, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit342 ], [ %13, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %13, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit334 ], [ %26, %else88 ], [ %26, %then93 ], [ %26, %else91 ], [ %26, %then84 ]
   %spec.select296 = or i1 %.4281, %.5276
-  %load_tmp105 = load i64, i64* %3, align 8
-  br i1 %spec.select296, label %endif98.for_condition_check_crit_edge, label %else204
+  br i1 %spec.select296, label %then104, label %else204
 
-endif98.for_condition_check_crit_edge:            ; preds = %endif98
+then104:                                          ; preds = %endif98
+  %load_tmp105 = load i64, i64* %3, align 8
   %.0284.in.pre = load i64, i64* %4, align 8
   br label %for_condition_check
 
-for_condition_check:                              ; preds = %endif98.for_condition_check_crit_edge, %for
-  %load_tmp109 = phi i64 [ %.0284, %for ], [ %.0284.in.pre, %endif98.for_condition_check_crit_edge ]
-  %.0292 = phi i8 [ %sub_tmp121, %for ], [ 0, %endif98.for_condition_check_crit_edge ]
-  %.0286 = phi i32 [ %35, %for ], [ 0, %endif98.for_condition_check_crit_edge ]
-  %.0285.in = phi i64 [ %.0285, %for ], [ %load_tmp105, %endif98.for_condition_check_crit_edge ]
-  %.5282 = phi i1 [ %bit_and_tmp128, %for ], [ %.4281, %endif98.for_condition_check_crit_edge ]
-  %.6 = phi i1 [ %bit_and_tmp124, %for ], [ %.5276, %endif98.for_condition_check_crit_edge ]
-  %.1269 = phi i64 [ %div_tmp.i317, %for ], [ %.0268, %endif98.for_condition_check_crit_edge ]
+for_condition_check:                              ; preds = %for, %then104
+  %load_tmp109 = phi i64 [ %.0284.in.pre, %then104 ], [ %.0284, %for ]
+  %.0292 = phi i8 [ 0, %then104 ], [ %sub_tmp121, %for ]
+  %.0286 = phi i32 [ 0, %then104 ], [ %35, %for ]
+  %.0285.in = phi i64 [ %load_tmp105, %then104 ], [ %.0285, %for ]
+  %.5282 = phi i1 [ %.4281, %then104 ], [ %bit_and_tmp128, %for ]
+  %.6 = phi i1 [ %.5276, %then104 ], [ %bit_and_tmp124, %for ]
+  %.1269 = phi i64 [ %.0268, %then104 ], [ %div_tmp.i317, %for ]
   %.0284 = udiv i64 %load_tmp109, 10
   %.0285 = udiv i64 %.0285.in, 10
   %32 = icmp ugt i64 %.0285, %.0284
@@ -2317,23 +2269,24 @@ endif175:                                         ; preds = %endfor, %for_condit
   %mod_tmp = and i64 %.3, 1
   %40 = icmp eq i64 %mod_tmp, 0
   %bool_and_tmp182 = and i1 %spec.select297, %40
-  %41 = icmp eq i64 %.3, %load_tmp187
+  %41 = icmp ne i64 %.3, %load_tmp187
   %spec.select299.demorgan = and i1 %7, %.6
-  %spec.select299 = xor i1 %spec.select299.demorgan, true
-  %bool_and_tmp196 = and i1 %41, %spec.select299
-  %42 = icmp ugt i8 %.2294, 4
-  %43 = xor i1 %42, %bool_and_tmp182
-  %narrow344 = or i1 %bool_and_tmp196, %43
-  %bool_or_tmp201 = zext i1 %narrow344 to i64
+  %42 = or i1 %spec.select299.demorgan, %41
+  %43 = icmp ugt i8 %.2294, 4
+  %44 = xor i1 %43, %bool_and_tmp182
+  %not. = xor i1 %42, true
+  %narrow345 = or i1 %44, %not.
+  %bool_or_tmp201 = zext i1 %narrow345 to i64
   %add_tmp203 = add i64 %.3, %bool_or_tmp201
   br label %endif254
 
 else204:                                          ; preds = %endif98
-  %div_tmp.i310 = udiv i64 %load_tmp105, 100
+  %load_tmp205 = load i64, i64* %3, align 8
+  %div_tmp.i310 = udiv i64 %load_tmp205, 100
   %load_tmp206 = load i64, i64* %4, align 8
   %div_tmp.i309 = udiv i64 %load_tmp206, 100
-  %44 = icmp ugt i64 %div_tmp.i310, %div_tmp.i309
-  br i1 %44, label %then209, label %endif223
+  %45 = icmp ugt i64 %div_tmp.i310, %div_tmp.i309
+  br i1 %45, label %then209, label %endif223
 
 then209:                                          ; preds = %else204
   %div_tmp.i308 = udiv i64 %.0268, 100
@@ -2341,29 +2294,29 @@ then209:                                          ; preds = %else204
   %cast_tmp214 = trunc i64 %div_tmp.i308 to i32
   %mul_tmp215.neg = mul i32 %cast_tmp214, -100
   %sub_tmp216 = add i32 %mul_tmp215.neg, %cast_tmp212
-  %45 = icmp ugt i32 %sub_tmp216, 49
+  %46 = icmp ugt i32 %sub_tmp216, 49
   store i64 %div_tmp.i310, i64* %3, align 8
   store i64 %div_tmp.i309, i64* %4, align 8
   br label %endif223
 
 endif223:                                         ; preds = %else204, %then209
-  %.0.in346 = phi i64 [ %div_tmp.i309, %then209 ], [ %load_tmp206, %else204 ]
-  %load_tmp224 = phi i64 [ %div_tmp.i310, %then209 ], [ %load_tmp105, %else204 ]
+  %.0.in347 = phi i64 [ %div_tmp.i309, %then209 ], [ %load_tmp206, %else204 ]
+  %load_tmp224 = phi i64 [ %div_tmp.i310, %then209 ], [ %load_tmp205, %else204 ]
   %.3289 = phi i32 [ 2, %then209 ], [ 0, %else204 ]
   %.4 = phi i64 [ %div_tmp.i308, %then209 ], [ %.0268, %else204 ]
-  %.0265 = phi i1 [ %45, %then209 ], [ false, %else204 ]
+  %.0265 = phi i1 [ %46, %then209 ], [ false, %else204 ]
   br label %for_condition_check226
 
 for_condition_check226:                           ; preds = %for229, %endif223
-  %load_tmp247 = phi i64 [ %.0.in346, %endif223 ], [ %.0, %for229 ]
-  %.4290 = phi i32 [ %.3289, %endif223 ], [ %48, %for229 ]
+  %load_tmp247 = phi i64 [ %.0.in347, %endif223 ], [ %.0, %for229 ]
+  %.4290 = phi i32 [ %.3289, %endif223 ], [ %49, %for229 ]
   %.5 = phi i64 [ %.4, %endif223 ], [ %div_tmp.i305, %for229 ]
-  %.1 = phi i1 [ %.0265, %endif223 ], [ %47, %for229 ]
+  %.1 = phi i1 [ %.0265, %endif223 ], [ %48, %for229 ]
   %.0263.in = phi i64 [ %load_tmp224, %endif223 ], [ %.0263, %for229 ]
   %.0 = udiv i64 %load_tmp247, 10
   %.0263 = udiv i64 %.0263.in, 10
-  %46 = icmp ugt i64 %.0263, %.0
-  br i1 %46, label %for229, label %endfor244
+  %47 = icmp ugt i64 %.0263, %.0
+  br i1 %47, label %for229, label %endfor244
 
 for229:                                           ; preds = %for_condition_check226
   %div_tmp.i305 = udiv i64 %.5, 10
@@ -2371,15 +2324,15 @@ for229:                                           ; preds = %for_condition_check
   %cast_tmp234 = trunc i64 %div_tmp.i305 to i32
   %mul_tmp235.neg = mul i32 %cast_tmp234, -10
   %sub_tmp236 = add i32 %mul_tmp235.neg, %cast_tmp232
-  %47 = icmp ugt i32 %sub_tmp236, 4
+  %48 = icmp ugt i32 %sub_tmp236, 4
   store i64 %.0263, i64* %3, align 8
   store i64 %.0, i64* %4, align 8
-  %48 = add i32 %.4290, 1
+  %49 = add i32 %.4290, 1
   br label %for_condition_check226
 
 endfor244:                                        ; preds = %for_condition_check226
-  %49 = icmp eq i64 %.5, %load_tmp247
-  %narrow = or i1 %49, %.1
+  %50 = icmp eq i64 %.5, %load_tmp247
+  %narrow = or i1 %50, %.1
   %spec.select300 = zext i1 %narrow to i64
   %add_tmp253 = add i64 %.5, %spec.select300
   br label %endif254
@@ -2388,11 +2341,11 @@ endif254:                                         ; preds = %endfor244, %endif17
   %.5291 = phi i32 [ %.2288, %endif175 ], [ %.4290, %endfor244 ]
   %storemerge261 = phi i64 [ %add_tmp203, %endif175 ], [ %add_tmp253, %endfor244 ]
   %add_tmp257 = add i32 %.5291, %.0270
-  %50 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
-  store i64 0, i64* %50, align 8
+  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %5, align 8
   %51 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
   store i32 %add_tmp257, i32* %51, align 8
-  store i64 %storemerge261, i64* %50, align 8
+  %52 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  store i64 %storemerge261, i64* %52, align 8
   %load_tmp260 = load %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, align 8
   store %"struct.std::ryu::floating_decimal_64" %load_tmp260, %"struct.std::ryu::floating_decimal_64"* %0, align 8
   ret void
@@ -2496,13 +2449,15 @@ else12.i.i:                                       ; preds = %else9.i.i
 
 else15.i.i:                                       ; preds = %else12.i.i
   %17 = icmp ugt i32 %7, 99
+  br i1 %17, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else18.i.i
+
+else18.i.i:                                       ; preds = %else15.i.i
   %18 = icmp ugt i32 %7, 9
-  %..i.i = select i1 %18, i32 2, i32 1
-  %19 = select i1 %17, i32 3, i32 %..i.i
+  %19 = select i1 %18, i32 2, i32 1
   br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
-  %20 = phi i32 [ 9, %endif.i ], [ 8, %else.i.i ], [ 7, %else3.i.i ], [ 6, %else6.i.i ], [ 5, %else9.i.i ], [ 4, %else12.i.i ], [ %19, %else15.i.i ]
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
+  %20 = phi i32 [ 9, %endif.i ], [ 8, %else.i.i ], [ 7, %else3.i.i ], [ 6, %else6.i.i ], [ 5, %else9.i.i ], [ 4, %else12.i.i ], [ 3, %else15.i.i ], [ %19, %else18.i.i ]
   %sub_tmp.i = add i32 %9, -1
   %add_tmp.i = add i32 %9, 3
   %add_tmp.i.off = add i32 %add_tmp.i, %20
@@ -2530,17 +2485,19 @@ else9.i.i15.i:                                    ; preds = %else6.i.i14.i
 
 else12.i.i16.i:                                   ; preds = %else9.i.i15.i
   %26 = icmp ugt i32 %7, 999
-  br i1 %26, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i, label %else15.i.i18.i
+  br i1 %26, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i, label %else15.i.i17.i
 
-else15.i.i18.i:                                   ; preds = %else12.i.i16.i
+else15.i.i17.i:                                   ; preds = %else12.i.i16.i
   %27 = icmp ugt i32 %7, 99
+  br i1 %27, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i, label %else18.i.i18.i
+
+else18.i.i18.i:                                   ; preds = %else15.i.i17.i
   %28 = icmp ugt i32 %7, 9
-  %..i.i17.i = select i1 %28, i32 2, i32 1
-  %29 = select i1 %27, i32 3, i32 %..i.i17.i
+  %29 = select i1 %28, i32 2, i32 1
   br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i: ; preds = %else15.i.i18.i, %else12.i.i16.i, %else9.i.i15.i, %else6.i.i14.i, %else3.i.i13.i, %else.i.i12.i, %then8.i
-  %30 = phi i32 [ 9, %then8.i ], [ 8, %else.i.i12.i ], [ 7, %else3.i.i13.i ], [ 6, %else6.i.i14.i ], [ 5, %else9.i.i15.i ], [ 4, %else12.i.i16.i ], [ %29, %else15.i.i18.i ]
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i20.i: ; preds = %else18.i.i18.i, %else15.i.i17.i, %else12.i.i16.i, %else9.i.i15.i, %else6.i.i14.i, %else3.i.i13.i, %else.i.i12.i, %then8.i
+  %30 = phi i32 [ 9, %then8.i ], [ 8, %else.i.i12.i ], [ 7, %else3.i.i13.i ], [ 6, %else6.i.i14.i ], [ 5, %else9.i.i15.i ], [ 4, %else12.i.i16.i ], [ 3, %else15.i.i17.i ], [ %29, %else18.i.i18.i ]
   %add_tmp.i19.i = add i32 %30, %sub_tmp.i
   %31 = icmp slt i32 %add_tmp.i19.i, 0
   br i1 %31, label %then.i23.i, label %endif.i25.i
@@ -2656,7 +2613,7 @@ then71.i.i:                                       ; preds = %endif69.i.i
   br label %endif82.i.i
 
 endif82.i.i:                                      ; preds = %then71.i.i, %endif69.i.i
-  %add_tmp84.i.i = add i32 %30, 1
+  %add_tmp84.i.i = add nuw nsw i32 %30, 1
   %62 = zext i32 %add_tmp84.i.i to i64
   %ptr_add_tmp86.i.i = getelementptr i8, i8* %.0.i24.i, i64 %62
   %63 = icmp sgt i32 %9, -1
@@ -2692,13 +2649,15 @@ else12.i.i.i:                                     ; preds = %else9.i.i.i
 
 else15.i.i.i:                                     ; preds = %else12.i.i.i
   %70 = icmp ugt i32 %7, 99
+  br i1 %70, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i, label %else18.i.i.i
+
+else18.i.i.i:                                     ; preds = %else15.i.i.i
   %71 = icmp ugt i32 %7, 9
-  %..i.i.i = select i1 %71, i32 2, i32 1
-  %72 = select i1 %70, i32 3, i32 %..i.i.i
+  %72 = select i1 %71, i32 2, i32 1
   br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i: ; preds = %else15.i.i.i, %else12.i.i.i, %else9.i.i.i, %else6.i.i.i, %else3.i.i.i, %else.i.i.i, %else.i
-  %73 = phi i32 [ 9, %else.i ], [ 8, %else.i.i.i ], [ 7, %else3.i.i.i ], [ 6, %else6.i.i.i ], [ 5, %else9.i.i.i ], [ 4, %else12.i.i.i ], [ %72, %else15.i.i.i ]
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i: ; preds = %else18.i.i.i, %else15.i.i.i, %else12.i.i.i, %else9.i.i.i, %else6.i.i.i, %else3.i.i.i, %else.i.i.i, %else.i
+  %73 = phi i32 [ 9, %else.i ], [ 8, %else.i.i.i ], [ 7, %else3.i.i.i ], [ 6, %else6.i.i.i ], [ 5, %else9.i.i.i ], [ 4, %else12.i.i.i ], [ 3, %else15.i.i.i ], [ %72, %else18.i.i.i ]
   br label %while_condition_check.i.i
 
 while_condition_check.i.i:                        ; preds = %while.i.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i.i
@@ -2793,43 +2752,47 @@ endif60.i.i:                                      ; preds = %else.i11.i, %then43
   %storemerge = phi i8 [ %cast_tmp.i.i, %else.i11.i ], [ %load_tmp56.i.i, %then43.i.i ]
   store i8 %storemerge, i8* %.0.i, align 1
   %104 = icmp ugt i32 %73, 1
-  %ptr_add_tmp64.i.i = getelementptr i8, i8* %.0.i, i64 1
-  br i1 %104, label %then62.i.i, label %endif71.i.i
+  br i1 %104, label %then62.i.i, label %else69.i.i
 
 then62.i.i:                                       ; preds = %endif60.i.i
+  %ptr_add_tmp64.i.i = getelementptr i8, i8* %.0.i, i64 1
   store i8 46, i8* %ptr_add_tmp64.i.i, align 1
-  %add_tmp66.i.i = add i32 %73, 1
+  %add_tmp66.i.i = add nuw nsw i32 %73, 1
   %105 = zext i32 %add_tmp66.i.i to i64
   %ptr_add_tmp68.i.i = getelementptr i8, i8* %.0.i, i64 %105
   br label %endif71.i.i
 
-endif71.i.i:                                      ; preds = %then62.i.i, %endif60.i.i
-  %storemerge94.i.i = phi i8* [ %ptr_add_tmp68.i.i, %then62.i.i ], [ %ptr_add_tmp64.i.i, %endif60.i.i ]
+else69.i.i:                                       ; preds = %endif60.i.i
+  %106 = getelementptr i8, i8* %.0.i, i64 1
+  br label %endif71.i.i
+
+endif71.i.i:                                      ; preds = %else69.i.i, %then62.i.i
+  %storemerge94.i.i = phi i8* [ %106, %else69.i.i ], [ %ptr_add_tmp68.i.i, %then62.i.i ]
   store i8 101, i8* %storemerge94.i.i, align 1
-  %106 = getelementptr i8, i8* %storemerge94.i.i, i64 1
+  %107 = getelementptr i8, i8* %storemerge94.i.i, i64 1
   %sub_tmp77.i.i = add i32 %73, %sub_tmp.i
-  %107 = icmp slt i32 %sub_tmp77.i.i, 0
-  br i1 %107, label %then79.i.i, label %else83.i.i
+  %108 = icmp slt i32 %sub_tmp77.i.i, 0
+  br i1 %108, label %then79.i.i, label %else83.i.i
 
 then79.i.i:                                       ; preds = %endif71.i.i
-  store i8 45, i8* %106, align 1
+  store i8 45, i8* %107, align 1
   %unary_minus_tmp.i.i = sub i32 0, %sub_tmp77.i.i
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i"
 
 else83.i.i:                                       ; preds = %endif71.i.i
-  store i8 43, i8* %106, align 1
+  store i8 43, i8* %107, align 1
   br label %"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i"
 
 "func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8.exit.i": ; preds = %else83.i.i, %then79.i.i
   %.096.i.i = phi i32 [ %unary_minus_tmp.i.i, %then79.i.i ], [ %sub_tmp77.i.i, %else83.i.i ]
-  %load_tmp8795.i.i.in = getelementptr i8, i8* %storemerge94.i.i, i64 2
-  %load_tmp8795.i.i = bitcast i8* %load_tmp8795.i.i.in to i16*
+  %load_tmp91.i.i = getelementptr i8, i8* %storemerge94.i.i, i64 2
+  %load_tmp8795.i.i = bitcast i8* %load_tmp91.i.i to i16*
   %mul_tmp89.i.i = shl i32 %.096.i.i, 1
-  %108 = sext i32 %mul_tmp89.i.i to i64
-  %ptr_add_tmp90.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %108
-  %109 = bitcast i8* %ptr_add_tmp90.i.i to i16*
-  %110 = load i16, i16* %109, align 2
-  store i16 %110, i16* %load_tmp8795.i.i, align 1
+  %109 = sext i32 %mul_tmp89.i.i to i64
+  %ptr_add_tmp90.i.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %109
+  %110 = bitcast i8* %ptr_add_tmp90.i.i to i16*
+  %111 = load i16, i16* %110, align 2
+  store i16 %111, i16* %load_tmp8795.i.i, align 1
   %ptr_add_tmp92.i.i = getelementptr i8, i8* %storemerge94.i.i, i64 4
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 }
@@ -2846,7 +2809,7 @@ alloca:
   %3 = icmp eq i32 %1, 0
   %sub_tmp4 = add i32 %1, -152
   %bit_or_tmp = or i32 %0, 8388608
-  %.0272 = select i1 %3, i32 -151, i32 %sub_tmp4
+  %.0276 = select i1 %3, i32 -151, i32 %sub_tmp4
   %storemerge = select i1 %3, i32 %0, i32 %bit_or_tmp
   %bit_and_tmp = and i32 %storemerge, 1
   %4 = icmp eq i32 %bit_and_tmp, 0
@@ -2858,120 +2821,119 @@ alloca:
   %cast_tmp = zext i1 %spec.select to i32
   %6 = xor i32 %cast_tmp, -1
   %sub_tmp17 = add i32 %mul_tmp, %6
-  %7 = icmp sgt i32 %.0272, -1
+  %7 = icmp sgt i32 %.0276, -1
   br i1 %7, label %then19, label %else82
 
 then19:                                           ; preds = %alloca
-  %mul_tmp.i = mul i32 %.0272, 78913
+  %mul_tmp.i = mul i32 %.0276, 78913
   %rshift_tmp.i = lshr i32 %mul_tmp.i, 18
-  %mul_tmp.i425 = mul i32 %rshift_tmp.i, 1217359
-  %rshift_tmp.i426 = lshr i32 %mul_tmp.i425, 19
+  %mul_tmp.i429 = mul i32 %rshift_tmp.i, 1217359
+  %rshift_tmp.i430 = lshr i32 %mul_tmp.i429, 19
   %8 = zext i32 %rshift_tmp.i to i64
   %9 = getelementptr [55 x i64], [55 x i64]* @std.ryu.FLOAT_POW5_INV_SPLIT, i64 0, i64 %8
-  %load_tmp2.i414 = load i64, i64* %9, align 8
-  %rshift_tmp.i.i415 = lshr i64 %load_tmp2.i414, 32
-  %cast_tmp4.i.i416 = zext i32 %mul_tmp to i64
-  %cast_tmp6.i.i417 = and i64 %load_tmp2.i414, 4294967295
-  %mul_tmp.i.i418 = mul nuw i64 %cast_tmp6.i.i417, %cast_tmp4.i.i416
-  %mul_tmp11.i.i419 = mul nuw i64 %rshift_tmp.i.i415, %cast_tmp4.i.i416
-  %rshift_tmp13.i.i420 = lshr i64 %mul_tmp.i.i418, 32
-  %add_tmp.i.i421 = add i64 %rshift_tmp13.i.i420, %mul_tmp11.i.i419
-  %sub_tmp24 = sub i32 27, %.0272
+  %load_tmp2.i418 = load i64, i64* %9, align 8
+  %rshift_tmp.i.i419 = lshr i64 %load_tmp2.i418, 32
+  %cast_tmp4.i.i420 = zext i32 %mul_tmp to i64
+  %cast_tmp6.i.i421 = and i64 %load_tmp2.i418, 4294967295
+  %mul_tmp.i.i422 = mul nuw i64 %cast_tmp6.i.i421, %cast_tmp4.i.i420
+  %mul_tmp11.i.i423 = mul nuw i64 %rshift_tmp.i.i419, %cast_tmp4.i.i420
+  %rshift_tmp13.i.i424 = lshr i64 %mul_tmp.i.i422, 32
+  %add_tmp.i.i425 = add i64 %rshift_tmp13.i.i424, %mul_tmp11.i.i423
+  %sub_tmp24 = sub i32 27, %.0276
   %add_tmp29 = add i32 %sub_tmp24, %rshift_tmp.i
-  %sub_tmp.i.i422 = add i32 %add_tmp29, %rshift_tmp.i426
-  %10 = zext i32 %sub_tmp.i.i422 to i64
-  %rshift_tmp17.i.i423 = lshr i64 %add_tmp.i.i421, %10
-  %cast_tmp19.i.i424 = trunc i64 %rshift_tmp17.i.i423 to i32
-  %cast_tmp4.i.i405 = zext i32 %add_tmp to i64
-  %mul_tmp.i.i407 = mul nuw i64 %cast_tmp6.i.i417, %cast_tmp4.i.i405
-  %mul_tmp11.i.i408 = mul nuw i64 %rshift_tmp.i.i415, %cast_tmp4.i.i405
-  %rshift_tmp13.i.i409 = lshr i64 %mul_tmp.i.i407, 32
-  %add_tmp.i.i410 = add i64 %rshift_tmp13.i.i409, %mul_tmp11.i.i408
-  %rshift_tmp17.i.i412 = lshr i64 %add_tmp.i.i410, %10
-  %cast_tmp19.i.i413 = trunc i64 %rshift_tmp17.i.i412 to i32
-  %cast_tmp4.i.i394 = zext i32 %sub_tmp17 to i64
-  %mul_tmp.i.i396 = mul nuw i64 %cast_tmp6.i.i417, %cast_tmp4.i.i394
-  %mul_tmp11.i.i397 = mul nuw i64 %rshift_tmp.i.i415, %cast_tmp4.i.i394
-  %rshift_tmp13.i.i398 = lshr i64 %mul_tmp.i.i396, 32
-  %add_tmp.i.i399 = add i64 %rshift_tmp13.i.i398, %mul_tmp11.i.i397
-  %rshift_tmp17.i.i401 = lshr i64 %add_tmp.i.i399, %10
-  %cast_tmp19.i.i402 = trunc i64 %rshift_tmp17.i.i401 to i32
-  %.not271 = icmp eq i32 %rshift_tmp.i, 0
-  br i1 %.not271, label %endif60, label %bool_and_rhs
+  %sub_tmp.i.i426 = add i32 %add_tmp29, %rshift_tmp.i430
+  %10 = zext i32 %sub_tmp.i.i426 to i64
+  %rshift_tmp17.i.i427 = lshr i64 %add_tmp.i.i425, %10
+  %cast_tmp4.i.i409 = zext i32 %add_tmp to i64
+  %mul_tmp.i.i411 = mul nuw i64 %cast_tmp6.i.i421, %cast_tmp4.i.i409
+  %mul_tmp11.i.i412 = mul nuw i64 %rshift_tmp.i.i419, %cast_tmp4.i.i409
+  %rshift_tmp13.i.i413 = lshr i64 %mul_tmp.i.i411, 32
+  %add_tmp.i.i414 = add i64 %rshift_tmp13.i.i413, %mul_tmp11.i.i412
+  %rshift_tmp17.i.i416 = lshr i64 %add_tmp.i.i414, %10
+  %cast_tmp19.i.i417 = trunc i64 %rshift_tmp17.i.i416 to i32
+  %cast_tmp4.i.i398 = zext i32 %sub_tmp17 to i64
+  %mul_tmp.i.i400 = mul nuw i64 %cast_tmp6.i.i421, %cast_tmp4.i.i398
+  %mul_tmp11.i.i401 = mul nuw i64 %rshift_tmp.i.i419, %cast_tmp4.i.i398
+  %rshift_tmp13.i.i402 = lshr i64 %mul_tmp.i.i400, 32
+  %add_tmp.i.i403 = add i64 %rshift_tmp13.i.i402, %mul_tmp11.i.i401
+  %rshift_tmp17.i.i405 = lshr i64 %add_tmp.i.i403, %10
+  %cast_tmp19.i.i406 = trunc i64 %rshift_tmp17.i.i405 to i32
+  %.not275 = icmp eq i32 %rshift_tmp.i, 0
+  br i1 %.not275, label %endif60, label %bool_and_rhs
 
 bool_and_rhs:                                     ; preds = %then19
-  %sub_tmp41 = add i32 %cast_tmp19.i.i413, -1
+  %sub_tmp41 = add i32 %cast_tmp19.i.i417, -1
   %div_tmp = udiv i32 %sub_tmp41, 10
-  %div_tmp43 = udiv i32 %cast_tmp19.i.i402, 10
-  %.not430 = icmp ugt i32 %div_tmp, %div_tmp43
-  br i1 %.not430, label %endif60, label %then44
+  %div_tmp43 = udiv i32 %cast_tmp19.i.i406, 10
+  %.not436 = icmp ugt i32 %div_tmp, %div_tmp43
+  br i1 %.not436, label %endif60, label %then44
 
 then44:                                           ; preds = %bool_and_rhs
   %sub_tmp46 = add nsw i32 %rshift_tmp.i, -1
-  %mul_tmp.i389 = mul i32 %sub_tmp46, 1217359
-  %rshift_tmp.i390 = lshr i32 %mul_tmp.i389, 19
+  %mul_tmp.i393 = mul i32 %sub_tmp46, 1217359
+  %rshift_tmp.i394 = lshr i32 %mul_tmp.i393, 19
   %11 = zext i32 %sub_tmp46 to i64
   %12 = getelementptr [55 x i64], [55 x i64]* @std.ryu.FLOAT_POW5_INV_SPLIT, i64 0, i64 %11
-  %load_tmp2.i378 = load i64, i64* %12, align 8
-  %rshift_tmp.i.i379 = lshr i64 %load_tmp2.i378, 32
-  %cast_tmp6.i.i381 = and i64 %load_tmp2.i378, 4294967295
-  %mul_tmp.i.i382 = mul nuw i64 %cast_tmp6.i.i381, %cast_tmp4.i.i416
-  %mul_tmp11.i.i383 = mul nuw i64 %rshift_tmp.i.i379, %cast_tmp4.i.i416
-  %rshift_tmp13.i.i384 = lshr i64 %mul_tmp.i.i382, 32
-  %add_tmp.i.i385 = add i64 %rshift_tmp13.i.i384, %mul_tmp11.i.i383
-  %sub_tmp56 = sub i32 26, %.0272
+  %load_tmp2.i382 = load i64, i64* %12, align 8
+  %rshift_tmp.i.i383 = lshr i64 %load_tmp2.i382, 32
+  %cast_tmp6.i.i385 = and i64 %load_tmp2.i382, 4294967295
+  %mul_tmp.i.i386 = mul nuw i64 %cast_tmp6.i.i385, %cast_tmp4.i.i420
+  %mul_tmp11.i.i387 = mul nuw i64 %rshift_tmp.i.i383, %cast_tmp4.i.i420
+  %rshift_tmp13.i.i388 = lshr i64 %mul_tmp.i.i386, 32
+  %add_tmp.i.i389 = add i64 %rshift_tmp13.i.i388, %mul_tmp11.i.i387
+  %sub_tmp56 = sub i32 26, %.0276
   %add_tmp58 = add i32 %sub_tmp56, %rshift_tmp.i
-  %sub_tmp.i.i386 = add i32 %add_tmp58, %rshift_tmp.i390
-  %13 = zext i32 %sub_tmp.i.i386 to i64
-  %rshift_tmp17.i.i387 = lshr i64 %add_tmp.i.i385, %13
-  %cast_tmp19.i.i388 = trunc i64 %rshift_tmp17.i.i387 to i32
-  %mod_tmp = urem i32 %cast_tmp19.i.i388, 10
+  %sub_tmp.i.i390 = add i32 %add_tmp58, %rshift_tmp.i394
+  %13 = zext i32 %sub_tmp.i.i390 to i64
+  %rshift_tmp17.i.i391 = lshr i64 %add_tmp.i.i389, %13
+  %cast_tmp19.i.i392 = trunc i64 %rshift_tmp17.i.i391 to i32
+  %mod_tmp = urem i32 %cast_tmp19.i.i392, 10
   %cast_tmp59 = trunc i32 %mod_tmp to i8
   br label %endif60
 
-endif60:                                          ; preds = %bool_and_rhs, %then19, %then44
-  %.0273 = phi i8 [ %cast_tmp59, %then44 ], [ 0, %bool_and_rhs ], [ 0, %then19 ]
+endif60:                                          ; preds = %then19, %then44, %bool_and_rhs
+  %.0277 = phi i8 [ %cast_tmp59, %then44 ], [ 0, %bool_and_rhs ], [ 0, %then19 ]
   %14 = icmp ult i32 %mul_tmp.i, 2621440
   br i1 %14, label %then62, label %endif145
 
 then62:                                           ; preds = %endif60
   %mod_tmp64 = urem i32 %mul_tmp, 5
   %15 = icmp eq i32 %mod_tmp64, 0
-  br i1 %15, label %for_condition_check.i.i373, label %else68
+  br i1 %15, label %for_condition_check.i.i377, label %else68
 
-for_condition_check.i.i373:                       ; preds = %then62, %for.i.i376
-  %.011.i.i369.in = phi i32 [ %.010.i.i370, %for.i.i376 ], [ %mul_tmp, %then62 ]
-  %.0.i.i371 = phi i32 [ %16, %for.i.i376 ], [ 0, %then62 ]
-  %.011.i.i369 = urem i32 %.011.i.i369.in, 5
-  %.not.i.i372 = icmp eq i32 %.011.i.i369, 0
-  br i1 %.not.i.i372, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377, label %for.i.i376
+for_condition_check.i.i377:                       ; preds = %then62, %for.i.i380
+  %.011.i.i373.in = phi i32 [ %.010.i.i374, %for.i.i380 ], [ %mul_tmp, %then62 ]
+  %.0.i.i375 = phi i32 [ %16, %for.i.i380 ], [ 0, %then62 ]
+  %.011.i.i373 = urem i32 %.011.i.i373.in, 5
+  %.not.i.i376 = icmp eq i32 %.011.i.i373, 0
+  br i1 %.not.i.i376, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381, label %for.i.i380
 
-for.i.i376:                                       ; preds = %for_condition_check.i.i373
-  %.010.i.i370 = udiv i32 %.011.i.i369.in, 5
-  %16 = add i32 %.0.i.i371, 1
-  br label %for_condition_check.i.i373
+for.i.i380:                                       ; preds = %for_condition_check.i.i377
+  %.010.i.i374 = udiv i32 %.011.i.i373.in, 5
+  %16 = add i32 %.0.i.i375, 1
+  br label %for_condition_check.i.i377
 
-func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377: ; preds = %for_condition_check.i.i373
-  %17 = icmp uge i32 %.0.i.i371, %rshift_tmp.i
+func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381: ; preds = %for_condition_check.i.i377
+  %17 = icmp uge i32 %.0.i.i375, %rshift_tmp.i
   br label %endif145
 
 else68:                                           ; preds = %then62
-  br i1 %4, label %for_condition_check.i.i362, label %for_condition_check.i.i
+  br i1 %4, label %for_condition_check.i.i366, label %for_condition_check.i.i
 
-for_condition_check.i.i362:                       ; preds = %else68, %for.i.i365
-  %.011.i.i358.in = phi i32 [ %.010.i.i359, %for.i.i365 ], [ %sub_tmp17, %else68 ]
-  %.0.i.i360 = phi i32 [ %18, %for.i.i365 ], [ 0, %else68 ]
-  %.011.i.i358 = urem i32 %.011.i.i358.in, 5
-  %.not.i.i361 = icmp eq i32 %.011.i.i358, 0
-  br i1 %.not.i.i361, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366, label %for.i.i365
+for_condition_check.i.i366:                       ; preds = %else68, %for.i.i369
+  %.011.i.i362.in = phi i32 [ %.010.i.i363, %for.i.i369 ], [ %sub_tmp17, %else68 ]
+  %.0.i.i364 = phi i32 [ %18, %for.i.i369 ], [ 0, %else68 ]
+  %.011.i.i362 = urem i32 %.011.i.i362.in, 5
+  %.not.i.i365 = icmp eq i32 %.011.i.i362, 0
+  br i1 %.not.i.i365, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370, label %for.i.i369
 
-for.i.i365:                                       ; preds = %for_condition_check.i.i362
-  %.010.i.i359 = udiv i32 %.011.i.i358.in, 5
-  %18 = add i32 %.0.i.i360, 1
-  br label %for_condition_check.i.i362
+for.i.i369:                                       ; preds = %for_condition_check.i.i366
+  %.010.i.i363 = udiv i32 %.011.i.i362.in, 5
+  %18 = add i32 %.0.i.i364, 1
+  br label %for_condition_check.i.i366
 
-func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366: ; preds = %for_condition_check.i.i362
-  %19 = icmp uge i32 %.0.i.i360, %rshift_tmp.i
+func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370: ; preds = %for_condition_check.i.i366
+  %19 = icmp uge i32 %.0.i.i364, %rshift_tmp.i
   br label %endif145
 
 for_condition_check.i.i:                          ; preds = %else68, %for.i.i
@@ -2989,70 +2951,69 @@ for.i.i:                                          ; preds = %for_condition_check
 func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit: ; preds = %for_condition_check.i.i
   %21 = icmp uge i32 %.0.i.i, %rshift_tmp.i
   %cast_tmp76.neg = sext i1 %21 to i32
-  %sub_tmp78 = add i32 %cast_tmp76.neg, %cast_tmp19.i.i413
+  %sub_tmp78 = add i32 %cast_tmp76.neg, %cast_tmp19.i.i417
   br label %endif145
 
 else82:                                           ; preds = %alloca
-  %mul_tmp.i354 = mul i32 %.0272, -732923
-  %rshift_tmp.i355 = lshr i32 %mul_tmp.i354, 20
-  %add_tmp87 = add i32 %rshift_tmp.i355, %.0272
+  %mul_tmp.i358 = mul i32 %.0276, -732923
+  %rshift_tmp.i359 = lshr i32 %mul_tmp.i358, 20
+  %add_tmp87 = add i32 %rshift_tmp.i359, %.0276
   %sub_tmp91 = sub i32 0, %add_tmp87
-  %mul_tmp.i351 = mul i32 %add_tmp87, -1217359
-  %rshift_tmp.i352 = lshr i32 %mul_tmp.i351, 19
+  %mul_tmp.i355 = mul i32 %add_tmp87, -1217359
+  %rshift_tmp.i356 = lshr i32 %mul_tmp.i355, 19
   %22 = zext i32 %sub_tmp91 to i64
   %23 = getelementptr [47 x i64], [47 x i64]* @std.ryu.FLOAT_POW5_SPLIT, i64 0, i64 %22
-  %load_tmp2.i340 = load i64, i64* %23, align 8
-  %rshift_tmp.i.i341 = lshr i64 %load_tmp2.i340, 32
-  %cast_tmp4.i.i342 = zext i32 %mul_tmp to i64
-  %cast_tmp6.i.i343 = and i64 %load_tmp2.i340, 4294967295
-  %mul_tmp.i.i344 = mul nuw i64 %cast_tmp6.i.i343, %cast_tmp4.i.i342
-  %mul_tmp11.i.i345 = mul nuw i64 %rshift_tmp.i.i341, %cast_tmp4.i.i342
-  %rshift_tmp13.i.i346 = lshr i64 %mul_tmp.i.i344, 32
-  %add_tmp.i.i347 = add i64 %rshift_tmp13.i.i346, %mul_tmp11.i.i345
-  %sub_tmp96 = add nuw nsw i32 %rshift_tmp.i355, 28
-  %sub_tmp.i.i348 = sub nsw i32 %sub_tmp96, %rshift_tmp.i352
-  %24 = zext i32 %sub_tmp.i.i348 to i64
-  %rshift_tmp17.i.i349 = lshr i64 %add_tmp.i.i347, %24
-  %cast_tmp19.i.i350 = trunc i64 %rshift_tmp17.i.i349 to i32
-  %cast_tmp4.i.i331 = zext i32 %add_tmp to i64
-  %mul_tmp.i.i333 = mul nuw i64 %cast_tmp6.i.i343, %cast_tmp4.i.i331
-  %mul_tmp11.i.i334 = mul nuw i64 %rshift_tmp.i.i341, %cast_tmp4.i.i331
-  %rshift_tmp13.i.i335 = lshr i64 %mul_tmp.i.i333, 32
-  %add_tmp.i.i336 = add i64 %rshift_tmp13.i.i335, %mul_tmp11.i.i334
-  %rshift_tmp17.i.i338 = lshr i64 %add_tmp.i.i336, %24
-  %cast_tmp19.i.i339 = trunc i64 %rshift_tmp17.i.i338 to i32
-  %cast_tmp4.i.i320 = zext i32 %sub_tmp17 to i64
-  %mul_tmp.i.i322 = mul nuw i64 %cast_tmp6.i.i343, %cast_tmp4.i.i320
-  %mul_tmp11.i.i323 = mul nuw i64 %rshift_tmp.i.i341, %cast_tmp4.i.i320
-  %rshift_tmp13.i.i324 = lshr i64 %mul_tmp.i.i322, 32
-  %add_tmp.i.i325 = add i64 %rshift_tmp13.i.i324, %mul_tmp11.i.i323
-  %rshift_tmp17.i.i327 = lshr i64 %add_tmp.i.i325, %24
-  %cast_tmp19.i.i328 = trunc i64 %rshift_tmp17.i.i327 to i32
-  %.not266 = icmp eq i32 %rshift_tmp.i355, 0
+  %load_tmp2.i344 = load i64, i64* %23, align 8
+  %rshift_tmp.i.i345 = lshr i64 %load_tmp2.i344, 32
+  %cast_tmp4.i.i346 = zext i32 %mul_tmp to i64
+  %cast_tmp6.i.i347 = and i64 %load_tmp2.i344, 4294967295
+  %mul_tmp.i.i348 = mul nuw i64 %cast_tmp6.i.i347, %cast_tmp4.i.i346
+  %mul_tmp11.i.i349 = mul nuw i64 %rshift_tmp.i.i345, %cast_tmp4.i.i346
+  %rshift_tmp13.i.i350 = lshr i64 %mul_tmp.i.i348, 32
+  %add_tmp.i.i351 = add i64 %rshift_tmp13.i.i350, %mul_tmp11.i.i349
+  %sub_tmp96 = add nuw nsw i32 %rshift_tmp.i359, 28
+  %sub_tmp.i.i352 = sub nsw i32 %sub_tmp96, %rshift_tmp.i356
+  %24 = zext i32 %sub_tmp.i.i352 to i64
+  %rshift_tmp17.i.i353 = lshr i64 %add_tmp.i.i351, %24
+  %cast_tmp4.i.i335 = zext i32 %add_tmp to i64
+  %mul_tmp.i.i337 = mul nuw i64 %cast_tmp6.i.i347, %cast_tmp4.i.i335
+  %mul_tmp11.i.i338 = mul nuw i64 %rshift_tmp.i.i345, %cast_tmp4.i.i335
+  %rshift_tmp13.i.i339 = lshr i64 %mul_tmp.i.i337, 32
+  %add_tmp.i.i340 = add i64 %rshift_tmp13.i.i339, %mul_tmp11.i.i338
+  %rshift_tmp17.i.i342 = lshr i64 %add_tmp.i.i340, %24
+  %cast_tmp19.i.i343 = trunc i64 %rshift_tmp17.i.i342 to i32
+  %cast_tmp4.i.i324 = zext i32 %sub_tmp17 to i64
+  %mul_tmp.i.i326 = mul nuw i64 %cast_tmp6.i.i347, %cast_tmp4.i.i324
+  %mul_tmp11.i.i327 = mul nuw i64 %rshift_tmp.i.i345, %cast_tmp4.i.i324
+  %rshift_tmp13.i.i328 = lshr i64 %mul_tmp.i.i326, 32
+  %add_tmp.i.i329 = add i64 %rshift_tmp13.i.i328, %mul_tmp11.i.i327
+  %rshift_tmp17.i.i331 = lshr i64 %add_tmp.i.i329, %24
+  %cast_tmp19.i.i332 = trunc i64 %rshift_tmp17.i.i331 to i32
+  %.not266 = icmp eq i32 %rshift_tmp.i359, 0
   br i1 %.not266, label %endif128, label %bool_and_rhs107
 
 bool_and_rhs107:                                  ; preds = %else82
-  %sub_tmp109 = add i32 %cast_tmp19.i.i339, -1
+  %sub_tmp109 = add i32 %cast_tmp19.i.i343, -1
   %div_tmp110 = udiv i32 %sub_tmp109, 10
-  %div_tmp112 = udiv i32 %cast_tmp19.i.i328, 10
-  %.not428 = icmp ugt i32 %div_tmp110, %div_tmp112
-  br i1 %.not428, label %endif128, label %then115
+  %div_tmp112 = udiv i32 %cast_tmp19.i.i332, 10
+  %.not432 = icmp ugt i32 %div_tmp110, %div_tmp112
+  br i1 %.not432, label %endif128, label %then115
 
 then115:                                          ; preds = %bool_and_rhs107
   %add_tmp119 = sub i32 1, %add_tmp87
-  %mul_tmp.i316 = mul i32 %add_tmp119, 1217359
-  %rshift_tmp.i317 = lshr i32 %mul_tmp.i316, 19
+  %mul_tmp.i320 = mul i32 %add_tmp119, 1217359
+  %rshift_tmp.i321 = lshr i32 %mul_tmp.i320, 19
   %25 = zext i32 %add_tmp119 to i64
   %26 = getelementptr [47 x i64], [47 x i64]* @std.ryu.FLOAT_POW5_SPLIT, i64 0, i64 %25
   %load_tmp2.i = load i64, i64* %26, align 8
   %rshift_tmp.i.i = lshr i64 %load_tmp2.i, 32
   %cast_tmp6.i.i = and i64 %load_tmp2.i, 4294967295
-  %mul_tmp.i.i = mul nuw i64 %cast_tmp6.i.i, %cast_tmp4.i.i342
-  %mul_tmp11.i.i = mul nuw i64 %rshift_tmp.i.i, %cast_tmp4.i.i342
+  %mul_tmp.i.i = mul nuw i64 %cast_tmp6.i.i, %cast_tmp4.i.i346
+  %mul_tmp11.i.i = mul nuw i64 %rshift_tmp.i.i, %cast_tmp4.i.i346
   %rshift_tmp13.i.i = lshr i64 %mul_tmp.i.i, 32
   %add_tmp.i.i = add i64 %rshift_tmp13.i.i, %mul_tmp11.i.i
-  %sub_tmp121 = add nuw nsw i32 %rshift_tmp.i355, 27
-  %sub_tmp.i.i = sub nsw i32 %sub_tmp121, %rshift_tmp.i317
+  %sub_tmp121 = add nuw nsw i32 %rshift_tmp.i359, 27
+  %sub_tmp.i.i = sub nsw i32 %sub_tmp121, %rshift_tmp.i321
   %27 = zext i32 %sub_tmp.i.i to i64
   %rshift_tmp17.i.i = lshr i64 %add_tmp.i.i, %27
   %cast_tmp19.i.i = trunc i64 %rshift_tmp17.i.i to i32
@@ -3060,149 +3021,149 @@ then115:                                          ; preds = %bool_and_rhs107
   %cast_tmp127 = trunc i32 %mod_tmp126 to i8
   br label %endif128
 
-endif128:                                         ; preds = %bool_and_rhs107, %else82, %then115
-  %.1274 = phi i8 [ %cast_tmp127, %then115 ], [ 0, %bool_and_rhs107 ], [ 0, %else82 ]
-  %28 = icmp ult i32 %mul_tmp.i354, 2097152
+endif128:                                         ; preds = %else82, %then115, %bool_and_rhs107
+  %.1278 = phi i8 [ %cast_tmp127, %then115 ], [ 0, %bool_and_rhs107 ], [ 0, %else82 ]
+  %28 = icmp ult i32 %mul_tmp.i358, 2097152
   br i1 %28, label %then130, label %else137
 
 then130:                                          ; preds = %endif128
-  %not. = xor i1 %4, true
-  %29 = sext i1 %not. to i32
-  %.3302 = add i32 %cast_tmp19.i.i339, %29
-  %.3289 = and i1 %spec.select, %4
+  %not.435 = xor i1 %4, true
+  %29 = sext i1 %not.435 to i32
+  %.3311 = add i32 %cast_tmp19.i.i343, %29
+  %.3293 = and i1 %spec.select, %4
   br label %endif145
 
 else137:                                          ; preds = %endif128
-  %30 = icmp ult i32 %mul_tmp.i354, 32505856
+  %30 = icmp ult i32 %mul_tmp.i358, 32505856
   br i1 %30, label %then139, label %endif145
 
 then139:                                          ; preds = %else137
-  %sub_tmp142 = add nsw i32 %rshift_tmp.i355, -1
+  %sub_tmp142 = add nsw i32 %rshift_tmp.i359, -1
   %notmask.i = shl nsw i32 -1, %sub_tmp142
   %sub_tmp.i = xor i32 %notmask.i, -1
   %bit_and_tmp.i = and i32 %mul_tmp, %sub_tmp.i
   %31 = icmp eq i32 %bit_and_tmp.i, 0
   br label %endif145
 
-endif145:                                         ; preds = %then130, %then139, %else137, %endif60, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377
-  %.0307 = phi i32 [ %cast_tmp19.i.i402, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ %cast_tmp19.i.i402, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %cast_tmp19.i.i402, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ %cast_tmp19.i.i402, %endif60 ], [ %cast_tmp19.i.i328, %else137 ], [ %cast_tmp19.i.i328, %then139 ], [ %cast_tmp19.i.i328, %then130 ]
-  %.5304 = phi i32 [ %cast_tmp19.i.i413, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ %sub_tmp78, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %cast_tmp19.i.i413, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ %cast_tmp19.i.i413, %endif60 ], [ %cast_tmp19.i.i339, %else137 ], [ %cast_tmp19.i.i339, %then139 ], [ %.3302, %then130 ]
-  %.0294 = phi i32 [ %cast_tmp19.i.i424, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ %cast_tmp19.i.i424, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %cast_tmp19.i.i424, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ %cast_tmp19.i.i424, %endif60 ], [ %cast_tmp19.i.i350, %else137 ], [ %cast_tmp19.i.i350, %then139 ], [ %cast_tmp19.i.i350, %then130 ]
-  %.0293 = phi i32 [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ %rshift_tmp.i, %endif60 ], [ %add_tmp87, %else137 ], [ %add_tmp87, %then139 ], [ %add_tmp87, %then130 ]
-  %.5291 = phi i1 [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %19, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ false, %endif60 ], [ false, %else137 ], [ false, %then139 ], [ %.3289, %then130 ]
-  %.4282 = phi i1 [ %17, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ false, %endif60 ], [ false, %else137 ], [ %31, %then139 ], [ true, %then130 ]
-  %.2275 = phi i8 [ %.0273, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit377 ], [ %.0273, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %.0273, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit366 ], [ %.0273, %endif60 ], [ %.1274, %else137 ], [ %.1274, %then139 ], [ %.1274, %then130 ]
-  %spec.select312 = or i1 %.5291, %.4282
-  br i1 %spec.select312, label %while_condition_check, label %while_condition_check232
+endif145:                                         ; preds = %then130, %then139, %else137, %endif60, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381
+  %.5313 = phi i32 [ %cast_tmp19.i.i417, %endif60 ], [ %cast_tmp19.i.i417, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %cast_tmp19.i.i417, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ %sub_tmp78, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %.3311, %then130 ], [ %cast_tmp19.i.i343, %then139 ], [ %cast_tmp19.i.i343, %else137 ]
+  %.0303.in = phi i64 [ %rshift_tmp17.i.i427, %endif60 ], [ %rshift_tmp17.i.i427, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %rshift_tmp17.i.i427, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ %rshift_tmp17.i.i427, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %rshift_tmp17.i.i353, %then130 ], [ %rshift_tmp17.i.i353, %then139 ], [ %rshift_tmp17.i.i353, %else137 ]
+  %.0298 = phi i32 [ %cast_tmp19.i.i406, %endif60 ], [ %cast_tmp19.i.i406, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %cast_tmp19.i.i406, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ %cast_tmp19.i.i406, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %cast_tmp19.i.i332, %then130 ], [ %cast_tmp19.i.i332, %then139 ], [ %cast_tmp19.i.i332, %else137 ]
+  %.0297 = phi i32 [ %rshift_tmp.i, %endif60 ], [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ %rshift_tmp.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %add_tmp87, %then130 ], [ %add_tmp87, %then139 ], [ %add_tmp87, %else137 ]
+  %.5295 = phi i1 [ false, %endif60 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %19, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %.3293, %then130 ], [ false, %then139 ], [ false, %else137 ]
+  %.4286 = phi i1 [ false, %endif60 ], [ %17, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ false, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ true, %then130 ], [ %31, %then139 ], [ false, %else137 ]
+  %.2279 = phi i8 [ %.0277, %endif60 ], [ %.0277, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit381 ], [ %.0277, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit370 ], [ %.0277, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %.1278, %then130 ], [ %.1278, %then139 ], [ %.1278, %else137 ]
+  %.0303 = trunc i64 %.0303.in to i32
+  %spec.select316 = or i1 %.5295, %.4286
+  br i1 %spec.select316, label %while_condition_check, label %while_condition_check232
 
 while_condition_check:                            ; preds = %endif145, %while
-  %.1308 = phi i32 [ %div_tmp155, %while ], [ %.0307, %endif145 ]
-  %.6305 = phi i32 [ %div_tmp153, %while ], [ %.5304, %endif145 ]
-  %.1295 = phi i32 [ %div_tmp171, %while ], [ %.0294, %endif145 ]
-  %.6292 = phi i1 [ %bit_and_tmp162, %while ], [ %.5291, %endif145 ]
-  %.5283 = phi i1 [ %bit_and_tmp166, %while ], [ %.4282, %endif145 ]
-  %.3276 = phi i8 [ %cast_tmp169, %while ], [ %.2275, %endif145 ]
+  %.6314 = phi i32 [ %div_tmp153, %while ], [ %.5313, %endif145 ]
+  %.1304 = phi i32 [ %div_tmp171, %while ], [ %.0303, %endif145 ]
+  %.1299 = phi i32 [ %div_tmp155, %while ], [ %.0298, %endif145 ]
+  %.6296 = phi i1 [ %bit_and_tmp162, %while ], [ %.5295, %endif145 ]
+  %.5287 = phi i1 [ %bit_and_tmp166, %while ], [ %.4286, %endif145 ]
+  %.3280 = phi i8 [ %cast_tmp169, %while ], [ %.2279, %endif145 ]
   %.0 = phi i32 [ %36, %while ], [ 0, %endif145 ]
-  %div_tmp153 = udiv i32 %.6305, 10
-  %div_tmp155 = udiv i32 %.1308, 10
+  %div_tmp153 = udiv i32 %.6314, 10
+  %div_tmp155 = udiv i32 %.1299, 10
   %32 = icmp ugt i32 %div_tmp153, %div_tmp155
   br i1 %32, label %while, label %endwhile
 
 while:                                            ; preds = %while_condition_check
-  %33 = urem i32 %.1308, 10
+  %33 = urem i32 %.1299, 10
   %34 = icmp eq i32 %33, 0
-  %bit_and_tmp162 = and i1 %34, %.6292
-  %35 = icmp eq i8 %.3276, 0
-  %bit_and_tmp166 = and i1 %.5283, %35
-  %mod_tmp168 = urem i32 %.1295, 10
+  %bit_and_tmp162 = and i1 %.6296, %34
+  %35 = icmp eq i8 %.3280, 0
+  %bit_and_tmp166 = and i1 %.5287, %35
+  %mod_tmp168 = urem i32 %.1304, 10
   %cast_tmp169 = trunc i32 %mod_tmp168 to i8
-  %div_tmp171 = udiv i32 %.1295, 10
+  %div_tmp171 = udiv i32 %.1304, 10
   %36 = add i32 %.0, 1
   br label %while_condition_check
 
 endwhile:                                         ; preds = %while_condition_check
-  br i1 %.6292, label %while_condition_check179, label %endif198
+  br i1 %.6296, label %while_condition_check179, label %endif198
 
 while_condition_check179:                         ; preds = %endwhile, %while182
-  %.2309 = phi i32 [ %div_tmp195, %while182 ], [ %.1308, %endwhile ]
-  %.2296 = phi i32 [ %div_tmp191, %while182 ], [ %.1295, %endwhile ]
-  %.6284 = phi i1 [ %bit_and_tmp186, %while182 ], [ %.5283, %endwhile ]
-  %.4277 = phi i8 [ %cast_tmp189, %while182 ], [ %.3276, %endwhile ]
+  %.2305 = phi i32 [ %div_tmp191, %while182 ], [ %.1304, %endwhile ]
+  %.2300 = phi i32 [ %div_tmp195, %while182 ], [ %.1299, %endwhile ]
+  %.6288 = phi i1 [ %bit_and_tmp186, %while182 ], [ %.5287, %endwhile ]
+  %.4281 = phi i8 [ %cast_tmp189, %while182 ], [ %.3280, %endwhile ]
   %.1 = phi i32 [ %39, %while182 ], [ %.0, %endwhile ]
-  %mod_tmp181 = urem i32 %.2309, 10
+  %mod_tmp181 = urem i32 %.2300, 10
   %37 = icmp eq i32 %mod_tmp181, 0
   br i1 %37, label %while182, label %endif198
 
 while182:                                         ; preds = %while_condition_check179
-  %38 = icmp eq i8 %.4277, 0
-  %bit_and_tmp186 = and i1 %.6284, %38
-  %mod_tmp188 = urem i32 %.2296, 10
+  %38 = icmp eq i8 %.4281, 0
+  %bit_and_tmp186 = and i1 %.6288, %38
+  %mod_tmp188 = urem i32 %.2305, 10
   %cast_tmp189 = trunc i32 %mod_tmp188 to i8
-  %div_tmp191 = udiv i32 %.2296, 10
-  %div_tmp195 = udiv i32 %.2309, 10
+  %div_tmp191 = udiv i32 %.2305, 10
+  %div_tmp195 = udiv i32 %.2300, 10
   %39 = add i32 %.1, 1
   br label %while_condition_check179
 
 endif198:                                         ; preds = %while_condition_check179, %endwhile
-  %.3310 = phi i32 [ %.1308, %endwhile ], [ %.2309, %while_condition_check179 ]
-  %.3297 = phi i32 [ %.1295, %endwhile ], [ %.2296, %while_condition_check179 ]
-  %.7285 = phi i1 [ %.5283, %endwhile ], [ %.6284, %while_condition_check179 ]
-  %.5 = phi i8 [ %.3276, %endwhile ], [ %.4277, %while_condition_check179 ]
+  %.3306 = phi i32 [ %.1304, %endwhile ], [ %.2305, %while_condition_check179 ]
+  %.3301 = phi i32 [ %.1299, %endwhile ], [ %.2300, %while_condition_check179 ]
+  %.7289 = phi i1 [ %.5287, %endwhile ], [ %.6288, %while_condition_check179 ]
+  %.5 = phi i8 [ %.3280, %endwhile ], [ %.4281, %while_condition_check179 ]
   %.2 = phi i32 [ %.0, %endwhile ], [ %.1, %while_condition_check179 ]
   %40 = icmp eq i8 %.5, 5
-  %spec.select313 = and i1 %.7285, %40
-  %mod_tmp207 = and i32 %.3297, 1
+  %spec.select317 = and i1 %.7289, %40
+  %mod_tmp207 = and i32 %.3306, 1
   %41 = icmp eq i32 %mod_tmp207, 0
-  %bool_and_tmp209 = and i1 %41, %spec.select313
-  %42 = icmp eq i32 %.3297, %.3310
-  %spec.select315.demorgan = and i1 %4, %.6292
-  %spec.select315 = xor i1 %spec.select315.demorgan, true
-  %bool_and_tmp223 = and i1 %42, %spec.select315
-  %43 = icmp ugt i8 %.5, 4
-  %44 = xor i1 %43, %bool_and_tmp209
-  %narrow429 = or i1 %bool_and_tmp223, %44
-  %bool_or_tmp228 = zext i1 %narrow429 to i32
-  %add_tmp230 = add i32 %.3297, %bool_or_tmp228
+  %bool_and_tmp209 = and i1 %41, %spec.select317
+  %42 = icmp ne i32 %.3306, %.3301
+  %spec.select319.demorgan = and i1 %4, %.6296
+  %43 = or i1 %spec.select319.demorgan, %42
+  %44 = icmp ugt i8 %.5, 4
+  %45 = xor i1 %44, %bool_and_tmp209
+  %not. = xor i1 %43, true
+  %narrow434 = or i1 %45, %not.
+  %bool_or_tmp228 = zext i1 %narrow434 to i32
+  %add_tmp230 = add i32 %.3306, %bool_or_tmp228
   br label %endif259
 
 while_condition_check232:                         ; preds = %endif145, %while237
-  %.4311 = phi i32 [ %div_tmp236, %while237 ], [ %.0307, %endif145 ]
-  %.8 = phi i32 [ %div_tmp234, %while237 ], [ %.5304, %endif145 ]
-  %.4298 = phi i32 [ %div_tmp242, %while237 ], [ %.0294, %endif145 ]
-  %.7 = phi i8 [ %cast_tmp240, %while237 ], [ %.2275, %endif145 ]
-  %.3 = phi i32 [ %46, %while237 ], [ 0, %endif145 ]
+  %.8 = phi i32 [ %div_tmp234, %while237 ], [ %.5313, %endif145 ]
+  %.4307 = phi i32 [ %div_tmp242, %while237 ], [ %.0303, %endif145 ]
+  %.4302 = phi i32 [ %div_tmp236, %while237 ], [ %.0298, %endif145 ]
+  %.7 = phi i8 [ %cast_tmp240, %while237 ], [ %.2279, %endif145 ]
+  %.3 = phi i32 [ %47, %while237 ], [ 0, %endif145 ]
   %div_tmp234 = udiv i32 %.8, 10
-  %div_tmp236 = udiv i32 %.4311, 10
-  %45 = icmp ugt i32 %div_tmp234, %div_tmp236
-  br i1 %45, label %while237, label %endwhile248
+  %div_tmp236 = udiv i32 %.4302, 10
+  %46 = icmp ugt i32 %div_tmp234, %div_tmp236
+  br i1 %46, label %while237, label %endwhile248
 
 while237:                                         ; preds = %while_condition_check232
-  %mod_tmp239 = urem i32 %.4298, 10
+  %mod_tmp239 = urem i32 %.4307, 10
   %cast_tmp240 = trunc i32 %mod_tmp239 to i8
-  %div_tmp242 = udiv i32 %.4298, 10
-  %46 = add i32 %.3, 1
+  %div_tmp242 = udiv i32 %.4307, 10
+  %47 = add i32 %.3, 1
   br label %while_condition_check232
 
 endwhile248:                                      ; preds = %while_condition_check232
-  %47 = icmp eq i32 %.4298, %.4311
-  %48 = icmp ugt i8 %.7, 4
-  %narrow = or i1 %47, %48
+  %48 = icmp eq i32 %.4307, %.4302
+  %49 = icmp ugt i8 %.7, 4
+  %narrow = or i1 %48, %49
   %bool_or_tmp256 = zext i1 %narrow to i32
-  %add_tmp258 = add i32 %.4298, %bool_or_tmp256
+  %add_tmp258 = add i32 %.4307, %bool_or_tmp256
   br label %endif259
 
 endif259:                                         ; preds = %endwhile248, %endif198
   %.4 = phi i32 [ %.2, %endif198 ], [ %.3, %endwhile248 ]
   %storemerge267 = phi i32 [ %add_tmp230, %endif198 ], [ %add_tmp258, %endwhile248 ]
-  %tmpcast269 = bitcast i64* %2 to %"struct.std::ryu::floating_decimal_32"*
-  %add_tmp262 = add i32 %.4, %.0293
-  %49 = bitcast i64* %2 to i32*
-  store i32 0, i32* %49, align 8
-  %50 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %tmpcast269, i64 0, i32 1
-  store i32 %add_tmp262, i32* %50, align 4
-  store i32 %storemerge267, i32* %49, align 8
-  %load_tmp265268 = load i64, i64* %2, align 8
-  ret i64 %load_tmp265268
+  %tmpcast = bitcast i64* %2 to %"struct.std::ryu::floating_decimal_32"*
+  %add_tmp262 = add i32 %.4, %.0297
+  %tmpcast.repack = bitcast i64* %2 to i32*
+  store i32 %storemerge267, i32* %tmpcast.repack, align 8
+  %tmpcast.repack272 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %tmpcast, i64 0, i32 1
+  store i32 %add_tmp262, i32* %tmpcast.repack272, align 4
+  %50 = load i64, i64* %2, align 8
+  ret i64 %50
 }
 
 define i32 @func.std.ryu.log10Pow2..1.builtin.uint32.builtin.uint32(i32 %0) {
@@ -3470,8 +3431,8 @@ bool_and_rhs:                                     ; preds = %alloca
 
 then:                                             ; preds = %alloca, %bool_and_rhs
   %.not = icmp eq i32 %cast_tmp, 0
-  %.not48 = icmp eq i64 %bit_and_tmp3, 0
-  br i1 %.not48, label %endif.i42, label %then.i41
+  %.not49 = icmp eq i64 %bit_and_tmp3, 0
+  br i1 %.not49, label %endif.i42, label %then.i41
 
 then.i41:                                         ; preds = %then
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %1, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i64 0, i64 0), i64 3, i1 false)
@@ -3485,89 +3446,92 @@ then3.i:                                          ; preds = %endif.i42
   br label %endif5.i
 
 endif5.i:                                         ; preds = %then3.i, %endif.i42
+  br i1 %.not, label %endif17.i, label %then7.i43
+
+then7.i43:                                        ; preds = %endif5.i
   %ptr_add_tmp.i = getelementptr i8, i8* %1, i64 1
   %8 = select i1 %5, i8* %ptr_add_tmp.i, i8* %1
-  br i1 %.not, label %endif24.i, label %endif12.i
-
-endif12.i:                                        ; preds = %endif5.i
   %9 = bitcast i8* %8 to i64*
   store i64 8751735898823355977, i64* %9, align 1
-  %..i = select i1 %5, i32 9, i32 8
+  %spec.select.i = select i1 %5, i32 9, i32 8
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 
-endif24.i:                                        ; preds = %endif5.i
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %8, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
-  %.29.i = select i1 %5, i32 4, i32 3
+endif17.i:                                        ; preds = %endif5.i
+  %ptr_add_tmp21.i = getelementptr i8, i8* %1, i64 1
+  %10 = select i1 %5, i8* %ptr_add_tmp21.i, i8* %1
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %10, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
+  %11 = select i1 %5, i32 4, i32 3
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 
-func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit: ; preds = %endif12.i, %endif24.i, %then.i41
-  %10 = phi i32 [ 3, %then.i41 ], [ %.29.i, %endif24.i ], [ %..i, %endif12.i ]
-  ret i32 %10
+func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit: ; preds = %endif17.i, %then7.i43, %then.i41
+  %12 = phi i32 [ 3, %then.i41 ], [ %spec.select.i, %then7.i43 ], [ %11, %endif17.i ]
+  ret i32 %12
 
 endif:                                            ; preds = %alloca, %bool_and_rhs
-  %11 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
-  store i64 0, i64* %11, align 8
-  %12 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
-  store i32 0, i32* %12, align 8
+  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %3, align 8
   %bit_or_tmp.i = or i64 %bit_and_tmp3, 4503599627370496
   %cast_tmp.off = add nsw i32 %cast_tmp, -1023
   %13 = icmp ugt i32 %cast_tmp.off, 52
   br i1 %13, label %else, label %endif6.i
 
 endif6.i:                                         ; preds = %endif
-  %sub_tmp2.i = add nsw i32 %cast_tmp, -1075
-  %unary_minus_tmp.i46 = sub nsw i32 0, %sub_tmp2.i
-  %14 = zext i32 %unary_minus_tmp.i46 to i64
+  %unary_minus_tmp.i47 = sub nsw i32 1075, %cast_tmp
+  %14 = zext i32 %unary_minus_tmp.i47 to i64
   %notmask.i = shl nsw i64 -1, %14
   %sub_tmp8.i = xor i64 %notmask.i, -1
   %bit_and_tmp.i = and i64 %bit_or_tmp.i, %sub_tmp8.i
-  %.not.i47 = icmp eq i64 %bit_and_tmp.i, 0
-  br i1 %.not.i47, label %endif13.i, label %else
+  %.not.i48 = icmp eq i64 %bit_and_tmp.i, 0
+  br i1 %.not.i48, label %endif13.i, label %else
 
 endif13.i:                                        ; preds = %endif6.i
   %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %14
-  store i64 %rshift_tmp.i, i64* %11, align 8
-  store i32 0, i32* %12, align 8
-  %div_tmp.i44 = udiv i64 %rshift_tmp.i, 10
+  %15 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
+  store i64 %rshift_tmp.i, i64* %15, align 8
+  %16 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
+  store i32 0, i32* %16, align 8
+  %div_tmp.i45 = udiv i64 %rshift_tmp.i, 10
   %cast_tmp20 = trunc i64 %rshift_tmp.i to i32
-  %cast_tmp22 = trunc i64 %div_tmp.i44 to i32
+  %cast_tmp22 = trunc i64 %div_tmp.i45 to i32
   %mul_tmp.neg = mul i32 %cast_tmp22, -10
   %sub_tmp = add i32 %mul_tmp.neg, %cast_tmp20
   br label %for_condition_check
 
 for_condition_check:                              ; preds = %for, %endif13.i
-  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %16, %for ]
-  %.040 = phi i64 [ %div_tmp.i44, %endif13.i ], [ %div_tmp.i43, %for ]
+  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %18, %for ]
+  %.040 = phi i64 [ %div_tmp.i45, %endif13.i ], [ %div_tmp.i44, %for ]
   %.0 = phi i32 [ %sub_tmp, %endif13.i ], [ %sub_tmp31, %for ]
-  %15 = icmp eq i32 %.0, 0
-  br i1 %15, label %for, label %endif37
+  %17 = icmp eq i32 %.0, 0
+  br i1 %17, label %for, label %endif37
 
 for:                                              ; preds = %for_condition_check
-  store i64 %.040, i64* %11, align 8
-  %div_tmp.i43 = udiv i64 %.040, 10
+  store i64 %.040, i64* %15, align 8
+  %div_tmp.i44 = udiv i64 %.040, 10
   %cast_tmp27 = trunc i64 %.040 to i32
-  %cast_tmp29 = trunc i64 %div_tmp.i43 to i32
+  %cast_tmp29 = trunc i64 %div_tmp.i44 to i32
   %mul_tmp30.neg = mul i32 %cast_tmp29, -10
   %sub_tmp31 = add i32 %mul_tmp30.neg, %cast_tmp27
-  %16 = add i32 %load_tmp32, 1
-  store i32 %16, i32* %12, align 8
+  %18 = add i32 %load_tmp32, 1
+  store i32 %18, i32* %16, align 8
   br label %for_condition_check
 
 else:                                             ; preds = %endif6.i, %endif
-  call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret %4, i64 %bit_and_tmp3, i32 %cast_tmp)
-  %17 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
-  %load_tmp35 = load i64, i64* %17, align 8
-  store i64 %load_tmp35, i64* %11, align 8
-  %18 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
-  %load_tmp36 = load i32, i32* %18, align 8
-  store i32 %load_tmp36, i32* %12, align 8
+  call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret(%"struct.std::ryu::floating_decimal_64") %4, i64 %bit_and_tmp3, i32 %cast_tmp)
+  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
+  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
+  %load_tmp35 = load i64, i64* %20, align 8
+  store i64 %load_tmp35, i64* %19, align 8
+  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
+  %22 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
+  %load_tmp36 = load i32, i32* %22, align 8
+  store i32 %load_tmp36, i32* %21, align 8
   br label %endif37
 
 endif37:                                          ; preds = %for_condition_check, %else
-  %19 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %19)
-  %20 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %19, i8* nonnull align 8 dereferenceable(16) %20, i64 16, i1 false)
+  call void @llvm.experimental.noalias.scope.decl(metadata !41)
+  %23 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %23)
+  %24 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %23, i8* nonnull align 8 dereferenceable(16) %24, i64 16, i1 false)
   br i1 %5, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %endif37
@@ -3576,72 +3540,74 @@ then.i:                                           ; preds = %endif37
 
 endif.i:                                          ; preds = %then.i, %endif37
   %.0226.i = phi i32 [ 1, %then.i ], [ 0, %endif37 ]
-  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 0
-  %load_tmp4.i = load i64, i64* %21, align 8, !alias.scope !41
-  %22 = icmp ugt i64 %load_tmp4.i, 9999999999999999
-  br i1 %22, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else.i.i
+  %25 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 0
+  %load_tmp4.i = load i64, i64* %25, align 8, !alias.scope !41
+  %26 = icmp ugt i64 %load_tmp4.i, 9999999999999999
+  br i1 %26, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else.i.i
 
 else.i.i:                                         ; preds = %endif.i
-  %23 = icmp ugt i64 %load_tmp4.i, 999999999999999
-  br i1 %23, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else3.i.i
+  %27 = icmp ugt i64 %load_tmp4.i, 999999999999999
+  br i1 %27, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else3.i.i
 
 else3.i.i:                                        ; preds = %else.i.i
-  %24 = icmp ugt i64 %load_tmp4.i, 99999999999999
-  br i1 %24, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else6.i.i
+  %28 = icmp ugt i64 %load_tmp4.i, 99999999999999
+  br i1 %28, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else6.i.i
 
 else6.i.i:                                        ; preds = %else3.i.i
-  %25 = icmp ugt i64 %load_tmp4.i, 9999999999999
-  br i1 %25, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else9.i.i
+  %29 = icmp ugt i64 %load_tmp4.i, 9999999999999
+  br i1 %29, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else9.i.i
 
 else9.i.i:                                        ; preds = %else6.i.i
-  %26 = icmp ugt i64 %load_tmp4.i, 999999999999
-  br i1 %26, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else12.i.i
+  %30 = icmp ugt i64 %load_tmp4.i, 999999999999
+  br i1 %30, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else12.i.i
 
 else12.i.i:                                       ; preds = %else9.i.i
-  %27 = icmp ugt i64 %load_tmp4.i, 99999999999
-  br i1 %27, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else15.i.i
+  %31 = icmp ugt i64 %load_tmp4.i, 99999999999
+  br i1 %31, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else15.i.i
 
 else15.i.i:                                       ; preds = %else12.i.i
-  %28 = icmp ugt i64 %load_tmp4.i, 9999999999
-  br i1 %28, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else18.i.i
+  %32 = icmp ugt i64 %load_tmp4.i, 9999999999
+  br i1 %32, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else18.i.i
 
 else18.i.i:                                       ; preds = %else15.i.i
-  %29 = icmp ugt i64 %load_tmp4.i, 999999999
-  br i1 %29, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else21.i.i
+  %33 = icmp ugt i64 %load_tmp4.i, 999999999
+  br i1 %33, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else21.i.i
 
 else21.i.i:                                       ; preds = %else18.i.i
-  %30 = icmp ugt i64 %load_tmp4.i, 99999999
-  br i1 %30, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else24.i.i
+  %34 = icmp ugt i64 %load_tmp4.i, 99999999
+  br i1 %34, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else24.i.i
 
 else24.i.i:                                       ; preds = %else21.i.i
-  %31 = icmp ugt i64 %load_tmp4.i, 9999999
-  br i1 %31, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else27.i.i
+  %35 = icmp ugt i64 %load_tmp4.i, 9999999
+  br i1 %35, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else27.i.i
 
 else27.i.i:                                       ; preds = %else24.i.i
-  %32 = icmp ugt i64 %load_tmp4.i, 999999
-  br i1 %32, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else30.i.i
+  %36 = icmp ugt i64 %load_tmp4.i, 999999
+  br i1 %36, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else30.i.i
 
 else30.i.i:                                       ; preds = %else27.i.i
-  %33 = icmp ugt i64 %load_tmp4.i, 99999
-  br i1 %33, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else33.i.i
+  %37 = icmp ugt i64 %load_tmp4.i, 99999
+  br i1 %37, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else33.i.i
 
 else33.i.i:                                       ; preds = %else30.i.i
-  %34 = icmp ugt i64 %load_tmp4.i, 9999
-  br i1 %34, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else36.i.i
+  %38 = icmp ugt i64 %load_tmp4.i, 9999
+  br i1 %38, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else36.i.i
 
 else36.i.i:                                       ; preds = %else33.i.i
-  %35 = icmp ugt i64 %load_tmp4.i, 999
-  br i1 %35, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else39.i.i
+  %39 = icmp ugt i64 %load_tmp4.i, 999
+  br i1 %39, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else39.i.i
 
 else39.i.i:                                       ; preds = %else36.i.i
-  %36 = icmp ugt i64 %load_tmp4.i, 99
-  %37 = icmp ugt i64 %load_tmp4.i, 9
-  %..i.i = select i1 %37, i32 2, i32 1
-  %38 = select i1 %36, i32 3, i32 %..i.i
+  %40 = icmp ugt i64 %load_tmp4.i, 99
+  br i1 %40, label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i, label %else42.i.i
+
+else42.i.i:                                       ; preds = %else39.i.i
+  %41 = icmp ugt i64 %load_tmp4.i, 9
+  %42 = select i1 %41, i32 2, i32 1
   br label %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i
 
-func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i: ; preds = %else39.i.i, %else36.i.i, %else33.i.i, %else30.i.i, %else27.i.i, %else24.i.i, %else21.i.i, %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
-  %39 = phi i32 [ 17, %endif.i ], [ 16, %else.i.i ], [ 15, %else3.i.i ], [ 14, %else6.i.i ], [ 13, %else9.i.i ], [ 12, %else12.i.i ], [ 11, %else15.i.i ], [ 10, %else18.i.i ], [ 9, %else21.i.i ], [ 8, %else24.i.i ], [ 7, %else27.i.i ], [ 6, %else30.i.i ], [ 5, %else33.i.i ], [ 4, %else36.i.i ], [ %38, %else39.i.i ]
+func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i: ; preds = %else42.i.i, %else39.i.i, %else36.i.i, %else33.i.i, %else30.i.i, %else27.i.i, %else24.i.i, %else21.i.i, %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
+  %43 = phi i32 [ 17, %endif.i ], [ 16, %else.i.i ], [ 15, %else3.i.i ], [ 14, %else6.i.i ], [ 13, %else9.i.i ], [ 12, %else12.i.i ], [ 11, %else15.i.i ], [ 10, %else18.i.i ], [ 9, %else21.i.i ], [ 8, %else24.i.i ], [ 7, %else27.i.i ], [ 6, %else30.i.i ], [ 5, %else33.i.i ], [ 4, %else36.i.i ], [ 3, %else39.i.i ], [ %42, %else42.i.i ]
   %.not.i = icmp ult i64 %load_tmp4.i, 4294967296
   br i1 %.not.i, label %endif.endif68_crit_edge.i, label %then7.i
 
@@ -3666,38 +3632,38 @@ then7.i:                                          ; preds = %func.std.ryu.decima
   %lshift_tmp24.i = shl nuw nsw i32 %mod_tmp23.i, 1
   %div_tmp26.i = udiv i32 %mod_tmp16.i, 100
   %lshift_tmp27.i = shl nuw nsw i32 %div_tmp26.i, 1
-  %40 = zext i32 %.0226.i to i64
-  %ptr_add_tmp30.i = getelementptr i8, i8* %1, i64 %40
-  %41 = zext i32 %39 to i64
-  %ptr_add_tmp32.i = getelementptr i8, i8* %ptr_add_tmp30.i, i64 %41
+  %44 = zext i32 %.0226.i to i64
+  %ptr_add_tmp30.i = getelementptr i8, i8* %1, i64 %44
+  %45 = zext i32 %43 to i64
+  %ptr_add_tmp32.i = getelementptr i8, i8* %ptr_add_tmp30.i, i64 %45
   %ptr_sub_tmp34.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -1
-  %42 = zext i32 %lshift_tmp.i to i64
-  %ptr_add_tmp36.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %42
-  %43 = bitcast i8* %ptr_add_tmp36.i to i16*
-  %44 = bitcast i8* %ptr_sub_tmp34.i to i16*
-  %45 = load i16, i16* %43, align 2, !noalias !41
-  store i16 %45, i16* %44, align 1, !noalias !41
-  %ptr_sub_tmp44.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -3
-  %46 = zext i32 %lshift_tmp21.i to i64
-  %ptr_add_tmp46.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %46
-  %47 = bitcast i8* %ptr_add_tmp46.i to i16*
-  %48 = bitcast i8* %ptr_sub_tmp44.i to i16*
+  %46 = zext i32 %lshift_tmp.i to i64
+  %ptr_add_tmp36.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %46
+  %47 = bitcast i8* %ptr_add_tmp36.i to i16*
+  %48 = bitcast i8* %ptr_sub_tmp34.i to i16*
   %49 = load i16, i16* %47, align 2, !noalias !41
   store i16 %49, i16* %48, align 1, !noalias !41
-  %ptr_sub_tmp54.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -5
-  %50 = zext i32 %lshift_tmp24.i to i64
-  %ptr_add_tmp56.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %50
-  %51 = bitcast i8* %ptr_add_tmp56.i to i16*
-  %52 = bitcast i8* %ptr_sub_tmp54.i to i16*
+  %ptr_sub_tmp44.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -3
+  %50 = zext i32 %lshift_tmp21.i to i64
+  %ptr_add_tmp46.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %50
+  %51 = bitcast i8* %ptr_add_tmp46.i to i16*
+  %52 = bitcast i8* %ptr_sub_tmp44.i to i16*
   %53 = load i16, i16* %51, align 2, !noalias !41
   store i16 %53, i16* %52, align 1, !noalias !41
-  %ptr_sub_tmp64.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -7
-  %54 = zext i32 %lshift_tmp27.i to i64
-  %ptr_add_tmp66.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %54
-  %55 = bitcast i8* %ptr_add_tmp66.i to i16*
-  %56 = bitcast i8* %ptr_sub_tmp64.i to i16*
+  %ptr_sub_tmp54.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -5
+  %54 = zext i32 %lshift_tmp24.i to i64
+  %ptr_add_tmp56.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %54
+  %55 = bitcast i8* %ptr_add_tmp56.i to i16*
+  %56 = bitcast i8* %ptr_sub_tmp54.i to i16*
   %57 = load i16, i16* %55, align 2, !noalias !41
   store i16 %57, i16* %56, align 1, !noalias !41
+  %ptr_sub_tmp64.i = getelementptr i8, i8* %ptr_add_tmp32.i, i64 -7
+  %58 = zext i32 %lshift_tmp27.i to i64
+  %ptr_add_tmp66.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %58
+  %59 = bitcast i8* %ptr_add_tmp66.i to i16*
+  %60 = bitcast i8* %ptr_sub_tmp64.i to i16*
+  %61 = load i16, i16* %59, align 2, !noalias !41
+  store i16 %61, i16* %60, align 1, !noalias !41
   br label %endif68.i
 
 endif68.i:                                        ; preds = %then7.i, %endif.endif68_crit_edge.i
@@ -3708,194 +3674,194 @@ endif68.i:                                        ; preds = %then7.i, %endif.end
 while_condition_check.i:                          ; preds = %while.i, %endif68.i
   %.1231.i = phi i32 [ %.0230.i, %endif68.i ], [ %add_tmp106.i, %while.i ]
   %.0228.i = phi i32 [ %cast_tmp70.pre-phi.i, %endif68.i ], [ %div_tmp78.i, %while.i ]
-  %58 = icmp ugt i32 %.0228.i, 9999
-  br i1 %58, label %while.i, label %endwhile.i
+  %62 = icmp ugt i32 %.0228.i, 9999
+  br i1 %62, label %while.i, label %endwhile.i
 
 while.i:                                          ; preds = %while_condition_check.i
-  %59 = urem i32 %.0228.i, 10000
+  %63 = urem i32 %.0228.i, 10000
   %div_tmp78.i = udiv i32 %.0228.i, 10000
-  %mod_tmp80.i = urem i32 %59, 100
+  %mod_tmp80.i = urem i32 %63, 100
   %lshift_tmp81.i = shl nuw nsw i32 %mod_tmp80.i, 1
-  %div_tmp83.i = udiv i32 %59, 100
+  %div_tmp83.i = udiv i32 %63, 100
   %lshift_tmp84.i = shl nuw nsw i32 %div_tmp83.i, 1
-  %60 = zext i32 %.0226.i to i64
+  %64 = zext i32 %.0226.i to i64
   %ptr_add_tmp87.i = getelementptr i8, i8* %1, i64 -1
-  %61 = zext i32 %39 to i64
-  %ptr_add_tmp89.i = getelementptr i8, i8* %ptr_add_tmp87.i, i64 %60
-  %62 = zext i32 %.1231.i to i64
-  %63 = sub nsw i64 0, %62
-  %ptr_sub_tmp91.i = getelementptr i8, i8* %ptr_add_tmp89.i, i64 %61
-  %ptr_sub_tmp92.i = getelementptr i8, i8* %ptr_sub_tmp91.i, i64 %63
-  %64 = zext i32 %lshift_tmp81.i to i64
-  %ptr_add_tmp94.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %64
-  %65 = bitcast i8* %ptr_add_tmp94.i to i16*
-  %66 = bitcast i8* %ptr_sub_tmp92.i to i16*
-  %67 = load i16, i16* %65, align 2, !noalias !41
-  store i16 %67, i16* %66, align 1, !noalias !41
-  %ptr_add_tmp97.i = getelementptr i8, i8* %1, i64 -3
-  %ptr_add_tmp99.i = getelementptr i8, i8* %ptr_add_tmp97.i, i64 %60
-  %ptr_sub_tmp101.i = getelementptr i8, i8* %ptr_add_tmp99.i, i64 %61
-  %ptr_sub_tmp102.i = getelementptr i8, i8* %ptr_sub_tmp101.i, i64 %63
-  %68 = zext i32 %lshift_tmp84.i to i64
-  %ptr_add_tmp104.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %68
-  %69 = bitcast i8* %ptr_add_tmp104.i to i16*
-  %70 = bitcast i8* %ptr_sub_tmp102.i to i16*
+  %65 = zext i32 %43 to i64
+  %ptr_add_tmp89.i = getelementptr i8, i8* %ptr_add_tmp87.i, i64 %64
+  %66 = zext i32 %.1231.i to i64
+  %67 = sub nsw i64 0, %66
+  %ptr_sub_tmp91.i = getelementptr i8, i8* %ptr_add_tmp89.i, i64 %65
+  %ptr_sub_tmp92.i = getelementptr i8, i8* %ptr_sub_tmp91.i, i64 %67
+  %68 = zext i32 %lshift_tmp81.i to i64
+  %ptr_add_tmp94.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %68
+  %69 = bitcast i8* %ptr_add_tmp94.i to i16*
+  %70 = bitcast i8* %ptr_sub_tmp92.i to i16*
   %71 = load i16, i16* %69, align 2, !noalias !41
   store i16 %71, i16* %70, align 1, !noalias !41
+  %ptr_add_tmp97.i = getelementptr i8, i8* %1, i64 -3
+  %ptr_add_tmp99.i = getelementptr i8, i8* %ptr_add_tmp97.i, i64 %64
+  %ptr_sub_tmp101.i = getelementptr i8, i8* %ptr_add_tmp99.i, i64 %65
+  %ptr_sub_tmp102.i = getelementptr i8, i8* %ptr_sub_tmp101.i, i64 %67
+  %72 = zext i32 %lshift_tmp84.i to i64
+  %ptr_add_tmp104.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %72
+  %73 = bitcast i8* %ptr_add_tmp104.i to i16*
+  %74 = bitcast i8* %ptr_sub_tmp102.i to i16*
+  %75 = load i16, i16* %73, align 2, !noalias !41
+  store i16 %75, i16* %74, align 1, !noalias !41
   %add_tmp106.i = add i32 %.1231.i, 4
   br label %while_condition_check.i
 
 endwhile.i:                                       ; preds = %while_condition_check.i
-  %72 = icmp ugt i32 %.0228.i, 99
-  br i1 %72, label %then108.i, label %endif126.i
+  %76 = icmp ugt i32 %.0228.i, 99
+  br i1 %76, label %then108.i, label %endif126.i
 
 then108.i:                                        ; preds = %endwhile.i
   %mod_tmp110.i = urem i32 %.0228.i, 100
   %lshift_tmp111.i = shl nuw nsw i32 %mod_tmp110.i, 1
   %div_tmp113.i = udiv i32 %.0228.i, 100
-  %73 = zext i32 %.0226.i to i64
-  %ptr_add_tmp116.i = getelementptr i8, i8* %1, i64 %73
-  %74 = zext i32 %39 to i64
-  %ptr_add_tmp118.i = getelementptr i8, i8* %ptr_add_tmp116.i, i64 %74
-  %75 = zext i32 %.1231.i to i64
-  %76 = sub nsw i64 0, %75
-  %ptr_sub_tmp120.i = getelementptr i8, i8* %ptr_add_tmp118.i, i64 %76
+  %77 = zext i32 %.0226.i to i64
+  %ptr_add_tmp116.i = getelementptr i8, i8* %1, i64 %77
+  %78 = zext i32 %43 to i64
+  %ptr_add_tmp118.i = getelementptr i8, i8* %ptr_add_tmp116.i, i64 %78
+  %79 = zext i32 %.1231.i to i64
+  %80 = sub nsw i64 0, %79
+  %ptr_sub_tmp120.i = getelementptr i8, i8* %ptr_add_tmp118.i, i64 %80
   %ptr_sub_tmp121.i = getelementptr i8, i8* %ptr_sub_tmp120.i, i64 -1
-  %77 = zext i32 %lshift_tmp111.i to i64
-  %ptr_add_tmp123.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %77
-  %78 = bitcast i8* %ptr_add_tmp123.i to i16*
-  %79 = bitcast i8* %ptr_sub_tmp121.i to i16*
-  %80 = load i16, i16* %78, align 2, !noalias !41
-  store i16 %80, i16* %79, align 1, !noalias !41
+  %81 = zext i32 %lshift_tmp111.i to i64
+  %ptr_add_tmp123.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %81
+  %82 = bitcast i8* %ptr_add_tmp123.i to i16*
+  %83 = bitcast i8* %ptr_sub_tmp121.i to i16*
+  %84 = load i16, i16* %82, align 2, !noalias !41
+  store i16 %84, i16* %83, align 1, !noalias !41
   %add_tmp125.i = or i32 %.1231.i, 2
   br label %endif126.i
 
 endif126.i:                                       ; preds = %then108.i, %endwhile.i
   %.2.i = phi i32 [ %add_tmp125.i, %then108.i ], [ %.1231.i, %endwhile.i ]
   %.1229.i = phi i32 [ %div_tmp113.i, %then108.i ], [ %.0228.i, %endwhile.i ]
-  %81 = icmp ugt i32 %.1229.i, 9
-  br i1 %81, label %then128.i, label %else.i
+  %85 = icmp ugt i32 %.1229.i, 9
+  br i1 %85, label %then128.i, label %else.i
 
 then128.i:                                        ; preds = %endif126.i
   %lshift_tmp130.i = shl i32 %.1229.i, 1
   %add_tmp132.i = or i32 %lshift_tmp130.i, 1
-  %82 = zext i32 %add_tmp132.i to i64
-  %83 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %82
-  %84 = zext i32 %.0226.i to i64
-  %ptr_add_tmp135.i = getelementptr i8, i8* %1, i64 %84
-  %85 = zext i32 %39 to i64
-  %ptr_add_tmp137.i = getelementptr i8, i8* %ptr_add_tmp135.i, i64 %85
-  %86 = zext i32 %.2.i to i64
-  %87 = sub nsw i64 0, %86
-  %ptr_sub_tmp139.i = getelementptr i8, i8* %ptr_add_tmp137.i, i64 %87
-  %load_tmp140.i = load i8, i8* %83, align 1, !noalias !41
+  %86 = zext i32 %add_tmp132.i to i64
+  %87 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %86
+  %88 = zext i32 %.0226.i to i64
+  %ptr_add_tmp135.i = getelementptr i8, i8* %1, i64 %88
+  %89 = zext i32 %43 to i64
+  %ptr_add_tmp137.i = getelementptr i8, i8* %ptr_add_tmp135.i, i64 %89
+  %90 = zext i32 %.2.i to i64
+  %91 = sub nsw i64 0, %90
+  %ptr_sub_tmp139.i = getelementptr i8, i8* %ptr_add_tmp137.i, i64 %91
+  %load_tmp140.i = load i8, i8* %87, align 1, !noalias !41
   store i8 %load_tmp140.i, i8* %ptr_sub_tmp139.i, align 1, !noalias !41
-  %88 = zext i32 %lshift_tmp130.i to i64
-  %89 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %88
-  %load_tmp145.i = load i8, i8* %89, align 2, !noalias !41
+  %92 = zext i32 %lshift_tmp130.i to i64
+  %93 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %92
+  %load_tmp145.i = load i8, i8* %93, align 2, !noalias !41
   store i8 %load_tmp145.i, i8* %ptr_add_tmp135.i, align 1, !noalias !41
   br label %endif152.i
 
 else.i:                                           ; preds = %endif126.i
-  %90 = trunc i32 %.1229.i to i8
-  %cast_tmp148.i = add i8 %90, 48
-  %91 = zext i32 %.0226.i to i64
-  %ptr_add_tmp151.i = getelementptr i8, i8* %1, i64 %91
+  %94 = trunc i32 %.1229.i to i8
+  %cast_tmp148.i = add i8 %94, 48
+  %95 = zext i32 %.0226.i to i64
+  %ptr_add_tmp151.i = getelementptr i8, i8* %1, i64 %95
   store i8 %cast_tmp148.i, i8* %ptr_add_tmp151.i, align 1, !noalias !41
   br label %endif152.i
 
 endif152.i:                                       ; preds = %else.i, %then128.i
-  %92 = icmp ugt i32 %39, 1
-  br i1 %92, label %then154.i, label %else163.i
+  %96 = icmp ugt i32 %43, 1
+  br i1 %96, label %then154.i, label %else163.i
 
 then154.i:                                        ; preds = %endif152.i
-  %93 = zext i32 %.0226.i to i64
-  %ptr_add_tmp157.i = getelementptr i8, i8* %1, i64 %93
+  %97 = zext i32 %.0226.i to i64
+  %ptr_add_tmp157.i = getelementptr i8, i8* %1, i64 %97
   %ptr_add_tmp158.i = getelementptr i8, i8* %ptr_add_tmp157.i, i64 1
   store i8 46, i8* %ptr_add_tmp158.i, align 1, !noalias !41
   %add_tmp160.i = add nuw nsw i32 %.0226.i, 1
-  %add_tmp162.i = add i32 %add_tmp160.i, %39
+  %add_tmp162.i = add nuw nsw i32 %add_tmp160.i, %43
   br label %endif165.i
 
 else163.i:                                        ; preds = %endif152.i
-  %94 = add nuw nsw i32 %.0226.i, 1
+  %98 = add nuw nsw i32 %.0226.i, 1
   br label %endif165.i
 
 endif165.i:                                       ; preds = %else163.i, %then154.i
-  %storemerge.i = phi i32 [ %94, %else163.i ], [ %add_tmp162.i, %then154.i ]
-  %95 = zext i32 %storemerge.i to i64
-  %ptr_add_tmp168.i = getelementptr i8, i8* %1, i64 %95
+  %storemerge.i = phi i32 [ %98, %else163.i ], [ %add_tmp162.i, %then154.i ]
+  %99 = zext i32 %storemerge.i to i64
+  %ptr_add_tmp168.i = getelementptr i8, i8* %1, i64 %99
   store i8 69, i8* %ptr_add_tmp168.i, align 1, !noalias !41
-  %96 = add i32 %storemerge.i, 1
-  %97 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 1
-  %load_tmp170.i = load i32, i32* %97, align 8, !alias.scope !41
-  %add_tmp172.i = add i32 %39, -1
+  %100 = add nsw i32 %storemerge.i, 1
+  %101 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 1
+  %load_tmp170.i = load i32, i32* %101, align 8, !alias.scope !41
+  %add_tmp172.i = add nsw i32 %43, -1
   %sub_tmp173.i = add i32 %add_tmp172.i, %load_tmp170.i
-  %98 = icmp slt i32 %sub_tmp173.i, 0
-  br i1 %98, label %then175.i, label %endif181.i
+  %102 = icmp slt i32 %sub_tmp173.i, 0
+  br i1 %102, label %then175.i, label %endif181.i
 
 then175.i:                                        ; preds = %endif165.i
-  %99 = zext i32 %96 to i64
-  %ptr_add_tmp178.i = getelementptr i8, i8* %1, i64 %99
+  %103 = zext i32 %100 to i64
+  %ptr_add_tmp178.i = getelementptr i8, i8* %1, i64 %103
   store i8 45, i8* %ptr_add_tmp178.i, align 1, !noalias !41
-  %100 = add i32 %storemerge.i, 2
+  %104 = add nsw i32 %storemerge.i, 2
   %unary_minus_tmp.i = sub i32 0, %sub_tmp173.i
   br label %endif181.i
 
 endif181.i:                                       ; preds = %then175.i, %endif165.i
-  %.1.i = phi i32 [ %100, %then175.i ], [ %96, %endif165.i ]
+  %.1.i = phi i32 [ %104, %then175.i ], [ %100, %endif165.i ]
   %.0.i = phi i32 [ %unary_minus_tmp.i, %then175.i ], [ %sub_tmp173.i, %endif165.i ]
-  %101 = icmp sgt i32 %.0.i, 99
-  br i1 %101, label %then183.i, label %else202.i
+  %105 = icmp sgt i32 %.0.i, 99
+  br i1 %105, label %then183.i, label %else202.i
 
 then183.i:                                        ; preds = %endif181.i
   %mod_tmp185.i = srem i32 %.0.i, 10
-  %102 = zext i32 %.1.i to i64
-  %ptr_add_tmp188.i = getelementptr i8, i8* %1, i64 %102
+  %106 = zext i32 %.1.i to i64
+  %ptr_add_tmp188.i = getelementptr i8, i8* %1, i64 %106
   %div_tmp190.i = sdiv i32 %.0.i, 10
   %mul_tmp191.i = shl nsw i32 %div_tmp190.i, 1
-  %103 = sext i32 %mul_tmp191.i to i64
-  %ptr_add_tmp192.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %103
-  %104 = bitcast i8* %ptr_add_tmp192.i to i16*
-  %105 = bitcast i8* %ptr_add_tmp188.i to i16*
-  %106 = load i16, i16* %104, align 2, !noalias !41
-  store i16 %106, i16* %105, align 1, !noalias !41
-  %107 = trunc i32 %mod_tmp185.i to i8
-  %cast_tmp195.i = add i8 %107, 48
+  %107 = sext i32 %mul_tmp191.i to i64
+  %ptr_add_tmp192.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %107
+  %108 = bitcast i8* %ptr_add_tmp192.i to i16*
+  %109 = bitcast i8* %ptr_add_tmp188.i to i16*
+  %110 = load i16, i16* %108, align 2, !noalias !41
+  store i16 %110, i16* %109, align 1, !noalias !41
+  %111 = trunc i32 %mod_tmp185.i to i8
+  %cast_tmp195.i = add i8 %111, 48
   %ptr_add_tmp199.i = getelementptr i8, i8* %ptr_add_tmp188.i, i64 2
   store i8 %cast_tmp195.i, i8* %ptr_add_tmp199.i, align 1, !noalias !41
   %add_tmp201.i = add i32 %.1.i, 3
   br label %"func.std.ryu.to_chars..3.struct.std::ryu::floating_decimal_64.builtin.bool.0P.builtin.uint8.builtin.int32.exit"
 
 else202.i:                                        ; preds = %endif181.i
-  %108 = icmp sgt i32 %.0.i, 9
-  br i1 %108, label %then204.i, label %else213.i
+  %112 = icmp sgt i32 %.0.i, 9
+  br i1 %112, label %then204.i, label %else213.i
 
 then204.i:                                        ; preds = %else202.i
-  %109 = zext i32 %.1.i to i64
-  %ptr_add_tmp207.i = getelementptr i8, i8* %1, i64 %109
+  %113 = zext i32 %.1.i to i64
+  %ptr_add_tmp207.i = getelementptr i8, i8* %1, i64 %113
   %mul_tmp209.i = shl i32 %.0.i, 1
-  %110 = sext i32 %mul_tmp209.i to i64
-  %ptr_add_tmp210.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %110
-  %111 = bitcast i8* %ptr_add_tmp210.i to i16*
-  %112 = bitcast i8* %ptr_add_tmp207.i to i16*
-  %113 = load i16, i16* %111, align 2, !noalias !41
-  store i16 %113, i16* %112, align 1, !noalias !41
+  %114 = sext i32 %mul_tmp209.i to i64
+  %ptr_add_tmp210.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %114
+  %115 = bitcast i8* %ptr_add_tmp210.i to i16*
+  %116 = bitcast i8* %ptr_add_tmp207.i to i16*
+  %117 = load i16, i16* %115, align 2, !noalias !41
+  store i16 %117, i16* %116, align 1, !noalias !41
   %add_tmp212.i = add i32 %.1.i, 2
   br label %"func.std.ryu.to_chars..3.struct.std::ryu::floating_decimal_64.builtin.bool.0P.builtin.uint8.builtin.int32.exit"
 
 else213.i:                                        ; preds = %else202.i
-  %114 = trunc i32 %.0.i to i8
-  %cast_tmp216.i = add i8 %114, 48
-  %115 = zext i32 %.1.i to i64
-  %ptr_add_tmp219.i = getelementptr i8, i8* %1, i64 %115
+  %118 = trunc i32 %.0.i to i8
+  %cast_tmp216.i = add i8 %118, 48
+  %119 = zext i32 %.1.i to i64
+  %ptr_add_tmp219.i = getelementptr i8, i8* %1, i64 %119
   store i8 %cast_tmp216.i, i8* %ptr_add_tmp219.i, align 1, !noalias !41
-  %116 = add i32 %.1.i, 1
+  %120 = add i32 %.1.i, 1
   br label %"func.std.ryu.to_chars..3.struct.std::ryu::floating_decimal_64.builtin.bool.0P.builtin.uint8.builtin.int32.exit"
 
 "func.std.ryu.to_chars..3.struct.std::ryu::floating_decimal_64.builtin.bool.0P.builtin.uint8.builtin.int32.exit": ; preds = %then183.i, %then204.i, %else213.i
-  %storemerge225.i = phi i32 [ %add_tmp201.i, %then183.i ], [ %116, %else213.i ], [ %add_tmp212.i, %then204.i ]
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %19)
+  %storemerge225.i = phi i32 [ %add_tmp201.i, %then183.i ], [ %120, %else213.i ], [ %add_tmp212.i, %then204.i ]
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %23)
   ret i32 %storemerge225.i
 }
 
@@ -3915,24 +3881,22 @@ then3:                                            ; preds = %endif
   br label %endif5
 
 endif5:                                           ; preds = %then3, %endif
+  br i1 %2, label %then7, label %endif17
+
+then7:                                            ; preds = %endif5
   %ptr_add_tmp = getelementptr i8, i8* %0, i64 1
   %4 = select i1 %1, i8* %ptr_add_tmp, i8* %0
-  br i1 %2, label %endif12, label %endif24
-
-endif12:                                          ; preds = %endif5
   %5 = bitcast i8* %4 to i64*
   store i64 8751735898823355977, i64* %5, align 1
-  %. = select i1 %1, i32 9, i32 8
-  br label %endif16
+  %spec.select = select i1 %1, i32 9, i32 8
+  ret i32 %spec.select
 
-endif16:                                          ; preds = %endif12, %endif24
-  %6 = phi i32 [ %.29, %endif24 ], [ %., %endif12 ]
-  ret i32 %6
-
-endif24:                                          ; preds = %endif5
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %4, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
-  %.29 = select i1 %1, i32 4, i32 3
-  br label %endif16
+endif17:                                          ; preds = %endif5
+  %ptr_add_tmp21 = getelementptr i8, i8* %0, i64 1
+  %6 = select i1 %1, i8* %ptr_add_tmp21, i8* %0
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %6, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
+  %7 = select i1 %1, i32 4, i32 3
+  ret i32 %7
 }
 
 define void @func.std.ryu.d2s_buffered..2.builtin.float64.0P.builtin.uint8.void(double %0, i8* %1) {
@@ -3983,13 +3947,15 @@ else12:                                           ; preds = %else9
 
 else15:                                           ; preds = %else12
   %7 = icmp ugt i32 %0, 99
+  br i1 %7, label %endif28, label %else18
+
+else18:                                           ; preds = %else15
   %8 = icmp ugt i32 %0, 9
-  %. = select i1 %8, i32 2, i32 1
-  %9 = select i1 %7, i32 3, i32 %.
+  %9 = select i1 %8, i32 2, i32 1
   br label %endif28
 
-endif28:                                          ; preds = %else, %else6, %else12, %else15, %else9, %else3, %alloca
-  %10 = phi i32 [ 9, %alloca ], [ 8, %else ], [ 7, %else3 ], [ 6, %else6 ], [ 5, %else9 ], [ 4, %else12 ], [ %9, %else15 ]
+endif28:                                          ; preds = %else, %else6, %else12, %else18, %else15, %else9, %else3, %alloca
+  %10 = phi i32 [ 9, %alloca ], [ 8, %else ], [ 7, %else3 ], [ 6, %else6 ], [ 5, %else9 ], [ 4, %else12 ], [ 3, %else15 ], [ %9, %else18 ]
   ret i32 %10
 }
 
@@ -4211,30 +4177,32 @@ then3.i:                                          ; preds = %endif.i19
   br label %endif5.i
 
 endif5.i:                                         ; preds = %then3.i, %endif.i19
+  br i1 %.not, label %endif17.i, label %then7.i
+
+then7.i:                                          ; preds = %endif5.i
   %ptr_add_tmp.i = getelementptr i8, i8* %1, i64 1
   %4 = select i1 %2, i8* %ptr_add_tmp.i, i8* %1
-  br i1 %.not, label %endif24.i, label %endif12.i
-
-endif12.i:                                        ; preds = %endif5.i
   %5 = bitcast i8* %4 to i64*
   store i64 8751735898823355977, i64* %5, align 1
-  %..i = select i1 %2, i32 9, i32 8
+  %spec.select.i = select i1 %2, i32 9, i32 8
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 
-endif24.i:                                        ; preds = %endif5.i
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %4, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
-  %.29.i = select i1 %2, i32 4, i32 3
+endif17.i:                                        ; preds = %endif5.i
+  %ptr_add_tmp21.i = getelementptr i8, i8* %1, i64 1
+  %6 = select i1 %2, i8* %ptr_add_tmp21.i, i8* %1
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 1 dereferenceable(3) %6, i8* nonnull align 1 dereferenceable(3) getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i64 0, i64 0), i64 3, i1 false)
+  %7 = select i1 %2, i32 4, i32 3
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 
-func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit: ; preds = %else119.i, %then110.i, %endif12.i, %endif24.i, %then.i18
-  %6 = phi i32 [ 3, %then.i18 ], [ %.29.i, %endif24.i ], [ %..i, %endif12.i ], [ %71, %else119.i ], [ %add_tmp118.i, %then110.i ]
-  ret i32 %6
+func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit: ; preds = %else119.i, %then110.i, %endif17.i, %then7.i, %then.i18
+  %8 = phi i32 [ 3, %then.i18 ], [ %spec.select.i, %then7.i ], [ %7, %endif17.i ], [ %73, %else119.i ], [ %add_tmp118.i, %then110.i ]
+  ret i32 %8
 
 endif:                                            ; preds = %alloca, %bool_and_rhs
-  %7 = call i64 @"func.std.ryu.f2d..2.builtin.uint32.builtin.uint32.struct.std::ryu::floating_decimal_32"(i32 %bit_and_tmp3, i32 %bit_and_tmp6)
-  %8 = trunc i64 %7 to i32
-  %9 = lshr i64 %7, 32
+  %9 = call i64 @"func.std.ryu.f2d..2.builtin.uint32.builtin.uint32.struct.std::ryu::floating_decimal_32"(i32 %bit_and_tmp3, i32 %bit_and_tmp6)
   %10 = trunc i64 %9 to i32
+  %11 = lshr i64 %9, 32
+  %12 = trunc i64 %11 to i32
   br i1 %2, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %endif
@@ -4243,201 +4211,203 @@ then.i:                                           ; preds = %endif
 
 endif.i:                                          ; preds = %then.i, %endif
   %.0131.i = phi i32 [ 1, %then.i ], [ 0, %endif ]
-  %11 = icmp ugt i32 %8, 99999999
-  br i1 %11, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else.i.i
+  %13 = icmp ugt i32 %10, 99999999
+  br i1 %13, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else.i.i
 
 else.i.i:                                         ; preds = %endif.i
-  %12 = icmp ugt i32 %8, 9999999
-  br i1 %12, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else3.i.i
+  %14 = icmp ugt i32 %10, 9999999
+  br i1 %14, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else3.i.i
 
 else3.i.i:                                        ; preds = %else.i.i
-  %13 = icmp ugt i32 %8, 999999
-  br i1 %13, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else6.i.i
+  %15 = icmp ugt i32 %10, 999999
+  br i1 %15, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else6.i.i
 
 else6.i.i:                                        ; preds = %else3.i.i
-  %14 = icmp ugt i32 %8, 99999
-  br i1 %14, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else9.i.i
+  %16 = icmp ugt i32 %10, 99999
+  br i1 %16, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else9.i.i
 
 else9.i.i:                                        ; preds = %else6.i.i
-  %15 = icmp ugt i32 %8, 9999
-  br i1 %15, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else12.i.i
+  %17 = icmp ugt i32 %10, 9999
+  br i1 %17, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else12.i.i
 
 else12.i.i:                                       ; preds = %else9.i.i
-  %16 = icmp ugt i32 %8, 999
-  br i1 %16, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else15.i.i
+  %18 = icmp ugt i32 %10, 999
+  br i1 %18, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else15.i.i
 
 else15.i.i:                                       ; preds = %else12.i.i
-  %17 = icmp ugt i32 %8, 99
-  %18 = icmp ugt i32 %8, 9
-  %..i.i = select i1 %18, i32 2, i32 1
-  %19 = select i1 %17, i32 3, i32 %..i.i
+  %19 = icmp ugt i32 %10, 99
+  br i1 %19, label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i, label %else18.i.i
+
+else18.i.i:                                       ; preds = %else15.i.i
+  %20 = icmp ugt i32 %10, 9
+  %21 = select i1 %20, i32 2, i32 1
   br label %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
 
-func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
-  %20 = phi i32 [ 9, %endif.i ], [ 8, %else.i.i ], [ 7, %else3.i.i ], [ 6, %else6.i.i ], [ 5, %else9.i.i ], [ 4, %else12.i.i ], [ %19, %else15.i.i ]
+func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i: ; preds = %else18.i.i, %else15.i.i, %else12.i.i, %else9.i.i, %else6.i.i, %else3.i.i, %else.i.i, %endif.i
+  %22 = phi i32 [ 9, %endif.i ], [ 8, %else.i.i ], [ 7, %else3.i.i ], [ 6, %else6.i.i ], [ 5, %else9.i.i ], [ 4, %else12.i.i ], [ 3, %else15.i.i ], [ %21, %else18.i.i ]
   br label %while_condition_check.i
 
 while_condition_check.i:                          ; preds = %while.i, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i
-  %.0132.i = phi i32 [ %8, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %div_tmp10.i, %while.i ]
+  %.0132.i = phi i32 [ %10, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %div_tmp10.i, %while.i ]
   %storemerge.i = phi i32 [ 0, %func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32.exit.i ], [ %add_tmp.i, %while.i ]
-  %21 = icmp ugt i32 %.0132.i, 9999
-  br i1 %21, label %while.i, label %endwhile.i
+  %23 = icmp ugt i32 %.0132.i, 9999
+  br i1 %23, label %while.i, label %endwhile.i
 
 while.i:                                          ; preds = %while_condition_check.i
-  %22 = urem i32 %.0132.i, 10000
+  %24 = urem i32 %.0132.i, 10000
   %div_tmp10.i = udiv i32 %.0132.i, 10000
-  %mod_tmp.i = urem i32 %22, 100
+  %mod_tmp.i = urem i32 %24, 100
   %lshift_tmp.i = shl nuw nsw i32 %mod_tmp.i, 1
-  %div_tmp13.i = udiv i32 %22, 100
+  %div_tmp13.i = udiv i32 %24, 100
   %lshift_tmp14.i = shl nuw nsw i32 %div_tmp13.i, 1
-  %23 = zext i32 %.0131.i to i64
+  %25 = zext i32 %.0131.i to i64
   %ptr_add_tmp17.i = getelementptr i8, i8* %1, i64 -1
-  %24 = zext i32 %20 to i64
-  %ptr_add_tmp19.i = getelementptr i8, i8* %ptr_add_tmp17.i, i64 %23
-  %25 = zext i32 %storemerge.i to i64
-  %26 = sub nsw i64 0, %25
-  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp19.i, i64 %24
-  %ptr_sub_tmp21.i = getelementptr i8, i8* %ptr_sub_tmp.i, i64 %26
-  %27 = zext i32 %lshift_tmp.i to i64
-  %ptr_add_tmp23.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %27
-  %28 = bitcast i8* %ptr_add_tmp23.i to i16*
-  %29 = bitcast i8* %ptr_sub_tmp21.i to i16*
-  %30 = load i16, i16* %28, align 2
-  store i16 %30, i16* %29, align 1
+  %26 = zext i32 %22 to i64
+  %ptr_add_tmp19.i = getelementptr i8, i8* %ptr_add_tmp17.i, i64 %25
+  %27 = zext i32 %storemerge.i to i64
+  %28 = sub nsw i64 0, %27
+  %ptr_sub_tmp.i = getelementptr i8, i8* %ptr_add_tmp19.i, i64 %26
+  %ptr_sub_tmp21.i = getelementptr i8, i8* %ptr_sub_tmp.i, i64 %28
+  %29 = zext i32 %lshift_tmp.i to i64
+  %ptr_add_tmp23.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %29
+  %30 = bitcast i8* %ptr_add_tmp23.i to i16*
+  %31 = bitcast i8* %ptr_sub_tmp21.i to i16*
+  %32 = load i16, i16* %30, align 2
+  store i16 %32, i16* %31, align 1
   %ptr_add_tmp26.i = getelementptr i8, i8* %1, i64 -3
-  %ptr_add_tmp28.i = getelementptr i8, i8* %ptr_add_tmp26.i, i64 %23
-  %ptr_sub_tmp30.i = getelementptr i8, i8* %ptr_add_tmp28.i, i64 %24
-  %ptr_sub_tmp31.i = getelementptr i8, i8* %ptr_sub_tmp30.i, i64 %26
-  %31 = zext i32 %lshift_tmp14.i to i64
-  %ptr_add_tmp33.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %31
-  %32 = bitcast i8* %ptr_add_tmp33.i to i16*
-  %33 = bitcast i8* %ptr_sub_tmp31.i to i16*
-  %34 = load i16, i16* %32, align 2
-  store i16 %34, i16* %33, align 1
+  %ptr_add_tmp28.i = getelementptr i8, i8* %ptr_add_tmp26.i, i64 %25
+  %ptr_sub_tmp30.i = getelementptr i8, i8* %ptr_add_tmp28.i, i64 %26
+  %ptr_sub_tmp31.i = getelementptr i8, i8* %ptr_sub_tmp30.i, i64 %28
+  %33 = zext i32 %lshift_tmp14.i to i64
+  %ptr_add_tmp33.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %33
+  %34 = bitcast i8* %ptr_add_tmp33.i to i16*
+  %35 = bitcast i8* %ptr_sub_tmp31.i to i16*
+  %36 = load i16, i16* %34, align 2
+  store i16 %36, i16* %35, align 1
   %add_tmp.i = add i32 %storemerge.i, 4
   br label %while_condition_check.i
 
 endwhile.i:                                       ; preds = %while_condition_check.i
-  %35 = icmp ugt i32 %.0132.i, 99
-  br i1 %35, label %then36.i, label %endif54.i
+  %37 = icmp ugt i32 %.0132.i, 99
+  br i1 %37, label %then36.i, label %endif54.i
 
 then36.i:                                         ; preds = %endwhile.i
   %mod_tmp38.i = urem i32 %.0132.i, 100
   %lshift_tmp39.i = shl nuw nsw i32 %mod_tmp38.i, 1
   %div_tmp41.i = udiv i32 %.0132.i, 100
-  %36 = zext i32 %.0131.i to i64
-  %ptr_add_tmp44.i = getelementptr i8, i8* %1, i64 %36
-  %37 = zext i32 %20 to i64
-  %ptr_add_tmp46.i = getelementptr i8, i8* %ptr_add_tmp44.i, i64 %37
-  %38 = zext i32 %storemerge.i to i64
-  %39 = sub nsw i64 0, %38
-  %ptr_sub_tmp48.i = getelementptr i8, i8* %ptr_add_tmp46.i, i64 %39
+  %38 = zext i32 %.0131.i to i64
+  %ptr_add_tmp44.i = getelementptr i8, i8* %1, i64 %38
+  %39 = zext i32 %22 to i64
+  %ptr_add_tmp46.i = getelementptr i8, i8* %ptr_add_tmp44.i, i64 %39
+  %40 = zext i32 %storemerge.i to i64
+  %41 = sub nsw i64 0, %40
+  %ptr_sub_tmp48.i = getelementptr i8, i8* %ptr_add_tmp46.i, i64 %41
   %ptr_sub_tmp49.i = getelementptr i8, i8* %ptr_sub_tmp48.i, i64 -1
-  %40 = zext i32 %lshift_tmp39.i to i64
-  %ptr_add_tmp51.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %40
-  %41 = bitcast i8* %ptr_add_tmp51.i to i16*
-  %42 = bitcast i8* %ptr_sub_tmp49.i to i16*
-  %43 = load i16, i16* %41, align 2
-  store i16 %43, i16* %42, align 1
+  %42 = zext i32 %lshift_tmp39.i to i64
+  %ptr_add_tmp51.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %42
+  %43 = bitcast i8* %ptr_add_tmp51.i to i16*
+  %44 = bitcast i8* %ptr_sub_tmp49.i to i16*
+  %45 = load i16, i16* %43, align 2
+  store i16 %45, i16* %44, align 1
   %add_tmp53.i = or i32 %storemerge.i, 2
   br label %endif54.i
 
 endif54.i:                                        ; preds = %then36.i, %endwhile.i
   %.0134.i = phi i32 [ %add_tmp53.i, %then36.i ], [ %storemerge.i, %endwhile.i ]
   %.1133.i = phi i32 [ %div_tmp41.i, %then36.i ], [ %.0132.i, %endwhile.i ]
-  %44 = icmp ugt i32 %.1133.i, 9
-  br i1 %44, label %then56.i, label %else.i
+  %46 = icmp ugt i32 %.1133.i, 9
+  br i1 %46, label %then56.i, label %else.i
 
 then56.i:                                         ; preds = %endif54.i
   %lshift_tmp58.i = shl i32 %.1133.i, 1
   %add_tmp60.i = or i32 %lshift_tmp58.i, 1
-  %45 = zext i32 %add_tmp60.i to i64
-  %46 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %45
-  %47 = zext i32 %.0131.i to i64
-  %ptr_add_tmp63.i = getelementptr i8, i8* %1, i64 %47
-  %48 = zext i32 %20 to i64
-  %ptr_add_tmp65.i = getelementptr i8, i8* %ptr_add_tmp63.i, i64 %48
-  %49 = zext i32 %.0134.i to i64
-  %50 = sub nsw i64 0, %49
-  %ptr_sub_tmp67.i = getelementptr i8, i8* %ptr_add_tmp65.i, i64 %50
-  %load_tmp68.i = load i8, i8* %46, align 1
+  %47 = zext i32 %add_tmp60.i to i64
+  %48 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %47
+  %49 = zext i32 %.0131.i to i64
+  %ptr_add_tmp63.i = getelementptr i8, i8* %1, i64 %49
+  %50 = zext i32 %22 to i64
+  %ptr_add_tmp65.i = getelementptr i8, i8* %ptr_add_tmp63.i, i64 %50
+  %51 = zext i32 %.0134.i to i64
+  %52 = sub nsw i64 0, %51
+  %ptr_sub_tmp67.i = getelementptr i8, i8* %ptr_add_tmp65.i, i64 %52
+  %load_tmp68.i = load i8, i8* %48, align 1
   store i8 %load_tmp68.i, i8* %ptr_sub_tmp67.i, align 1
-  %51 = zext i32 %lshift_tmp58.i to i64
-  %52 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %51
-  %load_tmp73.i = load i8, i8* %52, align 2
+  %53 = zext i32 %lshift_tmp58.i to i64
+  %54 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %53
+  %load_tmp73.i = load i8, i8* %54, align 2
   store i8 %load_tmp73.i, i8* %ptr_add_tmp63.i, align 1
   br label %endif79.i
 
 else.i:                                           ; preds = %endif54.i
-  %53 = trunc i32 %.1133.i to i8
-  %cast_tmp.i = add i8 %53, 48
-  %54 = zext i32 %.0131.i to i64
-  %ptr_add_tmp78.i = getelementptr i8, i8* %1, i64 %54
+  %55 = trunc i32 %.1133.i to i8
+  %cast_tmp.i = add i8 %55, 48
+  %56 = zext i32 %.0131.i to i64
+  %ptr_add_tmp78.i = getelementptr i8, i8* %1, i64 %56
   store i8 %cast_tmp.i, i8* %ptr_add_tmp78.i, align 1
   br label %endif79.i
 
 endif79.i:                                        ; preds = %else.i, %then56.i
-  %55 = icmp ugt i32 %20, 1
-  br i1 %55, label %then81.i, label %else90.i
+  %57 = icmp ugt i32 %22, 1
+  br i1 %57, label %then81.i, label %else90.i
 
 then81.i:                                         ; preds = %endif79.i
-  %56 = zext i32 %.0131.i to i64
-  %ptr_add_tmp84.i = getelementptr i8, i8* %1, i64 %56
+  %58 = zext i32 %.0131.i to i64
+  %ptr_add_tmp84.i = getelementptr i8, i8* %1, i64 %58
   %ptr_add_tmp85.i = getelementptr i8, i8* %ptr_add_tmp84.i, i64 1
   store i8 46, i8* %ptr_add_tmp85.i, align 1
   %add_tmp87.i = add nuw nsw i32 %.0131.i, 1
-  %add_tmp89.i = add i32 %add_tmp87.i, %20
+  %add_tmp89.i = add nuw nsw i32 %add_tmp87.i, %22
   br label %endif92.i
 
 else90.i:                                         ; preds = %endif79.i
-  %57 = add nuw nsw i32 %.0131.i, 1
+  %59 = add nuw nsw i32 %.0131.i, 1
   br label %endif92.i
 
 endif92.i:                                        ; preds = %else90.i, %then81.i
-  %storemerge129.i = phi i32 [ %57, %else90.i ], [ %add_tmp89.i, %then81.i ]
-  %58 = zext i32 %storemerge129.i to i64
-  %ptr_add_tmp95.i = getelementptr i8, i8* %1, i64 %58
+  %storemerge129.i = phi i32 [ %59, %else90.i ], [ %add_tmp89.i, %then81.i ]
+  %60 = zext i32 %storemerge129.i to i64
+  %ptr_add_tmp95.i = getelementptr i8, i8* %1, i64 %60
   store i8 69, i8* %ptr_add_tmp95.i, align 1
-  %59 = add i32 %storemerge129.i, 1
-  %add_tmp99.i = add i32 %10, -1
-  %sub_tmp100.i = add i32 %add_tmp99.i, %20
-  %60 = icmp slt i32 %sub_tmp100.i, 0
-  br i1 %60, label %then102.i, label %endif108.i
+  %61 = add nsw i32 %storemerge129.i, 1
+  %add_tmp99.i = add i32 %12, -1
+  %sub_tmp100.i = add i32 %add_tmp99.i, %22
+  %62 = icmp slt i32 %sub_tmp100.i, 0
+  br i1 %62, label %then102.i, label %endif108.i
 
 then102.i:                                        ; preds = %endif92.i
-  %61 = zext i32 %59 to i64
-  %ptr_add_tmp105.i = getelementptr i8, i8* %1, i64 %61
+  %63 = zext i32 %61 to i64
+  %ptr_add_tmp105.i = getelementptr i8, i8* %1, i64 %63
   store i8 45, i8* %ptr_add_tmp105.i, align 1
-  %62 = add i32 %storemerge129.i, 2
+  %64 = add nsw i32 %storemerge129.i, 2
   %unary_minus_tmp.i = sub i32 0, %sub_tmp100.i
   br label %endif108.i
 
 endif108.i:                                       ; preds = %then102.i, %endif92.i
-  %.1.i = phi i32 [ %62, %then102.i ], [ %59, %endif92.i ]
+  %.1.i = phi i32 [ %64, %then102.i ], [ %61, %endif92.i ]
   %.0.i = phi i32 [ %unary_minus_tmp.i, %then102.i ], [ %sub_tmp100.i, %endif92.i ]
-  %63 = icmp sgt i32 %.0.i, 9
-  br i1 %63, label %then110.i, label %else119.i
+  %65 = icmp sgt i32 %.0.i, 9
+  br i1 %65, label %then110.i, label %else119.i
 
 then110.i:                                        ; preds = %endif108.i
-  %64 = zext i32 %.1.i to i64
-  %ptr_add_tmp113.i = getelementptr i8, i8* %1, i64 %64
+  %66 = zext i32 %.1.i to i64
+  %ptr_add_tmp113.i = getelementptr i8, i8* %1, i64 %66
   %mul_tmp115.i = shl i32 %.0.i, 1
-  %65 = sext i32 %mul_tmp115.i to i64
-  %ptr_add_tmp116.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %65
-  %66 = bitcast i8* %ptr_add_tmp116.i to i16*
-  %67 = bitcast i8* %ptr_add_tmp113.i to i16*
-  %68 = load i16, i16* %66, align 2
-  store i16 %68, i16* %67, align 1
+  %67 = sext i32 %mul_tmp115.i to i64
+  %ptr_add_tmp116.i = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %67
+  %68 = bitcast i8* %ptr_add_tmp116.i to i16*
+  %69 = bitcast i8* %ptr_add_tmp113.i to i16*
+  %70 = load i16, i16* %68, align 2
+  store i16 %70, i16* %69, align 1
   %add_tmp118.i = add i32 %.1.i, 2
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 
 else119.i:                                        ; preds = %endif108.i
-  %69 = trunc i32 %.0.i to i8
-  %cast_tmp122.i = add i8 %69, 48
-  %70 = zext i32 %.1.i to i64
-  %ptr_add_tmp125.i = getelementptr i8, i8* %1, i64 %70
+  %71 = trunc i32 %.0.i to i8
+  %cast_tmp122.i = add i8 %71, 48
+  %72 = zext i32 %.1.i to i64
+  %ptr_add_tmp125.i = getelementptr i8, i8* %1, i64 %72
   store i8 %cast_tmp122.i, i8* %ptr_add_tmp125.i, align 1
-  %71 = add i32 %.1.i, 1
+  %73 = add i32 %.1.i, 1
   br label %func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.builtin.int32.exit
 }
 
@@ -4462,13 +4432,17 @@ alloca:
 
 declare void @free(i8*)
 
-; Function Attrs: argmemonly nounwind willreturn
+; Function Attrs: inaccessiblememonly nofree nosync nounwind willreturn
+declare void @llvm.experimental.noalias.scope.decl(metadata) #1
+
+; Function Attrs: argmemonly nofree nosync nounwind willreturn
 declare void @llvm.lifetime.start.p0i8(i64 immarg, i8* nocapture) #0
 
-; Function Attrs: argmemonly nounwind willreturn
+; Function Attrs: argmemonly nofree nosync nounwind willreturn
 declare void @llvm.lifetime.end.p0i8(i64 immarg, i8* nocapture) #0
 
-attributes #0 = { argmemonly nounwind willreturn }
+attributes #0 = { argmemonly nofree nosync nounwind willreturn }
+attributes #1 = { inaccessiblememonly nofree nosync nounwind willreturn }
 
 !0 = !{!1}
 !1 = distinct !{!1, !2, !"func.std.as_str..1.0R.const.struct.std::string.builtin.str: argument 0"}
