@@ -44,9 +44,9 @@
 				"libraries": [ "LLVM" ]
 			},
 			"linux": {
-				"compiler": "clang-11",
-				"libraries": [ "LLVM-11" ],
-				"link_flags": [ "-fuse-ld=lld-11", "ryu_format.linux.o" ],
+				"compiler": "clang-12",
+				"libraries": [ "LLVM-12" ],
+				"link_flags": [ "-fuse-ld=lld-12", "ryu_format.linux.o" ],
 				"warnings": [ "no-unused-parameter" ],
 				"emit_compile_commands": false
 			},
@@ -97,7 +97,7 @@
 			},
 			"linux": {
 				"compiler": "gcc-10",
-				"libraries": [ "LLVM-11" ],
+				"libraries": [ "LLVM-12" ],
 				"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 				"warnings": [ "no-unused-parameter" ]
 			},
