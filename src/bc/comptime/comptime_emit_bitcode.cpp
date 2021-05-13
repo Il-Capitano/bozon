@@ -492,7 +492,10 @@ static void create_function_call(
 	if (params_is_byval[0])
 	{
 		bz_assert(call->arg_size() == 2);
-		call->addParamAttr(1, llvm::Attribute::ByVal);
+		auto const byval_ptr_type = params[1]->getType();
+		bz_assert(byval_ptr_type->isPointerTy());
+		auto const byval_type = byval_ptr_type->getPointerElementType();
+		call->addParamAttr(1, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 		call->addParamAttr(1, llvm::Attribute::NoAlias);
 		call->addParamAttr(1, llvm::Attribute::NoCapture);
 		call->addParamAttr(1, llvm::Attribute::NonNull);
@@ -565,7 +568,14 @@ static val_ptr emit_copy_constructor(
 			{
 				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
 				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
+#if LLVM_VERSION_MAJOR < 12
 				call->addParamAttr(0, llvm::Attribute::StructRet);
+#else
+				auto const sret_ptr_type = result_address->getType();
+				bz_assert(sret_ptr_type->isPointerTy());
+				auto const sret_type = sret_ptr_type->getPointerElementType();
+				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
+#endif // LLVM 12
 				emit_pop_call(error_count, context);
 				break;
 			}
@@ -692,7 +702,14 @@ static val_ptr emit_default_constructor(
 			{
 				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
 				auto const call = context.builder.CreateCall(fn, result_address);
+#if LLVM_VERSION_MAJOR < 12
 				call->addParamAttr(0, llvm::Attribute::StructRet);
+#else
+				auto const sret_ptr_type = result_address->getType();
+				bz_assert(sret_ptr_type->isPointerTy());
+				auto const sret_type = sret_ptr_type->getPointerElementType();
+				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
+#endif // LLVM 12
 				emit_pop_call(error_count, context);
 				break;
 			}
@@ -3045,7 +3062,14 @@ static val_ptr emit_bitcode(
 	bz_assert(fn->arg_size() == call->arg_size());
 	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
 	{
+#if LLVM_VERSION_MAJOR < 12
 		call->addParamAttr(0, llvm::Attribute::StructRet);
+#else
+		auto const sret_ptr_type = params[0]->getType();
+		bz_assert(sret_ptr_type->isPointerTy());
+		auto const sret_type = sret_ptr_type->getPointerElementType();
+		call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
+#endif // LLVM 12
 		bz_assert(is_byval_it != is_byval_end);
 		++is_byval_it, ++i;
 	}
@@ -3054,7 +3078,10 @@ static val_ptr emit_bitcode(
 		auto const is_pass_by_ref = *is_byval_it;
 		if (is_pass_by_ref)
 		{
-			call->addParamAttr(i, llvm::Attribute::ByVal);
+			auto const byval_ptr_type = params[i]->getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			call->addParamAttr(i, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 			call->addParamAttr(i, llvm::Attribute::NoAlias);
 			call->addParamAttr(i, llvm::Attribute::NoCapture);
 			call->addParamAttr(i, llvm::Attribute::NonNull);
@@ -4674,7 +4701,14 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
+#if LLVM_VERSION_MAJOR < 12
 		arg_it->addAttr(llvm::Attribute::StructRet);
+#else
+		auto const sret_ptr_type = arg_it->getType();
+		bz_assert(sret_ptr_type->isPointerTy());
+		auto const sret_type = sret_ptr_type->getPointerElementType();
+		arg_it->addAttr(llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
+#endif // LLVM 12
 		arg_it->addAttr(llvm::Attribute::NoAlias);
 		arg_it->addAttr(llvm::Attribute::NoCapture);
 		arg_it->addAttr(llvm::Attribute::NonNull);
@@ -4687,7 +4721,10 @@ static llvm::Function *create_function_from_symbol_impl(
 		auto const is_by_ref = *is_byval_it;
 		if (is_by_ref)
 		{
-			arg.addAttr(llvm::Attribute::ByVal);
+			auto const byval_ptr_type = arg.getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 			arg.addAttr(llvm::Attribute::NoAlias);
 			arg.addAttr(llvm::Attribute::NoCapture);
 			arg.addAttr(llvm::Attribute::NonNull);
@@ -5195,7 +5232,14 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	bz_assert(called_fn->arg_size() == call->arg_size());
 	if (result_kind == abi::pass_kind::reference)
 	{
+#if LLVM_VERSION_MAJOR < 12
 		call->addParamAttr(0, llvm::Attribute::StructRet);
+#else
+		auto const sret_ptr_type = args[0]->getType();
+		bz_assert(sret_ptr_type->isPointerTy());
+		auto const sret_type = sret_ptr_type->getPointerElementType();
+		call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
+#endif // LLVM 12
 		bz_assert(is_byval_it != is_byval_end);
 		++is_byval_it, ++i;
 	}
@@ -5204,7 +5248,10 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		auto const is_byval = *is_byval_it;
 		if (is_byval)
 		{
-			call->addParamAttr(i, llvm::Attribute::ByVal);
+			auto const byval_ptr_type = args[i]->getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			call->addParamAttr(i, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
 			call->addParamAttr(i, llvm::Attribute::NoAlias);
 			call->addParamAttr(i, llvm::Attribute::NoCapture);
 			call->addParamAttr(i, llvm::Attribute::NonNull);
