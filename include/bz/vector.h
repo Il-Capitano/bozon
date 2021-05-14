@@ -206,7 +206,21 @@ private:
 		auto old_end = this->_data_end;
 		auto new_it  = new_data;
 
-		if constexpr (nothrow_move_value || nothrow_copy_value)
+		if constexpr (nothrow_move_value)
+		{
+			// if it's nothrow movable immediately destruct the moved-from object
+			// this may help the compiler in optimizing trivially relocatable type moving
+			for (; old_it != old_end; ++new_it, ++old_it)
+			{
+				new(new_it) value_type(std::move(*old_it));
+				old_it->~value_type();
+			}
+
+			this->_data_begin = new_data;
+			this->_data_end   = new_it;
+			this->_alloc_end  = new_data + new_cap;
+		}
+		else if constexpr (nothrow_move_value || nothrow_copy_value)
 		{
 			for (; old_it != old_end; ++new_it, ++old_it)
 			{
