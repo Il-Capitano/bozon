@@ -56,9 +56,9 @@ inline void _unreachable_message(const char *file, int line)
 
 #else
 
-#define bz_try       if (true)
-#define bz_catch(x)  if (false)
-#define bz_catch_all if (false)
+#define bz_try       if constexpr (true)
+#define bz_catch(x)  if constexpr (false)
+#define bz_catch_all if constexpr (false)
 #define bz_throw(x)  bz_unreachable
 #define bz_rethrow   bz_unreachable
 
