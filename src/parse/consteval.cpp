@@ -2578,7 +2578,7 @@ static ast::constant_value try_evaluate_expr(
 			// literals are always constant expressions
 			bz_unreachable;
 		},
-		[&context](ast::expr_tuple &tuple) -> ast::constant_value {
+		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
 			for (auto &elem : tuple.elems)
 			{
@@ -2591,8 +2591,9 @@ static ast::constant_value try_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			result.emplace<ast::constant_value::tuple>();
-			auto &elem_values = result.get<ast::constant_value::tuple>();
+			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
+				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
 			for (auto &elem : tuple.elems)
 			{
@@ -2870,7 +2871,7 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 		return;
 	}
 
-	auto const value = try_evaluate_expr(expr, context);
+	auto value = try_evaluate_expr(expr, context);
 	if (value.is_null())
 	{
 		expr.consteval_state = ast::expression::consteval_failed;
@@ -2883,7 +2884,7 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 		auto inner_expr = std::move(dyn_expr.expr);
 		expr.emplace<ast::constant_expression>(
 			dyn_expr.kind, std::move(type),
-			value, std::move(inner_expr)
+			std::move(value), std::move(inner_expr)
 		);
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;

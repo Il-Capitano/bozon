@@ -3295,7 +3295,95 @@ static void match_expression_to_type_impl(
 	}
 	else if (expr.is_switch_expr())
 	{
-		bz_unreachable;
+		auto &switch_expr = expr.get_switch_expr();
+		if (switch_expr.cases.empty() && switch_expr.default_case.is_null())
+		{
+			context.report_error(expr, bz::format("unable to match empty switch expression to type '{}'", dest_container));
+			expr.to_error();
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			return;
+		}
+		else if (switch_expr.cases.empty())
+		{
+			match_expression_to_type_impl(switch_expr.default_case, dest_container, dest, context);
+			if (switch_expr.default_case.is_error())
+			{
+				expr.to_error();
+				// dest_container should have been cleared by match_expression_to_type_impl if necessary
+				return;
+			}
+		}
+		else if (ast::is_complete(dest))
+		{
+			for (auto &[_, case_expr] : switch_expr.cases)
+			{
+				match_expression_to_type_impl(case_expr, dest_container, dest, context);
+			}
+		}
+		else
+		{
+			ast::typespec dest_container_copy = dest_container;
+			match_expression_to_type_impl(switch_expr.cases[0].expr, dest_container, dest, context);
+			if (switch_expr.cases[0].expr.is_error())
+			{
+				expr.to_error();
+				dest_container.clear();
+				return;
+			}
+			for (auto &[_, case_expr] : switch_expr.cases.slice(1))
+			{
+				auto dest_container_copy_copy = dest_container_copy;
+				match_expression_to_type_impl(case_expr, dest_container_copy_copy, dest_container_copy_copy, context);
+				if (!dest_container.is_empty() && !dest_container_copy_copy.is_empty() && dest_container != dest_container_copy_copy)
+				{
+					context.report_error(
+						expr, "different type deduced for different cases in switch expression",
+						{
+							context.make_note(switch_expr.cases[0].expr, bz::format("type was first deduced as '{}'", dest_container)),
+							context.make_note(case_expr, bz::format("type was deduced as '{}' later", dest_container_copy_copy)),
+						}
+					);
+					dest_container.clear();
+					expr.to_error();
+					return;
+				}
+				else if (case_expr.is_error())
+				{
+					expr.to_error();
+					dest_container.clear();
+					return;
+				}
+			}
+			if (switch_expr.default_case.not_null())
+			{
+				auto dest_container_copy_copy = dest_container_copy;
+				match_expression_to_type_impl(switch_expr.default_case, dest_container_copy_copy, dest_container_copy_copy, context);
+				if (!dest_container.is_empty() && !dest_container_copy_copy.is_empty() && dest_container != dest_container_copy_copy)
+				{
+					context.report_error(
+						expr, "different type deduced for different cases in switch expression",
+						{
+							context.make_note(switch_expr.cases[0].expr, bz::format("type was first deduced as '{}'", dest_container)),
+							context.make_note(switch_expr.default_case, bz::format("type was later deduced as '{}'", dest_container_copy_copy)),
+						}
+					);
+					dest_container.clear();
+					expr.to_error();
+					return;
+				}
+				else if (switch_expr.default_case.is_error())
+				{
+					expr.to_error();
+					dest_container.clear();
+					return;
+				}
+			}
+			expr.set_type(ast::remove_lvalue_reference(ast::remove_const_or_consteval(dest_container)));
+			expr.set_type_kind(dest_container.is<ast::ts_lvalue_reference>() ? ast::expression_type_kind::lvalue_reference : ast::expression_type_kind::rvalue);
+		}
 	}
 	else if (expr.is_typename())
 	{
@@ -3311,7 +3399,6 @@ static void match_expression_to_type_impl(
 		}
 
 		match_typename_to_type_impl(expr, dest_container, expr.get_typename(), dest, context);
-		return;
 	}
 	else if (expr.is_tuple())
 	{
@@ -3342,7 +3429,6 @@ static void match_expression_to_type_impl(
 			}
 			expr.set_type(tuple_type);
 			dest_container.move_from(dest_without_const, tuple_type);
-			return;
 		}
 		else if (dest_without_const.is<ast::ts_tuple>())
 		{
@@ -3356,7 +3442,6 @@ static void match_expression_to_type_impl(
 					match_expression_to_type_impl(expr, type, type, context);
 				}
 				expr.set_type(dest_without_const);
-				return;
 			}
 		}
 		else if (dest_without_const.is<ast::ts_array>())
@@ -3388,7 +3473,6 @@ static void match_expression_to_type_impl(
 				else
 				{
 					expr.set_type(dest_without_const);
-					return;
 				}
 			}
 		}
@@ -3403,26 +3487,28 @@ static void match_expression_to_type_impl(
 			return;
 		}
 	}
-
-	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
-	auto const match_result = match_types(dest_container, expr_type, ast::remove_const_or_consteval(dest), expr_type_kind, context);
-
-	switch (match_result)
+	else
 	{
-	case type_match_result::good:
-		// nothing
-		break;
-	case type_match_result::needs_cast:
-		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
-		break;
-	case type_match_result::error:
-		context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
-		if (!ast::is_complete(dest_container))
+		auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+		auto const match_result = match_types(dest_container, expr_type, ast::remove_const_or_consteval(dest), expr_type_kind, context);
+
+		switch (match_result)
 		{
-			dest_container.clear();
+		case type_match_result::good:
+			// nothing
+			break;
+		case type_match_result::needs_cast:
+			expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+			break;
+		case type_match_result::error:
+			context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			expr.to_error();
+			return;
 		}
-		expr.to_error();
-		return;
 	}
 
 	if (dest_container.is<ast::ts_consteval>())
