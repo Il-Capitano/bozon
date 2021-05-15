@@ -216,6 +216,7 @@ private:
 				old_it->~value_type();
 			}
 
+			this->_allocator.deallocate(this->_data_begin, this->capacity());
 			this->_data_begin = new_data;
 			this->_data_end   = new_it;
 			this->_alloc_end  = new_data + new_cap;
