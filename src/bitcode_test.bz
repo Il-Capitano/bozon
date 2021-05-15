@@ -73,12 +73,8 @@ function main(args: [: const str]) -> int32
 	const n = 3;
 	switch (n)
 	{
-		0, 1, 2 => {
-			std::println(" < 3");
-		},
-		else => {
-			std::println("something else");
-		}
+		0, 1, 2 => std::println(" < 3"),
+		else => std::println("something else")
 	}
 
 	const b = false;
@@ -89,10 +85,25 @@ function main(args: [: const str]) -> int32
 		else  => std::println("WTF")
 	}
 
-	//const m = switch (n) {
-	//	3 => 2,
-	//	else => 0
-	//};
+	@maybe_unused
+	const m = switch (n) {
+		1, 2, 3 => 2u32,
+		else => 0u
+	};
+
+	consteval m = switch (factorial(3)) {
+		1, 2, 3 => 0,
+		4, 5, 6 => 1,
+		else => 2
+	};
+	static_assert(typeof m == const int32);
+	static_assert(m == 1);
+
+	@maybe_unused
+	let &const a = switch (n) {
+		0, 1, 2 => m,
+		else => n
+	};
 
 	const t = [ 2, "hello" ];
 	@maybe_unused const t2 = if (false) { t } else { [ 3, "world" ] };
@@ -268,10 +279,10 @@ function main(args: [: const str]) -> int32
 	string_test();
 
 	std::println("\n==== end main ====");
-	std::printf("e  = {}\n", [ std::exp(1.0) ]);
-	std::printf("pi = {}\n", [ std::atan2(0.0, -1.0) ]);
-	std::printf("e  = {}\n", [ std::exp(1.0f32) ]);
-	std::printf("pi = {}\n", [ std::atan2(0.0f32, -1.0f32) ]);
+	std::printf("e  = {}\n", [ std::e ]);
+	std::printf("pi = {}\n", [ std::pi ]);
+	std::printf("e  = {}\n", [ std::e as float32 ]);
+	std::printf("pi = {}\n", [ std::pi as float32 ]);
 	static_assert(typeof std::exp(1.0) == float64);
 
 	/*
@@ -1156,7 +1167,7 @@ function generic_test()
 	static_assert(typeof add_wrapper(1, 2) == int32);
 	static_assert(typeof add_wrapper(1i8, 2i8) == int8);
 	static_assert(typeof add_wrapper(1i64, 2i8) == int64);
-//	static_assert(typeof add_wrapper("", "") == int32);
+	// static_assert(typeof add_wrapper("", "") == int32);
 //	foo("", "");
 
 	const a = 3;
@@ -1388,7 +1399,7 @@ function destructor_test()
 	@maybe_unused const res2 = res1;
 }
 
-function string_test()
+export function string_test()
 {
 	let s = std::string("hello");
 	std::println(s);
@@ -1477,4 +1488,8 @@ function string_test()
 
 	consteval i = true as uint32;
 	static_assert(i == 1u);
+
+	let arr: [5: int32];
+	// std::printf("{}\n", arr[2]);
+	std::printf("{}\n", [ arr[2] ]);
 }
