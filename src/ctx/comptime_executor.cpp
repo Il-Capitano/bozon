@@ -847,7 +847,7 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 			|| llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size())) == llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
 		)
 		&& this->get_platform_abi() != abi::platform_abi::generic;
-	auto const engine_kind = force_use_jit || is_native ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
+	auto const engine_kind = force_use_jit || (is_native && !use_interpreter)? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
 #else
 	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
 	// prefer Interpreter for now even for native targets
