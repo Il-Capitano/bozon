@@ -840,9 +840,19 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
+#ifdef __linux__
+	auto const is_native =
+		(
+			target == "" || target == "native"
+			|| llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size())) == llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
+		)
+		&& this->get_platform_abi() != abi::platform_abi::generic;
+	auto const engine_kind = force_use_jit || is_native ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
+#else
 	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
 	// prefer Interpreter for now even for native targets
 	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
+#endif // linux
 	builder
 		.setEngineKind(engine_kind)
 		.setErrorStr(&err)
