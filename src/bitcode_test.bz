@@ -1045,8 +1045,8 @@ function phi_test(x: int32, b: bool) -> int32
 function str_pointer_test()
 {
 	const s = "hello";
-	const begin = __builtin_str_begin_ptr(s);
-	const end   = __builtin_str_end_ptr(s);
+	const begin = s.begin_ptr();
+	const end   = s.end_ptr();
 	static_assert(typeof begin == const *const uint8);
 	static_assert(typeof begin == typeof end);
 
@@ -1082,10 +1082,10 @@ function str_pointer_test()
 
 function my_str_equals(lhs: str, rhs: str) -> bool
 {
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
-	const rhs_end = __builtin_str_end_ptr(rhs);
+	let lhs_it = lhs.begin_ptr();
+	let rhs_it = rhs.begin_ptr();
+	const lhs_end = lhs.end_ptr();
+	const rhs_end = rhs.end_ptr();
 
 	if (lhs_end - lhs_it != rhs_end - rhs_it)
 	{

@@ -814,6 +814,8 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 		{ "size",        { function_body::builtin_str_size,        function_body::builtin_slice_size            } },
 		{ "begin",       { function_body::builtin_slice_begin_ptr, function_body::builtin_slice_begin_const_ptr } },
 		{ "end",         { function_body::builtin_slice_end_ptr,   function_body::builtin_slice_end_const_ptr   } },
+		{ "begin_ptr",   { function_body::builtin_str_begin_ptr                                                 } },
+		{ "end_ptr",     { function_body::builtin_str_end_ptr                                                   } },
 		{ "starts_with", { function_body::builtin_str_starts_with                                               } },
 		{ "ends_with",   { function_body::builtin_str_ends_with                                                 } },
 	};
