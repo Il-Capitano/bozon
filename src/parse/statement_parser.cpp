@@ -1250,7 +1250,9 @@ static bool resolve_function_parameters_helper(
 			}
 
 			auto const auto_pos = func_body.params[0].get_type().nodes[1].get<ast::ts_auto>().auto_pos;
-			auto const param_type_src_tokens = lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
+			auto const param_type_src_tokens = auto_pos == nullptr
+				? lex::src_tokens{}
+				: lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
 			func_body.params[0].get_type().nodes[1] = ast::ts_base_type{ param_type_src_tokens, func_body.get_destructor_of() };
 		}
 		else

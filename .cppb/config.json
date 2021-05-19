@@ -35,7 +35,7 @@
 			"windows-release": {},
 			"linux-debug": {
 				"optimization": "1",
-				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address" ],
+				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
 				"link_flags": [ "-fsanitize=address" ]
 			},
 			"linux-release": {},
@@ -87,7 +87,7 @@
 			"windows-release": {},
 			"linux-debug": {
 				"optimization": "1",
-				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address" ],
+				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
 				"link_flags": [ "-fsanitize=address" ]
 			},
 			"linux-release": {},
