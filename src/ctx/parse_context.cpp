@@ -1214,6 +1214,16 @@ static ast::expression make_variable_expression(
 			ast::make_expr_identifier(std::move(id), var_decl)
 		);
 	}
+	else if (id_type.is<ast::ts_consteval>())
+	{
+		ast::typespec result_type = id_type.get<ast::ts_consteval>();
+		result_type.add_layer<ast::ts_const>(nullptr);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			id_type_kind, std::move(result_type),
+			ast::make_expr_identifier(std::move(id), var_decl)
+		);
+	}
 	else if (id_type.is_typename())
 	{
 		auto &init_expr = var_decl->init_expr;
