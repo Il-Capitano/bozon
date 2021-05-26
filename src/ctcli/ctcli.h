@@ -3651,7 +3651,7 @@ bool print_help_if_needed(
 				}
 
 				return false;
-			}) || ...);
+			}()) || ...);
 		}(std::make_index_sequence<command_line_commands<commands_id>.size()>{}))
 		{
 			return true;
