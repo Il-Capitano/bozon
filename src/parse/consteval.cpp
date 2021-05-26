@@ -1000,24 +1000,46 @@ static ast::constant_value evaluate_binary_bit_left_shift(
 
 	bz_assert(lhs_value.is<ast::constant_value::uint>());
 	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-	bz_assert(rhs_value.is<ast::constant_value::uint>());
-	auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
 
 	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
 	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
 
-	auto const result = safe_binary_bit_left_shift(
-		original_expr.src_tokens, original_expr.paren_level,
-		lhs_int_val, rhs_int_val, lhs_type_kind,
-		context
-	);
-	if (result.has_value())
+	bz_assert(rhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::sint>());
+	if (rhs_value.is<ast::constant_value::uint>())
 	{
-		return ast::constant_value(result.get());
+		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+
+		auto const result = safe_binary_bit_left_shift(
+			original_expr.src_tokens, original_expr.paren_level,
+			lhs_int_val, rhs_int_val, lhs_type_kind,
+			context
+		);
+		if (result.has_value())
+		{
+			return ast::constant_value(result.get());
+		}
+		else
+		{
+			return {};
+		}
 	}
 	else
 	{
-		return {};
+		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+
+		auto const result = safe_binary_bit_left_shift(
+			original_expr.src_tokens, original_expr.paren_level,
+			lhs_int_val, rhs_int_val, lhs_type_kind,
+			context
+		);
+		if (result.has_value())
+		{
+			return ast::constant_value(result.get());
+		}
+		else
+		{
+			return {};
+		}
 	}
 }
 
@@ -1036,24 +1058,46 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 
 	bz_assert(lhs_value.is<ast::constant_value::uint>());
 	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
-	bz_assert(rhs_value.is<ast::constant_value::uint>());
-	auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
 
 	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
 	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
 
-	auto const result = safe_binary_bit_right_shift(
-		original_expr.src_tokens, original_expr.paren_level,
-		lhs_int_val, rhs_int_val, lhs_type_kind,
-		context
-	);
-	if (result.has_value())
+	bz_assert(rhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::sint>());
+	if (rhs_value.is<ast::constant_value::uint>())
 	{
-		return ast::constant_value(result.get());
+		auto const rhs_int_val = rhs_value.get<ast::constant_value::uint>();
+
+		auto const result = safe_binary_bit_right_shift(
+			original_expr.src_tokens, original_expr.paren_level,
+			lhs_int_val, rhs_int_val, lhs_type_kind,
+			context
+		);
+		if (result.has_value())
+		{
+			return ast::constant_value(result.get());
+		}
+		else
+		{
+			return {};
+		}
 	}
 	else
 	{
-		return {};
+		auto const rhs_int_val = rhs_value.get<ast::constant_value::sint>();
+
+		auto const result = safe_binary_bit_right_shift(
+			original_expr.src_tokens, original_expr.paren_level,
+			lhs_int_val, rhs_int_val, lhs_type_kind,
+			context
+		);
+		if (result.has_value())
+		{
+			return ast::constant_value(result.get());
+		}
+		else
+		{
+			return {};
+		}
 	}
 }
 
@@ -2829,16 +2873,24 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 	}
 	else if (
 		!expr.is<ast::dynamic_expression>()
-		|| expr.consteval_state != ast::expression::consteval_never_tried
+		|| (
+			expr.consteval_state != ast::expression::consteval_never_tried
+			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
+		)
 	)
 	{
 		expr.consteval_state = ast::expression::consteval_failed;
+		return;
+	}
+	else if (expr.consteval_state == ast::expression::consteval_guaranteed_failed)
+	{
 		return;
 	}
 
 	auto const value = guaranteed_evaluate_expr(expr, context);
 	if (value.is_null())
 	{
+		expr.consteval_state = ast::expression::consteval_guaranteed_failed;
 		return;
 	}
 	else
@@ -2864,7 +2916,10 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 	}
 	else if (
 		!expr.is<ast::dynamic_expression>()
-		|| expr.consteval_state != ast::expression::consteval_never_tried
+		|| (
+			expr.consteval_state != ast::expression::consteval_never_tried
+			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
+		)
 	)
 	{
 		expr.consteval_state = ast::expression::consteval_failed;

@@ -124,6 +124,7 @@ struct expression : bz::variant<
 	enum : int
 	{
 		consteval_failed,
+		consteval_guaranteed_failed,
 		consteval_never_tried,
 		consteval_succeeded,
 	};

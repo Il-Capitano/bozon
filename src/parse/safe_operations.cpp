@@ -850,4 +850,109 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	}
 }
 
+
+bz::optional<uint64_t> safe_binary_bit_left_shift(
+	lex::src_tokens src_tokens, int paren_level,
+	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
+	ctx::parse_context &context
+)
+{
+	using T = std::tuple<bz::u8string_view, int64_t>;
+	auto const [type_name, lhs_width] =
+		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
+		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
+		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
+		T{ "uint64", 64 };
+
+	if (rhs >= lhs_width)
+	{
+		if (paren_level < 2)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens,
+				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+			);
+		}
+		return {};
+	}
+	else if (rhs < 0)
+	{
+		if (paren_level < 2)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens,
+				bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
+			);
+		}
+		return {};
+	}
+	else switch (lhs_type_kind)
+	{
+	case ast::type_info::uint8_:
+		return static_cast<uint8_t>(lhs << rhs);
+	case ast::type_info::uint16_:
+		return static_cast<uint16_t>(lhs << rhs);
+	case ast::type_info::uint32_:
+		return static_cast<uint32_t>(lhs << rhs);
+	case ast::type_info::uint64_:
+		return static_cast<uint64_t>(lhs << rhs);
+	default:
+		bz_unreachable;
+	}
+}
+
+bz::optional<uint64_t> safe_binary_bit_right_shift(
+	lex::src_tokens src_tokens, int paren_level,
+	uint64_t lhs, int64_t rhs, uint32_t lhs_type_kind,
+	ctx::parse_context &context
+)
+{
+	using T = std::tuple<bz::u8string_view, int64_t>;
+	auto const [type_name, lhs_width] =
+		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
+		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
+		lhs_type_kind == ast::type_info::uint32_ ? T{ "uint32", 32 } :
+		T{ "uint64", 64 };
+
+	if (rhs >= lhs_width)
+	{
+		if (paren_level < 2)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens,
+				bz::format("shift amount of {} is too big for type '{}', it must be less than {}", rhs, type_name, lhs_width)
+			);
+		}
+		return {};
+	}
+	else if (rhs < 0)
+	{
+		if (paren_level < 2)
+		{
+			context.report_parenthesis_suppressed_warning(
+				2 - paren_level, ctx::warning_kind::int_overflow,
+				src_tokens,
+				bz::format("negative shift amount of {} for type '{}'", rhs, type_name)
+			);
+		}
+		return {};
+	}
+	else switch (lhs_type_kind)
+	{
+	case ast::type_info::uint8_:
+		return static_cast<uint8_t>(lhs >> rhs);
+	case ast::type_info::uint16_:
+		return static_cast<uint16_t>(lhs >> rhs);
+	case ast::type_info::uint32_:
+		return static_cast<uint32_t>(lhs >> rhs);
+	case ast::type_info::uint64_:
+		return static_cast<uint64_t>(lhs >> rhs);
+	default:
+		bz_unreachable;
+	}
+}
+
 } // namespace parse

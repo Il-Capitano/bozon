@@ -847,7 +847,7 @@ do {                                                                            
 	x_iu("<<", false, 0);
 	x_if("<<", false, 0);
 	x_ic("<<", false, 0);
-	x_ui("<<", false, 0);
+	x_ui("<<", true, a.second);
 	x_uu("<<", true, a.second);
 	x_uf("<<", false, 0);
 	x_uc("<<", false, 0);
@@ -864,7 +864,7 @@ do {                                                                            
 	x_iu(">>", false, 0);
 	x_if(">>", false, 0);
 	x_ic(">>", false, 0);
-	x_ui(">>", false, 0);
+	x_ui(">>", true, a.second);
 	x_uu(">>", true, a.second);
 	x_uf(">>", false, 0);
 	x_uc(">>", false, 0);
@@ -881,7 +881,7 @@ do {                                                                            
 	x_iu("<<=", false, 0);
 	x_if("<<=", false, 0);
 	x_ic("<<=", false, 0);
-	x_ui("<<=", false, 0);
+	x_ui("<<=", true, a.second);
 	x_uu("<<=", true, a.second);
 	x_uf("<<=", false, 0);
 	x_uc("<<=", false, 0);
@@ -898,7 +898,7 @@ do {                                                                            
 	x_iu(">>=", false, 0);
 	x_if(">>=", false, 0);
 	x_ic(">>=", false, 0);
-	x_ui(">>=", false, 0);
+	x_ui(">>=", true, a.second);
 	x_uu(">>=", true, a.second);
 	x_uf(">>=", false, 0);
 	x_uc(">>=", false, 0);
@@ -1098,11 +1098,17 @@ test_result parser_test(ctx::global_context &global_ctx)
 	test_begin();
 
 	test_fn(get_paren_matched_range_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(parse_primary_expression_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(parse_expression_comma_list_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(parse_expression_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(constant_expression_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(parse_typespec_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 
 	test_end();
 }

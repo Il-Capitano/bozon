@@ -8,6 +8,70 @@
 
 using namespace parse;
 
+static bz::optional<bz::u8string> consteval_guaranteed_test(ctx::global_context &global_ctx)
+{
+	ctx::lex_context lex_ctx(global_ctx);
+	ctx::parse_context parse_ctx(global_ctx);
+	ctx::decl_set global_decls = ctx::get_default_decls();
+	parse_ctx.global_decls = &global_decls;
+
+#define x(str, kind, res_value)                                                 \
+do {                                                                            \
+    bz::u8string_view const file = str;                                         \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx);                      \
+    assert_false(global_ctx.has_errors_or_warnings());                          \
+    auto it = tokens.begin();                                                   \
+    auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    consteval_guaranteed(res, parse_ctx);                                       \
+    assert_eq(it, tokens.end() - 1);                                            \
+    assert_false(res.is_error());                                               \
+    assert_true(res.is<ast::constant_expression>());                            \
+    ast::constant_value value;                                                  \
+    value.emplace<kind>(res_value);                                             \
+    assert_eq(res.get<ast::constant_expression>().value, value);                \
+    global_ctx.clear_errors_and_warnings();                                     \
+    global_ctx._comptime_executor.functions_to_compile.clear();                 \
+} while (false)
+
+#define x_fail(str)                                                             \
+do {                                                                            \
+    bz::u8string_view const file = str;                                         \
+    auto const tokens = lex::get_tokens(file, 0, lex_ctx);                      \
+    assert_false(global_ctx.has_errors_or_warnings());                          \
+    auto it = tokens.begin();                                                   \
+    auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    consteval_guaranteed(res, parse_ctx);                                       \
+    assert_eq(it, tokens.end() - 1);                                            \
+    assert_false(res.is_error());                                               \
+    assert_false(res.is<ast::constant_expression>());                           \
+    global_ctx.clear_errors_and_warnings();                                     \
+    global_ctx._comptime_executor.functions_to_compile.clear();                 \
+} while (false)
+
+	x("'a'", ast::constant_value::u8char, 'a');
+	x("123", ast::constant_value::sint, 123);
+	x("123u8", ast::constant_value::uint, 123);
+	x("\"hello\"", ast::constant_value::string, "hello");
+
+	x("__builtin_exp_f64(1.5)", ast::constant_value::float64, std::exp(1.5));
+	x("__builtin_exp_f32(1.5f32)", ast::constant_value::float32, std::exp(1.5f));
+	x("__builtin_sinh_f32(1.6f32)", ast::constant_value::float32, std::sinh(1.6f));
+
+	x_fail("{ 0; __builtin_exp_f64(1.5) }");
+	x_fail("{ 0; __builtin_exp_f32(1.5f32) }");
+	x_fail("{ 0; __builtin_sinh_f32(1.6f32) }");
+
+	x("3 + 4", ast::constant_value::sint, 7);
+	x("3 / 4", ast::constant_value::sint, 0);
+	x_fail("3 / 0");
+	x_fail("3u32 << 32");
+
+	return {};
+
+#undef x
+#undef x_fail
+}
+
 static bz::optional<bz::u8string> consteval_try_test(ctx::global_context &global_ctx)
 {
 	ctx::lex_context lex_ctx(global_ctx);
@@ -158,7 +222,10 @@ test_result consteval_test(ctx::global_context &global_ctx)
 {
 	test_begin();
 
+	test_fn(consteval_guaranteed_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 	test_fn(consteval_try_test, global_ctx);
+	global_ctx.report_and_clear_errors_and_warnings();
 
 	test_end();
 }

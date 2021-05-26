@@ -2028,7 +2028,7 @@ static val_ptr emit_builtin_binary_left_shift(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2059,7 +2059,7 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2094,7 +2094,7 @@ static val_ptr emit_builtin_binary_right_shift(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2125,7 +2125,7 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_unsigned_integer_kind(rhs_kind));
+	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);

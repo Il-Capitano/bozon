@@ -2921,6 +2921,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 }
 
 // uintN <<>> uintM -> uintN
+// uintN <<>> intM -> uintN
 static ast::expression get_builtin_binary_bit_shift(
 	lex::src_tokens src_tokens,
 	uint32_t op_kind,
@@ -2944,7 +2945,7 @@ static ast::expression get_builtin_binary_bit_shift(
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
 			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			&& is_integer_kind(rhs_kind)
 		)
 		{
 			auto result_type = lhs_t;
@@ -2963,26 +2964,16 @@ static ast::expression get_builtin_binary_bit_shift(
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
-		static_assert(get_binary_precedence(lex::token::bit_left_shift).value == get_binary_precedence(lex::token::bit_right_shift).value);
-		static_assert(get_binary_precedence(lex::token::bit_left_shift).is_left_associative == get_binary_precedence(lex::token::bit_right_shift).is_left_associative);
-		auto const op_prec = get_binary_precedence(lex::token::bit_left_shift);
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
-		{
-			notes.push_back(context.make_note(
-				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-				"amount in bit shift must be an unsigned integer"
-			));
-			suggestions.push_back(create_explicit_cast_suggestion(
-				rhs, op_prec,
-				ast::get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
-			));
-		}
-		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				"bit manipulation of signed integers is not allowed"
+			));
+			suggestions.push_back(create_explicit_cast_suggestion(
+				lhs, precedence{},
+				ast::get_type_name_from_kind(signed_to_unsigned(lhs_kind)), context
 			));
 		}
 	}
@@ -2999,6 +2990,7 @@ static ast::expression get_builtin_binary_bit_shift(
 }
 
 // uint <<>>= uint
+// uint <<>>= int
 static ast::expression get_builtin_binary_bit_shift_eq(
 	lex::src_tokens src_tokens,
 	uint32_t op_kind,
@@ -3037,7 +3029,7 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
 			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			&& is_integer_kind(rhs_kind)
 		)
 		{
 			// rhs shouldn't be cast to lhs_t here, becuase then e.g. 1u8 << 256u would be converted
@@ -3055,22 +3047,8 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
-		static_assert(get_binary_precedence(lex::token::bit_left_shift_eq).value == get_binary_precedence(lex::token::bit_right_shift_eq).value);
-		static_assert(get_binary_precedence(lex::token::bit_left_shift_eq).is_left_associative == get_binary_precedence(lex::token::bit_right_shift_eq).is_left_associative);
-		auto const op_prec = get_binary_precedence(lex::token::bit_left_shift_eq);
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
-		{
-			notes.push_back(context.make_note(
-				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-				"amount in bit shift must be an unsigned integer"
-			));
-			suggestions.push_back(create_explicit_cast_suggestion(
-				rhs, op_prec,
-				ast::get_type_name_from_kind(signed_to_unsigned(rhs_kind)), context
-			));
-		}
-		else if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
