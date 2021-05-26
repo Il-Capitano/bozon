@@ -40,7 +40,7 @@ void print_version_info(void)
 {
 	if (do_verbose)
 	{
-		auto const default_target = llvm::sys::getDefaultTargetTriple();
+		auto const default_target = llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple());
 		auto const host_cpu = llvm::sys::getHostCPUName();
 		bz::print(
 			"bozon {}\n"
