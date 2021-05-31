@@ -377,6 +377,23 @@ public:
 		this->_power_of_two_reserve(new_cap);
 	}
 
+	void resize(size_t const new_size)
+	{
+		auto const current_size = this->size();
+		if (current_size >= new_size)
+		{
+			this->_data_end -= current_size - new_size;
+		}
+		else
+		{
+			this->reserve(new_size);
+			auto const size_diff = new_size - current_size;
+			auto const old_end = this->_data_end;
+			this->_data_end += size_diff;
+			std::memset(old_end, 0, size_diff);
+		}
+	}
+
 	u8string &operator += (u8char const c)
 	{
 		auto const current_size = this->size();
