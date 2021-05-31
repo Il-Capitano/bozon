@@ -257,12 +257,12 @@ function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
 	n -= 1u;
-	n |= n >> 1u;
-	n |= n >> 2u;
-	n |= n >> 4u;
-	n |= n >> 8u;
-	n |= n >> 16u;
-	n |= n >> 32u;
+	n |= n >> 1;
+	n |= n >> 2;
+	n |= n >> 4;
+	n |= n >> 8;
+	n |= n >> 16;
+	n |= n >> 32;
 	n += 1u;
 	return n;
 }
@@ -453,10 +453,13 @@ function get_error_message_size_by_index(i: uint64) -> uint64
 	return if (i < errors.size()) { errors[i].message.size() } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_message_char_by_index")
-function get_error_message_char_by_index(i: uint64, j: uint64) -> uint8
+@comptime_error_checking("get_error_message_by_index")
+function get_error_message_char_by_index(i: uint64, buffer: *uint8)
 {
-	return if (i < errors.size() && j < errors[i].message.size()) { *(errors[i].message.data() + j) } else { 0u8 };
+	if (i < errors.size())
+	{
+		__builtin_memcpy(buffer, errors[i].message.data(), errors[i].message.size());
+	}
 }
 
 @comptime_error_checking("get_error_call_stack_size_by_index")
@@ -571,17 +574,7 @@ function make_index_error_message(index: isize, size: usize) -> std::string
 	}
 	else
 	{
-		let result = std::string("index ");
-		{
-			const [buffer, str_size] = get_int_as_string(if (index < 0) { (-index) as usize } else { index as usize }, index < 0);
-			result ..= __builtin_str_from_ptrs(buffer.end() - str_size, buffer.end());
-		}
-		result ..= " is out-of-bounds for an array of size ";
-		{
-			const [buffer, str_size] = get_uint_as_string(size);
-			result ..= __builtin_str_from_ptrs(buffer.end() - str_size, buffer.end());
-		}
-		return result;
+		return make_index_error_message(index as usize, size);
 	}
 }
 

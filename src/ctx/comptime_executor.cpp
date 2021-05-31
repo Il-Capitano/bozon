@@ -466,8 +466,7 @@ bool comptime_executor_context::resolve_function(ast::function_body *body)
 {
 	if (body->body.is_null())
 	{
-		bz_assert(body->is_intrinsic());
-		return true;
+		return body->is_intrinsic();
 	}
 	bz_assert(this->current_parse_ctx != nullptr);
 	this->current_parse_ctx->add_to_resolve_queue({}, *body);
@@ -933,18 +932,32 @@ static Ret call_llvm_func(llvm::ExecutionEngine *engine, llvm::Function *llvm_fu
 	}
 	else
 	{
-		static_assert(std::is_integral_v<Ret>);
-		return engine->runFunction(
+		auto const run_result = engine->runFunction(
 			llvm_func,
 			{
 				[&]() {
 					llvm::GenericValue value;
-					value.IntVal = value.IntVal.zextOrTrunc(64);
-					value.IntVal = args;
+					if constexpr (std::is_pointer_v<Args>)
+					{
+						value.PointerVal = args;
+					}
+					else
+					{
+						value.IntVal = llvm::APInt(sizeof args * 8, args);
+					}
 					return value;
 				}()...
 			}
-		).IntVal.getLimitedValue();
+		);
+		if constexpr (std::is_void_v<Ret>)
+		{
+			return;
+		}
+		else
+		{
+			static_assert(std::is_integral_v<Ret>);
+			return static_cast<Ret>(run_result.IntVal.getLimitedValue());
+		}
 	}
 }
 
@@ -978,14 +991,11 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 		auto error_message = [&]() -> bz::u8string {
 			auto const size_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_message_size_by_index);
 			auto const size = call_llvm_func<uint64_t>(this->engine.get(), size_llvm_func, i);
-			ast::arena_vector<uint8_t> message_bytes;
-			message_bytes.resize(size);
-			for (uint64_t j = 0; j < size; ++j)
-			{
-				auto const byte_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_message_char_by_index);
-				message_bytes[j] = call_llvm_func<uint8_t>(this->engine.get(), byte_llvm_func, i, j);
-			}
-			return bz::u8string_view(message_bytes.data(), message_bytes.data() + message_bytes.size());
+			bz::u8string message;
+			message.resize(size);
+			auto const get_message_llvm_func = this->get_comptime_function(comptime_function_kind::get_error_message_by_index);
+			call_llvm_func<void>(this->engine.get(), get_message_llvm_func, i, message.data());
+			return message;
 		}();
 		auto const call_stack_notes = [&]() {
 			bz::vector<source_highlight> notes;
