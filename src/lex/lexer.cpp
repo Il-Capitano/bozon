@@ -539,6 +539,97 @@ static token get_bin_number_token(
 	);
 }
 
+static std::pair<bz::u8string_view, uint32_t> get_number_token_str_and_kind(
+	file_iterator &stream,
+	ctx::char_pos const end
+)
+{
+	// TODO: allow exponential notations (1e10)
+	auto const num_begin = stream.it;
+
+	do
+	{
+		++stream;
+	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+
+	uint32_t token_kind = 0;
+
+	if (
+		stream.it == end
+		|| *stream.it != '.'
+		// the next char after the '.' has to be a number to count towards the token
+		|| (stream.it + 1) == end
+		|| !is_num_char(*(stream.it + 1))
+	)
+	{
+		token_kind = token::integer_literal;
+	}
+	else
+	{
+		do
+		{
+			++stream;
+		} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
+		token_kind = token::floating_point_literal;
+	}
+
+	auto const has_exponent = [&]() {
+		auto it = stream.it;
+		if (it == end || *it != 'e')
+		{
+			return false;
+		}
+
+		++it;
+		if (it == end)
+		{
+			return false;
+		}
+
+		auto const c = *it;
+		if (is_num_char(c))
+		{
+			return true;
+		}
+		if (c != '+' && c != '-')
+		{
+			return false;
+		}
+
+		++it;
+		if (it == end)
+		{
+			return false;
+		}
+		auto const c2 = *it;
+		if (is_num_char(c2))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	};
+
+	// exponential notation
+	// e.g. 1.4e3  1.0e+234  1e-99
+	if (has_exponent())
+	{
+		token_kind = token::floating_point_literal;
+		++stream; ++stream;  // gets rid of the 'e' and +- or a number
+		// ' is not allowed in the exponent part
+		while (is_num_char(*stream.it))
+		{
+			++stream;
+		}
+	}
+
+	auto const num_end = stream.it;
+
+	return { bz::u8string_view(num_begin, num_end), token_kind };
+}
+
 static token get_number_token(
 	file_iterator &stream,
 	ctx::char_pos const end,
@@ -572,36 +663,9 @@ static token get_number_token(
 
 
 	auto const begin_it = stream.it;
-	auto const num_begin = stream.it;
 	auto const line = stream.line;
 
-	do
-	{
-		++stream;
-	} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
-
-	uint32_t token_kind = 0;
-
-	if (
-		stream.it == end
-		|| *stream.it != '.'
-		// the next char after the '.' has to be a number or '\'' to count towards the token
-		|| (stream.it + 1) == end
-		|| !(is_num_char(*(stream.it + 1)) || *(stream.it + 1) == '\'')
-	)
-	{
-		token_kind = token::integer_literal;
-	}
-	else
-	{
-		do
-		{
-			++stream;
-		} while (stream.it != end && (is_num_char(*stream.it) || *stream.it == '\''));
-		token_kind = token::floating_point_literal;
-	}
-
-	auto const num_end = stream.it;
+	auto const [num_str, token_kind] = get_number_token_str_and_kind(stream, end);
 
 	auto const postfix_begin = stream.it;
 	if (stream.it != end && (is_alpha_char(*stream.it) || *stream.it == '_')) do
@@ -614,12 +678,10 @@ static token get_number_token(
 
 	return token(
 		token_kind,
-		bz::u8string_view(num_begin, num_end),
+		num_str,
 		bz::u8string_view(postfix_begin, postfix_end),
 		stream.file_id, line, begin_it, end_it
 	);
-
-	// TODO: allow exponential notations (1e10)
 }
 
 static token get_single_char_token(

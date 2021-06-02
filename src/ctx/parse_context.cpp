@@ -1795,8 +1795,15 @@ if (postfix == postfix_str)                                                     
 	{
 		auto const number_string = literal->value;
 		double num = 0.0;
-		bool decimal_state = false;
+
+		constexpr int whole_state = 0;
+		constexpr int decimal_state = 1;
+		constexpr int exponent_state = 2;
+
+		int state = whole_state;
 		double decimal_multiplier = 1.0;
+		int exponent = 0;
+		bool exponent_negative = false;
 		for (auto const c : number_string)
 		{
 			if (c == '\'')
@@ -1806,22 +1813,52 @@ if (postfix == postfix_str)                                                     
 
 			if (c == '.')
 			{
-				decimal_state = true;
+				state = decimal_state;
 				continue;
 			}
 
-			if (decimal_state)
+			if (c == 'e')
 			{
-				bz_assert(c >= '0' && c <= '9');
-				decimal_multiplier /= 10.0;
-				num += static_cast<double>(c - '0') * decimal_multiplier;
+				state = exponent_state;
+				continue;
 			}
-			else
+
+			switch (state)
+			{
+			case whole_state:
 			{
 				bz_assert(c >= '0' && c <= '9');
 				num *= 10.0;
 				num += static_cast<double>(c - '0');
+				break;
 			}
+			case decimal_state:
+			{
+				bz_assert(c >= '0' && c <= '9');
+				decimal_multiplier /= 10.0;
+				num += static_cast<double>(c - '0') * decimal_multiplier;
+				break;
+			}
+			case exponent_state:
+			{
+				if (c == '-')
+				{
+					exponent_negative = true;
+				}
+				else if (c >= '0' && c <= '9')
+				{
+					exponent *= 10;
+					exponent += c - '0';
+				}
+				break;
+			}
+			default:
+				bz_unreachable;
+			}
+		}
+		if (exponent != 0)
+		{
+			num *= std::pow(10.0, exponent_negative ? -exponent : exponent);
 		}
 
 		auto const postfix = literal->postfix;

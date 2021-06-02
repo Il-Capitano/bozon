@@ -404,17 +404,32 @@ do {                                                          \
 	x("1'''''''''2'3'4'''' '''", file.begin() + 19);
 	//                    ^ file.begin() + 19
 
+	x("1e1", file.end());
+	x("1.0e1", file.end());
+	x("1e+1", file.end());
+	x("1e-1", file.end());
+	x("1e-10", file.end());
+	x("1.0e-10", file.end());
+	x("1''.0e-10", file.end());
+	x("1.0e 10", file.begin() + 4);
+	//     ^
+	x("1.0e'10", file.begin() + 4);
+	//     ^
+	x("1.e'10", file.begin() + 1);
+	//  ^
+
 	x("1.1", file.end());
 	x("1.1.1", file.begin() + 3);
 	//    ^ file.begin() + 3
-	x("1'''2'''2323'1'.'''''2124213''4512''", file.end());
-	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.begin() + 36);
-	//                                     ^ file.begin() + 36
+	x("1'''2'''2323'1'.2124213''4512''", file.end());
+	x("1'''2'''2323'1'.'''''2124213''4512''.''123", file.begin() + 15);
+	//                ^ file.begin() + 15
 
 	x("0x0123456789abcdef", file.end());
 	x("0x0123456789ABCDEF", file.end());
 	x("0X0123456789abcdef", file.end());
 	x("0X0123456789ABCDEF", file.end());
+	x("0x0123'4567'89ab'cdef", file.end());
 	x("0o01234567", file.end());
 	x("0O01234567", file.end());
 	x("0b01010101", file.end());
@@ -475,7 +490,9 @@ do {                                                        \
 
 	x_int("1234");
 	x_float("1.1");
-	x_float("1''''2''.''1''''''");
+	x_float("1e3");
+	x_float("1.3423e-33");
+	x_float("1''''2''.1''''''");
 	x_hex("0x0'''123''4567''''''''89abcdef");
 	x_oct("0o01'234'567");
 	x_bin("0b'0101'0101'0101");
