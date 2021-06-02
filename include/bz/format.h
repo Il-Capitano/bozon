@@ -2671,6 +2671,23 @@ u8string format(u8string_view fmt, Ts const &...ts)
 	}
 }
 
+extern "C" uint32_t s2d_str(char const *begin, char const *end, double *result);
+extern "C" uint32_t s2f_str(char const *begin, char const *end, float *result);
+
+inline double parse_double(u8string_view str) noexcept
+{
+	double result = 0.0;
+	s2d_str(str.data(), str.data() + str.size(), &result);
+	return result;
+}
+
+inline float parse_float(u8string_view str) noexcept
+{
+	float result = 0.0f;
+	s2f_str(str.data(), str.data() + str.size(), &result);
+	return result;
+}
+
 bz_end_namespace
 
 #endif // _bz_format_h__
