@@ -39,10 +39,8 @@ int main(int argc, char const **argv)
 		global_ctx.report_and_clear_errors_and_warnings();
 		bz_unreachable;
 	}
-	if (global_ctx.has_errors_or_warnings())
-	{
-		global_ctx.report_and_clear_errors_and_warnings();
-	}
+
+	global_ctx.report_and_clear_errors_and_warnings();
 
 	auto in_ms = [](auto time)
 	{
