@@ -409,6 +409,12 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 		*(out + 1) = ('0' + output) as uint32 as uint8;
 	}
 
+	// print trailing zeros
+	if (v.exponent >= 0)
+	{
+		std::memset(out + olength + 1, '0' as uint32 as uint8, v.exponent as usize);
+	}
+
 	if (actual_exponent >= 0)
 	{
 		std::memcpy(out, out + 1, (actual_exponent + 1) as usize);
@@ -418,6 +424,7 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	out += olength + 1u;
 	if (v.exponent >= 0)
 	{
+		out += v.exponent;
 		*out = '0' as uint32 as uint8;
 		++out;
 	}
