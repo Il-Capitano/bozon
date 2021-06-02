@@ -1793,90 +1793,25 @@ if (postfix == postfix_str)                                                     
 	}
 	case lex::token::floating_point_literal:
 	{
-		auto const number_string = literal->value;
-		double num = 0.0;
-
-		constexpr int whole_state = 0;
-		constexpr int decimal_state = 1;
-		constexpr int exponent_state = 2;
-
-		int state = whole_state;
-		double decimal_multiplier = 1.0;
-		int exponent = 0;
-		bool exponent_negative = false;
-		for (auto const c : number_string)
-		{
-			if (c == '\'')
-			{
-				continue;
-			}
-
-			if (c == '.')
-			{
-				state = decimal_state;
-				continue;
-			}
-
-			if (c == 'e')
-			{
-				state = exponent_state;
-				continue;
-			}
-
-			switch (state)
-			{
-			case whole_state:
-			{
-				bz_assert(c >= '0' && c <= '9');
-				num *= 10.0;
-				num += static_cast<double>(c - '0');
-				break;
-			}
-			case decimal_state:
-			{
-				bz_assert(c >= '0' && c <= '9');
-				decimal_multiplier /= 10.0;
-				num += static_cast<double>(c - '0') * decimal_multiplier;
-				break;
-			}
-			case exponent_state:
-			{
-				if (c == '-')
-				{
-					exponent_negative = true;
-				}
-				else if (c >= '0' && c <= '9')
-				{
-					exponent *= 10;
-					exponent += c - '0';
-				}
-				break;
-			}
-			default:
-				bz_unreachable;
-			}
-		}
-		if (exponent != 0)
-		{
-			num *= std::pow(10.0, exponent_negative ? -exponent : exponent);
-		}
+		bz::u8string number_string = literal->value;
+		number_string.erase('\'');
 
 		auto const postfix = literal->postfix;
 		ast::constant_value value{};
 		ast::type_info *type_info;
 		if (postfix == "" || postfix == "f64")
 		{
-			value = num;
+			value = bz::parse_double(number_string);
 			type_info = this->get_builtin_type_info(ast::type_info::float64_);
 		}
 		else if (postfix == "f32")
 		{
-			value = static_cast<float32_t>(num);
+			value = bz::parse_float(number_string);
 			type_info = this->get_builtin_type_info(ast::type_info::float32_);
 		}
 		else
 		{
-			value = num;
+			value = bz::parse_double(number_string);
 			type_info = this->get_builtin_type_info(ast::type_info::float64_);
 			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 		}
