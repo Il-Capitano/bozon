@@ -17,6 +17,7 @@
 
 import common;
 import f2s_intrinsics;
+import f2s_full_table;
 
 import std::utils;
 
@@ -138,9 +139,16 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	{
 		e10 -= eIndex - dotIndex - 1;
 	}
-	if (m10 == 0)
+	if (m10 == 0u)
 	{
-		*result = signedM ? -0.0f32 : 0.0f32;
+		if (signedM)
+		{
+			*result = -0.0f32;
+		}
+		else
+		{
+			*result = 0.0f32;
+		}
 		return s2f_SUCCESS;
 	}
 
@@ -176,7 +184,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		//
 		// We use floor(log2(5^e10)) so that we get at least this many bits; better to
 		// have an additional bit than to not have enough bits.
-		e2 = floor_log2(m10) as int32 + e10 + log2pow5(e10) as int32 - (FLOAT_MANTISSA_BITS + 1);
+		e2 = (floor_log2(m10) + e10 + log2pow5(e10) - (FLOAT_MANTISSA_BITS + 1) as uint32) as int32;
 
 		// We now compute [m10 * 10^e10 / 2^e2] = [m10 * 5^e10 / 2^(e2-e10)].
 		// To that end, we use the FLOAT_POW5_SPLIT table.
@@ -189,7 +197,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		// This can only be the case if 2^e2 divides m10 * 10^e10, which in turn requires that the
 		// largest power of 2 that divides m10 + e10 is greater than e2. If e2 is less than e10, then
 		// the result must be exact. Otherwise we use the existing multipleOfPowerOf2 function.
-		trailingZeros = e2 < e10 || (e2 - e10 < 32 && multipleOfPowerOf2_32(m10, e2 as uint32 - e10));
+		trailingZeros = e2 < e10 as int32 || (e2 - e10 as int32 < 32 && multipleOfPowerOf2_32(m10, e2 as uint32 - e10));
 	}
 	else
 	{
@@ -241,7 +249,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	// We need to update trailingZeros given that we have the exact output exponent ieee_e2 now.
 	trailingZeros &= (m2 & ((1u32 << (shift - 1) as uint32) - 1u)) == 0u;
 	const lastRemovedBit = (m2 >> (shift - 1) as uint32) & 1u32;
-	const roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift as uint32) & 1u32) != 0u));
+	const roundUp = (lastRemovedBit != 0u) && (!trailingZeros || (((m2 >> shift as uint32) & 1u32) != 0u));
 
 	let ieee_m2 = (m2 >> shift as uint32) + roundUp as uint32;
 	// assert(ieee_m2 <= (1u << (FLOAT_MANTISSA_BITS + 1)));
@@ -277,4 +285,9 @@ function c_strlen(c_str: *const uint8) -> int32
 export function s2f(buffer: *const uint8, result: *float32) -> uint32
 {
 	return s2f_n(buffer, c_strlen(buffer), result);
+}
+
+export function s2f_str(s: str, result: *float32) -> uint32
+{
+	return s2f_n(__builtin_str_begin_ptr(s), s.size() as int32, result);
 }

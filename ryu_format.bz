@@ -1,5 +1,7 @@
 import std::ryu::d2s;
 import std::ryu::f2s;
+import std::ryu::s2d;
+import std::ryu::s2f;
 
 @symbol_name("d2s_short")
 export function d2s_short(x: float64, buffer: *uint8) -> *uint8
@@ -11,4 +13,16 @@ export function d2s_short(x: float64, buffer: *uint8) -> *uint8
 export function f2s_short(x: float32, buffer: *uint8) -> *uint8
 {
 	return std::ryu::f2s_shortest(x, buffer);
+}
+
+@symbol_name("s2d_str")
+export function s2d_str(begin: *const uint8, end: *const uint8, result: *float64) -> uint32
+{
+	return std::ryu::s2d_str(__builtin_str_from_ptrs(begin, end), result);
+}
+
+@symbol_name("s2f_str")
+export function s2f_str(begin: *const uint8, end: *const uint8, result: *float32) -> uint32
+{
+	return std::ryu::s2f_str(__builtin_str_from_ptrs(begin, end), result);
 }
