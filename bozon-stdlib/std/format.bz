@@ -141,8 +141,34 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 	return it;
 }
 
+function decimal_length_u64(n: uint64) -> uint32
+{
+	return if (n < 10u64) { 1u }
+		else if (n < 100u64) { 2u }
+		else if (n < 1000u64) { 3u }
+		else if (n < 10000u64) { 4u }
+		else if (n < 100000u64) { 5u }
+		else if (n < 1000000u64) { 6u }
+		else if (n < 10000000u64) { 7u }
+		else if (n < 100000000u64) { 8u }
+		else if (n < 1000000000u64) { 9u }
+		else if (n < 10000000000u64) { 10u }
+		else if (n < 100000000000u64) { 11u }
+		else if (n < 1000000000000u64) { 12u }
+		else if (n < 10000000000000u64) { 13u }
+		else if (n < 100000000000000u64) { 14u }
+		else if (n < 1000000000000000u64) { 15u }
+		else if (n < 10000000000000000u64) { 16u }
+		else if (n < 100000000000000000u64) { 17u }
+		else if (n < 1000000000000000000u64) { 18u }
+		else if (n < 10000000000000000000u64) { 19u }
+		else { 20u };
+}
+
 function print_uint_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
+	const output_len = decimal_length_u64(n);
+	let rev_out = out + output_len;
 	// basically a copy of number printing in ryu::d2s
 	while (n >= 10000u)
 	{
@@ -150,30 +176,30 @@ function print_uint_to_buffer(n: uint64, out: *uint8) -> *uint8
 		n /= 10000u;
 		const c0 = (c % 100u) * 2u;
 		const c1 = (c / 100u) * 2u;
-		memcpy(out,      ryu::DIGIT_TABLE.begin() + c1, 2u);
-		memcpy(out + 2u, ryu::DIGIT_TABLE.begin() + c0, 2u);
-		out += 4;
+		rev_out -= 4;
+		memcpy(rev_out + 2, ryu::DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(rev_out,     ryu::DIGIT_TABLE.begin() + c1, 2u);
 	}
 	if (n >= 100u)
 	{
 		const c = (n % 100u) * 2u;
 		n /= 100u;
-		memcpy(out, ryu::DIGIT_TABLE.begin() + c, 2u);
-		out += 2;
+		rev_out -= 2;
+		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2u);
 	}
 	if (n >= 10u)
 	{
 		const c = (n % 100u) * 2u;
 		n /= 100u;
-		memcpy(out, ryu::DIGIT_TABLE.begin() + c, 2u);
-		out += 2;
+		rev_out -= 2;
+		memcpy(rev_out, ryu::DIGIT_TABLE.begin() + c, 2u);
 	}
 	else
 	{
-		*out = ('0' + n) as uint32 as uint8;
-		out += 1;
+		rev_out -= 1;
+		*rev_out = ('0' + n) as uint32 as uint8;
 	}
-	return out;
+	return out + output_len;
 }
 
 consteval max_uint_string_length = 20uz;
