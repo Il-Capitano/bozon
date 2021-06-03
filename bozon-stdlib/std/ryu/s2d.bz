@@ -21,10 +21,10 @@ import d2s_full_table;
 
 import std::utils;
 
-export consteval SUCCESS         = 0u;
-export consteval INPUT_TOO_SHORT = 1u;
-export consteval INPUT_TOO_LONG  = 2u;
-export consteval MALFORMED_INPUT = 3u;
+export consteval s2d_SUCCESS         = 0u;
+export consteval s2d_INPUT_TOO_SHORT = 1u;
+export consteval s2d_INPUT_TOO_LONG  = 2u;
+export consteval s2d_MALFORMED_INPUT = 3u;
 
 consteval DOUBLE_MANTISSA_BITS = 52;
 consteval DOUBLE_EXPONENT_BITS = 11;
@@ -52,7 +52,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 {
 	if (len == 0)
 	{
-		return INPUT_TOO_SHORT;
+		return s2d_INPUT_TOO_SHORT;
 	}
 	let m10digits = 0;
 	let e10digits = 0;
@@ -81,7 +81,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		{
 			if (dotIndex != len)
 			{
-				return MALFORMED_INPUT;
+				return s2d_MALFORMED_INPUT;
 			}
 			dotIndex = i;
 		}
@@ -89,7 +89,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		{
 			if (m10digits >= 17)
 			{
-				return INPUT_TOO_LONG;
+				return s2d_INPUT_TOO_LONG;
 			}
 			m10 = 10u * m10 + (c - '0') as uint64;
 			if (m10 != 0u)
@@ -112,12 +112,12 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 			let c = *(buffer + i) as uint32 as char;
 			if ((c < '0') || (c > '9'))
 			{
-				return MALFORMED_INPUT;
+				return s2d_MALFORMED_INPUT;
 			}
 			if (e10digits > 3)
 			{
 				// TODO: Be more lenient. Return +/-Infinity or +/-0 instead.
-				return INPUT_TOO_LONG;
+				// return s2d_INPUT_TOO_LONG;
 			}
 			e10 = 10 * e10 + (c - '0');
 			if (e10 != 0)
@@ -128,7 +128,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 	}
 	if (i < len)
 	{
-		return MALFORMED_INPUT;
+		return s2d_MALFORMED_INPUT;
 	}
 	if (signedE)
 	{
@@ -138,7 +138,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 	{
 		e10 -= eIndex - dotIndex - 1;
 	}
-	if (m10 == 0u)
+	if (m10 == 0u || (e10digits > 4 && signedE))
 	{
 		if (signedM)
 		{
@@ -148,7 +148,19 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		{
 			*result = 0.0;
 		}
-		return SUCCESS;
+		return s2d_SUCCESS;
+	}
+	else if (e10digits > 4)
+	{
+		if (signedM)
+		{
+			*result = ((-1.0 / 0.0));
+		}
+		else
+		{
+			*result = ((1.0 / 0.0));
+		}
+		return s2d_SUCCESS;
 	}
 
 	if ((m10digits + e10 <= -324) || (m10 == 0u))
@@ -156,14 +168,14 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		// Number is less than 1e-324, which should be rounded down to 0; return +/-0.0.
 		const ieee = (signedM as uint64) << (DOUBLE_EXPONENT_BITS + DOUBLE_MANTISSA_BITS) as uint32;
 		*result = int64Bits2Double(ieee);
-		return SUCCESS;
+		return s2d_SUCCESS;
 	}
 	if (m10digits + e10 >= 310)
 	{
 		// Number is larger than 1e+309, which should be rounded to +/-Infinity.
 		const ieee = ((signedM as uint64) << (DOUBLE_EXPONENT_BITS + DOUBLE_MANTISSA_BITS) as uint32) | (0x7ffu64 << DOUBLE_MANTISSA_BITS as uint32);
 		*result = int64Bits2Double(ieee);
-		return SUCCESS;
+		return s2d_SUCCESS;
 	}
 
 	// Convert to binary float m2 * 2^e2, while retaining information about whether the conversion
@@ -214,7 +226,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		// Final IEEE exponent is larger than the maximum representable; return +/-Infinity.
 		const ieee = ((signedM as uint64) << (DOUBLE_EXPONENT_BITS + DOUBLE_MANTISSA_BITS) as uint32) | (0x7ffu64 << DOUBLE_MANTISSA_BITS as uint32);
 		*result = int64Bits2Double(ieee);
-		return SUCCESS;
+		return s2d_SUCCESS;
 	}
 
 	// We need to figure out how much we need to shift m2. The tricky part is that we need to take
@@ -247,7 +259,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 
 	const ieee = ((((signedM as uint64) << DOUBLE_EXPONENT_BITS as uint32) | ieee_e2 as uint64) << DOUBLE_MANTISSA_BITS as uint32) | ieee_m2;
 	*result = int64Bits2Double(ieee);
-	return SUCCESS;
+	return s2d_SUCCESS;
 }
 
 function c_strlen(c_str: *const uint8) -> int32

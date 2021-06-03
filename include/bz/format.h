@@ -6,6 +6,7 @@
 #include "u8string.h"
 #include "u8string_view.h"
 #include "vector.h"
+#include "optional.h"
 
 #include <utility>
 #include <cassert>
@@ -2671,21 +2672,43 @@ u8string format(u8string_view fmt, Ts const &...ts)
 	}
 }
 
-extern "C" uint32_t s2d_str(char const *begin, char const *end, double *result);
-extern "C" uint32_t s2f_str(char const *begin, char const *end, float *result);
+enum class float_parse_result : uint32_t
+{
+	SUCCESS         = 0u,
+	INPUT_TOO_SHORT = 1u,
+	INPUT_TOO_LONG  = 2u,
+	MALFORMED_INPUT = 3u,
+};
 
-inline double parse_double(u8string_view str) noexcept
+[[nodiscard]] extern "C" float_parse_result s2d_str(char const *begin, char const *end, double *result);
+[[nodiscard]] extern "C" float_parse_result s2f_str(char const *begin, char const *end, float *result);
+
+inline bz::optional<double> parse_double(u8string_view str) noexcept
 {
 	double result = 0.0;
-	s2d_str(str.data(), str.data() + str.size(), &result);
-	return result;
+	auto const parse_res = s2d_str(str.data(), str.data() + str.size(), &result);
+	if (parse_res != float_parse_result::SUCCESS)
+	{
+		return {};
+	}
+	else
+	{
+		return result;
+	}
 }
 
-inline float parse_float(u8string_view str) noexcept
+inline bz::optional<float> parse_float(u8string_view str) noexcept
 {
 	float result = 0.0f;
-	s2f_str(str.data(), str.data() + str.size(), &result);
-	return result;
+	auto const parse_res = s2f_str(str.data(), str.data() + str.size(), &result);
+	if (parse_res != float_parse_result::SUCCESS)
+	{
+		return {};
+	}
+	else
+	{
+		return result;
+	}
 }
 
 bz_end_namespace

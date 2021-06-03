@@ -139,7 +139,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	{
 		e10 -= eIndex - dotIndex - 1;
 	}
-	if (m10 == 0u)
+	if (m10 == 0u || (e10digits > 4 && signedE))
 	{
 		if (signedM)
 		{
@@ -148,6 +148,18 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		else
 		{
 			*result = 0.0f32;
+		}
+		return s2f_SUCCESS;
+	}
+	else if (e10digits > 4)
+	{
+		if (signedM)
+		{
+			*result = ((-1.0f32 / 0.0f32));
+		}
+		else
+		{
+			*result = ((1.0f32 / 0.0f32));
 		}
 		return s2f_SUCCESS;
 	}
