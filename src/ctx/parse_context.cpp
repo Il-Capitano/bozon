@@ -1799,21 +1799,49 @@ if (postfix == postfix_str)                                                     
 		auto const postfix = literal->postfix;
 		ast::constant_value value{};
 		ast::type_info *type_info;
-		if (postfix == "" || postfix == "f64")
+		if (postfix == "f32")
 		{
-			value = bz::parse_double(number_string);
-			type_info = this->get_builtin_type_info(ast::type_info::float64_);
-		}
-		else if (postfix == "f32")
-		{
-			value = bz::parse_float(number_string);
+			auto const num = bz::parse_float(number_string);
+			value = num.has_value() ? num.get() : 0.0f;
+
+			if (!num.has_value())
+			{
+				bz::vector<source_highlight> notes;
+				if (do_verbose)
+				{
+					notes.push_back(make_note(literal->src_pos.file_id, literal->src_pos.line, "at most 9 significant digits are allowed for 'float32'"));
+				}
+				this->report_error(literal, "unable to parse 'float32' literal value, it has too many digits", std::move(notes));
+			}
+			else if (!std::isfinite(num.get()))
+			{
+				this->report_warning(warning_kind::float_overflow, literal, bz::format("'float32' literal value was parsed as {}", num.get()));
+			}
 			type_info = this->get_builtin_type_info(ast::type_info::float32_);
 		}
 		else
 		{
-			value = bz::parse_double(number_string);
+			if (postfix != "" && postfix != "f64")
+			{
+				this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
+			}
+			auto const num = bz::parse_double(number_string);
+			value = num.has_value() ? num.get() : 0.0;
+
+			if (!num.has_value())
+			{
+				bz::vector<source_highlight> notes;
+				if (do_verbose)
+				{
+					notes.push_back(make_note(literal->src_pos.file_id, literal->src_pos.line, "at most 17 significant digits are allowed for 'float64'"));
+				}
+				this->report_error(literal, "unable to parse 'float64' literal value, it has too many digits", std::move(notes));
+			}
+			else if (!std::isfinite(num.get()))
+			{
+				this->report_warning(warning_kind::float_overflow, literal, bz::format("'float64' literal value was parsed as {}", num.get()));
+			}
 			type_info = this->get_builtin_type_info(ast::type_info::float64_);
-			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 		}
 
 		return ast::make_constant_expression(
