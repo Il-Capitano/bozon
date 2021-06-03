@@ -118,7 +118,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 			if (e10digits > 3)
 			{
 				// TODO: Be more lenient. Return +/-Infinity or +/-0 instead.
-				return s2f_INPUT_TOO_LONG;
+				// return s2f_INPUT_TOO_LONG;
 			}
 			e10 = 10 * e10 + (c - '0');
 			if (e10 != 0)
