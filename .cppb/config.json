@@ -1,120 +1,136 @@
 {
-	"default": {
-		"compiler": "clang",
-		"c_standard": "c11",
-		"cpp_standard": "c++17",
+	"projects": {
+		"default": {
+			"compiler": "clang",
+			"c_standard": "c11",
+			"cpp_standard": "c++17",
 
-		"cpp_precompiled_header": "src/core.h",
+			"cpp_precompiled_header": "src/core.h",
 
-		"c_compiler_flags": [],
-		"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
-		"emit_compile_commands": true,
+			"c_compiler_flags": [],
+			"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
+			"emit_compile_commands": true,
 
-		"run_args": [
-			"-Wall",
-			"--debug-ir-output",
-			"--profile",
-			"-I", "./bozon-stdlib",
-			"-o", "./bitcode_test.o",
-			"./src/bitcode_test.bz"
-		],
+			"run_args": [
+				"-Wall",
+				"--debug-ir-output",
+				"--profile",
+				"-I", "./bozon-stdlib",
+				"-o", "./bitcode_test.o",
+				"./src/bitcode_test.bz"
+			],
 
-		"source_directory": "src",
-		"include_paths": [ "src", "include" ],
+			"source_directory": "src",
+			"include_paths": [ "src", "include" ],
 
-		"defines": [],
-		"warnings": [
-			"all",
-			"extra",
-			"no-c++20-extensions",
-			"no-defaulted-function-deleted"
-		],
+			"defines": [],
+			"warnings": [
+				"all",
+				"extra",
+				"no-c++20-extensions",
+				"no-defaulted-function-deleted"
+			],
 
-		"configs": {
-			"windows-debug": {},
-			"windows-release": {},
-			"linux-debug": {
-				"optimization": "1",
-				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
-				"link_flags": [ "-fsanitize=address,undefined" ]
-			},
-			"linux-release": {},
-			"windows": {
-				"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
-				"libraries": [ "LLVM" ]
-			},
-			"linux": {
-				"compiler": "clang-12",
-				"libraries": [ "LLVM-12" ],
-				"link_flags": [ "-fuse-ld=lld-12", "ryu_format.linux.o" ],
-				"warnings": [ "no-unused-parameter" ],
-				"emit_compile_commands": false
-			},
-			"debug": {
-				"defines": [ "BOZON_NO_ARENA" ],
-				"optimization": "0"
-			},
-			"release": {
-				"defines": [ "NDEBUG" ],
-				"optimization": "3",
-				"link_flags": [ "-flto" ],
-				"cpp_compiler_flags": [ "-flto" ]
+			"configs": {
+				"windows-debug": {},
+				"windows-release": {},
+				"linux-debug": {
+					"optimization": "1",
+					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
+					"link_flags": [ "-fsanitize=address,undefined" ]
+				},
+				"linux-release": {},
+				"windows": {
+					"prelink_rules": [ "ryu_format.o" ],
+					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
+					"libraries": [ "LLVM" ]
+				},
+				"linux": {
+					"prelink_rules": [ "ryu_format.linux.o" ],
+					"compiler": "clang-12",
+					"libraries": [ "LLVM-12" ],
+					"link_flags": [ "-fuse-ld=lld-12", "ryu_format.linux.o" ],
+					"warnings": [ "no-unused-parameter" ],
+					"emit_compile_commands": false
+				},
+				"debug": {
+					"defines": [ "BOZON_NO_ARENA" ],
+					"optimization": "0"
+				},
+				"release": {
+					"defines": [ "NDEBUG" ],
+					"optimization": "3",
+					"link_flags": [ "-flto" ],
+					"cpp_compiler_flags": [ "-flto" ]
+				}
 			}
+		},
+		"test": {
+			"depends_on": "default",
+			"source_directory": "test",
+			"defines": [ "BOZON_NO_ARENA" ],
+			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight" ]
+		},
+		"gcc": {
+			"compiler": "gcc",
+			"depends_on": "default",
+			"cpp_precompiled_header": "",
+
+			"c_compiler_flags": [],
+			"cpp_compiler_flags": [ "-march=native", "-mtune=native" ],
+			"emit_compile_commands": false,
+
+			"warnings": [
+				"all",
+				"extra"
+			],
+
+			"configs": {
+				"windows-debug": {},
+				"windows-release": {},
+				"linux-debug": {
+					"optimization": "1",
+					"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
+					"link_flags": [ "-fsanitize=address,undefined" ]
+				},
+				"linux-release": {},
+				"windows": {
+					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
+					"libraries": [ "LLVM" ]
+				},
+				"linux": {
+					"compiler": "gcc-10",
+					"libraries": [ "LLVM-12" ],
+					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
+					"warnings": [ "no-unused-parameter" ]
+				},
+				"debug": {
+					"defines": [ "BOZON_NO_ARENA" ],
+					"optimization": "0"
+				},
+				"release": {
+					"defines": [ "NDEBUG" ],
+					"optimization": "3"
+				}
+			}
+		},
+		"test-gcc": {
+			"depends_on": "gcc",
+			"source_directory": "test",
+			"defines": [ "BOZON_NO_ARENA" ],
+			"run_args": [ "-Wall", "--debug-comptime-ir-output" ]
 		}
 	},
-	"test": {
-		"depends_on": "default",
-		"source_directory": "test",
-		"defines": [ "BOZON_NO_ARENA" ],
-		"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight" ]
-	},
-	"gcc": {
-		"compiler": "gcc",
-		"depends_on": "default",
-		"cpp_precompiled_header": "",
-
-		"c_compiler_flags": [],
-		"cpp_compiler_flags": [ "-march=native", "-mtune=native" ],
-		"emit_compile_commands": false,
-
-		"warnings": [
-			"all",
-			"extra"
-		],
-
-		"configs": {
-			"windows-debug": {},
-			"windows-release": {},
-			"linux-debug": {
-				"optimization": "1",
-				"cpp_compiler_flags": [ "-fno-omit-frame-pointer", "-fsanitize=address,undefined" ],
-				"link_flags": [ "-fsanitize=address,undefined" ]
-			},
-			"linux-release": {},
-			"windows": {
-				"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
-				"libraries": [ "LLVM" ]
-			},
-			"linux": {
-				"compiler": "gcc-10",
-				"libraries": [ "LLVM-12" ],
-				"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
-				"warnings": [ "no-unused-parameter" ]
-			},
-			"debug": {
-				"defines": [ "BOZON_NO_ARENA" ],
-				"optimization": "0"
-			},
-			"release": {
-				"defines": [ "NDEBUG" ],
-				"optimization": "3"
-			}
+	"rules": {
+		"ryu_format.o": {
+			"dependencies": [ "ryu_format.ll" ],
+			"command": "llc ryu_format.ll -filetype=obj -o ryu_format.o",
+			"is_file": true
+		},
+		"ryu_format.linux.o": {
+			"dependencies": [ "ryu_format.linux.ll" ],
+			"command": "llc-12 ryu_format.linux.ll -filetype=obj -o ryu_format.linux.o",
+			"is_file": true
 		}
-	},
-	"test-gcc": {
-		"depends_on": "gcc",
-		"source_directory": "test",
-		"defines": [ "BOZON_NO_ARENA" ],
-		"run_args": [ "-Wall", "--debug-comptime-ir-output" ]
 	}
 }
