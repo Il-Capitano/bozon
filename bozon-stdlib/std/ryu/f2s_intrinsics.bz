@@ -25,7 +25,7 @@ export function pow5factor_32(value: uint32) -> uint32
 	// assert(value != 0);
 	let q = value / 5u;
 	let r = value % 5u;
-	for (; r != 0u; ++count)
+	for (; r == 0u; ++count)
 	{
 		value = q;
 		q = value / 5u;
@@ -41,9 +41,10 @@ export function multipleOfPowerOf5_32(value: uint32, p: uint32) -> bool
 }
 
 // Returns true if value is divisible by 2^p.
-export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool {
-  // __builtin_ctz doesn't appear to be faster here.
-  return (value & ((1u << p) - 1u)) == 0u;
+export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool
+{
+	// __builtin_ctz doesn't appear to be faster here.
+	return (value & ((1u32 << p) - 1u32)) == 0u;
 }
 
 // It seems to be slightly faster to avoid uint128_t here, although the
@@ -55,11 +56,11 @@ export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 	// The casts here help MSVC to avoid calls to the __allmul library
 	// function.
 	const factorLo = factor as uint32;
-	const factorHi = (factor >> 32u) as uint32;
+	const factorHi = (factor >> 32) as uint32;
 	const bits0 = m as uint64 * factorLo;
 	const bits1 = m as uint64 * factorHi;
 
-	const sum = (bits0 >> 32u) + bits1;
+	const sum = (bits0 >> 32) + bits1;
 	const shiftedSum = sum >> (shift - 32u);
 	// assert(shiftedSum <= UINT32_MAX);
 	return shiftedSum as uint32;
