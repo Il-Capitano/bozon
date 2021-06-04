@@ -2680,8 +2680,8 @@ enum class float_parse_result : uint32_t
 	MALFORMED_INPUT = 3u,
 };
 
-[[nodiscard]] extern "C" float_parse_result s2d_str(char const *begin, char const *end, double *result);
-[[nodiscard]] extern "C" float_parse_result s2f_str(char const *begin, char const *end, float *result);
+extern "C" [[nodiscard]] float_parse_result s2d_str(char const *begin, char const *end, double *result);
+extern "C" [[nodiscard]] float_parse_result s2f_str(char const *begin, char const *end, float *result);
 
 inline bz::optional<double> parse_double(u8string_view str) noexcept
 {
