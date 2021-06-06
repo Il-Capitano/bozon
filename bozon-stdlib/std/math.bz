@@ -59,6 +59,73 @@ export function tgamma = __builtin_tgamma_f64;
 export function lgamma = __builtin_lgamma_f32;
 export function lgamma = __builtin_lgamma_f64;
 
-export consteval pi  = atan2(0.0, -1.0);
-export consteval tau = 2.0 * pi;
-export consteval e   = exp(1.0);
+// math constants
+
+export consteval pi  = 3.1415926535897932;
+export consteval tau = 6.2831853071795865;
+export consteval e   = 2.7182818284590452;
+
+export consteval pi_f64 : float64 = 3.1415926535897932;
+export consteval tau_f64: float64 = 6.2831853071795865;
+export consteval e_f64  : float64 = 2.7182818284590452;
+
+export consteval pi_f32 : float32 = 3.14159265f32;
+export consteval tau_f32: float32 = 6.28318531f32;
+export consteval e_f32  : float32 = 2.71828183f32;
+
+static_assert(pi  == atan2(0.0, -1.0));
+static_assert(tau == 2.0 * pi);
+static_assert(e   == exp(1.0));
+
+static_assert(pi_f64  == pi);
+static_assert(tau_f64 == tau);
+static_assert(e_f64   == e);
+
+static_assert(pi_f32  == atan2(0.0f32, -1.0f32));
+static_assert(tau_f32 == 2.0f32 * pi_f32);
+static_assert(e_f32   == exp(1.0f32));
+
+static_assert(pi_f32  == pi  as float32);
+static_assert(tau_f32 == tau as float32);
+static_assert(e_f32   == e   as float32);
+
+// limits
+
+export consteval inf_f64: float64 = ((1.0 / 0.0));
+export consteval nan_f64: float64 = ((inf_f64 - inf_f64));
+
+export consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
+export consteval nan_f32: float32 = ((inf_f32 - inf_f32));
+
+export consteval inf = inf_f64;
+export consteval nan = nan_f64;
+
+export consteval f64_min       : float64 = 2.2250738585072014e-308;
+export consteval f64_min_denorm: float64 = 5e-324;
+
+export consteval f32_min       : float32 = 1.1754944e-38f32;
+export consteval f32_min_denorm: float32 = 1e-45f32;
+
+function bits_as_float(n: uint32) -> float32
+{
+	let x: float32;
+	__builtin_memcpy(&x, &n, sizeof float32);
+	return x;
+}
+
+function bits_as_float(n: uint64) -> float64
+{
+	let x: float64;
+	__builtin_memcpy(&x, &n, sizeof float64);
+	return x;
+}
+
+static_assert(inf_f64 == bits_as_float(0x7ff0'0000'0000'0000u64));
+static_assert(inf_f32 == bits_as_float(0x7f80'0000u32));
+static_assert(((nan_f64 != nan_f64)));
+static_assert(((nan_f32 != nan_f32)));
+
+static_assert(f64_min == bits_as_float(0x0010'0000'0000'0000u64));
+static_assert(f32_min == bits_as_float(0x0080'0000u32));
+static_assert(f64_min_denorm == bits_as_float(0x0000'0000'0000'0001u64));
+static_assert(f32_min_denorm == bits_as_float(0x0000'0001u32));
