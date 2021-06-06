@@ -3204,8 +3204,8 @@ alloca:
   %3 = icmp eq i32 %1, 0
   br i1 %3, label %then, label %endif
 
-then:                                             ; preds = %then161, %else163, %then152, %else154, %endif122, %for95, %else, %then27, %alloca
-  %merge = phi i32 [ 1, %alloca ], [ 3, %then27 ], [ 2, %else ], [ 3, %for95 ], [ 3, %endif122 ], [ 0, %else154 ], [ 0, %then152 ], [ 0, %else163 ], [ 0, %then161 ]
+then:                                             ; preds = %endif123, %for95, %else, %then27, %alloca
+  %merge = phi i32 [ 1, %alloca ], [ 3, %then27 ], [ 2, %else ], [ 3, %for95 ], [ 3, %endif123 ]
   ret i32 %merge
 
 endif:                                            ; preds = %alloca
@@ -3215,15 +3215,15 @@ endif:                                            ; preds = %alloca
   br label %for_condition_check
 
 for_condition_check:                              ; preds = %endif43, %endif
-  %.1344 = phi i32 [ %spec.select, %endif ], [ %11, %endif43 ]
-  %.0335 = phi i64 [ 0, %endif ], [ %.1336, %endif43 ]
-  %.0332 = phi i32 [ %1, %endif ], [ %.1333, %endif43 ]
-  %.0328 = phi i32 [ 0, %endif ], [ %.2, %endif43 ]
-  %5 = icmp slt i32 %.1344, %1
-  br i1 %5, label %bool_and_rhs, label %endif122
+  %.1332 = phi i32 [ %spec.select, %endif ], [ %11, %endif43 ]
+  %.0322 = phi i64 [ 0, %endif ], [ %.1323, %endif43 ]
+  %.0319 = phi i32 [ %1, %endif ], [ %.1320, %endif43 ]
+  %.0315 = phi i32 [ 0, %endif ], [ %.2, %endif43 ]
+  %5 = icmp slt i32 %.1332, %1
+  br i1 %5, label %bool_and_rhs, label %endif123
 
 bool_and_rhs:                                     ; preds = %for_condition_check
-  %6 = sext i32 %.1344 to i64
+  %6 = sext i32 %.1332 to i64
   %ptr_add_tmp13 = getelementptr i8, i8* %0, i64 %6
   %load_tmp14 = load i8, i8* %ptr_add_tmp13, align 1
   %cast_tmp = zext i8 %load_tmp14 to i64
@@ -3237,37 +3237,37 @@ for:                                              ; preds = %bool_and_rhs
   br i1 %8, label %then27, label %else
 
 then27:                                           ; preds = %for
-  %.not326 = icmp eq i32 %.0332, %1
-  br i1 %.not326, label %endif43, label %then
+  %.not313 = icmp eq i32 %.0319, %1
+  br i1 %.not313, label %endif43, label %then
 
 else:                                             ; preds = %for
-  %9 = icmp sgt i32 %.0328, 16
+  %9 = icmp sgt i32 %.0315, 16
   br i1 %9, label %then, label %endif35
 
 endif35:                                          ; preds = %else
-  %mul_tmp = mul i64 %.0335, 10
+  %mul_tmp = mul i64 %.0322, 10
   %sub_tmp = add i64 %mul_tmp, -48
   %add_tmp = add i64 %sub_tmp, %cast_tmp
-  %.not325 = icmp ne i64 %add_tmp, 0
-  %10 = zext i1 %.not325 to i32
-  %spec.select350 = add i32 %.0328, %10
+  %.not312 = icmp ne i64 %add_tmp, 0
+  %10 = zext i1 %.not312 to i32
+  %spec.select339 = add i32 %.0315, %10
   br label %endif43
 
 endif43:                                          ; preds = %then27, %endif35
-  %.1336 = phi i64 [ %add_tmp, %endif35 ], [ %.0335, %then27 ]
-  %.1333 = phi i32 [ %.0332, %endif35 ], [ %.1344, %then27 ]
-  %.2 = phi i32 [ %spec.select350, %endif35 ], [ %.0328, %then27 ]
-  %11 = add i32 %.1344, 1
+  %.1323 = phi i64 [ %add_tmp, %endif35 ], [ %.0322, %then27 ]
+  %.1320 = phi i32 [ %.0319, %endif35 ], [ %.1332, %then27 ]
+  %.2 = phi i32 [ %spec.select339, %endif35 ], [ %.0315, %then27 ]
+  %11 = add i32 %.1332, 1
   br label %for_condition_check
 
 bool_and_rhs47:                                   ; preds = %bool_and_rhs
-  switch i8 %load_tmp14, label %endif122 [
+  switch i8 %load_tmp14, label %endif123 [
     i8 101, label %then63
     i8 69, label %then63
   ]
 
 then63:                                           ; preds = %bool_and_rhs47, %bool_and_rhs47
-  %12 = add i32 %.1344, 1
+  %12 = add i32 %.1332, 1
   %13 = icmp slt i32 %12, %1
   br i1 %13, label %bool_and_rhs68, label %endif91
 
@@ -3282,131 +3282,114 @@ bool_and_rhs68:                                   ; preds = %then63
 
 then84:                                           ; preds = %bool_and_rhs68, %bool_and_rhs68
   %15 = icmp eq i8 %load_tmp72, 45
-  %16 = add i32 %.1344, 2
+  %16 = add i32 %.1332, 2
   br label %endif91
 
 endif91:                                          ; preds = %bool_and_rhs68, %then63, %then84
-  %.2345 = phi i32 [ %16, %then84 ], [ %12, %then63 ], [ %12, %bool_and_rhs68 ]
-  %.0341 = phi i1 [ %15, %then84 ], [ false, %then63 ], [ false, %bool_and_rhs68 ]
+  %.2333 = phi i32 [ %16, %then84 ], [ %12, %then63 ], [ %12, %bool_and_rhs68 ]
+  %.0329 = phi i1 [ %15, %then84 ], [ false, %then63 ], [ false, %bool_and_rhs68 ]
   br label %for_condition_check92
 
-for_condition_check92:                            ; preds = %endif107, %endif91
-  %.3346 = phi i32 [ %.2345, %endif91 ], [ %21, %endif107 ]
-  %.0337 = phi i32 [ 0, %endif91 ], [ %add_tmp115, %endif107 ]
-  %.0329 = phi i32 [ 0, %endif91 ], [ %.1330, %endif107 ]
-  %17 = icmp slt i32 %.3346, %1
-  br i1 %17, label %for95, label %endif122
+for_condition_check92:                            ; preds = %endif120, %endif91
+  %.3334 = phi i32 [ %.2333, %endif91 ], [ %22, %endif120 ]
+  %.0324 = phi i32 [ 0, %endif91 ], [ %.1325, %endif120 ]
+  %.0316 = phi i32 [ 0, %endif91 ], [ %.2318, %endif120 ]
+  %17 = icmp slt i32 %.3334, %1
+  br i1 %17, label %for95, label %endif123
 
 for95:                                            ; preds = %for_condition_check92
-  %18 = sext i32 %.3346 to i64
+  %18 = sext i32 %.3334 to i64
   %ptr_add_tmp98 = getelementptr i8, i8* %0, i64 %18
   %load_tmp99 = load i8, i8* %ptr_add_tmp98, align 1
+  %cast_tmp100 = zext i8 %load_tmp99 to i32
   %load_tmp99.off = add i8 %load_tmp99, -48
   %19 = icmp ugt i8 %load_tmp99.off, 9
   br i1 %19, label %then, label %endif107
 
 endif107:                                         ; preds = %for95
-  %cast_tmp100 = zext i8 %load_tmp99 to i32
-  %mul_tmp112 = mul i32 %.0337, 10
+  %20 = icmp sgt i32 %.0316, 3
+  br i1 %20, label %endif120, label %else110
+
+else110:                                          ; preds = %endif107
+  %mul_tmp112 = mul i32 %.0324, 10
   %sub_tmp114 = add i32 %mul_tmp112, -48
   %add_tmp115 = add i32 %sub_tmp114, %cast_tmp100
-  %.not324 = icmp ne i32 %add_tmp115, 0
-  %20 = zext i1 %.not324 to i32
-  %.1330 = add i32 %.0329, %20
-  %21 = add i32 %.3346, 1
+  %.not311 = icmp ne i32 %add_tmp115, 0
+  %21 = zext i1 %.not311 to i32
+  %spec.select341 = add i32 %.0316, %21
+  br label %endif120
+
+endif120:                                         ; preds = %endif107, %else110
+  %.1325 = phi i32 [ %add_tmp115, %else110 ], [ %.0324, %endif107 ]
+  %.2318 = phi i32 [ %spec.select341, %else110 ], [ %.0316, %endif107 ]
+  %22 = add i32 %.3334, 1
   br label %for_condition_check92
 
-endif122:                                         ; preds = %for_condition_check, %bool_and_rhs47, %for_condition_check92
-  %.4 = phi i32 [ %.3346, %for_condition_check92 ], [ %.1344, %bool_and_rhs47 ], [ %.1344, %for_condition_check ]
-  %.1342 = phi i1 [ %.0341, %for_condition_check92 ], [ false, %bool_and_rhs47 ], [ false, %for_condition_check ]
-  %.1338 = phi i32 [ %.0337, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
-  %.0334 = phi i32 [ %.1344, %for_condition_check92 ], [ %1, %bool_and_rhs47 ], [ %1, %for_condition_check ]
-  %.2331 = phi i32 [ %.0329, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
-  %22 = icmp slt i32 %.4, %1
-  br i1 %22, label %then, label %endif126
+endif123:                                         ; preds = %for_condition_check, %bool_and_rhs47, %for_condition_check92
+  %.4335 = phi i32 [ %.3334, %for_condition_check92 ], [ %.1332, %bool_and_rhs47 ], [ %.1332, %for_condition_check ]
+  %.1330 = phi i1 [ %.0329, %for_condition_check92 ], [ false, %bool_and_rhs47 ], [ false, %for_condition_check ]
+  %.2326 = phi i32 [ %.0324, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
+  %.0321 = phi i32 [ %.1332, %for_condition_check92 ], [ %1, %bool_and_rhs47 ], [ %1, %for_condition_check ]
+  %.3 = phi i32 [ %.0316, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
+  %23 = icmp slt i32 %.4335, %1
+  br i1 %23, label %then, label %endif127
 
-endif126:                                         ; preds = %endif122
-  %unary_minus_tmp = sub i32 0, %.1338
-  %spec.select352 = select i1 %.1342, i32 %unary_minus_tmp, i32 %.1338
-  %23 = icmp slt i32 %.0332, %.0334
-  %.neg371 = add i32 %.0332, 1
-  %sub_tmp137.neg = sub i32 %.neg371, %.0334
-  %sub_tmp139 = select i1 %23, i32 %sub_tmp137.neg, i32 0
-  %.3 = add i32 %sub_tmp139, %spec.select352
-  %unary_minus_tmp228 = sub i32 0, %.3
-  %24 = icmp eq i64 %.0335, 0
-  %25 = icmp sgt i32 %.2331, 4
-  %spec.select353 = and i1 %.1342, %25
-  %bool_or_tmp149 = or i1 %24, %spec.select353
-  br i1 %bool_or_tmp149, label %then150, label %else157
+endif127:                                         ; preds = %endif123
+  %unary_minus_tmp = sub i32 0, %.2326
+  %spec.select342 = select i1 %.1330, i32 %unary_minus_tmp, i32 %.2326
+  %24 = icmp slt i32 %.0319, %.0321
+  %.neg361 = add i32 %.0319, 1
+  %sub_tmp138.neg = sub i32 %.neg361, %.0321
+  %sub_tmp140 = select i1 %24, i32 %sub_tmp138.neg, i32 0
+  %.4 = add i32 %sub_tmp140, %spec.select342
+  %unary_minus_tmp215 = sub i32 0, %.4
+  %25 = icmp sgt i32 %.3, 3
+  %spec.select343 = and i1 %.1330, %25
+  %add_tmp150 = add i32 %.4, %.0315
+  %26 = icmp slt i32 %add_tmp150, -323
+  %bool_or_tmp152 = or i1 %spec.select343, %26
+  %27 = icmp eq i64 %.0322, 0
+  %spec.select344 = or i1 %27, %bool_or_tmp152
+  br i1 %spec.select344, label %then157, label %else162
 
-then150:                                          ; preds = %endif126
-  br i1 %4, label %then152, label %else154
-
-then152:                                          ; preds = %then150
-  store double -0.000000e+00, double* %2, align 8
-  br label %then
-
-else154:                                          ; preds = %then150
-  store double 0.000000e+00, double* %2, align 8
-  br label %then
-
-else157:                                          ; preds = %endif126
-  br i1 %25, label %then159, label %endif167
-
-then159:                                          ; preds = %else157
-  br i1 %4, label %then161, label %else163
-
-then161:                                          ; preds = %then159
-  store double 0xFFF0000000000000, double* %2, align 8
-  br label %then
-
-else163:                                          ; preds = %then159
-  store double 0x7FF0000000000000, double* %2, align 8
-  br label %then
-
-endif167:                                         ; preds = %else157
-  %add_tmp170 = add i32 %.3, %.0328
-  %26 = icmp slt i32 %add_tmp170, -323
-  br i1 %26, label %then175, label %endif180
-
-then175:                                          ; preds = %endif167
+then157:                                          ; preds = %endif127
   %load_tmp.cast.i = select i1 %4, double -0.000000e+00, double 0.000000e+00
   store double %load_tmp.cast.i, double* %2, align 8
   ret i32 0
 
-endif180:                                         ; preds = %endif167
-  %27 = icmp sgt i32 %add_tmp170, 309
-  br i1 %27, label %then184, label %endif190
+else162:                                          ; preds = %endif127
+  %28 = icmp sgt i32 %add_tmp150, 309
+  %bool_or_tmp169 = or i1 %25, %28
+  br i1 %bool_or_tmp169, label %then170, label %endif177
 
-then184:                                          ; preds = %endif180
-  %load_tmp.cast.i358 = select i1 %4, double 0xFFF0000000000000, double 0x7FF0000000000000
-  store double %load_tmp.cast.i358, double* %2, align 8
+then170:                                          ; preds = %else162
+  %load_tmp.cast.i348 = select i1 %4, double 0xFFF0000000000000, double 0x7FF0000000000000
+  store double %load_tmp.cast.i348, double* %2, align 8
   ret i32 0
 
-endif190:                                         ; preds = %endif180
-  %28 = icmp sgt i32 %.3, -1
-  br i1 %28, label %then192, label %else223
+endif177:                                         ; preds = %else162
+  %29 = icmp sgt i32 %.4, -1
+  br i1 %29, label %then179, label %else210
 
-then192:                                          ; preds = %endif190
-  %29 = call i64 @llvm.ctlz.i64(i64 %.0335, i1 false), !range !3
-  %cast_tmp.i366 = trunc i64 %29 to i32
-  %mul_tmp.i = mul i32 %.3, 1217359
+then179:                                          ; preds = %endif177
+  %30 = call i64 @llvm.ctlz.i64(i64 %.0322, i1 false), !range !3
+  %cast_tmp.i356 = trunc i64 %30 to i32
+  %mul_tmp.i = mul i32 %.4, 1217359
   %rshift_tmp.i = lshr i32 %mul_tmp.i, 19
-  %add_tmp195 = sub nsw i32 10, %cast_tmp.i366
-  %add_tmp197 = add i32 %add_tmp195, %.3
-  %sub_tmp198 = add i32 %add_tmp197, %rshift_tmp.i
-  %sub_tmp201 = sub i32 %sub_tmp198, %.3
-  %sub_tmp203 = sub nsw i32 124, %rshift_tmp.i
-  %add_tmp204 = add i32 %sub_tmp201, %sub_tmp203
-  %30 = sext i32 %.3 to i64
-  %31 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %30, i64 0
-  %ptr_add_tmp.i = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %30, i64 1
-  %load_tmp2.i373 = load i64, i64* %ptr_add_tmp.i, align 8
-  %rshift_tmp.i.i = lshr i64 %.0335, 32
-  %rshift_tmp6.i.i = lshr i64 %load_tmp2.i373, 32
-  %cast_tmp9.i.i = and i64 %.0335, 4294967295
-  %cast_tmp11.i.i = and i64 %load_tmp2.i373, 4294967295
+  %add_tmp182 = sub nsw i32 10, %cast_tmp.i356
+  %add_tmp184 = add i32 %add_tmp182, %.4
+  %sub_tmp185 = add i32 %add_tmp184, %rshift_tmp.i
+  %sub_tmp188 = sub i32 %sub_tmp185, %.4
+  %sub_tmp190 = sub nsw i32 124, %rshift_tmp.i
+  %add_tmp191 = add i32 %sub_tmp188, %sub_tmp190
+  %31 = sext i32 %.4 to i64
+  %32 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %31, i64 0
+  %ptr_add_tmp.i = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i64 %31, i64 1
+  %load_tmp2.i363 = load i64, i64* %ptr_add_tmp.i, align 8
+  %rshift_tmp.i.i = lshr i64 %.0322, 32
+  %rshift_tmp6.i.i = lshr i64 %load_tmp2.i363, 32
+  %cast_tmp9.i.i = and i64 %.0322, 4294967295
+  %cast_tmp11.i.i = and i64 %load_tmp2.i363, 4294967295
   %mul_tmp.i.i = mul nuw i64 %cast_tmp11.i.i, %cast_tmp9.i.i
   %mul_tmp16.i.i = mul nuw i64 %rshift_tmp6.i.i, %cast_tmp9.i.i
   %mul_tmp21.i.i = mul nuw i64 %cast_tmp11.i.i, %rshift_tmp.i.i
@@ -3422,7 +3405,7 @@ then192:                                          ; preds = %endif190
   %cast_tmp57.i.i = shl i64 %add_tmp43.i.i, 32
   %cast_tmp59.i.i = and i64 %mul_tmp.i.i, 4294967295
   %bit_or_tmp.i.i = or i64 %cast_tmp57.i.i, %cast_tmp59.i.i
-  %load_tmp5.i = load i64, i64* %31, align 16
+  %load_tmp5.i = load i64, i64* %32, align 16
   %rshift_tmp6.i22.i = lshr i64 %load_tmp5.i, 32
   %cast_tmp11.i25.i = and i64 %load_tmp5.i, 4294967295
   %mul_tmp.i26.i = mul nuw i64 %cast_tmp11.i25.i, %cast_tmp9.i.i
@@ -3437,178 +3420,178 @@ then192:                                          ; preds = %endif190
   %rshift_tmp47.i41.i = lshr i64 %add_tmp43.i39.i, 32
   %add_tmp52.i43.i = add i64 %rshift_tmp38.i36.i, %mul_tmp26.i32.i
   %add_tmp55.i44.i = add i64 %add_tmp52.i43.i, %rshift_tmp47.i41.i
-  %add_tmp.i374 = add i64 %add_tmp55.i44.i, %bit_or_tmp.i.i
-  %32 = icmp ult i64 %add_tmp.i374, %add_tmp55.i44.i
-  %33 = zext i1 %32 to i64
-  %load_tmp12.i = add i64 %add_tmp55.i.i, %33
-  %sub_tmp.i375 = add i32 %add_tmp204, -64
-  %sub_tmp.i.i = sub i32 128, %add_tmp204
-  %34 = zext i32 %sub_tmp.i.i to i64
-  %lshift_tmp.i15.i = shl i64 %load_tmp12.i, %34
-  %35 = zext i32 %sub_tmp.i375 to i64
-  %rshift_tmp.i16.i = lshr i64 %add_tmp.i374, %35
+  %add_tmp.i364 = add i64 %add_tmp55.i44.i, %bit_or_tmp.i.i
+  %33 = icmp ult i64 %add_tmp.i364, %add_tmp55.i44.i
+  %34 = zext i1 %33 to i64
+  %load_tmp12.i = add i64 %add_tmp55.i.i, %34
+  %sub_tmp.i365 = add i32 %add_tmp191, -64
+  %sub_tmp.i.i = sub i32 128, %add_tmp191
+  %35 = zext i32 %sub_tmp.i.i to i64
+  %lshift_tmp.i15.i = shl i64 %load_tmp12.i, %35
+  %36 = zext i32 %sub_tmp.i365 to i64
+  %rshift_tmp.i16.i = lshr i64 %add_tmp.i364, %36
   %bit_or_tmp.i17.i = or i64 %lshift_tmp.i15.i, %rshift_tmp.i16.i
-  %36 = icmp slt i32 %sub_tmp198, %.3
-  br i1 %36, label %endif246, label %bool_or_rhs210
+  %37 = icmp slt i32 %sub_tmp185, %.4
+  br i1 %37, label %endif233, label %bool_or_rhs197
 
-bool_or_rhs210:                                   ; preds = %then192
-  %37 = icmp slt i32 %sub_tmp201, 64
-  br i1 %37, label %bool_and_rhs214, label %endif246
+bool_or_rhs197:                                   ; preds = %then179
+  %38 = icmp slt i32 %sub_tmp188, 64
+  br i1 %38, label %bool_and_rhs201, label %endif233
 
-bool_and_rhs214:                                  ; preds = %bool_or_rhs210
-  %38 = zext i32 %sub_tmp201 to i64
-  %notmask.i = shl nsw i64 -1, %38
-  %sub_tmp.i365 = xor i64 %notmask.i, -1
-  %bit_and_tmp.i = and i64 %.0335, %sub_tmp.i365
-  %39 = icmp eq i64 %bit_and_tmp.i, 0
-  br label %endif246
+bool_and_rhs201:                                  ; preds = %bool_or_rhs197
+  %39 = zext i32 %sub_tmp188 to i64
+  %notmask.i = shl nsw i64 -1, %39
+  %sub_tmp.i355 = xor i64 %notmask.i, -1
+  %bit_and_tmp.i = and i64 %.0322, %sub_tmp.i355
+  %40 = icmp eq i64 %bit_and_tmp.i, 0
+  br label %endif233
 
-else223:                                          ; preds = %endif190
-  %40 = call i64 @llvm.ctlz.i64(i64 %.0335, i1 false), !range !3
-  %cast_tmp.i363 = trunc i64 %40 to i32
-  %mul_tmp.i.i360 = mul i32 %.3, -1217359
-  %rshift_tmp.i.i361 = lshr i32 %mul_tmp.i.i360, 19
-  %41 = add i32 %.3, 9
-  %42 = add nuw nsw i32 %rshift_tmp.i.i361, %cast_tmp.i363
-  %sub_tmp230 = sub i32 %41, %42
-  %add_tmp.i = sub i32 125, %.3
-  %add_tmp236 = add i32 %add_tmp.i, %rshift_tmp.i.i361
-  %add_tmp238 = add i32 %add_tmp236, %sub_tmp230
-  %43 = sext i32 %unary_minus_tmp228 to i64
-  %44 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %43, i64 0
-  %ptr_add_tmp.i376 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %43, i64 1
-  %load_tmp2.i377 = load i64, i64* %ptr_add_tmp.i376, align 8
-  %rshift_tmp.i.i378 = lshr i64 %.0335, 32
-  %rshift_tmp6.i.i379 = lshr i64 %load_tmp2.i377, 32
-  %cast_tmp9.i.i380 = and i64 %.0335, 4294967295
-  %cast_tmp11.i.i381 = and i64 %load_tmp2.i377, 4294967295
-  %mul_tmp.i.i382 = mul nuw i64 %cast_tmp11.i.i381, %cast_tmp9.i.i380
-  %mul_tmp16.i.i383 = mul nuw i64 %rshift_tmp6.i.i379, %cast_tmp9.i.i380
-  %mul_tmp21.i.i384 = mul nuw i64 %cast_tmp11.i.i381, %rshift_tmp.i.i378
-  %mul_tmp26.i.i385 = mul nuw i64 %rshift_tmp6.i.i379, %rshift_tmp.i.i378
-  %rshift_tmp30.i.i386 = lshr i64 %mul_tmp.i.i382, 32
-  %add_tmp.i.i387 = add i64 %rshift_tmp30.i.i386, %mul_tmp21.i.i384
-  %rshift_tmp38.i.i388 = lshr i64 %add_tmp.i.i387, 32
-  %cast_tmp42.i.i389 = and i64 %add_tmp.i.i387, 4294967295
-  %add_tmp43.i.i390 = add i64 %cast_tmp42.i.i389, %mul_tmp16.i.i383
-  %rshift_tmp47.i.i391 = lshr i64 %add_tmp43.i.i390, 32
-  %add_tmp52.i.i392 = add i64 %rshift_tmp38.i.i388, %mul_tmp26.i.i385
-  %add_tmp55.i.i393 = add i64 %add_tmp52.i.i392, %rshift_tmp47.i.i391
-  %cast_tmp57.i.i394 = shl i64 %add_tmp43.i.i390, 32
-  %cast_tmp59.i.i395 = and i64 %mul_tmp.i.i382, 4294967295
-  %bit_or_tmp.i.i396 = or i64 %cast_tmp57.i.i394, %cast_tmp59.i.i395
-  %load_tmp5.i397 = load i64, i64* %44, align 16
-  %rshift_tmp6.i22.i398 = lshr i64 %load_tmp5.i397, 32
-  %cast_tmp11.i25.i399 = and i64 %load_tmp5.i397, 4294967295
-  %mul_tmp.i26.i400 = mul nuw i64 %cast_tmp11.i25.i399, %cast_tmp9.i.i380
-  %mul_tmp16.i28.i401 = mul nuw i64 %rshift_tmp6.i22.i398, %cast_tmp9.i.i380
-  %mul_tmp21.i31.i402 = mul nuw i64 %cast_tmp11.i25.i399, %rshift_tmp.i.i378
-  %mul_tmp26.i32.i403 = mul nuw i64 %rshift_tmp6.i22.i398, %rshift_tmp.i.i378
-  %rshift_tmp30.i34.i404 = lshr i64 %mul_tmp.i26.i400, 32
-  %add_tmp.i35.i405 = add i64 %rshift_tmp30.i34.i404, %mul_tmp21.i31.i402
-  %rshift_tmp38.i36.i406 = lshr i64 %add_tmp.i35.i405, 32
-  %cast_tmp42.i38.i407 = and i64 %add_tmp.i35.i405, 4294967295
-  %add_tmp43.i39.i408 = add i64 %cast_tmp42.i38.i407, %mul_tmp16.i28.i401
-  %rshift_tmp47.i41.i409 = lshr i64 %add_tmp43.i39.i408, 32
-  %add_tmp52.i43.i410 = add i64 %rshift_tmp38.i36.i406, %mul_tmp26.i32.i403
-  %add_tmp55.i44.i411 = add i64 %add_tmp52.i43.i410, %rshift_tmp47.i41.i409
-  %add_tmp.i412 = add i64 %add_tmp55.i44.i411, %bit_or_tmp.i.i396
-  %45 = icmp ult i64 %add_tmp.i412, %add_tmp55.i44.i411
-  %46 = zext i1 %45 to i64
-  %load_tmp12.i413 = add i64 %add_tmp55.i.i393, %46
-  %sub_tmp.i414 = add i32 %add_tmp238, -64
-  %sub_tmp.i.i415 = sub i32 128, %add_tmp238
-  %47 = zext i32 %sub_tmp.i.i415 to i64
-  %lshift_tmp.i15.i416 = shl i64 %load_tmp12.i413, %47
-  %48 = zext i32 %sub_tmp.i414 to i64
-  %rshift_tmp.i16.i417 = lshr i64 %add_tmp.i412, %48
-  %bit_or_tmp.i17.i418 = or i64 %lshift_tmp.i15.i416, %rshift_tmp.i16.i417
+else210:                                          ; preds = %endif177
+  %41 = call i64 @llvm.ctlz.i64(i64 %.0322, i1 false), !range !3
+  %cast_tmp.i353 = trunc i64 %41 to i32
+  %mul_tmp.i.i350 = mul i32 %.4, -1217359
+  %rshift_tmp.i.i351 = lshr i32 %mul_tmp.i.i350, 19
+  %42 = add i32 %.4, 9
+  %43 = add nuw nsw i32 %rshift_tmp.i.i351, %cast_tmp.i353
+  %sub_tmp217 = sub i32 %42, %43
+  %add_tmp.i = sub i32 125, %.4
+  %add_tmp223 = add i32 %add_tmp.i, %rshift_tmp.i.i351
+  %add_tmp225 = add i32 %add_tmp223, %sub_tmp217
+  %44 = sext i32 %unary_minus_tmp215 to i64
+  %45 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %44, i64 0
+  %ptr_add_tmp.i366 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i64 %44, i64 1
+  %load_tmp2.i367 = load i64, i64* %ptr_add_tmp.i366, align 8
+  %rshift_tmp.i.i368 = lshr i64 %.0322, 32
+  %rshift_tmp6.i.i369 = lshr i64 %load_tmp2.i367, 32
+  %cast_tmp9.i.i370 = and i64 %.0322, 4294967295
+  %cast_tmp11.i.i371 = and i64 %load_tmp2.i367, 4294967295
+  %mul_tmp.i.i372 = mul nuw i64 %cast_tmp11.i.i371, %cast_tmp9.i.i370
+  %mul_tmp16.i.i373 = mul nuw i64 %rshift_tmp6.i.i369, %cast_tmp9.i.i370
+  %mul_tmp21.i.i374 = mul nuw i64 %cast_tmp11.i.i371, %rshift_tmp.i.i368
+  %mul_tmp26.i.i375 = mul nuw i64 %rshift_tmp6.i.i369, %rshift_tmp.i.i368
+  %rshift_tmp30.i.i376 = lshr i64 %mul_tmp.i.i372, 32
+  %add_tmp.i.i377 = add i64 %rshift_tmp30.i.i376, %mul_tmp21.i.i374
+  %rshift_tmp38.i.i378 = lshr i64 %add_tmp.i.i377, 32
+  %cast_tmp42.i.i379 = and i64 %add_tmp.i.i377, 4294967295
+  %add_tmp43.i.i380 = add i64 %cast_tmp42.i.i379, %mul_tmp16.i.i373
+  %rshift_tmp47.i.i381 = lshr i64 %add_tmp43.i.i380, 32
+  %add_tmp52.i.i382 = add i64 %rshift_tmp38.i.i378, %mul_tmp26.i.i375
+  %add_tmp55.i.i383 = add i64 %add_tmp52.i.i382, %rshift_tmp47.i.i381
+  %cast_tmp57.i.i384 = shl i64 %add_tmp43.i.i380, 32
+  %cast_tmp59.i.i385 = and i64 %mul_tmp.i.i372, 4294967295
+  %bit_or_tmp.i.i386 = or i64 %cast_tmp57.i.i384, %cast_tmp59.i.i385
+  %load_tmp5.i387 = load i64, i64* %45, align 16
+  %rshift_tmp6.i22.i388 = lshr i64 %load_tmp5.i387, 32
+  %cast_tmp11.i25.i389 = and i64 %load_tmp5.i387, 4294967295
+  %mul_tmp.i26.i390 = mul nuw i64 %cast_tmp11.i25.i389, %cast_tmp9.i.i370
+  %mul_tmp16.i28.i391 = mul nuw i64 %rshift_tmp6.i22.i388, %cast_tmp9.i.i370
+  %mul_tmp21.i31.i392 = mul nuw i64 %cast_tmp11.i25.i389, %rshift_tmp.i.i368
+  %mul_tmp26.i32.i393 = mul nuw i64 %rshift_tmp6.i22.i388, %rshift_tmp.i.i368
+  %rshift_tmp30.i34.i394 = lshr i64 %mul_tmp.i26.i390, 32
+  %add_tmp.i35.i395 = add i64 %rshift_tmp30.i34.i394, %mul_tmp21.i31.i392
+  %rshift_tmp38.i36.i396 = lshr i64 %add_tmp.i35.i395, 32
+  %cast_tmp42.i38.i397 = and i64 %add_tmp.i35.i395, 4294967295
+  %add_tmp43.i39.i398 = add i64 %cast_tmp42.i38.i397, %mul_tmp16.i28.i391
+  %rshift_tmp47.i41.i399 = lshr i64 %add_tmp43.i39.i398, 32
+  %add_tmp52.i43.i400 = add i64 %rshift_tmp38.i36.i396, %mul_tmp26.i32.i393
+  %add_tmp55.i44.i401 = add i64 %add_tmp52.i43.i400, %rshift_tmp47.i41.i399
+  %add_tmp.i402 = add i64 %add_tmp55.i44.i401, %bit_or_tmp.i.i386
+  %46 = icmp ult i64 %add_tmp.i402, %add_tmp55.i44.i401
+  %47 = zext i1 %46 to i64
+  %load_tmp12.i403 = add i64 %add_tmp55.i.i383, %47
+  %sub_tmp.i404 = add i32 %add_tmp225, -64
+  %sub_tmp.i.i405 = sub i32 128, %add_tmp225
+  %48 = zext i32 %sub_tmp.i.i405 to i64
+  %lshift_tmp.i15.i406 = shl i64 %load_tmp12.i403, %48
+  %49 = zext i32 %sub_tmp.i404 to i64
+  %rshift_tmp.i16.i407 = lshr i64 %add_tmp.i402, %49
+  %bit_or_tmp.i17.i408 = or i64 %lshift_tmp.i15.i406, %rshift_tmp.i16.i407
   br label %for_condition_check.i.i
 
-for_condition_check.i.i:                          ; preds = %for.i.i, %else223
-  %.09.i.i = phi i32 [ 0, %else223 ], [ %49, %for.i.i ]
-  %.0.i.i.in = phi i64 [ %.0335, %else223 ], [ %.0.i.i, %for.i.i ]
+for_condition_check.i.i:                          ; preds = %for.i.i, %else210
+  %.09.i.i = phi i32 [ 0, %else210 ], [ %50, %for.i.i ]
+  %.0.i.i.in = phi i64 [ %.0322, %else210 ], [ %.0.i.i, %for.i.i ]
   %.0.i.i = mul i64 %.0.i.i.in, -3689348814741910323
   %.not.i.i = icmp ugt i64 %.0.i.i, 3689348814741910323
   br i1 %.not.i.i, label %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit, label %for.i.i
 
 for.i.i:                                          ; preds = %for_condition_check.i.i
-  %49 = add i32 %.09.i.i, 1
+  %50 = add i32 %.09.i.i, 1
   br label %for_condition_check.i.i
 
 func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit: ; preds = %for_condition_check.i.i
-  %50 = icmp uge i32 %.09.i.i, %unary_minus_tmp228
-  br label %endif246
+  %51 = icmp uge i32 %.09.i.i, %unary_minus_tmp215
+  br label %endif233
 
-endif246:                                         ; preds = %then192, %bool_and_rhs214, %bool_or_rhs210, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit
-  %.0347 = phi i32 [ %sub_tmp230, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %sub_tmp198, %bool_or_rhs210 ], [ %sub_tmp198, %bool_and_rhs214 ], [ %sub_tmp198, %then192 ]
-  %.0327 = phi i64 [ %bit_or_tmp.i17.i418, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %bit_or_tmp.i17.i, %bool_or_rhs210 ], [ %bit_or_tmp.i17.i, %bool_and_rhs214 ], [ %bit_or_tmp.i17.i, %then192 ]
-  %storemerge = phi i1 [ %50, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ false, %bool_or_rhs210 ], [ %39, %bool_and_rhs214 ], [ true, %then192 ]
-  %add_tmp248 = add i32 %.0347, 1023
-  %51 = call i64 @llvm.ctlz.i64(i64 %.0327, i1 false), !range !3
-  %cast_tmp.i = trunc i64 %51 to i32
+endif233:                                         ; preds = %then179, %bool_and_rhs201, %bool_or_rhs197, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit
+  %.0336 = phi i32 [ %sub_tmp217, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %sub_tmp185, %bool_or_rhs197 ], [ %sub_tmp185, %bool_and_rhs201 ], [ %sub_tmp185, %then179 ]
+  %.0314 = phi i64 [ %bit_or_tmp.i17.i408, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ %bit_or_tmp.i17.i, %bool_or_rhs197 ], [ %bit_or_tmp.i17.i, %bool_and_rhs201 ], [ %bit_or_tmp.i17.i, %then179 ]
+  %storemerge = phi i1 [ %51, %func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool.exit ], [ false, %bool_or_rhs197 ], [ %40, %bool_and_rhs201 ], [ true, %then179 ]
+  %add_tmp235 = add i32 %.0336, 1023
+  %52 = call i64 @llvm.ctlz.i64(i64 %.0314, i1 false), !range !3
+  %cast_tmp.i = trunc i64 %52 to i32
   %sub_tmp.i = sub nsw i32 63, %cast_tmp.i
-  %add_tmp250 = add i32 %add_tmp248, %sub_tmp.i
-  %52 = icmp sgt i32 %add_tmp250, 0
-  %load_tmp2.i = select i1 %52, i32 %add_tmp250, i32 0
-  %53 = icmp ugt i32 %load_tmp2.i, 2046
-  br i1 %53, label %then252, label %endif259
+  %add_tmp237 = add i32 %add_tmp235, %sub_tmp.i
+  %53 = icmp sgt i32 %add_tmp237, 0
+  %load_tmp2.i = select i1 %53, i32 %add_tmp237, i32 0
+  %54 = icmp ugt i32 %load_tmp2.i, 2046
+  br i1 %54, label %then239, label %endif246
 
-then252:                                          ; preds = %endif246
-  %load_tmp.cast.i357 = select i1 %4, double 0xFFF0000000000000, double 0x7FF0000000000000
-  store double %load_tmp.cast.i357, double* %2, align 8
+then239:                                          ; preds = %endif233
+  %load_tmp.cast.i347 = select i1 %4, double 0xFFF0000000000000, double 0x7FF0000000000000
+  store double %load_tmp.cast.i347, double* %2, align 8
   ret i32 0
 
-endif259:                                         ; preds = %endif246
-  %54 = icmp slt i32 %add_tmp250, 1
-  %sub_tmp269 = sub i32 -1075, %.0347
-  %sub_tmp271 = add i32 %sub_tmp269, %load_tmp2.i
-  %sub_tmp265 = sub i32 -1074, %.0347
-  %storemerge323 = select i1 %54, i32 %sub_tmp265, i32 %sub_tmp271
-  %sub_tmp275 = add i32 %storemerge323, -1
-  %55 = zext i32 %sub_tmp275 to i64
-  %notmask = shl nsw i64 -1, %55
-  %sub_tmp277 = xor i64 %notmask, -1
-  %bit_and_tmp = and i64 %.0327, %sub_tmp277
-  %56 = icmp eq i64 %bit_and_tmp, 0
-  %bit_and_tmp279 = and i1 %storemerge, %56
-  %57 = shl i64 1, %55
-  %58 = and i64 %57, %.0327
-  %.not = icmp eq i64 %58, 0
-  %bit_and_tmp279.not = xor i1 %bit_and_tmp279, true
-  %brmerge = or i1 %.not, %bit_and_tmp279.not
-  br i1 %brmerge, label %endif259.bool_and_end294_crit_edge, label %bool_or_rhs287
+endif246:                                         ; preds = %endif233
+  %55 = icmp slt i32 %add_tmp237, 1
+  %sub_tmp256 = sub i32 -1075, %.0336
+  %sub_tmp258 = add i32 %sub_tmp256, %load_tmp2.i
+  %sub_tmp252 = sub i32 -1074, %.0336
+  %storemerge310 = select i1 %55, i32 %sub_tmp252, i32 %sub_tmp258
+  %sub_tmp262 = add i32 %storemerge310, -1
+  %56 = zext i32 %sub_tmp262 to i64
+  %notmask = shl nsw i64 -1, %56
+  %sub_tmp264 = xor i64 %notmask, -1
+  %bit_and_tmp = and i64 %.0314, %sub_tmp264
+  %57 = icmp eq i64 %bit_and_tmp, 0
+  %bit_and_tmp266 = and i1 %storemerge, %57
+  %58 = shl i64 1, %56
+  %59 = and i64 %58, %.0314
+  %.not = icmp eq i64 %59, 0
+  %bit_and_tmp266.not = xor i1 %bit_and_tmp266, true
+  %brmerge = or i1 %.not, %bit_and_tmp266.not
+  br i1 %brmerge, label %endif246.bool_and_end281_crit_edge, label %bool_or_rhs274
 
-endif259.bool_and_end294_crit_edge:               ; preds = %endif259
+endif246.bool_and_end281_crit_edge:               ; preds = %endif246
   %not..not = xor i1 %.not, true
-  %.pre = zext i32 %storemerge323 to i64
-  br label %bool_and_end294
+  %.pre = zext i32 %storemerge310 to i64
+  br label %bool_and_end281
 
-bool_or_rhs287:                                   ; preds = %endif259
-  %59 = zext i32 %storemerge323 to i64
-  %60 = shl i64 1, %59
-  %61 = and i64 %60, %.0327
-  %62 = icmp ne i64 %61, 0
-  br label %bool_and_end294
+bool_or_rhs274:                                   ; preds = %endif246
+  %60 = zext i32 %storemerge310 to i64
+  %61 = shl i64 1, %60
+  %62 = and i64 %61, %.0314
+  %63 = icmp ne i64 %62, 0
+  br label %bool_and_end281
 
-bool_and_end294:                                  ; preds = %endif259.bool_and_end294_crit_edge, %bool_or_rhs287
-  %.pre-phi = phi i64 [ %.pre, %endif259.bool_and_end294_crit_edge ], [ %59, %bool_or_rhs287 ]
-  %bool_and_tmp295 = phi i1 [ %not..not, %endif259.bool_and_end294_crit_edge ], [ %62, %bool_or_rhs287 ]
-  %rshift_tmp298 = lshr i64 %.0327, %.pre-phi
-  %cast_tmp300 = zext i1 %bool_and_tmp295 to i64
-  %add_tmp301 = add i64 %rshift_tmp298, %cast_tmp300
-  %bit_and_tmp303 = and i64 %add_tmp301, 4503599627370495
-  %63 = icmp eq i64 %bit_and_tmp303, 0
-  %spec.select355 = and i1 %bool_and_tmp295, %63
-  %64 = zext i1 %spec.select355 to i32
-  %.0 = add nuw i32 %load_tmp2.i, %64
-  %lshift_tmp314 = select i1 %4, i64 2048, i64 0
-  %cast_tmp316 = zext i32 %.0 to i64
-  %bit_or_tmp317 = or i64 %lshift_tmp314, %cast_tmp316
-  %lshift_tmp318 = shl i64 %bit_or_tmp317, 52
-  %bit_or_tmp320 = or i64 %lshift_tmp318, %bit_and_tmp303
-  %65 = bitcast double* %2 to i64*
-  store i64 %bit_or_tmp320, i64* %65, align 8
+bool_and_end281:                                  ; preds = %endif246.bool_and_end281_crit_edge, %bool_or_rhs274
+  %.pre-phi = phi i64 [ %.pre, %endif246.bool_and_end281_crit_edge ], [ %60, %bool_or_rhs274 ]
+  %bool_and_tmp282 = phi i1 [ %not..not, %endif246.bool_and_end281_crit_edge ], [ %63, %bool_or_rhs274 ]
+  %rshift_tmp285 = lshr i64 %.0314, %.pre-phi
+  %cast_tmp287 = zext i1 %bool_and_tmp282 to i64
+  %add_tmp288 = add i64 %rshift_tmp285, %cast_tmp287
+  %bit_and_tmp290 = and i64 %add_tmp288, 4503599627370495
+  %64 = icmp eq i64 %bit_and_tmp290, 0
+  %spec.select345 = and i1 %bool_and_tmp282, %64
+  %65 = zext i1 %spec.select345 to i32
+  %.0 = add nuw i32 %load_tmp2.i, %65
+  %lshift_tmp301 = select i1 %4, i64 2048, i64 0
+  %cast_tmp303 = zext i32 %.0 to i64
+  %bit_or_tmp304 = or i64 %lshift_tmp301, %cast_tmp303
+  %lshift_tmp305 = shl i64 %bit_or_tmp304, 52
+  %bit_or_tmp307 = or i64 %lshift_tmp305, %bit_and_tmp290
+  %66 = bitcast double* %2 to i64*
+  store i64 %bit_or_tmp307, i64* %66, align 8
   ret i32 0
 }
 
@@ -3637,8 +3620,8 @@ alloca:
   %3 = icmp eq i32 %1, 0
   br i1 %3, label %then, label %endif
 
-then:                                             ; preds = %then161, %else163, %then152, %else154, %endif122, %for95, %else, %then28, %alloca
-  %merge = phi i32 [ 1, %alloca ], [ 3, %then28 ], [ 2, %else ], [ 3, %for95 ], [ 3, %endif122 ], [ 0, %else154 ], [ 0, %then152 ], [ 0, %else163 ], [ 0, %then161 ]
+then:                                             ; preds = %endif123, %for95, %else, %then28, %alloca
+  %merge = phi i32 [ 1, %alloca ], [ 3, %then28 ], [ 2, %else ], [ 3, %for95 ], [ 3, %endif123 ]
   ret i32 %merge
 
 endif:                                            ; preds = %alloca
@@ -3648,15 +3631,15 @@ endif:                                            ; preds = %alloca
   br label %for_condition_check
 
 for_condition_check:                              ; preds = %endif43, %endif
-  %.1361 = phi i32 [ %spec.select, %endif ], [ %11, %endif43 ]
-  %.0352 = phi i32 [ 0, %endif ], [ %.1353, %endif43 ]
-  %.0349 = phi i32 [ %1, %endif ], [ %.1350, %endif43 ]
-  %.0345 = phi i32 [ 0, %endif ], [ %.2, %endif43 ]
-  %5 = icmp slt i32 %.1361, %1
-  br i1 %5, label %bool_and_rhs, label %endif122
+  %.1349 = phi i32 [ %spec.select, %endif ], [ %11, %endif43 ]
+  %.0339 = phi i32 [ 0, %endif ], [ %.1340, %endif43 ]
+  %.0336 = phi i32 [ %1, %endif ], [ %.1337, %endif43 ]
+  %.0332 = phi i32 [ 0, %endif ], [ %.2, %endif43 ]
+  %5 = icmp slt i32 %.1349, %1
+  br i1 %5, label %bool_and_rhs, label %endif123
 
 bool_and_rhs:                                     ; preds = %for_condition_check
-  %6 = sext i32 %.1361 to i64
+  %6 = sext i32 %.1349 to i64
   %ptr_add_tmp13 = getelementptr i8, i8* %0, i64 %6
   %load_tmp14 = load i8, i8* %ptr_add_tmp13, align 1
   %cast_tmp15 = zext i8 %load_tmp14 to i32
@@ -3670,37 +3653,37 @@ for:                                              ; preds = %bool_and_rhs
   br i1 %8, label %then28, label %else
 
 then28:                                           ; preds = %for
-  %.not343 = icmp eq i32 %.0349, %1
-  br i1 %.not343, label %endif43, label %then
+  %.not330 = icmp eq i32 %.0336, %1
+  br i1 %.not330, label %endif43, label %then
 
 else:                                             ; preds = %for
-  %9 = icmp sgt i32 %.0345, 8
+  %9 = icmp sgt i32 %.0332, 8
   br i1 %9, label %then, label %endif36
 
 endif36:                                          ; preds = %else
-  %mul_tmp = mul i32 %.0352, 10
+  %mul_tmp = mul i32 %.0339, 10
   %sub_tmp = add i32 %mul_tmp, -48
   %add_tmp = add i32 %sub_tmp, %cast_tmp15
-  %.not342 = icmp ne i32 %add_tmp, 0
-  %10 = zext i1 %.not342 to i32
-  %spec.select367 = add i32 %.0345, %10
+  %.not329 = icmp ne i32 %add_tmp, 0
+  %10 = zext i1 %.not329 to i32
+  %spec.select356 = add i32 %.0332, %10
   br label %endif43
 
 endif43:                                          ; preds = %then28, %endif36
-  %.1353 = phi i32 [ %add_tmp, %endif36 ], [ %.0352, %then28 ]
-  %.1350 = phi i32 [ %.0349, %endif36 ], [ %.1361, %then28 ]
-  %.2 = phi i32 [ %spec.select367, %endif36 ], [ %.0345, %then28 ]
-  %11 = add i32 %.1361, 1
+  %.1340 = phi i32 [ %add_tmp, %endif36 ], [ %.0339, %then28 ]
+  %.1337 = phi i32 [ %.0336, %endif36 ], [ %.1349, %then28 ]
+  %.2 = phi i32 [ %spec.select356, %endif36 ], [ %.0332, %then28 ]
+  %11 = add i32 %.1349, 1
   br label %for_condition_check
 
 bool_and_rhs47:                                   ; preds = %bool_and_rhs
-  switch i8 %load_tmp14, label %endif122 [
+  switch i8 %load_tmp14, label %endif123 [
     i8 101, label %then63
     i8 69, label %then63
   ]
 
 then63:                                           ; preds = %bool_and_rhs47, %bool_and_rhs47
-  %12 = add i32 %.1361, 1
+  %12 = add i32 %.1349, 1
   %13 = icmp slt i32 %12, %1
   br i1 %13, label %bool_and_rhs68, label %endif91
 
@@ -3715,264 +3698,247 @@ bool_and_rhs68:                                   ; preds = %then63
 
 then84:                                           ; preds = %bool_and_rhs68, %bool_and_rhs68
   %15 = icmp eq i8 %load_tmp72, 45
-  %16 = add i32 %.1361, 2
+  %16 = add i32 %.1349, 2
   br label %endif91
 
 endif91:                                          ; preds = %bool_and_rhs68, %then63, %then84
-  %.2362 = phi i32 [ %16, %then84 ], [ %12, %then63 ], [ %12, %bool_and_rhs68 ]
-  %.0358 = phi i1 [ %15, %then84 ], [ false, %then63 ], [ false, %bool_and_rhs68 ]
+  %.2350 = phi i32 [ %16, %then84 ], [ %12, %then63 ], [ %12, %bool_and_rhs68 ]
+  %.0346 = phi i1 [ %15, %then84 ], [ false, %then63 ], [ false, %bool_and_rhs68 ]
   br label %for_condition_check92
 
-for_condition_check92:                            ; preds = %endif107, %endif91
-  %.3363 = phi i32 [ %.2362, %endif91 ], [ %21, %endif107 ]
-  %.0354 = phi i32 [ 0, %endif91 ], [ %add_tmp115, %endif107 ]
-  %.0346 = phi i32 [ 0, %endif91 ], [ %.1347, %endif107 ]
-  %17 = icmp slt i32 %.3363, %1
-  br i1 %17, label %for95, label %endif122
+for_condition_check92:                            ; preds = %endif120, %endif91
+  %.3351 = phi i32 [ %.2350, %endif91 ], [ %22, %endif120 ]
+  %.0341 = phi i32 [ 0, %endif91 ], [ %.1342, %endif120 ]
+  %.0333 = phi i32 [ 0, %endif91 ], [ %.2335, %endif120 ]
+  %17 = icmp slt i32 %.3351, %1
+  br i1 %17, label %for95, label %endif123
 
 for95:                                            ; preds = %for_condition_check92
-  %18 = sext i32 %.3363 to i64
+  %18 = sext i32 %.3351 to i64
   %ptr_add_tmp98 = getelementptr i8, i8* %0, i64 %18
   %load_tmp99 = load i8, i8* %ptr_add_tmp98, align 1
+  %cast_tmp100 = zext i8 %load_tmp99 to i32
   %load_tmp99.off = add i8 %load_tmp99, -48
   %19 = icmp ugt i8 %load_tmp99.off, 9
   br i1 %19, label %then, label %endif107
 
 endif107:                                         ; preds = %for95
-  %cast_tmp100 = zext i8 %load_tmp99 to i32
-  %mul_tmp112 = mul i32 %.0354, 10
+  %20 = icmp sgt i32 %.0333, 3
+  br i1 %20, label %endif120, label %else110
+
+else110:                                          ; preds = %endif107
+  %mul_tmp112 = mul i32 %.0341, 10
   %sub_tmp114 = add i32 %mul_tmp112, -48
   %add_tmp115 = add i32 %sub_tmp114, %cast_tmp100
-  %.not341 = icmp ne i32 %add_tmp115, 0
-  %20 = zext i1 %.not341 to i32
-  %.1347 = add i32 %.0346, %20
-  %21 = add i32 %.3363, 1
+  %.not328 = icmp ne i32 %add_tmp115, 0
+  %21 = zext i1 %.not328 to i32
+  %spec.select358 = add i32 %.0333, %21
+  br label %endif120
+
+endif120:                                         ; preds = %endif107, %else110
+  %.1342 = phi i32 [ %add_tmp115, %else110 ], [ %.0341, %endif107 ]
+  %.2335 = phi i32 [ %spec.select358, %else110 ], [ %.0333, %endif107 ]
+  %22 = add i32 %.3351, 1
   br label %for_condition_check92
 
-endif122:                                         ; preds = %for_condition_check, %bool_and_rhs47, %for_condition_check92
-  %.4 = phi i32 [ %.3363, %for_condition_check92 ], [ %.1361, %bool_and_rhs47 ], [ %.1361, %for_condition_check ]
-  %.1359 = phi i1 [ %.0358, %for_condition_check92 ], [ false, %bool_and_rhs47 ], [ false, %for_condition_check ]
-  %.1355 = phi i32 [ %.0354, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
-  %.0351 = phi i32 [ %.1361, %for_condition_check92 ], [ %1, %bool_and_rhs47 ], [ %1, %for_condition_check ]
-  %.2348 = phi i32 [ %.0346, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
-  %22 = icmp slt i32 %.4, %1
-  br i1 %22, label %then, label %endif126
+endif123:                                         ; preds = %for_condition_check, %bool_and_rhs47, %for_condition_check92
+  %.4352 = phi i32 [ %.3351, %for_condition_check92 ], [ %.1349, %bool_and_rhs47 ], [ %.1349, %for_condition_check ]
+  %.1347 = phi i1 [ %.0346, %for_condition_check92 ], [ false, %bool_and_rhs47 ], [ false, %for_condition_check ]
+  %.2343 = phi i32 [ %.0341, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
+  %.0338 = phi i32 [ %.1349, %for_condition_check92 ], [ %1, %bool_and_rhs47 ], [ %1, %for_condition_check ]
+  %.3 = phi i32 [ %.0333, %for_condition_check92 ], [ 0, %bool_and_rhs47 ], [ 0, %for_condition_check ]
+  %23 = icmp slt i32 %.4352, %1
+  br i1 %23, label %then, label %endif127
 
-endif126:                                         ; preds = %endif122
-  %unary_minus_tmp = sub i32 0, %.1355
-  %spec.select369 = select i1 %.1359, i32 %unary_minus_tmp, i32 %.1355
-  %23 = icmp slt i32 %.0349, %.0351
-  %.neg404 = add i32 %.0349, 1
-  %sub_tmp137.neg = sub i32 %.neg404, %.0351
-  %sub_tmp139 = select i1 %23, i32 %sub_tmp137.neg, i32 0
-  %.3 = add i32 %sub_tmp139, %spec.select369
-  %24 = icmp eq i32 %.0352, 0
-  %25 = icmp sgt i32 %.2348, 4
-  %spec.select370 = and i1 %.1359, %25
-  %bool_or_tmp149 = or i1 %24, %spec.select370
-  br i1 %bool_or_tmp149, label %then150, label %else157
+endif127:                                         ; preds = %endif123
+  %unary_minus_tmp = sub i32 0, %.2343
+  %spec.select359 = select i1 %.1347, i32 %unary_minus_tmp, i32 %.2343
+  %24 = icmp slt i32 %.0336, %.0338
+  %.neg394 = add i32 %.0336, 1
+  %sub_tmp138.neg = sub i32 %.neg394, %.0338
+  %sub_tmp140 = select i1 %24, i32 %sub_tmp138.neg, i32 0
+  %.4 = add i32 %sub_tmp140, %spec.select359
+  %25 = icmp sgt i32 %.3, 3
+  %spec.select360 = and i1 %.1347, %25
+  %add_tmp150 = add i32 %.4, %.0332
+  %26 = icmp slt i32 %add_tmp150, -45
+  %bool_or_tmp152 = or i1 %spec.select360, %26
+  %27 = icmp eq i32 %.0339, 0
+  %spec.select361 = or i1 %27, %bool_or_tmp152
+  br i1 %spec.select361, label %then157, label %else162
 
-then150:                                          ; preds = %endif126
-  br i1 %4, label %then152, label %else154
-
-then152:                                          ; preds = %then150
-  store float -0.000000e+00, float* %2, align 4
-  br label %then
-
-else154:                                          ; preds = %then150
-  store float 0.000000e+00, float* %2, align 4
-  br label %then
-
-else157:                                          ; preds = %endif126
-  br i1 %25, label %then159, label %endif167
-
-then159:                                          ; preds = %else157
-  br i1 %4, label %then161, label %else163
-
-then161:                                          ; preds = %then159
-  store float 0xFFF0000000000000, float* %2, align 4
-  br label %then
-
-else163:                                          ; preds = %then159
-  store float 0x7FF0000000000000, float* %2, align 4
-  br label %then
-
-endif167:                                         ; preds = %else157
-  %add_tmp170 = add i32 %.3, %.0345
-  %26 = icmp slt i32 %add_tmp170, -45
-  br i1 %26, label %then175, label %endif180
-
-then175:                                          ; preds = %endif167
+then157:                                          ; preds = %endif127
   %load_tmp.cast.i = select i1 %4, float -0.000000e+00, float 0.000000e+00
   store float %load_tmp.cast.i, float* %2, align 4
   ret i32 0
 
-endif180:                                         ; preds = %endif167
-  %27 = icmp sgt i32 %add_tmp170, 39
-  br i1 %27, label %then184, label %endif190
+else162:                                          ; preds = %endif127
+  %28 = icmp sgt i32 %add_tmp150, 39
+  %bool_or_tmp169 = or i1 %25, %28
+  br i1 %bool_or_tmp169, label %then170, label %endif177
 
-then184:                                          ; preds = %endif180
-  %load_tmp.cast.i401 = select i1 %4, float 0xFFF0000000000000, float 0x7FF0000000000000
-  store float %load_tmp.cast.i401, float* %2, align 4
+then170:                                          ; preds = %else162
+  %load_tmp.cast.i391 = select i1 %4, float 0xFFF0000000000000, float 0x7FF0000000000000
+  store float %load_tmp.cast.i391, float* %2, align 4
   ret i32 0
 
-endif190:                                         ; preds = %endif180
-  %28 = icmp sgt i32 %.3, -1
-  br i1 %28, label %then192, label %else223
+endif177:                                         ; preds = %else162
+  %29 = icmp sgt i32 %.4, -1
+  br i1 %29, label %then179, label %else210
 
-then192:                                          ; preds = %endif190
-  %29 = call i32 @llvm.ctlz.i32(i32 %.0352, i1 false), !range !4
-  %mul_tmp.i = mul i32 %.3, 1217359
+then179:                                          ; preds = %endif177
+  %30 = call i32 @llvm.ctlz.i32(i32 %.0339, i1 false), !range !4
+  %mul_tmp.i = mul i32 %.4, 1217359
   %rshift_tmp.i = lshr i32 %mul_tmp.i, 19
-  %add_tmp195 = sub nsw i32 7, %29
-  %add_tmp197 = add i32 %add_tmp195, %.3
-  %sub_tmp198 = add i32 %add_tmp197, %rshift_tmp.i
-  %sub_tmp201 = sub i32 %sub_tmp198, %.3
-  %30 = zext i32 %.3 to i64
-  %31 = getelementptr [47 x i64], [47 x i64]* @std.ryu.FLOAT_POW5_SPLIT, i64 0, i64 %30
-  %load_tmp2.i386 = load i64, i64* %31, align 8
-  %rshift_tmp.i.i387 = lshr i64 %load_tmp2.i386, 32
-  %cast_tmp4.i.i388 = zext i32 %.0352 to i64
-  %cast_tmp6.i.i389 = and i64 %load_tmp2.i386, 4294967295
-  %mul_tmp.i.i390 = mul nuw i64 %cast_tmp6.i.i389, %cast_tmp4.i.i388
-  %mul_tmp11.i.i391 = mul nuw i64 %rshift_tmp.i.i387, %cast_tmp4.i.i388
-  %rshift_tmp13.i.i392 = lshr i64 %mul_tmp.i.i390, 32
-  %add_tmp.i.i393 = add i64 %rshift_tmp13.i.i392, %mul_tmp11.i.i391
-  %add_tmp204 = sub nsw i32 28, %rshift_tmp.i
-  %sub_tmp.i.i394 = add i32 %add_tmp204, %sub_tmp201
-  %32 = zext i32 %sub_tmp.i.i394 to i64
-  %rshift_tmp17.i.i395 = lshr i64 %add_tmp.i.i393, %32
-  %33 = icmp slt i32 %sub_tmp198, %.3
-  br i1 %33, label %endif264, label %bool_or_rhs210
+  %add_tmp182 = sub nsw i32 7, %30
+  %add_tmp184 = add i32 %add_tmp182, %.4
+  %sub_tmp185 = add i32 %add_tmp184, %rshift_tmp.i
+  %sub_tmp188 = sub i32 %sub_tmp185, %.4
+  %31 = zext i32 %.4 to i64
+  %32 = getelementptr [47 x i64], [47 x i64]* @std.ryu.FLOAT_POW5_SPLIT, i64 0, i64 %31
+  %load_tmp2.i376 = load i64, i64* %32, align 8
+  %rshift_tmp.i.i377 = lshr i64 %load_tmp2.i376, 32
+  %cast_tmp4.i.i378 = zext i32 %.0339 to i64
+  %cast_tmp6.i.i379 = and i64 %load_tmp2.i376, 4294967295
+  %mul_tmp.i.i380 = mul nuw i64 %cast_tmp6.i.i379, %cast_tmp4.i.i378
+  %mul_tmp11.i.i381 = mul nuw i64 %rshift_tmp.i.i377, %cast_tmp4.i.i378
+  %rshift_tmp13.i.i382 = lshr i64 %mul_tmp.i.i380, 32
+  %add_tmp.i.i383 = add i64 %rshift_tmp13.i.i382, %mul_tmp11.i.i381
+  %add_tmp191 = sub nsw i32 28, %rshift_tmp.i
+  %sub_tmp.i.i384 = add i32 %add_tmp191, %sub_tmp188
+  %33 = zext i32 %sub_tmp.i.i384 to i64
+  %rshift_tmp17.i.i385 = lshr i64 %add_tmp.i.i383, %33
+  %34 = icmp slt i32 %sub_tmp185, %.4
+  br i1 %34, label %endif251, label %bool_or_rhs197
 
-bool_or_rhs210:                                   ; preds = %then192
-  %34 = icmp slt i32 %sub_tmp201, 32
-  br i1 %34, label %bool_and_rhs214, label %endif264
+bool_or_rhs197:                                   ; preds = %then179
+  %35 = icmp slt i32 %sub_tmp188, 32
+  br i1 %35, label %bool_and_rhs201, label %endif251
 
-bool_and_rhs214:                                  ; preds = %bool_or_rhs210
-  %notmask.i383 = shl nsw i32 -1, %sub_tmp201
-  %sub_tmp.i384 = xor i32 %notmask.i383, -1
-  %bit_and_tmp.i385 = and i32 %.0352, %sub_tmp.i384
-  %35 = icmp eq i32 %bit_and_tmp.i385, 0
-  br label %endif264
+bool_and_rhs201:                                  ; preds = %bool_or_rhs197
+  %notmask.i373 = shl nsw i32 -1, %sub_tmp188
+  %sub_tmp.i374 = xor i32 %notmask.i373, -1
+  %bit_and_tmp.i375 = and i32 %.0339, %sub_tmp.i374
+  %36 = icmp eq i32 %bit_and_tmp.i375, 0
+  br label %endif251
 
-else223:                                          ; preds = %endif190
-  %36 = call i32 @llvm.ctlz.i32(i32 %.0352, i1 false), !range !4
-  %unary_minus_tmp228 = sub i32 0, %.3
-  %mul_tmp.i.i379 = mul i32 %.3, -1217359
-  %rshift_tmp.i.i380 = lshr i32 %mul_tmp.i.i379, 19
-  %37 = add i32 %.3, 6
-  %38 = add nuw nsw i32 %36, %rshift_tmp.i.i380
-  %sub_tmp230 = sub i32 %37, %38
-  %sub_tmp233 = sub i32 %sub_tmp230, %.3
-  %39 = zext i32 %unary_minus_tmp228 to i64
-  %40 = getelementptr [55 x i64], [55 x i64]* @std.ryu.FLOAT_POW5_INV_SPLIT, i64 0, i64 %39
-  %load_tmp2.i376 = load i64, i64* %40, align 8
-  %rshift_tmp.i.i = lshr i64 %load_tmp2.i376, 32
-  %cast_tmp4.i.i = zext i32 %.0352 to i64
-  %cast_tmp6.i.i = and i64 %load_tmp2.i376, 4294967295
+else210:                                          ; preds = %endif177
+  %37 = call i32 @llvm.ctlz.i32(i32 %.0339, i1 false), !range !4
+  %unary_minus_tmp215 = sub i32 0, %.4
+  %mul_tmp.i.i369 = mul i32 %.4, -1217359
+  %rshift_tmp.i.i370 = lshr i32 %mul_tmp.i.i369, 19
+  %38 = add i32 %.4, 6
+  %39 = add nuw nsw i32 %37, %rshift_tmp.i.i370
+  %sub_tmp217 = sub i32 %38, %39
+  %sub_tmp220 = sub i32 %sub_tmp217, %.4
+  %40 = zext i32 %unary_minus_tmp215 to i64
+  %41 = getelementptr [55 x i64], [55 x i64]* @std.ryu.FLOAT_POW5_INV_SPLIT, i64 0, i64 %40
+  %load_tmp2.i366 = load i64, i64* %41, align 8
+  %rshift_tmp.i.i = lshr i64 %load_tmp2.i366, 32
+  %cast_tmp4.i.i = zext i32 %.0339 to i64
+  %cast_tmp6.i.i = and i64 %load_tmp2.i366, 4294967295
   %mul_tmp.i.i = mul nuw i64 %cast_tmp6.i.i, %cast_tmp4.i.i
   %mul_tmp11.i.i = mul nuw i64 %rshift_tmp.i.i, %cast_tmp4.i.i
   %rshift_tmp13.i.i = lshr i64 %mul_tmp.i.i, 32
   %add_tmp.i.i = add i64 %rshift_tmp13.i.i, %mul_tmp11.i.i
-  %add_tmp238 = add nuw nsw i32 %rshift_tmp.i.i380, 27
-  %sub_tmp.i.i = add i32 %add_tmp238, %sub_tmp233
-  %41 = zext i32 %sub_tmp.i.i to i64
-  %rshift_tmp17.i.i = lshr i64 %add_tmp.i.i, %41
-  %42 = icmp slt i32 %sub_tmp230, %.3
-  br i1 %42, label %bool_and_rhs258, label %bool_or_rhs245
+  %add_tmp225 = add nuw nsw i32 %rshift_tmp.i.i370, 27
+  %sub_tmp.i.i = add i32 %add_tmp225, %sub_tmp220
+  %42 = zext i32 %sub_tmp.i.i to i64
+  %rshift_tmp17.i.i = lshr i64 %add_tmp.i.i, %42
+  %43 = icmp slt i32 %sub_tmp217, %.4
+  br i1 %43, label %bool_and_rhs245, label %bool_or_rhs232
 
-bool_or_rhs245:                                   ; preds = %else223
-  %43 = icmp slt i32 %sub_tmp233, 32
-  br i1 %43, label %bool_and_rhs249, label %endif264
+bool_or_rhs232:                                   ; preds = %else210
+  %44 = icmp slt i32 %sub_tmp220, 32
+  br i1 %44, label %bool_and_rhs236, label %endif251
 
-bool_and_rhs249:                                  ; preds = %bool_or_rhs245
-  %notmask.i = shl nsw i32 -1, %sub_tmp233
-  %sub_tmp.i375 = xor i32 %notmask.i, -1
-  %bit_and_tmp.i = and i32 %.0352, %sub_tmp.i375
-  %44 = icmp eq i32 %bit_and_tmp.i, 0
-  br i1 %44, label %bool_and_rhs258, label %endif264
+bool_and_rhs236:                                  ; preds = %bool_or_rhs232
+  %notmask.i = shl nsw i32 -1, %sub_tmp220
+  %sub_tmp.i365 = xor i32 %notmask.i, -1
+  %bit_and_tmp.i = and i32 %.0339, %sub_tmp.i365
+  %45 = icmp eq i32 %bit_and_tmp.i, 0
+  br i1 %45, label %bool_and_rhs245, label %endif251
 
-bool_and_rhs258:                                  ; preds = %else223, %bool_and_rhs249
+bool_and_rhs245:                                  ; preds = %else210, %bool_and_rhs236
   br label %for_condition_check.i.i
 
-for_condition_check.i.i:                          ; preds = %for.i.i, %bool_and_rhs258
-  %.011.i.i.in = phi i32 [ %.0352, %bool_and_rhs258 ], [ %.010.i.i, %for.i.i ]
-  %.0.i.i = phi i32 [ 0, %bool_and_rhs258 ], [ %46, %for.i.i ]
+for_condition_check.i.i:                          ; preds = %for.i.i, %bool_and_rhs245
+  %.011.i.i.in = phi i32 [ %.0339, %bool_and_rhs245 ], [ %.010.i.i, %for.i.i ]
+  %.0.i.i = phi i32 [ 0, %bool_and_rhs245 ], [ %47, %for.i.i ]
   %.011.i.i = urem i32 %.011.i.i.in, 5
-  %45 = icmp eq i32 %.011.i.i, 0
-  br i1 %45, label %for.i.i, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit
+  %46 = icmp eq i32 %.011.i.i, 0
+  br i1 %46, label %for.i.i, label %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit
 
 for.i.i:                                          ; preds = %for_condition_check.i.i
   %.010.i.i = udiv i32 %.011.i.i.in, 5
-  %46 = add i32 %.0.i.i, 1
+  %47 = add i32 %.0.i.i, 1
   br label %for_condition_check.i.i
 
 func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit: ; preds = %for_condition_check.i.i
-  %47 = icmp uge i32 %.0.i.i, %unary_minus_tmp228
-  br label %endif264
+  %48 = icmp uge i32 %.0.i.i, %unary_minus_tmp215
+  br label %endif251
 
-endif264:                                         ; preds = %bool_and_rhs249, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit, %bool_or_rhs245, %then192, %bool_and_rhs214, %bool_or_rhs210
-  %.0364 = phi i32 [ %sub_tmp198, %bool_or_rhs210 ], [ %sub_tmp198, %bool_and_rhs214 ], [ %sub_tmp198, %then192 ], [ %sub_tmp230, %bool_or_rhs245 ], [ %sub_tmp230, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %sub_tmp230, %bool_and_rhs249 ]
-  %.0344.in = phi i64 [ %rshift_tmp17.i.i395, %bool_or_rhs210 ], [ %rshift_tmp17.i.i395, %bool_and_rhs214 ], [ %rshift_tmp17.i.i395, %then192 ], [ %rshift_tmp17.i.i, %bool_or_rhs245 ], [ %rshift_tmp17.i.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %rshift_tmp17.i.i, %bool_and_rhs249 ]
-  %storemerge = phi i1 [ false, %bool_or_rhs210 ], [ %35, %bool_and_rhs214 ], [ true, %then192 ], [ false, %bool_or_rhs245 ], [ %47, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ false, %bool_and_rhs249 ]
-  %.0344 = trunc i64 %.0344.in to i32
-  %add_tmp266 = add i32 %.0364, 127
-  %48 = call i32 @llvm.ctlz.i32(i32 %.0344, i1 false), !range !4
-  %sub_tmp.i = sub nsw i32 31, %48
-  %add_tmp268 = add i32 %add_tmp266, %sub_tmp.i
-  %49 = icmp sgt i32 %add_tmp268, 0
-  %load_tmp2.i = select i1 %49, i32 %add_tmp268, i32 0
-  %50 = icmp ugt i32 %load_tmp2.i, 254
-  br i1 %50, label %then270, label %endif277
+endif251:                                         ; preds = %bool_and_rhs236, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit, %bool_or_rhs232, %then179, %bool_and_rhs201, %bool_or_rhs197
+  %.0353 = phi i32 [ %sub_tmp185, %bool_or_rhs197 ], [ %sub_tmp185, %bool_and_rhs201 ], [ %sub_tmp185, %then179 ], [ %sub_tmp217, %bool_or_rhs232 ], [ %sub_tmp217, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %sub_tmp217, %bool_and_rhs236 ]
+  %.0331.in = phi i64 [ %rshift_tmp17.i.i385, %bool_or_rhs197 ], [ %rshift_tmp17.i.i385, %bool_and_rhs201 ], [ %rshift_tmp17.i.i385, %then179 ], [ %rshift_tmp17.i.i, %bool_or_rhs232 ], [ %rshift_tmp17.i.i, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ %rshift_tmp17.i.i, %bool_and_rhs236 ]
+  %storemerge = phi i1 [ false, %bool_or_rhs197 ], [ %36, %bool_and_rhs201 ], [ true, %then179 ], [ false, %bool_or_rhs232 ], [ %48, %func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool.exit ], [ false, %bool_and_rhs236 ]
+  %.0331 = trunc i64 %.0331.in to i32
+  %add_tmp253 = add i32 %.0353, 127
+  %49 = call i32 @llvm.ctlz.i32(i32 %.0331, i1 false), !range !4
+  %sub_tmp.i = sub nsw i32 31, %49
+  %add_tmp255 = add i32 %add_tmp253, %sub_tmp.i
+  %50 = icmp sgt i32 %add_tmp255, 0
+  %load_tmp2.i = select i1 %50, i32 %add_tmp255, i32 0
+  %51 = icmp ugt i32 %load_tmp2.i, 254
+  br i1 %51, label %then257, label %endif264
 
-then270:                                          ; preds = %endif264
-  %load_tmp.cast.i374 = select i1 %4, float 0xFFF0000000000000, float 0x7FF0000000000000
-  store float %load_tmp.cast.i374, float* %2, align 4
+then257:                                          ; preds = %endif251
+  %load_tmp.cast.i364 = select i1 %4, float 0xFFF0000000000000, float 0x7FF0000000000000
+  store float %load_tmp.cast.i364, float* %2, align 4
   ret i32 0
 
-endif277:                                         ; preds = %endif264
-  %51 = icmp slt i32 %add_tmp268, 1
-  %sub_tmp287 = sub i32 -150, %.0364
-  %sub_tmp289 = add i32 %sub_tmp287, %load_tmp2.i
-  %sub_tmp283 = sub i32 -149, %.0364
-  %storemerge340 = select i1 %51, i32 %sub_tmp283, i32 %sub_tmp289
-  %sub_tmp293 = add i32 %storemerge340, -1
-  %notmask = shl nsw i32 -1, %sub_tmp293
-  %sub_tmp295 = xor i32 %notmask, -1
-  %bit_and_tmp = and i32 %sub_tmp295, %.0344
-  %52 = icmp eq i32 %bit_and_tmp, 0
-  %bit_and_tmp297 = and i1 %storemerge, %52
-  %53 = shl i32 1, %sub_tmp293
-  %54 = and i32 %53, %.0344
-  %.not = icmp eq i32 %54, 0
-  %bit_and_tmp297.not = xor i1 %bit_and_tmp297, true
-  %brmerge = or i1 %.not, %bit_and_tmp297.not
+endif264:                                         ; preds = %endif251
+  %52 = icmp slt i32 %add_tmp255, 1
+  %sub_tmp274 = sub i32 -150, %.0353
+  %sub_tmp276 = add i32 %sub_tmp274, %load_tmp2.i
+  %sub_tmp270 = sub i32 -149, %.0353
+  %storemerge327 = select i1 %52, i32 %sub_tmp270, i32 %sub_tmp276
+  %sub_tmp280 = add i32 %storemerge327, -1
+  %notmask = shl nsw i32 -1, %sub_tmp280
+  %sub_tmp282 = xor i32 %notmask, -1
+  %bit_and_tmp = and i32 %sub_tmp282, %.0331
+  %53 = icmp eq i32 %bit_and_tmp, 0
+  %bit_and_tmp284 = and i1 %storemerge, %53
+  %54 = shl i32 1, %sub_tmp280
+  %55 = and i32 %54, %.0331
+  %.not = icmp eq i32 %55, 0
+  %bit_and_tmp284.not = xor i1 %bit_and_tmp284, true
+  %brmerge = or i1 %.not, %bit_and_tmp284.not
   %not..not = xor i1 %.not, true
-  br i1 %brmerge, label %bool_and_end312, label %bool_or_rhs305
+  br i1 %brmerge, label %bool_and_end299, label %bool_or_rhs292
 
-bool_or_rhs305:                                   ; preds = %endif277
-  %55 = shl i32 1, %storemerge340
-  %56 = and i32 %55, %.0344
-  %57 = icmp ne i32 %56, 0
-  br label %bool_and_end312
+bool_or_rhs292:                                   ; preds = %endif264
+  %56 = shl i32 1, %storemerge327
+  %57 = and i32 %56, %.0331
+  %58 = icmp ne i32 %57, 0
+  br label %bool_and_end299
 
-bool_and_end312:                                  ; preds = %endif277, %bool_or_rhs305
-  %bool_and_tmp313 = phi i1 [ %not..not, %endif277 ], [ %57, %bool_or_rhs305 ]
-  %rshift_tmp316 = lshr i32 %.0344, %storemerge340
-  %cast_tmp318 = zext i1 %bool_and_tmp313 to i32
-  %add_tmp319 = add i32 %rshift_tmp316, %cast_tmp318
-  %bit_and_tmp321 = and i32 %add_tmp319, 8388607
-  %58 = icmp eq i32 %bit_and_tmp321, 0
-  %spec.select372 = and i1 %bool_and_tmp313, %58
-  %59 = zext i1 %spec.select372 to i32
-  %.0 = add nuw i32 %load_tmp2.i, %59
-  %lshift_tmp332 = select i1 %4, i32 256, i32 0
-  %bit_or_tmp334 = or i32 %.0, %lshift_tmp332
-  %lshift_tmp335 = shl i32 %bit_or_tmp334, 23
-  %bit_or_tmp337 = or i32 %lshift_tmp335, %bit_and_tmp321
-  %60 = bitcast float* %2 to i32*
-  store i32 %bit_or_tmp337, i32* %60, align 4
+bool_and_end299:                                  ; preds = %endif264, %bool_or_rhs292
+  %bool_and_tmp300 = phi i1 [ %not..not, %endif264 ], [ %58, %bool_or_rhs292 ]
+  %rshift_tmp303 = lshr i32 %.0331, %storemerge327
+  %cast_tmp305 = zext i1 %bool_and_tmp300 to i32
+  %add_tmp306 = add i32 %rshift_tmp303, %cast_tmp305
+  %bit_and_tmp308 = and i32 %add_tmp306, 8388607
+  %59 = icmp eq i32 %bit_and_tmp308, 0
+  %spec.select362 = and i1 %bool_and_tmp300, %59
+  %60 = zext i1 %spec.select362 to i32
+  %.0 = add nuw i32 %load_tmp2.i, %60
+  %lshift_tmp319 = select i1 %4, i32 256, i32 0
+  %bit_or_tmp321 = or i32 %.0, %lshift_tmp319
+  %lshift_tmp322 = shl i32 %bit_or_tmp321, 23
+  %bit_or_tmp324 = or i32 %lshift_tmp322, %bit_and_tmp308
+  %61 = bitcast float* %2 to i32*
+  store i32 %bit_or_tmp324, i32* %61, align 4
   ret i32 0
 }
 
