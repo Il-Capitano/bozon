@@ -3,6 +3,7 @@
 #include "global_data.h"
 #include "ctx/global_context.h"
 
+test_result ryu_test();
 test_result lexer_test(ctx::global_context &global_ctx);
 test_result parser_test(ctx::global_context &global_ctx);
 test_result consteval_test(ctx::global_context &global_ctx);
@@ -65,6 +66,7 @@ int main(int argc, char const **argv)
 	};
 
 	auto const begin = timer::now();
+	add_to_total(ryu_test());
 	add_to_total(lexer_test(global_ctx));
 	add_to_total(parser_test(global_ctx));
 	add_to_total(consteval_test(global_ctx));
