@@ -264,19 +264,7 @@ void typespec::move_from(typespec_view pos, typespec &source)
 
 void typespec::move_from(typespec_view pos, typespec &&source)
 {
-	auto const it_pos = pos.nodes.begin();
-	bz_assert(it_pos >= this->nodes.begin() && it_pos < this->nodes.end());
-	bz_assert(pos.nodes.end() == this->nodes.end());
-	bz_assert(source.nodes.end() < this->nodes.begin() || source.nodes.begin() >= this->nodes.end());
-	auto const it_index = static_cast<size_t>(it_pos - this->nodes.begin());
-	this->nodes.resize(it_index + source.nodes.size());
-	auto it = this->nodes.begin() + it_index;
-	auto const end = this->nodes.end();
-	auto src_it = source.nodes.begin();
-	for (; it != end; ++it, ++src_it)
-	{
-		*it = std::move(*src_it);
-	}
+	this->move_from(pos, source);
 }
 
 
