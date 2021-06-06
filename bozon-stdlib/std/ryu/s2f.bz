@@ -120,10 +120,13 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 				// TODO: Be more lenient. Return +/-Infinity or +/-0 instead.
 				// return s2f_INPUT_TOO_LONG;
 			}
-			e10 = 10 * e10 + (c - '0');
-			if (e10 != 0)
+			else
 			{
-				++e10digits;
+				e10 = 10 * e10 + (c - '0');
+				if (e10 != 0)
+				{
+					++e10digits;
+				}
 			}
 		}
 	}
@@ -139,39 +142,15 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	{
 		e10 -= eIndex - dotIndex - 1;
 	}
-	if (m10 == 0u || (e10digits > 4 && signedE))
-	{
-		if (signedM)
-		{
-			*result = -0.0f32;
-		}
-		else
-		{
-			*result = 0.0f32;
-		}
-		return s2f_SUCCESS;
-	}
-	else if (e10digits > 4)
-	{
-		if (signedM)
-		{
-			*result = ((-1.0f32 / 0.0f32));
-		}
-		else
-		{
-			*result = ((1.0f32 / 0.0f32));
-		}
-		return s2f_SUCCESS;
-	}
 
-	if ((m10digits + e10 <= -46) || (m10 == 0u))
+	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -46) || (m10 == 0u))
 	{
 		// Number is less than 1e-46, which should be rounded down to 0; return +/-0.0.
 		const ieee = (signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS);
 		*result = int32Bits2Float(ieee);
 		return s2f_SUCCESS;
 	}
-	if (m10digits + e10 >= 40)
+	else if (e10digits > 3 || m10digits + e10 >= 40)
 	{
 		// Number is larger than 1e+39, which should be rounded to +/-Infinity.
 		const ieee = ((signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS)) | (0xffu32 << FLOAT_MANTISSA_BITS);
