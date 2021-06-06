@@ -1671,7 +1671,7 @@ endif143.i.i:                                     ; preds = %then136.i.i, %endif
 then145.i.i:                                      ; preds = %endif143.i.i
   %ptr_add_tmp148.i.i = getelementptr i8, i8* %.0.i.i, i64 1
   %cast_tmp151.i.i = sext i32 %sub_tmp.i28.i to i64
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i.i, i8* align 1 %ptr_add_tmp148.i.i, i64 %cast_tmp151.i.i, i1 false), !noalias !36
+  call void @llvm.memmove.p0i8.p0i8.i64(i8* align 1 %.0.i.i, i8* align 1 %ptr_add_tmp148.i.i, i64 %cast_tmp151.i.i, i1 false), !noalias !36
   %116 = sext i32 %add_tmp.i.i to i64
   %ptr_add_tmp154.i.i = getelementptr i8, i8* %.0.i.i, i64 %116
   %ptr_add_tmp155.i.i = getelementptr i8, i8* %ptr_add_tmp154.i.i, i64 1
@@ -2640,7 +2640,7 @@ then80.i.i:                                       ; preds = %endif78.i.i
   %ptr_add_tmp83.i.i = getelementptr i8, i8* %.0.i24.i, i64 1
   %add_tmp85.i.i = add i32 %30, %9
   %cast_tmp86.i.i = sext i32 %add_tmp85.i.i to i64
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %.0.i24.i, i8* align 1 %ptr_add_tmp83.i.i, i64 %cast_tmp86.i.i, i1 false)
+  call void @llvm.memmove.p0i8.p0i8.i64(i8* align 1 %.0.i24.i, i8* align 1 %ptr_add_tmp83.i.i, i64 %cast_tmp86.i.i, i1 false)
   %63 = sext i32 %add_tmp.i19.i to i64
   %ptr_add_tmp89.i.i = getelementptr i8, i8* %.0.i24.i, i64 %63
   %ptr_add_tmp90.i35.i = getelementptr i8, i8* %ptr_add_tmp89.i.i, i64 1
@@ -5325,6 +5325,9 @@ declare i32 @llvm.ctlz.i32(i32, i1 immarg) #1
 
 ; Function Attrs: argmemonly nofree nosync nounwind willreturn writeonly
 declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #2
+
+; Function Attrs: argmemonly nofree nosync nounwind willreturn
+declare void @llvm.memmove.p0i8.p0i8.i64(i8* nocapture writeonly, i8* nocapture readonly, i64, i1 immarg) #0
 
 ; Function Attrs: inaccessiblememonly nofree nosync nounwind willreturn
 declare void @llvm.experimental.noalias.scope.decl(metadata) #3

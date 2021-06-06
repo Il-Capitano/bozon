@@ -417,7 +417,7 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 
 	if (actual_exponent >= 0)
 	{
-		std::memcpy(out, out + 1, (actual_exponent + 1) as usize);
+		std::memmove(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
 		*(out + actual_exponent + 1) = '.' as uint32 as uint8;
 	}
