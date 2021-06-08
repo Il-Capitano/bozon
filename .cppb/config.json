@@ -136,6 +136,16 @@
 			"dependencies": [ "ryu_format.linux.ll" ],
 			"command": "llc-12 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o",
 			"is_file": true
+		},
+		"ryu_format.ll": {
+			"dependencies": [],
+			"command": "bin/windows-debug/bozon.exe -I bozon-stdlib -Wall -Oall ryu_format.bz -o ryu_format.ll --emit=llvm-ir",
+			"is_file": true
+		},
+		"ryu_format.linux.ll": {
+			"dependencies": [],
+			"command": "bin/linux-debug/bozon -I bozon-stdlib -Wall -Oall ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir",
+			"is_file": true
 		}
 	}
 }
