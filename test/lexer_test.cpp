@@ -418,6 +418,20 @@ do {                                                          \
 	x("1.e'10", file.begin() + 1);
 	//  ^
 
+	x("1E1", file.end());
+	x("1.0E1", file.end());
+	x("1E+1", file.end());
+	x("1E-1", file.end());
+	x("1E-10", file.end());
+	x("1.0E-10", file.end());
+	x("1''.0E-10", file.end());
+	x("1.0E 10", file.begin() + 4);
+	//     ^
+	x("1.0E'10", file.begin() + 4);
+	//     ^
+	x("1.E'10", file.begin() + 1);
+	//  ^
+
 	x("1.1", file.end());
 	x("1.1.1", file.begin() + 3);
 	//    ^ file.begin() + 3

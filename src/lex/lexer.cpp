@@ -544,7 +544,6 @@ static std::pair<bz::u8string_view, uint32_t> get_number_token_str_and_kind(
 	ctx::char_pos const end
 )
 {
-	// TODO: allow exponential notations (1e10)
 	auto const num_begin = stream.it;
 
 	do
@@ -575,7 +574,7 @@ static std::pair<bz::u8string_view, uint32_t> get_number_token_str_and_kind(
 
 	auto const has_exponent = [&]() {
 		auto it = stream.it;
-		if (it == end || *it != 'e')
+		if (it == end || (*it != 'e' && *it != 'E'))
 		{
 			return false;
 		}
