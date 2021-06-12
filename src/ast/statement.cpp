@@ -609,13 +609,13 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		switch (pointer_size)
 		{
 		case 8:
-			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint64_]);
+			return uint64_type;
 		case 4:
-			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint32_]);
+			return uint32_type;
 		case 2:
-			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint16_]);
+			return uint16_type;
 		case 1:
-			return make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
+			return uint8_type;
 		default:
 			bz_unreachable;
 		}
@@ -704,9 +704,9 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		add_builtin(24, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type),
 		add_builtin(25, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type),
 
-		add_builtin(26, function_body::comptime_malloc, "malloc", void_ptr_type, usize_type),
+		add_builtin(26, function_body::comptime_malloc,      "__bozon_builtin_comptime_malloc", void_ptr_type, usize_type),
 		add_builtin(27, function_body::comptime_malloc_type, "", {}, typename_type, usize_type),
-		add_builtin(28, function_body::comptime_free,   "free",   void_type, void_const_ptr_type),
+		add_builtin(28, function_body::comptime_free,        "__bozon_builtin_comptime_free",   void_type, void_ptr_type),
 
 		add_builtin(29, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type),
 		add_builtin(30, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type),

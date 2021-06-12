@@ -160,7 +160,7 @@ struct error_t
 	.kind: uint32;
 	.src_tokens: src_tokens_t;
 	.message: std::string;
-	.call_stack: [: const uint64];
+	.call_stack: [: uint64];
 
 	constructor()
 	{
@@ -168,7 +168,7 @@ struct error_t
 			0u,
 			src_tokens_t[ 0u, 0u, 0u ],
 			std::string(),
-			__builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64)
+			__builtin_slice_from_ptrs(null as *uint64, null as *uint64)
 		];
 	}
 
@@ -247,7 +247,7 @@ function alloc(T: typename, count: usize) -> *T
 }
 
 @no_comptime_checking
-function free(p: *const void)
+function free(p: *void)
 {
 	__builtin_comptime_free(p);
 }
@@ -492,12 +492,12 @@ function str_from_c_str(c_str: *const uint8) -> str
 }
 
 @no_comptime_checking
-function get_call_stack_array_copy() -> [: const uint64]
+function get_call_stack_array_copy() -> [: uint64]
 {
 	const call_stack_size = call_stack.size();
 	if (call_stack_size == 0u)
 	{
-		const result = __builtin_slice_from_const_ptrs(null as *const uint64, null as *const uint64);
+		const result = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
 		return result;
 	}
 	else

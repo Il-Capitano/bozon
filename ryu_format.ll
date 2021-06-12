@@ -5315,6 +5315,8 @@ func.std.ryu.c_strlen..1.0P.const.builtin.uint8.builtin.int32.7.exit: ; preds = 
   ret i32 %4
 }
 
+declare void @__bozon_builtin_comptime_free(i8*)
+
 declare void @free(i8*)
 
 ; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
@@ -5322,6 +5324,8 @@ declare i64 @llvm.ctlz.i64(i64, i1 immarg) #1
 
 ; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
 declare i32 @llvm.ctlz.i32(i32, i1 immarg) #1
+
+declare i8* @__bozon_builtin_comptime_malloc(i64)
 
 ; Function Attrs: argmemonly nofree nosync nounwind willreturn writeonly
 declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #2
