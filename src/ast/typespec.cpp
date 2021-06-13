@@ -4,6 +4,8 @@
 namespace ast
 {
 
+/*
+
 lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 {
 	lex::src_tokens src_tokens = {};
@@ -131,6 +133,8 @@ lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
 	return src_tokens;
 }
 
+*/
+
 bool typespec_view::is_safe_blind_get(void) const noexcept
 {
 	return [this]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
@@ -140,7 +144,7 @@ bool typespec_view::is_safe_blind_get(void) const noexcept
 
 typespec_view typespec_view::blind_get(void) const noexcept
 {
-	return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
+	return typespec_view{ this->src_tokens, { this->nodes.begin() + 1, this->nodes.end() } };
 }
 
 bool typespec_view::is_typename(void) const noexcept
@@ -205,8 +209,8 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
-typespec::typespec(arena_vector<typespec_node_t> _nodes)
-	: nodes(std::move(_nodes))
+typespec::typespec(lex::src_tokens _src_tokens, arena_vector<typespec_node_t> _nodes)
+	: src_tokens(_src_tokens), nodes(std::move(_nodes))
 {}
 
 typespec::typespec(typespec_view ts)
@@ -272,7 +276,7 @@ typespec_view remove_lvalue_reference(typespec_view ts) noexcept
 {
 	if (ts.nodes.size() != 0 && ts.nodes.front().is<ts_lvalue_reference>())
 	{
-		return typespec_view{{ ts.nodes.begin() + 1, ts.nodes.end() }};
+		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
 	}
 	else
 	{
@@ -284,7 +288,7 @@ typespec_view remove_pointer(typespec_view ts) noexcept
 {
 	if (ts.nodes.size() != 0 && ts.nodes.front().is<ts_pointer>())
 	{
-		return typespec_view{{ ts.nodes.begin() + 1, ts.nodes.end() }};
+		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
 	}
 	else
 	{
@@ -299,7 +303,7 @@ typespec_view remove_const_or_consteval(typespec_view ts) noexcept
 		&&(ts.nodes.front().is<ast::ts_const>() || ts.nodes.front().is<ast::ts_consteval>())
 	)
 	{
-		return typespec_view{{ ts.nodes.begin() + 1, ts.nodes.end() }};
+		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
 	}
 	else
 	{

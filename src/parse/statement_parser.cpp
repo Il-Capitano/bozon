@@ -668,7 +668,7 @@ static void resolve_variable_init_expr_and_match_type(
 		&& var_decl.state != ast::resolve_state::error
 	)
 	{
-		auto const var_decl_src_tokens = var_decl.get_type().get_src_tokens();
+		auto const var_decl_src_tokens = var_decl.get_type().src_tokens;
 		auto const src_tokens = [&]() {
 			if (var_decl_src_tokens.pivot != nullptr)
 			{
@@ -1249,11 +1249,7 @@ static bool resolve_function_parameters_helper(
 				return false;
 			}
 
-			auto const auto_pos = func_body.params[0].get_type().nodes[1].get<ast::ts_auto>().auto_pos;
-			auto const param_type_src_tokens = auto_pos == nullptr
-				? lex::src_tokens{}
-				: lex::src_tokens{ auto_pos, auto_pos, auto_pos + 1 };
-			func_body.params[0].get_type().nodes[1] = ast::ts_base_type{ param_type_src_tokens, func_body.get_destructor_of() };
+			func_body.params[0].get_type().nodes[1] = ast::ts_base_type{ func_body.get_destructor_of() };
 		}
 		else
 		{
@@ -1402,7 +1398,7 @@ static bool resolve_function_return_type_helper(
 		{
 			auto const destructor_of_type = ast::type_info::decode_symbol_name(func_body.get_destructor_of()->symbol_name);
 			context.report_error(
-				func_body.return_type.get_src_tokens(),
+				func_body.return_type.src_tokens,
 				bz::format("return type must be 'void' for destructor of type '{}'", destructor_of_type)
 			);
 			return false;
@@ -1488,7 +1484,7 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 		)
 	))
 	{
-		auto const ret_t_src_tokens = body.return_type.get_src_tokens();
+		auto const ret_t_src_tokens = body.return_type.src_tokens;
 		bz_assert(ret_t_src_tokens.pivot != nullptr);
 		context.report_error(
 			body.src_tokens, "invalid declaration for main function",

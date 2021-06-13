@@ -63,9 +63,8 @@ using typespec_node_t = bz::meta::apply_type_pack<bz::variant, typespec_types>;
 
 struct typespec_view
 {
+	lex::src_tokens src_tokens;
 	bz::array_view<const typespec_node_t> nodes;
-
-	lex::src_tokens get_src_tokens(void) const noexcept;
 
 	uint64_t kind(void) const noexcept;
 
@@ -94,11 +93,12 @@ struct typespec_view
 
 struct typespec
 {
+	lex::src_tokens src_tokens;
 	arena_vector<typespec_node_t> nodes;
 
 	declare_default_5(typespec)
 
-	typespec(arena_vector<typespec_node_t> _nodes);
+	typespec(lex::src_tokens _src_tokens, arena_vector<typespec_node_t> _nodes);
 	typespec(typespec_view ts);
 
 	template<typename T, typename ...Args>
@@ -107,13 +107,10 @@ struct typespec
 
 
 	operator typespec_view (void) const noexcept
-	{ return typespec_view{ this->nodes }; }
+	{ return typespec_view{ this->src_tokens, this->nodes }; }
 
 	typespec_view as_typespec_view(void) const noexcept
-	{ return typespec_view{ this->nodes }; }
-
-	lex::src_tokens get_src_tokens() const noexcept
-	{ return this->as_typespec_view().get_src_tokens(); }
+	{ return typespec_view{ this->src_tokens, this->nodes }; }
 
 	bool is_unresolved(void) const noexcept;
 
@@ -174,80 +171,57 @@ struct ts_unresolved
 
 struct ts_base_type
 {
-	lex::src_tokens src_tokens;
 	type_info *info;
 };
 
 struct ts_void
-{
-	lex::token_pos void_pos;
-};
+{};
 
 struct ts_function
 {
-	lex::src_tokens src_tokens;
 	bz::vector<typespec> param_types;
 	typespec return_type;
 };
 
 struct ts_array
 {
-	lex::src_tokens src_tokens;
-	uint64_t        size;
-	typespec        elem_type;
+	uint64_t size;
+	typespec elem_type;
 };
 
 struct ts_array_slice
 {
-	lex::src_tokens src_tokens;
-	typespec        elem_type;
+	typespec elem_type;
 };
 
 struct ts_tuple
 {
-	lex::src_tokens src_tokens;
 	bz::vector<typespec> types;
 };
 
 struct ts_auto
-{
-	lex::token_pos auto_pos;
-};
+{};
 
 struct ts_typename
-{
-	lex::token_pos typename_pos;
-};
+{};
 
 struct ts_const
-{
-	lex::token_pos const_pos;
-};
+{};
 
 struct ts_consteval
-{
-	lex::token_pos consteval_pos;
-};
+{};
 
 struct ts_pointer
-{
-	lex::token_pos pointer_pos;
-};
+{};
 
 struct ts_lvalue_reference
-{
-	lex::token_pos reference_pos;
-};
+{};
 
 struct ts_auto_reference
-{
-	lex::token_pos auto_reference_pos;
-};
+{};
 
 struct ts_auto_reference_const
-{
-	lex::token_pos auto_reference_const_pos;
-};
+{};
 
 
 typespec_view remove_lvalue_reference(typespec_view ts) noexcept;
@@ -267,27 +241,27 @@ inline bool operator != (typespec_view lhs, typespec_view rhs)
 
 inline typespec make_auto_typespec(lex::token_pos auto_pos)
 {
-	return typespec{ { ts_auto{ auto_pos } } };
+	return typespec{ lex::src_tokens::from_single_token(auto_pos), { ts_auto{} } };
 }
 
 inline typespec make_typename_typespec(lex::token_pos typename_pos)
 {
-	return typespec{ { ts_typename{ typename_pos } } };
+	return typespec{ lex::src_tokens::from_single_token(typename_pos), { ts_typename{} } };
 }
 
 inline typespec make_unresolved_typespec(lex::token_range range)
 {
-	return typespec{ { ts_unresolved{ range } } };
+	return typespec{ lex::src_tokens::from_range(range), { ts_unresolved{ range } } };
 }
 
 inline typespec make_base_type_typespec(lex::src_tokens src_tokens, type_info *info)
 {
-	return typespec{ { ts_base_type{ src_tokens, info } } };
+	return typespec{ src_tokens, { ts_base_type{ info } } };
 }
 
 inline typespec make_void_typespec(lex::token_pos void_pos)
 {
-	return typespec{ { ts_void{ void_pos } } };
+	return typespec{ lex::src_tokens::from_single_token(void_pos), { ts_void{} } };
 }
 
 inline typespec make_array_typespec(
@@ -296,7 +270,7 @@ inline typespec make_array_typespec(
 	typespec elem_type
 )
 {
-	return typespec{ { ts_array{ src_tokens, size, std::move(elem_type) } } };
+	return typespec{ src_tokens, { ts_array{ size, std::move(elem_type) } } };
 }
 
 inline typespec make_array_slice_typespec(
@@ -304,7 +278,7 @@ inline typespec make_array_slice_typespec(
 	typespec elem_type
 )
 {
-	return typespec{ { ts_array_slice{ src_tokens, std::move(elem_type) } } };
+	return typespec{ src_tokens, { ts_array_slice{ std::move(elem_type) } } };
 }
 
 inline typespec make_tuple_typespec(
@@ -312,7 +286,7 @@ inline typespec make_tuple_typespec(
 	bz::vector<typespec> types
 )
 {
-	return typespec{ { ts_tuple{ src_tokens, std::move(types) } } };
+	return typespec{ src_tokens, { ts_tuple{ std::move(types) } } };
 }
 
 
@@ -332,7 +306,7 @@ auto typespec_view::get(void) const noexcept -> bz::meta::conditional<is_termina
 	}
 	else
 	{
-		return typespec_view{ { this->nodes.begin() + 1, this->nodes.end() } };
+		return typespec_view{ this->src_tokens, { this->nodes.begin() + 1, this->nodes.end() } };
 	}
 }
 

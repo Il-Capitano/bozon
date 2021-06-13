@@ -932,7 +932,7 @@ static ast::typespec get_function_type(ast::function_body &body)
 	{
 		param_types.emplace_back(p.get_type());
 	}
-	return ast::typespec({ ast::ts_function{ {}, std::move(param_types), return_type } });
+	return ast::typespec(body.src_tokens, { ast::ts_function{ std::move(param_types), return_type } });
 }
 
 static ast::decl_variable *find_var_decl_in_local_scope(decl_set &scope, ast::identifier const &id)
@@ -1206,7 +1206,7 @@ static ast::expression make_variable_expression(
 		auto &init_expr = var_decl->init_expr;
 		bz_assert(init_expr.is<ast::constant_expression>());
 		ast::typespec result_type = id_type.get<ast::ts_consteval>();
-		result_type.add_layer<ast::ts_const>(nullptr);
+		result_type.add_layer<ast::ts_const>();
 		return ast::make_constant_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
@@ -1217,7 +1217,7 @@ static ast::expression make_variable_expression(
 	else if (id_type.is<ast::ts_consteval>())
 	{
 		ast::typespec result_type = id_type.get<ast::ts_consteval>();
-		result_type.add_layer<ast::ts_const>(nullptr);
+		result_type.add_layer<ast::ts_const>();
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
@@ -1389,7 +1389,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 			auto &init_expr = var_decl->init_expr;
 			bz_assert(init_expr.is<ast::constant_expression>());
 			ast::typespec result_type = id_type.get<ast::ts_consteval>();
-			result_type.add_layer<ast::ts_const>(nullptr);
+			result_type.add_layer<ast::ts_const>();
 			return ast::make_constant_expression(
 				src_tokens,
 				id_type_kind, std::move(result_type),
@@ -1528,23 +1528,11 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		auto const id_value = id.values.front();
 		if (auto const builtin_type = this->get_builtin_type(id_value); builtin_type.has_value())
 		{
-			ast::typespec type = builtin_type;
-			type.nodes.back().visit(bz::overload{
-				[&](ast::ts_base_type &base_type) {
-					base_type.src_tokens = src_tokens;
-				},
-				[&](ast::ts_void &void_t) {
-					void_t.void_pos = id.tokens.begin;
-				},
-				[](auto const &) {
-					bz_unreachable;
-				}
-			});
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::type_name,
 				ast::make_typename_typespec(nullptr),
-				ast::constant_value(std::move(type)),
+				ast::constant_value(builtin_type),
 				ast::make_expr_identifier(id)
 			);
 		}
@@ -1786,7 +1774,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1847,7 +1835,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1905,7 +1893,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -1961,7 +1949,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -2017,7 +2005,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, type_info } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
 			value,
 			ast::make_expr_literal(literal)
 		);
@@ -2050,7 +2038,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::char_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::char_) } }),
 			ast::constant_value(value),
 			ast::make_expr_literal(literal)
 		);
@@ -2059,7 +2047,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(true),
 			ast::make_expr_literal(literal)
 		);
@@ -2067,7 +2055,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(false),
 			ast::make_expr_literal(literal)
 		);
@@ -2075,7 +2063,7 @@ if (postfix == postfix_str)                                                     
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::null_t_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::null_t_) } }),
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_literal(literal)
 		);
@@ -2131,7 +2119,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	return ast::make_constant_expression(
 		{ begin, begin, end },
 		ast::expression_type_kind::rvalue,
-		ast::typespec({ ast::ts_base_type{ {}, this->get_builtin_type_info(ast::type_info::str_) } }),
+		ast::typespec({begin, begin, end}, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::str_) } }),
 		ast::constant_value(result),
 		ast::make_expr_literal(lex::token_range{ begin, end })
 	);
@@ -3029,8 +3017,7 @@ static void match_typename_to_type_impl(
 		bz_assert(dest_container.nodes.front().is<ast::ts_auto_reference>());
 		if (ast::is_lvalue(expr_type_kind))
 		{
-			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos;
-			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>(ref_pos);
+			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>();
 			dest = dest_container;
 		}
 		else
@@ -3047,15 +3034,13 @@ static void match_typename_to_type_impl(
 		bz_assert(!inner_dest.is<ast::ts_const>());
 		if (ast::is_lvalue(expr_type_kind) && expr_type.is<ast::ts_const>())
 		{
-			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos;
-			dest_container.nodes.front().emplace<ast::ts_const>(ref_pos);
-			dest_container.add_layer<ast::ts_lvalue_reference>(ref_pos);
+			dest_container.nodes.front().emplace<ast::ts_const>();
+			dest_container.add_layer<ast::ts_lvalue_reference>();
 			dest = dest_container;
 		}
 		else if (ast::is_lvalue(expr_type_kind))
 		{
-			auto const ref_pos = dest_container.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos;
-			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>(ref_pos);
+			dest_container.nodes.front().emplace<ast::ts_lvalue_reference>();
 			dest = dest_container;
 		}
 		else
@@ -3426,7 +3411,7 @@ static void match_expression_to_type_impl(
 		if (dest_without_const.is<ast::ts_auto>())
 		{
 			auto &tuple_expr = expr.get_tuple();
-			ast::typespec tuple_type = ast::make_tuple_typespec(dest_without_const.get_src_tokens(), {});
+			ast::typespec tuple_type = ast::make_tuple_typespec(dest_without_const.src_tokens, {});
 			auto &tuple_type_vec = tuple_type.nodes.front().get<ast::ts_tuple>().types;
 			tuple_type_vec.resize(tuple_expr.elems.size());
 			for (auto &type : tuple_type_vec)
@@ -5029,7 +5014,7 @@ ast::expression parse_context::make_member_access_expression(
 		&& base_type.is<ast::ts_const>()
 	)
 	{
-		result_type.add_layer<ast::ts_const>(nullptr);
+		result_type.add_layer<ast::ts_const>();
 	}
 
 	auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
@@ -5121,10 +5106,10 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 		// 0 means it's not yet decidable
 		// -1 means it's not instantiable
 		auto const result = node.visit(bz::overload{
-			[this](ast::ts_base_type const &base_type) {
+			[this, &ts](ast::ts_base_type const &base_type) {
 				if (base_type.info->state != ast::resolve_state::all && base_type.info->state != ast::resolve_state::error)
 				{
-					this->add_to_resolve_queue(base_type.src_tokens, *base_type.info);
+					this->add_to_resolve_queue(ts.src_tokens, *base_type.info);
 					parse::resolve_type_info(*base_type.info, *this);
 					this->pop_resolve_queue();
 				}

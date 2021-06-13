@@ -198,6 +198,23 @@ struct src_tokens
 	src_tokens(token_pos _begin, token_pos _pivot, token_pos _end) noexcept
 		: begin(_begin), pivot(_pivot), end(_end)
 	{}
+
+	static src_tokens from_single_token(token_pos it) noexcept
+	{
+		if (it == nullptr)
+		{
+			return {};
+		}
+		else
+		{
+			return { it, it, it + 1 };
+		}
+	}
+
+	static src_tokens from_range(token_range range) noexcept
+	{
+		return { range.begin, range.begin, range.end };
+	}
 };
 
 } // namespace lex

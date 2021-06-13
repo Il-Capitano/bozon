@@ -270,7 +270,7 @@ static ast::expression get_builtin_unary_address_of(
 
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	ast::typespec result_type = type;
-	result_type.add_layer<ast::ts_pointer>(nullptr);
+	result_type.add_layer<ast::ts_pointer>();
 	if (
 		type_kind == ast::expression_type_kind::lvalue
 		|| type_kind == ast::expression_type_kind::lvalue_reference
@@ -520,7 +520,7 @@ static ast::expression get_type_op_unary_reference(
 	}
 	else if (result_type.is<ast::ts_lvalue_reference>())
 	{
-		result_type.nodes.front().get<ast::ts_lvalue_reference>().reference_pos = src_tokens.pivot;
+		// nothing
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
@@ -534,7 +534,7 @@ static ast::expression get_type_op_unary_reference(
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_lvalue_reference>(src_tokens.pivot);
+		result_type.add_layer<ast::ts_lvalue_reference>();
 	}
 
 	return ast::make_constant_expression(
@@ -571,7 +571,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
-		result_type.nodes.front().get<ast::ts_auto_reference>().auto_reference_pos = src_tokens.pivot;
+		// nothing
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
@@ -580,7 +580,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_auto_reference>(src_tokens.pivot);
+		result_type.add_layer<ast::ts_auto_reference>();
 	}
 
 	return ast::make_constant_expression(
@@ -634,11 +634,11 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	}
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
-		result_type.nodes.front().get<ast::ts_auto_reference_const>().auto_reference_const_pos = src_tokens.pivot;
+		// nothing
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_auto_reference_const>(src_tokens.pivot);
+		result_type.add_layer<ast::ts_auto_reference_const>();
 	}
 
 	return ast::make_constant_expression(
@@ -684,7 +684,7 @@ static ast::expression get_type_op_unary_pointer(
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 
-	result_type.add_layer<ast::ts_pointer>(src_tokens.pivot);
+	result_type.add_layer<ast::ts_pointer>();
 
 	return ast::make_constant_expression(
 		src_tokens,
@@ -725,15 +725,15 @@ static ast::expression get_type_op_unary_const(
 	}
 	else if (result_type.is<ast::ts_const>())
 	{
-		result_type.nodes.front().get<ast::ts_const>().const_pos = src_tokens.pivot;
+		// nothing
 	}
 	else if (result_type.is<ast::ts_consteval>())
 	{
-		result_type.nodes.front().get<ast::ts_consteval>().consteval_pos = src_tokens.pivot;
+		// nothing
 	}
 	else
 	{
-		result_type.add_layer<ast::ts_const>(src_tokens.pivot);
+		result_type.add_layer<ast::ts_const>();
 	}
 
 	return ast::make_constant_expression(
@@ -775,15 +775,15 @@ static ast::expression get_type_op_unary_consteval(
 	}
 	else if (const_expr_type.is<ast::ts_const>())
 	{
-		const_expr_type.nodes.front() = ast::ts_consteval{ src_tokens.pivot };
+		// nothing
 	}
 	else if (const_expr_type.is<ast::ts_consteval>())
 	{
-		const_expr_type.nodes.front().get<ast::ts_consteval>().consteval_pos = src_tokens.pivot;
+		// nothing
 	}
 	else
 	{
-		const_expr_type.add_layer<ast::ts_consteval>(src_tokens.pivot);
+		const_expr_type.add_layer<ast::ts_consteval>();
 	}
 
 	return ast::make_constant_expression(
@@ -878,7 +878,7 @@ static ast::expression get_builtin_unary_typeof(
 	bz_assert(type.has_value());
 	if (kind == ast::expression_type_kind::lvalue_reference)
 	{
-		result_type.add_layer<ast::ts_lvalue_reference>(nullptr);
+		result_type.add_layer<ast::ts_lvalue_reference>();
 	}
 	return ast::make_constant_expression(
 		src_tokens,
@@ -1323,7 +1323,7 @@ static ast::expression get_builtin_binary_plus(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{  context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 				bz_assert(rhs.not_error());
@@ -1334,7 +1334,7 @@ static ast::expression get_builtin_binary_plus(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{  context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 				bz_assert(lhs.not_error());
@@ -1343,7 +1343,7 @@ static ast::expression get_builtin_binary_plus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1358,7 +1358,7 @@ static ast::expression get_builtin_binary_plus(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 				bz_assert(rhs.not_error());
@@ -1369,7 +1369,7 @@ static ast::expression get_builtin_binary_plus(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 				bz_assert(lhs.not_error());
@@ -1378,7 +1378,7 @@ static ast::expression get_builtin_binary_plus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1504,7 +1504,7 @@ static ast::expression get_builtin_binary_minus(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 				bz_assert(rhs.not_error());
@@ -1515,7 +1515,7 @@ static ast::expression get_builtin_binary_minus(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 				bz_assert(lhs.not_error());
@@ -1524,7 +1524,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1539,7 +1539,7 @@ static ast::expression get_builtin_binary_minus(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 				bz_assert(rhs.not_error());
@@ -1550,7 +1550,7 @@ static ast::expression get_builtin_binary_minus(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 				bz_assert(lhs.not_error());
@@ -1559,7 +1559,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1596,7 +1596,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::int32_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::int32_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1622,7 +1622,7 @@ static ast::expression get_builtin_binary_minus(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::int64_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::int64_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1822,7 +1822,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 			}
@@ -1832,7 +1832,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 			}
@@ -1840,7 +1840,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -1855,7 +1855,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 			}
@@ -1865,7 +1865,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 			}
@@ -1873,7 +1873,7 @@ static ast::expression get_builtin_binary_multiply_divide(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2058,7 +2058,7 @@ static ast::expression get_builtin_binary_modulo(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 			}
@@ -2068,7 +2068,7 @@ static ast::expression get_builtin_binary_modulo(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 			}
@@ -2076,7 +2076,7 @@ static ast::expression get_builtin_binary_modulo(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2091,7 +2091,7 @@ static ast::expression get_builtin_binary_modulo(
 				rhs = make_builtin_cast(
 					rhs.src_tokens,
 					std::move(rhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(lhs_kind) } }),
+					ast::typespec(rhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(lhs_kind) } }),
 					context
 				);
 			}
@@ -2101,7 +2101,7 @@ static ast::expression get_builtin_binary_modulo(
 				lhs = make_builtin_cast(
 					lhs.src_tokens,
 					std::move(lhs),
-					ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(rhs_kind) } }),
+					ast::typespec(lhs.src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(rhs_kind) } }),
 					context
 				);
 			}
@@ -2109,7 +2109,7 @@ static ast::expression get_builtin_binary_modulo(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(common_kind) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(common_kind) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2327,7 +2327,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2360,7 +2360,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2373,7 +2373,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2385,7 +2385,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2400,7 +2400,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_function_call(
 					src_tokens, std::move(args),
 					context.get_builtin_function(
@@ -2420,7 +2420,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2435,7 +2435,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
@@ -2452,7 +2452,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
@@ -2469,7 +2469,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
@@ -2573,7 +2573,7 @@ static ast::expression get_builtin_binary_compare(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2604,7 +2604,7 @@ static ast::expression get_builtin_binary_compare(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2617,7 +2617,7 @@ static ast::expression get_builtin_binary_compare(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2629,7 +2629,7 @@ static ast::expression get_builtin_binary_compare(
 			return ast::make_dynamic_expression(
 				src_tokens,
 				ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+				ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 				ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 			);
 		}
@@ -2644,7 +2644,7 @@ static ast::expression get_builtin_binary_compare(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-				ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 		);
 	}
@@ -3392,7 +3392,7 @@ ast::expression make_builtin_subscript_operator(
 				&& called_type.is<ast::ts_const>()
 			)
 			{
-				result_type.add_layer<ast::ts_const>(nullptr);
+				result_type.add_layer<ast::ts_const>();
 			}
 
 			auto const result_kind = result_type.is<ast::ts_lvalue_reference>()
@@ -3450,7 +3450,7 @@ ast::expression make_builtin_subscript_operator(
 
 		if (called_type.is<ast::ts_const>() || called_type.is<ast::ts_consteval>())
 		{
-			result_type.add_layer<ast::ts_const>(nullptr);
+			result_type.add_layer<ast::ts_const>();
 		}
 
 		return ast::make_dynamic_expression(
@@ -3508,7 +3508,7 @@ static ast::expression get_type_op_binary_equals_not_equals(
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::rvalue,
-		ast::typespec({ ast::ts_base_type{ {}, context.get_builtin_type_info(ast::type_info::bool_) } }),
+		ast::typespec(src_tokens, { ast::ts_base_type{ context.get_builtin_type_info(ast::type_info::bool_) } }),
 		ast::constant_value(result),
 		ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs))
 	);

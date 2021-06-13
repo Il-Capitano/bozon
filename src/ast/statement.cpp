@@ -251,7 +251,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 				{
 					result_type.remove_layer();
 				}
-				result_type.add_layer<ts_pointer>(nullptr);
+				result_type.add_layer<ts_pointer>();
 				func_body->return_type = std::move(result_type);
 				break;
 			}
@@ -391,18 +391,18 @@ type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens s
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto rhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_const>(nullptr);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_const>();
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto ret_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 
@@ -422,13 +422,13 @@ type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tok
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 	auto rhs_t = make_base_type_typespec({}, &info);
 	auto ret_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 
@@ -622,30 +622,30 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 	}();
 	auto const void_ptr_type = [&]() {
 		typespec result = make_void_typespec(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const void_const_ptr_type = [&]() {
 		typespec result = make_void_typespec(nullptr);
-		result.add_layer<ts_const>(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_const>();
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const uint8_const_ptr_type = [&]() {
 		typespec result = make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
-		result.add_layer<ts_const>(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_const>();
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const auto_ptr_type = [&]() {
 		typespec result = make_auto_typespec(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const auto_const_ptr_type = [&]() {
 		typespec result = make_auto_typespec(nullptr);
-		result.add_layer<ts_const>(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_const>();
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const slice_auto_type = [&]() {
@@ -654,17 +654,17 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 	}();
 	auto const slice_const_auto_type = [&]() {
 		typespec auto_t = make_auto_typespec(nullptr);
-		auto_t.add_layer<ts_const>(nullptr);
+		auto_t.add_layer<ts_const>();
 		return make_array_slice_typespec({}, std::move(auto_t));
 	}();
 	auto const typename_ptr_type = [&]() {
 		typespec result = make_typename_typespec(nullptr);
-		result.add_layer<ts_pointer>(nullptr);
+		result.add_layer<ts_pointer>();
 		return result;
 	}();
 	auto const ref_auto_type = [&]() {
 		typespec result = make_auto_typespec(nullptr);
-		result.add_layer<ts_lvalue_reference>(nullptr);
+		result.add_layer<ts_lvalue_reference>();
 		return result;
 	}();
 
