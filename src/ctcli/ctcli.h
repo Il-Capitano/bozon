@@ -711,13 +711,42 @@ CTCLI_DEF_ARG_PARSER_INT(uint64)
 
 
 template<>
-struct arg_parser<arg_type::floating_point>;
+struct arg_parser<arg_type::float32>
+{
+	static optional<arg_type_t<arg_type::float32>> parse(string_view arg) noexcept
+	{
+		auto const result = bz::parse_float(arg);
+		if (result.has_value())
+		{
+			return result.get();
+		}
+		else
+		{
+			return {};
+		}
+	}
+};
 
 template<>
-struct arg_parser<arg_type::float32>;
+struct arg_parser<arg_type::float64>
+{
+	static optional<arg_type_t<arg_type::float64>> parse(string_view arg) noexcept
+	{
+		auto const result = bz::parse_double(arg);
+		if (result.has_value())
+		{
+			return result.get();
+		}
+		else
+		{
+			return {};
+		}
+	}
+};
 
 template<>
-struct arg_parser<arg_type::float64>;
+struct arg_parser<arg_type::floating_point> : arg_parser<arg_type::float64>
+{};
 
 
 template<>
