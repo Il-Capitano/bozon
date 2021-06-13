@@ -513,6 +513,7 @@ static ast::expression get_type_op_unary_reference(
 	bz_assert(expr.is_typename());
 
 	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "reference to consteval type is not allowed");
@@ -559,6 +560,7 @@ static ast::expression get_type_op_unary_auto_ref(
 	bz_assert(expr.is_typename());
 
 	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "auto reference to consteval type is not allowed");
@@ -605,6 +607,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	bz_assert(expr.is_typename());
 
 	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_consteval>())
 	{
 		context.report_error(src_tokens, "auto reference-const to consteval type is not allowed");
@@ -663,6 +666,7 @@ static ast::expression get_type_op_unary_pointer(
 	bz_assert(expr.is_typename());
 
 	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "pointer to reference is not allowed");
@@ -708,6 +712,7 @@ static ast::expression get_type_op_unary_const(
 	bz_assert(expr.is_typename());
 
 	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "a reference type cannot be 'const'");
@@ -757,40 +762,41 @@ static ast::expression get_type_op_unary_consteval(
 	bz_assert(expr.not_error());
 	bz_assert(expr.is_typename());
 
-	auto const_expr_type = expr.get<ast::constant_expression>().value.get<ast::constant_value::type>();
-	if (const_expr_type.is<ast::ts_lvalue_reference>())
+	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
+	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "a reference type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (const_expr_type.is<ast::ts_auto_reference>())
+	else if (result_type.is<ast::ts_auto_reference>())
 	{
 		context.report_error(src_tokens, "an auto reference type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (const_expr_type.is<ast::ts_auto_reference_const>())
+	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
 		context.report_error(src_tokens, "an auto reference-const type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (const_expr_type.is<ast::ts_const>())
+	else if (result_type.is<ast::ts_const>())
 	{
 		// nothing
 	}
-	else if (const_expr_type.is<ast::ts_consteval>())
+	else if (result_type.is<ast::ts_consteval>())
 	{
 		// nothing
 	}
 	else
 	{
-		const_expr_type.add_layer<ast::ts_consteval>();
+		result_type.add_layer<ast::ts_consteval>();
 	}
 
 	return ast::make_constant_expression(
 		src_tokens,
 		ast::expression_type_kind::type_name,
 		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(const_expr_type)),
+		ast::constant_value(std::move(result_type)),
 		ast::make_expr_unary_op(op_kind, std::move(expr))
 	);
 }
@@ -875,6 +881,7 @@ static ast::expression get_builtin_unary_typeof(
 	}
 
 	ast::typespec result_type = type;
+	result_type.src_tokens = src_tokens;
 	bz_assert(type.has_value());
 	if (kind == ast::expression_type_kind::lvalue_reference)
 	{

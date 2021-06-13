@@ -544,7 +544,9 @@ static void resolve_variable_type(
 		for (auto op = prototype.end; op != prototype.begin;)
 		{
 			--op;
-			auto const src_tokens = lex::src_tokens{ op, op, type.src_tokens.end };
+			auto const src_tokens = type.src_tokens.pivot == nullptr
+				? lex::src_tokens::from_single_token(op)
+				: lex::src_tokens{ op, op, type.src_tokens.end };
 			type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
 		}
 		if (type.is_typename())
@@ -676,11 +678,7 @@ static void resolve_variable_init_expr_and_match_type(
 			}
 			else if (var_decl.get_id().tokens.begin != nullptr)
 			{
-				return lex::src_tokens{
-					var_decl.get_id().tokens.begin,
-					var_decl.get_id().tokens.begin,
-					var_decl.get_id().tokens.end
-				};
+				return lex::src_tokens::from_range(var_decl.get_id().tokens);
 			}
 			else if (var_decl.init_expr.src_tokens.pivot != nullptr)
 			{
