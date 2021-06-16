@@ -6,7 +6,7 @@
 #include "lex/lexer.h"
 #include "parse/statement_parser.h"
 
-static bz::u8string read_text_from_file(std::ifstream &file)
+static bz::u8string read_text_from_file(std::istream &file)
 {
 	std::vector<char> file_content{
 		std::istreambuf_iterator<char>(file),
@@ -56,16 +56,25 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 [[nodiscard]] bool src_file::read_file(ctx::global_context &global_ctx)
 {
 	bz_assert(this->_stage == constructed);
-	std::ifstream file(this->_file_path);
 
-	if (!file.good())
+	if (this->_file_path.generic_string() == "-")
 	{
-		bz::u8string const file_name = this->_file_path.generic_string().c_str();
-		global_ctx.report_error(bz::format("unable to read file '{}'", file_name));
-		return false;
+		this->_file = read_text_from_file(std::cin);
+	}
+	else
+	{
+		std::ifstream file(this->_file_path);
+
+		if (!file.good())
+		{
+			bz::u8string const file_name = this->_file_path.generic_string().c_str();
+			global_ctx.report_error(bz::format("unable to read file '{}'", file_name));
+			return false;
+		}
+
+		this->_file = read_text_from_file(file);
 	}
 
-	this->_file = read_text_from_file(file);
 	if (!this->_file.verify())
 	{
 		bz::u8string const file_name = this->_file_path.generic_string().c_str();

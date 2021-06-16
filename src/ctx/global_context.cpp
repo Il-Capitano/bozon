@@ -628,7 +628,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		this->report_error("no source file was provided");
 		return false;
 	}
-	else if (!source_file.ends_with(".bz"))
+	else if (source_file != "-" && !source_file.ends_with(".bz"))
 	{
 		this->report_error("source file name must end in '.bz'");
 		return false;
