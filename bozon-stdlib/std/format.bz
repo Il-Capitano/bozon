@@ -315,3 +315,27 @@ function format_to(x: float64, buffer: &format_buffer)
 	const s = __builtin_str_from_ptrs(result_buffer.begin(), end);
 	buffer.write_into(s);
 }
+
+function format_to(arr: [: const auto], buffer: &format_buffer)
+{
+	let it = arr.begin();
+	const end = arr.end();
+
+	if (it == end)
+	{
+		buffer.write_into("[]");
+		return;
+	}
+
+	buffer.write_into("[ ");
+
+	(*it).format_to(buffer);
+	++it;
+	for (; it != end; ++it)
+	{
+		buffer.write_into(", ");
+		(*it).format_to(buffer);
+	}
+
+	buffer.write_into(" ]");
+}
