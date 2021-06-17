@@ -232,12 +232,17 @@ struct stmt_foreach
 
 struct stmt_return
 {
+	lex::token_pos return_pos;
 	expression expr;
 
 	declare_default_5(stmt_return)
 
-	stmt_return(expression _expr)
-		: expr(std::move(_expr))
+	stmt_return(lex::token_pos _return_pos)
+		: return_pos(_return_pos), expr()
+	{}
+
+	stmt_return(lex::token_pos _return_pos, expression _expr)
+		: return_pos(_return_pos), expr(std::move(_expr))
 	{}
 };
 

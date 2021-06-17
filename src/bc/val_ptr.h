@@ -5,6 +5,7 @@
 
 #include <llvm/IR/Value.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/Support/Debug.h>
 
 namespace bc
 {

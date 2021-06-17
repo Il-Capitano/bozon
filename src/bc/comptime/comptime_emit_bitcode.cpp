@@ -303,6 +303,7 @@ static void emit_error(
 	ctx::comptime_executor_context &context
 )
 {
+	bz_assert(src_tokens.begin != nullptr && src_tokens.pivot != nullptr && src_tokens.end != nullptr);
 	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
 	{
 		return;
@@ -1004,8 +1005,9 @@ static val_ptr emit_bitcode(
 		);
 		if (result_address == nullptr)
 		{
-			auto const result_type = llvm::PointerType::get(get_llvm_type(id.decl->get_type(), context), 0);
-			return { val_ptr::reference, llvm::UndefValue::get(result_type) };
+			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(id.decl->get_type()), context);
+			auto const alloca = context.create_alloca(result_type);
+			return { val_ptr::reference, alloca };
 		}
 		else
 		{
@@ -1132,8 +1134,8 @@ static val_ptr emit_bitcode(
 		}
 	}
 	case lex::token::kw_sizeof:          // 'sizeof'
+		// this is always a constant expression
 		bz_unreachable;
-		return {};
 
 	// ==== overloadable ====
 	case lex::token::plus:               // '+'
@@ -4271,9 +4273,13 @@ static void emit_bitcode(
 {
 	if (context.current_function.first == nullptr)
 	{
+		bz_assert(ret_stmt.return_pos != nullptr);
+		auto const src_tokens = ret_stmt.expr.is_null()
+			? lex::src_tokens::from_single_token(ret_stmt.return_pos)
+			: ret_stmt.expr.src_tokens;
 		// we are in a comptime compound expression here
 		emit_error(
-			ret_stmt.expr.src_tokens,
+			src_tokens,
 			"return statement is not allowed in compile time evaluation of compound expression",
 			context
 		);
@@ -5392,8 +5398,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	ctx::comptime_executor_context &context
 )
 {
-	bz_assert(expr.final_expr.not_null());
-	auto const result_type = get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
+	auto const result_type = expr.final_expr.is_null()
+		? llvm::Type::getVoidTy(context.get_llvm_context())
+		: get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
 	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
 	auto const return_result_as_global = result_type->isAggregateType();
 
@@ -5424,13 +5431,20 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const entry_bb = context.add_basic_block("entry");
 	context.builder.SetInsertPoint(entry_bb);
 
+	// we push two scopes here, one for the compound expression, and one for the enclosing function
+	context.push_expression_scope();
 	context.push_expression_scope();
 	for (auto &stmt : expr.statements)
 	{
 		emit_bitcode<abi>(stmt, context);
 	}
 
-	if (!context.has_terminator())
+	llvm::Value *ret_val = nullptr;
+	if (expr.final_expr.is_null())
+	{
+		// nothing, return void
+	}
+	else if (!context.has_terminator())
 	{
 		if (return_result_as_global && !result_type->isVoidTy())
 		{
@@ -5443,7 +5457,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			}
 
 			emit_bitcode<abi>(expr.final_expr, context, global_result);
-			context.builder.CreateRetVoid();
+			// context.builder.CreateRetVoid();
 			bz::vector<uint32_t> gep_indicies = { 0 };
 			add_global_result_getters<abi>(result.second, global_result, result_type, gep_indicies, context);
 		}
@@ -5451,8 +5465,19 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		{
 			auto const result_val = emit_bitcode<abi>(expr.final_expr, context, nullptr).get_value(context.builder);
 			context.pop_expression_scope();
-			context.builder.CreateRet(result_val);
+			// context.builder.CreateRet(result_val);
+			ret_val = result_val;
 		}
+	}
+	context.pop_expression_scope();
+
+	if (ret_val == nullptr)
+	{
+		context.builder.CreateRetVoid();
+	}
+	else
+	{
+		context.builder.CreateRet(ret_val);
 	}
 	context.pop_expression_scope();
 

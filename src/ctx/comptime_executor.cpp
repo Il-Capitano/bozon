@@ -574,8 +574,15 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				.collect()
 			);
 		},
-		[](ast::ts_pointer const &) {
-			bz_unreachable;
+		[&](ast::ts_pointer const &) {
+			if (value.PointerVal == nullptr)
+			{
+				result.emplace<ast::constant_value::null>();
+			}
+			else
+			{
+				// nothing
+			}
 		},
 		[](ast::ts_lvalue_reference const &) {
 			bz_unreachable;

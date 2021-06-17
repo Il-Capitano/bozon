@@ -399,6 +399,17 @@ struct parse_context
 		ast::expr_compound &expr
 	);
 
+	ast::constant_value execute_function_without_error(
+		lex::src_tokens src_tokens,
+		ast::function_body *body,
+		bz::array_view<ast::expression const> params
+	);
+
+	ast::constant_value execute_compound_expression_without_error(
+		lex::src_tokens src_tokens,
+		ast::expr_compound &expr
+	);
+
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 

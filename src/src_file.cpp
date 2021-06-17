@@ -5,6 +5,7 @@
 #include "ctx/bitcode_context.h"
 #include "lex/lexer.h"
 #include "parse/statement_parser.h"
+#include "parse/consteval.h"
 
 static bz::u8string read_text_from_file(std::istream &file)
 {
@@ -242,4 +243,16 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	this->_stage = parsed;
 	return !global_ctx.has_errors();
+}
+
+void src_file::aggressive_consteval(ctx::global_context &global_ctx)
+{
+	bz_assert(this->_stage == parsed);
+	ctx::parse_context context(global_ctx);
+	context.global_decls = &this->_global_decls;
+
+	for (auto &decl : this->_declarations)
+	{
+		parse::consteval_try_without_error_decl(decl, context);
+	}
 }

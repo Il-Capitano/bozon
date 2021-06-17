@@ -5331,6 +5331,35 @@ ast::constant_value parse_context::execute_compound_expression(
 	return result;
 }
 
+ast::constant_value parse_context::execute_function_without_error(
+	lex::src_tokens src_tokens,
+	ast::function_body *body,
+	bz::array_view<ast::expression const> params
+)
+{
+	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
+	this->global_ctx._comptime_executor.current_parse_ctx = this;
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_function(
+		src_tokens,
+		body,
+		params
+	);
+	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
+	return result;
+}
+
+ast::constant_value parse_context::execute_compound_expression_without_error(
+	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_compound &expr
+)
+{
+	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
+	this->global_ctx._comptime_executor.current_parse_ctx = this;
+	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
+	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
+	return result;
+}
+
 /*
 auto parse_context::get_cast_body_and_type(ast::expr_cast const &cast)
 	-> std::pair<ast::function_body *, ast::expression::expr_type_t>

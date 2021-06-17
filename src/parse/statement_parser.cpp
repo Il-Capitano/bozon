@@ -2867,6 +2867,7 @@ ast::statement parse_stmt_return(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_return);
+	auto const return_pos = stream;
 	++stream; // 'return'
 	if (stream != end && stream->kind == lex::token::semi_colon)
 	{
@@ -2874,14 +2875,14 @@ ast::statement parse_stmt_return(
 		{
 			context.report_error(stream, "a function with a non-void return type must return a value");
 		}
-		return ast::make_stmt_return();
+		return ast::make_stmt_return(return_pos);
 	}
 	auto expr = parse_expression(stream, end, context, precedence{});
 	context.assert_token(stream, lex::token::semi_colon);
 	bz_assert(context.current_function != nullptr);
 	bz_assert(ast::is_complete(context.current_function->return_type));
 	context.match_expression_to_type(expr, context.current_function->return_type);
-	return ast::make_stmt_return(std::move(expr));
+	return ast::make_stmt_return(return_pos, std::move(expr));
 }
 
 ast::statement parse_stmt_no_op(

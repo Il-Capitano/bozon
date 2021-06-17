@@ -654,6 +654,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
+	/*
+	this->_comptime_executor.vars_.clear();
+	if (is_optimization_enabled(bc::optimization_kind::aggressive_consteval))
+	{
+		for (auto &file : this->_src_files)
+		{
+			file.aggressive_consteval(*this);
+		}
+	}
+	*/
+
 	return true;
 }
 

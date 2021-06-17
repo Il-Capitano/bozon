@@ -49,6 +49,7 @@ private:
 public:
 	[[nodiscard]] bool parse_global_symbols(ctx::global_context &global_ctx);
 	[[nodiscard]] bool parse(ctx::global_context &global_ctx);
+	void aggressive_consteval(ctx::global_context &global_ctx);
 
 
 	fs::path const &get_file_path() const

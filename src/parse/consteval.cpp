@@ -1798,299 +1798,367 @@ static ast::constant_value evaluate_bit_manipulation(
 	}
 }
 
+enum class function_execution_kind
+{
+	guaranteed_evaluate,
+	force_evaluate,
+	force_evaluate_without_error,
+};
+
+static ast::constant_value evaluate_intrinsic_function_call(
+	ast::expression const &original_expr,
+	ast::expr_function_call &func_call,
+	function_execution_kind exec_kind,
+	ctx::parse_context &context
+)
+{
+	bz_assert(func_call.func_body->is_intrinsic());
+	switch (func_call.func_body->intrinsic_kind)
+	{
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
+	case ast::function_body::builtin_str_eq:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(lhs_value.is<ast::constant_value::string>());
+		bz_assert(rhs_value.is<ast::constant_value::string>());
+		return ast::constant_value(
+			lhs_value.get<ast::constant_value::string>()
+			== rhs_value.get<ast::constant_value::string>()
+		);
+	}
+	case ast::function_body::builtin_str_neq:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(lhs_value.is<ast::constant_value::string>());
+		bz_assert(rhs_value.is<ast::constant_value::string>());
+		return ast::constant_value(
+			lhs_value.get<ast::constant_value::string>()
+			!= rhs_value.get<ast::constant_value::string>()
+		);
+	}
+	case ast::function_body::builtin_str_length:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(str_value.is<ast::constant_value::string>());
+		return ast::constant_value(str_value.get<ast::constant_value::string>().length());
+	}
+	case ast::function_body::builtin_str_starts_with:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &s = func_call.params[0].get<ast::constant_expression>().value;
+		auto const &prefix = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(s.is<ast::constant_value::string>());
+		bz_assert(prefix.is<ast::constant_value::string>());
+		return ast::constant_value(s.get<ast::constant_value::string>().starts_with(prefix.get<ast::constant_value::string>()));
+	}
+	case ast::function_body::builtin_str_ends_with:
+	{
+		bz_assert(func_call.params.size() == 2);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		auto const &s = func_call.params[0].get<ast::constant_expression>().value;
+		auto const &postfix = func_call.params[1].get<ast::constant_expression>().value;
+		bz_assert(s.is<ast::constant_value::string>());
+		bz_assert(postfix.is<ast::constant_value::string>());
+		return ast::constant_value(s.get<ast::constant_value::string>().ends_with(postfix.get<ast::constant_value::string>()));
+	}
+
+	case ast::function_body::builtin_str_begin_ptr:
+	case ast::function_body::builtin_str_end_ptr:
+		return {};
+	case ast::function_body::builtin_str_size:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+		bz_assert(str_value.is<ast::constant_value::string>());
+		return ast::constant_value(str_value.get<ast::constant_value::string>().size());
+	}
+	case ast::function_body::builtin_str_from_ptrs:
+		return {};
+
+	case ast::function_body::builtin_slice_begin_ptr:
+	case ast::function_body::builtin_slice_begin_const_ptr:
+	case ast::function_body::builtin_slice_end_ptr:
+	case ast::function_body::builtin_slice_end_const_ptr:
+	case ast::function_body::builtin_slice_size:
+	case ast::function_body::builtin_slice_from_ptrs:
+	case ast::function_body::builtin_slice_from_const_ptrs:
+		return {};
+
+	case ast::function_body::builtin_pointer_cast:
+	{
+		bz_assert(func_call.params[0].is_typename());
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[1].is<ast::constant_expression>());
+		bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
+		return func_call.params[1].get<ast::constant_expression>().value;
+	}
+	case ast::function_body::builtin_pointer_to_int:
+	case ast::function_body::builtin_int_to_pointer:
+		return {};
+
+	case ast::function_body::builtin_call_destructor:
+	case ast::function_body::builtin_inplace_construct:
+		return {};
+
+	case ast::function_body::builtin_is_comptime:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			if (original_expr.paren_level < 2)
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - original_expr.paren_level,
+					ctx::warning_kind::is_comptime_always_true,
+					original_expr.src_tokens,
+					"'__builtin_is_comptime()' was forced to evaluate to always be 'true'"
+				);
+			}
+			return ast::constant_value(true);
+		}
+		else
+		{
+			return {};
+		}
+
+	// builtins end here
+
+	case ast::function_body::print_stdout:
+	case ast::function_body::println_stdout:
+	case ast::function_body::print_stderr:
+	case ast::function_body::println_stderr:
+		return {};
+
+	case ast::function_body::comptime_malloc:
+	case ast::function_body::comptime_malloc_type:
+	case ast::function_body::comptime_free:
+		return {};
+
+	case ast::function_body::memcpy:
+	case ast::function_body::memmove:
+	case ast::function_body::memset:
+		return {};
+
+	case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
+	case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
+	case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
+	case ast::function_body::log_f32:   case ast::function_body::log_f64:
+	case ast::function_body::log10_f32: case ast::function_body::log10_f64:
+	case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
+	case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
+		[[fallthrough]];
+	case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
+	case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
+	case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
+	case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
+	case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
+	case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
+	case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
+	case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
+	case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
+	case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
+	case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
+		[[fallthrough]];
+	case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
+	case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
+	case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
+	case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
+	case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
+	case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
+		[[fallthrough]];
+	case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
+	case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
+	case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
+	case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			for (auto &param : func_call.params)
+			{
+				consteval_try(param, context);
+			}
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			for (auto &param : func_call.params)
+			{
+				consteval_try_without_error(param, context);
+			}
+		}
+		return evaluate_math_functions(original_expr, func_call, context);
+
+	case ast::function_body::bitreverse_u8:
+	case ast::function_body::bitreverse_u16:
+	case ast::function_body::bitreverse_u32:
+	case ast::function_body::bitreverse_u64:
+	case ast::function_body::popcount_u8:
+	case ast::function_body::popcount_u16:
+	case ast::function_body::popcount_u32:
+	case ast::function_body::popcount_u64:
+	case ast::function_body::byteswap_u16:
+	case ast::function_body::byteswap_u32:
+	case ast::function_body::byteswap_u64:
+		[[fallthrough]];
+	case ast::function_body::clz_u8:
+	case ast::function_body::clz_u16:
+	case ast::function_body::clz_u32:
+	case ast::function_body::clz_u64:
+	case ast::function_body::ctz_u8:
+	case ast::function_body::ctz_u16:
+	case ast::function_body::ctz_u32:
+	case ast::function_body::ctz_u64:
+	case ast::function_body::fshl_u8:
+	case ast::function_body::fshl_u16:
+	case ast::function_body::fshl_u32:
+	case ast::function_body::fshl_u64:
+	case ast::function_body::fshr_u8:
+	case ast::function_body::fshr_u16:
+	case ast::function_body::fshr_u32:
+	case ast::function_body::fshr_u64:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			for (auto &param : func_call.params)
+			{
+				consteval_try(param, context);
+			}
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			for (auto &param : func_call.params)
+			{
+				consteval_try_without_error(param, context);
+			}
+		}
+		return evaluate_bit_manipulation(original_expr, func_call, context);
+
+	default:
+		bz_unreachable;
+	}
+}
+
 static ast::constant_value evaluate_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
-	bool force_evaluate,
+	function_execution_kind exec_kind,
 	ctx::parse_context &context
 )
 {
 	if (func_call.func_body->is_intrinsic())
 	{
-		switch (func_call.func_body->intrinsic_kind)
-		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
-		case ast::function_body::builtin_str_eq:
-		{
-			bz_assert(func_call.params.size() == 2);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-				consteval_try(func_call.params[1], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
-			bz_assert(func_call.params[1].is<ast::constant_expression>());
-			auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
-			bz_assert(lhs_value.is<ast::constant_value::string>());
-			bz_assert(rhs_value.is<ast::constant_value::string>());
-			return ast::constant_value(
-				lhs_value.get<ast::constant_value::string>()
-				== rhs_value.get<ast::constant_value::string>()
-			);
-		}
-		case ast::function_body::builtin_str_neq:
-		{
-			bz_assert(func_call.params.size() == 2);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-				consteval_try(func_call.params[1], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			auto const &lhs_value = func_call.params[0].get<ast::constant_expression>().value;
-			bz_assert(func_call.params[1].is<ast::constant_expression>());
-			auto const &rhs_value = func_call.params[1].get<ast::constant_expression>().value;
-			bz_assert(lhs_value.is<ast::constant_value::string>());
-			bz_assert(rhs_value.is<ast::constant_value::string>());
-			return ast::constant_value(
-				lhs_value.get<ast::constant_value::string>()
-				!= rhs_value.get<ast::constant_value::string>()
-			);
-		}
-		case ast::function_body::builtin_str_length:
-		{
-			bz_assert(func_call.params.size() == 1);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
-			bz_assert(str_value.is<ast::constant_value::string>());
-			return ast::constant_value(str_value.get<ast::constant_value::string>().length());
-		}
-		case ast::function_body::builtin_str_starts_with:
-		{
-			bz_assert(func_call.params.size() == 2);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-				consteval_try(func_call.params[1], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			bz_assert(func_call.params[1].is<ast::constant_expression>());
-			auto const &s = func_call.params[0].get<ast::constant_expression>().value;
-			auto const &prefix = func_call.params[1].get<ast::constant_expression>().value;
-			bz_assert(s.is<ast::constant_value::string>());
-			bz_assert(prefix.is<ast::constant_value::string>());
-			return ast::constant_value(s.get<ast::constant_value::string>().starts_with(prefix.get<ast::constant_value::string>()));
-		}
-		case ast::function_body::builtin_str_ends_with:
-		{
-			bz_assert(func_call.params.size() == 2);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-				consteval_try(func_call.params[1], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			bz_assert(func_call.params[1].is<ast::constant_expression>());
-			auto const &s = func_call.params[0].get<ast::constant_expression>().value;
-			auto const &postfix = func_call.params[1].get<ast::constant_expression>().value;
-			bz_assert(s.is<ast::constant_value::string>());
-			bz_assert(postfix.is<ast::constant_value::string>());
-			return ast::constant_value(s.get<ast::constant_value::string>().ends_with(postfix.get<ast::constant_value::string>()));
-		}
-
-		case ast::function_body::builtin_str_begin_ptr:
-		case ast::function_body::builtin_str_end_ptr:
-			return {};
-		case ast::function_body::builtin_str_size:
-		{
-			bz_assert(func_call.params.size() == 1);
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[0], context);
-			}
-			if (!func_call.params[0].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[0].is<ast::constant_expression>());
-			auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
-			bz_assert(str_value.is<ast::constant_value::string>());
-			return ast::constant_value(str_value.get<ast::constant_value::string>().size());
-		}
-		case ast::function_body::builtin_str_from_ptrs:
-			return {};
-
-		case ast::function_body::builtin_slice_begin_ptr:
-		case ast::function_body::builtin_slice_begin_const_ptr:
-		case ast::function_body::builtin_slice_end_ptr:
-		case ast::function_body::builtin_slice_end_const_ptr:
-		case ast::function_body::builtin_slice_size:
-		case ast::function_body::builtin_slice_from_ptrs:
-		case ast::function_body::builtin_slice_from_const_ptrs:
-			return {};
-
-		case ast::function_body::builtin_pointer_cast:
-		{
-			bz_assert(func_call.params[0].is_typename());
-			if (force_evaluate)
-			{
-				consteval_try(func_call.params[1], context);
-			}
-			if (!func_call.params[1].has_consteval_succeeded())
-			{
-				return {};
-			}
-			bz_assert(func_call.params[1].is<ast::constant_expression>());
-			bz_assert(func_call.params[1].get<ast::constant_expression>().value.is<ast::constant_value::null>());
-			return func_call.params[1].get<ast::constant_expression>().value;
-		}
-		case ast::function_body::builtin_pointer_to_int:
-		case ast::function_body::builtin_int_to_pointer:
-			return {};
-
-		case ast::function_body::builtin_call_destructor:
-		case ast::function_body::builtin_inplace_construct:
-			return {};
-
-		case ast::function_body::builtin_is_comptime:
-			if (force_evaluate)
-			{
-				if (original_expr.paren_level < 2)
-				{
-					context.report_parenthesis_suppressed_warning(
-						2 - original_expr.paren_level,
-						ctx::warning_kind::is_comptime_always_true,
-						original_expr.src_tokens,
-						"'__builtin_is_comptime()' was forced to evaluate to always be 'true'"
-					);
-				}
-				return ast::constant_value(true);
-			}
-			else
-			{
-				return {};
-			}
-
-		// builtins end here
-
-		case ast::function_body::print_stdout:
-		case ast::function_body::println_stdout:
-		case ast::function_body::print_stderr:
-		case ast::function_body::println_stderr:
-			return {};
-
-		case ast::function_body::comptime_malloc:
-		case ast::function_body::comptime_malloc_type:
-		case ast::function_body::comptime_free:
-			return {};
-
-		case ast::function_body::memcpy:
-		case ast::function_body::memmove:
-		case ast::function_body::memset:
-			return {};
-
-		case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
-		case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
-		case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
-		case ast::function_body::log_f32:   case ast::function_body::log_f64:
-		case ast::function_body::log10_f32: case ast::function_body::log10_f64:
-		case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
-		case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
-			[[fallthrough]];
-		case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
-		case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
-		case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
-		case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
-		case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
-		case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
-		case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
-		case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
-		case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
-		case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
-		case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
-			[[fallthrough]];
-		case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
-		case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
-		case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
-		case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
-		case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
-		case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
-			[[fallthrough]];
-		case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
-		case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
-		case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
-		case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
-			if (force_evaluate)
-			{
-				for (auto &param : func_call.params)
-				{
-					consteval_try(param, context);
-				}
-			}
-			return evaluate_math_functions(original_expr, func_call, context);
-
-		case ast::function_body::bitreverse_u8:
-		case ast::function_body::bitreverse_u16:
-		case ast::function_body::bitreverse_u32:
-		case ast::function_body::bitreverse_u64:
-		case ast::function_body::popcount_u8:
-		case ast::function_body::popcount_u16:
-		case ast::function_body::popcount_u32:
-		case ast::function_body::popcount_u64:
-		case ast::function_body::byteswap_u16:
-		case ast::function_body::byteswap_u32:
-		case ast::function_body::byteswap_u64:
-			[[fallthrough]];
-		case ast::function_body::clz_u8:
-		case ast::function_body::clz_u16:
-		case ast::function_body::clz_u32:
-		case ast::function_body::clz_u64:
-		case ast::function_body::ctz_u8:
-		case ast::function_body::ctz_u16:
-		case ast::function_body::ctz_u32:
-		case ast::function_body::ctz_u64:
-		case ast::function_body::fshl_u8:
-		case ast::function_body::fshl_u16:
-		case ast::function_body::fshl_u32:
-		case ast::function_body::fshl_u64:
-		case ast::function_body::fshr_u8:
-		case ast::function_body::fshr_u16:
-		case ast::function_body::fshr_u32:
-		case ast::function_body::fshr_u64:
-			if (force_evaluate)
-			{
-				for (auto &param : func_call.params)
-				{
-					consteval_try(param, context);
-				}
-			}
-			return evaluate_bit_manipulation(original_expr, func_call, context);
-
-		default:
-			bz_unreachable;
-		}
+		return evaluate_intrinsic_function_call(original_expr, func_call, exec_kind, context);
 	}
 	else if (func_call.func_body->is_default_copy_constructor())
 	{
 		bz_assert(func_call.params.size() == 1);
-		if (force_evaluate)
+		if (exec_kind == function_execution_kind::force_evaluate)
 		{
 			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
 		}
 		if (!func_call.params[0].has_consteval_succeeded())
 		{
@@ -2099,10 +2167,15 @@ static ast::constant_value evaluate_function_call(
 		bz_assert(func_call.params[0].is<ast::constant_expression>());
 		return func_call.params[0].get<ast::constant_expression>().value;
 	}
-	else if (force_evaluate)
+	else if (exec_kind == function_execution_kind::force_evaluate)
 	{
 		auto const body = func_call.func_body;
 		return context.execute_function(original_expr.src_tokens, body, func_call.params);
+	}
+	else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+	{
+		auto const body = func_call.func_body;
+		return context.execute_function_without_error(original_expr.src_tokens, body, func_call.params);
 	}
 	else
 	{
@@ -2458,7 +2531,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			{
 				consteval_guaranteed(param, context);
 			}
-			return evaluate_function_call(expr, func_call, false, context);
+			return evaluate_function_call(expr, func_call, function_execution_kind::guaranteed_evaluate, context);
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_guaranteed(cast_expr.expr, context);
@@ -2709,7 +2782,7 @@ static ast::constant_value try_evaluate_expr(
 			{
 				consteval_guaranteed(param, context);
 			}
-			return evaluate_function_call(expr, func_call, true, context);
+			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate, context);
 		},
 		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
 			consteval_try(cast_expr.expr, context);
@@ -2864,6 +2937,263 @@ static ast::constant_value try_evaluate_expr(
 	});
 }
 
+static ast::constant_value try_evaluate_expr_without_error(
+	ast::expression &expr,
+	ctx::parse_context &context
+)
+{
+	return expr.get_expr().visit(bz::overload{
+		[](ast::expr_identifier &) -> ast::constant_value {
+			// identifiers are only constant expressions if they are a consteval
+			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
+			return {};
+		},
+		[](ast::expr_literal &) -> ast::constant_value {
+			// literals are always constant expressions
+			bz_unreachable;
+		},
+		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &elem : tuple.elems)
+			{
+				consteval_try_without_error(elem, context);
+				is_consteval = is_consteval && elem.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result;
+			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
+				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
+			elem_values.reserve(tuple.elems.size());
+			for (auto &elem : tuple.elems)
+			{
+				bz_assert(elem.is<ast::constant_expression>());
+				elem_values.emplace_back(elem.get<ast::constant_expression>().value);
+			}
+			return result;
+		},
+		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+			consteval_try_without_error(unary_op.expr, context);
+			if (unary_op.expr.has_consteval_succeeded())
+			{
+				return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
+			consteval_try_without_error(binary_op.lhs, context);
+			consteval_try_without_error(binary_op.rhs, context);
+
+			// special case for bool_and and bool_or shortcircuiting
+			if (binary_op.lhs.has_consteval_succeeded())
+			{
+				auto const op = binary_op.op;
+				if (op == lex::token::bool_and)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (!lhs_bool_val)
+					{
+						return ast::constant_value(false);
+					}
+				}
+				else if (op == lex::token::bool_or)
+				{
+					bz_assert(binary_op.lhs.is<ast::constant_expression>());
+					auto const &lhs_value = binary_op.lhs.get<ast::constant_expression>().value;
+					bz_assert(lhs_value.is<ast::constant_value::boolean>());
+					auto const lhs_bool_val = lhs_value.get<ast::constant_value::boolean>();
+					if (lhs_bool_val)
+					{
+						return ast::constant_value(true);
+					}
+				}
+			}
+
+			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
+			{
+				return evaluate_binary_op(expr, binary_op.op, binary_op.lhs, binary_op.rhs, context);
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_subscript &subscript_expr) -> ast::constant_value {
+			consteval_try_without_error(subscript_expr.base, context);
+			consteval_try_without_error(subscript_expr.index, context);
+
+			return evaluate_subscript(subscript_expr, context);
+		},
+		[&expr, &context](ast::expr_function_call &func_call) -> ast::constant_value {
+			for (auto &param : func_call.params)
+			{
+				consteval_guaranteed(param, context);
+			}
+			return evaluate_function_call(expr, func_call, function_execution_kind::force_evaluate_without_error, context);
+		},
+		[&expr, &context](ast::expr_cast &cast_expr) -> ast::constant_value {
+			consteval_try_without_error(cast_expr.expr, context);
+			if (cast_expr.expr.has_consteval_succeeded())
+			{
+				return evaluate_cast(expr, cast_expr, context);
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[](ast::expr_take_reference const &) -> ast::constant_value {
+			return {};
+		},
+		[&context](ast::expr_struct_init &struct_init_expr) -> ast::constant_value {
+			bool is_consteval = true;
+			for (auto &expr : struct_init_expr.exprs)
+			{
+				consteval_try_without_error(expr, context);
+				is_consteval = is_consteval && expr.has_consteval_succeeded();
+			}
+			if (!is_consteval)
+			{
+				return {};
+			}
+
+			ast::constant_value result{};
+			result.emplace<ast::constant_value::aggregate>();
+			auto &aggregate = result.get<ast::constant_value::aggregate>();
+			for (auto const &expr : struct_init_expr.exprs)
+			{
+				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
+			}
+			return result;
+		},
+		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
+			consteval_try_without_error(member_access_expr.base, context);
+			if (member_access_expr.base.has_consteval_succeeded())
+			{
+				return member_access_expr.base
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::aggregate>()[member_access_expr.index];
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
+			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
+			{
+				consteval_try_without_error(compound_expr.final_expr, context);
+				if (compound_expr.final_expr.has_consteval_succeeded())
+				{
+					return compound_expr.final_expr.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				return context.execute_compound_expression_without_error(expr.src_tokens, compound_expr);
+			}
+		},
+		[&context](ast::expr_if &if_expr) -> ast::constant_value {
+			consteval_try_without_error(if_expr.condition, context);
+			consteval_try_without_error(if_expr.then_block, context);
+			consteval_try_without_error(if_expr.else_block, context);
+			if (if_expr.condition.has_consteval_succeeded())
+			{
+				bz_assert(if_expr.condition.is<ast::constant_expression>());
+				bz_assert(if_expr.condition.get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+				auto const condition_value = if_expr.condition
+					.get<ast::constant_expression>().value
+					.get<ast::constant_value::boolean>();
+				if (condition_value)
+				{
+					if (if_expr.then_block.has_consteval_succeeded())
+					{
+						return if_expr.then_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+				else
+				{
+					if (if_expr.else_block.has_consteval_succeeded())
+					{
+						return if_expr.else_block.get<ast::constant_expression>().value;
+					}
+					else
+					{
+						return {};
+					}
+				}
+			}
+			else
+			{
+				return {};
+			}
+		},
+		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
+			consteval_try_without_error(switch_expr.matched_expr, context);
+			for (auto &[_, case_expr] : switch_expr.cases)
+			{
+				consteval_try_without_error(case_expr, context);
+			}
+			consteval_try_without_error(switch_expr.default_case, context);
+
+			if (!switch_expr.matched_expr.has_consteval_succeeded())
+			{
+				return {};
+			}
+
+			auto const &matched_value = switch_expr.matched_expr.get<ast::constant_expression>().value;
+			auto const case_it = std::find_if(
+				switch_expr.cases.begin(), switch_expr.cases.end(),
+				[&](auto const &switch_case) {
+					return switch_case.values
+						.transform([](auto const &expr) -> auto const &{ return expr.template get<ast::constant_expression>().value; })
+						.is_any(matched_value);
+				}
+			);
+			if (case_it == switch_expr.cases.end())
+			{
+				if (switch_expr.default_case.has_consteval_succeeded())
+				{
+					return switch_expr.default_case.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				if (case_it->expr.has_consteval_succeeded())
+				{
+					return case_it->expr.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+		},
+	});
+}
+
 void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.is<ast::constant_expression>())
@@ -2944,6 +3274,147 @@ void consteval_try(ast::expression &expr, ctx::parse_context &context)
 		expr.consteval_state = ast::expression::consteval_succeeded;
 		return;
 	}
+}
+
+void consteval_try_without_error(ast::expression &expr, ctx::parse_context &context)
+{
+	if (expr.is<ast::constant_expression>())
+	{
+		expr.consteval_state = ast::expression::consteval_succeeded;
+		return;
+	}
+	else if (
+		!expr.is<ast::dynamic_expression>()
+		|| (
+			expr.consteval_state != ast::expression::consteval_never_tried
+			&& expr.consteval_state != ast::expression::consteval_guaranteed_failed
+		)
+	)
+	{
+		expr.consteval_state = ast::expression::consteval_failed;
+		return;
+	}
+
+	auto value = try_evaluate_expr_without_error(expr, context);
+	if (value.is_null())
+	{
+		expr.consteval_state = ast::expression::consteval_failed;
+		return;
+	}
+	else
+	{
+		auto &dyn_expr  = expr.get<ast::dynamic_expression>();
+		auto type       = std::move(dyn_expr.type);
+		auto inner_expr = std::move(dyn_expr.expr);
+		expr.emplace<ast::constant_expression>(
+			dyn_expr.kind, std::move(type),
+			std::move(value), std::move(inner_expr)
+		);
+		expr.consteval_state = ast::expression::consteval_succeeded;
+		return;
+	}
+}
+
+
+void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &context)
+{
+	if (stmt.is_null())
+	{
+		return;
+	}
+	stmt.visit(bz::overload{
+		[&context](ast::stmt_while &while_stmt) {
+			consteval_try_without_error(while_stmt.condition, context);
+			consteval_try_without_error_decl(while_stmt.while_block, context);
+		},
+		[&context](ast::stmt_for &for_stmt) {
+			consteval_try_without_error_decl(for_stmt.init, context);
+			consteval_try_without_error(for_stmt.condition, context);
+			consteval_try_without_error(for_stmt.iteration, context);
+			consteval_try_without_error_decl(for_stmt.for_block, context);
+		},
+		[&context](ast::stmt_foreach &foreach_stmt) {
+			consteval_try_without_error_decl(foreach_stmt.range_var_decl, context);
+			consteval_try_without_error_decl(foreach_stmt.iter_var_decl, context);
+			consteval_try_without_error_decl(foreach_stmt.end_var_decl, context);
+			consteval_try_without_error(foreach_stmt.condition, context);
+			consteval_try_without_error(foreach_stmt.iteration, context);
+			consteval_try_without_error_decl(foreach_stmt.iter_deref_var_decl, context);
+			consteval_try_without_error_decl(foreach_stmt.for_block, context);
+		},
+		[&context](ast::stmt_return &return_stmt) {
+			consteval_try_without_error(return_stmt.expr, context);
+		},
+		[](ast::stmt_no_op &) {},
+		[](ast::stmt_static_assert &) {},
+		[&context](ast::stmt_expression &expr_stmt) {
+			consteval_try_without_error(expr_stmt.expr, context);
+		},
+		[&context](ast::decl_variable &var_decl) {
+			consteval_try_without_error(var_decl.init_expr, context);
+			// could update the variable to have a consteval type for better constant propagation
+		},
+		[&context](ast::decl_function &func_decl) {
+			auto const evaluate_func_body = [&context](ast::function_body &body) {
+				bz_assert(!body.is_generic());
+				if (body.body.is<bz::vector<ast::statement>>())
+				{
+					for (auto &stmt : body.body.get<bz::vector<ast::statement>>())
+					{
+						consteval_try_without_error_decl(stmt, context);
+					}
+				}
+			};
+
+			if (func_decl.body.is_generic())
+			{
+				for (auto &specialization : func_decl.body.generic_specializations)
+				{
+					evaluate_func_body(*specialization);
+				}
+			}
+			else
+			{
+				evaluate_func_body(func_decl.body);
+			}
+		},
+		[&context](ast::decl_operator &op_decl) {
+			auto const evaluate_func_body = [&context](ast::function_body &body) {
+				bz_assert(!body.is_generic());
+				if (body.body.is<bz::vector<ast::statement>>())
+				{
+					for (auto &stmt : body.body.get<bz::vector<ast::statement>>())
+					{
+						consteval_try_without_error_decl(stmt, context);
+					}
+				}
+			};
+
+			if (op_decl.body.is_generic())
+			{
+				for (auto &specialization : op_decl.body.generic_specializations)
+				{
+					evaluate_func_body(*specialization);
+				}
+			}
+			else
+			{
+				evaluate_func_body(op_decl.body);
+			}
+		},
+		[](ast::decl_function_alias &) {},
+		[](ast::decl_type_alias &) {},
+		[&context](ast::decl_struct &struct_decl) {
+			if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+			{
+				for (auto &stmt : struct_decl.info.body.get<bz::vector<ast::statement>>())
+				{
+					consteval_try_without_error_decl(stmt, context);
+				}
+			}
+		},
+		[](ast::decl_import &) {},
+	});
 }
 
 
