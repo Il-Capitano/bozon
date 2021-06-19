@@ -4556,6 +4556,7 @@ void emit_function_bitcode(
 template<abi::platform_abi abi>
 static void emit_global_variable_impl(ast::decl_variable const &var_decl, ctx::bitcode_context &context)
 {
+	bz_assert(var_decl.is_global());
 	auto const name = var_decl.get_id().format_for_symbol();
 	auto const name_ref = llvm::StringRef(name.data_as_char_ptr(), name.size());
 	auto const type = get_llvm_type(var_decl.get_type(), context);

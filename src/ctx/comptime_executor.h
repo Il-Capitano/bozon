@@ -74,6 +74,8 @@ struct comptime_executor_context
 	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
 
+	void add_global_variable(ast::decl_variable const *var_decl);
+
 	llvm::Type *get_base_type(ast::type_info *info);
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
 

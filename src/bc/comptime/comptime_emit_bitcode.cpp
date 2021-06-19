@@ -71,11 +71,7 @@ static llvm::Value *get_constant_zero(
 		case ast::type_info::str_:
 		case ast::type_info::null_t_:
 		case ast::type_info::aggregate:
-		{
-			auto const struct_type = llvm::dyn_cast<llvm::StructType>(llvm_type);
-			bz_assert(struct_type != nullptr);
-			return llvm::ConstantStruct::getNullValue(struct_type);
-		}
+			return llvm::ConstantStruct::getNullValue(llvm_type);
 		default:
 			bz_unreachable;
 		}
@@ -995,6 +991,13 @@ static val_ptr emit_bitcode(
 )
 {
 	bz_assert(id.decl != nullptr);
+	// we emit consteval global variables to avoid generating huge arrays every time
+	// one is indexed into.  e.g. ryu has large consteval tables that are constructed
+	// in IR each time they're indexed into.
+	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>())
+	{
+		context.add_global_variable(id.decl);
+	}
 	auto const val_ptr = context.get_variable(id.decl);
 	if (val_ptr == nullptr && !id.decl->get_type().is<ast::ts_consteval>())
 	{
@@ -5061,6 +5064,7 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 		}
 		return true;
 	case abi::platform_abi::microsoft_x64:
+	{
 		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
@@ -5075,6 +5079,7 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(*body, context);
 		}
 		return true;
+	}
 	case abi::platform_abi::systemv_amd64:
 		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{

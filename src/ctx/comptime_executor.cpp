@@ -79,6 +79,14 @@ void comptime_executor_context::add_variable(ast::decl_variable const *var_decl,
 	this->vars_.insert_or_assign(var_decl, val);
 }
 
+void comptime_executor_context::add_global_variable(ast::decl_variable const *var_decl)
+{
+	if (this->vars_.find(var_decl) == this->vars_.end())
+	{
+		bc::comptime::emit_global_variable(*var_decl, *this);
+	}
+}
+
 llvm::Type *comptime_executor_context::get_base_type(ast::type_info *info)
 {
 	if (info->state != ast::resolve_state::all)
@@ -713,12 +721,12 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		this->initialize_engine();
 		auto const start_index = this->functions_to_compile.size();
 		this->ensure_function_emission(body);
+		auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		if (!bc::comptime::emit_necessary_functions(start_index, *this))
 		{
 			return result;
 		}
 
-		auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
@@ -772,9 +780,12 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		auto errors = this->consume_errors();
 		result.second.append_move(errors);
 	}
+	else if (expr.final_expr.is_null())
+	{
+		result.first.emplace<ast::constant_value::void_>();
+	}
 	else if (global_result_getters.empty())
 	{
-		bz_assert(expr.final_expr.not_null());
 		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
 		result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
 	}
@@ -832,6 +843,7 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
 		this->pass_manager.add(llvm::createReassociatePass());
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
+		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		// this->pass_manager.add(llvm::createGVNPass());
 
 		this->pass_manager.run(*module);
@@ -858,7 +870,7 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
-#ifdef __linux__
+// #ifdef __linux__
 	auto const is_native =
 		(
 			target == "" || target == "native"
@@ -866,11 +878,11 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 		)
 		&& this->get_platform_abi() != abi::platform_abi::generic;
 	auto const engine_kind = force_use_jit || (is_native && !use_interpreter)? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
-#else
-	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
-	// prefer Interpreter for now even for native targets
-	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
-#endif // linux
+// #else
+// 	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
+// 	// prefer Interpreter for now even for native targets
+// 	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
+// #endif // linux
 	builder
 		.setEngineKind(engine_kind)
 		.setErrorStr(&err)
