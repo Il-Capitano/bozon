@@ -829,6 +829,7 @@ ast::statement parse_decl_variable(
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.flags |= ast::decl_variable::global;
 			var_decl.init_expr = ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end });
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
@@ -864,6 +865,7 @@ ast::statement parse_decl_variable(
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
+			var_decl.flags |= ast::decl_variable::global;
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
 			bz_assert(id_tokens.end - id_tokens.begin <= 1);

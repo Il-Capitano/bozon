@@ -308,6 +308,7 @@ struct decl_variable
 		external_linkage = bit_at<3>,
 		no_runtime_emit  = bit_at<4>,
 		member           = bit_at<5>,
+		global           = bit_at<6>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -400,6 +401,9 @@ struct decl_variable
 
 	bool is_member(void) const noexcept
 	{ return (this->flags & member) != 0; }
+
+	bool is_global(void) const noexcept
+	{ return (this->flags & global) != 0; }
 
 	typespec &get_type(void)
 	{ return this->id_and_type.var_type; }
