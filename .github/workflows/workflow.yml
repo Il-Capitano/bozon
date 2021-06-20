@@ -18,12 +18,11 @@ jobs:
           mingw-w64-x86_64-llvm
           mingw-w64-x86_64-lld
           mingw-w64-x86_64-clang
+          mingw-w64-x86_64-fmt
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
-    - run: ls
     - run: |
         cd cppb
-        ls
         make
         cd ..
     - run: cppb/bin/cppb build
