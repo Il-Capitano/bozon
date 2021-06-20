@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   windows-clang:
+    runs-on: windows-latest
     defaults:
       run:
         shell: msys2 {0}
