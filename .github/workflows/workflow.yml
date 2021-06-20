@@ -20,9 +20,12 @@ jobs:
           mingw-w64-x86_64-clang
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
-    - run: cd cppb
-    - run: make
-    - run: cd ..
+    - run: ls
+    - run: |
+        cd cppb
+        ls
+        make
+        cd ..
     - run: cppb/bin/cppb build
     - run: cppb/bin/cppb run
     - run: cppb/bin/cppb build --build-config test
