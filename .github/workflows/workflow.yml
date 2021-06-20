@@ -24,6 +24,7 @@ jobs:
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - run: |
         cd cppb
+        mkdir bin
         make
         cd ..
     - run: cppb/bin/cppb build
