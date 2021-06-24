@@ -20,6 +20,7 @@ jobs:
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-fmt
           mingw-w64-x86_64-rapidjson
+          mingw-w64-x86_64-boost
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - run: |
