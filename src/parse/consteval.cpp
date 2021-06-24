@@ -2442,8 +2442,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_literal &) -> ast::constant_value {
-			// literals are always constant expressions
-			bz_unreachable;
+			// non-unreachable literals are always constant expressions,
+			// and unreachable is not a constant expression
+			return {};
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -2692,8 +2693,9 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_literal &) -> ast::constant_value {
-			// literals are always constant expressions
-			bz_unreachable;
+			// non-unreachable literals are always constant expressions,
+			// and unreachable is not a constant expression
+			return {};
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -2949,8 +2951,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_literal &) -> ast::constant_value {
-			// literals are always constant expressions
-			bz_unreachable;
+			// non-unreachable literals are always constant expressions,
+			// and unreachable is not a constant expression
+			return {};
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3432,9 +3435,12 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				expr.src_tokens, "subexpression is not a constant expression"
 			));
 		},
-		[](ast::expr_literal const &) {
-			// literals are always constant expressions
-			bz_unreachable;
+		[&expr, &notes](ast::expr_literal const &) {
+			// non-unreachable literals are always constant expressions,
+			// and unreachable is not a constant expression
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "'unreachable' is not a constant expression"
+			));
 		},
 		[&notes](ast::expr_tuple const &tuple) {
 			bool any_failed = false;

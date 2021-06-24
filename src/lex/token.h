@@ -126,6 +126,7 @@ struct token
 		kw_true,             // true
 		kw_false,            // false
 		kw_null,             // null
+		kw_unreachable,      // unreachable
 
 		kw_static_assert,    // static_assert
 

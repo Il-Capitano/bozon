@@ -271,9 +271,10 @@ constexpr auto token_info = []() {
 	result[lex::token::raw_string_literal]     = { lex::token::raw_string_literal,     "", "raw string literal",     expr_type_flags };
 	result[lex::token::character_literal]      = { lex::token::character_literal,      "", "character literal",      expr_type_flags };
 
-	result[lex::token::kw_true]  = { lex::token::kw_true,  "true",  "", keyword_flags | expr_type_flags };
-	result[lex::token::kw_false] = { lex::token::kw_false, "false", "", keyword_flags | expr_type_flags };
-	result[lex::token::kw_null]  = { lex::token::kw_null,  "null",  "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_true]        = { lex::token::kw_true,        "true",        "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_false]       = { lex::token::kw_false,       "false",       "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_null]        = { lex::token::kw_null,        "null",        "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_unreachable] = { lex::token::kw_unreachable, "unreachable", "", keyword_flags | expr_type_flags };
 
 
 	result[lex::token::kw_if]            = { lex::token::kw_if,            "if",            "", keyword_flags | expr_type_flags };

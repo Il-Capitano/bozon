@@ -1048,14 +1048,16 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens src_tokens,
-	ast::expr_literal const &,
-	ctx::comptime_executor_context &,
+	lex::src_tokens src_tokens,
+	[[maybe_unused]] ast::expr_literal const &literal_expr,
+	ctx::comptime_executor_context &context,
 	llvm::Value *
 )
 {
-	// this should never be called, as a literal will always be an rvalue constant expression
-	bz_unreachable;
+	// can only be called with unreachable
+	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
+	emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
+	return {};
 }
 
 template<abi::platform_abi abi>
@@ -4074,6 +4076,10 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	if (context.has_terminator())
+	{
+		return {};
+	}
 	switch (expr.kind())
 	{
 	case ast::expression::index_of<ast::constant_expression>:

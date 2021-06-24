@@ -826,6 +826,7 @@ static ast::expression parse_primary_expression(
 	case lex::token::kw_true:
 	case lex::token::kw_false:
 	case lex::token::kw_null:
+	case lex::token::kw_unreachable:
 	{
 		auto const literal = stream;
 		++stream;

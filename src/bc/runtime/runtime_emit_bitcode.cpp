@@ -811,13 +811,15 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	ast::expr_literal const &,
-	ctx::bitcode_context &,
+	[[maybe_unused]] ast::expr_literal const &literal_expr,
+	ctx::bitcode_context &context,
 	llvm::Value *
 )
 {
-	// this should never be called, as a literal will always be an rvalue constant expression
-	bz_unreachable;
+	// can only be called with unreachable
+	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
+	context.builder.CreateUnreachable();
+	return {};
 }
 
 template<abi::platform_abi abi>

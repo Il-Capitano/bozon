@@ -216,6 +216,9 @@ do {                                                                            
 		const e = my_exp(1.0);
 		0
 	})");
+	x_fail(R"({
+		unreachable;
+	})");
 
 	return {};
 
