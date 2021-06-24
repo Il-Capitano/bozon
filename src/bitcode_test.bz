@@ -15,22 +15,20 @@ import std::fs::path;
 
 import std::format;
 
-import private_member_test;
+import std::ryu::common;
+import std::ryu::f2s_full_table;
+import std::ryu::f2s_intrinsics;
+import std::ryu::f2s;
+import std::ryu::d2s;
+import std::ryu::s2d;
+import std::ryu::s2f;
 
-//	/*
-function assert(b: bool) -> void
-{
-	if (!b)
-	{
-		std::println("\x1b[91massertion failed!\x1b[0m");
-		std::exit(1);
-	}
-}
+import private_member_test;
 
 function factorial(n: auto) -> typeof n
 {
-	let res: typeof n = 1;
-	for (let i: typeof n = 2; i <= n; ++i)
+	let res = 1 as typeof n;
+	for (let i = 2 as typeof n; i <= n; ++i)
 	{
 		res *= i;
 	}
@@ -57,6 +55,7 @@ static_assert(c == 5);
 type asdf0 = int32;
 type asdf = const asdf0;
 static_assert(asdf == const int32);
+static_assert(0.1 + 0.2 != 0.3);
 
 function main(args: [: const str]) -> int32
 {
@@ -120,7 +119,7 @@ function main(args: [: const str]) -> int32
 
 	let arr: [12: int32];
 	@maybe_unused consteval n = arr.size();
-	// static_assert((assert(true), true));
+	// static_assert((std::assert(true), true));
 
 	std::println("");
 	std::println("hello");
@@ -136,8 +135,8 @@ function main(args: [: const str]) -> int32
 	static_assert(factorial_recursive(10) == 3628800);
 	static_assert(factorial_recursive(1) == 1);
 	static_assert(factorial(10) == 3628800);
-	static_assert((assert(true), true));
-	static_assert({ assert(true); true });
+	static_assert((std::assert(true), true));
+	static_assert({ std::assert(true); true });
 	// static_assert(switch (3) { 3 => true, else => false });
 
 	static_assert({
@@ -206,7 +205,7 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", [ n ]);
 	set_to_zero(n);
 	std::printf("{}\n", [ n ]);
-	assert(n == 0);
+	std::assert(n == 0);
 
 	std::println("\n==== ref_test ====");
 	ref_test();
@@ -284,6 +283,25 @@ function main(args: [: const str]) -> int32
 	std::printf("e  = {}\n", [ std::e as float32 ]);
 	std::printf("pi = {}\n", [ std::pi as float32 ]);
 	static_assert(typeof std::exp(1.0) == float64);
+
+	std::printf("{} {} {}\n", [ 1e14, 1.532e-3, 3e-300 ]);
+	std::print("============\n");
+	std::printf("{}\n", [ ((1.0 / 0.0)) ]);
+	static_assert(0.1 + 0.2 != 0.3);
+	std::printf("{} != {}\n", [ 0.1 + 0.2, 0.3 ]);
+
+	const constants: [3: float64] = [ std::pi, std::tau, std::e ];
+	std::printf("{}\n", [ constants as [: const float64] ]);
+
+	const arr: [3, 1: float64] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
+	// const arr: [3, 1: float64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
+	std::printf("{}\n", [ arr ]);
+	std::printf("{}\n", [ 1e15 ]);
+
+	// consteval x = std::sqrt(-1.0);
+
+	// (consteval std::assert(false));
+	static_assert(std::format("{}", [ 1.2356e98 ]) == "1.2356e+98");
 
 	/*
 	let s1 = "hello1";
@@ -438,7 +456,7 @@ function ref_test() -> void
 	std::printf("{}\n", [ n ]);
 	change_n(n);
 	std::printf("{}\n", [ n ]);
-	assert(n == 1234);
+	std::assert(n == 1234);
 
 	function foo(n: int32) -> void { std::printf("{}\n", [ &n ]); }
 	function foo_ref(n: &const int32) -> void { std::printf("{}\n", [ &n ]); }
@@ -449,7 +467,7 @@ function ref_test() -> void
 	std::println("first and third pointers should be the same");
 
 	let &m = n;
-	assert(&m == &n);
+	std::assert(&m == &n);
 	std::printf("{}\n", [ &m ]);
 	foo(m);
 	foo_ref(m);
@@ -491,8 +509,8 @@ function const_expr_test() -> void
 
 //	-(-9'223'372'036'854'775'807i64 - 1);
 
-	assert(9'223'372'036'854'775'808 == 1u64 << 63u);
-	assert(((9'223'372'036'854'775'808 as uint32)) == 0u);
+	std::assert(9'223'372'036'854'775'808 == 1u64 << 63u);
+	std::assert(((9'223'372'036'854'775'808 as uint32)) == 0u);
 
 	@maybe_unused let a = false || false;
 	const FALSE: bool = false;
@@ -500,10 +518,10 @@ function const_expr_test() -> void
 	@maybe_unused let c = true || FALSE;
 
 	const p = null as *int32;
-	assert(p == null);
+	std::assert(p == null);
 
 	const *const p = &n;
-	assert(p != null);
+	std::assert(p != null);
 
 //	*(null as *int32) = 2;
 	std::println("hello" " again" ", and again!");
@@ -601,7 +619,7 @@ function scope_test() -> void
 
 	std::printf("{}\n", [ multiply(123i64, 123i8) ]);
 	std::printf("{}\n", [ 123 * 123 ]);
-	assert(multiply(123i64, 123i8) == 123 * 123);
+	std::assert(multiply(123i64, 123i8) == 123 * 123);
 
 //	const t = int32;
 }
@@ -1052,8 +1070,8 @@ function str_pointer_test()
 
 	std::printf("{}, {}\n", [ begin, end ]);
 
-	assert(my_str_equals("hello", "hello"));
-	assert(my_str_equals(s, "hello"));
+	std::assert(my_str_equals("hello", "hello"));
+	std::assert(my_str_equals(s, "hello"));
 
 	let arr: [10: uint8];
 	arr[0] = 'h' as uint32 as uint8;
@@ -1063,9 +1081,9 @@ function str_pointer_test()
 	arr[4] = 'a' as uint32 as uint8;
 	const arr_s = __builtin_str_from_ptrs(&arr[0], &arr[5]);
 	static_assert(typeof arr_s == const str);
-	assert(arr_s == "hella");
+	std::assert(arr_s == "hella");
 	arr[4] = 'o' as uint32 as uint8;
-	assert(arr_s != "hella");
+	std::assert(arr_s != "hella");
 
 	let arr_slice = __builtin_slice_from_const_ptrs(&arr[0], &arr[5]);
 	std::printf("{}\n", [ arr_slice[3] as uint32 as char ]);
@@ -1341,13 +1359,13 @@ function algorithm_test()
 		arr.std::fill(3)
 	};
 	const it = arr.std::find(3);
-	assert(it != arr.end());
+	std::assert(it != arr.end());
 	std::printf("{}\n", [ &*it ]);
 	std::printf("{}\n", [ *it ]);
 	std::printf("{}\n", [ it - arr.begin() ]);
 
 	const it = arr.std::find(23);
-	assert(it == arr.end());
+	std::assert(it == arr.end());
 	std::printf("{}\n", [ &*it ]);
 	std::printf("{}\n", [ it - arr.begin() ]);
 
@@ -1432,6 +1450,7 @@ export function string_test()
 		let world = std::string("World");
 		world ..= '!';
 		std::print("Hello " .. world .. '\n');
+		std::print("Hello {}\n".std::format([ world.as_str() ]));
 		std::println("---");
 		std::printf("{}\n", [ world.empty() ]);
 		std::printf("{}\n", [ world.not_empty() ]);
@@ -1492,4 +1511,31 @@ export function string_test()
 	let arr: [5: int32];
 	// std::printf("{}\n", arr[2]);
 	std::printf("{}\n", [ arr[2] ]);
+
+	static_assert(std::format("{}", [ 1.23456 ]) == "1.23456");
+	(consteval {
+		let arr: [int64, int32];
+		std::format("{}", [ arr[0] ]) == "0"
+	});
 }
+
+function some_test_foo() -> void
+{
+}
+
+function some_test_foo_tester()
+{
+	// const s = some_test_foo();
+}
+
+/*
+
+function format(fmt: consteval str, ...#const args)
+{
+	(consteval check_fmt(fmt, sizeof ...args));
+	consteval fmt_sections = make_fmt_sections(fmt);
+	const fmt_args = make_fmt_args(...args);
+	return formatv(fmt_sections, fmt_args);
+}
+
+*/
