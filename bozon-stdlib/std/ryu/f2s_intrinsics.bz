@@ -18,11 +18,12 @@
 // Defines RYU_32_BIT_PLATFORM if applicable.
 import common;
 import f2s_full_table;
+import std::utils;
 
 export function pow5factor_32(value: uint32) -> uint32
 {
 	let count: uint32 = 0u;
-	// assert(value != 0);
+	assert(value != 0u);
 	let q = value / 5u;
 	let r = value % 5u;
 	for (; r == 0u; ++count)
@@ -51,7 +52,7 @@ export function multipleOfPowerOf2_32(value: uint32, p: uint32) -> bool
 // generated code for uint128_t looks slightly nicer.
 export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 {
-	// assert(shift > 32u);
+	assert(shift > 32u);
 
 	// The casts here help MSVC to avoid calls to the __allmul library
 	// function.
@@ -62,7 +63,7 @@ export function mulShift32(m: uint32, factor: uint64, shift: uint32) -> uint32
 
 	const sum = (bits0 >> 32) + bits1;
 	const shiftedSum = sum >> (shift - 32u);
-	// assert(shiftedSum <= UINT32_MAX);
+	assert(shiftedSum <= (~0u32) as uint64);
 	return shiftedSum as uint32;
 }
 

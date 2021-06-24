@@ -179,7 +179,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		// We now compute [m10 * 10^e10 / 2^e2] = [m10 * 5^e10 / 2^(e2-e10)].
 		// To that end, we use the FLOAT_POW5_SPLIT table.
 		const j = e2 - e10 - ceil_log2pow5(e10 as uint32) as int32 + FLOAT_POW5_BITCOUNT;
-		// assert(j >= 0);
+		assert(j >= 0);
 		m2 = mulPow5divPow2(m10, e10 as uint32, j as uint32);
 
 		// We also compute if the result is exact, i.e.,
@@ -229,7 +229,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	} else {
 		ieee_e2 as int32 - e2 - FLOAT_EXPONENT_BIAS - FLOAT_MANTISSA_BITS
 	};
-	// assert(shift >= 0);
+	assert(shift >= 0);
 
 	// We need to round up if the exact value is more than 0.5 above the value we computed. That's
 	// equivalent to checking if the last removed bit was 1 and either the value was not just
@@ -241,7 +241,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	const roundUp = (lastRemovedBit != 0u) && (!trailingZeros || (((m2 >> shift) & 1u32) != 0u));
 
 	let ieee_m2 = (m2 >> shift) + roundUp as uint32;
-	// assert(ieee_m2 <= (1u << (FLOAT_MANTISSA_BITS + 1)));
+	assert(ieee_m2 <= (1u << (FLOAT_MANTISSA_BITS + 1)));
 	ieee_m2 &= (1u32 << FLOAT_MANTISSA_BITS) - 1u32;
 	if (ieee_m2 == 0u && roundUp)
 	{

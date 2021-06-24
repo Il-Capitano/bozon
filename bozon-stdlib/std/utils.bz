@@ -2,4 +2,9 @@ export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
 
+export function assert(b: bool)
+{
+	if (!b) unreachable;
+}
+
 @extern("exit", "c") export function exit(code: int32) -> void;

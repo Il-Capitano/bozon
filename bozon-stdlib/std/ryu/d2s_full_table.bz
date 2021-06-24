@@ -19,8 +19,8 @@
 export consteval DOUBLE_POW5_INV_BITCOUNT = 125;
 export consteval DOUBLE_POW5_BITCOUNT = 125;
 
-consteval DOUBLE_POW5_INV_TABLE_SIZE = 342uz;
-consteval DOUBLE_POW5_TABLE_SIZE = 326uz;
+export consteval DOUBLE_POW5_INV_TABLE_SIZE = 342uz;
+export consteval DOUBLE_POW5_TABLE_SIZE = 326uz;
 
 export consteval DOUBLE_POW5_INV_SPLIT: [DOUBLE_POW5_INV_TABLE_SIZE, 2: uint64] = [
 	[                    1u, 2305843009213693952u ], [ 11068046444225730970u, 1844674407370955161u ],

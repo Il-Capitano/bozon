@@ -23,7 +23,7 @@ export function decimalLength9(v: uint32) -> uint32
 	// Function precondition: v is not a 10-digit number.
 	// (f2s: 9 digits are sufficient for round-tripping.)
 	// (d2fixed: We print 9-digit blocks.)
-	// assert(v < 1'000'000'000);
+	assert(v < 1'000'000'000u);
 	return if (v >= 100'000'000u) { 9u }
 		else if (v >= 10'000'000u) { 8u }
 		else if (v >=  1'000'000u) { 7u }
@@ -41,8 +41,8 @@ export function log2pow5(e: uint32) -> uint32
 	// This approximation works up to the point that the multiplication overflows at e = 3529.
 	// If the multiplication were done in 64 bits, it would fail at 5^4004 which is just greater
 	// than 2^9297.
-	// assert(e >= 0);
-	// assert(e <= 3528);
+	assert(e >= 0u);
+	assert(e <= 3528u);
 	return (e * 1217359u) >> 19u;
 }
 
@@ -52,8 +52,8 @@ export function pow5bits(e: uint32) -> uint32
 	// This approximation works up to the point that the multiplication overflows at e = 3529.
 	// If the multiplication were done in 64 bits, it would fail at 5^4004 which is just greater
 	// than 2^9297.
-	// assert(e >= 0);
-	// assert(e <= 3528);
+	assert(e >= 0u);
+	assert(e <= 3528u);
 	return ((e * 1217359u) >> 19u) + 1u;
 }
 
@@ -66,18 +66,18 @@ export function ceil_log2pow5(e: uint32) -> uint32
 // Returns floor(log_10(2^e)); requires 0 <= e <= 1650.
 export function log10Pow2(e: uint32) -> uint32
 {
-  // The first value this approximation fails for is 2^1651 which is just greater than 10^297.
-  // assert(e >= 0);
-  // assert(e <= 1650);
-  return (e * 78913u) >> 18u;
+	// The first value this approximation fails for is 2^1651 which is just greater than 10^297.
+	assert(e >= 0u);
+	assert(e <= 1650u);
+	return (e * 78913u) >> 18u;
 }
 
 // Returns floor(log_10(5^e)); requires 0 <= e <= 2620.
 export function log10Pow5(e: uint32) -> uint32
 {
 	// The first value this approximation fails for is 5^2621 which is just greater than 10^1832.
-	// assert(e >= 0);
-	// assert(e <= 2620);
+	assert(e >= 0u);
+	assert(e <= 2620u);
 	return (e * 732923u) >> 20u;
 }
 

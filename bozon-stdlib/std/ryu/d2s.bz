@@ -45,7 +45,7 @@ function decimalLength17(v: uint64) -> uint32
 	// The average output length is 16.38 digits, so we check high-to-low.
 	// Function precondition: v is not an 18, 19, or 20-digit number.
 	// (17 digits are sufficient for round-tripping.)
-	// assert(v < 100000000000000000u64);
+	assert(v < 100000000000000000u64);
 	return if (v >= 10000000000000000u64) { 17u }
 		else if (v >= 1000000000000000u64) { 16u }
 		else if (v >= 100000000000000u64) { 15u }
