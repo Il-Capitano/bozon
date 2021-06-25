@@ -15,11 +15,12 @@ jobs:
         install: >-
           make
           git
+          mingw-w64-x86_64-pkgconf
+          mingw-w64-x86_64-fmt
+          mingw-w64-x86_64-rapidjson
           mingw-w64-x86_64-llvm
           mingw-w64-x86_64-lld
           mingw-w64-x86_64-clang
-          mingw-w64-x86_64-fmt
-          mingw-w64-x86_64-rapidjson
           mingw-w64-x86_64-boost
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
@@ -32,3 +33,33 @@ jobs:
     - run: cppb/bin/cppb run
     - run: cppb/bin/cppb build --build-config test
     - run: cppb/bin/cppb run --build-config test
+  windows-gcc:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          make
+          git
+          mingw-w64-x86_64-pkgconf
+          mingw-w64-x86_64-fmt
+          mingw-w64-x86_64-rapidjson
+          mingw-w64-x86_64-llvm
+          mingw-w64-x86_64-lld
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-boost
+    - uses: actions/checkout@v2
+    - run: git clone https://github.com/Il-Capitano/cppb.git
+    - run: |
+        cd cppb
+        mkdir bin
+        make
+        cd ..
+    - run: cppb/bin/cppb build --build-config gcc
+    - run: cppb/bin/cppb run --build-config gcc
+    - run: cppb/bin/cppb build --build-config test-gcc
+    - run: cppb/bin/cppb run --build-config test-gcc
