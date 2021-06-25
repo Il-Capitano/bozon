@@ -2070,7 +2070,7 @@ if (postfix == postfix_str)                                                     
 	case lex::token::kw_unreachable:
 		return ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::none,
+			ast::expression_type_kind::noreturn,
 			ast::make_void_typespec(src_tokens.pivot),
 			ast::make_expr_literal(literal)
 		);

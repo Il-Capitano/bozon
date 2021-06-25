@@ -264,11 +264,25 @@ ast::expression parse_if_expression(
 			++stream; // ';'
 		}
 		auto const src_tokens = lex::src_tokens{ begin, begin, stream };
-		if (then_block.is_none() || else_block.is_none())
+		if (then_block.is_noreturn() && else_block.is_noreturn())
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+				ast::expression_type_kind::noreturn,
+				ast::make_void_typespec(nullptr),
+				ast::make_expr_if(
+					std::move(condition),
+					std::move(then_block),
+					std::move(else_block)
+				)
+			);
+		}
+		else if (then_block.is_none() || else_block.is_none())
+		{
+			return ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::none,
+				ast::make_void_typespec(nullptr),
 				ast::make_expr_if(
 					std::move(condition),
 					std::move(then_block),
@@ -280,7 +294,8 @@ ast::expression parse_if_expression(
 		{
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::if_expr, ast::typespec(),
+				ast::expression_type_kind::if_expr,
+				ast::typespec(),
 				ast::make_expr_if(
 					std::move(condition),
 					std::move(then_block),
@@ -305,7 +320,8 @@ ast::expression parse_if_expression(
 			consume_semi_colon_at_end_of_expression(stream, end, context, then_block);
 			return ast::make_dynamic_expression(
 				src_tokens,
-				ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+				ast::expression_type_kind::none,
+				ast::make_void_typespec(nullptr),
 				ast::make_expr_if(std::move(condition), std::move(then_block))
 			);
 		}
@@ -502,11 +518,117 @@ ast::expression parse_switch_expression(
 			ast::make_expr_switch(std::move(matched_expr), std::move(default_case), std::move(cases))
 		);
 	}
+
+	auto const case_count = cases.empty() ? 0 :
+		cases.transform([](auto const &case_) {
+			return case_.values.size();
+		}).sum();
+	auto const match_type_info = match_type.get<ast::ts_base_type>().info;
+	auto const max_case_count = [&]() -> uint64_t {
+		switch (match_type_info->kind)
+		{
+		case ast::type_info::bool_:
+			return 2;
+		case ast::type_info::int8_:
+		case ast::type_info::uint8_:
+			return std::numeric_limits<uint8_t>::max();
+		case ast::type_info::int16_:
+		case ast::type_info::uint16_:
+			return std::numeric_limits<uint16_t>::max();
+		case ast::type_info::int32_:
+		case ast::type_info::uint32_:
+		case ast::type_info::char_:
+			return std::numeric_limits<uint32_t>::max();
+		case ast::type_info::int64_:
+		case ast::type_info::uint64_:
+			return std::numeric_limits<uint64_t>::max();
+		default:
+			bz_unreachable;
+		}
+	}();
+
+	if (case_count < max_case_count && default_case.is_null())
+	{
+		context.report_warning(
+			ctx::warning_kind::non_exhaustive_switch,
+			src_tokens,
+			"switch expression doesn't cover all possible values and doesn't have an else case"
+		);
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none,
+			ast::make_void_typespec(nullptr),
+			ast::make_expr_switch(
+				std::move(matched_expr),
+				std::move(default_case),
+				std::move(cases)
+			)
+		);
+	}
+	else if (case_count == max_case_count && default_case.not_null())
+	{
+		context.report_warning(
+			ctx::warning_kind::unneeded_else,
+			default_case.src_tokens,
+			"else case is not needed as all possible values are already covered"
+		);
+	}
+
+	auto const expr_kind = cases
+		.transform([](auto const &case_) {
+			bz_assert(case_.expr.is_constant_or_dynamic());
+			auto const kind = case_.expr.template is<ast::constant_expression>()
+				? case_.expr.template get<ast::constant_expression>().kind
+				: case_.expr.template get<ast::dynamic_expression>().kind;
+			switch (kind)
+			{
+			case ast::expression_type_kind::none:
+			case ast::expression_type_kind::noreturn:
+				return kind;
+			default:
+				return ast::expression_type_kind::switch_expr;
+			}
+		})
+		.reduce(ast::expression_type_kind::noreturn, [](auto const lhs, auto const rhs) {
+			switch (lhs)
+			{
+			case ast::expression_type_kind::switch_expr:
+				return lhs;
+			case ast::expression_type_kind::none:
+				switch (rhs)
+				{
+				case ast::expression_type_kind::switch_expr:
+				case ast::expression_type_kind::none:
+					return rhs;
+				default:
+					return lhs;
+				}
+			case ast::expression_type_kind::noreturn:
+				return rhs;
+			default:
+				bz_unreachable;
+			}
+		});
+
+	if (expr_kind == ast::expression_type_kind::switch_expr)
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			expr_kind,
+			ast::typespec(),
+			ast::make_expr_switch(
+				std::move(matched_expr),
+				std::move(default_case),
+				std::move(cases)
+			)
+		);
+	}
 	else
 	{
 		return ast::make_dynamic_expression(
 			src_tokens,
-			ast::expression_type_kind::switch_expr, ast::typespec(),
+			expr_kind,
+			ast::make_void_typespec(nullptr),
 			ast::make_expr_switch(
 				std::move(matched_expr),
 				std::move(default_case),

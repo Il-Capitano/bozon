@@ -242,6 +242,20 @@ struct collection_base_min
 	constexpr auto min(T &&val, Func cmp) const noexcept;
 };
 
+template<typename Range>
+struct range_base_reduce
+{
+	template<typename T, typename BinOp>
+	constexpr auto reduce(T &&val, BinOp bin_op) const noexcept;
+};
+
+template<typename Collection>
+struct collection_base_reduce
+{
+	template<typename T, typename BinOp>
+	constexpr auto reduce(T &&val, BinOp bin_op) const noexcept;
+};
+
 template<typename Collection>
 struct collection_base_sort
 {
@@ -287,7 +301,8 @@ struct range_base :
 	internal::range_base_for_each <Range>,
 	internal::range_base_sum      <Range>,
 	internal::range_base_max      <Range>,
-	internal::range_base_min      <Range>
+	internal::range_base_min      <Range>,
+	internal::range_base_reduce   <Range>
 {};
 
 template<typename Collection>
@@ -303,6 +318,7 @@ struct collection_base :
 	internal::collection_base_sum      <Collection>,
 	internal::collection_base_max      <Collection>,
 	internal::collection_base_min      <Collection>,
+	internal::collection_base_reduce   <Collection>,
 	internal::collection_base_sort     <Collection>,
 	internal::collection_base_append   <Collection>,
 	internal::collection_base_reversed <Collection>
@@ -1101,6 +1117,24 @@ template<typename Collection>
 template<typename T, typename Cmp>
 constexpr auto collection_base_min<Collection>::min(T &&val, Cmp cmp) const noexcept
 { return static_cast<Collection const *>(this)->as_range().min(std::forward<T>(val), std::move(cmp)); }
+
+template<typename Range>
+template<typename T, typename BinOp>
+constexpr auto range_base_reduce<Range>::reduce(T &&val, BinOp bin_op) const noexcept
+{
+	auto const self = static_cast<Range const *>(this);
+	auto result = std::forward<T>(val);
+	for (auto &&it : *self)
+	{
+		result = bin_op(std::move(result), std::forward<decltype(it)>(it));
+	}
+	return result;
+}
+
+template<typename Collection>
+template<typename T, typename BinOp>
+constexpr auto collection_base_reduce<Collection>::reduce(T &&val, BinOp bin_op) const noexcept
+{ return static_cast<Collection const *>(this)->as_range().reduce(std::forward<T>(val), std::move(bin_op)); }
 
 template<typename Collection>
 void collection_base_sort<Collection>::sort(void) noexcept
