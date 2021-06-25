@@ -57,6 +57,7 @@ enum class expression_type_kind
 	if_expr,
 	switch_expr,
 	none,
+	noreturn,
 };
 
 
@@ -338,6 +339,12 @@ struct expression : bz::variant<
 	{
 		return this->is_constant_or_dynamic()
 			&& this->get_expr_type_and_kind().second == expression_type_kind::none;
+	}
+
+	bool is_noreturn(void) const noexcept
+	{
+		return this->is_constant_or_dynamic()
+			&& this->get_expr_type_and_kind().second == expression_type_kind::noreturn;
 	}
 
 	bool has_consteval_succeeded(void) const noexcept
