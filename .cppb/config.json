@@ -96,7 +96,7 @@
 				"linux-release": {},
 				"windows": {
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
-					"libraries": [ "LLVM" ]
+					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
 					"compiler": "gcc-10",
