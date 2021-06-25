@@ -975,6 +975,7 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 	add_opt(adce,                   llvm::createAggressiveDCEPass())
 	else add_opt(dce,               llvm::createDeadCodeEliminationPass())
 	add_opt(aggressive_instcombine, llvm::createAggressiveInstCombinerPass())
+	add_opt(aggressive_instcombine, llvm::createMemCpyOptPass())
 
 	if (is_optimization_enabled(bc::optimization_kind::reassociate))
 	{

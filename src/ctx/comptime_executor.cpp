@@ -844,6 +844,7 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createReassociatePass());
 		this->pass_manager.add(llvm::createCFGSimplificationPass());
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
+		this->pass_manager.add(llvm::createMemCpyOptPass());
 		// this->pass_manager.add(llvm::createGVNPass());
 
 		this->pass_manager.run(*module);

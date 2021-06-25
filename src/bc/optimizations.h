@@ -21,6 +21,8 @@ enum class optimization_kind
 	adce,
 	sccp,
 	aggressive_instcombine,
+	memcpyopt,
+
 	aggressive_consteval,
 
 	_last,
@@ -47,6 +49,7 @@ constexpr bz::array optimization_infos = []() {
 		T{ optimization_kind::adce,                   "adce",                   "Aggressive Dead Code Elimination"                        },
 		T{ optimization_kind::sccp,                   "sccp",                   "Sparse Conditional Constant Propagation"                 },
 		T{ optimization_kind::aggressive_instcombine, "aggressive-instcombine", "Combine expression patterns"                             },
+		T{ optimization_kind::memcpyopt,              "memcpyopt",              "memcpy optimization"                                     },
 		T{ optimization_kind::aggressive_consteval,   "aggressive-consteval",   "Try to evaluate all expressions at compile time"         },
 	};
 
