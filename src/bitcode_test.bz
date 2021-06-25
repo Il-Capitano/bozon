@@ -80,8 +80,7 @@ function main(args: [: const str]) -> int32
 	switch (b)
 	{
 		true  => std::println("true"),
-		false => std::println("false"),
-		else  => std::println("WTF")
+		false => std::println("false")
 	}
 
 	@maybe_unused
@@ -301,7 +300,15 @@ function main(args: [: const str]) -> int32
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));
-	static_assert(std::format("{}", [ 1.2356e98 ]) == "1.2356e+98");
+
+	// const n = if (std::format("{}", [ 12 ]) == "12") { 1 } else { unreachable };
+
+	const n = 3;
+	@maybe_unused const n = switch (n) {
+		3 => 3,
+		0, 1, 2 => 2,
+		else => 3
+	};
 
 	/*
 	let s1 = "hello1";
