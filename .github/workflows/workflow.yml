@@ -29,10 +29,10 @@ jobs:
         mkdir bin
         make
         cd ..
-    - run: cppb/bin/cppb build
-    - run: cppb/bin/cppb run
-    - run: cppb/bin/cppb build --build-config test
-    - run: cppb/bin/cppb run --build-config test
+    - run: cppb/bin/cppb build -v
+    - run: cppb/bin/cppb run -v
+    - run: cppb/bin/cppb build -v --build-config test
+    - run: cppb/bin/cppb run -v --build-config test
   windows-gcc:
     runs-on: windows-latest
     defaults:
@@ -60,7 +60,7 @@ jobs:
         mkdir bin
         make
         cd ..
-    - run: cppb/bin/cppb build --build-config gcc
-    - run: cppb/bin/cppb run --build-config gcc
-    - run: cppb/bin/cppb build --build-config test-gcc
-    - run: cppb/bin/cppb run --build-config test-gcc
+    - run: cppb/bin/cppb build -v --build-config gcc
+    - run: cppb/bin/cppb run -v --build-config gcc
+    - run: cppb/bin/cppb build -v --build-config test-gcc
+    - run: cppb/bin/cppb run -v --build-config test-gcc
