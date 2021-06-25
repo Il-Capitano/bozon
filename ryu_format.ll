@@ -573,9 +573,10 @@ then3.i:                                          ; preds = %bool_and_rhs.i
   %bit_or_tmp.i = or i64 %lshift_tmp.i, 1
   %29 = inttoptr i64 %bit_or_tmp.i to i8*
   %.repack.i = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 0
-  store i8* null, i8** %.repack.i, align 8, !noalias !20
   %.repack27.i = getelementptr inbounds [2 x i8*], [2 x i8*]* %2, i64 0, i64 1
-  store i8* null, i8** %.repack27.i, align 8, !noalias !20
+  %30 = sub i64 16, %26
+  %31 = getelementptr i8, i8* %22, i64 %26
+  call void @llvm.memset.p0i8.i64(i8* align 1 %31, i8 0, i64 %30, i1 false), !noalias !20
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %22, i8* align 1 %load_tmp.unpack.i, i64 %26, i1 false), !noalias !20
   %load_tmp8.i = load i8*, i8** %.repack.i, align 8, !noalias !20
   %load_tmp9.i = load i8*, i8** %.repack27.i, align 8, !noalias !20
@@ -598,10 +599,10 @@ else10.i:                                         ; preds = %bool_and_rhs.i
   %rshift_tmp20.i.i.i = lshr i64 %bit_or_tmp18.i.i.i, 32
   %bit_or_tmp22.i.i.i = or i64 %rshift_tmp20.i.i.i, %bit_or_tmp18.i.i.i
   %add_tmp.i.i.i = add i64 %bit_or_tmp22.i.i.i, 1
-  %30 = call i8* @malloc(i64 %add_tmp.i.i.i), !noalias !20
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %30, i8* align 1 %load_tmp.unpack.i, i64 %26, i1 false), !noalias !20
-  %ptr_add_tmp.i = getelementptr i8, i8* %30, i64 %26
-  %ptr_add_tmp20.i = getelementptr i8, i8* %30, i64 %add_tmp.i.i.i
+  %32 = call i8* @malloc(i64 %add_tmp.i.i.i), !noalias !20
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 1 %32, i8* align 1 %load_tmp.unpack.i, i64 %26, i1 false), !noalias !20
+  %ptr_add_tmp.i = getelementptr i8, i8* %32, i64 %26
+  %ptr_add_tmp20.i = getelementptr i8, i8* %32, i64 %add_tmp.i.i.i
   call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %21)
   call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
   %load_tmp.i.i.i.pre = load i8*, i8** %7, align 8
@@ -612,17 +613,17 @@ else10.i:                                         ; preds = %bool_and_rhs.i
   %.pre-phi = phi i64 [ %.pre, %else10.i ], [ %8, %then3.i ], [ %8, %then.i18 ]
   %load_tmp1.i2.i.i = phi i8* [ %ptr_add_tmp20.i, %else10.i ], [ %load_tmp9.i, %then3.i ], [ null, %then.i18 ]
   %load_tmp1.i4.i.i = phi i8* [ %ptr_add_tmp.i, %else10.i ], [ %load_tmp8.i, %then3.i ], [ null, %then.i18 ]
-  %load_tmp1.i.i.i = phi i8* [ %30, %else10.i ], [ %29, %then3.i ], [ null, %then.i18 ]
+  %load_tmp1.i.i.i = phi i8* [ %32, %else10.i ], [ %29, %then3.i ], [ null, %then.i18 ]
   %load_tmp.i.i11 = phi i8* [ %load_tmp.i.i.i.pre, %else10.i ], [ %load_tmp.i.i, %then3.i ], [ %load_tmp.i.i, %then.i18 ]
   store i8* %load_tmp1.i.i.i, i8** %7, align 8
-  %31 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
-  store i8* %load_tmp1.i4.i.i, i8** %31, align 8
-  %32 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
-  store i8* %load_tmp1.i2.i.i, i8** %32, align 8
+  %33 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 1
+  store i8* %load_tmp1.i4.i.i, i8** %33, align 8
+  %34 = getelementptr inbounds %"struct.std::string.4", %"struct.std::string.4"* %0, i64 0, i32 2
+  store i8* %load_tmp1.i2.i.i, i8** %34, align 8
   %cmp_tmp.i.i.i = icmp eq i8* %load_tmp.i.i11, null
   %bit_and_tmp.i.i.i = and i64 %.pre-phi, 1
-  %33 = icmp ne i64 %bit_and_tmp.i.i.i, 0
-  %bool_or_tmp.i.i.i = or i1 %33, %cmp_tmp.i.i.i
+  %35 = icmp ne i64 %bit_and_tmp.i.i.i, 0
+  %bool_or_tmp.i.i.i = or i1 %35, %cmp_tmp.i.i.i
   br i1 %bool_or_tmp.i.i.i, label %endif, label %then.i.i
 
 then.i.i:                                         ; preds = %"ctor.std::string..1.builtin.str.exit"
@@ -1270,27 +1271,28 @@ func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.boo
   ret i8* %11
 
 endif:                                            ; preds = %alloca, %bool_and_rhs
-  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %5, align 8
+  %12 = bitcast %"struct.std::ryu::floating_decimal_64"* %5 to i8*
+  call void @llvm.memset.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %12, i8 0, i64 16, i1 false)
   %bit_or_tmp.i = or i64 %bit_and_tmp3, 4503599627370496
   %cast_tmp.off = add nsw i32 %cast_tmp, -1023
-  %12 = icmp ugt i32 %cast_tmp.off, 52
-  br i1 %12, label %else, label %endif6.i
+  %13 = icmp ugt i32 %cast_tmp.off, 52
+  br i1 %13, label %else, label %endif6.i
 
 endif6.i:                                         ; preds = %endif
   %unary_minus_tmp.i = sub nsw i32 1075, %cast_tmp
-  %13 = zext i32 %unary_minus_tmp.i to i64
-  %notmask.i = shl nsw i64 -1, %13
+  %14 = zext i32 %unary_minus_tmp.i to i64
+  %notmask.i = shl nsw i64 -1, %14
   %sub_tmp8.i = xor i64 %notmask.i, -1
   %bit_and_tmp.i = and i64 %bit_or_tmp.i, %sub_tmp8.i
   %.not.i = icmp eq i64 %bit_and_tmp.i, 0
   br i1 %.not.i, label %endif13.i, label %else
 
 endif13.i:                                        ; preds = %endif6.i
-  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %13
-  %14 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
-  store i64 %rshift_tmp.i, i64* %14, align 8
-  %15 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
-  store i32 0, i32* %15, align 8
+  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %14
+  %15 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  store i64 %rshift_tmp.i, i64* %15, align 8
+  %16 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
+  store i32 0, i32* %16, align 8
   %div_tmp.i45 = udiv i64 %rshift_tmp.i, 10
   %cast_tmp20 = trunc i64 %rshift_tmp.i to i32
   %cast_tmp22 = trunc i64 %div_tmp.i45 to i32
@@ -1299,41 +1301,40 @@ endif13.i:                                        ; preds = %endif6.i
   br label %for_condition_check
 
 for_condition_check:                              ; preds = %for, %endif13.i
-  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %17, %for ]
+  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %18, %for ]
   %.040 = phi i64 [ %div_tmp.i45, %endif13.i ], [ %div_tmp.i, %for ]
   %.0 = phi i32 [ %sub_tmp, %endif13.i ], [ %sub_tmp31, %for ]
-  %16 = icmp eq i32 %.0, 0
-  br i1 %16, label %for, label %endif37
+  %17 = icmp eq i32 %.0, 0
+  br i1 %17, label %for, label %endif37
 
 for:                                              ; preds = %for_condition_check
-  store i64 %.040, i64* %14, align 8
+  store i64 %.040, i64* %15, align 8
   %div_tmp.i = udiv i64 %.040, 10
   %cast_tmp27 = trunc i64 %.040 to i32
   %cast_tmp29 = trunc i64 %div_tmp.i to i32
   %mul_tmp30.neg = mul i32 %cast_tmp29, -10
   %sub_tmp31 = add i32 %mul_tmp30.neg, %cast_tmp27
-  %17 = add i32 %load_tmp32, 1
-  store i32 %17, i32* %15, align 8
+  %18 = add i32 %load_tmp32, 1
+  store i32 %18, i32* %16, align 8
   br label %for_condition_check
 
 else:                                             ; preds = %endif6.i, %endif
   call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret(%"struct.std::ryu::floating_decimal_64") %6, i64 %bit_and_tmp3, i32 %cast_tmp)
-  %18 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
-  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 0
-  %load_tmp35 = load i64, i64* %19, align 8
-  store i64 %load_tmp35, i64* %18, align 8
-  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
-  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 1
-  %load_tmp36 = load i32, i32* %21, align 8
-  store i32 %load_tmp36, i32* %20, align 8
+  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 0
+  %load_tmp35 = load i64, i64* %20, align 8
+  store i64 %load_tmp35, i64* %19, align 8
+  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
+  %22 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %6, i64 0, i32 1
+  %load_tmp36 = load i32, i32* %22, align 8
+  store i32 %load_tmp36, i32* %21, align 8
   br label %endif37
 
 endif37:                                          ; preds = %for_condition_check, %else
   call void @llvm.experimental.noalias.scope.decl(metadata !30)
-  %22 = bitcast %"struct.std::ryu::floating_decimal_64"* %4 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %22)
-  %23 = bitcast %"struct.std::ryu::floating_decimal_64"* %5 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %22, i8* nonnull align 8 dereferenceable(16) %23, i64 16, i1 false)
+  %23 = bitcast %"struct.std::ryu::floating_decimal_64"* %4 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %23)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %23, i8* nonnull align 8 dereferenceable(16) %12, i64 16, i1 false)
   br i1 %7, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %endif37
@@ -1424,7 +1425,7 @@ then8.i:                                          ; preds = %func.std.ryu.decima
   call void @llvm.experimental.noalias.scope.decl(metadata !33), !noalias !30
   %47 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
   call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %47), !noalias !30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %47, i8* nonnull align 8 dereferenceable(16) %22, i64 16, i1 false)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %47, i8* nonnull align 8 dereferenceable(16) %23, i64 16, i1 false)
   %48 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %2, i64 0, i32 0
   %load_tmp.i12.i = load i64, i64* %48, align 8, !alias.scope !33, !noalias !30
   %49 = icmp ult i64 %load_tmp.i12.i, 100000000000000000
@@ -1698,14 +1699,14 @@ then162.i.i:                                      ; preds = %endif156.i.i
 "func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i": ; preds = %then162.i.i, %endif156.i.i
   %.1.i48.i = phi i8* [ %121, %then162.i.i ], [ %ptr_add_tmp160.i46.i, %endif156.i.i ]
   call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %47), !noalias !30
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %23)
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 
 else.i:                                           ; preds = %func.std.ryu.decimalLength17..1.builtin.uint64.builtin.uint32.exit.i
   call void @llvm.experimental.noalias.scope.decl(metadata !37), !noalias !30
   %122 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
   call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %122), !noalias !30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %122, i8* nonnull align 8 dereferenceable(16) %22, i64 16, i1 false)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %122, i8* nonnull align 8 dereferenceable(16) %23, i64 16, i1 false)
   %123 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
   %load_tmp.i.i = load i64, i64* %123, align 8, !alias.scope !37, !noalias !30
   %124 = icmp ult i64 %load_tmp.i.i, 100000000000000000
@@ -1999,7 +2000,7 @@ else168.i.i:                                      ; preds = %endif151.i.i
 "func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8.exit.i": ; preds = %else168.i.i, %then153.i.i
   %storemerge178.i.i = phi i8* [ %ptr_add_tmp174.i.i, %else168.i.i ], [ %ptr_add_tmp167.i.i, %then153.i.i ]
   call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %122), !noalias !30
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %22)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %23)
   br label %func.std.ryu.copy_short_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.builtin.bool.0P.builtin.uint8.exit
 }
 
@@ -2382,13 +2383,14 @@ endif254:                                         ; preds = %endfor244, %endif17
   %.5291 = phi i32 [ %.2288, %endif175 ], [ %.4290, %endfor244 ]
   %storemerge261 = phi i64 [ %add_tmp203, %endif175 ], [ %add_tmp253, %endfor244 ]
   %add_tmp257 = add i32 %.5291, %.0270
-  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %5, align 8
-  %57 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
-  store i32 %add_tmp257, i32* %57, align 8
-  %58 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
-  store i64 %storemerge261, i64* %58, align 8
-  %load_tmp260 = load %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, align 8
-  store %"struct.std::ryu::floating_decimal_64" %load_tmp260, %"struct.std::ryu::floating_decimal_64"* %0, align 8
+  %57 = bitcast %"struct.std::ryu::floating_decimal_64"* %5 to i8*
+  call void @llvm.memset.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %57, i8 0, i64 16, i1 false)
+  %58 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 1
+  store i32 %add_tmp257, i32* %58, align 8
+  %59 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %5, i64 0, i32 0
+  store i64 %storemerge261, i64* %59, align 8
+  %60 = bitcast %"struct.std::ryu::floating_decimal_64"* %0 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %60, i8* nonnull align 8 dereferenceable(16) %57, i64 16, i1 false)
   ret void
 }
 
@@ -4447,27 +4449,28 @@ func.std.ryu.copy_special_str..4.0P.builtin.uint8.builtin.bool.builtin.bool.buil
   ret i32 %12
 
 endif:                                            ; preds = %alloca, %bool_and_rhs
-  store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %3, align 8
+  %13 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
+  call void @llvm.memset.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %13, i8 0, i64 16, i1 false)
   %bit_or_tmp.i = or i64 %bit_and_tmp3, 4503599627370496
   %cast_tmp.off = add nsw i32 %cast_tmp, -1023
-  %13 = icmp ugt i32 %cast_tmp.off, 52
-  br i1 %13, label %else, label %endif6.i
+  %14 = icmp ugt i32 %cast_tmp.off, 52
+  br i1 %14, label %else, label %endif6.i
 
 endif6.i:                                         ; preds = %endif
   %unary_minus_tmp.i47 = sub nsw i32 1075, %cast_tmp
-  %14 = zext i32 %unary_minus_tmp.i47 to i64
-  %notmask.i = shl nsw i64 -1, %14
+  %15 = zext i32 %unary_minus_tmp.i47 to i64
+  %notmask.i = shl nsw i64 -1, %15
   %sub_tmp8.i = xor i64 %notmask.i, -1
   %bit_and_tmp.i = and i64 %bit_or_tmp.i, %sub_tmp8.i
   %.not.i48 = icmp eq i64 %bit_and_tmp.i, 0
   br i1 %.not.i48, label %endif13.i, label %else
 
 endif13.i:                                        ; preds = %endif6.i
-  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %14
-  %15 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
-  store i64 %rshift_tmp.i, i64* %15, align 8
-  %16 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
-  store i32 0, i32* %16, align 8
+  %rshift_tmp.i = lshr i64 %bit_or_tmp.i, %15
+  %16 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
+  store i64 %rshift_tmp.i, i64* %16, align 8
+  %17 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
+  store i32 0, i32* %17, align 8
   %div_tmp.i45 = udiv i64 %rshift_tmp.i, 10
   %cast_tmp20 = trunc i64 %rshift_tmp.i to i32
   %cast_tmp22 = trunc i64 %div_tmp.i45 to i32
@@ -4476,41 +4479,40 @@ endif13.i:                                        ; preds = %endif6.i
   br label %for_condition_check
 
 for_condition_check:                              ; preds = %for, %endif13.i
-  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %18, %for ]
+  %load_tmp32 = phi i32 [ 0, %endif13.i ], [ %19, %for ]
   %.040 = phi i64 [ %div_tmp.i45, %endif13.i ], [ %div_tmp.i44, %for ]
   %.0 = phi i32 [ %sub_tmp, %endif13.i ], [ %sub_tmp31, %for ]
-  %17 = icmp eq i32 %.0, 0
-  br i1 %17, label %for, label %endif37
+  %18 = icmp eq i32 %.0, 0
+  br i1 %18, label %for, label %endif37
 
 for:                                              ; preds = %for_condition_check
-  store i64 %.040, i64* %15, align 8
+  store i64 %.040, i64* %16, align 8
   %div_tmp.i44 = udiv i64 %.040, 10
   %cast_tmp27 = trunc i64 %.040 to i32
   %cast_tmp29 = trunc i64 %div_tmp.i44 to i32
   %mul_tmp30.neg = mul i32 %cast_tmp29, -10
   %sub_tmp31 = add i32 %mul_tmp30.neg, %cast_tmp27
-  %18 = add i32 %load_tmp32, 1
-  store i32 %18, i32* %16, align 8
+  %19 = add i32 %load_tmp32, 1
+  store i32 %19, i32* %17, align 8
   br label %for_condition_check
 
 else:                                             ; preds = %endif6.i, %endif
   call void @"func.std.ryu.d2d..2.builtin.uint64.builtin.uint32.struct.std::ryu::floating_decimal_64"(%"struct.std::ryu::floating_decimal_64"* sret(%"struct.std::ryu::floating_decimal_64") %4, i64 %bit_and_tmp3, i32 %cast_tmp)
-  %19 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
-  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
-  %load_tmp35 = load i64, i64* %20, align 8
-  store i64 %load_tmp35, i64* %19, align 8
-  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
-  %22 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
-  %load_tmp36 = load i32, i32* %22, align 8
-  store i32 %load_tmp36, i32* %21, align 8
+  %20 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 0
+  %21 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 0
+  %load_tmp35 = load i64, i64* %21, align 8
+  store i64 %load_tmp35, i64* %20, align 8
+  %22 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %3, i64 0, i32 1
+  %23 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %4, i64 0, i32 1
+  %load_tmp36 = load i32, i32* %23, align 8
+  store i32 %load_tmp36, i32* %22, align 8
   br label %endif37
 
 endif37:                                          ; preds = %for_condition_check, %else
   call void @llvm.experimental.noalias.scope.decl(metadata !49)
-  %23 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %23)
-  %24 = bitcast %"struct.std::ryu::floating_decimal_64"* %3 to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %23, i8* nonnull align 8 dereferenceable(16) %24, i64 16, i1 false)
+  %24 = bitcast %"struct.std::ryu::floating_decimal_64"* %2 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 16, i8* nonnull %24)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 dereferenceable(16) %24, i8* nonnull align 8 dereferenceable(16) %13, i64 16, i1 false)
   br i1 %5, label %then.i, label %endif.i
 
 then.i:                                           ; preds = %endif37
@@ -4842,7 +4844,7 @@ else213.i:                                        ; preds = %else202.i
 
 "func.std.ryu.to_chars..3.struct.std::ryu::floating_decimal_64.builtin.bool.0P.builtin.uint8.builtin.int32.exit": ; preds = %then183.i, %then204.i, %else213.i
   %storemerge225.i = phi i32 [ %add_tmp201.i, %then183.i ], [ %121, %else213.i ], [ %add_tmp212.i, %then204.i ]
-  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %23)
+  call void @llvm.lifetime.end.p0i8(i64 16, i8* nonnull %24)
   ret i32 %storemerge225.i
 }
 
