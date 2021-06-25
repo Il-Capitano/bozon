@@ -43,7 +43,7 @@
 				"windows": {
 					"prelink_rules": [ "ryu_format.o" ],
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
-					"libraries": [ "LLVM" ]
+					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
