@@ -19,7 +19,8 @@
 #include <bz/array.h>
 
 #define CTCLI_UNREACHABLE bz_unreachable
-#define CTCLI_SYNTAX_ASSERT(cond, message) do {                               \
+#define CTCLI_SYNTAX_ASSERT(cond, message)                                    \
+do {                                                                          \
     if (!(cond)) { bz_throw(invalid_syntax_error(message)); bz_unreachable; } \
 } while (false)
 
@@ -830,6 +831,9 @@ template<group_id_t ID>
 inline constexpr char option_group = 0;
 
 template<group_id_t ID>
+inline constexpr std::size_t option_group_max_multiple_size = option_group<ID>.size();
+
+template<group_id_t ID>
 inline constexpr char option_group_multiple = 0;
 
 
@@ -845,23 +849,24 @@ inline constexpr auto help_group_element = create_group_element("help", "Display
 template<std::size_t N>
 struct multiple_group_element_t
 {
-	string_view           usage;
-	string_view           help;
-	array<std::uint32_t, N> element_indicies;
-	visibility_kind       visibility;
+	string_view             usage;
+	string_view             help;
+	array<std::uint32_t, N> element_indices;
+	visibility_kind         visibility;
 };
 
 template<group_id_t ID>
-constexpr multiple_group_element_t<option_group<ID>.size()>
+constexpr multiple_group_element_t<option_group_max_multiple_size<ID>>
 create_multiple_group_element(string_view usage, string_view help, std::initializer_list<string_view> elements)
 {
 	constexpr auto const &group = option_group<ID>;
-	assert(elements.size() <= group.size());
 	internal::check_group_elment_syntax(usage);
 	assert(internal::is_bool_flag(usage));
-	auto const indicies = [&elements]() {
-		array<std::uint32_t, group.size()> indicies{};
-		for (auto &index : indicies)
+	constexpr auto result_size = option_group_max_multiple_size<ID>;
+	auto const indices = [&elements]() {
+		assert(elements.size() <= result_size);
+		array<std::uint32_t, result_size> indices{};
+		for (auto &index : indices)
 		{
 			index = std::numeric_limits<std::uint32_t>::max();
 		}
@@ -876,25 +881,26 @@ create_multiple_group_element(string_view usage, string_view help, std::initiali
 			);
 			assert(it != group.end());
 			assert(internal::is_bool_flag(it->usage));
-			indicies[i] = static_cast<std::uint32_t>(it - group.begin());
+			indices[i] = static_cast<std::uint32_t>(it - group.begin());
 			++i;
 		}
-		return indicies;
+		return indices;
 	}();
-	return multiple_group_element_t<option_group<ID>.size()>{ usage, help, indicies, visibility_kind::visible };
+	return multiple_group_element_t<result_size>{ usage, help, indices, visibility_kind::visible };
 }
 
 template<group_id_t ID>
-constexpr multiple_group_element_t<option_group<ID>.size()>
+constexpr multiple_group_element_t<option_group_max_multiple_size<ID>>
 create_hidden_multiple_group_element(string_view usage, string_view help, std::initializer_list<string_view> elements)
 {
 	constexpr auto const &group = option_group<ID>;
-	assert(elements.size() <= group.size());
 	internal::check_group_elment_syntax(usage);
 	assert(internal::is_bool_flag(usage));
-	auto const indicies = [&elements]() {
-		array<std::uint32_t, group.size()> indicies{};
-		for (auto &index : indicies)
+	constexpr auto max_size = option_group_max_multiple_size<ID>;
+	auto const indices = [&elements]() {
+		assert(elements.size() <= max_size);
+		array<std::uint32_t, max_size> indices{};
+		for (auto &index : indices)
 		{
 			index = std::numeric_limits<std::uint32_t>::max();
 		}
@@ -909,25 +915,26 @@ create_hidden_multiple_group_element(string_view usage, string_view help, std::i
 			);
 			assert(it != group.end());
 			assert(internal::is_bool_flag(it->usage));
-			indicies[i] = static_cast<std::uint32_t>(it - group.begin());
+			indices[i] = static_cast<std::uint32_t>(it - group.begin());
 			++i;
 		}
-		return indicies;
+		return indices;
 	}();
-	return multiple_group_element_t<option_group<ID>.size()>{ usage, help, indicies, visibility_kind::hidden };
+	return multiple_group_element_t<max_size>{ usage, help, indices, visibility_kind::hidden };
 }
 
 template<group_id_t ID>
-constexpr multiple_group_element_t<option_group<ID>.size()>
+constexpr multiple_group_element_t<option_group_max_multiple_size<ID>>
 create_undocumented_multiple_group_element(string_view usage, string_view help, std::initializer_list<string_view> elements)
 {
 	constexpr auto const &group = option_group<ID>;
-	assert(elements.size() <= group.size());
 	internal::check_group_elment_syntax(usage);
 	assert(internal::is_bool_flag(usage));
-	auto const indicies = [&elements]() {
-		array<std::uint32_t, group.size()> indicies{};
-		for (auto &index : indicies)
+	constexpr auto max_size = option_group_max_multiple_size<ID>;
+	auto const indices = [&elements]() {
+		assert(elements.size() <= max_size);
+		array<std::uint32_t, max_size> indices{};
+		for (auto &index : indices)
 		{
 			index = std::numeric_limits<std::uint32_t>::max();
 		}
@@ -942,12 +949,12 @@ create_undocumented_multiple_group_element(string_view usage, string_view help, 
 			);
 			assert(it != group.end());
 			assert(internal::is_bool_flag(it->usage));
-			indicies[i] = static_cast<std::uint32_t>(it - group.begin());
+			indices[i] = static_cast<std::uint32_t>(it - group.begin());
 			++i;
 		}
-		return indicies;
+		return indices;
 	}();
-	return multiple_group_element_t<option_group<ID>.size()>{ usage, help, indicies, visibility_kind::undocumented };
+	return multiple_group_element_t<max_size>{ usage, help, indices, visibility_kind::undocumented };
 }
 
 
@@ -1129,7 +1136,7 @@ constexpr bool is_valid_option_group_type_v = is_array_of_type_v<
 template<group_id_t ID>
 constexpr bool is_valid_option_group_multiple_type_v = is_array_of_type_v<
 	std::remove_cv_t<std::remove_reference_t<decltype(option_group_multiple<ID>)>>,
-	multiple_group_element_t<option_group<ID>.size()>
+	multiple_group_element_t<option_group_max_multiple_size<ID>>
 >;
 
 template<options_id_t ID>
@@ -1686,8 +1693,8 @@ struct option_value_type_impl<false, false, false, Index>
 template<bool is_bool_flag, bool has_argument_parser, option_index_t Index>
 struct option_value_type_impl<is_bool_flag, has_argument_parser, true, Index>
 {
-	// a dummy type
-	using type = int;
+	// vector of group element indices or a dummy type
+	using type = std::conditional_t<is_array_like<Index>, group_element_index_t, int>;
 };
 
 
@@ -2155,7 +2162,7 @@ bool try_parse_bool_flag(
 	}
 }
 
-template<group_element_index_t Index>
+template<option_index_t option_index, group_element_index_t Index>
 bool try_parse_group_element(
 	string_view option_group_flag_value, string_view element_value, optional<string_view> arg_opt,
 	std::size_t flag_position, string &error
@@ -2182,7 +2189,7 @@ bool try_parse_group_element(
 
 	if (matched_arg_num != -1)
 	{
-		if constexpr (is_bool_flag(usage))
+		if constexpr (is_bool_flag_)
 		{
 			if (arg_opt.has_value())
 			{
@@ -2190,24 +2197,32 @@ bool try_parse_group_element(
 				return true;
 			}
 
-			constexpr auto *info = group_element_info_ptr<Index>;
-			constexpr auto &value = *value_storage_ptr<Index>;
-			if (info->flag_position == 0)
+			if constexpr (is_array_like<option_index> && help_group_element_index<get_group_id_t(Index)> != Index)
 			{
-				value = is_negation ? false : true;
-				info->flag_position = flag_position;
-				info->group_flag_value = option_group_flag_value;
-				info->flag_value = original_element_value;
+				constexpr auto &vec = *value_storage_ptr<option_index>;
+				vec.push_back(Index);
 			}
 			else
 			{
-				error = bz::format(
-					"option group flag '{} {}' has already been set by argument '{} {}' at position {}",
-					option_group_flag_value, element_value,
-					info->group_flag_value, info->flag_value,
-					info->flag_position
-				);
-				return true;
+				constexpr auto *info = group_element_info_ptr<Index>;
+				constexpr auto &value = *value_storage_ptr<Index>;
+				if (info->flag_position == 0)
+				{
+					value = is_negation ? false : true;
+					info->flag_position = flag_position;
+					info->group_flag_value = option_group_flag_value;
+					info->flag_value = original_element_value;
+				}
+				else
+				{
+					error = bz::format(
+						"option group flag '{} {}' has already been set by argument '{} {}' at position {}",
+						option_group_flag_value, element_value,
+						info->group_flag_value, info->flag_value,
+						info->flag_position
+					);
+					return true;
+				}
 			}
 		}
 		else
@@ -2288,7 +2303,7 @@ bool try_parse_group_element(
 	}
 }
 
-template<group_id_t ID, std::size_t N>
+template<option_index_t option_index, group_id_t ID, std::size_t N>
 bool try_parse_multiple_group_element(
 	string_view option_group_flag_value, string_view element_value, optional<string_view> arg_opt,
 	string &error
@@ -2316,20 +2331,52 @@ bool try_parse_multiple_group_element(
 			return true;
 		}
 
-		[&]<std::size_t ...Is>(std::index_sequence<Is...>) {
-			(([&]() {
-				constexpr auto index = multiple_group_element.element_indicies[Is];
-				if constexpr (index != std::numeric_limits<std::uint32_t>::max())
+		constexpr auto valid_index_count = []() {
+			std::size_t result = 0;
+			for (auto const index : multiple_group_element.element_indices)
+			{
+				if (index != std::numeric_limits<std::uint32_t>::max())
 				{
-					constexpr auto *info = group_element_info_ptr<create_group_element_index(ID, index)>;
-					constexpr auto &value = *value_storage_ptr<create_group_element_index(ID, index)>;
+					++result;
+				}
+			}
+			return result;
+		}();
+		constexpr bz::array multiple_element_indices = [&]() -> bz::array<group_element_index_t, valid_index_count> {
+			bz::array<group_element_index_t, valid_index_count> result{};
+			std::size_t i = 0;
+			for (auto const index : multiple_group_element.element_indices)
+			{
+				if (index != std::numeric_limits<std::uint32_t>::max())
+				{
+					result[i] = create_group_element_index(ID, index);
+					++i;
+				}
+			}
+			return result;
+		}();
+		if constexpr (is_array_like<option_index>)
+		{
+			constexpr auto &vec = *value_storage_ptr<option_index>;
+			for (auto const group_element_index : multiple_element_indices)
+			{
+				vec.push_back(group_element_index);
+			}
+		}
+		else
+		{
+			[&]<std::size_t ...Is>(std::index_sequence<Is...>) {
+				(([&]() {
+					constexpr auto group_element_index = multiple_element_indices[Is];
+					constexpr auto *info = group_element_info_ptr<group_element_index>;
+					constexpr auto &value = *value_storage_ptr<group_element_index>;
 					if (info->flag_position == 0)
 					{
 						value = true;
 					}
-				}
-			}()), ...);
-		}(std::make_index_sequence<multiple_group_element.element_indicies.size()>{});
+				}()), ...);
+			}(std::make_index_sequence<multiple_element_indices.size()>{});
+		}
 		return true;
 	}
 	else
@@ -2391,14 +2438,14 @@ bool try_parse_group_flag(
 			bool done = false;
 			((([&]() {
 				constexpr auto group_element_index = create_group_element_index(group_id, GroupIs);
-				done = try_parse_group_element<group_element_index>(
+				done = try_parse_group_element<Index, group_element_index>(
 					matched_option_name, arg_option_value, arg_arg_value,
 					flag_position, error
 				);
 				return done;
 			}()) || ...)
 			|| (eq_it == arg.end() && (([&]() {
-				done = try_parse_multiple_group_element<group_id, MultipleIs>(
+				done = try_parse_multiple_group_element<Index, group_id, MultipleIs>(
 					matched_option_name, arg_option_value, arg_arg_value,
 					error
 				);
@@ -3011,23 +3058,23 @@ string get_option_group_help_string(
 
 	if constexpr (multiple_group_elements_count != 0)
 	{
-		vector<std::size_t> multiple_indicies;
-		multiple_indicies.resize(multiple_group_elements_count);
-		for (std::size_t i = 0; i < multiple_indicies.size(); ++i)
+		vector<std::size_t> multiple_indices;
+		multiple_indices.resize(multiple_group_elements_count);
+		for (std::size_t i = 0; i < multiple_indices.size(); ++i)
 		{
-			multiple_indicies[i] = i;
+			multiple_indices[i] = i;
 		}
 
 		if (sort_alphabetically)
 		{
-			std::sort(multiple_indicies.begin(), multiple_indicies.end(), [](std::size_t lhs, std::size_t rhs) {
+			std::sort(multiple_indices.begin(), multiple_indices.end(), [](std::size_t lhs, std::size_t rhs) {
 				auto const lhs_usage = option_group_multiple<ID>[lhs].usage;
 				auto const rhs_usage = option_group_multiple<ID>[rhs].usage;
 				return compare_usages(lhs_usage, rhs_usage);
 			});
 		}
 
-		for (auto const i : multiple_indicies)
+		for (auto const i : multiple_indices)
 		{
 			auto const &element = option_group_multiple<ID>[i];
 			if (
@@ -3044,16 +3091,16 @@ string get_option_group_help_string(
 		helps.emplace_back();
 	}
 
-	vector<std::size_t> indicies;
-	indicies.resize(group_elements_count - (add_help_to_group<ID> ? 1 : 0));
-	for (std::size_t i = 0; i < indicies.size(); ++i)
+	vector<std::size_t> indices;
+	indices.resize(group_elements_count - (add_help_to_group<ID> ? 1 : 0));
+	for (std::size_t i = 0; i < indices.size(); ++i)
 	{
-		indicies[i] = i;
+		indices[i] = i;
 	}
 
 	if (sort_alphabetically)
 	{
-		std::sort(indicies.begin(), indicies.end(), [](std::size_t lhs, std::size_t rhs) {
+		std::sort(indices.begin(), indices.end(), [](std::size_t lhs, std::size_t rhs) {
 			auto const lhs_usage = option_group<ID>[lhs].usage;
 			auto const rhs_usage = option_group<ID>[rhs].usage;
 			return compare_usages(lhs_usage, rhs_usage);
@@ -3072,7 +3119,7 @@ string get_option_group_help_string(
 		}
 	}
 
-	for (auto const i : indicies)
+	for (auto const i : indices)
 	{
 		auto const &group_element = option_group<ID>[i];
 		if (
@@ -3103,20 +3150,20 @@ string get_options_help_string(
 	usages.reserve(options_count);
 	helps.reserve(options_count);
 
-	vector<std::size_t> indicies;
-	indicies.resize(options_count - (add_help_option<ID> ? 1 : 0));
+	vector<std::size_t> indices;
+	indices.resize(options_count - (add_help_option<ID> ? 1 : 0));
 	for (std::size_t i = 0; i < command_line_options<ID>.size(); ++i)
 	{
-		indicies[i] = i;
+		indices[i] = i;
 	}
 	if constexpr (add_verbose_option<ID>)
 	{
-		indicies.back() = command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0);
+		indices.back() = command_line_options<ID>.size() + (add_help_option<ID> ? 1 : 0);
 	}
 
 	if (sort_alphabetically)
 	{
-		std::sort(indicies.begin(), indicies.end(), [](std::size_t lhs, std::size_t rhs) {
+		std::sort(indices.begin(), indices.end(), [](std::size_t lhs, std::size_t rhs) {
 			if constexpr (add_verbose_option<ID>)
 			{
 				auto const lhs_usage = lhs >= command_line_options<ID>.size() ? verbose_option<ID>.usage : command_line_options<ID>[lhs].usage;
@@ -3147,7 +3194,7 @@ string get_options_help_string(
 			helps.emplace_back(help_option<ID>.help);
 		}
 	}
-	for (auto const i : indicies)
+	for (auto const i : indices)
 	{
 		if constexpr (add_verbose_option<ID>)
 		{
@@ -3201,16 +3248,16 @@ string get_commands_help_string(
 	usages.reserve(commands_count);
 	helps.reserve(commands_count);
 
-	vector<std::size_t> indicies;
-	indicies.resize(commands_count - (add_help_command<ID> ? 1 : 0));
+	vector<std::size_t> indices;
+	indices.resize(commands_count - (add_help_command<ID> ? 1 : 0));
 	for (std::size_t i = 0; i < command_line_commands<ID>.size(); ++i)
 	{
-		indicies[i] = i;
+		indices[i] = i;
 	}
 
 	if (sort_alphabetically)
 	{
-		std::sort(indicies.begin(), indicies.end(), [](std::size_t lhs, std::size_t rhs) {
+		std::sort(indices.begin(), indices.end(), [](std::size_t lhs, std::size_t rhs) {
 			auto const lhs_usage = command_line_commands<ID>[lhs].usage;
 			auto const rhs_usage = command_line_commands<ID>[rhs].usage;
 			return compare_usages(lhs_usage, rhs_usage);
@@ -3228,7 +3275,7 @@ string get_commands_help_string(
 			helps.emplace_back(help_command<ID>.help);
 		}
 	}
-	for (auto const i : indicies)
+	for (auto const i : indices)
 	{
 		auto const &command = command_line_commands<ID>[i];
 		if (
