@@ -4019,7 +4019,7 @@ static val_ptr emit_bitcode(
 		result_address = context.create_alloca(result_type);
 		push_destructor_call(src_tokens, result_address, const_expr.type, context);
 	}
-	val_ptr result;
+	val_ptr result = {};
 
 	// consteval variable
 	if (const_expr.kind == ast::expression_type_kind::lvalue)
@@ -4033,7 +4033,16 @@ static val_ptr emit_bitcode(
 		result.kind = val_ptr::value;
 	}
 
-	result.consteval_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+	if (result.val != nullptr && llvm::dyn_cast<llvm::GlobalVariable>(result.val) != nullptr)
+	{
+		auto const global_var = static_cast<llvm::GlobalVariable *>(result.val);
+		bz_assert(global_var->hasInitializer());
+		result.consteval_val = global_var->getInitializer();
+	}
+	else
+	{
+		result.consteval_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+	}
 
 	if (result_address == nullptr)
 	{
