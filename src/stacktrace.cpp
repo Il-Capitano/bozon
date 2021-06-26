@@ -1,3 +1,5 @@
+#include "stacktrace.h"
+
 #ifdef __linux__
 
 #include <iostream>
