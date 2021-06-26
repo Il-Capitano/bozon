@@ -2342,40 +2342,43 @@ bool try_parse_multiple_group_element(
 			}
 			return result;
 		}();
-		constexpr bz::array multiple_element_indices = [&]() -> bz::array<group_element_index_t, valid_index_count> {
-			bz::array<group_element_index_t, valid_index_count> result{};
-			std::size_t i = 0;
-			for (auto const index : multiple_group_element.element_indices)
-			{
-				if (index != std::numeric_limits<std::uint32_t>::max())
+		if constexpr (valid_index_count != 0)
+		{
+			constexpr bz::array multiple_element_indices = [&]() -> bz::array<group_element_index_t, valid_index_count> {
+				bz::array<group_element_index_t, valid_index_count> result{};
+				std::size_t i = 0;
+				for (auto const index : multiple_group_element.element_indices)
 				{
-					result[i] = create_group_element_index(ID, index);
-					++i;
+					if (index != std::numeric_limits<std::uint32_t>::max())
+					{
+						result[i] = create_group_element_index(ID, index);
+						++i;
+					}
+				}
+				return result;
+			}();
+			if constexpr (is_array_like<option_index>)
+			{
+				constexpr auto &vec = *value_storage_ptr<option_index>;
+				for (auto const group_element_index : multiple_element_indices)
+				{
+					vec.push_back(group_element_index);
 				}
 			}
-			return result;
-		}();
-		if constexpr (is_array_like<option_index>)
-		{
-			constexpr auto &vec = *value_storage_ptr<option_index>;
-			for (auto const group_element_index : multiple_element_indices)
+			else
 			{
-				vec.push_back(group_element_index);
+				[&]<std::size_t ...Is>(std::index_sequence<Is...>) {
+					(([&]() {
+						constexpr auto group_element_index = multiple_element_indices[Is];
+						constexpr auto *info = group_element_info_ptr<group_element_index>;
+						constexpr auto &value = *value_storage_ptr<group_element_index>;
+						if (info->flag_position == 0)
+						{
+							value = true;
+						}
+					}()), ...);
+				}(std::make_index_sequence<multiple_element_indices.size()>{});
 			}
-		}
-		else
-		{
-			[&]<std::size_t ...Is>(std::index_sequence<Is...>) {
-				(([&]() {
-					constexpr auto group_element_index = multiple_element_indices[Is];
-					constexpr auto *info = group_element_info_ptr<group_element_index>;
-					constexpr auto &value = *value_storage_ptr<group_element_index>;
-					if (info->flag_position == 0)
-					{
-						value = true;
-					}
-				}()), ...);
-			}(std::make_index_sequence<multiple_element_indices.size()>{});
 		}
 		return true;
 	}

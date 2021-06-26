@@ -54,6 +54,7 @@
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 #include <llvm/Transforms/IPO/InferFunctionAttrs.h>
 #include <llvm/Transforms/IPO/FunctionAttrs.h>
+#include <llvm/Transforms/IPO/AlwaysInliner.h>
 #include <llvm/Transforms/Instrumentation.h>
 #include <llvm/Transforms/Vectorize.h>
 #include <llvm/Transforms/Instrumentation.h>
@@ -1025,6 +1026,9 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 			break;
 		case ctcli::group_element("--opt alignment-from-assumptions"):
 			opt_pass_manager.add(llvm::createAlignmentFromAssumptionsPass());
+			break;
+		case ctcli::group_element("--opt always-inline"):
+			opt_pass_manager.add(llvm::createAlwaysInlinerLegacyPass());
 			break;
 		case ctcli::group_element("--opt annotation2metadata"):
 			opt_pass_manager.add(llvm::createAnnotation2MetadataLegacyPass());
