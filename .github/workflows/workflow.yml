@@ -103,7 +103,7 @@ jobs:
         mkdir bin
         make
         cd ..
-    - run: cppb/bin/cppb build -v --build-config gcc
+    - run: cppb/bin/cppb build -vs --build-config gcc
     - run: cppb/bin/cppb run -v --build-config gcc
-    - run: cppb/bin/cppb build -v --build-config test-gcc
+    - run: cppb/bin/cppb build -vs --build-config test-gcc
     - run: cppb/bin/cppb run -v --build-config test-gcc
