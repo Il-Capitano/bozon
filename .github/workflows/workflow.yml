@@ -73,6 +73,7 @@ jobs:
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository ppa:boost-latest/ppa
         sudo apt update
         sudo apt install gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev libboost-stacktrace-dev
     - name: Build cppb
@@ -94,6 +95,7 @@ jobs:
       run: |
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository ppa:boost-latest/ppa
         sudo apt update
         sudo apt install gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev libboost-stacktrace-dev
     - name: Build cppb
