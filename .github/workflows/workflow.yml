@@ -54,8 +54,9 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-dwarfstack
     - uses: actions/checkout@v2
-    - run: git clone https://github.com/Il-Capitano/cppb.git
-    - run: |
+    - name: Build cppb
+      run: |
+        git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
         make
@@ -64,3 +65,24 @@ jobs:
     - run: cppb/bin/cppb run -v --build-config gcc
     - run: cppb/bin/cppb build -v --build-config test-gcc
     - run: cppb/bin/cppb run -v --build-config test-gcc
+  linux-clang:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: |
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo apt update
+        sudo apt install gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson boost-stacktrace-dev
+    - name: Build cppb
+      run: |
+        git clone https://github.com/Il-Capitano/cppb.git
+        cd cppb
+        mkdir bin
+        make
+        cd ..
+    - run: cppb/bin/cppb build -v
+    - run: cppb/bin/cppb run -v
+    - run: cppb/bin/cppb build -v --build-config test
+    - run: cppb/bin/cppb run -v --build-config test
