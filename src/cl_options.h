@@ -180,7 +180,7 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 			"globalopt", "domtree", "mem2reg", "deadargelim", "domtree", "basic-aa", "aa",
 			"loops", "lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter",
 			"instcombine", "simplifycfg", "basiccg", "globals-aa", "prune-eh", "inline",
-			"function-attrs", "argpromotion", "domtree", "sroa", "basic-aa", "aa",
+			"openmpopt", "function-attrs", "argpromotion", "domtree", "sroa", "basic-aa", "aa",
 			"memoryssa", "early-cse-memssa", "speculative-execution", "aa",
 			"lazy-value-info", "jump-threading", "correlated-propagation", "simplifycfg",
 			"domtree", "aggressive-instcombine", "basic-aa", "aa", "loops",
