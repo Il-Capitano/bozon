@@ -137,11 +137,11 @@
 		},
 		"ryu_format.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/windows-debug/bozon.exe -I bozon-stdlib -Wall -Oall ryu_format.bz -o ryu_format.ll --emit=llvm-ir"
+			"command": "bin/windows-debug/bozon.exe -I bozon-stdlib -Wall -O3 ryu_format.bz -o ryu_format.ll --emit=llvm-ir"
 		},
 		"ryu_format.linux.ll": {
 			"dependencies": [ "ryu_format.bz" ],
-			"command": "bin/linux-debug/bozon -I bozon-stdlib -Wall -Oall ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir"
+			"command": "bin/linux-debug/bozon -I bozon-stdlib -Wall -O3 ryu_format.bz -o ryu_format.linux.ll --emit=llvm-ir"
 		},
 		"a.exe": {
 			"dependencies": [ "bitcode_test.o", "builtins.o" ],

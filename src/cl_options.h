@@ -20,20 +20,6 @@ constexpr auto Wall_indicies = []() {
 	return result;
 }();
 
-constexpr auto Oall_indicies = []() {
-	using result_t = std::array<size_t, bc::optimization_infos.size()>;
-	result_t result{};
-
-	size_t i = 0;
-	for (auto const &info : bc::optimization_infos)
-	{
-		result[i++] = static_cast<size_t>(info.kind);
-	}
-	bz_assert(i == result.size());
-
-	return result;
-}();
-
 static constexpr auto warning_group_id = ctcli::group_id_t::_0;
 static constexpr auto opt_group_id     = ctcli::group_id_t::_1;
 
@@ -75,19 +61,75 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
-	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=32)", ctcli::arg_type::uint64);
+	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=4)", ctcli::arg_type::uint64);
 
 	bz_assert(i == result.size());
 	return result;
 }();
 
 template<>
+inline constexpr std::size_t ctcli::option_group_max_multiple_size<opt_group_id> = 300;
+
+template<>
 inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
-	return []<size_t ...Is>(bz::meta::index_sequence<Is...>) {
-		return bz::array{
-			ctcli::create_multiple_group_element<opt_group_id>("all", "Enable all optimizations", { bc::optimization_infos[Is].name... }),
-		};
-	}(bz::meta::make_index_sequence<bc::optimization_infos.size()>{});
+	return bz::array{
+		ctcli::create_multiple_group_element<opt_group_id>("3", "Enable all optimizations", {
+			"targetlibinfo", "tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker",
+			"profile-summary-info", "annotation2metadata", "forceattrs", "inferattrs",
+			"domtree", "callsite-splitting", "ipsccp", "called-value-propagation",
+			"globalopt", "domtree", "mem2reg", "deadargelim", "domtree", "basic-aa", "aa",
+			"loops", "lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter",
+			"instcombine", "simplifycfg", "basiccg", "globals-aa", "prune-eh", "inline",
+			"function-attrs", "argpromotion", "domtree", "sroa", "basic-aa", "aa",
+			"memoryssa", "early-cse-memssa", "speculative-execution", "aa",
+			"lazy-value-info", "jump-threading", "correlated-propagation", "simplifycfg",
+			"domtree", "aggressive-instcombine", "basic-aa", "aa", "loops",
+			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "instcombine",
+			"libcalls-shrinkwrap", "loops", "postdomtree", "branch-prob", "block-freq",
+			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "pgo-memop-opt",
+			"basic-aa", "aa", "loops", "lazy-branch-prob", "lazy-block-freq",
+			"opt-remark-emitter", "tailcallelim", "simplifycfg", "reassociate", "domtree",
+			"loops", "loop-simplify", "lcssa-verification", "lcssa", "basic-aa", "aa",
+			"scalar-evolution", "loop-rotate", "memoryssa", "lazy-branch-prob",
+			"lazy-block-freq", "licm", "loop-unswitch", "simplifycfg", "domtree", "basic-aa",
+			"aa", "loops", "lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter",
+			"instcombine", "loop-simplify", "lcssa-verification", "lcssa", "scalar-evolution",
+			"loop-idiom", "indvars", "loop-deletion", "loop-unroll", "sroa", "aa",
+			"mldst-motion", "phi-values", "aa", "memdep", "lazy-branch-prob",
+			"lazy-block-freq", "opt-remark-emitter", "gvn", "phi-values", "basic-aa", "aa",
+			"memdep", "memcpyopt", "sccp", "demanded-bits", "bdce", "aa", "lazy-branch-prob",
+			"lazy-block-freq", "opt-remark-emitter", "instcombine", "lazy-value-info",
+			"jump-threading", "correlated-propagation", "postdomtree", "adce", "basic-aa",
+			"aa", "memoryssa", "dse", "loops", "loop-simplify", "lcssa-verification", "lcssa",
+			"aa", "scalar-evolution", "lazy-branch-prob", "lazy-block-freq", "licm",
+			"simplifycfg", "domtree", "basic-aa", "aa", "loops", "lazy-branch-prob",
+			"lazy-block-freq", "opt-remark-emitter", "instcombine", "barrier",
+			"elim-avail-extern", "basiccg", "rpo-function-attrs", "globalopt", "globaldce",
+			"basiccg", "globals-aa", "domtree", "float2int", "lower-constant-intrinsics",
+			"domtree", "loops", "loop-simplify", "lcssa-verification", "lcssa", "basic-aa",
+			"aa", "scalar-evolution", "loop-rotate", "loop-accesses", "lazy-branch-prob",
+			"lazy-block-freq", "opt-remark-emitter", "loop-distribute", "postdomtree",
+			"branch-prob", "block-freq", "scalar-evolution", "basic-aa", "aa",
+			"loop-accesses", "demanded-bits", "lazy-branch-prob", "lazy-block-freq",
+			"opt-remark-emitter", "inject-tli-mappings", "loop-vectorize", "loop-simplify",
+			"scalar-evolution", "aa", "loop-accesses", "lazy-branch-prob", "lazy-block-freq",
+			"loop-load-elim", "basic-aa", "aa", "lazy-branch-prob", "lazy-block-freq",
+			"opt-remark-emitter", "instcombine", "simplifycfg", "domtree", "loops",
+			"scalar-evolution", "basic-aa", "aa", "demanded-bits", "lazy-branch-prob",
+			"lazy-block-freq", "opt-remark-emitter", "inject-tli-mappings", "slp-vectorizer",
+			"vector-combine", "opt-remark-emitter", "instcombine", "loop-simplify",
+			"lcssa-verification", "lcssa", "scalar-evolution", "loop-unroll",
+			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "instcombine",
+			"memoryssa", "loop-simplify", "lcssa-verification", "lcssa", "scalar-evolution",
+			"lazy-branch-prob", "lazy-block-freq", "licm", "opt-remark-emitter",
+			"transform-warning", "alignment-from-assumptions", "strip-dead-prototypes",
+			"globaldce", "constmerge", "cg-profile", "domtree", "loops", "postdomtree",
+			"branch-prob", "block-freq", "loop-simplify", "lcssa-verification", "lcssa",
+			"basic-aa", "aa", "scalar-evolution", "block-freq", "loop-sink",
+			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "instsimplify",
+			"div-rem-pairs", "simplifycfg", "annotation-remarks", "verify",
+		}),
+	};
 }();
 
 template<>
@@ -155,19 +197,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn unneeded-else")>            = &warnings[static_cast<size_t>(ctx::warning_kind::unneeded_else)];
 static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 21);
 
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt instcombine")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::instcombine)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt mem2reg")>                = &optimizations[static_cast<size_t>(bc::optimization_kind::mem2reg)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt simplifycfg")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::simplifycfg)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt reassociate")>            = &optimizations[static_cast<size_t>(bc::optimization_kind::reassociate)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt gvn")>                    = &optimizations[static_cast<size_t>(bc::optimization_kind::gvn)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt inline")>                 = &optimizations[static_cast<size_t>(bc::optimization_kind::inline_)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt dce")>                    = &optimizations[static_cast<size_t>(bc::optimization_kind::dce)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt adce")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::adce)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt sccp")>                   = &optimizations[static_cast<size_t>(bc::optimization_kind::sccp)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt aggressive-instcombine")> = &optimizations[static_cast<size_t>(bc::optimization_kind::aggressive_instcombine)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt memcpyopt")>              = &optimizations[static_cast<size_t>(bc::optimization_kind::memcpyopt)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt aggressive-consteval")>   = &optimizations[static_cast<size_t>(bc::optimization_kind::aggressive_consteval)];
-static_assert(static_cast<size_t>(bc::optimization_kind::_last) == 12);
+template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")> = &max_opt_iter_count;
 
