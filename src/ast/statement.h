@@ -497,6 +497,7 @@ struct function_body
 		builtin_inplace_construct,
 
 		builtin_is_comptime,
+		builtin_panic,
 
 		print_stdout,
 		println_stdout,
@@ -1163,7 +1164,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 115);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 116);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
@@ -1193,6 +1194,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 
 		{ function_body::builtin_is_comptime, "__builtin_is_comptime" },
+		{ function_body::builtin_panic,       "__builtin_panic"       },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::println_stdout, "__builtin_println_stdout" },

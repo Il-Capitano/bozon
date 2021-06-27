@@ -9,6 +9,7 @@
 #include "colors.h"
 #include "abi/calling_conventions.h"
 #include "abi/platform_function_call.h"
+#include "global_data.h"
 
 namespace bc::runtime
 {
@@ -818,7 +819,24 @@ static val_ptr emit_bitcode(
 {
 	// can only be called with unreachable
 	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
-	context.builder.CreateUnreachable();
+	if (no_panic_on_unreachable)
+	{
+		context.builder.CreateUnreachable();
+	}
+	else
+	{
+		auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
+		context.builder.CreateCall(panic_fn);
+		auto const return_type = context.current_function.second->getReturnType();
+		if (return_type->isVoidTy())
+		{
+			context.builder.CreateRetVoid();
+		}
+		else
+		{
+			context.builder.CreateRet(llvm::UndefValue::get(return_type));
+		}
+	}
 	return {};
 }
 
@@ -2383,7 +2401,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 115);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);

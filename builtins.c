@@ -46,6 +46,12 @@ void __bozon_builtin_println_stderr(str s)
 	free(buff);
 }
 
+void __bozon_builtin_panic(void)
+{
+	fprintf(stderr, "panic called!\n");
+	_Exit(1);
+}
+
 int32_t __bozon_main(str_slice args);
 
 int main(int argc, char const **argv)
