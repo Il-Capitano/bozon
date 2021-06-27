@@ -75,8 +75,7 @@ function malloc(n: usize) -> *uint8
 {
 	if (__builtin_is_comptime())
 	{
-		const result = __builtin_comptime_malloc_type(uint8, n);
-		return result;
+		return __builtin_comptime_malloc_type(uint8, n);
 	}
 	else
 	{
@@ -177,16 +176,17 @@ export operator = (self: &string, rhs: str) -> &string
 	return self;
 }
 
-function round_to_next_power_of_two(n: usize) -> usize
+export function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
+	static_assert(sizeof usize == 8u);
 	n -= 1u;
-	n |= n >> 1u;
-	n |= n >> 2u;
-	n |= n >> 4u;
-	n |= n >> 8u;
-	n |= n >> 16u;
-	n |= n >> 32u;
+	n |= n >>  1;
+	n |= n >>  2;
+	n |= n >>  4;
+	n |= n >>  8;
+	n |= n >> 16;
+	n |= n >> 32;
 	n += 1u;
 	return n;
 }

@@ -27,6 +27,14 @@ static void emit_bitcode(
 	ctx::bitcode_context &context
 );
 
+template<abi::platform_abi abi>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	ctx::bitcode_context &context
+);
+
 
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
@@ -3391,8 +3399,9 @@ static val_ptr emit_bitcode(
 		for (auto const &expr : case_vals)
 		{
 			bz_assert(expr.template is<ast::constant_expression>());
-			auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
-			bz_assert(llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
+			auto const &const_expr = expr.get<ast::constant_expression>();
+			auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+			bz_assert(val != nullptr && llvm::dyn_cast<llvm::ConstantInt>(val) != nullptr);
 			auto const const_int_val = static_cast<llvm::ConstantInt *>(val);
 			switch_inst->addCase(const_int_val, bb);
 		}
