@@ -7,4 +7,4 @@ export function assert(b: bool)
 	if (!b) unreachable;
 }
 
-@extern("exit", "c") export function exit(code: int32) -> void;
+@symbol_name("exit") export function exit(code: int32) -> void;
