@@ -176,7 +176,7 @@ export operator = (self: &string, rhs: str) -> &string
 	return self;
 }
 
-export function round_to_next_power_of_two(n: usize) -> usize
+function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
 	static_assert(sizeof usize == 8u);
