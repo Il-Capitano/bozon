@@ -2462,11 +2462,9 @@ ast::statement parse_export_statement(
 		result.visit(bz::overload{
 			[](ast::decl_function &func_decl) {
 				func_decl.body.flags |= ast::function_body::module_export;
-				func_decl.body.flags |= ast::function_body::external_linkage;
 			},
 			[](ast::decl_operator &op_decl) {
 				op_decl.body.flags |= ast::function_body::module_export;
-				op_decl.body.flags |= ast::function_body::external_linkage;
 			},
 			[](ast::decl_function_alias &alias_decl) {
 				alias_decl.is_export = true;
@@ -2476,7 +2474,6 @@ ast::statement parse_export_statement(
 			},
 			[](ast::decl_variable &var_decl) {
 				var_decl.flags |= ast::decl_variable::module_export;
-				var_decl.flags |= ast::decl_variable::external_linkage;
 			},
 			[](ast::decl_struct &struct_decl) {
 				struct_decl.info.is_export = true;
@@ -3388,6 +3385,7 @@ static void apply_symbol_name(
 		.get<ast::constant_value::string>().as_string_view();
 
 	func_body.symbol_name = symbol_name;
+	func_body.flags |= ast::function_body::external_linkage;
 }
 
 static void apply_no_comptime_checking(

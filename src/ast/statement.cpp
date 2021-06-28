@@ -585,7 +585,7 @@ static function_body create_builtin_function(
 	result.state = resolve_state::symbol;
 	result.cc = abi::calling_convention::c;
 	result.flags =
-		function_body::external_linkage
+		(symbol_name != "" ? function_body::external_linkage : 0)
 		| function_body::intrinsic
 		| (is_generic ? function_body::generic : 0);
 	result.intrinsic_kind = kind;
