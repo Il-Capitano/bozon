@@ -2414,7 +2414,7 @@ struct formatter<u8string> : formatter<u8string_view>
 {};
 
 template<>
-struct formatter<const char *> : formatter<u8string_view>
+struct formatter<char const *> : formatter<u8string_view>
 {};
 
 template<>

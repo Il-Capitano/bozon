@@ -198,6 +198,10 @@ public:
 		: _data_begin(c_str),
 		  _data_end  (c_str)
 	{
+		if (c_str == nullptr)
+		{
+			return;
+		}
 		while (*c_str != '\0')
 		{
 			++c_str;
