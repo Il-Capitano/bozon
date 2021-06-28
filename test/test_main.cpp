@@ -2,6 +2,7 @@
 #include "timer.h"
 #include "global_data.h"
 #include "ctx/global_context.h"
+#include "crash_handling.h"
 
 test_result ryu_test();
 test_result lexer_test(ctx::global_context &global_ctx);
@@ -10,6 +11,7 @@ test_result consteval_test(ctx::global_context &global_ctx);
 
 int main(int argc, char const **argv)
 {
+	register_crash_handlers();
 	import_dirs.push_back("bozon-stdlib");
 
 	ctx::global_context global_ctx;
