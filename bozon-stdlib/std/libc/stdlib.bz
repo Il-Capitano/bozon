@@ -12,35 +12,35 @@ export struct ldiv_t
 	.rem: long;
 }
 
-@symbol_name("atof") export function atof(str: c_str) -> double;
-@symbol_name("atoi") export function atoi(str: c_str) -> int;
-@symbol_name("atol") export function atol(str: c_str) -> long;
+@symbol_name("atof") export function "c" atof(str: c_str) -> double;
+@symbol_name("atoi") export function "c" atoi(str: c_str) -> int;
+@symbol_name("atol") export function "c" atol(str: c_str) -> long;
 
-@symbol_name("strtod")  export function strtod(str: c_str, end_ptr: *mut_c_str) -> double;
-@symbol_name("strtol")  export function strtol(str: c_str, end_ptr: *mut_c_str, base: int) -> long;
-@symbol_name("strtoul") export function strtoul(str: c_str, end_ptr: *mut_c_str, base: int) -> unsigned_long;
+@symbol_name("strtod")  export function "c" strtod(str: c_str, end_ptr: *mut_c_str) -> double;
+@symbol_name("strtol")  export function "c" strtol(str: c_str, end_ptr: *mut_c_str, base: int) -> long;
+@symbol_name("strtoul") export function "c" strtoul(str: c_str, end_ptr: *mut_c_str, base: int) -> unsigned_long;
 
-@symbol_name("calloc")  export function calloc(nitems: size_t, size: size_t) -> *void;
-@symbol_name("malloc")  export function malloc(size: size_t) -> *void;
-@symbol_name("realloc") export function realloc(ptr: *void, size: size_t) -> *void;
-@symbol_name("free")    export function free(ptr: *void);
+@symbol_name("calloc")  export function "c" calloc(nitems: size_t, size: size_t) -> *void;
+@symbol_name("malloc")  export function "c" malloc(size: size_t) -> *void;
+@symbol_name("realloc") export function "c" realloc(ptr: *void, size: size_t) -> *void;
+@symbol_name("free")    export function "c" free(ptr: *void);
 
-@symbol_name("abort")  export function abort();
-// @symbol_name"(atexit") export function atexit(func: function() -> void) -> int;
-@symbol_name("exit")   export function exit(status: int);
+@symbol_name("abort")  export function "c" abort();
+// @symbol_name"(atexit") export function "c" atexit(func: function() -> void) -> int;
+@symbol_name("exit")   export function "c" exit(status: int);
 
-@symbol_name("getenv") export function getenv(name: c_str) -> mut_c_str;
+@symbol_name("getenv") export function "c" getenv(name: c_str) -> mut_c_str;
 
-@symbol_name("system") export function system(string: c_str) -> int;
+@symbol_name("system") export function "c" system(string: c_str) -> int;
 
-// @symbol_name("bsearch") export function bsearch(key: *const void, base: *const void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int) -> *void;
-// @symbol_name("qsort")   export function qsort(base: *void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int);
+// @symbol_name("bsearch") export function "c" bsearch(key: *const void, base: *const void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int) -> *void;
+// @symbol_name("qsort")   export function "c" qsort(base: *void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int);
 
-@symbol_name("abs")  export function abs(x: int) -> int;
-@symbol_name("labs") export function labs(x: long) -> long;
+@symbol_name("abs")  export function "c" abs(x: int) -> int;
+@symbol_name("labs") export function "c" labs(x: long) -> long;
 
-@symbol_name("div") export function div(number: int, denom: int) -> div_t;
-@symbol_name("div") export function div(number: long, denom: long) -> ldiv_t;
+@symbol_name("div") export function "c" div(number: int, denom: int) -> div_t;
+@symbol_name("div") export function "c" div(number: long, denom: long) -> ldiv_t;
 
-@symbol_name("rand")  export function rand() -> int;
-@symbol_name("srand") export function srand(seed: unsigned_int);
+@symbol_name("rand")  export function "c" rand() -> int;
+@symbol_name("srand") export function "c" srand(seed: unsigned_int);

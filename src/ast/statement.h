@@ -570,7 +570,7 @@ struct function_body
 	bz::u8string              symbol_name;
 	lex::src_tokens           src_tokens;
 	resolve_state             state = resolve_state::none;
-	abi::calling_convention   cc = abi::calling_convention::bozon;
+	abi::calling_convention   cc = abi::calling_convention::c;
 	uint8_t                   intrinsic_kind = 0;
 	uint32_t                  flags = 0;
 

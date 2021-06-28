@@ -4321,9 +4321,7 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	switch (func_body.cc)
 	{
-	case abi::calling_convention::bozon:
-		fn->setCallingConv(llvm::CallingConv::C);
-		break;
+	static_assert(static_cast<size_t>(abi::calling_convention::_last) == 3);
 	case abi::calling_convention::c:
 		fn->setCallingConv(llvm::CallingConv::C);
 		break;
@@ -4333,6 +4331,8 @@ static llvm::Function *create_function_from_symbol_impl(
 	case abi::calling_convention::std:
 		fn->setCallingConv(llvm::CallingConv::X86_StdCall);
 		break;
+	default:
+		bz_unreachable;
 	}
 
 	auto is_byval_it = is_arg_byval.begin();

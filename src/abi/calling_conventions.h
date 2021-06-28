@@ -8,10 +8,10 @@ namespace abi
 
 enum class calling_convention : int8_t
 {
-	bozon,
 	c,
 	fast,
 	std,
+	_last,
 };
 
 } // namespace abi

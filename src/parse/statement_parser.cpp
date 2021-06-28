@@ -6,6 +6,7 @@
 #include "parse_common.h"
 #include "token_info.h"
 #include "ctx/global_context.h"
+#include "escape_sequences.h"
 
 namespace parse
 {
@@ -1868,6 +1869,86 @@ static ast::function_body parse_function_body(
 	return result;
 }
 
+static bz::u8char get_character(bz::u8string_view::const_iterator &it)
+{
+	auto const c = *it;
+	if (c == '\\')
+	{
+		++it;
+		return get_escape_sequence(it);
+	}
+	else
+	{
+		++it;
+		return c;
+	}
+}
+
+static abi::calling_convention get_calling_convention(lex::token_pos it, ctx::parse_context &context)
+{
+	auto const string_value = [&]() -> bz::u8string {
+		if (it->kind == lex::token::raw_string_literal)
+		{
+			return it->value;
+		}
+		else
+		{
+			// copa pasted from parse_context.cpp
+			bz::u8string result = "";
+			auto const value = it->value;
+			auto it = value.begin();
+			auto const end = value.end();
+
+			while (it != end)
+			{
+				auto const slash = value.find(it, '\\');
+				result += bz::u8string_view(it, slash);
+				if (slash == end)
+				{
+					break;
+				}
+				it = slash;
+				result += get_character(it);
+			}
+
+			return result;
+		}
+	}();
+
+	static_assert(static_cast<int>(abi::calling_convention::_last) == 3);
+	if (string_value == "c")
+	{
+		return abi::calling_convention::c;
+	}
+	else if (string_value == "fast")
+	{
+		return abi::calling_convention::fast;
+	}
+	else if (string_value == "std")
+	{
+		return abi::calling_convention::std;
+	}
+	else
+	{
+		auto notes = [&]() -> bz::vector<ctx::source_highlight> {
+			if (do_verbose)
+			{
+				return { context.make_note(
+					it->src_pos.file_id, it->src_pos.line,
+					"available calling conventions are 'c', 'fast' and 'std'"
+				) };
+			}
+			else
+			{
+				return {};
+			}
+		}();
+		context.report_error(it, bz::format("invalid calling convention '{}'", string_value), std::move(notes));
+		// return c by default
+		return abi::calling_convention::c;
+	}
+}
+
 template<bool is_global>
 ast::statement parse_decl_function_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
@@ -1878,6 +1959,10 @@ ast::statement parse_decl_function_or_alias(
 	bz_assert(stream->kind == lex::token::kw_function);
 	auto const begin = stream;
 	++stream; // 'function'
+	auto const cc =
+		stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal
+		? (++stream, get_calling_convention(stream - 1, context))
+		: abi::calling_convention::c;
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	auto const src_tokens = id->kind == lex::token::identifier
 		? lex::src_tokens{ begin, id, stream }
@@ -1890,6 +1975,11 @@ ast::statement parse_decl_function_or_alias(
 		auto func_id = is_global
 			? context.make_qualified_identifier(id)
 			: ast::make_identifier(id);
+		// this is a bit janky
+		if (id->kind == lex::token::identifier && (id - 1)->kind != lex::token::kw_function)
+		{
+			context.report_error(id - 1, "calling convention cannot be specified for a function alias");
+		}
 		return ast::make_decl_function_alias(
 			src_tokens,
 			std::move(func_id),
@@ -1902,6 +1992,7 @@ ast::statement parse_decl_function_or_alias(
 			? context.make_qualified_identifier(id)
 			: ast::make_identifier(id);
 		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
+		body.cc = cc;
 		if (id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
@@ -3396,32 +3487,7 @@ static void apply_attribute(
 )
 {
 	auto const attr_name = attribute.name->value;
-	if (attr_name == "cdecl")
-	{
-		if (attribute.args.size() != 0)
-		{
-			context.report_error(
-				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
-				"@cdecl expects no arguments"
-			);
-		}
-		if (func_decl.body.cc != abi::calling_convention::bozon)
-		{
-			context.report_error(
-				attribute.name,
-				"calling convention has already been set for this function"
-			);
-		}
-		else
-		{
-			func_decl.body.cc = abi::calling_convention::c;
-			for (auto const &specialization : func_decl.body.generic_specializations)
-			{
-				specialization->cc = abi::calling_convention::c;
-			}
-		}
-	}
-	else if (attr_name == "symbol_name")
+	if (attr_name == "symbol_name")
 	{
 		apply_symbol_name(func_decl.body, attribute, context);
 	}
