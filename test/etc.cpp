@@ -4,8 +4,6 @@
 #include "ctcli/ctcli.cpp"
 #include "global_data.cpp"
 #include "src_file.cpp"
-#include "stacktrace.cpp"
-#include "crash_handling.cpp"
 
 #include "ctx/global_context.cpp"
 #include "ctx/lex_context.cpp"
