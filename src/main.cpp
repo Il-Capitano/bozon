@@ -1536,38 +1536,13 @@ export operator as str (s: #const string) -> str
 
 */
 
-#include <csignal>
-#include <cstdlib>
 #include "ctx/global_context.h"
+#include "crash_handling.h"
 #include "timer.h"
-#include "stacktrace.h"
-
-
-void handle_segv(int)
-{
-	bz::print(stderr, "Segmentation fault\n");
-	print_stacktrace();
-	std::_Exit(-1);
-}
-
-void handle_int(int)
-{
-	bz::print(stderr, "Program interrupted\n");
-	std::_Exit(-1);
-}
-
-void handle_ill(int)
-{
-	bz::print(stderr, "Invalid instruction\n");
-	print_stacktrace();
-	std::_Exit(-1);
-}
 
 int main(int argc, char const **argv)
 {
-	std::signal(SIGSEGV, &handle_segv);
-	std::signal(SIGINT,  &handle_int);
-	std::signal(SIGILL,  &handle_ill);
+	register_crash_handlers();
 
 	auto in_ms = [](auto time)
 	{

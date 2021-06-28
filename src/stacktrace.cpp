@@ -6,7 +6,7 @@
 #define BOOST_STACKTRACE_USE_ADDR2LINE
 #include <boost/stacktrace.hpp>
 
-void print_stacktrace()
+void print_stacktrace(void)
 {
 	std::cerr << boost::stacktrace::stacktrace() << std::endl;
 }
@@ -59,7 +59,7 @@ static void stderr_print(
 	}
 }
 
-void print_stacktrace()
+void print_stacktrace(void)
 {
 	int count = 0;
 	dwstOfLocation(&stderr_print, &count);
