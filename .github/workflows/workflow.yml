@@ -33,7 +33,7 @@ jobs:
     - run: cppb/bin/cppb build -v
     - run: cppb/bin/cppb run -v
     - run: cppb/bin/cppb build -v --build-config test
-    - run: cppb/bin/cppb run -v --build-config test
+    # - run: cppb/bin/cppb run -v --build-config test
     - run: cppb/bin/cppb run-rule ryu_format.ll -f
   windows-gcc:
     runs-on: windows-latest
@@ -67,7 +67,7 @@ jobs:
     - run: cppb/bin/cppb build -v --build-config gcc
     - run: cppb/bin/cppb run -v --build-config gcc
     - run: cppb/bin/cppb build -v --build-config test-gcc
-    - run: cppb/bin/cppb run -v --build-config test-gcc
+    # - run: cppb/bin/cppb run -v --build-config test-gcc
     - run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
   linux-clang:
     runs-on: ubuntu-latest
