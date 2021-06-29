@@ -493,11 +493,19 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		});
 	}
 
+	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
+	{
+		this->report_error("option '--stdlib-dir' is required");
+	}
+	else
+	{
+		import_dirs.push_front(stdlib_dir);
+	}
+
 	auto &positional_args = ctcli::positional_arguments<ctcli::options_id_t::def>;
 	if (positional_args.size() >= 2)
 	{
 		this->report_error("only one source file may be provided");
-		return false;
 	}
 
 	if (positional_args.size() == 1)
@@ -505,7 +513,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		source_file = positional_args[0];
 	}
 
-	if (!errors.empty())
+	if (this->has_errors())
 	{
 		return false;
 	}
@@ -634,7 +642,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
 	this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
 
-	auto const builtins_file_path = fs::path("./bozon-stdlib/__builtins.bz");
+	auto const stdlib_dir_sv = std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size());
+	auto const builtins_file_path = fs::path(stdlib_dir_sv) / "__builtins.bz";
 	auto &builtins_file = this->_src_files.emplace_back(
 		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
@@ -647,7 +656,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return false;
 	}
 
-	auto const comptime_checking_file_path = fs::path("./bozon-stdlib/__comptime_checking.bz");
+	auto const comptime_checking_file_path = fs::path(stdlib_dir_sv) / "__comptime_checking.bz";
 	auto &comptime_checking_file = this->_src_files.emplace_back(
 		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);

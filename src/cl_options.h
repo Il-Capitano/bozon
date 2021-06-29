@@ -240,6 +240,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
 	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
 	ctcli::create_option("--no-panic-on-unreachable",        "Don't call '__builtin_panic()' if unreachable is hit"),
+	ctcli::create_option("--stdlib-dir <dir>",               "Specify the standard library directory", ctcli::arg_type::string),
 
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
@@ -275,6 +276,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--erro
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
