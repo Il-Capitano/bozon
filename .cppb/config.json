@@ -69,7 +69,7 @@
 			"depends_on": "default",
 			"source_directory": "test",
 			"defines": [ "BOZON_NO_ARENA" ],
-			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight" ]
+			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
 		},
 		"gcc": {
 			"compiler": "gcc",
@@ -118,7 +118,7 @@
 			"depends_on": "gcc",
 			"source_directory": "test",
 			"defines": [ "BOZON_NO_ARENA" ],
-			"run_args": [ "-Wall", "--debug-comptime-ir-output" ],
+			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
 				"linux": {
 					"cpp_compiler_flags": [ "-fno-var-tracking-assignments" ]
