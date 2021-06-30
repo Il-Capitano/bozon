@@ -74,43 +74,47 @@ function get_indicies(start: consteval usize, end: consteval usize) -> [(if (end
 	return result;
 }
 
-function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], slices: [: const str], args: &const auto)
+function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], slices: [: const str], arg_ptrs: &const auto)
 {
 	consteval index = index[0];
 	buffer.write_into(slices[index]);
-	args[index].format_to(buffer);
+	(*arg_ptrs[index]).format_to(buffer);
 }
 
-function format_into_impl(buffer: &format_buffer, indicies: consteval auto, slices: [: const str], args: &const auto)
+function format_into_impl(buffer: &format_buffer, indicies: consteval auto, slices: [: const str], arg_ptrs: &const auto)
 {
 	consteval index = indicies[0];
 	buffer.write_into(slices[index]);
-	args[index].format_to(buffer);
+	(*arg_ptrs[index]).format_to(buffer);
 	consteval rest_indicies = get_indicies(indicies[1], indicies[indicies.size() - 1u] + 1u);
-	buffer.format_into_impl(rest_indicies, slices, args);
+	buffer.format_into_impl(rest_indicies, slices, arg_ptrs);
 }
 
-export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: auto)
+export function format_into(buffer: &format_buffer, fmt_str: consteval str, arg_ptrs: &const auto)
 {
 	consteval args_count = count_args_in_str(fmt_str);
-	static_assert(args_count > 0u, "at least one argument must be provided to format_into");
 	consteval indicies = get_indicies(0uz, args_count);
 	const slices = get_slices(fmt_str, args_count);
-	buffer.format_into_impl(indicies, slices, args);
+	if (slices.size() > 1u)
+	{
+		buffer.format_into_impl(indicies, slices, arg_ptrs);
+	}
 	buffer.write_into(slices[args_count]);
 }
 
-export function format(fmt_str: consteval str, args: auto) -> string
+export function format(fmt_str: consteval str, args: ...#const auto) -> string
 {
 	let buf = format_buffer[ string() ];
-	buf.format_into(fmt_str, args);
+	const arg_ptrs = [ ...&args, null as *const int32 ];
+	buf.format_into(fmt_str, arg_ptrs);
 	return buf._str;
 }
 
-export function printf(fmt_str: consteval str, args: auto)
+export function printf(fmt_str: consteval str, args: ...#const auto)
 {
 	let buf = format_buffer[ string() ];
-	buf.format_into(fmt_str, args);
+	const arg_ptrs = [ ...&args, null as *const int32 ];
+	buf.format_into(fmt_str, arg_ptrs);
 	print(buf._str.as_str());
 }
 
