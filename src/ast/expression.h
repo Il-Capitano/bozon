@@ -94,6 +94,20 @@ struct dynamic_expression
 	declare_default_5(dynamic_expression)
 };
 
+struct variadic_expression
+{
+	bz::vector<expression> exprs;
+
+	declare_default_5(variadic_expression)
+};
+
+struct expanded_variadic_expression
+{
+	bz::vector<expression> exprs;
+
+	declare_default_5(expanded_variadic_expression)
+};
+
 struct error_expression
 {
 	expr_t expr;
@@ -103,6 +117,8 @@ struct expression : bz::variant<
 	unresolved_expression,
 	constant_expression,
 	dynamic_expression,
+	variadic_expression,
+	expanded_variadic_expression,
 	error_expression
 >
 {
@@ -110,6 +126,8 @@ struct expression : bz::variant<
 		unresolved_expression,
 		constant_expression,
 		dynamic_expression,
+		variadic_expression,
+		expanded_variadic_expression,
 		error_expression
 	>;
 
@@ -659,6 +677,14 @@ expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
 template<typename ...Args>
 expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
+
+template<typename ...Args>
+expression make_variadic_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, variadic_expression{ std::forward<Args>(args)... }); }
+
+template<typename ...Args>
+expression make_expanded_variadic_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, expanded_variadic_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
 expression make_error_expression(lex::src_tokens tokens, Args &&...args)

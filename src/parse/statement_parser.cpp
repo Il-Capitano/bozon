@@ -957,7 +957,16 @@ static void resolve_type_alias_impl(
 	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
 	if (value.is<ast::constant_value::type>())
 	{
-		alias_decl.state = ast::resolve_state::all;
+		auto const &type = value.get<ast::constant_value::type>();
+		if (ast::is_complete(type))
+		{
+			alias_decl.state = ast::resolve_state::all;
+		}
+		else
+		{
+			context.report_error(alias_decl.alias_expr, bz::format("type alias of non-complete type '{}' is not allowed", type));
+			alias_decl.state = ast::resolve_state::error;
+		}
 	}
 	else
 	{
@@ -1179,6 +1188,25 @@ static bool resolve_function_parameters_helper(
 		func_body.flags |= ast::function_body::generic;
 	}
 
+	if (!func_body.params.empty())
+	{
+		for (auto const &param : func_body.params.slice(0, func_body.params.size() - 1))
+		{
+			if (param.get_type().is<ast::ts_variadic>())
+			{
+				context.report_error(
+					param.src_tokens,
+					bz::format("a parameter with variadic type '{}' must be the last parameter", param.get_type())
+				);
+				good = false;
+			}
+		}
+		if (func_body.params.back().get_type().is<ast::ts_variadic>())
+		{
+			func_body.params.back().flags |= ast::decl_variable::variadic;
+		}
+	}
+
 	if (
 		good
 		&& func_stmt.is<ast::decl_operator>()
@@ -1380,16 +1408,41 @@ void resolve_function_parameters(
 	context_ptr->set_current_file_info(original_file_info);
 }
 
+template<uint32_t flag_to_remove = 0>
+static void add_parameters_as_local_variables(
+	ast::function_body &func_body,
+	ctx::parse_context &context
+)
+{
+	auto       params_it  = func_body.params.begin();
+	auto const params_end = func_body.params.end();
+	for (; params_it != params_end; ++params_it)
+	{
+		if (params_it->is_variadic())
+		{
+			break;
+		}
+		context.add_local_variable(*params_it);
+		params_it->flags &= ~flag_to_remove;
+	}
+	if (
+		func_body.generic_parent != nullptr
+		&& !func_body.generic_parent->params.empty()
+		&& func_body.generic_parent->params.back().get_type().is<ast::ts_variadic>()
+	)
+	{
+		auto variadic_params = bz::basic_range{ params_it, params_end }.transform([](auto &p) { return &p; }).collect();
+		context.add_local_variable(func_body.generic_parent->params.back(), std::move(variadic_params));
+	}
+}
+
 static bool resolve_function_return_type_helper(
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )
 {
 	bz_assert(func_body.state == ast::resolve_state::resolving_symbol);
-	for (auto &p : func_body.params)
-	{
-		context.add_local_variable(p);
-	}
+	add_parameters_as_local_variables(func_body, context);
 
 	resolve_typespec(func_body.return_type, context, precedence{});
 	bz_assert(!func_body.return_type.is<ast::ts_unresolved>());
@@ -1692,11 +1745,7 @@ static void resolve_function_impl(
 	auto const prev_function = context.current_function;
 	context.current_function = &func_body;
 	context.add_scope();
-	for (auto &p : func_body.params)
-	{
-		context.add_local_variable(p);
-		p.flags &= ~(ast::decl_variable::used);
-	}
+	add_parameters_as_local_variables(func_body, context);
 
 	func_body.state = ast::resolve_state::resolving_all;
 
@@ -2992,6 +3041,14 @@ ast::statement parse_stmt_expression(
 )
 {
 	auto expr = parse_top_level_expression(stream, end, context);
+	if (expr.is<ast::variadic_expression>())
+	{
+		context.report_error(expr.src_tokens, "variadic expression not allowed as top-level expression");
+	}
+	else if (expr.is<ast::expanded_variadic_expression>())
+	{
+		context.report_error(expr.src_tokens, "expanded variadic expression not allowed as top-level expression");
+	}
 	return ast::make_stmt_expression(std::move(expr));
 }
 

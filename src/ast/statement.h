@@ -309,6 +309,7 @@ struct decl_variable
 		no_runtime_emit  = bit_at<4>,
 		member           = bit_at<5>,
 		global           = bit_at<6>,
+		variadic         = bit_at<7>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -404,6 +405,9 @@ struct decl_variable
 
 	bool is_global(void) const noexcept
 	{ return (this->flags & global) != 0; }
+
+	bool is_variadic(void) const noexcept
+	{ return (this->flags & variadic) != 0; }
 
 	typespec &get_type(void)
 	{ return this->id_and_type.var_type; }
@@ -578,6 +582,7 @@ struct function_body
 
 	bz::vector<std::unique_ptr<function_body>>              generic_specializations;
 	bz::vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
+	function_body *generic_parent = nullptr;
 
 //	declare_default_5(function_body)
 	function_body(void)             = default;
@@ -596,7 +601,8 @@ struct function_body
 		  flags         (other.flags),
 		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
-		  generic_required_from(other.generic_required_from)
+		  generic_required_from(other.generic_required_from),
+		  generic_parent(other.generic_parent)
 	{}
 
 	bz::vector<statement> &get_statements(void) noexcept

@@ -206,6 +206,10 @@ bool typespec_view::is_typename(void) const noexcept
 			bz_unreachable;
 			return false;
 		},
+		[&](ts_variadic const &) {
+			bz_unreachable;
+			return false;
+		},
 	});
 }
 
@@ -318,11 +322,13 @@ bool is_complete(typespec_view ts) noexcept
 		return false;
 	}
 
-	auto const is_auto_ref = ts.nodes.is_any([](auto const &node) {
-		return node.template is<ts_auto_reference>() || node.template is<ts_auto_reference_const>();
+	auto const is_auto_ref_or_variadic = ts.nodes.is_any([](auto const &node) {
+		return node.template is<ts_auto_reference>()
+			|| node.template is<ts_auto_reference_const>()
+			|| node.template is<ts_variadic>();
 	});
 
-	return !is_auto_ref && ts.nodes.back().visit(bz::overload{
+	return !is_auto_ref_or_variadic && ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &) {
 			return true;
 		},
@@ -798,6 +804,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_auto_reference_const const &) {
 				result += "##";
+			},
+			[&](ast::ts_variadic const &) {
+				result += "...";
 			},
 			[&](auto const &) {
 				result += "<error-type>";

@@ -168,8 +168,12 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 {
 	bz_assert(body->is_generic_specialization());
 	bz_assert(!body->is_generic());
-	bz_assert(body->params.size() == this->params.size());
+	bz_assert(body->params.size() == this->params.size() || (!this->params.empty() && this->params.back().get_type().is<ast::ts_variadic>()));
 	auto const is_equal_params = [](auto const &lhs, auto const &rhs) {
+		if (lhs.size() != rhs.size())
+		{
+			return false;
+		}
 		for (auto const &[lhs_param, rhs_param] : bz::zip(lhs, rhs))
 		{
 			if (lhs_param.get_type() != rhs_param.get_type())
@@ -199,6 +203,7 @@ function_body *function_body::add_specialized_body(std::unique_ptr<function_body
 
 	if (it == this->generic_specializations.end())
 	{
+		body->generic_parent = this;
 		this->generic_specializations.push_back(std::move(body));
 		auto const func_body = this->generic_specializations.back().get();
 		if (func_body->is_intrinsic())

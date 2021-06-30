@@ -500,6 +500,28 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 	return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 }
 
+static ast::expression get_builtin_unary_dot_dot_dot(
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::dot_dot_dot);
+	bz_assert(expr.not_error());
+
+	if (!expr.is<ast::variadic_expression>())
+	{
+		context.report_error(src_tokens, "the expanded expression is not a variadic expression");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+
+	return ast::make_expanded_variadic_expression(
+		src_tokens,
+		std::move(expr.get<ast::variadic_expression>().exprs)
+	);
+}
+
 // &(typename) -> (&typename)
 static ast::expression get_type_op_unary_reference(
 	lex::src_tokens src_tokens,
@@ -531,6 +553,11 @@ static ast::expression get_type_op_unary_reference(
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
 		context.report_error(src_tokens, "reference to auto reference-const type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "reference to variadic type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -578,6 +605,11 @@ static ast::expression get_type_op_unary_auto_ref(
 	else if (result_type.is<ast::ts_auto_reference_const>())
 	{
 		context.report_error(src_tokens, "auto reference to auto reference-const type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "auto reference to variadic type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
@@ -639,6 +671,11 @@ static ast::expression get_type_op_unary_auto_ref_const(
 	{
 		// nothing
 	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "auto reference-const to variadic type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 	else
 	{
 		result_type.add_layer<ast::ts_auto_reference_const>();
@@ -687,8 +724,44 @@ static ast::expression get_type_op_unary_pointer(
 		context.report_error(src_tokens, "pointer to consteval is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "pointer to variadic type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 
 	result_type.add_layer<ast::ts_pointer>();
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(result_type)),
+		ast::make_expr_unary_op(op_kind, std::move(expr))
+	);
+}
+
+// ...(typename) -> (...typename)
+static ast::expression get_type_op_unary_dot_dot_dot(
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::dot_dot_dot);
+	bz_assert(expr.not_error());
+	bz_assert(expr.is_typename());
+
+	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
+	if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, bz::format("type '{}' is already variadic", result_type));
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+
+	result_type.add_layer<ast::ts_variadic>();
 
 	return ast::make_constant_expression(
 		src_tokens,
@@ -735,6 +808,11 @@ static ast::expression get_type_op_unary_const(
 	else if (result_type.is<ast::ts_consteval>())
 	{
 		// nothing
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "a variadic type cannot be 'const'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
 	{
@@ -786,6 +864,11 @@ static ast::expression get_type_op_unary_consteval(
 	else if (result_type.is<ast::ts_consteval>())
 	{
 		// nothing
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "a variadic type cannot be 'consteval'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else
 	{
@@ -3540,6 +3623,7 @@ constexpr auto builtin_unary_operators = []() {
 		T{ lex::token::bool_not,    &get_builtin_unary_bool_not              }, // !
 		T{ lex::token::plus_plus,   &get_builtin_unary_plus_plus_minus_minus }, // ++
 		T{ lex::token::minus_minus, &get_builtin_unary_plus_plus_minus_minus }, // --
+		T{ lex::token::dot_dot_dot, &get_builtin_unary_dot_dot_dot           }, // ...
 
 		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
 		T{ lex::token::kw_typeof,    &get_builtin_unary_typeof                }, // typeof
@@ -3586,6 +3670,7 @@ constexpr auto type_op_unary_operators = []() {
 		T{ lex::token::auto_ref,       &get_type_op_unary_auto_ref       }, // #
 		T{ lex::token::auto_ref_const, &get_type_op_unary_auto_ref_const }, // ##
 		T{ lex::token::dereference,    &get_type_op_unary_pointer        }, // *
+		T{ lex::token::dot_dot_dot,    &get_type_op_unary_dot_dot_dot    }, // ...
 		T{ lex::token::kw_const,       &get_type_op_unary_const          }, // const
 		T{ lex::token::kw_consteval,   &get_type_op_unary_consteval      }, // consteval
 	};

@@ -315,6 +315,7 @@ struct parse_context
 	void remove_scope(void);
 
 	void add_local_variable(ast::decl_variable &var_decl);
+	void add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
 	void add_local_function(ast::decl_function &func_decl);
 	void add_local_operator(ast::decl_operator &op_decl);
 	void add_local_struct(ast::decl_struct &struct_decl);

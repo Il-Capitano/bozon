@@ -18,6 +18,36 @@ static ast::expression make_expr_function_call_from_body(
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
 
+static bz::vector<ast::expression> expand_params(bz::vector<ast::expression> params)
+{
+	bz::vector<ast::expression> result;
+	if (params.empty())
+	{
+		return result;
+	}
+
+	auto const result_size = params.transform([](auto const &expr) {
+		return expr.template is<ast::expanded_variadic_expression>()
+			? expr.template get<ast::expanded_variadic_expression>().exprs.size()
+			: 1;
+	}).sum();
+	result.reserve(result_size);
+
+	for (auto &param : params)
+	{
+		if (param.is<ast::expanded_variadic_expression>())
+		{
+			result.append_move(param.get<ast::expanded_variadic_expression>().exprs);
+		}
+		else
+		{
+			result.push_back(std::move(param));
+		}
+	}
+
+	return result;
+}
+
 parse_context::parse_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx)
 {}
@@ -772,6 +802,28 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 	}
 }
 
+void parse_context::add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls)
+{
+	bz_assert(this->scope_decls.size() != 0);
+	if (original_decl.tuple_decls.empty())
+	{
+		this->scope_decls.back().variadic_var_decls.push_back({ &original_decl, std::move(variadic_decls) });
+	}
+	else
+	{
+		for (size_t i = 0; i < original_decl.tuple_decls.size(); ++i)
+		{
+			this->add_local_variable(
+				original_decl.tuple_decls[i],
+				variadic_decls.transform([i](auto const decl) {
+					bz_assert(!decl->tuple_decls.empty());
+					return &decl->tuple_decls[i];
+				}).collect()
+			);
+		}
+	}
+}
+
 void parse_context::add_local_function(ast::decl_function &func_decl)
 {
 	bz_assert(this->scope_decls.size() != 0);
@@ -946,11 +998,42 @@ static ast::decl_variable *find_var_decl_in_local_scope(decl_set &scope, ast::id
 				return !var->get_id().values.empty() && var->get_id().values.front() == id.values.front();
 			}
 		);
-		return it == scope.var_decls.rend() ? nullptr : *it;
+		if (it != scope.var_decls.rend())
+		{
+			return *it;
+		}
+		return nullptr;
 	}
 	else
 	{
 		return nullptr;
+	}
+}
+
+static std::pair<bool, bz::array_view<ast::decl_variable * const>> find_variadic_var_decl_in_local_scope(decl_set &scope, ast::identifier const &id)
+{
+	if (!id.is_qualified && id.values.size() == 1)
+	{
+		auto const it = std::find_if(
+			scope.variadic_var_decls.rbegin(), scope.variadic_var_decls.rend(),
+			[&id](auto const &variadic_var) {
+				auto const var = variadic_var.original_decl;
+				bz_assert(!var->get_id().is_qualified && var->get_id().values.size() <= 1);
+				return !var->get_id().values.empty() && var->get_id().values.front() == id.values.front();
+			}
+		);
+		if (it != scope.variadic_var_decls.rend())
+		{
+			return { true, it->var_decls };
+		}
+		else
+		{
+			return { false, {} };
+		}
+	}
+	else
+	{
+		return { false, {} };
 	}
 }
 
@@ -1245,6 +1328,21 @@ static ast::expression make_variable_expression(
 	}
 }
 
+static ast::expression make_variable_expression(
+	lex::src_tokens src_tokens,
+	ast::identifier id,
+	bz::array_view<ast::decl_variable * const> var_decls,
+	parse_context &context
+)
+{
+	return ast::make_variadic_expression(
+		src_tokens,
+		var_decls.transform([&](auto const var_decl) {
+			return make_variable_expression(src_tokens, id, var_decl, context);
+		}).collect()
+	);
+}
+
 static ast::expression make_function_name_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
@@ -1344,6 +1442,11 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		if (auto const var_decl = find_var_decl_in_local_scope(scope, id))
 		{
 			return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
+		}
+
+		if (auto const [found, var_decls] = find_variadic_var_decl_in_local_scope(scope, id); found)
+		{
+			return make_variable_expression(src_tokens, std::move(id), var_decls, *this);
 		}
 
 		if (auto const fn_set = find_func_set_in_local_scope(scope, id))
@@ -2134,6 +2237,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
 {
+	elems = expand_params(elems);
 	auto const is_typename = [&]() {
 		for (auto const &e : elems)
 		{
@@ -2795,6 +2899,10 @@ static match_level_t get_type_match_level(
 			}
 			return result;
 		}
+	}
+	else if (expr.is_tuple())
+	{
+		return {};
 	}
 
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
@@ -3536,11 +3644,6 @@ static match_level_t get_function_call_match_level(
 	lex::src_tokens src_tokens
 )
 {
-	if (func_body.params.size() != params.size())
-	{
-		return match_level_t{};
-	}
-
 	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
@@ -3553,25 +3656,51 @@ static match_level_t get_function_call_match_level(
 		return match_level_t{};
 	}
 
+	if (
+		func_body.params.size() != params.size()
+		&& !(
+			!func_body.params.empty()
+			&& func_body.params.back().get_type().is<ast::ts_variadic>()
+			&& func_body.params.size() - 1 <= params.size()
+		)
+	)
+	{
+		return match_level_t{};
+	}
+
 	match_level_t result = bz::vector<match_level_t>{};
 	auto &result_vec = result.get<bz::vector<match_level_t>>();
 
+	bool good = true;
 	auto const add_to_result = [&](match_level_t match)
 	{
-		if (match.not_null())
-		{
-			result_vec.push_back(std::move(match));
-		}
+		result_vec.push_back(std::move(match));
+		good |= match.is_null();
 	};
 
-	auto params_it = func_body.params.begin();
+	auto       params_it  = func_body.params.begin();
+	auto const params_end = func_body.params.end();
 	auto call_it  = params.begin();
-	auto const types_end = func_body.params.end();
-	for (; params_it != types_end; ++call_it, ++params_it)
+	for (; params_it != params_end; ++call_it, ++params_it)
 	{
+		if (params_it->get_type().is<ast::ts_variadic>())
+		{
+			break;
+		}
 		add_to_result(get_type_match_level(params_it->get_type(), *call_it, context));
 	}
-	if (result_vec.size() != func_body.params.size())
+	if (params_it != params_end)
+	{
+		bz_assert(params_it + 1 == params_end);
+		auto const param_type = params_it->get_type().get<ast::ts_variadic>();
+		auto const call_end = params.end();
+		for (; call_it != call_end; ++call_it)
+		{
+			add_to_result(get_type_match_level(param_type, *call_it, context));
+		}
+	}
+
+	if (!good)
 	{
 		result.clear();
 	}
@@ -3777,6 +3906,30 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	return { {}, nullptr };
 }
 
+static void expand_function_body_params(ast::function_body *body, size_t params_count)
+{
+	if (body->params.empty() || !body->params.back().get_type().is<ast::ts_variadic>())
+	{
+		return;
+	}
+	if (params_count < body->params.size())
+	{
+		body->params.pop_back();
+		return;
+	}
+	bz_assert(params_count >= body->params.size());
+	bz_assert(!body->params.empty());
+	bz_assert(body->params.back().get_type().is<ast::ts_variadic>());
+	auto const diff = params_count - body->params.size();
+	body->params.reserve(params_count);
+	auto &params_back = body->params.back();
+	params_back.get_type().remove_layer();
+	for (size_t i = 0; i < diff; ++i)
+	{
+		body->params.push_back(params_back);
+	}
+}
+
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
@@ -3790,11 +3943,12 @@ static ast::expression make_expr_function_call_from_body(
 		auto required_from = get_generic_requirements(src_tokens, context);
 		bz_assert(required_from.front().first.pivot != nullptr);
 		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
+		expand_function_body_params(specialized_body.get(), params.size());
 		context.add_to_resolve_queue(src_tokens, *specialized_body);
 		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
 		{
 			context.match_expression_to_variable(param, func_body_param);
-			if (ast::is_generic_parameter(func_body_param))
+			if (!func_body_param.get_type().is<ast::ts_variadic>() && ast::is_generic_parameter(func_body_param))
 			{
 				func_body_param.init_expr = param;
 			}
@@ -3810,6 +3964,7 @@ static ast::expression make_expr_function_call_from_body(
 	}
 	else
 	{
+		// expand_function_body_params(body, params.size()); // this is not needed here as variadic functions are always generic
 		context.add_to_resolve_queue(src_tokens, *body);
 		for (auto const [param, func_body_param] : bz::zip(params, body->params))
 		{
@@ -3981,6 +4136,16 @@ ast::expression parse_context::make_unary_operator_expression(
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 
+	if (op_kind != lex::token::dot_dot_dot && expr.is<ast::variadic_expression>())
+	{
+		return ast::make_variadic_expression(
+			src_tokens,
+			expr.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind](auto &inner_expr) {
+				return this->make_unary_operator_expression(src_tokens, op_kind, std::move(inner_expr));
+			}).collect()
+		);
+	}
+
 	if (is_unary_type_op(op_kind) && expr.is_typename())
 	{
 		auto result = make_builtin_type_operation(src_tokens, op_kind, std::move(expr), *this);
@@ -4141,6 +4306,42 @@ ast::expression parse_context::make_binary_operator_expression(
 	{
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
+	}
+
+	if (lhs.is<ast::variadic_expression>() && rhs.is<ast::variadic_expression>())
+	{
+		auto &lhs_inner_exprs = lhs.get<ast::variadic_expression>().exprs;
+		auto &rhs_inner_exprs = rhs.get<ast::variadic_expression>().exprs;
+		if (lhs_inner_exprs.size() != rhs_inner_exprs.size())
+		{
+			this->report_error(
+				src_tokens,
+				"invalid operation between two variadic expressions with different sizes",
+				{ this->make_note(
+					src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+					bz::format("lhs has {} elements, rhs has {} elements", lhs_inner_exprs.size(), rhs_inner_exprs.size())
+				) }
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
+		}
+	}
+	else if (lhs.is<ast::variadic_expression>())
+	{
+		return ast::make_variadic_expression(
+			src_tokens,
+			lhs.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind, &rhs](auto &inner_lhs) {
+				return this->make_binary_operator_expression(src_tokens, op_kind, std::move(inner_lhs), rhs);
+			}).collect()
+		);
+	}
+	else if (rhs.is<ast::variadic_expression>())
+	{
+		return ast::make_variadic_expression(
+			src_tokens,
+			rhs.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind, &lhs](auto &inner_rhs) {
+				return this->make_binary_operator_expression(src_tokens, op_kind, lhs, std::move(inner_rhs));
+			}).collect()
+		);
 	}
 
 	if (op_kind == lex::token::kw_as)
@@ -4344,9 +4545,22 @@ ast::expression parse_context::make_function_call_expression(
 	bz::vector<ast::expression> params
 )
 {
+	params = expand_params(std::move(params));
 	if (called.is_error())
 	{
 		bz_assert(this->has_errors());
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
+	}
+
+	if (
+		called.is<ast::variadic_expression>()
+		|| params.is_any([](auto const &param) { return param.template is<ast::variadic_expression>(); })
+	)
+	{
+		this->report_error(src_tokens, "functions call with non-expanded variadic expressions is not yet implemented");
 		return ast::make_error_expression(
 			src_tokens,
 			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
@@ -4638,10 +4852,23 @@ ast::expression parse_context::make_universal_function_call_expression(
 	bz::vector<ast::expression> params
 )
 {
+	params = expand_params(params);
 	if (base.is_error())
 	{
 		bz_assert(this->has_errors());
 		params.push_front(std::move(base));
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
+	}
+
+	if (
+		base.is<ast::variadic_expression>()
+		|| params.is_any([](auto const &param) { return param.template is<ast::variadic_expression>(); })
+	)
+	{
+		this->report_error(src_tokens, "functions call with non-expanded variadic expressions is not yet implemented");
 		return ast::make_error_expression(
 			src_tokens,
 			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
@@ -4721,6 +4948,15 @@ ast::expression parse_context::make_subscript_operator_expression(
 	if (called.is_error())
 	{
 		bz_assert(this->has_errors());
+		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
+	}
+
+	if (
+		called.is<ast::variadic_expression>()
+		|| args.is_any([](auto const &arg) { return arg.template is<ast::variadic_expression>(); })
+	)
+	{
+		this->report_error(src_tokens, "subscript with non-expanded variadic expressions is not yet implemented");
 		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 	}
 
@@ -5171,6 +5407,9 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 				return -1;
 			},
 			[](ast::ts_auto_reference_const const &) {
+				return -1;
+			},
+			[](ast::ts_variadic const &) {
 				return -1;
 			},
 			[](ast::ts_unresolved const &) {

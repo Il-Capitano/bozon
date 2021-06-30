@@ -601,6 +601,9 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 		[](ast::ts_auto_reference_const const &) {
 			bz_unreachable;
 		},
+		[](ast::ts_variadic const &) {
+			bz_unreachable;
+		},
 		[](ast::ts_unresolved const &) {
 			bz_unreachable;
 		},
@@ -842,7 +845,7 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
 		this->pass_manager.add(llvm::createReassociatePass());
-		this->pass_manager.add(llvm::createCFGSimplificationPass());
+		// this->pass_manager.add(llvm::createCFGSimplificationPass());
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createMemCpyOptPass());
 		// this->pass_manager.add(llvm::createGVNPass());

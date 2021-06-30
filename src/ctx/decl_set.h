@@ -23,9 +23,16 @@ struct operator_overload_set
 	bz::vector<ast::statement_view> op_decls;
 };
 
+struct variadic_var_decl
+{
+	ast::decl_variable *original_decl;
+	bz::vector<ast::decl_variable *> var_decls;
+};
+
 struct decl_set
 {
 	bz::vector<ast::decl_variable *>   var_decls;
+	bz::vector<variadic_var_decl>      variadic_var_decls;
 	bz::vector<function_overload_set>  func_sets;
 	bz::vector<operator_overload_set>  op_sets;
 	bz::vector<ast::decl_type_alias *> type_aliases;
