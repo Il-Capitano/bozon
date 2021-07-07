@@ -484,7 +484,10 @@ public:
 		auto const rhs_size = rhs.size();
 		auto const new_size = this->size() + rhs_size;
 		this->reserve(new_size);
-		std::memcpy(this->_end_ptr(), rhs.data(), rhs_size);
+		if (rhs_size != 0)
+		{
+			std::memcpy(this->_end_ptr(), rhs.data(), rhs_size);
+		}
 		if (this->_is_short_string())
 		{
 			this->_set_short_string_size(new_size);

@@ -5,13 +5,37 @@
 
 #ifdef __linux__
 
-#include <iostream>
-#define BOOST_STACKTRACE_USE_ADDR2LINE
-#include <boost/stacktrace.hpp>
+#include <bz/format.h>
+#include <backtrace.h>
+
+static void error_callback([[maybe_unused]] void *data, char const *msg, int errnum)
+{
+	bz::print(stderr, "error while printing stack trace: {} (error {})\n", msg, errnum);
+}
+
+static int full_callback(void *data, uintptr_t pc, char const *filename, int line, char const *func_name)
+{
+	auto &count = *reinterpret_cast<int *>(data);
+
+	auto const ptr = reinterpret_cast<void *>(pc);
+	if (line == 0)
+	{
+		// bz::print(stderr, "    not found: {} ({})\n", filename, ptr);
+	}
+	else
+	{
+		bz::print("    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
+		count += 1;
+	}
+	return 0;
+}
 
 static void print_stacktrace(void)
 {
-	std::cerr << boost::stacktrace::stacktrace() << std::endl;
+	static auto const backtrace = backtrace_create_state(nullptr, false, &error_callback, nullptr);
+
+	int count = 0;
+	backtrace_full(backtrace, 2, &full_callback, &error_callback, &count);
 }
 
 #else
@@ -28,35 +52,39 @@ static void stderr_print(
 	int column
 )
 {
-	int *count = reinterpret_cast<int *>(context);
+	auto &count = *reinterpret_cast<int *>(context);
+	if (count < 0)
+	{
+		count += 1;
+		return;
+	}
 
 	auto const ptr = reinterpret_cast<void *>(address);
 	switch (line)
 	{
 	case DWST_BASE_ADDR:
-		bz::print(stderr, "base address: {} ({})\n", filename, ptr);
 		break;
 
 	case DWST_NOT_FOUND:
-		bz::print(stderr, "    not found: {} ({})\n", filename, ptr);
+		// bz::print(stderr, "    not found: {} ({})\n", filename, ptr);
 		break;
 
 	case DWST_NO_DBG_SYM:
 	case DWST_NO_SRC_FILE:
-		bz::print(stderr, "    #{:2}: {} ({})\n", *count, filename, ptr);
-		*count += 1;
+		// bz::print(stderr, "    #{:2}: {} ({})\n", count, filename, ptr);
+		// count += 1;
 		break;
 
 	default:
 		if (column > 0)
 		{
-			bz::print("    #{:2}: {}:{}:{} ({})\n", *count, filename, line, column, ptr);
-			*count += 1;
+			bz::print("    #{:2}: {}:{}:{} ({})\n", count, filename, line, column, ptr);
+			count += 1;
 		}
 		else
 		{
-			bz::print("    #{:2}: {}:{} ({})\n", *count, filename, line, ptr);
-			*count += 1;
+			bz::print("    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
+			count += 1;
 		}
 		break;
 	}
@@ -64,7 +92,7 @@ static void stderr_print(
 
 static void print_stacktrace(void)
 {
-	int count = 0;
+	int count = -3;
 	dwstOfLocation(&stderr_print, &count);
 }
 

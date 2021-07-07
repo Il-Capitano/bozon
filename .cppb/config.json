@@ -48,7 +48,7 @@
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
 					"compiler": "clang-12",
-					"libraries": [ "LLVM-12" ],
+					"libraries": [ "LLVM-12", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld-12", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ],
 					"emit_compile_commands": false
@@ -105,7 +105,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-10",
-					"libraries": [ "LLVM-12" ],
+					"libraries": [ "LLVM-12", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -165,7 +165,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-12 bitcode_test.o builtins.o -o a.exe -fuse-ld=lld-12"
+			"command": "clang-12 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-12"
 		},
 		"builtins.o": {
 			"dependencies": [ "builtins.c" ],

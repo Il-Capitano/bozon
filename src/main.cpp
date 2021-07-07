@@ -1542,7 +1542,13 @@ export operator as str (s: #const string) -> str
 
 int main(int argc, char const **argv)
 {
+#ifdef __has_feature
+#if !__has_feature(address_sanitizer)
 	register_crash_handlers();
+#endif // !__has_feature(address_sanitizer)
+#else // __has_feature
+	register_crash_handlers();
+#endif // __has_feature
 
 	auto in_ms = [](auto time)
 	{
