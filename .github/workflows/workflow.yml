@@ -79,6 +79,13 @@ jobs:
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
         sudo apt install gcc gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+    - name: Install libbacktrace
+      run: |
+        git clone https://github.com/ianlancetaylor/libbacktrace.git
+        cd libbacktrace
+        ./configure
+        sudo make install
+        cd ..
     - name: Build cppb
       run: |
         git clone https://github.com/Il-Capitano/cppb.git
@@ -92,3 +99,33 @@ jobs:
     - run: cppb/bin/cppb build -v --build-config test
     - run: cppb/bin/cppb run -v --build-config test
     - run: cppb/bin/cppb run-rule ryu_format.linux.ll -f
+  linux-gcc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: |
+        printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo apt update
+        sudo apt install gcc lld gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+    - name: Install libbacktrace
+      run: |
+        git clone https://github.com/ianlancetaylor/libbacktrace.git
+        cd libbacktrace
+        ./configure
+        sudo make install
+        cd ..
+    - name: Build cppb
+      run: |
+        git clone https://github.com/Il-Capitano/cppb.git
+        cd cppb
+        mkdir bin
+        make
+        cd ..
+    - run: touch ryu_format.linux.ll
+    - run: cppb/bin/cppb build -v --build-config gcc
+    - run: cppb/bin/cppb run -v --build-config gcc
+    - run: cppb/bin/cppb build -v --build-config test-gcc
+    - run: cppb/bin/cppb run -v --build-config test-gcc
+    - run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f
