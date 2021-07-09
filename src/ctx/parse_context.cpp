@@ -132,20 +132,9 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 	}
 	else
 	{
-		auto const file_id = body.src_tokens.pivot->src_pos.file_id;
-		if (do_verbose || !context.global_ctx.is_library_file(file_id))
-		{
-			notes.emplace_back(context.make_note(
-				body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
-			));
-		}
-		else
-		{
-			auto const line = body.src_tokens.pivot->src_pos.line;
-			notes.emplace_back(context.make_note(
-				file_id, line, bz::format("in generic instantiation of '{}'", body.get_signature())
-			));
-		}
+		notes.emplace_back(context.make_note(
+			body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
+		));
 	}
 
 	for (auto const &required_from : body.generic_required_from.reversed())
@@ -160,22 +149,10 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 		}
 		else
 		{
-			auto const file_id = required_from.first.pivot->src_pos.file_id;
-			if (do_verbose || !context.global_ctx.is_library_file(file_id))
-			{
-				notes.emplace_back(context.make_note(
-					required_from.first,
-					bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
-				));
-			}
-			else
-			{
-				auto const line = required_from.first.pivot->src_pos.line;
-				notes.emplace_back(context.make_note(
-					file_id, line,
-					bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
-				));
-			}
+			notes.emplace_back(context.make_note(
+				required_from.first,
+				bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
+			));
 		}
 	}
 }
@@ -5551,6 +5528,7 @@ ast::constant_value parse_context::execute_function(
 				src_tokens,
 				bz::format("while evaluating call to '{}' in a constant expression", body->get_signature())
 			));
+			add_generic_requirement_notes(error.notes, *this);
 			this->global_ctx.report_error_or_warning(std::move(error));
 		}
 	}
@@ -5571,6 +5549,7 @@ ast::constant_value parse_context::execute_compound_expression(
 		for (auto &error : errors)
 		{
 			error.notes.push_back(this->make_note(src_tokens, "while evaluating compound expression in a constant expression"));
+			add_generic_requirement_notes(error.notes, *this);
 			this->global_ctx.report_error_or_warning(std::move(error));
 		}
 	}

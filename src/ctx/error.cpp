@@ -564,7 +564,7 @@ void print_error_or_warning(error const &err, global_context &context)
 			}
 		}();
 
-		if (no_error_highlight)
+		if (no_error_highlight || (!do_verbose && context.is_library_file(n.file_id)))
 		{
 			bz::print(
 				stderr,
