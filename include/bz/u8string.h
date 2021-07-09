@@ -388,8 +388,15 @@ public:
 		{
 			this->reserve(new_size);
 			auto const size_diff = new_size - current_size;
-			auto const old_end = this->_data_end;
-			this->_data_end += size_diff;
+			auto const old_end = this->_end_ptr();
+			if (this->_is_short_string())
+			{
+				this->_set_short_string_size(new_size);
+			}
+			else
+			{
+				this->_data_end += size_diff;
+			}
 			std::memset(old_end, 0, size_diff);
 		}
 	}
