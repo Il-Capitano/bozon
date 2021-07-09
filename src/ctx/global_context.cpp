@@ -93,6 +93,7 @@ decl_set get_default_decls(void)
 {
 	return {
 		{}, // var_decls
+		{}, // variadic_var_decls
 		{}, // func_sets
 		{}, // op_sets
 		{}, // type_aliases
@@ -153,32 +154,33 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 	bz_assert(kind < this->_builtin_functions.size());
-	if (kind == ast::function_body::builtin_str_eq)
+	switch (kind)
 	{
+	case ast::function_body::builtin_str_eq:
 		bz_assert(this->_builtin_str_eq_func != nullptr);
 		return this->_builtin_str_eq_func;
-	}
-	else if (kind == ast::function_body::builtin_str_neq)
-	{
+	case ast::function_body::builtin_str_neq:
 		bz_assert(this->_builtin_str_neq_func != nullptr);
 		return this->_builtin_str_neq_func;
-	}
-	else if (kind == ast::function_body::builtin_str_length)
-	{
+	case ast::function_body::builtin_str_length:
 		bz_assert(this->_builtin_str_length_func != nullptr);
 		return this->_builtin_str_length_func;
-	}
-	else if (kind == ast::function_body::builtin_str_starts_with)
-	{
+	case ast::function_body::builtin_str_starts_with:
 		bz_assert(this->_builtin_str_starts_with_func != nullptr);
 		return this->_builtin_str_starts_with_func;
-	}
-	else if (kind == ast::function_body::builtin_str_ends_with)
-	{
+	case ast::function_body::builtin_str_ends_with:
 		bz_assert(this->_builtin_str_ends_with_func != nullptr);
 		return this->_builtin_str_ends_with_func;
+	case ast::function_body::comptime_compile_error_src_tokens:
+		bz_assert(this->_comptime_compile_error_src_tokens_func != nullptr);
+		return this->_comptime_compile_error_src_tokens_func;
+	case ast::function_body::comptime_compile_warning_src_tokens:
+		bz_assert(this->_comptime_compile_warning_src_tokens_func != nullptr);
+		return this->_comptime_compile_warning_src_tokens_func;
+	default:
+		break;
 	}
 
 	return &this->_builtin_functions[kind];
@@ -401,7 +403,7 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 
 bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 	if (kind == "str_eq")
 	{
 		if (this->_builtin_str_eq_func != nullptr)
@@ -450,6 +452,26 @@ bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_
 		}
 		func_body->intrinsic_kind = ast::function_body::builtin_str_ends_with;
 		this->_builtin_str_ends_with_func = func_body;
+		return true;
+	}
+	else if (kind == "comptime_compile_error_src_tokens")
+	{
+		if (this->_comptime_compile_error_src_tokens_func != nullptr)
+		{
+			return false;
+		}
+		func_body->intrinsic_kind = ast::function_body::comptime_compile_error_src_tokens;
+		this->_comptime_compile_error_src_tokens_func = func_body;
+		return true;
+	}
+	else if (kind == "comptime_compile_warning_src_tokens")
+	{
+		if (this->_comptime_compile_warning_src_tokens_func != nullptr)
+		{
+			return false;
+		}
+		func_body->intrinsic_kind = ast::function_body::comptime_compile_warning_src_tokens;
+		this->_comptime_compile_warning_src_tokens_func = func_body;
 		return true;
 	}
 	else

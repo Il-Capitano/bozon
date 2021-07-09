@@ -30,8 +30,14 @@ enum class warning_kind
 	non_exhaustive_switch,
 	unneeded_else,
 
+	comptime_warning,
+
 	_last,
 };
+
+// these need to be synched with __comptime_checking.bz
+static_assert(static_cast<int>(warning_kind::comptime_warning) == 21);
+static_assert(static_cast<int>(warning_kind::_last) == 22);
 
 struct warning_info
 {
@@ -66,6 +72,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::is_comptime_always_true,  "is-comptime-always-true",  "'__builtin_is_comptime()' was forced to evaluate at compile time"                  },
 		T{ warning_kind::non_exhaustive_switch,    "non-exhaustive-switch",    "switch expression doesn't cover all possible values and doesn't have an else case" },
 		T{ warning_kind::unneeded_else,            "unneeded-else",            "else case in switch expression is not needed, as all possible values are covered"  },
+		T{ warning_kind::comptime_warning,         "comptime-warning",         "warning emitted with '__builtin_comptime_compile_warning'"                         },
 	};
 
 	constexpr_bubble_sort(

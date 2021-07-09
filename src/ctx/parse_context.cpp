@@ -5551,7 +5551,7 @@ ast::constant_value parse_context::execute_function(
 				src_tokens,
 				bz::format("while evaluating call to '{}' in a constant expression", body->get_signature())
 			));
-			this->global_ctx.report_error(std::move(error));
+			this->global_ctx.report_error_or_warning(std::move(error));
 		}
 	}
 	return result;
@@ -5571,7 +5571,7 @@ ast::constant_value parse_context::execute_compound_expression(
 		for (auto &error : errors)
 		{
 			error.notes.push_back(this->make_note(src_tokens, "while evaluating compound expression in a constant expression"));
-			this->global_ctx.report_error(std::move(error));
+			this->global_ctx.report_error_or_warning(std::move(error));
 		}
 	}
 	return result;

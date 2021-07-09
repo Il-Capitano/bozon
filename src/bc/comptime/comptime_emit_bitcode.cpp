@@ -2654,7 +2654,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2940,6 +2940,41 @@ static val_ptr emit_bitcode(
 			}
 		}
 
+		case ast::function_body::comptime_compile_error:
+		case ast::function_body::comptime_compile_warning:
+		{
+			auto const fn = func_call.func_body->intrinsic_kind == ast::function_body::comptime_compile_error
+				? context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_error_src_tokens))
+				: context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_warning_src_tokens));
+			auto const message_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const src_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+			auto const src_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+			auto const src_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+			ast::arena_vector<llvm::Value *> params;
+			params.reserve(5);
+			ast::arena_vector<bool> params_is_byval;
+			params_is_byval.reserve(2);
+			add_call_parameter<abi>(
+				func_call.params[0].get_expr_type_and_kind().first, context.get_str_t(),
+				message_val, params, params_is_byval, context
+			);
+
+			params.push_back(src_begin_val);
+			params.push_back(src_pivot_val);
+			params.push_back(src_end_val);
+
+			auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
+			bz_assert(!params_is_byval.empty());
+			if (params_is_byval[0])
+			{
+				call->addParamAttr(0, llvm::Attribute::getWithByValType(context.get_llvm_context(), context.get_str_t()));
+				call->addParamAttr(0, llvm::Attribute::NoAlias);
+				call->addParamAttr(0, llvm::Attribute::NoCapture);
+				call->addParamAttr(0, llvm::Attribute::NonNull);
+			}
+			return {};
+		}
+
 		default:
 			break;
 		}
@@ -2963,9 +2998,6 @@ static val_ptr emit_bitcode(
 		return emit_default_constructor<abi>(func_call.src_tokens, func_call.func_body->return_type, context, result_address);
 	}
 
-	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
-	auto const result_kind = context.get_pass_kind<abi>(func_call.func_body->return_type, result_type);
-
 	bz_assert(func_call.func_body != nullptr);
 	if (!func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
@@ -2978,7 +3010,7 @@ static val_ptr emit_bitcode(
 		{
 			return val_ptr{ val_ptr::reference, result_address };
 		}
-		else if (result_type->isVoidTy())
+		else if (auto const result_type = get_llvm_type(func_call.func_body->return_type, context); result_type->isVoidTy())
 		{
 			return {};
 		}
@@ -2987,8 +3019,11 @@ static val_ptr emit_bitcode(
 			return val_ptr{ val_ptr::value, llvm::UndefValue::get(result_type) };
 		}
 	}
+
 	auto const fn = context.get_function(func_call.func_body);
 	bz_assert(fn != nullptr);
+	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+	auto const result_kind = context.get_pass_kind<abi>(func_call.func_body->return_type, result_type);
 
 	ast::arena_vector<llvm::Value *> params = {};
 	ast::arena_vector<bool> params_is_byval = {};

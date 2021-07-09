@@ -1815,7 +1815,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->is_intrinsic());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -2038,6 +2038,40 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	case ast::function_body::comptime_malloc:
 	case ast::function_body::comptime_malloc_type:
 	case ast::function_body::comptime_free:
+		return {};
+
+	case ast::function_body::comptime_compile_error:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			bz_assert(func_call.params.size() == 1);
+			consteval_try(func_call.params[0], context);
+			if (func_call.params[0].has_consteval_succeeded())
+			{
+				auto const &message_value = func_call.params[0].get<ast::constant_expression>().value;
+				bz_assert(message_value.is<ast::constant_value::string>());
+				auto const message = message_value.get<ast::constant_value::string>().as_string_view();
+				context.report_error(func_call.src_tokens, message);
+				return ast::constant_value::get_void();
+			}
+		}
+		return {};
+	case ast::function_body::comptime_compile_warning:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			bz_assert(func_call.params.size() == 1);
+			consteval_try(func_call.params[0], context);
+			if (func_call.params[0].has_consteval_succeeded())
+			{
+				auto const &message_value = func_call.params[0].get<ast::constant_expression>().value;
+				bz_assert(message_value.is<ast::constant_value::string>());
+				auto const message = message_value.get<ast::constant_value::string>().as_string_view();
+				context.report_warning(ctx::warning_kind::comptime_warning, func_call.src_tokens, message);
+				return ast::constant_value::get_void();
+			}
+		}
+		return {};
+	case ast::function_body::comptime_compile_error_src_tokens:
+	case ast::function_body::comptime_compile_warning_src_tokens:
 		return {};
 
 	case ast::function_body::memcpy:

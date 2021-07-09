@@ -1,5 +1,8 @@
 import ::std::string;
 
+consteval warning_kind_comptime_warning = 21u32;
+consteval warning_kind_error            = 22u32;
+
 // copied from std::format
 
 @no_runtime_emit
@@ -401,6 +404,30 @@ operator [] (arr: &const auto, i: int64) -> &const typeof *arr.data_begin
 	return *(arr.data_begin + i);
 }
 
+@no_comptime_checking
+function begin(arr: &error_array_t) -> *typeof *arr.data_begin
+{
+	return arr.data_begin;
+}
+
+@no_comptime_checking
+function begin(arr: &const error_array_t) -> *const typeof *arr.data_begin
+{
+	return arr.data_begin;
+}
+
+@no_comptime_checking
+function end(arr: &error_array_t) -> *typeof *arr.data_end
+{
+	return arr.data_end;
+}
+
+@no_comptime_checking
+function end(arr: &const error_array_t) -> *const typeof *arr.data_end
+{
+	return arr.data_end;
+}
+
 @no_runtime_emit
 @comptime_error_checking("errors_var")
 let errors = error_array_t[ null, null, null ];
@@ -477,7 +504,14 @@ function get_error_call_stack_element_by_index(i: uint64, j: uint64) -> uint64
 @comptime_error_checking("has_errors")
 function has_errors() -> bool
 {
-	return !errors.empty();
+	for (let &const error in errors)
+	{
+		if (error.kind == warning_kind_error)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 @no_comptime_checking
@@ -620,4 +654,22 @@ function index_check_signed(
 	{
 		return true;
 	}
+}
+
+// builtins for error emission in comptime code
+
+@no_comptime_checking
+@__builtin("comptime_compile_error_src_tokens")
+function __builtin_comptime_compile_error_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
+{
+	const call_stack_array = get_call_stack_array_copy();
+	errors.push_back(error_t[ warning_kind_error, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack_array ]);
+}
+
+@no_comptime_checking
+@__builtin("comptime_compile_warning_src_tokens")
+function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
+{
+	const call_stack_array = get_call_stack_array_copy();
+	errors.push_back(error_t[ warning_kind_comptime_warning, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack_array ]);
 }

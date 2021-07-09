@@ -46,11 +46,14 @@ struct global_context
 	bz::vector<ast::type_and_name_pair>     _builtin_types;
 	bz::vector<ast::function_body>          _builtin_functions;
 	bz::vector<ast::universal_function_set> _builtin_universal_functions;
-	ast::function_body *_builtin_str_eq_func     = nullptr;
-	ast::function_body *_builtin_str_neq_func    = nullptr;
-	ast::function_body *_builtin_str_length_func = nullptr;
-	ast::function_body *_builtin_str_starts_with_func = nullptr;
-	ast::function_body *_builtin_str_ends_with_func = nullptr;
+
+	ast::function_body *_builtin_str_eq_func                      = nullptr;
+	ast::function_body *_builtin_str_neq_func                     = nullptr;
+	ast::function_body *_builtin_str_length_func                  = nullptr;
+	ast::function_body *_builtin_str_starts_with_func             = nullptr;
+	ast::function_body *_builtin_str_ends_with_func               = nullptr;
+	ast::function_body *_comptime_compile_error_src_tokens_func   = nullptr;
+	ast::function_body *_comptime_compile_warning_src_tokens_func = nullptr;
 
 	std::list<src_file> _src_files;
 
@@ -76,6 +79,11 @@ struct global_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+
+	void report_error_or_warning(error &&err)
+	{
+		this->_errors.emplace_back(std::move(err));
+	}
 
 	void report_error(error &&err)
 	{

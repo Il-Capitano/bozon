@@ -453,7 +453,7 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 116);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 	if (
 		(
 			!body->is_intrinsic()
@@ -462,8 +462,10 @@ void comptime_executor_context::ensure_function_emission(ast::function_body *bod
 			|| body->intrinsic_kind == ast::function_body::builtin_str_length
 			|| body->intrinsic_kind == ast::function_body::builtin_str_starts_with
 			|| body->intrinsic_kind == ast::function_body::builtin_str_ends_with
+			|| body->intrinsic_kind == ast::function_body::comptime_compile_error_src_tokens
+			|| body->intrinsic_kind == ast::function_body::comptime_compile_warning_src_tokens
 		)
-		&& !this->functions_to_compile.contains(body)
+		// && !this->functions_to_compile.contains(body)
 	)
 	{
 		this->functions_to_compile.push_back(body);
@@ -733,20 +735,21 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
-		if (this->has_error())
+
+		if (!this->has_error())
 		{
-			auto errors = this->consume_errors();
-			result.second.append_move(errors);
+			if (global_result_getters.empty())
+			{
+				result.first = constant_value_from_generic_value(call_result, body->return_type);
+			}
+			else
+			{
+				auto getter_it = global_result_getters.cbegin();
+				result.first = constant_value_from_global_getters(body->return_type, getter_it, *this);
+			}
 		}
-		else if (global_result_getters.empty())
-		{
-			result.first = constant_value_from_generic_value(call_result, body->return_type);
-		}
-		else
-		{
-			auto getter_it = global_result_getters.cbegin();
-			result.first = constant_value_from_global_getters(body->return_type, getter_it, *this);
-		}
+		result.second.append_move(this->consume_errors());
+
 		this->current_module = original_module;
 		return result;
 	}
@@ -778,26 +781,25 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
 	this->add_module(std::move(module));
 	auto const call_result = this->engine->runFunction(fn, {});
-	if (this->has_error())
+	if (!this->has_error())
 	{
-		auto errors = this->consume_errors();
-		result.second.append_move(errors);
+		if (expr.final_expr.is_null())
+		{
+			result.first.emplace<ast::constant_value::void_>();
+		}
+		else if (global_result_getters.empty())
+		{
+			auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
+			result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
+		}
+		else
+		{
+			auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
+			auto getter_it = global_result_getters.cbegin();
+			result.first = constant_value_from_global_getters(result_type, getter_it, *this);
+		}
 	}
-	else if (expr.final_expr.is_null())
-	{
-		result.first.emplace<ast::constant_value::void_>();
-	}
-	else if (global_result_getters.empty())
-	{
-		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
-		result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
-	}
-	else
-	{
-		auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
-		auto getter_it = global_result_getters.cbegin();
-		result.first = constant_value_from_global_getters(result_type, getter_it, *this);
-	}
+	result.second.append_move(this->consume_errors());
 	this->current_module = original_module;
 	return result;
 }
