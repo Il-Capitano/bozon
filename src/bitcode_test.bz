@@ -71,6 +71,8 @@ function main(args: [: const str]) -> int32
 
 	std::printf("hello\n");
 
+	// (consteval std::printf("hello {}!\n", "world"));
+
 	const n = 3;
 	switch (n)
 	{

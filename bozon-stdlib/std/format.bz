@@ -20,6 +20,21 @@ export function write_into(buffer: &format_buffer, c: char)
 	buffer._str ..= c;
 }
 
+function check_fmt_str(fmt_str: str)
+{
+	let it = fmt_str.begin_ptr();
+	const end = fmt_str.end_ptr();
+
+	for (; it != end; ++it)
+	{
+		if (*it == '{' as uint32 && (it + 1 == end || *(it + 1) != '}' as uint32))
+		{
+			const message = format_unchecked_fmt("invalid format string '{}'; expected closing '}' at '{}'", fmt_str, __builtin_str_from_ptrs(it + 1, end));
+			__builtin_comptime_compile_error(message.as_str());
+		}
+	}
+}
+
 function count_args_in_str(fmt_str: str) -> usize
 {
 	let it = __builtin_str_begin_ptr(fmt_str);
@@ -102,7 +117,7 @@ export function format_into(buffer: &format_buffer, fmt_str: consteval str, arg_
 	buffer.write_into(slices[args_count]);
 }
 
-export function format(fmt_str: consteval str, args: ...#const auto) -> string
+function format_unchecked_fmt(fmt_str: consteval str, args: ...#const auto) -> string
 {
 	let buf = format_buffer[ string() ];
 	const arg_ptrs = [ ...&args, null as *const int32 ];
@@ -110,8 +125,15 @@ export function format(fmt_str: consteval str, args: ...#const auto) -> string
 	return buf._str;
 }
 
+export function format(fmt_str: consteval str, args: ...#const auto) -> string
+{
+	(consteval check_fmt_str(fmt_str));
+	return format_unchecked_fmt(fmt_str, ...args);
+}
+
 export function printf(fmt_str: consteval str, args: ...#const auto)
 {
+	(consteval check_fmt_str(fmt_str));
 	let buf = format_buffer[ string() ];
 	const arg_ptrs = [ ...&args, null as *const int32 ];
 	buf.format_into(fmt_str, arg_ptrs);
