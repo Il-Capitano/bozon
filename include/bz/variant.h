@@ -260,21 +260,22 @@ public:
 	}
 
 	template<size_t N, typename ...Args>
-	void emplace(Args &&...args) noexcept(
+	auto &emplace(Args &&...args) noexcept(
 		(meta::is_nothrow_destructible_v<Ts> && ...)
 		&& meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
 		this->clear();
 		this->no_clear_emplace<N>(std::forward<Args>(args)...);
+		return this->no_check_get<N>();
 	}
 
 	template<typename T, typename ...Args>
-	void emplace(Args &&...args) noexcept(
+	auto &emplace(Args &&...args) noexcept(
 		(meta::is_nothrow_destructible_v<Ts> && ...)
 		&& meta::is_nothrow_constructible_v<T, Args...>
 	)
-	{ this->emplace<index_of<T>>(std::forward<Args>(args)...); }
+	{ return this->emplace<index_of<T>>(std::forward<Args>(args)...); }
 
 	variant(void) noexcept
 		: _index(null)
@@ -524,6 +525,14 @@ public:
 	template<size_t N>
 	bool is(void) const noexcept
 	{ return this->_index == N; }
+
+	template<typename ...Us>
+	bool is_any(void) const noexcept
+	{ return (this->is<Us>() || ...); }
+
+	template<size_t ...Ns>
+	bool is_any(void) const noexcept
+	{ return (this->is<Ns>() || ...); }
 };
 
 template<typename ...Ts>
