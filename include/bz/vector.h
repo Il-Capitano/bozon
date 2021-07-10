@@ -463,11 +463,12 @@ public:
 		}
 	}
 
-	void resize(size_type new_size, value_type const &val) noexcept(
+	template<typename U>
+	void resize(size_type new_size, U const &val) noexcept(
 		nothrow_alloc       // size change
 		&& nothrow_dealloc  // size change
-		&& nothrow_destruct_value  // new_size < current_size
-		&& nothrow_copy_value      // new_size > current_size, shrink_to_fit
+		&& nothrow_destruct_value             // new_size < current_size
+		&& nothrow_construct_value<U const &> // new_size > current_size, shrink_to_fit
 	)
 	{
 		auto current_size = this->size();
@@ -572,6 +573,9 @@ public:
 
 	auto empty(void) const noexcept
 	{ return this->_data_begin == this->_data_end; }
+
+	auto not_empty(void) const noexcept
+	{ return !this->empty(); }
 
 
 public:
