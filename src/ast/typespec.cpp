@@ -322,11 +322,7 @@ bool is_complete(typespec_view ts) noexcept
 		return false;
 	}
 
-	auto const is_auto_ref_or_variadic = ts.nodes.is_any([](auto const &node) {
-		return node.template is<ts_auto_reference>()
-			|| node.template is<ts_auto_reference_const>()
-			|| node.template is<ts_variadic>();
-	});
+	auto const is_auto_ref_or_variadic = ts.nodes.front().is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
 
 	return !is_auto_ref_or_variadic && ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &) {

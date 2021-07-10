@@ -541,7 +541,12 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 				result.emplace<ast::constant_value::u8char>(static_cast<bz::u8char>(value.IntVal.getLimitedValue()));
 				break;
 			case ast::type_info::str_:
-				bz_unreachable;
+				bz_assert(value.AggregateVal.size() == 2);
+				result.emplace<ast::constant_value::string>(bz::u8string_view(
+					static_cast<char const *>(value.AggregateVal[0].PointerVal),
+					static_cast<char const *>(value.AggregateVal[1].PointerVal)
+				));
+				break;
 			case ast::type_info::bool_:
 				result.emplace<ast::constant_value::boolean>(value.IntVal.getBoolValue());
 				break;
@@ -636,13 +641,25 @@ static ast::constant_value constant_value_from_global_getters(
 			if (base_t.info->kind == ast::type_info::aggregate)
 			{
 				ast::constant_value result;
-				result.emplace<ast::constant_value::aggregate>();
-				auto &agg = result.get<ast::constant_value::aggregate>();
+				auto &agg = result.emplace<ast::constant_value::aggregate>();
 				agg.reserve(base_t.info->member_variables.size());
 				for (auto const decl : base_t.info->member_variables)
 				{
 					agg.push_back(constant_value_from_global_getters(decl->get_type(), getter_it, context));
 				}
+				return result;
+			}
+			else if (base_t.info->kind == ast::type_info::str_)
+			{
+				auto const begin_ptr = context.engine->runFunction(*getter_it, {});
+				++getter_it;
+				auto const end_ptr = context.engine->runFunction(*getter_it, {});
+				++getter_it;
+				ast::constant_value result;
+				result.emplace<ast::constant_value::string>() = bz::u8string_view(
+					static_cast<char const *>(begin_ptr.PointerVal),
+					static_cast<char const *>(end_ptr.PointerVal)
+				);
 				return result;
 			}
 			else
