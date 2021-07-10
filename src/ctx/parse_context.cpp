@@ -2449,6 +2449,21 @@ static match_level_t operator + (match_level_t lhs, int rhs)
 	return lhs;
 }
 
+static void expand_variadic_tuple_type(bz::vector<ast::typespec> &tuple_types, size_t new_size)
+{
+	bz_assert(tuple_types.not_empty() && tuple_types.back().is<ast::ts_variadic>());
+	auto const non_variadic_count = tuple_types.size() - 1;
+	if (non_variadic_count <= new_size)
+	{
+		auto const variadic_type = tuple_types.back().get<ast::ts_variadic>();
+		tuple_types.resize(new_size, variadic_type);
+		if (non_variadic_count < new_size)
+		{
+			tuple_types[non_variadic_count].remove_layer();
+		}
+	}
+}
+
 static match_level_t get_strict_typename_match_level(
 	ast::typespec_view dest,
 	ast::typespec_view source
@@ -2518,6 +2533,40 @@ static match_level_t get_strict_type_match_level(
 	else if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
 	{
 		return result;
+	}
+	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
+	{
+		auto const &source_tuple_types = source.get<ast::ts_tuple>().types;
+		bz::vector<ast::typespec> dest_tuple_types_variadic;
+		auto const &dest_tuple_types_ref = dest.get<ast::ts_tuple>().types;
+		if (dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>())
+		{
+			dest_tuple_types_variadic = dest_tuple_types_ref;
+			expand_variadic_tuple_type(dest_tuple_types_variadic, source_tuple_types.size());
+		}
+		auto const &dest_tuple_types = dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>()
+			? dest_tuple_types_variadic
+			: dest_tuple_types_ref;
+		if (dest_tuple_types.size() == source_tuple_types.size())
+		{
+			match_level_t result = bz::vector<match_level_t>{};
+			auto &result_vec = result.get<bz::vector<match_level_t>>();
+			auto good = true;
+			for (auto const &[source_elem_t, dest_elem_t] : bz::zip(source_tuple_types, dest_tuple_types))
+			{
+				result_vec.push_back(get_strict_type_match_level(dest_elem_t, source_elem_t, false));
+				good &= result_vec.back().not_null();
+			}
+			if (!good)
+			{
+				result.clear();
+			}
+			return result;
+		}
+		else
+		{
+			return match_level_t{};
+		}
 	}
 	else
 	{
@@ -2664,12 +2713,22 @@ static match_level_t get_type_match_level(
 	}
 	else if (dest.is<ast::ts_tuple>() && expr_type_without_const.is<ast::ts_tuple>())
 	{
-		auto const &dest_tuple_types = dest.get<ast::ts_tuple>().types;
 		auto const &expr_tuple_types = expr_type_without_const.get<ast::ts_tuple>().types;
+		bz::vector<ast::typespec> dest_tuple_types_variadic;
+		auto const &dest_tuple_types_ref = dest.get<ast::ts_tuple>().types;
+		if (dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>())
+		{
+			dest_tuple_types_variadic = dest_tuple_types_ref;
+			expand_variadic_tuple_type(dest_tuple_types_variadic, expr_tuple_types.size());
+		}
+		auto const &dest_tuple_types = dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>()
+			? dest_tuple_types_variadic
+			: dest_tuple_types_ref;
 		if (dest_tuple_types.size() == expr_tuple_types.size())
 		{
 			match_level_t result = bz::vector<match_level_t>{};
 			auto &result_vec = result.get<bz::vector<match_level_t>>();
+			bool good = true;
 			for (auto const &[expr_elem_t, dest_elem_t] : bz::zip(expr_tuple_types, dest_tuple_types))
 			{
 				if (expr_elem_t.is<ast::ts_lvalue_reference>())
@@ -2685,6 +2744,11 @@ static match_level_t get_type_match_level(
 				{
 					result_vec.push_back(get_type_match_level(expr_elem_t, dest_elem_t, expr_type_kind, context));
 				}
+				good &= result_vec.back().not_null();
+			}
+			if (!good)
+			{
+				result.clear();
 			}
 			return result;
 		}
@@ -2864,15 +2928,30 @@ static match_level_t get_type_match_level(
 	}
 	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
 	{
-		auto const &dest_tuple_types = dest.get<ast::ts_tuple>().types;
 		auto &expr_tuple_elems = expr.get_tuple().elems;
+		bz::vector<ast::typespec> dest_tuple_types_variadic;
+		auto const &dest_tuple_types_ref = dest.get<ast::ts_tuple>().types;
+		if (dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>())
+		{
+			dest_tuple_types_variadic = dest_tuple_types_ref;
+			expand_variadic_tuple_type(dest_tuple_types_variadic, expr_tuple_elems.size());
+		}
+		auto const &dest_tuple_types = dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>()
+			? dest_tuple_types_variadic
+			: dest_tuple_types_ref;
 		if (dest_tuple_types.size() == expr_tuple_elems.size())
 		{
 			match_level_t result = bz::vector<match_level_t>{};
 			auto &result_vec = result.get<bz::vector<match_level_t>>();
+			bool good = true;
 			for (auto const &[elem, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
 			{
 				result_vec.push_back(get_type_match_level(type, elem, context));
+				good &= result_vec.back().not_null();
+			}
+			if (!good)
+			{
+				result.clear();
 			}
 			return result;
 		}
@@ -2929,6 +3008,26 @@ enum class type_match_result
 		bz_assert(!source.is<ast::ts_consteval>());
 		dest_container.copy_from(dest, source);
 		return type_match_result::good;
+	}
+	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
+		auto &dest_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
+		auto &source_types = source.get<ast::ts_tuple>().types;
+		if (dest_types.not_empty() && dest_types.back().is<ast::ts_variadic>())
+		{
+			expand_variadic_tuple_type(dest_types, source_types.size());
+		}
+		if (dest_types.size() != source_types.size())
+		{
+			return type_match_result::error;
+		}
+		type_match_result result = type_match_result::good;
+		for (auto const [dest_elem, source_elem] : bz::zip(dest_types, source_types))
+		{
+			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false, context));
+		}
+		return result;
 	}
 	else
 	{
@@ -3159,6 +3258,16 @@ static void match_typename_to_type_impl(
 		auto &dest_tuple_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
 		auto const &expr_tuple_types = expr_type_without_const.get<ast::ts_tuple>().types;
 		type_match_result result = type_match_result::good;
+		if (dest_tuple_types.not_empty() && dest_tuple_types.back().is<ast::ts_variadic>())
+		{
+			expand_variadic_tuple_type(dest_tuple_types, expr_tuple_types.size());
+		}
+
+		if (dest_tuple_types.size() != expr_tuple_types.size())
+		{
+			return type_match_result::error;
+		}
+
 		for (auto const &[expr_elem_t, dest_elem_t] : bz::zip(expr_tuple_types, dest_tuple_types))
 		{
 			if (
@@ -3522,6 +3631,12 @@ static void match_expression_to_type_impl(
 			bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
 			auto &dest_tuple_types = dest_container.nodes.back().get<ast::ts_tuple>().types;
 			auto &expr_tuple_elems = expr.get_tuple().elems;
+
+			if (dest_tuple_types.not_empty() && dest_tuple_types.back().is<ast::ts_variadic>())
+			{
+				expand_variadic_tuple_type(dest_tuple_types, expr_tuple_elems.size());
+			}
+
 			if (dest_tuple_types.size() == expr_tuple_elems.size())
 			{
 				for (auto const &[expr, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
@@ -3652,7 +3767,7 @@ static match_level_t get_function_call_match_level(
 	auto const add_to_result = [&](match_level_t match)
 	{
 		result_vec.push_back(std::move(match));
-		good |= match.is_null();
+		good &= match.not_null();
 	};
 
 	auto       params_it  = func_body.params.begin();
