@@ -1,4 +1,5 @@
 #include "parse_context.h"
+#include "ast/statement.h"
 #include "ast/typespec.h"
 #include "global_context.h"
 #include "builtin_operators.h"
@@ -768,13 +769,31 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 	bz_assert(this->scope_decls.size() != 0);
 	if (var_decl.tuple_decls.empty())
 	{
+		var_decl.flags &= ~ast::decl_variable::used;
 		this->scope_decls.back().var_decls.push_back(&var_decl);
 	}
 	else
 	{
-		for (auto &decl : var_decl.tuple_decls)
+		auto it = var_decl.tuple_decls.begin();
+		auto const end = var_decl.tuple_decls.end();
+		for (; it != end; ++it)
 		{
-			this->add_local_variable(decl);
+			if (it->is_variadic())
+			{
+				break;
+			}
+			this->add_local_variable(*it);
+		}
+		if (it != end && it->is_variadic())
+		{
+			auto const variadic_decls = bz::basic_range{ it, end }
+				.transform([](auto &decl) { return &decl; })
+				.collect();
+			this->add_local_variable(*it, std::move(variadic_decls));
+		}
+		else if (var_decl.original_tuple_variadic_decl != nullptr)
+		{
+			this->add_local_variable(*var_decl.original_tuple_variadic_decl, {});
 		}
 	}
 }
@@ -5404,6 +5423,22 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
 	{
 		bz_assert(type.is<ast::ts_tuple>());
 		auto const &inner_types = type.get<ast::ts_tuple>().types;
+		if (var_decl.tuple_decls.back().get_type().is<ast::ts_variadic>())
+		{
+			var_decl.tuple_decls.back().flags |= ast::decl_variable::variadic;
+			if (inner_types.size() == var_decl.tuple_decls.size() - 1)
+			{
+				var_decl.original_tuple_variadic_decl = ast::make_ast_unique<ast::decl_variable>(
+					std::move(var_decl.tuple_decls.back())
+				);
+				var_decl.tuple_decls.pop_back();
+			}
+			else
+			{
+				bz_assert(inner_types.size() >= var_decl.tuple_decls.size());
+				var_decl.tuple_decls.resize(inner_types.size(), var_decl.tuple_decls.back());
+			}
+		}
 		bz_assert(inner_types.size() == var_decl.tuple_decls.size());
 		for (auto const &[inner_decl, inner_type] : bz::zip(var_decl.tuple_decls, inner_types))
 		{

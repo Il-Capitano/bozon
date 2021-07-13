@@ -77,6 +77,12 @@ struct identifier
 		}
 		return result;
 	}
+
+	bool empty(void) const noexcept
+	{ return this->values.empty(); }
+
+	bool not_empty(void) const noexcept
+	{ return this->values.not_empty(); }
 };
 
 inline identifier make_identifier(lex::token_pos id)

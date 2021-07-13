@@ -1408,7 +1408,6 @@ void resolve_function_parameters(
 	context_ptr->set_current_file_info(original_file_info);
 }
 
-template<uint32_t flag_to_remove = 0>
 static void add_parameters_as_local_variables(
 	ast::function_body &func_body,
 	ctx::parse_context &context
@@ -1423,7 +1422,6 @@ static void add_parameters_as_local_variables(
 			break;
 		}
 		context.add_local_variable(*params_it);
-		params_it->flags &= ~flag_to_remove;
 	}
 	if (
 		func_body.generic_parent != nullptr
@@ -1590,6 +1588,21 @@ static void report_invalid_main_error(ast::function_body const &body, ctx::parse
 	bz_unreachable;
 }
 
+static void add_used_flag(ast::decl_variable &decl)
+{
+	if (decl.tuple_decls.empty())
+	{
+		decl.flags |= ast::decl_variable::used;
+	}
+	else
+	{
+		for (auto &tuple_decl : decl.tuple_decls)
+		{
+			add_used_flag(tuple_decl);
+		}
+	}
+}
+
 // resolves the function symbol, but doesn't modify scope
 static bool resolve_function_symbol_helper(
 	ast::statement_view func_stmt,
@@ -1606,7 +1619,7 @@ static bool resolve_function_symbol_helper(
 	auto const return_type_good = resolve_function_return_type_helper(func_body, context);
 	for (auto &p : func_body.params)
 	{
-		p.flags |= ast::decl_variable::used;
+		add_used_flag(p);
 	}
 	auto const good = parameters_good && return_type_good;
 	if (!good)
@@ -2815,8 +2828,8 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id_and_type.id.values = { "" };
 	range_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(range_var_decl, context);
-	range_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(range_var_decl);
+	range_var_decl.flags |= ast::decl_variable::used;
 
 	if (range_var_decl.id_and_type.var_type.is_empty())
 	{
@@ -2859,8 +2872,8 @@ static ast::statement parse_stmt_foreach_impl(
 	iter_var_decl.id_and_type.id.values = { "" };
 	iter_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(iter_var_decl, context);
-	iter_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(iter_var_decl);
+	iter_var_decl.flags |= ast::decl_variable::used;
 
 	auto range_end_expr = [&]() {
 		if (range_var_decl.id_and_type.var_type.is_empty())
@@ -2896,8 +2909,8 @@ static ast::statement parse_stmt_foreach_impl(
 	end_var_decl.id_and_type.id.values = { "" };
 	end_var_decl.id_and_type.id.is_qualified = false;
 	resolve_variable(end_var_decl, context);
-	end_var_decl.flags |= ast::decl_variable::used;
 	context.add_local_variable(end_var_decl);
+	end_var_decl.flags |= ast::decl_variable::used;
 
 	auto condition = [&]() {
 		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())

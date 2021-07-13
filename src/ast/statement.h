@@ -319,9 +319,43 @@ struct decl_variable
 
 	expression    init_expr; // is null if there's no initializer
 	resolve_state state;
+	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
 	uint8_t       flags;
 
-	declare_default_5(decl_variable)
+	decl_variable(void) = default;
+	decl_variable(decl_variable const &other)
+		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
+		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
+		  init_expr(other.init_expr), state(other.state),
+		  original_tuple_variadic_decl(nullptr), flags(other.flags)
+	{
+		if (other.original_tuple_variadic_decl != nullptr)
+		{
+			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
+		}
+	}
+	decl_variable(decl_variable &&) = default;
+	decl_variable &operator = (decl_variable const &other)
+	{
+		if (this == &other)
+		{
+			return *this;
+		}
+		this->src_tokens = other.src_tokens;
+		this->prototype_range = other.prototype_range;
+		this->id_and_type = other.id_and_type;
+		this->tuple_decls = other.tuple_decls;
+		this->init_expr = other.init_expr;
+		this->state = other.state;
+		this->flags = other.flags;
+		if (other.original_tuple_variadic_decl != nullptr)
+		{
+			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
+		}
+		return *this;
+	}
+	decl_variable &operator = (decl_variable &&) = default;
+	~decl_variable(void) noexcept = default;
 
 	decl_variable(
 		lex::src_tokens  _src_tokens,

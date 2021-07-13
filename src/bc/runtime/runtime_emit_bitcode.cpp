@@ -4484,14 +4484,21 @@ static void emit_function_bitcode_impl(
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
 				auto const alloca = context.create_alloca(val->getType());
 				context.builder.CreateStore(val, alloca);
-				context.add_variable(&p, alloca);
+				add_variable_helper(p, alloca, context);
 				++p_it;
 				continue;
 			}
 			if (p.get_type().is<ast::ts_lvalue_reference>())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
-				context.add_variable(&p, fn_it);
+				if (p.tuple_decls.empty())
+				{
+					context.add_variable(&p, fn_it);
+				}
+				else
+				{
+					add_variable_helper(p, fn_it, context);
+				}
 			}
 			else
 			{
@@ -4502,14 +4509,21 @@ static void emit_function_bitcode_impl(
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
 					push_destructor_call(fn_it, p.get_type(), context);
-					context.add_variable(&p, fn_it);
+					if (p.tuple_decls.empty())
+					{
+						context.add_variable(&p, fn_it);
+					}
+					else
+					{
+						add_variable_helper(p, fn_it, context);
+					}
 					break;
 				case abi::pass_kind::value:
 				{
 					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
 					push_destructor_call(alloca, p.get_type(), context);
-					context.add_variable(&p, alloca);
+					add_variable_helper(p, alloca, context);
 					break;
 				}
 				case abi::pass_kind::one_register:
@@ -4518,7 +4532,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
 					push_destructor_call(alloca, p.get_type(), context);
-					context.add_variable(&p, alloca);
+					add_variable_helper(p, alloca, context);
 					break;
 				}
 				case abi::pass_kind::two_registers:
@@ -4537,7 +4551,7 @@ static void emit_function_bitcode_impl(
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					push_destructor_call(alloca, p.get_type(), context);
-					context.add_variable(&p, alloca);
+					add_variable_helper(p, alloca, context);
 					break;
 				}
 				}
