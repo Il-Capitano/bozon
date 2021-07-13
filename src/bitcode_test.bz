@@ -300,6 +300,8 @@ function main(args: [: const str]) -> int32
 	// const arr: [3, 1: float64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
 	std::printf("{}\n", arr);
 	std::printf("{}\n", 1e15);
+	let t = [ 3, 3.234, "hello" ];
+	std::printf("{}\n", t);
 
 	// consteval x = std::sqrt(-1.0);
 

@@ -79,7 +79,7 @@ function get_slices(fmt_str: str, args_count: consteval usize) -> [args_count + 
 	return result;
 }
 
-function get_indicies(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
+function get_indices(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
 {
 	let result: [(if (end - start == 0u) { 1u } else { end - start }): usize];
 	for (let [i, counter] = [ 0uz, start]; counter != end; ++i, ++counter)
@@ -96,33 +96,33 @@ function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], s
 	(*arg_ptrs[index]).format_to(buffer);
 }
 
-function format_into_impl(buffer: &format_buffer, indicies: consteval auto, slices: [: const str], arg_ptrs: &const auto)
+function format_into_impl(buffer: &format_buffer, indices: consteval auto, slices: [: const str], arg_ptrs: &const auto)
 {
-	consteval index = indicies[0];
+	consteval index = indices[0];
 	buffer.write_into(slices[index]);
 	(*arg_ptrs[index]).format_to(buffer);
-	consteval rest_indicies = get_indicies(indicies[1], indicies[indicies.size() - 1u] + 1u);
-	buffer.format_into_impl(rest_indicies, slices, arg_ptrs);
+	consteval rest_indices = get_indices(indices[1], indices[indices.size() - 1u] + 1u);
+	buffer.format_into_impl(rest_indices, slices, arg_ptrs);
 }
 
-export function format_into(buffer: &format_buffer, fmt_str: consteval str, arg_ptrs: &const auto)
+export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: ...#const auto)
 {
+	const arg_ptrs = [ ...&args, null as *const int32 ];
 	consteval args_count = count_args_in_str(fmt_str);
-	consteval indicies = get_indicies(0uz, args_count);
+	consteval indices = get_indices(0uz, args_count);
 	const slices = get_slices(fmt_str, args_count);
 	if (slices.size() > 1u)
 	{
-		buffer.format_into_impl(indicies, slices, arg_ptrs);
+		buffer.format_into_impl(indices, slices, arg_ptrs);
 	}
 	buffer.write_into(slices[args_count]);
 }
 
 function format_unchecked_fmt(fmt_str: consteval str, args: ...#const auto) -> string
 {
-	let buf = format_buffer[ string() ];
-	const arg_ptrs = [ ...&args, null as *const int32 ];
-	buf.format_into(fmt_str, arg_ptrs);
-	return buf._str;
+	let buffer = format_buffer[ string() ];
+	buffer.format_into(fmt_str, ...args);
+	return buffer._str;
 }
 
 export function format(fmt_str: consteval str, args: ...#const auto) -> string
@@ -135,8 +135,7 @@ export function printf(fmt_str: consteval str, args: ...#const auto)
 {
 	(consteval check_fmt_str(fmt_str));
 	let buf = format_buffer[ string() ];
-	const arg_ptrs = [ ...&args, null as *const int32 ];
-	buf.format_into(fmt_str, arg_ptrs);
+	buf.format_into(fmt_str, ...args);
 	print(buf._str.as_str());
 }
 
@@ -355,7 +354,7 @@ function format_to(arr: [: const auto], buffer: &format_buffer)
 
 	buffer.write_into("[ ");
 
-	(*it).format_to(buffer);
+	buffer.format_into("{}", *it);
 	++it;
 	for (; it != end; ++it)
 	{
@@ -363,5 +362,23 @@ function format_to(arr: [: const auto], buffer: &format_buffer)
 		(*it).format_to(buffer);
 	}
 
+	buffer.write_into(" ]");
+}
+
+function tuple_format_to_impl(buffer: &format_buffer, [first])
+{
+	buffer.format_into("{}", *first);
+}
+
+function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest])
+{
+	buffer.format_into("{}, ", *first);
+	tuple_format_to_impl(buffer, [ second, ...rest ]);
+}
+
+function format_to([...elems], buffer: &format_buffer)
+{
+	buffer.write_into("[ ");
+	tuple_format_to_impl(buffer, [ ...&elems ]);
 	buffer.write_into(" ]");
 }
