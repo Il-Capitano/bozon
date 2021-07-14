@@ -96,7 +96,7 @@ function main(args: [: const str]) -> int32
 	consteval m = switch (factorial(3)) {
 		1, 2, 3 => 0,
 		4, 5, 6 => 1,
-		else => 2
+		else => unreachable
 	};
 	static_assert(typeof m == const int32);
 	static_assert(m == 1);
