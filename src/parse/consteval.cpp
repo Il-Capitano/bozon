@@ -3467,10 +3467,17 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 	bz_assert(expr.has_consteval_failed());
 	bz_assert(expr.is<ast::dynamic_expression>());
 	expr.get_expr().visit(bz::overload{
-		[&expr, &notes](ast::expr_identifier const &) {
+		[&expr, &notes](ast::expr_identifier const &id_expr) {
 			notes.emplace_back(ctx::parse_context::make_note(
 				expr.src_tokens, "subexpression is not a constant expression"
 			));
+			if (id_expr.decl != nullptr)
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					id_expr.decl->src_tokens,
+					bz::format("variable '{}' was declared here", id_expr.decl->get_id().format_as_unqualified())
+				));
+			}
 		},
 		[&expr, &notes](ast::expr_literal const &) {
 			// non-unreachable literals are always constant expressions,
@@ -3589,10 +3596,17 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				get_consteval_fail_notes_helper(cast_expr.expr, notes);
 			}
 		},
-		[&expr, &notes](ast::expr_take_reference const &) {
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
-			));
+		[&expr, &notes](ast::expr_take_reference const &take_ref_expr) {
+			if (take_ref_expr.expr.is<ast::constant_expression>())
+			{
+				notes.emplace_back(ctx::parse_context::make_note(
+					expr.src_tokens, "unable to take reference in a constant expression"
+				));
+			}
+			else
+			{
+				get_consteval_fail_notes_helper(take_ref_expr.expr, notes);
+			}
 		},
 		[&notes](ast::expr_struct_init const &struct_init_expr) {
 			bool any_failed = false;
