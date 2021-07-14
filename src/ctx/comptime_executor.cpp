@@ -707,7 +707,11 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 {
 	bz_assert(this->destructor_calls.empty());
 	auto const original_module = this->current_module;
-	auto module = std::make_unique<llvm::Module>("comptime_module", this->get_llvm_context());
+	auto const module_name = bz::format("comptime_module_{}", get_unique_id());
+	auto module = std::make_unique<llvm::Module>(
+		llvm::StringRef(module_name.data_as_char_ptr(), module_name.size()),
+		this->get_llvm_context()
+	);
 	module->setDataLayout(this->get_data_layout());
 	auto const is_native_target = target == "" || target == "native";
 	auto const target_triple = is_native_target
@@ -749,7 +753,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			return result;
 		}
 
-		// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
+		// bz::log("{}>>>>>>>> ======== <<<<<<<<{}\n", colors::bright_red, colors::clear);
+		// llvm::verifyModule(*module, &llvm::dbgs());
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
 
@@ -795,7 +800,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		return result;
 	}
 
-	// bz_assert(!llvm::verifyFunction(*fn, &llvm::dbgs()));
+	// bz::log("{}>>>>>>>> ======== <<<<<<<<{}\n", colors::bright_red, colors::clear);
+	// llvm::verifyModule(*module, &llvm::dbgs());
 	this->add_module(std::move(module));
 	auto const call_result = this->engine->runFunction(fn, {});
 	if (!this->has_error())
