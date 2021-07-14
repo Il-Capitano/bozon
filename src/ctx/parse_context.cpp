@@ -3535,69 +3535,95 @@ static void match_expression_to_type_impl(
 		{
 			for (auto &[_, case_expr] : switch_expr.cases)
 			{
+				if (case_expr.is_noreturn())
+				{
+					continue;
+				}
 				match_expression_to_type_impl(case_expr, dest_container, dest, context);
 			}
 		}
 		else
 		{
-			ast::typespec dest_container_copy = dest_container;
-			match_expression_to_type_impl(switch_expr.cases[0].expr, dest_container, dest, context);
-			if (switch_expr.cases[0].expr.is_error())
+			size_t first_matched_index = size_t(-1); // the first iteration sets it to 0 by overflowing this value
+			bool is_matched = false;
+			bool is_error = false;
+			ast::typespec matched_type;
+			for (auto &[_, case_expr] : switch_expr.cases)
+			{
+				if (!is_matched)
+				{
+					first_matched_index += 1;
+				}
+				if (case_expr.is_noreturn())
+				{
+					continue;
+				}
+				auto dest_container_copy = dest_container;
+				match_expression_to_type_impl(case_expr, dest_container_copy, dest_container_copy, context);
+				if (case_expr.is_error())
+				{
+					is_error = true;
+				}
+				else if (!is_matched)
+				{
+					is_matched = true;
+					matched_type = dest_container_copy;
+				}
+				else if (matched_type != dest_container_copy)
+				{
+					context.report_error(
+						expr, "different types deduced for different cases in switch expression",
+						{
+							context.make_note(switch_expr.cases[first_matched_index].expr, bz::format("type was first deduced as '{}'", matched_type)),
+							context.make_note(case_expr, bz::format("type was later deduced as '{}'", dest_container_copy)),
+						}
+					);
+				}
+			}
+			if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
+			{
+				auto dest_container_copy = dest_container;
+				match_expression_to_type_impl(switch_expr.default_case, dest_container_copy, dest_container_copy, context);
+				if (switch_expr.default_case.is_error())
+				{
+					is_error = true;
+				}
+				else if (!is_matched)
+				{
+					is_matched = true;
+					matched_type = dest_container_copy;
+				}
+				else if (matched_type != dest_container_copy)
+				{
+					context.report_error(
+						expr, "different types deduced for different cases in switch expression",
+						{
+							context.make_note(switch_expr.cases[first_matched_index].expr, bz::format("type was first deduced as '{}'", matched_type)),
+							context.make_note(switch_expr.default_case, bz::format("type was later deduced as '{}'", dest_container_copy)),
+						}
+					);
+				}
+			}
+
+			if (is_error)
 			{
 				expr.to_error();
 				dest_container.clear();
 				return;
 			}
-			for (auto &[_, case_expr] : switch_expr.cases.slice(1))
+			else if (is_matched)
 			{
-				auto dest_container_copy_copy = dest_container_copy;
-				match_expression_to_type_impl(case_expr, dest_container_copy_copy, dest_container_copy_copy, context);
-				if (!dest_container.is_empty() && !dest_container_copy_copy.is_empty() && dest_container != dest_container_copy_copy)
-				{
-					context.report_error(
-						expr, "different type deduced for different cases in switch expression",
-						{
-							context.make_note(switch_expr.cases[0].expr, bz::format("type was first deduced as '{}'", dest_container)),
-							context.make_note(case_expr, bz::format("type was deduced as '{}' later", dest_container_copy_copy)),
-						}
-					);
-					dest_container.clear();
-					expr.to_error();
-					return;
-				}
-				else if (case_expr.is_error())
-				{
-					expr.to_error();
-					dest_container.clear();
-					return;
-				}
+				expr.set_type(ast::remove_lvalue_reference(ast::remove_const_or_consteval(matched_type)));
+				expr.set_type_kind(dest_container.is<ast::ts_lvalue_reference>() ? ast::expression_type_kind::lvalue_reference : ast::expression_type_kind::rvalue);
+				dest_container = std::move(matched_type);
 			}
-			if (switch_expr.default_case.not_null())
+			else
 			{
-				auto dest_container_copy_copy = dest_container_copy;
-				match_expression_to_type_impl(switch_expr.default_case, dest_container_copy_copy, dest_container_copy_copy, context);
-				if (!dest_container.is_empty() && !dest_container_copy_copy.is_empty() && dest_container != dest_container_copy_copy)
-				{
-					context.report_error(
-						expr, "different type deduced for different cases in switch expression",
-						{
-							context.make_note(switch_expr.cases[0].expr, bz::format("type was first deduced as '{}'", dest_container)),
-							context.make_note(switch_expr.default_case, bz::format("type was later deduced as '{}'", dest_container_copy_copy)),
-						}
-					);
-					dest_container.clear();
-					expr.to_error();
-					return;
-				}
-				else if (switch_expr.default_case.is_error())
-				{
-					expr.to_error();
-					dest_container.clear();
-					return;
-				}
+				match_expression_to_type_impl(
+					switch_expr.cases.not_empty() ? switch_expr.cases.front().expr : switch_expr.default_case,
+					dest_container, dest_container, context
+				);
 			}
-			expr.set_type(ast::remove_lvalue_reference(ast::remove_const_or_consteval(dest_container)));
-			expr.set_type_kind(dest_container.is<ast::ts_lvalue_reference>() ? ast::expression_type_kind::lvalue_reference : ast::expression_type_kind::rvalue);
 		}
 	}
 	else if (expr.is_typename())
