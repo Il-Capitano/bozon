@@ -3306,7 +3306,10 @@ static void match_typename_to_type_impl(
 			}
 			else if (expr_elem_t.is<ast::ts_lvalue_reference>())
 			{
-				result = std::max(result, type_match_result::needs_cast);
+				if (!dest_elem_t.is<ast::ts_lvalue_reference>())
+				{
+					result = std::max(result, type_match_result::needs_cast);
+				}
 				result = std::max(result, match_types(
 					dest_elem_t,
 					expr_elem_t.get<ast::ts_lvalue_reference>(),
