@@ -376,7 +376,7 @@ function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest])
 	tuple_format_to_impl(buffer, [ second, ...rest ]);
 }
 
-function format_to([...elems], buffer: &format_buffer)
+function format_to(&const [...elems], buffer: &format_buffer)
 {
 	buffer.write_into("[ ");
 	tuple_format_to_impl(buffer, [ ...&elems ]);

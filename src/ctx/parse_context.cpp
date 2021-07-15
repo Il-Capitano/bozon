@@ -1274,6 +1274,10 @@ static ast::expression make_variable_expression(
 		id_type_kind = ast::expression_type_kind::lvalue_reference;
 		id_type = id_type.get<ast::ts_lvalue_reference>();
 	}
+	else if (var_decl->is_tuple_outer_ref())
+	{
+		id_type_kind = ast::expression_type_kind::lvalue_reference;
+	}
 
 	if (id_type.is_empty())
 	{
@@ -5455,7 +5459,7 @@ void parse_context::match_expression_to_type(
 	}
 }
 
-static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
+static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool is_const, bool is_reference)
 {
 	if (type.is_empty())
 	{
@@ -5464,6 +5468,14 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
 	if (var_decl.tuple_decls.empty())
 	{
 		var_decl.get_type() = type;
+		if (is_const && !var_decl.get_type().is<ast::ts_lvalue_reference>() && !var_decl.get_type().is<ast::ts_const>())
+		{
+			var_decl.get_type().add_layer<ast::ts_const>();
+		}
+		if (is_reference)
+		{
+			var_decl.flags |= ast::decl_variable::tuple_outer_ref;
+		}
 	}
 	else
 	{
@@ -5489,7 +5501,9 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type)
 		bz_assert(inner_types.size() == var_decl.tuple_decls.size());
 		for (auto const &[inner_decl, inner_type] : bz::zip(var_decl.tuple_decls, inner_types))
 		{
-			set_type(inner_decl, inner_type);
+			auto const inner_is_ref = inner_type.is<ast::ts_lvalue_reference>();
+			auto const inner_is_const = ast::remove_lvalue_reference(inner_type).is<ast::ts_const>();
+			set_type(inner_decl, inner_type, is_const || inner_is_const, is_reference || inner_is_ref);
 		}
 	}
 }
@@ -5506,7 +5520,12 @@ void parse_context::match_expression_to_variable(
 	else
 	{
 		this->match_expression_to_type(expr, var_decl.get_type());
-		set_type(var_decl, var_decl.get_type());
+		auto const var_type_without_lvalue_ref = ast::remove_lvalue_reference(var_decl.get_type());
+		set_type(
+			var_decl, ast::remove_const_or_consteval(var_type_without_lvalue_ref),
+			var_type_without_lvalue_ref.is<ast::ts_const>() || var_type_without_lvalue_ref.is<ast::ts_consteval>(),
+			var_decl.get_type().is<ast::ts_lvalue_reference>()
+		);
 	}
 }
 

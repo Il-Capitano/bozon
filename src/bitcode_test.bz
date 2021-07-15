@@ -140,7 +140,7 @@ function main(args: [: const str]) -> int32
 	static_assert(factorial(10) == 3628800);
 	static_assert((std::assert(true), true));
 	static_assert({ std::assert(true); true });
-	// static_assert(switch (3) { 3 => true, else => false });
+	static_assert(switch (3) { 3 => true, else => false });
 
 	static_assert({
 		if (factorial(3) == 7)
@@ -296,12 +296,15 @@ function main(args: [: const str]) -> int32
 	const constants: [3: float64] = [ std::pi, std::tau, std::e ];
 	std::printf("{}\n", constants as [: const float64]);
 
+	const [...[vals]] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
+	std::assert([ ...vals ][0] == std::pi);
 	const arr: [3, 1: float64] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
 	// const arr: [3, 1: float64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
 	std::printf("{}\n", arr);
 	std::printf("{}\n", 1e15);
 	let t = [ 3, 3.234, "hello" ];
 	std::printf("{}\n", t);
+	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
 
 	// consteval x = std::sqrt(-1.0);
 

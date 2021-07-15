@@ -300,7 +300,7 @@ struct var_id_and_type
 
 struct decl_variable
 {
-	enum : uint8_t
+	enum : uint16_t
 	{
 		maybe_unused     = bit_at<0>,
 		used             = bit_at<1>,
@@ -310,6 +310,7 @@ struct decl_variable
 		member           = bit_at<5>,
 		global           = bit_at<6>,
 		variadic         = bit_at<7>,
+		tuple_outer_ref  = bit_at<8>,
 	};
 
 	lex::src_tokens src_tokens;
@@ -320,7 +321,7 @@ struct decl_variable
 	expression    init_expr; // is null if there's no initializer
 	resolve_state state;
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
-	uint8_t       flags;
+	uint16_t       flags;
 
 	decl_variable(void) = default;
 	decl_variable(decl_variable const &other)
@@ -442,6 +443,9 @@ struct decl_variable
 
 	bool is_variadic(void) const noexcept
 	{ return (this->flags & variadic) != 0; }
+
+	bool is_tuple_outer_ref(void) const noexcept
+	{ return (this->flags & tuple_outer_ref) != 0; }
 
 	typespec &get_type(void)
 	{ return this->id_and_type.var_type; }

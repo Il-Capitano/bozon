@@ -389,36 +389,26 @@ static void apply_prototype(
 	ctx::parse_context &context
 )
 {
-	if (!var_decl.tuple_decls.empty())
+	ast::expression type = ast::make_constant_expression(
+		var_decl.src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(var_decl.get_type()),
+		ast::expr_t{}
+	);
+	for (auto op = prototype.end; op != prototype.begin;)
 	{
-		for (auto &decl : var_decl.tuple_decls)
-		{
-			apply_prototype(prototype, decl, context);
-		}
+		--op;
+		auto const src_tokens = lex::src_tokens{ op, op, var_decl.src_tokens.end };
+		type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
+	}
+	if (type.is_typename())
+	{
+		var_decl.get_type() = std::move(type.get_typename());
 	}
 	else
 	{
-		ast::expression type = ast::make_constant_expression(
-			var_decl.src_tokens,
-			ast::expression_type_kind::type_name,
-			ast::make_typename_typespec(nullptr),
-			ast::constant_value(var_decl.get_type()),
-			ast::expr_t{}
-		);
-		for (auto op = prototype.end; op != prototype.begin;)
-		{
-			--op;
-			auto const src_tokens = lex::src_tokens{ op, op, var_decl.src_tokens.end };
-			type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
-		}
-		if (type.is_typename())
-		{
-			var_decl.get_type() = std::move(type.get_typename());
-		}
-		else
-		{
-			var_decl.state = ast::resolve_state::error;
-		}
+		var_decl.state = ast::resolve_state::error;
 	}
 }
 
@@ -428,14 +418,13 @@ static void resolve_variable_type(
 )
 {
 	bz_assert(var_decl.state == ast::resolve_state::resolving_symbol);
-	if (!var_decl.tuple_decls.empty())
+	if (var_decl.tuple_decls.not_empty())
 	{
 		for (auto &decl : var_decl.tuple_decls)
 		{
 			bz_assert(decl.state < ast::resolve_state::symbol);
 			decl.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(decl, context);
-			apply_prototype(var_decl.get_prototype_range(), decl, context);
 			if (decl.state != ast::resolve_state::error)
 			{
 				decl.state = ast::resolve_state::symbol;
@@ -453,6 +442,7 @@ static void resolve_variable_type(
 					return decl.get_type();
 				}
 			).collect<bz::vector>());
+			apply_prototype(var_decl.get_prototype_range(), var_decl, context);
 		}
 		return;
 	}

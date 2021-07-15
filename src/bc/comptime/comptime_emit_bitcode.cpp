@@ -3324,7 +3324,7 @@ static val_ptr emit_bitcode(
 	}
 	else
 	{
-		bz_assert(base_type.is<ast::ts_tuple>());
+		bz_assert(base_type.is<ast::ts_tuple>() || subscript.base.is_tuple());
 		auto const tuple = emit_bitcode<abi>(subscript.base, context, nullptr);
 		bz_assert(subscript.index.is<ast::constant_expression>());
 		auto const &index_value = subscript.index.get<ast::constant_expression>().value;
