@@ -3206,7 +3206,19 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	return emit_bitcode<abi>(take_ref.expr, context, result_address);
+	if (result_address != nullptr)
+	{
+		bz_assert(result_address->getType()->isPointerTy() && result_address->getType()->getPointerElementType()->isPointerTy());
+		bz_assert(result_address->getType()->getPointerElementType()->getPointerElementType() == get_llvm_type(take_ref.expr.get_expr_type_and_kind().first, context));
+		auto const result = emit_bitcode<abi>(take_ref.expr, context, nullptr);
+		bz_assert(result.kind == val_ptr::reference);
+		context.builder.CreateStore(result.val, result_address);
+		return { val_ptr::reference, result_address };
+	}
+	else
+	{
+		return emit_bitcode<abi>(take_ref.expr, context, nullptr);
+	}
 }
 
 template<abi::platform_abi abi>

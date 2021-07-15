@@ -3549,7 +3549,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const result = emit_bitcode<abi>(take_ref.expr, context, result_address);
+	auto const result = emit_bitcode<abi>(take_ref.expr, context, nullptr);
 	if (result.kind != val_ptr::reference)
 	{
 		if (auto const id_expr = take_ref.expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
@@ -3568,6 +3568,15 @@ static val_ptr emit_bitcode(
 		bz_assert(result_address == nullptr);
 		auto const alloca = context.create_alloca(result.get_type());
 		return { val_ptr::reference, alloca };
+	}
+	else if (result_address != nullptr)
+	{
+		bz_assert(result_address->getType()->isPointerTy() && result_address->getType()->getPointerElementType()->isPointerTy());
+		bz_assert(result_address->getType()->getPointerElementType()->getPointerElementType() == get_llvm_type(take_ref.expr.get_expr_type_and_kind().first, context));
+		auto const result = emit_bitcode<abi>(take_ref.expr, context, nullptr);
+		bz_assert(result.kind == val_ptr::reference);
+		context.builder.CreateStore(result.val, result_address);
+		return { val_ptr::reference, result_address };
 	}
 	else
 	{

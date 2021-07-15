@@ -3126,13 +3126,11 @@ static void match_typename_to_type_impl(
 	parse_context &context
 )
 {
-	if (dest.is<ast::ts_const>())
-	{
-		return match_types(dest_container, expr_type, dest.get<ast::ts_const>(), expr_type_kind, context);
-	}
+	dest = ast::remove_const_or_consteval(dest);
 
 	bz_assert(ast::is_complete(expr_type));
 	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
+	// pointer to pointer
 	if (dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
 	{
 		auto const inner_dest = dest.get<ast::ts_pointer>();
@@ -3168,6 +3166,7 @@ static void match_typename_to_type_impl(
 			);
 		}
 	}
+	// null to pointer
 	else if (
 		dest.is<ast::ts_pointer>()
 		&& expr_type_without_const.is<ast::ts_base_type>()
@@ -3307,6 +3306,7 @@ static void match_typename_to_type_impl(
 			}
 			else if (expr_elem_t.is<ast::ts_lvalue_reference>())
 			{
+				result = std::max(result, type_match_result::needs_cast);
 				result = std::max(result, match_types(
 					dest_elem_t,
 					expr_elem_t.get<ast::ts_lvalue_reference>(),
@@ -3317,6 +3317,10 @@ static void match_typename_to_type_impl(
 			}
 			else
 			{
+				if (dest_elem_t.is<ast::ts_lvalue_reference>())
+				{
+					result = std::max(result, type_match_result::needs_cast);
+				}
 				result = std::max(result, match_types(
 					dest_elem_t,
 					expr_elem_t,
@@ -3756,6 +3760,19 @@ static void match_expression_to_type_impl(
 			expr.to_error();
 			return;
 		}
+	}
+
+	if (
+		dest_container.is<ast::ts_lvalue_reference>()
+		&& expr.get_expr_type_and_kind().second != ast::expression_type_kind::lvalue_reference
+	)
+	{
+		expr = ast::make_dynamic_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::lvalue_reference,
+			ast::remove_lvalue_reference(dest_container),
+			ast::make_expr_take_reference(std::move(expr))
+		);
 	}
 
 	if (dest_container.is<ast::ts_consteval>())
