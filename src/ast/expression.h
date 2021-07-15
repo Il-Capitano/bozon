@@ -172,13 +172,11 @@ struct expression : bz::variant<
 	{
 		if (this->is<constant_expression>())
 		{
-			auto expr = std::move(this->get<constant_expression>().expr);
-			this->emplace<error_expression>(std::move(expr));
+			this->emplace<error_expression>(this->get_by_move<constant_expression>().expr);
 		}
 		else if (this->is<dynamic_expression>())
 		{
-			auto expr = std::move(this->get<dynamic_expression>().expr);
-			this->emplace<error_expression>(std::move(expr));
+			this->emplace<error_expression>(this->get_by_move<dynamic_expression>().expr);
 		}
 	}
 
