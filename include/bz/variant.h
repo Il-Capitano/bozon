@@ -404,6 +404,28 @@ public:
 
 
 	template<size_t N>
+	value_type<N> get_by_move(void) noexcept
+	{
+		bz_assert(this->_index == N);
+		using T = value_type<N>;
+
+		T &value = this->no_check_get<N>();
+		T result = std::move(value);
+		value.~T();
+		this->_index = null;
+
+		return result;
+	}
+
+	template<typename T>
+	T get_by_move(void) noexcept
+	{
+		static_assert(meta::is_in_types<T, Ts...>);
+		return this->get_by_move<index_of<T>>();
+	}
+
+
+	template<size_t N>
 	value_type<N> *get_if(void) noexcept
 	{
 		if (this->_index == N)
