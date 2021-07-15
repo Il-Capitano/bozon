@@ -110,83 +110,49 @@ static void resolve_stmt_static_assert_impl(
 
 	{
 		bool good = true;
-		auto const check_type = [&](
-			ast::expression const &expr,
-			uint32_t base_type_kind,
-			bz::u8string_view message
+		auto const match_type_and_consteval = [&](
+			ast::expression &expr,
+			uint32_t base_type_kind
 		) {
-			if (!expr.is<ast::constant_expression>())
+			if (expr.is_error())
 			{
 				return;
 			}
 
-			auto const [type, _] = expr.get_expr_type_and_kind();
-			auto const without_const = ast::remove_const_or_consteval(type);
-			if (
-				!without_const.is<ast::ts_base_type>()
-				|| without_const.get<ast::ts_base_type>().info->kind != base_type_kind
-			)
+			auto base_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(base_type_kind));
+			context.match_expression_to_type(expr, base_type);
+			if (!expr.is_error())
 			{
-				good = false;
-				context.report_error(expr, message);
+				consteval_try(expr, context);
 			}
+			good &= expr.is_error();
 		};
 
 		static_assert_stmt.condition = std::move(args[0]);
-		if (static_assert_stmt.condition.is_error())
+		match_type_and_consteval(static_assert_stmt.condition, ast::type_info::bool_);
+		if (static_assert_stmt.condition.has_consteval_failed())
 		{
 			good = false;
+			context.report_error(
+				static_assert_stmt.condition,
+				"condition for static_assert must be a constant expression",
+				get_consteval_fail_notes(static_assert_stmt.condition)
+			);
 		}
-		else
-		{
-			auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-			context.match_expression_to_type(static_assert_stmt.condition, bool_type);
-			consteval_try(static_assert_stmt.condition, context);
-			if (static_assert_stmt.condition.has_consteval_failed())
-			{
-				good = false;
-				context.report_error(
-					static_assert_stmt.condition,
-					"condition for static_assert must be a constant expression",
-					get_consteval_fail_notes(static_assert_stmt.condition)
-				);
-			}
-		}
-
-		check_type(
-			static_assert_stmt.condition,
-			ast::type_info::bool_,
-			"condition for static_assert must have type 'bool'"
-		);
 
 		if (args.size() == 2)
 		{
 			static_assert_stmt.message = std::move(args[1]);
-			if (static_assert_stmt.message.is_error())
+			match_type_and_consteval(static_assert_stmt.message, ast::type_info::str_);
+			if (static_assert_stmt.message.has_consteval_failed())
 			{
 				good = false;
+				context.report_error(
+					static_assert_stmt.message,
+					"message in static_assert must be a constant expression",
+					get_consteval_fail_notes(static_assert_stmt.message)
+				);
 			}
-			else
-			{
-				auto str_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::str_));
-				context.match_expression_to_type(static_assert_stmt.message, str_type);
-				consteval_try(static_assert_stmt.message, context);
-				if (static_assert_stmt.message.has_consteval_failed())
-				{
-					good = false;
-					context.report_error(
-						static_assert_stmt.message,
-						"message in static_assert must be a constant expression",
-						get_consteval_fail_notes(static_assert_stmt.message)
-					);
-				}
-			}
-
-			check_type(
-				static_assert_stmt.message,
-				ast::type_info::str_,
-				"message in static_assert must have type 'str'"
-			);
 		}
 
 		if (!good)
