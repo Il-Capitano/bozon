@@ -98,7 +98,7 @@ inline bool no_error_highlight = false;
 inline bz::vector<bz::u8string> import_dirs;
 inline bz::u8string stdlib_dir;
 
-inline size_t max_opt_iter_count = 32;
+inline size_t max_opt_iter_count = 1;
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_warning_error(ctx::warning_kind kind) noexcept;

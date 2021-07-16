@@ -75,6 +75,11 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 	return bz::array{
 		ctcli::create_multiple_group_element<opt_group_id>("0", "No optimizations", {}),
 		ctcli::create_multiple_group_element<opt_group_id>("1", "Enable basic optimizations", {
+			// first batch
+			"tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker", "targetlibinfo",
+			"verify", "ee-instrument", "simplifycfg", "domtree", "sroa", "early-cse",
+			"lower-expect",
+			// second batch
 			"targetlibinfo", "tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker",
 			"profile-summary-info", "annotation2metadata", "forceattrs", "inferattrs",
 			"ipsccp", "called-value-propagation", "globalopt", "domtree", "mem2reg",
@@ -118,8 +123,21 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 			"basic-aa", "aa", "scalar-evolution", "block-freq", "loop-sink",
 			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "instsimplify",
 			"div-rem-pairs", "simplifycfg", "annotation-remarks", "verify",
+			// third batch
+			"domtree",
+			// fourth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// fifth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// sixth batch
+			"targetlibinfo", "domtree", "loops", "lazy-branch-prob", "lazy-block-freq",
 		}),
 		ctcli::create_multiple_group_element<opt_group_id>("2", "Enable more optimizations", {
+			// first batch
+			"tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker", "targetlibinfo",
+			"verify", "ee-instrument", "simplifycfg", "domtree", "sroa", "early-cse",
+			"lower-expect",
+			// second batch
 			"targetlibinfo", "tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker",
 			"profile-summary-info", "annotation2metadata", "forceattrs", "inferattrs",
 			"ipsccp", "called-value-propagation", "globalopt", "domtree", "mem2reg",
@@ -172,8 +190,21 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 			"lcssa-verification", "lcssa", "basic-aa", "aa", "scalar-evolution", "block-freq",
 			"loop-sink", "lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter",
 			"instsimplify", "div-rem-pairs", "simplifycfg", "annotation-remarks", "verify",
+			// third batch
+			"domtree",
+			// fourth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// fifth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// sixth batch
+			"targetlibinfo", "domtree", "loops", "lazy-branch-prob", "lazy-block-freq",
 		}),
 		ctcli::create_multiple_group_element<opt_group_id>("3", "Enable even more optimizations", {
+			// first batch
+			"tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker", "targetlibinfo",
+			"verify", "ee-instrument", "simplifycfg", "domtree", "sroa", "early-cse",
+			"lower-expect",
+			// second batch
 			"targetlibinfo", "tti", "tbaa", "scoped-noalias-aa", "assumption-cache-tracker",
 			"profile-summary-info", "annotation2metadata", "forceattrs", "inferattrs",
 			"domtree", "callsite-splitting", "ipsccp", "called-value-propagation",
@@ -228,6 +259,14 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 			"basic-aa", "aa", "scalar-evolution", "block-freq", "loop-sink",
 			"lazy-branch-prob", "lazy-block-freq", "opt-remark-emitter", "instsimplify",
 			"div-rem-pairs", "simplifycfg", "annotation-remarks", "verify",
+			// third batch
+			"domtree",
+			// fourth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// fifth batch
+			"targetlibinfo", "domtree", "loops", "postdomtree", "branch-prob", "block-freq",
+			// sixth batch
+			"targetlibinfo", "domtree", "loops", "lazy-branch-prob", "lazy-block-freq",
 		}),
 	};
 }();

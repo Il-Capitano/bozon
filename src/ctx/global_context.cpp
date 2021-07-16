@@ -1124,8 +1124,14 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 		case ctcli::group_element("--opt dse"):
 			opt_pass_manager.add(llvm::createDeadStoreEliminationPass());
 			break;
+		case ctcli::group_element("--opt early-cse"):
+			opt_pass_manager.add(llvm::createEarlyCSEPass(false));
+			break;
 		case ctcli::group_element("--opt early-cse-memssa"):
 			opt_pass_manager.add(llvm::createEarlyCSEPass(true));
+			break;
+		case ctcli::group_element("--opt ee-instrument"):
+			opt_pass_manager.add(llvm::createEntryExitInstrumenterPass());
 			break;
 		case ctcli::group_element("--opt elim-avail-extern"):
 			opt_pass_manager.add(llvm::createEliminateAvailableExternallyPass());
@@ -1236,6 +1242,9 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 			break;
 		case ctcli::group_element("--opt lower-constant-intrinsics"):
 			opt_pass_manager.add(llvm::createLowerConstantIntrinsicsPass());
+			break;
+		case ctcli::group_element("--opt lower-expect"):
+			opt_pass_manager.add(llvm::createLowerExpectIntrinsicPass());
 			break;
 		case ctcli::group_element("--opt mem2reg"):
 			opt_pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
@@ -1371,12 +1380,10 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 
 	{
 		size_t const max_iter = max_opt_iter_count;
-		size_t i = 0;
 		// opt_pass_manager.run returns true if any of the passes modified the code
-		while (i < max_iter && opt_pass_manager.run(module))
+		for (size_t i = 0; i < max_iter && opt_pass_manager.run(module); ++i)
 		{
 			reassociate_pass_manager.run(module);
-			++i;
 		}
 	}
 }
