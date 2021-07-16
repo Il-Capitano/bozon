@@ -488,7 +488,7 @@ constexpr precedence get_binary_or_call_precedence(uint32_t kind)
 	{
 		return subscript_prec;
 	}
-	else if (kind == lex::token::dot)
+	else if (kind == lex::token::dot || kind == lex::token::arrow)
 	{
 		return dot_prec;
 	}

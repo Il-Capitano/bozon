@@ -1092,6 +1092,12 @@ static ast::expression parse_expression_helper(
 
 		switch (op->kind)
 		{
+		case lex::token::arrow:
+		{
+			auto const src_tokens = lhs.src_tokens;
+			lhs = context.make_unary_operator_expression(src_tokens, lex::token::dereference, std::move(lhs));
+			[[fallthrough]];
+		}
 		case lex::token::dot:
 		{
 			auto id = get_identifier(stream, end, context);
