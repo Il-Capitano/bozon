@@ -896,17 +896,15 @@ struct type_info
 	function_body_ptr default_default_constructor;
 	function_body_ptr default_copy_constructor;
 
-	function_body *op_assign;
-	function_body *op_move_assign;
+	function_body *op_assign = nullptr;
+	function_body *op_move_assign = nullptr;
 
-	function_body *default_constructor;
-	function_body *copy_constructor;
+	function_body *default_constructor = nullptr;
+	function_body *copy_constructor = nullptr;
 
-	function_body *destructor;
-	bz::vector<function_body *> constructors;
+	function_body *destructor = nullptr;
+	bz::vector<function_body *> constructors{};
 
-//	function_body *default_constructor;
-//	function_body *copy_constructor;
 //	function_body *move_constructor;
 //	function_body_ptr move_destuctor;
 
@@ -923,15 +921,7 @@ struct type_info
 		  default_op_assign(make_default_op_assign(src_tokens, *this)),
 		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
 		  default_default_constructor(make_default_default_constructor(src_tokens, *this)),
-		  default_copy_constructor(make_default_copy_constructor(src_tokens, *this)),
-		  op_assign(nullptr),
-		  op_move_assign(nullptr),
-		  default_constructor(nullptr),
-		  copy_constructor(nullptr),
-		  destructor(nullptr),
-		  constructors{}
-//		  default_constructor(nullptr),
-//		  copy_constructor(nullptr),
+		  default_copy_constructor(make_default_copy_constructor(src_tokens, *this))
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
@@ -950,15 +940,7 @@ private:
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
 		  default_default_constructor(nullptr),
-		  default_copy_constructor(nullptr),
-		  op_assign(nullptr),
-		  op_move_assign(nullptr),
-		  default_constructor(nullptr),
-		  copy_constructor(nullptr),
-		  destructor(nullptr),
-		  constructors{}
-//		  default_constructor(nullptr),
-//		  copy_constructor(nullptr),
+		  default_copy_constructor(nullptr)
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
