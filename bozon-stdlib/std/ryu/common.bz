@@ -85,7 +85,7 @@ export function copy_special_str(result: *uint8, sign: bool, exponent: bool, man
 {
 	if (mantissa)
 	{
-		std::memcpy(result, __builtin_str_begin_ptr("NaN"), 3u);
+		memcpy(result, __builtin_str_begin_ptr("NaN"), 3u);
 		return 3;
 	}
 	if (sign)
@@ -94,24 +94,24 @@ export function copy_special_str(result: *uint8, sign: bool, exponent: bool, man
 	}
 	if (exponent)
 	{
-		std::memcpy(if (sign) { result + 1 } else { result }, __builtin_str_begin_ptr("Infinity"), 8u);
+		memcpy(if (sign) { result + 1 } else { result }, __builtin_str_begin_ptr("Infinity"), 8u);
 		return if (sign) { 9 } else { 8 };
 	}
-	std::memcpy(if (sign) { result + 1 } else { result }, __builtin_str_begin_ptr("0E0"), 3u);
+	memcpy(if (sign) { result + 1 } else { result }, __builtin_str_begin_ptr("0E0"), 3u);
 	return if (sign) { 4 } else { 3 };
 }
 
 export function float_to_bits(f: float32) -> uint32
 {
 	let bits: uint32 = 0u;
-	std::memcpy(&bits, &f, sizeof float32);
+	memcpy(&bits, &f, sizeof float32);
 	return bits;
 }
 
 export function double_to_bits(d: float64) -> uint64
 {
 	let bits: uint64 = 0u;
-	std::memcpy(&bits, &d, sizeof float64);
+	memcpy(&bits, &d, sizeof float64);
 	return bits;
 }
 
@@ -124,7 +124,7 @@ export function copy_short_special_str(result: *uint8, sign: bool, exponent: boo
 {
 	if (mantissa)
 	{
-		std::memcpy(result, __builtin_str_begin_ptr("nan"), 3u);
+		memcpy(result, __builtin_str_begin_ptr("nan"), 3u);
 		return result + 3;
 	}
 
@@ -135,12 +135,12 @@ export function copy_short_special_str(result: *uint8, sign: bool, exponent: boo
 	}
 	if (exponent)
 	{
-		std::memcpy(result, __builtin_str_begin_ptr("inf"), 3u);
+		memcpy(result, __builtin_str_begin_ptr("inf"), 3u);
 		return result + 3;
 	}
 	else
 	{
-		std::memcpy(result, __builtin_str_begin_ptr("0.0"), 3u);
+		memcpy(result, __builtin_str_begin_ptr("0.0"), 3u);
 		return result + 3;
 	}
 }

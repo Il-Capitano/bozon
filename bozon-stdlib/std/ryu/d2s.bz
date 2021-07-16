@@ -308,10 +308,10 @@ function to_chars(v: floating_decimal_64, sign: bool, result: *uint8) -> int32
 		const c1 = (c / 100u) << 1u;
 		const d0 = (d % 100u) << 1u;
 		const d1 = (d / 100u) << 1u;
-		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
-		std::memcpy(result + index + olength - i - 5u, DIGIT_TABLE.begin() + d0, 2u);
-		std::memcpy(result + index + olength - i - 7u, DIGIT_TABLE.begin() + d1, 2u);
+		memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(result + index + olength - i - 5u, DIGIT_TABLE.begin() + d0, 2u);
+		memcpy(result + index + olength - i - 7u, DIGIT_TABLE.begin() + d1, 2u);
 		i += 8u;
 	}
 	let output2 = output as uint32;
@@ -322,15 +322,15 @@ function to_chars(v: floating_decimal_64, sign: bool, result: *uint8) -> int32
 		output2 /= 10000u;
 		const c0 = (c % 100u) << 1u;
 		const c1 = (c / 100u) << 1u;
-		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(result + index + olength - i - 3u, DIGIT_TABLE.begin() + c1, 2u);
 		i += 4u;
 	}
 	if (output2 >= 100u)
 	{
 		const c = (output2 % 100u) << 1u;
 		output2 /= 100u;
-		std::memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
+		memcpy(result + index + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
 		i += 2u;
 	}
 	if (output2 >= 10u)
@@ -370,13 +370,13 @@ function to_chars(v: floating_decimal_64, sign: bool, result: *uint8) -> int32
 	if (exp >= 100)
 	{
 		let c = exp % 10;
-		std::memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
+		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
 		*(result + index + 2) = ('0' + c) as uint32 as uint8;
 		index += 3;
 	}
 	else if (exp >= 10)
 	{
-		std::memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2u);
+		memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2u);
 		index += 2;
 	}
 	else
@@ -420,8 +420,8 @@ function d2d_small_int(
 	// f is an integer in the range [1, 2^53).
 	// Note: mantissa might contain trailing (decimal) 0's.
 	// Note: since 2^53 < 10^16, there is no need to adjust decimalLength17().
-	(*v).mantissa = m2 >> -e2 as uint32;
-	(*v).exponent = 0;
+	v->mantissa = m2 >> -e2 as uint32;
+	v->exponent = 0;
 	return true;
 }
 
@@ -475,7 +475,7 @@ export function d2s_buffered(f: float64, result: *uint8)
 
 export function d2s(f: float64) -> *uint8
 {
-	const result = __builtin_pointer_cast(*uint8, std::libc::malloc(25u));
+	const result = __builtin_pointer_cast(*uint8, libc::malloc(25u));
 	d2s_buffered(f, result);
 	return result;
 }
@@ -535,7 +535,7 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 	if (actual_exponent < 0)
 	{
 		consteval s = "0.000";
-		std::memcpy(out, __builtin_str_begin_ptr(s), (-actual_exponent + 1) as usize);
+		memcpy(out, __builtin_str_begin_ptr(s), (-actual_exponent + 1) as usize);
 		out += -actual_exponent;
 	}
 
@@ -558,10 +558,10 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 		const c1 = (c / 100u) << 1u;
 		const d0 = (d % 100u) << 1u;
 		const d1 = (d / 100u) << 1u;
-		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
-		std::memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
-		std::memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
+		memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
+		memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
 		i += 8u;
 	}
 	let output2 = output as uint32;
@@ -572,22 +572,22 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 		output2 /= 10000u;
 		const c0 = (c % 100u) << 1u;
 		const c1 = (c / 100u) << 1u;
-		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
 		i += 4u;
 	}
 	if (output2 >= 100u)
 	{
 		const c = (output2 % 100u) << 1u;
 		output2 /= 100u;
-		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2u);
+		memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c, 2u);
 		i += 2u;
 	}
 	if (output2 >= 10u)
 	{
 		const c = output2 << 1u;
 		// We can't use memcpy here: the decimal dot goes between these two digits.
-		std::memcpy(out + 1, DIGIT_TABLE.begin() + c, 2u);
+		memcpy(out + 1, DIGIT_TABLE.begin() + c, 2u);
 		// *(out + olength - i) = DIGIT_TABLE[c + 1u];
 		// *out = DIGIT_TABLE[c];
 	}
@@ -599,12 +599,12 @@ function to_chars_fixed(v: floating_decimal_64, out: *uint8) -> *uint8
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		std::memset(out + olength + 1, '0' as uint32 as uint8, v.exponent as usize);
+		memset(out + olength + 1, '0' as uint32 as uint8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)
 	{
-		std::memmove(out, out + 1, (actual_exponent + 1) as usize);
+		memmove(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
 		*(out + actual_exponent + 1) = '.' as uint32 as uint8;
 	}
@@ -642,10 +642,10 @@ function to_chars_scientific(v: floating_decimal_64, out: *uint8) -> *uint8
 		const c1 = (c / 100u) << 1u;
 		const d0 = (d % 100u) << 1u;
 		const d1 = (d / 100u) << 1u;
-		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
-		std::memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
-		std::memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
+		memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(out + olength - i - 5, DIGIT_TABLE.begin() + d0, 2u);
+		memcpy(out + olength - i - 7, DIGIT_TABLE.begin() + d1, 2u);
 		i += 8u;
 	}
 	let output2 = output as uint32;
@@ -656,15 +656,15 @@ function to_chars_scientific(v: floating_decimal_64, out: *uint8) -> *uint8
 		output2 /= 10000u;
 		const c0 = (c % 100u) << 1u;
 		const c1 = (c / 100u) << 1u;
-		std::memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
-		std::memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
+		memcpy(out + olength - i - 1, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(out + olength - i - 3, DIGIT_TABLE.begin() + c1, 2u);
 		i += 4u;
 	}
 	if (output2 >= 100u)
 	{
 		const c = (output2 % 100u) << 1u;
 		output2 /= 100u;
-		std::memcpy(out + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
+		memcpy(out + olength - i - 1u, DIGIT_TABLE.begin() + c, 2u);
 		i += 2u;
 	}
 	if (output2 >= 10u)
@@ -709,13 +709,13 @@ function to_chars_scientific(v: floating_decimal_64, out: *uint8) -> *uint8
 	if (exp >= 100)
 	{
 		let c = exp % 10;
-		std::memcpy(out, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
+		memcpy(out, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
 		*(out + 2) = ('0' + c) as uint32 as uint8;
 		out += 3;
 	}
 	else
 	{
-		std::memcpy(out, DIGIT_TABLE.begin() + 2 * exp, 2u);
+		memcpy(out, DIGIT_TABLE.begin() + 2 * exp, 2u);
 		out += 2;
 	}
 

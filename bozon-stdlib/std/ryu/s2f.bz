@@ -45,7 +45,7 @@ function max32(a: int32, b: int32) -> int32
 function int32Bits2Float(bits: uint32) -> float32
 {
 	let f: float32;
-	std::memcpy(&f, &bits, sizeof float32);
+	memcpy(&f, &bits, sizeof float32);
 	return f;
 }
 
