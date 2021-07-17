@@ -506,6 +506,8 @@ struct function_body
 		constructor                 = bit_at<11>,
 		default_default_constructor = bit_at<12>,
 		default_copy_constructor    = bit_at<13>,
+		bitcode_emitted             = bit_at<14>,
+		comptime_bitcode_emitted    = bit_at<15>,
 	};
 
 	enum : uint8_t
@@ -676,74 +678,52 @@ struct function_body
 	}
 
 	bool is_external_linkage(void) const noexcept
-	{
-		return (this->flags & external_linkage) != 0;
-	}
+	{ return (this->flags & external_linkage) != 0; }
 
 	bool is_main(void) const noexcept
-	{
-		return(this->flags & main) != 0;
-	}
+	{ return(this->flags & main) != 0; }
 
 	bool is_export(void) const noexcept
-	{
-		return (this->flags & module_export) != 0;
-	}
+	{ return (this->flags & module_export) != 0; }
 
 	bool is_intrinsic(void) const noexcept
-	{
-		return (this->flags & intrinsic) != 0;
-	}
+	{ return (this->flags & intrinsic) != 0; }
 
 	bool is_generic(void) const noexcept
-	{
-		return (this->flags & generic) != 0;
-	}
+	{ return (this->flags & generic) != 0; }
 
 	bool is_generic_specialization(void) const noexcept
-	{
-		return (this->flags & generic_specialization) != 0;
-	}
+	{ return (this->flags & generic_specialization) != 0; }
 
 	bool is_default_op_assign(void) const noexcept
-	{
-		return (this->flags & default_op_assign) != 0;
-	}
+	{ return (this->flags & default_op_assign) != 0; }
 
 	bool is_default_op_move_assign(void) const noexcept
-	{
-		return (this->flags & default_op_move_assign) != 0;
-	}
+	{ return (this->flags & default_op_move_assign) != 0; }
 
 	bool is_no_comptime_checking(void) const noexcept
-	{
-		return (this->flags & no_comptime_checking) != 0;
-	}
+	{ return (this->flags & no_comptime_checking) != 0; }
 
 	bool is_local(void) const noexcept
-	{
-		return (this->flags & local) != 0;
-	}
+	{ return (this->flags & local) != 0; }
 
 	bool is_destructor(void) const noexcept
-	{
-		return (this->flags & destructor) != 0;
-	}
+	{ return (this->flags & destructor) != 0; }
 
 	bool is_constructor(void) const noexcept
-	{
-		return (this->flags & constructor) != 0;
-	}
+	{ return (this->flags & constructor) != 0; }
 
 	bool is_default_default_constructor(void) const noexcept
-	{
-		return (this->flags & default_default_constructor) != 0;
-	}
+	{ return (this->flags & default_default_constructor) != 0; }
 
 	bool is_default_copy_constructor(void) const noexcept
-	{
-		return (this->flags & default_copy_constructor) != 0;
-	}
+	{ return (this->flags & default_copy_constructor) != 0; }
+
+	bool is_bitcode_emitted(void) const noexcept
+	{ return (this->flags & bitcode_emitted) != 0; }
+
+	bool is_comptime_bitcode_emitted(void) const noexcept
+	{ return (this->flags & comptime_bitcode_emitted) != 0; }
 
 	type_info *get_destructor_of(void) const noexcept
 	{

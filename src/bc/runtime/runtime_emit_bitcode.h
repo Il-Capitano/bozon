@@ -11,11 +11,11 @@ namespace bc::runtime
 {
 
 void add_function_to_module(
-	ast::function_body const *func_body,
+	ast::function_body *func_body,
 	ctx::bitcode_context &context
 );
 void emit_function_bitcode(
-	ast::function_body const &func_body,
+	ast::function_body &func_body,
 	ctx::bitcode_context &context
 );
 

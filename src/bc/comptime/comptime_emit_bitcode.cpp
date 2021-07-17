@@ -4862,12 +4862,11 @@ static void emit_function_bitcode_impl(
 	ctx::comptime_executor_context &context
 )
 {
+	bz_assert(!func_body.is_comptime_bitcode_emitted());
+
 	auto const fn = context.get_function(&func_body);
 	bz_assert(fn != nullptr);
-	if (fn->size() != 0)
-	{
-		return;
-	}
+	bz_assert(fn->size() == 0);
 
 	context.current_function = { &func_body, fn };
 
@@ -5042,6 +5041,7 @@ static void emit_function_bitcode_impl(
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;
 	context.output_pointer = nullptr;
+	func_body.flags |= ast::function_body::comptime_bitcode_emitted;
 }
 
 void emit_function_bitcode(
@@ -5146,7 +5146,7 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
-			if (context.contains_function(body))
+			if (body->is_comptime_bitcode_emitted())
 			{
 				continue;
 			}
@@ -5162,7 +5162,7 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
-			if (context.contains_function(body))
+			if (body->is_comptime_bitcode_emitted())
 			{
 				continue;
 			}
@@ -5178,7 +5178,7 @@ bool emit_necessary_functions(size_t start_index, ctx::comptime_executor_context
 		for (size_t i = start_index; i < context.functions_to_compile.size(); ++i)
 		{
 			auto const body = context.functions_to_compile[i];
-			if (context.contains_function(body))
+			if (body->is_comptime_bitcode_emitted())
 			{
 				continue;
 			}

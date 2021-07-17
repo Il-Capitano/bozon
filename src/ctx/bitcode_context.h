@@ -36,8 +36,7 @@ struct bitcode_context
 	llvm::Type *get_base_type(ast::type_info const *info) const;
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
 
-	llvm::Function *get_function(ast::function_body const *func_body);
-	bool contains_function(ast::function_body const *func_body);
+	llvm::Function *get_function(ast::function_body *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::DataLayout &get_data_layout(void) const noexcept;
@@ -115,7 +114,7 @@ struct bitcode_context
 	void emit_all_destructor_calls(void);
 
 
-	void ensure_function_emission(ast::function_body const *func);
+	void ensure_function_emission(ast::function_body *func);
 
 
 	global_context &global_ctx;
@@ -125,7 +124,7 @@ struct bitcode_context
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
-	bz::vector<ast::function_body const *> functions_to_compile{};
+	bz::vector<ast::function_body *> functions_to_compile{};
 
 	bz::vector<bz::vector<std::pair<llvm::Function *, llvm::Value *>>> destructor_calls{};
 

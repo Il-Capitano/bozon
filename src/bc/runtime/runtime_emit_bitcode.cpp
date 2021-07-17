@@ -213,7 +213,7 @@ static void add_call_parameter(
 
 template<abi::platform_abi abi>
 static void create_function_call(
-	ast::function_body const *body,
+	ast::function_body *body,
 	val_ptr lhs,
 	val_ptr rhs,
 	ctx::bitcode_context &context
@@ -4172,11 +4172,11 @@ static void emit_bitcode(
 
 template<abi::platform_abi abi>
 static llvm::Function *create_function_from_symbol_impl(
-	ast::function_body const &func_body,
+	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
-	if (context.contains_function(&func_body))
+	if (func_body.is_bitcode_emitted())
 	{
 		return context.get_function(&func_body);
 	}
@@ -4412,7 +4412,7 @@ static llvm::Function *create_function_from_symbol_impl(
 }
 
 static llvm::Function *create_function_from_symbol(
-	ast::function_body const &func_body,
+	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -4420,23 +4420,17 @@ static llvm::Function *create_function_from_symbol(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		return create_function_from_symbol_impl<abi::platform_abi::generic>(
-			func_body, context
-		);
+		return create_function_from_symbol_impl<abi::platform_abi::generic>(func_body, context);
 	case abi::platform_abi::microsoft_x64:
-		return create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(
-			func_body, context
-		);
+		return create_function_from_symbol_impl<abi::platform_abi::microsoft_x64>(func_body, context);
 	case abi::platform_abi::systemv_amd64:
-		return create_function_from_symbol_impl<abi::platform_abi::systemv_amd64>(
-			func_body, context
-		);
+		return create_function_from_symbol_impl<abi::platform_abi::systemv_amd64>(func_body, context);
 	}
 	bz_unreachable;
 }
 
 void add_function_to_module(
-	ast::function_body const *func_body,
+	ast::function_body *func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -4446,10 +4440,11 @@ void add_function_to_module(
 
 template<abi::platform_abi abi>
 static void emit_function_bitcode_impl(
-	ast::function_body const &func_body,
+	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
+	bz_assert(!func_body.is_bitcode_emitted());
 	auto const fn = context.get_function(&func_body);
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
@@ -4614,10 +4609,11 @@ static void emit_function_bitcode_impl(
 	context.current_function = {};
 	context.alloca_bb = nullptr;
 	context.output_pointer = nullptr;
+	func_body.flags |= ast::function_body::bitcode_emitted;
 }
 
 void emit_function_bitcode(
-	ast::function_body const &func_body,
+	ast::function_body &func_body,
 	ctx::bitcode_context &context
 )
 {
@@ -4625,19 +4621,13 @@ void emit_function_bitcode(
 	switch (abi)
 	{
 	case abi::platform_abi::generic:
-		emit_function_bitcode_impl<abi::platform_abi::generic>(
-			func_body, context
-		);
+		emit_function_bitcode_impl<abi::platform_abi::generic>(func_body, context);
 		return;
 	case abi::platform_abi::microsoft_x64:
-		emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
-			func_body, context
-		);
+		emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(func_body, context);
 		return;
 	case abi::platform_abi::systemv_amd64:
-		emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
-			func_body, context
-		);
+		emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(func_body, context);
 		return;
 	}
 	bz_unreachable;
@@ -4748,25 +4738,34 @@ void emit_necessary_functions(ctx::bitcode_context &context)
 	case abi::platform_abi::generic:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::generic>(
-				*context.functions_to_compile[i], context
-			);
+			auto const func_body = context.functions_to_compile[i];
+			if (func_body->is_bitcode_emitted())
+			{
+				continue;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::generic>(*func_body, context);
 		}
 		return;
 	case abi::platform_abi::microsoft_x64:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(
-				*context.functions_to_compile[i], context
-			);
+			auto const func_body = context.functions_to_compile[i];
+			if (func_body->is_bitcode_emitted())
+			{
+				continue;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::microsoft_x64>(*func_body, context);
 		}
 		return;
 	case abi::platform_abi::systemv_amd64:
 		for (size_t i = 0; i < context.functions_to_compile.size(); ++i)
 		{
-			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(
-				*context.functions_to_compile[i], context
-			);
+			auto const func_body = context.functions_to_compile[i];
+			if (func_body->is_bitcode_emitted())
+			{
+				continue;
+			}
+			emit_function_bitcode_impl<abi::platform_abi::systemv_amd64>(*func_body, context);
 		}
 		return;
 	}

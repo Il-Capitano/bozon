@@ -47,7 +47,7 @@ void bitcode_context::add_base_type(ast::type_info const *info, llvm::Type *type
 	this->types_.insert_or_assign(info, type);
 }
 
-llvm::Function *bitcode_context::get_function(ast::function_body const *func_body)
+llvm::Function *bitcode_context::get_function(ast::function_body *func_body)
 {
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
@@ -63,11 +63,6 @@ llvm::Function *bitcode_context::get_function(ast::function_body const *func_bod
 		this->ensure_function_emission(func_body);
 		return it->second;
 	}
-}
-
-bool bitcode_context::contains_function(ast::function_body const *func_body)
-{
-	return this->funcs_.find(func_body) != this->funcs_.end();
 }
 
 llvm::LLVMContext &bitcode_context::get_llvm_context(void) const noexcept
@@ -361,7 +356,7 @@ void bitcode_context::emit_all_destructor_calls(void)
 	}
 }
 
-void bitcode_context::ensure_function_emission(ast::function_body const *func)
+void bitcode_context::ensure_function_emission(ast::function_body *func)
 {
 	// no need to emit functions with no definition
 	if (func->body.is_null())
@@ -369,7 +364,7 @@ void bitcode_context::ensure_function_emission(ast::function_body const *func)
 		return;
 	}
 
-	if (!this->functions_to_compile.contains(func))
+	if (!func->is_bitcode_emitted())
 	{
 		this->functions_to_compile.push_back(func);
 	}

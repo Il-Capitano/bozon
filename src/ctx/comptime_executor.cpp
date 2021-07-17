@@ -136,12 +136,6 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 	}
 }
 
-bool comptime_executor_context::contains_function(ast::function_body *func_body)
-{
-	auto const it = this->funcs_.find(func_body);
-	return it != this->funcs_.end() && it->second->size() != 0;
-}
-
 llvm::LLVMContext &comptime_executor_context::get_llvm_context(void) const noexcept
 {
 	return this->global_ctx._llvm_context;
@@ -455,20 +449,20 @@ void comptime_executor_context::ensure_function_emission(ast::function_body *bod
 {
 	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
 	if (
-		(
-			!body->is_intrinsic()
-			|| body->intrinsic_kind == ast::function_body::builtin_str_eq
-			|| body->intrinsic_kind == ast::function_body::builtin_str_neq
-			|| body->intrinsic_kind == ast::function_body::builtin_str_length
-			|| body->intrinsic_kind == ast::function_body::builtin_str_starts_with
-			|| body->intrinsic_kind == ast::function_body::builtin_str_ends_with
-			|| body->intrinsic_kind == ast::function_body::comptime_compile_error_src_tokens
-			|| body->intrinsic_kind == ast::function_body::comptime_compile_warning_src_tokens
-		)
-		// && !this->functions_to_compile.contains(body)
+		!body->is_intrinsic()
+		|| body->intrinsic_kind == ast::function_body::builtin_str_eq
+		|| body->intrinsic_kind == ast::function_body::builtin_str_neq
+		|| body->intrinsic_kind == ast::function_body::builtin_str_length
+		|| body->intrinsic_kind == ast::function_body::builtin_str_starts_with
+		|| body->intrinsic_kind == ast::function_body::builtin_str_ends_with
+		|| body->intrinsic_kind == ast::function_body::comptime_compile_error_src_tokens
+		|| body->intrinsic_kind == ast::function_body::comptime_compile_warning_src_tokens
 	)
 	{
-		this->functions_to_compile.push_back(body);
+		if (!body->is_comptime_bitcode_emitted())
+		{
+			this->functions_to_compile.push_back(body);
+		}
 	}
 }
 
