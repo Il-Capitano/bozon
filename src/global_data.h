@@ -73,7 +73,7 @@ inline bool display_version      = false;
 
 inline bz::array<bool, ctx::warning_infos.size()>     warnings{};
 inline bz::array<bool, ctx::warning_infos.size()>     error_warnings{};
-inline bz::array<bool, bc::optimization_infos.size()> optimizations{};
+// inline bz::array<bool, bc::optimization_infos.size()> optimizations{};
 
 inline bz::u8string output_file_name;
 inline bz::u8string source_file;
@@ -102,8 +102,6 @@ inline size_t max_opt_iter_count = 1;
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_warning_error(ctx::warning_kind kind) noexcept;
-bool is_optimization_enabled(bc::optimization_kind kind) noexcept;
-bool is_any_optimization_enabled(void) noexcept;
 
 void print_version_info(void);
 
