@@ -1017,21 +1017,13 @@ bool global_context::emit_llvm_ir(void)
 void global_context::optimize(void)
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
-	if (optimizations.empty())
+	if (optimizations.empty() || max_opt_iter_count == 0)
 	{
 		return;
 	}
 
 	auto &module = this->_module;
 	llvm::legacy::PassManager opt_pass_manager;
-	// reassociation pass seems to be buggy, it thinks it modified the code even when it didn't
-	llvm::legacy::PassManager reassociate_pass_manager;
-
-#define add_opt(kind, pass)                               \
-if (is_optimization_enabled(bc::optimization_kind::kind)) \
-{                                                         \
-    opt_pass_manager.add(pass);                           \
-}
 
 	for (auto const opt : optimizations)
 	{
@@ -1349,41 +1341,15 @@ if (is_optimization_enabled(bc::optimization_kind::kind)) \
 #endif // __clang__
 	}
 
-	// optimizations
-	add_opt(instcombine,            llvm::createInstructionCombiningPass())
-	add_opt(mem2reg,                llvm::createPromoteMemoryToRegisterPass())
-	add_opt(simplifycfg,            llvm::createCFGSimplificationPass())
-	add_opt(gvn,                    llvm::createGVNPass())
-	add_opt(inline_,                llvm::createFunctionInliningPass())
-	add_opt(sccp,                   llvm::createSCCPPass())
-	// dead code elimination should come after sccp as suggested in LLVM docs
-	// http://llvm.org/docs/Passes.html#passes-sccp
-	add_opt(adce,                   llvm::createAggressiveDCEPass())
-	else add_opt(dce,               llvm::createDeadCodeEliminationPass())
-	add_opt(aggressive_instcombine, llvm::createAggressiveInstCombinerPass())
-	add_opt(aggressive_instcombine, llvm::createMemCpyOptPass())
-
-	if (is_optimization_enabled(bc::optimization_kind::reassociate))
-	{
-		reassociate_pass_manager.add(llvm::createReassociatePass());
-	}
-	if (is_optimization_enabled(bc::optimization_kind::instcombine))
-	{
-		// we need to add instcombine here too, as ressociate and instcombine have
-		// conflicting optimizations
-		// e.g. instcombine: %1 = mul i32 %0, 4    ->    %1 = shl i32 %0, 2
-		//      reassociate: %1 = shl i32 %0, 2    ->    %1 = mul i32 %0, 4
-		reassociate_pass_manager.add(llvm::createInstructionCombiningPass());
-	}
-
-#undef add_opt
-
 	{
 		size_t const max_iter = max_opt_iter_count;
-		// opt_pass_manager.run returns true if any of the passes modified the code
-		for (size_t i = 0; i < max_iter && opt_pass_manager.run(module); ++i)
+		for (size_t i = 0; i < max_iter; ++i)
 		{
-			reassociate_pass_manager.run(module);
+			// opt_pass_manager.run returns true if any of the passes modified the code
+			if (!opt_pass_manager.run(module))
+			{
+				break;
+			}
 		}
 	}
 }
