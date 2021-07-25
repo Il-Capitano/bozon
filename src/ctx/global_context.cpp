@@ -768,9 +768,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 
 	bc::runtime::emit_necessary_functions(context);
 
-	this->optimize();
-
-	return true;
+	return !this->has_errors();
 }
 
 [[nodiscard]] bool global_context::emit_file(void)
@@ -1014,12 +1012,12 @@ bool global_context::emit_llvm_ir(void)
 	return true;
 }
 
-void global_context::optimize(void)
+[[nodiscard]] bool global_context::optimize(void)
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
 	if (optimizations.empty() || max_opt_iter_count == 0)
 	{
-		return;
+		return true;
 	}
 
 	auto &module = this->_module;
@@ -1352,6 +1350,9 @@ void global_context::optimize(void)
 			}
 		}
 	}
+
+	// always return true
+	return true;
 }
 
 } // namespace ctx

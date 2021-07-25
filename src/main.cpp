@@ -1534,6 +1534,37 @@ export operator as str (s: #const string) -> str
 	return __builtin_str_from_ptrs(s._data_begin, s._data_end);
 }
 
+
+
+export struct vector<T: typename>
+{
+	// ...
+}
+
+export function size(v: #const vector) -> usize  // implicit generic function
+{
+	return (v._data_end - v._data_begin) as usize;
+}
+
+// ...
+
+import std::vector;
+
+function main()
+{
+	let v = std::vector::<int32>(); // explicit templating?  similar to `template std::vector<int>` in C++
+	let v = std::vector<int32>();
+}
+
+// example of when ::<...> is needed
+
+function foo(T: typename)
+{
+	let val = T.inner_template_type::<int32>();
+	// instead of
+	let val = T.inner_template_type<int32>();
+}
+
 */
 
 #include "ctx/global_context.h"
@@ -1621,13 +1652,23 @@ int main(int argc, char const **argv)
 	}
 	auto const after_bitcode_emission = timer::now();
 
+	// report all errors and warnings now, so we don't have to wait for optimization
+	// and file emission
 	global_ctx.report_and_clear_errors_and_warnings();
+
+	auto const before_optimization = timer::now();
+	if (!global_ctx.optimize())
+	{
+		global_ctx.report_and_clear_errors_and_warnings();
+		return 6;
+	}
+	auto const after_optimization = timer::now();
 
 	auto const before_file_emission = timer::now();
 	if (!global_ctx.emit_file())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 6;
+		return 7;
 	}
 	auto const after_file_emission = timer::now();
 
@@ -1641,20 +1682,24 @@ int main(int argc, char const **argv)
 
 	if (do_profile)
 	{
-		auto const compilation_time          = (after_bitcode_emission - begin) + (end - before_file_emission);
+		auto const compilation_time          = (after_bitcode_emission - begin) + (end - before_optimization);
 		auto const front_end_time            = after_bitcode_emission - begin;
+		auto const llvm_time                 = after_file_emission - before_optimization;
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
 		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
 		auto const resolve_time              = after_parse - before_parse;
 		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
+		auto const optimization_time         = after_optimization - before_optimization;
 		auto const file_emission_time        = after_file_emission - before_file_emission;
 
 		bz::print("successful compilation in {:8.3f}ms\n", in_ms(compilation_time));
 		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
+		bz::print("LLVM time:                {:8.3f}ms\n", in_ms(llvm_time));
 		bz::print("command line parse time:  {:8.3f}ms\n", in_ms(command_line_parsing_time));
 		bz::print("global symbol parse time: {:8.3f}ms\n", in_ms(first_pass_parse_time));
 		bz::print("parse time:               {:8.3f}ms\n", in_ms(resolve_time));
 		bz::print("bitcode emission time:    {:8.3f}ms\n", in_ms(bitcode_emission_time));
+		bz::print("optimization time:        {:8.3f}ms\n", in_ms(optimization_time));
 		bz::print("file emission time:       {:8.3f}ms\n", in_ms(file_emission_time));
 	}
 

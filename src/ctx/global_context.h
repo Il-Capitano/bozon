@@ -242,14 +242,13 @@ struct global_context
 	[[nodiscard]] bool parse_global_symbols(void);
 	[[nodiscard]] bool parse(void);
 	[[nodiscard]] bool emit_bitcode(void);
+	[[nodiscard]] bool optimize(void);
 	[[nodiscard]] bool emit_file(void);
 
 	bool emit_obj(void);
 	bool emit_asm(void);
 	bool emit_llvm_bc(void);
 	bool emit_llvm_ir(void);
-
-	void optimize(void);
 };
 
 } // namespace ctx
