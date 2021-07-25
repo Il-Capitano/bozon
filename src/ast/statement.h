@@ -508,6 +508,7 @@ struct function_body
 		default_copy_constructor    = bit_at<13>,
 		bitcode_emitted             = bit_at<14>,
 		comptime_bitcode_emitted    = bit_at<15>,
+		only_consteval              = bit_at<16>,
 	};
 
 	enum : uint8_t
@@ -724,6 +725,9 @@ struct function_body
 
 	bool is_comptime_bitcode_emitted(void) const noexcept
 	{ return (this->flags & comptime_bitcode_emitted) != 0; }
+
+	bool is_only_consteval(void) const noexcept
+	{ return (this->flags & only_consteval) != 0; }
 
 	type_info *get_destructor_of(void) const noexcept
 	{

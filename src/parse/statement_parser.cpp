@@ -1974,13 +1974,24 @@ ast::statement parse_decl_function_or_alias(
 )
 {
 	bz_assert(stream != end);
-	bz_assert(stream->kind == lex::token::kw_function);
+	bz_assert(stream->kind == lex::token::kw_function || stream->kind == lex::token::kw_consteval);
 	auto const begin = stream;
+	if (stream->kind == lex::token::kw_consteval)
+	{
+		++stream;
+		bz_assert(stream != end);
+		bz_assert(stream->kind == lex::token::kw_function);
+	}
 	++stream; // 'function'
-	auto const cc =
-		stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal
-		? (++stream, get_calling_convention(stream - 1, context))
-		: abi::calling_convention::c;
+	auto const cc_specified = stream->kind == lex::token::string_literal || stream->kind == lex::token::raw_string_literal;
+	auto const cc_token = stream;
+	auto const cc = cc_specified ? get_calling_convention(stream, context) : abi::calling_convention::c;
+	if (cc_specified)
+	{
+		// only a single token may be used for calling convention
+		// e.g. `function "" "c" foo` is invalid even though `"" "c" == "c"`
+		++stream;
+	}
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	auto const src_tokens = id->kind == lex::token::identifier
 		? lex::src_tokens{ begin, id, stream }
@@ -1993,10 +2004,13 @@ ast::statement parse_decl_function_or_alias(
 		auto func_id = is_global
 			? context.make_qualified_identifier(id)
 			: ast::make_identifier(id);
-		// this is a bit janky
-		if (id->kind == lex::token::identifier && (id - 1)->kind != lex::token::kw_function)
+		if (begin->kind == lex::token::kw_consteval)
 		{
-			context.report_error(id - 1, "calling convention cannot be specified for a function alias");
+			context.report_error(begin, "a function alias cannot be declared as 'consteval'");
+		}
+		if (cc_specified)
+		{
+			context.report_error(cc_token, "calling convention cannot be specified for a function alias");
 		}
 		return ast::make_decl_function_alias(
 			src_tokens,
@@ -2006,15 +2020,17 @@ ast::statement parse_decl_function_or_alias(
 	}
 	else
 	{
-		auto const func_name = is_global
-			? context.make_qualified_identifier(id)
-			: ast::make_identifier(id);
+		auto const func_name = is_global ? context.make_qualified_identifier(id) : ast::make_identifier(id);
 		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
 		body.cc = cc;
 		if (id->value == "main")
 		{
 			body.flags |= ast::function_body::main;
 			body.flags |= ast::function_body::external_linkage;
+		}
+		if (begin->kind == lex::token::kw_consteval)
+		{
+			body.flags |= ast::function_body::only_consteval;
 		}
 
 		if constexpr (is_global)
@@ -2043,6 +2059,39 @@ template ast::statement parse_decl_function_or_alias<false>(
 );
 
 template ast::statement parse_decl_function_or_alias<true>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<bool is_global>
+ast::statement parse_consteval_decl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+)
+{
+	bz_assert(stream != end);
+	bz_assert(stream->kind == lex::token::kw_consteval);
+	if (stream + 1 == end)
+	{
+		return parse_decl_variable<is_global>(stream, end, context);
+	}
+	auto const next_token_kind = (stream + 1)->kind;
+	if (next_token_kind == lex::token::kw_function)
+	{
+		return parse_decl_function_or_alias<is_global>(stream, end, context);
+	}
+	else
+	{
+		return parse_decl_variable<is_global>(stream, end, context);
+	}
+}
+
+template ast::statement parse_consteval_decl<false>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_consteval_decl<true>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );

@@ -2405,6 +2405,23 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	if (func_call.func_body->is_only_consteval())
+	{
+		auto notes = [&]() {
+			bz::vector<ctx::source_highlight> result;
+			if (!func_call.func_body->is_intrinsic())
+			{
+				result.push_back(context.make_note(func_call.func_body->src_tokens, "function was declared 'consteval' here"));
+			}
+			return result;
+		}();
+		context.report_error(
+			func_call.src_tokens,
+			"a function marked as 'consteval' can only be used in a constant expression",
+			std::move(notes)
+		);
+	}
+
 	if (func_call.func_body->is_intrinsic())
 	{
 		switch (func_call.func_body->intrinsic_kind)

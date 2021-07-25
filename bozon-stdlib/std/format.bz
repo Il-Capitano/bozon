@@ -20,7 +20,7 @@ export function write_into(buffer: &format_buffer, c: char)
 	buffer._str ..= c;
 }
 
-function check_fmt_str(fmt_str: str)
+consteval function check_fmt_str(fmt_str: str)
 {
 	let it = fmt_str.begin_ptr();
 	const end = fmt_str.end_ptr();
@@ -35,7 +35,7 @@ function check_fmt_str(fmt_str: str)
 	}
 }
 
-function count_args_in_str(fmt_str: str) -> usize
+consteval function count_args_in_str(fmt_str: str) -> usize
 {
 	let it = __builtin_str_begin_ptr(fmt_str);
 	const end = __builtin_str_end_ptr(fmt_str);
@@ -51,7 +51,7 @@ function count_args_in_str(fmt_str: str) -> usize
 	return result;
 }
 
-function get_slices(fmt_str: str, out: [: str])
+consteval function get_slices(fmt_str: str, out: [: str])
 {
 	let it = __builtin_str_begin_ptr(fmt_str);
 	let prev_begin = it;
@@ -72,7 +72,7 @@ function get_slices(fmt_str: str, out: [: str])
 	out[index] = __builtin_str_from_ptrs(prev_begin, it);
 }
 
-function get_slices(fmt_str: str, args_count: consteval usize) -> [args_count + 1u: str]
+consteval function get_slices(fmt_str: str, args_count: consteval usize) -> [args_count + 1u: str]
 {
 	let result: [args_count + 1u: str];
 	get_slices(fmt_str, result);
@@ -110,7 +110,7 @@ export function format_into(buffer: &format_buffer, fmt_str: consteval str, args
 	const arg_ptrs = [ ...&args, null as *const int32 ];
 	consteval args_count = count_args_in_str(fmt_str);
 	consteval indices = get_indices(0uz, args_count);
-	const slices = get_slices(fmt_str, args_count);
+	consteval slices = get_slices(fmt_str, args_count);
 	if (slices.size() > 1u)
 	{
 		buffer.format_into_impl(indices, slices, arg_ptrs);

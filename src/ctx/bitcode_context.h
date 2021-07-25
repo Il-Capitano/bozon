@@ -113,8 +113,15 @@ struct bitcode_context
 	void emit_destructor_calls(void);
 	void emit_all_destructor_calls(void);
 
-
 	void ensure_function_emission(ast::function_body *func);
+
+
+	void report_error(
+		lex::src_tokens src_tokens, bz::u8string message,
+		bz::vector<source_highlight> notes = {},
+		bz::vector<source_highlight> suggestions = {}
+	) const;
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
 
 
 	global_context &global_ctx;

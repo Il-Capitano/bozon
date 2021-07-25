@@ -309,6 +309,12 @@ ast::statement parse_decl_function_or_alias(
 );
 
 template<bool is_global>
+ast::statement parse_consteval_decl(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<bool is_global>
 ast::statement parse_decl_operator(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -375,7 +381,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert<true>,     },
 	statement_parser{ lex::token::kw_let,           statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
-	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_consteval_decl<true>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::global | statement_parser::struct_body, &parse_decl_type_alias<true>,        },
 	statement_parser{ lex::token::kw_function,      statement_parser::global | statement_parser::struct_body, &parse_decl_function_or_alias<true>, },
 	statement_parser{ lex::token::kw_operator,      statement_parser::global | statement_parser::struct_body, &parse_decl_operator<true>,          },
@@ -388,7 +394,7 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, statement_parser::local, &parse_stmt_static_assert<false>,     },
 	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<false>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<false>,          },
-	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_decl_variable<false>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_consteval_decl<false>,         },
 	statement_parser{ lex::token::kw_type,          statement_parser::local, &parse_decl_type_alias<false>,        },
 	statement_parser{ lex::token::kw_function,      statement_parser::local, &parse_decl_function_or_alias<false>, },
 	statement_parser{ lex::token::kw_operator,      statement_parser::local, &parse_decl_operator<false>,          },
