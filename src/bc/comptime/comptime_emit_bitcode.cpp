@@ -5505,7 +5505,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 
 	auto const func_t = llvm::FunctionType::get(return_result_as_global ? void_type : result_type, false);
 	std::pair<llvm::Function *, bz::vector<llvm::Function *>> result;
-	auto const symbol_name = bz::format("__anon_comptime_compound_expr.{}.{}", expr.final_expr.src_tokens.pivot->src_pos.line, get_unique_id());
+	auto const symbol_name = expr.final_expr.src_tokens.pivot == nullptr
+		? bz::format("__anon_comptime_compound_expr.null.{}", get_unique_id())
+		: bz::format("__anon_comptime_compound_expr.{}.{}", expr.final_expr.src_tokens.pivot->src_pos.line, get_unique_id());
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 	result.first = llvm::Function::Create(
 		func_t, llvm::Function::InternalLinkage,
