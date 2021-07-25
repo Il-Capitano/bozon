@@ -4863,6 +4863,7 @@ static void emit_function_bitcode_impl(
 )
 {
 	bz_assert(!func_body.is_comptime_bitcode_emitted());
+	func_body.flags |= ast::function_body::comptime_bitcode_emitted;
 
 	auto const fn = context.get_function(&func_body);
 	bz_assert(fn != nullptr);
@@ -5041,7 +5042,6 @@ static void emit_function_bitcode_impl(
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;
 	context.output_pointer = nullptr;
-	func_body.flags |= ast::function_body::comptime_bitcode_emitted;
 }
 
 void emit_function_bitcode(
@@ -5505,7 +5505,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 
 	auto const func_t = llvm::FunctionType::get(return_result_as_global ? void_type : result_type, false);
 	std::pair<llvm::Function *, bz::vector<llvm::Function *>> result;
-	auto const symbol_name = bz::format("__anon_comptime_compound_expr.{}", get_unique_id());
+	auto const symbol_name = bz::format("__anon_comptime_compound_expr.{}.{}", expr.final_expr.src_tokens.pivot->src_pos.line, get_unique_id());
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 	result.first = llvm::Function::Create(
 		func_t, llvm::Function::InternalLinkage,
