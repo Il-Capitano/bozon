@@ -805,7 +805,17 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		else if (global_result_getters.empty())
 		{
 			auto const result_type = expr.final_expr.get_expr_type_and_kind().first;
-			result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
+			if (result_type.is_typename())
+			{
+				// nothing, compound expressions can have type results as long as the expression itself can
+				// be evaluated at compile time
+				bz_assert(expr.final_expr.is<ast::constant_expression>());
+				result.first = ast::constant_value(expr.final_expr.get_typename());
+			}
+			else
+			{
+				result.first = constant_value_from_generic_value(call_result, ast::remove_const_or_consteval(result_type));
+			}
 		}
 		else
 		{

@@ -5497,7 +5497,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	ctx::comptime_executor_context &context
 )
 {
-	auto const result_type = expr.final_expr.is_null()
+	auto const result_type = expr.final_expr.is_null() || expr.final_expr.is_typename()
 		? llvm::Type::getVoidTy(context.get_llvm_context())
 		: get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
 	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
