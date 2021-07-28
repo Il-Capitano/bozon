@@ -303,6 +303,35 @@ struct expression : bz::variant<
 		}
 	}
 
+	bool is_literal(void) const noexcept
+	{
+		return this->is<constant_expression>() && this->get<constant_expression>().expr.is<expr_literal>();
+	}
+
+	expr_literal &get_literal(void) noexcept
+	{
+		bz_assert(this->is_literal());
+		return this->get<constant_expression>().expr.get<expr_literal>();
+	}
+
+	expr_literal const &get_literal(void) const noexcept
+	{
+		bz_assert(this->is_literal());
+		return this->get<constant_expression>().expr.get<expr_literal>();
+	}
+
+	constant_value &get_literal_value(void) noexcept
+	{
+		bz_assert(this->is_literal());
+		return this->get<constant_expression>().value;
+	}
+
+	constant_value const &get_literal_value(void) const noexcept
+	{
+		bz_assert(this->is_literal());
+		return this->get<constant_expression>().value;
+	}
+
 	void set_type(ast::typespec new_type)
 	{
 		if (this->is<ast::constant_expression>())

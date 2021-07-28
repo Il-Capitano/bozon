@@ -3411,6 +3411,269 @@ static void match_typename_to_type_impl(
 	}
 }
 
+static void match_literal_to_type(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view dest,
+	parse_context &context
+)
+{
+	bz_assert(expr.is_literal());
+	auto &literal = expr.get_literal();
+	auto const literal_kind = literal.tokens.begin->kind;
+	auto const postfix = (literal.tokens.end - 1)->postfix;
+
+	switch (literal_kind)
+	{
+	case lex::token::integer_literal:
+	case lex::token::hex_literal:
+	case lex::token::oct_literal:
+	case lex::token::bin_literal:
+	{
+		auto const is_any = literal_kind == lex::token::integer_literal && postfix == "";
+		auto const is_any_signed   = is_any || postfix == "i";
+		auto const is_any_unsigned = is_any || (literal_kind != lex::token::integer_literal && postfix == "") || postfix == "u";
+		if (!dest.is<ast::ts_base_type>())
+		{
+			// return to base case if the matched type isn't a base type
+			break;
+		}
+		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
+		if (!is_integer_kind(dest_kind))
+		{
+			// return to base case if the matched type isn't an integer type
+			break;
+		}
+
+		if (is_any)
+		{
+			auto &literal_value = expr.get_literal_value();
+			bz_assert(literal_value.is<ast::constant_value::sint>());
+			auto const int_value = static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>());
+			bz_assert(static_cast<int64_t>(int_value) >= 0);
+			auto const dest_max_value = [&]() -> uint64_t {
+				switch (dest_kind)
+				{
+				case ast::type_info::int8_:
+					return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
+				case ast::type_info::int16_:
+					return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
+				case ast::type_info::int32_:
+					return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
+				case ast::type_info::int64_:
+					return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+				case ast::type_info::uint8_:
+					return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
+				case ast::type_info::uint16_:
+					return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
+				case ast::type_info::uint32_:
+					return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
+				case ast::type_info::uint64_:
+					return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
+				default:
+					bz_unreachable;
+				}
+			}();
+			if (int_value > dest_max_value)
+			{
+				context.report_error(
+					expr,
+					bz::format(
+						"cannot implicitly convert expression from type '{}' to '{}'",
+						expr.get_expr_type_and_kind().first, dest_container
+					),
+					{ context.make_note(
+						expr,
+						bz::format(
+							"value of {} is too big for type '{}'; maximum value is {}",
+							int_value, dest_container, dest_max_value
+						)
+					) }
+				);
+				bz_assert(ast::is_complete(dest_container));
+				expr.to_error();
+				return;
+			}
+			else if (dest_kind == ast::type_info::int32_)
+			{
+				// default literal type doesn't need cast
+				bz_assert(dest == expr.get_expr_type_and_kind().first);
+				return;
+			}
+			else
+			{
+				expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+				return;
+			}
+		}
+		else if (is_any_signed)
+		{
+			if (!is_signed_integer_kind(dest_kind))
+			{
+				context.report_error(
+					expr,
+					bz::format("cannot implicitly convert signed integer literal to unsigned integer type '{}'", dest_container)
+				);
+				bz_assert(ast::is_complete(dest_container));
+				expr.to_error();
+				return;
+			}
+			auto &literal_value = expr.get_literal_value();
+			bz_assert(literal_value.is<ast::constant_value::sint>());
+			auto const int_value = static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>());
+			bz_assert(static_cast<int64_t>(int_value) >= 0);
+			auto const dest_max_value = [&]() -> uint64_t {
+				switch (dest_kind)
+				{
+				case ast::type_info::int8_:
+					return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
+				case ast::type_info::int16_:
+					return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
+				case ast::type_info::int32_:
+					return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
+				case ast::type_info::int64_:
+					return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+				default:
+					bz_unreachable;
+				}
+			}();
+			if (int_value > dest_max_value)
+			{
+				context.report_error(
+					expr,
+					bz::format(
+						"cannot implicitly convert expression from type '{}' to '{}'",
+						expr.get_expr_type_and_kind().first, dest_container
+					),
+					{ context.make_note(
+						expr,
+						bz::format(
+							"value of {} is too big for type '{}'; maximum value is {}",
+							int_value, dest_container, dest_max_value
+						)
+					) }
+				);
+				bz_assert(ast::is_complete(dest_container));
+				expr.to_error();
+				return;
+			}
+			else if (dest_kind == ast::type_info::int32_)
+			{
+				// default literal type doesn't need cast
+				bz_assert(dest == expr.get_expr_type_and_kind().first);
+				return;
+			}
+			else
+			{
+				expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+				return;
+			}
+		}
+		else if (is_any_unsigned)
+		{
+			if (!is_unsigned_integer_kind(dest_kind))
+			{
+				context.report_error(
+					expr,
+					bz::format("cannot implicitly convert unsigned integer literal to signed integer type '{}'", dest_container)
+				);
+				bz_assert(ast::is_complete(dest_container));
+				expr.to_error();
+				return;
+			}
+			auto &literal_value = expr.get_literal_value();
+			bz_assert(literal_value.is<ast::constant_value::uint>());
+			auto const int_value = literal_value.get<ast::constant_value::uint>();
+			auto const dest_max_value = [&]() -> uint64_t {
+				switch (dest_kind)
+				{
+				case ast::type_info::uint8_:
+					return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
+				case ast::type_info::uint16_:
+					return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
+				case ast::type_info::uint32_:
+					return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
+				case ast::type_info::uint64_:
+					return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
+				default:
+					bz_unreachable;
+				}
+			}();
+			if (int_value > dest_max_value)
+			{
+				context.report_error(
+					expr,
+					bz::format(
+						"cannot implicitly convert expression from type '{}' to '{}'",
+						expr.get_expr_type_and_kind().first, dest_container
+					),
+					{ context.make_note(
+						expr,
+						bz::format(
+							"value of {} is too big for type '{}'; maximum value is {}",
+							int_value, dest_container, dest_max_value
+						)
+					) }
+				);
+				bz_assert(ast::is_complete(dest_container));
+				expr.to_error();
+				return;
+			}
+			else if (dest_kind == ast::type_info::uint32_)
+			{
+				// default literal type doesn't need cast
+				bz_assert(dest == expr.get_expr_type_and_kind().first);
+				return;
+			}
+			else
+			{
+				expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+				return;
+			}
+		}
+		else
+		{
+			// return to base case
+			break;
+		}
+	}
+	case lex::token::floating_point_literal:
+	case lex::token::raw_string_literal:
+	case lex::token::string_literal:
+	case lex::token::character_literal:
+	case lex::token::kw_auto:
+	case lex::token::kw_true:
+	case lex::token::kw_false:
+	case lex::token::kw_null:
+	case lex::token::kw_unreachable:
+		break;
+	default:
+		bz::log("{}\n", literal_kind);
+		bz_unreachable;
+	}
+
+	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
+	auto const match_result = match_types(dest_container, expr_type, ast::remove_const_or_consteval(dest), expr_type_kind, context);
+
+	switch (match_result)
+	{
+	case type_match_result::good:
+		// nothing
+		break;
+	case type_match_result::needs_cast:
+		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+		break;
+	case type_match_result::error:
+		context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
+		if (!ast::is_complete(dest_container))
+		{
+			dest_container.clear();
+		}
+		expr.to_error();
+		return;
+	}
+}
+
 static void match_expression_to_type_impl(
 	ast::expression &expr,
 	ast::typespec &dest_container,
@@ -3418,7 +3681,7 @@ static void match_expression_to_type_impl(
 	parse_context &context
 )
 {
-	// a slightly different implementation of get_type_match_level
+	// basically a slightly different implementation of get_type_match_level
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
@@ -3742,6 +4005,14 @@ static void match_expression_to_type_impl(
 				dest_container.clear();
 			}
 			expr.to_error();
+			return;
+		}
+	}
+	else if (expr.is_literal())
+	{
+		match_literal_to_type(expr, dest_container, dest, context);
+		if (expr.is_error())
+		{
 			return;
 		}
 	}

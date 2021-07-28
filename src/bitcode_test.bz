@@ -60,7 +60,9 @@ static_assert(0.1 + 0.2 != 0.3);
 function main(args: [: const str]) -> int32
 {
 	// let i: void;
+	std::printf("{} => ", global);
 	global[0] = 5;
+	std::printf("{}\n", global);
 	// c = 3;
 	for (const arg in args)
 	{
@@ -105,6 +107,12 @@ function main(args: [: const str]) -> int32
 	let &const a = switch (n) {
 		0, 1, 2 => m,
 		else => n
+	};
+
+	@maybe_unused
+	consteval n = switch (3u8) {
+		0, 1, 2u, 3, 0x4 => 3,
+		else => unreachable
 	};
 
 	const t = [ 2, "hello" ];
@@ -305,6 +313,10 @@ function main(args: [: const str]) -> int32
 	let t = [ 3, 3.234, "hello" ];
 	std::printf("{}\n", t);
 	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+
+	const s = std::string("Hello");
+	const *const p = &s;
+	std::assert(p->size() == 5u);
 
 	// consteval x = std::sqrt(-1.0);
 
