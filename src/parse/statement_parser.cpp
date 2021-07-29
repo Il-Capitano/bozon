@@ -125,7 +125,7 @@ static void resolve_stmt_static_assert_impl(
 			{
 				consteval_try(expr, context);
 			}
-			good &= expr.is_error();
+			good &= !expr.is_error();
 		};
 
 		static_assert_stmt.condition = std::move(args[0]);
@@ -157,6 +157,7 @@ static void resolve_stmt_static_assert_impl(
 
 		if (!good)
 		{
+			bz_assert(context.has_errors());
 			return;
 		}
 	}
@@ -1580,6 +1581,7 @@ static bool resolve_function_symbol_helper(
 	auto const good = parameters_good && return_type_good;
 	if (!good)
 	{
+		bz_assert(context.has_errors());
 		return false;
 	}
 
