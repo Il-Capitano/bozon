@@ -2413,6 +2413,13 @@ static val_ptr emit_bitcode(
 			{
 				result.push_back(context.make_note(func_call.func_body->src_tokens, "function was declared 'consteval' here"));
 			}
+			else
+			{
+				result.push_back(context.make_note(bz::format(
+					"builtin function '{}' can only be used in a constant expression",
+					func_call.func_body->get_signature()
+				)));
+			}
 			return result;
 		}();
 		context.report_error(

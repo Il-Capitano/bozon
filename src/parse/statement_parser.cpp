@@ -125,7 +125,7 @@ static void resolve_stmt_static_assert_impl(
 			{
 				consteval_try(expr, context);
 			}
-			good &= !expr.is_error();
+			good &= expr.not_error();
 		};
 
 		static_assert_stmt.condition = std::move(args[0]);

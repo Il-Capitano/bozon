@@ -122,6 +122,7 @@ struct bitcode_context
 		bz::vector<source_highlight> suggestions = {}
 	) const;
 	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(bz::u8string message);
 
 
 	global_context &global_ctx;

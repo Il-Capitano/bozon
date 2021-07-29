@@ -816,6 +816,12 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 	};
 #undef add_builtin
 	bz_assert(result.size() == intrinsic_info.size());
+
+	result[function_body::comptime_compile_error]             .flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_warning]           .flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_error_src_tokens]  .flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_warning_src_tokens].flags |= function_body::only_consteval;
+
 	return result;
 }
 

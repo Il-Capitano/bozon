@@ -398,4 +398,14 @@ void bitcode_context::report_error(
 	};
 }
 
+[[nodiscard]] source_highlight bitcode_context::make_note(bz::u8string message)
+{
+	return source_highlight{
+		global_context::compiler_file_id, 0,
+		char_pos(), char_pos(), char_pos(),
+		{}, {},
+		std::move(message)
+	};
+}
+
 } // namespace ctx
