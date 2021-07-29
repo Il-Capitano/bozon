@@ -1,0 +1,35 @@
+// bit manipulation intrinsics
+
+export function bitreverse = __builtin_bitreverse_u8;
+export function bitreverse = __builtin_bitreverse_u16;
+export function bitreverse = __builtin_bitreverse_u32;
+export function bitreverse = __builtin_bitreverse_u64;
+
+export function popcount = __builtin_popcount_u8;
+export function popcount = __builtin_popcount_u16;
+export function popcount = __builtin_popcount_u32;
+export function popcount = __builtin_popcount_u64;
+
+export function byteswap = __builtin_byteswap_u16;
+export function byteswap = __builtin_byteswap_u32;
+export function byteswap = __builtin_byteswap_u64;
+
+export function clz = __builtin_clz_u8;
+export function clz = __builtin_clz_u16;
+export function clz = __builtin_clz_u32;
+export function clz = __builtin_clz_u64;
+
+export function ctz = __builtin_ctz_u8;
+export function ctz = __builtin_ctz_u16;
+export function ctz = __builtin_ctz_u32;
+export function ctz = __builtin_ctz_u64;
+
+export function fshl = __builtin_fshl_u8;
+export function fshl = __builtin_fshl_u16;
+export function fshl = __builtin_fshl_u32;
+export function fshl = __builtin_fshl_u64;
+
+export function fshr = __builtin_fshr_u8;
+export function fshr = __builtin_fshr_u16;
+export function fshr = __builtin_fshr_u32;
+export function fshr = __builtin_fshr_u64;
