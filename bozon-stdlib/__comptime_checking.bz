@@ -131,24 +131,280 @@ export function println(p: *const void)
 }
 */
 
+// some functions to help create vectors easily until templates and std::vector are implemented
+// this assumes that the following are implemented
+//   - destructor in the form of `destructor(&self) { self.destruct_vector(); }`
+//   - swap function in the form of `function swap(&lhs, &rhs) { lhs.swap_vector(rhs); }`
+//   - operator = in the form of `operator = (&lhs, #const rhs) -> typeof lhs { lhs.assign_vector(rhs); return lhs; }`
+// the structs must have ._data_begin, ._data_end, ._alloc_end members which are the same pointer types
+
+function alloc = __builtin_comptime_malloc_type;
+function free  = __builtin_comptime_free;
+
+@no_comptime_checking
+function destruct_vector(&vec)
+{
+	for (let &elem in vec.as_slice())
+	{
+		__builtin_call_destructor(elem);
+	}
+	free(vec._data_begin);
+	vec._data_begin = null;
+	vec._data_end   = null;
+	vec._alloc_end  = null;
+}
+
+@no_comptime_checking
+function swap(a: &auto, b: &auto)
+{
+	static_assert(typeof a == typeof b, "different types in swap");
+	static_assert(typeof a != &std::string);
+	const temp = a;
+	a = b;
+	b = temp;
+}
+
+@no_comptime_checking
+function swap_vector(&lhs, &rhs)
+{
+	lhs._data_begin.swap(rhs._data_begin);
+	lhs._data_end  .swap(rhs._data_end);
+	lhs._alloc_end .swap(rhs._alloc_end);
+}
+
+@no_comptime_checking
+function size(s: &const str) -> usize
+{
+	return __builtin_str_size(s);
+}
+
+@no_comptime_checking
+function size(#const vec) -> usize
+{
+	return (vec._data_end - vec._data_begin) as usize;
+}
+
+@no_comptime_checking
+function capacity(&const vec) -> usize
+{
+	return (vec._alloc_end - vec._data_begin) as usize;
+}
+
+@no_comptime_checking
+function empty(&const vec) -> bool
+{
+	return vec._data_begin == vec._data_end;
+}
+
+@no_comptime_checking
+function not_empty(&const vec) -> bool
+{
+	return vec._data_begin != vec._data_end;
+}
+
+@no_comptime_checking
+function as_slice(&vec) -> [: typeof *vec._data_begin]
+{
+	return __builtin_slice_from_ptrs(vec._data_begin, vec._data_end);
+}
+
+@no_comptime_checking
+function as_slice(&const vec) -> [: const typeof *vec._data_begin]
+{
+	return __builtin_slice_from_const_ptrs(vec._data_begin, vec._data_end);
+}
+
+@no_comptime_checking
+operator [] (&vec, i: uint64) -> &typeof *vec._data_begin
+{
+	return *(vec._data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (&const vec, i: uint64) -> &const typeof *vec._data_begin
+{
+	return *(vec._data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (&vec, i: int64) -> &typeof *vec._data_begin
+{
+	return *(vec._data_begin + i);
+}
+
+@no_comptime_checking
+operator [] (&const vec, i: int64) -> &const typeof *vec._data_begin
+{
+	return *(vec._data_begin + i);
+}
+
+@no_comptime_checking
+function front(&vec) -> &typeof *vec._data_begin
+{
+	return *vec._data_begin;
+}
+
+@no_comptime_checking
+function front(&const vec) -> &const typeof *vec._data_begin
+{
+	return *vec._data_begin;
+}
+
+@no_comptime_checking
+function back(&vec) -> &typeof *vec._data_begin
+{
+	return *(vec._data_end - 1);
+}
+
+@no_comptime_checking
+function back(&const vec) -> &const typeof *vec._data_begin
+{
+	return *(vec._data_end - 1);
+}
+
+
+@no_comptime_checking
+function round_to_next_power_of_two(n: usize) -> usize
+{
+	// https://stackoverflow.com/a/466242/11488457
+	n -= 1u;
+	n |= n >> 1;
+	n |= n >> 2;
+	n |= n >> 4;
+	n |= n >> 8;
+	n |= n >> 16;
+	n |= n >> 32;
+	n += 1u;
+	return n;
+}
+
+@no_comptime_checking
+function reserve(vec: &auto, new_capacity: usize)
+{
+	type value_type = typeof *vec._data_begin;
+
+	new_capacity = round_to_next_power_of_two(new_capacity);
+
+	if (vec.capacity() < new_capacity)
+	{
+		const size = vec.size();
+		const new_array = alloc(value_type, new_capacity);
+		for (let i = 0uz; i < size; ++i)
+		{
+			(*(new_array + i)).swap(*(vec._data_begin + i));
+			__builtin_call_destructor(*(vec._data_begin + i));
+		}
+		free(vec._data_begin);
+		vec._data_begin = new_array;
+		vec._data_end   = new_array + size;
+		vec._alloc_end  = new_array + new_capacity;
+	}
+}
+
+@no_comptime_checking
+function push_back(&vec, val)
+{
+	type value_type = typeof *vec._data_begin;
+	static_assert(value_type == typeof val, "invalid type in push_back");
+
+	vec.reserve(vec.size() + 1u);
+	let &pushed_val = *(vec._data_end);
+	__builtin_inplace_construct(&pushed_val, value_type());
+	val.swap(pushed_val);
+	vec._data_end += 1;
+}
+
+@no_comptime_checking
+function push_back(&vec, val: ##uint64)
+{
+	type value_type = typeof *vec._data_begin;
+	static_assert(value_type == uint64, "invalid type in push_back");
+
+	vec.reserve(vec.size() + 1u);
+	*(vec._data_end) = val;
+	vec._data_end += 1;
+}
+
+@no_comptime_checking
+function emplace_back(&vec, ...##args)
+{
+	type value_type = typeof *vec._data_begin;
+
+	vec.reserve(vec.size() + 1u);
+	__builtin_inplace_construct(vec._data_end, value_type(...args));
+	vec._data_end += 1;
+}
+
+@no_comptime_checking
+function pop_back(&vec)
+{
+	if (vec._data_begin == vec._data_end)
+	{
+		return;
+	}
+	vec._data_end -= 1;
+	__builtin_call_destructor(*vec._data_end);
+}
+
+@no_comptime_checking
+function clear(&vec)
+{
+	for (let it = vec._data_end; it != vec._data_begin;)
+	{
+		--it;
+		__builtin_call_destructor(*it);
+	}
+	vec._data_end = vec._data_begin;
+}
+
+@no_comptime_checking
+function assign_vector(&lhs, &const rhs)
+{
+	lhs.clear();
+	lhs.reserve(rhs.size());
+	for (let &const elem in rhs.as_slice())
+	{
+		__builtin_inplace_construct(lhs._data_end, elem);
+		lhs._data_end += 1;
+	}
+}
+
+@no_comptime_checking
+function assign_vector(&lhs, &rhs)
+{
+	lhs.swap_vector(rhs);
+}
+
+
 struct call_stack_t
 {
-	.data_begin: *uint64;
-	.data_end:   *uint64;
-	.alloc_end:  *uint64;
+	._data_begin: *uint64;
+	._data_end:   *uint64;
+	._alloc_end:  *uint64;
 
 	// @no_comptime_checking
 	destructor(&self)
 	{
-		for (let it = self.data_begin; it != self.data_end; ++it)
-		{
-			__builtin_call_destructor(*it);
-		}
-		free(self.data_begin);
-		self.data_begin = null;
-		self.data_end   = null;
-		self.alloc_end  = null;
+		self.destruct_vector();
 	}
+}
+
+@no_comptime_checking
+function swap(a: &call_stack_t, b: &call_stack_t)
+{
+	a.swap_vector(b);
+}
+
+operator = (lhs: &call_stack_t, rhs: &const call_stack_t) -> &call_stack_t
+{
+	lhs.assign_vector(rhs);
+	return lhs;
+}
+
+operator = (lhs: &call_stack_t, rhs: call_stack_t) -> &call_stack_t
+{
+	lhs.assign_vector(rhs);
+	return lhs;
 }
 
 struct src_tokens_t
@@ -182,43 +438,6 @@ struct error_t
 	}
 }
 
-struct error_array_t
-{
-	.data_begin: *error_t;
-	.data_end:   *error_t;
-	.alloc_end:  *error_t;
-
-	// @no_comptime_checking
-	destructor(&self)
-	{
-		for (let it = self.data_begin; it != self.data_end; ++it)
-		{
-			__builtin_call_destructor(*it);
-		}
-		free(self.data_begin);
-		self.data_begin = null;
-		self.data_end   = null;
-		self.alloc_end  = null;
-	}
-}
-
-@no_comptime_checking
-function swap(a: &auto, b: &auto)
-{
-	static_assert(typeof a != &std::string);
-	const temp = a;
-	a = b;
-	b = temp;
-}
-
-@no_comptime_checking
-function swap(a: &call_stack_t, b: &call_stack_t)
-{
-	a.data_begin.swap(b.data_begin);
-	a.data_end.swap(b.data_end);
-	a.alloc_end.swap(b.alloc_end);
-}
-
 @no_comptime_checking
 function swap(a: &error_t, b: &error_t)
 {
@@ -229,203 +448,41 @@ function swap(a: &error_t, b: &error_t)
 }
 
 @no_comptime_checking
-function swap(a: &error_array_t, b: &error_array_t)
-{
-	a.data_begin.swap(b.data_begin);
-	a.data_end.swap(b.data_end);
-	a.alloc_end.swap(b.alloc_end);
-}
-
-@no_comptime_checking
-operator = (lhs: &error_t, rhs: error_t)
+operator = (lhs: &error_t, rhs: error_t) -> &error_t
 {
 	lhs.swap(rhs);
+	return lhs;
 }
 
-@no_comptime_checking
-function alloc(T: typename, count: usize) -> *T
+struct error_array_t
 {
-	const result = __builtin_comptime_malloc_type(T, count);
-	return result;
-}
+	._data_begin: *error_t;
+	._data_end:   *error_t;
+	._alloc_end:  *error_t;
 
-@no_comptime_checking
-function free(p: *void)
-{
-	__builtin_comptime_free(p);
-}
-
-@no_comptime_checking
-function round_to_next_power_of_two(n: usize) -> usize
-{
-	// https://stackoverflow.com/a/466242/11488457
-	n -= 1u;
-	n |= n >> 1;
-	n |= n >> 2;
-	n |= n >> 4;
-	n |= n >> 8;
-	n |= n >> 16;
-	n |= n >> 32;
-	n += 1u;
-	return n;
-}
-
-@no_comptime_checking
-function reserve(arr: &auto, new_capacity: usize)
-{
-	type value_type = typeof *arr.data_begin;
-	static_assert(value_type == error_t || value_type == uint64 || value_type == [: uint8]);
-
-	new_capacity = round_to_next_power_of_two(new_capacity);
-
-	if (arr.capacity() < new_capacity)
+	// @no_comptime_checking
+	destructor(&self)
 	{
-		const size = arr.size();
-		const new_array = alloc(value_type, new_capacity);
-		for (let i = 0uz; i < size; ++i)
-		{
-			(*(new_array + i)).swap(*(arr.data_begin + i));
-			__builtin_call_destructor(*(arr.data_begin + i));
-		}
-		free(arr.data_begin);
-		arr.data_begin = new_array;
-		arr.data_end   = new_array + size;
-		arr.alloc_end  = new_array + new_capacity;
+		self.destruct_vector();
 	}
 }
 
 @no_comptime_checking
-function push_back(arr: &error_array_t, val: error_t)
+function swap(a: &error_array_t, b: &error_array_t)
 {
-	arr.reserve(arr.size() + 1u);
-	let &pushed_val = *(arr.data_end);
-	__builtin_inplace_construct(&pushed_val, error_t());
-	val.swap(pushed_val);
-	arr.data_end += 1;
+	a.swap_vector(b);
 }
 
-@no_comptime_checking
-function push_back(arr: &call_stack_t, val: uint64)
+operator = (lhs: &error_array_t, rhs: &const error_array_t) -> &error_array_t
 {
-	arr.reserve(arr.size() + 1u);
-	*arr.data_end = val;
-	++arr.data_end;
+	lhs.assign_vector(rhs);
+	return lhs;
 }
 
-@no_comptime_checking
-function pop_back(arr: &call_stack_t)
+operator = (lhs: &error_array_t, rhs: error_array_t) -> &error_array_t
 {
-	if (arr.data_begin == arr.data_end)
-	{
-		return;
-	}
-	--arr.data_end;
-}
-
-@no_comptime_checking
-function size(arr: &const call_stack_t) -> usize
-{
-	return (arr.data_end - arr.data_begin) as usize;
-}
-
-@no_comptime_checking
-function size(arr: &const error_array_t) -> usize
-{
-	return (arr.data_end - arr.data_begin) as usize;
-}
-
-@no_comptime_checking
-function capacity(arr: &const call_stack_t) -> usize
-{
-	return (arr.alloc_end - arr.data_begin) as usize;
-}
-
-@no_comptime_checking
-function capacity(arr: &const error_array_t) -> usize
-{
-	return (arr.alloc_end - arr.data_begin) as usize;
-}
-
-@no_comptime_checking
-function empty(arr: &const call_stack_t) -> bool
-{
-	return arr.data_begin == arr.data_end;
-}
-
-@no_comptime_checking
-function empty(arr: &const error_array_t) -> bool
-{
-	return arr.data_begin == arr.data_end;
-}
-
-@no_comptime_checking
-function clear(arr: &call_stack_t)
-{
-	for (let it = arr.data_end; it != arr.data_begin;)
-	{
-		--it;
-		__builtin_call_destructor(*it);
-	}
-	arr.data_end = arr.data_begin;
-}
-
-@no_comptime_checking
-function clear(arr: &error_array_t)
-{
-	for (let it = arr.data_end; it != arr.data_begin;)
-	{
-		--it;
-		__builtin_call_destructor(*it);
-	}
-	arr.data_end = arr.data_begin;
-}
-
-@no_comptime_checking
-operator [] (arr: &auto, i: uint64) -> &typeof *arr.data_begin
-{
-	return *(arr.data_begin + i);
-}
-
-@no_comptime_checking
-operator [] (arr: &const auto, i: uint64) -> &const typeof *arr.data_begin
-{
-	return *(arr.data_begin + i);
-}
-
-@no_comptime_checking
-operator [] (arr: &auto, i: int64) -> &typeof *arr.data_begin
-{
-	return *(arr.data_begin + i);
-}
-
-@no_comptime_checking
-operator [] (arr: &const auto, i: int64) -> &const typeof *arr.data_begin
-{
-	return *(arr.data_begin + i);
-}
-
-@no_comptime_checking
-function begin(arr: &error_array_t) -> *typeof *arr.data_begin
-{
-	return arr.data_begin;
-}
-
-@no_comptime_checking
-function begin(arr: &const error_array_t) -> *const typeof *arr.data_begin
-{
-	return arr.data_begin;
-}
-
-@no_comptime_checking
-function end(arr: &error_array_t) -> *typeof *arr.data_end
-{
-	return arr.data_end;
-}
-
-@no_comptime_checking
-function end(arr: &const error_array_t) -> *const typeof *arr.data_end
-{
-	return arr.data_end;
+	lhs.assign_vector(rhs);
+	return lhs;
 }
 
 @no_runtime_emit
@@ -505,7 +562,7 @@ function get_error_call_stack_element_by_index(i: uint64, j: uint64) -> uint64
 @comptime_error_checking("has_errors")
 function has_errors() -> bool
 {
-	for (let &const error in errors)
+	for (let &const error in errors.as_slice())
 	{
 		if (error.kind == warning_kind_error)
 		{
@@ -677,63 +734,34 @@ function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint
 
 struct vector_str
 {
-	.data_begin: *[: uint8];
-	.data_end:   *[: uint8];
-	.alloc_end:  *[: uint8];
+	._data_begin: *std::string;
+	._data_end:   *std::string;
+	._alloc_end:  *std::string;
 
 	destructor(&self)
 	{
-		for (let it = self.data_begin; it != self.data_end; ++it)
-		{
-			free(it->begin());
-		}
-		free(self.data_begin);
-		self.data_begin = null;
-		self.data_end   = null;
-		self.alloc_end  = null;
+		self.destruct_vector();
 	}
 }
 
 @no_comptime_checking
-function as_str(slice: [: uint8]) -> str
+function swap(a: &vector_str, b: &vector_str)
 {
-	return __builtin_str_from_ptrs(slice.begin(), slice.end());
+	a.swap_vector(b);
 }
 
 @no_comptime_checking
-function size(vec: &const vector_str) -> usize
+operator = (lhs: &vector_str, rhs: &const vector_str) -> &vector_str
 {
-	return (vec.data_end - vec.data_begin) as usize;
+	lhs.assign_vector(rhs);
+	return lhs;
 }
 
 @no_comptime_checking
-function capacity(vec: &const vector_str) -> usize
+operator = (lhs: &vector_str, rhs: vector_str) -> &vector_str
 {
-	return (vec.alloc_end - vec.data_begin) as usize;
-}
-
-@no_comptime_checking
-function back(vec: &vector_str) -> &[: uint8]
-{
-	return *(vec.data_end - 1);
-}
-
-@no_comptime_checking
-function alloc_slice(s: str) -> [: uint8]
-{
-	const size = s.size();
-	const begin = alloc(uint8, size);
-	__builtin_memcpy(begin, s.begin_ptr(), size);
-	return __builtin_slice_from_ptrs(begin, begin + size);
-}
-
-@no_comptime_checking
-function push_back(vec: &vector_str, s: str) -> str
-{
-	vec.reserve(vec.size() + 1u);
-	*vec.data_end = alloc_slice(s);
-	vec.data_end += 1;
-	return vec.back().as_str();
+	lhs.assign_vector(rhs);
+	return lhs;
 }
 
 @no_runtime_emit
@@ -744,5 +772,6 @@ let global_strings = vector_str[ null, null, null ];
 @__builtin("comptime_create_global_string")
 consteval function __builtin_comptime_create_global_string(s: str) -> str
 {
-	return global_strings.push_back(s);
+	global_strings.emplace_back(s);
+	return global_strings.back().as_str();
 }

@@ -4713,7 +4713,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	if (op == lex::token::assign && lhs_t.is<ast::ts_base_type>())
 	{
 		auto const lhs_info = lhs_t.get<ast::ts_base_type>().info;
-		if (lhs_info->op_assign == nullptr && lhs_info->op_move_assign == nullptr)
+		if (lhs_info->kind == ast::type_info::aggregate && lhs_info->op_assign == nullptr && lhs_info->op_move_assign == nullptr)
 		{
 			auto &op_assign = *lhs_info->default_op_assign;
 			auto op_assign_match_level = get_function_call_match_level({}, op_assign, lhs, rhs, context, src_tokens);
