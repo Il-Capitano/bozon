@@ -1,4 +1,0 @@
-export function compile_error   = __builtin_comptime_compile_error;
-export function compile_warning = __builtin_comptime_compile_warning;
-
-export function panic = __builtin_panic;

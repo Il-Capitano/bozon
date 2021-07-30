@@ -4,7 +4,7 @@ import utils;
 import ryu::d2s;
 import ryu::f2s;
 import ryu::digit_table;
-import meta::compiler;
+import meta::comptime;
 
 export struct format_buffer
 {
