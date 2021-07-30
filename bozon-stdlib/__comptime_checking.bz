@@ -279,7 +279,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 }
 
 @no_comptime_checking
-function reserve(vec: &auto, new_capacity: usize)
+function reserve(&vec, new_capacity: usize)
 {
 	type value_type = typeof *vec._data_begin;
 
@@ -473,12 +473,14 @@ function swap(a: &error_array_t, b: &error_array_t)
 	a.swap_vector(b);
 }
 
+@no_comptime_checking
 operator = (lhs: &error_array_t, rhs: &const error_array_t) -> &error_array_t
 {
 	lhs.assign_vector(rhs);
 	return lhs;
 }
 
+@no_comptime_checking
 operator = (lhs: &error_array_t, rhs: error_array_t) -> &error_array_t
 {
 	lhs.assign_vector(rhs);
@@ -497,9 +499,9 @@ let call_stack = call_stack_t[ null, null, null ];
 @comptime_error_checking("cleanup")
 function cleanup()
 {
+	__builtin_call_destructor(global_strings); // needs to be first, because std::string functions need call stacks
 	__builtin_call_destructor(errors);
 	__builtin_call_destructor(call_stack);
-	__builtin_call_destructor(global_strings);
 }
 
 @comptime_error_checking("get_error_count")
