@@ -5,6 +5,7 @@ import std::generic;
 import std::file;
 import std::complex;
 import std::algorithm;
+import std::bit;
 
 import std::libc::math;
 import std::libc::stdlib;
@@ -22,6 +23,8 @@ import std::ryu::f2s;
 import std::ryu::d2s;
 import std::ryu::s2d;
 import std::ryu::s2f;
+
+import std::meta::comptime;
 
 import private_member_test;
 
@@ -59,6 +62,12 @@ static_assert(0.1 + 0.2 != 0.3);
 
 function main(args: [: const str]) -> int32
 {
+	consteval s = {
+		const s = std::string("Hello");
+		s.as_str().std::meta::create_global_string()
+	};
+	static_assert(s == "Hello");
+
 	// let i: void;
 	std::printf("{} => ", global);
 	global[0] = 5;
@@ -70,6 +79,12 @@ function main(args: [: const str]) -> int32
 		// std::println(arg.length());
 		// std::println(arg.size());
 	}
+
+	consteval n = {
+		const val = 0x1100;
+		std::popcount(val)
+	};
+	static_assert(n == 2u);
 
 	std::printf("hello\n");
 

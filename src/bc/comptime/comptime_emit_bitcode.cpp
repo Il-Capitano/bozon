@@ -2654,7 +2654,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -5198,7 +5198,7 @@ static void add_global_result_getters(
 	bz::vector<llvm::Function *> &getters,
 	llvm::Constant *global_value_ptr,
 	llvm::Type *type,
-	bz::vector<std::uint32_t> gep_indicies,
+	bz::vector<std::uint32_t> &gep_indicies,
 	ctx::comptime_executor_context &context
 )
 {
@@ -5245,13 +5245,17 @@ static void add_global_result_getters(
 			"entry",
 			func
 		);
-		context.builder.SetInsertPoint(bb);
 		auto const indicies = gep_indicies
 			.transform([&](auto const i) -> llvm::Value * { return llvm::ConstantInt::get(context.get_uint32_t(), i); })
 			.collect();
+		auto const prev_bb = context.builder.GetInsertBlock();
+
+		context.builder.SetInsertPoint(bb);
 		auto const ptr = context.builder.CreateGEP(global_value_ptr, llvm::ArrayRef(indicies.data(), indicies.size()));
 		auto const result_val = context.builder.CreateLoad(ptr);
 		context.builder.CreateRet(result_val);
+
+		context.builder.SetInsertPoint(prev_bb);
 		break;
 	}
 	}

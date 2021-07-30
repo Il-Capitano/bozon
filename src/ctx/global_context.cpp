@@ -154,7 +154,7 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
 	bz_assert(kind < this->_builtin_functions.size());
 	switch (kind)
 	{
@@ -179,6 +179,9 @@ ast::function_body *global_context::get_builtin_function(uint32_t kind)
 	case ast::function_body::comptime_compile_warning_src_tokens:
 		bz_assert(this->_comptime_compile_warning_src_tokens_func != nullptr);
 		return this->_comptime_compile_warning_src_tokens_func;
+	case ast::function_body::comptime_create_global_string:
+		bz_assert(this->_comptime_create_global_string_func != nullptr);
+		return this->_comptime_create_global_string_func;
 	default:
 		break;
 	}
@@ -387,12 +390,20 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 {
 	if (kind == "errors_var")
 	{
+		bz_assert(this->_comptime_executor.errors_array == nullptr);
 		this->_comptime_executor.errors_array = var_decl;
 		return true;
 	}
 	else if (kind == "call_stack_var")
 	{
+		bz_assert(this->_comptime_executor.call_stack == nullptr);
 		this->_comptime_executor.call_stack = var_decl;
+		return true;
+	}
+	else if (kind == "global_strings_var")
+	{
+		bz_assert(this->_comptime_executor.global_strings == nullptr);
+		this->_comptime_executor.global_strings = var_decl;
 		return true;
 	}
 	else
@@ -403,7 +414,7 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 
 bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
 	if (kind == "str_eq")
 	{
 		if (this->_builtin_str_eq_func != nullptr)
@@ -472,6 +483,16 @@ bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_
 		}
 		func_body->intrinsic_kind = ast::function_body::comptime_compile_warning_src_tokens;
 		this->_comptime_compile_warning_src_tokens_func = func_body;
+		return true;
+	}
+	else if (kind == "comptime_create_global_string")
+	{
+		if (this->_comptime_create_global_string_func != nullptr)
+		{
+			return false;
+		}
+		func_body->intrinsic_kind = ast::function_body::comptime_create_global_string;
+		this->_comptime_create_global_string_func = func_body;
 		return true;
 	}
 	else

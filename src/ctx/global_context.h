@@ -54,6 +54,7 @@ struct global_context
 	ast::function_body *_builtin_str_ends_with_func               = nullptr;
 	ast::function_body *_comptime_compile_error_src_tokens_func   = nullptr;
 	ast::function_body *_comptime_compile_warning_src_tokens_func = nullptr;
+	ast::function_body *_comptime_create_global_string_func       = nullptr;
 
 	std::list<src_file> _src_files;
 

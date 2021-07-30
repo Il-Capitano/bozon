@@ -558,6 +558,8 @@ struct function_body
 		comptime_compile_error_src_tokens,
 		comptime_compile_warning_src_tokens,
 
+		comptime_create_global_string,
+
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
 
@@ -1179,7 +1181,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 120);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 121);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
@@ -1224,6 +1226,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::comptime_compile_warning,            "__builtin_comptime_compile_warning"            },
 		{ function_body::comptime_compile_error_src_tokens,   "__builtin_comptime_compile_error_src_tokens"   },
 		{ function_body::comptime_compile_warning_src_tokens, "__builtin_comptime_compile_warning_src_tokens" },
+
+		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

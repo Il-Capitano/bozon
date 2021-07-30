@@ -447,7 +447,7 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
 	if (!body->is_intrinsic() || body->body.not_null())
 	{
 		if (!body->is_comptime_bitcode_emitted())
@@ -940,6 +940,8 @@ void comptime_executor_context::add_base_functions_to_module(llvm::Module &modul
 	bc::comptime::emit_global_variable(*this->errors_array, *this);
 	bz_assert(this->call_stack != nullptr);
 	bc::comptime::emit_global_variable(*this->call_stack, *this);
+	bz_assert(this->global_strings != nullptr);
+	bc::comptime::emit_global_variable(*this->global_strings, *this);
 
 	for (auto &func : this->comptime_functions)
 	{

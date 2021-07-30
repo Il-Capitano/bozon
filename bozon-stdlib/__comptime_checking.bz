@@ -178,7 +178,7 @@ struct error_t
 	// @no_comptime_checking
 	destructor(&self)
 	{
-		__builtin_comptime_free(self.call_stack.begin());
+		free(self.call_stack.begin());
 	}
 }
 
@@ -274,7 +274,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 function reserve(arr: &auto, new_capacity: usize)
 {
 	type value_type = typeof *arr.data_begin;
-	static_assert(value_type == error_t || value_type == uint64);
+	static_assert(value_type == error_t || value_type == uint64 || value_type == [: uint8]);
 
 	new_capacity = round_to_next_power_of_two(new_capacity);
 
@@ -442,6 +442,7 @@ function cleanup()
 {
 	__builtin_call_destructor(errors);
 	__builtin_call_destructor(call_stack);
+	__builtin_call_destructor(global_strings);
 }
 
 @comptime_error_checking("get_error_count")
@@ -672,4 +673,76 @@ function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint
 {
 	const call_stack_array = get_call_stack_array_copy();
 	errors.push_back(error_t[ warning_kind_comptime_warning, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack_array ]);
+}
+
+struct vector_str
+{
+	.data_begin: *[: uint8];
+	.data_end:   *[: uint8];
+	.alloc_end:  *[: uint8];
+
+	destructor(&self)
+	{
+		for (let it = self.data_begin; it != self.data_end; ++it)
+		{
+			free(it->begin());
+		}
+		free(self.data_begin);
+		self.data_begin = null;
+		self.data_end   = null;
+		self.alloc_end  = null;
+	}
+}
+
+@no_comptime_checking
+function as_str(slice: [: uint8]) -> str
+{
+	return __builtin_str_from_ptrs(slice.begin(), slice.end());
+}
+
+@no_comptime_checking
+function size(vec: &const vector_str) -> usize
+{
+	return (vec.data_end - vec.data_begin) as usize;
+}
+
+@no_comptime_checking
+function capacity(vec: &const vector_str) -> usize
+{
+	return (vec.alloc_end - vec.data_begin) as usize;
+}
+
+@no_comptime_checking
+function back(vec: &vector_str) -> &[: uint8]
+{
+	return *(vec.data_end - 1);
+}
+
+@no_comptime_checking
+function alloc_slice(s: str) -> [: uint8]
+{
+	const size = s.size();
+	const begin = alloc(uint8, size);
+	__builtin_memcpy(begin, s.begin_ptr(), size);
+	return __builtin_slice_from_ptrs(begin, begin + size);
+}
+
+@no_comptime_checking
+function push_back(vec: &vector_str, s: str) -> str
+{
+	vec.reserve(vec.size() + 1u);
+	*vec.data_end = alloc_slice(s);
+	vec.data_end += 1;
+	return vec.back().as_str();
+}
+
+@no_runtime_emit
+@comptime_error_checking("global_strings_var")
+let global_strings = vector_str[ null, null, null ];
+
+@no_comptime_checking
+@__builtin("comptime_create_global_string")
+consteval function __builtin_comptime_create_global_string(s: str) -> str
+{
+	return global_strings.push_back(s);
 }

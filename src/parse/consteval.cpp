@@ -1815,7 +1815,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->is_intrinsic());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 120);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -2072,6 +2072,19 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return {};
 	case ast::function_body::comptime_compile_error_src_tokens:
 	case ast::function_body::comptime_compile_warning_src_tokens:
+		return {};
+	case ast::function_body::comptime_create_global_string:
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			bz_assert(func_call.params.size() == 1);
+			consteval_try(func_call.params[0], context);
+			if (func_call.params[0].has_consteval_succeeded())
+			{
+				auto const &str_value = func_call.params[0].get<ast::constant_expression>().value;
+				bz_assert(str_value.is<ast::constant_value::string>());
+				return str_value;
+			}
+		}
 		return {};
 
 	case ast::function_body::memcpy:
