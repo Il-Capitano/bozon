@@ -68,7 +68,7 @@
 		"test": {
 			"depends_on": "default",
 			"source_directory": "test",
-			"defines": [ "BOZON_NO_ARENA" ],
+			"defines": [],
 			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
 				"windows": {
