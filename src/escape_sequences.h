@@ -228,6 +228,8 @@ constexpr bz::array escape_sequence_parsers = {
 	escape_sequence_parser{ 'n',  '\n',                                   "\\n",         &default_verify<'n'>,    &default_get<'n',  '\n'> },
 	escape_sequence_parser{ 't',  '\t',                                   "\\t",         &default_verify<'t'>,    &default_get<'t',  '\t'> },
 	escape_sequence_parser{ 'r',  '\r',                                   "\\r",         &default_verify<'r'>,    &default_get<'r',  '\r'> },
+	escape_sequence_parser{ 'a',  '\a',                                   "\\a",         &default_verify<'a'>,    &default_get<'a',  '\a'> },
+	escape_sequence_parser{ 'b',  '\b',                                   "\\b",         &default_verify<'b'>,    &default_get<'b',  '\b'> },
 	escape_sequence_parser{ 'x',  std::numeric_limits<bz::u8char>::max(), "\\xXX",       &verify_hex_char,        &get_hex_char            },
 	escape_sequence_parser{ 'u',  std::numeric_limits<bz::u8char>::max(), "\\uXXXX",     &verify_unicode_small,   &get_unicode_small       },
 	escape_sequence_parser{ 'U',  std::numeric_limits<bz::u8char>::max(), "\\UXXXXXXXX", &verify_unicode_big,     &get_unicode_big         },
@@ -316,7 +318,9 @@ inline bz::u8string add_escape_sequences(bz::u8string_view str)
 		bool escaped = false;
 		[&]<size_t ...Ns>(bz::meta::index_sequence<Ns...>) {
 			((
-				(c == escape_sequence_parsers[Ns].escaped_char) ? (void)(escaped = true, result += '\\', result += escape_sequence_parsers[Ns].c) : (void)0
+				(escape_sequence_parsers[Ns].escaped_char != std::numeric_limits<bz::u8char>::max() && c == escape_sequence_parsers[Ns].escaped_char)
+				? (void)(escaped = true, result += '\\', result += escape_sequence_parsers[Ns].c)
+				: (void)0
 			), ...);
 		}(bz::meta::make_index_sequence<escape_sequence_parsers.size()>{});
 		if (!escaped)
@@ -338,7 +342,7 @@ inline bz::u8string add_escape_sequences(bz::u8char c)
 {
 	for (auto const &parser : escape_sequence_parsers)
 	{
-		if (c == parser.escaped_char)
+		if (parser.escaped_char != std::numeric_limits<bz::u8char>::max() && c == parser.escaped_char)
 		{
 			bz::u8string result = "\\";
 			result += parser.c;
