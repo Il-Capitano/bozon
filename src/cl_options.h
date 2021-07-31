@@ -279,8 +279,8 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
 	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
 	ctcli::create_option("--no-panic-on-unreachable",        "Don't call '__builtin_panic()' if unreachable is hit"),
-	ctcli::create_option("--stdlib-dir <dir>",               "Specify the standard library directory", ctcli::arg_type::string),
 
+	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
 	ctcli::create_hidden_option("--profile",                      "Measure time for compilation steps"),
 	ctcli::create_hidden_option("--debug-ir-output",              "Emit an LLVM IR file alongside the regular output"),

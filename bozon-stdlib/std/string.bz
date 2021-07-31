@@ -1,6 +1,9 @@
 import libc::stdlib;
 import print;
 import unicode;
+import utils;
+
+import meta::comptime;
 
 /*
 @no_comptime_checking
@@ -73,9 +76,9 @@ consteval short_string_max_size = 2u * sizeof *uint8;
 
 function malloc(n: usize) -> *uint8
 {
-	if (__builtin_is_comptime())
+	if (meta::is_comptime())
 	{
-		return __builtin_comptime_malloc_type(uint8, n);
+		return meta::malloc(uint8, n);
 	}
 	else
 	{
@@ -85,9 +88,9 @@ function malloc(n: usize) -> *uint8
 
 function free(p: *void)
 {
-	if (__builtin_is_comptime())
+	if (meta::is_comptime())
 	{
-		__builtin_comptime_free(p);
+		meta::free(p);
 	}
 	else
 	{
@@ -121,17 +124,17 @@ export struct string
 		{
 			return string[ null, null, null ];
 		}
-		else if (!__builtin_is_comptime() && size <= short_string_max_size)
+		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
 			let data_and_alloc_end: [2: *uint8];
-			__builtin_memcpy(data_and_alloc_end.begin(), __builtin_str_begin_ptr(s), size);
+			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
 		else
 		{
 			const [data_begin, alloc_size] = rounded_alloc(size);
-			__builtin_memcpy(data_begin, __builtin_str_begin_ptr(s), size);
+			memcpy(data_begin, s.begin_ptr(), size);
 			return string[ data_begin, data_begin + size, data_begin + alloc_size ];
 		}
 	}
@@ -150,7 +153,7 @@ export operator = (self: &string, other: &const string) -> &string
 	}
 	const size = other.size();
 	self.reserve(size);
-	__builtin_memcpy(self.begin_ptr(), other.begin_ptr(), size);
+	memcpy(self.begin_ptr(), other.begin_ptr(), size);
 	self.set_size_unsafe(size);
 	return self;
 }
@@ -166,7 +169,7 @@ export operator = (self: &string, rhs: str) -> &string
 	const size = rhs.size();
 	if (self.capacity() >= size)
 	{
-		__builtin_memcpy(self.begin_ptr(), __builtin_str_begin_ptr(rhs), size);
+		memcpy(self.begin_ptr(), rhs.begin_ptr(), size);
 		self.set_size_unsafe(size);
 	}
 	else
@@ -206,7 +209,7 @@ function rounded_alloc(n: usize) -> [*uint8, usize]
 
 function is_short_string(s: &const string) -> bool
 {
-	if (__builtin_is_comptime())
+	if (meta::is_comptime())
 	{
 		return false;
 	}
@@ -347,7 +350,7 @@ export function reserve(self: &string, new_capacity: usize)
 	{
 		const [data_begin, alloc_size] = rounded_alloc(new_capacity);
 		const size = self.size();
-		__builtin_memcpy(data_begin, self.begin_ptr(), size);
+		memcpy(data_begin, self.begin_ptr(), size);
 		if (!self.is_short_string())
 		{
 			free(self._data_begin);
@@ -367,7 +370,7 @@ export function push_back(self: &string, c: char)
 {
 	const char_and_size = encode_char_utf8(c);
 	self.reserve(self.size() + char_and_size[1]);
-	__builtin_memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
+	memcpy(self.end_ptr(), char_and_size[0].begin(), char_and_size[1]);
 	self.set_size_unsafe(self.size() + char_and_size[1]);
 }
 
@@ -408,8 +411,8 @@ export operator .. (lhs: #const string, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
-	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	memcpy(result_alloc, lhs_begin, lhs_size);
+	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -418,22 +421,22 @@ export operator .. (lhs: #const string, rhs: str) -> string
 {
 	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
-	const rhs_begin = __builtin_str_begin_ptr(rhs);
+	const rhs_begin = rhs.begin_ptr();
 	const rhs_size = rhs.size();
 
 	const result_size = lhs_size + rhs_size;
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
-	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	memcpy(result_alloc, lhs_begin, lhs_size);
+	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
 
 export operator .. (lhs: str, rhs: #const string) -> string
 {
-	const lhs_begin = __builtin_str_begin_ptr(lhs);
+	const lhs_begin = lhs.begin_ptr();
 	const lhs_size = lhs.size();
 	const rhs_begin = rhs.begin_ptr();
 	const rhs_size = rhs.size();
@@ -442,8 +445,8 @@ export operator .. (lhs: str, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
-	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	memcpy(result_alloc, lhs_begin, lhs_size);
+	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -460,8 +463,8 @@ export operator .. (lhs: #const string, rhs: char) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
-	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	memcpy(result_alloc, lhs_begin, lhs_size);
+	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -478,8 +481,8 @@ export operator .. (lhs: char, rhs: #const string) -> string
 
 	const [result_alloc, result_alloc_size] = rounded_alloc(result_size);
 
-	__builtin_memcpy(result_alloc, lhs_begin, lhs_size);
-	__builtin_memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
+	memcpy(result_alloc, lhs_begin, lhs_size);
+	memcpy(result_alloc + lhs_size, rhs_begin, rhs_size);
 
 	return string[ result_alloc, result_alloc + result_size, result_alloc + result_alloc_size ];
 }
@@ -493,7 +496,7 @@ export operator ..= (lhs: &string, rhs: #const string) -> &string
 
 	// lhs.reserve could change rhs, if you write something like s ..= s
 	const rhs_begin = rhs.begin_ptr();
-	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
@@ -504,8 +507,8 @@ export operator ..= (lhs: &string, rhs: str) -> &string
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
-	const rhs_begin = __builtin_str_begin_ptr(rhs);
-	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	const rhs_begin = rhs.begin_ptr();
+	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
@@ -518,7 +521,7 @@ export operator ..= (lhs: &string, rhs: char) -> &string
 
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
-	__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
