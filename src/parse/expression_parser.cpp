@@ -961,7 +961,7 @@ static ast::expression parse_primary_expression(
 		++stream;
 		return ast::make_dynamic_expression(
 			{ t, t, t + 1 },
-			ast::expression_type_kind::type_name,
+			ast::expression_type_kind::noreturn,
 			ast::make_void_typespec(nullptr),
 			ast::make_expr_break()
 		);
@@ -972,7 +972,7 @@ static ast::expression parse_primary_expression(
 		++stream;
 		return ast::make_dynamic_expression(
 			{ t, t, t + 1 },
-			ast::expression_type_kind::type_name,
+			ast::expression_type_kind::noreturn,
 			ast::make_void_typespec(nullptr),
 			ast::make_expr_continue()
 		);
