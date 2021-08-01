@@ -23,6 +23,7 @@ import std::ryu::f2s;
 import std::ryu::d2s;
 import std::ryu::s2d;
 import std::ryu::s2f;
+import std::ryu::d2fixed;
 
 import std::meta::comptime;
 
@@ -332,6 +333,16 @@ function main(args: [: const str]) -> int32
 	const s = std::string("Hello");
 	const *const p = &s;
 	std::assert(p->size() == 5u);
+
+	function print_fixed(x: float64, precision: uint32)
+	{
+		let buffer: [2000: uint8];
+		const len = std::ryu::d2fixed_buffered_n(x, precision, buffer.begin());
+		const s = __builtin_str_from_ptrs(buffer.begin(), buffer.begin() + len);
+		std::printf("{}\n", s);
+	}
+
+	print_fixed(1.2345, 3u);
 
 	// consteval x = std::sqrt(-1.0);
 

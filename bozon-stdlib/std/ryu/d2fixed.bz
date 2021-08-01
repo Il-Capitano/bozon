@@ -1,0 +1,773 @@
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+
+// Runtime compiler options:
+// -DRYU_DEBUG Generate verbose debugging output to stdout.
+//
+// -DRYU_ONLY_64_BIT_OPS Avoid using uint128_t or 64-bit intrinsics. Slower,
+//     depending on your compiler.
+//
+// -DRYU_AVOID_UINT128 Avoid using uint128_t. Slower, depending on your compiler.
+
+import d2fixed_full_table;
+import d2s_intrinsics;
+import digit_table;
+import common;
+
+import std::utils;
+import std::libc::stdlib;
+
+consteval DOUBLE_MANTISSA_BITS = 52;
+consteval DOUBLE_EXPONENT_BITS = 11;
+consteval DOUBLE_BIAS = 1023;
+
+consteval POW10_ADDITIONAL_BITS = 120u;
+
+// Returns the low 64 bits of the high 128 bits of the 256-bit product of a and b.
+function umul256_hi128_lo64(aHi: uint64, aLo: uint64, bHi: uint64, bLo: uint64) -> uint64
+{
+	let b00Hi: uint64;
+	@maybe_unused const b00Lo = umul128(aLo, bLo, &b00Hi);
+	let b01Hi: uint64;
+	const b01Lo = umul128(aLo, bHi, &b01Hi);
+	let b10Hi: uint64;
+	const b10Lo = umul128(aHi, bLo, &b10Hi);
+	@maybe_unused let b11Hi: uint64;
+	const b11Lo = umul128(aHi, bHi, &b11Hi);
+
+	const temp1Lo = b10Lo + b00Hi;
+	const temp1Hi = b10Hi + (temp1Lo < b10Lo) as uint64;
+	const temp2Lo = b01Lo + temp1Lo;
+	const temp2Hi = b01Hi + (temp2Lo < b01Lo) as uint64;
+	return b11Lo + temp1Hi + temp2Hi;
+}
+
+function uint128_mod1e9(vHi: uint64, vLo: uint64) -> uint32
+{
+	// After multiplying, we're going to shift right by 29, then truncate to uint32_t.
+	// This means that we need only 29 + 32 = 61 bits, so we can truncate to uint64_t before shifting.
+	const multiplied = umul256_hi128_lo64(vHi, vLo, 0x89705F4136B4A597u64, 0x31680A88F8953031u64);
+
+	// For uint32_t truncation, see the mod1e9() comment in d2s_intrinsics.h.
+	const shifted = (multiplied >> 29) as uint32;
+
+	return vLo as uint32 - 1000000000u32 * shifted;
+}
+
+function mulShift_mod1e9(m: uint64, mul: *const uint64, j: int32) -> uint32
+{
+	let high0: uint64;                           // 64
+	const low0 = umul128(m, *(mul + 0), &high0); // 0
+	let high1: uint64;                           // 128
+	const low1 = umul128(m, *(mul + 1), &high1); // 64
+	let high2: uint64;                           // 192
+	const low2 = umul128(m, *(mul + 2), &high2); // 128
+	@maybe_unused const s0low = low0;            // 0
+	const s0high = low1 + high0;                 // 64
+	const c1 = (s0high < low1) as uint32;
+	const s1low = low2 + high1 + c1;             // 128
+	const c2 = (s1low < low2) as uint32; // high1 + c1 can't overflow, so compare against low2
+	const s1high = high2 + c2;                   // 192
+	assert(j >= 128);
+	assert(j <= 180);
+	const dist = (j - 128) as uint32; // dist: [0, 52]
+	const shiftedhigh = s1high >> dist;
+	const shiftedlow = shiftright128(s1low, s1high, dist);
+	return uint128_mod1e9(shiftedhigh, shiftedlow);
+}
+
+// Convert `digits` to a sequence of decimal digits. Append the digits to the result.
+// The caller has to guarantee that:
+//   10^(olength-1) <= digits < 10^olength
+// e.g., by passing `olength` as `decimalLength9(digits)`.
+function append_n_digits(olength: uint32, digits: uint32, result: *uint8)
+{
+	let i = 0u32;
+	while (digits >= 10000u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = digits - 10000u * (digits / 10000u);
+		digits /= 10000u;
+		const c0 = (c % 100u) << 1;
+		const c1 = (c / 100u) << 1;
+		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(result + olength - i - 4, DIGIT_TABLE.begin() + c1, 2u);
+		i += 4u;
+	}
+	if (digits >= 100u)
+	{
+		const c = (digits % 100u) << 1;
+		digits /= 100u;
+		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2u);
+		i += 2u;
+	}
+	if (digits >= 10u)
+	{
+		const c = digits << 1;
+		memcpy(result + olength - i - 2, DIGIT_TABLE.begin() + c, 2u);
+	}
+	else
+	{
+		*result = ('0' + digits) as uint32 as uint8;
+	}
+}
+
+// Convert `digits` to a sequence of decimal digits. Print the first digit, followed by a decimal
+// dot '.' followed by the remaining digits. The caller has to guarantee that:
+//   10^(olength-1) <= digits < 10^olength
+// e.g., by passing `olength` as `decimalLength9(digits)`.
+function append_d_digits(olength: uint32, digits: uint32, result: *uint8)
+{
+	let i = 0u32;
+	while (digits >= 10000u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = digits - 10000u * (digits / 10000u);
+		digits /= 10000u;
+		const c0 = (c % 100u) << 1;
+		const c1 = (c / 100u) << 1;
+		memcpy(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(result + olength + 1 - i - 4, DIGIT_TABLE.begin() + c1, 2u);
+		i += 4u;
+	}
+	if (digits >= 100u)
+	{
+		const c = (digits % 100u) << 1;
+		digits /= 100u;
+		memcpy(result + olength + 1 - i - 2, DIGIT_TABLE.begin() + c, 2u);
+		i += 2u;
+	}
+	if (digits >= 10u)
+	{
+		const c = digits << 1;
+		*(result + 2) = DIGIT_TABLE[c + 1u];
+		*(result + 1) = '.' as uint32 as uint8;
+		*(result + 0) = DIGIT_TABLE[c];
+	}
+	else
+	{
+		*(result + 1) = '.' as uint32 as uint8;
+		*(result + 0) = ('0' + digits) as uint32 as uint8;
+	}
+}
+
+// Convert `digits` to decimal and write the last `count` decimal digits to result.
+// If `digits` contains additional digits, then those are silently ignored.
+function append_c_digits(count: uint32, digits: uint32, result: *uint8)
+{
+	// Copy pairs of digits from DIGIT_TABLE.
+	let i = 0u32;
+	for (; i < count - 1u; i += 2u)
+	{
+		const c = (digits % 100u) << 1;
+		digits /= 100u;
+		memcpy(result + count - i - 2, DIGIT_TABLE.begin() + c, 2u);
+	}
+	// Generate the last digit if count is odd.
+	if (i < count)
+	{
+		const c = '0' + (digits % 10u);
+		*(result + count - i - 1) = c as uint32 as uint8;
+	}
+}
+
+// Convert `digits` to decimal and write the last 9 decimal digits to result.
+// If `digits` contains additional digits, then those are silently ignored.
+function append_nine_digits(digits: uint32, result: *uint8)
+{
+	if (digits == 0u)
+	{
+		memset(result, '0' as uint32 as uint8, 9u);
+		return;
+	}
+
+	for (let i = 0u32; i < 5u; i += 4u)
+	{
+		// https://bugs.llvm.org/show_bug.cgi?id=38217
+		const c = digits - 10000u * (digits / 10000u);
+		digits /= 10000u;
+		const c0 = (c % 100u) << 1;
+		const c1 = (c / 100u) << 1;
+		memcpy(result + 7 - i, DIGIT_TABLE.begin() + c0, 2u);
+		memcpy(result + 5 - i, DIGIT_TABLE.begin() + c1, 2u);
+	}
+	*result = ('0' + digits) as uint32 as uint8;
+}
+
+function indexForExponent(e: uint32) -> uint32
+{
+	return (e + 15u) / 16u;
+}
+
+function pow10BitsForIndex(idx: uint32) -> uint32
+{
+	return 16u * idx + POW10_ADDITIONAL_BITS;
+}
+
+function lengthForIndex(idx: uint32) -> uint32
+{
+	// +1 for ceil, +16 for mantissa, +8 to round up when dividing by 9
+	return (log10Pow2(16u * idx) + 1u + 16u + 8u) / 9u;
+}
+
+function copy_special_str_printf(result: *uint8, sign: bool, mantissa: uint64) -> int32
+{
+	if (mantissa != 0u)
+	{
+		memcpy(result, "nan".begin_ptr(), "nan".size());
+		return 3;
+	}
+	if (sign)
+	{
+		*result = '-' as uint32 as uint8;
+	}
+	memcpy(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
+	return sign as int32 + 8;
+}
+
+export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8) -> int32
+{
+	const bits = double_to_bits(d);
+
+	// Decode bits into sign, mantissa, and exponent.
+	const ieeeSign = ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS)) & 1u64) != 0u;
+	const ieeeMantissa = bits & ((1u64 << DOUBLE_MANTISSA_BITS) - 1u64);
+	const ieeeExponent = (bits >> DOUBLE_MANTISSA_BITS) as uint32 & ((1u32 << DOUBLE_EXPONENT_BITS) - 1u32);
+
+	// Case distinction; exit early for the easy cases.
+	if (ieeeExponent == ((1u32 << DOUBLE_EXPONENT_BITS) - 1u32))
+	{
+		return copy_special_str_printf(result, ieeeSign, ieeeMantissa);
+	}
+	if (ieeeExponent == 0u && ieeeMantissa == 0u)
+	{
+		let index = 0;
+		if (ieeeSign)
+		{
+			*(result + index) = '-' as uint32 as uint8;
+			++index;
+		}
+		*(result + index) = '0' as uint32 as uint8;
+		++index;
+		if (precision > 0u)
+		{
+			*(result + index) = '.' as uint32 as uint8;
+			++index;
+			memset(result + index, '0' as uint32 as uint8, precision);
+			index += precision as int32;
+		}
+		return index;
+	}
+
+	let e2: int32;
+	let m2: uint64;
+	if (ieeeExponent == 0u)
+	{
+		e2 = 1 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+		m2 = ieeeMantissa;
+	}
+	else
+	{
+		e2 = ieeeExponent as int32 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+		m2 = (1u64 << DOUBLE_MANTISSA_BITS) | ieeeMantissa;
+	}
+
+	let index = 0;
+	let nonzero = false;
+	if (ieeeSign)
+	{
+		*(result + index) = '-' as uint32 as uint8;
+		++index;
+	}
+	if (e2 >= -52)
+	{
+		const idx = if (e2 < 0) { 0u } else { indexForExponent(e2 as uint32) };
+		const p10bits = pow10BitsForIndex(idx);
+		const len = lengthForIndex(idx) as int32;
+		for (let i = len - 1; i >= 0; --i)
+		{
+			const j = p10bits - e2 as uint32;
+			// Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
+			// a slightly faster code path in mulShift_mod1e9. Instead, we can just increase the multipliers.
+			const digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] as int32 + i].begin(), j as int32 + 8);
+			if (nonzero)
+			{
+				append_nine_digits(digits, result + index);
+				index += 9;
+			}
+			else if (digits != 0u)
+			{
+				const olength = decimalLength9(digits);
+				append_n_digits(olength, digits, result + index);
+				index += olength as int32;
+				nonzero = true;
+			}
+		}
+	}
+	if (!nonzero)
+	{
+		*(result + index) = '0' as uint32 as uint8;
+		++index;
+	}
+	if (precision > 0u)
+	{
+		*(result + index) = '.' as uint32 as uint8;
+		++index;
+	}
+	if (e2 < 0)
+	{
+		const idx = -e2 / 16;
+		const blocks = precision / 9u + 1u;
+		// 0 = don't round up; 1 = round up unconditionally; 2 = round up if odd.
+		let roundUp = 0;
+		let i = 0u32;
+		if (blocks <= MIN_BLOCK_2[idx])
+		{
+			i = blocks;
+			memset(result + index, '0' as uint32 as uint8, precision);
+			index += precision as int32;
+		}
+		else if (i < MIN_BLOCK_2[idx])
+		{
+			i = MIN_BLOCK_2[idx];
+			memset(result + index, '0' as uint32 as uint8, 9u * i);
+			index += 9 * i as int32;
+		}
+		for (; i < blocks; ++i)
+		{
+			const j = ADDITIONAL_BITS_2 + (-e2 - 16 * idx);
+			const p = POW10_OFFSET_2[idx] + i as uint32 - MIN_BLOCK_2[idx];
+			if (p >= POW10_OFFSET_2[idx + 1])
+			{
+				// If the remaining digits are all 0, then we might as well use memset.
+				// No rounding required in this case.
+				const fill = precision - 9u * i;
+				memset(result + index, '0' as uint32 as uint8, fill);
+				index += fill as int32;
+				break;
+			}
+			// Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
+			// a slightly faster code path in mulShift_mod1e9. Instead, we can just increase the multipliers.
+			let digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p].begin(), j + 8);
+			if (i < blocks - 1u)
+			{
+				append_nine_digits(digits, result + index);
+				index += 9;
+			}
+			else
+			{
+				const maximum = precision - 9u * i;
+				let lastDigit = 0u32;
+				for (let k = 0u32; k < 9u32 - maximum; ++k)
+				{
+					lastDigit = digits % 10u;
+					digits /= 10u;
+				}
+				if (lastDigit != 5u)
+				{
+					roundUp = (lastDigit > 5u) as int32;
+				}
+				else
+				{
+					// Is m * 10^(additionalDigits + 1) / 2^(-e2) integer?
+					const requiredTwos = -e2 - precision as int32 - 1;
+					const trailingZeros = requiredTwos <= 0
+						|| (requiredTwos < 60 && multipleOfPowerOf2(m2, requiredTwos as uint32));
+					if (trailingZeros)
+					{
+						roundUp = 2;
+					}
+					else
+					{
+						roundUp = 1;
+					}
+				}
+				if (maximum > 0u)
+				{
+					append_c_digits(maximum, digits, result + index);
+					index += maximum as int32;
+				}
+				break;
+			}
+		}
+		if (roundUp != 0)
+		{
+			let roundIndex = index;
+			let dotIndex = 0; // '.' can't be located at index 0
+			while (true)
+			{
+				--roundIndex;
+				let c: char;
+				if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+				{
+					*(result + roundIndex + 1) = '1' as uint32 as uint8;
+					if (dotIndex > 0)
+					{
+						*(result + dotIndex) = '0' as uint32 as uint8;
+						*(result + dotIndex + 1) = '.' as uint32 as uint8;
+					}
+					*(result + index) = '0' as uint32 as uint8;
+					++index;
+					break;
+				}
+				if (c == '.')
+				{
+					dotIndex = roundIndex;
+					continue;
+				}
+				else if (c == '9')
+				{
+					*(result + roundIndex) = '0' as uint32 as uint8;
+					roundUp = 1;
+					continue;
+				}
+				else
+				{
+					if (roundUp == 2 && c as int32 % 2 == 0) {
+						break;
+					}
+					*(result + roundIndex) = (c + 1) as uint32 as uint8;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		memset(result + index, '0' as uint32 as uint8, precision);
+		index += precision as int32;
+	}
+	return index;
+}
+
+export function d2fixed_buffered(d: float64, precision: uint32, result: *uint8)
+{
+	const len = d2fixed_buffered_n(d, precision, result);
+	*(result + len) = '\x00' as uint32 as uint8;
+}
+
+export function d2fixed(d: float64, precision: uint32) -> *uint8
+{
+	const buffer = __builtin_pointer_cast(*uint8, libc::malloc(2000u));
+	const index = d2fixed_buffered_n(d, precision, buffer);
+	*(buffer + index) = '\x00' as uint32 as uint8;
+	return buffer;
+}
+
+
+
+export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) -> int32
+{
+	const bits = double_to_bits(d);
+
+	// Decode bits into sign, mantissa, and exponent.
+	const ieeeSign = ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS)) & 1u64) != 0u;
+	const ieeeMantissa = bits & ((1u64 << DOUBLE_MANTISSA_BITS) - 1u);
+	const ieeeExponent = (bits >> DOUBLE_MANTISSA_BITS) as uint32 & ((1u32 << DOUBLE_EXPONENT_BITS) - 1u);
+
+	// Case distinction; exit early for the easy cases.
+	if (ieeeExponent == ((1u32 << DOUBLE_EXPONENT_BITS) - 1u))
+	{
+		return copy_special_str_printf(result, ieeeSign, ieeeMantissa);
+	}
+	if (ieeeExponent == 0u && ieeeMantissa == 0u)
+	{
+		let index = 0;
+		if (ieeeSign)
+		{
+			*(result + index) = '-' as uint32 as uint8;
+			++index;
+		}
+		*(result + index) = '0' as uint32 as uint8;
+		++index;
+		if (precision > 0u)
+		{
+			*(result + index) = '.' as uint32 as uint8;
+			memset(result + index, '0' as uint32 as uint8, precision);
+			index += precision as int32;
+		}
+		memcpy(result + index, "e+00".begin_ptr(), 4u);
+		index += 4;
+		return index;
+	}
+
+	let e2: int32;
+	let m2: uint64;
+	if (ieeeExponent == 0u)
+	{
+		e2 = 1 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+		m2 = ieeeMantissa;
+	}
+	else
+	{
+		e2 = ieeeExponent as int32 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+		m2 = (1u64 << DOUBLE_MANTISSA_BITS) | ieeeMantissa;
+	}
+
+	const printDecimalPoint = precision > 0u;
+	++precision;
+	let index = 0;
+	if (ieeeSign)
+	{
+		*(result + index) = '-' as uint32 as uint8;
+	}
+	let digits = 0u32;
+	let printedDigits = 0u32;
+	let availableDigits = 0u32;
+	let exp = 0i32;
+	if (e2 >= -52)
+	{
+		const idx = if (e2 < 0) { 0u } else { indexForExponent(e2 as uint32) };
+		const p10bits = pow10BitsForIndex(idx);
+		const len = lengthForIndex(idx) as int32;
+		for (let i = len - 1; i >= 0; --i)
+		{
+			const j = p10bits - e2 as uint32;
+			// Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
+			// a slightly faster code path in mulShift_mod1e9. Instead, we can just increase the multipliers.
+			digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] as int32 + i].begin(), (j + 8u) as int32);
+			if (printedDigits != 0u)
+			{
+				if (printedDigits + 9u > precision)
+				{
+					availableDigits = 9u;
+					break;
+				}
+				append_nine_digits(digits, result + index);
+				index += 9;
+				printedDigits += 9u;
+			}
+			else if (digits != 0u)
+			{
+				availableDigits = decimalLength9(digits);
+				exp = i * 9 + availableDigits as int32 - 1;
+				if (availableDigits > precision)
+				{
+					break;
+				}
+				if (printDecimalPoint)
+				{
+					append_d_digits(availableDigits, digits, result + index);
+					index += availableDigits as int32 + 1; // +1 for decimal point
+				}
+				else
+				{
+					*(result + index) = ('0' + digits) as uint32 as uint8;
+					++index;
+				}
+				printedDigits = availableDigits;
+				availableDigits = 0u;
+			}
+		}
+	}
+
+	if (e2 < 0 && availableDigits == 0u)
+	{
+		const idx = -e2 / 16;
+		for (let i = MIN_BLOCK_2[idx] as int32; i < 200; ++i)
+		{
+			const j = ADDITIONAL_BITS_2 + (-e2 - 16 * idx);
+			const p = POW10_OFFSET_2[idx] + i as uint32 - MIN_BLOCK_2[idx];
+			// Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
+			// a slightly faster code path in mulShift_mod1e9. Instead, we can just increase the multipliers.
+			if (p >= POW10_OFFSET_2[idx + 1])
+			{
+				digits = 0u;
+			}
+			else
+			{
+				digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p].begin(), j + 8);
+			}
+			if (printedDigits != 0u)
+			{
+				if (printedDigits + 9u > precision)
+				{
+					availableDigits = 9u;
+					break;
+				}
+				append_nine_digits(digits, result + index);
+				index += 9;
+				printedDigits += 9u;
+			}
+			else if (digits != 0u)
+			{
+				availableDigits = decimalLength9(digits);
+				exp = -(i + 1) * 9 + availableDigits as int32 - 1;
+				if (availableDigits > precision)
+				{
+					break;
+				}
+				if (printDecimalPoint)
+				{
+					append_d_digits(availableDigits, digits, result + index);
+					index += availableDigits as int32 + 1; // +1 for decimal point
+				}
+				else
+				{
+					*(result + index) = ('0' + digits) as uint32 as uint8;
+					++index;
+				}
+				printedDigits = availableDigits;
+				availableDigits = 0u;
+			}
+		}
+	}
+
+	const maximum = precision - printedDigits;
+	if (availableDigits == 0u)
+	{
+		digits = 0u;
+	}
+	let lastDigit = 0u32;
+	if (availableDigits > maximum)
+	{
+		for (let k = 0u32; k < availableDigits - maximum; ++k)
+		{
+			lastDigit = digits % 10u;
+			digits /= 10u;
+		}
+	}
+	// 0 = don't round up; 1 = round up unconditionally; 2 = round up if odd.
+	let roundUp = 0;
+	if (lastDigit != 5u)
+	{
+		roundUp = (lastDigit > 5u) as int32;
+	}
+	else
+	{
+		// Is m * 2^e2 * 10^(precision + 1 - exp) integer?
+		// precision was already increased by 1, so we don't need to write + 1 here.
+		const rexp = precision as int32 - exp;
+		const requiredTwos = -e2 - rexp;
+		let trailingZeros = requiredTwos <= 0
+			|| (requiredTwos < 60 && multipleOfPowerOf2(m2, requiredTwos as uint32));
+		if (rexp < 0)
+		{
+			const requiredFives = -rexp;
+			trailingZeros = trailingZeros && multipleOfPowerOf5(m2, requiredFives as uint32);
+		}
+		if (trailingZeros)
+		{
+			roundUp = 2;
+		}
+		else
+		{
+			roundUp = 1;
+		}
+	}
+	if (printedDigits != 0u)
+	{
+		if (digits == 0u)
+		{
+			memset(result + index, '0' as uint32 as uint8, maximum);
+		}
+		else
+		{
+			append_c_digits(maximum, digits, result + index);
+		}
+		index += maximum as int32;
+	}
+	else
+	{
+		if (printDecimalPoint)
+		{
+			append_d_digits(maximum, digits, result + index);
+			index += maximum as int32 + 1; // +1 for decimal point
+		}
+		else
+		{
+			*(result + index) = ('0' + digits) as uint32 as uint8;
+			++index;
+		}
+	}
+	if (roundUp != 0)
+	{
+		let roundIndex = index;
+		while (true)
+		{
+			--roundIndex;
+			let c: char;
+			if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+			{
+				*(result + roundIndex + 1) = '1' as uint32 as uint8;
+				++exp;
+				break;
+			}
+			if (c == '.')
+			{
+				continue;
+			}
+			else if (c == '9')
+			{
+				*(result + roundIndex) = '0' as uint32 as uint8;
+				roundUp = 1;
+				continue;
+			}
+			else
+			{
+				if (roundUp == 2 && c as int32 % 2 == 0)
+				{
+					break;
+				}
+				*(result + roundIndex) = (c + 1) as uint32 as uint8;
+				break;
+			}
+		}
+	}
+	*(result + index) = 'e' as uint32 as uint8;
+	++index;
+	if (exp < 0)
+	{
+		*(result + index) = '-' as uint32 as uint8;
+		++index;
+		exp = -exp;
+	}
+	else
+	{
+		*(result + index) = '+' as uint32 as uint8;
+		++index;
+	}
+
+	if (exp >= 100)
+	{
+		const c = exp % 10;
+		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
+		*(result + index + 2) = ('0' + c) as uint32 as uint8;
+		index += 3;
+	}
+	else
+	{
+		memcpy(result + index, DIGIT_TABLE.begin() + 2 * exp, 2u);
+		index += 2;
+	}
+
+	return index;
+}
+
+export function d2exp_buffered(d: float64, precision: uint32, result: *uint8)
+{
+	const len = d2exp_buffered_n(d, precision, result);
+	*(result + len) = '\x00' as uint32 as uint8;
+}
+
+export function d2exp(d: float64, precision: uint32) -> *uint8
+{
+	const buffer = __builtin_pointer_cast(*uint8, libc::malloc(2000u));
+	const index = d2exp_buffered_n(d, precision, buffer);
+	*(buffer + index) = '\x00' as uint32 as uint8;
+	return buffer;
+}
