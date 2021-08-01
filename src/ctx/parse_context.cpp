@@ -113,6 +113,18 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 	return this->global_ctx.get_builtin_universal_functions(id);
 }
 
+[[nodiscard]] bool parse_context::push_loop(void) noexcept
+{
+	auto const prev = this->in_loop;
+	this->in_loop = true;
+	return prev;
+}
+
+void parse_context::pop_loop(bool prev_in_loop) noexcept
+{
+	this->in_loop = prev_in_loop;
+}
+
 static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, parse_context const &context)
 {
 	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())

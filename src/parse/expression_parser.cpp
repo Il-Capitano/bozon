@@ -959,23 +959,39 @@ static ast::expression parse_primary_expression(
 	{
 		auto const t = stream;
 		++stream;
-		return ast::make_dynamic_expression(
-			{ t, t, t + 1 },
-			ast::expression_type_kind::noreturn,
-			ast::make_void_typespec(nullptr),
-			ast::make_expr_break()
-		);
+		if (!context.in_loop)
+		{
+			context.report_error(t, "'break' is only allowed inside loops");
+			return ast::make_error_expression({ t, t, t + 1 }, ast::make_expr_break());
+		}
+		else
+		{
+			return ast::make_dynamic_expression(
+				{ t, t, t + 1 },
+				ast::expression_type_kind::noreturn,
+				ast::make_void_typespec(nullptr),
+				ast::make_expr_break()
+			);
+		}
 	}
 	case lex::token::kw_continue:
 	{
 		auto const t = stream;
 		++stream;
-		return ast::make_dynamic_expression(
-			{ t, t, t + 1 },
-			ast::expression_type_kind::noreturn,
-			ast::make_void_typespec(nullptr),
-			ast::make_expr_continue()
-		);
+		if (!context.in_loop)
+		{
+			context.report_error(t, "'continue' is only allowed inside loops");
+			return ast::make_error_expression({ t, t, t + 1 }, ast::make_expr_continue());
+		}
+		else
+		{
+			return ast::make_dynamic_expression(
+				{ t, t, t + 1 },
+				ast::expression_type_kind::noreturn,
+				ast::make_void_typespec(nullptr),
+				ast::make_expr_continue()
+			);
+		}
 	}
 
 	case lex::token::string_literal:

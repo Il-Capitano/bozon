@@ -44,6 +44,7 @@ struct parse_context
 	uint32_t                                current_file_id = std::numeric_limits<uint32_t>::max();
 	bz::array_view<bz::u8string_view const> current_scope{};
 	ast::function_body                     *current_function = nullptr;
+	bool                                    in_loop = false;
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -65,6 +66,8 @@ struct parse_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
 	ast::function_body *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+	[[nodiscard]] bool push_loop(void) noexcept;
+	void pop_loop(bool prev_in_loop) noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(

@@ -2667,6 +2667,7 @@ ast::statement parse_stmt_while(
 	bz_assert(stream->kind == lex::token::kw_while);
 	auto const begin = stream;
 	++stream; // 'while'
+	auto const prev_in_loop = context.push_loop();
 	auto condition = parse_parenthesized_condition(stream, end, context);
 	if (condition.not_error())
 	{
@@ -2681,6 +2682,7 @@ ast::statement parse_stmt_while(
 		}
 	}
 	auto body = parse_local_statement(stream, end, context);
+	context.pop_loop(prev_in_loop);
 	return ast::make_stmt_while(
 		lex::token_range{ begin, stream },
 		std::move(condition), std::move(body)
@@ -2709,6 +2711,7 @@ static ast::statement parse_stmt_for_impl(
 		context.report_error(stream, "expected loop condition or ';'");
 		return {};
 	}
+	auto const prev_in_loop = context.push_loop();
 	auto condition = stream->kind == lex::token::semi_colon
 		? ast::expression()
 		: parse_expression(stream, end, context, precedence{});
@@ -2760,6 +2763,7 @@ static ast::statement parse_stmt_for_impl(
 	auto body = parse_local_statement(stream, end, context);
 
 	context.remove_scope();
+	context.pop_loop(prev_in_loop);
 
 	return ast::make_stmt_for(
 		std::move(init_stmt),
@@ -2919,6 +2923,7 @@ static ast::statement parse_stmt_foreach_impl(
 	context.add_local_variable(end_var_decl);
 	end_var_decl.flags |= ast::decl_variable::used;
 
+	auto const prev_in_loop = context.push_loop();
 	auto condition = [&]() {
 		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())
 		{
@@ -2986,6 +2991,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto body = parse_local_statement(stream, end, context);
 
 	context.remove_scope();
+	context.pop_loop(prev_in_loop);
 	context.remove_scope();
 
 	return ast::make_stmt_foreach(
