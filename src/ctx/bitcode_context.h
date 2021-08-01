@@ -111,7 +111,18 @@ struct bitcode_context
 
 	void push_destructor_call(llvm::Function *dtor_func, llvm::Value *ptr);
 	void emit_destructor_calls(void);
+	void emit_loop_destructor_calls(void);
 	void emit_all_destructor_calls(void);
+
+	struct loop_info_t
+	{
+		llvm::BasicBlock *break_bb;
+		llvm::BasicBlock *continue_bb;
+		size_t destructor_stack_begin;
+	};
+
+	[[nodiscard]] loop_info_t push_loop(llvm::BasicBlock *break_bb, llvm::BasicBlock *continue_bb) noexcept;
+	void pop_loop(loop_info_t info) noexcept;
 
 	void ensure_function_emission(ast::function_body *func);
 
@@ -139,6 +150,7 @@ struct bitcode_context
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };
 	llvm::BasicBlock *alloca_bb = nullptr;
 	llvm::Value *output_pointer = nullptr;
+	loop_info_t loop_info = {};
 
 	llvm::IRBuilder<> builder;
 };

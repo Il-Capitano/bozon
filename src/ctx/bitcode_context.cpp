@@ -343,6 +343,19 @@ void bitcode_context::emit_destructor_calls(void)
 	}
 }
 
+void bitcode_context::emit_loop_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &scope_calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	{
+		for (auto const &[func, val] : scope_calls.reversed())
+		{
+			this->builder.CreateCall(func, val);
+		}
+	}
+}
+
 void bitcode_context::emit_all_destructor_calls(void)
 {
 	bz_assert(!this->has_terminator());
@@ -354,6 +367,21 @@ void bitcode_context::emit_all_destructor_calls(void)
 			this->builder.CreateCall(func, val);
 		}
 	}
+}
+
+[[nodiscard]] bitcode_context::loop_info_t
+bitcode_context::push_loop(llvm::BasicBlock *break_bb, llvm::BasicBlock *continue_bb) noexcept
+{
+	auto const result = this->loop_info;
+	this->loop_info.break_bb = break_bb;
+	this->loop_info.continue_bb = continue_bb;
+	this->loop_info.destructor_stack_begin = this->destructor_calls.size();
+	return result;
+}
+
+void bitcode_context::pop_loop(loop_info_t info) noexcept
+{
+	this->loop_info = info;
 }
 
 void bitcode_context::ensure_function_emission(ast::function_body *func)

@@ -234,6 +234,7 @@ static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_cont
 	context.builder.SetInsertPoint(continue_bb);
 }
 
+/*
 static void emit_error_assert(
 	llvm::Value *bool_val,
 	lex::src_tokens src_tokens,
@@ -262,6 +263,7 @@ static void emit_error_assert(
 	context.builder.CreateBr(context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
+*/
 
 static void emit_index_bounds_check(
 	lex::src_tokens src_tokens,
@@ -3890,6 +3892,36 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_break const &,
+	ctx::comptime_executor_context &context,
+	llvm::Value *
+)
+{
+	bz_assert(context.loop_info.break_bb != nullptr);
+	context.emit_loop_destructor_calls();
+	bz_assert(!context.has_terminator());
+	context.builder.CreateBr(context.loop_info.break_bb);
+	return {};
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_continue const &,
+	ctx::comptime_executor_context &context,
+	llvm::Value *
+)
+{
+	bz_assert(context.loop_info.continue_bb != nullptr);
+	context.emit_loop_destructor_calls();
+	bz_assert(!context.has_terminator());
+	context.builder.CreateBr(context.loop_info.continue_bb);
+	return {};
+}
+
+template<abi::platform_abi abi>
 static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,
@@ -4234,9 +4266,11 @@ static void emit_bitcode(
 	ctx::comptime_executor_context &context
 )
 {
-	auto const condition_check = context.add_basic_block("while_condition_check");
-	context.builder.CreateBr(condition_check);
-	context.builder.SetInsertPoint(condition_check);
+	auto const condition_check_bb = context.add_basic_block("while_condition_check");
+	auto const end_bb = context.add_basic_block("endwhile");
+	auto const prev_loop_info = context.push_loop(end_bb, condition_check_bb);
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
 	context.push_expression_scope();
 	auto const condition = emit_bitcode<abi>(while_stmt.condition, context, nullptr).get_value(context.builder);
 	context.pop_expression_scope();
@@ -4249,13 +4283,13 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{
-		context.builder.CreateBr(condition_check);
+		context.builder.CreateBr(condition_check_bb);
 	}
 
-	auto const end_bb = context.add_basic_block("endwhile");
 	context.builder.SetInsertPoint(condition_check_end);
 	context.builder.CreateCondBr(condition, while_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
+	context.pop_loop(prev_loop_info);
 }
 
 template<abi::platform_abi abi>
@@ -4269,15 +4303,31 @@ static void emit_bitcode(
 	{
 		emit_bitcode<abi>(for_stmt.init, context);
 	}
-	auto const condition_check = context.add_basic_block("for_condition_check");
-	context.builder.CreateBr(condition_check);
-	context.builder.SetInsertPoint(condition_check);
+	auto const condition_check_bb = context.add_basic_block("for_condition_check");
+	auto const iteration_bb = context.add_basic_block("for_iteration");
+	auto const end_bb = context.add_basic_block("endfor");
+	auto const prev_loop_info = context.push_loop(end_bb, iteration_bb);
+
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
 	context.push_expression_scope();
 	auto const condition = for_stmt.condition.not_null()
 		? emit_bitcode<abi>(for_stmt.condition, context, nullptr).get_value(context.builder)
 		: llvm::ConstantInt::getTrue(context.get_llvm_context());
 	context.pop_expression_scope();
 	auto const condition_check_end = context.builder.GetInsertBlock();
+
+	context.builder.SetInsertPoint(iteration_bb);
+	if (for_stmt.iteration.not_null())
+	{
+		context.push_expression_scope();
+		emit_bitcode<abi>(for_stmt.iteration, context, nullptr);
+		context.pop_expression_scope();
+	}
+	if (!context.has_terminator())
+	{
+		context.builder.CreateBr(condition_check_bb);
+	}
 
 	auto const for_bb = context.add_basic_block("for");
 	context.builder.SetInsertPoint(for_bb);
@@ -4286,19 +4336,13 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{
-		if (for_stmt.iteration.not_null())
-		{
-			context.push_expression_scope();
-			emit_bitcode<abi>(for_stmt.iteration, context, nullptr);
-			context.pop_expression_scope();
-		}
-		context.builder.CreateBr(condition_check);
+		context.builder.CreateBr(iteration_bb);
 	}
 
-	auto const end_bb = context.add_basic_block("endfor");
 	context.builder.SetInsertPoint(condition_check_end);
 	context.builder.CreateCondBr(condition, for_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
+	context.pop_loop(prev_loop_info);
 	context.pop_expression_scope();
 }
 
@@ -4313,11 +4357,20 @@ static void emit_bitcode(
 	emit_bitcode<abi>(foreach_stmt.iter_var_decl, context);
 	emit_bitcode<abi>(foreach_stmt.end_var_decl, context);
 
-	auto const condition_check = context.add_basic_block("foreach_condition_check");
-	context.builder.CreateBr(condition_check);
-	context.builder.SetInsertPoint(condition_check);
+	auto const condition_check_bb = context.add_basic_block("foreach_condition_check");
+	auto const iteration_bb = context.add_basic_block("foreach_iteration");
+	auto const end_bb = context.add_basic_block("endforeach");
+	auto const prev_loop_info = context.push_loop(end_bb, iteration_bb);
+
+	context.builder.CreateBr(condition_check_bb);
+	context.builder.SetInsertPoint(condition_check_bb);
 	auto const condition = emit_bitcode<abi>(foreach_stmt.condition, context, nullptr).get_value(context.builder);
 	auto const condition_check_end = context.builder.GetInsertBlock();
+
+	context.builder.SetInsertPoint(iteration_bb);
+	emit_bitcode<abi>(foreach_stmt.iteration, context, nullptr);
+	bz_assert(!context.has_terminator());
+	context.builder.CreateBr(condition_check_bb);
 
 	auto const foreach_bb = context.add_basic_block("foreach");
 	context.builder.SetInsertPoint(foreach_bb);
@@ -4328,15 +4381,14 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{
-		emit_bitcode<abi>(foreach_stmt.iteration, context, nullptr);
-		context.builder.CreateBr(condition_check);
+		context.builder.CreateBr(iteration_bb);
 	}
 	context.pop_expression_scope();
 
-	auto const end_bb = context.add_basic_block("endforeach");
 	context.builder.SetInsertPoint(condition_check_end);
 	context.builder.CreateCondBr(condition, foreach_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
+	context.pop_loop(prev_loop_info);
 	context.pop_expression_scope();
 }
 

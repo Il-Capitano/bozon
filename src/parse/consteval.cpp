@@ -2728,6 +2728,12 @@ static ast::constant_value guaranteed_evaluate_expr(
 				}
 			}
 		},
+		[](ast::expr_break &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_continue &) -> ast::constant_value {
+			return {};
+		},
 	});
 }
 
@@ -2986,6 +2992,12 @@ static ast::constant_value try_evaluate_expr(
 				}
 			}
 		},
+		[](ast::expr_break &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_continue &) -> ast::constant_value {
+			return {};
+		},
 	});
 }
 
@@ -3243,6 +3255,12 @@ static ast::constant_value try_evaluate_expr_without_error(
 					return {};
 				}
 			}
+		},
+		[](ast::expr_break &) -> ast::constant_value {
+			return {};
+		},
+		[](ast::expr_continue &) -> ast::constant_value {
+			return {};
 		},
 	});
 }
@@ -3669,6 +3687,16 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&expr, &notes](ast::expr_switch const &) {
 			notes.emplace_back(ctx::parse_context::make_note(
 				expr.src_tokens, "subexpression is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_break const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "'break' is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_continue const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "'continue' is not a constant expression"
 			));
 		},
 	});

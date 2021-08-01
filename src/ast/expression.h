@@ -27,6 +27,8 @@ struct expr_member_access;
 struct expr_compound;
 struct expr_if;
 struct expr_switch;
+struct expr_break;
+struct expr_continue;
 
 
 using expr_t = node<
@@ -43,7 +45,9 @@ using expr_t = node<
 	expr_member_access,
 	expr_compound,
 	expr_if,
-	expr_switch
+	expr_switch,
+	expr_break,
+	expr_continue
 >;
 
 enum class expression_type_kind
@@ -693,6 +697,14 @@ struct expr_switch
 	{}
 };
 
+struct expr_break
+{
+};
+
+struct expr_continue
+{
+};
+
 
 inline expression make_unresolved_expression(lex::src_tokens tokens)
 { return expression(tokens, unresolved_expression()); }
@@ -737,6 +749,8 @@ def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
 def_make_fn(expr_t, expr_switch)
+def_make_fn(expr_t, expr_break)
+def_make_fn(expr_t, expr_continue)
 
 #undef def_make_fn
 

@@ -430,6 +430,21 @@ void comptime_executor_context::emit_destructor_calls(void)
 	}
 }
 
+void comptime_executor_context::emit_loop_destructor_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &scope_calls : this->destructor_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	{
+		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
+		{
+			auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
+			this->builder.CreateCall(this->get_function(func), val);
+			bc::comptime::emit_pop_call(error_count, *this);
+		}
+	}
+}
+
 void comptime_executor_context::emit_all_destructor_calls(void)
 {
 	bz_assert(!this->has_terminator());
@@ -443,6 +458,21 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 			bc::comptime::emit_pop_call(error_count, *this);
 		}
 	}
+}
+
+[[nodiscard]] comptime_executor_context::loop_info_t
+comptime_executor_context::push_loop(llvm::BasicBlock *break_bb, llvm::BasicBlock *continue_bb) noexcept
+{
+	auto const result = this->loop_info;
+	this->loop_info.break_bb = break_bb;
+	this->loop_info.continue_bb = continue_bb;
+	this->loop_info.destructor_stack_begin = this->destructor_calls.size();
+	return result;
+}
+
+void comptime_executor_context::pop_loop(loop_info_t info) noexcept
+{
+	this->loop_info = info;
 }
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)

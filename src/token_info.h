@@ -276,6 +276,8 @@ constexpr auto token_info = []() {
 	result[lex::token::kw_false]       = { lex::token::kw_false,       "false",       "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_null]        = { lex::token::kw_null,        "null",        "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_unreachable] = { lex::token::kw_unreachable, "unreachable", "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_break]       = { lex::token::kw_break,       "break",       "", keyword_flags | expr_type_flags };
+	result[lex::token::kw_continue]    = { lex::token::kw_continue,    "continue",    "", keyword_flags | expr_type_flags };
 
 
 	result[lex::token::kw_if]            = { lex::token::kw_if,            "if",            "", keyword_flags | expr_type_flags };

@@ -955,6 +955,29 @@ static ast::expression parse_primary_expression(
 		return context.make_literal(literal);
 	}
 
+	case lex::token::kw_break:
+	{
+		auto const t = stream;
+		++stream;
+		return ast::make_dynamic_expression(
+			{ t, t, t + 1 },
+			ast::expression_type_kind::type_name,
+			ast::make_void_typespec(nullptr),
+			ast::make_expr_break()
+		);
+	}
+	case lex::token::kw_continue:
+	{
+		auto const t = stream;
+		++stream;
+		return ast::make_dynamic_expression(
+			{ t, t, t + 1 },
+			ast::expression_type_kind::type_name,
+			ast::make_void_typespec(nullptr),
+			ast::make_expr_continue()
+		);
+	}
+
 	case lex::token::string_literal:
 	case lex::token::raw_string_literal:
 	{
