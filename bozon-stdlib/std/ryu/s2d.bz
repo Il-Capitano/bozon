@@ -68,15 +68,9 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		signedM = true;
 		++i;
 	}
-	for (;
-		i < len && {
-			let c = *(buffer + i) as uint32 as char;
-			(c >= '0' && c <= '9') || c == '.'
-		};
-		++i
-	)
+	for (; i < len; ++i)
 	{
-		let c = *(buffer + i) as uint32 as char;
+		const c = *(buffer + i) as uint32 as char;
 		if (c == '.')
 		{
 			if (dotIndex != len)
@@ -84,18 +78,20 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 				return s2d_MALFORMED_INPUT;
 			}
 			dotIndex = i;
+			continue;
 		}
-		else
+		if ((c < '0') || (c > '9'))
 		{
-			if (m10digits >= 17)
-			{
-				return s2d_INPUT_TOO_LONG;
-			}
-			m10 = 10u * m10 + (c - '0') as uint64;
-			if (m10 != 0u)
-			{
-				++m10digits;
-			}
+			break;
+		}
+		if (m10digits >= 17)
+		{
+			return s2d_INPUT_TOO_LONG;
+		}
+		m10 = 10u * m10 + (c - '0') as uint32;
+		if (m10 != 0u)
+		{
+			++m10digits;
 		}
 	}
 	if (i < len && ((*(buffer + i) as uint32 as char == 'e') || (*(buffer + i) as uint32 as char == 'E')))

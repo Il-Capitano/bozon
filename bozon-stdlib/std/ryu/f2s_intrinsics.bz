@@ -22,15 +22,18 @@ import std::utils;
 
 export function pow5factor_32(value: uint32) -> uint32
 {
-	let count: uint32 = 0u;
-	assert(value != 0u);
-	let q = value / 5u;
-	let r = value % 5u;
-	for (; r == 0u; ++count)
+	let count = 0u32;
+	for (;;)
 	{
+		assert(value != 0u);
+		const q = value / 5u;
+		const r = value % 5u;
+		if (r != 0u)
+		{
+			break;
+		}
 		value = q;
-		q = value / 5u;
-		r = value % 5u;
+		++count;
 	}
 	return count;
 }

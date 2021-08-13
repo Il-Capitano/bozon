@@ -93,11 +93,15 @@ export function pow5Factor(value: uint64) -> uint32
 	const m_inv_5 = 14757395258967641293u64; // 5 * m_inv_5 = 1 (mod 2^64)
 	const n_div_5 = 3689348814741910323u64;  // #{ n | n = 0 (mod 2^64) } = 2^64 / 5
 	let count = 0u32;
-	assert(value != 0u);
-	value *= m_inv_5;
-	for (; value <= n_div_5; ++count)
+	for (;;)
 	{
+		assert(value != 0u);
 		value *= m_inv_5;
+		if (value > n_div_5)
+		{
+			break;
+		}
+		++count;
 	}
 	return count;
 }

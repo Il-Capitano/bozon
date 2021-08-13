@@ -183,10 +183,14 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 	if (vmIsTrailingZeros || vrIsTrailingZeros)
 	{
 		// General case, which happens rarely (~0.7%).
-		let vpDiv10 = div10(vp);
-		let vmDiv10 = div10(vm);
-		for (; vpDiv10 > vmDiv10; ++removed)
+		for (;;)
 		{
+			const vpDiv10 = div10(vp);
+			const vmDiv10 = div10(vm);
+			if (vpDiv10 <= vmDiv10)
+			{
+				break;
+			}
 			const vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
 			const vrDiv10 = div10(vr);
 			const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
@@ -196,15 +200,18 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 			vr = vrDiv10;
 			vp = vpDiv10;
 			vm = vmDiv10;
-			vpDiv10 = div10(vp);
-			vmDiv10 = div10(vm);
+			++removed;
 		}
 		if (vmIsTrailingZeros)
 		{
-			let vmDiv10 = div10(vm);
-			let vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
-			for (; vmMod10 == 0u; ++removed)
+			for (;;)
 			{
+				const vmDiv10 = div10(vm);
+				const vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
+				if (vmMod10 != 0u)
+				{
+					break;
+				}
 				const vpDiv10 = div10(vp);
 				const vrDiv10 = div10(vr);
 				const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
@@ -213,11 +220,11 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 				vr = vrDiv10;
 				vp = vpDiv10;
 				vm = vmDiv10;
-				vmDiv10 = div10(vm);
-				vmMod10 = vm as uint32 - 10u * vmDiv10 as uint32;
+				++removed;
 			}
 		}
-		if (vrIsTrailingZeros && lastRemovedDigit == 5u && vr % 2u == 0u) {
+		if (vrIsTrailingZeros && lastRemovedDigit == 5u && vr % 2u == 0u)
+		{
 			// Round even if the exact number is .....50..0.
 			lastRemovedDigit = 4u8;
 		}
@@ -244,18 +251,21 @@ function d2d(ieeeMantissa: uint64, ieeeExponent: uint32) -> floating_decimal_64
 		// 0: 0.03%, 1: 13.8%, 2: 70.6%, 3: 14.0%, 4: 1.40%, 5: 0.14%, 6+: 0.02%
 		// Loop iterations below (approximately), with optimization above:
 		// 0: 70.6%, 1: 27.8%, 2: 1.40%, 3: 0.14%, 4+: 0.02%
-		let vpDiv10 = div10(vp);
-		let vmDiv10 = div10(vm);
-		for (; vpDiv10 > vmDiv10; ++removed)
+		for (;;)
 		{
+			const vpDiv10 = div10(vp);
+			const vmDiv10 = div10(vm);
+			if (vpDiv10 <= vmDiv10)
+			{
+				break;
+			}
 			const vrDiv10 = div10(vr);
 			const vrMod10 = vr as uint32 - 10u * vrDiv10 as uint32;
 			roundUp = vrMod10 >= 5u;
 			vr = vrDiv10;
 			vp = vpDiv10;
 			vm = vmDiv10;
-			vpDiv10 = div10(vp);
-			vmDiv10 = div10(vm);
+			++removed;
 		}
 		// We need to take vr + 1 if vr is outside bounds or we need to round up.
 		output = vr + (vr == vm || roundUp) as uint64;
@@ -403,7 +413,8 @@ function d2d_small_int(
 		return false;
 	}
 
-	if (e2 < -52) {
+	if (e2 < -52)
+	{
 		// f < 1.
 		return false;
 	}
@@ -448,13 +459,16 @@ export function d2s_buffered_n(f: float64, result: *uint8) -> int32
 		// For scientific notation we need to move these zeros into the exponent.
 		// (This is not needed for fixed-point notation, so it might be beneficial to trim
 		// trailing zeros in to_chars only if needed - once fixed-point notation output is implemented.)
-		let q = div10(v.mantissa);
-		let r = v.mantissa as uint32 - 10u * q as uint32;
-		for (; r == 0u; ++v.exponent)
+		for (;;)
 		{
+			const q = div10(v.mantissa);
+			const r = v.mantissa as uint32 - 10u * q as uint32;
+			if (r != 0u)
+			{
+				break;
+			}
 			v.mantissa = q;
-			q = div10(v.mantissa);
-			r = v.mantissa as uint32 - 10u * q as uint32;
+			++v.exponent;
 		}
 	}
 	else

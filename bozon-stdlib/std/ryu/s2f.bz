@@ -69,13 +69,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		signedM = true;
 		++i;
 	}
-	for (;
-		i < len && {
-			const c = *(buffer + i) as uint32 as char;
-			(c >= '0' && c <= '9') || c == '.'
-		};
-		++i
-	)
+	for (; i < len; ++i)
 	{
 		const c = *(buffer + i) as uint32 as char;
 		if (c == '.')
@@ -85,18 +79,20 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 				return s2f_MALFORMED_INPUT;
 			}
 			dotIndex = i;
+			continue;
 		}
-		else
+		if ((c < '0') || (c > '9'))
 		{
-			if (m10digits >= 9)
-			{
-				return s2f_INPUT_TOO_LONG;
-			}
-			m10 = 10u * m10 + (c - '0') as uint32;
-			if (m10 != 0u)
-			{
-				++m10digits;
-			}
+			break;
+		}
+		if (m10digits >= 9)
+		{
+			return s2f_INPUT_TOO_LONG;
+		}
+		m10 = 10u * m10 + (c - '0') as uint32;
+		if (m10 != 0u)
+		{
+			++m10digits;
 		}
 	}
 	if (i < len && ((*(buffer + i) as uint32 as char == 'e') || (*(buffer + i) as uint32 as char == 'E')))
