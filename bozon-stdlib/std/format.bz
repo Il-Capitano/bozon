@@ -21,17 +21,76 @@ export function write_into(buffer: &format_buffer, c: char)
 	buffer._str ..= c;
 }
 
-consteval function check_fmt_str(fmt_str: str)
+consteval function find_next_bracket(it: *const uint8, end: *const uint8) -> *const uint8
 {
-	let it = fmt_str.begin_ptr();
-	const end = fmt_str.end_ptr();
-
 	for (; it != end; ++it)
 	{
-		if (*it == '{' as uint32 && (it + 1 == end || *(it + 1) != '}' as uint32))
+		if (*it == '{' as uint32 && (it + 1 == end || *(it + 1) != '{' as uint32))
 		{
-			const message = format_unchecked_fmt("invalid format string '{}'; expected closing '}' at '{}'", fmt_str, __builtin_str_from_ptrs(it + 1, end));
-			meta::compile_error(message.as_str());
+			return it;
+		}
+		else if (*it == '{' as uint32)
+		{
+			// next character must be '{' and can't be the end, so we can safely skip it
+			++it;
+		}
+		else if (*it == '}' as uint32 && (it + 1 == end || *(it + 1) != '}' as uint32))
+		{
+			return it;
+		}
+		else if (*it == '}' as uint32)
+		{
+			// next character must be '}' and can't be the end, so we can safely skip it
+			++it;
+		}
+	}
+}
+
+consteval function check_fmt_str(fmt_str: str)
+{
+	const begin = fmt_str.begin_ptr();
+	const end   = fmt_str.end_ptr();
+	let it = begin;
+
+	while (true)
+	{
+		const next_bracket = find_next_bracket(it, end);
+		if (next_bracket == end)
+		{
+			// break if we reached the end
+			break;
+		}
+
+		switch (*next_bracket as uint32 as char)
+		{
+			'}' => {
+				// stray closing bracket, report only as a warning
+				it = next_bracket + 1;
+				const position = __builtin_str_from_ptrs(begin, next_bracket).length();
+				const message = format_unchecked_fmt(
+					"invalid format string '{}'; stray '}}' at position {} ('{}')",
+					fmt_str, position, __builtin_str_from_ptrs(next_bracket, end)
+				);
+				meta::compile_warning(message.as_str());
+			},
+			'{' => {
+				if (next_bracket + 1 == end || *(next_bracket + 1) != '}' as uint32)
+				{
+					it = next_bracket + 1;
+					const position = __builtin_str_from_ptrs(begin, next_bracket).length();
+					const message = format_unchecked_fmt(
+						"invalid format string '{}'; expected '}}' after '{{' at position {} ('{}')",
+						fmt_str, position, __builtin_str_from_ptrs(next_bracket, end)
+					);
+					meta::compile_error(message.as_str());
+					return;
+				}
+				else
+				{
+					it = next_bracket + 2;
+				}
+			},
+			else => unreachable
 		}
 	}
 }
@@ -52,6 +111,33 @@ consteval function count_args_in_str(fmt_str: str) -> usize
 	return result;
 }
 
+consteval function remove_escaped_brackets(s: str) -> str
+{
+	let result = string();
+	result.reserve(s.size());
+
+	let it = s.begin_ptr();
+	let prev_begin = it;
+	const end = s.end_ptr();
+	for (; it != end; ++it)
+	{
+		if (
+			(*it == '{' as uint32 && it + 1 != end && *(it + 1) == '{' as uint32)
+			|| (*it == '}' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		)
+		{
+			// escaped '{' or '}'
+			result ..= __builtin_str_from_ptrs(prev_begin, it + 1);
+			prev_begin = it + 2;
+			// second increment will happen at end of the for loop
+			++it;
+		}
+	}
+	result ..= __builtin_str_from_ptrs(prev_begin, end);
+
+	return result.as_str().meta::create_global_string();
+}
+
 consteval function get_slices(fmt_str: str, out: [: str])
 {
 	let it = fmt_str.begin_ptr();
@@ -59,15 +145,35 @@ consteval function get_slices(fmt_str: str, out: [: str])
 	const end = fmt_str.end_ptr();
 	let index = 0uz;
 
+	let contains_escaped_bracket = false;
 	for (; it != end; ++it)
 	{
-		if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		if (
+			(*it == '{' as uint32 && it + 1 != end && *(it + 1) == '{' as uint32)
+			|| (*it == '}' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		)
 		{
-			out[index] = __builtin_str_from_ptrs(prev_begin, it);
+			// escaped '{' or '}'
+			// second increment will happen at end of the for loop
+			++it;
+			contains_escaped_bracket = true;
+		}
+		else if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		{
+			if (contains_escaped_bracket)
+			{
+				const s = __builtin_str_from_ptrs(prev_begin, it);
+				out[index] = remove_escaped_brackets(s);
+			}
+			else
+			{
+				out[index] = __builtin_str_from_ptrs(prev_begin, it);
+			}
+			contains_escaped_bracket = false; // reset value
 			index += 1u;
 			prev_begin = it + 2;
 			// other increment will happen at the next start of the loop
-			it += 1;
+			++it;
 		}
 	}
 	out[index] = __builtin_str_from_ptrs(prev_begin, it);
@@ -80,7 +186,7 @@ consteval function get_slices(fmt_str: str, args_count: consteval usize) -> [arg
 	return result;
 }
 
-function get_indices(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
+consteval function get_indices(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
 {
 	let result: [(if (end - start == 0u) { 1u } else { end - start }): usize];
 	for (let [i, counter] = [ 0uz, start]; counter != end; ++i, ++counter)
