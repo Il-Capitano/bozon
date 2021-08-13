@@ -291,7 +291,9 @@ function reserve(&vec, new_capacity: usize)
 		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0uz; i < size; ++i)
 		{
-			(*(new_array + i)).swap(*(vec._data_begin + i));
+			// __builtin_inplace_construct(new_array + i, value_type());
+			__builtin_memset(new_array + i, 0u8, sizeof value_type);
+			(new_array + i)->swap(*(vec._data_begin + i));
 			__builtin_call_destructor(*(vec._data_begin + i));
 		}
 		free(vec._data_begin);
@@ -308,7 +310,7 @@ function push_back(&vec, val)
 	static_assert(value_type == typeof val, "invalid type in push_back");
 
 	vec.reserve(vec.size() + 1u);
-	let &pushed_val = *(vec._data_end);
+	let &pushed_val = *vec._data_end;
 	__builtin_inplace_construct(&pushed_val, value_type());
 	val.swap(pushed_val);
 	vec._data_end += 1;
