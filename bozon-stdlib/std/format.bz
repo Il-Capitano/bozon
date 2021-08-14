@@ -21,6 +21,24 @@ export function write_into(buffer: &format_buffer, c: char)
 	buffer._str ..= c;
 }
 
+export struct format_spec
+{
+	.fill: char;
+	.align: char;
+	.sign: char;
+	.fmt_kind: char;
+	.width: usize;
+	.precision: usize;
+	.zero_pad: bool;
+}
+
+export consteval precision_none = ((-1 as usize));
+
+export function get_default_format_spec() -> format_spec
+{
+	return format_spec[ '\x00', '\x00', '\x00', '\x00', 0uz, precision_none, false ];
+}
+
 consteval function find_next_bracket(it: *const uint8, end: *const uint8) -> *const uint8
 {
 	for (; it != end; ++it)
@@ -43,6 +61,139 @@ consteval function find_next_bracket(it: *const uint8, end: *const uint8) -> *co
 			// next character must be '}' and can't be the end, so we can safely skip it
 			++it;
 		}
+	}
+
+	return end;
+}
+
+consteval function string_contains(s: str, c: char) -> bool
+{
+	assert(c <= '\x7f');
+	let it = s.begin_ptr();
+	const end = s.end_ptr();
+	for (; it != end; ++it)
+	{
+		if (*it == c as uint32)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+consteval function string_find(s: str, c: char) -> *const uint8
+{
+	assert(c <= '\x7f');
+	let it = s.begin_ptr();
+	const end = s.end_ptr();
+	for (; it != end; ++it)
+	{
+		if (*it == c as uint32)
+		{
+			return it;
+		}
+	}
+	return end;
+}
+
+consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fmt_str: str)
+{
+	assert(it > fmt_str.begin_ptr());
+	assert(it < fmt_str.end_ptr());
+	const open_bracket_it = it - 1;
+	assert(*open_bracket_it == '{' as uint32);
+	if (it == end)
+	{
+		return;
+	}
+
+	if (*it != ':' as uint32)
+	{
+		const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), open_bracket_it).length();
+		const message = format_unchecked_fmt(
+			"invalid format string '{}'; expected ':' or '}}' after '{{' at position {} ('{}')",
+			fmt_str, position, __builtin_str_from_ptrs(open_bracket_it, fmt_str.end_ptr())
+		);
+		meta::compile_error(message.as_str());
+		return;
+	}
+	++it; // ':'
+	if (it == end)
+	{
+		return;
+	}
+	// syntax: [[fill]align][sign][0][width][.precision][kind]
+	function is_valid_align(c: char) -> bool
+	{
+		return c == '<' || c == '^' || c == '>';
+	}
+	function is_valid_sign(c: char) -> bool
+	{
+		return c == '+' || c == '-' || c == ' ';
+	}
+	function advance_number(it: &*const uint8, end: *const uint8)
+	{
+		while (it != end && {
+			const c = *it as uint32 as char;
+			c >= '0' && c <= '9'
+		})
+		{
+			++it;
+		}
+	}
+
+	if (it + 1 != end && is_valid_align(*(it + 1) as uint32 as char))
+	{
+		++it; // fill
+		++it; // align
+	}
+	else if (is_valid_align(*it as uint32 as char))
+	{
+		++it; // align
+	}
+
+	if (it != end && is_valid_sign(*it as uint32 as char))
+	{
+		++it; // sign
+	}
+	advance_number(it, end); // [0][width]
+	if (it != end && *it == '.' as uint32)
+	{
+		++it; // '.'
+		if (it == end || {
+			const c = *it as uint32 as char;
+			c < '0' || c > '9'
+		})
+		{
+			const dot_it = it - 1;
+			const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), dot_it).length();
+			const message = format_unchecked_fmt(
+				"invalid format string '{}'; expected a number after '.' at position {} ('{}')",
+				fmt_str, position, __builtin_str_from_ptrs(dot_it, fmt_str.end_ptr())
+			);
+			meta::compile_error(message.as_str());
+			return;
+		}
+		advance_number(it, end); // precision
+	}
+	if (it != end && {
+		const c = *it as uint32 as char;
+		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+	})
+	{
+		++it; // kind
+	}
+
+	if (it != end)
+	{
+		const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), it).length();
+		const unexpected_chars = __builtin_str_from_ptrs(it, end);
+		const message = format_unchecked_fmt(
+			"invalid format string '{}'; unexpected characters '{}' at position {} ('{}')",
+			fmt_str, unexpected_chars, position, __builtin_str_from_ptrs(it, fmt_str.end_ptr())
+		);
+		meta::compile_error(message.as_str());
+		return;
 	}
 }
 
@@ -74,21 +225,21 @@ consteval function check_fmt_str(fmt_str: str)
 				meta::compile_warning(message.as_str());
 			},
 			'{' => {
-				if (next_bracket + 1 == end || *(next_bracket + 1) != '}' as uint32)
+				it = next_bracket + 1;
+				if (it == end || !string_contains(__builtin_str_from_ptrs(it, end), '}'))
 				{
-					it = next_bracket + 1;
 					const position = __builtin_str_from_ptrs(begin, next_bracket).length();
 					const message = format_unchecked_fmt(
-						"invalid format string '{}'; expected '}}' after '{{' at position {} ('{}')",
+						"invalid format string '{}'; unclosed '{{' at position {} ('{}')",
 						fmt_str, position, __builtin_str_from_ptrs(next_bracket, end)
 					);
 					meta::compile_error(message.as_str());
 					return;
 				}
-				else
-				{
-					it = next_bracket + 2;
-				}
+				const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
+				assert(closing_bracket_it != end);
+				check_format_spec_str(it, closing_bracket_it, fmt_str);
+				it = closing_bracket_it + 1;
 			},
 			else => unreachable
 		}
@@ -101,12 +252,18 @@ consteval function count_args_in_str(fmt_str: str) -> usize
 	const end = fmt_str.end_ptr();
 
 	let result = 0uz;
-	for (; it != end; ++it)
+	while (true)
 	{
-		if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		const next_bracket = find_next_bracket(it, end);
+		if (next_bracket == end)
+		{
+			break;
+		}
+		else if (*next_bracket == '{' as uint32)
 		{
 			++result;
 		}
+		it = next_bracket + 1;
 	}
 	return result;
 }
@@ -158,7 +315,7 @@ consteval function get_slices(fmt_str: str, out: [: str])
 			++it;
 			contains_escaped_bracket = true;
 		}
-		else if (*it == '{' as uint32 && it + 1 != end && *(it + 1) == '}' as uint32)
+		else if (*it == '{' as uint32)
 		{
 			if (contains_escaped_bracket)
 			{
@@ -171,9 +328,11 @@ consteval function get_slices(fmt_str: str, out: [: str])
 			}
 			contains_escaped_bracket = false; // reset value
 			index += 1u;
-			prev_begin = it + 2;
+			const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
+			assert(closing_bracket_it != end);
+			prev_begin = closing_bracket_it + 1;
 			// other increment will happen at the next start of the loop
-			++it;
+			it = closing_bracket_it;
 		}
 	}
 	out[index] = __builtin_str_from_ptrs(prev_begin, it);
@@ -200,6 +359,7 @@ function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], s
 {
 	consteval index = index[0];
 	buffer.write_into(slices[index]);
+	assert(arg_ptrs[index] != null);
 	arg_ptrs[index]->format_to(buffer);
 }
 

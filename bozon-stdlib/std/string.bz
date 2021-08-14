@@ -388,6 +388,17 @@ export function swap(a: &string, b: &string)
 	swap(a._alloc_end,  b._alloc_end);
 }
 
+export function release(s: &string) -> string
+{
+	const data_begin = s._data_begin;
+	const data_end   = s._data_end;
+	const alloc_end  = s._alloc_end;
+	s._data_begin = null;
+	s._data_end   = null;
+	s._alloc_end  = null;
+	return string[ data_begin, data_end, alloc_end ];
+}
+
 
 export function print(s: #const string)
 {
