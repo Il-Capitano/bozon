@@ -45,6 +45,7 @@ enum class comptime_function_kind : uint32_t
 	clear_errors,
 	index_check_unsigned,
 	index_check_signed,
+	comptime_malloc_check,
 
 	_last,
 };
@@ -275,6 +276,7 @@ constexpr bz::array comptime_function_info = {
 	def_element(clear_errors),
 	def_element(index_check_unsigned),
 	def_element(index_check_signed),
+	def_element(comptime_malloc_check),
 };
 static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
 

@@ -878,13 +878,21 @@ static void bozon_println_stdout(str_t s)
 	fwrite(&new_line, 1, 1, stdout);
 }
 
+static void bozon_debug_print(char const *s)
+{
+	bz::log("{}\n", s);
+}
+
 static void *bozon_builtin_comptime_malloc(uint64_t size) noexcept
 {
-	return std::malloc(size);
+	auto const result = std::malloc(size);
+	// bz::log("allocating {} bytes at {}\n", size, result);
+	return result;
 }
 
 static void bozon_builtin_comptime_free(void *ptr) noexcept
 {
+	// bz::log("freeing {}\n", ptr);
 	std::free(ptr);
 }
 
@@ -900,6 +908,7 @@ void comptime_executor_context::initialize_engine(void)
 			: std::string(target.data_as_char_ptr(), target.size());
 		module->setTargetTriple(target_triple);
 		this->add_base_functions_to_module(*module);
+
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
 		this->pass_manager.add(llvm::createReassociatePass());
@@ -916,6 +925,7 @@ void comptime_executor_context::initialize_engine(void)
 		this->engine->addGlobalMapping("__bozon_builtin_println_stdout",  reinterpret_cast<uint64_t>(&bozon_println_stdout));
 		this->engine->addGlobalMapping("__bozon_builtin_comptime_malloc", reinterpret_cast<uint64_t>(&bozon_builtin_comptime_malloc));
 		this->engine->addGlobalMapping("__bozon_builtin_comptime_free",   reinterpret_cast<uint64_t>(&bozon_builtin_comptime_free));
+		this->engine->addGlobalMapping("__bozon_builtin_debug_print",     reinterpret_cast<uint64_t>(&bozon_debug_print));
 	}
 }
 

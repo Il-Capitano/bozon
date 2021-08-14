@@ -3,6 +3,7 @@ import ::std::string;
 consteval warning_kind_comptime_warning = 21u32;
 consteval warning_kind_error            = 22u32;
 
+
 // copied from std::format
 
 @no_runtime_emit
@@ -66,11 +67,14 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 }
 
 /*
+function print = __builtin_print_stdout;
+function println = __builtin_println_stdout;
+
 @no_comptime_checking
 function print_ascii_char(c: char)
 {
 	const c_int_val = c as uint32 as uint8;
-	std::print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
+	print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
 }
 
 @no_comptime_checking
@@ -98,7 +102,7 @@ function print_uint(n: uint64, base: consteval uint64)
 {
 	if (n == 0u)
 	{
-		std::print("0");
+		print("0");
 	}
 	else
 	{
@@ -115,21 +119,22 @@ export function print(n: uint64)
 @no_comptime_checking
 export function print(p: *const void)
 {
-	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
+	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
 }
 
 @no_comptime_checking
 export function println(n: uint64)
 {
-	print_uint(n, 10u), std::println("");
+	print_uint(n, 10u), println("");
 }
 
 @no_comptime_checking
 export function println(p: *const void)
 {
-	std::print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), std::println("");
+	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), println("");
 }
-*/
+
+// */
 
 // some functions to help create vectors easily until templates and std::vector are implemented
 // this assumes that the following are implemented
@@ -648,7 +653,7 @@ function make_index_error_message(index: usize, size: usize) -> std::string
 		const [buffer, str_size] = get_uint_as_string(size);
 		result ..= __builtin_str_from_ptrs(buffer.end() - str_size, buffer.end());
 	}
-	return result;
+	return result.release();
 }
 
 @no_comptime_checking
@@ -666,7 +671,7 @@ function make_index_error_message(index: isize, size: usize) -> std::string
 			const [buffer, str_size] = get_uint_as_string(size);
 			result ..= __builtin_str_from_ptrs(buffer.end() - str_size, buffer.end());
 		}
-		return result;
+		return result.release();
 	}
 	else
 	{
@@ -687,7 +692,7 @@ function index_check_unsigned(
 	if (index >= size)
 	{
 		const call_stack_array = get_call_stack_array_copy();
-		errors.push_back(error_t[ kind, src_tokens_t[begin, pivot, end], make_index_error_message(index, size), call_stack_array ]);
+		errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], make_index_error_message(index, size), call_stack_array ]);
 		return false;
 	}
 	else
@@ -709,7 +714,40 @@ function index_check_signed(
 	if (index < 0 || index as usize >= size)
 	{
 		const call_stack_array = get_call_stack_array_copy();
-		errors.push_back(error_t[ kind, src_tokens_t[begin, pivot, end], make_index_error_message(index, size), call_stack_array ]);
+		errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], make_index_error_message(index, size), call_stack_array ]);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@no_comptime_checking
+function make_malloc_error_message(size: usize) -> std::string
+{
+	let result = std::string("failed to allocate ");
+	{
+		const [buffer, str_size] = get_int_as_string(size, false);
+		result ..= __builtin_str_from_ptrs(buffer.end() - str_size, buffer.end());
+	}
+	result ..= " bytes in comptime malloc";
+	return result.release();
+}
+
+@comptime_error_checking("comptime_malloc_check")
+function comptime_malloc_check(
+	ptr: *void,
+	size: usize,
+	begin: uint64,
+	pivot: uint64,
+	end: uint64
+) -> bool
+{
+	if (ptr == null)
+	{
+		const message = make_malloc_error_message(size);
+		__builtin_comptime_compile_error_src_tokens(message.as_str(), begin, pivot, end);
 		return false;
 	}
 	else

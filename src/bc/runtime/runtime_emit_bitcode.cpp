@@ -3626,7 +3626,7 @@ static llvm::Constant *get_value(
 		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
 		bz_assert(const_begin_ptr != nullptr);
 
-		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.length());
+		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.size());
 		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
 		bz_assert(const_end_ptr != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };

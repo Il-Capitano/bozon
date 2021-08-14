@@ -9,6 +9,7 @@
 #include "colors.h"
 #include "abi/calling_conventions.h"
 #include "abi/platform_function_call.h"
+#include "ctx/global_context.h"
 
 namespace bc::comptime
 {
@@ -233,37 +234,6 @@ static void emit_error_assert(llvm::Value *bool_val, ctx::comptime_executor_cont
 	context.builder.CreateCondBr(bool_val, continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
 }
-
-/*
-static void emit_error_assert(
-	llvm::Value *bool_val,
-	lex::src_tokens src_tokens,
-	bz::u8string message,
-	ctx::comptime_executor_context &context
-)
-{
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
-	{
-		return;
-	}
-	bz_assert(context.error_bb != nullptr);
-	auto const fail_bb = context.add_basic_block("error_assert_fail");
-	auto const continue_bb = context.add_basic_block("error_assert_continue");
-	context.builder.CreateCondBr(bool_val, continue_bb, fail_bb);
-	context.builder.SetInsertPoint(fail_bb);
-	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
-	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
-	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
-	auto const message_val = context.builder.CreateConstGEP2_64(context.create_string(message), 0, 0);
-	context.builder.CreateCall(
-		context.get_comptime_function(ctx::comptime_function_kind::add_error),
-		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
-	);
-	context.builder.CreateBr(context.error_bb);
-	context.builder.SetInsertPoint(continue_bb);
-}
-*/
 
 static void emit_index_bounds_check(
 	lex::src_tokens src_tokens,
@@ -2930,6 +2900,14 @@ static val_ptr emit_bitcode(
 			auto const alloc_size = context.builder.CreateMul(count, type_size_val);
 			auto const malloc_fn = context.get_function(context.get_builtin_function(ast::function_body::comptime_malloc));
 			auto const result_void_ptr = context.builder.CreateCall(malloc_fn, alloc_size);
+			auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+			auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+			auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+			auto const non_null = context.builder.CreateCall(
+				context.get_comptime_function(ctx::comptime_function_kind::comptime_malloc_check),
+				{ result_void_ptr, alloc_size, error_begin_val, error_pivot_val, error_end_val }
+			);
+			emit_error_assert(non_null, context);
 			auto const result = context.builder.CreatePointerCast(result_void_ptr, result_type);
 			if (result_address != nullptr)
 			{
@@ -3108,6 +3086,30 @@ static val_ptr emit_bitcode(
 	if (!func_call.func_body->is_no_comptime_checking())
 	{
 		pre_call_error_count = emit_push_call(func_call.src_tokens, func_call.func_body, context);
+	}
+
+	if (false)
+	{
+		auto const fn_type = llvm::FunctionType::get(
+			llvm::Type::getVoidTy(context.get_llvm_context()),
+			{ llvm::Type::getInt8PtrTy(context.get_llvm_context()) },
+			false
+		);
+		static auto debug_print_func = llvm::Function::Create(
+			fn_type,
+			llvm::Function::ExternalLinkage,
+			"__bozon_builtin_debug_print",
+			context.get_module()
+		);
+
+		auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
+		if (!file.ends_with("__comptime_checking.bz"))
+		{
+			auto const line = src_tokens.pivot->src_pos.line;
+			auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
+			auto const string_constant = context.create_string(message);
+			context.builder.CreateCall(debug_print_func, { string_constant });
+		}
 	}
 
 	auto const call = context.builder.CreateCall(fn, llvm::ArrayRef(params.data(), params.size()));
@@ -3979,7 +3981,7 @@ static llvm::Constant *get_value(
 		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
 		bz_assert(const_begin_ptr != nullptr);
 
-		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.length());
+		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.size());
 		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
 		bz_assert(const_end_ptr != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
@@ -5064,14 +5066,19 @@ static void emit_function_bitcode_impl(
 
 	if (!context.has_terminator())
 	{
-		// bz_assert(func_body.return_type.is<ast::ts_void>());
 		if (context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
 		}
-		else
+		else if (auto const ret_t = context.current_function.second->getReturnType(); ret_t->isVoidTy())
 		{
 			context.builder.CreateRetVoid();
+		}
+		else
+		{
+			emit_error(func_body.src_tokens, "end of function reached without a return statement", context);
+			bz_assert(!context.has_terminator());
+			context.builder.CreateRet(llvm::UndefValue::get(ret_t));
 		}
 	}
 
