@@ -119,6 +119,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 	case parsed:
 		bz_unreachable;
 	}
+	bz_assert(this->_stage == tokenized);
 	bz_assert(this->_tokens.size() != 0);
 	bz_assert(this->_tokens.back().kind == lex::token::eof);
 	auto stream = this->_tokens.cbegin();

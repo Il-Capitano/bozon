@@ -3722,8 +3722,8 @@ static void match_expression_to_type_impl(
 
 			if (then_matched_type == else_matched_type)
 			{
-				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
-				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest_container, context);
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest_container, context);
 				expr.set_type(std::move(then_matched_type));
 				return;
 			}
@@ -3756,16 +3756,16 @@ static void match_expression_to_type_impl(
 			else if (after_match_then_result.is_null())
 			{
 				// match to the then branch first
-				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
-				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest_container, context);
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest_container, context);
 				expr.set_type(std::move(then_matched_type));
 				return;
 			}
 			else if (after_match_else_result.is_null())
 			{
 				// match to the else branch first
-				match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
-				match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+				match_expression_to_type_impl(if_expr.else_block, dest_container, dest_container, context);
+				match_expression_to_type_impl(if_expr.then_block, dest_container, dest_container, context);
 				expr.set_type(std::move(else_matched_type));
 				return;
 			}
@@ -3825,7 +3825,7 @@ static void match_expression_to_type_impl(
 				{
 					continue;
 				}
-				match_expression_to_type_impl(case_expr, dest_container, dest, context);
+				match_expression_to_type_impl(case_expr, dest_container, dest_container, context);
 			}
 		}
 		else

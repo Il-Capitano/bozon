@@ -359,7 +359,7 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 	}
 	else
 	{
-		bz_assert(file._stage == src_file::parsed_global_symbols);
+		// bz_assert(file._stage >= src_file::parsed_global_symbols);
 	}
 	return file._file_id;
 }
