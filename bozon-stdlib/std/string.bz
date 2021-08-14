@@ -374,6 +374,35 @@ export function push_back(self: &string, c: char)
 	self.set_size_unsafe(self.size() + char_and_size[1]);
 }
 
+export function resize(self: &string, new_size: usize, c: char)
+{
+	assert(c <= '\x7f');
+	if (new_size <= self.size())
+	{
+		self.set_size_unsafe(new_size);
+	}
+	else if (new_size <= self.capacity())
+	{
+		const old_end = self.end_ptr();
+		const size_diff = new_size - self.size();
+		self.set_size_unsafe(new_size);
+		memset(old_end, c as uint32 as uint8, size_diff);
+	}
+	else
+	{
+		self.reserve(new_size);
+		const old_end = self.end_ptr();
+		const size_diff = new_size - self.size();
+		self.set_size_unsafe(new_size);
+		memset(old_end, c as uint32 as uint8, size_diff);
+	}
+}
+
+export function resize(self: &string, new_size: usize)
+{
+	self.resize(new_size, '\x00');
+}
+
 function swap(a: &*uint8, b: &*uint8)
 {
 	const temp = a;

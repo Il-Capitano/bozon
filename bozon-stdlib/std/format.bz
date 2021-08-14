@@ -1,6 +1,8 @@
 import string;
 import print;
 import utils;
+import unicode;
+import bit;
 import ryu::d2s;
 import ryu::f2s;
 import ryu::digit_table;
@@ -21,6 +23,26 @@ export function write_into(buffer: &format_buffer, c: char)
 	buffer._str ..= c;
 }
 
+export function write_into(buffer: &format_buffer, c: char, count: usize)
+{
+	const size = buffer._str.size();
+	if (c <= '\x7f')
+	{
+		buffer._str.resize(size + count, c);
+	}
+	else
+	{
+		const [encoded_char, byte_count] = encode_char_utf8(c);
+		buffer._str.resize(size + count * byte_count);
+		let it = buffer._str.data() + size;
+		for (let i = 0uz; i < count; ++i)
+		{
+			memcpy(it, encoded_char.begin(), byte_count);
+			it += byte_count;
+		}
+	}
+}
+
 export struct format_spec
 {
 	.fill: char;
@@ -37,6 +59,91 @@ export consteval precision_none = ((-1 as usize));
 export function get_default_format_spec() -> format_spec
 {
 	return format_spec[ '\x00', '\x00', '\x00', '\x00', 0uz, precision_none, false ];
+}
+
+function is_valid_align(c: char) -> bool
+{
+	return c == '<' || c == '^' || c == '>';
+}
+
+function is_valid_sign(c: char) -> bool
+{
+	return c == '+' || c == '-' || c == ' ';
+}
+
+function is_number(c: char) -> bool
+{
+	return c >= '0' && c <= '9';
+}
+
+export function get_default_format_spec(fmt_spec: str) -> format_spec
+{
+	let result = get_default_format_spec();
+	// syntax: [[fill]align][sign][0][width][.precision][kind]
+	function get_number(it: &*const uint8, end: *const uint8) -> usize
+	{
+		let result = 0uz;
+		while (it != end && {
+			const c = *it as uint32 as char;
+			c >= '0' && c <= '9'
+		})
+		{
+			result *= 10u;
+			result += (*it as uint32 as char - '0') as uint32;
+			++it;
+		}
+		return result;
+	}
+
+	let it = fmt_spec.begin_ptr();
+	const end = fmt_spec.end_ptr();
+
+	if (it == end)
+	{
+		return result;
+	}
+	else if (it + 1 != end && is_valid_align(*(it + 1) as uint32 as char))
+	{
+		result.fill = *it as uint32 as char;
+		++it; // fill
+		result.align = *it as uint32 as char;
+		++it; // align
+	}
+	else if (is_valid_align(*it as uint32 as char))
+	{
+		result.align = *it as uint32 as char;
+		++it; // align
+	}
+
+	if (it != end && is_valid_sign(*it as uint32 as char))
+	{
+		result.sign = *it as uint32 as char;
+		++it; // sign
+	}
+	if (it != end && *it == '0' as uint32)
+	{
+		result.zero_pad = true;
+		++it;
+	}
+	if (it != end && is_number(*it as uint32 as char))
+	{
+		result.width = get_number(it, end);
+	}
+	if (it != end && *it == '.' as uint32)
+	{
+		++it; // '.'
+		result.precision = get_number(it, end);
+	}
+	if (it != end && {
+		const c = *it as uint32 as char;
+		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+	})
+	{
+		result.fmt_kind = *it as uint32 as char;
+		++it; // kind
+	}
+
+	return result;
 }
 
 consteval function find_next_bracket(it: *const uint8, end: *const uint8) -> *const uint8
@@ -123,14 +230,6 @@ consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fm
 		return;
 	}
 	// syntax: [[fill]align][sign][0][width][.precision][kind]
-	function is_valid_align(c: char) -> bool
-	{
-		return c == '<' || c == '^' || c == '>';
-	}
-	function is_valid_sign(c: char) -> bool
-	{
-		return c == '+' || c == '-' || c == ' ';
-	}
 	function advance_number(it: &*const uint8, end: *const uint8)
 	{
 		while (it != end && {
@@ -188,9 +287,10 @@ consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fm
 	{
 		const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), it).length();
 		const unexpected_chars = __builtin_str_from_ptrs(it, end);
+		const fmt_str_end = __builtin_str_from_ptrs(it, fmt_str.end_ptr());
 		const message = format_unchecked_fmt(
 			"invalid format string '{}'; unexpected characters '{}' at position {} ('{}')",
-			fmt_str, unexpected_chars, position, __builtin_str_from_ptrs(it, fmt_str.end_ptr())
+			fmt_str, unexpected_chars, position, fmt_str_end
 		);
 		meta::compile_error(message.as_str());
 		return;
@@ -295,7 +395,17 @@ consteval function remove_escaped_brackets(s: str) -> str
 	return result.as_str().meta::create_global_string();
 }
 
-consteval function get_slices(fmt_str: str, out: [: str])
+consteval function get_fmt_spec(inner_str: str) -> str
+{
+	if (inner_str == "")
+	{
+		return "";
+	}
+	assert(inner_str.starts_with(":"));
+	return __builtin_str_from_ptrs(inner_str.begin_ptr() + 1, inner_str.end_ptr());
+}
+
+consteval function get_slices_and_fmt_specs(fmt_str: str, slices: [: str], fmt_specs: [: str])
 {
 	let it = fmt_str.begin_ptr();
 	let prev_begin = it;
@@ -320,28 +430,31 @@ consteval function get_slices(fmt_str: str, out: [: str])
 			if (contains_escaped_bracket)
 			{
 				const s = __builtin_str_from_ptrs(prev_begin, it);
-				out[index] = remove_escaped_brackets(s);
+				slices[index] = remove_escaped_brackets(s);
 			}
 			else
 			{
-				out[index] = __builtin_str_from_ptrs(prev_begin, it);
+				slices[index] = __builtin_str_from_ptrs(prev_begin, it);
 			}
-			contains_escaped_bracket = false; // reset value
-			index += 1u;
 			const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
 			assert(closing_bracket_it != end);
+			fmt_specs[index] = get_fmt_spec(__builtin_str_from_ptrs(it + 1, closing_bracket_it));
+
+			contains_escaped_bracket = false; // reset value
+			index += 1u;
 			prev_begin = closing_bracket_it + 1;
 			// other increment will happen at the next start of the loop
 			it = closing_bracket_it;
 		}
 	}
-	out[index] = __builtin_str_from_ptrs(prev_begin, it);
+	slices[index] = __builtin_str_from_ptrs(prev_begin, it);
 }
 
-consteval function get_slices(fmt_str: str, args_count: consteval usize) -> [args_count + 1u: str]
+consteval function get_slices_and_fmt_specs(fmt_str: str, args_count: consteval usize)
+	-> [[args_count + 1u: str], [if (args_count == 0u) { 1u } else { args_count }: str]]
 {
-	let result: [args_count + 1u: str];
-	get_slices(fmt_str, result);
+	let result: [[args_count + 1u: str], [if (args_count == 0u) { 1u } else { args_count }: str]];
+	get_slices_and_fmt_specs(fmt_str, result[0], result[1]);
 	return result;
 }
 
@@ -355,21 +468,33 @@ consteval function get_indices(start: consteval usize, end: consteval usize) -> 
 	return result;
 }
 
-function format_into_impl(buffer: &format_buffer, index: consteval [1: usize], slices: [: const str], arg_ptrs: &const [...*const auto])
+function format_into_impl(
+	buffer: &format_buffer,
+	index: consteval [1: usize],
+	slices: [: const str],
+	fmt_specs: [: const str],
+	arg_ptrs: &const [...*const auto]
+)
 {
 	consteval index = index[0];
 	buffer.write_into(slices[index]);
 	assert(arg_ptrs[index] != null);
-	arg_ptrs[index]->format_to(buffer);
+	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
 }
 
-function format_into_impl(buffer: &format_buffer, indices: consteval auto, slices: [: const str], arg_ptrs: &const [...*const auto])
+function format_into_impl(
+	buffer: &format_buffer,
+	indices: consteval auto,
+	slices: [: const str],
+	fmt_specs: [: const str],
+	arg_ptrs: &const [...*const auto]
+)
 {
 	consteval index = indices[0];
 	buffer.write_into(slices[index]);
-	arg_ptrs[index]->format_to(buffer);
+	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
 	consteval rest_indices = get_indices(indices[1], indices[indices.size() - 1u] + 1u);
-	buffer.format_into_impl(rest_indices, slices, arg_ptrs);
+	buffer.format_into_impl(rest_indices, slices, fmt_specs, arg_ptrs);
 }
 
 export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: ...#const auto)
@@ -377,10 +502,10 @@ export function format_into(buffer: &format_buffer, fmt_str: consteval str, args
 	const arg_ptrs = [ ...&args, null as *const int32 ];
 	consteval args_count = count_args_in_str(fmt_str);
 	consteval indices = get_indices(0uz, args_count);
-	consteval slices = get_slices(fmt_str, args_count);
+	consteval [slices, fmt_specs] = get_slices_and_fmt_specs(fmt_str, args_count);
 	if (slices.size() > 1u)
 	{
-		buffer.format_into_impl(indices, slices, arg_ptrs);
+		buffer.format_into_impl(indices, slices, fmt_specs, arg_ptrs);
 	}
 	buffer.write_into(slices[args_count]);
 }
@@ -457,7 +582,7 @@ function decimal_length_u64(n: uint64) -> uint32
 		else { 20u };
 }
 
-function print_uint_to_buffer(n: uint64, out: *uint8) -> *uint8
+function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
 	const output_len = decimal_length_u64(n);
 	let rev_out = out + output_len;
@@ -494,79 +619,309 @@ function print_uint_to_buffer(n: uint64, out: *uint8) -> *uint8
 	return out + output_len;
 }
 
-consteval max_uint_string_length = 20uz;
-static_assert(max_uint_string_length == {
-	let uint64_max = ~0u64;
-	let result = 0uz;
-	while (uint64_max != 0u)
-	{
-		uint64_max /= 10u;
-		++result;
-	}
-	result
-});
+function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint64) -> *uint8
+{
+	return out;
+}
 
-function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
+function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
+{
+	if (n == 0u)
+	{
+		*out = '0' as uint32 as uint8;
+		return out + 1;
+	}
+	const output_len = (16u - clz(n) / 4u) as int32;
+	consteval table: [16: uint8] = [
+		'0' as uint32 as uint8, '1' as uint32 as uint8,
+		'2' as uint32 as uint8, '3' as uint32 as uint8,
+		'4' as uint32 as uint8, '5' as uint32 as uint8,
+		'6' as uint32 as uint8, '7' as uint32 as uint8,
+		'8' as uint32 as uint8, '9' as uint32 as uint8,
+		'a' as uint32 as uint8, 'b' as uint32 as uint8,
+		'c' as uint32 as uint8, 'd' as uint32 as uint8,
+		'e' as uint32 as uint8, 'f' as uint32 as uint8
+	];
+	let i = output_len;
+	while (i > 0)
+	{
+		--i;
+		const c = table[(n >> (i * 4)) & 0b1111u64];
+		*(out + i) = c;
+	}
+	return out + output_len;
+}
+
+function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
+{
+	if (n == 0u)
+	{
+		*out = '0' as uint32 as uint8;
+		return out + 1;
+	}
+	const output_len = (16u - clz(n) / 4u) as int32;
+	consteval table: [16: uint8] = [
+		'0' as uint32 as uint8, '1' as uint32 as uint8,
+		'2' as uint32 as uint8, '3' as uint32 as uint8,
+		'4' as uint32 as uint8, '5' as uint32 as uint8,
+		'6' as uint32 as uint8, '7' as uint32 as uint8,
+		'8' as uint32 as uint8, '9' as uint32 as uint8,
+		'A' as uint32 as uint8, 'B' as uint32 as uint8,
+		'C' as uint32 as uint8, 'D' as uint32 as uint8,
+		'E' as uint32 as uint8, 'F' as uint32 as uint8
+	];
+	let i = output_len;
+	while (i > 0)
+	{
+		--i;
+		const c = table[(n >> (i * 4)) & 0b1111u64];
+		*(out + i) = c;
+	}
+	return out + output_len;
+}
+
+// binary printing has the max number of possible chars
+consteval max_uint_string_length = 64uz;
+
+function get_uint_decimal_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
 {
 	let result: [[max_uint_string_length: uint8], uint32];
-	const end = print_uint_to_buffer(n, result[0].begin());
+	const end = print_uint_decimal_to_buffer(n, result[0].begin());
 	result[1] = (end - result[0].begin()) as uint32;
 	return result;
 }
 
-consteval max_int_string_length = 20uz;
-static_assert(max_int_string_length == {
-	// this is actually -int64_min, but its absolute value is larger than int64_max, so we use this instead
-	let int64_max = 1u64 << 63u;
-	let result = 0uz;
-	while (int64_max != 0u)
-	{
-		int64_max /= 10u;
-		++result;
-	}
-	result + 1u
-});
-
-function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
+function get_uint_base_as_string(n: uint64, base: consteval uint64) -> [[max_uint_string_length: uint8], uint32]
 {
-	let result: [[max_int_string_length: uint8], uint32];
-	let out = result[0].begin();
-	if (is_negative)
-	{
-		*out = '-' as uint32 as uint8;
-		++out;
-	}
-	const end = print_uint_to_buffer(abs_val, out);
+	static_assert(base == 2u || base == 8u);
+	let result: [[max_uint_string_length: uint8], uint32];
+	const end = print_uint_base_to_buffer(n, result[0].begin(), base);
 	result[1] = (end - result[0].begin()) as uint32;
 	return result;
 }
 
-export function format_to(s: str, buffer: &format_buffer)
+function get_uint_hex_as_string(n: uint64, capital: bool) -> [[max_uint_string_length: uint8], uint32]
 {
-	buffer.write_into(s);
+	let result: [[max_uint_string_length: uint8], uint32];
+	const end = if (capital) {
+		print_uint_HEX_to_buffer(n, result[0].begin())
+	} else {
+		print_uint_hex_to_buffer(n, result[0].begin())
+	};
+	result[1] = (end - result[0].begin()) as uint32;
+	return result;
 }
 
-export function format_to(c: char, buffer: &format_buffer)
+export function format_to(s: str, buffer: &format_buffer, fmt_spec: str)
 {
-	buffer.write_into(c);
+	s.format_to(buffer, get_default_format_spec(fmt_spec));
 }
 
-export function format_to(n: uint64, buffer: &format_buffer)
+export function format_to(s: str, buffer: &format_buffer, fmt_spec: format_spec)
 {
-	const [result_buffer, size] = get_uint_as_string(n);
+	if (fmt_spec.align == '\x00')
+	{
+		fmt_spec.align = '<';
+	}
+	if (fmt_spec.fill == '\x00')
+	{
+		fmt_spec.fill = ' ';
+	}
+	switch (fmt_spec.align)
+	{
+		'<' => {
+			const len = s.length();
+			buffer.write_into(s);
+			if (len < fmt_spec.width)
+			{
+				buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+			}
+		},
+		'^' => {
+			const len = s.length();
+			if (len < fmt_spec.width)
+			{
+				const diff = fmt_spec.width - len;
+				// if the spacing is uneven, prefer left alignment
+				buffer.write_into(fmt_spec.fill, diff / 2u);
+				buffer.write_into(s);
+				buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+			}
+			else
+			{
+				buffer.write_into(s);
+			}
+		},
+		'>' => {
+			const len = s.length();
+			if (len < fmt_spec.width)
+			{
+				buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+			}
+			buffer.write_into(s);
+		},
+		else => unreachable
+	}
+}
+
+export function format_to(c: char, buffer: &format_buffer, fmt_spec: str)
+{
+	c.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(c: char, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	const [encoded_char, byte_count] = encode_char_utf8(c);
+	const s = __builtin_str_from_ptrs(encoded_char.begin(), encoded_char.begin() + byte_count);
+	s.format_to(buffer, fmt_spec);
+}
+
+function format_number(number_str: str, buffer: &format_buffer, fmt_spec: format_spec, put_sign: bool)
+{
+	if (fmt_spec.align == '\x00')
+	{
+		fmt_spec.align = '>';
+	}
+	if (fmt_spec.fill == '\x00')
+	{
+		fmt_spec.fill = ' ';
+	}
+	switch (fmt_spec.align)
+	{
+		'<' => {
+			const len = number_str.length() + put_sign as uint32;
+			if (put_sign)
+			{
+				buffer.write_into(fmt_spec.sign);
+			}
+			buffer.write_into(number_str);
+			if (len < fmt_spec.width)
+			{
+				buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+			}
+		},
+		'^' => {
+			const len = number_str.length() + put_sign as uint32;
+			if (len < fmt_spec.width)
+			{
+				const diff = fmt_spec.width - len;
+				// if the spacing is uneven, prefer right alignment
+				if (fmt_spec.zero_pad)
+				{
+					if (put_sign)
+					{
+						buffer.write_into(fmt_spec.sign);
+					}
+					buffer.write_into('0', (diff + 1u) / 2u);
+					buffer.write_into(number_str);
+				}
+				else
+				{
+					buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+					if (put_sign)
+					{
+						buffer.write_into(fmt_spec.sign);
+					}
+					buffer.write_into(number_str);
+				}
+				buffer.write_into(fmt_spec.fill, diff / 2u);
+			}
+			else
+			{
+				if (put_sign)
+				{
+					buffer.write_into(fmt_spec.sign);
+				}
+				buffer.write_into(number_str);
+			}
+		},
+		'>' => {
+			const len = number_str.length() + put_sign as uint32;
+			if (len < fmt_spec.width)
+			{
+				if (fmt_spec.zero_pad)
+				{
+					if (put_sign)
+					{
+						buffer.write_into(fmt_spec.sign);
+					}
+					buffer.write_into('0', fmt_spec.width - len);
+					buffer.write_into(number_str);
+				}
+				else
+				{
+					buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+					if (put_sign)
+					{
+						buffer.write_into(fmt_spec.sign);
+					}
+					buffer.write_into(number_str);
+				}
+			}
+			else
+			{
+				if (put_sign)
+				{
+					buffer.write_into(fmt_spec.sign);
+				}
+				buffer.write_into(number_str);
+			}
+		},
+		else => unreachable
+	}
+}
+
+export function format_to(n: uint64, buffer: &format_buffer, fmt_spec: str)
+{
+	n.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(n: uint64, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	const [result_buffer, size] = switch (fmt_spec.fmt_kind) {
+		'b', 'B' => {
+			get_uint_base_as_string(n, 2u)
+		},
+		'o', 'O' => {
+			get_uint_base_as_string(n, 8u)
+		},
+		'x', 'X' => {
+			get_uint_hex_as_string(n, fmt_spec.fmt_kind == 'X')
+		},
+		else => {
+			get_uint_decimal_as_string(n)
+		}
+	};
 	const result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
-	buffer.write_into(result_str);
+	const put_sign = fmt_spec.sign == '+' || fmt_spec.sign == ' ';
+	format_number(result_str, buffer, fmt_spec, put_sign);
 }
 
-export function format_to(n: int64, buffer: &format_buffer)
+export function format_to(n: int64, buffer: &format_buffer, fmt_spec: str)
 {
-	// -n as uint64 works for int64_min
-	const [result_buffer, size] = get_int_as_string(if (n < 0) { -n as uint64 } else { n as uint64 }, n < 0);
-	const result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
-	buffer.write_into(result_str);
+	n.format_to(buffer, get_default_format_spec(fmt_spec));
 }
 
-export function format_to(p: *const void, buffer: &format_buffer)
+export function format_to(n: int64, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	const put_sign = n < 0 || fmt_spec.sign == '+' || fmt_spec.sign == ' ';
+	if (n < 0)
+	{
+		fmt_spec.sign = '-';
+	}
+	// -n as uint64 works for uint64_min as well
+	const n = if (n < 0) { -n as uint64 } else { n as uint64 };
+	const [result_buffer, size] = get_uint_decimal_as_string(n);
+	const result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
+	format_number(result_str, buffer, fmt_spec, put_sign);
+}
+
+export function format_to(p: *const void, buffer: &format_buffer, fmt_spec: str)
+{
+	p.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(p: *const void, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	const val = __builtin_pointer_to_int(p);
 	static_assert(typeof val == const uint64);
@@ -580,19 +935,29 @@ export function format_to(p: *const void, buffer: &format_buffer)
 	buffer.write_into(result_str);
 }
 
-export function format_to(b: bool, buffer: &format_buffer)
+export function format_to(b: bool, buffer: &format_buffer, fmt_spec: str)
+{
+	b.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(b: bool, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	if (b)
 	{
-		buffer.write_into("true");
+		"true".format_to(buffer, fmt_spec);
 	}
 	else
 	{
-		buffer.write_into("false");
+		"false".format_to(buffer, fmt_spec);
 	}
 }
 
-export function format_to(x: float32, buffer: &format_buffer)
+export function format_to(x: float32, buffer: &format_buffer, fmt_spec: str)
+{
+	x.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(x: float32, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	let result_buffer: [15: uint8];
 	const end = ryu::f2s_shortest(x, result_buffer.begin());
@@ -600,7 +965,12 @@ export function format_to(x: float32, buffer: &format_buffer)
 	buffer.write_into(s);
 }
 
-export function format_to(x: float64, buffer: &format_buffer)
+export function format_to(x: float64, buffer: &format_buffer, fmt_spec: str)
+{
+	x.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	let result_buffer: [24: uint8];
 	const end = ryu::d2s_shortest(x, result_buffer.begin());
@@ -608,7 +978,12 @@ export function format_to(x: float64, buffer: &format_buffer)
 	buffer.write_into(s);
 }
 
-export function format_to(arr: [: const auto], buffer: &format_buffer)
+export function format_to(arr: [: const auto], buffer: &format_buffer, fmt_spec: str)
+{
+	arr.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(arr: [: const auto], buffer: &format_buffer, fmt_spec: format_spec)
 {
 	let it = arr.begin();
 	const end = arr.end();
@@ -621,31 +996,47 @@ export function format_to(arr: [: const auto], buffer: &format_buffer)
 
 	buffer.write_into("[ ");
 
-	buffer.format_into("{}", *it);
+	it->format_to(buffer, fmt_spec);
 	++it;
 	for (; it != end; ++it)
 	{
 		buffer.write_into(", ");
-		it->format_to(buffer);
+		it->format_to(buffer, fmt_spec);
 	}
 
 	buffer.write_into(" ]");
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first])
+function tuple_format_to_impl(buffer: &format_buffer, [first], fmt_spec: format_spec)
 {
-	buffer.format_into("{}", *first);
+	first->format_to(buffer, fmt_spec);
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest])
+function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest], fmt_spec: format_spec)
 {
-	buffer.format_into("{}, ", *first);
-	tuple_format_to_impl(buffer, [ second, ...rest ]);
+	first->format_to(buffer, fmt_spec);
+	buffer.write_into(", ");
+	tuple_format_to_impl(buffer, [ second, ...rest ], fmt_spec);
 }
 
-export function format_to(&const [...elems], buffer: &format_buffer)
+export function format_to(: &const [], buffer: &format_buffer, : str)
+{
+	buffer.write_into("[]");
+}
+
+export function format_to(: &const [], buffer: &format_buffer, : format_spec)
+{
+	buffer.write_into("[]");
+}
+
+export function format_to(t: &const [...auto], buffer: &format_buffer, fmt_spec: str)
+{
+	t.format_to(buffer, get_default_format_spec(fmt_spec));
+}
+
+export function format_to(&const [...elems], buffer: &format_buffer, fmt_spec: format_spec)
 {
 	buffer.write_into("[ ");
-	tuple_format_to_impl(buffer, [ ...&elems ]);
+	tuple_format_to_impl(buffer, [ ...&elems ], fmt_spec);
 	buffer.write_into(" ]");
 }
