@@ -3,10 +3,13 @@ import print;
 import utils;
 import unicode;
 import bit;
+import ryu::common;
 import ryu::d2s;
 import ryu::f2s;
+import ryu::d2fixed;
 import ryu::digit_table;
 import meta::comptime;
+import libc::stdlib;
 
 export struct format_buffer
 {
@@ -1039,6 +1042,49 @@ export function format_to(b: bool, buffer: &format_buffer, fmt_spec: format_spec
 	}
 }
 
+function isfinite(x: float32) -> bool
+{
+	const bits = ryu::float_to_bits(x);
+	consteval exponent_mask = 0x7f80'0000u32;
+	static_assert(popcount(exponent_mask) == 8u);
+	return (bits & exponent_mask) != exponent_mask;
+}
+
+function isfinite(x: float64) -> bool
+{
+	const bits = ryu::double_to_bits(x);
+	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
+	static_assert(popcount(exponent_mask) == 11u);
+	return (bits & exponent_mask) != exponent_mask;
+}
+
+function isnan(x: float32) -> bool
+{
+	const bits = ryu::float_to_bits(x);
+	consteval exponent_mask = 0x7f80'0000u32;
+	consteval mantissa_mask = 0x007f'ffffu32;
+	static_assert(popcount(exponent_mask) == 8u);
+	static_assert(popcount(mantissa_mask) == 23u);
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+}
+
+function isnan(x: float64) -> bool
+{
+	const bits = ryu::double_to_bits(x);
+	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
+	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
+	static_assert(popcount(exponent_mask) == 11u);
+	static_assert(popcount(mantissa_mask) == 52u);
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+}
+
+static_assert(isfinite(1.0));
+static_assert(!isfinite(((1.0 / 0.0))));
+static_assert(!isfinite(((0.0 / 0.0))));
+static_assert(!isnan(1.0));
+static_assert(!isnan(((1.0 / 0.0))));
+static_assert(isnan(((0.0 / 0.0))));
+
 export function format_to(x: float32, buffer: &format_buffer, fmt_spec: str)
 {
 	x.format_to(buffer, get_default_format_spec(fmt_spec));
@@ -1046,10 +1092,89 @@ export function format_to(x: float32, buffer: &format_buffer, fmt_spec: str)
 
 export function format_to(x: float32, buffer: &format_buffer, fmt_spec: format_spec)
 {
-	let result_buffer: [15: uint8];
-	const end = ryu::f2s_shortest(x, result_buffer.begin());
-	const s = __builtin_str_from_ptrs(result_buffer.begin(), end);
-	buffer.write_into(s);
+	switch (fmt_spec.fmt_kind)
+	{
+		'f', 'F', 'e', 'E', 'g', 'G' => {
+			(x as float64).format_to(buffer, fmt_spec);
+		},
+		else => {
+			if (fmt_spec.precision != precision_none)
+			{
+				fmt_spec.fmt_kind = 'g';
+				(x as float64).format_to(buffer, fmt_spec);
+			}
+			else
+			{
+				fmt_spec.zero_pad &= isfinite(x);
+				let result_buffer: [15: uint8];
+				const end = ryu::f2s_shortest(x, result_buffer.begin());
+				const [result_str, put_sign] = if (result_buffer[0] == '-' as uint32) {
+					fmt_spec.sign = '-';
+					[ __builtin_str_from_ptrs(result_buffer.begin() + 1, end), true ]
+				} else {
+					[
+						__builtin_str_from_ptrs(result_buffer.begin(), end),
+						!isnan(x) && (fmt_spec.sign == '+' || fmt_spec.sign == ' ')
+					]
+				};
+				format_number(result_str, buffer, fmt_spec, put_sign);
+			}
+		}
+	}
+}
+
+function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
+{
+}
+
+function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	// most results should fit in this buffer
+	let static_buffer: [32: uint8];
+	// sign + "X." + precision + e+XXX
+	const finite = isfinite(x);
+	fmt_spec.zero_pad &= finite;
+	const result_len = if (!finite) { 4u } else { 3u + fmt_spec.precision + 5u };
+	const result_buffer = if (result_len <= static_buffer.size()) {
+		static_buffer.begin()
+	} else {
+		const buf = if (meta::is_comptime()) {
+			meta::malloc(uint8, result_len)
+		} else {
+			__builtin_pointer_cast(*uint8, libc::malloc(result_len))
+		};
+		buf
+	};
+	assert(result_buffer != null);
+
+	const end = ryu::d2exp_short(x, fmt_spec.precision as uint32, result_buffer, fmt_spec.fmt_kind == 'E');
+	assert(end <= result_buffer + result_len);
+	const [result_str, put_sign] = if (*result_buffer == '-' as uint32) {
+		fmt_spec.sign = '-';
+		[ __builtin_str_from_ptrs(result_buffer + 1, end), true ]
+	} else {
+		[
+			__builtin_str_from_ptrs(result_buffer, end),
+			!isnan(x) && (fmt_spec.sign == '+' || fmt_spec.sign == ' ')
+		]
+	};
+	format_number(result_str, buffer, fmt_spec, put_sign);
+
+	if (result_buffer != static_buffer.begin())
+	{
+		if (meta::is_comptime())
+		{
+			meta::free(result_buffer);
+		}
+		else
+		{
+			libc::free(result_buffer);
+		}
+	}
+}
+
+function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
+{
 }
 
 export function format_to(x: float64, buffer: &format_buffer, fmt_spec: str)
@@ -1059,10 +1184,52 @@ export function format_to(x: float64, buffer: &format_buffer, fmt_spec: str)
 
 export function format_to(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
 {
-	let result_buffer: [24: uint8];
-	const end = ryu::d2s_shortest(x, result_buffer.begin());
-	const s = __builtin_str_from_ptrs(result_buffer.begin(), end);
-	buffer.write_into(s);
+	switch (fmt_spec.fmt_kind)
+	{
+		'f', 'F' => {
+			if (fmt_spec.precision == precision_none)
+			{
+				fmt_spec.precision = 6u;
+			}
+			format_float64_fixed(x, buffer, fmt_spec);
+		},
+		'e', 'E' => {
+			if (fmt_spec.precision == precision_none)
+			{
+				fmt_spec.precision = 6u;
+			}
+			format_float64_exponential(x, buffer, fmt_spec);
+		},
+		'g', 'G' => {
+			if (fmt_spec.precision == precision_none)
+			{
+				fmt_spec.precision = 6u;
+			}
+			format_float64_generic(x, buffer, fmt_spec);
+		},
+		else => {
+			if (fmt_spec.precision != precision_none)
+			{
+				format_float64_generic(x, buffer, fmt_spec);
+			}
+			else
+			{
+				fmt_spec.zero_pad &= isfinite(x);
+				let result_buffer: [24: uint8];
+				const end = ryu::d2s_shortest(x, result_buffer.begin());
+				const [result_str, put_sign] = if (result_buffer[0] == '-' as uint32) {
+					fmt_spec.sign = '-';
+					[ __builtin_str_from_ptrs(result_buffer.begin() + 1, end), true ]
+				} else {
+					[
+						__builtin_str_from_ptrs(result_buffer.begin(), end),
+						!isnan(x) && (fmt_spec.sign == '+' || fmt_spec.sign == ' ')
+					]
+				};
+				format_number(result_str, buffer, fmt_spec, put_sign);
+			}
+		}
+	}
 }
 
 export function format_to(arr: [: const auto], buffer: &format_buffer, fmt_spec: str)
