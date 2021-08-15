@@ -995,6 +995,11 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> 
 
 export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *uint8
 {
+	d2exp_short(d, precision, result, false);
+}
+
+export function d2exp_short(d: float64, precision: uint32, result: *uint8, capital_e: bool) -> *uint8
+{
 	const bits = double_to_bits(d);
 
 	// Decode bits into sign, mantissa, and exponent.
@@ -1023,7 +1028,14 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *u
 			memset(result + index, '0' as uint32 as uint8, precision);
 			index += precision as int32;
 		}
-		memcpy(result + index, "e+00".begin_ptr(), 4u);
+		if (capital_e)
+		{
+			memcpy(result + index, "E+00".begin_ptr(), 4u);
+		}
+		else
+		{
+			memcpy(result + index, "e+00".begin_ptr(), 4u);
+		}
 		index += 4;
 		return result + index;
 	}
@@ -1047,6 +1059,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *u
 	if (ieeeSign)
 	{
 		*(result + index) = '-' as uint32 as uint8;
+		++index;
 	}
 	let digits = 0u32;
 	let printedDigits = 0u32;
@@ -1251,7 +1264,14 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *u
 			}
 		}
 	}
-	*(result + index) = 'e' as uint32 as uint8;
+	if (capital_e)
+	{
+		*(result + index) = 'E' as uint32 as uint8;
+	}
+	else
+	{
+		*(result + index) = 'e' as uint32 as uint8;
+	}
 	++index;
 	if (exp < 0)
 	{
