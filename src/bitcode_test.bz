@@ -353,6 +353,16 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("0x{:08X}", 123456u)     == "0x000042E1");
 	static_assert(std::format("0x{:08x}", ((0u - 1u))) == "0xffffffff");
 	std::printf("{:018}\n", &n);
+	static_assert(std::format("{:+10}",  1.2345f32) == "   +1.2345");
+	static_assert(std::format("{:+010}", 1.2345f32) == "+0001.2345");
+	static_assert(std::format("{:+12}",  1.2345e10f32) == " +1.2345e+10");
+	static_assert(std::format("{:+012}", 1.2345e10f32) == "+01.2345e+10");
+	static_assert(std::format("{:+012}", std::inf_f32) == "        +inf");
+	static_assert(std::format("{:+012}", std::nan_f32) == "         nan");
+	static_assert(std::format("{:+015e}", 1.2345f32) == "+001.234500e+00");
+	static_assert(std::format("{:+015E}", 1.2345f32) == "+001.234500E+00");
+	static_assert(std::format("{:+015E}", std::inf_f64) == "           +inf");
+	std::printf("{:.160e}\n", -1.2345e100);
 
 	// consteval x = std::sqrt(-1.0);
 
