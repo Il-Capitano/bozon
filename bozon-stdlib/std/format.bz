@@ -621,7 +621,24 @@ function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 
 function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint64) -> *uint8
 {
-	return out;
+	if (n == 0u)
+	{
+		*out = '0' as uint32 as uint8;
+		return out + 1;
+	}
+	static_assert(base == 2u || base == 8u);
+	consteval bit_width = if (base == 2u) { 1u64 } else { 3u64 };
+	consteval max_output_len = if (base == 2u) { 64u64 } else { 22u64 };
+	const output_len = (max_output_len - clz(n) / bit_width) as int32;
+	let i = output_len;
+	while (i > 0)
+	{
+		--i;
+		consteval mask = base - 1u;
+		const c = '0' + ((n >> (i * bit_width as int32)) & mask);
+		*(out + i) = c as uint32 as uint8;
+	}
+	return out + output_len;
 }
 
 function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
@@ -916,6 +933,81 @@ export function format_to(n: int64, buffer: &format_buffer, fmt_spec: format_spe
 	format_number(result_str, buffer, fmt_spec, put_sign);
 }
 
+function format_pointer(number_str: str, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	if (fmt_spec.align == '\x00')
+	{
+		fmt_spec.align = '>';
+	}
+	if (fmt_spec.fill == '\x00')
+	{
+		fmt_spec.fill = ' ';
+	}
+	const prefix = if (fmt_spec.fmt_kind == 'P') { "0X" } else { "0x" };
+	switch (fmt_spec.align)
+	{
+		'<' => {
+			const len = number_str.length() + 2u;
+			buffer.write_into(prefix);
+			buffer.write_into(number_str);
+			if (len < fmt_spec.width)
+			{
+				buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+			}
+		},
+		'^' => {
+			const len = number_str.length() + 2u;
+			if (len < fmt_spec.width)
+			{
+				const diff = fmt_spec.width - len;
+				// if the spacing is uneven, prefer right alignment
+				if (fmt_spec.zero_pad)
+				{
+					buffer.write_into(prefix);
+					buffer.write_into('0', (diff + 1u) / 2u);
+					buffer.write_into(number_str);
+				}
+				else
+				{
+					buffer.write_into(fmt_spec.fill, (diff + 1u) / 2u);
+					buffer.write_into(prefix);
+					buffer.write_into(number_str);
+				}
+				buffer.write_into(fmt_spec.fill, diff / 2u);
+			}
+			else
+			{
+				buffer.write_into(prefix);
+				buffer.write_into(number_str);
+			}
+		},
+		'>' => {
+			const len = number_str.length() + 2u;
+			if (len < fmt_spec.width)
+			{
+				if (fmt_spec.zero_pad)
+				{
+					buffer.write_into(prefix);
+					buffer.write_into('0', fmt_spec.width - len);
+					buffer.write_into(number_str);
+				}
+				else
+				{
+					buffer.write_into(fmt_spec.fill, fmt_spec.width - len);
+					buffer.write_into(prefix);
+					buffer.write_into(number_str);
+				}
+			}
+			else
+			{
+				buffer.write_into(prefix);
+				buffer.write_into(number_str);
+			}
+		},
+		else => unreachable
+	}
+}
+
 export function format_to(p: *const void, buffer: &format_buffer, fmt_spec: str)
 {
 	p.format_to(buffer, get_default_format_spec(fmt_spec));
@@ -925,14 +1017,9 @@ export function format_to(p: *const void, buffer: &format_buffer, fmt_spec: form
 {
 	const val = __builtin_pointer_to_int(p);
 	static_assert(typeof val == const uint64);
-	let result_buffer: [2 + 16: uint8];
-	let it = print_uint_to_reverse_buffer(result_buffer.end(), val, 16u);
-	--it;
-	*it = 'x' as uint32 as uint8;
-	--it;
-	*it = '0' as uint32 as uint8;
-	const result_str = __builtin_str_from_ptrs(it, result_buffer.end());
-	buffer.write_into(result_str);
+	const [result_buffer, size] = get_uint_hex_as_string(val, fmt_spec.fmt_kind == 'P');
+	const result_str = __builtin_str_from_ptrs(result_buffer.begin(), result_buffer.begin() + size);
+	format_pointer(result_str, buffer, fmt_spec);
 }
 
 export function format_to(b: bool, buffer: &format_buffer, fmt_spec: str)
