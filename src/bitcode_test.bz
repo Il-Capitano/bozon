@@ -344,6 +344,16 @@ function main(args: [: const str]) -> int32
 
 	print_fixed(1.2345, 3u);
 
+
+	static_assert(std::format("{:.<+010}", 123456)     == "+123456...");
+	static_assert(std::format("{:.<+010}", -123456)    == "-123456...");
+	static_assert(std::format("{:.^+010}", 123456)     == "+00123456.");
+	static_assert(std::format("{:.^010}", -123456)     == "-00123456.");
+	static_assert(std::format("0x{:08x}", 123456u)     == "0x000042e1");
+	static_assert(std::format("0x{:08X}", 123456u)     == "0x000042E1");
+	static_assert(std::format("0x{:08x}", ((0u - 1u))) == "0xffffffff");
+	std::printf("{:018}\n", &n);
+
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));
