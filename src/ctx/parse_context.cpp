@@ -7,6 +7,7 @@
 #include "escape_sequences.h"
 #include "parse/statement_parser.h"
 #include "parse/consteval.h"
+#include "resolve/statement_resolver.h"
 
 namespace ctx
 {
@@ -123,6 +124,11 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 void parse_context::pop_loop(bool prev_in_loop) noexcept
 {
 	this->in_loop = prev_in_loop;
+}
+
+bool parse_context::in_generic_function(void) const noexcept
+{
+	return this->current_function != nullptr && this->current_function->is_generic();
 }
 
 static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, parse_context const &context)
@@ -767,7 +773,7 @@ void parse_context::remove_scope(void)
 	{
 		bz_assert(!this->generic_functions[i]->is_generic());
 		this->add_to_resolve_queue({}, *this->generic_functions[i]);
-		parse::resolve_function({}, *this->generic_functions[i], *this);
+		resolve::resolve_function({}, *this->generic_functions[i], *this);
 		this->pop_resolve_queue();
 	}
 	this->generic_functions.resize(generic_functions_start_index);
@@ -1400,7 +1406,7 @@ static ast::expression make_type_expression(
 {
 	auto &info = type->info;
 	context.add_to_resolve_queue(src_tokens, info);
-	parse::resolve_type_info_symbol(info, context);
+	resolve::resolve_type_info_symbol(info, context);
 	context.pop_resolve_queue();
 	if (info.state != ast::resolve_state::error)
 	{
@@ -1449,6 +1455,11 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	// in case there's shadowing
 	lex::src_tokens const src_tokens = { id.tokens.begin, id.tokens.begin, id.tokens.end };
 
+	if (this->in_generic_function())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_identifier(std::move(id)));
+	}
+
 	for (auto &scope : this->scope_decls.reversed())
 	{
 		if (auto const var_decl = find_var_decl_in_local_scope(scope, id))
@@ -1483,7 +1494,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	{
 		// global variables need to be resolved here
 		this->add_to_resolve_queue(src_tokens, *var_decl);
-		parse::resolve_variable(*var_decl, *this);
+		resolve::resolve_variable(*var_decl, *this);
 		this->pop_resolve_queue();
 		var_decl->flags |= ast::decl_variable::used;
 		auto id_type_kind = ast::expression_type_kind::lvalue;
@@ -1548,7 +1559,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		for (auto &alias_decl : fn_set->alias_decls)
 		{
 			this->add_to_resolve_queue(src_tokens, alias_decl.get<ast::decl_function_alias>());
-			parse::resolve_function_alias(alias_decl.get<ast::decl_function_alias>(), *this);
+			resolve::resolve_function_alias(alias_decl.get<ast::decl_function_alias>(), *this);
 			this->pop_resolve_queue();
 		}
 		auto const id_type_kind = ast::expression_type_kind::function_name;
@@ -1596,7 +1607,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	{
 		auto &info = type->info;
 		this->add_to_resolve_queue(src_tokens, info);
-		parse::resolve_type_info_symbol(info, *this);
+		resolve::resolve_type_info_symbol(info, *this);
 		this->pop_resolve_queue();
 		if (info.state != ast::resolve_state::error)
 		{
@@ -1617,7 +1628,7 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	if (auto const type_alias = find_type_alias_in_global_scope(global_decls, id, this->current_scope))
 	{
 		this->add_to_resolve_queue(src_tokens, *type_alias);
-		parse::resolve_type_alias(*type_alias, *this);
+		resolve::resolve_type_alias(*type_alias, *this);
 		this->pop_resolve_queue();
 		auto const type = type_alias->get_type();
 		if (type.has_value())
@@ -4091,7 +4102,7 @@ static match_level_t get_function_call_match_level(
 	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_parameters(func_stmt, func_body, context);
+		resolve::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
@@ -4168,7 +4179,7 @@ static match_level_t get_function_call_match_level(
 	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_parameters(func_stmt, func_body, context);
+		resolve::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
@@ -4198,7 +4209,7 @@ static match_level_t get_function_call_match_level(
 	if (func_body.state < ast::resolve_state::parameters)
 	{
 		context.add_to_resolve_queue(src_tokens, func_body);
-		parse::resolve_function_parameters(func_stmt, func_body, context);
+		resolve::resolve_function_parameters(func_stmt, func_body, context);
 		context.pop_resolve_queue();
 	}
 
@@ -4415,7 +4426,7 @@ static ast::expression make_expr_function_call_from_body(
 			context.match_expression_to_variable(param, func_body_param);
 		}
 	}
-	parse::resolve_function_symbol({}, *body, context);
+	resolve::resolve_function_symbol({}, *body, context);
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
@@ -4476,7 +4487,7 @@ static ast::expression make_expr_function_call_from_body(
 			context.match_expression_to_variable(param, func_body_param);
 		}
 	}
-	parse::resolve_function_symbol({}, *body, context);
+	resolve::resolve_function_symbol({}, *body, context);
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
@@ -4578,6 +4589,10 @@ ast::expression parse_context::make_unary_operator_expression(
 	{
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (expr.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unary_op(op_kind, std::move(expr)));
 	}
 
 	if (op_kind != lex::token::dot_dot_dot && expr.is<ast::variadic_expression>())
@@ -4751,6 +4766,10 @@ ast::expression parse_context::make_binary_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
 	}
+	else if (lhs.is_unresolved() || rhs.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
+	}
 
 	if (lhs.is<ast::variadic_expression>() && rhs.is<ast::variadic_expression>())
 	{
@@ -4902,7 +4921,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 				{
 					auto &alias = alias_decl.get<ast::decl_function_alias>();
 					context.add_to_resolve_queue(src_tokens, alias);
-					parse::resolve_function_alias(alias, context);
+					resolve::resolve_function_alias(alias, context);
 					context.pop_resolve_queue();
 					for (auto const body : alias.aliased_bodies)
 					{
@@ -4935,7 +4954,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 			{
 				auto &alias = alias_decl.template get<ast::decl_function_alias>();
 				context.add_to_resolve_queue(src_tokens, alias);
-				parse::resolve_function_alias(alias, context);
+				resolve::resolve_function_alias(alias, context);
 				context.pop_resolve_queue();
 				for (auto const body : alias.aliased_bodies)
 				{
@@ -4971,7 +4990,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 			{
 				auto &alias = alias_decl.template get<ast::decl_function_alias>();
 				context.add_to_resolve_queue(src_tokens, alias);
-				parse::resolve_function_alias(alias, context);
+				resolve::resolve_function_alias(alias, context);
 				context.pop_resolve_queue();
 				for (auto const body : alias.aliased_bodies)
 				{
@@ -4997,6 +5016,10 @@ ast::expression parse_context::make_function_call_expression(
 			src_tokens,
 			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
 		);
+	}
+	else if (called.is_unresolved() || params.is_any([](auto const &param) { return param.is_unresolved(); }))
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_function_call(std::move(called), std::move(params)));
 	}
 
 	if (
@@ -5128,7 +5151,7 @@ ast::expression parse_context::make_function_call_expression(
 		if (called_type.is<ast::ts_base_type>())
 		{
 			auto const info = called_type.get<ast::ts_base_type>().info;
-			parse::resolve_type_info(*info, *this);
+			resolve::resolve_type_info(*info, *this);
 		}
 		auto const possible_funcs = called_type.is<ast::ts_base_type>()
 			? called_type.get<ast::ts_base_type>().info->constructors
@@ -5207,7 +5230,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &alias = alias_decl.get<ast::decl_function_alias>();
 					context.add_to_resolve_queue(src_tokens, alias);
-					parse::resolve_function_alias(alias, context);
+					resolve::resolve_function_alias(alias, context);
 					context.pop_resolve_queue();
 					for (auto const body : alias.aliased_bodies)
 					{
@@ -5247,7 +5270,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &alias = alias_decl.template get<ast::decl_function_alias>();
 					context.add_to_resolve_queue(src_tokens, alias);
-					parse::resolve_function_alias(alias, context);
+					resolve::resolve_function_alias(alias, context);
 					context.pop_resolve_queue();
 					for (auto const body : alias.aliased_bodies)
 					{
@@ -5276,7 +5299,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 				{
 					auto &alias = alias_decl.template get<ast::decl_function_alias>();
 					context.add_to_resolve_queue(src_tokens, alias);
-					parse::resolve_function_alias(alias, context);
+					resolve::resolve_function_alias(alias, context);
 					context.pop_resolve_queue();
 					for (auto const body : alias.aliased_bodies)
 					{
@@ -5304,6 +5327,13 @@ ast::expression parse_context::make_universal_function_call_expression(
 		return ast::make_error_expression(
 			src_tokens,
 			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
+	}
+	else if (base.is_unresolved() || params.is_any([](auto const &param) { return param.is_unresolved(); }))
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_universal_function_call(std::move(base), std::move(id), std::move(params))
 		);
 	}
 
@@ -5394,6 +5424,10 @@ ast::expression parse_context::make_subscript_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 	}
+	else if (called.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_subscript(std::move(called), std::move(args)));
+	}
 
 	if (
 		called.is<ast::variadic_expression>()
@@ -5418,7 +5452,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (info->state != ast::resolve_state::all)
 		{
 			this->add_to_resolve_queue(called.src_tokens, *info);
-			parse::resolve_type_info(*info, *this);
+			resolve::resolve_type_info(*info, *this);
 			this->pop_resolve_queue();
 		}
 		if (info->kind != ast::type_info::aggregate)
@@ -5628,6 +5662,10 @@ ast::expression parse_context::make_member_access_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
+	else if (base.is_unresolved())
+	{
+		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unresolved_member_access(std::move(base), member));
+	}
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
 	auto const base_t = ast::remove_const_or_consteval(base_type);
@@ -5637,7 +5675,7 @@ ast::expression parse_context::make_member_access_expression(
 	)
 	{
 		this->add_to_resolve_queue(src_tokens, *info);
-		parse::resolve_type_info(*info, *this);
+		resolve::resolve_type_info(*info, *this);
 		this->pop_resolve_queue();
 	}
 	auto const members = [&]() -> bz::array_view<ast::decl_variable *> {
@@ -5829,7 +5867,7 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 				if (base_type.info->state != ast::resolve_state::all && base_type.info->state != ast::resolve_state::error)
 				{
 					this->add_to_resolve_queue(ts.src_tokens, *base_type.info);
-					parse::resolve_type_info(*base_type.info, *this);
+					resolve::resolve_type_info(*base_type.info, *this);
 					this->pop_resolve_queue();
 				}
 				return base_type.info->state == ast::resolve_state::all ? 1 : -1;
@@ -5930,7 +5968,7 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_unquali
 				for (auto const &alias : set->alias_decls)
 				{
 					this->add_to_resolve_queue(requester, alias.get<ast::decl_function_alias>());
-					parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+					resolve::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
 					this->pop_resolve_queue();
 					result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
 				}
@@ -5958,7 +5996,7 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_unquali
 		for (auto const &alias : set->alias_decls)
 		{
 			this->add_to_resolve_queue(requester, alias.get<ast::decl_function_alias>());
-			parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+			resolve::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
 			this->pop_resolve_queue();
 			result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
 		}
@@ -5987,7 +6025,7 @@ bz::vector<ast::function_body *> parse_context::get_function_bodies_from_qualifi
 		for (auto const &alias : set->alias_decls)
 		{
 			this->add_to_resolve_queue(requester, alias.get<ast::decl_function_alias>());
-			parse::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
+			resolve::resolve_function_alias(alias.get<ast::decl_function_alias>(), *this);
 			this->pop_resolve_queue();
 			result.append(alias.get<ast::decl_function_alias>().aliased_bodies);
 		}

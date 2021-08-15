@@ -30,6 +30,29 @@ struct expr_switch;
 struct expr_break;
 struct expr_continue;
 
+struct expr_unresolved_subscript;
+struct expr_unresolved_function_call;
+struct expr_unresolved_cast;
+struct expr_unresolved_member_access;
+struct expr_unresolved_universal_function_call;
+
+
+using unresolved_expr_t = node<
+	expr_identifier,
+	expr_tuple,
+	expr_unary_op,
+	expr_binary_op,
+	expr_unresolved_subscript,
+	expr_unresolved_function_call,
+	expr_unresolved_cast,
+	// expr_take_reference,
+	// expr_struct_init, // covered by subscript
+	expr_unresolved_member_access,
+	expr_unresolved_universal_function_call,
+	expr_compound,
+	expr_if,
+	expr_switch
+>;
 
 using expr_t = node<
 	expr_identifier,
@@ -77,7 +100,9 @@ constexpr bool is_rvalue(expression_type_kind kind)
 }
 
 struct unresolved_expression
-{};
+{
+	unresolved_expr_t expr;
+};
 
 struct constant_expression
 {
@@ -189,6 +214,9 @@ struct expression : bz::variant<
 
 	bool not_error(void) const
 	{ return !this->is<error_expression>(); }
+
+	bool is_unresolved(void) const
+	{ return this->is<unresolved_expression>(); }
 
 	bool is_function(void) const noexcept
 	{
@@ -705,9 +733,93 @@ struct expr_continue
 {
 };
 
+struct expr_unresolved_subscript
+{
+	expression             base;
+	bz::vector<expression> indices;
 
-inline expression make_unresolved_expression(lex::src_tokens tokens)
-{ return expression(tokens, unresolved_expression()); }
+	declare_default_5(expr_unresolved_subscript)
+
+	expr_unresolved_subscript(
+		expression             _base,
+		bz::vector<expression> _indices
+	)
+		: base   (std::move(_base)),
+		  indices(std::move(_indices))
+	{}
+};
+
+struct expr_unresolved_function_call
+{
+	expression             func;
+	bz::vector<expression> args;
+
+	declare_default_5(expr_unresolved_function_call)
+
+	expr_unresolved_function_call(
+		expression             _func,
+		bz::vector<expression> _args
+	)
+		: func(std::move(_func)),
+		  args(std::move(_args))
+	{}
+};
+
+struct expr_unresolved_cast
+{
+	expression expr;
+	expression type;
+
+	declare_default_5(expr_unresolved_cast)
+
+	expr_unresolved_cast(
+		expression _expr,
+		expression _type
+	)
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_unresolved_member_access
+{
+	expression     base;
+	lex::token_pos member;
+
+	declare_default_5(expr_unresolved_member_access)
+
+	expr_unresolved_member_access(
+		expression     _base,
+		lex::token_pos _member
+	)
+		: base  (std::move(_base)),
+		  member(_member)
+	{}
+};
+
+struct expr_unresolved_universal_function_call
+{
+	expression             base;
+	identifier             func_name;
+	bz::vector<expression> args;
+
+	declare_default_5(expr_unresolved_universal_function_call)
+
+	expr_unresolved_universal_function_call(
+		expression             _base,
+		identifier             _func_name,
+		bz::vector<expression> _args
+	)
+		: base     (std::move(_base)),
+		  func_name(std::move(_func_name)),
+		  args     (std::move(_args))
+	{}
+};
+
+
+template<typename ...Args>
+expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, unresolved_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
 expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
@@ -753,6 +865,29 @@ def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
 
 #undef def_make_fn
+
+#define def_make_unresolved_fn(ret_type, node_type)                            \
+template<typename ...Args>                                                     \
+ret_type make_unresolved_ ## node_type (Args &&...args)                        \
+{ return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
+
+def_make_unresolved_fn(unresolved_expr_t, expr_identifier)
+def_make_unresolved_fn(unresolved_expr_t, expr_tuple)
+def_make_unresolved_fn(unresolved_expr_t, expr_unary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_binary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_subscript)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_cast)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_member_access)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_universal_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_compound)
+def_make_unresolved_fn(unresolved_expr_t, expr_if)
+def_make_unresolved_fn(unresolved_expr_t, expr_switch)
+def_make_unresolved_fn(unresolved_expr_t, expr_break)
+def_make_unresolved_fn(unresolved_expr_t, expr_continue)
+
+#undef def_make_unresolved_fn
+
 
 } // namespace ast
 

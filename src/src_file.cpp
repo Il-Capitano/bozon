@@ -6,6 +6,7 @@
 #include "lex/lexer.h"
 #include "parse/statement_parser.h"
 #include "parse/consteval.h"
+#include "resolve/statement_resolver.h"
 
 static bz::u8string read_text_from_file(std::istream &file)
 {
@@ -233,12 +234,12 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	for (auto &decl : this->_declarations)
 	{
-		parse::resolve_global_statement(decl, context);
+		resolve::resolve_statement(decl, context);
 	}
 	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
 	{
 		context.add_to_resolve_queue({}, *context.generic_functions[i]);
-		parse::resolve_function({}, *context.generic_functions[i], context);
+		resolve::resolve_function({}, *context.generic_functions[i], context);
 		context.pop_resolve_queue();
 	}
 
