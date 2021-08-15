@@ -3374,7 +3374,7 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type_and_kind().first);
-	auto &dest_t = cast.type;
+	auto const dest_t = ast::remove_const_or_consteval(cast.type);
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
 	{
