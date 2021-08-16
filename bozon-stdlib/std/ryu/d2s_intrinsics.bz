@@ -50,11 +50,21 @@ export function umul128(a: uint64, b: uint64, productHi: *uint64) -> uint64
 	return pLo;
 }
 
+// Returns the lower 64 bits of (hi*2^64 + lo) >> dist, with 0 < dist < 64.
 export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
 {
-	// We don't need to handle the case dist >= 64 here (see above).
+	// For the __shiftright128 intrinsic, the shift value is always
+	// modulo 64.
+	// In the current implementation of the double-precision version
+	// of Ryu, the shift value is always < 64. (In the case
+	// RYU_OPTIMIZE_SIZE == 0, the shift value is in the range [49, 58].
+	// Otherwise in the range [2, 59].)
+	// However, this function is now also called by s2d, which requires supporting
+	// the larger shift range (TODO: what is the actual range?).
+	// Check this here in case a future change requires larger shift
+	// values. In this case this function needs to be adjusted.
 	assert(dist < 64u);
-	// assert(dist > 0u);
+	assert(dist > 0u);
 	return if (dist == 0u) { lo } else { (hi << (64u - dist)) | (lo >> dist) };
 }
 
@@ -166,7 +176,7 @@ export function mulShift64(m: uint64, mul: *const uint64, j: uint32) -> uint64
 	let high1: uint64;                           // 128
 	const low1 = umul128(m, *(mul + 1), &high1); // 64
 	let high0: uint64;                           // 64
-	umul128(m, *(mul), &high0);                  // 0
+	umul128(m, *mul, &high0);                    // 0
 	const sum = high0 + low1;
 	if (sum < high0)
 	{
