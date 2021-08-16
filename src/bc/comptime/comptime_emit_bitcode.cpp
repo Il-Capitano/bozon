@@ -4289,7 +4289,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition, while_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, while_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 }
@@ -4342,7 +4342,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition, for_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, for_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 	context.pop_expression_scope();
