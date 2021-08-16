@@ -1226,7 +1226,7 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 
 	const abs_x = if (x < 0.0) { -x } else { x };
 	const leading_digit_count = {
-		let i = 0uz;
+		let i = 1uz;
 		while (i < upper_bounds.size() && abs_x >= upper_bounds[i])
 		{
 			++i;
