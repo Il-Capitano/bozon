@@ -966,12 +966,12 @@ static val_ptr emit_bitcode(
 	// we emit consteval global variables to avoid generating huge arrays every time
 	// one is indexed into.  e.g. ryu has large consteval tables that are constructed
 	// in IR each time they're indexed into.
-	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>())
+	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
 	{
 		context.add_global_variable(id.decl);
 	}
 	auto const val_ptr = context.get_variable(id.decl);
-	if (val_ptr == nullptr && !id.decl->get_type().is<ast::ts_consteval>())
+	if (val_ptr == nullptr && (!id.decl->get_type().is<ast::ts_consteval>() || id.decl->init_expr.is_error()))
 	{
 		emit_error(
 			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
