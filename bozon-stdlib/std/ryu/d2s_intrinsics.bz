@@ -54,8 +54,8 @@ export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
 {
 	// We don't need to handle the case dist >= 64 here (see above).
 	assert(dist < 64u);
-	assert(dist > 0u);
-	return (hi << (64u - dist)) | (lo >> dist);
+	// assert(dist > 0u);
+	return if (dist == 0u) { lo } else { (hi << (64u - dist)) | (lo >> dist) };
 }
 
 export function div5(x: uint64) -> uint64
