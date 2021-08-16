@@ -24,17 +24,23 @@ jobs:
           mingw-w64-x86_64-dwarfstack
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
-    - run: |
+    - name: Build cppb
+      run: |
         cd cppb
         mkdir bin
         make
         cd ..
     - run: touch ryu_format.ll
-    - run: cppb/bin/cppb build -v
-    - run: cppb/bin/cppb run -v
-    - run: cppb/bin/cppb build -v --build-config test
-    - run: cppb/bin/cppb run -v --build-config test
-    - run: cppb/bin/cppb run-rule ryu_format.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v || cppb/bin/cppb run -v
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test || cppb/bin/cppb run -v --build-config test
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.ll -f
   windows-gcc:
     runs-on: windows-latest
     defaults:
@@ -64,11 +70,16 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.ll
-    - run: cppb/bin/cppb build -v --build-config gcc
-    - run: cppb/bin/cppb run -v --build-config gcc
-    - run: cppb/bin/cppb build -v --build-config test-gcc
-    - run: cppb/bin/cppb run -v --build-config test-gcc
-    - run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v --build-config gcc
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v --build-config gcc || cppb/bin/cppb run -v --build-config gcc
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test-gcc
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test-gcc || cppb/bin/cppb run -v --build-config test-gcc
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
   linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -94,11 +105,16 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.linux.ll
-    - run: cppb/bin/cppb build -v
-    - run: cppb/bin/cppb run -v
-    - run: cppb/bin/cppb build -v --build-config test
-    - run: cppb/bin/cppb run -v --build-config test
-    - run: cppb/bin/cppb run-rule ryu_format.linux.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.linux.ll -f
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
@@ -124,8 +140,13 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.linux.ll
-    - run: cppb/bin/cppb build -v --build-config gcc
-    - run: cppb/bin/cppb run -v --build-config gcc
-    - run: cppb/bin/cppb build -v --build-config test-gcc
-    - run: cppb/bin/cppb run -v --build-config test-gcc
-    - run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v --build-config gcc
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v --build-config gcc
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test-gcc
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test-gcc
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f
