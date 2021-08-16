@@ -27,15 +27,3 @@ export function s2f_str(begin: *const uint8, end: *const uint8, result: *float32
 {
 	return std::ryu::s2f_str(__builtin_str_from_ptrs(begin, end), result);
 }
-
-@symbol_name("d2fixed_short")
-export function d2fixed_short(x: float64, precision: uint32, buffer: *uint8) -> *uint8
-{
-	return std::ryu::d2fixed_short(x, precision, buffer);
-}
-
-@symbol_name("d2exp_short")
-export function d2exp_short(x: float64, precision: uint32, buffer: *uint8) -> *uint8
-{
-	return std::ryu::d2exp_short(x, precision, buffer);
-}
