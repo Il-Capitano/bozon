@@ -333,16 +333,7 @@ function main(args: [: const str]) -> int32
 	const s = std::string("Hello");
 	const *const p = &s;
 	std::assert(p->size() == 5u);
-
-	function print_fixed(x: float64, precision: uint32)
-	{
-		let buffer: [2000: uint8];
-		const len = std::ryu::d2fixed_buffered_n(x, precision, buffer.begin());
-		const s = __builtin_str_from_ptrs(buffer.begin(), buffer.begin() + len);
-		std::printf("{}\n", s);
-	}
-
-	print_fixed(1.2345, 3u);
+	std::printf("{}\n", 1.2345e-5);
 
 
 	static_assert(std::format("{:.<+010}", 123456)     == "+123456...");
@@ -359,10 +350,12 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{:+012}", 1.2345e10f32) == "+01.2345e+10");
 	static_assert(std::format("{:+012}", std::inf_f32) == "        +inf");
 	static_assert(std::format("{:+012}", std::nan_f32) == "         nan");
-	static_assert(std::format("{:+015e}", 1.2345f32) == "+001.234500e+00");
-	static_assert(std::format("{:+015E}", 1.2345f32) == "+001.234500E+00");
+	static_assert(std::format("{:+015e}", 1.2345f32)    == "+001.234500e+00");
+	static_assert(std::format("{:+015E}", 1.2345f32)    == "+001.234500E+00");
 	static_assert(std::format("{:+015E}", std::inf_f64) == "           +inf");
 	std::printf("{:.160e}\n", -1.2345e100);
+
+	std::printf("{:.33}\n", 1.234567e+5);
 
 	// consteval x = std::sqrt(-1.0);
 

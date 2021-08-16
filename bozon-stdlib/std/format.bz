@@ -1191,11 +1191,32 @@ consteval upper_bounds: [309: float64] = [
 	1.0000000000000001e+305, 1e+306, 1.0000000000000001e+307, 1e+308
 ];
 
-consteval lower_bounds: [18: float64] = [
-	0.0, 9.499999999999999e-05, 9.949999999999999e-05, 9.994999999999999e-05, 9.9995e-05, 9.99995e-05,
+consteval lower_bounds: [17: float64] = [
+	0.0, // this is unused
+	9.499999999999999e-05, 9.949999999999999e-05, 9.994999999999999e-05, 9.9995e-05, 9.99995e-05,
 	9.999994999999999e-05, 9.9999995e-05, 9.99999995e-05, 9.999999994999999e-05, 9.999999999499999e-05,
 	9.99999999995e-05, 9.999999999995e-05, 9.999999999999499e-05, 9.999999999999949e-05, 9.999999999999994e-05,
-	9.999999999999999e-05, 9.999999999999999e-05
+	9.999999999999999e-05
+];
+
+consteval trailing_zeros_upper_bounds: [17, 4: float64] = [
+	[ 0.0, 0.0, 0.0, 0.0 ], // this is unused
+	[ 0.09499999999999999, 0.0095, 0.00095, 9.499999999999999e-05 ],
+	[ 0.09949999999999999, 0.009949999999999999, 0.0009949999999999998, 9.949999999999999e-05 ],
+	[ 0.09995, 0.009994999999999999, 0.0009995, 9.994999999999999e-05 ],
+	[ 0.09999499999999999, 0.0099995, 0.0009999499999999999, 9.9995e-05 ],
+	[ 0.09999949999999999, 0.009999949999999999, 0.0009999949999999998, 9.99995e-05 ],
+	[ 0.09999994999999999, 0.009999995, 0.0009999994999999999, 9.999994999999999e-05 ],
+	[ 0.099999995, 0.009999999499999999, 0.0009999999499999998, 9.9999995e-05 ],
+	[ 0.09999999949999999, 0.00999999995, 0.0009999999949999998, 9.99999995e-05 ],
+	[ 0.09999999994999999, 0.009999999995, 0.0009999999994999998, 9.999999994999999e-05 ],
+	[ 0.09999999999499999, 0.009999999999499999, 0.0009999999999499999, 9.999999999499999e-05 ],
+	[ 0.09999999999949999, 0.009999999999949999, 0.000999999999995, 9.99999999995e-05 ],
+	[ 0.09999999999994999, 0.009999999999994999, 0.0009999999999995, 9.999999999995e-05 ],
+	[ 0.099999999999995, 0.009999999999999499, 0.00099999999999995, 9.999999999999499e-05 ],
+	[ 0.09999999999999949, 0.00999999999999995, 0.0009999999999999948, 9.999999999999949e-05 ],
+	[ 0.09999999999999994, 0.009999999999999993, 0.0009999999999999994, 9.999999999999994e-05 ],
+	[ 0.09999999999999999, 0.009999999999999998, 0.0009999999999999998, 9.999999999999999e-05 ]
 ];
 
 function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
@@ -1311,8 +1332,12 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 
 	const abs_x = if (x < 0.0) { -x } else { x };
 	const upper_bound = upper_bounds[fmt_spec.precision];
-	const lower_bound = if (fmt_spec.precision >= lower_bounds.size()) { 0.0001 } else { lower_bounds[fmt_spec.precision] };
-	if (abs_x <= lower_bound || abs_x >= upper_bound)
+	const lower_bound = if (fmt_spec.precision >= lower_bounds.size()) {
+		lower_bounds[lower_bounds.size() - 1u]
+	} else {
+		lower_bounds[fmt_spec.precision]
+	};
+	if (abs_x <= lower_bound || abs_x >= upper_bound || !isfinite(x))
 	{
 		// the leading digit isn't counted in format_float64_exponential
 		fmt_spec.precision -= 1u;
@@ -1338,6 +1363,21 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 	}
 	else
 	{
+		const trailing_digit_count = {
+			const bounds: [: const auto] = if (fmt_spec.precision >= trailing_zeros_upper_bounds.size()) {
+				trailing_zeros_upper_bounds[trailing_zeros_upper_bounds.size() - 1u]
+			} else {
+				trailing_zeros_upper_bounds[fmt_spec.precision]
+			};
+			let i = 0uz;
+			while (i < bounds.size() && abs_x <= bounds[i])
+			{
+				++i;
+			}
+			i
+		};
+		fmt_spec.precision += trailing_digit_count;
+		format_float64_fixed(x, buffer, fmt_spec);
 	}
 }
 
