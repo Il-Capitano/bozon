@@ -3983,30 +3983,38 @@ static void match_expression_to_type_impl(
 			auto &dest_array_type = dest_container.nodes.back().get<ast::ts_array>().elem_type;
 			auto const array_size = dest_container.nodes.back().get<ast::ts_array>().size;
 			auto &expr_tuple_elems = expr.get_tuple().elems;
-			if (array_size == expr_tuple_elems.size())
+			if (array_size != expr_tuple_elems.size())
 			{
-				bool error = false;
-				for (auto &expr : expr_tuple_elems)
+				context.report_error(
+					expr.src_tokens,
+					bz::format(
+						"unable to match tuple expression to type '{}', mismatched number of elements: {} and {}",
+						dest_container, array_size, expr_tuple_elems.size()
+					)
+				);
+			}
+
+			bool error = array_size != expr_tuple_elems.size();
+			for (auto &expr : expr_tuple_elems)
+			{
+				match_expression_to_type_impl(expr, dest_array_type, dest_array_type, context);
+				if (expr.is_error())
 				{
-					match_expression_to_type_impl(expr, dest_array_type, dest_array_type, context);
-					if (expr.is_error())
-					{
-						error = true;
-					}
+					error = true;
 				}
-				if (error)
+			}
+			if (error)
+			{
+				if (!ast::is_complete(dest_container))
 				{
-					if (!ast::is_complete(dest_container))
-					{
-						dest_container.clear();
-					}
-					expr.to_error();
-					return;
+					dest_container.clear();
 				}
-				else
-				{
-					expr.set_type(dest_without_const);
-				}
+				expr.to_error();
+				return;
+			}
+			else
+			{
+				expr.set_type(dest_without_const);
 			}
 		}
 		else
