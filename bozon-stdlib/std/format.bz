@@ -1250,7 +1250,12 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 	};
 	assert(result_buffer != null);
 
-	const end = ryu::d2fixed_short(x, fmt_spec.precision as uint32, result_buffer);
+	const end = ryu::d2fixed_short(
+		x,
+		fmt_spec.precision as uint32,
+		result_buffer,
+		fmt_spec.fmt_kind != 'f' && fmt_spec.fmt_kind != 'F'
+	);
 	assert(end <= result_buffer + result_len);
 	const [result_str, put_sign] = if (*result_buffer == '-' as uint32) {
 		fmt_spec.sign = '-';
@@ -1296,7 +1301,12 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 	};
 	assert(result_buffer != null);
 
-	const end = ryu::d2exp_short(x, fmt_spec.precision as uint32, result_buffer, fmt_spec.fmt_kind == 'E');
+	const end = ryu::d2exp_short(
+		x,
+		fmt_spec.precision as uint32,
+		result_buffer, fmt_spec.fmt_kind == 'E' || fmt_spec.fmt_kind == 'G',
+		fmt_spec.fmt_kind != 'e' && fmt_spec.fmt_kind != 'E'
+	);
 	assert(end <= result_buffer + result_len);
 	const [result_str, put_sign] = if (*result_buffer == '-' as uint32) {
 		fmt_spec.sign = '-';
@@ -1341,10 +1351,6 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 	{
 		// the leading digit isn't counted in format_float64_exponential
 		fmt_spec.precision -= 1u;
-		if (fmt_spec.fmt_kind == 'G')
-		{
-			fmt_spec.fmt_kind = 'E';
-		}
 		format_float64_exponential(x, buffer, fmt_spec);
 	}
 	else if (abs_x >= 1.0)

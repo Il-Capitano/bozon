@@ -353,9 +353,9 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{:+015e}", 1.2345f32)    == "+001.234500e+00");
 	static_assert(std::format("{:+015E}", 1.2345f32)    == "+001.234500E+00");
 	static_assert(std::format("{:+015E}", std::inf_f64) == "           +inf");
-	std::printf("{:.160e}\n", -1.2345e100);
-
-	std::printf("{:.33}\n", 1.234567e+5);
+	std::printf("{:.160f}\n", -1e+5);
+	std::printf("{:.160e}\n", -1e+5);
+	std::printf("{:.160g}\n", -1e+5);
 
 	// consteval x = std::sqrt(-1.0);
 

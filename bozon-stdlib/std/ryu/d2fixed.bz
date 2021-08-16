@@ -777,8 +777,12 @@ export function d2exp(d: float64, precision: uint32) -> *uint8
 // addition by me
 //
 
-// same as d2fixed_buffered_n, but returns a past-the-end pointer and writes 'inf' instead of 'Infinity'
 export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> *uint8
+{
+	d2fixed_short(d, precision, result, false);
+}
+
+export function d2fixed_short(d: float64, precision: uint32, result: *uint8, strip_trailing_zeros: bool) -> *uint8
 {
 	const bits = double_to_bits(d);
 
@@ -802,7 +806,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> 
 		}
 		*(result + index) = '0' as uint32 as uint8;
 		++index;
-		if (precision > 0u)
+		if (precision > 0u && !strip_trailing_zeros)
 		{
 			*(result + index) = '.' as uint32 as uint8;
 			++index;
@@ -985,20 +989,32 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> 
 			}
 		}
 	}
-	else
+	else if (!strip_trailing_zeros)
 	{
 		memset(result + index, '0' as uint32 as uint8, precision);
 		index += precision as int32;
+	}
+	if (strip_trailing_zeros)
+	{
+		while (*(result + index - 1) == '0' as uint32)
+		{
+			--index;
+		}
+		assert(index > 0);
+		if (*(result + index - 1) == '.' as uint32)
+		{
+			--index;
+		}
 	}
 	return result + index;
 }
 
 export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *uint8
 {
-	d2exp_short(d, precision, result, false);
+	d2exp_short(d, precision, result, false, false);
 }
 
-export function d2exp_short(d: float64, precision: uint32, result: *uint8, capital_e: bool) -> *uint8
+export function d2exp_short(d: float64, precision: uint32, result: *uint8, capital_e: bool, strip_trailing_zeros: bool) -> *uint8
 {
 	const bits = double_to_bits(d);
 
@@ -1262,6 +1278,18 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 				*(result + roundIndex) = (c + 1) as uint32 as uint8;
 				break;
 			}
+		}
+	}
+	if (strip_trailing_zeros)
+	{
+		while (*(result + index - 1) == '0' as uint32)
+		{
+			--index;
+		}
+		assert(index > 0);
+		if (*(result + index - 1) == '.' as uint32)
+		{
+			--index;
 		}
 	}
 	if (capital_e)
