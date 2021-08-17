@@ -660,6 +660,10 @@ static ast::expression parse_array_type(
 	bz_assert((stream - 1)->kind == lex::token::square_open);
 	auto const begin_token = stream - 1;
 	auto elems = parse_expression_comma_list(stream, end, context);
+	for (auto &elem : elems)
+	{
+		consteval_try(elem, context);
+	}
 
 	bz_assert(stream != end);
 	if (stream->kind != lex::token::colon)
