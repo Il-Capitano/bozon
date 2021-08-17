@@ -125,6 +125,26 @@ void parse_context::pop_loop(bool prev_in_loop) noexcept
 	this->in_loop = prev_in_loop;
 }
 
+static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
+{
+	if (args.size() == 0)
+	{
+		return parse_context::make_note(src_tokens, "function argument list is empty");
+	}
+
+	auto message = [&]() {
+		bz::u8string result = bz::format("function argument types are '{}'", args[0].get_expr_type_and_kind().first);
+		for (auto const &arg : args.slice(1))
+		{
+			auto const arg_type = arg.get_expr_type_and_kind().first;
+			result += bz::format(", '{}'", arg_type);
+		}
+		return result;
+	}();
+
+	return parse_context::make_note(src_tokens, std::move(message));
+}
+
 static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, parse_context const &context)
 {
 	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())
@@ -4284,7 +4304,8 @@ struct possible_func_t
 
 static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	lex::src_tokens src_tokens,
-	bz::array_view<const possible_func_t> possible_funcs,
+	bz::array_view<possible_func_t const> possible_funcs,
+	bz::array_view<ast::expression const> args,
 	parse_context &context
 )
 {
@@ -4333,7 +4354,8 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 
 	// report all failed function error
 	bz::vector<source_highlight> notes;
-	notes.reserve(possible_funcs.size());
+	notes.reserve(possible_funcs.size() + 1);
+	notes.emplace_back(get_function_parameter_types_note(src_tokens, args));
 	for (auto &func : possible_funcs)
 	{
 		if (func.func_body->src_tokens.pivot == nullptr)
@@ -4636,7 +4658,7 @@ ast::expression parse_context::make_unary_operator_expression(
 	}
 	else
 	{
-		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, expr, *this);
 		if (best_body == nullptr)
 		{
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -4861,20 +4883,21 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 	else
 	{
-		auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		bz::vector<ast::expression> args;
+		args.reserve(2);
+		args.emplace_back(std::move(lhs));
+		args.emplace_back(std::move(rhs));
+		auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 		if (best_body == nullptr)
 		{
-			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
+			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(args[0]), std::move(args[1])));
 		}
 		else
 		{
-			bz::vector<ast::expression> params;
-			params.emplace_back(std::move(lhs));
-			params.emplace_back(std::move(rhs));
 			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
 				? ast::resolve_order::regular
 				: ast::resolve_order::reversed;
-			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this, resolve_order);
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this, resolve_order);
 		}
 	}
 }
@@ -5049,7 +5072,10 @@ ast::expression parse_context::make_function_call_expression(
 						this->report_error(
 							src_tokens,
 							"couldn't match the function call to the function",
-							{ this->make_note(func_body->get_candidate_message()) }
+							{
+								get_function_parameter_types_note(src_tokens, params),
+								this->make_note(func_body->get_candidate_message())
+							}
 						);
 					}
 					else
@@ -5057,7 +5083,10 @@ ast::expression parse_context::make_function_call_expression(
 						this->report_error(
 							src_tokens,
 							"couldn't match the function call to the function",
-							{ this->make_note(func_body->src_tokens, func_body->get_candidate_message()) }
+							{
+								get_function_parameter_types_note(src_tokens, params),
+								this->make_note(func_body->src_tokens, func_body->get_candidate_message())
+							}
 						);
 					}
 				}
@@ -5115,7 +5144,7 @@ ast::expression parse_context::make_function_call_expression(
 			}
 			else
 			{
-				auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+				auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, params, *this);
 				if (best_body == nullptr)
 				{
 					return ast::make_error_expression(
@@ -5158,7 +5187,7 @@ ast::expression parse_context::make_function_call_expression(
 		}
 		else
 		{
-			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, params, *this);
 			if (best_body == nullptr)
 			{
 				return ast::make_error_expression(
@@ -5365,7 +5394,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 	}
 	else
 	{
-		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, params, *this);
 		if (best_body == nullptr)
 		{
 			return ast::make_error_expression(
@@ -5567,19 +5596,19 @@ ast::expression parse_context::make_subscript_operator_expression(
 				}
 				else
 				{
-					auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, *this);
+					bz::vector<ast::expression> args;
+					args.reserve(2);
+					args.emplace_back(std::move(called));
+					args.emplace_back(std::move(arg));
+					auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 					if (best_body == nullptr)
 					{
-						return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
+						return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(args[0]), std::move(args[1])));
 					}
 					else
 					{
-						bz::vector<ast::expression> params;
-						params.reserve(2);
-						params.emplace_back(std::move(called));
-						params.emplace_back(std::move(arg));
 						called = make_expr_function_call_from_body(
-							src_tokens, best_body, std::move(params),
+							src_tokens, best_body, std::move(args),
 							*this, ast::resolve_order::regular
 						);
 					}
