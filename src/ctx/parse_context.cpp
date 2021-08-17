@@ -5752,10 +5752,6 @@ void parse_context::match_expression_to_type(
 
 static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool is_const, bool is_reference)
 {
-	if (type.is_empty())
-	{
-		return;
-	}
 	if (var_decl.tuple_decls.empty())
 	{
 		var_decl.get_type() = type;
@@ -5766,6 +5762,13 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 		if (is_reference)
 		{
 			var_decl.flags |= ast::decl_variable::tuple_outer_ref;
+		}
+	}
+	else if (type.is_empty())
+	{
+		for (auto &inner_decl : var_decl.tuple_decls)
+		{
+			set_type(inner_decl, type, false, false);
 		}
 	}
 	else
