@@ -353,9 +353,23 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{:+015e}", 1.2345f32)    == "+001.234500e+00");
 	static_assert(std::format("{:+015E}", 1.2345f32)    == "+001.234500E+00");
 	static_assert(std::format("{:+015E}", std::inf_f64) == "           +inf");
-	std::printf("{:.160f}\n", -1e+5);
-	std::printf("{:.160e}\n", -1e+5);
-	std::printf("{:.160g}\n", -1e+5);
+	std::printf("{:.160f}\n", -1.234567e-100);
+	std::printf("{:.160e}\n", -1.234567e-100);
+	std::printf("{:.160g}\n", -1.234567e-100);
+
+	std::printf("{:.160g}\n", 1.234567e+100);
+	std::printf("{:.1f}\n", 1.234567e+100);
+
+	std::printf("{:=^10}\n", std::string("Hello"));
+	std::printf("{:.>30}\n", 1.2345678910111213);
+	std::printf("{:.>30}\n", 1.2345678910111214);
+	std::printf("{:.>30}\n", 1.2345678910111212);
+	static_assert(std::format("{} {}!",   "Hello", "World") == "Hello World!");
+	static_assert(std::format("{1} {0}!", "Hello", "World") == "World Hello!");
+	static_assert(std::format("{0} {1}!", "Hello", "World") == "Hello World!");
+	static_assert(std::format("{1} {1}!", "Hello", "World") == "World World!");
+	static_assert(std::format("{0} {0}!", "Hello", "World") == "Hello Hello!");
+	static_assert(std::format("{0} {}!",  "Hello", "World") == "Hello World!");
 
 	// consteval x = std::sqrt(-1.0);
 
@@ -367,7 +381,7 @@ function main(args: [: const str]) -> int32
 	@maybe_unused const n = switch (n) {
 		3 => 3,
 		0, 1, 2 => 2,
-		else => 3
+		else => 3,
 	};
 
 	/*

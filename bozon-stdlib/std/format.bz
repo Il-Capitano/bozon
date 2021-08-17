@@ -79,25 +79,37 @@ function is_number(c: char) -> bool
 	return c >= '0' && c <= '9';
 }
 
+function advance_number(it: &*const uint8, end: *const uint8)
+{
+	while (it != end && {
+		const c = *it as uint32 as char;
+		c >= '0' && c <= '9'
+	})
+	{
+		++it;
+	}
+}
+
+function get_number(it: &*const uint8, end: *const uint8) -> usize
+{
+	let result = 0uz;
+	while (it != end && {
+		const c = *it as uint32 as char;
+		c >= '0' && c <= '9'
+	})
+	{
+		result *= 10u;
+		result += (*it as uint32 as char - '0') as uint32;
+		++it;
+	}
+	return result;
+}
+
 export function get_default_format_spec(fmt_spec: str) -> format_spec
 {
 	let result = get_default_format_spec();
-	// syntax: [[fill]align][sign][0][width][.precision][kind]
-	function get_number(it: &*const uint8, end: *const uint8) -> usize
-	{
-		let result = 0uz;
-		while (it != end && {
-			const c = *it as uint32 as char;
-			c >= '0' && c <= '9'
-		})
-		{
-			result *= 10u;
-			result += (*it as uint32 as char - '0') as uint32;
-			++it;
-		}
-		return result;
-	}
 
+	// syntax: [[fill]align][sign][0][width][.precision][kind]
 	let it = fmt_spec.begin_ptr();
 	const end = fmt_spec.end_ptr();
 
@@ -212,6 +224,8 @@ consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fm
 	assert(it < fmt_str.end_ptr());
 	const open_bracket_it = it - 1;
 	assert(*open_bracket_it == '{' as uint32);
+	advance_number(it, end);
+
 	if (it == end)
 	{
 		return;
@@ -221,7 +235,7 @@ consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fm
 	{
 		const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), open_bracket_it).length();
 		const message = format_unchecked_fmt(
-			"invalid format string '{}'; expected ':' or '}}' after '{{' at position {} ('{}')",
+			"invalid format string '{}'; expected argument index or ':' or '}}' after '{{' at position {} ('{}')",
 			fmt_str, position, __builtin_str_from_ptrs(open_bracket_it, fmt_str.end_ptr())
 		);
 		meta::compile_error(message.as_str());
@@ -233,16 +247,6 @@ consteval function check_format_spec_str(it: *const uint8, end: *const uint8, fm
 		return;
 	}
 	// syntax: [[fill]align][sign][0][width][.precision][kind]
-	function advance_number(it: &*const uint8, end: *const uint8)
-	{
-		while (it != end && {
-			const c = *it as uint32 as char;
-			c >= '0' && c <= '9'
-		})
-		{
-			++it;
-		}
-	}
 
 	if (it + 1 != end && is_valid_align(*(it + 1) as uint32 as char))
 	{
@@ -408,12 +412,13 @@ consteval function get_fmt_spec(inner_str: str) -> str
 	return __builtin_str_from_ptrs(inner_str.begin_ptr() + 1, inner_str.end_ptr());
 }
 
-consteval function get_slices_and_fmt_specs(fmt_str: str, slices: [: str], fmt_specs: [: str])
+consteval function get_fmt_info(fmt_str: str, slices: [: str], fmt_specs: [: str], indices: [: usize])
 {
 	let it = fmt_str.begin_ptr();
 	let prev_begin = it;
 	const end = fmt_str.end_ptr();
 	let index = 0uz;
+	let arg_index = 0uz;
 
 	let contains_escaped_bracket = false;
 	for (; it != end; ++it)
@@ -441,7 +446,14 @@ consteval function get_slices_and_fmt_specs(fmt_str: str, slices: [: str], fmt_s
 			}
 			const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
 			assert(closing_bracket_it != end);
-			fmt_specs[index] = get_fmt_spec(__builtin_str_from_ptrs(it + 1, closing_bracket_it));
+			++it;
+			if (is_number(*it as uint32 as char))
+			{
+				arg_index = get_number(it, closing_bracket_it);
+			}
+			fmt_specs[index] = get_fmt_spec(__builtin_str_from_ptrs(it, closing_bracket_it));
+			indices[index] = arg_index;
+			++arg_index;
 
 			contains_escaped_bracket = false; // reset value
 			index += 1u;
@@ -453,62 +465,81 @@ consteval function get_slices_and_fmt_specs(fmt_str: str, slices: [: str], fmt_s
 	slices[index] = __builtin_str_from_ptrs(prev_begin, it);
 }
 
-consteval function get_slices_and_fmt_specs(fmt_str: str, args_count: consteval usize)
-	-> [[args_count + 1u: str], [if (args_count == 0u) { 1u } else { args_count }: str]]
+consteval function get_fmt_info(fmt_str: str, args_count: consteval usize)
+	-> [
+		[args_count + 1u: str],
+		[if (args_count == 0u) { 1u } else { args_count }: str],
+		[if (args_count == 0u) { 1u } else { args_count }: usize],
+	]
 {
-	let result: [[args_count + 1u: str], [if (args_count == 0u) { 1u } else { args_count }: str]];
-	get_slices_and_fmt_specs(fmt_str, result[0], result[1]);
+	let result: [
+		[args_count + 1u: str],
+		[if (args_count == 0u) { 1u } else { args_count }: str],
+		[if (args_count == 0u) { 1u } else { args_count }: usize],
+	];
+	get_fmt_info(fmt_str, result[0], result[1], result[2]);
+	if (args_count == 0u)
+	{
+		result[2, 0] = ((-1 as usize));
+	}
 	return result;
 }
 
-consteval function get_indices(start: consteval usize, end: consteval usize) -> [(if (end - start == 0u) { 1u } else { end - start }): usize]
+consteval function get_global_indices(start: consteval usize, stop: consteval usize)
+	-> [(assert(start <= stop), if (start == stop) { 1u } else { stop - start }): usize]
 {
-	let result: [(if (end - start == 0u) { 1u } else { end - start }): usize];
-	for (let [i, counter] = [ 0uz, start]; counter != end; ++i, ++counter)
+	let result: [(assert(start <= stop), if (start == stop) { 1u } else { stop - start }): usize];
+	for (let i = start; i < stop; ++i)
 	{
-		result[i] = counter;
+		result[i - start] = i;
 	}
 	return result;
 }
 
 function format_into_impl(
 	buffer: &format_buffer,
-	index: consteval [1: usize],
-	slices: [: const str],
-	fmt_specs: [: const str],
-	arg_ptrs: &const [...*const auto]
-)
-{
-	consteval index = index[0];
-	buffer.write_into(slices[index]);
-	assert(arg_ptrs[index] != null);
-	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
-}
-
-function format_into_impl(
-	buffer: &format_buffer,
+	global_index: consteval [1: usize],
 	indices: consteval auto,
 	slices: [: const str],
 	fmt_specs: [: const str],
 	arg_ptrs: &const [...*const auto]
 )
 {
-	consteval index = indices[0];
-	buffer.write_into(slices[index]);
-	arg_ptrs[index]->format_to(buffer, fmt_specs[index]);
-	consteval rest_indices = get_indices(indices[1], indices[indices.size() - 1u] + 1u);
-	buffer.format_into_impl(rest_indices, slices, fmt_specs, arg_ptrs);
+	consteval global_index = global_index[0];
+	consteval index = indices[global_index];
+	buffer.write_into(slices[global_index]);
+	arg_ptrs[((index + 1u))]->format_to(buffer, fmt_specs[index]);
+}
+
+function format_into_impl(
+	buffer: &format_buffer,
+	global_indices: consteval auto,
+	indices: consteval auto,
+	slices: [: const str],
+	fmt_specs: [: const str],
+	arg_ptrs: &const [...*const auto]
+)
+{
+	consteval global_index = global_indices[0];
+	consteval index = indices[global_index];
+	buffer.write_into(slices[global_index]);
+	arg_ptrs[index + 1u]->format_to(buffer, fmt_specs[index]);
+	consteval rest_global_indices = get_global_indices(global_indices[1], global_indices[global_indices.size() - 1u] + 1u);
+	buffer.format_into_impl(rest_global_indices, indices, slices, fmt_specs, arg_ptrs);
 }
 
 export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: ...#const auto)
 {
-	const arg_ptrs = [ ...&args, null as *const int32 ];
+	const arg_ptrs = [ null as *const int32, ...&args ];
 	consteval args_count = count_args_in_str(fmt_str);
-	consteval indices = get_indices(0uz, args_count);
-	consteval [slices, fmt_specs] = get_slices_and_fmt_specs(fmt_str, args_count);
+	consteval global_indices = get_global_indices(0uz, args_count);
+	consteval fmt_info = get_fmt_info(fmt_str, args_count);
+	consteval slices = fmt_info[0];
+	consteval fmt_specs = fmt_info[1];
+	consteval indices = fmt_info[2];
 	if (slices.size() > 1u)
 	{
-		buffer.format_into_impl(indices, slices, fmt_specs, arg_ptrs);
+		buffer.format_into_impl(global_indices, indices, slices, fmt_specs, arg_ptrs);
 	}
 	buffer.write_into(slices[args_count]);
 }
@@ -660,7 +691,7 @@ function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
 		'8' as uint32 as uint8, '9' as uint32 as uint8,
 		'a' as uint32 as uint8, 'b' as uint32 as uint8,
 		'c' as uint32 as uint8, 'd' as uint32 as uint8,
-		'e' as uint32 as uint8, 'f' as uint32 as uint8
+		'e' as uint32 as uint8, 'f' as uint32 as uint8,
 	];
 	let i = output_len;
 	while (i > 0)
@@ -688,7 +719,7 @@ function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
 		'8' as uint32 as uint8, '9' as uint32 as uint8,
 		'A' as uint32 as uint8, 'B' as uint32 as uint8,
 		'C' as uint32 as uint8, 'D' as uint32 as uint8,
-		'E' as uint32 as uint8, 'F' as uint32 as uint8
+		'E' as uint32 as uint8, 'F' as uint32 as uint8,
 	];
 	let i = output_len;
 	while (i > 0)
@@ -1188,7 +1219,7 @@ consteval upper_bounds: [309: float64] = [
 	1e+290, 1.0000000000000001e+291, 1e+292, 1.0000000000000001e+293, 1e+294,
 	1.0000000000000001e+295, 1.0000000000000002e+296, 1e+297, 1.0000000000000001e+298, 1e+299,
 	1e+300, 1e+301, 1e+302, 1e+303, 1.0000000000000001e+304,
-	1.0000000000000001e+305, 1e+306, 1.0000000000000001e+307, 1e+308
+	1.0000000000000001e+305, 1e+306, 1.0000000000000001e+307, 1e+308,
 ];
 
 consteval lower_bounds: [17: float64] = [
@@ -1196,7 +1227,7 @@ consteval lower_bounds: [17: float64] = [
 	9.499999999999999e-05, 9.949999999999999e-05, 9.994999999999999e-05, 9.9995e-05, 9.99995e-05,
 	9.999994999999999e-05, 9.9999995e-05, 9.99999995e-05, 9.999999994999999e-05, 9.999999999499999e-05,
 	9.99999999995e-05, 9.999999999995e-05, 9.999999999999499e-05, 9.999999999999949e-05, 9.999999999999994e-05,
-	9.999999999999999e-05
+	9.999999999999999e-05,
 ];
 
 consteval trailing_zeros_upper_bounds: [17, 4: float64] = [
@@ -1216,7 +1247,7 @@ consteval trailing_zeros_upper_bounds: [17, 4: float64] = [
 	[ 0.099999999999995, 0.009999999999999499, 0.00099999999999995, 9.999999999999499e-05 ],
 	[ 0.09999999999999949, 0.00999999999999995, 0.0009999999999999948, 9.999999999999949e-05 ],
 	[ 0.09999999999999994, 0.009999999999999993, 0.0009999999999999994, 9.999999999999994e-05 ],
-	[ 0.09999999999999999, 0.009999999999999998, 0.0009999999999999998, 9.999999999999999e-05 ]
+	[ 0.09999999999999999, 0.009999999999999998, 0.0009999999999999998, 9.999999999999999e-05 ],
 ];
 
 function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
