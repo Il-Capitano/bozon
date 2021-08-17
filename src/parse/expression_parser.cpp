@@ -347,7 +347,11 @@ ast::expression parse_switch_expression(
 	auto matched_expr = parse_parenthesized_condition(stream, end, context);
 	auto const open_curly = context.assert_token(stream, lex::token::curly_open);
 	ast::typespec match_type = ast::remove_const_or_consteval(matched_expr.get_expr_type_and_kind().first);
-	if (!match_type.is<ast::ts_base_type>())
+	if (match_type.is_empty())
+	{
+		// error expression
+	}
+	else if (!match_type.is<ast::ts_base_type>())
 	{
 		if (do_verbose)
 		{
@@ -396,6 +400,12 @@ ast::expression parse_switch_expression(
 
 	do
 	{
+		// allow empty switch and trailing commas
+		if (stream->kind == lex::token::curly_close)
+		{
+			break;
+		}
+
 		if (stream->kind == lex::token::kw_else)
 		{
 			++stream; // 'else'
@@ -421,7 +431,7 @@ ast::expression parse_switch_expression(
 			auto case_expr = parse_expression(stream, end, context, no_comma);
 			cases.push_back({ std::move(case_values), std::move(case_expr) });
 		}
-	} while (stream != end && stream->kind == lex::token::comma && (++stream, true));
+	} while (stream != end && stream->kind == lex::token::comma && (++stream, stream != end));
 
 	if (stream != end && stream->kind == lex::token::curly_close)
 	{
@@ -456,6 +466,10 @@ ast::expression parse_switch_expression(
 				bz_assert(value.is<ast::constant_expression>());
 				case_values.push_back(&value);
 			}
+		}
+		if (case_values.size() == 0)
+		{
+			return true;
 		}
 		for (size_t i = 0; i < case_values.size() - 1; ++i)
 		{
@@ -1272,6 +1286,11 @@ bz::vector<ast::expression> parse_expression_comma_list(
 	while (stream != end && stream->kind == lex::token::comma)
 	{
 		++stream; // ','
+		// allow trailing comma
+		if (stream == end)
+		{
+			break;
+		}
 		exprs.emplace_back(parse_expression(stream, end, context, no_comma));
 	}
 
