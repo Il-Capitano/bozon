@@ -2,28 +2,17 @@ import std::print;
 import std::math;
 import std::utils;
 import std::generic;
-import std::file;
 import std::complex;
 import std::algorithm;
 import std::bit;
+import std::format;
+import std::string;
 
 import std::libc::math;
 import std::libc::stdlib;
 import std::libc::stdio;
 
-import std::string;
 import std::fs::path;
-
-import std::format;
-
-import std::ryu::common;
-import std::ryu::f2s_full_table;
-import std::ryu::f2s_intrinsics;
-import std::ryu::f2s;
-import std::ryu::d2s;
-import std::ryu::s2d;
-import std::ryu::s2f;
-import std::ryu::d2fixed;
 
 import std::meta::comptime;
 
@@ -1599,15 +1588,3 @@ export function string_test()
 		std::format("{}", arr[0]) == "0"
 	});
 }
-
-/*
-
-function format(fmt: consteval str, args: ...#const auto)
-{
-	(consteval check_fmt(fmt, sizeof ...args));
-	consteval fmt_sections = make_fmt_sections(fmt);
-	const fmt_args = make_fmt_args(...args);
-	return formatv(fmt_sections, fmt_args);
-}
-
-*/
