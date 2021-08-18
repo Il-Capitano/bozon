@@ -1,6 +1,7 @@
 #include "parse/parse_common.cpp"
 #include "parse/expression_parser.cpp"
 #include "parse/statement_parser.cpp"
+#include "resolve/statement_resolver.cpp"
 
 #include "test.h"
 #include "lex/lexer.h"
@@ -9,6 +10,7 @@
 #include "ctx/parse_context.h"
 
 using namespace parse;
+using namespace resolve;
 
 #define xxx(fn, str, it_pos, error_assert, custom_assert)  \
 do {                                                       \
