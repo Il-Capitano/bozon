@@ -8,6 +8,9 @@ fuzz-test/lex/dictionary.txt
 .cppb/dependencies
 compile_commands.json
 .cache
+src/opts_O1.inc
+src/opts_O2.inc
+src/opts_O3.inc
 *.o
 *.exe
 *.out
