@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 implemented_opts = [
     'aa', 'aa-eval', 'adce', 'aggressive-instcombine', 'alignment-from-assumptions', 'always-inline', 'annotation2metadata',
@@ -19,9 +20,13 @@ max_line_len = 87
 result_line_start = ''
 
 def get_opts(opt_level):
-    opt_output = (subprocess.run(f'opt {opt_level} -disable-output -debug-pass=Arguments < NUL 2>&1', capture_output=True, shell=True)
+    if os.name == 'nt':
+        command = f'opt {opt_level} -disable-output -debug-pass=Arguments < NUL 2>&1'
+    else:
+        command = f'opt-12 {opt_level} -disable-output -debug-pass=Arguments < /dev/null 2>&1'
+    opt_output = (subprocess.run(command, capture_output=True, shell=True)
         .stdout.decode('utf-8'))
-    lines = [opt.strip() for opt in opt_output.strip().split('\r\n')]
+    lines = [opt.strip() for opt in opt_output.strip().replace('\r', '').split('\n')]
     line_beginning = 'Pass Arguments:  '
     size = len(line_beginning)
     for line in lines:
@@ -48,8 +53,25 @@ def get_opts(opt_level):
             current_len = len(result_line_start)
         result_str += s
         current_len += len(s)
+    assert result_str[-1] == ' '
+    result_str = result_str[:-1]
+    result_str += '\n'
     return result_str
 
-for opt_level in [ '-O1', '-O2', '-O3' ]:
-    print(f'======== {opt_level} ========')
-    print(get_opts(opt_level))
+def read_file(file_name):
+    try:
+        with open(file_name, 'r') as file:
+            return file.read().replace('\r', '')
+    except:
+        pass
+    return ''
+
+def write_file(file_name, contents):
+    with open(file_name, 'w') as file:
+        file.write(contents)
+
+for opt_level, file_name in [ ('-O1', 'src/opts_O1.inc'), ('-O2', 'src/opts_O2.inc'), ('-O3', 'src/opts_O3.inc') ]:
+    file_contents = read_file(file_name)
+    opts = get_opts(opt_level)
+    if file_contents != opts:
+        write_file(file_name, opts)
