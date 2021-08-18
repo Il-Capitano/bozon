@@ -3,7 +3,7 @@
 #include "global_context.h"
 #include "parse_context.h"
 #include "bc/comptime/comptime_emit_bitcode.h"
-#include "resolve/statement_resolver.h"
+#include "parse/statement_parser.h"
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/FileSystem.h>
@@ -93,7 +93,7 @@ llvm::Type *comptime_executor_context::get_base_type(ast::type_info *info)
 	{
 		bz_assert(this->current_parse_ctx != nullptr);
 		this->current_parse_ctx->add_to_resolve_queue({}, *info);
-		resolve::resolve_type_info(*info, *this->current_parse_ctx);
+		parse::resolve_type_info(*info, *this->current_parse_ctx);
 		this->current_parse_ctx->pop_resolve_queue();
 	}
 	auto const it = this->types_.find(info);
@@ -495,7 +495,7 @@ bool comptime_executor_context::resolve_function(ast::function_body *body)
 	}
 	bz_assert(this->current_parse_ctx != nullptr);
 	this->current_parse_ctx->add_to_resolve_queue({}, *body);
-	resolve::resolve_function({}, *body, *this->current_parse_ctx);
+	parse::resolve_function({}, *body, *this->current_parse_ctx);
 	this->current_parse_ctx->pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{

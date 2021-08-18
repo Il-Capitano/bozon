@@ -69,8 +69,6 @@ struct parse_context
 	[[nodiscard]] bool push_loop(void) noexcept;
 	void pop_loop(bool prev_in_loop) noexcept;
 
-	bool in_generic_function(void) const noexcept;
-
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it, bz::u8string message,

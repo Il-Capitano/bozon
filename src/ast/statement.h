@@ -266,16 +266,16 @@ struct stmt_static_assert
 {
 	lex::token_pos   static_assert_pos;
 	lex::token_range arg_tokens;
-	expression       condition;
-	expression       message;
+	expression condition;
+	expression message;
 
 	declare_default_5(stmt_static_assert)
 
 	stmt_static_assert(lex::token_pos _static_assert_pos, lex::token_range _arg_tokens)
 		: static_assert_pos(_static_assert_pos),
 		  arg_tokens(_arg_tokens),
-		  condition (),
-		  message   ()
+		  condition(),
+		  message()
 	{}
 };
 
@@ -313,28 +313,22 @@ struct decl_variable
 		tuple_outer_ref  = bit_at<8>,
 	};
 
-	lex::src_tokens  src_tokens      = {};
-	lex::token_range prototype_range = {};
-	var_id_and_type  id_and_type     = {};
-	arena_vector<decl_variable> tuple_decls = {};
+	lex::src_tokens src_tokens;
+	lex::token_range prototype_range;
+	var_id_and_type id_and_type;
+	arena_vector<decl_variable> tuple_decls;
 
-	lex::token_range unresolved_init_expr = {};
-	expression       init_expr            = expression(); // is null if there's no initializer
-	resolve_state    state                = resolve_state::none;
-	ast_unique_ptr<decl_variable> original_tuple_variadic_decl = nullptr; // non-null only if tuple_decls has an empty variadic declaration at the end
-	uint16_t flags = 0;
+	expression    init_expr; // is null if there's no initializer
+	resolve_state state;
+	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
+	uint16_t       flags;
 
 	decl_variable(void) = default;
 	decl_variable(decl_variable const &other)
-		: src_tokens(other.src_tokens),
-		  prototype_range(other.prototype_range),
-		  id_and_type(other.id_and_type),
-		  tuple_decls(other.tuple_decls),
-		  unresolved_init_expr(other.unresolved_init_expr),
-		  init_expr(other.init_expr),
-		  state(other.state),
-		  original_tuple_variadic_decl(nullptr),
-		  flags(other.flags)
+		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
+		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
+		  init_expr(other.init_expr), state(other.state),
+		  original_tuple_variadic_decl(nullptr), flags(other.flags)
 	{
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
@@ -368,30 +362,15 @@ struct decl_variable
 		lex::src_tokens  _src_tokens,
 		lex::token_range _prototype_range,
 		var_id_and_type  _id_and_type,
-		lex::token_range _init_expr_range
-	)
-		: src_tokens (_src_tokens),
-		  prototype_range(_prototype_range),
-		  id_and_type(std::move(_id_and_type)),
-		  tuple_decls{},
-		  unresolved_init_expr(_init_expr_range),
-		  state(resolve_state::none),
-		  flags(0)
-	{}
-
-	decl_variable(
-		lex::src_tokens  _src_tokens,
-		lex::token_range _prototype_range,
-		var_id_and_type  _id_and_type,
 		expression       _init_expr
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
 		  id_and_type(std::move(_id_and_type)),
 		  tuple_decls{},
-		  init_expr(std::move(_init_expr)),
-		  state(resolve_state::none),
-		  flags(0)
+		  init_expr  (std::move(_init_expr)),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	decl_variable(
@@ -401,19 +380,26 @@ struct decl_variable
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
-		  id_and_type(std::move(_id_and_type))
+		  id_and_type(std::move(_id_and_type)),
+		  tuple_decls{},
+		  init_expr  (),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
 		lex::token_range _prototype_range,
 		arena_vector<decl_variable> _tuple_decls,
-		lex::token_range _init_expr_range
+		expression      _init_expr
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
+		  id_and_type{},
 		  tuple_decls(std::move(_tuple_decls)),
-		  unresolved_init_expr(_init_expr_range)
+		  init_expr  (std::move(_init_expr)),
+		  state      (resolve_state::none),
+		  flags      (0)
 	{}
 
 	decl_variable(

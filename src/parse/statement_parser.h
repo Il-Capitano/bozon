@@ -39,6 +39,55 @@ bz::vector<ast::statement> parse_struct_body_statements(
 	ctx::parse_context &context
 );
 
+void resolve_global_statement(
+	ast::statement &stmt,
+	ctx::parse_context &context
+);
+
+void resolve_type_alias(
+	ast::decl_type_alias &alias_decl,
+	ctx::parse_context &context
+);
+
+void resolve_variable_symbol(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+);
+void resolve_variable(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+);
+
+void resolve_function_alias(
+	ast::decl_function_alias &alias_decl,
+	ctx::parse_context &context
+);
+
+void resolve_type_info_symbol(
+	ast::type_info &info,
+	ctx::parse_context &context
+);
+void resolve_type_info(
+	ast::type_info &info,
+	ctx::parse_context &context
+);
+
+void resolve_function_parameters(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+);
+void resolve_function_symbol(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+);
+void resolve_function(
+	ast::statement_view func_stmt,
+	ast::function_body &func_body,
+	ctx::parse_context &context
+);
+
 } // namespace parse
 
 #endif // PARSE_STATEMENT_PARSER_H

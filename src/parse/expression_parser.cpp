@@ -23,14 +23,27 @@ ast::expression parse_expression_without_semi_colon(
 	{
 	// top level compound expression
 	case lex::token::curly_open:
-		return parse_compound_expression(stream, end, context);
+	{
+		auto result = parse_compound_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	// top level if expression
 	case lex::token::kw_if:
-		return parse_if_expression(stream, end, context);
+	{
+		auto result = parse_if_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	// top level switch expression
 	case lex::token::kw_switch:
-		return parse_switch_expression(stream, end, context);
+	{
+		auto result = parse_switch_expression(stream, end, context);
+		consteval_guaranteed(result, context);
+		return result;
+	}
 	default:
+		// parse_expression already calls consteval_guaranteed
 		return parse_expression(stream, end, context, precedence{});
 	}
 }
@@ -171,11 +184,20 @@ ast::expression parse_compound_expression(
 	{
 		auto expr = std::move(statements.back().get<ast::stmt_expression>().expr);
 		statements.pop_back();
+		if (expr.get_expr_type_and_kind().second == ast::expression_type_kind::tuple)
+		{
+			auto type = ast::make_auto_typespec(nullptr);
+			context.match_expression_to_type(expr, type);
+		}
 		if (expr.is<ast::constant_expression>() && statements.size() == 0)
 		{
 			auto &const_expr = expr.get<ast::constant_expression>();
 			auto result_type = const_expr.type;
 			auto result_kind = const_expr.kind;
+			if (result_kind == ast::expression_type_kind::tuple)
+			{
+				result_kind = ast::expression_type_kind::rvalue;
+			}
 			auto result_value = const_expr.value;
 			return ast::make_constant_expression(
 				{ begin, begin, stream },
@@ -184,19 +206,13 @@ ast::expression parse_compound_expression(
 				ast::make_expr_compound(std::move(statements), std::move(expr))
 			);
 		}
-		else if (expr.is<ast::expanded_variadic_expression>())
-		{
-			context.report_error(expr.src_tokens, "an expanded variadic expression can't be the result of a compound expression");
-			return ast::make_error_expression({ begin, begin, stream }, ast::make_expr_compound(std::move(statements), std::move(expr)));
-		}
-		else if (expr.is<ast::variadic_expression>())
-		{
-			context.report_error(expr.src_tokens, "a variadic expression can't be the result of a compound expression");
-			return ast::make_error_expression({ begin, begin, stream }, ast::make_expr_compound(std::move(statements), std::move(expr)));
-		}
 		else if (expr.is_constant_or_dynamic())
 		{
 			auto [type, kind] = expr.get_expr_type_and_kind();
+			if (kind == ast::expression_type_kind::tuple)
+			{
+				kind = ast::expression_type_kind::rvalue;
+			}
 			ast::typespec result_type = type;
 			return ast::make_dynamic_expression(
 				{ begin, begin, stream },
@@ -223,7 +239,6 @@ ast::expression parse_if_expression(
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
 
-	if (!context.in_generic_function())
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 		context.match_expression_to_type(condition, bool_type);
@@ -1235,7 +1250,9 @@ ast::expression parse_expression(
 	precedence prec
 )
 {
-	return parse_expression_impl(stream, end, context, prec);
+	auto result = parse_expression_impl(stream, end, context, prec);
+	consteval_guaranteed(result, context);
+	return result;
 }
 
 bz::vector<ast::expression> parse_expression_comma_list(
