@@ -315,6 +315,11 @@ public:
 	u8string &operator = (u8string_view const rhs)
 	{
 		auto const size = rhs.size();
+		if (size == 0)
+		{
+			this->clear();
+			return *this;
+		}
 		this->reserve(size);
 		if (this->_is_short_string())
 		{

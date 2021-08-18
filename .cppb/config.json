@@ -31,6 +31,8 @@
 				"no-defaulted-function-deleted"
 			],
 
+			"prebuild_rules": [ "generate_opts" ],
+
 			"configs": {
 				"windows-debug": {},
 				"windows-release": {},
@@ -174,6 +176,10 @@
 		"builtins.linux.o": {
 			"dependencies": [ "builtins.c" ],
 			"command": "clang-12 -c builtins.c -O3 -o builtins.linux.o"
+		},
+		"generate_opts": {
+			"command": "python3 scripts/gen_opts.py",
+			"is_file": false
 		}
 	}
 }

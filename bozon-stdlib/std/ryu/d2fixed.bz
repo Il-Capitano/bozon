@@ -37,37 +37,6 @@ consteval DOUBLE_BIAS = 1023;
 
 consteval POW10_ADDITIONAL_BITS = 120u;
 
-// Returns the low 64 bits of the high 128 bits of the 256-bit product of a and b.
-function umul256_hi128_lo64(aHi: uint64, aLo: uint64, bHi: uint64, bLo: uint64) -> uint64
-{
-	let b00Hi: uint64;
-	@maybe_unused const b00Lo = umul128(aLo, bLo, &b00Hi);
-	let b01Hi: uint64;
-	const b01Lo = umul128(aLo, bHi, &b01Hi);
-	let b10Hi: uint64;
-	const b10Lo = umul128(aHi, bLo, &b10Hi);
-	@maybe_unused let b11Hi: uint64;
-	const b11Lo = umul128(aHi, bHi, &b11Hi);
-
-	const temp1Lo = b10Lo + b00Hi;
-	const temp1Hi = b10Hi + (temp1Lo < b10Lo) as uint64;
-	const temp2Lo = b01Lo + temp1Lo;
-	const temp2Hi = b01Hi + (temp2Lo < b01Lo) as uint64;
-	return b11Lo + temp1Hi + temp2Hi;
-}
-
-function uint128_mod1e9(vHi: uint64, vLo: uint64) -> uint32
-{
-	// After multiplying, we're going to shift right by 29, then truncate to uint32_t.
-	// This means that we need only 29 + 32 = 61 bits, so we can truncate to uint64_t before shifting.
-	const multiplied = umul256_hi128_lo64(vHi, vLo, 0x89705F4136B4A597u64, 0x31680A88F8953031u64);
-
-	// For uint32_t truncation, see the mod1e9() comment in d2s_intrinsics.h.
-	const shifted = (multiplied >> 29) as uint32;
-
-	return vLo as uint32 - 1000000000u32 * shifted;
-}
-
 function mulShift_mod1e9(m: uint64, mul: *const uint64, j: int32) -> uint32
 {
 	let high0: uint64;                           // 64
@@ -84,10 +53,19 @@ function mulShift_mod1e9(m: uint64, mul: *const uint64, j: int32) -> uint32
 	const s1high = high2 + c2;                   // 192
 	assert(j >= 128);
 	assert(j <= 180);
-	const dist = (j - 128) as uint32; // dist: [0, 52]
-	const shiftedhigh = s1high >> dist;
-	const shiftedlow = shiftright128(s1low, s1high, dist);
-	return uint128_mod1e9(shiftedhigh, shiftedlow);
+	if (j < 160) // j: [128, 160)
+	{
+		const r0: uint64 = mod1e9(s1high);
+		const r1: uint64 = mod1e9((r0 << 32) | (s1low >> 32));
+		const r2: uint64 = ((r1 << 32) | (s1low & 0xffffffffu64));
+		return mod1e9(r2 >> (j - 128));
+	}
+	else // j: [160, 192)
+	{
+		const r0: uint64 = mod1e9(s1high);
+		const r1: uint64 = ((r0 << 32) | (s1low >> 32));
+		return mod1e9(r1 >> (j - 160));
+	}
 }
 
 // Convert `digits` to a sequence of decimal digits. Append the digits to the result.
@@ -777,8 +755,12 @@ export function d2exp(d: float64, precision: uint32) -> *uint8
 // addition by me
 //
 
-// same as d2fixed_buffered_n, but returns a past-the-end pointer and writes 'inf' instead of 'Infinity'
 export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> *uint8
+{
+	d2fixed_short(d, precision, result, false);
+}
+
+export function d2fixed_short(d: float64, precision: uint32, result: *uint8, strip_trailing_zeros: bool) -> *uint8
 {
 	const bits = double_to_bits(d);
 
@@ -802,7 +784,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> 
 		}
 		*(result + index) = '0' as uint32 as uint8;
 		++index;
-		if (precision > 0u)
+		if (precision > 0u && !strip_trailing_zeros)
 		{
 			*(result + index) = '.' as uint32 as uint8;
 			++index;
@@ -985,20 +967,32 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8) -> 
 			}
 		}
 	}
-	else
+	else if (!strip_trailing_zeros)
 	{
 		memset(result + index, '0' as uint32 as uint8, precision);
 		index += precision as int32;
+	}
+	if (strip_trailing_zeros)
+	{
+		while (*(result + index - 1) == '0' as uint32)
+		{
+			--index;
+		}
+		assert(index > 0);
+		if (*(result + index - 1) == '.' as uint32)
+		{
+			--index;
+		}
 	}
 	return result + index;
 }
 
 export function d2exp_short(d: float64, precision: uint32, result: *uint8) -> *uint8
 {
-	d2exp_short(d, precision, result, false);
+	d2exp_short(d, precision, result, false, false);
 }
 
-export function d2exp_short(d: float64, precision: uint32, result: *uint8, capital_e: bool) -> *uint8
+export function d2exp_short(d: float64, precision: uint32, result: *uint8, capital_e: bool, strip_trailing_zeros: bool) -> *uint8
 {
 	const bits = double_to_bits(d);
 
@@ -1262,6 +1256,18 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 				*(result + roundIndex) = (c + 1) as uint32 as uint8;
 				break;
 			}
+		}
+	}
+	if (strip_trailing_zeros)
+	{
+		while (*(result + index - 1) == '0' as uint32)
+		{
+			--index;
+		}
+		assert(index > 0);
+		if (*(result + index - 1) == '.' as uint32)
+		{
+			--index;
 		}
 	}
 	if (capital_e)

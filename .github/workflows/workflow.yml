@@ -22,19 +22,26 @@ jobs:
           mingw-w64-x86_64-lld
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-dwarfstack
+          mingw-w64-x86_64-python
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
-    - run: |
+    - name: Build cppb
+      run: |
         cd cppb
         mkdir bin
         make
         cd ..
     - run: touch ryu_format.ll
-    - run: cppb/bin/cppb build -v
-    - run: cppb/bin/cppb run -v
-    - run: cppb/bin/cppb build -v --build-config test
-    - run: cppb/bin/cppb run -v --build-config test
-    - run: cppb/bin/cppb run-rule ryu_format.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v || cppb/bin/cppb run -v
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test || cppb/bin/cppb run -v --build-config test
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.ll -f
   windows-gcc:
     runs-on: windows-latest
     defaults:
@@ -55,6 +62,7 @@ jobs:
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-dwarfstack
+          mingw-w64-x86_64-python
     - uses: actions/checkout@v2
     - name: Build cppb
       run: |
@@ -64,11 +72,16 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.ll
-    - run: cppb/bin/cppb build -v --build-config gcc
-    - run: cppb/bin/cppb run -v --build-config gcc
-    - run: cppb/bin/cppb build -v --build-config test-gcc
-    - run: cppb/bin/cppb run -v --build-config test-gcc
-    - run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v --build-config gcc
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v --build-config gcc || cppb/bin/cppb run -v --build-config gcc
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test-gcc
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test-gcc || cppb/bin/cppb run -v --build-config test-gcc
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
   linux-clang:
     runs-on: ubuntu-latest
     steps:
@@ -78,7 +91,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+        sudo apt install gcc gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -94,11 +107,16 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.linux.ll
-    - run: cppb/bin/cppb build -v
-    - run: cppb/bin/cppb run -v
-    - run: cppb/bin/cppb build -v --build-config test
-    - run: cppb/bin/cppb run -v --build-config test
-    - run: cppb/bin/cppb run-rule ryu_format.linux.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.linux.ll -f
   linux-gcc:
     runs-on: ubuntu-latest
     steps:
@@ -108,7 +126,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc lld gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+        sudo apt install gcc lld gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -124,8 +142,13 @@ jobs:
         make
         cd ..
     - run: touch ryu_format.linux.ll
-    - run: cppb/bin/cppb build -v --build-config gcc
-    - run: cppb/bin/cppb run -v --build-config gcc
-    - run: cppb/bin/cppb build -v --build-config test-gcc
-    - run: cppb/bin/cppb run -v --build-config test-gcc
-    - run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f
+    - name: Build bozon
+      run: cppb/bin/cppb build -v --build-config gcc
+    - name: Compile bitcode_test.bz
+      run: cppb/bin/cppb run -v --build-config gcc
+    - name: Build tests
+      run: cppb/bin/cppb build -v --build-config test-gcc
+    - name: Run tests
+      run: cppb/bin/cppb run -v --build-config test-gcc
+    - name: Compile ryu_format.bz
+      run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f

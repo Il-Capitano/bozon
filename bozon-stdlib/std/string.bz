@@ -2,6 +2,7 @@ import libc::stdlib;
 import print;
 import unicode;
 import utils;
+import format;
 
 import meta::comptime;
 
@@ -616,4 +617,17 @@ export function ends_with(s: #const string, postfix: #const string) -> bool
 export function ends_with(s: #const string, postfix: str) -> bool
 {
 	return s.as_str().ends_with(postfix);
+}
+
+
+// formatting functions
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: str)
+{
+	s.as_str().format_to(buffer, fmt_spec);
+}
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	s.as_str().format_to(buffer, fmt_spec);
 }

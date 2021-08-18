@@ -966,12 +966,12 @@ static val_ptr emit_bitcode(
 	// we emit consteval global variables to avoid generating huge arrays every time
 	// one is indexed into.  e.g. ryu has large consteval tables that are constructed
 	// in IR each time they're indexed into.
-	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>())
+	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
 	{
 		context.add_global_variable(id.decl);
 	}
 	auto const val_ptr = context.get_variable(id.decl);
-	if (val_ptr == nullptr && !id.decl->get_type().is<ast::ts_consteval>())
+	if (val_ptr == nullptr && (!id.decl->get_type().is<ast::ts_consteval>() || id.decl->init_expr.is_error()))
 	{
 		emit_error(
 			{ id.id.tokens.begin, id.id.tokens.begin, id.id.tokens.end },
@@ -4289,7 +4289,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition, while_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, while_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 }
@@ -4342,7 +4342,7 @@ static void emit_bitcode(
 	}
 
 	context.builder.SetInsertPoint(condition_check_end);
-	context.builder.CreateCondBr(condition, for_bb, end_bb);
+	context.builder.CreateCondBr(condition == nullptr ? llvm::ConstantInt::getFalse(context.get_llvm_context()) : condition, for_bb, end_bb);
 	context.builder.SetInsertPoint(end_bb);
 	context.pop_loop(prev_loop_info);
 	context.pop_expression_scope();

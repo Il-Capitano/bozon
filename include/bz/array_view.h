@@ -57,6 +57,12 @@ public:
 		: _data_begin(c_array), _data_end(c_array + N)
 	{}
 
+	constexpr array_view(T &val) noexcept
+		: _data_begin(&val), _data_end(&val + 1)
+	{}
+
+	constexpr array_view(T &&val) noexcept = delete;
+
 
 	value_type &operator [] (size_type index) const noexcept
 	{ return this->_data_begin[index]; }
@@ -104,6 +110,18 @@ public:
 
 	constexpr operator array_view<value_type const> (void) const noexcept
 	{ return array_view<value_type const>{ this->_data_begin, this->_data_end }; }
+
+
+	array_view<value_type> slice(std::size_t begin) noexcept
+	{ return array_view<value_type>(std::min(this->_data_begin + begin, this->_data_end), this->_data_end); }
+
+	array_view<value_type> slice(std::size_t begin, std::size_t end) noexcept
+	{
+		return array_view<value_type>(
+			std::min(this->_data_begin + begin, this->_data_end),
+			std::min(this->_data_begin + end, this->_data_end)
+		);
+	}
 };
 
 template<typename T>
