@@ -22,6 +22,7 @@ jobs:
           mingw-w64-x86_64-lld
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-dwarfstack
+          mingw-w64-x86_64-python
     - uses: actions/checkout@v2
     - run: git clone https://github.com/Il-Capitano/cppb.git
     - name: Build cppb
@@ -61,6 +62,7 @@ jobs:
           mingw-w64-x86_64-clang
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-dwarfstack
+          mingw-w64-x86_64-python
     - uses: actions/checkout@v2
     - name: Build cppb
       run: |
@@ -89,7 +91,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+        sudo apt install gcc gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
@@ -124,7 +126,7 @@ jobs:
         printf "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
         sudo apt update
-        sudo apt install gcc lld gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev
+        sudo apt install gcc lld gcc-10 g++-10 llvm-12 lld-12 clang-12 libfmt-dev rapidjson-dev python3
     - name: Install libbacktrace
       run: |
         git clone https://github.com/ianlancetaylor/libbacktrace.git
