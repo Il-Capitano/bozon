@@ -53,6 +53,34 @@ comptime_executor_context::~comptime_executor_context(void)
 	this->engine.reset();
 }
 
+std::unique_ptr<llvm::Module> comptime_executor_context::create_module(void) const
+{
+	auto const module_name = bz::format("comptime_module_{}", get_unique_id());
+	auto module = std::make_unique<llvm::Module>(
+		llvm::StringRef(module_name.data_as_char_ptr(), module_name.size()),
+		this->get_llvm_context()
+	);
+	module->setDataLayout(this->get_data_layout());
+	auto const is_native_target = target == "" || target == "native";
+	auto const target_triple = is_native_target
+		? llvm::sys::getDefaultTargetTriple()
+		: std::string(target.data_as_char_ptr(), target.size());
+	module->setTargetTriple(target_triple);
+	return module;
+}
+
+[[nodiscard]] llvm::Module *comptime_executor_context::push_module(llvm::Module *module)
+{
+	auto const result = this->current_module;
+	this->current_module = module;
+	return result;
+}
+
+void comptime_executor_context::pop_module(llvm::Module *prev_module)
+{
+	this->current_module = prev_module;
+}
+
 ast::type_info *comptime_executor_context::get_builtin_type_info(uint32_t kind)
 {
 	return this->global_ctx.get_builtin_type_info(kind);
@@ -120,19 +148,44 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 {
 	this->ensure_function_emission(func_body);
 	auto it = this->funcs_.find(func_body);
-	if (it == this->funcs_.end() || it->second->getName().str().c_str() != func_body->symbol_name)
+	if (it == this->funcs_.end())
 	{
-		if (it != this->funcs_.end())
-		{
-			this->funcs_.erase(it);
-		}
 		bz_assert(func_body->state != ast::resolve_state::error);
 		bz_assert(func_body->state >= ast::resolve_state::symbol);
-		return bc::comptime::add_function_to_module(func_body, *this);
+		auto module = this->create_module();
+		auto const prev_module = this->push_module(module.get());
+		auto const fn = bc::comptime::add_function_to_module(func_body, *this);
+		this->pop_module(prev_module);
+		bz_assert(this->modules_and_functions.find(func_body) == this->modules_and_functions.end());
+		this->modules_and_functions[func_body] = { std::move(module), fn };
+		return fn;
 	}
 	else
 	{
 		return it->second;
+	}
+}
+
+comptime_executor_context::module_function_pair
+comptime_executor_context::get_module_and_function(ast::function_body *func_body)
+{
+	auto const it = this->modules_and_functions.find(func_body);
+	if (it == this->modules_and_functions.end())
+	{
+		bz_assert(func_body->state != ast::resolve_state::error);
+		bz_assert(func_body->state >= ast::resolve_state::symbol);
+		auto module = this->create_module();
+		auto const prev_module = this->push_module(module.get());
+		auto const fn = bc::comptime::add_function_to_module(func_body, *this);
+		this->pop_module(prev_module);
+		return { std::move(module), fn };
+	}
+	else
+	{
+		bz_assert(it != this->modules_and_functions.end());
+		auto result = std::move(it->second);
+		this->modules_and_functions.erase(it);
+		return result;
 	}
 }
 
@@ -148,6 +201,7 @@ llvm::DataLayout &comptime_executor_context::get_data_layout(void) const noexcep
 
 llvm::Module &comptime_executor_context::get_module(void) const noexcept
 {
+	bz_assert(this->current_module != nullptr);
 	return *this->current_module;
 }
 
@@ -744,27 +798,16 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 	else
 	{
-		auto const module_name = bz::format("comptime_module_{}", get_unique_id());
-		auto module = std::make_unique<llvm::Module>(
-			llvm::StringRef(module_name.data_as_char_ptr(), module_name.size()),
-			this->get_llvm_context()
-		);
-		module->setDataLayout(this->get_data_layout());
-		auto const is_native_target = target == "" || target == "native";
-		auto const target_triple = is_native_target
-			? llvm::sys::getDefaultTargetTriple()
-			: std::string(target.data_as_char_ptr(), target.size());
-		module->setTargetTriple(target_triple);
-		auto const original_module = this->current_module;
-		this->current_module = module.get();
-
 		this->initialize_engine();
+		auto module = this->create_module();
+		auto const prev_module = this->push_module(module.get());
+
 		auto const start_index = this->functions_to_compile.size();
 		auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(body, params, *this);
 		if (!bc::comptime::emit_necessary_functions(start_index, *this))
 		{
 			this->functions_to_compile.resize(start_index);
-			this->current_module = original_module;
+			this->pop_module(prev_module);
 			return result;
 		}
 
@@ -788,7 +831,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		result.second.append_move(this->consume_errors());
 
 		this->functions_to_compile.resize(start_index);
-		this->current_module = original_module;
+		this->pop_module(prev_module);
 		return result;
 	}
 }
@@ -796,29 +839,18 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_compound_expression(ast::expr_compound &expr)
 {
 	bz_assert(this->destructor_calls.empty());
-	auto const original_module = this->current_module;
-	auto const module_name = bz::format("comptime_module_{}", get_unique_id());
-	auto module = std::make_unique<llvm::Module>(
-		llvm::StringRef(module_name.data_as_char_ptr(), module_name.size()),
-		this->get_llvm_context()
-	);
-	module->setDataLayout(this->get_data_layout());
-	auto const is_native_target = target == "" || target == "native";
-	auto const target_triple = is_native_target
-		? llvm::sys::getDefaultTargetTriple()
-		: std::string(target.data_as_char_ptr(), target.size());
-	module->setTargetTriple(target_triple);
-	this->current_module = module.get();
+	this->initialize_engine();
+	auto module = this->create_module();
+	auto const prev_module = this->push_module(module.get());
 
 	std::pair<ast::constant_value, bz::vector<error>> result;
-	this->initialize_engine();
 
 	auto const start_index = this->functions_to_compile.size();
 	auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(expr, *this);
 	if (!bc::comptime::emit_necessary_functions(start_index, *this))
 	{
-		this->current_module = original_module;
 		this->functions_to_compile.resize(start_index);
+		this->pop_module(prev_module);
 		return result;
 	}
 
@@ -856,7 +888,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 	result.second.append_move(this->consume_errors());
 	this->functions_to_compile.resize(start_index);
-	this->current_module = original_module;
+	this->pop_module(prev_module);
 	return result;
 }
 
@@ -900,14 +932,8 @@ void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)
 	{
-		auto module = std::make_unique<llvm::Module>("comptime_base_module", this->get_llvm_context());
-		module->setDataLayout(this->get_data_layout());
-		auto const is_native_target = target == "" || target == "native";
-		auto const target_triple = is_native_target
-			? llvm::sys::getDefaultTargetTriple()
-			: std::string(target.data_as_char_ptr(), target.size());
-		module->setTargetTriple(target_triple);
-		this->add_base_functions_to_module(*module);
+		this->engine = this->create_engine(this->create_module());
+		this->add_base_functions_to_engine();
 
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
@@ -917,10 +943,6 @@ void comptime_executor_context::initialize_engine(void)
 		this->pass_manager.add(llvm::createMemCpyOptPass());
 		// this->pass_manager.add(llvm::createGVNPass());
 
-		this->pass_manager.run(*module);
-		this->pass_manager.run(*module);
-
-		this->engine = this->create_engine(std::move(module));
 		this->engine->addGlobalMapping("__bozon_builtin_print_stdout",    reinterpret_cast<uint64_t>(&bozon_print_stdout));
 		this->engine->addGlobalMapping("__bozon_builtin_println_stdout",  reinterpret_cast<uint64_t>(&bozon_println_stdout));
 		this->engine->addGlobalMapping("__bozon_builtin_comptime_malloc", reinterpret_cast<uint64_t>(&bozon_builtin_comptime_malloc));
@@ -968,39 +990,45 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	return std::unique_ptr<llvm::ExecutionEngine>(result);
 }
 
-void comptime_executor_context::add_base_functions_to_module(llvm::Module &module)
+void comptime_executor_context::add_base_functions_to_engine(void)
 {
 	static_assert(sizeof (void *) == sizeof (uint64_t));
 
-	auto const original_module = this->current_module;
-	this->current_module = &module;
 	bz_assert(this->functions_to_compile.empty());
 
-	bz_assert(this->errors_array != nullptr);
-	bc::comptime::emit_global_variable(*this->errors_array, *this);
-	bz_assert(this->call_stack != nullptr);
-	bc::comptime::emit_global_variable(*this->call_stack, *this);
-	bz_assert(this->global_strings != nullptr);
-	bc::comptime::emit_global_variable(*this->global_strings, *this);
+	{
+		auto module = this->create_module();
+		auto const prev_module = this->push_module(module.get());
+		bz_assert(this->errors_array != nullptr);
+		bc::comptime::emit_global_variable(*this->errors_array, *this);
+		bz_assert(this->call_stack != nullptr);
+		bc::comptime::emit_global_variable(*this->call_stack, *this);
+		bz_assert(this->global_strings != nullptr);
+		bc::comptime::emit_global_variable(*this->global_strings, *this);
+		this->pop_module(prev_module);
+		this->add_module(std::move(module));
+	}
 
 	for (auto &func : this->comptime_functions)
 	{
 		bz_assert(func.func_body != nullptr);
 		bz_assert(func.llvm_func == nullptr);
+		auto module = this->create_module();
+		auto const prev_module = this->push_module(module.get());
 		func.llvm_func = bc::comptime::add_function_to_module(func.func_body, *this);
 		this->functions_to_compile.push_back(func.func_body);
+		this->pop_module(prev_module);
+		bz_assert(this->modules_and_functions.find(func.func_body) == this->modules_and_functions.end());
+		this->modules_and_functions[func.func_body] = { std::move(module), func.llvm_func };
 	}
 
 	[[maybe_unused]] auto const emit_result = bc::comptime::emit_necessary_functions(0, *this);
 	bz_assert(emit_result);
 	this->functions_to_compile.clear();
-
-	this->current_module = original_module;
 }
 
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
-	bz_assert(this->engine != nullptr);
 	this->pass_manager.run(*module);
 	this->pass_manager.run(*module);
 	if (debug_comptime_ir_output)

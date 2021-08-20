@@ -4919,7 +4919,8 @@ static void emit_function_bitcode_impl(
 	bz_assert(!func_body.is_comptime_bitcode_emitted());
 	func_body.flags |= ast::function_body::comptime_bitcode_emitted;
 
-	auto const fn = context.get_function(&func_body);
+	auto [module, fn] = context.get_module_and_function(&func_body);
+	auto const prev_module = context.push_module(module.get());
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
 
@@ -5101,6 +5102,8 @@ static void emit_function_bitcode_impl(
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;
 	context.output_pointer = nullptr;
+	context.pop_module(prev_module);
+	context.add_module(std::move(module));
 }
 
 void emit_function_bitcode(

@@ -68,6 +68,10 @@ struct comptime_executor_context
 
 	~comptime_executor_context(void);
 
+	std::unique_ptr<llvm::Module> create_module(void) const;
+	[[nodiscard]] llvm::Module *push_module(llvm::Module *module);
+	void pop_module(llvm::Module *prev_module);
+
 	ast::type_info *get_builtin_type_info(uint32_t kind);
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
@@ -81,6 +85,9 @@ struct comptime_executor_context
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
 
 	llvm::Function *get_function(ast::function_body *func_body);
+
+	using module_function_pair = std::pair<std::unique_ptr<llvm::Module>, llvm::Function *>;
+	module_function_pair get_module_and_function(ast::function_body *func_body);
 
 	llvm::LLVMContext &get_llvm_context(void) const noexcept;
 	llvm::DataLayout &get_data_layout(void) const noexcept;
@@ -189,7 +196,7 @@ struct comptime_executor_context
 	std::pair<ast::constant_value, bz::vector<error>> execute_compound_expression(ast::expr_compound &expr);
 	void initialize_engine(void);
 	std::unique_ptr<llvm::ExecutionEngine> create_engine(std::unique_ptr<llvm::Module> module);
-	void add_base_functions_to_module(llvm::Module &module);
+	void add_base_functions_to_engine(void);
 	void add_module(std::unique_ptr<llvm::Module> module);
 
 	bool has_error(void);
@@ -216,6 +223,8 @@ struct comptime_executor_context
 	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
+
+	std::unordered_map<ast::function_body const *, module_function_pair> modules_and_functions{};
 
 	bz::vector<ast::function_body *> functions_to_compile{};
 
