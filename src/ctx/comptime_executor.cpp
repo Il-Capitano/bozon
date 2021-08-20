@@ -932,6 +932,13 @@ void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)
 	{
+		if (debug_comptime_ir_output)
+		{
+			std::error_code ec;
+			auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text);
+			// create an empty file
+			output_file.flush();
+		}
 		this->engine = this->create_engine(this->create_module());
 		this->add_base_functions_to_engine();
 
