@@ -71,12 +71,7 @@
 			"depends_on": "default",
 			"source_directory": "test",
 			"defines": [],
-			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
-			"configs": {
-				"windows": {
-					"run_args": [ "--use-interpreter" ]
-				}
-			}
+			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ]
 		},
 		"gcc": {
 			"compiler": "gcc",
@@ -127,9 +122,6 @@
 			"defines": [],
 			"run_args": [ "-Wall", "--debug-comptime-ir-output", "--no-error-highlight", "--stdlib-dir", "bozon-stdlib" ],
 			"configs": {
-				"windows": {
-					"run_args": [ "--use-interpreter" ]
-				},
 				"linux": {
 					"cpp_compiler_flags": [ "-fno-var-tracking-assignments" ]
 				}
