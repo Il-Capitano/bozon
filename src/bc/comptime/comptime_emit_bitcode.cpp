@@ -1798,6 +1798,7 @@ static val_ptr emit_builtin_binary_multiply_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide(
+	lex::src_tokens src_tokens,
 	ast::expr_binary_op const &binary_op,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -1810,10 +1811,31 @@ static val_ptr emit_builtin_binary_divide(
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(lhs_kind == rhs_t.get<ast::ts_base_type>().info->kind);
+	bz_assert(ctx::is_arithmetic_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+
+	if (ctx::is_integer_kind(lhs_kind))
+	{
+		auto const check_fn_kind =
+			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
+			lhs_kind == ast::type_info::int16_  ? ctx::comptime_function_kind::i16_divide_check :
+			lhs_kind == ast::type_info::int32_  ? ctx::comptime_function_kind::i32_divide_check :
+			lhs_kind == ast::type_info::int64_  ? ctx::comptime_function_kind::i64_divide_check :
+			lhs_kind == ast::type_info::uint8_  ? ctx::comptime_function_kind::u8_divide_check :
+			lhs_kind == ast::type_info::uint16_ ? ctx::comptime_function_kind::u16_divide_check :
+			lhs_kind == ast::type_info::uint32_ ? ctx::comptime_function_kind::u32_divide_check :
+			lhs_kind == ast::type_info::uint64_ ? ctx::comptime_function_kind::u64_divide_check
+			: (bz_unreachable, ctx::comptime_function_kind::u64_divide_check);
+		auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+		auto const is_valid = context.builder.CreateCall(
+			context.get_comptime_function(check_fn_kind),
+			{ lhs_val, rhs_val, src_begin_val, src_pivot_val, src_end_val }
+		);
+		emit_error_assert(is_valid, context);
+	}
+
 	auto const result_val = ctx::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
 		: ctx::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
@@ -1830,6 +1852,7 @@ static val_ptr emit_builtin_binary_divide(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide_eq(
+	lex::src_tokens src_tokens,
 	ast::expr_binary_op const &binary_op,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -1842,13 +1865,34 @@ static val_ptr emit_builtin_binary_divide_eq(
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(lhs_kind == rhs_t.get<ast::ts_base_type>().info->kind);
+	bz_assert(ctx::is_arithmetic_kind(lhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
+
+	if (ctx::is_integer_kind(lhs_kind))
+	{
+		auto const check_fn_kind =
+			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
+			lhs_kind == ast::type_info::int16_  ? ctx::comptime_function_kind::i16_divide_check :
+			lhs_kind == ast::type_info::int32_  ? ctx::comptime_function_kind::i32_divide_check :
+			lhs_kind == ast::type_info::int64_  ? ctx::comptime_function_kind::i64_divide_check :
+			lhs_kind == ast::type_info::uint8_  ? ctx::comptime_function_kind::u8_divide_check :
+			lhs_kind == ast::type_info::uint16_ ? ctx::comptime_function_kind::u16_divide_check :
+			lhs_kind == ast::type_info::uint32_ ? ctx::comptime_function_kind::u32_divide_check :
+			lhs_kind == ast::type_info::uint64_ ? ctx::comptime_function_kind::u64_divide_check
+			: (bz_unreachable, ctx::comptime_function_kind::u64_divide_check);
+		auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+		auto const is_valid = context.builder.CreateCall(
+			context.get_comptime_function(check_fn_kind),
+			{ lhs_val, rhs_val, src_begin_val, src_pivot_val, src_end_val }
+		);
+		emit_error_assert(is_valid, context);
+	}
+
 	auto const res = ctx::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
 		: ctx::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
@@ -2574,9 +2618,9 @@ static val_ptr emit_bitcode(
 	case lex::token::multiply_eq:        // '*='
 		return emit_builtin_binary_multiply_eq<abi>(binary_op, context, result_address);
 	case lex::token::divide:             // '/'
-		return emit_builtin_binary_divide<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide<abi>(src_tokens, binary_op, context, result_address);
 	case lex::token::divide_eq:          // '/='
-		return emit_builtin_binary_divide_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide_eq<abi>(src_tokens, binary_op, context, result_address);
 	case lex::token::modulo:             // '%'
 		return emit_builtin_binary_modulo<abi>(binary_op, context, result_address);
 	case lex::token::modulo_eq:          // '%='

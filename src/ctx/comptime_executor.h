@@ -49,6 +49,14 @@ enum class comptime_function_kind : uint32_t
 	comptime_memcpy_check,
 	comptime_memmove_check,
 	comptime_memset_check,
+	i8_divide_check,
+	i16_divide_check,
+	i32_divide_check,
+	i64_divide_check,
+	u8_divide_check,
+	u16_divide_check,
+	u32_divide_check,
+	u64_divide_check,
 
 	_last,
 };
@@ -292,6 +300,14 @@ constexpr bz::array comptime_function_info = {
 	def_element(comptime_memcpy_check),
 	def_element(comptime_memmove_check),
 	def_element(comptime_memset_check),
+	def_element(i8_divide_check),
+	def_element(i16_divide_check),
+	def_element(i32_divide_check),
+	def_element(i64_divide_check),
+	def_element(u8_divide_check),
+	def_element(u16_divide_check),
+	def_element(u32_divide_check),
+	def_element(u64_divide_check),
 };
 static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
 
