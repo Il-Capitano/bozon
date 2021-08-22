@@ -756,7 +756,80 @@ function comptime_malloc_check(
 	}
 }
 
-// builtins for error emission in comptime code
+@comptime_error_checking("comptime_memcpy_check")
+// dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
+function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (size == 0u)
+	{
+		return true;
+	}
+
+	if (dest == null)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memcpy' called with null as the destination pointer", begin, pivot, end);
+		return false;
+	}
+	else if (src == null)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memcpy' called with null as the source pointer", begin, pivot, end);
+		return false;
+	}
+	else if (dest != src && dest < src + size && src < dest + size)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memcpy' called with overlapping ranges", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@comptime_error_checking("comptime_memmove_check")
+// dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
+function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (size == 0u)
+	{
+		return true;
+	}
+
+	if (dest == null)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memmove' called with null as the destination pointer", begin, pivot, end);
+		return false;
+	}
+	else if (src == null)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memmove' called with null as the source pointer", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@comptime_error_checking("comptime_memset_check")
+// dest is passed as *const uint8 because pointer casts are not allowed in comptime code
+function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (size == 0u)
+	{
+		return true;
+	}
+
+	if (dest == null)
+	{
+		__builtin_comptime_compile_error_src_tokens("'memset' called with null as the destination pointer", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
 
 @no_comptime_checking
 @__builtin("comptime_compile_error_src_tokens")

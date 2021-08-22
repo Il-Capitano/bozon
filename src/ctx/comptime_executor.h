@@ -46,6 +46,9 @@ enum class comptime_function_kind : uint32_t
 	index_check_unsigned,
 	index_check_signed,
 	comptime_malloc_check,
+	comptime_memcpy_check,
+	comptime_memmove_check,
+	comptime_memset_check,
 
 	_last,
 };
@@ -286,6 +289,9 @@ constexpr bz::array comptime_function_info = {
 	def_element(index_check_unsigned),
 	def_element(index_check_signed),
 	def_element(comptime_malloc_check),
+	def_element(comptime_memcpy_check),
+	def_element(comptime_memmove_check),
+	def_element(comptime_memset_check),
 };
 static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
 
