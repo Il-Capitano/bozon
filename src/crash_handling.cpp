@@ -24,7 +24,7 @@ static int full_callback(void *data, uintptr_t pc, char const *filename, int lin
 	}
 	else
 	{
-		bz::print("    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
+		bz::print(stderr, "    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
 		count += 1;
 	}
 	return 0;
@@ -78,12 +78,12 @@ static void stderr_print(
 	default:
 		if (column > 0)
 		{
-			bz::print("    #{:2}: {}:{}:{} ({})\n", count, filename, line, column, ptr);
+			bz::print(stderr, "    #{:2}: {}:{}:{} ({})\n", count, filename, line, column, ptr);
 			count += 1;
 		}
 		else
 		{
-			bz::print("    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
+			bz::print(stderr, "    #{:2}: {}:{} ({})\n", count, filename, line, ptr);
 			count += 1;
 		}
 		break;

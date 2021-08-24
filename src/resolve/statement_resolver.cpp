@@ -446,7 +446,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 					var_decl.get_type(),
 					ast::make_expr_function_call(
 						var_decl.src_tokens,
-						bz::vector<ast::expression>{},
+						ast::arena_vector<ast::expression>{},
 						def_ctor,
 						ast::resolve_order::regular
 					)

@@ -3,6 +3,7 @@
 #include "parse_context.h"
 #include "token_info.h"
 #include "parse/consteval.h"
+#include "resolve/expression_resolver.h"
 
 namespace ctx
 {
@@ -101,14 +102,14 @@ static precedence get_expr_precedence(ast::expression const &expression)
 
 static uint32_t signed_to_unsigned(uint32_t kind)
 {
-	bz_assert(is_signed_integer_kind(kind));
+	bz_assert(ast::is_signed_integer_kind(kind));
 	static_assert(ast::type_info::uint8_ > ast::type_info::int8_);
 	return kind + (ast::type_info::uint8_ - ast::type_info::int8_);
 }
 
 static uint32_t unsigned_to_signed(uint32_t kind)
 {
-	bz_assert(is_unsigned_integer_kind(kind));
+	bz_assert(ast::is_unsigned_integer_kind(kind));
 	static_assert(ast::type_info::uint8_ > ast::type_info::int8_);
 	return kind - (ast::type_info::uint8_ - ast::type_info::int8_);
 }
@@ -178,7 +179,7 @@ static ast::expression get_builtin_unary_plus(
 	}
 	auto const kind = expr_t.get<ast::ts_base_type>().info->kind;
 
-	if (!is_arithmetic_kind(kind))
+	if (!ast::is_arithmetic_kind(kind))
 	{
 		context.report_error(src_tokens, bz::format(undeclared_unary_message("+"), type));
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -217,7 +218,7 @@ static ast::expression get_builtin_unary_minus(
 	}
 	auto const type_info = expr_t.get<ast::ts_base_type>().info;
 	auto const kind = type_info->kind;
-	if (is_signed_integer_kind(kind) || is_floating_point_kind(kind))
+	if (ast::is_signed_integer_kind(kind) || ast::is_floating_point_kind(kind))
 	{
 		ast::typespec result_type{};
 		result_type = expr_t;
@@ -230,7 +231,7 @@ static ast::expression get_builtin_unary_minus(
 	}
 
 	// special error message for -uintN
-	if (is_unsigned_integer_kind(kind))
+	if (ast::is_unsigned_integer_kind(kind))
 	{
 		auto const type_name = ast::get_type_name_from_kind(unsigned_to_signed(kind));
 		bz_assert(src_tokens.pivot != nullptr);
@@ -345,7 +346,7 @@ static ast::expression get_builtin_unary_bit_not(
 
 	auto const kind = expr_t.get<ast::ts_base_type>().info->kind;
 
-	if (is_unsigned_integer_kind(kind) || kind == ast::type_info::bool_)
+	if (ast::is_unsigned_integer_kind(kind) || kind == ast::type_info::bool_)
 	{
 		auto result_type = expr_t;
 		return ast::make_dynamic_expression(
@@ -357,7 +358,7 @@ static ast::expression get_builtin_unary_bit_not(
 	}
 
 	// special error message for signed integers
-	if (is_signed_integer_kind(kind))
+	if (ast::is_signed_integer_kind(kind))
 	{
 		bz_assert(src_tokens.pivot != nullptr);
 		context.report_error(
@@ -466,7 +467,7 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 	{
 		auto kind = type.get<ast::ts_base_type>().info->kind;
 		if (
-			is_integer_kind(kind)
+			ast::is_integer_kind(kind)
 			|| kind == ast::type_info::char_
 		)
 		{
@@ -516,9 +517,48 @@ static ast::expression get_builtin_unary_dot_dot_dot(
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 
+	auto &variadic_expr = expr.get<ast::variadic_expression>();
+	bz_assert(variadic_expr.variadic_infos.not_empty());
+	auto const [tokens, size] = variadic_expr.variadic_infos[0];
+	for (auto const &info : variadic_expr.variadic_infos.slice(1))
+	{
+		if (info.size != size)
+		{
+			context.report_error(
+				src_tokens,
+				"different variadic expressions have mismatched lengths in variadic expansion",
+				{
+					context.make_note(tokens, bz::format("variadic expression has length {}", size)),
+					context.make_note(info.src_tokens, bz::format("variadic expression has length {}", info.size)),
+				}
+			);
+			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+		}
+	}
+
+	ast::arena_vector<ast::expression> expanded_exprs;
+	expanded_exprs.reserve(size);
+	if (size != 0)
+	{
+		for ([[maybe_unused]] auto const _ : bz::iota(1, size))
+		{
+			expanded_exprs.push_back(*variadic_expr.expr);
+		}
+		expanded_exprs.push_back(std::move(*variadic_expr.expr));
+		variadic_expr.expr.reset();
+	}
+
+	auto const variadic_info = context.push_variadic_resolver();
+	for (auto &expr : expanded_exprs)
+	{
+		resolve::resolve_expression(expr, context);
+		context.variadic_info.variadic_index += 1;
+	}
+	context.pop_variadic_resolver(variadic_info);
+
 	return ast::make_expanded_variadic_expression(
 		src_tokens,
-		std::move(expr.get<ast::variadic_expression>().exprs)
+		std::move(expanded_exprs)
 	);
 }
 
@@ -1041,8 +1081,8 @@ make_arithmetic_assign_error_notes_and_suggestions(
 	auto &suggestions = std::get<1>(result);
 
 	if (
-		(is_signed_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
-		|| (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		(ast::is_signed_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
+		|| (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
 	)
 	{
 		bz_assert(lhs_kind < rhs_kind);
@@ -1056,8 +1096,8 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 	}
 	else if (
-		(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
-		|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		(ast::is_signed_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
+		|| (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
 	)
 	{
 		notes.push_back(context.make_note(
@@ -1070,8 +1110,8 @@ make_arithmetic_assign_error_notes_and_suggestions(
 		));
 	}
 	else if (
-		(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
-		|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		(ast::is_floating_point_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
+		|| (ast::is_integer_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 	)
 	{
 		notes.push_back(context.make_note(
@@ -1083,7 +1123,7 @@ make_arithmetic_assign_error_notes_and_suggestions(
 			ast::get_type_name_from_kind(lhs_kind), context
 		));
 	}
-	else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	else if (ast::is_floating_point_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 	{
 		notes.push_back(context.make_note(
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -1115,8 +1155,8 @@ make_arithmetic_error_notes_and_suggestions(
 	auto &suggestions = std::get<1>(result);
 
 	if (
-		(is_signed_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
-		|| (is_unsigned_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+		(ast::is_signed_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
+		|| (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
 	)
 	{
 		notes.push_back(context.make_note(
@@ -1125,15 +1165,15 @@ make_arithmetic_error_notes_and_suggestions(
 		));
 	}
 	else if (
-		(is_floating_point_kind(lhs_kind) && is_integer_kind(rhs_kind))
-		|| (is_integer_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		(ast::is_floating_point_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
+		|| (ast::is_integer_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 	)
 	{
 		notes.push_back(context.make_note(
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 			"implicit conversion between floating-point and integer types is not allowed"
 		));
-		if (is_floating_point_kind(lhs_kind))
+		if (ast::is_floating_point_kind(lhs_kind))
 		{
 			suggestions.push_back(create_explicit_cast_suggestion(
 				rhs, op_prec,
@@ -1148,7 +1188,7 @@ make_arithmetic_error_notes_and_suggestions(
 			));
 		}
 	}
-	else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+	else if (ast::is_floating_point_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 	{
 		notes.push_back(context.make_note(
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -1244,8 +1284,8 @@ static ast::expression get_builtin_binary_assign(
 			);
 		}
 		else if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -1258,8 +1298,8 @@ static ast::expression get_builtin_binary_assign(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -1403,8 +1443,8 @@ static ast::expression get_builtin_binary_plus(
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1438,8 +1478,8 @@ static ast::expression get_builtin_binary_plus(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1473,8 +1513,8 @@ static ast::expression get_builtin_binary_plus(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -1487,7 +1527,7 @@ static ast::expression get_builtin_binary_plus(
 		}
 		else if (
 			lhs_kind == ast::type_info::char_
-			&& is_integer_kind(rhs_kind)
+			&& ast::is_integer_kind(rhs_kind)
 		)
 		{
 			auto result_type = lhs_t;
@@ -1498,7 +1538,7 @@ static ast::expression get_builtin_binary_plus(
 			);
 		}
 		else if (
-			is_integer_kind(lhs_kind)
+			ast::is_integer_kind(lhs_kind)
 			&& rhs_kind == ast::type_info::char_
 		)
 		{
@@ -1513,7 +1553,7 @@ static ast::expression get_builtin_binary_plus(
 	else if (
 		lhs_t.is<ast::ts_pointer>()
 		&& rhs_t.is<ast::ts_base_type>()
-		&& is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
+		&& ast::is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
 	)
 	{
 		auto result_type = lhs_t;
@@ -1526,7 +1566,7 @@ static ast::expression get_builtin_binary_plus(
 	else if (
 		rhs_t.is<ast::ts_pointer>()
 		&& lhs_t.is<ast::ts_base_type>()
-		&& is_integer_kind(lhs_t.get<ast::ts_base_type>().info->kind)
+		&& ast::is_integer_kind(lhs_t.get<ast::ts_base_type>().info->kind)
 	)
 	{
 		auto result_type = rhs_t;
@@ -1584,8 +1624,8 @@ static ast::expression get_builtin_binary_minus(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1619,8 +1659,8 @@ static ast::expression get_builtin_binary_minus(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1654,8 +1694,8 @@ static ast::expression get_builtin_binary_minus(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -1668,7 +1708,7 @@ static ast::expression get_builtin_binary_minus(
 		}
 		else if (
 			lhs_kind == ast::type_info::char_
-			&& is_integer_kind(rhs_kind)
+			&& ast::is_integer_kind(rhs_kind)
 		)
 		{
 			auto result_type = lhs_t;
@@ -1694,7 +1734,7 @@ static ast::expression get_builtin_binary_minus(
 	else if (
 		lhs_t.is<ast::ts_pointer>()
 		&& rhs_t.is<ast::ts_base_type>()
-		&& is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
+		&& ast::is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
 	)
 	{
 		auto result_type = lhs_t;
@@ -1780,8 +1820,8 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -1796,8 +1836,8 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -1812,8 +1852,8 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -1829,7 +1869,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 		}
 		else if (
 			lhs_kind == ast::type_info::char_
-			&& is_integer_kind(rhs_kind)
+			&& ast::is_integer_kind(rhs_kind)
 		)
 		{
 			return ast::make_dynamic_expression(
@@ -1842,7 +1882,7 @@ static ast::expression get_builtin_binary_plus_minus_eq(
 	else if (
 		lhs_t.is<ast::ts_pointer>()
 		&& rhs_t.is<ast::ts_base_type>()
-		&& is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
+		&& ast::is_integer_kind(rhs_t.get<ast::ts_base_type>().info->kind)
 	)
 	{
 		return ast::make_dynamic_expression(
@@ -1902,8 +1942,8 @@ static ast::expression get_builtin_binary_multiply_divide(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1935,8 +1975,8 @@ static ast::expression get_builtin_binary_multiply_divide(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -1968,8 +2008,8 @@ static ast::expression get_builtin_binary_multiply_divide(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -2044,8 +2084,8 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -2061,8 +2101,8 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -2078,8 +2118,8 @@ static ast::expression get_builtin_binary_multiply_divide_eq(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-//			&& is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+//			&& ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -2138,8 +2178,8 @@ static ast::expression get_builtin_binary_modulo(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -2171,8 +2211,8 @@ static ast::expression get_builtin_binary_modulo(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			auto common_kind = lhs_kind;
@@ -2211,7 +2251,7 @@ static ast::expression get_builtin_binary_modulo(
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		if (ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2222,7 +2262,7 @@ static ast::expression get_builtin_binary_modulo(
 				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
-		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		else if (ast::is_floating_point_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2278,8 +2318,8 @@ static ast::expression get_builtin_binary_modulo_eq(
 	{
 		auto [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -2295,8 +2335,8 @@ static ast::expression get_builtin_binary_modulo_eq(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 			&& lhs_kind >= rhs_kind
 		)
 		{
@@ -2320,8 +2360,8 @@ static ast::expression get_builtin_binary_modulo_eq(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			(is_signed_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
-			|| (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+			(ast::is_signed_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
+			|| (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
 		)
 		{
 			notes.push_back(context.make_note(
@@ -2333,7 +2373,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
-		else if (is_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		else if (ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2344,7 +2384,7 @@ static ast::expression get_builtin_binary_modulo_eq(
 				ast::get_type_name_from_kind(lhs_kind), context
 			));
 		}
-		else if (is_floating_point_kind(lhs_kind) && is_floating_point_kind(rhs_kind))
+		else if (ast::is_floating_point_kind(lhs_kind) && ast::is_floating_point_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2391,8 +2431,8 @@ static ast::expression get_builtin_binary_equals_not_equals(
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			if (lhs_kind > rhs_kind)
@@ -2422,8 +2462,8 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			if (lhs_kind > rhs_kind)
@@ -2455,8 +2495,8 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -2484,7 +2524,7 @@ static ast::expression get_builtin_binary_equals_not_equals(
 			&& rhs_kind == ast::type_info::str_
 		)
 		{
-			bz::vector<ast::expression> args;
+			ast::arena_vector<ast::expression> args;
 			args.reserve(2);
 			args.emplace_back(std::move(lhs)); args.emplace_back(std::move(rhs));
 			return ast::make_dynamic_expression(
@@ -2637,8 +2677,8 @@ static ast::expression get_builtin_binary_compare(
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 
 		if (
-			is_signed_integer_kind(lhs_kind)
-			&& is_signed_integer_kind(rhs_kind)
+			ast::is_signed_integer_kind(lhs_kind)
+			&& ast::is_signed_integer_kind(rhs_kind)
 		)
 		{
 			if (lhs_kind > rhs_kind)
@@ -2668,8 +2708,8 @@ static ast::expression get_builtin_binary_compare(
 			);
 		}
 		else if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_unsigned_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_unsigned_integer_kind(rhs_kind)
 		)
 		{
 			if (lhs_kind > rhs_kind)
@@ -2699,8 +2739,8 @@ static ast::expression get_builtin_binary_compare(
 			);
 		}
 		else if (
-			is_floating_point_kind(lhs_kind)
-			// && is_floating_point_kind(rhs_kind)
+			ast::is_floating_point_kind(lhs_kind)
+			// && ast::is_floating_point_kind(rhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -2805,7 +2845,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_unsigned_integer_kind(lhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
 			&& lhs_kind == rhs_kind
 		)
 		{
@@ -2837,7 +2877,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 	{
 		auto const op_prec = get_binary_precedence(op_kind);
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2859,22 +2899,22 @@ static ast::expression get_builtin_binary_bit_and_xor_or(
 			}
 		}
 		else if (
-			(is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
-			|| (is_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+			(ast::is_signed_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
+			|| (ast::is_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
 		)
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				"bit manipulation of signed integers is not allowed"
 			));
-			if (is_unsigned_integer_kind(lhs_kind))
+			if (ast::is_unsigned_integer_kind(lhs_kind))
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					rhs, op_prec,
 					ast::get_type_name_from_kind(lhs_kind), context
 				));
 			}
-			else if (is_unsigned_integer_kind(rhs_kind))
+			else if (ast::is_unsigned_integer_kind(rhs_kind))
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					lhs, op_prec,
@@ -2949,7 +2989,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			(is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind)
+			(ast::is_unsigned_integer_kind(lhs_kind) && lhs_kind == rhs_kind)
 			|| (lhs_kind == ast::type_info::bool_ && rhs_kind == ast::type_info::bool_)
 		)
 		{
@@ -2972,7 +3012,7 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 		static_assert(get_binary_precedence(lex::token::bit_and_eq).is_left_associative == get_binary_precedence(lex::token::bit_or_eq).is_left_associative);
 		auto const op_prec = get_binary_precedence(lex::token::bit_and_eq);
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_unsigned_integer_kind(lhs_kind) && is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(lhs_kind) && ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -2984,15 +3024,15 @@ static ast::expression get_builtin_binary_bit_and_xor_or_eq(
 			));
 		}
 		else if (
-			(is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
-			|| (is_integer_kind(lhs_kind) && is_signed_integer_kind(rhs_kind))
+			(ast::is_signed_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
+			|| (ast::is_integer_kind(lhs_kind) && ast::is_signed_integer_kind(rhs_kind))
 		)
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				"bit manipulation of signed integers is not allowed"
 			));
-			if (is_unsigned_integer_kind(lhs_kind))
+			if (ast::is_unsigned_integer_kind(lhs_kind))
 			{
 				suggestions.push_back(create_explicit_cast_suggestion(
 					rhs, op_prec,
@@ -3034,8 +3074,8 @@ static ast::expression get_builtin_binary_bit_shift(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_integer_kind(rhs_kind)
 		)
 		{
 			auto result_type = lhs_t;
@@ -3055,7 +3095,7 @@ static ast::expression get_builtin_binary_bit_shift(
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		if (ast::is_signed_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -3118,8 +3158,8 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
 		if (
-			is_unsigned_integer_kind(lhs_kind)
-			&& is_integer_kind(rhs_kind)
+			ast::is_unsigned_integer_kind(lhs_kind)
+			&& ast::is_integer_kind(rhs_kind)
 		)
 		{
 			// rhs shouldn't be cast to lhs_t here, becuase then e.g. 1u8 << 256u would be converted
@@ -3138,7 +3178,7 @@ static ast::expression get_builtin_binary_bit_shift_eq(
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		auto const [lhs_kind, rhs_kind] = get_base_kinds(lhs_t, rhs_t);
-		if (is_signed_integer_kind(lhs_kind) && is_integer_kind(rhs_kind))
+		if (ast::is_signed_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind))
 		{
 			notes.push_back(context.make_note(
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -3344,7 +3384,7 @@ ast::expression make_builtin_cast(
 	else if (expr_t.is<ast::ts_base_type>())
 	{
 		auto const [expr_kind, dest_kind] = get_base_kinds(expr_t, dest_t);
-		if (is_arithmetic_kind(expr_kind) && is_arithmetic_kind(dest_kind))
+		if (ast::is_arithmetic_kind(expr_kind) && ast::is_arithmetic_kind(dest_kind))
 		{
 			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
@@ -3380,7 +3420,7 @@ ast::expression make_builtin_cast(
 				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
-		else if (expr_kind == ast::type_info::bool_ && is_integer_kind(dest_kind))
+		else if (expr_kind == ast::type_info::bool_ && ast::is_integer_kind(dest_kind))
 		{
 			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
@@ -3427,7 +3467,7 @@ ast::expression make_builtin_subscript_operator(
 
 		auto const [arg_type, _] = arg.get_expr_type_and_kind();
 		auto const arg_t = ast::remove_const_or_consteval(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for tuple subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
@@ -3508,7 +3548,7 @@ ast::expression make_builtin_subscript_operator(
 
 		auto const [arg_type, _] = arg.get_expr_type_and_kind();
 		auto const arg_t = ast::remove_const_or_consteval(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array slice subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));
@@ -3529,7 +3569,7 @@ ast::expression make_builtin_subscript_operator(
 
 		auto const [arg_type, _] = arg.get_expr_type_and_kind();
 		auto const arg_t = ast::remove_const_or_consteval(arg_type);
-		if (!arg_t.is<ast::ts_base_type>() || !is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
+		if (!arg_t.is<ast::ts_base_type>() || !ast::is_integer_kind(arg_t.get<ast::ts_base_type>().info->kind))
 		{
 			context.report_error(arg, bz::format("invalid type '{}' for array subscript", arg_type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));

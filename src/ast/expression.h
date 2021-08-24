@@ -30,6 +30,12 @@ struct expr_switch;
 struct expr_break;
 struct expr_continue;
 
+struct expr_unresolved_subscript;
+struct expr_unresolved_function_call;
+struct expr_unresolved_universal_function_call;
+struct expr_unresolved_cast;
+struct expr_unresolved_member_access;
+
 
 using expr_t = node<
 	expr_identifier,
@@ -48,6 +54,21 @@ using expr_t = node<
 	expr_switch,
 	expr_break,
 	expr_continue
+>;
+
+using unresolved_expr_t = node<
+	expr_identifier,
+	expr_tuple,
+	expr_unary_op,
+	expr_binary_op,
+	expr_unresolved_subscript,
+	expr_unresolved_function_call,
+	expr_unresolved_universal_function_call,
+	expr_unresolved_cast,
+	expr_unresolved_member_access,
+	expr_compound,
+	expr_if,
+	expr_switch
 >;
 
 enum class expression_type_kind
@@ -77,7 +98,15 @@ constexpr bool is_rvalue(expression_type_kind kind)
 }
 
 struct unresolved_expression
-{};
+{
+	unresolved_expr_t expr;
+
+	unresolved_expression(void) = delete;
+	unresolved_expression(unresolved_expression const &) = default;
+	unresolved_expression(unresolved_expression &&)      = default;
+	unresolved_expression &operator = (unresolved_expression const &) = default;
+	unresolved_expression &operator = (unresolved_expression &&)      = default;
+};
 
 struct constant_expression
 {
@@ -86,7 +115,11 @@ struct constant_expression
 	constant_value       value;
 	expr_t               expr;
 
-	declare_default_5(constant_expression)
+	constant_expression(void) = delete;
+	constant_expression(constant_expression const &) = default;
+	constant_expression(constant_expression &&)      = default;
+	constant_expression &operator = (constant_expression const &) = default;
+	constant_expression &operator = (constant_expression &&)      = default;
 };
 
 struct dynamic_expression
@@ -95,21 +128,51 @@ struct dynamic_expression
 	typespec             type;
 	expr_t               expr;
 
-	declare_default_5(dynamic_expression)
+	dynamic_expression(void) = delete;
+	dynamic_expression(dynamic_expression const &) = default;
+	dynamic_expression(dynamic_expression &&)      = default;
+	dynamic_expression &operator = (dynamic_expression const &) = default;
+	dynamic_expression &operator = (dynamic_expression &&)      = default;
+};
+
+struct variadic_info_t
+{
+	lex::src_tokens src_tokens;
+	size_t          size;
 };
 
 struct variadic_expression
 {
-	bz::vector<expression> exprs;
+	ast_unique_ptr<expression>    expr; // always unresolved
+	arena_vector<variadic_info_t> variadic_infos;
 
-	declare_default_5(variadic_expression)
+	variadic_expression(ast_unique_ptr<expression> _expr, arena_vector<variadic_info_t> _variadic_infos)
+		: expr(std::move(_expr)), variadic_infos(std::move(_variadic_infos))
+	{}
+
+	variadic_expression(void) = delete;
+	variadic_expression(variadic_expression const &other)
+		: expr(make_ast_unique<expression>(*other.expr)), variadic_infos(other.variadic_infos)
+	{}
+	variadic_expression(variadic_expression &&)      = default;
+	variadic_expression &operator = (variadic_expression const &rhs)
+	{
+		this->expr = make_ast_unique<expression>(*rhs.expr);
+		this->variadic_infos = rhs.variadic_infos;
+		return *this;
+	}
+	variadic_expression &operator = (variadic_expression &&)      = default;
 };
 
 struct expanded_variadic_expression
 {
-	bz::vector<expression> exprs;
+	arena_vector<expression> exprs;
 
-	declare_default_5(expanded_variadic_expression)
+	expanded_variadic_expression(void) = delete;
+	expanded_variadic_expression(expanded_variadic_expression const &) = default;
+	expanded_variadic_expression(expanded_variadic_expression &&)      = default;
+	expanded_variadic_expression &operator = (expanded_variadic_expression const &) = default;
+	expanded_variadic_expression &operator = (expanded_variadic_expression &&)      = default;
 };
 
 struct error_expression
@@ -384,6 +447,11 @@ struct expression : bz::variant<
 		return this->is<constant_expression>() || this->is<dynamic_expression>();
 	}
 
+	bool is_unresolved(void) const noexcept
+	{
+		return this->is<unresolved_expression>();
+	}
+
 	bool is_none(void) const noexcept
 	{
 		return this->is_constant_or_dynamic()
@@ -432,15 +500,38 @@ struct expression : bz::variant<
 		}
 	}
 
-	bool is_top_level_compound_or_if(void) const noexcept
+	unresolved_expr_t &get_unresolved_expr(void)
 	{
-		if (!this->is_constant_or_dynamic())
+		bz_assert(this->is_unresolved());
+		return this->get<unresolved_expression>().expr;
+	}
+
+	unresolved_expr_t const &get_unresolved_expr(void) const
+	{
+		bz_assert(this->is_unresolved());
+		return this->get<unresolved_expression>().expr;
+	}
+
+	bool is_special_top_level(void) const noexcept
+	{
+		if (this->is_constant_or_dynamic())
+		{
+			auto &expr = this->get_expr();
+			return (expr.is<expr_compound>() && this->paren_level == 0)
+				|| (expr.is<expr_if>()       && this->paren_level == 0)
+				|| (expr.is<expr_switch>()   && this->paren_level == 0);
+		}
+		else if (this->is_unresolved())
+		{
+			auto &expr = this->get_unresolved_expr();
+			return (expr.is<expr_compound>() && this->paren_level == 0)
+				|| (expr.is<expr_if>()       && this->paren_level == 0)
+				|| (expr.is<expr_switch>()   && this->paren_level == 0);
+		}
+		else
 		{
 			return false;
 		}
-		auto &expr = this->get_expr();
-		return (expr.is<expr_compound>() && this->src_tokens.begin->kind == lex::token::curly_open)
-			|| (expr.is<expr_if>() && this->src_tokens.begin->kind == lex::token::kw_if);
 	}
 };
 
@@ -483,11 +574,11 @@ struct expr_literal
 
 struct expr_tuple
 {
-	bz::vector<expression> elems;
+	arena_vector<expression> elems;
 
 	declare_default_5(expr_tuple)
 
-	expr_tuple(bz::vector<expression> _elems)
+	expr_tuple(arena_vector<expression> _elems)
 		: elems(std::move(_elems))
 	{}
 };
@@ -550,18 +641,18 @@ enum class resolve_order
 
 struct expr_function_call
 {
-	lex::src_tokens        src_tokens;
-	bz::vector<expression> params;
-	function_body         *func_body;
-	resolve_order          param_resolve_order;
+	lex::src_tokens          src_tokens;
+	arena_vector<expression> params;
+	function_body           *func_body;
+	resolve_order            param_resolve_order;
 
 	declare_default_5(expr_function_call)
 
 	expr_function_call(
-		lex::src_tokens        _src_tokens,
-		bz::vector<expression> _params,
-		function_body         *_func_body,
-		resolve_order          _param_resolve_order
+		lex::src_tokens          _src_tokens,
+		arena_vector<expression> _params,
+		function_body           *_func_body,
+		resolve_order            _param_resolve_order
 	)
 		: src_tokens(_src_tokens),
 		  params    (std::move(_params)),
@@ -599,14 +690,14 @@ struct expr_take_reference
 
 struct expr_struct_init
 {
-	bz::vector<expression> exprs;
-	typespec               type;
+	arena_vector<expression> exprs;
+	typespec                 type;
 
 	declare_default_5(expr_struct_init)
 
 	expr_struct_init(
-		bz::vector<expression> _exprs,
-		typespec               _type
+		arena_vector<expression> _exprs,
+		typespec                 _type
 	)
 		: exprs(std::move(_exprs)),
 		  type (std::move(_type))
@@ -706,8 +797,83 @@ struct expr_continue
 };
 
 
-inline expression make_unresolved_expression(lex::src_tokens tokens)
-{ return expression(tokens, unresolved_expression()); }
+struct expr_unresolved_subscript
+{
+	expression               base;
+	arena_vector<expression> indices;
+
+	declare_default_5(expr_unresolved_subscript)
+
+	expr_unresolved_subscript(
+		expression               _base,
+		arena_vector<expression> _indices
+	)
+		: base   (std::move(_base)),
+		  indices(std::move(_indices))
+	{}
+};
+
+struct expr_unresolved_function_call
+{
+	expression               callee;
+	arena_vector<expression> args;
+
+	declare_default_5(expr_unresolved_function_call)
+
+	expr_unresolved_function_call(
+		expression               _callee,
+		arena_vector<expression> _args
+	)
+		: callee(std::move(_callee)),
+		  args  (std::move(_args))
+	{}
+};
+
+struct expr_unresolved_universal_function_call
+{
+	expression               base;
+	identifier               fn_id;
+	arena_vector<expression> args;
+
+	declare_default_5(expr_unresolved_universal_function_call)
+
+	expr_unresolved_universal_function_call(
+		expression               _base,
+		identifier               _fn_id,
+		arena_vector<expression> _args
+	)
+		: base (std::move(_base)),
+		  fn_id(std::move(_fn_id)),
+		  args (std::move(_args))
+	{}
+};
+
+struct expr_unresolved_cast
+{
+	expression expr;
+	expression type;
+
+	declare_default_5(expr_unresolved_cast)
+
+	expr_unresolved_cast(
+		expression _expr,
+		expression _type
+	)
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_unresolved_member_access
+{
+	expression     base;
+	lex::token_pos member;
+};
+
+
+template<typename ...Args>
+expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, unresolved_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
 expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
@@ -753,6 +919,26 @@ def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
 
 #undef def_make_fn
+
+#define def_make_unresolved_fn(ret_type, node_type)                            \
+template<typename ...Args>                                                     \
+ret_type make_unresolved_ ## node_type (Args &&...args)                        \
+{ return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
+
+def_make_unresolved_fn(unresolved_expr_t, expr_identifier)
+def_make_unresolved_fn(unresolved_expr_t, expr_tuple)
+def_make_unresolved_fn(unresolved_expr_t, expr_unary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_binary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_subscript)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_universal_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_cast)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_member_access)
+def_make_unresolved_fn(unresolved_expr_t, expr_compound)
+def_make_unresolved_fn(unresolved_expr_t, expr_if)
+def_make_unresolved_fn(unresolved_expr_t, expr_switch)
+
+#undef def_make_unresolved_fn
 
 } // namespace ast
 

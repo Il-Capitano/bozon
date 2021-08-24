@@ -15,9 +15,9 @@ namespace ast
 
 struct attribute
 {
-	lex::token_pos         name;
-	lex::token_range       arg_tokens;
-	bz::vector<expression> args;
+	lex::token_pos   name;
+	lex::token_range arg_tokens;
+	arena_vector<expression> args;
 
 	declare_default_5(attribute)
 };
@@ -984,6 +984,36 @@ public:
 		}
 	}
 };
+
+constexpr bool is_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::uint64_;
+}
+
+constexpr bool is_unsigned_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::uint8_
+		&& kind <= ast::type_info::uint64_;
+}
+
+constexpr bool is_signed_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::int64_;
+}
+
+constexpr bool is_floating_point_kind(uint32_t kind)
+{
+	return kind == ast::type_info::float32_
+		|| kind == ast::type_info::float64_;
+}
+
+constexpr bool is_arithmetic_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::float64_;
+}
 
 inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {

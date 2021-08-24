@@ -231,6 +231,8 @@ struct global_context
 	bool add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl);
 	bool add_builtin_function(bz::u8string_view kind, ast::function_body *func_body);
 
+	bool is_aggressive_consteval_enabled(void) const;
+
 
 	llvm::DataLayout const &get_data_layout(void) const
 	{ return this->_module.getDataLayout(); }

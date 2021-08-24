@@ -14,14 +14,14 @@ namespace ctx
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	bz::vector<ast::expression> params,
+	ast::arena_vector<ast::expression> params,
 	parse_context &context,
 	ast::resolve_order resolve_order = ast::resolve_order::regular
 );
 
-static bz::vector<ast::expression> expand_params(bz::vector<ast::expression> params)
+static ast::arena_vector<ast::expression> expand_params(ast::arena_vector<ast::expression> params)
 {
-	bz::vector<ast::expression> result;
+	ast::arena_vector<ast::expression> result;
 	if (params.empty())
 	{
 		return result;
@@ -50,7 +50,8 @@ static bz::vector<ast::expression> expand_params(bz::vector<ast::expression> par
 }
 
 parse_context::parse_context(global_context &_global_ctx)
-	: global_ctx(_global_ctx)
+	: global_ctx(_global_ctx),
+	  is_aggressive_consteval_enabled(_global_ctx.is_aggressive_consteval_enabled())
 {}
 
 parse_context::parse_context(parse_context const &other, local_copy_t)
@@ -62,6 +63,8 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  current_file_id(other.current_file_id),
 	  current_scope(other.current_scope),
 	  current_function(nullptr),
+	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
+	  variadic_info(other.variadic_info),
 	  resolve_queue(other.resolve_queue)
 {
 	this->scope_decls.resize(other.scope_decls.size());
@@ -80,6 +83,7 @@ parse_context::parse_context(parse_context const &other, global_copy_t)
 	  global_decls(other.global_decls),
 	  current_file_id(other.current_file_id),
 	  current_scope(other.current_scope),
+	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  resolve_queue(other.resolve_queue)
 {}
 
@@ -123,6 +127,18 @@ bz::array_view<uint32_t const> parse_context::get_builtin_universal_functions(bz
 void parse_context::pop_loop(bool prev_in_loop) noexcept
 {
 	this->in_loop = prev_in_loop;
+}
+
+[[nodiscard]] parse_context::variadic_resolve_info_t parse_context::push_variadic_resolver(void) noexcept
+{
+	auto result = this->variadic_info;
+	this->variadic_info = { true, 0 };
+	return result;
+}
+
+void parse_context::pop_variadic_resolver(variadic_resolve_info_t prev_info) noexcept
+{
+	this->variadic_info = prev_info;
 }
 
 static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
@@ -795,6 +811,25 @@ void parse_context::remove_scope(void)
 	this->scope_decls.pop_back();
 }
 
+[[nodiscard]] size_t parse_context::push_unresolved_scope(void)
+{
+	auto const result = this->last_unresolved_scope_size;
+	this->last_unresolved_scope_size = this->unresolved_local_decls.size();
+	return result;
+}
+
+void parse_context::pop_unresolved_scope(size_t prev_size)
+{
+	this->last_unresolved_scope_size = prev_size;
+	this->unresolved_local_decls.resize(prev_size);
+}
+
+void parse_context::add_unresolved_local(ast::identifier const &id)
+{
+	bz_assert(!id.is_qualified);
+	bz_assert(id.values.size() == 0);
+	this->unresolved_local_decls.push_back(id.values[0]);
+}
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
@@ -1038,7 +1073,7 @@ static ast::decl_variable *find_var_decl_in_local_scope(decl_set &scope, ast::id
 	}
 }
 
-static std::pair<bool, bz::array_view<ast::decl_variable * const>> find_variadic_var_decl_in_local_scope(decl_set &scope, ast::identifier const &id)
+static std::pair<bool, size_t> find_variadic_var_decl_in_local_scope(decl_set &scope, ast::identifier const &id)
 {
 	if (!id.is_qualified && id.values.size() == 1)
 	{
@@ -1052,16 +1087,16 @@ static std::pair<bool, bz::array_view<ast::decl_variable * const>> find_variadic
 		);
 		if (it != scope.variadic_var_decls.rend())
 		{
-			return { true, it->var_decls };
+			return { true, it->var_decls.size() };
 		}
 		else
 		{
-			return { false, {} };
+			return { false, 0 };
 		}
 	}
 	else
 	{
-		return { false, {} };
+		return { false, 0 };
 	}
 }
 
@@ -1363,15 +1398,16 @@ static ast::expression make_variable_expression(
 static ast::expression make_variable_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
-	bz::array_view<ast::decl_variable * const> var_decls,
-	parse_context &context
+	size_t variadic_size,
+	parse_context &
 )
 {
 	return ast::make_variadic_expression(
 		src_tokens,
-		var_decls.transform([&](auto const var_decl) {
-			return make_variable_expression(src_tokens, id, var_decl, context);
-		}).collect()
+		ast::make_ast_unique<ast::expression>(ast::make_unresolved_expression(
+			src_tokens, ast::make_unresolved_expr_identifier(std::move(id))
+		)),
+		ast::arena_vector<ast::variadic_info_t>{ { src_tokens, variadic_size } }
 	);
 }
 
@@ -1476,9 +1512,9 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 			return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
 		}
 
-		if (auto const [found, var_decls] = find_variadic_var_decl_in_local_scope(scope, id); found)
+		if (auto const [found, variadic_size] = find_variadic_var_decl_in_local_scope(scope, id); found)
 		{
-			return make_variable_expression(src_tokens, std::move(id), var_decls, *this);
+			return make_variable_expression(src_tokens, std::move(id), variadic_size, *this);
 		}
 
 		if (auto const fn_set = find_func_set_in_local_scope(scope, id))
@@ -2267,9 +2303,9 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	);
 }
 
-ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const
+ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, ast::arena_vector<ast::expression> elems) const
 {
-	elems = expand_params(elems);
+	elems = expand_params(std::move(elems));
 	auto const is_typename = [&]() {
 		for (auto const &e : elems)
 		{
@@ -2358,8 +2394,8 @@ static bool is_implicitly_convertible(
 		auto const dest_info = dest.get<ast::ts_base_type>().info;
 		auto const expr_info = expr_type_without_const.get<ast::ts_base_type>().info;
 		if (
-			(is_signed_integer_kind(dest_info->kind) && is_signed_integer_kind(expr_info->kind))
-			|| (is_unsigned_integer_kind(dest_info->kind) && is_unsigned_integer_kind(expr_info->kind))
+			(ast::is_signed_integer_kind(dest_info->kind) && ast::is_signed_integer_kind(expr_info->kind))
+			|| (ast::is_unsigned_integer_kind(dest_info->kind) && ast::is_unsigned_integer_kind(expr_info->kind))
 		)
 		{
 			return dest_info->kind >= expr_info->kind;
@@ -3471,7 +3507,7 @@ static void match_literal_to_type(
 			break;
 		}
 		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
-		if (!is_integer_kind(dest_kind))
+		if (!ast::is_integer_kind(dest_kind))
 		{
 			// return to base case if the matched type isn't an integer type
 			break;
@@ -3540,7 +3576,7 @@ static void match_literal_to_type(
 		}
 		else if (is_any_signed)
 		{
-			if (!is_signed_integer_kind(dest_kind))
+			if (!ast::is_signed_integer_kind(dest_kind))
 			{
 				context.report_error(
 					expr,
@@ -3603,7 +3639,7 @@ static void match_literal_to_type(
 		}
 		else if (is_any_unsigned)
 		{
-			if (!is_unsigned_integer_kind(dest_kind))
+			if (!ast::is_unsigned_integer_kind(dest_kind))
 			{
 				context.report_error(
 					expr,
@@ -4407,7 +4443,7 @@ static void expand_function_body_params(ast::function_body *body, size_t params_
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	bz::vector<ast::expression> params,
+	ast::arena_vector<ast::expression> params,
 	parse_context &context,
 	ast::resolve_order resolve_order
 )
@@ -4470,7 +4506,7 @@ static ast::expression make_expr_function_call_from_body(
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	bz::vector<ast::expression> params,
+	ast::arena_vector<ast::expression> params,
 	ast::constant_value value,
 	parse_context &context,
 	ast::resolve_order resolve_order = ast::resolve_order::regular
@@ -4612,11 +4648,14 @@ ast::expression parse_context::make_unary_operator_expression(
 
 	if (op_kind != lex::token::dot_dot_dot && expr.is<ast::variadic_expression>())
 	{
+		auto &variadic_expr = expr.get<ast::variadic_expression>();
 		return ast::make_variadic_expression(
 			src_tokens,
-			expr.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind](auto &inner_expr) {
-				return this->make_unary_operator_expression(src_tokens, op_kind, std::move(inner_expr));
-			}).collect()
+			ast::make_ast_unique<ast::expression>(ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_unary_op(op_kind, std::move(*variadic_expr.expr))
+			)),
+			std::move(variadic_expr.variadic_infos)
 		);
 	}
 
@@ -4665,7 +4704,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		}
 		else
 		{
-			bz::vector<ast::expression> params;
+			ast::arena_vector<ast::expression> params;
 			params.emplace_back(std::move(expr));
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
 		}
@@ -4784,37 +4823,45 @@ ast::expression parse_context::make_binary_operator_expression(
 
 	if (lhs.is<ast::variadic_expression>() && rhs.is<ast::variadic_expression>())
 	{
-		auto &lhs_inner_exprs = lhs.get<ast::variadic_expression>().exprs;
-		auto &rhs_inner_exprs = rhs.get<ast::variadic_expression>().exprs;
-		if (lhs_inner_exprs.size() != rhs_inner_exprs.size())
-		{
-			this->report_error(
+		auto &lhs_variadic_expr = lhs.get<ast::variadic_expression>();
+		auto &rhs_variadic_expr = rhs.get<ast::variadic_expression>();
+		auto result_variadic_infos = std::move(lhs_variadic_expr.variadic_infos);
+		result_variadic_infos.append_move(rhs_variadic_expr.variadic_infos);
+		rhs_variadic_expr.variadic_infos.clear();
+
+		return ast::make_variadic_expression(
+			src_tokens,
+			ast::make_ast_unique<ast::expression>(ast::make_unresolved_expression(
 				src_tokens,
-				"invalid operation between two variadic expressions with different sizes",
-				{ this->make_note(
-					src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
-					bz::format("lhs has {} elements, rhs has {} elements", lhs_inner_exprs.size(), rhs_inner_exprs.size())
-				) }
-			);
-			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
-		}
+				ast::make_unresolved_expr_binary_op(op_kind, std::move(*lhs_variadic_expr.expr), std::move(*rhs_variadic_expr.expr))
+			)),
+			std::move(result_variadic_infos)
+		);
 	}
 	else if (lhs.is<ast::variadic_expression>())
 	{
+		auto &lhs_variadic_expr = lhs.get<ast::variadic_expression>();
+
 		return ast::make_variadic_expression(
 			src_tokens,
-			lhs.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind, &rhs](auto &inner_lhs) {
-				return this->make_binary_operator_expression(src_tokens, op_kind, std::move(inner_lhs), rhs);
-			}).collect()
+			ast::make_ast_unique<ast::expression>(ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_binary_op(op_kind, std::move(*lhs_variadic_expr.expr), std::move(rhs))
+			)),
+			std::move(lhs_variadic_expr.variadic_infos)
 		);
 	}
 	else if (rhs.is<ast::variadic_expression>())
 	{
+		auto &rhs_variadic_expr = rhs.get<ast::variadic_expression>();
+
 		return ast::make_variadic_expression(
 			src_tokens,
-			rhs.get<ast::variadic_expression>().exprs.transform([this, src_tokens, op_kind, &lhs](auto &inner_rhs) {
-				return this->make_binary_operator_expression(src_tokens, op_kind, lhs, std::move(inner_rhs));
-			}).collect()
+			ast::make_ast_unique<ast::expression>(ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_binary_op(op_kind, std::move(lhs), std::move(*rhs_variadic_expr.expr))
+			)),
+			std::move(rhs_variadic_expr.variadic_infos)
 		);
 	}
 
@@ -4883,7 +4930,7 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 	else
 	{
-		bz::vector<ast::expression> args;
+		ast::arena_vector<ast::expression> args;
 		args.reserve(2);
 		args.emplace_back(std::move(lhs));
 		args.emplace_back(std::move(rhs));
@@ -5017,7 +5064,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 ast::expression parse_context::make_function_call_expression(
 	lex::src_tokens src_tokens,
 	ast::expression called,
-	bz::vector<ast::expression> params
+	ast::arena_vector<ast::expression> params
 )
 {
 	params = expand_params(std::move(params));
@@ -5330,7 +5377,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 	lex::src_tokens src_tokens,
 	ast::expression base,
 	ast::identifier id,
-	bz::vector<ast::expression> params
+	ast::arena_vector<ast::expression> params
 )
 {
 	params = expand_params(params);
@@ -5423,7 +5470,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 ast::expression parse_context::make_subscript_operator_expression(
 	lex::src_tokens src_tokens,
 	ast::expression called,
-	bz::vector<ast::expression> args
+	ast::arena_vector<ast::expression> args
 )
 {
 	if (called.is_error())
@@ -5596,7 +5643,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 				}
 				else
 				{
-					bz::vector<ast::expression> args;
+					ast::arena_vector<ast::expression> args;
 					args.reserve(2);
 					args.emplace_back(std::move(called));
 					args.emplace_back(std::move(arg));

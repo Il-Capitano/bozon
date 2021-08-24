@@ -36,15 +36,29 @@ struct parse_context
 		bz::u8string    mesage;
 	};
 
-	global_context      &global_ctx;
-	decl_set            *global_decls = nullptr;
-	bz::vector<decl_set> scope_decls{};
+	struct variadic_resolve_info_t
+	{
+		bool is_resolving_variadic;
+		size_t variadic_index;
+	};
+
+	global_context               &global_ctx;
+	decl_set                     *global_decls = nullptr;
+	bz::vector<decl_set>          scope_decls{};
+	size_t                        last_unresolved_scope_size = 0;
+	bz::vector<bz::u8string_view> unresolved_local_decls{};
+
 	bz::vector<ast::function_body *> generic_functions{};
 	bz::vector<std::size_t>          generic_function_scope_start{};
+
 	uint32_t                                current_file_id = std::numeric_limits<uint32_t>::max();
 	bz::array_view<bz::u8string_view const> current_scope{};
 	ast::function_body                     *current_function = nullptr;
-	bool                                    in_loop = false;
+
+	bool is_aggressive_consteval_enabled = false;
+
+	bool in_loop = false;
+	variadic_resolve_info_t variadic_info = { false, 0 };
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -66,8 +80,12 @@ struct parse_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
 	ast::function_body *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+
 	[[nodiscard]] bool push_loop(void) noexcept;
 	void pop_loop(bool prev_in_loop) noexcept;
+
+	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
+	void pop_variadic_resolver(variadic_resolve_info_t prev_info) noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -317,6 +335,11 @@ struct parse_context
 	void add_scope(void);
 	void remove_scope(void);
 
+	[[nodiscard]] size_t push_unresolved_scope(void);
+	void pop_unresolved_scope(size_t prev_size);
+
+	void add_unresolved_local(ast::identifier const &id);
+
 	void add_local_variable(ast::decl_variable &var_decl);
 	void add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
 	void add_local_function(ast::decl_function &func_decl);
@@ -329,7 +352,7 @@ struct parse_context
 	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
-	ast::expression make_tuple(lex::src_tokens src_tokens, bz::vector<ast::expression> elems) const;
+	ast::expression make_tuple(lex::src_tokens src_tokens, ast::arena_vector<ast::expression> elems) const;
 
 	ast::expression make_unary_operator_expression(
 		lex::src_tokens src_tokens,
@@ -345,18 +368,18 @@ struct parse_context
 	ast::expression make_function_call_expression(
 		lex::src_tokens src_tokens,
 		ast::expression called,
-		bz::vector<ast::expression> params
+		ast::arena_vector<ast::expression> params
 	);
 	ast::expression make_universal_function_call_expression(
 		lex::src_tokens src_tokens,
 		ast::expression base,
 		ast::identifier id,
-		bz::vector<ast::expression> params
+		ast::arena_vector<ast::expression> params
 	);
 	ast::expression make_subscript_operator_expression(
 		lex::src_tokens src_tokens,
 		ast::expression called,
-		bz::vector<ast::expression> params
+		ast::arena_vector<ast::expression> params
 	);
 	ast::expression make_cast_expression(
 		lex::src_tokens src_tokens,

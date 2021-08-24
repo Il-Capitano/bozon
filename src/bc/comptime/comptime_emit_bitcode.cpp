@@ -5,7 +5,6 @@
 #include "ast/typespec.h"
 #include "bz/meta.h"
 #include "comptime_emit_bitcode.h"
-#include "ctx/builtin_operators.h"
 #include "colors.h"
 #include "abi/calling_conventions.h"
 #include "abi/platform_function_call.h"
@@ -1125,7 +1124,7 @@ static val_ptr emit_bitcode(
 		bz_assert(expr_t.is<ast::ts_base_type>());
 		auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
 		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr).get_value(context.builder);
-		auto const res = ctx::is_floating_point_kind(expr_kind)
+		auto const res = ast::is_floating_point_kind(expr_kind)
 			? context.builder.CreateFNeg(val, "unary_minus_tmp")
 			: context.builder.CreateNeg(val, "unary_minus_tmp");
 		if (result_address == nullptr)
@@ -1290,11 +1289,11 @@ static val_ptr emit_builtin_binary_plus(
 	{
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
 			auto const lhs_val = emit_bitcode<abi>(binary_op.lhs, context, nullptr).get_value(context.builder);
 			auto const rhs_val = emit_bitcode<abi>(binary_op.rhs, context, nullptr).get_value(context.builder);
-			auto const result_val = ctx::is_floating_point_kind(lhs_kind)
+			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp")
 				: context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
 			if (result_address == nullptr)
@@ -1314,7 +1313,7 @@ static val_ptr emit_builtin_binary_plus(
 			rhs_val = context.builder.CreateIntCast(
 				rhs_val,
 				context.get_uint32_t(),
-				ctx::is_signed_integer_kind(rhs_kind)
+				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const result_val = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
 			if (result_address == nullptr)
@@ -1334,7 +1333,7 @@ static val_ptr emit_builtin_binary_plus(
 			lhs_val = context.builder.CreateIntCast(
 				lhs_val,
 				context.get_uint32_t(),
-				ctx::is_signed_integer_kind(lhs_kind)
+				ast::is_signed_integer_kind(lhs_kind)
 			);
 			auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 			auto const result_val = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
@@ -1356,7 +1355,7 @@ static val_ptr emit_builtin_binary_plus(
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
-		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
@@ -1378,7 +1377,7 @@ static val_ptr emit_builtin_binary_plus(
 		auto lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
-		if (ctx::is_unsigned_integer_kind(lhs_kind))
+		if (ast::is_unsigned_integer_kind(lhs_kind))
 		{
 			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
@@ -1411,7 +1410,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 	{
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
 			// we calculate the right hand side first
 			auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1419,13 +1418,13 @@ static val_ptr emit_builtin_binary_plus_eq(
 			bz_assert(lhs_val_ref.kind == val_ptr::reference);
 			auto const lhs_val = lhs_val_ref.get_value(context.builder);
 			llvm::Value *res;
-			if (ctx::is_integer_kind(lhs_kind))
+			if (ast::is_integer_kind(lhs_kind))
 			{
 				res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
 			}
 			else
 			{
-				bz_assert(ctx::is_floating_point_kind(lhs_kind));
+				bz_assert(ast::is_floating_point_kind(lhs_kind));
 				bz_assert(lhs_kind == rhs_kind);
 				res = context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp");
 			}
@@ -1451,7 +1450,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 			rhs_val = context.builder.CreateIntCast(
 				rhs_val,
 				context.get_uint32_t(),
-				ctx::is_signed_integer_kind(rhs_kind)
+				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const res = context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
 			context.builder.CreateStore(res, lhs_val_ref.val);
@@ -1473,7 +1472,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
-		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
@@ -1510,11 +1509,11 @@ static val_ptr emit_builtin_binary_minus(
 	{
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
 			auto const lhs_val = emit_bitcode<abi>(binary_op.lhs, context, nullptr).get_value(context.builder);
 			auto const rhs_val = emit_bitcode<abi>(binary_op.rhs, context, nullptr).get_value(context.builder);
-			auto const result_val = ctx::is_floating_point_kind(lhs_kind)
+			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp")
 				: context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
 			if (result_address == nullptr)
@@ -1549,14 +1548,14 @@ static val_ptr emit_builtin_binary_minus(
 		{
 			bz_assert(
 				lhs_kind == ast::type_info::char_
-				&& ctx::is_integer_kind(rhs_kind)
+				&& ast::is_integer_kind(rhs_kind)
 			);
 			auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 			auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 			rhs_val = context.builder.CreateIntCast(
 				rhs_val,
 				context.get_int32_t(),
-				ctx::is_signed_integer_kind(rhs_kind)
+				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const result_val = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
 			if (result_address == nullptr)
@@ -1577,7 +1576,7 @@ static val_ptr emit_builtin_binary_minus(
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
-		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
@@ -1628,7 +1627,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 	{
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-		if (ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind))
+		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
 			// we calculate the right hand side first
 			auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -1636,18 +1635,18 @@ static val_ptr emit_builtin_binary_minus_eq(
 			bz_assert(lhs_val_ref.kind == val_ptr::reference);
 			auto const lhs_val = lhs_val_ref.get_value(context.builder);
 			llvm::Value *res;
-			if (ctx::is_integer_kind(lhs_kind))
+			if (ast::is_integer_kind(lhs_kind))
 			{
 				rhs_val = context.builder.CreateIntCast(
 					rhs_val,
 					lhs_val->getType(),
-					ctx::is_signed_integer_kind(rhs_kind)
+					ast::is_signed_integer_kind(rhs_kind)
 				);
 				res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
 			}
 			else
 			{
-				bz_assert(ctx::is_floating_point_kind(lhs_kind));
+				bz_assert(ast::is_floating_point_kind(lhs_kind));
 				bz_assert(lhs_kind == rhs_kind);
 				res = context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp");
 			}
@@ -1673,7 +1672,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 			rhs_val = context.builder.CreateIntCast(
 				rhs_val,
 				context.get_uint32_t(),
-				ctx::is_signed_integer_kind(rhs_kind)
+				ast::is_signed_integer_kind(rhs_kind)
 			);
 			auto const res = context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
 			context.builder.CreateStore(res, lhs_val_ref.val);
@@ -1695,7 +1694,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 		// we calculate the right hand side first
 		auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		// we need to cast unsigned integers to usize, otherwise big values might count as a negative index
-		if (ctx::is_unsigned_integer_kind(rhs_kind))
+		if (ast::is_unsigned_integer_kind(rhs_kind))
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
@@ -1733,10 +1732,10 @@ static val_ptr emit_builtin_binary_multiply(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const result_val = ctx::is_floating_point_kind(lhs_kind)
+	auto const result_val = ast::is_floating_point_kind(lhs_kind)
 		? context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp")
 		: context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp");
 	if (result_address == nullptr)
@@ -1765,13 +1764,13 @@ static val_ptr emit_builtin_binary_multiply_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
-	auto const res = ctx::is_integer_kind(lhs_kind)
+	auto const res = ast::is_integer_kind(lhs_kind)
 		? context.builder.CreateMul(lhs_val, rhs_val, "mul_tmp")
 		: context.builder.CreateFMul(lhs_val, rhs_val, "mul_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
@@ -1801,11 +1800,11 @@ static val_ptr emit_builtin_binary_divide(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const result_val = ctx::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
-		: ctx::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
+	auto const result_val = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
+		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
 	if (result_address == nullptr)
 	{
@@ -1833,14 +1832,14 @@ static val_ptr emit_builtin_binary_divide_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_arithmetic_kind(lhs_kind) && ctx::is_arithmetic_kind(rhs_kind));
+	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
-	auto const res = ctx::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
-		: ctx::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
+	auto const res = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
+		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
 	if (result_address == nullptr)
@@ -1869,10 +1868,10 @@ static val_ptr emit_builtin_binary_modulo(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-	auto const result_val = ctx::is_signed_integer_kind(lhs_kind)
+	auto const result_val = ast::is_signed_integer_kind(lhs_kind)
 		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
 		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
 	if (result_address == nullptr)
@@ -1901,13 +1900,13 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
-	auto const res = ctx::is_signed_integer_kind(lhs_kind)
+	auto const res = ast::is_signed_integer_kind(lhs_kind)
 		? context.builder.CreateSRem(lhs_val, rhs_val, "mod_tmp")
 		: context.builder.CreateURem(lhs_val, rhs_val, "mod_tmp");
 	context.builder.CreateStore(res, lhs_val_ref.val);
@@ -2003,10 +2002,10 @@ static val_ptr emit_builtin_binary_cmp(
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 		bz_assert(lhs_kind != ast::type_info::str_);
-		auto const pred = ctx::is_floating_point_kind(lhs_kind) ? get_cmp_predicate(2)
-			: ctx::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
+		auto const pred = ast::is_floating_point_kind(lhs_kind) ? get_cmp_predicate(2)
+			: ast::is_signed_integer_kind(lhs_kind) ? get_cmp_predicate(0)
 			: get_cmp_predicate(1);
-		auto const result_val = ctx::is_floating_point_kind(lhs_kind)
+		auto const result_val = ast::is_floating_point_kind(lhs_kind)
 			? context.builder.CreateFCmp(pred, lhs_val, rhs_val)
 			: context.builder.CreateICmp(pred, lhs_val, rhs_val);
 		if (result_address == nullptr)
@@ -2056,7 +2055,7 @@ static val_ptr emit_builtin_binary_bit_and(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2090,7 +2089,7 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2128,7 +2127,7 @@ static val_ptr emit_builtin_binary_bit_xor(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2162,7 +2161,7 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2200,7 +2199,7 @@ static val_ptr emit_builtin_binary_bit_or(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2234,7 +2233,7 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 	bz_assert(
-		(ctx::is_unsigned_integer_kind(lhs_kind)
+		(ast::is_unsigned_integer_kind(lhs_kind)
 		|| lhs_kind == ast::type_info::bool_)
 		&& lhs_kind == rhs_kind
 	);
@@ -2271,7 +2270,7 @@ static val_ptr emit_builtin_binary_left_shift(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2302,7 +2301,7 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2337,7 +2336,7 @@ static val_ptr emit_builtin_binary_right_shift(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -2368,7 +2367,7 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ctx::is_unsigned_integer_kind(lhs_kind) && ctx::is_integer_kind(rhs_kind));
+	bz_assert(ast::is_unsigned_integer_kind(lhs_kind) && ast::is_integer_kind(rhs_kind));
 	// we calculate the right hand side first
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 	auto const cast_rhs_val = context.builder.CreateIntCast(rhs_val, context.get_builtin_type(lhs_kind), false);
@@ -3232,7 +3231,7 @@ static val_ptr emit_bitcode(
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
-		if (ctx::is_unsigned_integer_kind(kind))
+		if (ast::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
@@ -3243,9 +3242,9 @@ static val_ptr emit_bitcode(
 			auto const array_size_val = llvm::ConstantInt::get(context.get_usize_t(), array_size);
 			emit_index_bounds_check(
 				src_tokens,
-				context.builder.CreateIntCast(index_val, array_size_val->getType(), ctx::is_signed_integer_kind(kind)),
+				context.builder.CreateIntCast(index_val, array_size_val->getType(), ast::is_signed_integer_kind(kind)),
 				array_size_val,
-				ctx::is_unsigned_integer_kind(kind),
+				ast::is_unsigned_integer_kind(kind),
 				context
 			);
 		}
@@ -3290,7 +3289,7 @@ static val_ptr emit_bitcode(
 		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
 		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
-		if (ctx::is_unsigned_integer_kind(kind))
+		if (ast::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
@@ -3301,9 +3300,9 @@ static val_ptr emit_bitcode(
 			auto const array_size_val = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
 			emit_index_bounds_check(
 				src_tokens,
-				context.builder.CreateIntCast(index_val, array_size_val->getType(), ctx::is_signed_integer_kind(kind)),
+				context.builder.CreateIntCast(index_val, array_size_val->getType(), ast::is_signed_integer_kind(kind)),
 				array_size_val,
-				ctx::is_unsigned_integer_kind(kind),
+				ast::is_unsigned_integer_kind(kind),
 				context
 			);
 		}
@@ -3383,12 +3382,12 @@ static val_ptr emit_bitcode(
 		auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
 		auto const dest_kind = dest_t.get<ast::ts_base_type>().info->kind;
 
-		if (ctx::is_integer_kind(expr_kind) && ctx::is_integer_kind(dest_kind))
+		if (ast::is_integer_kind(expr_kind) && ast::is_integer_kind(dest_kind))
 		{
 			auto const res = context.builder.CreateIntCast(
 				expr,
 				llvm_dest_t,
-				ctx::is_signed_integer_kind(expr_kind),
+				ast::is_signed_integer_kind(expr_kind),
 				"cast_tmp"
 			);
 			if (result_address == nullptr)
@@ -3401,7 +3400,7 @@ static val_ptr emit_bitcode(
 				return { val_ptr::reference, result_address };
 			}
 		}
-		else if (ctx::is_floating_point_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind))
+		else if (ast::is_floating_point_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
 			auto const res = context.builder.CreateFPCast(expr, llvm_dest_t, "cast_tmp");
 			if (result_address == nullptr)
@@ -3414,10 +3413,10 @@ static val_ptr emit_bitcode(
 				return { val_ptr::reference, result_address };
 			}
 		}
-		else if (ctx::is_floating_point_kind(expr_kind))
+		else if (ast::is_floating_point_kind(expr_kind))
 		{
-			bz_assert(ctx::is_integer_kind(dest_kind));
-			auto const res = ctx::is_signed_integer_kind(dest_kind)
+			bz_assert(ast::is_integer_kind(dest_kind));
+			auto const res = ast::is_signed_integer_kind(dest_kind)
 				? context.builder.CreateFPToSI(expr, llvm_dest_t, "cast_tmp")
 				: context.builder.CreateFPToUI(expr, llvm_dest_t, "cast_tmp");
 			if (result_address == nullptr)
@@ -3430,9 +3429,9 @@ static val_ptr emit_bitcode(
 				return { val_ptr::reference, result_address };
 			}
 		}
-		else if (ctx::is_integer_kind(expr_kind) && ctx::is_floating_point_kind(dest_kind))
+		else if (ast::is_integer_kind(expr_kind) && ast::is_floating_point_kind(dest_kind))
 		{
-			auto const res = ctx::is_signed_integer_kind(expr_kind)
+			auto const res = ast::is_signed_integer_kind(expr_kind)
 				? context.builder.CreateSIToFP(expr, llvm_dest_t, "cast_tmp")
 				: context.builder.CreateUIToFP(expr, llvm_dest_t, "cast_tmp");
 			if (result_address == nullptr)
@@ -3445,7 +3444,7 @@ static val_ptr emit_bitcode(
 				return { val_ptr::reference, result_address };
 			}
 		}
-		else if (expr_kind == ast::type_info::bool_ && ctx::is_integer_kind(dest_kind))
+		else if (expr_kind == ast::type_info::bool_ && ast::is_integer_kind(dest_kind))
 		{
 			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, false, "cast_tmp");
 			if (result_address == nullptr)
@@ -3895,13 +3894,17 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens src_tokens,
+	lex::src_tokens src_tokens,
 	ast::expr_break const &,
 	ctx::comptime_executor_context &context,
 	llvm::Value *
 )
 {
-	bz_assert(context.loop_info.break_bb != nullptr);
+	if (context.loop_info.break_bb == nullptr)
+	{
+		emit_error(src_tokens, "'break' hit in compile time execution without an outer loop", context);
+		return {};
+	}
 	context.emit_loop_destructor_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.break_bb);
@@ -3916,7 +3919,11 @@ static val_ptr emit_bitcode(
 	llvm::Value *
 )
 {
-	bz_assert(context.loop_info.continue_bb != nullptr);
+	if (context.loop_info.continue_bb == nullptr)
+	{
+		emit_error(src_tokens, "'continue' hit in compile time execution without an outer loop", context);
+		return {};
+	}
 	context.emit_loop_destructor_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.continue_bb);
@@ -5426,7 +5433,13 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		}
 	}
 
-	if (return_result_as_global && !result_type->isVoidTy())
+	if (body->return_type.is<ast::ts_array_slice>())
+	{
+		emit_error(body->src_tokens, "an array slice cannot be returned from compile time execution", context);
+		bz_assert(!context.has_terminator());
+		context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
+	}
+	else if (return_result_as_global && !result_type->isVoidTy())
 	{
 		auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
 		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
@@ -5490,7 +5503,9 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			}
 			else if (body->return_type.is<ast::ts_lvalue_reference>())
 			{
-				bz_unreachable;
+				emit_error(body->src_tokens, "a reference cannot be returned from compile time execution", context);
+				bz_assert(!context.has_terminator());
+				context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
 			}
 			else
 			{
@@ -5518,7 +5533,12 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 			break;
 		}
 		case abi::pass_kind::non_trivial:
-			bz_unreachable;
+		{
+			emit_error(body->src_tokens, "a non-trivial type cannot be returned from compile time execution", context);
+			bz_assert(!context.has_terminator());
+			context.builder.CreateRet(llvm::UndefValue::get(result.first->getReturnType()));
+			break;
+		}
 		}
 	}
 

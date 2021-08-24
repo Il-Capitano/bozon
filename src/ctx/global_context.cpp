@@ -501,6 +501,12 @@ bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_
 	}
 }
 
+bool global_context::is_aggressive_consteval_enabled(void) const
+{
+	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
+	return optimizations.contains(ctcli::group_element("--opt aggressive-consteval"));
+}
+
 
 void global_context::report_and_clear_errors_and_warnings(void)
 {
@@ -743,17 +749,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			return false;
 		}
 	}
-
-	/*
-	this->_comptime_executor.vars_.clear();
-	if (is_optimization_enabled(bc::optimization_kind::aggressive_consteval))
-	{
-		for (auto &file : this->_src_files)
-		{
-			file.aggressive_consteval(*this);
-		}
-	}
-	*/
 
 	return true;
 }
@@ -1350,6 +1345,10 @@ bool global_context::emit_llvm_ir(void)
 			break;
 		case ctcli::group_element("--opt verify"):
 			opt_pass_manager.add(llvm::createVerifierPass());
+			break;
+
+		case ctcli::group_element("--opt aggressive-consteval"):
+			// this is an LLVM optimization
 			break;
 
 		default:

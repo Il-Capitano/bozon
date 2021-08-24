@@ -3288,6 +3288,12 @@ void consteval_guaranteed(ast::expression &expr, ctx::parse_context &context)
 		return;
 	}
 
+	if (context.is_aggressive_consteval_enabled)
+	{
+		consteval_try_without_error(expr, context);
+		return;
+	}
+
 	auto const value = guaranteed_evaluate_expr(expr, context);
 	if (value.is_null())
 	{

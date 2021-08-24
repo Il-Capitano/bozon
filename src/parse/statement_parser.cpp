@@ -916,11 +916,11 @@ ast::statement parse_attribute_statement(
 			{
 				context.report_paren_match_error(stream, paren_open);
 			}
-			attributes.emplace_back(name, args_range, bz::vector<ast::expression>{});
+			attributes.emplace_back(name, args_range, ast::arena_vector<ast::expression>{});
 		}
 		else
 		{
-			attributes.emplace_back(name, lex::token_range{}, bz::vector<ast::expression>{});
+			attributes.emplace_back(name, lex::token_range{}, ast::arena_vector<ast::expression>{});
 		}
 	}
 
@@ -1522,7 +1522,7 @@ ast::statement parse_struct_body_statement(
 	}
 }
 
-static constexpr auto parse_local_statement_without_semi_colon_default_parser = +[](
+static ast::statement parse_local_statement_without_semi_colon_default_parser(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 )
@@ -1546,7 +1546,7 @@ ast::statement parse_local_statement_without_semi_colon(
 {
 	constexpr auto parse_fn = create_parse_fn<
 		lex::token_pos, ctx::parse_context,
-		local_statement_parsers, parse_local_statement_without_semi_colon_default_parser
+		local_statement_parsers, &parse_local_statement_without_semi_colon_default_parser
 	>();
 	if (stream == end)
 	{
