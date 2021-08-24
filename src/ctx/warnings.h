@@ -36,6 +36,7 @@ enum class warning_kind
 };
 
 // these need to be synched with __comptime_checking.bz
+static_assert(static_cast<int>(warning_kind::int_overflow)     == 0);
 static_assert(static_cast<int>(warning_kind::comptime_warning) == 21);
 static_assert(static_cast<int>(warning_kind::_last)            == 22);
 

@@ -40,6 +40,20 @@ static llvm::Constant *get_value(
 	ctx::comptime_executor_context &context
 );
 
+struct src_tokens_llvm_value_t
+{
+	llvm::Constant *begin;
+	llvm::Constant *pivot;
+	llvm::Constant *end;
+};
+
+static src_tokens_llvm_value_t get_src_tokens_llvm_value(lex::src_tokens src_tokens, ctx::comptime_executor_context &context)
+{
+	auto const begin = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
+	auto const pivot = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
+	auto const end   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	return { begin, pivot, end };
+}
 
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
@@ -243,9 +257,7 @@ static void emit_index_bounds_check(
 )
 {
 	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
-	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
-	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
 	if (is_index_unsigned)
 	{
 		auto const is_in_bounds = context.builder.CreateCall(
@@ -276,9 +288,7 @@ static void emit_error(
 		return;
 	}
 	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
-	auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
-	auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
-	auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
 	auto const message_val = context.builder.CreateConstGEP2_64(context.create_string(message), 0, 0);
 	context.builder.CreateCall(
 		context.get_comptime_function(ctx::comptime_function_kind::add_error),
@@ -1787,6 +1797,7 @@ static val_ptr emit_builtin_binary_multiply_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide(
+	lex::src_tokens src_tokens,
 	ast::expr_binary_op const &binary_op,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -1799,10 +1810,31 @@ static val_ptr emit_builtin_binary_divide(
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
-	auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
-	bz_assert(ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind));
+	bz_assert(lhs_kind == rhs_t.get<ast::ts_base_type>().info->kind);
+	bz_assert(ast::is_arithmetic_kind(lhs_kind));
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+
+	if (ast::is_integer_kind(lhs_kind))
+	{
+		auto const check_fn_kind =
+			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
+			lhs_kind == ast::type_info::int16_  ? ctx::comptime_function_kind::i16_divide_check :
+			lhs_kind == ast::type_info::int32_  ? ctx::comptime_function_kind::i32_divide_check :
+			lhs_kind == ast::type_info::int64_  ? ctx::comptime_function_kind::i64_divide_check :
+			lhs_kind == ast::type_info::uint8_  ? ctx::comptime_function_kind::u8_divide_check :
+			lhs_kind == ast::type_info::uint16_ ? ctx::comptime_function_kind::u16_divide_check :
+			lhs_kind == ast::type_info::uint32_ ? ctx::comptime_function_kind::u32_divide_check :
+			lhs_kind == ast::type_info::uint64_ ? ctx::comptime_function_kind::u64_divide_check
+			: (bz_unreachable, ctx::comptime_function_kind::u64_divide_check);
+		auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+		auto const is_valid = context.builder.CreateCall(
+			context.get_comptime_function(check_fn_kind),
+			{ lhs_val, rhs_val, src_begin_val, src_pivot_val, src_end_val }
+		);
+		emit_error_assert(is_valid, context);
+	}
+
 	auto const result_val = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
 		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
@@ -1819,6 +1851,7 @@ static val_ptr emit_builtin_binary_divide(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide_eq(
+	lex::src_tokens src_tokens,
 	ast::expr_binary_op const &binary_op,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -1838,6 +1871,27 @@ static val_ptr emit_builtin_binary_divide_eq(
 	auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
+
+	if (ast::is_integer_kind(lhs_kind))
+	{
+		auto const check_fn_kind =
+			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
+			lhs_kind == ast::type_info::int16_  ? ctx::comptime_function_kind::i16_divide_check :
+			lhs_kind == ast::type_info::int32_  ? ctx::comptime_function_kind::i32_divide_check :
+			lhs_kind == ast::type_info::int64_  ? ctx::comptime_function_kind::i64_divide_check :
+			lhs_kind == ast::type_info::uint8_  ? ctx::comptime_function_kind::u8_divide_check :
+			lhs_kind == ast::type_info::uint16_ ? ctx::comptime_function_kind::u16_divide_check :
+			lhs_kind == ast::type_info::uint32_ ? ctx::comptime_function_kind::u32_divide_check :
+			lhs_kind == ast::type_info::uint64_ ? ctx::comptime_function_kind::u64_divide_check
+			: (bz_unreachable, ctx::comptime_function_kind::u64_divide_check);
+		auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+		auto const is_valid = context.builder.CreateCall(
+			context.get_comptime_function(check_fn_kind),
+			{ lhs_val, rhs_val, src_begin_val, src_pivot_val, src_end_val }
+		);
+		emit_error_assert(is_valid, context);
+	}
+
 	auto const res = ast::is_signed_integer_kind(lhs_kind) ? context.builder.CreateSDiv(lhs_val, rhs_val, "div_tmp")
 		: ast::is_unsigned_integer_kind(lhs_kind) ? context.builder.CreateUDiv(lhs_val, rhs_val, "div_tmp")
 		: context.builder.CreateFDiv(lhs_val, rhs_val, "div_tmp");
@@ -2563,9 +2617,9 @@ static val_ptr emit_bitcode(
 	case lex::token::multiply_eq:        // '*='
 		return emit_builtin_binary_multiply_eq<abi>(binary_op, context, result_address);
 	case lex::token::divide:             // '/'
-		return emit_builtin_binary_divide<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide<abi>(src_tokens, binary_op, context, result_address);
 	case lex::token::divide_eq:          // '/='
-		return emit_builtin_binary_divide_eq<abi>(binary_op, context, result_address);
+		return emit_builtin_binary_divide_eq<abi>(src_tokens, binary_op, context, result_address);
 	case lex::token::modulo:             // '%'
 		return emit_builtin_binary_modulo<abi>(binary_op, context, result_address);
 	case lex::token::modulo_eq:          // '%='
@@ -2899,9 +2953,7 @@ static val_ptr emit_bitcode(
 			auto const alloc_size = context.builder.CreateMul(count, type_size_val);
 			auto const malloc_fn = context.get_function(context.get_builtin_function(ast::function_body::comptime_malloc));
 			auto const result_void_ptr = context.builder.CreateCall(malloc_fn, alloc_size);
-			auto const error_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
-			auto const error_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
-			auto const error_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
 			auto const non_null = context.builder.CreateCall(
 				context.get_comptime_function(ctx::comptime_function_kind::comptime_malloc_check),
 				{ result_void_ptr, alloc_size, error_begin_val, error_pivot_val, error_end_val }
@@ -2926,9 +2978,7 @@ static val_ptr emit_bitcode(
 				? context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_error_src_tokens))
 				: context.get_function(context.get_builtin_function(ast::function_body::comptime_compile_warning_src_tokens));
 			auto const message_val = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-			auto const src_begin_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.begin.data()));
-			auto const src_pivot_val = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.pivot.data()));
-			auto const src_end_val   = llvm::ConstantInt::get(context.get_uint64_t(), reinterpret_cast<uint64_t>(src_tokens.end.data()));
+			auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
 			ast::arena_vector<llvm::Value *> params;
 			params.reserve(5);
 			ast::arena_vector<bool> params_is_byval;
@@ -2951,6 +3001,69 @@ static val_ptr emit_bitcode(
 				call->addParamAttr(0, llvm::Attribute::NoCapture);
 				call->addParamAttr(0, llvm::Attribute::NonNull);
 			}
+			return {};
+		}
+
+		case ast::function_body::memcpy:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const src  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+
+			auto const is_valid = context.builder.CreateCall(
+				context.get_comptime_function(ctx::comptime_function_kind::comptime_memcpy_check),
+				{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
+			);
+			emit_error_assert(is_valid, context);
+			context.builder.CreateCall(
+				context.get_function(func_call.func_body),
+				{ dest, src, size, false_val }
+			);
+			return {};
+		}
+
+		case ast::function_body::memmove:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const src  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+
+			auto const is_valid = context.builder.CreateCall(
+				context.get_comptime_function(ctx::comptime_function_kind::comptime_memmove_check),
+				{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
+			);
+			emit_error_assert(is_valid, context);
+			context.builder.CreateCall(
+				context.get_function(func_call.func_body),
+				{ dest, src, size, false_val }
+			);
+			return {};
+		}
+
+		case ast::function_body::memset:
+		{
+			bz_assert(func_call.params.size() == 3);
+			auto const dest = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const val  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
+			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
+			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+
+			auto const is_valid = context.builder.CreateCall(
+				context.get_comptime_function(ctx::comptime_function_kind::comptime_memset_check),
+				{ dest, val, size, error_begin_val, error_pivot_val, error_end_val }
+			);
+			emit_error_assert(is_valid, context);
+			context.builder.CreateCall(
+				context.get_function(func_call.func_body),
+				{ dest, val, size, false_val }
+			);
 			return {};
 		}
 
@@ -4926,7 +5039,8 @@ static void emit_function_bitcode_impl(
 	bz_assert(!func_body.is_comptime_bitcode_emitted());
 	func_body.flags |= ast::function_body::comptime_bitcode_emitted;
 
-	auto const fn = context.get_function(&func_body);
+	auto [module, fn] = context.get_module_and_function(&func_body);
+	auto const prev_module = context.push_module(module.get());
 	bz_assert(fn != nullptr);
 	bz_assert(fn->size() == 0);
 
@@ -5108,6 +5222,8 @@ static void emit_function_bitcode_impl(
 	context.alloca_bb = nullptr;
 	context.error_bb = nullptr;
 	context.output_pointer = nullptr;
+	context.pop_module(prev_module);
+	context.add_module(std::move(module));
 }
 
 void emit_function_bitcode(
