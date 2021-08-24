@@ -1,4 +1,5 @@
 #include "expression_resolver.h"
+#include "statement_resolver.h"
 #include "global_data.h"
 #include "parse/consteval.h"
 #include "escape_sequences.h"
@@ -7,102 +8,273 @@ namespace resolve
 {
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
-	ast::expr_identifier ,
+	lex::src_tokens,
+	ast::expr_identifier id_expr,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	bz_assert(id_expr.decl == nullptr);
+	return context.make_identifier_expression(std::move(id_expr.id));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_tuple ,
+	ast::expr_tuple tuple_expr,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	for (auto &elem : tuple_expr.elems)
+	{
+		resolve_expression(elem, context);
+	}
+	return context.make_tuple(src_tokens, std::move(tuple_expr.elems));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unary_op ,
+	ast::expr_unary_op unary_op,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	// special case for variadic expansion
+	if (unary_op.op == lex::token::dot_dot_dot)
+	{
+		auto const info = context.push_variadic_resolver_pause();
+		resolve_expression(unary_op.expr, context);
+		context.pop_variadic_resolver_pause(info);
+	}
+	else
+	{
+		resolve_expression(unary_op.expr, context);
+	}
+	return context.make_unary_operator_expression(src_tokens, unary_op.op, std::move(unary_op.expr));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_binary_op ,
+	ast::expr_binary_op binary_op,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(binary_op.lhs, context);
+	resolve_expression(binary_op.rhs, context);
+	return context.make_binary_operator_expression(src_tokens, binary_op.op, std::move(binary_op.lhs), std::move(binary_op.rhs));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unresolved_subscript ,
+	ast::expr_unresolved_subscript subscript_expr,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(subscript_expr.base, context);
+	for (auto &index : subscript_expr.indices)
+	{
+		resolve_expression(index, context);
+	}
+	return context.make_subscript_operator_expression(src_tokens, std::move(subscript_expr.base), std::move(subscript_expr.indices));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unresolved_function_call ,
+	ast::expr_unresolved_function_call func_call,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(func_call.callee, context);
+	for (auto &arg : func_call.args)
+	{
+		resolve_expression(arg, context);
+	}
+	return context.make_function_call_expression(src_tokens, std::move(func_call.callee), std::move(func_call.args));
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unresolved_universal_function_call ,
+	ast::expr_unresolved_universal_function_call func_call,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(func_call.base, context);
+	for (auto &arg : func_call.args)
+	{
+		resolve_expression(arg, context);
+	}
+	return context.make_universal_function_call_expression(
+		src_tokens,
+		std::move(func_call.base),
+		std::move(func_call.fn_id),
+		std::move(func_call.args)
+	);
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unresolved_cast ,
+	ast::expr_unresolved_cast cast_expr,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(cast_expr.expr, context);
+	resolve_expression(cast_expr.type, context);
+	if (cast_expr.type.is_typename())
+	{
+		return context.make_cast_expression(src_tokens, std::move(cast_expr.expr), std::move(cast_expr.type.get_typename()));
+	}
+	else
+	{
+		return ast::make_error_expression(src_tokens, ast::make_expr_cast(std::move(cast_expr.expr), ast::typespec()));
+	}
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_unresolved_member_access ,
+	ast::expr_unresolved_member_access member_access,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	resolve_expression(member_access.base, context);
+	return context.make_member_access_expression(src_tokens, std::move(member_access.base), member_access.member);
+}
+
+static bool is_statement_noreturn(ast::statement const &stmt)
+{
+	return stmt.visit(bz::overload{
+		[](ast::stmt_while const &) {
+			return false;
+		},
+		[](ast::stmt_for const &) {
+			return false;
+		},
+		[](ast::stmt_foreach const &) {
+			return false;
+		},
+		[](ast::stmt_return const &) {
+			return true;
+		},
+		[](ast::stmt_no_op const &) {
+			return false;
+		},
+		[](ast::stmt_static_assert const &) {
+			return false;
+		},
+		[](ast::stmt_expression const &expr_stmt) {
+			return expr_stmt.expr.is_noreturn();
+		},
+		[](ast::decl_variable const &var_decl) {
+			return var_decl.init_expr.not_null() && var_decl.init_expr.is_noreturn();
+		},
+		[](ast::decl_function const &) {
+			return false;
+		},
+		[](ast::decl_operator const &) {
+			return false;
+		},
+		[](ast::decl_function_alias const &) {
+			return false;
+		},
+		[](ast::decl_type_alias const &) {
+			return false;
+		},
+		[](ast::decl_struct const &) {
+			return false;
+		},
+		[](ast::decl_import const &) {
+			return false;
+		},
+	});
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_compound ,
+	ast::expr_compound compound_expr_,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	auto result_node = ast::make_ast_unique<ast::expr_compound>(std::move(compound_expr_));
+	auto &compound_expr = *result_node;
+	bool is_noreturn = false;
+	for (auto &stmt : compound_expr_.statements)
+	{
+		resolve_statement(stmt, context);
+		is_noreturn |= is_statement_noreturn(stmt);
+	}
+	resolve_expression(compound_expr.final_expr, context);
+	if (compound_expr.final_expr.is_error())
+	{
+		return ast::make_error_expression(src_tokens, std::move(result_node));
+	}
+	else if (is_noreturn && (compound_expr.final_expr.is_null() || compound_expr.final_expr.is_noreturn()))
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+			std::move(result_node)
+		);
+	}
+	else if (compound_expr.final_expr.is_null())
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			std::move(result_node)
+		);
+	}
+	else
+	{
+		auto const [result_type, result_kind] = compound_expr.final_expr.get_expr_type_and_kind();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			result_kind, result_type,
+			std::move(result_node)
+		);
+	}
 }
 
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
-	ast::expr_if ,
+	ast::expr_if if_expr_,
 	ctx::parse_context &context
 )
 {
-	bz_unreachable;
+	auto result_node = ast::make_ast_unique<ast::expr_if>(std::move(if_expr_));
+	auto &if_expr = *result_node;
+	resolve_expression(if_expr.condition, context);
+	resolve_expression(if_expr.then_block, context);
+	resolve_expression(if_expr.else_block, context);
+
+	{
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		context.match_expression_to_type(if_expr.condition, bool_type);
+	}
+
+	if (if_expr.condition.is_error() || if_expr.then_block.is_error() || if_expr.else_block.is_error())
+	{
+		return ast::make_error_expression(src_tokens, std::move(result_node));
+	}
+	else if (if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::noreturn, ast::make_void_typespec(nullptr),
+			std::move(result_node)
+		);
+	}
+	else if (if_expr.then_block.is_none() || if_expr.else_block.is_none())
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
+			std::move(result_node)
+		);
+	}
+	else
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::if_expr, ast::typespec(),
+			std::move(result_node)
+		);
+	}
 }
 
 static void check_switch_type(
@@ -383,9 +555,13 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.is_unresolved())
 	{
+		auto const expr_consteval_state = expr.consteval_state;
+		auto const expr_paren_level = expr.paren_level;
 		expr = expr.get_unresolved_expr().visit([&](auto &inner_expr) {
 			return resolve_expr(expr.src_tokens, std::move(inner_expr), context);
 		});
+		expr.consteval_state = expr_consteval_state;
+		expr.paren_level = expr_paren_level;
 		parse::consteval_guaranteed(expr, context);
 	}
 }

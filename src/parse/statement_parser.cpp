@@ -1008,7 +1008,6 @@ ast::statement parse_stmt_while(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::kw_while);
-	auto const begin = stream;
 	++stream; // 'while'
 	auto const prev_in_loop = context.push_loop();
 	auto condition = parse_parenthesized_condition(stream, end, context);
@@ -1026,10 +1025,7 @@ ast::statement parse_stmt_while(
 	}
 	auto body = parse_local_statement(stream, end, context);
 	context.pop_loop(prev_in_loop);
-	return ast::make_stmt_while(
-		lex::token_range{ begin, stream },
-		std::move(condition), std::move(body)
-	);
+	return ast::make_stmt_while(std::move(condition), std::move(body));
 }
 
 static ast::statement parse_stmt_for_impl(

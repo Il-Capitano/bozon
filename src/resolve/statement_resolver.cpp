@@ -1,4 +1,5 @@
 #include "statement_resolver.h"
+#include "expression_resolver.h"
 #include "parse/statement_parser.h"
 #include "parse/expression_parser.h"
 #include "parse/consteval.h"
@@ -2125,6 +2126,83 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 		}
 	});
 	resolve_attributes(stmt, context);
+}
+
+static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_for &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_foreach &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_return &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_static_assert &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::stmt_expression &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_variable &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_function &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_operator &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_function_alias &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_type_alias &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_struct &, ctx::parse_context &context)
+{
+	bz_unreachable;
+}
+
+static void resolve_stmt(ast::decl_import &, ctx::parse_context &)
+{
+	bz_unreachable;
+}
+
+void resolve_statement(ast::statement &stmt, ctx::parse_context &context)
+{
+	stmt.visit([&context](auto &inner_stmt) {
+		resolve_stmt(inner_stmt, context);
+	});
 }
 
 } // namespace resolve

@@ -41,6 +41,9 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 
 void resolve_attributes(ast::statement_view stmt, ctx::parse_context &context);
 
+
+void resolve_statement(ast::statement &stmt, ctx::parse_context &context);
+
 } // namespace resolve
 
 #endif // RESOLVE_STATEMENT_RESOLVER_H

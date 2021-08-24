@@ -360,6 +360,8 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{0} {0}!", "Hello", "World") == "Hello Hello!");
 	static_assert(std::format("{0} {}!",  "Hello", "World") == "Hello World!");
 
+	std::printf("{:g}\n", 1e-10);
+
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));

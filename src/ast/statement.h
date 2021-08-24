@@ -160,19 +160,16 @@ struct statement_view : statement_node_view_t
 
 struct stmt_while
 {
-	lex::token_range tokens;
 	expression       condition;
 	statement        while_block;
 
 	declare_default_5(stmt_while)
 
 	stmt_while(
-		lex::token_range _tokens,
 		expression       _condition,
 		statement        _while_block
 	)
-		: tokens     (_tokens),
-		  condition  (std::move(_condition)),
+		: condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
 };

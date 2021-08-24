@@ -33,57 +33,101 @@ ast::expression parse_expression_without_semi_colon(
 void consume_semi_colon_at_end_of_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context,
-	ast::expression const &expression
+	ast::expression const &expr
 )
 {
-	if (!expression.is_constant_or_dynamic())
+	if (expr.is_constant_or_dynamic())
 	{
-		context.assert_token(stream, lex::token::semi_colon);
-		return;
+		expr.get_expr().visit(bz::overload{
+			[&](ast::expr_compound const &compound_expr) {
+				if (expr.paren_level == 0)
+				{
+					if (compound_expr.final_expr.src_tokens.begin == nullptr)
+					{
+						return;
+					}
+					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(dummy_stream, end, context, compound_expr.final_expr);
+				}
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
+			[&](ast::expr_if const &if_expr) {
+				if (expr.paren_level == 0)
+				{
+					auto if_dummy_stream = if_expr.then_block.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
+					auto else_dummy_stream = if_expr.else_block.src_tokens.end;
+					if (else_dummy_stream != nullptr)
+					{
+						consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
+					}
+				}
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
+			[&](ast::expr_switch const &) {
+				// nothing here
+			},
+			[&](auto const &) {
+				context.assert_token(stream, lex::token::semi_colon);
+			}
+		});
 	}
-
-	auto &expr = expression.get_expr();
-	expr.visit(bz::overload{
-		[&](ast::expr_compound const &compound_expr) {
-			if (expression.src_tokens.begin->kind == lex::token::curly_open)
-			{
-				if (compound_expr.final_expr.src_tokens.begin == nullptr)
+	else if (expr.is_unresolved())
+	{
+		expr.get_unresolved_expr().visit(bz::overload{
+			[&](ast::expr_compound const &compound_expr) {
+				if (expr.paren_level == 0)
 				{
-					return;
+					if (compound_expr.final_expr.src_tokens.begin == nullptr)
+					{
+						return;
+					}
+					auto dummy_stream = compound_expr.final_expr.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(dummy_stream, end, context, compound_expr.final_expr);
 				}
-				auto dummy_stream = compound_expr.final_expr.src_tokens.end;
-				consume_semi_colon_at_end_of_expression(dummy_stream, end, context, compound_expr.final_expr);
-			}
-			else
-			{
-				bz_assert(expression.src_tokens.end == stream);
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
+			[&](ast::expr_if const &if_expr) {
+				if (expr.paren_level == 0)
+				{
+					auto if_dummy_stream = if_expr.then_block.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
+					auto else_dummy_stream = if_expr.else_block.src_tokens.end;
+					if (else_dummy_stream != nullptr)
+					{
+						consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
+					}
+				}
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
+			[&](ast::expr_switch const &) {
+				// nothing
+			},
+			[&](auto const &) {
 				context.assert_token(stream, lex::token::semi_colon);
 			}
-		},
-		[&](ast::expr_if const &if_expr) {
-			if (expression.src_tokens.begin->kind == lex::token::kw_if)
-			{
-				auto if_dummy_stream = if_expr.then_block.src_tokens.end;
-				consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
-				auto else_dummy_stream = if_expr.else_block.src_tokens.end;
-				if (else_dummy_stream != nullptr)
-				{
-					consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
-				}
-			}
-			else
-			{
-				bz_assert(expression.src_tokens.end == stream);
-				context.assert_token(stream, lex::token::semi_colon);
-			}
-		},
-		[&](ast::expr_switch const &) {
-			// nothing here
-		},
-		[&](auto const &) {
-			context.assert_token(stream, lex::token::semi_colon);
-		}
-	});
+		});
+	}
+	else
+	{
+		// nothing
+	}
 }
 
 ast::expression parse_top_level_expression(
@@ -150,10 +194,7 @@ ast::expression parse_compound_expression(
 			ast::make_unresolved_expr_compound(std::move(statements), ast::expression())
 		);
 	}
-	else if (
-		!statements.back().is<ast::stmt_expression>()
-		|| statements.back().get<ast::stmt_expression>().expr.is_none()
-	)
+	else if (!statements.back().is<ast::stmt_expression>())
 	{
 		return ast::make_unresolved_expression(
 			{ begin, begin, stream },
@@ -198,8 +239,6 @@ ast::expression parse_if_expression(
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
 	auto then_block = parse_expression_without_semi_colon(stream, end, context);
-	bool is_then_none = false;
-	bool is_else_none = false;
 	if (
 		stream != end
 		&& !then_block.is_special_top_level()
@@ -209,7 +248,6 @@ ast::expression parse_if_expression(
 	)
 	{
 		++stream; // ';'
-		is_then_none = true;
 	}
 	ast::expression else_block;
 	auto const src_tokens = lex::src_tokens{ begin, begin, stream };
@@ -220,7 +258,6 @@ ast::expression parse_if_expression(
 		if (!else_block.is_special_top_level() && stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
-			is_else_none = true;
 		}
 	}
 
@@ -637,7 +674,7 @@ static ast::expression parse_primary_expression(
 			);
 		}
 		auto const end_token = stream;
-		return context.make_identifier_expression(ast::make_identifier({ begin_token, end_token }));
+		return context.make_unresolved_identifier_expression(ast::make_identifier({ begin_token, end_token }));
 	}
 
 	// literals

@@ -111,7 +111,7 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 		return this->visit(
 			[](auto const &elem) -> lex::token_pos
 			{
-				return elem->get_tokens_begin();
+				return elem.get_tokens_begin();
 			}
 		);
 	}
@@ -122,7 +122,7 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 		return this->visit(
 			[](auto const &elem) -> lex::token_pos
 			{
-				return elem->get_tokens_pivot();
+				return elem.get_tokens_pivot();
 			}
 		);
 	}
@@ -133,7 +133,7 @@ struct node : public bz::variant<ast_unique_ptr<Ts>...>
 		return this->visit(
 			[](auto const &elem) -> lex::token_pos
 			{
-				return elem->get_tokens_end();
+				return elem.get_tokens_end();
 			}
 		);
 	}

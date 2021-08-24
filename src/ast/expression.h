@@ -868,6 +868,16 @@ struct expr_unresolved_member_access
 {
 	expression     base;
 	lex::token_pos member;
+
+	declare_default_5(expr_unresolved_member_access)
+
+	expr_unresolved_member_access(
+		expression     _base,
+		lex::token_pos _member
+	)
+		: base(std::move(_base)),
+		  member(_member)
+	{}
 };
 
 

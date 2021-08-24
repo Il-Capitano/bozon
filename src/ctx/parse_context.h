@@ -87,6 +87,9 @@ struct parse_context
 	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
 	void pop_variadic_resolver(variadic_resolve_info_t prev_info) noexcept;
 
+	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver_pause(void) noexcept;
+	void pop_variadic_resolver_pause(variadic_resolve_info_t prev_info) noexcept;
+
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it, bz::u8string message,
@@ -349,6 +352,7 @@ struct parse_context
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
+	ast::expression make_unresolved_identifier_expression(ast::identifier id);
 	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
