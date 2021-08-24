@@ -1,8 +1,9 @@
 import ::std::string;
 
 consteval warning_kind_int_overflow     = 0u32;
-consteval warning_kind_comptime_warning = 21u32;
-consteval warning_kind_error            = 22u32;
+consteval warning_kind_float_nan_math   = 4u32;
+consteval warning_kind_comptime_warning = 22u32;
+consteval warning_kind_error            = 23u32;
 
 
 // copied from std::format
@@ -1023,6 +1024,709 @@ function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64
 	}
 }
 
+@no_comptime_checking
+function float_to_bits(x: float32) -> uint32
+{
+	let result = 0u32;
+	__builtin_memcpy(&result, &x, sizeof float32);
+	return result;
+}
+
+@no_comptime_checking
+function double_to_bits(x: float64) -> uint64
+{
+	let result = 0u64;
+	__builtin_memcpy(&result, &x, sizeof float64);
+	return result;
+}
+
+@no_comptime_checking
+function isnan(x: float32) -> bool
+{
+	const bits = float_to_bits(x);
+	consteval exponent_mask = 0x7f80'0000u32;
+	consteval mantissa_mask = 0x007f'ffffu32;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+}
+
+@no_comptime_checking
+function isnan(x: float64) -> bool
+{
+	const bits = double_to_bits(x);
+	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
+	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+}
+
+@comptime_error_checking("exp_f32_check")
+function exp_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("exp_f64_check")
+function exp_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("exp2_f32_check")
+function exp2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp2' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("exp2_f64_check")
+function exp2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp2' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("expm1_f32_check")
+function expm1_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'expm1' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("expm1_f64_check")
+function expm1_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'expm1' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("log_f32_check")
+function log_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log_f64_check")
+function log_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log10_f32_check")
+function log10_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log10' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log10' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log10_f64_check")
+function log10_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log10' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log10' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log2_f32_check")
+function log2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log2' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log2' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log2_f64_check")
+function log2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log2' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log2' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log1p_f32_check")
+function log1p_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log1p' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log1p' with a value less than -1", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("log1p_f64_check")
+function log1p_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'log1p' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'log1p' with a value less than -1", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("sqrt_f32_check")
+function sqrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sqrt' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'sqrt' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("sqrt_f64_check")
+function sqrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sqrt' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'sqrt' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("pow_f32_check")
+function pow_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'pow' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("pow_f64_check")
+function pow_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'pow' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cbrt_f32_check")
+function cbrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cbrt' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cbrt_f64_check")
+function cbrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cbrt' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("hypot_f32_check")
+function hypot_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'hypot' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("hypot_f64_check")
+function hypot_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'hypot' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("sin_f32_check")
+function sin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sin' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("sin_f64_check")
+function sin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sin' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cos_f32_check")
+function cos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cos' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cos_f64_check")
+function cos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cos' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("tan_f32_check")
+function tan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tan' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("tan_f64_check")
+function tan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tan' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("asin_f32_check")
+function asin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'asin' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0f32 || x > 1.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'asin' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("asin_f64_check")
+function asin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'asin' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0 || x > 1.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'asin' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("acos_f32_check")
+function acos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'acos' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0f32 || x > 1.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'acos' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("acos_f64_check")
+function acos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'acos' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0 || x > 1.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'acos' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("atan_f32_check")
+function atan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atan' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("atan_f64_check")
+function atan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atan' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("atan2_f32_check")
+function atan2_f32_check(y: float32, x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atan2' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("atan2_f64_check")
+function atan2_f64_check(y: float64, x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x) || isnan(y))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atan2' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("sinh_f32_check")
+function sinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sinh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("sinh_f64_check")
+function sinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'sinh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cosh_f32_check")
+function cosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cosh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("cosh_f64_check")
+function cosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'cosh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("tanh_f32_check")
+function tanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tanh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("tanh_f64_check")
+function tanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tanh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("asinh_f32_check")
+function asinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'asinh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("asinh_f64_check")
+function asinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'asinh' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("acosh_f32_check")
+function acosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'acosh' results in nan", begin, pivot, end);
+	}
+	else if (x < 1.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'acosh' with a value less than 1", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("acosh_f64_check")
+function acosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'acosh' results in nan", begin, pivot, end);
+	}
+	else if (x < 1.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'acosh' with a value less than 1", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("atanh_f32_check")
+function atanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atanh' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0f32 || x > 1.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'atanh' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("atanh_f64_check")
+function atanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'atanh' results in nan", begin, pivot, end);
+	}
+	else if (x < -1.0 || x > 1.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'atanh' with a value not in the range [-1, 1]", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("erf_f32_check")
+function erf_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'erf' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("erf_f64_check")
+function erf_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'erf' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("erfc_f32_check")
+function erfc_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'erfc' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("erfc_f64_check")
+function erfc_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'erfc' results in nan", begin, pivot, end);
+	}
+	return true;
+}
+
+@comptime_error_checking("tgamma_f32_check")
+function tgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tgamma' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'tgamma' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("tgamma_f64_check")
+function tgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'tgamma' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'tgamma' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("lgamma_f32_check")
+function lgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'lgamma' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0f32)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'lgamma' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
+
+@comptime_error_checking("lgamma_f64_check")
+function lgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (isnan(x))
+	{
+		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'lgamma' results in nan", begin, pivot, end);
+	}
+	else if (x < 0.0)
+	{
+		emit_diagnostic(warning_kind_error, "calling 'lgamma' with a negative value", begin, pivot, end);
+		return false;
+	}
+	return true;
+}
 
 @no_comptime_checking
 function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint64, end: uint64)

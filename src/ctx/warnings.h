@@ -12,6 +12,7 @@ enum class warning_kind
 	int_divide_by_zero,
 	float_overflow,
 	float_divide_by_zero,
+	float_nan_math,
 	unknown_attribute,
 	null_pointer_dereference,
 	unused_value,
@@ -37,8 +38,9 @@ enum class warning_kind
 
 // these need to be synched with __comptime_checking.bz
 static_assert(static_cast<int>(warning_kind::int_overflow)     == 0);
-static_assert(static_cast<int>(warning_kind::comptime_warning) == 21);
-static_assert(static_cast<int>(warning_kind::_last)            == 22);
+static_assert(static_cast<int>(warning_kind::float_nan_math)   == 4);
+static_assert(static_cast<int>(warning_kind::comptime_warning) == 22);
+static_assert(static_cast<int>(warning_kind::_last)            == 23);
 
 struct warning_info
 {
@@ -55,6 +57,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::int_divide_by_zero,       "int-divide-by-zero",       "Integer division by zero in non-constant expression"                                 },
 		T{ warning_kind::float_overflow,           "float-overflow",           "Floating-point inf or nan result in constant expression"                             },
 		T{ warning_kind::float_divide_by_zero,     "float-divide-by-zero",     "Floating-point division by zero in non-constant expression"                          },
+		T{ warning_kind::float_nan_math,           "float-nan-math",           "Passing nan to builtin math functions"                                               },
 
 		T{ warning_kind::unknown_attribute,        "unknown-attribute",        "Unknown attribute on statement or declaration"                                       },
 		T{ warning_kind::null_pointer_dereference, "null-pointer-dereference", "The dereferenced pointer is a constant expression and is null"                       },

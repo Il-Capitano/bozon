@@ -3,6 +3,7 @@
 #include <llvm/IR/Attributes.h>
 
 #include "ast/typespec.h"
+#include "bz/core.h"
 #include "bz/meta.h"
 #include "comptime_emit_bitcode.h"
 #include "ctx/builtin_operators.h"
@@ -2668,6 +2669,127 @@ static val_ptr emit_bitcode(
 	}
 }
 
+static ctx::comptime_function_kind get_math_check_function_kind(uint32_t intrinsic_kind)
+{
+	switch (intrinsic_kind)
+	{
+	case ast::function_body::exp_f32:
+		return ctx::comptime_function_kind::exp_f32_check;
+	case ast::function_body::exp_f64:
+		return ctx::comptime_function_kind::exp_f64_check;
+	case ast::function_body::exp2_f32:
+		return ctx::comptime_function_kind::exp2_f32_check;
+	case ast::function_body::exp2_f64:
+		return ctx::comptime_function_kind::exp2_f64_check;
+	case ast::function_body::expm1_f32:
+		return ctx::comptime_function_kind::expm1_f32_check;
+	case ast::function_body::expm1_f64:
+		return ctx::comptime_function_kind::expm1_f64_check;
+	case ast::function_body::log_f32:
+		return ctx::comptime_function_kind::log_f32_check;
+	case ast::function_body::log_f64:
+		return ctx::comptime_function_kind::log_f64_check;
+	case ast::function_body::log10_f32:
+		return ctx::comptime_function_kind::log10_f32_check;
+	case ast::function_body::log10_f64:
+		return ctx::comptime_function_kind::log10_f64_check;
+	case ast::function_body::log2_f32:
+		return ctx::comptime_function_kind::log2_f32_check;
+	case ast::function_body::log2_f64:
+		return ctx::comptime_function_kind::log2_f64_check;
+	case ast::function_body::log1p_f32:
+		return ctx::comptime_function_kind::log1p_f32_check;
+	case ast::function_body::log1p_f64:
+		return ctx::comptime_function_kind::log1p_f64_check;
+	case ast::function_body::sqrt_f32:
+		return ctx::comptime_function_kind::sqrt_f32_check;
+	case ast::function_body::sqrt_f64:
+		return ctx::comptime_function_kind::sqrt_f64_check;
+	case ast::function_body::pow_f32:
+		return ctx::comptime_function_kind::pow_f32_check;
+	case ast::function_body::pow_f64:
+		return ctx::comptime_function_kind::pow_f64_check;
+	case ast::function_body::cbrt_f32:
+		return ctx::comptime_function_kind::cbrt_f32_check;
+	case ast::function_body::cbrt_f64:
+		return ctx::comptime_function_kind::cbrt_f64_check;
+	case ast::function_body::hypot_f32:
+		return ctx::comptime_function_kind::hypot_f32_check;
+	case ast::function_body::hypot_f64:
+		return ctx::comptime_function_kind::hypot_f64_check;
+	case ast::function_body::sin_f32:
+		return ctx::comptime_function_kind::sin_f32_check;
+	case ast::function_body::sin_f64:
+		return ctx::comptime_function_kind::sin_f64_check;
+	case ast::function_body::cos_f32:
+		return ctx::comptime_function_kind::cos_f32_check;
+	case ast::function_body::cos_f64:
+		return ctx::comptime_function_kind::cos_f64_check;
+	case ast::function_body::tan_f32:
+		return ctx::comptime_function_kind::tan_f32_check;
+	case ast::function_body::tan_f64:
+		return ctx::comptime_function_kind::tan_f64_check;
+	case ast::function_body::asin_f32:
+		return ctx::comptime_function_kind::asin_f32_check;
+	case ast::function_body::asin_f64:
+		return ctx::comptime_function_kind::asin_f64_check;
+	case ast::function_body::acos_f32:
+		return ctx::comptime_function_kind::acos_f32_check;
+	case ast::function_body::acos_f64:
+		return ctx::comptime_function_kind::acos_f64_check;
+	case ast::function_body::atan_f32:
+		return ctx::comptime_function_kind::atan_f32_check;
+	case ast::function_body::atan_f64:
+		return ctx::comptime_function_kind::atan_f64_check;
+	case ast::function_body::atan2_f32:
+		return ctx::comptime_function_kind::atan2_f32_check;
+	case ast::function_body::atan2_f64:
+		return ctx::comptime_function_kind::atan2_f64_check;
+	case ast::function_body::sinh_f32:
+		return ctx::comptime_function_kind::sinh_f32_check;
+	case ast::function_body::sinh_f64:
+		return ctx::comptime_function_kind::sinh_f64_check;
+	case ast::function_body::cosh_f32:
+		return ctx::comptime_function_kind::cosh_f32_check;
+	case ast::function_body::cosh_f64:
+		return ctx::comptime_function_kind::cosh_f64_check;
+	case ast::function_body::tanh_f32:
+		return ctx::comptime_function_kind::tanh_f32_check;
+	case ast::function_body::tanh_f64:
+		return ctx::comptime_function_kind::tanh_f64_check;
+	case ast::function_body::asinh_f32:
+		return ctx::comptime_function_kind::asinh_f32_check;
+	case ast::function_body::asinh_f64:
+		return ctx::comptime_function_kind::asinh_f64_check;
+	case ast::function_body::acosh_f32:
+		return ctx::comptime_function_kind::acosh_f32_check;
+	case ast::function_body::acosh_f64:
+		return ctx::comptime_function_kind::acosh_f64_check;
+	case ast::function_body::atanh_f32:
+		return ctx::comptime_function_kind::atanh_f32_check;
+	case ast::function_body::atanh_f64:
+		return ctx::comptime_function_kind::atanh_f64_check;
+	case ast::function_body::erf_f32:
+		return ctx::comptime_function_kind::erf_f32_check;
+	case ast::function_body::erf_f64:
+		return ctx::comptime_function_kind::erf_f64_check;
+	case ast::function_body::erfc_f32:
+		return ctx::comptime_function_kind::erfc_f32_check;
+	case ast::function_body::erfc_f64:
+		return ctx::comptime_function_kind::erfc_f64_check;
+	case ast::function_body::tgamma_f32:
+		return ctx::comptime_function_kind::tgamma_f32_check;
+	case ast::function_body::tgamma_f64:
+		return ctx::comptime_function_kind::tgamma_f64_check;
+	case ast::function_body::lgamma_f32:
+		return ctx::comptime_function_kind::lgamma_f32_check;
+	case ast::function_body::lgamma_f64:
+		return ctx::comptime_function_kind::lgamma_f64_check;
+	default:
+		bz_unreachable;
+	}
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	[[maybe_unused]] lex::src_tokens src_tokens,
@@ -3066,6 +3188,81 @@ static val_ptr emit_bitcode(
 				{ dest, val, size, false_val }
 			);
 			return {};
+		}
+
+		case ast::function_body::exp_f32:   case ast::function_body::exp_f64:
+		case ast::function_body::exp2_f32:  case ast::function_body::exp2_f64:
+		case ast::function_body::expm1_f32: case ast::function_body::expm1_f64:
+		case ast::function_body::log_f32:   case ast::function_body::log_f64:
+		case ast::function_body::log10_f32: case ast::function_body::log10_f64:
+		case ast::function_body::log2_f32:  case ast::function_body::log2_f64:
+		case ast::function_body::log1p_f32: case ast::function_body::log1p_f64:
+			[[fallthrough]];
+		case ast::function_body::sqrt_f32:  case ast::function_body::sqrt_f64:
+		case ast::function_body::cbrt_f32:  case ast::function_body::cbrt_f64:
+			[[fallthrough]];
+		case ast::function_body::sin_f32:   case ast::function_body::sin_f64:
+		case ast::function_body::cos_f32:   case ast::function_body::cos_f64:
+		case ast::function_body::tan_f32:   case ast::function_body::tan_f64:
+		case ast::function_body::asin_f32:  case ast::function_body::asin_f64:
+		case ast::function_body::acos_f32:  case ast::function_body::acos_f64:
+		case ast::function_body::atan_f32:  case ast::function_body::atan_f64:
+			[[fallthrough]];
+		case ast::function_body::sinh_f32:  case ast::function_body::sinh_f64:
+		case ast::function_body::cosh_f32:  case ast::function_body::cosh_f64:
+		case ast::function_body::tanh_f32:  case ast::function_body::tanh_f64:
+		case ast::function_body::asinh_f32: case ast::function_body::asinh_f64:
+		case ast::function_body::acosh_f32: case ast::function_body::acosh_f64:
+		case ast::function_body::atanh_f32: case ast::function_body::atanh_f64:
+			[[fallthrough]];
+		case ast::function_body::erf_f32:    case ast::function_body::erf_f64:
+		case ast::function_body::erfc_f32:   case ast::function_body::erfc_f64:
+		case ast::function_body::tgamma_f32: case ast::function_body::tgamma_f64:
+		case ast::function_body::lgamma_f32: case ast::function_body::lgamma_f64:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const val = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
+			auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
+			auto const check_fn = context.get_comptime_function(check_fn_kind);
+			auto const is_valid = context.builder.CreateCall(check_fn, { val, src_begin, src_pivot, src_end });
+			emit_error_assert(is_valid, context);
+			auto const fn = context.get_function(func_call.func_body);
+			auto const result_val = context.builder.CreateCall(fn, { val });
+			if (result_address == nullptr)
+			{
+				return { val_ptr::value, result_val };
+			}
+			else
+			{
+				context.builder.CreateStore(result_val, result_address);
+				return { val_ptr::reference, result_address };
+			}
+		}
+
+		case ast::function_body::pow_f32:   case ast::function_body::pow_f64:
+		case ast::function_body::hypot_f32: case ast::function_body::hypot_f64:
+		case ast::function_body::atan2_f32: case ast::function_body::atan2_f64:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const val1 = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const val2 = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+			auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
+			auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
+			auto const check_fn = context.get_comptime_function(check_fn_kind);
+			auto const is_valid = context.builder.CreateCall(check_fn, { val1, val2, src_begin, src_pivot, src_end });
+			emit_error_assert(is_valid, context);
+			auto const fn = context.get_function(func_call.func_body);
+			auto const result_val = context.builder.CreateCall(fn, { val1, val2 });
+			if (result_address == nullptr)
+			{
+				return { val_ptr::value, result_val };
+			}
+			else
+			{
+				context.builder.CreateStore(result_val, result_address);
+				return { val_ptr::reference, result_address };
+			}
 		}
 
 		default:

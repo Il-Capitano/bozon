@@ -1431,11 +1431,11 @@ case ast::function_body::func_name##_f64:                                       
 	def_case_error(log1p, arg < -1, "with a value less than -1, {}")
 
 	// ==== power functions ====
+	def_case_error(sqrt, arg < 0, "with a negative value, {}")
 	case ast::function_body::pow_f32:
 		return ast::constant_value(std::pow(get_float32(0), get_float32(1)));
 	case ast::function_body::pow_f64:
 		return ast::constant_value(std::pow(get_float64(0), get_float64(1)));
-	def_case_error(sqrt, arg < 0, "with a negative value, {}")
 	def_case_default(cbrt)
 	case ast::function_body::hypot_f32:
 		return ast::constant_value(std::hypot(get_float32(0), get_float32(1)));
