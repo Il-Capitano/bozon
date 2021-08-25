@@ -338,17 +338,6 @@ function push_back(&vec, val)
 }
 
 @no_comptime_checking
-function push_back(&vec, val: ##uint64)
-{
-	type value_type = typeof *vec._data_begin;
-	static_assert(value_type == uint64, "invalid type in push_back");
-
-	vec.reserve(vec.size() + 1u);
-	*(vec._data_end) = val;
-	vec._data_end += 1;
-}
-
-@no_comptime_checking
 function emplace_back(&vec, ...##args)
 {
 	type value_type = typeof *vec._data_begin;

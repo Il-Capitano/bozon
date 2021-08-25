@@ -5166,40 +5166,123 @@ ast::expression parse_context::make_function_call_expression(
 		{
 			auto const info = called_type.get<ast::ts_base_type>().info;
 			parse::resolve_type_info(*info, *this);
-		}
-		auto const possible_funcs = called_type.is<ast::ts_base_type>()
-			? called_type.get<ast::ts_base_type>().info->constructors
+			auto const possible_funcs = called_type.get<ast::ts_base_type>().info->constructors
 				.transform([&](auto const &ptr) {
 					return possible_func_t{ get_function_call_match_level({}, *ptr, params, *this, src_tokens), {}, ptr };
 				})
-				.collect<ast::arena_vector>()
-			: ast::arena_vector<possible_func_t>{};
-		if (possible_funcs.empty())
+				.collect<ast::arena_vector>();
+
+			if (possible_funcs.empty() && params.empty())
+			{
+				// default construction of builtin types
+				auto const info = called_type.get<ast::ts_base_type>().info;
+				switch (info->kind)
+				{
+				case ast::type_info::int8_:
+				case ast::type_info::int16_:
+				case ast::type_info::int32_:
+				case ast::type_info::int64_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(static_cast<int64_t>(0)),
+						ast::expr_t{}
+					);
+				case ast::type_info::uint8_:
+				case ast::type_info::uint16_:
+				case ast::type_info::uint32_:
+				case ast::type_info::uint64_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(static_cast<uint64_t>(0)),
+						ast::expr_t{}
+					);
+				case ast::type_info::float32_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(static_cast<float32_t>(0)),
+						ast::expr_t{}
+					);
+				case ast::type_info::float64_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(static_cast<float64_t>(0)),
+						ast::expr_t{}
+					);
+				case ast::type_info::char_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(static_cast<bz::u8char>(0)),
+						ast::expr_t{}
+					);
+				case ast::type_info::str_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(bz::u8string()),
+						ast::expr_t{}
+					);
+				case ast::type_info::bool_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(false),
+						ast::expr_t{}
+					);
+				case ast::type_info::null_t_:
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::rvalue, called_type,
+						ast::constant_value(ast::internal::null_t{}),
+						ast::expr_t{}
+					);
+				default:
+					break;
+				}
+			}
+			else if (possible_funcs.empty() && params.size() == 1)
+			{
+				// function style casting
+				return this->make_cast_expression(src_tokens, std::move(params[0]), called_type);
+			}
+			else if (possible_funcs.not_empty())
+			{
+				auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, params, *this);
+				if (best_body == nullptr)
+				{
+					return ast::make_error_expression(
+						src_tokens,
+						ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+					);
+				}
+				else
+				{
+					return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+				}
+			}
+		}
+		else if (params.empty() && called_type.is<ast::ts_pointer>())
 		{
-			this->report_error(
+			return ast::make_constant_expression(
 				src_tokens,
-				bz::format("no constructors found for type '{}'", called_type)
-			);
-			return ast::make_error_expression(
-				src_tokens,
-				ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+				ast::expression_type_kind::rvalue, called_type,
+				ast::constant_value(ast::internal::null_t{}),
+				ast::expr_t{}
 			);
 		}
-		else
-		{
-			auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, params, *this);
-			if (best_body == nullptr)
-			{
-				return ast::make_error_expression(
-					src_tokens,
-					ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
-				);
-			}
-			else
-			{
-				return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
-			}
-		}
+
+		this->report_error(
+			src_tokens,
+			bz::format("no constructors found for type '{}'", called_type)
+		);
+		return ast::make_error_expression(
+			src_tokens,
+			ast::make_expr_function_call(src_tokens, std::move(params), nullptr, ast::resolve_order::regular)
+		);
 	}
 	else
 	{
