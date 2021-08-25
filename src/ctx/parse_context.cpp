@@ -839,7 +839,7 @@ void parse_context::pop_unresolved_scope(size_t prev_size)
 void parse_context::add_unresolved_local(ast::identifier const &id)
 {
 	bz_assert(!id.is_qualified);
-	bz_assert(id.values.size() == 0);
+	bz_assert(id.values.size() == 1);
 	this->unresolved_local_decls.push_back(id.values[0]);
 }
 

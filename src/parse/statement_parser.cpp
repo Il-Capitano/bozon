@@ -14,7 +14,6 @@ namespace parse
 
 // parse functions can't be static, because they are referenced in parse_common.h
 
-template<bool is_global>
 ast::statement parse_stmt_static_assert(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -41,28 +40,8 @@ ast::statement parse_stmt_static_assert(
 	}
 	context.assert_token(stream, lex::token::semi_colon);
 
-	if constexpr (is_global)
-	{
-		return ast::make_stmt_static_assert(static_assert_pos, args);
-	}
-	else
-	{
-		auto result = ast::make_stmt_static_assert(static_assert_pos, args);
-		bz_assert(result.is<ast::stmt_static_assert>());
-		resolve::resolve_stmt_static_assert(result.get<ast::stmt_static_assert>(), context);
-		return result;
-	}
+	return ast::make_stmt_static_assert(static_assert_pos, args);
 }
-
-template ast::statement parse_stmt_static_assert<false>(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-);
-
-template ast::statement parse_stmt_static_assert<true>(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-);
 
 static ast::decl_variable parse_decl_variable_id_and_type(
 	lex::token_pos &stream, lex::token_pos end,
@@ -1011,19 +990,7 @@ ast::statement parse_stmt_while(
 	++stream; // 'while'
 	auto const prev_in_loop = context.push_loop();
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	if (condition.not_error())
-	{
-		auto const [type, _] = condition.get_expr_type_and_kind();
-		if (
-			auto const type_without_const = ast::remove_const_or_consteval(type);
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::bool_
-		)
-		{
-			context.report_error(condition, "condition for while statement must have type 'bool'");
-		}
-	}
-	auto body = parse_local_statement(stream, end, context);
+	auto body = parse_top_level_expression(stream, end, context);
 	context.pop_loop(prev_in_loop);
 	return ast::make_stmt_while(std::move(condition), std::move(body));
 }
@@ -1035,7 +1002,7 @@ static ast::statement parse_stmt_for_impl(
 )
 {
 	// 'for' and '(' have already been consumed
-	context.add_scope();
+	auto const prev_unresolved_size = context.push_unresolved_scope();
 
 	if (stream == end)
 	{
@@ -1061,12 +1028,6 @@ static ast::statement parse_stmt_for_impl(
 			lex::token::kw_if,
 			lex::token::paren_close
 		>(stream, end, context);
-	}
-
-	if (condition.not_null())
-	{
-		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-		context.match_expression_to_type(condition, bool_type);
 	}
 
 	if (stream == end)
@@ -1099,10 +1060,10 @@ static ast::statement parse_stmt_for_impl(
 		>(stream, end, context);
 	}
 
-	auto body = parse_local_statement(stream, end, context);
+	auto body = parse_top_level_expression(stream, end, context);
 
-	context.remove_scope();
 	context.pop_loop(prev_in_loop);
+	context.pop_unresolved_scope(prev_unresolved_size);
 
 	return ast::make_stmt_for(
 		std::move(init_stmt),
@@ -1110,6 +1071,21 @@ static ast::statement parse_stmt_for_impl(
 		std::move(iteration),
 		std::move(body)
 	);
+}
+
+static void add_unresolved_var_decl(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.add_unresolved_local(var_decl.get_id());
+	}
+	else
+	{
+		for (auto &inner_decl : var_decl.tuple_decls)
+		{
+			add_unresolved_var_decl(inner_decl, context);
+		}
+	}
 }
 
 static ast::statement parse_stmt_foreach_impl(
@@ -1161,7 +1137,7 @@ static ast::statement parse_stmt_foreach_impl(
 		>(stream, end, context);
 	}
 
-	context.add_scope();
+	auto const prev_unresolved_size = context.push_unresolved_scope();
 
 	auto range_var_type = ast::make_auto_typespec(nullptr);
 	range_var_type.add_layer<ast::ts_auto_reference_const>();
@@ -1177,169 +1153,23 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
 	range_var_decl.id_and_type.id.values = { "" };
 	range_var_decl.id_and_type.id.is_qualified = false;
-	resolve::resolve_variable(range_var_decl, context);
-	context.add_local_variable(range_var_decl);
-	range_var_decl.flags |= ast::decl_variable::used;
-
-	if (range_var_decl.id_and_type.var_type.is_empty())
-	{
-		context.report_error(range_expr.src_tokens, "invalid range in foreach loop");
-		context.remove_scope();
-		return {};
-	}
-
-	auto range_begin_expr = [&]() {
-		if (range_var_decl.id_and_type.var_type.is_empty())
-		{
-			return ast::make_error_expression(range_expr_src_tokens);
-		}
-		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
-			? ast::expression_type_kind::lvalue_reference
-			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
-
-		auto range_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
-		);
-		return context.make_universal_function_call_expression(
-			range_expr_src_tokens,
-			std::move(range_var_expr),
-			ast::make_identifier("begin"), {}
-		);
-	}();
-
-	auto iter_var_decl_stmt = ast::make_decl_variable(
-		range_expr_src_tokens,
-		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
-		std::move(range_begin_expr)
-	);
-	bz_assert(iter_var_decl_stmt.is<ast::decl_variable>());
-	auto &iter_var_decl = iter_var_decl_stmt.get<ast::decl_variable>();
-	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
-	iter_var_decl.id_and_type.id.values = { "" };
-	iter_var_decl.id_and_type.id.is_qualified = false;
-	resolve::resolve_variable(iter_var_decl, context);
-	context.add_local_variable(iter_var_decl);
-	iter_var_decl.flags |= ast::decl_variable::used;
-
-	auto range_end_expr = [&]() {
-		if (range_var_decl.id_and_type.var_type.is_empty())
-		{
-			return ast::make_error_expression(range_expr_src_tokens);
-		}
-		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
-			? ast::expression_type_kind::lvalue_reference
-			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
-
-		auto range_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			type_kind, type,
-			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
-		);
-		return context.make_universal_function_call_expression(
-			range_expr_src_tokens,
-			std::move(range_var_expr),
-			ast::make_identifier("end"), {}
-		);
-	}();
-
-	auto end_var_decl_stmt = ast::make_decl_variable(
-		range_expr_src_tokens,
-		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
-		std::move(range_end_expr)
-	);
-	bz_assert(end_var_decl_stmt.is<ast::decl_variable>());
-	auto &end_var_decl = end_var_decl_stmt.get<ast::decl_variable>();
-	end_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
-	end_var_decl.id_and_type.id.values = { "" };
-	end_var_decl.id_and_type.id.is_qualified = false;
-	resolve::resolve_variable(end_var_decl, context);
-	context.add_local_variable(end_var_decl);
-	end_var_decl.flags |= ast::decl_variable::used;
 
 	auto const prev_in_loop = context.push_loop();
-	auto condition = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())
-		{
-			return ast::make_error_expression(range_expr_src_tokens);
-		}
-		auto iter_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
-		);
-		auto end_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, end_var_decl.id_and_type.var_type,
-			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
-		);
-		return context.make_binary_operator_expression(
-			range_expr_src_tokens,
-			lex::token::not_equals,
-			std::move(iter_var_expr),
-			std::move(end_var_expr)
-		);
-	}();
+	auto const inner_prev_unresolved_size = context.push_unresolved_scope();
 
-	auto iteration = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty())
-		{
-			return ast::make_error_expression(range_expr_src_tokens);
-		}
-		auto iter_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
-		);
-		return context.make_unary_operator_expression(
-			range_expr_src_tokens,
-			lex::token::plus_plus,
-			std::move(iter_var_expr)
-		);
-	}();
-
-	context.add_scope();
-
-	auto iter_deref_expr = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty())
-		{
-			return ast::make_error_expression(range_expr_src_tokens);
-		}
-		auto iter_var_expr = ast::make_dynamic_expression(
-			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
-			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
-		);
-		return context.make_unary_operator_expression(
-			range_expr_src_tokens,
-			lex::token::dereference,
-			std::move(iter_var_expr)
-		);
-	}();
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
-	iter_deref_var_decl.init_expr = std::move(iter_deref_expr);
-	resolve::resolve_variable(iter_deref_var_decl, context);
-	context.add_local_variable(iter_deref_var_decl);
+	add_unresolved_var_decl(iter_deref_var_decl, context);
 
-	auto body = parse_local_statement(stream, end, context);
+	auto body = parse_top_level_expression(stream, end, context);
 
-	context.remove_scope();
+	context.pop_unresolved_scope(inner_prev_unresolved_size);
 	context.pop_loop(prev_in_loop);
-	context.remove_scope();
+	context.pop_unresolved_scope(prev_unresolved_size);
 
 	return ast::make_stmt_foreach(
 		std::move(range_var_decl_stmt),
-		std::move(iter_var_decl_stmt),
-		std::move(end_var_decl_stmt),
 		std::move(iter_deref_var_decl_stmt),
-		std::move(condition),
-		std::move(iteration),
 		std::move(body)
 	);
 }
@@ -1375,17 +1205,10 @@ ast::statement parse_stmt_return(
 	++stream; // 'return'
 	if (stream != end && stream->kind == lex::token::semi_colon)
 	{
-		if (!context.current_function->return_type.is<ast::ts_void>())
-		{
-			context.report_error(stream, "a function with a non-void return type must return a value");
-		}
 		return ast::make_stmt_return(return_pos);
 	}
 	auto expr = parse_expression(stream, end, context, precedence{});
 	context.assert_token(stream, lex::token::semi_colon);
-	bz_assert(context.current_function != nullptr);
-	bz_assert(ast::is_complete(context.current_function->return_type));
-	context.match_expression_to_type(expr, context.current_function->return_type);
 	return ast::make_stmt_return(return_pos, std::move(expr));
 }
 

@@ -3402,13 +3402,13 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 	stmt.visit(bz::overload{
 		[&context](ast::stmt_while &while_stmt) {
 			consteval_try_without_error(while_stmt.condition, context);
-			consteval_try_without_error_decl(while_stmt.while_block, context);
+			consteval_try_without_error(while_stmt.while_block, context);
 		},
 		[&context](ast::stmt_for &for_stmt) {
 			consteval_try_without_error_decl(for_stmt.init, context);
 			consteval_try_without_error(for_stmt.condition, context);
 			consteval_try_without_error(for_stmt.iteration, context);
-			consteval_try_without_error_decl(for_stmt.for_block, context);
+			consteval_try_without_error(for_stmt.for_block, context);
 		},
 		[&context](ast::stmt_foreach &foreach_stmt) {
 			consteval_try_without_error_decl(foreach_stmt.range_var_decl, context);
@@ -3417,7 +3417,7 @@ void consteval_try_without_error_decl(ast::statement &stmt, ctx::parse_context &
 			consteval_try_without_error(foreach_stmt.condition, context);
 			consteval_try_without_error(foreach_stmt.iteration, context);
 			consteval_try_without_error_decl(foreach_stmt.iter_deref_var_decl, context);
-			consteval_try_without_error_decl(foreach_stmt.for_block, context);
+			consteval_try_without_error(foreach_stmt.for_block, context);
 		},
 		[&context](ast::stmt_return &return_stmt) {
 			consteval_try_without_error(return_stmt.expr, context);

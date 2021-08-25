@@ -284,7 +284,6 @@ struct statement_parser
 	{ return (this->flags & struct_body) != 0; }
 };
 
-template<bool is_global>
 ast::statement parse_stmt_static_assert(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -378,7 +377,8 @@ ast::statement default_parse_type_info_statement(
 );
 
 constexpr bz::array statement_parsers = {
-	statement_parser{ lex::token::kw_static_assert, statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert<true>,     },
+	statement_parser{ lex::token::kw_static_assert, statement_parser::local | statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert },
+
 	statement_parser{ lex::token::kw_let,           statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_consteval_decl<true>,         },
@@ -391,7 +391,6 @@ constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,             },
 	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                  },
 
-	statement_parser{ lex::token::kw_static_assert, statement_parser::local, &parse_stmt_static_assert<false>,     },
 	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<false>,          },
 	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<false>,          },
 	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_consteval_decl<false>,         },

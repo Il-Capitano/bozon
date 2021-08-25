@@ -3915,7 +3915,7 @@ static void emit_bitcode(
 	auto const while_bb = context.add_basic_block("while");
 	context.builder.SetInsertPoint(while_bb);
 	context.push_expression_scope();
-	emit_bitcode<abi>(while_stmt.while_block, context);
+	emit_bitcode<abi>(while_stmt.while_block, context, nullptr);
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{
@@ -3968,7 +3968,7 @@ static void emit_bitcode(
 	auto const for_bb = context.add_basic_block("for");
 	context.builder.SetInsertPoint(for_bb);
 	context.push_expression_scope();
-	emit_bitcode<abi>(for_stmt.for_block, context);
+	emit_bitcode<abi>(for_stmt.for_block, context, nullptr);
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{
@@ -4015,7 +4015,7 @@ static void emit_bitcode(
 	context.push_expression_scope();
 	emit_bitcode<abi>(foreach_stmt.iter_deref_var_decl, context);
 	context.push_expression_scope();
-	emit_bitcode<abi>(foreach_stmt.for_block, context);
+	emit_bitcode<abi>(foreach_stmt.for_block, context, nullptr);
 	context.pop_expression_scope();
 	if (!context.has_terminator())
 	{

@@ -8,44 +8,211 @@
 namespace resolve
 {
 
-void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence prec)
+static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
 {
-	if (!ts.is<ast::ts_unresolved>())
+	resolve_expression(while_stmt.condition, context);
+	resolve_expression(while_stmt.while_block, context);
+
+	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+	context.match_expression_to_type(while_stmt.condition, bool_type);
+}
+
+static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
+{
+	resolve_statement(for_stmt.init, context);
+	resolve_expression(for_stmt.condition, context);
+	resolve_expression(for_stmt.iteration, context);
+	resolve_expression(for_stmt.for_block, context);
+
+	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+	context.match_expression_to_type(for_stmt.condition, bool_type);
+}
+
+static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
+{
+	if (foreach_stmt.iter_var_decl.not_null())
+	{
+		// already resolved
+		return;
+	}
+	resolve_statement(foreach_stmt.range_var_decl, context);
+	bz_assert(foreach_stmt.range_var_decl.is<ast::decl_variable>());
+	auto &range_var_decl = foreach_stmt.range_var_decl.get<ast::decl_variable>();
+	if (range_var_decl.get_type().is_empty())
 	{
 		return;
 	}
-	auto [stream, end] = ts.get<ast::ts_unresolved>().tokens;
-	auto type = parse::parse_expression(stream, end, context, prec);
-	if (stream != end)
+
+	auto const &range_expr_src_tokens = range_var_decl.init_expr.src_tokens;
+
+	auto range_begin_expr = [&]() {
+		if (range_var_decl.id_and_type.var_type.is_empty())
+		{
+			return ast::make_error_expression(range_expr_src_tokens);
+		}
+		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: ast::expression_type_kind::lvalue;
+		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
+
+		auto range_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			type_kind, type,
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+		);
+		return context.make_universal_function_call_expression(
+			range_expr_src_tokens,
+			std::move(range_var_expr),
+			ast::make_identifier("begin"), {}
+		);
+	}();
+	foreach_stmt.iter_var_decl = ast::make_decl_variable(
+		range_expr_src_tokens,
+		lex::token_range{},
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
+		std::move(range_begin_expr)
+	);
+	bz_assert(foreach_stmt.iter_var_decl.is<ast::decl_variable>());
+	auto &iter_var_decl = foreach_stmt.iter_var_decl.get<ast::decl_variable>();
+	iter_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	iter_var_decl.id_and_type.id.values = { "" };
+	iter_var_decl.id_and_type.id.is_qualified = false;
+	resolve_statement(foreach_stmt.iter_var_decl, context);
+	context.add_local_variable(iter_var_decl);
+	iter_var_decl.flags |= ast::decl_variable::used;
+
+	auto range_end_expr = [&]() {
+		if (range_var_decl.id_and_type.var_type.is_empty())
+		{
+			return ast::make_error_expression(range_expr_src_tokens);
+		}
+		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
+			? ast::expression_type_kind::lvalue_reference
+			: ast::expression_type_kind::lvalue;
+		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
+
+		auto range_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			type_kind, type,
+			ast::make_expr_identifier(ast::identifier{}, &range_var_decl)
+		);
+		return context.make_universal_function_call_expression(
+			range_expr_src_tokens,
+			std::move(range_var_expr),
+			ast::make_identifier("end"), {}
+		);
+	}();
+
+	foreach_stmt.end_var_decl = ast::make_decl_variable(
+		range_expr_src_tokens,
+		lex::token_range{},
+		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
+		std::move(range_end_expr)
+	);
+	bz_assert(foreach_stmt.end_var_decl.is<ast::decl_variable>());
+	auto &end_var_decl = foreach_stmt.end_var_decl.get<ast::decl_variable>();
+	end_var_decl.id_and_type.id.tokens = { range_expr_src_tokens.begin, range_expr_src_tokens.end };
+	end_var_decl.id_and_type.id.values = { "" };
+	end_var_decl.id_and_type.id.is_qualified = false;
+	resolve_statement(foreach_stmt.end_var_decl, context);
+	context.add_local_variable(end_var_decl);
+	end_var_decl.flags |= ast::decl_variable::used;
+
+	foreach_stmt.condition = [&]() {
+		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())
+		{
+			return ast::make_error_expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+		);
+		auto end_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, end_var_decl.id_and_type.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
+		);
+		return context.make_binary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::not_equals,
+			std::move(iter_var_expr),
+			std::move(end_var_expr)
+		);
+	}();
+
 	{
-		context.report_error({ stream, stream, end });
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		context.match_expression_to_type(foreach_stmt.condition, bool_type);
 	}
 
-	parse::consteval_try(type, context);
-	if (type.not_error() && !type.has_consteval_succeeded())
-	{
-		auto notes = parse::get_consteval_fail_notes(type);
-		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
-		context.report_error(
-			type.src_tokens,
-			"expected a type",
-			std::move(notes)
+	foreach_stmt.iteration = [&]() {
+		if (iter_var_decl.id_and_type.var_type.is_empty())
+		{
+			return ast::make_error_expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
-		ts.clear();
-	}
-	else if (type.not_error() && !type.is_typename())
+		return context.make_unary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::plus_plus,
+			std::move(iter_var_expr)
+		);
+	}();
+
+	bz_assert(foreach_stmt.iter_deref_var_decl.is<ast::decl_variable>());
+	auto &iter_deref_var_decl = foreach_stmt.iter_deref_var_decl.get<ast::decl_variable>();
+	bz_assert(iter_deref_var_decl.init_expr.is_null());
+	iter_deref_var_decl.init_expr = [&]() {
+		if (iter_var_decl.id_and_type.var_type.is_empty())
+		{
+			return ast::make_error_expression(range_expr_src_tokens);
+		}
+		auto iter_var_expr = ast::make_dynamic_expression(
+			range_expr_src_tokens,
+			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
+		);
+		return context.make_unary_operator_expression(
+			range_expr_src_tokens,
+			lex::token::dereference,
+			std::move(iter_var_expr)
+		);
+	}();
+	resolve_statement(foreach_stmt.iter_deref_var_decl, context);
+	context.add_local_variable(iter_deref_var_decl);
+
+	resolve_expression(foreach_stmt.for_block, context);
+}
+
+static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &context)
+{
+	if (context.current_function == nullptr)
 	{
-		context.report_error(type, "expected a type");
-		ts.clear();
+		context.report_error(return_stmt.return_pos, "a return statement can only appear inside of a function");
 	}
-	else if (type.is_typename())
+	else if (return_stmt.expr.is_null())
 	{
-		ts = std::move(type.get_typename());
+		if (!context.current_function->return_type.is<ast::ts_void>())
+		{
+			context.report_error(return_stmt.return_pos, "a function with a non-void return type must return a value");
+		}
 	}
 	else
 	{
-		ts.clear();
+		resolve_expression(return_stmt.expr, context);
+		bz_assert(context.current_function != nullptr);
+		bz_assert(ast::is_complete(context.current_function->return_type));
+		context.match_expression_to_type(return_stmt.expr, context.current_function->return_type);
 	}
+}
+
+static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &)
+{
+	// nothing
 }
 
 static bz::u8string get_static_assert_expression(ast::constant_expression const &cond)
@@ -97,7 +264,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 	}
 }
 
-static void resolve_stmt_static_assert_impl(ast::stmt_static_assert &static_assert_stmt, ctx::parse_context &context)
+static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse_context &context)
 {
 	bz_assert(static_assert_stmt.condition.is_null());
 	bz_assert(static_assert_stmt.condition.src_tokens.begin == nullptr);
@@ -212,6 +379,94 @@ static void resolve_stmt_static_assert_impl(ast::stmt_static_assert &static_asse
 	}
 }
 
+static void resolve_stmt(ast::stmt_expression &expr_stmt, ctx::parse_context &context)
+{
+	resolve_expression(expr_stmt.expr, context);
+}
+
+static void resolve_stmt(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	resolve_variable(var_decl, context);
+	context.add_local_variable(var_decl);
+}
+
+static void resolve_stmt(ast::decl_function &func_decl, ctx::parse_context &context)
+{
+	resolve_function(&func_decl, func_decl.body, context);
+}
+
+static void resolve_stmt(ast::decl_operator &op_decl, ctx::parse_context &context)
+{
+	resolve_function(&op_decl, op_decl.body, context);
+}
+
+static void resolve_stmt(ast::decl_function_alias &func_alias_decl, ctx::parse_context &context)
+{
+	resolve_function_alias(func_alias_decl, context);
+}
+
+static void resolve_stmt(ast::decl_type_alias &type_alias_decl, ctx::parse_context &context)
+{
+	resolve_type_alias(type_alias_decl, context);
+}
+
+static void resolve_stmt(ast::decl_struct &struct_decl, ctx::parse_context &context)
+{
+	resolve_type_info(struct_decl.info, context);
+}
+
+static void resolve_stmt(ast::decl_import &, ctx::parse_context &)
+{
+	bz_unreachable;
+}
+
+void resolve_statement(ast::statement &stmt, ctx::parse_context &context)
+{
+	stmt.visit([&context](auto &inner_stmt) {
+		resolve_stmt(inner_stmt, context);
+	});
+}
+
+void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence prec)
+{
+	if (!ts.is<ast::ts_unresolved>())
+	{
+		return;
+	}
+	auto [stream, end] = ts.get<ast::ts_unresolved>().tokens;
+	auto type = parse::parse_expression(stream, end, context, prec);
+	if (stream != end)
+	{
+		context.report_error({ stream, stream, end });
+	}
+
+	parse::consteval_try(type, context);
+	if (type.not_error() && !type.has_consteval_succeeded())
+	{
+		auto notes = parse::get_consteval_fail_notes(type);
+		notes.push_front(context.make_note(type.src_tokens, "type must be a constant expression"));
+		context.report_error(
+			type.src_tokens,
+			"expected a type",
+			std::move(notes)
+		);
+		ts.clear();
+	}
+	else if (type.not_error() && !type.is_typename())
+	{
+		context.report_error(type, "expected a type");
+		ts.clear();
+	}
+	else if (type.is_typename())
+	{
+		ts = std::move(type.get_typename());
+	}
+	else
+	{
+		ts.clear();
+	}
+}
+
 void resolve_stmt_static_assert(ast::stmt_static_assert &static_assert_stmt, ctx::parse_context &context)
 {
 	auto const original_file_info = context.get_current_file_info();
@@ -220,7 +475,7 @@ void resolve_stmt_static_assert(ast::stmt_static_assert &static_assert_stmt, ctx
 	{
 		context.set_current_file(stmt_file_id);
 	}
-	resolve_stmt_static_assert_impl(static_assert_stmt, context);
+	resolve_stmt(static_assert_stmt, context);
 	context.set_current_file_info(original_file_info);
 }
 
@@ -2126,83 +2381,6 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 		}
 	});
 	resolve_attributes(stmt, context);
-}
-
-static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_for &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_foreach &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_return &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_no_op &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_static_assert &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::stmt_expression &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_variable &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_function &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_operator &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_function_alias &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_type_alias &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_struct &, ctx::parse_context &context)
-{
-	bz_unreachable;
-}
-
-static void resolve_stmt(ast::decl_import &, ctx::parse_context &)
-{
-	bz_unreachable;
-}
-
-void resolve_statement(ast::statement &stmt, ctx::parse_context &context)
-{
-	stmt.visit([&context](auto &inner_stmt) {
-		resolve_stmt(inner_stmt, context);
-	});
 }
 
 } // namespace resolve

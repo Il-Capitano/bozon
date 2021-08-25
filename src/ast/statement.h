@@ -160,14 +160,14 @@ struct statement_view : statement_node_view_t
 
 struct stmt_while
 {
-	expression       condition;
-	statement        while_block;
+	expression condition;
+	expression while_block;
 
 	declare_default_5(stmt_while)
 
 	stmt_while(
-		expression       _condition,
-		statement        _while_block
+		expression _condition,
+		expression _while_block
 	)
 		: condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
@@ -179,7 +179,7 @@ struct stmt_for
 	statement  init;
 	expression condition;
 	expression iteration;
-	statement  for_block;
+	expression for_block;
 
 	declare_default_5(stmt_for)
 
@@ -187,7 +187,7 @@ struct stmt_for
 		statement  _init,
 		expression _condition,
 		expression _iteration,
-		statement  _for_block
+		expression _for_block
 	)
 		: init     (std::move(_init)),
 		  condition(std::move(_condition)),
@@ -204,25 +204,17 @@ struct stmt_foreach
 	statement  iter_deref_var_decl;
 	expression condition;
 	expression iteration;
-	statement  for_block;
+	expression for_block;
 
 	declare_default_5(stmt_foreach)
 
 	stmt_foreach(
 		statement  _range_var_decl,
-		statement  _iter_var_decl,
-		statement  _end_var_decl,
 		statement  _iter_deref_var_decl,
-		expression _condition,
-		expression _iteration,
-		statement  _for_block
+		expression _for_block
 	)
 		: range_var_decl     (std::move(_range_var_decl)),
-		  iter_var_decl      (std::move(_iter_var_decl)),
-		  end_var_decl       (std::move(_end_var_decl)),
 		  iter_deref_var_decl(std::move(_iter_deref_var_decl)),
-		  condition(std::move(_condition)),
-		  iteration(std::move(_iteration)),
 		  for_block(std::move(_for_block))
 	{}
 };
