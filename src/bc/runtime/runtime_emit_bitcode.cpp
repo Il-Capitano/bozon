@@ -2427,6 +2427,15 @@ static val_ptr emit_bitcode(
 			"a function marked as 'consteval' can only be used in a constant expression",
 			std::move(notes)
 		);
+		if (func_call.func_body->return_type.is<ast::ts_void>())
+		{
+			return {};
+		}
+		else if (result_address == nullptr)
+		{
+			result_address = context.create_alloca(get_llvm_type(func_call.func_body->return_type, context));
+		}
+		return { val_ptr::reference, result_address };
 	}
 
 	if (func_call.func_body->is_intrinsic())
