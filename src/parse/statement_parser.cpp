@@ -61,6 +61,30 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 	{
 		return ast::get_value_string(cond.value);
 	}
+	else if (cond.expr.is<ast::expr_function_call>())
+	{
+		auto const &func_call = cond.expr.get<ast::expr_function_call>();
+		if (!func_call.func_body->is_intrinsic())
+		{
+			return "";
+		}
+
+		switch (func_call.func_body->intrinsic_kind)
+		{
+		case ast::function_body::builtin_str_eq:
+		case ast::function_body::builtin_str_neq:
+			if (func_call.params[0].is<ast::constant_expression>() && func_call.params[1].is<ast::constant_expression>())
+			{
+				auto const lhs_str = ast::get_value_string(func_call.params[0].get<ast::constant_expression>().value);
+				auto const rhs_str = ast::get_value_string(func_call.params[1].get<ast::constant_expression>().value);
+				auto const op_str = func_call.func_body->intrinsic_kind == ast::function_body::builtin_str_eq ? "==" : "!=";
+				return bz::format("{} {} {}", lhs_str, op_str, rhs_str);
+			}
+			return "";
+		default:
+			return "";
+		}
+	}
 	else
 	{
 		return "";
