@@ -2709,27 +2709,8 @@ static val_ptr emit_bitcode(
 		case ast::function_body::comptime_compile_warning:
 		case ast::function_body::comptime_compile_error_src_tokens:
 		case ast::function_body::comptime_compile_warning_src_tokens:
-		{
-			if (no_panic_on_unreachable)
-			{
-				context.builder.CreateUnreachable();
-			}
-			else
-			{
-				auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
-				context.builder.CreateCall(panic_fn);
-				auto const return_type = context.current_function.second->getReturnType();
-				if (return_type->isVoidTy())
-				{
-					context.builder.CreateRetVoid();
-				}
-				else
-				{
-					context.builder.CreateRet(llvm::UndefValue::get(return_type));
-				}
-			}
-			return {};
-		}
+			// these are handled already because they are marked as 'consteval'
+			bz_unreachable;
 
 		case ast::function_body::i8_default_constructor:
 		case ast::function_body::i16_default_constructor:
