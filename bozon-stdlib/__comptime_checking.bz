@@ -312,8 +312,8 @@ function reserve(&vec, new_capacity: usize)
 		const new_array = alloc(value_type, new_capacity);
 		for (let i = 0uz; i < size; ++i)
 		{
-			// __builtin_inplace_construct(new_array + i, value_type());
-			__builtin_memset(new_array + i, 0u8, sizeof value_type);
+			__builtin_inplace_construct(new_array + i, value_type());
+			// __builtin_memset(new_array + i, 0u8, sizeof value_type);
 			(new_array + i)->swap(*(vec._data_begin + i));
 			__builtin_call_destructor(*(vec._data_begin + i));
 		}
@@ -512,6 +512,7 @@ let call_stack = call_stack_t[ null, null, null ];
 function cleanup()
 {
 	__builtin_call_destructor(global_strings); // needs to be first, because std::string functions need call stacks
+	__builtin_call_destructor(malloc_infos);
 	__builtin_call_destructor(errors);
 	__builtin_call_destructor(call_stack);
 }
@@ -642,6 +643,145 @@ function pop_call()
 function clear_errors()
 {
 	errors.clear();
+}
+
+struct malloc_info_t
+{
+	.ptr: *uint8;
+	.size: usize;
+	.malloc_src_tokens: src_tokens_t;
+	.malloc_call_stack: [: uint64];
+	.is_freed: bool;
+	.free_src_tokens: src_tokens_t;
+	.free_call_stack: [: uint64];
+
+	constructor()
+	{
+		return malloc_info_t[
+			null, 0uz, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			false, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+		];
+	}
+
+	constructor(ptr: *uint8, size: usize, malloc_src_tokens: src_tokens_t)
+	{
+		const malloc_call_stack = get_call_stack_array_copy();
+		return malloc_info_t[
+			ptr, size, malloc_src_tokens, malloc_call_stack,
+			false, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+		];
+	}
+
+	destructor(&self)
+	{
+		free(self.malloc_call_stack.begin());
+		free(self.free_call_stack.begin());
+	}
+}
+
+@no_comptime_checking
+function swap(a: &malloc_info_t, b: &malloc_info_t)
+{
+	a.ptr.swap(b.ptr);
+	a.size.swap(b.size);
+	a.malloc_src_tokens.swap(b.malloc_src_tokens);
+	a.malloc_call_stack.swap(b.malloc_call_stack);
+	a.is_freed.swap(b.is_freed);
+	a.free_src_tokens.swap(b.free_src_tokens);
+	a.free_call_stack.swap(b.free_call_stack);
+}
+
+struct malloc_info_array_t
+{
+	._data_begin: *malloc_info_t;
+	._data_end:   *malloc_info_t;
+	._alloc_end:  *malloc_info_t;
+
+	destructor(&self)
+	{
+		self.destruct_vector();
+	}
+}
+
+@no_comptime_checking
+function swap(a: &malloc_info_array_t, b: &malloc_info_array_t)
+{
+	a.swap_vector(b);
+}
+
+@no_comptime_checking
+operator = (lhs: &malloc_info_array_t, rhs: &const malloc_info_array_t) -> &malloc_info_array_t
+{
+	lhs.assign_vector(rhs);
+	return lhs;
+}
+
+@no_comptime_checking
+operator = (lhs: &malloc_info_array_t, rhs: malloc_info_array_t) -> &malloc_info_array_t
+{
+	lhs.assign_vector(rhs);
+	return lhs;
+}
+
+@no_runtime_emit
+@comptime_error_checking("malloc_infos_var")
+let malloc_infos = malloc_info_array_t[ null, null, null ];
+
+@comptime_error_checking("register_malloc")
+function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64, end: uint64)
+{
+	malloc_infos.push_back(malloc_info_t(ptr, size, src_tokens_t[ begin, pivot, end ]));
+}
+
+@comptime_error_checking("register_free")
+function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	for (let &malloc_info in malloc_infos.as_slice())
+	{
+		if (malloc_info.ptr == ptr)
+		{
+			if (malloc_info.is_freed)
+			{
+				emit_diagnostic(warning_kind_error, "double free detected", begin, pivot, end);
+				return false;
+			}
+			else
+			{
+				malloc_info.is_freed = true;
+				malloc_info.free_src_tokens = src_tokens_t[ begin, pivot, end ];
+				malloc_info.free_call_stack = get_call_stack_array_copy();
+				return true;
+			}
+		}
+	}
+	emit_diagnostic(warning_kind_error, "freeing an unknown pointer", begin, pivot, end);
+	return false;
+}
+
+@comptime_error_checking("check_leaks")
+function check_leaks() -> bool
+{
+	let good = true;
+	for (let &malloc_info in malloc_infos.as_slice())
+	{
+		if (!malloc_info.is_freed)
+		{
+			const call_stack = malloc_info.malloc_call_stack;
+			malloc_info.malloc_call_stack = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
+			emit_diagnostic(
+				warning_kind_error,
+				"malloc'd pointer was never freed",
+				call_stack,
+				malloc_info.malloc_src_tokens.begin,
+				malloc_info.malloc_src_tokens.pivot,
+				malloc_info.malloc_src_tokens.end,
+			);
+			good = false;
+			free(malloc_info.ptr);
+		}
+	}
+	malloc_infos.clear();
+	return good;
 }
 
 
@@ -1715,6 +1855,12 @@ function lgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64)
 		return false;
 	}
 	return true;
+}
+
+@no_comptime_checking
+function emit_diagnostic(kind: uint32, message: str, call_stack: [: uint64], begin: uint64, pivot: uint64, end: uint64)
+{
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack ]);
 }
 
 @no_comptime_checking

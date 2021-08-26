@@ -406,6 +406,12 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 		this->_comptime_executor.global_strings = var_decl;
 		return true;
 	}
+	else if (kind == "malloc_infos_var")
+	{
+		bz_assert(this->_comptime_executor.malloc_infos == nullptr);
+		this->_comptime_executor.malloc_infos = var_decl;
+		return true;
+	}
 	else
 	{
 		return false;
@@ -703,6 +709,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto &comptime_checking_file = this->_src_files.emplace_back(
 		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
+	this->_comptime_executor.comptime_checking_file_id = comptime_checking_file._file_id;
 	if (!comptime_checking_file.parse_global_symbols(*this))
 	{
 		return false;

@@ -17,6 +17,7 @@
 #include <llvm/Transforms/Utils.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include "colors.h"
 
 namespace ctx
 {
@@ -452,6 +453,17 @@ bool comptime_executor_context::has_terminator(llvm::BasicBlock *bb)
 	return bb->size() != 0 && bb->back().isTerminator();
 }
 
+bool comptime_executor_context::do_error_checking(void) const
+{
+	auto const current_function = this->current_function.first;
+	return current_function == nullptr
+		|| (
+			!current_function->is_no_comptime_checking()
+			&& current_function->src_tokens.pivot != nullptr
+			&& current_function->src_tokens.pivot->src_pos.file_id != this->comptime_checking_file_id
+		);
+}
+
 void comptime_executor_context::push_expression_scope(void)
 {
 	this->destructor_calls.emplace_back();
@@ -811,7 +823,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			return result;
 		}
 
-		// bz::log("{}>>>>>>>> verifying {} <<<<<<<<{}\n", colors::bright_red, module_name, colors::clear);
+		// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
 		// llvm::verifyModule(*this->current_module, &llvm::dbgs());
 		this->add_module(std::move(module));
 		auto const call_result = this->engine->runFunction(fn, {});
@@ -932,13 +944,6 @@ void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)
 	{
-		if (debug_comptime_ir_output)
-		{
-			std::error_code ec;
-			auto output_file = llvm::raw_fd_ostream("comptime_output.ll", ec, llvm::sys::fs::OF_Text);
-			// create an empty file
-			output_file.flush();
-		}
 		this->engine = this->create_engine(this->create_module());
 		this->add_base_functions_to_engine();
 
@@ -1012,6 +1017,8 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 		bc::comptime::emit_global_variable(*this->call_stack, *this);
 		bz_assert(this->global_strings != nullptr);
 		bc::comptime::emit_global_variable(*this->global_strings, *this);
+		bz_assert(this->malloc_infos != nullptr);
+		bc::comptime::emit_global_variable(*this->malloc_infos, *this);
 		this->pop_module(prev_module);
 		this->add_module(std::move(module));
 	}

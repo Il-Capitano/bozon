@@ -44,6 +44,10 @@ enum class comptime_function_kind : uint32_t
 	pop_call,
 	clear_errors,
 
+	register_malloc,
+	register_free,
+	check_leaks,
+
 	index_check_unsigned,
 	index_check_signed,
 
@@ -206,6 +210,7 @@ struct comptime_executor_context
 
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
+	bool do_error_checking(void) const;
 
 
 	void push_expression_scope(void);
@@ -298,7 +303,9 @@ struct comptime_executor_context
 	ast::decl_variable *errors_array   = nullptr;
 	ast::decl_variable *call_stack     = nullptr;
 	ast::decl_variable *global_strings = nullptr;
+	ast::decl_variable *malloc_infos   = nullptr;
 	bz::vector<comptime_function> comptime_functions;
+	uint32_t comptime_checking_file_id = 0;
 
 	llvm::TargetMachine *target_machine = nullptr;
 	llvm::legacy::PassManager pass_manager{};
@@ -330,6 +337,10 @@ constexpr bz::array comptime_function_info = {
 	def_element(push_call),
 	def_element(pop_call),
 	def_element(clear_errors),
+
+	def_element(register_malloc),
+	def_element(register_free),
+	def_element(check_leaks),
 
 	def_element(index_check_unsigned),
 	def_element(index_check_signed),

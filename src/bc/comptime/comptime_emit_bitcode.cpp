@@ -307,7 +307,7 @@ static void emit_error(
 	ctx::comptime_executor_context &context
 )
 {
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	if (!context.do_error_checking())
 	{
 		return nullptr;
 	}
@@ -323,7 +323,7 @@ static void emit_error(
 
 void emit_pop_call(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
 {
-	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	if (!context.do_error_checking())
 	{
 		return;
 	}
@@ -1817,7 +1817,7 @@ static val_ptr emit_builtin_binary_divide(
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 
-	if (ctx::is_integer_kind(lhs_kind))
+	if (context.do_error_checking() && ctx::is_integer_kind(lhs_kind))
 	{
 		auto const check_fn_kind =
 			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
@@ -1874,7 +1874,7 @@ static val_ptr emit_builtin_binary_divide_eq(
 	bz_assert(lhs_val_ref.kind == val_ptr::reference);
 	auto const lhs_val = lhs_val_ref.get_value(context.builder);
 
-	if (ctx::is_integer_kind(lhs_kind))
+	if (context.do_error_checking() && ctx::is_integer_kind(lhs_kind))
 	{
 		auto const check_fn_kind =
 			lhs_kind == ast::type_info::int8_   ? ctx::comptime_function_kind::i8_divide_check :
@@ -3076,12 +3076,20 @@ static val_ptr emit_bitcode(
 			auto const alloc_size = context.builder.CreateMul(count, type_size_val);
 			auto const malloc_fn = context.get_function(context.get_builtin_function(ast::function_body::comptime_malloc));
 			auto const result_void_ptr = context.builder.CreateCall(malloc_fn, alloc_size);
-			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+			auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+			// always check malloc result
 			auto const non_null = context.builder.CreateCall(
 				context.get_comptime_function(ctx::comptime_function_kind::comptime_malloc_check),
-				{ result_void_ptr, alloc_size, error_begin_val, error_pivot_val, error_end_val }
+				{ result_void_ptr, alloc_size, src_begin_val, src_pivot_val, src_end_val }
 			);
 			emit_error_assert(non_null, context);
+			if (context.do_error_checking())
+			{
+				context.builder.CreateCall(
+					context.get_comptime_function(ctx::comptime_function_kind::register_malloc),
+					{ result_void_ptr, alloc_size, src_begin_val, src_pivot_val, src_end_val }
+				);
+			}
 			auto const result = context.builder.CreatePointerCast(result_void_ptr, result_type);
 			if (result_address != nullptr)
 			{
@@ -3092,6 +3100,24 @@ static val_ptr emit_bitcode(
 			{
 				return { val_ptr::value, result };
 			}
+		}
+
+		case ast::function_body::comptime_free:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			if (context.do_error_checking())
+			{
+				auto const [src_begin_val, src_pivot_val, src_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const is_good = context.builder.CreateCall(
+					context.get_comptime_function(ctx::comptime_function_kind::register_free),
+					{ ptr, src_begin_val, src_pivot_val, src_end_val }
+				);
+				emit_error_assert(is_good, context);
+			}
+			auto const free_fn = context.get_function(func_call.func_body);
+			context.builder.CreateCall(free_fn, { ptr });
+			return {};
 		}
 
 		case ast::function_body::comptime_compile_error:
@@ -3134,13 +3160,15 @@ static val_ptr emit_bitcode(
 			auto const src  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
-			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-
-			auto const is_valid = context.builder.CreateCall(
-				context.get_comptime_function(ctx::comptime_function_kind::comptime_memcpy_check),
-				{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
-			);
-			emit_error_assert(is_valid, context);
+			if (context.do_error_checking())
+			{
+				auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const is_valid = context.builder.CreateCall(
+					context.get_comptime_function(ctx::comptime_function_kind::comptime_memcpy_check),
+					{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
+				);
+				emit_error_assert(is_valid, context);
+			}
 			context.builder.CreateCall(
 				context.get_function(func_call.func_body),
 				{ dest, src, size, false_val }
@@ -3155,13 +3183,15 @@ static val_ptr emit_bitcode(
 			auto const src  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
-			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-
-			auto const is_valid = context.builder.CreateCall(
-				context.get_comptime_function(ctx::comptime_function_kind::comptime_memmove_check),
-				{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
-			);
-			emit_error_assert(is_valid, context);
+			if (context.do_error_checking())
+			{
+				auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const is_valid = context.builder.CreateCall(
+					context.get_comptime_function(ctx::comptime_function_kind::comptime_memmove_check),
+					{ dest, src, size, error_begin_val, error_pivot_val, error_end_val }
+				);
+				emit_error_assert(is_valid, context);
+			}
 			context.builder.CreateCall(
 				context.get_function(func_call.func_body),
 				{ dest, src, size, false_val }
@@ -3176,13 +3206,15 @@ static val_ptr emit_bitcode(
 			auto const val  = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			auto const size = emit_bitcode<abi>(func_call.params[2], context, nullptr).get_value(context.builder);
 			auto const false_val = llvm::ConstantInt::getFalse(context.get_llvm_context());
-			auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
-
-			auto const is_valid = context.builder.CreateCall(
-				context.get_comptime_function(ctx::comptime_function_kind::comptime_memset_check),
-				{ dest, val, size, error_begin_val, error_pivot_val, error_end_val }
-			);
-			emit_error_assert(is_valid, context);
+			if (context.do_error_checking())
+			{
+				auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const is_valid = context.builder.CreateCall(
+					context.get_comptime_function(ctx::comptime_function_kind::comptime_memset_check),
+					{ dest, val, size, error_begin_val, error_pivot_val, error_end_val }
+				);
+				emit_error_assert(is_valid, context);
+			}
 			context.builder.CreateCall(
 				context.get_function(func_call.func_body),
 				{ dest, val, size, false_val }
@@ -3222,11 +3254,14 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const val = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
-			auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
-			auto const check_fn = context.get_comptime_function(check_fn_kind);
-			auto const is_valid = context.builder.CreateCall(check_fn, { val, src_begin, src_pivot, src_end });
-			emit_error_assert(is_valid, context);
+			if (context.do_error_checking())
+			{
+				auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
+				auto const check_fn = context.get_comptime_function(check_fn_kind);
+				auto const is_valid = context.builder.CreateCall(check_fn, { val, src_begin, src_pivot, src_end });
+				emit_error_assert(is_valid, context);
+			}
 			auto const fn = context.get_function(func_call.func_body);
 			auto const result_val = context.builder.CreateCall(fn, { val });
 			if (result_address == nullptr)
@@ -3247,11 +3282,14 @@ static val_ptr emit_bitcode(
 			bz_assert(func_call.params.size() == 2);
 			auto const val1 = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
 			auto const val2 = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
-			auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
-			auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
-			auto const check_fn = context.get_comptime_function(check_fn_kind);
-			auto const is_valid = context.builder.CreateCall(check_fn, { val1, val2, src_begin, src_pivot, src_end });
-			emit_error_assert(is_valid, context);
+			if (context.do_error_checking())
+			{
+				auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
+				auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
+				auto const check_fn = context.get_comptime_function(check_fn_kind);
+				auto const is_valid = context.builder.CreateCall(check_fn, { val1, val2, src_begin, src_pivot, src_end });
+				emit_error_assert(is_valid, context);
+			}
 			auto const fn = context.get_function(func_call.func_body);
 			auto const result_val = context.builder.CreateCall(fn, { val1, val2 });
 			if (result_address == nullptr)
@@ -3413,7 +3451,7 @@ static val_ptr emit_bitcode(
 		);
 
 		auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
-		if (!file.ends_with("__comptime_checking.bz"))
+		// if (!file.ends_with("__comptime_checking.bz"))
 		{
 			auto const line = src_tokens.pivot->src_pos.line;
 			auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
@@ -3548,6 +3586,7 @@ static val_ptr emit_bitcode(
 		}
 
 		// array bounds check
+		if (context.do_error_checking())
 		{
 			auto const array_size = base_type.get<ast::ts_array>().size;
 			auto const array_size_val = llvm::ConstantInt::get(context.get_usize_t(), array_size);
@@ -3606,6 +3645,7 @@ static val_ptr emit_bitcode(
 		}
 
 		// array bounds check
+		if (context.do_error_checking())
 		{
 			auto const end_ptr = context.builder.CreateExtractValue(array_val, 1);
 			auto const array_size_val = context.builder.CreatePtrDiff(end_ptr, begin_ptr);
@@ -5739,6 +5779,12 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		}
 	}
 
+	auto const no_leaks = context.builder.CreateCall(
+		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
+		{}
+	);
+	emit_error_assert(no_leaks, context);
+
 	if (return_result_as_global && !result_type->isVoidTy())
 	{
 		auto const symbol_name = bz::format("__anon_func_call_result.{}", get_unique_id());
@@ -5896,6 +5942,10 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const error_bb = context.add_basic_block("error");
 	context.error_bb = error_bb;
 	context.builder.SetInsertPoint(error_bb);
+	context.builder.CreateCall(
+		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
+		{}
+	);
 	if (result.first->getReturnType()->isVoidTy())
 	{
 		context.builder.CreateRetVoid();
@@ -5947,6 +5997,12 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		}
 	}
 	context.pop_expression_scope();
+
+	auto const no_leaks = context.builder.CreateCall(
+		context.get_comptime_function(ctx::comptime_function_kind::check_leaks),
+		{}
+	);
+	emit_error_assert(no_leaks, context);
 
 	if (ret_val == nullptr)
 	{
