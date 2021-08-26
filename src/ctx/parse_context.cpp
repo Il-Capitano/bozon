@@ -5172,79 +5172,12 @@ ast::expression parse_context::make_function_call_expression(
 				})
 				.collect<ast::arena_vector>();
 
-			if (possible_funcs.empty() && params.empty())
-			{
-				// default construction of builtin types
-				auto const info = called_type.get<ast::ts_base_type>().info;
-				switch (info->kind)
-				{
-				case ast::type_info::int8_:
-				case ast::type_info::int16_:
-				case ast::type_info::int32_:
-				case ast::type_info::int64_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(static_cast<int64_t>(0)),
-						ast::expr_t{}
-					);
-				case ast::type_info::uint8_:
-				case ast::type_info::uint16_:
-				case ast::type_info::uint32_:
-				case ast::type_info::uint64_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(static_cast<uint64_t>(0)),
-						ast::expr_t{}
-					);
-				case ast::type_info::float32_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(static_cast<float32_t>(0)),
-						ast::expr_t{}
-					);
-				case ast::type_info::float64_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(static_cast<float64_t>(0)),
-						ast::expr_t{}
-					);
-				case ast::type_info::char_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(static_cast<bz::u8char>(0)),
-						ast::expr_t{}
-					);
-				case ast::type_info::str_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(bz::u8string()),
-						ast::expr_t{}
-					);
-				case ast::type_info::bool_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(false),
-						ast::expr_t{}
-					);
-				case ast::type_info::null_t_:
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::rvalue, called_type,
-						ast::constant_value(ast::internal::null_t{}),
-						ast::expr_t{}
-					);
-				default:
-					break;
-				}
-			}
-			else if (possible_funcs.empty() && params.size() == 1)
+			if (
+				possible_funcs.is_all([](auto const &possible_func) {
+					return possible_func.match_level.is_null();
+				})
+				&& params.size() == 1
+			)
 			{
 				// function style casting
 				return this->make_cast_expression(src_tokens, std::move(params[0]), called_type);

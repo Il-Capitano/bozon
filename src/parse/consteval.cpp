@@ -2183,6 +2183,29 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		return evaluate_bit_manipulation(original_expr, func_call, context);
 
+	case ast::function_body::i8_default_constructor:
+	case ast::function_body::i16_default_constructor:
+	case ast::function_body::i32_default_constructor:
+	case ast::function_body::i64_default_constructor:
+		return ast::constant_value(int64_t());
+	case ast::function_body::u8_default_constructor:
+	case ast::function_body::u16_default_constructor:
+	case ast::function_body::u32_default_constructor:
+	case ast::function_body::u64_default_constructor:
+		return ast::constant_value(uint64_t());
+	case ast::function_body::f32_default_constructor:
+		return ast::constant_value(float32_t());
+	case ast::function_body::f64_default_constructor:
+		return ast::constant_value(float64_t());
+	case ast::function_body::char_default_constructor:
+		return ast::constant_value(bz::u8char());
+	case ast::function_body::str_default_constructor:
+		return ast::constant_value(bz::u8string());
+	case ast::function_body::bool_default_constructor:
+		return ast::constant_value(bool());
+	case ast::function_body::null_t_default_constructor:
+		return ast::constant_value(ast::internal::null_t());
+
 	default:
 		bz_unreachable;
 	}

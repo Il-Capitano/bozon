@@ -613,6 +613,22 @@ struct function_body
 		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
 
 		_builtin_last,
+
+		// these functions don't have a __builtin_* variant
+		i8_default_constructor,
+		i16_default_constructor,
+		i32_default_constructor,
+		i64_default_constructor,
+		u8_default_constructor,
+		u16_default_constructor,
+		u32_default_constructor,
+		u64_default_constructor,
+		f32_default_constructor,
+		f64_default_constructor,
+		char_default_constructor,
+		str_default_constructor,
+		bool_default_constructor,
+		null_t_default_constructor,
 	};
 
 	bz::vector<decl_variable> params;
@@ -734,12 +750,14 @@ struct function_body
 	type_info *get_destructor_of(void) const noexcept
 	{
 		bz_assert(this->is_destructor());
+		bz_assert(this->constructor_or_destructor_of != nullptr);
 		return this->constructor_or_destructor_of;
 	}
 
 	type_info *get_constructor_of(void) const noexcept
 	{
 		bz_assert(this->is_constructor());
+		bz_assert(this->constructor_or_destructor_of != nullptr);
 		return this->constructor_or_destructor_of;
 	}
 

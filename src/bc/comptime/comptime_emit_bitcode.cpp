@@ -3303,6 +3303,23 @@ static val_ptr emit_bitcode(
 			}
 		}
 
+		case ast::function_body::i8_default_constructor:
+		case ast::function_body::i16_default_constructor:
+		case ast::function_body::i32_default_constructor:
+		case ast::function_body::i64_default_constructor:
+		case ast::function_body::u8_default_constructor:
+		case ast::function_body::u16_default_constructor:
+		case ast::function_body::u32_default_constructor:
+		case ast::function_body::u64_default_constructor:
+		case ast::function_body::f32_default_constructor:
+		case ast::function_body::f64_default_constructor:
+		case ast::function_body::char_default_constructor:
+		case ast::function_body::str_default_constructor:
+		case ast::function_body::bool_default_constructor:
+		case ast::function_body::null_t_default_constructor:
+			// these functions are guaranteed to be evaluated at compile time
+			bz_unreachable;
+
 		default:
 			break;
 		}

@@ -501,6 +501,65 @@ static_assert(type_info::str_     == 11);
 static_assert(type_info::bool_    == 12);
 static_assert(type_info::null_t_  == 13);
 
+static type_info::function_body_ptr make_default_constructor(type_info *info)
+{
+	auto result = make_ast_unique<function_body>();
+	result->return_type = make_base_type_typespec({}, info);
+	switch (info->kind)
+	{
+		case type_info::int8_:
+			result->intrinsic_kind = function_body::i8_default_constructor;
+			break;
+		case type_info::int16_:
+			result->intrinsic_kind = function_body::i16_default_constructor;
+			break;
+		case type_info::int32_:
+			result->intrinsic_kind = function_body::i32_default_constructor;
+			break;
+		case type_info::int64_:
+			result->intrinsic_kind = function_body::i64_default_constructor;
+			break;
+		case type_info::uint8_:
+			result->intrinsic_kind = function_body::u8_default_constructor;
+			break;
+		case type_info::uint16_:
+			result->intrinsic_kind = function_body::u16_default_constructor;
+			break;
+		case type_info::uint32_:
+			result->intrinsic_kind = function_body::u32_default_constructor;
+			break;
+		case type_info::uint64_:
+			result->intrinsic_kind = function_body::u64_default_constructor;
+			break;
+		case type_info::float32_:
+			result->intrinsic_kind = function_body::f32_default_constructor;
+			break;
+		case type_info::float64_:
+			result->intrinsic_kind = function_body::f64_default_constructor;
+			break;
+		case type_info::char_:
+			result->intrinsic_kind = function_body::char_default_constructor;
+			break;
+		case type_info::str_:
+			result->intrinsic_kind = function_body::str_default_constructor;
+			break;
+		case type_info::bool_:
+			result->intrinsic_kind = function_body::bool_default_constructor;
+			break;
+		case type_info::null_t_:
+			result->intrinsic_kind = function_body::null_t_default_constructor;
+			break;
+		default:
+			bz_unreachable;
+	}
+	result->flags = function_body::intrinsic
+		| function_body::constructor
+		| function_body::default_default_constructor;
+	result->constructor_or_destructor_of = info;
+	result->state = resolve_state::symbol;
+	result->symbol_name = result->get_symbol_name();
+	return result;
+}
 
 bz::vector<type_info> make_builtin_type_infos(void)
 {
@@ -520,6 +579,11 @@ bz::vector<type_info> make_builtin_type_infos(void)
 	result.push_back(type_info::make_builtin("str",      type_info::str_));
 	result.push_back(type_info::make_builtin("bool",     type_info::bool_));
 	result.push_back(type_info::make_builtin("__null_t", type_info::null_t_));
+	for (auto &info : result)
+	{
+		info.default_default_constructor = make_default_constructor(&info);
+		info.constructors.push_back(info.default_default_constructor.get());
+	}
 	return result;
 }
 
