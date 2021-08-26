@@ -2439,6 +2439,43 @@ static void resolve_type_info_impl(
 	info_body = parse_struct_body_statements(stream, end, context);
 
 	add_type_info_members(info, context);
+	auto const member_type_range = info.member_variables
+		.transform([](auto const var_decl) { return var_decl->get_type().as_typespec_view(); });
+
+	if (member_type_range.is_all([](auto const type) { return ast::is_trivial(type); }))
+	{
+		info.flags |= ast::type_info::trivial;
+		info.flags |= ast::type_info::trivially_copy_constructible;
+		info.flags |= ast::type_info::copy_constructible;
+		info.flags |= ast::type_info::trivially_destructible;
+	}
+	else
+	{
+		if (member_type_range.is_all([](auto const type) { return ast::is_trivially_copy_constructible(type); }))
+		{
+			info.flags |= ast::type_info::trivially_copy_constructible;
+			info.flags |= ast::type_info::copy_constructible;
+		}
+		else if (member_type_range.is_all([](auto const type) { return ast::is_copy_constructible(type); }))
+		{
+			info.flags |= ast::type_info::copy_constructible;
+		}
+
+		if (member_type_range.is_all([](auto const type) { return ast::is_trivially_destructible(type); }))
+		{
+			info.flags |= ast::type_info::trivially_destructible;
+		}
+	}
+
+	if (member_type_range.is_all([](auto const type) { return ast::is_default_zero_initialized(type); }))
+	{
+		info.flags |= ast::type_info::default_constructible;
+		info.flags |= ast::type_info::default_zero_initialized;
+	}
+	else if (member_type_range.is_all([](auto const type) { return ast::is_default_constructible(type); }))
+	{
+		info.flags |= ast::type_info::default_constructible;
+	}
 
 	if (info.state == ast::resolve_state::error)
 	{
@@ -2452,6 +2489,12 @@ static void resolve_type_info_impl(
 	for (auto &stmt : info_body)
 	{
 		resolve_global_statement(stmt, context);
+	}
+
+	if (info.constructors.empty())
+	{
+		info.constructors.push_back(info.default_default_constructor.get());
+		info.constructors.push_back(info.default_copy_constructor.get());
 	}
 }
 

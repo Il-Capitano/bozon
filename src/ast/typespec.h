@@ -237,6 +237,12 @@ bool is_complete(typespec_view ts) noexcept;
 
 bool needs_destructor(typespec_view ts) noexcept;
 bool is_non_trivial(typespec_view ts) noexcept;
+
+bool is_default_constructible(typespec_view ts) noexcept;
+bool is_copy_constructible(typespec_view ts) noexcept;
+bool is_trivially_copy_constructible(typespec_view ts) noexcept;
+bool is_trivially_destructible(typespec_view ts) noexcept;
+bool is_trivial(typespec_view ts) noexcept;
 bool is_default_zero_initialized(typespec_view ts) noexcept;
 
 bool operator == (typespec_view lhs, typespec_view rhs);

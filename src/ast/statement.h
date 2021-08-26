@@ -870,6 +870,16 @@ struct type_info
 {
 	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
 
+	enum : uint32_t
+	{
+		default_constructible           = bit_at<0>,
+		copy_constructible              = bit_at<1>,
+		trivially_copy_constructible    = bit_at<2>,
+		trivially_destructible          = bit_at<3>,
+		trivial                         = bit_at<4>,
+		default_zero_initialized        = bit_at<5>,
+	};
+
 	enum : uint8_t
 	{
 		int8_, int16_, int32_, int64_,
@@ -888,6 +898,7 @@ struct type_info
 	bool            is_export;
 	identifier      type_name;
 	uint32_t        file_id;
+	uint32_t        flags;
 	bz::u8string    symbol_name;
 	body_t          body;
 
@@ -919,6 +930,7 @@ struct type_info
 		  is_export(false),
 		  type_name(std::move(_type_name)),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
+		  flags(0),
 		  symbol_name(),
 		  body(range),
 		  member_variables{},
@@ -938,6 +950,14 @@ private:
 		  is_export(false),
 		  type_name(),
 		  file_id(0),
+		  flags(
+			  default_constructible
+			  | copy_constructible
+			  | trivially_copy_constructible
+			  | trivially_destructible
+			  | trivial
+			  | default_zero_initialized
+		  ),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body(bz::vector<statement>{}),
 		  member_variables{},
@@ -949,6 +969,24 @@ private:
 //		  move_destuctor(nullptr)
 	{}
 public:
+
+	bool is_default_constructible(void) const noexcept
+	{ return (this->flags & default_constructible) != 0; }
+
+	bool is_copy_constructible(void) const noexcept
+	{ return (this->flags & copy_constructible) != 0; }
+
+	bool is_trivially_copy_constructible(void) const noexcept
+	{ return (this->flags & trivially_copy_constructible) != 0; }
+
+	bool is_trivially_destructible(void) const noexcept
+	{ return (this->flags & trivially_destructible) != 0; }
+
+	bool is_trivial(void) const noexcept
+	{ return (this->flags & trivial) != 0; }
+
+	bool is_default_zero_initialized(void) const noexcept
+	{ return (this->flags & default_zero_initialized) != 0; }
 
 	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
