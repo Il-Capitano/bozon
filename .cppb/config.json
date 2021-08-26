@@ -8,7 +8,6 @@
 			"cpp_precompiled_header": "src/core.h",
 
 			"c_compiler_flags": [],
-			"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
 			"emit_compile_commands": true,
 
 			"run_args": [
@@ -56,10 +55,12 @@
 					"emit_compile_commands": false
 				},
 				"debug": {
+					"cpp_compiler_flags": [ "-ferror-limit=2" ],
 					"defines": [ "BOZON_NO_ARENA" ],
 					"optimization": "0"
 				},
 				"release": {
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
 					"defines": [ "NDEBUG" ],
 					"optimization": "3",
 					"link_flags": [ "-flto" ],
@@ -79,7 +80,6 @@
 			"cpp_precompiled_header": "",
 
 			"c_compiler_flags": [],
-			"cpp_compiler_flags": [ "-march=native", "-mtune=native" ],
 			"emit_compile_commands": false,
 
 			"warnings": [
@@ -111,6 +111,7 @@
 					"optimization": "0"
 				},
 				"release": {
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native" ],
 					"defines": [ "NDEBUG" ],
 					"optimization": "3"
 				}
