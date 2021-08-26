@@ -557,6 +557,13 @@ export function format(fmt_str: consteval str, args: ...#const auto) -> string
 	return format_unchecked_fmt(fmt_str, ...args);
 }
 
+export consteval function comptime_format(fmt_str: consteval str, args: ...#const auto) -> str
+{
+	(consteval check_fmt_str(fmt_str));
+	const s = format_unchecked_fmt(fmt_str, ...args);
+	return s.as_str().meta::create_global_string();
+}
+
 export function printf(fmt_str: consteval str, args: ...#const auto)
 {
 	(consteval check_fmt_str(fmt_str));
