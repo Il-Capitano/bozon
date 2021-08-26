@@ -107,6 +107,7 @@
 					"warnings": [ "no-unused-parameter" ]
 				},
 				"debug": {
+					"cpp_compiler_flags": [],
 					"defines": [ "BOZON_NO_ARENA" ],
 					"optimization": "0"
 				},
