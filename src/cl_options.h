@@ -92,6 +92,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_option("-V, --version",                    "Print compiler version"),
 	ctcli::create_option("-I, --import-dir <dir>",           "Add <dir> as an import directory", ctcli::arg_type::string),
 	ctcli::create_option("-o, --output <file>",              "Write output to <file>", ctcli::arg_type::string),
+	ctcli::create_option("-D, --define <option>",            "Set <option> for compilation", ctcli::arg_type::string),
 	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
 	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
 	ctcli::create_option("--no-panic-on-unreachable",        "Don't call '__builtin_panic()' if unreachable is hit"),
@@ -114,6 +115,7 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 template<> inline constexpr bool ctcli::add_verbose_option<ctcli::options_id_t::def> = true;
 
 template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--import-dir")> = true;
+template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--define")>     = true;
 template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &display_version;
@@ -130,6 +132,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 

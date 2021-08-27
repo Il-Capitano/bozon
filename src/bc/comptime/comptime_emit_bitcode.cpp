@@ -2802,7 +2802,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -3032,6 +3032,24 @@ static val_ptr emit_bitcode(
 			else
 			{
 				return { val_ptr::value, result_val };
+			}
+		}
+		case ast::function_body::builtin_is_option_set:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const option = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const begin_ptr = context.builder.CreateExtractValue(option, 0);
+			auto const end_ptr   = context.builder.CreateExtractValue(option, 1);
+			bz_assert(context.is_option_set_impl_func != nullptr);
+			auto const is_set = context.builder.CreateCall(context.is_option_set_impl_func, { begin_ptr, end_ptr });
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(is_set, result_address);
+				return { val_ptr::reference, result_address };
+			}
+			else
+			{
+				return { val_ptr::value, is_set };
 			}
 		}
 		case ast::function_body::builtin_panic:

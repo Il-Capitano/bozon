@@ -1,5 +1,6 @@
 #include "consteval.h"
 #include "safe_operations.h"
+#include "global_data.h"
 
 namespace parse
 {
@@ -1815,7 +1816,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->is_intrinsic());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -2023,6 +2024,27 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return {};
 		}
+
+	case ast::function_body::builtin_is_option_set:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::string>());
+		auto const &option = func_call.params[0].get<ast::constant_expression>().value.get<ast::constant_value::string>();
+		return ast::constant_value(defines.contains(option));
+	}
 
 	case ast::function_body::builtin_panic:
 		return {};

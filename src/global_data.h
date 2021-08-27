@@ -95,6 +95,7 @@ inline size_t tab_size = 4;
 inline bool no_error_highlight = false;
 
 inline bz::vector<bz::u8string> import_dirs;
+inline bz::vector<bz::u8string> defines;
 inline bz::u8string stdlib_dir;
 
 inline size_t max_opt_iter_count = 1;

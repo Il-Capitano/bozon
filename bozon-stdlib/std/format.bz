@@ -1523,12 +1523,12 @@ export function format_to(arr: [: const auto], buffer: &format_buffer, fmt_spec:
 	buffer.write_into(" ]");
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first], fmt_spec: format_spec)
+function tuple_format_to_impl(buffer: &format_buffer, [first: *const auto], fmt_spec: format_spec)
 {
 	first->format_to(buffer, fmt_spec);
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest], fmt_spec: format_spec)
+function tuple_format_to_impl(buffer: &format_buffer, [first: *const auto, second: *const auto, ...rest: *const auto], fmt_spec: format_spec)
 {
 	first->format_to(buffer, fmt_spec);
 	buffer.write_into(", ");
