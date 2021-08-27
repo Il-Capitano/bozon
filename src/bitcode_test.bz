@@ -50,8 +50,21 @@ type asdf = const asdf0;
 static_assert(asdf == const int32);
 static_assert(0.1 + 0.2 != 0.3);
 
+struct foo_t
+{
+	.n: int32;
+	.s: str;
+}
+
 function main(args: [: const str]) -> int32
 {
+	foo_t();
+	(consteval {
+		const p = std::meta::malloc(int32, 1u);
+		std::meta::free(p);
+	});
+	@maybe_unused
+	let n = ((usize(-1)));
 	consteval s = {
 		const s = std::string("Hello");
 		s.as_str().std::meta::create_global_string()
@@ -359,6 +372,9 @@ function main(args: [: const str]) -> int32
 	static_assert(std::format("{1} {1}!", "Hello", "World") == "World World!");
 	static_assert(std::format("{0} {0}!", "Hello", "World") == "Hello Hello!");
 	static_assert(std::format("{0} {}!",  "Hello", "World") == "Hello World!");
+	consteval s = std::comptime_format("Hello {:.^10}", "World");
+	static_assert(typeof s == const str);
+	static_assert(s == "Hello ..World...");
 
 	// consteval x = std::sqrt(-1.0);
 
