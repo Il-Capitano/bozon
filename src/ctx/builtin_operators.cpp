@@ -502,64 +502,14 @@ static ast::expression get_builtin_unary_plus_plus_minus_minus(
 }
 
 static ast::expression get_builtin_unary_dot_dot_dot(
-	lex::src_tokens src_tokens,
-	uint32_t op_kind,
-	ast::expression expr,
-	parse_context &context
+	lex::src_tokens,
+	uint32_t,
+	ast::expression,
+	parse_context &
 )
 {
-	bz_assert(op_kind == lex::token::dot_dot_dot);
-	bz_assert(expr.not_error());
-
-	if (!expr.is<ast::variadic_expression>())
-	{
-		context.report_error(src_tokens, "the expanded expression is not a variadic expression");
-		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
-	}
-
-	auto &variadic_expr = expr.get<ast::variadic_expression>();
-	bz_assert(variadic_expr.variadic_infos.not_empty());
-	auto const [tokens, size] = variadic_expr.variadic_infos[0];
-	for (auto const &info : variadic_expr.variadic_infos.slice(1))
-	{
-		if (info.size != size)
-		{
-			context.report_error(
-				src_tokens,
-				"different variadic expressions have mismatched lengths in variadic expansion",
-				{
-					context.make_note(tokens, bz::format("variadic expression has length {}", size)),
-					context.make_note(info.src_tokens, bz::format("variadic expression has length {}", info.size)),
-				}
-			);
-			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
-		}
-	}
-
-	ast::arena_vector<ast::expression> expanded_exprs;
-	expanded_exprs.reserve(size);
-	if (size != 0)
-	{
-		for ([[maybe_unused]] auto const _ : bz::iota(1, size))
-		{
-			expanded_exprs.push_back(*variadic_expr.expr);
-		}
-		expanded_exprs.push_back(std::move(*variadic_expr.expr));
-		variadic_expr.expr.reset();
-	}
-
-	auto const variadic_info = context.push_variadic_resolver();
-	for (auto &expr : expanded_exprs)
-	{
-		resolve::resolve_expression(expr, context);
-		context.variadic_info.variadic_index += 1;
-	}
-	context.pop_variadic_resolver(variadic_info);
-
-	return ast::make_expanded_variadic_expression(
-		src_tokens,
-		std::move(expanded_exprs)
-	);
+	// this is handled in resolve_expression
+	bz_unreachable;
 }
 
 // &(typename) -> (&typename)

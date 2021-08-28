@@ -29,171 +29,99 @@ struct variadic_var_decl
 	bz::vector<ast::decl_variable *> var_decls;
 };
 
+using symbol_t = bz::variant<
+	ast::decl_variable *,
+	variadic_var_decl,
+	function_overload_set,
+	ast::decl_type_alias *,
+	ast::decl_struct *,
+	ast::identifier
+>;
+
+ast::identifier const &get_symbol_id(symbol_t const &symbol);
+lex::src_tokens get_symbol_src_tokens(symbol_t const &symbol);
+
 struct decl_set
 {
-	bz::vector<ast::decl_variable *>   var_decls;
-	bz::vector<variadic_var_decl>      variadic_var_decls;
-	bz::vector<function_overload_set>  func_sets;
-	bz::vector<operator_overload_set>  op_sets;
-	bz::vector<ast::decl_type_alias *> type_aliases;
-	bz::vector<ast::decl_struct *>     types;
+	bz::vector<symbol_t> symbols;
+	bz::vector<operator_overload_set> op_sets;
 
-	void add_function(ast::statement &stmt)
+	auto var_decl_range(void) const
 	{
-		bz_assert(stmt.is<ast::decl_function>());
-		auto &func_decl = stmt.get<ast::decl_function>();
-		auto const &id = func_decl.id;
-		auto const set = std::find_if(
-			this->func_sets.begin(), this->func_sets.end(),
-			[&id](auto const &set) {
-				return id == set.id;
-			}
-		);
-		if (set == this->func_sets.end())
-		{
-			this->func_sets.push_back({ id, { ast::statement_view(stmt) }, {} });
-		}
-		else
-		{
-			set->func_decls.emplace_back(stmt);
-		}
+		return this->symbols
+			.filter([](auto const &symbol) { return symbol.template is<ast::decl_variable *>(); })
+			.transform([](auto const &symbol) -> auto const & { return symbol.template get<ast::decl_variable *>(); });
 	}
 
-	void add_function(ast::decl_function &func_decl)
+	auto variadic_var_decl_range(void) const
 	{
-		auto const &id = func_decl.id;
-		auto const set = std::find_if(
-			this->func_sets.begin(), this->func_sets.end(),
-			[&id](auto const &set) {
-				return id == set.id;
-			}
-		);
-		if (set == this->func_sets.end())
-		{
-			this->func_sets.push_back({ id, { ast::statement_view(&func_decl) }, {} });
-		}
-		else
-		{
-			set->func_decls.emplace_back(&func_decl);
-		}
+		return this->symbols
+			.filter([](auto const &symbol) { return symbol.template is<variadic_var_decl>(); })
+			.transform([](auto const &symbol) -> auto const & { return symbol.template get<variadic_var_decl>(); });
 	}
 
-	void add_operator(ast::statement &stmt)
+	auto function_overload_set_range(void) const
 	{
-		bz_assert(stmt.is<ast::decl_operator>());
-		auto &op_decl = stmt.get<ast::decl_operator>();
-		auto const scope = op_decl.scope.as_array_view();
-		auto const op = op_decl.op->kind;
-		auto const set = std::find_if(
-			this->op_sets.begin(), this->op_sets.end(),
-			[op, scope](auto const &set) {
-				return op == set.op && scope == set.scope;
-			}
-		);
-		if (set == this->op_sets.end())
-		{
-			this->op_sets.push_back({ scope, op, { ast::statement_view(stmt) } });
-		}
-		else
-		{
-			set->op_decls.emplace_back(stmt);
-		}
+		return this->symbols
+			.filter([](auto const &symbol) { return symbol.template is<function_overload_set>(); })
+			.transform([](auto const &symbol) -> auto const & { return symbol.template get<function_overload_set>(); });
 	}
 
-	void add_operator(ast::decl_operator &op_decl)
+	auto type_alias_range(void) const
 	{
-		auto const scope = op_decl.scope.as_array_view();
-		auto const op = op_decl.op->kind;
-		auto const set = std::find_if(
-			this->op_sets.begin(), this->op_sets.end(),
-			[op](auto const &set) {
-				return op == set.op;
-			}
-		);
-		if (set == this->op_sets.end())
-		{
-			this->op_sets.push_back({ scope, op, { ast::statement_view(&op_decl) } });
-		}
-		else
-		{
-			set->op_decls.emplace_back(&op_decl);
-		}
+		return this->symbols
+			.filter([](auto const &symbol) { return symbol.template is<ast::decl_type_alias *>(); })
+			.transform([](auto const &symbol) -> auto const & { return symbol.template get<ast::decl_type_alias *>(); });
 	}
 
-	void add_function_alias(ast::statement &stmt)
+	auto type_range(void) const
 	{
-		bz_assert(stmt.is<ast::decl_function_alias>());
-		auto &alias_decl = stmt.get<ast::decl_function_alias>();
-		auto const &id = alias_decl.id;
-		auto const set = std::find_if(
-			this->func_sets.begin(), this->func_sets.end(),
-			[&id](auto const &set) {
-				return id == set.id;
-			}
-		);
-		if (set == this->func_sets.end())
-		{
-			this->func_sets.push_back({ id, {}, { ast::statement_view(stmt) } });
-		}
-		else
-		{
-			set->alias_decls.emplace_back(stmt);
-		}
+		return this->symbols
+			.filter([](auto const &symbol) { return symbol.template is<ast::decl_struct *>(); })
+			.transform([](auto const &symbol) -> auto const & { return symbol.template get<ast::decl_struct *>(); });
 	}
 
-	void add_function_set(function_overload_set const &func_set)
-	{
-		auto const id = func_set.id;
-		auto const set = std::find_if(
-			this->func_sets.begin(), this->func_sets.end(),
-			[&id](auto const &set) {
-				return id == set.id;
-			}
-		);
-		if (set == this->func_sets.end())
-		{
-			this->func_sets.push_back(func_set);
-		}
-		else
-		{
-			set->func_decls.append(func_set.func_decls);
-			set->alias_decls.append(func_set.alias_decls);
-		}
-	}
+	symbol_t *find_by_id(ast::identifier const &id);
+	bz::vector<symbol_t *> find_by_unqualified_id(
+		ast::identifier const &id,
+		bz::array_view<bz::u8string_view const> current_scope
+	);
+	// used for universal function calls
+	bz::vector<symbol_t *> find_by_unqualified_id(
+		ast::identifier const &id,
+		bz::array_view<bz::u8string_view const> current_scope,
+		bz::array_view<bz::u8string_view const> base_scope
+	);
 
-	void add_operator_set(operator_overload_set const &op_set)
-	{
-		auto const op = op_set.op;
-		auto const set = std::find_if(
-			this->op_sets.begin(), this->op_sets.end(),
-			[op](auto const &set) {
-				return op == set.op;
-			}
-		);
-		if (set == this->op_sets.end())
-		{
-			this->op_sets.push_back(op_set);
-		}
-		else
-		{
-			set->op_decls.append(op_set.op_decls);
-		}
-	}
+	// these functions return a non-null symbol_t * if there's a redeclaration
 
-	void add_type_alias(ast::decl_type_alias &alias_decl)
-	{
-		this->type_aliases.push_back(&alias_decl);
-	}
+	[[nodiscard]] symbol_t *add_symbol(symbol_t const &symbol);
 
-	void add_type(ast::decl_struct &struct_decl)
-	{
-		this->types.push_back(&struct_decl);
-	}
+	[[nodiscard]] symbol_t *add_function(ast::statement &stmt);
+	[[nodiscard]] symbol_t *add_function(ast::decl_function &func_decl);
+	[[nodiscard]] symbol_t *add_function_set(function_overload_set const &func_set);
 
-	void add_variable(ast::decl_variable &var_decl)
-	{
-		this->var_decls.push_back(&var_decl);
-	}
+	[[nodiscard]] symbol_t *add_operator(ast::statement &stmt);
+	[[nodiscard]] symbol_t *add_operator(ast::decl_operator &op_decl);
+	[[nodiscard]] symbol_t *add_operator_set(operator_overload_set const &op_set);
+
+	[[nodiscard]] symbol_t *add_function_alias(ast::decl_function_alias &alias_decl);
+	[[nodiscard]] symbol_t *add_type_alias(ast::decl_type_alias &alias_decl);
+	[[nodiscard]] symbol_t *add_type(ast::decl_struct &struct_decl);
+	[[nodiscard]] symbol_t *add_variable(ast::decl_variable &var_decl);
+	[[nodiscard]] symbol_t *add_variadic_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
+
+	void add_local_function(ast::statement &stmt);
+	void add_local_function(ast::decl_function &func_decl);
+	void add_local_function_set(function_overload_set const &func_set);
+
+	void add_local_function_alias(ast::decl_function_alias &alias_decl);
+	void add_local_type_alias(ast::decl_type_alias &alias_decl);
+	void add_local_type(ast::decl_struct &struct_decl);
+	void add_local_variable(ast::decl_variable &var_decl);
+	void add_local_variadic_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
+
+	void add_unresolved_id(ast::identifier id);
 };
 
 } // namespace ctx

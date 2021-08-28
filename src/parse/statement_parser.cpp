@@ -109,7 +109,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				prototype,
 				ast::var_id_and_type(
 					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-					ast::make_unresolved_typespec({ stream, stream })
+					ast::type_as_expression(ast::make_auto_typespec(id))
 				)
 			);
 		}
@@ -127,7 +127,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			prototype,
 			ast::var_id_and_type(
 				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
-				ast::make_unresolved_typespec(type)
+				ast::type_as_expression(ast::make_unresolved_typespec(type))
 			)
 		);
 	}
@@ -183,10 +183,31 @@ ast::statement parse_decl_variable(
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
-			var_decl.init_expr = ast::make_unresolved_expression({ init_expr.begin, init_expr.begin, init_expr.end });
+			auto const [begin, end] = init_expr;
+			auto stream = begin;
+			var_decl.init_expr = parse_expression(stream, end, context, no_comma);
+			if (stream != end && stream->kind == lex::token::comma)
+			{
+				auto const suggestion_end = (end - 1)->kind == lex::token::semi_colon ? end - 1 : end;
+				context.report_error(
+					stream,
+					"'operator ,' is not allowed in variable initialization expression",
+					{}, { context.make_suggestion_around(
+						begin, ctx::char_pos(), ctx::char_pos(), "(",
+						suggestion_end, ctx::char_pos(), ctx::char_pos(), ")",
+						"put parenthesis around the initialization expression"
+					) }
+				);
+			}
+			else if (stream != end)
+			{
+				context.report_error(lex::src_tokens::from_range({ stream, end }));
+			}
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			resolve::resolve_variable(var_decl, context);
-			context.add_local_variable(var_decl);
+			if (var_decl.get_id().tokens.begin != nullptr && var_decl.get_id().tokens.begin->kind == lex::token::identifier)
+			{
+				context.add_unresolved_local(var_decl.get_id());
+			}
 			return result;
 		}
 	}
@@ -219,8 +240,10 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			resolve::resolve_variable(var_decl, context);
-			context.add_local_variable(var_decl);
+			if (var_decl.get_id().tokens.begin != nullptr && var_decl.get_id().tokens.begin->kind == lex::token::identifier)
+			{
+				context.add_unresolved_local(var_decl.get_id());
+			}
 			return result;
 		}
 	}
@@ -751,7 +774,7 @@ static ast::statement parse_type_info_member_variable(
 		auto result = ast::make_decl_variable(
 			lex::src_tokens{ begin_token, id, stream },
 			lex::token_range{},
-			ast::var_id_and_type(ast::make_identifier(id), std::move(type.get_typename()))
+			ast::var_id_and_type(ast::make_identifier(id), std::move(type))
 		);
 		auto &var_decl = result.get<ast::decl_variable>();
 		var_decl.flags |= ast::decl_variable::member;
@@ -1145,7 +1168,7 @@ static ast::statement parse_stmt_foreach_impl(
 	auto range_var_decl_stmt = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, std::move(range_var_type)),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(std::move(range_var_type))),
 		std::move(range_expr)
 	);
 	bz_assert(range_var_decl_stmt.is<ast::decl_variable>());
@@ -1229,11 +1252,7 @@ ast::statement parse_stmt_expression(
 )
 {
 	auto expr = parse_top_level_expression(stream, end, context);
-	if (expr.is<ast::variadic_expression>())
-	{
-		context.report_error(expr.src_tokens, "variadic expression not allowed as top-level expression");
-	}
-	else if (expr.is<ast::expanded_variadic_expression>())
+	if (expr.is<ast::expanded_variadic_expression>())
 	{
 		context.report_error(expr.src_tokens, "expanded variadic expression not allowed as top-level expression");
 	}

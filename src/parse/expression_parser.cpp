@@ -674,7 +674,7 @@ static ast::expression parse_primary_expression(
 			);
 		}
 		auto const end_token = stream;
-		return context.make_unresolved_identifier_expression(ast::make_identifier({ begin_token, end_token }));
+		return context.make_identifier_expression(ast::make_identifier({ begin_token, end_token }));
 	}
 
 	// literals

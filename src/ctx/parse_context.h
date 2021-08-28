@@ -39,7 +39,10 @@ struct parse_context
 	struct variadic_resolve_info_t
 	{
 		bool is_resolving_variadic;
-		size_t variadic_index;
+		bool found_variadic;
+		uint32_t variadic_index;
+		uint32_t variadic_size;
+		lex::src_tokens first_variadic_src_tokens;
 	};
 
 	global_context               &global_ctx;
@@ -58,7 +61,7 @@ struct parse_context
 	bool is_aggressive_consteval_enabled = false;
 
 	bool in_loop = false;
-	variadic_resolve_info_t variadic_info = { false, 0 };
+	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -85,10 +88,10 @@ struct parse_context
 	void pop_loop(bool prev_in_loop) noexcept;
 
 	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
-	void pop_variadic_resolver(variadic_resolve_info_t prev_info) noexcept;
+	void pop_variadic_resolver(variadic_resolve_info_t const &prev_info) noexcept;
 
-	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver_pause(void) noexcept;
-	void pop_variadic_resolver_pause(variadic_resolve_info_t prev_info) noexcept;
+	bool register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl);
+	uint32_t get_variadic_index(void) const;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -352,7 +355,6 @@ struct parse_context
 
 	void add_function_for_compilation(ast::function_body &func_body) const;
 
-	ast::expression make_unresolved_identifier_expression(ast::identifier id);
 	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;

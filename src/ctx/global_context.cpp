@@ -92,12 +92,8 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 decl_set get_default_decls(void)
 {
 	return {
-		{}, // var_decls
-		{}, // variadic_var_decls
-		{}, // func_sets
+		{}, // symbols
 		{}, // op_sets
-		{}, // type_aliases
-		{}, // types
 	};
 }
 
@@ -761,17 +757,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const type : file._global_decls.types)
+		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type_symbol(*type, context);
+			bc::runtime::emit_global_type_symbol(*struct_decl, context);
 		}
-		for (auto const type : file._global_decls.types)
+		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type(*type, context);
+			bc::runtime::emit_global_type(*struct_decl, context);
 		}
-		for (auto const decl : file._global_decls.var_decls)
+		for (auto const var_decl : file._global_decls.var_decl_range())
 		{
-			bc::runtime::emit_global_variable(*decl, context);
+			bc::runtime::emit_global_variable(*var_decl, context);
 		}
 	}
 	for (auto const func : this->_compile_decls.funcs)

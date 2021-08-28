@@ -2,6 +2,7 @@
 #include "statement_resolver.h"
 #include "global_data.h"
 #include "parse/consteval.h"
+#include "parse/expression_parser.h"
 #include "escape_sequences.h"
 
 namespace resolve
@@ -30,6 +31,71 @@ static ast::expression resolve_expr(
 	return context.make_tuple(src_tokens, std::move(tuple_expr.elems));
 }
 
+static ast::expression resolve_variadic_expr(
+	lex::src_tokens src_tokens,
+	ast::expr_unary_op &unary_op,
+	ctx::parse_context &context
+)
+{
+	auto const info = context.push_variadic_resolver();
+	ast::arena_vector<ast::expression> variadic_exprs;
+	variadic_exprs.push_back(unary_op.expr);
+	resolve_expression(variadic_exprs[0], context);
+	if (!context.variadic_info.found_variadic)
+	{
+		context.report_error(unary_op.expr.src_tokens, "unable to expand non-variadic expression");
+		context.pop_variadic_resolver(info);
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(unary_op.op, std::move(variadic_exprs[0])));
+	}
+	else if (variadic_exprs[0].is_error())
+	{
+		context.pop_variadic_resolver(info);
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(unary_op.op, std::move(variadic_exprs[0])));
+	}
+	else
+	{
+		auto const variadic_size = context.variadic_info.variadic_size;
+		if (variadic_size == 0)
+		{
+			context.pop_variadic_resolver(info);
+			return ast::make_expanded_variadic_expression(src_tokens, ast::arena_vector<ast::expression>{});
+		}
+		else if (variadic_size == 1)
+		{
+			context.pop_variadic_resolver(info);
+			return ast::make_expanded_variadic_expression(src_tokens, std::move(variadic_exprs));
+		}
+		else
+		{
+			variadic_exprs.reserve(variadic_size);
+			for ([[maybe_unused]] auto const _ : bz::iota(0, variadic_size - 2))
+			{
+				variadic_exprs.push_back(unary_op.expr);
+			}
+			// the last element is moved in and not copied
+			variadic_exprs.push_back(std::move(unary_op.expr));
+
+			// the first one has already been resolved
+			for (auto &expr : variadic_exprs.slice(1))
+			{
+				context.variadic_info.variadic_index += 1;
+				resolve_expression(expr, context);
+				// return early if there's an error
+				if (expr.is_error())
+				{
+					context.pop_variadic_resolver(info);
+					return ast::make_error_expression(
+						src_tokens,
+						ast::make_expr_unary_op(unary_op.op, std::move(variadic_exprs.back()))
+					);
+				}
+			}
+			context.pop_variadic_resolver(info);
+			return ast::make_expanded_variadic_expression(src_tokens, std::move(variadic_exprs));
+		}
+	}
+}
+
 static ast::expression resolve_expr(
 	lex::src_tokens src_tokens,
 	ast::expr_unary_op unary_op,
@@ -39,9 +105,7 @@ static ast::expression resolve_expr(
 	// special case for variadic expansion
 	if (unary_op.op == lex::token::dot_dot_dot)
 	{
-		auto const info = context.push_variadic_resolver_pause();
-		resolve_expression(unary_op.expr, context);
-		context.pop_variadic_resolver_pause(info);
+		return resolve_variadic_expr(src_tokens, unary_op, context);
 	}
 	else
 	{

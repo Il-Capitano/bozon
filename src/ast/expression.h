@@ -135,35 +135,6 @@ struct dynamic_expression
 	dynamic_expression &operator = (dynamic_expression &&)      = default;
 };
 
-struct variadic_info_t
-{
-	lex::src_tokens src_tokens;
-	size_t          size;
-};
-
-struct variadic_expression
-{
-	ast_unique_ptr<expression>    expr; // always unresolved
-	arena_vector<variadic_info_t> variadic_infos;
-
-	variadic_expression(ast_unique_ptr<expression> _expr, arena_vector<variadic_info_t> _variadic_infos)
-		: expr(std::move(_expr)), variadic_infos(std::move(_variadic_infos))
-	{}
-
-	variadic_expression(void) = delete;
-	variadic_expression(variadic_expression const &other)
-		: expr(make_ast_unique<expression>(*other.expr)), variadic_infos(other.variadic_infos)
-	{}
-	variadic_expression(variadic_expression &&)      = default;
-	variadic_expression &operator = (variadic_expression const &rhs)
-	{
-		this->expr = make_ast_unique<expression>(*rhs.expr);
-		this->variadic_infos = rhs.variadic_infos;
-		return *this;
-	}
-	variadic_expression &operator = (variadic_expression &&)      = default;
-};
-
 struct expanded_variadic_expression
 {
 	arena_vector<expression> exprs;
@@ -184,7 +155,6 @@ struct expression : bz::variant<
 	unresolved_expression,
 	constant_expression,
 	dynamic_expression,
-	variadic_expression,
 	expanded_variadic_expression,
 	error_expression
 >
@@ -193,7 +163,6 @@ struct expression : bz::variant<
 		unresolved_expression,
 		constant_expression,
 		dynamic_expression,
-		variadic_expression,
 		expanded_variadic_expression,
 		error_expression
 	>;
@@ -894,10 +863,6 @@ expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
-expression make_variadic_expression(lex::src_tokens tokens, Args &&...args)
-{ return expression(tokens, variadic_expression{ std::forward<Args>(args)... }); }
-
-template<typename ...Args>
 expression make_expanded_variadic_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, expanded_variadic_expression{ std::forward<Args>(args)... }); }
 
@@ -949,6 +914,18 @@ def_make_unresolved_fn(unresolved_expr_t, expr_if)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
 
 #undef def_make_unresolved_fn
+
+
+inline expression type_as_expression(typespec type)
+{
+	return make_constant_expression(
+		{},
+		expression_type_kind::type_name,
+		make_typename_typespec(nullptr),
+		constant_value(std::move(type)),
+		expr_t{}
+	);
+}
 
 } // namespace ast
 

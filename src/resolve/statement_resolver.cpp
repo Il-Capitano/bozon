@@ -46,14 +46,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	auto const &range_expr_src_tokens = range_var_decl.init_expr.src_tokens;
 
 	auto range_begin_expr = [&]() {
-		if (range_var_decl.id_and_type.var_type.is_empty())
+		if (range_var_decl.get_type().is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
+		auto const type_kind = range_var_decl.get_type().is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
+		auto const type = ast::remove_lvalue_reference(range_var_decl.get_type());
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -69,7 +69,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.iter_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
 		std::move(range_begin_expr)
 	);
 	bz_assert(foreach_stmt.iter_var_decl.is<ast::decl_variable>());
@@ -82,14 +82,14 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	iter_var_decl.flags |= ast::decl_variable::used;
 
 	auto range_end_expr = [&]() {
-		if (range_var_decl.id_and_type.var_type.is_empty())
+		if (range_var_decl.get_type().is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
-		auto const type_kind = range_var_decl.id_and_type.var_type.is<ast::ts_lvalue_reference>()
+		auto const type_kind = range_var_decl.get_type().is<ast::ts_lvalue_reference>()
 			? ast::expression_type_kind::lvalue_reference
 			: ast::expression_type_kind::lvalue;
-		auto const type = ast::remove_lvalue_reference(range_var_decl.id_and_type.var_type);
+		auto const type = ast::remove_lvalue_reference(range_var_decl.get_type());
 
 		auto range_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
@@ -106,7 +106,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	foreach_stmt.end_var_decl = ast::make_decl_variable(
 		range_expr_src_tokens,
 		lex::token_range{},
-		ast::var_id_and_type(ast::identifier{}, ast::make_auto_typespec(nullptr)),
+		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
 		std::move(range_end_expr)
 	);
 	bz_assert(foreach_stmt.end_var_decl.is<ast::decl_variable>());
@@ -119,18 +119,18 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	end_var_decl.flags |= ast::decl_variable::used;
 
 	foreach_stmt.condition = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty() || end_var_decl.id_and_type.var_type.is_empty())
+		if (iter_var_decl.get_type().is_empty() || end_var_decl.get_type().is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		auto end_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, end_var_decl.id_and_type.var_type,
+			ast::expression_type_kind::lvalue, end_var_decl.get_type(),
 			ast::make_expr_identifier(ast::identifier{}, &end_var_decl)
 		);
 		return context.make_binary_operator_expression(
@@ -147,13 +147,13 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	}
 
 	foreach_stmt.iteration = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty())
+		if (iter_var_decl.get_type().is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		return context.make_unary_operator_expression(
@@ -167,13 +167,13 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 	auto &iter_deref_var_decl = foreach_stmt.iter_deref_var_decl.get<ast::decl_variable>();
 	bz_assert(iter_deref_var_decl.init_expr.is_null());
 	iter_deref_var_decl.init_expr = [&]() {
-		if (iter_var_decl.id_and_type.var_type.is_empty())
+		if (iter_var_decl.get_type().is_empty())
 		{
 			return ast::make_error_expression(range_expr_src_tokens);
 		}
 		auto iter_var_expr = ast::make_dynamic_expression(
 			range_expr_src_tokens,
-			ast::expression_type_kind::lvalue, iter_var_decl.id_and_type.var_type,
+			ast::expression_type_kind::lvalue, iter_var_decl.get_type(),
 			ast::make_expr_identifier(ast::identifier{}, &iter_var_decl)
 		);
 		return context.make_unary_operator_expression(
@@ -545,15 +545,9 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 		return;
 	}
 	auto [stream, end] = var_decl.get_type().get<ast::ts_unresolved>().tokens;
-	auto type = stream == end
-		? ast::make_constant_expression(
-			{},
-			ast::expression_type_kind::type_name,
-			ast::make_typename_typespec(nullptr),
-			ast::constant_value(ast::make_auto_typespec(nullptr)),
-			ast::make_expr_identifier(ast::identifier{})
-		)
-		: parse::parse_expression(stream, end, context, no_assign);
+	bz_assert(stream != end);
+	var_decl.id_and_type.var_type = parse::parse_expression(stream, end, context, no_assign);
+	auto &type = var_decl.id_and_type.var_type;
 	parse::consteval_try(type, context);
 	if (type.not_error() && !type.has_consteval_succeeded())
 	{
@@ -599,11 +593,7 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 				: lex::src_tokens{ op, op, type.src_tokens.end };
 			type = context.make_unary_operator_expression(src_tokens, op->kind, std::move(type));
 		}
-		if (type.is_typename())
-		{
-			var_decl.get_type() = std::move(type.get_typename());
-		}
-		else
+		if (!type.is_typename())
 		{
 			var_decl.clear_type();
 			var_decl.state = ast::resolve_state::error;
@@ -621,7 +611,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 	bz_assert(!var_decl.get_type().is_empty());
 	if (var_decl.init_expr.not_null())
 	{
-		if (var_decl.init_expr.is<ast::unresolved_expression>())
+		if (var_decl.init_expr.is_unresolved() && var_decl.init_expr.get_unresolved_expr().is_null())
 		{
 			auto const begin = var_decl.init_expr.src_tokens.begin;
 			auto const end   = var_decl.init_expr.src_tokens.end;
@@ -648,6 +638,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 				}
 			}
 		}
+		resolve_expression(var_decl.init_expr, context);
 		context.match_expression_to_variable(var_decl.init_expr, var_decl);
 	}
 	else if (var_decl.init_expr.src_tokens.pivot != nullptr)
@@ -1040,7 +1031,10 @@ static bool resolve_function_parameters_helper(
 		{
 			p.state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(p, context);
-			p.state = ast::resolve_state::symbol;
+			if (p.state != ast::resolve_state::error)
+			{
+				p.state = ast::resolve_state::symbol;
+			}
 		}
 		if (p.get_type().is_empty())
 		{
@@ -1077,6 +1071,7 @@ static bool resolve_function_parameters_helper(
 
 	if (
 		good
+		&& !func_body.is_generic()
 		&& func_stmt.is<ast::decl_operator>()
 		&& func_stmt.get<ast::decl_operator>().op->kind == lex::token::assign
 	)
@@ -1210,6 +1205,37 @@ static void resolve_function_parameters_impl(
 	}
 }
 
+static ctx::parse_context *get_context_ptr(bool is_local, bz::optional<ctx::parse_context> &new_context, ctx::parse_context &context)
+{
+	if (is_local)
+	{
+		auto const var_count = context.scope_decls
+			.transform([](auto const &decl_set) { return decl_set.var_decl_range().count(); })
+			.sum();
+		if (var_count == 0)
+		{
+			return &context;
+		}
+		else
+		{
+			new_context.emplace(context, ctx::parse_context::local_copy_t{});
+			return &new_context.get();
+		}
+	}
+	else
+	{
+		if (context.scope_decls.empty())
+		{
+			return &context;
+		}
+		else
+		{
+			new_context.emplace(context, ctx::parse_context::global_copy_t{});
+			return &new_context.get();
+		}
+	}
+}
+
 void resolve_function_parameters(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -1228,43 +1254,7 @@ void resolve_function_parameters(
 	}
 
 	bz::optional<ctx::parse_context> new_context{};
-	auto context_ptr = [&]() {
-		if (func_body.is_local())
-		{
-			auto const var_count = context.scope_decls
-				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
-				.sum();
-			if (var_count == 0)
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::local_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-		else
-		{
-			if (context.scope_decls.empty())
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::global_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-	}();
+	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
 
 	auto const original_file_info = context_ptr->get_current_file_info();
 	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
@@ -1536,43 +1526,7 @@ void resolve_function_symbol(
 	}
 
 	bz::optional<ctx::parse_context> new_context{};
-	auto context_ptr = [&]() {
-		if (func_body.is_local())
-		{
-			auto const var_count = context.scope_decls
-				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
-				.sum();
-			if (var_count == 0)
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::local_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-		else
-		{
-			if (context.scope_decls.empty())
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::global_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-	}();
+	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
 
 	auto const original_file_info = context_ptr->get_current_file_info();
 	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
@@ -1655,43 +1609,7 @@ void resolve_function(
 	}
 
 	bz::optional<ctx::parse_context> new_context{};
-	auto context_ptr = [&]() {
-		if (func_body.is_local())
-		{
-			auto const var_count = context.scope_decls
-				.transform([](auto const &decl_set) { return decl_set.var_decls.size(); })
-				.sum();
-			if (var_count == 0)
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::local_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-		else
-		{
-			if (context.scope_decls.empty())
-			{
-				return &context;
-			}
-			else
-			{
-				new_context.emplace(context, ctx::parse_context::global_copy_t{});
-				for (auto &decl_set : new_context->scope_decls)
-				{
-					decl_set.var_decls.clear();
-				}
-				return &new_context.get();
-			}
-		}
-	}();
+	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
 
 	auto const original_file_info = context_ptr->get_current_file_info();
 	// this check is needed because of generic built-in functions like __builtin_slice_size

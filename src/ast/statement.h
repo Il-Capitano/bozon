@@ -272,13 +272,13 @@ struct stmt_static_assert
 struct var_id_and_type
 {
 	identifier id;
-	typespec var_type;
+	expression var_type;
 
 	var_id_and_type(void)
 		: id{}, var_type{}
 	{}
 
-	var_id_and_type(identifier _id, typespec _var_type)
+	var_id_and_type(identifier _id, expression _var_type)
 		: id(std::move(_id)), var_type(std::move(_var_type))
 	{}
 
@@ -437,10 +437,16 @@ struct decl_variable
 	{ return (this->flags & tuple_outer_ref) != 0; }
 
 	typespec &get_type(void)
-	{ return this->id_and_type.var_type; }
+	{
+		bz_assert(this->id_and_type.var_type.is_typename());
+		return this->id_and_type.var_type.get_typename();
+	}
 
 	typespec const &get_type(void) const
-	{ return this->id_and_type.var_type; }
+	{
+		bz_assert(this->id_and_type.var_type.is_typename());
+		return this->id_and_type.var_type.get_typename();
+	}
 
 	void clear_type(void)
 	{
