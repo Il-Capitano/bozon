@@ -4957,7 +4957,14 @@ static void emit_bitcode(
 		bz_assert(var_decl.init_expr.not_null());
 		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
 		bz_assert(init_val.kind == val_ptr::reference);
-		context.add_variable(&var_decl, init_val.val);
+		if (var_decl.tuple_decls.empty())
+		{
+			context.add_variable(&var_decl, init_val.val);
+		}
+		else
+		{
+			add_variable_helper(var_decl, init_val.val, context);
+		}
 	}
 	else
 	{
