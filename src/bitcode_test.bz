@@ -383,6 +383,14 @@ function main(args: [: const str]) -> int32
 	let t = [ 3, 1.123, "hello there" ];
 	std::printf("{} {} \"{}\"\n", ...{ let &const [...elems] = t; elems });
 
+	let &const [...elems] = t;
+	consteval size = {
+		let i = 0uz;
+		[...(typeof elems, ++i)];
+		i
+	};
+	static_assert(size == 3u);
+
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));
