@@ -8,6 +8,17 @@
 namespace parse
 {
 
+ast::expression parse_expression_without_semi_colon(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	precedence prec
+);
+void consume_semi_colon_at_end_of_expression(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context,
+	ast::expression const &expression
+);
+
 ast::expression parse_top_level_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context

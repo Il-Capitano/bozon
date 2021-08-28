@@ -440,16 +440,6 @@ constexpr auto global_statement_parsers      = generate_parsers<statement_parser
 constexpr auto local_statement_parsers       = generate_parsers<statement_parser::local>();
 constexpr auto struct_body_statement_parsers = generate_parsers<statement_parser::struct_body>();
 
-ast::expression parse_expression_without_semi_colon(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
-);
-void consume_semi_colon_at_end_of_expression(
-	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context,
-	ast::expression const &expression
-);
-
 ast::expression parse_top_level_expression(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context

@@ -1332,7 +1332,7 @@ static ast::statement parse_local_statement_without_semi_colon_default_parser(
 {
 	auto const begin = stream;
 	auto const result = ast::make_stmt_expression(
-		parse_expression_without_semi_colon(stream, end, context)
+		parse_expression_without_semi_colon(stream, end, context, precedence{})
 	);
 	if (stream == begin)
 	{

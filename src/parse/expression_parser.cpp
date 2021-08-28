@@ -10,7 +10,8 @@ namespace parse
 
 ast::expression parse_expression_without_semi_colon(
 	lex::token_pos &stream, lex::token_pos end,
-	ctx::parse_context &context
+	ctx::parse_context &context,
+	precedence prec
 )
 {
 	switch (stream->kind)
@@ -26,7 +27,7 @@ ast::expression parse_expression_without_semi_colon(
 		return parse_switch_expression(stream, end, context);
 	default:
 		// parse_expression already calls consteval_guaranteed
-		return parse_expression(stream, end, context, precedence{});
+		return parse_expression(stream, end, context, prec);
 	}
 }
 
@@ -135,7 +136,7 @@ ast::expression parse_top_level_expression(
 	ctx::parse_context &context
 )
 {
-	auto expr = parse_expression_without_semi_colon(stream, end, context);
+	auto expr = parse_expression_without_semi_colon(stream, end, context, precedence{});
 	consume_semi_colon_at_end_of_expression(stream, end, context, expr);
 	return expr;
 }
@@ -238,7 +239,7 @@ ast::expression parse_if_expression(
 	auto const begin = stream;
 	++stream; // 'if'
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	auto then_block = parse_expression_without_semi_colon(stream, end, context);
+	auto then_block = parse_expression_without_semi_colon(stream, end, context, precedence{});
 	if (
 		stream != end
 		&& !then_block.is_special_top_level()
@@ -253,7 +254,7 @@ ast::expression parse_if_expression(
 	if (stream != end && stream->kind == lex::token::kw_else)
 	{
 		++stream; // 'else'
-		else_block = parse_expression_without_semi_colon(stream, end, context);
+		else_block = parse_expression_without_semi_colon(stream, end, context, no_comma);
 		if (!else_block.is_special_top_level() && stream->kind == lex::token::semi_colon)
 		{
 			++stream; // ';'
