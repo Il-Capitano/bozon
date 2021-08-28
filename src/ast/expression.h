@@ -204,304 +204,58 @@ struct expression : bz::variant<
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
 	lex::token_pos get_tokens_end(void) const   { return this->src_tokens.end; }
 
-	void to_error(void)
-	{
-		if (this->is<constant_expression>())
-		{
-			this->emplace<error_expression>(this->get_by_move<constant_expression>().expr);
-		}
-		else if (this->is<dynamic_expression>())
-		{
-			this->emplace<error_expression>(this->get_by_move<dynamic_expression>().expr);
-		}
-	}
+	void to_error(void);
 
-	bool is_error(void) const
-	{ return this->is<error_expression>(); }
+	bool is_error(void) const;
+	bool not_error(void) const;
 
-	bool not_error(void) const
-	{ return !this->is<error_expression>(); }
+	bool is_function(void) const noexcept;
+	bool is_overloaded_function(void) const noexcept;
 
-	bool is_function(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& const_expr->kind == expression_type_kind::function_name;
-	}
+	bool is_typename(void) const noexcept;
+	typespec &get_typename(void) noexcept;
+	typespec const &get_typename(void) const noexcept;
 
-	bool is_overloaded_function(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& const_expr->kind == expression_type_kind::function_name
-			&& const_expr->type.is_empty();
-	}
+	bool is_tuple(void) const noexcept;
+	expr_tuple &get_tuple(void) noexcept;
+	expr_tuple const &get_tuple(void) const noexcept;
 
-	bool is_typename(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is<constant_value::type>());
-	}
+	bool is_if_expr(void) const noexcept;
+	expr_if &get_if_expr(void) noexcept;
+	expr_if const &get_if_expr(void) const noexcept;
 
-	typespec &get_typename(void) noexcept
-	{
-		bz_assert(this->is_typename());
-		return this->get<constant_expression>().value.get<constant_value::type>();
-	}
+	bool is_switch_expr(void) const noexcept;
+	expr_switch &get_switch_expr(void) noexcept;
+	expr_switch const &get_switch_expr(void) const noexcept;
 
-	typespec const &get_typename(void) const noexcept
-	{
-		bz_assert(this->is_typename());
-		return this->get<constant_expression>().value.get<constant_value::type>();
-	}
+	bool is_literal(void) const noexcept;
+	expr_literal &get_literal(void) noexcept;
+	expr_literal const &get_literal(void) const noexcept;
 
-	bool is_tuple(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
-	}
+	constant_value &get_literal_value(void) noexcept;
+	constant_value const &get_literal_value(void) const noexcept;
 
-	expr_tuple &get_tuple(void) noexcept
-	{
-		bz_assert(this->is_tuple());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_tuple>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_tuple>();
-		}
-	}
+	void set_type(ast::typespec new_type);
+	void set_type_kind(expression_type_kind new_kind);
 
-	bool is_if_expr(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::if_expr)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::if_expr);
-	}
+	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept;
 
-	expr_if &get_if_expr(void) noexcept
-	{
-		bz_assert(this->is_if_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_if>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_if>();
-		}
-	}
+	bool is_constant_or_dynamic(void) const noexcept;
+	bool is_unresolved(void) const noexcept;
 
-	expr_if const &get_if_expr(void) const noexcept
-	{
-		bz_assert(this->is_if_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_if>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_if>();
-		}
-	}
+	bool is_none(void) const noexcept;
+	bool is_noreturn(void) const noexcept;
 
-	bool is_switch_expr(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::switch_expr)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::switch_expr);
-	}
+	bool has_consteval_succeeded(void) const noexcept;
+	bool has_consteval_failed(void) const noexcept;
 
-	expr_switch &get_switch_expr(void) noexcept
-	{
-		bz_assert(this->is_switch_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_switch>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_switch>();
-		}
-	}
+	expr_t &get_expr(void);
+	expr_t const &get_expr(void) const;
 
-	expr_switch const &get_switch_expr(void) const noexcept
-	{
-		bz_assert(this->is_switch_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_switch>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_switch>();
-		}
-	}
+	unresolved_expr_t &get_unresolved_expr(void);
+	unresolved_expr_t const &get_unresolved_expr(void) const;
 
-	bool is_literal(void) const noexcept
-	{
-		return this->is<constant_expression>() && this->get<constant_expression>().expr.is<expr_literal>();
-	}
-
-	expr_literal &get_literal(void) noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().expr.get<expr_literal>();
-	}
-
-	expr_literal const &get_literal(void) const noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().expr.get<expr_literal>();
-	}
-
-	constant_value &get_literal_value(void) noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().value;
-	}
-
-	constant_value const &get_literal_value(void) const noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().value;
-	}
-
-	void set_type(ast::typespec new_type)
-	{
-		if (this->is<ast::constant_expression>())
-		{
-			this->get<ast::constant_expression>().type = std::move(new_type);
-		}
-		else if (this->is<ast::dynamic_expression>())
-		{
-			this->get<ast::dynamic_expression>().type = std::move(new_type);
-		}
-	}
-
-	void set_type_kind(expression_type_kind new_kind)
-	{
-		if (this->is<ast::constant_expression>())
-		{
-			this->get<ast::constant_expression>().kind = new_kind;
-		}
-		else if (this->is<ast::dynamic_expression>())
-		{
-			this->get<ast::dynamic_expression>().kind = new_kind;
-		}
-	}
-
-	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept
-	{
-		switch (this->kind())
-		{
-		case ast::expression::index_of<ast::constant_expression>:
-		{
-			auto &const_expr = this->get<ast::constant_expression>();
-			return { const_expr.type, const_expr.kind };
-		}
-		case ast::expression::index_of<ast::dynamic_expression>:
-		{
-			auto &dyn_expr = this->get<ast::dynamic_expression>();
-			return { dyn_expr.type, dyn_expr.kind };
-		}
-		default:
-			return { ast::typespec_view(), static_cast<ast::expression_type_kind>(0) };
-		}
-	}
-
-	bool is_constant_or_dynamic(void) const noexcept
-	{
-		return this->is<constant_expression>() || this->is<dynamic_expression>();
-	}
-
-	bool is_unresolved(void) const noexcept
-	{
-		return this->is<unresolved_expression>();
-	}
-
-	bool is_none(void) const noexcept
-	{
-		return this->is_constant_or_dynamic()
-			&& this->get_expr_type_and_kind().second == expression_type_kind::none;
-	}
-
-	bool is_noreturn(void) const noexcept
-	{
-		return this->is_constant_or_dynamic()
-			&& this->get_expr_type_and_kind().second == expression_type_kind::noreturn;
-	}
-
-	bool has_consteval_succeeded(void) const noexcept
-	{
-		return this->consteval_state == consteval_succeeded;
-	}
-
-	bool has_consteval_failed(void) const noexcept
-	{
-		return this->consteval_state == consteval_failed;
-	}
-
-	expr_t &get_expr(void)
-	{
-		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr;
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr;
-		}
-	}
-
-	expr_t const &get_expr(void) const
-	{
-		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr;
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr;
-		}
-	}
-
-	unresolved_expr_t &get_unresolved_expr(void)
-	{
-		bz_assert(this->is_unresolved());
-		return this->get<unresolved_expression>().expr;
-	}
-
-	unresolved_expr_t const &get_unresolved_expr(void) const
-	{
-		bz_assert(this->is_unresolved());
-		return this->get<unresolved_expression>().expr;
-	}
-
-	bool is_special_top_level(void) const noexcept
-	{
-		if (this->is_constant_or_dynamic())
-		{
-			auto &expr = this->get_expr();
-			return (expr.is<expr_compound>() && this->paren_level == 0)
-				|| (expr.is<expr_if>()       && this->paren_level == 0)
-				|| (expr.is<expr_switch>()   && this->paren_level == 0);
-		}
-		else if (this->is_unresolved())
-		{
-			auto &expr = this->get_unresolved_expr();
-			return (expr.is<expr_compound>() && this->paren_level == 0)
-				|| (expr.is<expr_if>()       && this->paren_level == 0)
-				|| (expr.is<expr_switch>()   && this->paren_level == 0);
-		}
-		else
-		{
-			return false;
-		}
-	}
+	bool is_special_top_level(void) const noexcept;
 };
 
 

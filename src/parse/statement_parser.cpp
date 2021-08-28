@@ -133,6 +133,21 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 	}
 }
 
+static void add_unresolved_var_decl(ast::decl_variable &var_decl, ctx::parse_context &context)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		context.add_unresolved_local(var_decl.get_id());
+	}
+	else
+	{
+		for (auto &inner_decl : var_decl.tuple_decls)
+		{
+			add_unresolved_var_decl(inner_decl, context);
+		}
+	}
+}
+
 template<bool is_global>
 ast::statement parse_decl_variable(
 	lex::token_pos &stream, lex::token_pos end,
@@ -204,10 +219,7 @@ ast::statement parse_decl_variable(
 				context.report_error(lex::src_tokens::from_range({ stream, end }));
 			}
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			if (var_decl.get_id().tokens.begin != nullptr && var_decl.get_id().tokens.begin->kind == lex::token::identifier)
-			{
-				context.add_unresolved_local(var_decl.get_id());
-			}
+			add_unresolved_var_decl(var_decl, context);
 			return result;
 		}
 	}
@@ -240,10 +252,7 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			if (var_decl.get_id().tokens.begin != nullptr && var_decl.get_id().tokens.begin->kind == lex::token::identifier)
-			{
-				context.add_unresolved_local(var_decl.get_id());
-			}
+			add_unresolved_var_decl(var_decl, context);
 			return result;
 		}
 	}
@@ -1025,7 +1034,7 @@ static ast::statement parse_stmt_for_impl(
 )
 {
 	// 'for' and '(' have already been consumed
-	auto const prev_unresolved_size = context.push_unresolved_scope();
+	context.add_scope();
 
 	if (stream == end)
 	{
@@ -1086,7 +1095,7 @@ static ast::statement parse_stmt_for_impl(
 	auto body = parse_top_level_expression(stream, end, context);
 
 	context.pop_loop(prev_in_loop);
-	context.pop_unresolved_scope(prev_unresolved_size);
+	context.remove_scope();
 
 	return ast::make_stmt_for(
 		std::move(init_stmt),
@@ -1094,21 +1103,6 @@ static ast::statement parse_stmt_for_impl(
 		std::move(iteration),
 		std::move(body)
 	);
-}
-
-static void add_unresolved_var_decl(ast::decl_variable &var_decl, ctx::parse_context &context)
-{
-	if (var_decl.tuple_decls.empty())
-	{
-		context.add_unresolved_local(var_decl.get_id());
-	}
-	else
-	{
-		for (auto &inner_decl : var_decl.tuple_decls)
-		{
-			add_unresolved_var_decl(inner_decl, context);
-		}
-	}
 }
 
 static ast::statement parse_stmt_foreach_impl(
@@ -1160,7 +1154,7 @@ static ast::statement parse_stmt_foreach_impl(
 		>(stream, end, context);
 	}
 
-	auto const prev_unresolved_size = context.push_unresolved_scope();
+	context.add_scope();
 
 	auto range_var_type = ast::make_auto_typespec(nullptr);
 	range_var_type.add_layer<ast::ts_auto_reference_const>();
@@ -1178,7 +1172,7 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id_and_type.id.is_qualified = false;
 
 	auto const prev_in_loop = context.push_loop();
-	auto const inner_prev_unresolved_size = context.push_unresolved_scope();
+	context.add_scope();
 
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
@@ -1186,9 +1180,9 @@ static ast::statement parse_stmt_foreach_impl(
 
 	auto body = parse_top_level_expression(stream, end, context);
 
-	context.pop_unresolved_scope(inner_prev_unresolved_size);
+	context.remove_scope();
 	context.pop_loop(prev_in_loop);
-	context.pop_unresolved_scope(prev_unresolved_size);
+	context.remove_scope();
 
 	return ast::make_stmt_foreach(
 		std::move(range_var_decl_stmt),

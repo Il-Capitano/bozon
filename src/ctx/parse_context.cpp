@@ -65,6 +65,7 @@ parse_context::parse_context(parse_context const &other, local_copy_t)
 	  current_function(nullptr),
 	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  variadic_info(other.variadic_info),
+	  parsing_variadic_expansion(other.parsing_variadic_expansion),
 	  resolve_queue(other.resolve_queue)
 {
 	this->scope_decls.resize(other.scope_decls.size());
@@ -139,6 +140,18 @@ void parse_context::pop_loop(bool prev_in_loop) noexcept
 void parse_context::pop_variadic_resolver(variadic_resolve_info_t const &prev_info) noexcept
 {
 	this->variadic_info = prev_info;
+}
+
+[[nodiscard]] bool parse_context::push_parsing_variadic_expansion(void) noexcept
+{
+	auto result = this->parsing_variadic_expansion;
+	this->parsing_variadic_expansion = true;
+	return result;
+}
+
+void parse_context::pop_parsing_variadic_expansion(bool prev_value) noexcept
+{
+	this->parsing_variadic_expansion = prev_value;
 }
 
 bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl)
@@ -856,24 +869,12 @@ void parse_context::remove_scope(void)
 	this->scope_decls.pop_back();
 }
 
-[[nodiscard]] size_t parse_context::push_unresolved_scope(void)
-{
-	auto const result = this->last_unresolved_scope_size;
-	this->last_unresolved_scope_size = this->unresolved_local_decls.size();
-	return result;
-}
-
-void parse_context::pop_unresolved_scope(size_t prev_size)
-{
-	this->last_unresolved_scope_size = prev_size;
-	this->unresolved_local_decls.resize(prev_size);
-}
-
 void parse_context::add_unresolved_local(ast::identifier const &id)
 {
 	bz_assert(!id.is_qualified);
 	bz_assert(id.values.size() == 1);
-	this->unresolved_local_decls.push_back(id.values[0]);
+	bz_assert(this->scope_decls.not_empty());
+	this->scope_decls.back().add_unresolved_id(id);
 }
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
@@ -1177,7 +1178,6 @@ static ast::expression make_function_name_expression(
 			>= 2
 	)
 	{
-		bz_assert(!fn_set->id.is_qualified && fn_set->id.values.size() == 1);
 		auto id_value = ast::constant_value();
 		if (id.is_qualified)
 		{
@@ -1194,15 +1194,18 @@ static ast::expression make_function_name_expression(
 			ast::make_expr_identifier(id)
 		);
 	}
-	auto const body = fn_set->func_decls.empty()
-		? fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.front()
-		: &fn_set->func_decls.front().get<ast::decl_function>().body;
-	return ast::make_constant_expression(
-		src_tokens,
-		ast::expression_type_kind::function_name, get_function_type(*body),
-		ast::constant_value(body),
-		ast::make_expr_identifier(id)
-	);
+	else
+	{
+		auto const body = fn_set->func_decls.empty()
+			? fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.front()
+			: &fn_set->func_decls.front().get<ast::decl_function>().body;
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::function_name, get_function_type(*body),
+			ast::constant_value(body),
+			ast::make_expr_identifier(id)
+		);
+	}
 }
 
 static ast::expression make_type_expression(
@@ -1285,6 +1288,14 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 					return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
 				},
 				[&src_tokens, &id, this](variadic_var_decl const &variadic_decl) {
+					if (this->parsing_variadic_expansion)
+					{
+						return ast::make_unresolved_expression(
+							src_tokens,
+							ast::make_unresolved_expr_identifier(std::move(id))
+						);
+					}
+
 					auto const is_valid = this->register_variadic(src_tokens, variadic_decl);
 					if (!is_valid)
 					{
@@ -4354,7 +4365,7 @@ ast::expression parse_context::make_unary_operator_expression(
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
-	else if (expr.is_unresolved())
+	else if (expr.is_unresolved() || (op_kind == lex::token::dot_dot_dot && !expr.is_typename()))
 	{
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_unary_op(op_kind, std::move(expr)));
 	}
@@ -4721,7 +4732,7 @@ ast::expression parse_context::make_function_call_expression(
 )
 {
 	args = expand_params(std::move(args));
-	if (called.is_error())
+	if (called.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(
@@ -4729,17 +4740,12 @@ ast::expression parse_context::make_function_call_expression(
 			ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
 		);
 	}
-
-	for (auto &arg : args)
+	else if (called.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
 	{
-		if (arg.is_error())
-		{
-			bz_assert(this->has_errors());
-			return ast::make_error_expression(
-				src_tokens,
-				ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
-			);
-		}
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_function_call(std::move(called), std::move(args))
+		);
 	}
 
 	auto const [called_type, called_type_kind] = called.get_expr_type_and_kind();
@@ -5071,12 +5077,12 @@ ast::expression parse_context::make_subscript_operator_expression(
 	ast::arena_vector<ast::expression> args
 )
 {
-	if (called.is_error())
+	if (called.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
 	{
 		bz_assert(this->has_errors());
 		return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), ast::expression()));
 	}
-	else if (called.is_unresolved() || args.is_any([](auto &arg) { return arg.is_unresolved(); }))
+	else if (called.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,

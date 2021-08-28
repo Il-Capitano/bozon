@@ -48,8 +48,6 @@ struct parse_context
 	global_context               &global_ctx;
 	decl_set                     *global_decls = nullptr;
 	bz::vector<decl_set>          scope_decls{};
-	size_t                        last_unresolved_scope_size = 0;
-	bz::vector<bz::u8string_view> unresolved_local_decls{};
 
 	bz::vector<ast::function_body *> generic_functions{};
 	bz::vector<std::size_t>          generic_function_scope_start{};
@@ -62,6 +60,7 @@ struct parse_context
 
 	bool in_loop = false;
 	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
+	bool parsing_variadic_expansion = false;
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -89,6 +88,9 @@ struct parse_context
 
 	[[nodiscard]] variadic_resolve_info_t push_variadic_resolver(void) noexcept;
 	void pop_variadic_resolver(variadic_resolve_info_t const &prev_info) noexcept;
+
+	[[nodiscard]] bool push_parsing_variadic_expansion(void) noexcept;
+	void pop_parsing_variadic_expansion(bool prev_value) noexcept;
 
 	bool register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl);
 	uint32_t get_variadic_index(void) const;
@@ -340,9 +342,6 @@ struct parse_context
 
 	void add_scope(void);
 	void remove_scope(void);
-
-	[[nodiscard]] size_t push_unresolved_scope(void);
-	void pop_unresolved_scope(size_t prev_size);
 
 	void add_unresolved_local(ast::identifier const &id);
 

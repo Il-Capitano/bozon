@@ -4,6 +4,7 @@
 #include "parse/consteval.h"
 #include "parse/expression_parser.h"
 #include "escape_sequences.h"
+#include "colors.h"
 
 namespace resolve
 {
@@ -41,7 +42,12 @@ static ast::expression resolve_variadic_expr(
 	ast::arena_vector<ast::expression> variadic_exprs;
 	variadic_exprs.push_back(unary_op.expr);
 	resolve_expression(variadic_exprs[0], context);
-	if (!context.variadic_info.found_variadic)
+	if (!context.variadic_info.found_variadic && variadic_exprs[0].is_typename())
+	{
+		context.pop_variadic_resolver(info);
+		return context.make_unary_operator_expression(src_tokens, unary_op.op, std::move(variadic_exprs[0]));
+	}
+	else if (!context.variadic_info.found_variadic)
 	{
 		context.report_error(unary_op.expr.src_tokens, "unable to expand non-variadic expression");
 		context.pop_variadic_resolver(info);
@@ -257,12 +263,14 @@ static ast::expression resolve_expr(
 	auto result_node = ast::make_ast_unique<ast::expr_compound>(std::move(compound_expr_));
 	auto &compound_expr = *result_node;
 	bool is_noreturn = false;
-	for (auto &stmt : compound_expr_.statements)
+	context.add_scope();
+	for (auto &stmt : compound_expr.statements)
 	{
 		resolve_statement(stmt, context);
 		is_noreturn |= is_statement_noreturn(stmt);
 	}
 	resolve_expression(compound_expr.final_expr, context);
+	context.remove_scope();
 	if (compound_expr.final_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));

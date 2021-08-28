@@ -99,7 +99,15 @@ bz::vector<symbol_t *> decl_set::find_by_unqualified_id(
 {
 	if (id.is_qualified)
 	{
-		return { this->find_by_id(id) };
+		auto result = this->find_by_id(id);
+		if (result != nullptr)
+		{
+			return { result };
+		}
+		else
+		{
+			return {};
+		}
 	}
 
 	return this->symbols

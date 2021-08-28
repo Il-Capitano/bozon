@@ -148,7 +148,7 @@ ast::expression parse_compound_expression(
 	bz_assert(stream->kind == lex::token::curly_open);
 	auto const begin = stream;
 	++stream; // '{'
-	auto const prev_scope_size = context.push_unresolved_scope();
+	context.add_scope();
 	ast::arena_vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
@@ -167,7 +167,7 @@ ast::expression parse_compound_expression(
 		}
 		statements.emplace_back(parse_local_statement_without_semi_colon(stream, end, context));
 	}
-	context.pop_unresolved_scope(prev_scope_size);
+	context.remove_scope();
 	if (stream != end && stream->kind == lex::token::curly_close)
 	{
 		++stream; // '}'
@@ -250,7 +250,6 @@ ast::expression parse_if_expression(
 		++stream; // ';'
 	}
 	ast::expression else_block;
-	auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 	if (stream != end && stream->kind == lex::token::kw_else)
 	{
 		++stream; // 'else'
@@ -260,6 +259,7 @@ ast::expression parse_if_expression(
 			++stream; // ';'
 		}
 	}
+	auto const src_tokens = lex::src_tokens{ begin, begin, stream };
 
 	if (else_block.is_null())
 	{
@@ -836,11 +836,22 @@ static ast::expression parse_primary_expression(
 		if (is_unary_operator(stream->kind))
 		{
 			auto const op = stream;
-			auto const prec = get_unary_precedence(op->kind);
-			++stream;
-			auto expr = parse_expression(stream, end, context, prec);
-
-			return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
+			if (op->kind == lex::token::dot_dot_dot)
+			{
+				auto const prec = get_unary_precedence(op->kind);
+				++stream;
+				auto const prev_parsing_variadic = context.push_parsing_variadic_expansion();
+				auto expr = parse_expression(stream, end, context, prec);
+				context.pop_parsing_variadic_expansion(prev_parsing_variadic);
+				return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
+			}
+			else
+			{
+				auto const prec = get_unary_precedence(op->kind);
+				++stream;
+				auto expr = parse_expression(stream, end, context, prec);
+				return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
+			}
 		}
 		else
 		{

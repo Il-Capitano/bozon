@@ -275,7 +275,7 @@ struct var_id_and_type
 	expression var_type;
 
 	var_id_and_type(void)
-		: id{}, var_type{}
+		: id(), var_type(type_as_expression(typespec()))
 	{}
 
 	var_id_and_type(identifier _id, expression _var_type)
@@ -283,7 +283,7 @@ struct var_id_and_type
 	{}
 
 	var_id_and_type(identifier _id)
-		: id(std::move(_id)), var_type{}
+		: id(std::move(_id)), var_type(type_as_expression(typespec()))
 	{}
 };
 
@@ -384,7 +384,7 @@ struct decl_variable
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
-		  id_and_type{},
+		  id_and_type(),
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (std::move(_init_expr)),
 		  state      (resolve_state::none),
@@ -398,7 +398,7 @@ struct decl_variable
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
-		  id_and_type{},
+		  id_and_type(),
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (),
 		  state      (resolve_state::none),
@@ -450,7 +450,14 @@ struct decl_variable
 
 	void clear_type(void)
 	{
-		this->id_and_type.var_type.clear();
+		if (this->id_and_type.var_type.is_typename())
+		{
+			this->id_and_type.var_type.get_typename().clear();
+		}
+		else
+		{
+			this->id_and_type.var_type = type_as_expression(typespec());
+		}
 		for (auto &decl : this->tuple_decls)
 		{
 			decl.clear_type();
