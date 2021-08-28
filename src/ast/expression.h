@@ -35,6 +35,7 @@ struct expr_unresolved_function_call;
 struct expr_unresolved_universal_function_call;
 struct expr_unresolved_cast;
 struct expr_unresolved_member_access;
+struct expr_unresolved_array_type;
 
 
 using expr_t = node<
@@ -68,7 +69,8 @@ using unresolved_expr_t = node<
 	expr_unresolved_member_access,
 	expr_compound,
 	expr_if,
-	expr_switch
+	expr_switch,
+	expr_unresolved_array_type
 >;
 
 enum class expression_type_kind
@@ -603,6 +605,22 @@ struct expr_unresolved_member_access
 	{}
 };
 
+struct expr_unresolved_array_type
+{
+	arena_vector<expression> sizes;
+	expression               type;
+
+	declare_default_5(expr_unresolved_array_type)
+
+	expr_unresolved_array_type(
+		arena_vector<expression> _sizes,
+		expression               _type
+	)
+		: sizes(std::move(_sizes)),
+		  type (std::move(_type))
+	{}
+};
+
 
 template<typename ...Args>
 expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
@@ -666,6 +684,7 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_member_access)
 def_make_unresolved_fn(unresolved_expr_t, expr_compound)
 def_make_unresolved_fn(unresolved_expr_t, expr_if)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 
 #undef def_make_unresolved_fn
 

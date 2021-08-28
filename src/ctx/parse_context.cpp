@@ -3715,6 +3715,11 @@ static void match_expression_to_type_impl(
 			expr.consteval_state = ast::expression::consteval_never_tried;
 		}
 
+		if (dest_container.is<ast::ts_auto_reference>() || dest_container.is<ast::ts_auto_reference_const>())
+		{
+			dest_container.remove_layer();
+			dest = dest_container;
+		}
 		auto const dest_without_const = ast::remove_const_or_consteval(dest);
 		if (dest_without_const.is<ast::ts_auto>())
 		{

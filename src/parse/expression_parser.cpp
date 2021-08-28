@@ -380,11 +380,7 @@ static ast::expression parse_array_type(
 {
 	bz_assert((stream - 1)->kind == lex::token::square_open);
 	auto const begin_token = stream - 1;
-	auto elems = parse_expression_comma_list(stream, end, context);
-	for (auto &elem : elems)
-	{
-		consteval_try(elem, context);
-	}
+	auto sizes = parse_expression_comma_list(stream, end, context);
 
 	bz_assert(stream != end);
 	if (stream->kind != lex::token::colon)
@@ -413,146 +409,18 @@ static ast::expression parse_array_type(
 		}
 	}
 
-	bz::vector<uint64_t> sizes = {};
-	for (auto &size_expr : elems)
+	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
+	if (good)
 	{
-		if (size_expr.is_error())
-		{
-			continue;
-		}
-		auto const report_error = [&size_expr, &context, &good](bz::u8string message) {
-			good = false;
-			context.report_error(size_expr, std::move(message));
-		};
-
-		if (!size_expr.is<ast::constant_expression>())
-		{
-			report_error("array size must be a constant expression");
-		}
-		else
-		{
-			auto &size_const_expr = size_expr.get<ast::constant_expression>();
-			switch (size_const_expr.value.kind())
-			{
-			case ast::constant_value::sint:
-			{
-				auto const size = size_const_expr.value.get<ast::constant_value::sint>();
-				if (size <= 0)
-				{
-					report_error(bz::format(
-						"array size must be a positive integer, the given size {} is invalid",
-						size
-					));
-				}
-				else
-				{
-					sizes.push_back(static_cast<uint64_t>(size));
-				}
-				break;
-			}
-			case ast::constant_value::uint:
-			{
-				auto const size = size_const_expr.value.get<ast::constant_value::uint>();
-				if (size == 0)
-				{
-					report_error(bz::format(
-						"array size must be a positive integer, the given size {} is invalid",
-						size
-					));
-				}
-				else
-				{
-					sizes.push_back(size);
-				}
-				break;
-			}
-			default:
-				report_error("array size must be an integer");
-				break;
-			}
-		}
-	}
-
-	if (type.is_error())
-	{
-		good = false;
-	}
-	else if (!type.is_typename())
-	{
-		good = false;
-		context.report_error(type, "expected a type as the array element type");
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_array_type(std::move(sizes), std::move(type))
+		);
 	}
 	else
 	{
-		auto &elem_type = type.get_typename();
-		if (elem_type.is<ast::ts_const>())
-		{
-			good = false;
-			auto const const_pos = type.src_tokens.pivot != nullptr
-				&& type.src_tokens.pivot->kind == lex::token::kw_const
-					? type.src_tokens.pivot
-					: lex::token_pos(nullptr);
-			auto const [const_begin, const_end] = const_pos == nullptr
-				? std::make_pair(ctx::char_pos(), ctx::char_pos())
-				: std::make_pair(const_pos->src_pos.begin, (const_pos + 1)->src_pos.begin);
-			context.report_error(
-				type, "array element type cannot be 'const'",
-				{}, { context.make_suggestion_before(
-					begin_token, const_begin, const_end,
-					"const ", "make the array type 'const'"
-				) }
-			);
-		}
-		else if (elem_type.is<ast::ts_consteval>())
-		{
-			good = false;
-			auto const consteval_pos = type.src_tokens.pivot != nullptr
-				&& type.src_tokens.pivot->kind == lex::token::kw_consteval
-					? type.src_tokens.pivot
-					: lex::token_pos(nullptr);
-			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
-				? std::make_pair(ctx::char_pos(), ctx::char_pos())
-				: std::make_pair(consteval_pos->src_pos.begin, (consteval_pos + 1)->src_pos.begin);
-			context.report_error(
-				type, "array element type cannot be 'consteval'",
-				{}, { context.make_suggestion_before(
-					begin_token, consteval_begin, consteval_end,
-					"consteval ", "make the array type 'consteval'"
-				) }
-			);
-		}
-		else if (elem_type.is<ast::ts_lvalue_reference>())
-		{
-			context.report_error(type, "array element type cannot be a reference type");
-		}
-		else if (elem_type.is<ast::ts_auto_reference>())
-		{
-			context.report_error(type, "array element type cannot be an auto reference type");
-		}
-		else if (elem_type.is<ast::ts_auto_reference_const>())
-		{
-			context.report_error(type, "array element type cannot be an auto reference-const type");
-		}
-	}
-
-	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
-	if (!good)
-	{
 		return ast::make_error_expression(src_tokens);
 	}
-
-	auto result_type = std::move(type.get_typename());
-	for (auto const size : sizes.reversed())
-	{
-		result_type = ast::make_array_typespec(src_tokens, size, std::move(result_type));
-	}
-	return ast::make_constant_expression(
-		src_tokens,
-		ast::expression_type_kind::type_name,
-		ast::make_typename_typespec(nullptr),
-		ast::constant_value(std::move(result_type)),
-		ast::expr_t{}
-	);
 }
 
 static ast::expression parse_array_slice_type(
@@ -582,52 +450,18 @@ static ast::expression parse_array_slice_type(
 		}
 	}
 
-	if (type.is_error())
+	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
+	if (good)
 	{
-		good = false;
-	}
-	else if (!type.is_typename())
-	{
-		good = false;
-		context.report_error(type, "expected a type as the array element type");
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_array_type(ast::arena_vector<ast::expression>(), std::move(type))
+		);
 	}
 	else
 	{
-		auto &elem_type = type.get_typename();
-		if (elem_type.is<ast::ts_consteval>())
-		{
-			good = false;
-			auto const consteval_pos = type.src_tokens.pivot != nullptr
-				&& type.src_tokens.pivot->kind == lex::token::kw_consteval
-					? type.src_tokens.pivot
-					: lex::token_pos(nullptr);
-			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
-				? std::make_pair(ctx::char_pos(), ctx::char_pos())
-				: std::make_pair(consteval_pos->src_pos.begin, consteval_pos->src_pos.end);
-			context.report_error(
-				type, "array slice element type cannot be 'consteval'",
-				{}, { context.make_suggestion_before(
-					begin_token, ctx::char_pos(), ctx::char_pos(), "consteval ",
-					consteval_pos, consteval_begin, consteval_end, "const",
-					"make the array slice type 'consteval'"
-				) }
-			);
-		}
-	}
-
-	lex::src_tokens const src_tokens = { begin_token, begin_token, end };
-	if (!good)
-	{
 		return ast::make_error_expression(src_tokens);
 	}
-
-	return ast::make_constant_expression(
-		src_tokens,
-		ast::expression_type_kind::type_name,
-		ast::make_typename_typespec(nullptr),
-		ast::constant_value(ast::make_array_slice_typespec(src_tokens, std::move(type.get_typename()))),
-		ast::expr_t{}
-	);
 }
 
 static ast::expression parse_primary_expression(

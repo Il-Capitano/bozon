@@ -25,7 +25,10 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 	resolve_expression(for_stmt.for_block, context);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-	context.match_expression_to_type(for_stmt.condition, bool_type);
+	if (for_stmt.condition.not_null())
+	{
+		context.match_expression_to_type(for_stmt.condition, bool_type);
+	}
 }
 
 static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &context)
@@ -309,6 +312,8 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 			ast::expression &expr,
 			uint32_t base_type_kind
 		) {
+			resolve_expression(expr, context);
+
 			if (expr.is_error())
 			{
 				good = false;
@@ -446,6 +451,7 @@ void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence
 	{
 		context.report_error({ stream, stream, end });
 	}
+	resolve_expression(type, context);
 
 	parse::consteval_try(type, context);
 	if (type.not_error() && !type.has_consteval_succeeded())

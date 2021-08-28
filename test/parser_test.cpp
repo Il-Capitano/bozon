@@ -1,6 +1,7 @@
 #include "parse/parse_common.cpp"
 #include "parse/expression_parser.cpp"
 #include "parse/statement_parser.cpp"
+#include "resolve/expression_resolver.cpp"
 #include "resolve/statement_resolver.cpp"
 
 #include "test.h"
@@ -38,51 +39,51 @@ xxx(fn, str, it_pos, !global_ctx.has_errors() && global_ctx.has_warnings(), cust
 xxx(fn, str, it_pos, global_ctx.has_errors(), custom_assert)
 
 
-#define declare_var(id_str, type_str, init_expr_str)                          \
-do {                                                                          \
-    static std::list<bz::vector<lex::token>> var_tokens;                      \
-    static bz::vector<ast::statement> var_decls;                              \
-    var_tokens.emplace_back(lex::get_tokens(id_str, 0, lex_ctx));             \
-    auto const &name_tokens = var_tokens.back();                              \
-    assert_eq(name_tokens.size(), 2);                                         \
-    assert_eq(name_tokens[0].kind, lex::token::identifier);                   \
-    auto const id = name_tokens.begin();                                      \
-    var_tokens.emplace_back(lex::get_tokens(type_str, 0, lex_ctx));           \
-    auto const &type_tokens = var_tokens.back();                              \
-    assert_false(global_ctx.has_errors());                                    \
-    auto const init_expr_tokens = lex::get_tokens(init_expr_str, 0, lex_ctx); \
-    var_tokens.push_back(init_expr_tokens);                                   \
-    auto init_expr = sizeof init_expr_str == 1                                \
-        ? ast::expression()                                                   \
-        : ast::make_unresolved_expression({                                   \
-            init_expr_tokens.begin(),                                         \
-            init_expr_tokens.begin(),                                         \
-            init_expr_tokens.end() - 1,                                       \
-        });                                                                   \
-    lex::src_tokens type_src_tokens = {                                       \
-        type_tokens.begin(),                                                  \
-        type_tokens.begin(),                                                  \
-        type_tokens.end() - 1,                                                \
-    };                                                                        \
-    lex::token_range type_token_range = {                                     \
-        type_src_tokens.begin,                                                \
-        type_src_tokens.end,                                                  \
-    };                                                                        \
-    auto decl = ast::make_decl_variable(                                      \
-        lex::src_tokens{id, id, id + 1},                                      \
-        lex::token_range{},                                                   \
-        ast::var_id_and_type(                                                 \
-            ast::make_identifier(id),                                         \
-            ast::make_unresolved_typespec(type_token_range)                   \
-        ),                                                                    \
-        std::move(init_expr)                                                  \
-    );                                                                        \
-    auto &var_decl = decl.get<ast::decl_variable>();                          \
-    resolve_variable_impl(var_decl, parse_ctx);                               \
-    var_decls.emplace_back(std::move(decl));                                  \
-    assert_false(global_ctx.has_errors());                                    \
-    parse_ctx.add_local_variable(var_decl);                                   \
-    assert_false(global_ctx.has_errors());                                    \
+#define declare_var(id_str, type_str, init_expr_str)                                 \
+do {                                                                                 \
+    static std::list<bz::vector<lex::token>> var_tokens;                             \
+    static bz::vector<ast::statement> var_decls;                                     \
+    var_tokens.emplace_back(lex::get_tokens(id_str, 0, lex_ctx));                    \
+    auto const &name_tokens = var_tokens.back();                                     \
+    assert_eq(name_tokens.size(), 2);                                                \
+    assert_eq(name_tokens[0].kind, lex::token::identifier);                          \
+    auto const id = name_tokens.begin();                                             \
+    var_tokens.emplace_back(lex::get_tokens(type_str, 0, lex_ctx));                  \
+    auto const &type_tokens = var_tokens.back();                                     \
+    assert_false(global_ctx.has_errors());                                           \
+    auto const init_expr_tokens = lex::get_tokens(init_expr_str, 0, lex_ctx);        \
+    var_tokens.push_back(init_expr_tokens);                                          \
+    auto init_expr = sizeof init_expr_str == 1                                       \
+        ? ast::expression()                                                          \
+        : ast::make_unresolved_expression({                                          \
+            init_expr_tokens.begin(),                                                \
+            init_expr_tokens.begin(),                                                \
+            init_expr_tokens.end() - 1,                                              \
+        });                                                                          \
+    lex::src_tokens type_src_tokens = {                                              \
+        type_tokens.begin(),                                                         \
+        type_tokens.begin(),                                                         \
+        type_tokens.end() - 1,                                                       \
+    };                                                                               \
+    lex::token_range type_token_range = {                                            \
+        type_src_tokens.begin,                                                       \
+        type_src_tokens.end,                                                         \
+    };                                                                               \
+    auto decl = ast::make_decl_variable(                                             \
+        lex::src_tokens{id, id, id + 1},                                             \
+        lex::token_range{},                                                          \
+        ast::var_id_and_type(                                                        \
+            ast::make_identifier(id),                                                \
+            ast::type_as_expression(ast::make_unresolved_typespec(type_token_range)) \
+        ),                                                                           \
+        std::move(init_expr)                                                         \
+    );                                                                               \
+    auto &var_decl = decl.get<ast::decl_variable>();                                 \
+    resolve_variable_impl(var_decl, parse_ctx);                                      \
+    var_decls.emplace_back(std::move(decl));                                         \
+    assert_false(global_ctx.has_errors());                                           \
+    parse_ctx.add_local_variable(var_decl);                                          \
+    assert_false(global_ctx.has_errors());                                           \
 } while (false)
 
 static bz::optional<bz::u8string> get_paren_matched_range_test(ctx::global_context &global_ctx)
@@ -330,7 +331,9 @@ static auto parse_expression_alt(
 	ctx::parse_context &context
 )
 {
-	return parse_expression(stream, end, context, precedence{});
+	auto result = parse_expression(stream, end, context, precedence{});
+	resolve_expression(result, context);
+	return result;
 }
 
 //	/*

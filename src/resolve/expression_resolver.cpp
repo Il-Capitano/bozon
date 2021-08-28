@@ -623,6 +623,195 @@ static ast::expression resolve_expr(
 	}
 }
 
+static ast::expression resolve_expr(
+	lex::src_tokens src_tokens,
+	ast::expr_unresolved_array_type array_type,
+	ctx::parse_context &context
+)
+{
+	for (auto &size : array_type.sizes)
+	{
+		resolve_expression(size, context);
+	}
+	resolve_expression(array_type.type, context);
+
+	bool good = true;
+	auto const sizes = array_type.sizes
+		.transform([&good, &context](auto &size) -> uint64_t {
+			parse::consteval_try(size, context);
+			if (size.is_error())
+			{
+				good = false;
+				return 0;
+			}
+			else if (!size.template is<ast::constant_expression>())
+			{
+				good = false;
+				context.report_error(size.src_tokens, "array size must be a constant expression");
+				return 0;
+			}
+			else
+			{
+				ast::constant_value const &size_value = size.template get<ast::constant_expression>().value;
+				switch (size_value.kind())
+				{
+				case ast::constant_value::sint:
+				{
+					auto const value = size_value.get<ast::constant_value::sint>();
+					if (value <= 0)
+					{
+						good = false;
+						context.report_error(
+							size.src_tokens,
+							bz::format("invalid array size {}, it must be a positive integer", value)
+						);
+					}
+					return static_cast<uint64_t>(value);
+				}
+				case ast::constant_value::uint:
+				{
+					auto const value = size_value.get<ast::constant_value::uint>();
+					if (value == 0)
+					{
+						good = false;
+						context.report_error(
+							size.src_tokens,
+							bz::format("invalid array size {}, it must be a positive integer", value)
+						);
+					}
+					return value;
+				}
+				default:
+					good = false;
+					context.report_error(
+						size.src_tokens,
+						bz::format("invalid type '{}' as array size", size.get_expr_type_and_kind().first)
+					);
+					return 0;
+				}
+			}
+		})
+		.collect();
+
+	if (!array_type.type.is_typename())
+	{
+		good = false;
+		context.report_error(array_type.type.src_tokens, "expected a type as the array element type");
+	}
+
+	if (!good)
+	{
+		return ast::make_error_expression(src_tokens);
+	}
+	else if (array_type.sizes.empty())
+	{
+		auto &elem_type = array_type.type.get_typename();
+		if (elem_type.is<ast::ts_consteval>())
+		{
+			auto const consteval_pos = array_type.type.src_tokens.pivot != nullptr
+				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_consteval
+					? array_type.type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(consteval_pos->src_pos.begin, consteval_pos->src_pos.end);
+			context.report_error(
+				array_type.type.src_tokens, "array slice element type cannot be 'consteval'",
+				{}, { context.make_suggestion_before(
+					src_tokens.begin, ctx::char_pos(), ctx::char_pos(), "consteval ",
+					consteval_pos, consteval_begin, consteval_end, "const",
+					"make the array slice type 'consteval'"
+				) }
+			);
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_lvalue_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a reference type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_auto_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_auto_reference_const>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else
+		{
+			return ast::type_as_expression(ast::make_array_slice_typespec(src_tokens, std::move(elem_type)));
+		}
+	}
+	else
+	{
+		auto &elem_type = array_type.type.get_typename();
+		if (elem_type.is<ast::ts_const>())
+		{
+			good = false;
+			auto const const_pos = array_type.type.src_tokens.pivot != nullptr
+				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_const
+					? array_type.type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [const_begin, const_end] = const_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(const_pos->src_pos.begin, (const_pos + 1)->src_pos.begin);
+			context.report_error(
+				array_type.type.src_tokens, "array element type cannot be 'const'",
+				{}, { context.make_suggestion_before(
+					src_tokens.begin, const_begin, const_end,
+					"const ", "make the array type 'const'"
+				) }
+			);
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_consteval>())
+		{
+			good = false;
+			auto const consteval_pos = array_type.type.src_tokens.pivot != nullptr
+				&& array_type.type.src_tokens.pivot->kind == lex::token::kw_consteval
+					? array_type.type.src_tokens.pivot
+					: lex::token_pos(nullptr);
+			auto const [consteval_begin, consteval_end] = consteval_pos == nullptr
+				? std::make_pair(ctx::char_pos(), ctx::char_pos())
+				: std::make_pair(consteval_pos->src_pos.begin, (consteval_pos + 1)->src_pos.begin);
+			context.report_error(
+				array_type.type.src_tokens, "array element type cannot be 'consteval'",
+				{}, { context.make_suggestion_before(
+					src_tokens.begin, consteval_begin, consteval_end,
+					"consteval ", "make the array type 'consteval'"
+				) }
+			);
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_lvalue_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be a reference type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_auto_reference>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else if (elem_type.is<ast::ts_auto_reference_const>())
+		{
+			context.report_error(array_type.type.src_tokens, "array element type cannot be an auto reference-const type");
+			return ast::make_error_expression(src_tokens);
+		}
+		else
+		{
+			for (auto const size : sizes.reversed())
+			{
+				elem_type = ast::make_array_typespec(src_tokens, size, std::move(elem_type));
+			}
+			return ast::type_as_expression(std::move(elem_type));
+		}
+	}
+}
+
 void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.is_unresolved())
@@ -634,8 +823,8 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		});
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
-		parse::consteval_guaranteed(expr, context);
 	}
+	parse::consteval_guaranteed(expr, context);
 }
 
 } // namespace resolve

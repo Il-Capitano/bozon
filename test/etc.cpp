@@ -13,6 +13,7 @@
 #include "ctx/builtin_operators.cpp"
 #include "ctx/error.cpp"
 #include "ctx/warnings.cpp"
+#include "ctx/decl_set.cpp"
 
 #include "ast/allocator.cpp"
 #include "ast/constant_value.cpp"

@@ -749,46 +749,17 @@ static ast::statement parse_type_info_member_variable(
 	}
 
 	bz_assert(stream != end);
-	auto const id = context.assert_token(stream, lex::token::identifier);
-	if (id->kind != lex::token::identifier)
+	if (stream->kind != lex::token::identifier)
 	{
+		context.assert_token(stream, lex::token::identifier);
 		return ast::statement();
 	}
-	bz_assert(stream != end);
-	context.assert_token(stream, lex::token::colon);
-	auto type = parse_expression(stream, end, context, no_assign);
+	auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(parse_decl_variable_id_and_type(stream, end, context)));
 	context.assert_token(stream, lex::token::semi_colon);
-	consteval_try(type, context);
-	if (type.not_error() && !type.has_consteval_succeeded())
-	{
-		context.report_error(type, "struct member type must be a constant expression", get_consteval_fail_notes(type));
-		return ast::statement();
-	}
-	else if (type.not_error() && !type.is_typename())
-	{
-		context.report_error(type, "expected a type");
-		return ast::statement();
-	}
-	else if (type.is_error())
-	{
-		return ast::statement();
-	}
-	else if (!context.is_instantiable(type.get_typename()))
-	{
-		context.report_error(type, "struct member type is not instantiable");
-		return ast::statement();
-	}
-	else
-	{
-		auto result = ast::make_decl_variable(
-			lex::src_tokens{ begin_token, id, stream },
-			lex::token_range{},
-			ast::var_id_and_type(ast::make_identifier(id), std::move(type))
-		);
-		auto &var_decl = result.get<ast::decl_variable>();
-		var_decl.flags |= ast::decl_variable::member;
-		return result;
-	}
+	auto &var_decl = result.get<ast::decl_variable>();
+	var_decl.flags |= ast::decl_variable::member;
+	var_decl.src_tokens.begin = begin_token;
+	return result;
 }
 
 ast::statement default_parse_type_info_statement(
