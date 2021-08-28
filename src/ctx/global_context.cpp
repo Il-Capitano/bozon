@@ -150,7 +150,7 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
 	bz_assert(kind < this->_builtin_functions.size());
 	switch (kind)
 	{
@@ -402,6 +402,12 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 		this->_comptime_executor.global_strings = var_decl;
 		return true;
 	}
+	else if (kind == "malloc_infos_var")
+	{
+		bz_assert(this->_comptime_executor.malloc_infos == nullptr);
+		this->_comptime_executor.malloc_infos = var_decl;
+		return true;
+	}
 	else
 	{
 		return false;
@@ -410,7 +416,7 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 
 bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
 	if (kind == "str_eq")
 	{
 		if (this->_builtin_str_eq_func != nullptr)
@@ -705,6 +711,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto &comptime_checking_file = this->_src_files.emplace_back(
 		comptime_checking_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
+	this->_comptime_executor.comptime_checking_file_id = comptime_checking_file._file_id;
 	if (!comptime_checking_file.parse_global_symbols(*this))
 	{
 		return false;

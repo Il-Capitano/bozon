@@ -475,6 +475,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 		if (precision > 0u)
 		{
 			*(result + index) = '.' as uint32 as uint8;
+			++index;
 			memset(result + index, '0' as uint32 as uint8, precision);
 			index += precision as int32;
 		}
@@ -1019,6 +1020,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		if (precision > 0u)
 		{
 			*(result + index) = '.' as uint32 as uint8;
+			++index;
 			memset(result + index, '0' as uint32 as uint8, precision);
 			index += precision as int32;
 		}

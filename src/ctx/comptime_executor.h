@@ -43,12 +43,19 @@ enum class comptime_function_kind : uint32_t
 	push_call,
 	pop_call,
 	clear_errors,
+
+	register_malloc,
+	register_free,
+	check_leaks,
+
 	index_check_unsigned,
 	index_check_signed,
+
 	comptime_malloc_check,
 	comptime_memcpy_check,
 	comptime_memmove_check,
 	comptime_memset_check,
+
 	i8_divide_check,
 	i16_divide_check,
 	i32_divide_check,
@@ -57,6 +64,39 @@ enum class comptime_function_kind : uint32_t
 	u16_divide_check,
 	u32_divide_check,
 	u64_divide_check,
+
+	exp_f32_check,   exp_f64_check,
+	exp2_f32_check,  exp2_f64_check,
+	expm1_f32_check, expm1_f64_check,
+	log_f32_check,   log_f64_check,
+	log10_f32_check, log10_f64_check,
+	log2_f32_check,  log2_f64_check,
+	log1p_f32_check, log1p_f64_check,
+
+	sqrt_f32_check,  sqrt_f64_check,
+	pow_f32_check,   pow_f64_check,
+	cbrt_f32_check,  cbrt_f64_check,
+	hypot_f32_check, hypot_f64_check,
+
+	sin_f32_check,   sin_f64_check,
+	cos_f32_check,   cos_f64_check,
+	tan_f32_check,   tan_f64_check,
+	asin_f32_check,  asin_f64_check,
+	acos_f32_check,  acos_f64_check,
+	atan_f32_check,  atan_f64_check,
+	atan2_f32_check, atan2_f64_check,
+
+	sinh_f32_check,  sinh_f64_check,
+	cosh_f32_check,  cosh_f64_check,
+	tanh_f32_check,  tanh_f64_check,
+	asinh_f32_check, asinh_f64_check,
+	acosh_f32_check, acosh_f64_check,
+	atanh_f32_check, atanh_f64_check,
+
+	erf_f32_check,    erf_f64_check,
+	erfc_f32_check,   erfc_f64_check,
+	tgamma_f32_check, tgamma_f64_check,
+	lgamma_f32_check, lgamma_f64_check,
 
 	_last,
 };
@@ -170,6 +210,7 @@ struct comptime_executor_context
 
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
+	bool do_error_checking(void) const;
 
 
 	void push_expression_scope(void);
@@ -259,10 +300,13 @@ struct comptime_executor_context
 	std::list<source_highlight>   execution_errors{}; // a list is used, so pointers are stable
 	std::list<comptime_func_call> execution_calls{};  // a list is used, so pointers are stable
 
+	llvm::Function *is_option_set_impl_func = nullptr;
 	ast::decl_variable *errors_array   = nullptr;
 	ast::decl_variable *call_stack     = nullptr;
 	ast::decl_variable *global_strings = nullptr;
+	ast::decl_variable *malloc_infos   = nullptr;
 	bz::vector<comptime_function> comptime_functions;
+	uint32_t comptime_checking_file_id = 0;
 
 	llvm::TargetMachine *target_machine = nullptr;
 	llvm::legacy::PassManager pass_manager{};
@@ -294,12 +338,19 @@ constexpr bz::array comptime_function_info = {
 	def_element(push_call),
 	def_element(pop_call),
 	def_element(clear_errors),
+
+	def_element(register_malloc),
+	def_element(register_free),
+	def_element(check_leaks),
+
 	def_element(index_check_unsigned),
 	def_element(index_check_signed),
+
 	def_element(comptime_malloc_check),
 	def_element(comptime_memcpy_check),
 	def_element(comptime_memmove_check),
 	def_element(comptime_memset_check),
+
 	def_element(i8_divide_check),
 	def_element(i16_divide_check),
 	def_element(i32_divide_check),
@@ -308,6 +359,67 @@ constexpr bz::array comptime_function_info = {
 	def_element(u16_divide_check),
 	def_element(u32_divide_check),
 	def_element(u64_divide_check),
+
+	def_element(exp_f32_check),
+	def_element(exp_f64_check),
+	def_element(exp2_f32_check),
+	def_element(exp2_f64_check),
+	def_element(expm1_f32_check),
+	def_element(expm1_f64_check),
+	def_element(log_f32_check),
+	def_element(log_f64_check),
+	def_element(log10_f32_check),
+	def_element(log10_f64_check),
+	def_element(log2_f32_check),
+	def_element(log2_f64_check),
+	def_element(log1p_f32_check),
+	def_element(log1p_f64_check),
+
+	def_element(sqrt_f32_check),
+	def_element(sqrt_f64_check),
+	def_element(pow_f32_check),
+	def_element(pow_f64_check),
+	def_element(cbrt_f32_check),
+	def_element(cbrt_f64_check),
+	def_element(hypot_f32_check),
+	def_element(hypot_f64_check),
+
+	def_element(sin_f32_check),
+	def_element(sin_f64_check),
+	def_element(cos_f32_check),
+	def_element(cos_f64_check),
+	def_element(tan_f32_check),
+	def_element(tan_f64_check),
+	def_element(asin_f32_check),
+	def_element(asin_f64_check),
+	def_element(acos_f32_check),
+	def_element(acos_f64_check),
+	def_element(atan_f32_check),
+	def_element(atan_f64_check),
+	def_element(atan2_f32_check),
+	def_element(atan2_f64_check),
+
+	def_element(sinh_f32_check),
+	def_element(sinh_f64_check),
+	def_element(cosh_f32_check),
+	def_element(cosh_f64_check),
+	def_element(tanh_f32_check),
+	def_element(tanh_f64_check),
+	def_element(asinh_f32_check),
+	def_element(asinh_f64_check),
+	def_element(acosh_f32_check),
+	def_element(acosh_f64_check),
+	def_element(atanh_f32_check),
+	def_element(atanh_f64_check),
+
+	def_element(erf_f32_check),
+	def_element(erf_f64_check),
+	def_element(erfc_f32_check),
+	def_element(erfc_f64_check),
+	def_element(tgamma_f32_check),
+	def_element(tgamma_f64_check),
+	def_element(lgamma_f32_check),
+	def_element(lgamma_f64_check),
 };
 static_assert(comptime_function_info.size() == static_cast<uint32_t>(comptime_function_kind::_last));
 

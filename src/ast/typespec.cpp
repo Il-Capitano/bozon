@@ -417,17 +417,132 @@ bool is_non_trivial(typespec_view ts) noexcept
 	}
 }
 
+bool is_default_constructible(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		return ts.get<ts_base_type>().info->is_default_constructible();
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_default_constructible(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_default_constructible(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are trivially copy constructible
+		return true;
+	}
+}
+
+bool is_copy_constructible(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		return ts.get<ts_base_type>().info->is_copy_constructible();
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_copy_constructible(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_copy_constructible(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are trivially copy constructible
+		return true;
+	}
+}
+
+bool is_trivially_copy_constructible(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		return ts.get<ts_base_type>().info->is_trivially_copy_constructible();
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_trivially_copy_constructible(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_trivially_copy_constructible(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are trivially copy constructible
+		return true;
+	}
+}
+
+bool is_trivially_destructible(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		return ts.get<ts_base_type>().info->is_trivially_destructible();
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_trivially_destructible(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_trivially_destructible(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are trivially destructible
+		return true;
+	}
+}
+
+bool is_trivial(typespec_view ts) noexcept
+{
+	ts = remove_const_or_consteval(ts);
+	if (ts.is<ts_base_type>())
+	{
+		return ts.get<ts_base_type>().info->is_trivial();
+	}
+	else if (ts.is<ts_tuple>())
+	{
+		return ts.get<ts_tuple>().types.is_all([](auto const &type) {
+			return is_trivial(type);
+		});
+	}
+	else if (ts.is<ts_array>())
+	{
+		return is_trivial(ts.get<ts_array>().elem_type);
+	}
+	else
+	{
+		// pointers, slices, function pointers are trivial
+		return true;
+	}
+}
+
 bool is_default_zero_initialized(typespec_view ts) noexcept
 {
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
-		auto const &info = *ts.get<ts_base_type>().info;
-		return info.default_constructor == nullptr
-			// will be true for built-in types
-			&& info.member_variables.is_all([](auto const member) {
-				return is_default_zero_initialized(member->get_type());
-			});
+		return ts.get<ts_base_type>().info->is_default_zero_initialized();
 	}
 	else if (ts.is<ts_tuple>())
 	{

@@ -544,6 +544,7 @@ struct function_body
 		builtin_inplace_construct,
 
 		builtin_is_comptime,
+		builtin_is_option_set,
 		builtin_panic,
 
 		print_stdout,
@@ -615,6 +616,22 @@ struct function_body
 		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
 
 		_builtin_last,
+
+		// these functions don't have a __builtin_* variant
+		i8_default_constructor,
+		i16_default_constructor,
+		i32_default_constructor,
+		i64_default_constructor,
+		u8_default_constructor,
+		u16_default_constructor,
+		u32_default_constructor,
+		u64_default_constructor,
+		f32_default_constructor,
+		f64_default_constructor,
+		char_default_constructor,
+		str_default_constructor,
+		bool_default_constructor,
+		null_t_default_constructor,
 	};
 
 	bz::vector<decl_variable> params;
@@ -736,12 +753,14 @@ struct function_body
 	type_info *get_destructor_of(void) const noexcept
 	{
 		bz_assert(this->is_destructor());
+		bz_assert(this->constructor_or_destructor_of != nullptr);
 		return this->constructor_or_destructor_of;
 	}
 
 	type_info *get_constructor_of(void) const noexcept
 	{
 		bz_assert(this->is_constructor());
+		bz_assert(this->constructor_or_destructor_of != nullptr);
 		return this->constructor_or_destructor_of;
 	}
 
@@ -854,6 +873,16 @@ struct type_info
 {
 	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
 
+	enum : uint32_t
+	{
+		default_constructible           = bit_at<0>,
+		copy_constructible              = bit_at<1>,
+		trivially_copy_constructible    = bit_at<2>,
+		trivially_destructible          = bit_at<3>,
+		trivial                         = bit_at<4>,
+		default_zero_initialized        = bit_at<5>,
+	};
+
 	enum : uint8_t
 	{
 		int8_, int16_, int32_, int64_,
@@ -872,6 +901,7 @@ struct type_info
 	bool            is_export;
 	identifier      type_name;
 	uint32_t        file_id;
+	uint32_t        flags;
 	bz::u8string    symbol_name;
 	body_t          body;
 
@@ -903,6 +933,7 @@ struct type_info
 		  is_export(false),
 		  type_name(std::move(_type_name)),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
+		  flags(0),
 		  symbol_name(),
 		  body(range),
 		  member_variables{},
@@ -922,6 +953,14 @@ private:
 		  is_export(false),
 		  type_name(),
 		  file_id(0),
+		  flags(
+			  default_constructible
+			  | copy_constructible
+			  | trivially_copy_constructible
+			  | trivially_destructible
+			  | trivial
+			  | default_zero_initialized
+		  ),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body(bz::vector<statement>{}),
 		  member_variables{},
@@ -933,6 +972,24 @@ private:
 //		  move_destuctor(nullptr)
 	{}
 public:
+
+	bool is_default_constructible(void) const noexcept
+	{ return (this->flags & default_constructible) != 0; }
+
+	bool is_copy_constructible(void) const noexcept
+	{ return (this->flags & copy_constructible) != 0; }
+
+	bool is_trivially_copy_constructible(void) const noexcept
+	{ return (this->flags & trivially_copy_constructible) != 0; }
+
+	bool is_trivially_destructible(void) const noexcept
+	{ return (this->flags & trivially_destructible) != 0; }
+
+	bool is_trivial(void) const noexcept
+	{ return (this->flags & trivial) != 0; }
+
+	bool is_default_zero_initialized(void) const noexcept
+	{ return (this->flags & default_zero_initialized) != 0; }
 
 	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
@@ -1213,7 +1270,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 121);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 122);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
@@ -1242,8 +1299,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 
-		{ function_body::builtin_is_comptime, "__builtin_is_comptime" },
-		{ function_body::builtin_panic,       "__builtin_panic"       },
+		{ function_body::builtin_is_comptime,   "__builtin_is_comptime"   },
+		{ function_body::builtin_is_option_set, "__builtin_is_option_set" },
+		{ function_body::builtin_panic,         "__builtin_panic"         },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::println_stdout, "__builtin_println_stdout" },

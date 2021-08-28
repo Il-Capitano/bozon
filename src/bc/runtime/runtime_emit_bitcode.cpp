@@ -2427,13 +2427,22 @@ static val_ptr emit_bitcode(
 			"a function marked as 'consteval' can only be used in a constant expression",
 			std::move(notes)
 		);
+		if (func_call.func_body->return_type.is<ast::ts_void>())
+		{
+			return {};
+		}
+		else if (result_address == nullptr)
+		{
+			result_address = context.create_alloca(get_llvm_type(func_call.func_body->return_type, context));
+		}
+		return { val_ptr::reference, result_address };
 	}
 
 	if (func_call.func_body->is_intrinsic())
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 121);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2673,6 +2682,9 @@ static val_ptr emit_bitcode(
 			}
 		}
 
+		case ast::function_body::builtin_is_option_set:
+			bz_unreachable;
+
 		case ast::function_body::comptime_malloc_type:
 		{
 			bz_assert(func_call.params.size() == 2);
@@ -2700,27 +2712,25 @@ static val_ptr emit_bitcode(
 		case ast::function_body::comptime_compile_warning:
 		case ast::function_body::comptime_compile_error_src_tokens:
 		case ast::function_body::comptime_compile_warning_src_tokens:
-		{
-			if (no_panic_on_unreachable)
-			{
-				context.builder.CreateUnreachable();
-			}
-			else
-			{
-				auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
-				context.builder.CreateCall(panic_fn);
-				auto const return_type = context.current_function.second->getReturnType();
-				if (return_type->isVoidTy())
-				{
-					context.builder.CreateRetVoid();
-				}
-				else
-				{
-					context.builder.CreateRet(llvm::UndefValue::get(return_type));
-				}
-			}
-			return {};
-		}
+			// these are handled already because they are marked as 'consteval'
+			bz_unreachable;
+
+		case ast::function_body::i8_default_constructor:
+		case ast::function_body::i16_default_constructor:
+		case ast::function_body::i32_default_constructor:
+		case ast::function_body::i64_default_constructor:
+		case ast::function_body::u8_default_constructor:
+		case ast::function_body::u16_default_constructor:
+		case ast::function_body::u32_default_constructor:
+		case ast::function_body::u64_default_constructor:
+		case ast::function_body::f32_default_constructor:
+		case ast::function_body::f64_default_constructor:
+		case ast::function_body::char_default_constructor:
+		case ast::function_body::str_default_constructor:
+		case ast::function_body::bool_default_constructor:
+		case ast::function_body::null_t_default_constructor:
+			// these functions are guaranteed to be evaluated at compile time
+			bz_unreachable;
 
 		default:
 			break;

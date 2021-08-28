@@ -548,13 +548,20 @@ function format_unchecked_fmt(fmt_str: consteval str, args: ...#const auto) -> s
 {
 	let buffer = format_buffer[ string() ];
 	buffer.format_into(fmt_str, ...args);
-	return buffer._str;
+	return buffer._str.release();
 }
 
 export function format(fmt_str: consteval str, args: ...#const auto) -> string
 {
 	(consteval check_fmt_str(fmt_str));
 	return format_unchecked_fmt(fmt_str, ...args);
+}
+
+export consteval function comptime_format(fmt_str: consteval str, args: ...#const auto) -> str
+{
+	(consteval check_fmt_str(fmt_str));
+	const s = format_unchecked_fmt(fmt_str, ...args);
+	return s.as_str().meta::create_global_string();
 }
 
 export function printf(fmt_str: consteval str, args: ...#const auto)
@@ -1250,12 +1257,20 @@ consteval trailing_zeros_upper_bounds: [17, 4: float64] = [
 	[ 0.09999999999999999, 0.009999999999999998, 0.0009999999999999998, 9.999999999999999e-05 ],
 ];
 
+function abs_f64(x: float64) -> float64
+{
+	const bits = ryu::double_to_bits(x);
+	consteval sign_mask = 0x8000'0000'0000'0000u64;
+	static_assert(popcount(sign_mask) == 1u);
+	return ryu::bits_to_double(bits & ~sign_mask);
+}
+
 function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: format_spec)
 {
 	// most results should fit in this buffer
 	let static_buffer: [32: uint8];
 
-	const abs_x = if (x < 0.0) { -x } else { x };
+	const abs_x = abs_f64(x);
 	const leading_digit_count = {
 		let i = 1uz;
 		while (i < upper_bounds.size() && abs_x >= upper_bounds[i])
@@ -1371,14 +1386,20 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 		fmt_spec.precision = 1u;
 	}
 
-	const abs_x = if (x < 0.0) { -x } else { x };
+	const abs_x = abs_f64(x);
 	const upper_bound = upper_bounds[fmt_spec.precision];
 	const lower_bound = if (fmt_spec.precision >= lower_bounds.size()) {
 		lower_bounds[lower_bounds.size() - 1u]
 	} else {
 		lower_bounds[fmt_spec.precision]
 	};
-	if (abs_x <= lower_bound || abs_x >= upper_bound || !isfinite(x))
+	if (abs_x == 0.0)
+	{
+		// special case for 0.0
+		fmt_spec.precision = 0u;
+		format_float64_fixed(x, buffer, fmt_spec);
+	}
+	else if (abs_x <= lower_bound || abs_x >= upper_bound || !isfinite(x))
 	{
 		// the leading digit isn't counted in format_float64_exponential
 		fmt_spec.precision -= 1u;
@@ -1400,7 +1421,7 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 	}
 	else
 	{
-		const trailing_digit_count = {
+		const trailing_zeros_count = {
 			const bounds: [: const auto] = if (fmt_spec.precision >= trailing_zeros_upper_bounds.size()) {
 				trailing_zeros_upper_bounds[trailing_zeros_upper_bounds.size() - 1u]
 			} else {
@@ -1413,7 +1434,7 @@ function format_float64_generic(x: float64, buffer: &format_buffer, fmt_spec: fo
 			}
 			i
 		};
-		fmt_spec.precision += trailing_digit_count;
+		fmt_spec.precision += trailing_zeros_count;
 		format_float64_fixed(x, buffer, fmt_spec);
 	}
 }
@@ -1502,12 +1523,12 @@ export function format_to(arr: [: const auto], buffer: &format_buffer, fmt_spec:
 	buffer.write_into(" ]");
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first], fmt_spec: format_spec)
+function tuple_format_to_impl(buffer: &format_buffer, [first: *const auto], fmt_spec: format_spec)
 {
 	first->format_to(buffer, fmt_spec);
 }
 
-function tuple_format_to_impl(buffer: &format_buffer, [first, second, ...rest], fmt_spec: format_spec)
+function tuple_format_to_impl(buffer: &format_buffer, [first: *const auto, second: *const auto, ...rest: *const auto], fmt_spec: format_spec)
 {
 	first->format_to(buffer, fmt_spec);
 	buffer.write_into(", ");

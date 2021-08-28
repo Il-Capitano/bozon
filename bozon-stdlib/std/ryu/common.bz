@@ -145,3 +145,10 @@ export function copy_short_special_str(result: *uint8, sign: bool, exponent: boo
 		return result + 3;
 	}
 }
+
+export function bits_to_double(bits: uint64) -> float64
+{
+	let x: float64 = 0.0;
+	memcpy(&x, &bits, sizeof float64);
+	return x;
+}
