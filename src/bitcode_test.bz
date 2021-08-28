@@ -58,7 +58,7 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
-	foo_t();
+	// foo_t();
 	(consteval {
 		const p = std::meta::malloc(int32, 1u);
 		std::meta::free(p);
