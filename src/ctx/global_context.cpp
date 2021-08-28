@@ -92,12 +92,8 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 decl_set get_default_decls(void)
 {
 	return {
-		{}, // var_decls
-		{}, // variadic_var_decls
-		{}, // func_sets
+		{}, // symbols
 		{}, // op_sets
-		{}, // type_aliases
-		{}, // types
 	};
 }
 
@@ -507,6 +503,12 @@ bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_
 	}
 }
 
+bool global_context::is_aggressive_consteval_enabled(void) const
+{
+	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
+	return optimizations.contains(ctcli::group_element("--opt aggressive-consteval"));
+}
+
 
 void global_context::report_and_clear_errors_and_warnings(void)
 {
@@ -751,17 +753,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	/*
-	this->_comptime_executor.vars_.clear();
-	if (is_optimization_enabled(bc::optimization_kind::aggressive_consteval))
-	{
-		for (auto &file : this->_src_files)
-		{
-			file.aggressive_consteval(*this);
-		}
-	}
-	*/
-
 	return true;
 }
 
@@ -773,17 +764,17 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const type : file._global_decls.types)
+		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type_symbol(*type, context);
+			bc::runtime::emit_global_type_symbol(*struct_decl, context);
 		}
-		for (auto const type : file._global_decls.types)
+		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type(*type, context);
+			bc::runtime::emit_global_type(*struct_decl, context);
 		}
-		for (auto const decl : file._global_decls.var_decls)
+		for (auto const var_decl : file._global_decls.var_decl_range())
 		{
-			bc::runtime::emit_global_variable(*decl, context);
+			bc::runtime::emit_global_variable(*var_decl, context);
 		}
 	}
 	for (auto const func : this->_compile_decls.funcs)
@@ -1357,6 +1348,10 @@ bool global_context::emit_llvm_ir(void)
 			break;
 		case ctcli::group_element("--opt verify"):
 			opt_pass_manager.add(llvm::createVerifierPass());
+			break;
+
+		case ctcli::group_element("--opt aggressive-consteval"):
+			// this is an LLVM optimization
 			break;
 
 		default:

@@ -413,8 +413,16 @@ type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens s
 
 	auto result = make_ast_unique<function_body>();
 	result->params.reserve(2);
-	result->params.emplace_back(lex::src_tokens{}, lex::token_range{}, var_id_and_type(identifier{}, std::move(lhs_t)));
-	result->params.emplace_back(lex::src_tokens{}, lex::token_range{}, var_id_and_type(identifier{}, std::move(rhs_t)));
+	result->params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t)))
+	);
+	result->params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t)))
+	);
 	result->return_type = std::move(ret_t);
 	result->function_name_or_operator_kind = lex::token::assign;
 	result->src_tokens = src_tokens;
@@ -439,8 +447,16 @@ type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tok
 
 	auto result = make_ast_unique<function_body>();
 	result->params.reserve(2);
-	result->params.emplace_back(lex::src_tokens{}, lex::token_range{}, var_id_and_type(identifier{}, std::move(lhs_t)));
-	result->params.emplace_back(lex::src_tokens{}, lex::token_range{}, var_id_and_type(identifier{}, std::move(rhs_t)));
+	result->params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t)))
+	);
+	result->params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t)))
+	);
 	result->return_type = std::move(ret_t);
 	result->function_name_or_operator_kind = lex::token::assign;
 	result->src_tokens = src_tokens;
@@ -458,7 +474,11 @@ type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_t
 	auto ret_t = make_base_type_typespec({}, &info);
 
 	auto result = make_ast_unique<function_body>();
-	result->params.emplace_back(lex::src_tokens{}, lex::token_range{}, var_id_and_type(identifier{}, std::move(param_t)));
+	result->params.emplace_back(
+		lex::src_tokens{},
+		lex::token_range{},
+		var_id_and_type(identifier{}, type_as_expression(std::move(param_t)))
+	);
 	result->return_type = std::move(ret_t);
 	result->src_tokens = src_tokens;
 	result->state = resolve_state::symbol;
@@ -633,7 +653,7 @@ static function_body create_builtin_function(
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
 		lex::src_tokens{}, lex::token_range{},
-		var_id_and_type(identifier{}, std::move(arg_types))
+		var_id_and_type(identifier{}, type_as_expression(std::move(arg_types)))
 	)), ...);
 	auto const is_generic = [&]() {
 		for (auto const &param : params)

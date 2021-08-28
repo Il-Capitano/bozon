@@ -58,7 +58,7 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
-	foo_t();
+	// foo_t();
 	(consteval {
 		const p = std::meta::malloc(int32, 1u);
 		std::meta::free(p);
@@ -330,7 +330,8 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", 1e15);
 	let t = [ 3, 3.234, "hello" ];
 	std::printf("{}\n", t);
-	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+	// static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
+	// static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
 
 	const s = std::string("Hello");
 	const *const p = &s;
@@ -375,6 +376,8 @@ function main(args: [: const str]) -> int32
 	consteval s = std::comptime_format("Hello {:.^10}", "World");
 	static_assert(typeof s == const str);
 	static_assert(s == "Hello ..World...");
+
+	std::printf("{:g}\n", 1e-10);
 
 	// consteval x = std::sqrt(-1.0);
 
@@ -845,7 +848,7 @@ function for_test() -> void
 
 function declaration_leak() -> void
 {
-	for (let i = 0; i < 10; ++i);
+	for (let i = 0; i < 10; ++i) {}
 //	i;
 }
 

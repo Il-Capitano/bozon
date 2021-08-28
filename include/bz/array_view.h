@@ -97,16 +97,16 @@ public:
 	{ return const_iterator(this->_data_end); }
 
 	constexpr reverse_iterator rbegin(void) const noexcept
-	{ return reverse_iterator(this->_data_end - 1); }
+	{ return reverse_iterator(this->_data_end == nullptr ? nullptr : this->_data_end - 1); }
 
 	constexpr reverse_iterator rend(void) const noexcept
-	{ return reverse_iterator(this->_data_begin - 1); }
+	{ return reverse_iterator(this->_data_begin == nullptr ? nullptr : this->_data_begin - 1); }
 
 	constexpr const_reverse_iterator crbegin(void) const noexcept
-	{ return const_reverse_iterator(this->_data_end - 1); }
+	{ return const_reverse_iterator(this->_data_end == nullptr ? nullptr : this->_data_end - 1); }
 
 	constexpr const_reverse_iterator crend(void) const noexcept
-	{ return const_reverse_iterator(this->_data_begin - 1); }
+	{ return const_reverse_iterator(this->_data_begin == nullptr ? nullptr : this->_data_begin - 1); }
 
 	constexpr operator array_view<value_type const> (void) const noexcept
 	{ return array_view<value_type const>{ this->_data_begin, this->_data_end }; }

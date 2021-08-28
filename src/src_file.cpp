@@ -4,8 +4,9 @@
 #include "ctx/parse_context.h"
 #include "ctx/bitcode_context.h"
 #include "lex/lexer.h"
-#include "parse/statement_parser.h"
 #include "parse/consteval.h"
+#include "parse/statement_parser.h"
+#include "resolve/statement_resolver.h"
 
 static bz::u8string read_text_from_file(std::istream &file)
 {
@@ -24,6 +25,21 @@ static bz::u8string read_text_from_file(std::istream &file)
 	return file_str;
 }
 
+static void report_redeclaration_error(lex::src_tokens src_tokens, ctx::symbol_t *prev_symbol, ctx::global_context &global_ctx)
+{
+	if (prev_symbol != nullptr)
+	{
+		global_ctx.report_error(
+			src_tokens,
+			bz::format("redeclaration of global identifier '{}'", ctx::get_symbol_id(*prev_symbol).format_as_unqualified()),
+			{ global_ctx.make_note(
+				ctx::get_symbol_src_tokens(*prev_symbol),
+				"previous declaration was here"
+			) }
+		);
+	}
+}
+
 
 src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string_view> scope, bool is_library_file)
 	: _stage(constructed),
@@ -37,20 +53,18 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 {}
 
 
-void src_file::add_to_global_decls(ctx::decl_set const &set)
+static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::global_context &global_ctx)
 {
-	this->_global_decls.var_decls.append(set.var_decls);
-	this->_global_decls.type_aliases.append(set.type_aliases);
-	this->_global_decls.types.append(set.types);
-
-	for (auto const &func_set : set.func_sets)
+	for (auto const &symbol : set.symbols)
 	{
-		this->_global_decls.add_function_set(func_set);
+		auto const prev_symbol = file._global_decls.add_symbol(symbol);
+		report_redeclaration_error(ctx::get_symbol_src_tokens(symbol), prev_symbol, global_ctx);
 	}
 
 	for (auto const &op_set : set.op_sets)
 	{
-		this->_global_decls.add_operator_set(op_set);
+		[[maybe_unused]] auto const symbol_ptr = file._global_decls.add_operator_set(op_set);
+		bz_assert(symbol_ptr == nullptr);
 	}
 }
 
@@ -139,60 +153,72 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		case ast::statement::index<ast::decl_variable>:
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
-			this->_global_decls.add_variable(var_decl);
-			if (var_decl.is_module_export())
+			auto const prev_symbol = this->_global_decls.add_variable(var_decl);
+			report_redeclaration_error(var_decl.src_tokens, prev_symbol, global_ctx);
+			if (prev_symbol == nullptr && var_decl.is_module_export())
 			{
-				this->_export_decls.add_variable(var_decl);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_variable(var_decl);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_function>:
 		{
 			auto &body = decl.get<ast::decl_function>().body;
-			this->_global_decls.add_function(decl);
-			if (body.is_export())
+			auto const prev_symbol = this->_global_decls.add_function(decl);
+			report_redeclaration_error(body.src_tokens, prev_symbol, global_ctx);
+			if (prev_symbol == nullptr && body.is_export())
 			{
-				this->_export_decls.add_function(decl);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_function(decl);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_operator>:
 		{
 			auto &body = decl.get<ast::decl_operator>().body;
-			this->_global_decls.add_operator(decl);
+			[[maybe_unused]] auto const prev_symbol = this->_global_decls.add_operator(decl);
+			bz_assert(prev_symbol == nullptr);
 			if (body.is_export())
 			{
-				this->_export_decls.add_operator(decl);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_operator(decl);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_function_alias>:
 		{
-			this->_global_decls.add_function_alias(decl);
-			auto const &alias = decl.get<ast::decl_function_alias>();
-			if (alias.is_export)
+			auto &alias = decl.get<ast::decl_function_alias>();
+			auto const prev_symbol = this->_global_decls.add_function_alias(alias);
+			report_redeclaration_error(alias.src_tokens, prev_symbol, global_ctx);
+			if (prev_symbol == nullptr && alias.is_export)
 			{
-				this->_export_decls.add_function_alias(decl);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_function_alias(alias);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_type_alias>:
 		{
 			auto &alias = decl.get<ast::decl_type_alias>();
-			this->_global_decls.add_type_alias(alias);
-			if (alias.is_export)
+			auto const prev_symbol = this->_global_decls.add_type_alias(alias);
+			report_redeclaration_error(alias.src_tokens, prev_symbol, global_ctx);
+			if (prev_symbol == nullptr && alias.is_export)
 			{
-				this->_export_decls.add_type_alias(alias);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_type_alias(alias);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_struct>:
 		{
 			auto &struct_decl = decl.get<ast::decl_struct>();
-			this->_global_decls.add_type(struct_decl);
-			if (struct_decl.info.is_export)
+			auto const prev_symbol = this->_global_decls.add_type(struct_decl);
+			report_redeclaration_error(struct_decl.info.src_tokens, prev_symbol, global_ctx);
+			if (prev_symbol == nullptr && struct_decl.info.is_export)
 			{
-				this->_export_decls.add_type(struct_decl);
+				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_type(struct_decl);
+				bz_assert(export_prev_symbol == nullptr);
 			}
 			break;
 		}
@@ -213,7 +239,7 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 		if (import_file_id != std::numeric_limits<uint32_t>::max())
 		{
 			auto const &import_decls = global_ctx.get_file_export_decls(import_file_id);
-			this->add_to_global_decls(import_decls);
+			add_to_global_decls(*this, import_decls, global_ctx);
 		}
 	}
 
@@ -233,12 +259,12 @@ void src_file::add_to_global_decls(ctx::decl_set const &set)
 
 	for (auto &decl : this->_declarations)
 	{
-		parse::resolve_global_statement(decl, context);
+		resolve::resolve_global_statement(decl, context);
 	}
 	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
 	{
 		context.add_to_resolve_queue({}, *context.generic_functions[i]);
-		parse::resolve_function({}, *context.generic_functions[i], context);
+		resolve::resolve_function({}, *context.generic_functions[i], context);
 		context.pop_resolve_queue();
 	}
 

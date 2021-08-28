@@ -5,8 +5,10 @@
 #include "ctx/lex_context.h"
 #include "ctx/parse_context.h"
 #include "parse/expression_parser.h"
+#include "resolve/expression_resolver.h"
 
 using namespace parse;
+using namespace resolve;
 
 static bz::optional<bz::u8string> consteval_guaranteed_test(ctx::global_context &global_ctx)
 {
@@ -22,6 +24,7 @@ do {                                                                            
     assert_false(global_ctx.has_errors_or_warnings());                          \
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    resolve_expression(res, parse_ctx);                                         \
     consteval_guaranteed(res, parse_ctx);                                       \
     assert_eq(it, tokens.end() - 1);                                            \
     assert_false(res.is_error());                                               \
@@ -40,6 +43,7 @@ do {                                                                            
     assert_false(global_ctx.has_errors_or_warnings());                          \
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    resolve_expression(res, parse_ctx);                                         \
     consteval_guaranteed(res, parse_ctx);                                       \
     assert_eq(it, tokens.end() - 1);                                            \
     assert_false(res.is_error());                                               \
@@ -86,6 +90,7 @@ do {                                                                            
     assert_false(global_ctx.has_errors_or_warnings());                          \
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    resolve_expression(res, parse_ctx);                                         \
     consteval_try(res, parse_ctx);                                              \
     assert_eq(it, tokens.end() - 1);                                            \
     assert_false(res.is_error());                                               \
@@ -104,10 +109,11 @@ do {                                                                            
     assert_false(global_ctx.has_errors_or_warnings());                          \
     auto it = tokens.begin();                                                   \
     auto res = parse_expression(it, tokens.end() - 1, parse_ctx, precedence{}); \
+    resolve_expression(res, parse_ctx);                                         \
     consteval_try(res, parse_ctx);                                              \
     assert_eq(it, tokens.end() - 1);                                            \
-    assert_false(res.is_error());                                               \
     assert_true(res.has_consteval_failed());                                    \
+    assert_true(global_ctx.has_errors());                                       \
     global_ctx.clear_errors_and_warnings();                                     \
     global_ctx._comptime_executor.functions_to_compile.clear();                 \
 } while (false)

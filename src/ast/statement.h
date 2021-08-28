@@ -15,9 +15,9 @@ namespace ast
 
 struct attribute
 {
-	lex::token_pos         name;
-	lex::token_range       arg_tokens;
-	bz::vector<expression> args;
+	lex::token_pos   name;
+	lex::token_range arg_tokens;
+	arena_vector<expression> args;
 
 	declare_default_5(attribute)
 };
@@ -160,19 +160,16 @@ struct statement_view : statement_node_view_t
 
 struct stmt_while
 {
-	lex::token_range tokens;
-	expression       condition;
-	statement        while_block;
+	expression condition;
+	expression while_block;
 
 	declare_default_5(stmt_while)
 
 	stmt_while(
-		lex::token_range _tokens,
-		expression       _condition,
-		statement        _while_block
+		expression _condition,
+		expression _while_block
 	)
-		: tokens     (_tokens),
-		  condition  (std::move(_condition)),
+		: condition  (std::move(_condition)),
 		  while_block(std::move(_while_block))
 	{}
 };
@@ -182,7 +179,7 @@ struct stmt_for
 	statement  init;
 	expression condition;
 	expression iteration;
-	statement  for_block;
+	expression for_block;
 
 	declare_default_5(stmt_for)
 
@@ -190,7 +187,7 @@ struct stmt_for
 		statement  _init,
 		expression _condition,
 		expression _iteration,
-		statement  _for_block
+		expression _for_block
 	)
 		: init     (std::move(_init)),
 		  condition(std::move(_condition)),
@@ -207,25 +204,17 @@ struct stmt_foreach
 	statement  iter_deref_var_decl;
 	expression condition;
 	expression iteration;
-	statement  for_block;
+	expression for_block;
 
 	declare_default_5(stmt_foreach)
 
 	stmt_foreach(
 		statement  _range_var_decl,
-		statement  _iter_var_decl,
-		statement  _end_var_decl,
 		statement  _iter_deref_var_decl,
-		expression _condition,
-		expression _iteration,
-		statement  _for_block
+		expression _for_block
 	)
 		: range_var_decl     (std::move(_range_var_decl)),
-		  iter_var_decl      (std::move(_iter_var_decl)),
-		  end_var_decl       (std::move(_end_var_decl)),
 		  iter_deref_var_decl(std::move(_iter_deref_var_decl)),
-		  condition(std::move(_condition)),
-		  iteration(std::move(_iteration)),
 		  for_block(std::move(_for_block))
 	{}
 };
@@ -283,18 +272,18 @@ struct stmt_static_assert
 struct var_id_and_type
 {
 	identifier id;
-	typespec var_type;
+	expression var_type;
 
 	var_id_and_type(void)
-		: id{}, var_type{}
+		: id(), var_type(type_as_expression(typespec()))
 	{}
 
-	var_id_and_type(identifier _id, typespec _var_type)
+	var_id_and_type(identifier _id, expression _var_type)
 		: id(std::move(_id)), var_type(std::move(_var_type))
 	{}
 
 	var_id_and_type(identifier _id)
-		: id(std::move(_id)), var_type{}
+		: id(std::move(_id)), var_type(type_as_expression(typespec()))
 	{}
 };
 
@@ -395,7 +384,7 @@ struct decl_variable
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
-		  id_and_type{},
+		  id_and_type(),
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (std::move(_init_expr)),
 		  state      (resolve_state::none),
@@ -409,7 +398,7 @@ struct decl_variable
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
-		  id_and_type{},
+		  id_and_type(),
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (),
 		  state      (resolve_state::none),
@@ -448,14 +437,27 @@ struct decl_variable
 	{ return (this->flags & tuple_outer_ref) != 0; }
 
 	typespec &get_type(void)
-	{ return this->id_and_type.var_type; }
+	{
+		bz_assert(this->id_and_type.var_type.is_typename());
+		return this->id_and_type.var_type.get_typename();
+	}
 
 	typespec const &get_type(void) const
-	{ return this->id_and_type.var_type; }
+	{
+		bz_assert(this->id_and_type.var_type.is_typename());
+		return this->id_and_type.var_type.get_typename();
+	}
 
 	void clear_type(void)
 	{
-		this->id_and_type.var_type.clear();
+		if (this->id_and_type.var_type.is_typename())
+		{
+			this->id_and_type.var_type.get_typename().clear();
+		}
+		else
+		{
+			this->id_and_type.var_type = type_as_expression(typespec());
+		}
 		for (auto &decl : this->tuple_decls)
 		{
 			decl.clear_type();
@@ -1041,6 +1043,36 @@ public:
 		}
 	}
 };
+
+constexpr bool is_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::uint64_;
+}
+
+constexpr bool is_unsigned_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::uint8_
+		&& kind <= ast::type_info::uint64_;
+}
+
+constexpr bool is_signed_integer_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::int64_;
+}
+
+constexpr bool is_floating_point_kind(uint32_t kind)
+{
+	return kind == ast::type_info::float32_
+		|| kind == ast::type_info::float64_;
+}
+
+constexpr bool is_arithmetic_kind(uint32_t kind)
+{
+	return kind >= ast::type_info::int8_
+		&& kind <= ast::type_info::float64_;
+}
 
 inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
 {

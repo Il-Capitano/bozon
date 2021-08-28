@@ -30,6 +30,13 @@ struct expr_switch;
 struct expr_break;
 struct expr_continue;
 
+struct expr_unresolved_subscript;
+struct expr_unresolved_function_call;
+struct expr_unresolved_universal_function_call;
+struct expr_unresolved_cast;
+struct expr_unresolved_member_access;
+struct expr_unresolved_array_type;
+
 
 using expr_t = node<
 	expr_identifier,
@@ -48,6 +55,22 @@ using expr_t = node<
 	expr_switch,
 	expr_break,
 	expr_continue
+>;
+
+using unresolved_expr_t = node<
+	expr_identifier,
+	expr_tuple,
+	expr_unary_op,
+	expr_binary_op,
+	expr_unresolved_subscript,
+	expr_unresolved_function_call,
+	expr_unresolved_universal_function_call,
+	expr_unresolved_cast,
+	expr_unresolved_member_access,
+	expr_compound,
+	expr_if,
+	expr_switch,
+	expr_unresolved_array_type
 >;
 
 enum class expression_type_kind
@@ -77,7 +100,15 @@ constexpr bool is_rvalue(expression_type_kind kind)
 }
 
 struct unresolved_expression
-{};
+{
+	unresolved_expr_t expr;
+
+	unresolved_expression(void) = delete;
+	unresolved_expression(unresolved_expression const &) = default;
+	unresolved_expression(unresolved_expression &&)      = default;
+	unresolved_expression &operator = (unresolved_expression const &) = default;
+	unresolved_expression &operator = (unresolved_expression &&)      = default;
+};
 
 struct constant_expression
 {
@@ -86,7 +117,11 @@ struct constant_expression
 	constant_value       value;
 	expr_t               expr;
 
-	declare_default_5(constant_expression)
+	constant_expression(void) = delete;
+	constant_expression(constant_expression const &) = default;
+	constant_expression(constant_expression &&)      = default;
+	constant_expression &operator = (constant_expression const &) = default;
+	constant_expression &operator = (constant_expression &&)      = default;
 };
 
 struct dynamic_expression
@@ -95,21 +130,22 @@ struct dynamic_expression
 	typespec             type;
 	expr_t               expr;
 
-	declare_default_5(dynamic_expression)
-};
-
-struct variadic_expression
-{
-	bz::vector<expression> exprs;
-
-	declare_default_5(variadic_expression)
+	dynamic_expression(void) = delete;
+	dynamic_expression(dynamic_expression const &) = default;
+	dynamic_expression(dynamic_expression &&)      = default;
+	dynamic_expression &operator = (dynamic_expression const &) = default;
+	dynamic_expression &operator = (dynamic_expression &&)      = default;
 };
 
 struct expanded_variadic_expression
 {
-	bz::vector<expression> exprs;
+	arena_vector<expression> exprs;
 
-	declare_default_5(expanded_variadic_expression)
+	expanded_variadic_expression(void) = delete;
+	expanded_variadic_expression(expanded_variadic_expression const &) = default;
+	expanded_variadic_expression(expanded_variadic_expression &&)      = default;
+	expanded_variadic_expression &operator = (expanded_variadic_expression const &) = default;
+	expanded_variadic_expression &operator = (expanded_variadic_expression &&)      = default;
 };
 
 struct error_expression
@@ -121,7 +157,6 @@ struct expression : bz::variant<
 	unresolved_expression,
 	constant_expression,
 	dynamic_expression,
-	variadic_expression,
 	expanded_variadic_expression,
 	error_expression
 >
@@ -130,7 +165,6 @@ struct expression : bz::variant<
 		unresolved_expression,
 		constant_expression,
 		dynamic_expression,
-		variadic_expression,
 		expanded_variadic_expression,
 		error_expression
 	>;
@@ -172,276 +206,58 @@ struct expression : bz::variant<
 	lex::token_pos get_tokens_pivot(void) const { return this->src_tokens.pivot; }
 	lex::token_pos get_tokens_end(void) const   { return this->src_tokens.end; }
 
-	void to_error(void)
-	{
-		if (this->is<constant_expression>())
-		{
-			this->emplace<error_expression>(this->get_by_move<constant_expression>().expr);
-		}
-		else if (this->is<dynamic_expression>())
-		{
-			this->emplace<error_expression>(this->get_by_move<dynamic_expression>().expr);
-		}
-	}
+	void to_error(void);
 
-	bool is_error(void) const
-	{ return this->is<error_expression>(); }
+	bool is_error(void) const;
+	bool not_error(void) const;
 
-	bool not_error(void) const
-	{ return !this->is<error_expression>(); }
+	bool is_function(void) const noexcept;
+	bool is_overloaded_function(void) const noexcept;
 
-	bool is_function(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& const_expr->kind == expression_type_kind::function_name;
-	}
+	bool is_typename(void) const noexcept;
+	typespec &get_typename(void) noexcept;
+	typespec const &get_typename(void) const noexcept;
 
-	bool is_overloaded_function(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& const_expr->kind == expression_type_kind::function_name
-			&& const_expr->type.is_empty();
-	}
+	bool is_tuple(void) const noexcept;
+	expr_tuple &get_tuple(void) noexcept;
+	expr_tuple const &get_tuple(void) const noexcept;
 
-	bool is_typename(void) const noexcept
-	{
-		auto const const_expr = this->get_if<constant_expression>();
-		return const_expr
-			&& (const_expr->kind == expression_type_kind::type_name || const_expr->value.is<constant_value::type>());
-	}
+	bool is_if_expr(void) const noexcept;
+	expr_if &get_if_expr(void) noexcept;
+	expr_if const &get_if_expr(void) const noexcept;
 
-	typespec &get_typename(void) noexcept
-	{
-		bz_assert(this->is_typename());
-		return this->get<constant_expression>().value.get<constant_value::type>();
-	}
+	bool is_switch_expr(void) const noexcept;
+	expr_switch &get_switch_expr(void) noexcept;
+	expr_switch const &get_switch_expr(void) const noexcept;
 
-	typespec const &get_typename(void) const noexcept
-	{
-		bz_assert(this->is_typename());
-		return this->get<constant_expression>().value.get<constant_value::type>();
-	}
+	bool is_literal(void) const noexcept;
+	expr_literal &get_literal(void) noexcept;
+	expr_literal const &get_literal(void) const noexcept;
 
-	bool is_tuple(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
-	}
+	constant_value &get_literal_value(void) noexcept;
+	constant_value const &get_literal_value(void) const noexcept;
 
-	expr_tuple &get_tuple(void) noexcept
-	{
-		bz_assert(this->is_tuple());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_tuple>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_tuple>();
-		}
-	}
+	void set_type(ast::typespec new_type);
+	void set_type_kind(expression_type_kind new_kind);
 
-	bool is_if_expr(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::if_expr)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::if_expr);
-	}
+	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept;
 
-	expr_if &get_if_expr(void) noexcept
-	{
-		bz_assert(this->is_if_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_if>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_if>();
-		}
-	}
+	bool is_constant_or_dynamic(void) const noexcept;
+	bool is_unresolved(void) const noexcept;
 
-	expr_if const &get_if_expr(void) const noexcept
-	{
-		bz_assert(this->is_if_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_if>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_if>();
-		}
-	}
+	bool is_none(void) const noexcept;
+	bool is_noreturn(void) const noexcept;
 
-	bool is_switch_expr(void) const noexcept
-	{
-		return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::switch_expr)
-			|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::switch_expr);
-	}
+	bool has_consteval_succeeded(void) const noexcept;
+	bool has_consteval_failed(void) const noexcept;
 
-	expr_switch &get_switch_expr(void) noexcept
-	{
-		bz_assert(this->is_switch_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_switch>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_switch>();
-		}
-	}
+	expr_t &get_expr(void);
+	expr_t const &get_expr(void) const;
 
-	expr_switch const &get_switch_expr(void) const noexcept
-	{
-		bz_assert(this->is_switch_expr());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr.get<expr_switch>();
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr.get<expr_switch>();
-		}
-	}
+	unresolved_expr_t &get_unresolved_expr(void);
+	unresolved_expr_t const &get_unresolved_expr(void) const;
 
-	bool is_literal(void) const noexcept
-	{
-		return this->is<constant_expression>() && this->get<constant_expression>().expr.is<expr_literal>();
-	}
-
-	expr_literal &get_literal(void) noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().expr.get<expr_literal>();
-	}
-
-	expr_literal const &get_literal(void) const noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().expr.get<expr_literal>();
-	}
-
-	constant_value &get_literal_value(void) noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().value;
-	}
-
-	constant_value const &get_literal_value(void) const noexcept
-	{
-		bz_assert(this->is_literal());
-		return this->get<constant_expression>().value;
-	}
-
-	void set_type(ast::typespec new_type)
-	{
-		if (this->is<ast::constant_expression>())
-		{
-			this->get<ast::constant_expression>().type = std::move(new_type);
-		}
-		else if (this->is<ast::dynamic_expression>())
-		{
-			this->get<ast::dynamic_expression>().type = std::move(new_type);
-		}
-	}
-
-	void set_type_kind(expression_type_kind new_kind)
-	{
-		if (this->is<ast::constant_expression>())
-		{
-			this->get<ast::constant_expression>().kind = new_kind;
-		}
-		else if (this->is<ast::dynamic_expression>())
-		{
-			this->get<ast::dynamic_expression>().kind = new_kind;
-		}
-	}
-
-	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept
-	{
-		switch (this->kind())
-		{
-		case ast::expression::index_of<ast::constant_expression>:
-		{
-			auto &const_expr = this->get<ast::constant_expression>();
-			return { const_expr.type, const_expr.kind };
-		}
-		case ast::expression::index_of<ast::dynamic_expression>:
-		{
-			auto &dyn_expr = this->get<ast::dynamic_expression>();
-			return { dyn_expr.type, dyn_expr.kind };
-		}
-		default:
-			return { ast::typespec_view(), static_cast<ast::expression_type_kind>(0) };
-		}
-	}
-
-	bool is_constant_or_dynamic(void) const noexcept
-	{
-		return this->is<constant_expression>() || this->is<dynamic_expression>();
-	}
-
-	bool is_none(void) const noexcept
-	{
-		return this->is_constant_or_dynamic()
-			&& this->get_expr_type_and_kind().second == expression_type_kind::none;
-	}
-
-	bool is_noreturn(void) const noexcept
-	{
-		return this->is_constant_or_dynamic()
-			&& this->get_expr_type_and_kind().second == expression_type_kind::noreturn;
-	}
-
-	bool has_consteval_succeeded(void) const noexcept
-	{
-		return this->consteval_state == consteval_succeeded;
-	}
-
-	bool has_consteval_failed(void) const noexcept
-	{
-		return this->consteval_state == consteval_failed;
-	}
-
-	expr_t &get_expr(void)
-	{
-		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr;
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr;
-		}
-	}
-
-	expr_t const &get_expr(void) const
-	{
-		bz_assert(this->is<constant_expression>() || this->is<dynamic_expression>());
-		if (this->is<constant_expression>())
-		{
-			return this->get<constant_expression>().expr;
-		}
-		else
-		{
-			return this->get<dynamic_expression>().expr;
-		}
-	}
-
-	bool is_top_level_compound_or_if(void) const noexcept
-	{
-		if (!this->is_constant_or_dynamic())
-		{
-			return false;
-		}
-		auto &expr = this->get_expr();
-		return (expr.is<expr_compound>() && this->src_tokens.begin->kind == lex::token::curly_open)
-			|| (expr.is<expr_if>() && this->src_tokens.begin->kind == lex::token::kw_if);
-	}
+	bool is_special_top_level(void) const noexcept;
 };
 
 
@@ -483,11 +299,11 @@ struct expr_literal
 
 struct expr_tuple
 {
-	bz::vector<expression> elems;
+	arena_vector<expression> elems;
 
 	declare_default_5(expr_tuple)
 
-	expr_tuple(bz::vector<expression> _elems)
+	expr_tuple(arena_vector<expression> _elems)
 		: elems(std::move(_elems))
 	{}
 };
@@ -550,18 +366,18 @@ enum class resolve_order
 
 struct expr_function_call
 {
-	lex::src_tokens        src_tokens;
-	bz::vector<expression> params;
-	function_body         *func_body;
-	resolve_order          param_resolve_order;
+	lex::src_tokens          src_tokens;
+	arena_vector<expression> params;
+	function_body           *func_body;
+	resolve_order            param_resolve_order;
 
 	declare_default_5(expr_function_call)
 
 	expr_function_call(
-		lex::src_tokens        _src_tokens,
-		bz::vector<expression> _params,
-		function_body         *_func_body,
-		resolve_order          _param_resolve_order
+		lex::src_tokens          _src_tokens,
+		arena_vector<expression> _params,
+		function_body           *_func_body,
+		resolve_order            _param_resolve_order
 	)
 		: src_tokens(_src_tokens),
 		  params    (std::move(_params)),
@@ -599,14 +415,14 @@ struct expr_take_reference
 
 struct expr_struct_init
 {
-	bz::vector<expression> exprs;
-	typespec               type;
+	arena_vector<expression> exprs;
+	typespec                 type;
 
 	declare_default_5(expr_struct_init)
 
 	expr_struct_init(
-		bz::vector<expression> _exprs,
-		typespec               _type
+		arena_vector<expression> _exprs,
+		typespec                 _type
 	)
 		: exprs(std::move(_exprs)),
 		  type (std::move(_type))
@@ -706,8 +522,109 @@ struct expr_continue
 };
 
 
-inline expression make_unresolved_expression(lex::src_tokens tokens)
-{ return expression(tokens, unresolved_expression()); }
+struct expr_unresolved_subscript
+{
+	expression               base;
+	arena_vector<expression> indices;
+
+	declare_default_5(expr_unresolved_subscript)
+
+	expr_unresolved_subscript(
+		expression               _base,
+		arena_vector<expression> _indices
+	)
+		: base   (std::move(_base)),
+		  indices(std::move(_indices))
+	{}
+};
+
+struct expr_unresolved_function_call
+{
+	expression               callee;
+	arena_vector<expression> args;
+
+	declare_default_5(expr_unresolved_function_call)
+
+	expr_unresolved_function_call(
+		expression               _callee,
+		arena_vector<expression> _args
+	)
+		: callee(std::move(_callee)),
+		  args  (std::move(_args))
+	{}
+};
+
+struct expr_unresolved_universal_function_call
+{
+	expression               base;
+	identifier               fn_id;
+	arena_vector<expression> args;
+
+	declare_default_5(expr_unresolved_universal_function_call)
+
+	expr_unresolved_universal_function_call(
+		expression               _base,
+		identifier               _fn_id,
+		arena_vector<expression> _args
+	)
+		: base (std::move(_base)),
+		  fn_id(std::move(_fn_id)),
+		  args (std::move(_args))
+	{}
+};
+
+struct expr_unresolved_cast
+{
+	expression expr;
+	expression type;
+
+	declare_default_5(expr_unresolved_cast)
+
+	expr_unresolved_cast(
+		expression _expr,
+		expression _type
+	)
+		: expr(std::move(_expr)),
+		  type(std::move(_type))
+	{}
+};
+
+struct expr_unresolved_member_access
+{
+	expression     base;
+	lex::token_pos member;
+
+	declare_default_5(expr_unresolved_member_access)
+
+	expr_unresolved_member_access(
+		expression     _base,
+		lex::token_pos _member
+	)
+		: base(std::move(_base)),
+		  member(_member)
+	{}
+};
+
+struct expr_unresolved_array_type
+{
+	arena_vector<expression> sizes;
+	expression               type;
+
+	declare_default_5(expr_unresolved_array_type)
+
+	expr_unresolved_array_type(
+		arena_vector<expression> _sizes,
+		expression               _type
+	)
+		: sizes(std::move(_sizes)),
+		  type (std::move(_type))
+	{}
+};
+
+
+template<typename ...Args>
+expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
+{ return expression(tokens, unresolved_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
 expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
@@ -716,10 +633,6 @@ expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
 template<typename ...Args>
 expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
-
-template<typename ...Args>
-expression make_variadic_expression(lex::src_tokens tokens, Args &&...args)
-{ return expression(tokens, variadic_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
 expression make_expanded_variadic_expression(lex::src_tokens tokens, Args &&...args)
@@ -753,6 +666,39 @@ def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
 
 #undef def_make_fn
+
+#define def_make_unresolved_fn(ret_type, node_type)                            \
+template<typename ...Args>                                                     \
+ret_type make_unresolved_ ## node_type (Args &&...args)                        \
+{ return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
+
+def_make_unresolved_fn(unresolved_expr_t, expr_identifier)
+def_make_unresolved_fn(unresolved_expr_t, expr_tuple)
+def_make_unresolved_fn(unresolved_expr_t, expr_unary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_binary_op)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_subscript)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_universal_function_call)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_cast)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_member_access)
+def_make_unresolved_fn(unresolved_expr_t, expr_compound)
+def_make_unresolved_fn(unresolved_expr_t, expr_if)
+def_make_unresolved_fn(unresolved_expr_t, expr_switch)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
+
+#undef def_make_unresolved_fn
+
+
+inline expression type_as_expression(typespec type)
+{
+	return make_constant_expression(
+		{},
+		expression_type_kind::type_name,
+		make_typename_typespec(nullptr),
+		constant_value(std::move(type)),
+		expr_t{}
+	);
+}
 
 } // namespace ast
 

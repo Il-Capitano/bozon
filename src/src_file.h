@@ -40,8 +40,6 @@ public:
 public:
 	src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string_view> scope, bool is_library_file);
 
-	void add_to_global_decls(ctx::decl_set const &set);
-
 private:
 	[[nodiscard]] bool read_file(ctx::global_context &global_ctx);
 	[[nodiscard]] bool tokenize(ctx::global_context &global_ctx);
