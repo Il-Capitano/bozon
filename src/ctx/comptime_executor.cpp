@@ -951,15 +951,16 @@ void comptime_executor_context::initialize_engine(void)
 	if (this->engine == nullptr)
 	{
 		this->engine = this->create_engine(this->create_module());
-		this->add_base_functions_to_engine();
 
 		this->pass_manager.add(llvm::createInstructionCombiningPass());
+		this->pass_manager.add(llvm::createGVNPass());
 		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
 		this->pass_manager.add(llvm::createReassociatePass());
-		// this->pass_manager.add(llvm::createCFGSimplificationPass());
-		this->pass_manager.add(llvm::createInstructionCombiningPass());
+		this->pass_manager.add(llvm::createCFGSimplificationPass());
+		// this->pass_manager.add(llvm::createInstructionCombiningPass());
 		this->pass_manager.add(llvm::createMemCpyOptPass());
-		// this->pass_manager.add(llvm::createGVNPass());
+
+		this->add_base_functions_to_engine();
 
 		this->engine->addGlobalMapping("__bozon_builtin_is_option_set_impl", reinterpret_cast<uint64_t>(&bozon_is_option_set_impl));
 		this->engine->addGlobalMapping("__bozon_builtin_print_stdout",       reinterpret_cast<uint64_t>(&bozon_print_stdout));
@@ -1064,7 +1065,7 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
-	this->pass_manager.run(*module);
+	// this->pass_manager.run(*module);
 	this->pass_manager.run(*module);
 	if (debug_comptime_ir_output)
 	{
