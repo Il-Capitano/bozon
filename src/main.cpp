@@ -1565,6 +1565,9 @@ function foo(T: typename)
 	let val = T.inner_template_type<int32>();
 }
 
+struct foo<T> {} // implicitly typename argument
+struct foo<...Ts> {} // variadic
+
 */
 
 #include "ctx/global_context.h"
@@ -1702,6 +1705,12 @@ int main(int argc, char const **argv)
 		bz::print("optimization time:        {:8.3f}ms\n", in_ms(optimization_time));
 		bz::print("file emission time:       {:8.3f}ms\n", in_ms(file_emission_time));
 	}
+
+#ifdef NDEBUG
+	// use std::exit instead of returning to avoid LLVM corrupting the heap
+	// this happens rarely in debug mode, but is common for release builds
+	std::exit(0);
+#endif
 
 	return 0;
 }
