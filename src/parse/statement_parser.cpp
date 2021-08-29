@@ -104,6 +104,12 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 
 		if (stream == end || stream->kind != lex::token::colon)
 		{
+			if (!needs_id && id == stream)
+			{
+				// if no identifier was provided a type must be provided
+				// e.g. function foo(a, b,, c) is not allowed
+				context.report_error(stream, "expected an identifier or ':'");
+			}
 			return ast::decl_variable(
 				{ prototype_begin, id == end ? prototype_begin : id, stream },
 				prototype,
@@ -357,6 +363,7 @@ static ast::function_body parse_function_body(
 		}
 		if (param_stream != param_end)
 		{
+			// param_stream can never be lex::token::paren_close, but the error message is nicer this way
 			context.assert_token(param_stream, lex::token::comma, lex::token::paren_close);
 		}
 		if (param_stream == begin)
