@@ -174,6 +174,19 @@
 		"generate_opts": {
 			"command": "python3 scripts/gen_opts.py",
 			"is_file": false
+		},
+		"fuzz-test/lex/fuzz.o": {
+			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
+			"command": "clang++-12 -c -g `llvm-config-12 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+		},
+		"fuzz-test/lex/fuzz.out": {
+			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
+			"command": "clang++-12 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-12 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+		},
+		"run-lex-fuzzer": {
+			"dependencies": [ "fuzz-test/lex/fuzz.out" ],
+			"command": "fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz-corpus",
+			"is_file": false
 		}
 	}
 }
