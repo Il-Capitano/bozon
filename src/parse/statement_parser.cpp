@@ -993,7 +993,8 @@ ast::statement parse_stmt_while(
 	++stream; // 'while'
 	auto const prev_in_loop = context.push_loop();
 	auto condition = parse_parenthesized_condition(stream, end, context);
-	auto body = parse_top_level_expression(stream, end, context);
+	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
+	consume_semi_colon_at_end_of_expression(stream, end, context, body);
 	context.pop_loop(prev_in_loop);
 	return ast::make_stmt_while(std::move(condition), std::move(body));
 }
@@ -1063,7 +1064,8 @@ static ast::statement parse_stmt_for_impl(
 		>(stream, end, context);
 	}
 
-	auto body = parse_top_level_expression(stream, end, context);
+	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
+	consume_semi_colon_at_end_of_expression(stream, end, context, body);
 
 	context.pop_loop(prev_in_loop);
 	context.remove_scope();
@@ -1149,7 +1151,8 @@ static ast::statement parse_stmt_foreach_impl(
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
 	add_unresolved_var_decl(iter_deref_var_decl, context);
 
-	auto body = parse_top_level_expression(stream, end, context);
+	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
+	consume_semi_colon_at_end_of_expression(stream, end, context, body);
 
 	context.remove_scope();
 	context.pop_loop(prev_in_loop);
