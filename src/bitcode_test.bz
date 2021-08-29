@@ -330,8 +330,8 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", 1e15);
 	let t = [ 3, 3.234, "hello" ];
 	std::printf("{}\n", t);
-	// static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
-	// static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+	static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
+	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
 
 	const s = std::string("Hello");
 	const *const p = &s;
@@ -390,6 +390,14 @@ function main(args: [: const str]) -> int32
 		i
 	};
 	static_assert(size == 3u);
+
+	static_assert(if (size == 3u) true else false, "hello");
+
+	std::printf("{}\n", switch (size) {
+		0, 1, 2 => [ 0, 0.0, "zero" ],
+		3, 4, 5 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
 
 	// consteval x = std::sqrt(-1.0);
 
