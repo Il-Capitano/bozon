@@ -547,9 +547,16 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 	if (var_decl.get_type().is<ast::ts_unresolved>())
 	{
 		auto [stream, end] = var_decl.get_type().get<ast::ts_unresolved>().tokens;
-		bz_assert(stream != end);
-		var_decl.id_and_type.var_type = parse::parse_expression(stream, end, context, no_assign);
-		resolve_expression(var_decl.id_and_type.var_type, context);
+		if (stream == end)
+		{
+			context.report_error(stream, "expected a variable type");
+			var_decl.id_and_type.var_type = ast::type_as_expression(ast::make_auto_typespec(nullptr));
+		}
+		else
+		{
+			var_decl.id_and_type.var_type = parse::parse_expression(stream, end, context, no_assign);
+			resolve_expression(var_decl.id_and_type.var_type, context);
+		}
 		auto &type = var_decl.id_and_type.var_type;
 		parse::consteval_try(type, context);
 		if (type.not_error() && !type.has_consteval_succeeded())
