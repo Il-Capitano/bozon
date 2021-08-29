@@ -2203,14 +2203,17 @@ static int match_level_compare(match_level_t const &lhs, match_level_t const &rh
 		return 1;
 	}
 
-	bz_assert(lhs.index() == rhs.index());
-	if (lhs.is<int>() && rhs.is<int>())
+	if (lhs.index() != rhs.index())
+	{
+		return 0;
+	}
+	else if (lhs.is<int>())
 	{
 		auto const lhs_int = lhs.get<int>();
 		auto const rhs_int = rhs.get<int>();
 		return lhs_int < rhs_int ? -1 : lhs_int == rhs_int ? 0 : 1;
 	}
-	else if (lhs.is<bz::vector<match_level_t>>() && rhs.is<bz::vector<match_level_t>>())
+	else
 	{
 		auto const &lhs_vec = lhs.get<bz::vector<match_level_t>>();
 		auto const &rhs_vec = rhs.get<bz::vector<match_level_t>>();
@@ -2715,7 +2718,53 @@ static match_level_t get_type_match_level(
 	}
 	else if (expr.is_switch_expr())
 	{
-		bz_unreachable;
+		auto &switch_expr = expr.get_switch_expr();
+		auto case_match_levels = switch_expr.cases
+			.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); })
+			.transform([&dest, &context](auto &case_expr) {
+				return get_type_match_level(dest, case_expr.expr, context);
+			})
+			.collect();
+		if (switch_expr.default_case.not_null())
+		{
+			case_match_levels.push_back(get_type_match_level(dest, switch_expr.default_case, context));
+		}
+		bz_assert(case_match_levels.not_empty());
+		auto const is_error = case_match_levels.is_any([](auto const &match_level) { return match_level.is_null(); });
+		if (is_error)
+		{
+			return match_level_t{};
+		}
+
+		if (!ast::is_complete(dest) && case_match_levels.size() > 1)
+		{
+			ast::typespec dest_copy = dest;
+			auto valild_case_expr_range = switch_expr.cases
+				.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); });
+			context.match_expression_to_type(valild_case_expr_range.front().expr, dest_copy);
+			++valild_case_expr_range;
+			for (auto &[_, case_expr] : valild_case_expr_range)
+			{
+				ast::typespec dest_copy_copy = dest;
+				context.match_expression_to_type(case_expr, dest_copy_copy);
+				if (dest_copy_copy != dest_copy)
+				{
+					return match_level_t{};
+				}
+			}
+			if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
+			{
+				ast::typespec dest_copy_copy = dest;
+				context.match_expression_to_type(switch_expr.default_case, dest_copy_copy);
+				if (dest_copy_copy != dest_copy)
+				{
+					return match_level_t{};
+				}
+			}
+		}
+
+		// return the worst match
+		return case_match_levels.min(case_match_levels[0]);
 	}
 	else if (expr.is_typename())
 	{
@@ -2726,50 +2775,63 @@ static match_level_t get_type_match_level(
 
 		return get_strict_typename_match_level(dest, expr.get_typename());
 	}
-	else if (dest.is<ast::ts_auto>() && expr.is_tuple())
+	else if (expr.is_tuple())
 	{
-		auto &tuple_expr = expr.get_tuple();
-		match_level_t result = bz::vector<match_level_t>{};
-		auto &result_vec = result.get<bz::vector<match_level_t>>();
-		for (auto &elem : tuple_expr.elems)
+		if (dest.is<ast::ts_auto_reference>() || dest.is<ast::ts_auto_reference_const>())
 		{
-			result_vec.push_back(get_type_match_level(dest, elem, context));
+			dest = dest.blind_get();
+			dest = ast::remove_const_or_consteval(dest);
 		}
-		return result;
-	}
-	else if (dest.is<ast::ts_tuple>() && expr.is_tuple())
-	{
-		auto &expr_tuple_elems = expr.get_tuple().elems;
-		bz::vector<ast::typespec> dest_tuple_types_variadic;
-		auto const &dest_tuple_types_ref = dest.get<ast::ts_tuple>().types;
-		if (dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>())
+
+		if (dest.is<ast::ts_auto>())
 		{
-			dest_tuple_types_variadic = dest_tuple_types_ref;
-			expand_variadic_tuple_type(dest_tuple_types_variadic, expr_tuple_elems.size());
-		}
-		auto const &dest_tuple_types = dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>()
-			? dest_tuple_types_variadic
-			: dest_tuple_types_ref;
-		if (dest_tuple_types.size() == expr_tuple_elems.size())
-		{
+			auto &tuple_expr = expr.get_tuple();
 			match_level_t result = bz::vector<match_level_t>{};
 			auto &result_vec = result.get<bz::vector<match_level_t>>();
-			bool good = true;
-			for (auto const &[elem, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
+			for (auto &elem : tuple_expr.elems)
 			{
-				result_vec.push_back(get_type_match_level(type, elem, context));
-				good &= result_vec.back().not_null();
-			}
-			if (!good)
-			{
-				result.clear();
+				result_vec.push_back(get_type_match_level(dest, elem, context));
 			}
 			return result;
 		}
-	}
-	else if (expr.is_tuple())
-	{
-		return {};
+		else if (dest.is<ast::ts_tuple>())
+		{
+			auto &expr_tuple_elems = expr.get_tuple().elems;
+			bz::vector<ast::typespec> dest_tuple_types_variadic;
+			auto const &dest_tuple_types_ref = dest.get<ast::ts_tuple>().types;
+			if (dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>())
+			{
+				dest_tuple_types_variadic = dest_tuple_types_ref;
+				expand_variadic_tuple_type(dest_tuple_types_variadic, expr_tuple_elems.size());
+			}
+			auto const &dest_tuple_types = dest_tuple_types_ref.not_empty() && dest_tuple_types_ref.back().is<ast::ts_variadic>()
+				? dest_tuple_types_variadic
+				: dest_tuple_types_ref;
+			if (dest_tuple_types.size() == expr_tuple_elems.size())
+			{
+				match_level_t result = bz::vector<match_level_t>{};
+				auto &result_vec = result.get<bz::vector<match_level_t>>();
+				bool good = true;
+				for (auto const &[elem, type] : bz::zip(expr_tuple_elems, dest_tuple_types))
+				{
+					result_vec.push_back(get_type_match_level(type, elem, context));
+					good &= result_vec.back().not_null();
+				}
+				if (!good)
+				{
+					result.clear();
+				}
+				return result;
+			}
+			else
+			{
+				return {};
+			}
+		}
+		else
+		{
+			return {};
+		}
 	}
 
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
