@@ -616,9 +616,9 @@ static std::pair<bz::u8string_view, uint32_t> get_number_token_str_and_kind(
 	if (has_exponent())
 	{
 		token_kind = token::floating_point_literal;
-		++stream; ++stream;  // gets rid of the 'e' and +- or a number
+		++stream; ++stream;  // gets rid of the 'e' and +- or a number (since there has to be at least one)
 		// ' is not allowed in the exponent part
-		while (is_num_char(*stream.it))
+		while (stream.it != end && is_num_char(*stream.it))
 		{
 			++stream;
 		}
