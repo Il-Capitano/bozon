@@ -433,16 +433,6 @@ struct error_t
 	.message: std::string;
 	.call_stack: [: uint64];
 
-	constructor()
-	{
-		return error_t[
-			0u,
-			src_tokens_t[ 0u, 0u, 0u ],
-			std::string(),
-			__builtin_slice_from_ptrs(null as *uint64, null as *uint64)
-		];
-	}
-
 	// @no_comptime_checking
 	destructor(&self)
 	{
@@ -658,8 +648,8 @@ struct malloc_info_t
 	constructor()
 	{
 		return malloc_info_t[
-			null, 0uz, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
-			false, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			null, 0uz, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			false, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
 		];
 	}
 
