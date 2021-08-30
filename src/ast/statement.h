@@ -875,12 +875,15 @@ struct type_info
 
 	enum : uint32_t
 	{
-		default_constructible           = bit_at<0>,
-		copy_constructible              = bit_at<1>,
-		trivially_copy_constructible    = bit_at<2>,
-		trivially_destructible          = bit_at<3>,
-		trivial                         = bit_at<4>,
-		default_zero_initialized        = bit_at<5>,
+		generic                         = bit_at<0>,
+		generic_instantiation           = bit_at<1>,
+
+		default_constructible           = bit_at<2>,
+		default_zero_initialized        = bit_at<3>,
+		copy_constructible              = bit_at<4>,
+		trivially_copy_constructible    = bit_at<5>,
+		trivially_destructible          = bit_at<6>,
+		trivial                         = bit_at<7>,
 	};
 
 	enum : uint8_t
@@ -899,9 +902,9 @@ struct type_info
 	uint8_t         kind;
 	resolve_state   state;
 	bool            is_export;
-	identifier      type_name;
 	uint32_t        file_id;
 	uint32_t        flags;
+	identifier      type_name;
 	bz::u8string    symbol_name;
 	body_t          body;
 
@@ -931,16 +934,16 @@ struct type_info
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
 		  is_export(false),
-		  type_name(std::move(_type_name)),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  flags(0),
+		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body(range),
 		  member_variables{},
-		  default_op_assign(make_default_op_assign(src_tokens, *this)),
-		  default_op_move_assign(make_default_op_move_assign(src_tokens, *this)),
-		  default_default_constructor(make_default_default_constructor(src_tokens, *this)),
-		  default_copy_constructor(make_default_copy_constructor(src_tokens, *this))
+		  default_op_assign(),
+		  default_op_move_assign(),
+		  default_default_constructor(),
+		  default_copy_constructor()
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
@@ -951,7 +954,6 @@ private:
 		  kind(kind),
 		  state(resolve_state::all),
 		  is_export(false),
-		  type_name(),
 		  file_id(0),
 		  flags(
 			  default_constructible
@@ -961,6 +963,7 @@ private:
 			  | trivial
 			  | default_zero_initialized
 		  ),
+		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body(bz::vector<statement>{}),
 		  member_variables{},
