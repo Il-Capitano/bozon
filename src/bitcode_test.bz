@@ -54,10 +54,26 @@ struct foo_t
 {
 	.n: int32;
 	.s: str;
+
+	constructor()
+	{
+		return foo_t[ 1, "default" ];
+	}
+
+	constructor(n: int32, s: str)
+	{
+		return foo_t[ n, s ];
+	}
 }
 
 function main(args: [: const str]) -> int32
 {
+	let arr = [17, 17: foo_t]();
+	for (let &const val in arr[0])
+	{
+		std::assert(val.n == 1);
+		std::assert(val.s == "default");
+	}
 	// foo_t();
 	(consteval {
 		const p = std::meta::malloc(int32, 1u);
