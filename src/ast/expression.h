@@ -23,6 +23,7 @@ struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
 struct expr_struct_init;
+struct expr_array_default_construct;
 struct expr_member_access;
 struct expr_compound;
 struct expr_if;
@@ -49,6 +50,7 @@ using expr_t = node<
 	expr_cast,
 	expr_take_reference,
 	expr_struct_init,
+	expr_array_default_construct,
 	expr_member_access,
 	expr_compound,
 	expr_if,
@@ -429,6 +431,22 @@ struct expr_struct_init
 	{}
 };
 
+struct expr_array_default_construct
+{
+	expression elem_ctor_call;
+	typespec   type;
+
+	declare_default_5(expr_array_default_construct)
+
+	expr_array_default_construct(
+		expression _elem_ctor_call,
+		typespec   _type
+	)
+		: elem_ctor_call(std::move(_elem_ctor_call)),
+		  type(std::move(_type))
+	{}
+};
+
 struct expr_member_access
 {
 	expression base;
@@ -658,6 +676,7 @@ def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)
 def_make_fn(expr_t, expr_struct_init)
+def_make_fn(expr_t, expr_array_default_construct)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)

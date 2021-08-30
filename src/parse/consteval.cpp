@@ -2664,6 +2664,20 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			return result;
 		},
+		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+			auto const type = array_default_construct_expr.type.as_typespec_view();
+			bz_assert(type.is<ast::ts_array>());
+			consteval_guaranteed(array_default_construct_expr.elem_ctor_call, context);
+			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			{
+				return {};
+			}
+
+			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			ast::constant_value result;
+			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
+			return result;
+		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
@@ -2920,6 +2934,20 @@ static ast::constant_value try_evaluate_expr(
 			{
 				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
 			}
+			return result;
+		},
+		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+			auto const type = array_default_construct_expr.type.as_typespec_view();
+			bz_assert(type.is<ast::ts_array>());
+			consteval_try(array_default_construct_expr.elem_ctor_call, context);
+			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			{
+				return {};
+			}
+
+			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			ast::constant_value result;
+			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3184,6 +3212,20 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				aggregate.emplace_back(expr.get<ast::constant_expression>().value);
 			}
+			return result;
+		},
+		[&context](ast::expr_array_default_construct &array_default_construct_expr) -> ast::constant_value {
+			auto const type = array_default_construct_expr.type.as_typespec_view();
+			bz_assert(type.is<ast::ts_array>());
+			consteval_try_without_error(array_default_construct_expr.elem_ctor_call, context);
+			if (!array_default_construct_expr.elem_ctor_call.is<ast::constant_expression>())
+			{
+				return {};
+			}
+
+			auto const &value = array_default_construct_expr.elem_ctor_call.get<ast::constant_expression>().value;
+			ast::constant_value result;
+			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
@@ -3701,6 +3743,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				}
 			}
 			bz_assert(any_failed);
+		},
+		[&expr, &notes](ast::expr_array_default_construct const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());

@@ -256,6 +256,10 @@ static void create_function_call(
 static void push_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx::bitcode_context &context)
 {
 	type = ast::remove_const_or_consteval(type);
+	if (ast::is_trivially_destructible(type))
+	{
+		return;
+	}
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const &info = *type.get<ast::ts_base_type>().info;
@@ -297,6 +301,10 @@ static void push_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 static void emit_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx::bitcode_context &context)
 {
 	type = ast::remove_const_or_consteval(type);
+	if (ast::is_trivially_destructible(type))
+	{
+		return;
+	}
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const &info = *type.get<ast::ts_base_type>().info;
@@ -3270,6 +3278,62 @@ static val_ptr emit_bitcode(
 		emit_bitcode<abi>(struct_init.exprs[i], context, member_ptr);
 	}
 	return { val_ptr::reference, result_ptr };
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expr_array_default_construct const &array_default_construct,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const llvm_type = get_llvm_type(array_default_construct.type, context);
+	if (result_address == nullptr)
+	{
+		result_address = context.create_alloca(llvm_type);
+	}
+
+	bz_assert(array_default_construct.type.is<ast::ts_array>());
+	auto const size = array_default_construct.type.get<ast::ts_array>().size;
+	if (size <= 16)
+	{
+		for (auto const i : bz::iota(0, size))
+		{
+			auto const elem_result_address = context.builder.CreateStructGEP(result_address, i);
+			emit_bitcode<abi>(array_default_construct.elem_ctor_call, context, elem_result_address);
+		}
+		return { val_ptr::reference, result_address };
+	}
+	else
+	{
+		// create a loop
+		auto const start_bb = context.builder.GetInsertBlock();
+		auto const condition_check_bb = context.add_basic_block("array_init_condition_check");
+		auto const loop_bb = context.add_basic_block("array_init_loop");
+		auto const end_bb = context.add_basic_block("array_init_end");
+
+		context.builder.CreateBr(condition_check_bb);
+		context.builder.SetInsertPoint(condition_check_bb);
+		auto const iter_val = context.builder.CreatePHI(context.get_usize_t(), 2);
+		auto const zero_value = llvm::ConstantInt::get(iter_val->getType(), 0);
+		iter_val->addIncoming(zero_value, start_bb);
+
+		context.builder.SetInsertPoint(loop_bb);
+		auto const elem_result_address = context.builder.CreateGEP(result_address, { zero_value, iter_val });
+		emit_bitcode<abi>(array_default_construct.elem_ctor_call, context, elem_result_address);
+		auto const one_value = llvm::ConstantInt::get(iter_val->getType(), 1);
+		auto const next_iter_val = context.builder.CreateAdd(iter_val, one_value);
+		context.builder.CreateBr(condition_check_bb);
+		auto const loop_end_bb = context.builder.GetInsertBlock();
+
+		context.builder.SetInsertPoint(condition_check_bb);
+		iter_val->addIncoming(next_iter_val, loop_end_bb);
+		auto const size_value = llvm::ConstantInt::get(iter_val->getType(), size);
+		auto const is_at_end = context.builder.CreateICmpEQ(iter_val, size_value);
+		context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
+		context.builder.SetInsertPoint(end_bb);
+		return { val_ptr::reference, result_address };
+	}
 }
 
 template<abi::platform_abi abi>

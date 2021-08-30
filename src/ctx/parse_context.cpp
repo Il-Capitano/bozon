@@ -4927,7 +4927,7 @@ ast::expression parse_context::make_function_call_expression(
 		{
 			auto const info = called_type.get<ast::ts_base_type>().info;
 			resolve::resolve_type_info(*info, *this);
-			auto const possible_funcs = called_type.get<ast::ts_base_type>().info->constructors
+			auto const possible_funcs = info->constructors
 				.transform([&](auto const &ptr) {
 					return possible_func_t{ get_function_call_match_level({}, *ptr, args, *this, src_tokens), {}, ptr };
 				})
@@ -4967,6 +4967,34 @@ ast::expression parse_context::make_function_call_expression(
 				ast::constant_value(ast::internal::null_t{}),
 				ast::expr_t{}
 			);
+		}
+		else if (args.empty() && called_type.is<ast::ts_array>())
+		{
+			auto const elem_type = called_type.get<ast::ts_array>().elem_type.as_typespec_view();
+			if (!ast::is_default_constructible(elem_type))
+			{
+				this->report_error(
+					src_tokens,
+					bz::format("no constructors found for type '{}'", called_type),
+					{ this->make_note(
+						src_tokens,
+						bz::format("array element type '{}' is not default constructible", elem_type)
+					) }
+				);
+				return ast::make_error_expression(
+					src_tokens,
+					ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+				);
+			}
+			else
+			{
+				auto ctor_call = this->make_function_call_expression(src_tokens, ast::type_as_expression(elem_type), {});
+				return ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::rvalue, called_type,
+					ast::make_expr_array_default_construct(std::move(ctor_call), called_type)
+				);
+			}
 		}
 
 		this->report_error(
