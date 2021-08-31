@@ -594,8 +594,7 @@ function get_call_stack_array_copy() -> [: uint64]
 	const call_stack_size = call_stack.size();
 	if (call_stack_size == 0u)
 	{
-		const result = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
-		return result;
+		return [: uint64]();
 	}
 	else
 	{
@@ -648,8 +647,8 @@ struct malloc_info_t
 	constructor()
 	{
 		return malloc_info_t[
-			null, 0uz, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
-			false, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			null, 0uz, src_tokens_t(), [: uint64](),
+			false, src_tokens_t(), [: uint64](),
 		];
 	}
 
@@ -658,7 +657,7 @@ struct malloc_info_t
 		const malloc_call_stack = get_call_stack_array_copy();
 		return malloc_info_t[
 			ptr, size, malloc_src_tokens, malloc_call_stack,
-			false, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			false, src_tokens_t[ 0u, 0u, 0u ], [: uint64](),
 		];
 	}
 
@@ -757,7 +756,7 @@ function check_leaks() -> bool
 		if (!malloc_info.is_freed)
 		{
 			const call_stack = malloc_info.malloc_call_stack;
-			malloc_info.malloc_call_stack = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
+			malloc_info.malloc_call_stack = [: uint64]();
 			emit_diagnostic(
 				warning_kind_error,
 				"malloc'd pointer was never freed",

@@ -4057,6 +4057,61 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_builtin_default_construct const &builtin_default_construct,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = builtin_default_construct.type.as_typespec_view();
+	if (type.is<ast::ts_pointer>())
+	{
+		if (result_address != nullptr)
+		{
+			bz_assert(result_address->getType()->isPointerTy() && result_address->getType()->getPointerElementType()->isPointerTy());
+			context.builder.CreateStore(
+				llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(result_address->getType()->getPointerElementType())),
+				result_address
+			);
+			return { val_ptr::reference, result_address };
+		}
+		else
+		{
+			auto const llvm_type = get_llvm_type(type, context);
+			bz_assert(llvm_type->isPointerTy());
+			return { val_ptr::value, llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(llvm_type)) };
+		}
+	}
+	else if (type.is<ast::ts_array_slice>())
+	{
+		if (result_address != nullptr)
+		{
+			auto const begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+			auto const end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+			bz_assert(begin_ptr->getType() == end_ptr->getType());
+			bz_assert(begin_ptr->getType()->isPointerTy() && begin_ptr->getType()->getPointerElementType()->isPointerTy());
+			auto const ptr_type = static_cast<llvm::PointerType *>(begin_ptr->getType()->getPointerElementType());
+			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
+			context.builder.CreateStore(null_value, begin_ptr);
+			context.builder.CreateStore(null_value, end_ptr);
+			return { val_ptr::reference, result_address };
+		}
+		else
+		{
+			auto const ptr_type = llvm::PointerType::get(get_llvm_type(type.get<ast::ts_array_slice>().elem_type, context), 0);
+			auto const result_type = llvm::StructType::get(ptr_type, ptr_type);
+			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
+			return { val_ptr::value, llvm::ConstantStruct::get(result_type, null_value, null_value) };
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	lex::src_tokens src_tokens,
 	ast::expr_member_access const &member_access,
 	ctx::comptime_executor_context &context,

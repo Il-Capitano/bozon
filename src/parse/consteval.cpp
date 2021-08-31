@@ -2678,6 +2678,17 @@ static ast::constant_value guaranteed_evaluate_expr(
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
 		},
+		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
+			auto const type = builtin_default_construct_expr.type.as_typespec_view();
+			if (type.is<ast::ts_pointer>())
+			{
+				return ast::constant_value(ast::internal::null_t{});
+			}
+			else
+			{
+				return {};
+			}
+		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_guaranteed(member_access_expr.base, context);
 			if (member_access_expr.base.has_consteval_succeeded())
@@ -2949,6 +2960,17 @@ static ast::constant_value try_evaluate_expr(
 			ast::constant_value result;
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
+		},
+		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
+			auto const type = builtin_default_construct_expr.type.as_typespec_view();
+			if (type.is<ast::ts_pointer>())
+			{
+				return ast::constant_value(ast::internal::null_t{});
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_try(member_access_expr.base, context);
@@ -3227,6 +3249,17 @@ static ast::constant_value try_evaluate_expr_without_error(
 			ast::constant_value result;
 			result.emplace<ast::constant_value::array>(type.get<ast::ts_array>().size, value);
 			return result;
+		},
+		[](ast::expr_builtin_default_construct &builtin_default_construct_expr) -> ast::constant_value {
+			auto const type = builtin_default_construct_expr.type.as_typespec_view();
+			if (type.is<ast::ts_pointer>())
+			{
+				return ast::constant_value(ast::internal::null_t{});
+			}
+			else
+			{
+				return {};
+			}
 		},
 		[&context](ast::expr_member_access &member_access_expr) -> ast::constant_value {
 			consteval_try_without_error(member_access_expr.base, context);
@@ -3744,9 +3777,16 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 			bz_assert(any_failed);
 		},
-		[&expr, &notes](ast::expr_array_default_construct const &) {
+		[&expr, &notes](ast::expr_array_default_construct const &array_default_construct_expr) {
+			auto const type = array_default_construct_expr.type.as_typespec_view();
 			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "subexpression is not a constant expression"
+				expr.src_tokens, bz::format("subexpression '{}()' is not a constant expression", type)
+			));
+		},
+		[&expr, &notes](ast::expr_builtin_default_construct const &builtin_default_construct_expr) {
+			auto const type = builtin_default_construct_expr.type.as_typespec_view();
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, bz::format("subexpression '{}()' is not a constant expression", type)
 			));
 		},
 		[&notes](ast::expr_member_access const &member_access_expr) {
