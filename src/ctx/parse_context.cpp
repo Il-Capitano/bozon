@@ -4978,6 +4978,45 @@ ast::expression parse_context::make_function_call_expression(
 					ast::make_expr_builtin_default_construct(called_type)
 				);
 			}
+			else if (called_type.is<ast::ts_tuple>())
+			{
+				auto const types = called_type.get<ast::ts_tuple>().types.as_array_view();
+				if (types.is_any([](auto const &type) { return !ast::is_default_constructible(type); }))
+				{
+					this->report_error(
+						src_tokens,
+						bz::format("no constructors found for type '{}'", called_type),
+						types
+							.filter([](auto const &type) { return !ast::is_default_constructible(type); })
+							.transform([&](auto const &type) {
+								return parse_context::make_note(
+									src_tokens,
+									bz::format("tuple element type '{}' is not default constructible", type)
+								);
+							})
+							.collect()
+					);
+					return ast::make_error_expression(
+						src_tokens,
+						ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+					);
+				}
+				else
+				{
+					auto values = types.transform([&](auto const &type) {
+						return this->make_function_call_expression(
+							src_tokens,
+							ast::type_as_expression(type),
+							{}
+						);
+					}).collect<ast::arena_vector>();
+					return ast::make_dynamic_expression(
+						src_tokens,
+						ast::expression_type_kind::tuple, called_type,
+						ast::make_expr_tuple(std::move(values))
+					);
+				}
+			}
 			else if (called_type.is<ast::ts_array>())
 			{
 				auto const elem_type = called_type.get<ast::ts_array>().elem_type.as_typespec_view();
