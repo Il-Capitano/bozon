@@ -36,6 +36,53 @@ static llvm::Constant *get_value(
 	ctx::bitcode_context &context
 );
 
+template<abi::platform_abi abi>
+static val_ptr emit_copy_constructor(
+	val_ptr expr_val,
+	ast::typespec_view expr_type,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_constructor(
+	ast::typespec_view type,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static void emit_copy_assign(
+	ast::typespec_view type,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static void emit_move_assign(
+	ast::typespec_view type,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_copy_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_move_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
 
 static llvm::Value *get_constant_zero(
 	ast::typespec_view type,
@@ -150,18 +197,20 @@ static void add_call_parameter(
 		switch (pass_kind)
 		{
 		case abi::pass_kind::reference:
-			// there's no need to provide a seperate copy for a byval argument,
-			// as a copy is made at the call site automatically
-			// see: https://reviews.llvm.org/D79636
-			if (param.kind == val_ptr::reference)
+			if (
+				param.kind == val_ptr::reference
+				&& abi::get_pass_by_reference_attributes<abi>().contains(llvm::Attribute::ByVal)
+			)
 			{
+				// there's no need to provide a seperate copy for a byval argument,
+				// as a copy is made at the call site automatically
+				// see: https://reviews.llvm.org/D79636
 				(params.*params_push)(param.val);
 			}
 			else
 			{
-				auto const val = param.get_value(context.builder);
 				auto const alloca = context.create_alloca(param_llvm_type);
-				context.builder.CreateStore(val, alloca);
+				emit_copy_constructor<abi>(param, param_type, context, alloca);
 				(params.*params_push)(alloca);
 			}
 			(params_is_byval.*byval_push)(true);
@@ -4428,7 +4477,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	if (func_body.is_main())
 	{
 		auto const str_slice = context.get_slice_t(context.get_str_t());
-		// str_slice is known to be not non_trivial
+		// str_slice is known to be trivial
 		auto const pass_kind = abi::get_pass_kind<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
 
 		switch (pass_kind)
@@ -4733,14 +4782,6 @@ static void emit_function_bitcode_impl(
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
-					if (!fn_it->hasAttribute(llvm::Attribute::ByVal))
-					{
-						auto const alloca = context.create_alloca(t);
-						emit_copy_constructor<abi>({ val_ptr::reference, fn_it }, p.get_type(), context, alloca);
-						add_variable_helper(p, alloca, context);
-						break;
-					}
-					[[fallthrough]];
 				case abi::pass_kind::non_trivial:
 					push_destructor_call(fn_it, p.get_type(), context);
 					add_variable_helper(p, fn_it, context);
