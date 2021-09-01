@@ -19,6 +19,17 @@ enum class pass_kind
 	non_trivial,
 };
 
+template<platform_abi>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes(void);
+
+template<>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::generic>(void);
+template<>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::microsoft_x64>(void);
+template<>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::systemv_amd64>(void);
+
+
 template<platform_abi abi>
 pass_kind get_pass_kind(llvm::Type *t, llvm::DataLayout &data_layout, llvm::LLVMContext &context);
 

@@ -4,6 +4,7 @@
 
 #include "ast/typespec.h"
 #include "bz/meta.h"
+#include "ctx/bitcode_context.h"
 #include "runtime_emit_bitcode.h"
 #include "ctx/builtin_operators.h"
 #include "colors.h"
@@ -212,6 +213,52 @@ static void add_call_parameter(
 }
 
 template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::CallInst *call, unsigned index, ctx::bitcode_context &context)
+{
+	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
+	for (auto const attribute : attributes)
+	{
+		switch (attribute)
+		{
+		case llvm::Attribute::ByVal:
+		{
+			auto const byval_ptr_type = call->getArgOperand(index)->getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			call->addParamAttr(index, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
+			break;
+		}
+		default:
+			call->addParamAttr(index, attribute);
+			break;
+		}
+	}
+}
+
+template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::Argument &arg, ctx::bitcode_context &context)
+{
+	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
+	for (auto const attribute : attributes)
+	{
+		switch (attribute)
+		{
+		case llvm::Attribute::ByVal:
+		{
+			auto const byval_ptr_type = arg.getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
+			break;
+		}
+		default:
+			arg.addAttr(attribute);
+			break;
+		}
+	}
+}
+
+template<abi::platform_abi abi>
 static void create_function_call(
 	ast::function_body *body,
 	val_ptr lhs,
@@ -242,14 +289,7 @@ static void create_function_call(
 	call->setCallingConv(fn->getCallingConv());
 	if (params_is_byval[0])
 	{
-		bz_assert(call->arg_size() == 2);
-		auto const byval_ptr_type = params[1]->getType();
-		bz_assert(byval_ptr_type->isPointerTy());
-		auto const byval_type = byval_ptr_type->getPointerElementType();
-		call->addParamAttr(1, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-		call->addParamAttr(1, llvm::Attribute::NoAlias);
-		call->addParamAttr(1, llvm::Attribute::NoCapture);
-		call->addParamAttr(1, llvm::Attribute::NonNull);
+		add_byval_attributes<abi>(call, 1, context);
 	}
 }
 
@@ -368,7 +408,7 @@ static val_ptr emit_copy_constructor(
 		result_address = context.create_alloca(get_llvm_type(expr_type, context));
 	}
 
-	if (!ast::is_non_trivial(expr_type))
+	if (ast::is_trivially_copy_constructible(expr_type))
 	{
 		if (auto const size = context.get_size(expr_val.get_type()); size > 16)
 		{
@@ -2871,13 +2911,7 @@ static val_ptr emit_bitcode(
 		auto const is_pass_by_ref = *is_byval_it;
 		if (is_pass_by_ref)
 		{
-			auto const byval_ptr_type = params[i]->getType();
-			bz_assert(byval_ptr_type->isPointerTy());
-			auto const byval_type = byval_ptr_type->getPointerElementType();
-			call->addParamAttr(i, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-			call->addParamAttr(i, llvm::Attribute::NoAlias);
-			call->addParamAttr(i, llvm::Attribute::NoCapture);
-			call->addParamAttr(i, llvm::Attribute::NonNull);
+			add_byval_attributes<abi>(call, i, context);
 		}
 	}
 	switch (result_kind)
@@ -4606,13 +4640,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		auto const is_by_ref = *is_byval_it;
 		if (is_by_ref)
 		{
-			auto const byval_ptr_type = arg.getType();
-			bz_assert(byval_ptr_type->isPointerTy());
-			auto const byval_type = byval_ptr_type->getPointerElementType();
-			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-			arg.addAttr(llvm::Attribute::NoAlias);
-			arg.addAttr(llvm::Attribute::NoCapture);
-			arg.addAttr(llvm::Attribute::NonNull);
+			add_byval_attributes<abi>(arg, context);
 		}
 	}
 	return fn;
@@ -4721,16 +4749,17 @@ static void emit_function_bitcode_impl(
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
+					if (!fn_it->hasAttribute(llvm::Attribute::ByVal))
+					{
+						auto const alloca = context.create_alloca(t);
+						emit_copy_constructor<abi>({ val_ptr::reference, fn_it }, p.get_type(), context, alloca);
+						add_variable_helper(p, alloca, context);
+						break;
+					}
+					[[fallthrough]];
 				case abi::pass_kind::non_trivial:
 					push_destructor_call(fn_it, p.get_type(), context);
-					if (p.tuple_decls.empty())
-					{
-						context.add_variable(&p, fn_it);
-					}
-					else
-					{
-						add_variable_helper(p, fn_it, context);
-					}
+					add_variable_helper(p, fn_it, context);
 					break;
 				case abi::pass_kind::value:
 				{

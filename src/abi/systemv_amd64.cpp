@@ -3,6 +3,19 @@
 namespace abi
 {
 
+static constexpr bz::array pass_by_reference_attributes = {
+	llvm::Attribute::ByVal,
+	llvm::Attribute::NoAlias,
+	llvm::Attribute::NoCapture,
+	llvm::Attribute::NonNull,
+};
+
+template<>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::systemv_amd64>(void)
+{
+	return pass_by_reference_attributes;
+}
+
 template<>
 pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	llvm::Type *t,
