@@ -446,14 +446,10 @@ static val_ptr emit_copy_constructor(
 			case abi::pass_kind::non_trivial:
 			{
 				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
-#if LLVM_VERSION_MAJOR < 12
-				call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
 				auto const sret_type = sret_ptr_type->getPointerElementType();
 				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 				break;
 			}
 			case abi::pass_kind::one_register:
@@ -574,14 +570,10 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::non_trivial:
 			{
 				auto const call = context.builder.CreateCall(fn, result_address);
-#if LLVM_VERSION_MAJOR < 12
-				call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
 				auto const sret_type = sret_ptr_type->getPointerElementType();
 				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif
 				break;
 			}
 			case abi::pass_kind::one_register:
@@ -2895,14 +2887,10 @@ static val_ptr emit_bitcode(
 	bz_assert(fn->arg_size() == call->arg_size());
 	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
 	{
-#if LLVM_VERSION_MAJOR < 12
-		call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 		auto const sret_ptr_type = params[0]->getType();
 		bz_assert(sret_ptr_type->isPointerTy());
 		auto const sret_type = sret_ptr_type->getPointerElementType();
 		call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 		bz_assert(is_byval_it != is_byval_end);
 		++is_byval_it, ++i;
 	}
@@ -4620,14 +4608,10 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
-#if LLVM_VERSION_MAJOR < 12
-		arg_it->addAttr(llvm::Attribute::StructRet);
-#else
 		auto const sret_ptr_type = arg_it->getType();
 		bz_assert(sret_ptr_type->isPointerTy());
 		auto const sret_type = sret_ptr_type->getPointerElementType();
 		arg_it->addAttr(llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 		arg_it->addAttr(llvm::Attribute::NoAlias);
 		arg_it->addAttr(llvm::Attribute::NoCapture);
 		arg_it->addAttr(llvm::Attribute::NonNull);
