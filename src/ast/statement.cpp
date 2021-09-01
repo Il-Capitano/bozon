@@ -927,4 +927,803 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 	};
 }
 
+
+constexpr uint8_t unary_intrinsic_kind_from_op_kind(uint32_t op_kind)
+{
+	switch (op_kind)
+	{
+	case lex::token::plus:        return function_body::builtin_unary_plus;
+	case lex::token::minus:       return function_body::builtin_unary_minus;
+	case lex::token::address_of:  return function_body::builtin_unary_address_of;
+	case lex::token::dereference: return function_body::builtin_unary_dereference;
+	case lex::token::bit_not:     return function_body::builtin_unary_bit_not;
+	case lex::token::bool_not:    return function_body::builtin_unary_bool_not;
+	case lex::token::plus_plus:   return function_body::builtin_unary_plus_plus;
+	case lex::token::minus_minus: return function_body::builtin_unary_minus_minus;
+	default: bz_unreachable;
+	}
+}
+
+struct builtin_unary_operator_table_entry_t
+{
+	uint32_t op_kind;
+	uint8_t intrinsic_kind;
+	uint32_t expr_t;
+	uint32_t res_t;
+	bz::u8string_view expr_ptr_or_ref_t;
+
+	constexpr builtin_unary_operator_table_entry_t(uint32_t op_kind, uint32_t expr_t, uint32_t res_t)
+		: op_kind(op_kind), intrinsic_kind(unary_intrinsic_kind_from_op_kind(op_kind)), expr_t(expr_t), res_t(res_t), expr_ptr_or_ref_t()
+	{}
+
+	constexpr builtin_unary_operator_table_entry_t(uint32_t op_kind, bz::u8string_view expr_ptr_or_ref_t)
+		: op_kind(op_kind), intrinsic_kind(unary_intrinsic_kind_from_op_kind(op_kind)), expr_t(), res_t(), expr_ptr_or_ref_t(expr_ptr_or_ref_t)
+	{
+		bz_assert(
+			this->expr_ptr_or_ref_t == "*" || this->expr_ptr_or_ref_t == "*const"
+			|| this->expr_ptr_or_ref_t == "&" || this->expr_ptr_or_ref_t == "&const"
+		);
+	}
+};
+
+#define unary_arithmetic_entry(op_kind, type_kind) \
+builtin_unary_operator_table_entry_t(lex::token::op_kind, type_info::type_kind, type_info::type_kind)
+
+#define unary_kind_entry(op_kind, expr_kind, res_kind) \
+builtin_unary_operator_table_entry_t(lex::token::op_kind, type_info::expr_kind, type_info::res_kind)
+
+static constexpr bz::array builtin_unary_operator_table = {
+	// ================
+	// operator +
+	// ================
+	unary_arithmetic_entry(plus, int8_),
+	unary_arithmetic_entry(plus, int16_),
+	unary_arithmetic_entry(plus, int32_),
+	unary_arithmetic_entry(plus, int64_),
+	unary_arithmetic_entry(plus, uint8_),
+	unary_arithmetic_entry(plus, uint16_),
+	unary_arithmetic_entry(plus, uint32_),
+	unary_arithmetic_entry(plus, uint64_),
+	unary_arithmetic_entry(plus, float32_),
+	unary_arithmetic_entry(plus, float64_),
+
+	// ================
+	// operator -
+	// ================
+	unary_arithmetic_entry(minus, int8_),
+	unary_arithmetic_entry(minus, int16_),
+	unary_arithmetic_entry(minus, int32_),
+	unary_arithmetic_entry(minus, int64_),
+	unary_arithmetic_entry(minus, float32_),
+	unary_arithmetic_entry(minus, float64_),
+
+	// ================
+	// operator &
+	// ================
+	builtin_unary_operator_table_entry_t(lex::token::address_of, "&"),
+	builtin_unary_operator_table_entry_t(lex::token::address_of, "&const"),
+
+	// ================
+	// operator *
+	// ================
+	builtin_unary_operator_table_entry_t(lex::token::dereference, "*"),
+	builtin_unary_operator_table_entry_t(lex::token::dereference, "*const"),
+
+	// ================
+	// operator ~
+	// ================
+	unary_arithmetic_entry(bit_not, uint8_),
+	unary_arithmetic_entry(bit_not, uint16_),
+	unary_arithmetic_entry(bit_not, uint32_),
+	unary_arithmetic_entry(bit_not, uint64_),
+	unary_arithmetic_entry(bit_not, bool_),
+
+	// ================
+	// operator !
+	// ================
+	unary_arithmetic_entry(bool_not, bool_),
+
+	// ================
+	// operator ++
+	// ================
+	unary_arithmetic_entry(plus_plus, int8_),
+	unary_arithmetic_entry(plus_plus, int16_),
+	unary_arithmetic_entry(plus_plus, int32_),
+	unary_arithmetic_entry(plus_plus, int64_),
+	unary_arithmetic_entry(plus_plus, uint8_),
+	unary_arithmetic_entry(plus_plus, uint16_),
+	unary_arithmetic_entry(plus_plus, uint32_),
+	unary_arithmetic_entry(plus_plus, uint64_),
+	unary_arithmetic_entry(plus_plus, char_),
+	builtin_unary_operator_table_entry_t(lex::token::plus_plus, "*"),
+	builtin_unary_operator_table_entry_t(lex::token::plus_plus, "*const"),
+
+	// ================
+	// operator --
+	// ================
+	unary_arithmetic_entry(minus_minus, int8_),
+	unary_arithmetic_entry(minus_minus, int16_),
+	unary_arithmetic_entry(minus_minus, int32_),
+	unary_arithmetic_entry(minus_minus, int64_),
+	unary_arithmetic_entry(minus_minus, uint8_),
+	unary_arithmetic_entry(minus_minus, uint16_),
+	unary_arithmetic_entry(minus_minus, uint32_),
+	unary_arithmetic_entry(minus_minus, uint64_),
+	unary_arithmetic_entry(minus_minus, char_),
+	builtin_unary_operator_table_entry_t(lex::token::minus_minus, "*"),
+	builtin_unary_operator_table_entry_t(lex::token::minus_minus, "*const"),
+};
+
+#undef unary_arithmetic_entry
+#undef unary_kind_entry
+
+
+constexpr uint8_t binary_intrinsic_kind_from_op_kind(uint32_t op_kind)
+{
+	switch (op_kind)
+	{
+	case lex::token::assign:          return function_body::builtin_binary_assign;
+	case lex::token::plus:            return function_body::builtin_binary_plus;
+	case lex::token::plus_eq:         return function_body::builtin_binary_plus_eq;
+	case lex::token::minus:           return function_body::builtin_binary_minus;
+	case lex::token::minus_eq:        return function_body::builtin_binary_minus_eq;
+	case lex::token::multiply:        return function_body::builtin_binary_multiply;
+	case lex::token::multiply_eq:     return function_body::builtin_binary_multiply_eq;
+	case lex::token::divide:          return function_body::builtin_binary_divide;
+	case lex::token::divide_eq:       return function_body::builtin_binary_divide_eq;
+	case lex::token::modulo:          return function_body::builtin_binary_modulo;
+	case lex::token::modulo_eq:       return function_body::builtin_binary_modulo_eq;
+	case lex::token::equals:          return function_body::builtin_binary_equals;
+	case lex::token::not_equals:      return function_body::builtin_binary_not_equals;
+	case lex::token::less_than:       return function_body::builtin_binary_less_than;
+	case lex::token::less_than_eq:    return function_body::builtin_binary_less_than_eq;
+	case lex::token::greater_than:    return function_body::builtin_binary_greater_than;
+	case lex::token::greater_than_eq: return function_body::builtin_binary_greater_than_eq;
+	default: bz_unreachable;
+	}
+}
+
+struct builtin_binary_operator_table_entry_t
+{
+	uint32_t op_kind;
+	uint8_t intrinsic_kind;
+	uint32_t lhs_t;
+	uint32_t rhs_t;
+	uint32_t res_t;
+	bz::u8string_view lhs_ptr_t;
+	bz::u8string_view rhs_ptr_t;
+
+	constexpr builtin_binary_operator_table_entry_t(uint32_t op_kind, uint32_t lhs_t, uint32_t rhs_t, uint32_t res_t)
+		: op_kind(op_kind), intrinsic_kind(binary_intrinsic_kind_from_op_kind(op_kind)), lhs_t(lhs_t), rhs_t(rhs_t), res_t(res_t), lhs_ptr_t(), rhs_ptr_t()
+	{}
+
+	constexpr builtin_binary_operator_table_entry_t(uint32_t op_kind, bz::u8string_view lhs_ptr_t, bz::u8string_view rhs_ptr_t)
+		: op_kind(op_kind), intrinsic_kind(binary_intrinsic_kind_from_op_kind(op_kind)), lhs_t(), rhs_t(), res_t(), lhs_ptr_t(lhs_ptr_t), rhs_ptr_t(rhs_ptr_t)
+	{
+		bz_assert(this->lhs_ptr_t == "*" || this->lhs_ptr_t == "*const");
+		bz_assert(this->rhs_ptr_t == "*" || this->rhs_ptr_t == "*const");
+	}
+
+	constexpr builtin_binary_operator_table_entry_t(uint32_t op_kind, bz::u8string_view lhs_ptr_t, uint32_t rhs_t)
+		: op_kind(op_kind), intrinsic_kind(binary_intrinsic_kind_from_op_kind(op_kind)), lhs_t(), rhs_t(rhs_t), res_t(), lhs_ptr_t(lhs_ptr_t), rhs_ptr_t()
+	{
+		bz_assert(this->lhs_ptr_t == "*" || this->lhs_ptr_t == "*const");
+	}
+
+	constexpr builtin_binary_operator_table_entry_t(uint32_t op_kind, uint32_t lhs_t, bz::u8string_view rhs_ptr_t)
+		: op_kind(op_kind), intrinsic_kind(binary_intrinsic_kind_from_op_kind(op_kind)), lhs_t(lhs_t), rhs_t(), res_t(), lhs_ptr_t(), rhs_ptr_t(rhs_ptr_t)
+	{
+		bz_assert(this->rhs_ptr_t == "*" || this->rhs_ptr_t == "*const");
+	}
+};
+
+
+#define binary_arithmetic_entry(op_kind, type_kind) \
+builtin_binary_operator_table_entry_t(lex::token::op_kind, type_info::type_kind, type_info::type_kind, type_info::type_kind)
+
+#define binary_kind_entry(op_kind, lhs_kind, rhs_kind, res_kind) \
+builtin_binary_operator_table_entry_t(lex::token::op_kind, type_info::lhs_kind, type_info::rhs_kind, type_info::res_kind)
+
+static constexpr bz::array builtin_binary_operator_table = {
+	// ================
+	// operator =
+	// ================
+	binary_arithmetic_entry(assign, int8_),
+	binary_arithmetic_entry(assign, int16_),
+	binary_arithmetic_entry(assign, int32_),
+	binary_arithmetic_entry(assign, int64_),
+	binary_arithmetic_entry(assign, uint8_),
+	binary_arithmetic_entry(assign, uint16_),
+	binary_arithmetic_entry(assign, uint32_),
+	binary_arithmetic_entry(assign, uint64_),
+	binary_arithmetic_entry(assign, float32_),
+	binary_arithmetic_entry(assign, float64_),
+	binary_arithmetic_entry(assign, char_),
+	binary_arithmetic_entry(assign, str_),
+	binary_arithmetic_entry(assign, bool_),
+	binary_arithmetic_entry(assign, null_t_),
+	builtin_binary_operator_table_entry_t(lex::token::assign, "*", "*"),
+	builtin_binary_operator_table_entry_t(lex::token::assign, "*const", "*const"),
+
+	// ================
+	// operator +
+	// ================
+	binary_arithmetic_entry(plus, int8_),
+	binary_arithmetic_entry(plus, int16_),
+	binary_arithmetic_entry(plus, int32_),
+	binary_arithmetic_entry(plus, int64_),
+	binary_arithmetic_entry(plus, uint8_),
+	binary_arithmetic_entry(plus, uint16_),
+	binary_arithmetic_entry(plus, uint32_),
+	binary_arithmetic_entry(plus, uint64_),
+	binary_arithmetic_entry(plus, float32_),
+	binary_arithmetic_entry(plus, float64_),
+	binary_kind_entry(plus, char_, int64_,  char_),
+	binary_kind_entry(plus, char_, uint64_, char_),
+	binary_kind_entry(plus, int64_,  char_, char_),
+	binary_kind_entry(plus, uint64_, char_, char_),
+	builtin_binary_operator_table_entry_t(lex::token::plus, "*", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus, "*", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus, type_info::int64_,  "*"),
+	builtin_binary_operator_table_entry_t(lex::token::plus, type_info::uint64_, "*"),
+	builtin_binary_operator_table_entry_t(lex::token::plus, "*const", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus, "*const", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus, type_info::int64_,  "*const"),
+	builtin_binary_operator_table_entry_t(lex::token::plus, type_info::uint64_, "*const"),
+
+	// ================
+	// operator +=
+	// ================
+	binary_arithmetic_entry(plus_eq, int8_),
+	binary_arithmetic_entry(plus_eq, int16_),
+	binary_arithmetic_entry(plus_eq, int32_),
+	binary_arithmetic_entry(plus_eq, int64_),
+	binary_arithmetic_entry(plus_eq, uint8_),
+	binary_arithmetic_entry(plus_eq, uint16_),
+	binary_arithmetic_entry(plus_eq, uint32_),
+	binary_arithmetic_entry(plus_eq, uint64_),
+	binary_arithmetic_entry(plus_eq, float32_),
+	binary_arithmetic_entry(plus_eq, float64_),
+	binary_kind_entry(plus_eq, char_, int64_,  char_),
+	binary_kind_entry(plus_eq, char_, uint64_, char_),
+	builtin_binary_operator_table_entry_t(lex::token::plus_eq, "*", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus_eq, "*", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus_eq, "*const", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::plus_eq, "*const", type_info::uint64_),
+
+	// ================
+	// operator -
+	// ================
+	binary_arithmetic_entry(minus, int8_),
+	binary_arithmetic_entry(minus, int16_),
+	binary_arithmetic_entry(minus, int32_),
+	binary_arithmetic_entry(minus, int64_),
+	binary_arithmetic_entry(minus, uint8_),
+	binary_arithmetic_entry(minus, uint16_),
+	binary_arithmetic_entry(minus, uint32_),
+	binary_arithmetic_entry(minus, uint64_),
+	binary_arithmetic_entry(minus, float32_),
+	binary_arithmetic_entry(minus, float64_),
+	binary_kind_entry(minus, char_, int64_,  char_),
+	binary_kind_entry(minus, char_, uint64_, char_),
+	binary_kind_entry(minus, char_, char_, int32_),
+	builtin_binary_operator_table_entry_t(lex::token::minus, "*", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus, "*", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus, "*const", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus, "*const", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus, "*const", "*const"),
+
+	// ================
+	// operator -=
+	// ================
+	binary_arithmetic_entry(minus_eq, int8_),
+	binary_arithmetic_entry(minus_eq, int16_),
+	binary_arithmetic_entry(minus_eq, int32_),
+	binary_arithmetic_entry(minus_eq, int64_),
+	binary_arithmetic_entry(minus_eq, uint8_),
+	binary_arithmetic_entry(minus_eq, uint16_),
+	binary_arithmetic_entry(minus_eq, uint32_),
+	binary_arithmetic_entry(minus_eq, uint64_),
+	binary_arithmetic_entry(minus_eq, float32_),
+	binary_arithmetic_entry(minus_eq, float64_),
+	binary_kind_entry(minus_eq, char_, int64_,  char_),
+	binary_kind_entry(minus_eq, char_, uint64_, char_),
+	builtin_binary_operator_table_entry_t(lex::token::minus_eq, "*", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus_eq, "*", type_info::uint64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus_eq, "*const", type_info::int64_),
+	builtin_binary_operator_table_entry_t(lex::token::minus_eq, "*const", type_info::uint64_),
+
+	// ================
+	// operator *
+	// ================
+	binary_arithmetic_entry(multiply, int8_),
+	binary_arithmetic_entry(multiply, int16_),
+	binary_arithmetic_entry(multiply, int32_),
+	binary_arithmetic_entry(multiply, int64_),
+	binary_arithmetic_entry(multiply, uint8_),
+	binary_arithmetic_entry(multiply, uint16_),
+	binary_arithmetic_entry(multiply, uint32_),
+	binary_arithmetic_entry(multiply, uint64_),
+	binary_arithmetic_entry(multiply, float32_),
+	binary_arithmetic_entry(multiply, float64_),
+
+	// ================
+	// operator *=
+	// ================
+	binary_arithmetic_entry(multiply_eq, int8_),
+	binary_arithmetic_entry(multiply_eq, int16_),
+	binary_arithmetic_entry(multiply_eq, int32_),
+	binary_arithmetic_entry(multiply_eq, int64_),
+	binary_arithmetic_entry(multiply_eq, uint8_),
+	binary_arithmetic_entry(multiply_eq, uint16_),
+	binary_arithmetic_entry(multiply_eq, uint32_),
+	binary_arithmetic_entry(multiply_eq, uint64_),
+	binary_arithmetic_entry(multiply_eq, float32_),
+	binary_arithmetic_entry(multiply_eq, float64_),
+
+	// ================
+	// operator /
+	// ================
+	binary_arithmetic_entry(divide, int8_),
+	binary_arithmetic_entry(divide, int16_),
+	binary_arithmetic_entry(divide, int32_),
+	binary_arithmetic_entry(divide, int64_),
+	binary_arithmetic_entry(divide, uint8_),
+	binary_arithmetic_entry(divide, uint16_),
+	binary_arithmetic_entry(divide, uint32_),
+	binary_arithmetic_entry(divide, uint64_),
+	binary_arithmetic_entry(divide, float32_),
+	binary_arithmetic_entry(divide, float64_),
+
+	// ================
+	// operator /=
+	// ================
+	binary_arithmetic_entry(divide_eq, int8_),
+	binary_arithmetic_entry(divide_eq, int16_),
+	binary_arithmetic_entry(divide_eq, int32_),
+	binary_arithmetic_entry(divide_eq, int64_),
+	binary_arithmetic_entry(divide_eq, uint8_),
+	binary_arithmetic_entry(divide_eq, uint16_),
+	binary_arithmetic_entry(divide_eq, uint32_),
+	binary_arithmetic_entry(divide_eq, uint64_),
+	binary_arithmetic_entry(divide_eq, float32_),
+	binary_arithmetic_entry(divide_eq, float64_),
+
+	// ================
+	// operator %
+	// ================
+	binary_arithmetic_entry(modulo, int8_),
+	binary_arithmetic_entry(modulo, int16_),
+	binary_arithmetic_entry(modulo, int32_),
+	binary_arithmetic_entry(modulo, int64_),
+	binary_arithmetic_entry(modulo, uint8_),
+	binary_arithmetic_entry(modulo, uint16_),
+	binary_arithmetic_entry(modulo, uint32_),
+	binary_arithmetic_entry(modulo, uint64_),
+
+	// ================
+	// operator %=
+	// ================
+	binary_arithmetic_entry(modulo_eq, int8_),
+	binary_arithmetic_entry(modulo_eq, int16_),
+	binary_arithmetic_entry(modulo_eq, int32_),
+	binary_arithmetic_entry(modulo_eq, int64_),
+	binary_arithmetic_entry(modulo_eq, uint8_),
+	binary_arithmetic_entry(modulo_eq, uint16_),
+	binary_arithmetic_entry(modulo_eq, uint32_),
+	binary_arithmetic_entry(modulo_eq, uint64_),
+
+	// ================
+	// operator ==
+	// ================
+	binary_kind_entry(equals, int8_,   int8_,   bool_),
+	binary_kind_entry(equals, int16_,  int16_,  bool_),
+	binary_kind_entry(equals, int32_,  int32_,  bool_),
+	binary_kind_entry(equals, int64_,  int64_,  bool_),
+	binary_kind_entry(equals, uint8_,  uint8_,  bool_),
+	binary_kind_entry(equals, uint16_, uint16_, bool_),
+	binary_kind_entry(equals, uint32_, uint32_, bool_),
+	binary_kind_entry(equals, uint64_, uint64_, bool_),
+	binary_kind_entry(equals, float32_, float32_, bool_),
+	binary_kind_entry(equals, float64_, float64_, bool_),
+	binary_kind_entry(equals, char_, char_, bool_),
+	binary_kind_entry(equals, str_, str_, bool_),
+	binary_kind_entry(equals, bool_, bool_, bool_),
+	binary_kind_entry(equals, null_t_, null_t_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::equals, "*const", "*const"),
+
+	// ================
+	// operator !=
+	// ================
+	binary_kind_entry(not_equals, int8_,   int8_,   bool_),
+	binary_kind_entry(not_equals, int16_,  int16_,  bool_),
+	binary_kind_entry(not_equals, int32_,  int32_,  bool_),
+	binary_kind_entry(not_equals, int64_,  int64_,  bool_),
+	binary_kind_entry(not_equals, uint8_,  uint8_,  bool_),
+	binary_kind_entry(not_equals, uint16_, uint16_, bool_),
+	binary_kind_entry(not_equals, uint32_, uint32_, bool_),
+	binary_kind_entry(not_equals, uint64_, uint64_, bool_),
+	binary_kind_entry(not_equals, float32_, float32_, bool_),
+	binary_kind_entry(not_equals, float64_, float64_, bool_),
+	binary_kind_entry(not_equals, char_, char_, bool_),
+	binary_kind_entry(not_equals, str_, str_, bool_),
+	binary_kind_entry(not_equals, bool_, bool_, bool_),
+	binary_kind_entry(not_equals, null_t_, null_t_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::not_equals, "*const", "*const"),
+
+	// ================
+	// operator <
+	// ================
+	binary_kind_entry(less_than, int8_,   int8_,   bool_),
+	binary_kind_entry(less_than, int16_,  int16_,  bool_),
+	binary_kind_entry(less_than, int32_,  int32_,  bool_),
+	binary_kind_entry(less_than, int64_,  int64_,  bool_),
+	binary_kind_entry(less_than, uint8_,  uint8_,  bool_),
+	binary_kind_entry(less_than, uint16_, uint16_, bool_),
+	binary_kind_entry(less_than, uint32_, uint32_, bool_),
+	binary_kind_entry(less_than, uint64_, uint64_, bool_),
+	binary_kind_entry(less_than, float32_, float32_, bool_),
+	binary_kind_entry(less_than, float64_, float64_, bool_),
+	binary_kind_entry(less_than, char_, char_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::less_than, "*const", "*const"),
+
+	// ================
+	// operator <=
+	// ================
+	binary_kind_entry(less_than_eq, int8_,   int8_,   bool_),
+	binary_kind_entry(less_than_eq, int16_,  int16_,  bool_),
+	binary_kind_entry(less_than_eq, int32_,  int32_,  bool_),
+	binary_kind_entry(less_than_eq, int64_,  int64_,  bool_),
+	binary_kind_entry(less_than_eq, uint8_,  uint8_,  bool_),
+	binary_kind_entry(less_than_eq, uint16_, uint16_, bool_),
+	binary_kind_entry(less_than_eq, uint32_, uint32_, bool_),
+	binary_kind_entry(less_than_eq, uint64_, uint64_, bool_),
+	binary_kind_entry(less_than_eq, float32_, float32_, bool_),
+	binary_kind_entry(less_than_eq, float64_, float64_, bool_),
+	binary_kind_entry(less_than_eq, char_, char_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::less_than_eq, "*const", "*const"),
+
+	// ================
+	// operator >
+	// ================
+	binary_kind_entry(greater_than, int8_,   int8_,   bool_),
+	binary_kind_entry(greater_than, int16_,  int16_,  bool_),
+	binary_kind_entry(greater_than, int32_,  int32_,  bool_),
+	binary_kind_entry(greater_than, int64_,  int64_,  bool_),
+	binary_kind_entry(greater_than, uint8_,  uint8_,  bool_),
+	binary_kind_entry(greater_than, uint16_, uint16_, bool_),
+	binary_kind_entry(greater_than, uint32_, uint32_, bool_),
+	binary_kind_entry(greater_than, uint64_, uint64_, bool_),
+	binary_kind_entry(greater_than, float32_, float32_, bool_),
+	binary_kind_entry(greater_than, float64_, float64_, bool_),
+	binary_kind_entry(greater_than, char_, char_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::greater_than, "*const", "*const"),
+
+	// ================
+	// operator >=
+	// ================
+	binary_kind_entry(greater_than_eq, int8_,   int8_,   bool_),
+	binary_kind_entry(greater_than_eq, int16_,  int16_,  bool_),
+	binary_kind_entry(greater_than_eq, int32_,  int32_,  bool_),
+	binary_kind_entry(greater_than_eq, int64_,  int64_,  bool_),
+	binary_kind_entry(greater_than_eq, uint8_,  uint8_,  bool_),
+	binary_kind_entry(greater_than_eq, uint16_, uint16_, bool_),
+	binary_kind_entry(greater_than_eq, uint32_, uint32_, bool_),
+	binary_kind_entry(greater_than_eq, uint64_, uint64_, bool_),
+	binary_kind_entry(greater_than_eq, float32_, float32_, bool_),
+	binary_kind_entry(greater_than_eq, float64_, float64_, bool_),
+	binary_kind_entry(greater_than_eq, char_, char_, bool_),
+	builtin_binary_operator_table_entry_t(lex::token::greater_than_eq, "*const", "*const"),
+};
+
+#undef binary_arithmetic_entry
+#undef binary_kind_entry
+
+
+static constexpr bz::array builtin_unary_operators = {
+	lex::token::plus,
+	lex::token::minus,
+	lex::token::address_of,
+	lex::token::dereference,
+	lex::token::bit_not,
+	lex::token::bool_not,
+	lex::token::plus_plus,
+	lex::token::minus_minus,
+};
+
+static constexpr bz::array builtin_binary_operators = {
+	lex::token::assign,
+	lex::token::plus,
+	lex::token::plus_eq,
+	lex::token::minus,
+	lex::token::minus_eq,
+	lex::token::multiply,
+	lex::token::multiply_eq,
+	lex::token::divide,
+	lex::token::divide_eq,
+	lex::token::modulo,
+	lex::token::modulo_eq,
+	lex::token::equals,
+	lex::token::not_equals,
+	lex::token::less_than,
+	lex::token::less_than_eq,
+	lex::token::greater_than,
+	lex::token::greater_than_eq,
+};
+
+static constexpr auto unique_builtin_operators = []() {
+	constexpr auto unique_operator_count = builtin_binary_operators.size() + builtin_unary_operators.size()
+		- builtin_unary_operators.filter([](auto const kind) { return builtin_binary_operators.contains(kind); }).count();
+	bz::array<uint32_t, unique_operator_count> result{};
+
+	for (size_t i = 0; i < builtin_binary_operators.size(); ++i)
+	{
+		result[i] = builtin_binary_operators[i];
+	}
+
+	for (
+		auto const [unary_kind, index]
+			: builtin_unary_operators.filter([](auto const kind) {
+				return !builtin_binary_operators.contains(kind);
+			}).enumerate()
+	)
+	{
+		result[builtin_binary_operators.size() + index] = unary_kind;
+	}
+
+	return result;
+}();
+
+
+static bz::array_view<builtin_unary_operator_table_entry_t const> get_builtin_unary_operator_range(uint32_t kind)
+{
+	auto it = builtin_unary_operator_table.begin();
+	auto const end = builtin_unary_operator_table.end();
+
+	while (it != end && it->op_kind != kind)
+	{
+		++it;
+	}
+	if (it == end)
+	{
+		return {};
+	}
+	auto const start_it = it;
+	while (it != end && it->op_kind == kind)
+	{
+		++it;
+	}
+	auto const end_it = it;
+	return { start_it, end_it };
+}
+
+static bz::array_view<builtin_binary_operator_table_entry_t const> get_builtin_binary_operator_range(uint32_t kind)
+{
+	auto it = builtin_binary_operator_table.begin();
+	auto const end = builtin_binary_operator_table.end();
+
+	while (it != end && it->op_kind != kind)
+	{
+		++it;
+	}
+	if (it == end)
+	{
+		return {};
+	}
+	auto const start_it = it;
+	while (it != end && it->op_kind == kind)
+	{
+		++it;
+	}
+	auto const end_it = it;
+	return { start_it, end_it };
+}
+
+static bool is_unary_op_reference_like(uint32_t op_kind)
+{
+	switch (op_kind)
+	{
+	case lex::token::plus_plus:
+	case lex::token::minus_minus:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool is_binary_op_assign_like(uint32_t op_kind)
+{
+	switch (op_kind)
+	{
+	case lex::token::assign:
+	case lex::token::plus_eq:
+	case lex::token::minus_eq:
+	case lex::token::multiply_eq:
+	case lex::token::divide_eq:
+	case lex::token::modulo_eq:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static function_body make_builtin_operator_function_body(
+	builtin_unary_operator_table_entry_t const &builtin_unary_op,
+	bz::array_view<type_info> builtin_type_infos
+)
+{
+	function_body result;
+	result.params.resize(1);
+	result.params[0].id_and_type.var_type = type_as_expression([&]() {
+		if (builtin_unary_op.expr_ptr_or_ref_t == "")
+		{
+			return make_base_type_typespec({}, &builtin_type_infos[builtin_unary_op.expr_t]);
+		}
+		else
+		{
+			typespec result = make_auto_typespec(nullptr);
+			if (builtin_unary_op.expr_ptr_or_ref_t.size() != 1)
+			{
+				bz_assert(builtin_unary_op.expr_ptr_or_ref_t.ends_with("const"));
+				result.add_layer<ts_const>();
+			}
+			if (builtin_unary_op.expr_ptr_or_ref_t.starts_with('*'))
+			{
+				result.add_layer<ts_pointer>();
+			}
+			else
+			{
+				bz_assert(builtin_unary_op.expr_ptr_or_ref_t.starts_with('&'));
+				result.add_layer<ts_lvalue_reference>();
+			}
+			return result;
+		}
+	}());
+	result.params[0].state = resolve_state::symbol;
+	result.return_type = [&]() {
+		if (builtin_unary_op.expr_ptr_or_ref_t == "")
+		{
+			return make_base_type_typespec({}, &builtin_type_infos[builtin_unary_op.res_t]);
+		}
+		else
+		{
+			return typespec();
+		}
+	}();
+	if (is_unary_op_reference_like(builtin_unary_op.op_kind))
+	{
+		result.params[0].get_type().add_layer<ts_lvalue_reference>();
+		result.return_type.add_layer<ts_lvalue_reference>();
+	}
+	result.function_name_or_operator_kind = builtin_unary_op.op_kind;
+	result.intrinsic_kind = builtin_unary_op.intrinsic_kind;
+	result.flags |= function_body::intrinsic | function_body::builtin_operator;
+	if (is_generic_parameter(result.params[0]))
+	{
+		result.state = resolve_state::parameters;
+		result.flags |= function_body::generic;
+	}
+	else
+	{
+		result.state = resolve_state::symbol;
+		result.resolve_symbol_name();
+	}
+
+	return result;
+}
+
+static function_body make_builtin_operator_function_body(
+	builtin_binary_operator_table_entry_t const &builtin_binary_op,
+	bz::array_view<type_info> builtin_type_infos
+)
+{
+	function_body result;
+	result.params.resize(2);
+	result.params[0].id_and_type.var_type = type_as_expression([&]() {
+		if (builtin_binary_op.lhs_ptr_t == "")
+		{
+			return make_base_type_typespec({}, &builtin_type_infos[builtin_binary_op.lhs_t]);
+		}
+		else
+		{
+			typespec result = make_auto_typespec(nullptr);
+			if (builtin_binary_op.lhs_ptr_t.size() != 1)
+			{
+				bz_assert(builtin_binary_op.lhs_ptr_t.ends_with("const"));
+				result.add_layer<ts_const>();
+			}
+			bz_assert(builtin_binary_op.lhs_ptr_t.starts_with('*'));
+			result.add_layer<ts_pointer>();
+			return result;
+		}
+	}());
+	result.params[1].id_and_type.var_type = type_as_expression([&]() {
+		if (builtin_binary_op.rhs_ptr_t == "")
+		{
+			return make_base_type_typespec({}, &builtin_type_infos[builtin_binary_op.rhs_t]);
+		}
+		else
+		{
+			typespec result = make_auto_typespec(nullptr);
+			if (builtin_binary_op.rhs_ptr_t.size() != 1)
+			{
+				bz_assert(builtin_binary_op.rhs_ptr_t.ends_with("const"));
+				result.add_layer<ts_const>();
+			}
+			bz_assert(builtin_binary_op.rhs_ptr_t.starts_with('*'));
+			result.add_layer<ts_pointer>();
+			return result;
+		}
+	}());
+	result.params[0].state = resolve_state::symbol;
+	result.return_type = [&]() {
+		if (builtin_binary_op.lhs_ptr_t == "" && builtin_binary_op.rhs_ptr_t == "")
+		{
+			return make_base_type_typespec({}, &builtin_type_infos[builtin_binary_op.res_t]);
+		}
+		else
+		{
+			return typespec();
+		}
+	}();
+	if (is_binary_op_assign_like(builtin_binary_op.op_kind))
+	{
+		result.params[0].get_type().add_layer<ts_lvalue_reference>();
+		result.return_type.add_layer<ts_lvalue_reference>();
+	}
+	result.function_name_or_operator_kind = builtin_binary_op.op_kind;
+	result.state = resolve_state::symbol;
+	result.intrinsic_kind = builtin_binary_op.intrinsic_kind;
+	result.flags |= function_body::intrinsic | function_body::builtin_operator;
+	if (is_generic_parameter(result.params[0]) || is_generic_parameter(result.params[1]))
+	{
+		result.state = resolve_state::parameters;
+		result.flags |= function_body::generic;
+	}
+	else
+	{
+		result.state = resolve_state::symbol;
+		result.resolve_symbol_name();
+	}
+
+	return result;
+}
+
+static builtin_operator make_builtin_operator(uint32_t kind, bz::array_view<type_info> builtin_type_infos)
+{
+	auto const unary_range  = get_builtin_unary_operator_range(kind);
+	auto const binary_range = get_builtin_binary_operator_range(kind);
+
+	builtin_operator result;
+	result.op = kind;
+
+	result.bodies.reserve(unary_range.size() + binary_range.size());
+	for (auto const &builtin_unary_op : unary_range)
+	{
+		result.bodies.push_back(make_builtin_operator_function_body(builtin_unary_op, builtin_type_infos));
+	}
+	for (auto const &builtin_binary_op : binary_range)
+	{
+		result.bodies.push_back(make_builtin_operator_function_body(builtin_binary_op, builtin_type_infos));
+	}
+
+	return result;
+}
+
+
+bz::vector<builtin_operator> make_builtin_operators(bz::array_view<type_info> builtin_type_infos)
+{
+	auto result = unique_builtin_operators.transform([builtin_type_infos](auto const kind) {
+		return make_builtin_operator(kind, builtin_type_infos);
+	}).collect();
+
+	bz_assert(result.is_all([](auto const &builtin_op) {
+		return builtin_op.bodies.is_all([op = builtin_op.op](auto const &body) {
+			return body.function_name_or_operator_kind == op;
+		});
+	}));
+
+	return result;
+}
+
 } // namespace ast

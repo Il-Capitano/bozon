@@ -511,6 +511,7 @@ struct function_body
 		bitcode_emitted             = bit_at<14>,
 		comptime_bitcode_emitted    = bit_at<15>,
 		only_consteval              = bit_at<16>,
+		builtin_operator            = bit_at<17>,
 	};
 
 	enum : uint8_t
@@ -632,6 +633,33 @@ struct function_body
 		str_default_constructor,
 		bool_default_constructor,
 		null_t_default_constructor,
+
+		builtin_unary_plus,
+		builtin_unary_minus,
+		builtin_unary_address_of,
+		builtin_unary_dereference,
+		builtin_unary_bit_not,
+		builtin_unary_bool_not,
+		builtin_unary_plus_plus,
+		builtin_unary_minus_minus,
+
+		builtin_binary_assign,
+		builtin_binary_plus,
+		builtin_binary_plus_eq,
+		builtin_binary_minus,
+		builtin_binary_minus_eq,
+		builtin_binary_multiply,
+		builtin_binary_multiply_eq,
+		builtin_binary_divide,
+		builtin_binary_divide_eq,
+		builtin_binary_modulo,
+		builtin_binary_modulo_eq,
+		builtin_binary_equals,
+		builtin_binary_not_equals,
+		builtin_binary_less_than,
+		builtin_binary_less_than_eq,
+		builtin_binary_greater_than,
+		builtin_binary_greater_than_eq,
 	};
 
 	bz::vector<decl_variable> params;
@@ -749,6 +777,9 @@ struct function_body
 
 	bool is_only_consteval(void) const noexcept
 	{ return (this->flags & only_consteval) != 0; }
+
+	bool is_builtin_operator(void) const noexcept
+	{ return (this->flags & builtin_operator) != 0; }
 
 	type_info *get_destructor_of(void) const noexcept
 	{
@@ -1261,10 +1292,17 @@ struct universal_function_set
 	bz::vector<uint32_t> func_kinds;
 };
 
+struct builtin_operator
+{
+	uint32_t op;
+	bz::vector<function_body> bodies;
+};
+
 bz::vector<type_info>              make_builtin_type_infos(void);
 bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
+bz::vector<builtin_operator>       make_builtin_operators(bz::array_view<type_info> builtin_type_infos);
 
 struct intrinsic_info_t
 {
