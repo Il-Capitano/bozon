@@ -430,10 +430,12 @@ static bz::u8string get_highlighted_text(
 				++it;
 			}
 		}
-		result += bz::format("{}{:{}}{} | {}\n", colors::bright_black, max_line_chars_width, line_num, colors::clear, file_line);
+
+		auto const line_color = highlight_line.contains('^') ? colors::clear : colors::bright_black;
+		result += bz::format("{}{:{}}{} | {}\n", line_color, max_line_chars_width, line_num, colors::clear, file_line);
 		if (highlight_line.size() != 0 && !highlight_line.is_all(bz::u8char(' ')))
 		{
-			result += bz::format("{}{:{}}{} | {}\n", colors::bright_black, max_line_chars_width, "", colors::clear, highlight_line);
+			result += bz::format("{:{}} | {}\n", max_line_chars_width, "", highlight_line);
 		}
 		if (it != last_line_end)
 		{
