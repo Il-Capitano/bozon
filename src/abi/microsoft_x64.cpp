@@ -3,14 +3,14 @@
 namespace abi
 {
 
-static constexpr bz::array pass_by_reference_attributes = {
+static constexpr bz::array pass_by_reference_attributes_microsoft_x64 = {
 	llvm::Attribute::NonNull,
 };
 
 template<>
 bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::microsoft_x64>(void)
 {
-	return pass_by_reference_attributes;
+	return pass_by_reference_attributes_microsoft_x64;
 }
 
 template<>
