@@ -264,13 +264,13 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 	}
 }
 
-static bz::vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_requirements(
+static ast::arena_vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_requirements(
 	lex::src_tokens src_tokens,
 	parse_context &context
 )
 {
 	bz_assert(src_tokens.pivot != nullptr);
-	bz::vector<std::pair<lex::src_tokens, ast::function_body *>> result;
+	ast::arena_vector<std::pair<lex::src_tokens, ast::function_body *>> result;
 	auto const is_generic_specialization_dep = [](auto const &dep) {
 		auto const body = dep.requested.template get_if<ast::function_body *>();
 		return body != nullptr && (*body)->is_generic_specialization();
@@ -352,6 +352,10 @@ void parse_context::report_paren_match_error(
 			return it->kind == lex::token::eof
 				? bz::u8string("expected closing } before end-of-file")
 				: bz::format("expected closing } before '{}'", it->value);
+		case lex::token::angle_open:
+			return it->kind == lex::token::eof
+				? bz::u8string("expected closing > before end-of-file")
+				: bz::format("expected closing > before '{}'", it->value);
 		default:
 			bz_unreachable;
 		}
