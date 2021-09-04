@@ -2,8 +2,8 @@ import ::std::string;
 
 consteval warning_kind_int_overflow     = 0u32;
 consteval warning_kind_float_nan_math   = 4u32;
-consteval warning_kind_comptime_warning = 22u32;
-consteval warning_kind_error            = 23u32;
+consteval warning_kind_comptime_warning = 23u32;
+consteval warning_kind_error            = 24u32;
 
 
 // copied from std::format
