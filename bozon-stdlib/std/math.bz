@@ -1,48 +1,48 @@
-export function exp = __builtin_exp_f32;
-export function exp = __builtin_exp_f64;
-export function exp2 = __builtin_exp2_f32;
-export function exp2 = __builtin_exp2_f64;
+export function exp   = __builtin_exp_f32;
+export function exp   = __builtin_exp_f64;
+export function exp2  = __builtin_exp2_f32;
+export function exp2  = __builtin_exp2_f64;
 export function expm1 = __builtin_expm1_f32;
 export function expm1 = __builtin_expm1_f64;
-export function log = __builtin_log_f32;
-export function log = __builtin_log_f64;
+export function log   = __builtin_log_f32;
+export function log   = __builtin_log_f64;
 export function log10 = __builtin_log10_f32;
 export function log10 = __builtin_log10_f64;
-export function log2 = __builtin_log2_f32;
-export function log2 = __builtin_log2_f64;
+export function log2  = __builtin_log2_f32;
+export function log2  = __builtin_log2_f64;
 export function log1p = __builtin_log1p_f32;
 export function log1p = __builtin_log1p_f64;
 
-export function sqrt = __builtin_sqrt_f32;
-export function sqrt = __builtin_sqrt_f64;
-export function cbrt = __builtin_cbrt_f32;
-export function cbrt = __builtin_cbrt_f64;
-export function pow = __builtin_pow_f32;
-export function pow = __builtin_pow_f64;
+export function sqrt  = __builtin_sqrt_f32;
+export function sqrt  = __builtin_sqrt_f64;
+export function cbrt  = __builtin_cbrt_f32;
+export function cbrt  = __builtin_cbrt_f64;
+export function pow   = __builtin_pow_f32;
+export function pow   = __builtin_pow_f64;
 export function hypot = __builtin_hypot_f32;
 export function hypot = __builtin_hypot_f64;
 
-export function sin = __builtin_sin_f32;
-export function sin = __builtin_sin_f64;
-export function cos = __builtin_cos_f32;
-export function cos = __builtin_cos_f64;
-export function tan = __builtin_tan_f32;
-export function tan = __builtin_tan_f64;
-export function asin = __builtin_asin_f32;
-export function asin = __builtin_asin_f64;
-export function acos = __builtin_acos_f32;
-export function acos = __builtin_acos_f64;
-export function atan = __builtin_atan_f32;
-export function atan = __builtin_atan_f64;
+export function sin   = __builtin_sin_f32;
+export function sin   = __builtin_sin_f64;
+export function cos   = __builtin_cos_f32;
+export function cos   = __builtin_cos_f64;
+export function tan   = __builtin_tan_f32;
+export function tan   = __builtin_tan_f64;
+export function asin  = __builtin_asin_f32;
+export function asin  = __builtin_asin_f64;
+export function acos  = __builtin_acos_f32;
+export function acos  = __builtin_acos_f64;
+export function atan  = __builtin_atan_f32;
+export function atan  = __builtin_atan_f64;
 export function atan2 = __builtin_atan2_f32;
 export function atan2 = __builtin_atan2_f64;
 
-export function sinh = __builtin_sinh_f32;
-export function sinh = __builtin_sinh_f64;
-export function cosh = __builtin_cosh_f32;
-export function cosh = __builtin_cosh_f64;
-export function tanh = __builtin_tanh_f32;
-export function tanh = __builtin_tanh_f64;
+export function sinh  = __builtin_sinh_f32;
+export function sinh  = __builtin_sinh_f64;
+export function cosh  = __builtin_cosh_f32;
+export function cosh  = __builtin_cosh_f64;
+export function tanh  = __builtin_tanh_f32;
+export function tanh  = __builtin_tanh_f64;
 export function asinh = __builtin_asinh_f32;
 export function asinh = __builtin_asinh_f64;
 export function acosh = __builtin_acosh_f32;
@@ -50,20 +50,16 @@ export function acosh = __builtin_acosh_f64;
 export function atanh = __builtin_atanh_f32;
 export function atanh = __builtin_atanh_f64;
 
-export function erf = __builtin_erf_f32;
-export function erf = __builtin_erf_f64;
-export function erfc = __builtin_erfc_f32;
-export function erfc = __builtin_erfc_f64;
+export function erf    = __builtin_erf_f32;
+export function erf    = __builtin_erf_f64;
+export function erfc   = __builtin_erfc_f32;
+export function erfc   = __builtin_erfc_f64;
 export function tgamma = __builtin_tgamma_f32;
 export function tgamma = __builtin_tgamma_f64;
 export function lgamma = __builtin_lgamma_f32;
 export function lgamma = __builtin_lgamma_f64;
 
 // math constants
-
-export consteval pi  = 3.1415926535897932;
-export consteval tau = 6.2831853071795865;
-export consteval e   = 2.7182818284590452;
 
 export consteval pi_f64 : float64 = 3.1415926535897932;
 export consteval tau_f64: float64 = 6.2831853071795865;
@@ -73,21 +69,21 @@ export consteval pi_f32 : float32 = 3.14159265f32;
 export consteval tau_f32: float32 = 6.28318531f32;
 export consteval e_f32  : float32 = 2.71828183f32;
 
-static_assert(pi  == atan2(0.0, -1.0));
-static_assert(tau == 2.0 * pi);
-static_assert(e   == exp(1.0));
+export consteval pi  = pi_f64;
+export consteval tau = tau_f64;
+export consteval e   = e_f64;
 
-static_assert(pi_f64  == pi);
-static_assert(tau_f64 == tau);
-static_assert(e_f64   == e);
+static_assert(pi_f64  == atan2(0.0, -1.0));
+static_assert(tau_f64 == 2.0 * pi_f64);
+static_assert(e_f64   == exp(1.0));
 
 static_assert(pi_f32  == atan2(0.0f32, -1.0f32));
 static_assert(tau_f32 == 2.0f32 * pi_f32);
 static_assert(e_f32   == exp(1.0f32));
 
-static_assert(pi_f32  == pi  as float32);
-static_assert(tau_f32 == tau as float32);
-static_assert(e_f32   == e   as float32);
+static_assert(pi_f32  == pi_f64  as float32);
+static_assert(tau_f32 == tau_f64 as float32);
+static_assert(e_f32   == e_f64   as float32);
 
 // limits
 
