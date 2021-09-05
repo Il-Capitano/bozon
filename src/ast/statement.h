@@ -662,21 +662,21 @@ struct function_body
 		builtin_binary_greater_than_eq,
 	};
 
-	bz::vector<decl_variable> params;
-	typespec                  return_type;
-	body_t                    body;
+	arena_vector<decl_variable> params;
+	typespec                   return_type;
+	body_t                     body;
 	bz::variant<identifier, uint32_t> function_name_or_operator_kind;
-	bz::u8string              symbol_name;
-	lex::src_tokens           src_tokens;
-	resolve_state             state = resolve_state::none;
-	abi::calling_convention   cc = abi::calling_convention::c;
-	uint8_t                   intrinsic_kind = 0;
-	uint32_t                  flags = 0;
+	bz::u8string               symbol_name;
+	lex::src_tokens            src_tokens;
+	resolve_state              state = resolve_state::none;
+	abi::calling_convention    cc = abi::calling_convention::c;
+	uint8_t                    intrinsic_kind = 0;
+	uint32_t                   flags = 0;
 
 	type_info *constructor_or_destructor_of;
 
-	bz::vector<std::unique_ptr<function_body>>              generic_specializations;
-	bz::vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
+	arena_vector<ast_unique_ptr<function_body>>               generic_specializations;
+	arena_vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
 	function_body *generic_parent = nullptr;
 
 //	declare_default_5(function_body)
@@ -716,8 +716,8 @@ struct function_body
 	bz::u8string get_symbol_name(void) const;
 	bz::u8string get_candidate_message(void) const;
 
-	std::unique_ptr<function_body> get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, function_body *>> required_from);
-	function_body *add_specialized_body(std::unique_ptr<function_body> body);
+	ast_unique_ptr<function_body> get_copy_for_generic_specialization(arena_vector<std::pair<lex::src_tokens, function_body *>> required_from);
+	function_body *add_specialized_body(ast_unique_ptr<function_body> body);
 
 	void resolve_symbol_name(void)
 	{
@@ -957,6 +957,10 @@ struct type_info
 	function_body *destructor = nullptr;
 	bz::vector<function_body *> constructors{};
 
+	arena_vector<decl_variable>             generic_parameters{};
+	arena_vector<ast_unique_ptr<type_info>> generic_instantiations{};
+	type_info *generic_parent = nullptr;
+
 //	function_body *move_constructor;
 //	function_body_ptr move_destuctor;
 
@@ -977,6 +981,24 @@ struct type_info
 		  default_copy_constructor()
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
+	{}
+
+	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range, arena_vector<decl_variable> _generic_parameters)
+		: src_tokens(_src_tokens),
+		  kind(range.begin == nullptr ? forward_declaration : aggregate),
+		  state(resolve_state::none),
+		  is_export(false),
+		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
+		  flags(generic),
+		  type_name(std::move(_type_name)),
+		  symbol_name(),
+		  body(range),
+		  member_variables{},
+		  default_op_assign(),
+		  default_op_move_assign(),
+		  default_default_constructor(),
+		  default_copy_constructor(),
+		  generic_parameters(std::move(_generic_parameters))
 	{}
 
 private:
@@ -1228,6 +1250,11 @@ struct decl_struct
 	decl_struct(lex::src_tokens _src_tokens, identifier _id, lex::token_range _range)
 		: id  (std::move(_id)),
 		  info(_src_tokens, this->id, _range)
+	{}
+
+	decl_struct(lex::src_tokens _src_tokens, identifier _id, lex::token_range _range, arena_vector<decl_variable> _generic_parameters)
+		: id  (std::move(_id)),
+		  info(_src_tokens, this->id, _range, std::move(_generic_parameters))
 	{}
 
 	decl_struct(lex::src_tokens _src_tokens, identifier _id)

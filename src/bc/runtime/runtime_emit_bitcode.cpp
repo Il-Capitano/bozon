@@ -4,6 +4,7 @@
 
 #include "ast/typespec.h"
 #include "bz/meta.h"
+#include "ctx/bitcode_context.h"
 #include "runtime_emit_bitcode.h"
 #include "ctx/builtin_operators.h"
 #include "colors.h"
@@ -33,6 +34,53 @@ static llvm::Constant *get_value(
 	ast::typespec_view type,
 	ast::constant_expression const *const_expr,
 	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_copy_constructor(
+	val_ptr expr_val,
+	ast::typespec_view expr_type,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_constructor(
+	ast::typespec_view type,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static void emit_copy_assign(
+	ast::typespec_view type,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static void emit_move_assign(
+	ast::typespec_view type,
+	val_ptr lhs,
+	val_ptr rhs,
+	ctx::bitcode_context &context
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_copy_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi>
+static val_ptr emit_default_move_assign(
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
 );
 
 
@@ -149,18 +197,20 @@ static void add_call_parameter(
 		switch (pass_kind)
 		{
 		case abi::pass_kind::reference:
-			// there's no need to provide a seperate copy for a byval argument,
-			// as a copy is made at the call site automatically
-			// see: https://reviews.llvm.org/D79636
-			if (param.kind == val_ptr::reference)
+			if (
+				param.kind == val_ptr::reference
+				&& abi::get_pass_by_reference_attributes<abi>().contains(llvm::Attribute::ByVal)
+			)
 			{
+				// there's no need to provide a seperate copy for a byval argument,
+				// as a copy is made at the call site automatically
+				// see: https://reviews.llvm.org/D79636
 				(params.*params_push)(param.val);
 			}
 			else
 			{
-				auto const val = param.get_value(context.builder);
 				auto const alloca = context.create_alloca(param_llvm_type);
-				context.builder.CreateStore(val, alloca);
+				emit_copy_constructor<abi>(param, param_type, context, alloca);
 				(params.*params_push)(alloca);
 			}
 			(params_is_byval.*byval_push)(true);
@@ -212,6 +262,52 @@ static void add_call_parameter(
 }
 
 template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::CallInst *call, unsigned index, ctx::bitcode_context &context)
+{
+	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
+	for (auto const attribute : attributes)
+	{
+		switch (attribute)
+		{
+		case llvm::Attribute::ByVal:
+		{
+			auto const byval_ptr_type = call->getArgOperand(index)->getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			call->addParamAttr(index, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
+			break;
+		}
+		default:
+			call->addParamAttr(index, attribute);
+			break;
+		}
+	}
+}
+
+template<abi::platform_abi abi>
+static void add_byval_attributes(llvm::Argument &arg, ctx::bitcode_context &context)
+{
+	auto const attributes = abi::get_pass_by_reference_attributes<abi>();
+	for (auto const attribute : attributes)
+	{
+		switch (attribute)
+		{
+		case llvm::Attribute::ByVal:
+		{
+			auto const byval_ptr_type = arg.getType();
+			bz_assert(byval_ptr_type->isPointerTy());
+			auto const byval_type = byval_ptr_type->getPointerElementType();
+			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
+			break;
+		}
+		default:
+			arg.addAttr(attribute);
+			break;
+		}
+	}
+}
+
+template<abi::platform_abi abi>
 static void create_function_call(
 	ast::function_body *body,
 	val_ptr lhs,
@@ -242,14 +338,7 @@ static void create_function_call(
 	call->setCallingConv(fn->getCallingConv());
 	if (params_is_byval[0])
 	{
-		bz_assert(call->arg_size() == 2);
-		auto const byval_ptr_type = params[1]->getType();
-		bz_assert(byval_ptr_type->isPointerTy());
-		auto const byval_type = byval_ptr_type->getPointerElementType();
-		call->addParamAttr(1, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-		call->addParamAttr(1, llvm::Attribute::NoAlias);
-		call->addParamAttr(1, llvm::Attribute::NoCapture);
-		call->addParamAttr(1, llvm::Attribute::NonNull);
+		add_byval_attributes<abi>(call, 1, context);
 	}
 }
 
@@ -368,7 +457,7 @@ static val_ptr emit_copy_constructor(
 		result_address = context.create_alloca(get_llvm_type(expr_type, context));
 	}
 
-	if (!ast::is_non_trivial(expr_type))
+	if (ast::is_trivially_copy_constructible(expr_type))
 	{
 		if (auto const size = context.get_size(expr_val.get_type()); size > 16)
 		{
@@ -406,14 +495,10 @@ static val_ptr emit_copy_constructor(
 			case abi::pass_kind::non_trivial:
 			{
 				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
-#if LLVM_VERSION_MAJOR < 12
-				call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
 				auto const sret_type = sret_ptr_type->getPointerElementType();
 				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 				break;
 			}
 			case abi::pass_kind::one_register:
@@ -534,14 +619,10 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::non_trivial:
 			{
 				auto const call = context.builder.CreateCall(fn, result_address);
-#if LLVM_VERSION_MAJOR < 12
-				call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
 				auto const sret_type = sret_ptr_type->getPointerElementType();
 				call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif
 				break;
 			}
 			case abi::pass_kind::one_register:
@@ -2855,14 +2936,10 @@ static val_ptr emit_bitcode(
 	bz_assert(fn->arg_size() == call->arg_size());
 	if (result_kind == abi::pass_kind::reference || result_kind == abi::pass_kind::non_trivial)
 	{
-#if LLVM_VERSION_MAJOR < 12
-		call->addParamAttr(0, llvm::Attribute::StructRet);
-#else
 		auto const sret_ptr_type = params[0]->getType();
 		bz_assert(sret_ptr_type->isPointerTy());
 		auto const sret_type = sret_ptr_type->getPointerElementType();
 		call->addParamAttr(0, llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 		bz_assert(is_byval_it != is_byval_end);
 		++is_byval_it, ++i;
 	}
@@ -2871,13 +2948,7 @@ static val_ptr emit_bitcode(
 		auto const is_pass_by_ref = *is_byval_it;
 		if (is_pass_by_ref)
 		{
-			auto const byval_ptr_type = params[i]->getType();
-			bz_assert(byval_ptr_type->isPointerTy());
-			auto const byval_type = byval_ptr_type->getPointerElementType();
-			call->addParamAttr(i, llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-			call->addParamAttr(i, llvm::Attribute::NoAlias);
-			call->addParamAttr(i, llvm::Attribute::NoCapture);
-			call->addParamAttr(i, llvm::Attribute::NonNull);
+			add_byval_attributes<abi>(call, i, context);
 		}
 	}
 	switch (result_kind)
@@ -3333,6 +3404,60 @@ static val_ptr emit_bitcode(
 		context.builder.CreateCondBr(is_at_end, end_bb, loop_bb);
 		context.builder.SetInsertPoint(end_bb);
 		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expr_builtin_default_construct const &builtin_default_construct,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = builtin_default_construct.type.as_typespec_view();
+	if (type.is<ast::ts_pointer>())
+	{
+		if (result_address != nullptr)
+		{
+			bz_assert(result_address->getType()->isPointerTy() && result_address->getType()->getPointerElementType()->isPointerTy());
+			context.builder.CreateStore(
+				llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(result_address->getType()->getPointerElementType())),
+				result_address
+			);
+			return { val_ptr::reference, result_address };
+		}
+		else
+		{
+			auto const llvm_type = get_llvm_type(type, context);
+			bz_assert(llvm_type->isPointerTy());
+			return { val_ptr::value, llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(llvm_type)) };
+		}
+	}
+	else if (type.is<ast::ts_array_slice>())
+	{
+		if (result_address != nullptr)
+		{
+			auto const begin_ptr = context.builder.CreateStructGEP(result_address, 0);
+			auto const end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+			bz_assert(begin_ptr->getType() == end_ptr->getType());
+			bz_assert(begin_ptr->getType()->isPointerTy() && begin_ptr->getType()->getPointerElementType()->isPointerTy());
+			auto const ptr_type = static_cast<llvm::PointerType *>(begin_ptr->getType()->getPointerElementType());
+			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
+			context.builder.CreateStore(null_value, begin_ptr);
+			context.builder.CreateStore(null_value, end_ptr);
+			return { val_ptr::reference, result_address };
+		}
+		else
+		{
+			auto const ptr_type = llvm::PointerType::get(get_llvm_type(type.get<ast::ts_array_slice>().elem_type, context), 0);
+			auto const result_type = llvm::StructType::get(ptr_type, ptr_type);
+			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
+			return { val_ptr::value, llvm::ConstantStruct::get(result_type, null_value, null_value) };
+		}
+	}
+	else
+	{
+		bz_unreachable;
 	}
 }
 
@@ -4352,7 +4477,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	if (func_body.is_main())
 	{
 		auto const str_slice = context.get_slice_t(context.get_str_t());
-		// str_slice is known to be not non_trivial
+		// str_slice is known to be trivial
 		auto const pass_kind = abi::get_pass_kind<abi>(str_slice, context.get_data_layout(), context.get_llvm_context());
 
 		switch (pass_kind)
@@ -4532,14 +4657,10 @@ static llvm::Function *create_function_from_symbol_impl(
 
 	if (return_kind == abi::pass_kind::reference || return_kind == abi::pass_kind::non_trivial)
 	{
-#if LLVM_VERSION_MAJOR < 12
-		arg_it->addAttr(llvm::Attribute::StructRet);
-#else
 		auto const sret_ptr_type = arg_it->getType();
 		bz_assert(sret_ptr_type->isPointerTy());
 		auto const sret_type = sret_ptr_type->getPointerElementType();
 		arg_it->addAttr(llvm::Attribute::getWithStructRetType(context.get_llvm_context(), sret_type));
-#endif // LLVM 12
 		arg_it->addAttr(llvm::Attribute::NoAlias);
 		arg_it->addAttr(llvm::Attribute::NoCapture);
 		arg_it->addAttr(llvm::Attribute::NonNull);
@@ -4552,13 +4673,7 @@ static llvm::Function *create_function_from_symbol_impl(
 		auto const is_by_ref = *is_byval_it;
 		if (is_by_ref)
 		{
-			auto const byval_ptr_type = arg.getType();
-			bz_assert(byval_ptr_type->isPointerTy());
-			auto const byval_type = byval_ptr_type->getPointerElementType();
-			arg.addAttr(llvm::Attribute::getWithByValType(context.get_llvm_context(), byval_type));
-			arg.addAttr(llvm::Attribute::NoAlias);
-			arg.addAttr(llvm::Attribute::NoCapture);
-			arg.addAttr(llvm::Attribute::NonNull);
+			add_byval_attributes<abi>(arg, context);
 		}
 	}
 	return fn;
@@ -4669,14 +4784,7 @@ static void emit_function_bitcode_impl(
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
 					push_destructor_call(fn_it, p.get_type(), context);
-					if (p.tuple_decls.empty())
-					{
-						context.add_variable(&p, fn_it);
-					}
-					else
-					{
-						add_variable_helper(p, fn_it, context);
-					}
+					add_variable_helper(p, fn_it, context);
 					break;
 				case abi::pass_kind::value:
 				{

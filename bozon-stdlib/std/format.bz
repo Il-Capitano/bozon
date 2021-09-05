@@ -296,16 +296,14 @@ consteval function check_format_spec_str(
 	if (it != end && *it == '.' as uint32)
 	{
 		++it; // '.'
-		if (it == end || {
-			const c = *it as uint32 as char;
-			c < '0' || c > '9'
-		})
+		if (it == end || !is_number(*it as uint32 as char))
 		{
 			const dot_it = it - 1;
 			const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), dot_it).length();
+			const fmt_str_end = __builtin_str_from_ptrs(dot_it, fmt_str.end_ptr());
 			const message = format_unchecked_fmt(
 				"invalid format string '{}'; expected a number after '.' at position {} ('{}')",
-				fmt_str, position, __builtin_str_from_ptrs(dot_it, fmt_str.end_ptr())
+				fmt_str, position, fmt_str_end
 			);
 			meta::compile_error(message.as_str());
 			return current_index + 1u;

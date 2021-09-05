@@ -62,6 +62,10 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/MC/MCAsmInfo.h>
 
+#if LLVM_VERSION_MAJOR < 12
+#error LLVM 12 is required
+#endif // LLVM 12
+
 namespace ctx
 {
 

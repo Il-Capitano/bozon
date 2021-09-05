@@ -2,8 +2,8 @@ import ::std::string;
 
 consteval warning_kind_int_overflow     = 0u32;
 consteval warning_kind_float_nan_math   = 4u32;
-consteval warning_kind_comptime_warning = 22u32;
-consteval warning_kind_error            = 23u32;
+consteval warning_kind_comptime_warning = 23u32;
+consteval warning_kind_error            = 24u32;
 
 
 // copied from std::format
@@ -11,7 +11,6 @@ consteval warning_kind_error            = 23u32;
 @no_runtime_emit
 consteval max_uint_string_length = 20uz;
 
-@no_comptime_checking
 function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
 {
 	let result: [[max_uint_string_length: uint8], uint32];
@@ -38,7 +37,6 @@ function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint
 @no_runtime_emit
 consteval max_int_string_length = 20uz;
 
-@no_comptime_checking
 function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
 {
 	let n = abs_val;
@@ -68,14 +66,12 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 	return result;
 }
 
-@no_comptime_checking
 function append_number(s: &std::string, n: int64)
 {
 	const [buffer, size] = get_int_as_string(if (n < 0) { (-n) as uint64 } else { n as uint64 }, n < 0);
 	s ..= __builtin_str_from_ptrs(buffer.end() - size, buffer.end());
 }
 
-@no_comptime_checking
 function append_number(s: &std::string, n: uint64)
 {
 	const [buffer, size] = get_uint_as_string(n);
@@ -86,14 +82,12 @@ function append_number(s: &std::string, n: uint64)
 function print = __builtin_print_stdout;
 function println = __builtin_println_stdout;
 
-@no_comptime_checking
 function print_ascii_char(c: char)
 {
 	const c_int_val = c as uint32 as uint8;
 	print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
 }
 
-@no_comptime_checking
 function print_uint_impl(n: uint64, base: consteval uint64)
 {
 	if (n < 10u)
@@ -113,7 +107,6 @@ function print_uint_impl(n: uint64, base: consteval uint64)
 	}
 }
 
-@no_comptime_checking
 function print_uint(n: uint64, base: consteval uint64)
 {
 	if (n == 0u)
@@ -126,25 +119,21 @@ function print_uint(n: uint64, base: consteval uint64)
 	}
 }
 
-@no_comptime_checking
 export function print(n: uint64)
 {
 	print_uint(n, 10u);
 }
 
-@no_comptime_checking
 export function print(p: *const void)
 {
 	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
 }
 
-@no_comptime_checking
 export function println(n: uint64)
 {
 	print_uint(n, 10u), println("");
 }
 
-@no_comptime_checking
 export function println(p: *const void)
 {
 	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), println("");
@@ -162,7 +151,6 @@ export function println(p: *const void)
 function alloc = __builtin_comptime_malloc_type;
 function free  = __builtin_comptime_free;
 
-@no_comptime_checking
 function destruct_vector(&vec)
 {
 	for (let &elem in vec.as_slice())
@@ -175,7 +163,6 @@ function destruct_vector(&vec)
 	vec._alloc_end  = null;
 }
 
-@no_comptime_checking
 function swap(a: &auto, b: &auto)
 {
 	static_assert(typeof a == typeof b, "different types in swap");
@@ -185,7 +172,6 @@ function swap(a: &auto, b: &auto)
 	b = temp;
 }
 
-@no_comptime_checking
 function swap_vector(&lhs, &rhs)
 {
 	lhs._data_begin.swap(rhs._data_begin);
@@ -193,98 +179,82 @@ function swap_vector(&lhs, &rhs)
 	lhs._alloc_end .swap(rhs._alloc_end);
 }
 
-@no_comptime_checking
 function size(s: &const str) -> usize
 {
 	return __builtin_str_size(s);
 }
 
-@no_comptime_checking
 function size(#const vec) -> usize
 {
 	return (vec._data_end - vec._data_begin) as usize;
 }
 
-@no_comptime_checking
 function capacity(&const vec) -> usize
 {
 	return (vec._alloc_end - vec._data_begin) as usize;
 }
 
-@no_comptime_checking
 function empty(&const vec) -> bool
 {
 	return vec._data_begin == vec._data_end;
 }
 
-@no_comptime_checking
 function not_empty(&const vec) -> bool
 {
 	return vec._data_begin != vec._data_end;
 }
 
-@no_comptime_checking
 function as_slice(&vec) -> [: typeof *vec._data_begin]
 {
 	return __builtin_slice_from_ptrs(vec._data_begin, vec._data_end);
 }
 
-@no_comptime_checking
 function as_slice(&const vec) -> [: const typeof *vec._data_begin]
 {
 	return __builtin_slice_from_const_ptrs(vec._data_begin, vec._data_end);
 }
 
-@no_comptime_checking
 operator [] (&vec, i: uint64) -> &typeof *vec._data_begin
 {
 	return *(vec._data_begin + i);
 }
 
-@no_comptime_checking
 operator [] (&const vec, i: uint64) -> &const typeof *vec._data_begin
 {
 	return *(vec._data_begin + i);
 }
 
-@no_comptime_checking
 operator [] (&vec, i: int64) -> &typeof *vec._data_begin
 {
 	return *(vec._data_begin + i);
 }
 
-@no_comptime_checking
 operator [] (&const vec, i: int64) -> &const typeof *vec._data_begin
 {
 	return *(vec._data_begin + i);
 }
 
-@no_comptime_checking
 function front(&vec) -> &typeof *vec._data_begin
 {
 	return *vec._data_begin;
 }
 
-@no_comptime_checking
 function front(&const vec) -> &const typeof *vec._data_begin
 {
 	return *vec._data_begin;
 }
 
-@no_comptime_checking
 function back(&vec) -> &typeof *vec._data_begin
 {
 	return *(vec._data_end - 1);
 }
 
-@no_comptime_checking
 function back(&const vec) -> &const typeof *vec._data_begin
 {
 	return *(vec._data_end - 1);
 }
 
 
-@no_comptime_checking
 function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
@@ -299,7 +269,6 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-@no_comptime_checking
 function reserve(&vec, new_capacity: usize)
 {
 	type value_type = typeof *vec._data_begin;
@@ -324,7 +293,6 @@ function reserve(&vec, new_capacity: usize)
 	}
 }
 
-@no_comptime_checking
 function push_back(&vec, val)
 {
 	type value_type = typeof *vec._data_begin;
@@ -337,7 +305,6 @@ function push_back(&vec, val)
 	vec._data_end += 1;
 }
 
-@no_comptime_checking
 function emplace_back(&vec, ...##args)
 {
 	type value_type = typeof *vec._data_begin;
@@ -347,7 +314,6 @@ function emplace_back(&vec, ...##args)
 	vec._data_end += 1;
 }
 
-@no_comptime_checking
 function pop_back(&vec)
 {
 	if (vec._data_begin == vec._data_end)
@@ -358,7 +324,6 @@ function pop_back(&vec)
 	__builtin_call_destructor(*vec._data_end);
 }
 
-@no_comptime_checking
 function clear(&vec)
 {
 	for (let it = vec._data_end; it != vec._data_begin;)
@@ -369,7 +334,6 @@ function clear(&vec)
 	vec._data_end = vec._data_begin;
 }
 
-@no_comptime_checking
 function assign_vector(&lhs, &const rhs)
 {
 	lhs.clear();
@@ -381,7 +345,6 @@ function assign_vector(&lhs, &const rhs)
 	}
 }
 
-@no_comptime_checking
 function assign_vector(&lhs, &rhs)
 {
 	lhs.swap_vector(rhs);
@@ -394,14 +357,12 @@ struct call_stack_t
 	._data_end:   *uint64;
 	._alloc_end:  *uint64;
 
-	// @no_comptime_checking
 	destructor(&self)
 	{
 		self.destruct_vector();
 	}
 }
 
-@no_comptime_checking
 function swap(a: &call_stack_t, b: &call_stack_t)
 {
 	a.swap_vector(b);
@@ -433,14 +394,12 @@ struct error_t
 	.message: std::string;
 	.call_stack: [: uint64];
 
-	// @no_comptime_checking
 	destructor(&self)
 	{
 		free(self.call_stack.begin());
 	}
 }
 
-@no_comptime_checking
 function swap(a: &error_t, b: &error_t)
 {
 	a.kind.swap(b.kind);
@@ -449,7 +408,6 @@ function swap(a: &error_t, b: &error_t)
 	a.call_stack.swap(b.call_stack);
 }
 
-@no_comptime_checking
 operator = (lhs: &error_t, rhs: error_t) -> &error_t
 {
 	lhs.swap(rhs);
@@ -462,27 +420,23 @@ struct error_array_t
 	._data_end:   *error_t;
 	._alloc_end:  *error_t;
 
-	// @no_comptime_checking
 	destructor(&self)
 	{
 		self.destruct_vector();
 	}
 }
 
-@no_comptime_checking
 function swap(a: &error_array_t, b: &error_array_t)
 {
 	a.swap_vector(b);
 }
 
-@no_comptime_checking
 operator = (lhs: &error_array_t, rhs: &const error_array_t) -> &error_array_t
 {
 	lhs.assign_vector(rhs);
 	return lhs;
 }
 
-@no_comptime_checking
 operator = (lhs: &error_array_t, rhs: error_array_t) -> &error_array_t
 {
 	lhs.assign_vector(rhs);
@@ -577,7 +531,6 @@ function has_errors() -> bool
 	return false;
 }
 
-@no_comptime_checking
 function str_from_c_str(c_str: *const uint8) -> str
 {
 	let it = c_str;
@@ -588,14 +541,12 @@ function str_from_c_str(c_str: *const uint8) -> str
 	return __builtin_str_from_ptrs(c_str, it);
 }
 
-@no_comptime_checking
 function get_call_stack_array_copy() -> [: uint64]
 {
 	const call_stack_size = call_stack.size();
 	if (call_stack_size == 0u)
 	{
-		const result = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
-		return result;
+		return [: uint64]();
 	}
 	else
 	{
@@ -648,8 +599,8 @@ struct malloc_info_t
 	constructor()
 	{
 		return malloc_info_t[
-			null, 0uz, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
-			false, src_tokens_t(), __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			null, 0uz, src_tokens_t(), [: uint64](),
+			false, src_tokens_t(), [: uint64](),
 		];
 	}
 
@@ -658,7 +609,7 @@ struct malloc_info_t
 		const malloc_call_stack = get_call_stack_array_copy();
 		return malloc_info_t[
 			ptr, size, malloc_src_tokens, malloc_call_stack,
-			false, src_tokens_t[ 0u, 0u, 0u ], __builtin_slice_from_ptrs(null as *uint64, null as *uint64),
+			false, src_tokens_t[ 0u, 0u, 0u ], [: uint64](),
 		];
 	}
 
@@ -669,7 +620,6 @@ struct malloc_info_t
 	}
 }
 
-@no_comptime_checking
 function swap(a: &malloc_info_t, b: &malloc_info_t)
 {
 	a.ptr.swap(b.ptr);
@@ -693,20 +643,17 @@ struct malloc_info_array_t
 	}
 }
 
-@no_comptime_checking
 function swap(a: &malloc_info_array_t, b: &malloc_info_array_t)
 {
 	a.swap_vector(b);
 }
 
-@no_comptime_checking
 operator = (lhs: &malloc_info_array_t, rhs: &const malloc_info_array_t) -> &malloc_info_array_t
 {
 	lhs.assign_vector(rhs);
 	return lhs;
 }
 
-@no_comptime_checking
 operator = (lhs: &malloc_info_array_t, rhs: malloc_info_array_t) -> &malloc_info_array_t
 {
 	lhs.assign_vector(rhs);
@@ -757,7 +704,7 @@ function check_leaks() -> bool
 		if (!malloc_info.is_freed)
 		{
 			const call_stack = malloc_info.malloc_call_stack;
-			malloc_info.malloc_call_stack = __builtin_slice_from_ptrs(null as *uint64, null as *uint64);
+			malloc_info.malloc_call_stack = [: uint64]();
 			emit_diagnostic(
 				warning_kind_error,
 				"malloc'd pointer was never freed",
@@ -775,7 +722,6 @@ function check_leaks() -> bool
 }
 
 
-@no_comptime_checking
 function make_index_error_message(index: usize, size: usize) -> std::string
 {
 	let result = std::string("index ");
@@ -785,7 +731,6 @@ function make_index_error_message(index: usize, size: usize) -> std::string
 	return result.release();
 }
 
-@no_comptime_checking
 function make_index_error_message(index: isize, size: usize) -> std::string
 {
 	if (index < 0)
@@ -846,7 +791,6 @@ function index_check_signed(
 	}
 }
 
-@no_comptime_checking
 function make_malloc_error_message(size: usize) -> std::string
 {
 	let result = std::string("failed to allocate ");
@@ -951,7 +895,6 @@ function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: 
 	}
 }
 
-@no_comptime_checking
 function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int64) -> std::string
 {
 	let result = std::string("overflow in compile time execution of '");
@@ -965,7 +908,6 @@ function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int6
 	return result.release();
 }
 
-@no_comptime_checking
 function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> std::string
 {
 	let result = std::string("dividing by zero in compile time execution of '");
@@ -978,7 +920,6 @@ function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64
 	return result.release();
 }
 
-@no_comptime_checking
 function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> std::string
 {
 	let result = std::string("dividing by zero in compile time execution of '");
@@ -1143,7 +1084,6 @@ function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64
 	}
 }
 
-@no_comptime_checking
 function float_to_bits(x: float32) -> uint32
 {
 	let result = 0u32;
@@ -1151,7 +1091,6 @@ function float_to_bits(x: float32) -> uint32
 	return result;
 }
 
-@no_comptime_checking
 function double_to_bits(x: float64) -> uint64
 {
 	let result = 0u64;
@@ -1159,7 +1098,6 @@ function double_to_bits(x: float64) -> uint64
 	return result;
 }
 
-@no_comptime_checking
 function isnan(x: float32) -> bool
 {
 	const bits = float_to_bits(x);
@@ -1168,7 +1106,6 @@ function isnan(x: float32) -> bool
 	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
 }
 
-@no_comptime_checking
 function isnan(x: float64) -> bool
 {
 	const bits = double_to_bits(x);
@@ -1847,13 +1784,11 @@ function lgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64)
 	return true;
 }
 
-@no_comptime_checking
 function emit_diagnostic(kind: uint32, message: str, call_stack: [: uint64], begin: uint64, pivot: uint64, end: uint64)
 {
 	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack ]);
 }
 
-@no_comptime_checking
 function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	const call_stack_array = get_call_stack_array_copy();
@@ -1861,14 +1796,12 @@ function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint6
 }
 
 
-@no_comptime_checking
 @__builtin("comptime_compile_error_src_tokens")
 function __builtin_comptime_compile_error_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	emit_diagnostic(warning_kind_error, message, begin, pivot, end);
 }
 
-@no_comptime_checking
 @__builtin("comptime_compile_warning_src_tokens")
 function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
@@ -1887,20 +1820,17 @@ struct vector_str
 	}
 }
 
-@no_comptime_checking
 function swap(a: &vector_str, b: &vector_str)
 {
 	a.swap_vector(b);
 }
 
-@no_comptime_checking
 operator = (lhs: &vector_str, rhs: &const vector_str) -> &vector_str
 {
 	lhs.assign_vector(rhs);
 	return lhs;
 }
 
-@no_comptime_checking
 operator = (lhs: &vector_str, rhs: vector_str) -> &vector_str
 {
 	lhs.assign_vector(rhs);
@@ -1911,7 +1841,6 @@ operator = (lhs: &vector_str, rhs: vector_str) -> &vector_str
 @comptime_error_checking("global_strings_var")
 let global_strings = vector_str[ null, null, null ];
 
-@no_comptime_checking
 @__builtin("comptime_create_global_string")
 consteval function __builtin_comptime_create_global_string(s: str) -> str
 {

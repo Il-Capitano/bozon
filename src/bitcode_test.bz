@@ -68,6 +68,9 @@ struct foo_t
 
 function main(args: [: const str]) -> int32
 {
+	consteval t = [int32, float64, [str]]();
+	static_assert(typeof t == const [int32, float64, [str]]);
+	static_assert(t[0] == 0 && t[1] == 0.0 && t[2, 0] == "");
 	let arr = [17, 17: foo_t]();
 	for (let &const val in arr[0])
 	{
@@ -414,6 +417,11 @@ function main(args: [: const str]) -> int32
 		3, 4, 5 => [ 1, 1.0, "one" ],
 		else => unreachable,
 	});
+
+	std::printf(
+		"this is a very long message with {} arguments: {} {} {} {}",
+		"a lot of", 3, 2.124, [ "Hello", "World" ], [[3: int32]]()
+	);
 
 	// consteval x = std::sqrt(-1.0);
 

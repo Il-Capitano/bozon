@@ -325,6 +325,42 @@ template ast::statement parse_decl_type_alias<true>(
 	ctx::parse_context &context
 );
 
+static ast::arena_vector<ast::decl_variable> parse_parameter_list(
+	lex::token_range param_range,
+	ctx::parse_context &context,
+	uint32_t expected_end_kind
+)
+{
+	ast::arena_vector<ast::decl_variable> result;
+	auto stream = param_range.begin;
+	auto const end = param_range.end;
+	while (stream != end)
+	{
+		auto const begin = stream;
+		result.emplace_back(parse_decl_variable_id_and_type(
+			stream, end,
+			context, false
+		));
+		auto &param_decl = result.back();
+		if (param_decl.get_id().values.empty())
+		{
+			param_decl.flags |= ast::decl_variable::maybe_unused;
+		}
+		if (stream != end)
+		{
+			// stream can never be lex::token::paren_close, but the error message is nicer this way
+			context.assert_token(stream, lex::token::comma, expected_end_kind);
+		}
+		if (stream == begin)
+		{
+			context.report_error(stream);
+			++stream;
+		}
+	}
+
+	return result;
+}
+
 static ast::function_body parse_function_body(
 	lex::src_tokens src_tokens,
 	bz::variant<ast::identifier, uint32_t> func_name_or_op_kind,
@@ -334,44 +370,22 @@ static ast::function_body parse_function_body(
 {
 	ast::function_body result = {};
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
-	auto [param_stream, param_end] = get_expression_tokens<
+	auto const param_range = get_expression_tokens<
 		lex::token::paren_close
 	>(stream, end, context);
 
-	if (param_end != end && param_end->kind == lex::token::paren_close)
+	if (param_range.end != end && param_range.end->kind == lex::token::paren_close)
 	{
 		++stream; // ')'
 	}
 	else if (open_paren->kind == lex::token::paren_open)
 	{
-		context.report_paren_match_error(param_end, open_paren);
+		context.report_paren_match_error(param_range.end, open_paren);
 	}
 
 	result.src_tokens = src_tokens;
 	result.function_name_or_operator_kind = std::move(func_name_or_op_kind);
-	while (param_stream != param_end)
-	{
-		auto const begin = param_stream;
-		result.params.emplace_back(parse_decl_variable_id_and_type(
-			param_stream, param_end,
-			context, false
-		));
-		auto &param_decl = result.params.back();
-		if (param_decl.get_id().values.empty())
-		{
-			param_decl.flags |= ast::decl_variable::maybe_unused;
-		}
-		if (param_stream != param_end)
-		{
-			// param_stream can never be lex::token::paren_close, but the error message is nicer this way
-			context.assert_token(param_stream, lex::token::comma, lex::token::paren_close);
-		}
-		if (param_stream == begin)
-		{
-			context.report_error(param_stream);
-			++param_stream;
-		}
-	}
+	result.params = parse_parameter_list(param_range, context, lex::token::paren_close);
 
 	if (stream != end && stream->kind == lex::token::arrow)
 	{
@@ -801,11 +815,41 @@ static ast::statement parse_decl_struct_impl(
 	auto const id = context.assert_token(stream, lex::token::identifier);
 	auto const src_tokens = lex::src_tokens{ begin_token, (id == stream ? begin_token : id), stream };
 
+	lex::token_range generic_param_range = {};
+	ast::arena_vector<ast::decl_variable> generic_params;
+
+	if (stream != end && stream->kind == lex::token::angle_open)
+	{
+		auto const open_angle = stream;
+		++stream; // '<'
+		generic_param_range = get_expression_tokens<lex::token::angle_close>(stream, end, context);
+		if (generic_param_range.begin == generic_param_range.end)
+		{
+			context.report_error(stream, "expected generic type parameters");
+		}
+		if (generic_param_range.end != end && generic_param_range.end->kind == lex::token::angle_close)
+		{
+			++stream; // ')'
+		}
+		else if (open_angle->kind == lex::token::angle_open)
+		{
+			context.report_paren_match_error(generic_param_range.end, open_angle);
+		}
+		generic_params = parse_parameter_list(generic_param_range, context, lex::token::angle_close);
+	}
+
 	if (stream != end && stream->kind == lex::token::curly_open)
 	{
 		++stream; // '{'
 		auto const range = get_tokens_in_curly<>(stream, end, context);
-		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range);
+		if (generic_params.not_empty())
+		{
+			return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range, std::move(generic_params));
+		}
+		else
+		{
+			return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range);
+		}
 	}
 	else if (stream == end || stream->kind != lex::token::semi_colon)
 	{
@@ -814,6 +858,10 @@ static ast::statement parse_decl_struct_impl(
 	}
 	else
 	{
+		if (generic_params.not_empty())
+		{
+			context.report_error(stream, "a generic type must have a body");
+		}
 		++stream; // ';'
 		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id));
 	}

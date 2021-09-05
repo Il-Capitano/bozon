@@ -149,22 +149,30 @@ bz::u8string function_body::get_candidate_message(void) const
 	{
 		return bz::format("candidate (the default move assignment operator) '{}'", this->get_signature());
 	}
+	else if (this->is_default_default_constructor())
+	{
+		return bz::format("candidate (the default default constructor) '{}'", this->get_signature());
+	}
+	else if (this->is_default_copy_constructor())
+	{
+		return bz::format("candidate (the default copy constructor) '{}'", this->get_signature());
+	}
 	else
 	{
 		return bz::format("candidate '{}'", this->get_signature());
 	}
 }
 
-std::unique_ptr<function_body> function_body::get_copy_for_generic_specialization(bz::vector<std::pair<lex::src_tokens, function_body *>> required_from)
+ast_unique_ptr<function_body> function_body::get_copy_for_generic_specialization(arena_vector<std::pair<lex::src_tokens, function_body *>> required_from)
 {
-	auto result = std::make_unique<function_body>(*this);
+	auto result = make_ast_unique<function_body>(*this);
 	result->flags &= ~generic;
 	result->flags |= generic_specialization;
 	result->generic_required_from.append(std::move(required_from));
 	return result;
 }
 
-function_body *function_body::add_specialized_body(std::unique_ptr<function_body> body)
+function_body *function_body::add_specialized_body(ast_unique_ptr<function_body> body)
 {
 	bz_assert(body->is_generic_specialization());
 	bz_assert(!body->is_generic());
@@ -649,7 +657,7 @@ static function_body create_builtin_function(
 )
 {
 	static_assert((bz::meta::is_same<Ts, typespec> && ...));
-	bz::vector<decl_variable> params;
+	arena_vector<decl_variable> params;
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
 		lex::src_tokens{}, lex::token_range{},

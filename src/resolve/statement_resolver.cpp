@@ -858,6 +858,7 @@ static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse
 		alias_decl.state = ast::resolve_state::error;
 		return;
 	}
+	resolve_expression(alias_decl.alias_expr, context);
 	parse::consteval_try(alias_decl.alias_expr, context);
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
@@ -943,6 +944,7 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 			context.assert_token(stream, lex::token::semi_colon);
 		}
 	}
+	resolve_expression(alias_decl.alias_expr, context);
 	parse::consteval_try(alias_decl.alias_expr, context);
 
 	if (!alias_decl.alias_expr.has_consteval_succeeded())
@@ -2347,10 +2349,15 @@ void resolve_attributes(ast::statement_view stmt, ctx::parse_context &context)
 
 			for (auto &arg : attribute.args)
 			{
+				resolve_expression(arg, context);
 				parse::consteval_try(arg, context);
 				if (arg.not_error() && !arg.is<ast::constant_expression>())
 				{
-					context.report_error(arg, "attribute argument must be a constant expression");
+					context.report_error(
+						arg,
+						"attribute argument must be a constant expression",
+						parse::get_consteval_fail_notes(arg)
+					);
 				}
 			}
 		}

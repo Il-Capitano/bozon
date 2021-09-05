@@ -29,6 +29,38 @@ ast::expression parse_parenthesized_condition(
 		>(stream, end, context);
 	}
 
+	if (
+		condition.paren_level < 2
+		&& condition.src_tokens.pivot->kind == lex::token::assign
+	)
+	{
+		bz_assert(
+			(
+				condition.is_unresolved()
+				&& condition.get_unresolved_expr().is<ast::expr_binary_op>()
+				&& condition.get_unresolved_expr().get<ast::expr_binary_op>().op == lex::token::assign
+			) || (
+				condition.is_constant_or_dynamic()
+				&& condition.get_expr().is<ast::expr_binary_op>()
+				&& condition.get_expr().get<ast::expr_binary_op>().op == lex::token::assign
+			) || (
+				condition.is_constant_or_dynamic()
+				&& condition.get_expr().is<ast::expr_function_call>()
+				&& condition.get_expr().get<ast::expr_function_call>().func_body->function_name_or_operator_kind == static_cast<uint32_t>(lex::token::assign)
+			)
+		);
+		context.report_parenthesis_suppressed_warning(
+			2 - condition.paren_level, ctx::warning_kind::assign_in_condition,
+			condition.src_tokens,
+			"assign operator used in condition, which could be mistaken with the equals operator",
+			{}, { context.make_suggestion_before(
+				condition.src_tokens.pivot,
+				condition.src_tokens.pivot->src_pos.begin, condition.src_tokens.pivot->src_pos.end,
+				"==", "did you mean to use the equals operator"
+			) }
+		);
+	}
+
 	return condition;
 }
 

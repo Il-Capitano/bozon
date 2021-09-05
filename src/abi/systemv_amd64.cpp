@@ -3,6 +3,19 @@
 namespace abi
 {
 
+static constexpr bz::array pass_by_reference_attributes_systemv_amd64 = {
+	llvm::Attribute::ByVal,
+	llvm::Attribute::NoAlias,
+	llvm::Attribute::NoCapture,
+	llvm::Attribute::NonNull,
+};
+
+template<>
+bz::array_view<llvm::Attribute::AttrKind const> get_pass_by_reference_attributes<platform_abi::systemv_amd64>(void)
+{
+	return pass_by_reference_attributes_systemv_amd64;
+}
+
 template<>
 pass_kind get_pass_kind<platform_abi::systemv_amd64>(
 	llvm::Type *t,
@@ -109,9 +122,6 @@ llvm::Type *get_one_register_type<platform_abi::systemv_amd64>(
 			// the only special case here is { float, float } should become <2 x float>
 			// this applies to { { float }, float } too
 			return llvm::FixedVectorType::get(contained_types[0], 2);
-#if LLVM_VERSION_MAJOR < 11
-#error LLVM 11 is required
-#endif // llvm < 11
 		}
 
 		auto const size = data_layout.getTypeAllocSize(t);
@@ -212,9 +222,6 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	{
 		// special case for 2 float32's
 		result.first = llvm::FixedVectorType::get(first_register_types[0].first, 2);
-#if LLVM_VERSION_MAJOR < 11
-#error LLVM 11 is required
-#endif // llvm < 11
 	}
 	else
 	{
@@ -237,9 +244,6 @@ std::pair<llvm::Type *, llvm::Type *> get_two_register_types<platform_abi::syste
 	{
 		// special case for 2 float32's
 		result.second = llvm::FixedVectorType::get(second_register_types[0].first, 2);
-#if LLVM_VERSION_MAJOR < 11
-#error LLVM 11 is required
-#endif // llvm < 11
 	}
 	else
 	{
