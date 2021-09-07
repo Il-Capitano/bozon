@@ -9,6 +9,7 @@ namespace ast
 {
 
 struct function_body;
+struct statement_view;
 
 struct constant_value;
 namespace internal
@@ -18,6 +19,12 @@ struct null_t {};
 struct void_t {};
 
 } // namespace internal
+
+struct function_set_t
+{
+	arena_vector<bz::u8string_view> id;
+	arena_vector<statement_view> stmts;
+};
 
 struct constant_value : bz::variant<
 	int64_t, uint64_t,
@@ -32,8 +39,8 @@ struct constant_value : bz::variant<
 	bz::vector<constant_value>,
 
 	function_body *,
-	arena_vector<bz::u8string_view>,
-	arena_vector<bz::u8string_view>,
+	function_set_t,
+	function_set_t,
 
 	ast::typespec,
 
@@ -54,8 +61,8 @@ struct constant_value : bz::variant<
 		bz::vector<constant_value>,
 
 		function_body *,
-		arena_vector<bz::u8string_view>,
-		arena_vector<bz::u8string_view>,
+		function_set_t,
+		function_set_t,
 
 		ast::typespec,
 
@@ -87,8 +94,8 @@ struct constant_value : bz::variant<
 	static_assert(bz::meta::is_same<base_t::value_type<tuple>, bz::vector<constant_value>>);
 	static_assert(bz::meta::is_same<base_t::value_type<aggregate>, bz::vector<constant_value>>);
 	static_assert(array != tuple && array != aggregate && tuple != aggregate);
-	static_assert(bz::meta::is_same<base_t::value_type<unqualified_function_set_id>, arena_vector<bz::u8string_view>>);
-	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, arena_vector<bz::u8string_view>>);
+	static_assert(bz::meta::is_same<base_t::value_type<unqualified_function_set_id>, function_set_t>);
+	static_assert(bz::meta::is_same<base_t::value_type<qualified_function_set_id>, function_set_t>);
 	static_assert(unqualified_function_set_id != qualified_function_set_id);
 
 	using base_t::operator =;

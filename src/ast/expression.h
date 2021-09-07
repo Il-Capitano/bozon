@@ -26,6 +26,7 @@ struct expr_struct_init;
 struct expr_array_default_construct;
 struct expr_builtin_default_construct;
 struct expr_member_access;
+struct expr_type_member_access;
 struct expr_compound;
 struct expr_if;
 struct expr_switch;
@@ -54,6 +55,7 @@ using expr_t = node<
 	expr_array_default_construct,
 	expr_builtin_default_construct,
 	expr_member_access,
+	expr_type_member_access,
 	expr_compound,
 	expr_if,
 	expr_switch,
@@ -476,6 +478,25 @@ struct expr_member_access
 	{}
 };
 
+struct expr_type_member_access
+{
+	expression                base;
+	lex::token_pos            member;
+	ast::decl_variable const *var_decl;
+
+	declare_default_5(expr_type_member_access)
+
+	expr_type_member_access(
+		expression                _base,
+		lex::token_pos            _member,
+		ast::decl_variable const *_var_decl
+	)
+		: base(std::move(_base)),
+		  member(_member),
+		  var_decl(_var_decl)
+	{}
+};
+
 struct statement;
 
 struct expr_compound
@@ -692,6 +713,7 @@ def_make_fn(expr_t, expr_struct_init)
 def_make_fn(expr_t, expr_array_default_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
 def_make_fn(expr_t, expr_member_access)
+def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
 def_make_fn(expr_t, expr_switch)

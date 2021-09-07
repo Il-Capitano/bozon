@@ -1069,7 +1069,7 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(id.decl != nullptr);
 	// we emit consteval global variables to avoid generating huge arrays every time
-	// one is indexed into.  e.g. ryu has large consteval tables that are constructed
+	// one is indexed into.  e.g. ryu has large consteval tables which would be constructed
 	// in IR each time they're indexed into.
 	if (id.decl->is_global() && id.decl->get_type().is<ast::ts_consteval>() && id.decl->init_expr.not_error())
 	{
@@ -1117,7 +1117,13 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			emit_copy_constructor<abi>(src_tokens, { val_ptr::reference, val_ptr }, id.decl->get_type(), context, result_address);
+			emit_copy_constructor<abi>(
+				src_tokens,
+				{ val_ptr::reference, val_ptr },
+				ast::remove_lvalue_reference(id.decl->get_type()),
+				context,
+				result_address
+			);
 			return { val_ptr::reference, result_address };
 		}
 	}
@@ -4228,6 +4234,57 @@ static val_ptr emit_bitcode(
 			context.builder.CreateStore(val, result_address);
 			return { val_ptr::reference, result_address };
 		}
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens src_tokens,
+	ast::expr_type_member_access const &member_access,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(member_access.var_decl != nullptr);
+	auto const decl = member_access.var_decl;
+	if (decl->get_type().is<ast::ts_consteval>() && decl->init_expr.not_error())
+	{
+		context.add_global_variable(decl);
+	}
+	auto const val_ptr = context.get_variable(decl);
+	if (val_ptr == nullptr)
+	{
+		emit_error(
+			lex::src_tokens::from_single_token(member_access.member),
+			bz::format("member '{}' cannot be used in a constant expression", member_access.member->value),
+			context
+		);
+		if (result_address == nullptr)
+		{
+			auto const result_type = get_llvm_type(ast::remove_lvalue_reference(decl->get_type()), context);
+			auto const alloca = context.create_alloca(result_type);
+			return { val_ptr::reference, alloca };
+		}
+		else
+		{
+			return { val_ptr::reference, result_address };
+		}
+	}
+
+	if (result_address == nullptr)
+	{
+		return { val_ptr::reference, val_ptr };
+	}
+	else
+	{
+		emit_copy_constructor<abi>(
+			src_tokens,
+			{ val_ptr::reference, val_ptr },
+			ast::remove_lvalue_reference(decl->get_type()),
+			context,
+			result_address
+		);
+		return { val_ptr::reference, result_address };
 	}
 }
 

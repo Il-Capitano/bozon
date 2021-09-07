@@ -2703,6 +2703,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[](ast::expr_type_member_access &) -> ast::constant_value {
+			// variable constevalness is handled in parse_context::make_member_access_expression
+			return {};
+		},
 		[&context](ast::expr_compound &compound_expr) -> ast::constant_value {
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
 			{
@@ -2984,6 +2988,10 @@ static ast::constant_value try_evaluate_expr(
 			{
 				return {};
 			}
+		},
+		[](ast::expr_type_member_access &) -> ast::constant_value {
+			// variable constevalness is handled in parse_context::make_member_access_expression
+			return {};
 		},
 		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
@@ -3273,6 +3281,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 			{
 				return {};
 			}
+		},
+		[](ast::expr_type_member_access &) -> ast::constant_value {
+			// variable constevalness is handled in parse_context::make_member_access_expression
+			return {};
 		},
 		[&expr, &context](ast::expr_compound &compound_expr) -> ast::constant_value {
 			if (compound_expr.statements.empty() && compound_expr.final_expr.not_null())
@@ -3792,6 +3804,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&notes](ast::expr_member_access const &member_access_expr) {
 			bz_assert(!member_access_expr.base.has_consteval_succeeded());
 			get_consteval_fail_notes_helper(member_access_expr.base, notes);
+		},
+		[&expr, &notes](ast::expr_type_member_access const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "subexpression is not a constant expression"
+			));
 		},
 		[&expr, &notes](ast::expr_compound const &) {
 			notes.emplace_back(ctx::parse_context::make_note(
