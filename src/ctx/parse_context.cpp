@@ -1101,8 +1101,8 @@ static ast::typespec get_function_type(ast::function_body &body)
 
 static ast::expression make_variable_expression(
 	lex::src_tokens src_tokens,
-	ast::identifier id,
 	ast::decl_variable *var_decl,
+	ast::expr_t result_expr,
 	parse_context &context
 )
 {
@@ -1122,7 +1122,7 @@ static ast::expression make_variable_expression(
 	if (id_type.is_empty())
 	{
 		bz_assert(context.has_errors());
-		return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+		return ast::make_error_expression(src_tokens, std::move(result_expr));
 	}
 	else if (id_type.is<ast::ts_consteval>() && var_decl->init_expr.is<ast::constant_expression>())
 	{
@@ -1134,7 +1134,7 @@ static ast::expression make_variable_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
 			init_expr.get<ast::constant_expression>().value,
-			ast::make_expr_identifier(std::move(id), var_decl)
+			std::move(result_expr)
 		);
 	}
 	else if (id_type.is<ast::ts_consteval>())
@@ -1144,7 +1144,7 @@ static ast::expression make_variable_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, std::move(result_type),
-			ast::make_expr_identifier(std::move(id), var_decl)
+			std::move(result_expr)
 		);
 	}
 	else if (id_type.is_typename())
@@ -1155,7 +1155,7 @@ static ast::expression make_variable_expression(
 			src_tokens,
 			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
 			ast::constant_value(init_expr.get_typename()),
-			ast::make_expr_identifier(std::move(id), var_decl)
+			std::move(result_expr)
 		);
 	}
 	else
@@ -1163,9 +1163,19 @@ static ast::expression make_variable_expression(
 		return ast::make_dynamic_expression(
 			src_tokens,
 			id_type_kind, id_type,
-			ast::make_expr_identifier(std::move(id), var_decl)
+			std::move(result_expr)
 		);
 	}
+}
+
+static ast::expression make_variable_expression(
+	lex::src_tokens src_tokens,
+	ast::identifier id,
+	ast::decl_variable *var_decl,
+	parse_context &context
+)
+{
+	return make_variable_expression(src_tokens, var_decl, ast::make_expr_identifier(std::move(id), var_decl), context);
 }
 
 static ast::expression make_function_name_expression(
@@ -5712,14 +5722,38 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		return symbol.visit(bz::overload{
-			[](ast::decl_variable *) -> ast::expression {
-				bz_unreachable;
+			[this, &src_tokens, &member, &base](ast::decl_variable *var_decl) -> ast::expression {
+				return make_variable_expression(
+					src_tokens,
+					var_decl,
+					ast::make_expr_type_member_access(std::move(base), member, var_decl), *this
+				);
 			},
 			[](variadic_var_decl const &) -> ast::expression {
 				bz_unreachable;
 			},
-			[](function_overload_set const &) -> ast::expression {
-				bz_unreachable;
+			[this, &src_tokens, &member, &base](function_overload_set const &func_set) -> ast::expression {
+				for (auto &stmt : func_set.alias_decls)
+				{
+					auto &alias_decl = stmt.get<ast::decl_function_alias>();
+					this->add_to_resolve_queue(lex::src_tokens::from_single_token(member), alias_decl);
+					resolve::resolve_function_alias(alias_decl, *this);
+					this->pop_resolve_queue();
+				}
+
+				ast::constant_value value;
+				auto &result_func_set = value.emplace<ast::constant_value::qualified_function_set_id>();
+				result_func_set.id.push_back(member->value);
+				result_func_set.stmts.reserve(func_set.func_decls.size() + func_set.alias_decls.size());
+				result_func_set.stmts.append(func_set.func_decls);
+				result_func_set.stmts.append(func_set.alias_decls);
+				bz_assert(result_func_set.stmts.not_empty());
+				return ast::make_constant_expression(
+					src_tokens,
+					ast::expression_type_kind::function_name, ast::typespec(),
+					std::move(value),
+					ast::make_expr_type_member_access(std::move(base), member, nullptr)
+				);
 			},
 			[this, &src_tokens, &member, &base](ast::decl_type_alias *alias_decl) {
 				this->add_to_resolve_queue(lex::src_tokens::from_single_token(member), *alias_decl);
