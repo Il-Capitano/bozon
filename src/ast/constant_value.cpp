@@ -61,7 +61,7 @@ bz::u8string get_value_string(constant_value const &value)
 	{
 		bz::u8string result;
 		bool first = true;
-		for (auto const id : value.get<constant_value::qualified_function_set_id>())
+		for (auto const id : value.get<constant_value::qualified_function_set_id>().id)
 		{
 			if (first)
 			{
@@ -78,7 +78,7 @@ bz::u8string get_value_string(constant_value const &value)
 	case constant_value::qualified_function_set_id:
 	{
 		bz::u8string result;
-		for (auto const id : value.get<constant_value::qualified_function_set_id>())
+		for (auto const id : value.get<constant_value::qualified_function_set_id>().id)
 		{
 			result += "::";
 			result += id;
@@ -102,18 +102,6 @@ static void encode_array_like(bz::u8string &out, bz::array_view<constant_value c
 		out += '.';
 		constant_value::encode_for_symbol_name(out, value);
 	}
-}
-
-static void encode_identifier(bz::u8string &out, bz::array_view<bz::u8string_view const> ids)
-{
-	out += bz::format("{}", ids.size());
-	for (auto const &id : ids)
-	{
-		// '.' is not allowed in identifiers so this should be ok
-		out += '.';
-		out += id;
-	}
-	out += '.';
 }
 
 void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value const &value)
@@ -178,17 +166,8 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 		break;
 	}
 	case unqualified_function_set_id:
-	{
-		out += 'U';
-		encode_identifier(out, value.get<unqualified_function_set_id>());
-		break;
-	}
 	case qualified_function_set_id:
-	{
-		out += 'Q';
-		encode_identifier(out, value.get<qualified_function_set_id>());
-		break;
-	}
+		bz_unreachable;
 	case type:
 	{
 		auto const symbol = value.get<type>().get_symbol_name();
@@ -269,31 +248,6 @@ static void decode_array_like(
 	out += " ]";
 }
 
-static void decode_identifier(
-	bz::u8string_view::const_iterator &it,
-	bz::u8string_view::const_iterator end,
-	bz::u8string &out
-)
-{
-	auto const size = parse_int<size_t>(it, end);
-	for (auto const i : bz::iota(0, size))
-	{
-		if (i != 0)
-		{
-			out += "::";
-		}
-		bz_assert(it != end);
-		bz_assert(*it == '.');
-		++it;
-		auto const next_dot = bz::u8string_view(it, end).find('.');
-		out += bz::u8string_view(it, next_dot);
-		it = next_dot;
-	}
-	bz_assert(it != end);
-	bz_assert(*it == '.');
-	++it;
-}
-
 bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_iterator &it, bz::u8string_view::const_iterator end)
 {
 	switch (*it)
@@ -362,19 +316,8 @@ bz::u8string constant_value::decode_from_symbol_name(bz::u8string_view::const_it
 		return ast::function_body::decode_symbol_name(result_symbol);
 	}
 	case 'U':
-	{
-		++it;
-		bz::u8string result;
-		decode_identifier(it, end, result);
-		return result;
-	}
 	case 'Q':
-	{
-		++it;
-		bz::u8string result = "::";
-		decode_identifier(it, end, result);
-		return result;
-	}
+		bz_unreachable;
 	case 't':
 	{
 		++it;
@@ -429,9 +372,39 @@ bool operator == (constant_value const &lhs, constant_value const &rhs) noexcept
 	case constant_value::function:
 		return lhs.get<constant_value::function>() == rhs.get<constant_value::function>();
 	case constant_value::unqualified_function_set_id:
-		return lhs.get<constant_value::unqualified_function_set_id>() == rhs.get<constant_value::unqualified_function_set_id>();
+	{
+		auto const &[lhs_id, lhs_bodies] = lhs.get<constant_value::unqualified_function_set_id>();
+		auto const &[rhs_id, rhs_bodies] = rhs.get<constant_value::unqualified_function_set_id>();
+		if (lhs_bodies.empty() && rhs_bodies.empty())
+		{
+			return lhs_id == rhs_id;
+		}
+		else if (lhs_bodies.not_empty() && rhs_bodies.not_empty())
+		{
+			return lhs_id == rhs_id && lhs_bodies == rhs_bodies;
+		}
+		else
+		{
+			return false;
+		}
+	}
 	case constant_value::qualified_function_set_id:
-		return lhs.get<constant_value::qualified_function_set_id>() == rhs.get<constant_value::qualified_function_set_id>();
+	{
+		auto const &[lhs_id, lhs_bodies] = lhs.get<constant_value::qualified_function_set_id>();
+		auto const &[rhs_id, rhs_bodies] = rhs.get<constant_value::qualified_function_set_id>();
+		if (lhs_bodies.empty() && rhs_bodies.empty())
+		{
+			return lhs_id == rhs_id;
+		}
+		else if (lhs_bodies.not_empty() && rhs_bodies.not_empty())
+		{
+			return lhs_id == rhs_id && lhs_bodies == rhs_bodies;
+		}
+		else
+		{
+			return false;
+		}
+	}
 	case constant_value::type:
 		return lhs.get<constant_value::type>() == rhs.get<constant_value::type>();
 	case constant_value::aggregate:

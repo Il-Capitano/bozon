@@ -64,10 +64,32 @@ struct foo_t
 	{
 		return foo_t[ n, s ];
 	}
+
+	consteval inner_var = 0;
+	type asdf = int32;
+
+	struct inner_t
+	{
+		.inner_n: int32;
+		.inner_s: str;
+	}
+
+	function foo() {}
+	function foo(: int32) {}
 }
 
 function main(args: [: const str]) -> int32
 {
+	static_assert(typeof foo_t.inner_var == const int32);
+	static_assert(foo_t.inner_var == 0);
+	static_assert(foo_t.asdf == int32);
+	// consteval val = (foo_t.inner_t)();
+	// static_assert(val.inner_n == 0 && val.inner_s == "");
+
+	(foo_t.foo)();
+	(foo_t.foo)(3);
+	// (foo_t.foo)(3, 4);
+
 	consteval t = [int32, float64, [str]]();
 	static_assert(typeof t == const [int32, float64, [str]]);
 	static_assert(t[0] == 0 && t[1] == 0.0 && t[2, 0] == "");

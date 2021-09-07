@@ -968,13 +968,13 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 	}
 	else if (value.is<ast::constant_value::unqualified_function_set_id>() || value.is<ast::constant_value::qualified_function_set_id>())
 	{
-		auto const func_set_id = value.is<ast::constant_value::unqualified_function_set_id>()
-			? value.get<ast::constant_value::unqualified_function_set_id>().as_array_view()
-			: value.get<ast::constant_value::qualified_function_set_id>().as_array_view();
+		auto const &func_set = value.is<ast::constant_value::unqualified_function_set_id>()
+			? value.get<ast::constant_value::unqualified_function_set_id>()
+			: value.get<ast::constant_value::qualified_function_set_id>();
 		bz_assert(alias_decl.aliased_bodies.empty());
 		alias_decl.aliased_bodies = value.is<ast::constant_value::unqualified_function_set_id>()
-			? context.get_function_bodies_from_unqualified_id(alias_decl.alias_expr.src_tokens, func_set_id)
-			: context.get_function_bodies_from_qualified_id(alias_decl.alias_expr.src_tokens, func_set_id);
+			? context.get_function_bodies_from_unqualified_id(alias_decl.alias_expr.src_tokens, func_set)
+			: context.get_function_bodies_from_qualified_id(alias_decl.alias_expr.src_tokens, func_set);
 		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_bodies.empty())
 		{
 			alias_decl.state = ast::resolve_state::all;
@@ -1459,7 +1459,7 @@ static void add_used_flag(ast::decl_variable &decl)
 
 // resolves the function symbol, but doesn't modify scope
 static bool resolve_function_symbol_helper(
-	ast::statement_view func_stmt,
+	[[maybe_unused]] ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ctx::parse_context &context
 )

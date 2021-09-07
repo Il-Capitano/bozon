@@ -411,11 +411,11 @@ struct parse_context
 
 	bz::vector<ast::function_body *> get_function_bodies_from_unqualified_id(
 		lex::src_tokens requester,
-		bz::array_view<bz::u8string_view const> id
+		ast::function_set_t const &func_set
 	);
 	bz::vector<ast::function_body *> get_function_bodies_from_qualified_id(
 		lex::src_tokens requester,
-		bz::array_view<bz::u8string_view const> id
+		ast::function_set_t const &func_set
 	);
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);

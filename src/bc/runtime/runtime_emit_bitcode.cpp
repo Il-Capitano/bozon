@@ -3508,6 +3508,32 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
+	ast::expr_type_member_access const &member_access,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(member_access.var_decl != nullptr);
+	auto const val_ptr = context.get_variable(member_access.var_decl);
+	bz_assert(val_ptr != nullptr);
+	if (result_address == nullptr)
+	{
+		return { val_ptr::reference, val_ptr };
+	}
+	else
+	{
+		emit_copy_constructor<abi>(
+			{ val_ptr::reference, val_ptr },
+			ast::remove_lvalue_reference(member_access.var_decl->get_type()),
+			context,
+			result_address
+		);
+		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
 	ast::expr_compound const &compound_expr,
 	ctx::bitcode_context &context,
 	llvm::Value *result_address
