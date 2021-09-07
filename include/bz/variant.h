@@ -566,7 +566,7 @@ bool operator == (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 		{
 			return false;
 		}
-		else if (lhs.index() == lhs.null)
+		else if (lhs.is_null())
 		{
 			return true;
 		}
@@ -604,7 +604,7 @@ bool operator != (variant<Ts...> const &lhs, variant<Ts...> const &rhs)
 		{
 			return true;
 		}
-		else if (lhs.index() == lhs.null)
+		else if (lhs.is_null())
 		{
 			return false;
 		}
