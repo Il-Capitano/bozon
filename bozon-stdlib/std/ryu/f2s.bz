@@ -214,7 +214,7 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	let index = 0i32;
 	if (sign)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 	}
 
@@ -256,13 +256,13 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	}
 	else
 	{
-		*(result + index) = ('0' + output) as uint32 as uint8;
+		*(result + index) = ('0' + output) as uint8;
 	}
 
 	// Print decimal point if needed.
 	if (olength > 1u)
 	{
-		*(result + index + 1) = '.' as uint32 as uint8;
+		*(result + index + 1) = '.' as uint8;
 		index += olength as int32 + 1;
 	}
 	else
@@ -271,12 +271,12 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	}
 
 	// Print the exponent.
-	*(result + index) = 'E' as uint32 as uint8;
+	*(result + index) = 'E' as uint8;
 	++index;
 	let exp = v.exponent + olength as int32 - 1;
 	if (exp < 0)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 		exp = -exp;
 	}
@@ -288,7 +288,7 @@ function to_chars(v: floating_decimal_32, sign: bool, result: *uint8) -> int32
 	}
 	else
 	{
-		*(result + index) = ('0' + exp) as uint32 as uint8;
+		*(result + index) = ('0' + exp) as uint8;
 		++index;
 	}
 
@@ -406,26 +406,26 @@ function to_chars_fixed(v: floating_decimal_32, out: *uint8) -> *uint8
 	}
 	else
 	{
-		*(out + 1) = ('0' + output) as uint32 as uint8;
+		*(out + 1) = ('0' + output) as uint8;
 	}
 
 	// print trailing zeros
 	if (v.exponent >= 0)
 	{
-		memset(out + olength + 1, '0' as uint32 as uint8, v.exponent as usize);
+		memset(out + olength + 1, '0' as uint8, v.exponent as usize);
 	}
 
 	if (actual_exponent >= 0)
 	{
 		memmove(out, out + 1, (actual_exponent + 1) as usize);
 		// Print decimal point
-		*(out + actual_exponent + 1) = '.' as uint32 as uint8;
+		*(out + actual_exponent + 1) = '.' as uint8;
 	}
 	out += olength + 1u;
 	if (v.exponent >= 0)
 	{
 		out += v.exponent;
-		*out = '0' as uint32 as uint8;
+		*out = '0' as uint8;
 		++out;
 	}
 	return out;
@@ -472,13 +472,13 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 	}
 	else
 	{
-		*out = ('0' + output) as uint32 as uint8;
+		*out = ('0' + output) as uint8;
 	}
 
 	// Print decimal point if needed.
 	if (olength > 1u)
 	{
-		*(out + 1) = '.' as uint32 as uint8;
+		*(out + 1) = '.' as uint8;
 		out += olength + 1u;
 	}
 	else
@@ -487,18 +487,18 @@ function to_chars_scientific(v: floating_decimal_32, out: *uint8) -> *uint8
 	}
 
 	// Print the exponent.
-	*out = 'e' as uint32 as uint8;
+	*out = 'e' as uint8;
 	++out;
 	let exp = v.exponent + olength as int32 - 1;
 	if (exp < 0)
 	{
-		*out = '-' as uint32 as uint8;
+		*out = '-' as uint8;
 		++out;
 		exp = -exp;
 	}
 	else
 	{
-		*out = '+' as uint32 as uint8;
+		*out = '+' as uint8;
 		++out;
 	}
 
@@ -512,7 +512,7 @@ function to_chars_shortest(v: floating_decimal_32, sign: bool, out: *uint8) -> *
 {
 	if (sign)
 	{
-		*out = '-' as uint32 as uint8;
+		*out = '-' as uint8;
 		++out;
 	}
 

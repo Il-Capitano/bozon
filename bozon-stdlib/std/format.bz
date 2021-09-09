@@ -82,7 +82,7 @@ function is_number(c: char) -> bool
 function advance_number(it: &*const uint8, end: *const uint8)
 {
 	while (it != end && {
-		const c = *it as uint32 as char;
+		const c = *it as char;
 		c >= '0' && c <= '9'
 	})
 	{
@@ -94,12 +94,12 @@ function get_number(it: &*const uint8, end: *const uint8) -> usize
 {
 	let result = 0uz;
 	while (it != end && {
-		const c = *it as uint32 as char;
+		const c = *it as char;
 		c >= '0' && c <= '9'
 	})
 	{
 		result *= 10u;
-		result += (*it as uint32 as char - '0') as uint32;
+		result += (*it as char - '0') as uint32;
 		++it;
 	}
 	return result;
@@ -117,22 +117,22 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 	{
 		return result;
 	}
-	else if (it + 1 != end && is_valid_align(*(it + 1) as uint32 as char))
+	else if (it + 1 != end && is_valid_align(*(it + 1) as char))
 	{
-		result.fill = *it as uint32 as char;
+		result.fill = *it as char;
 		++it; // fill
-		result.align = *it as uint32 as char;
+		result.align = *it as char;
 		++it; // align
 	}
-	else if (is_valid_align(*it as uint32 as char))
+	else if (is_valid_align(*it as char))
 	{
-		result.align = *it as uint32 as char;
+		result.align = *it as char;
 		++it; // align
 	}
 
-	if (it != end && is_valid_sign(*it as uint32 as char))
+	if (it != end && is_valid_sign(*it as char))
 	{
-		result.sign = *it as uint32 as char;
+		result.sign = *it as char;
 		++it; // sign
 	}
 	if (it != end && *it == '0' as uint32)
@@ -140,7 +140,7 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 		result.zero_pad = true;
 		++it;
 	}
-	if (it != end && is_number(*it as uint32 as char))
+	if (it != end && is_number(*it as char))
 	{
 		result.width = get_number(it, end);
 	}
@@ -150,11 +150,11 @@ export function get_default_format_spec(fmt_spec: str) -> format_spec
 		result.precision = get_number(it, end);
 	}
 	if (it != end && {
-		const c = *it as uint32 as char;
+		const c = *it as char;
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '%'
 	})
 	{
-		result.fmt_kind = *it as uint32 as char;
+		result.fmt_kind = *it as char;
 		++it; // kind
 	}
 
@@ -230,7 +230,7 @@ consteval function check_format_spec_str(
 	assert(it < fmt_str.end_ptr());
 	const open_bracket_it = it - 1;
 	assert(*open_bracket_it == '{' as uint32);
-	const is_explicit_index = it != end && is_number(*it as uint32 as char);
+	const is_explicit_index = it != end && is_number(*it as char);
 	if (is_explicit_index)
 	{
 		current_index = get_number(it, end);
@@ -278,17 +278,17 @@ consteval function check_format_spec_str(
 	}
 	// syntax: [[fill]align][sign][0][width][.precision][kind]
 
-	if (it + 1 != end && is_valid_align(*(it + 1) as uint32 as char))
+	if (it + 1 != end && is_valid_align(*(it + 1) as char))
 	{
 		++it; // fill
 		++it; // align
 	}
-	else if (is_valid_align(*it as uint32 as char))
+	else if (is_valid_align(*it as char))
 	{
 		++it; // align
 	}
 
-	if (it != end && is_valid_sign(*it as uint32 as char))
+	if (it != end && is_valid_sign(*it as char))
 	{
 		++it; // sign
 	}
@@ -296,7 +296,7 @@ consteval function check_format_spec_str(
 	if (it != end && *it == '.' as uint32)
 	{
 		++it; // '.'
-		if (it == end || !is_number(*it as uint32 as char))
+		if (it == end || !is_number(*it as char))
 		{
 			const dot_it = it - 1;
 			const position = __builtin_str_from_ptrs(fmt_str.begin_ptr(), dot_it).length();
@@ -311,7 +311,7 @@ consteval function check_format_spec_str(
 		advance_number(it, end); // precision
 	}
 	if (it != end && {
-		const c = *it as uint32 as char;
+		const c = *it as char;
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '%'
 	})
 	{
@@ -351,7 +351,7 @@ consteval function check_fmt_str(fmt_str: str, passed_args_count: usize)
 			break;
 		}
 
-		switch (*next_bracket as uint32 as char)
+		switch (*next_bracket as char)
 		{
 			'}' => {
 				// stray closing bracket, report only as a warning
@@ -479,7 +479,7 @@ consteval function get_fmt_info(fmt_str: str, slices: [: str], fmt_specs: [: str
 			const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
 			assert(closing_bracket_it != end);
 			++it;
-			if (is_number(*it as uint32 as char))
+			if (is_number(*it as char))
 			{
 				arg_index = get_number(it, closing_bracket_it);
 			}
@@ -625,7 +625,7 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 	if (val == 0u)
 	{
 		--it;
-		*it = '0' as uint32 as uint8;
+		*it = '0' as uint8;
 		return it;
 	}
 	while (val != 0u)
@@ -635,12 +635,12 @@ function print_uint_to_reverse_buffer(it: *uint8, val: uint64, base: consteval u
 		if (digit_val < 10u)
 		{
 			--it;
-			*it = ('0' + digit_val) as uint32 as uint8;
+			*it = ('0' + digit_val) as uint8;
 		}
 		else
 		{
 			--it;
-			*it = ('a' + digit_val - 10u) as uint32 as uint8;
+			*it = ('a' + digit_val - 10u) as uint8;
 		}
 	}
 	return it;
@@ -702,7 +702,7 @@ function print_uint_decimal_to_buffer(n: uint64, out: *uint8) -> *uint8
 	else
 	{
 		rev_out -= 1;
-		*rev_out = ('0' + n) as uint32 as uint8;
+		*rev_out = ('0' + n) as uint8;
 	}
 	return out + output_len;
 }
@@ -711,7 +711,7 @@ function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint6
 {
 	if (n == 0u)
 	{
-		*out = '0' as uint32 as uint8;
+		*out = '0' as uint8;
 		return out + 1;
 	}
 	static_assert(base == 2u || base == 8u);
@@ -724,7 +724,7 @@ function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint6
 		--i;
 		consteval mask = base - 1u;
 		const c = '0' + ((n >> (i * bit_width as int32)) & mask);
-		*(out + i) = c as uint32 as uint8;
+		*(out + i) = c as uint8;
 	}
 	return out + output_len;
 }
@@ -733,19 +733,19 @@ function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
 	if (n == 0u)
 	{
-		*out = '0' as uint32 as uint8;
+		*out = '0' as uint8;
 		return out + 1;
 	}
 	const output_len = (16u - clz(n) / 4u) as int32;
 	consteval table: [16: uint8] = [
-		'0' as uint32 as uint8, '1' as uint32 as uint8,
-		'2' as uint32 as uint8, '3' as uint32 as uint8,
-		'4' as uint32 as uint8, '5' as uint32 as uint8,
-		'6' as uint32 as uint8, '7' as uint32 as uint8,
-		'8' as uint32 as uint8, '9' as uint32 as uint8,
-		'a' as uint32 as uint8, 'b' as uint32 as uint8,
-		'c' as uint32 as uint8, 'd' as uint32 as uint8,
-		'e' as uint32 as uint8, 'f' as uint32 as uint8,
+		'0' as uint8, '1' as uint8,
+		'2' as uint8, '3' as uint8,
+		'4' as uint8, '5' as uint8,
+		'6' as uint8, '7' as uint8,
+		'8' as uint8, '9' as uint8,
+		'a' as uint8, 'b' as uint8,
+		'c' as uint8, 'd' as uint8,
+		'e' as uint8, 'f' as uint8,
 	];
 	let i = output_len;
 	while (i > 0)
@@ -761,19 +761,19 @@ function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
 {
 	if (n == 0u)
 	{
-		*out = '0' as uint32 as uint8;
+		*out = '0' as uint8;
 		return out + 1;
 	}
 	const output_len = (16u - clz(n) / 4u) as int32;
 	consteval table: [16: uint8] = [
-		'0' as uint32 as uint8, '1' as uint32 as uint8,
-		'2' as uint32 as uint8, '3' as uint32 as uint8,
-		'4' as uint32 as uint8, '5' as uint32 as uint8,
-		'6' as uint32 as uint8, '7' as uint32 as uint8,
-		'8' as uint32 as uint8, '9' as uint32 as uint8,
-		'A' as uint32 as uint8, 'B' as uint32 as uint8,
-		'C' as uint32 as uint8, 'D' as uint32 as uint8,
-		'E' as uint32 as uint8, 'F' as uint32 as uint8,
+		'0' as uint8, '1' as uint8,
+		'2' as uint8, '3' as uint8,
+		'4' as uint8, '5' as uint8,
+		'6' as uint8, '7' as uint8,
+		'8' as uint8, '9' as uint8,
+		'A' as uint8, 'B' as uint8,
+		'C' as uint8, 'D' as uint8,
+		'E' as uint8, 'F' as uint8,
 	];
 	let i = output_len;
 	while (i > 0)
@@ -1545,7 +1545,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 
 		*dot_it = *tenth_it;
 		*tenth_it = *hundredth_it;
-		*hundredth_it = '.' as uint32 as uint8;
+		*hundredth_it = '.' as uint8;
 
 		if (fmt_spec.precision == 2u)
 		{
@@ -1567,7 +1567,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 		}
 	};
 
-	*end = '%' as uint32 as uint8;
+	*end = '%' as uint8;
 	++end;
 	assert(end <= result_buffer + result_len);
 	const result_str = __builtin_str_from_ptrs(begin, end);

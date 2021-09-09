@@ -3932,22 +3932,19 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			// this is a cast from i32 to i32 in IR, so we return the original value
-			bz_assert((
-				expr_kind == ast::type_info::char_
-				&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
-			)
-			|| (
-				(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
-				&& dest_kind == ast::type_info::char_
-			));
+			// this is a cast from i32 or to i32 in IR, so we emit an integer cast
+			bz_assert(
+				(expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
+				|| ( ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
+			);
+			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, ast::is_signed_integer_kind(expr_kind), "cast_tmp");
 			if (result_address == nullptr)
 			{
-				return { val_ptr::value, expr };
+				return { val_ptr::value, res };
 			}
 			else
 			{
-				context.builder.CreateStore(expr, result_address);
+				context.builder.CreateStore(res, result_address);
 				return { val_ptr::reference, result_address };
 			}
 		}

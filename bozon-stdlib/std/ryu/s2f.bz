@@ -64,14 +64,14 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	let signedM = false;
 	let signedE = false;
 	let i = 0;
-	if (*(buffer + i) as uint32 as char == '-')
+	if (*(buffer + i) as char == '-')
 	{
 		signedM = true;
 		++i;
 	}
 	for (; i < len; ++i)
 	{
-		const c = *(buffer + i) as uint32 as char;
+		const c = *(buffer + i) as char;
 		if (c == '.')
 		{
 			if (dotIndex != len)
@@ -95,18 +95,18 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 			++m10digits;
 		}
 	}
-	if (i < len && ((*(buffer + i) as uint32 as char == 'e') || (*(buffer + i) as uint32 as char == 'E')))
+	if (i < len && ((*(buffer + i) as char == 'e') || (*(buffer + i) as char == 'E')))
 	{
 		eIndex = i;
 		++i;
-		if (i < len && ((*(buffer + i) as uint32 as char == '-') || (*(buffer + i) as uint32 as char == '+')))
+		if (i < len && ((*(buffer + i) as char == '-') || (*(buffer + i) as char == '+')))
 		{
-			signedE = *(buffer + i) as uint32 as char == '-';
+			signedE = *(buffer + i) as char == '-';
 			++i;
 		}
 		for (; i < len; ++i)
 		{
-			const c = *(buffer + i) as uint32 as char;
+			const c = *(buffer + i) as char;
 			if ((c < '0') || (c > '9'))
 			{
 				return s2f_MALFORMED_INPUT;
