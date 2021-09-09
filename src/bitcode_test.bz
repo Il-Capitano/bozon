@@ -446,9 +446,13 @@ function main(args: [: const str]) -> int32
 	});
 
 	std::printf(
-		"this is a very long message with {} arguments: {} {} {} {}",
+		"this is a very long message with {} arguments: {} {} {} {}\n",
 		"a lot of", 3, 2.124, [ "Hello", "World" ], [[3: int32]]()
 	);
+
+	std::printf("{:%}\n", 1.2345);
+	std::printf("{:%}\n", 12.345);
+	std::printf("{:%}\n", 0.005);
 
 	// consteval x = std::sqrt(-1.0);
 
