@@ -5448,22 +5448,9 @@ static llvm::Function *create_function_from_symbol_impl(
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
-	// bz_assert(func_body.symbol_name != "");
-	auto const name_string = [&]() -> bz::u8string {
-		if (func_body.symbol_name != "")
-		{
-			return func_body.symbol_name;
-		}
-		else if (func_body.function_name_or_operator_kind.is<ast::identifier>())
-		{
-			return func_body.function_name_or_operator_kind.get<ast::identifier>().as_string();
-		}
-		else
-		{
-			return bz::format("operator.{}", func_body.function_name_or_operator_kind.get<uint32_t>());
-		}
-	}();
-	auto const name = llvm::StringRef(name_string.data_as_char_ptr(), name_string.size());
+	bz_assert(func_body.symbol_name != "");
+	auto const name_string = func_body.symbol_name.as_string_view();
+	auto const name = llvm::StringRef(name_string.data(), name_string.size());
 
 	auto const linkage = llvm::Function::ExternalLinkage;
 
@@ -5963,6 +5950,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	ctx::comptime_executor_context &context
 )
 {
+	bz_assert(!body->has_builtin_implementation());
 	auto const called_fn = context.get_function(body);
 	bz_assert(called_fn != nullptr);
 

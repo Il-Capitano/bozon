@@ -750,6 +750,15 @@ struct function_body
 	bool is_only_consteval(void) const noexcept
 	{ return (this->flags & only_consteval) != 0; }
 
+	bool has_builtin_implementation(void) const noexcept
+	{
+		return this->is_intrinsic()
+			|| this->is_default_default_constructor()
+			|| this->is_default_copy_constructor()
+			|| this->is_default_op_assign()
+			|| this->is_default_op_move_assign();
+	}
+
 	type_info *get_destructor_of(void) const noexcept
 	{
 		bz_assert(this->is_destructor());
@@ -1207,8 +1216,6 @@ constexpr auto type_info_from_type_v = internal::type_info_from_type<T>::value;
 
 struct decl_struct
 {
-	using info_t = bz::variant<lex::token_range, type_info>;
-
 	identifier id;
 	type_info  info;
 

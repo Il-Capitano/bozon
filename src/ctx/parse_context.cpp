@@ -3935,7 +3935,7 @@ static void match_expression_to_type_impl(
 		parse::consteval_try(expr, context);
 		if (!expr.is<ast::constant_expression>())
 		{
-			context.report_error(expr, "expression must be a constant expression");
+			context.report_error(expr, "expression must be a constant expression", parse::get_consteval_fail_notes(expr));
 			if (!ast::is_complete(dest_container))
 			{
 				dest_container.clear();
@@ -5012,7 +5012,9 @@ ast::expression parse_context::make_function_call_expression(
 		if (called_type.is<ast::ts_base_type>())
 		{
 			auto const info = called_type.get<ast::ts_base_type>().info;
+			this->add_to_resolve_queue(called.src_tokens, *info);
 			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
 			auto const possible_funcs = info->constructors
 				.transform([&](auto const &ptr) {
 					return possible_func_t{ get_function_call_match_level({}, *ptr, args, *this, src_tokens), {}, ptr };
@@ -6236,6 +6238,7 @@ ast::constant_value parse_context::execute_function(
 		body,
 		params
 	);
+	// bz_assert(errors.not_empty() || result.not_null() || this->has_errors());
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())
 	{

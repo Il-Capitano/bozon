@@ -541,7 +541,7 @@ void comptime_executor_context::pop_loop(loop_info_t info) noexcept
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
 	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
-	if (!body->is_intrinsic() || body->body.not_null())
+	if (!body->has_builtin_implementation() || body->body.not_null())
 	{
 		if (!body->is_comptime_bitcode_emitted())
 		{
@@ -554,20 +554,13 @@ bool comptime_executor_context::resolve_function(ast::function_body *body)
 {
 	if (body->body.is_null())
 	{
-		return body->is_intrinsic();
+		return body->has_builtin_implementation();
 	}
 	bz_assert(this->current_parse_ctx != nullptr);
 	this->current_parse_ctx->add_to_resolve_queue({}, *body);
 	resolve::resolve_function({}, *body, *this->current_parse_ctx);
 	this->current_parse_ctx->pop_resolve_queue();
-	if (body->state == ast::resolve_state::error)
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
+	return body->state != ast::resolve_state::error;
 }
 
 llvm::Function *comptime_executor_context::get_comptime_function(comptime_function_kind kind)
@@ -791,7 +784,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	{
 		return result;
 	}
-	else if (body->state != ast::resolve_state::all && !body->is_intrinsic())
+	else if (body->state != ast::resolve_state::all && !body->has_builtin_implementation())
 	{
 		result.second.push_back(error{
 			warning_kind::_last,
@@ -799,7 +792,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 				src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
 				src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
 				suggestion_range{}, suggestion_range{},
-				bz::format("cannot call external function '{}' in a constant expression", body->get_signature())
+				bz::format("unable to call external function '{}' in a constant expression", body->get_signature())
 			},
 			{}, {}
 		});
