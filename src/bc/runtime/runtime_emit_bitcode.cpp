@@ -4991,6 +4991,19 @@ void emit_global_type_symbol(ast::decl_struct const &struct_decl, ctx::bitcode_c
 	default:
 		bz_unreachable;
 	}
+
+	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	{
+		for (
+			auto const &inner_struct_decl :
+			struct_decl.info.body.get<bz::vector<ast::statement>>()
+				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
+		)
+		{
+			emit_global_type_symbol(inner_struct_decl, context);
+		}
+	}
 }
 
 void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
@@ -5014,6 +5027,19 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 	}
 	default:
 		bz_unreachable;
+	}
+
+	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	{
+		for (
+			auto const &inner_struct_decl :
+			struct_decl.info.body.get<bz::vector<ast::statement>>()
+				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
+		)
+		{
+			emit_global_type(inner_struct_decl, context);
+		}
 	}
 }
 
