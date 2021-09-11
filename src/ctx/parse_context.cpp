@@ -2637,22 +2637,13 @@ static match_level_t get_type_match_level(
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
-		if (ast::is_complete(dest))
+		if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
 		{
-			auto then_result = get_type_match_level(dest, if_expr.then_block, context);
-			auto else_result = get_type_match_level(dest, if_expr.else_block, context);
-			if (then_result.is_null() || else_result.is_null())
-			{
-				return match_level_t{};
-			}
-			else if (then_result < else_result)
-			{
-				return then_result;
-			}
-			else
-			{
-				return else_result;
-			}
+			return get_type_match_level(dest, if_expr.else_block, context);
+		}
+		else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+		{
+			return get_type_match_level(dest, if_expr.then_block, context);
 		}
 		else
 		{
@@ -2662,18 +2653,14 @@ static match_level_t get_type_match_level(
 			{
 				return match_level_t{};
 			}
-
-			if (ast::is_complete(dest))
+			else if (ast::is_complete(dest))
 			{
-				// return the worse match
-				if (then_result < else_result)
-				{
-					return then_result;
-				}
-				else
-				{
-					return else_result;
-				}
+				match_level_t result;
+				auto &vec = result.emplace<bz::vector<match_level_t>>();
+				vec.reserve(2);
+				vec.push_back(std::move(then_result));
+				vec.push_back(std::move(else_result));
+				return result;
 			}
 
 			ast::typespec then_matched_type = dest;
@@ -3549,7 +3536,17 @@ static void match_expression_to_type_impl(
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
-		if (ast::is_complete(dest))
+		if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
+		{
+			match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+			return;
+		}
+		else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+		{
+			match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+			return;
+		}
+		else if (ast::is_complete(dest))
 		{
 			match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
 			match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
@@ -3565,10 +3562,8 @@ static void match_expression_to_type_impl(
 			if (then_matched_type.is_empty() || else_matched_type.is_empty())
 			{
 				expr.to_error();
-				if (!ast::is_complete(dest_container))
-				{
-					dest_container.clear();
-				}
+				bz_assert(!ast::is_complete(dest_container));
+				dest_container.clear();
 				return;
 			}
 
