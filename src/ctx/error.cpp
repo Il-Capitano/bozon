@@ -213,14 +213,13 @@ static bz::u8string get_highlighted_text(
 	size_t column = 0; // 0-based column number
 	auto it = first_line_begin;
 
-	auto const try_put_error = [&]() {
+	auto const try_put_error = [&](char const *line_begin) {
 		if (it < src_begin || it >= src_end)
 		{
 			return false;
 		}
 		file_line      += highlight_color;
 		highlight_line += highlight_color;
-		auto const begin = it;
 		auto u8it = bz::u8iterator(it);
 		while (u8it.data() != src_end && *u8it.data() != '\n')
 		{
@@ -271,7 +270,7 @@ static bz::u8string get_highlighted_text(
 		{
 			highlight_line += '^';
 		}
-		else if (begin >= src_begin && end < src_end && (src_pivot < begin || src_pivot > end))
+		else if (line_begin >= src_begin && end < src_end && (src_pivot < line_begin || src_pivot > end))
 		{
 			highlight_line.clear();
 		}
@@ -374,6 +373,7 @@ static bz::u8string get_highlighted_text(
 		file_line.clear();
 		highlight_line.clear();
 		column = 0;
+		auto const line_begin = it;
 		while (it != last_line_end && *it != '\n')
 		{
 			auto const stop = find_next_stop(it);
@@ -383,7 +383,7 @@ static bz::u8string get_highlighted_text(
 			file_line += str;
 			highlight_line += bz::u8string(str_len, ' ');
 			column += str_len;
-			try_put_error();
+			try_put_error(line_begin);
 			if (
 				(try_put_first_suggestion() && it == first_str_pos)
 				// this is deliberately not a '||', because we need both expressions
