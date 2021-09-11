@@ -349,6 +349,58 @@ static ast::expression resolve_expr(
 	}
 }
 
+static ast::expression resolve_expr(
+	lex::src_tokens src_tokens,
+	ast::expr_if_consteval if_expr_,
+	ctx::parse_context &context
+)
+{
+	auto result_node = ast::make_ast_unique<ast::expr_if_consteval>(std::move(if_expr_));
+	auto &if_expr = *result_node;
+	resolve_expression(if_expr.condition, context);
+
+	{
+		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
+		context.match_expression_to_type(if_expr.condition, bool_type);
+	}
+
+	if (if_expr.condition.is_error())
+	{
+		return ast::make_error_expression(src_tokens, std::move(result_node));
+	}
+
+	parse::consteval_try(if_expr.condition, context);
+	if (if_expr.condition.has_consteval_failed())
+	{
+		context.report_error(if_expr.condition.src_tokens, "condition for an if consteval expression must be a constant expression");
+		return ast::make_error_expression(src_tokens, std::move(result_node));
+	}
+
+	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(condition_value.is<ast::constant_value::boolean>());
+	if (condition_value.get<ast::constant_value::boolean>())
+	{
+		resolve_expression(if_expr.then_block, context);
+		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+	}
+	else if (if_expr.else_block.not_null())
+	{
+		resolve_expression(if_expr.else_block, context);
+		auto const [type, kind] = if_expr.then_block.get_expr_type_and_kind();
+		return ast::make_dynamic_expression(src_tokens, kind, type, std::move(result_node));
+	}
+	else
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::none, ast::typespec(),
+			ast::constant_value::get_void(),
+			std::move(result_node)
+		);
+	}
+}
+
 static void check_switch_type(
 	ast::expression &matched_expr,
 	ast::typespec_view match_type,

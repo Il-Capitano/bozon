@@ -2885,6 +2885,41 @@ static ast::constant_value guaranteed_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
+			bz_assert(if_expr.condition.is<ast::constant_expression>());
+			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(condition_value.is<ast::constant_value::boolean>());
+			if (condition_value.get<ast::constant_value::boolean>())
+			{
+				consteval_guaranteed(if_expr.then_block, context);
+				if (if_expr.then_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.then_block.is<ast::constant_expression>());
+					return if_expr.then_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else if (if_expr.else_block.not_null())
+			{
+				consteval_guaranteed(if_expr.else_block, context);
+				if (if_expr.else_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.else_block.is<ast::constant_expression>());
+					return if_expr.else_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				return ast::constant_value::get_void();
+			}
+		},
 		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
 			consteval_guaranteed(switch_expr.matched_expr, context);
 			for (auto &[_, case_expr] : switch_expr.cases)
@@ -3178,6 +3213,41 @@ static ast::constant_value try_evaluate_expr(
 				return {};
 			}
 		},
+		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
+			bz_assert(if_expr.condition.is<ast::constant_expression>());
+			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(condition_value.is<ast::constant_value::boolean>());
+			if (condition_value.get<ast::constant_value::boolean>())
+			{
+				consteval_try(if_expr.then_block, context);
+				if (if_expr.then_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.then_block.is<ast::constant_expression>());
+					return if_expr.then_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else if (if_expr.else_block.not_null())
+			{
+				consteval_try(if_expr.else_block, context);
+				if (if_expr.else_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.else_block.is<ast::constant_expression>());
+					return if_expr.else_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				return ast::constant_value::get_void();
+			}
+		},
 		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
 			consteval_try(switch_expr.matched_expr, context);
 			for (auto &[_, case_expr] : switch_expr.cases)
@@ -3469,6 +3539,41 @@ static ast::constant_value try_evaluate_expr_without_error(
 			else
 			{
 				return {};
+			}
+		},
+		[&context](ast::expr_if_consteval &if_expr) -> ast::constant_value {
+			bz_assert(if_expr.condition.is<ast::constant_expression>());
+			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(condition_value.is<ast::constant_value::boolean>());
+			if (condition_value.get<ast::constant_value::boolean>())
+			{
+				consteval_try_without_error(if_expr.then_block, context);
+				if (if_expr.then_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.then_block.is<ast::constant_expression>());
+					return if_expr.then_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else if (if_expr.else_block.not_null())
+			{
+				consteval_try_without_error(if_expr.else_block, context);
+				if (if_expr.else_block.has_consteval_succeeded())
+				{
+					bz_assert(if_expr.else_block.is<ast::constant_expression>());
+					return if_expr.else_block.get<ast::constant_expression>().value;
+				}
+				else
+				{
+					return {};
+				}
+			}
+			else
+			{
+				return ast::constant_value::get_void();
 			}
 		},
 		[&context](ast::expr_switch &switch_expr) -> ast::constant_value {
@@ -3965,6 +4070,20 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 					bz_assert(!if_expr.else_block.has_consteval_succeeded());
 					get_consteval_fail_notes_helper(if_expr.else_block, notes);
 				}
+			}
+		},
+		[&notes](ast::expr_if_consteval const &if_expr) {
+			bz_assert(if_expr.condition.is<ast::constant_expression>());
+			auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+			bz_assert(condition_value.is<ast::constant_value::boolean>());
+			if (condition_value.get<ast::constant_value::boolean>())
+			{
+				get_consteval_fail_notes_helper(if_expr.then_block, notes);
+			}
+			else
+			{
+				bz_assert(if_expr.else_block.not_null());
+				get_consteval_fail_notes_helper(if_expr.else_block, notes);
 			}
 		},
 		[&expr, &notes](ast::expr_switch const &) {

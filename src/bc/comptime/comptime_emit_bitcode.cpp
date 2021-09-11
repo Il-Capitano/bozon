@@ -4418,6 +4418,32 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_if_consteval const &if_expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(if_expr.condition.is<ast::constant_expression>());
+	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(condition_value.is<ast::constant_value::boolean>());
+	if (condition_value.get<ast::constant_value::boolean>())
+	{
+		return emit_bitcode<abi>(if_expr.then_block, context, result_address);
+	}
+	else if (if_expr.else_block.not_null())
+	{
+		return emit_bitcode<abi>(if_expr.else_block, context, result_address);
+	}
+	else
+	{
+		bz_assert(result_address == nullptr);
+		return {};
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	[[maybe_unused]] lex::src_tokens src_tokens,
 	ast::expr_switch const &switch_expr,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
