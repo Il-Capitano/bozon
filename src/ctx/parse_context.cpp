@@ -2764,8 +2764,7 @@ static match_level_t get_type_match_level(
 			}
 		}
 
-		// return the worst match
-		return case_match_levels.min(case_match_levels[0]);
+		return match_level_t(std::move(case_match_levels));
 	}
 	else if (expr.is_typename())
 	{
