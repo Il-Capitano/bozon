@@ -454,11 +454,20 @@ function main(args: [: const str]) -> int32
 	std::printf("{:%}\n", 12.345);
 	std::printf("{:%}\n", 0.005);
 
+	if consteval (std::format("{}", 12) == "12")
+	{
+	}
+	else
+	{
+		static_assert(std::format("{}", 12) == "13");
+	}
+
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));
 
-	// const n = if (std::format("{}", 12) == "12") { 1 } else { unreachable };
+	@maybe_unused
+	const n = if (std::format("{}", 12) == "12") { 1 } else { unreachable };
 
 	const n = 3;
 	@maybe_unused const n = switch (n) {
@@ -1499,6 +1508,7 @@ function complex_test()
 	type_test(uint32, 2);
 	type_test(float32, 1);
 	// type_test(str, 1);
+	int32.type_test(3);
 	static_assert(typeof type_test(char, 10) == char);
 }
 
