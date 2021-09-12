@@ -893,6 +893,7 @@ struct type_info
 		trivially_copy_constructible    = bit_at<5>,
 		trivially_destructible          = bit_at<6>,
 		trivial                         = bit_at<7>,
+		module_export                   = bit_at<8>,
 	};
 
 	enum : uint8_t
@@ -910,7 +911,6 @@ struct type_info
 	lex::src_tokens src_tokens;
 	uint8_t         kind;
 	resolve_state   state;
-	bool            is_export;
 	uint32_t        file_id;
 	uint32_t        flags;
 	identifier      type_name;
@@ -946,7 +946,6 @@ struct type_info
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
-		  is_export(false),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  flags(0),
 		  type_name(std::move(_type_name)),
@@ -965,7 +964,6 @@ struct type_info
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
-		  is_export(false),
 		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  flags(generic),
 		  type_name(std::move(_type_name)),
@@ -984,7 +982,6 @@ private:
 		: src_tokens{},
 		  kind(kind),
 		  state(resolve_state::all),
-		  is_export(false),
 		  file_id(0),
 		  flags(
 			  default_constructible
@@ -1024,6 +1021,9 @@ public:
 
 	bool is_default_zero_initialized(void) const noexcept
 	{ return (this->flags & default_zero_initialized) != 0; }
+
+	bool is_module_export(void) const noexcept
+	{ return (this->flags & module_export) != 0; }
 
 	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);

@@ -215,7 +215,7 @@ static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::g
 			auto &struct_decl = decl.get<ast::decl_struct>();
 			auto const prev_symbol = this->_global_decls.add_type(struct_decl);
 			report_redeclaration_error(struct_decl.info.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && struct_decl.info.is_export)
+			if (prev_symbol == nullptr && struct_decl.info.is_module_export())
 			{
 				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_type(struct_decl);
 				bz_assert(export_prev_symbol == nullptr);

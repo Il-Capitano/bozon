@@ -1016,7 +1016,7 @@ ast::statement parse_export_statement(
 				var_decl.flags |= ast::decl_variable::module_export;
 			},
 			[](ast::decl_struct &struct_decl) {
-				struct_decl.info.is_export = true;
+				struct_decl.info.flags |= ast::type_info::module_export;
 			},
 			[&](auto const &) {
 				context.report_error(after_export_token, "invalid statement to be exported");
