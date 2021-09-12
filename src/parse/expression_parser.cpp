@@ -73,6 +73,23 @@ void consume_semi_colon_at_end_of_expression(
 					context.assert_token(stream, lex::token::semi_colon);
 				}
 			},
+			[&](ast::expr_if_consteval const &if_expr) {
+				if (expr.paren_level == 0)
+				{
+					auto if_dummy_stream = if_expr.then_block.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
+					auto else_dummy_stream = if_expr.else_block.src_tokens.end;
+					if (else_dummy_stream != nullptr)
+					{
+						consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
+					}
+				}
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
 			[&](ast::expr_switch const &) {
 				// nothing here
 			},
@@ -101,6 +118,23 @@ void consume_semi_colon_at_end_of_expression(
 				}
 			},
 			[&](ast::expr_if const &if_expr) {
+				if (expr.paren_level == 0)
+				{
+					auto if_dummy_stream = if_expr.then_block.src_tokens.end;
+					consume_semi_colon_at_end_of_expression(if_dummy_stream, end, context, if_expr.then_block);
+					auto else_dummy_stream = if_expr.else_block.src_tokens.end;
+					if (else_dummy_stream != nullptr)
+					{
+						consume_semi_colon_at_end_of_expression(else_dummy_stream, end, context, if_expr.else_block);
+					}
+				}
+				else
+				{
+					bz_assert(expr.src_tokens.end == stream);
+					context.assert_token(stream, lex::token::semi_colon);
+				}
+			},
+			[&](ast::expr_if_consteval const &if_expr) {
 				if (expr.paren_level == 0)
 				{
 					auto if_dummy_stream = if_expr.then_block.src_tokens.end;
@@ -238,6 +272,11 @@ ast::expression parse_if_expression(
 	bz_assert(stream->kind == lex::token::kw_if);
 	auto const begin = stream;
 	++stream; // 'if'
+	auto const is_if_consteval = stream != end && stream->kind == lex::token::kw_consteval;
+	if (is_if_consteval)
+	{
+		++stream; // 'consteval'
+	}
 	auto condition = parse_parenthesized_condition(stream, end, context);
 	auto then_block = parse_expression_without_semi_colon(stream, end, context, precedence{});
 	if (
@@ -269,14 +308,18 @@ ast::expression parse_if_expression(
 			consume_semi_colon_at_end_of_expression(stream, end, context, then_block);
 			return ast::make_unresolved_expression(
 				src_tokens,
-				ast::make_unresolved_expr_if(std::move(condition), std::move(then_block))
+				is_if_consteval
+					? ast::make_unresolved_expr_if_consteval(std::move(condition), std::move(then_block))
+					: ast::make_unresolved_expr_if(std::move(condition), std::move(then_block))
 			);
 		}
 		else
 		{
 			return ast::make_error_expression(
 				src_tokens,
-				ast::make_expr_if(std::move(condition), std::move(then_block))
+				is_if_consteval
+					? ast::make_expr_if_consteval(std::move(condition), std::move(then_block))
+					: ast::make_expr_if(std::move(condition), std::move(then_block))
 			);
 		}
 	}
@@ -284,7 +327,9 @@ ast::expression parse_if_expression(
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
-			ast::make_unresolved_expr_if(std::move(condition), std::move(then_block), std::move(else_block))
+			is_if_consteval
+				? ast::make_unresolved_expr_if_consteval(std::move(condition), std::move(then_block), std::move(else_block))
+				: ast::make_unresolved_expr_if(std::move(condition), std::move(then_block), std::move(else_block))
 		);
 	}
 	else
@@ -292,7 +337,9 @@ ast::expression parse_if_expression(
 		bz_assert(context.has_errors());
 		return ast::make_error_expression(
 			src_tokens,
-			ast::make_expr_if(std::move(condition), std::move(then_block), std::move(else_block))
+			is_if_consteval
+				? ast::make_expr_if_consteval(std::move(condition), std::move(then_block), std::move(else_block))
+				: ast::make_expr_if(std::move(condition), std::move(then_block), std::move(else_block))
 		);
 	}
 }

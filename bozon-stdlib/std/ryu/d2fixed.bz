@@ -100,7 +100,7 @@ function append_n_digits(olength: uint32, digits: uint32, result: *uint8)
 	}
 	else
 	{
-		*result = ('0' + digits) as uint32 as uint8;
+		*result = ('0' + digits) as uint8;
 	}
 }
 
@@ -133,13 +133,13 @@ function append_d_digits(olength: uint32, digits: uint32, result: *uint8)
 	{
 		const c = digits << 1;
 		*(result + 2) = DIGIT_TABLE[c + 1u];
-		*(result + 1) = '.' as uint32 as uint8;
+		*(result + 1) = '.' as uint8;
 		*(result + 0) = DIGIT_TABLE[c];
 	}
 	else
 	{
-		*(result + 1) = '.' as uint32 as uint8;
-		*(result + 0) = ('0' + digits) as uint32 as uint8;
+		*(result + 1) = '.' as uint8;
+		*(result + 0) = ('0' + digits) as uint8;
 	}
 }
 
@@ -159,7 +159,7 @@ function append_c_digits(count: uint32, digits: uint32, result: *uint8)
 	if (i < count)
 	{
 		const c = '0' + (digits % 10u);
-		*(result + count - i - 1) = c as uint32 as uint8;
+		*(result + count - i - 1) = c as uint8;
 	}
 }
 
@@ -169,7 +169,7 @@ function append_nine_digits(digits: uint32, result: *uint8)
 {
 	if (digits == 0u)
 	{
-		memset(result, '0' as uint32 as uint8, 9u);
+		memset(result, '0' as uint8, 9u);
 		return;
 	}
 
@@ -183,7 +183,7 @@ function append_nine_digits(digits: uint32, result: *uint8)
 		memcpy(result + 7 - i, DIGIT_TABLE.begin() + c0, 2u);
 		memcpy(result + 5 - i, DIGIT_TABLE.begin() + c1, 2u);
 	}
-	*result = ('0' + digits) as uint32 as uint8;
+	*result = ('0' + digits) as uint8;
 }
 
 function indexForExponent(e: uint32) -> uint32
@@ -211,7 +211,7 @@ function copy_special_str_printf(result: *uint8, sign: bool, mantissa: uint64) -
 	}
 	if (sign)
 	{
-		*result = '-' as uint32 as uint8;
+		*result = '-' as uint8;
 	}
 	memcpy(result + sign as uint32, "Infinity".begin_ptr(), "Infinity".size());
 	return sign as int32 + 8;
@@ -236,16 +236,16 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 		let index = 0;
 		if (ieeeSign)
 		{
-			*(result + index) = '-' as uint32 as uint8;
+			*(result + index) = '-' as uint8;
 			++index;
 		}
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 		if (precision > 0u)
 		{
-			*(result + index) = '.' as uint32 as uint8;
+			*(result + index) = '.' as uint8;
 			++index;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		return index;
@@ -268,7 +268,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 	let nonzero = false;
 	if (ieeeSign)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 	}
 	if (e2 >= -52)
@@ -298,12 +298,12 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 	}
 	if (!nonzero)
 	{
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 	}
 	if (precision > 0u)
 	{
-		*(result + index) = '.' as uint32 as uint8;
+		*(result + index) = '.' as uint8;
 		++index;
 	}
 	if (e2 < 0)
@@ -316,13 +316,13 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 		if (blocks <= MIN_BLOCK_2[idx])
 		{
 			i = blocks;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		else if (i < MIN_BLOCK_2[idx])
 		{
 			i = MIN_BLOCK_2[idx];
-			memset(result + index, '0' as uint32 as uint8, 9u * i);
+			memset(result + index, '0' as uint8, 9u * i);
 			index += 9 * i as int32;
 		}
 		for (; i < blocks; ++i)
@@ -334,7 +334,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 				// If the remaining digits are all 0, then we might as well use memset.
 				// No rounding required in this case.
 				const fill = precision - 9u * i;
-				memset(result + index, '0' as uint32 as uint8, fill);
+				memset(result + index, '0' as uint8, fill);
 				index += fill as int32;
 				break;
 			}
@@ -390,15 +390,15 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 			{
 				--roundIndex;
 				let c: char;
-				if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+				if (roundIndex == -1 || (c = *(result + roundIndex) as char, c == '-'))
 				{
-					*(result + roundIndex + 1) = '1' as uint32 as uint8;
+					*(result + roundIndex + 1) = '1' as uint8;
 					if (dotIndex > 0)
 					{
-						*(result + dotIndex) = '0' as uint32 as uint8;
-						*(result + dotIndex + 1) = '.' as uint32 as uint8;
+						*(result + dotIndex) = '0' as uint8;
+						*(result + dotIndex + 1) = '.' as uint8;
 					}
-					*(result + index) = '0' as uint32 as uint8;
+					*(result + index) = '0' as uint8;
 					++index;
 					break;
 				}
@@ -409,7 +409,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 				}
 				else if (c == '9')
 				{
-					*(result + roundIndex) = '0' as uint32 as uint8;
+					*(result + roundIndex) = '0' as uint8;
 					roundUp = 1;
 					continue;
 				}
@@ -418,7 +418,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 					if (roundUp == 2 && c as int32 % 2 == 0) {
 						break;
 					}
-					*(result + roundIndex) = (c + 1) as uint32 as uint8;
+					*(result + roundIndex) = (c + 1) as uint8;
 					break;
 				}
 			}
@@ -426,7 +426,7 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 	}
 	else
 	{
-		memset(result + index, '0' as uint32 as uint8, precision);
+		memset(result + index, '0' as uint8, precision);
 		index += precision as int32;
 	}
 	return index;
@@ -435,14 +435,14 @@ export function d2fixed_buffered_n(d: float64, precision: uint32, result: *uint8
 export function d2fixed_buffered(d: float64, precision: uint32, result: *uint8)
 {
 	const len = d2fixed_buffered_n(d, precision, result);
-	*(result + len) = '\x00' as uint32 as uint8;
+	*(result + len) = '\x00' as uint8;
 }
 
 export function d2fixed(d: float64, precision: uint32) -> *uint8
 {
 	const buffer = __builtin_pointer_cast(*uint8, libc::malloc(2000u));
 	const index = d2fixed_buffered_n(d, precision, buffer);
-	*(buffer + index) = '\x00' as uint32 as uint8;
+	*(buffer + index) = '\x00' as uint8;
 	return buffer;
 }
 
@@ -467,16 +467,16 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 		let index = 0;
 		if (ieeeSign)
 		{
-			*(result + index) = '-' as uint32 as uint8;
+			*(result + index) = '-' as uint8;
 			++index;
 		}
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 		if (precision > 0u)
 		{
-			*(result + index) = '.' as uint32 as uint8;
+			*(result + index) = '.' as uint8;
 			++index;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		memcpy(result + index, "e+00".begin_ptr(), 4u);
@@ -502,7 +502,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	let index = 0;
 	if (ieeeSign)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 	}
 	let digits = 0u32;
 	let printedDigits = 0u32;
@@ -545,7 +545,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 				}
 				else
 				{
-					*(result + index) = ('0' + digits) as uint32 as uint8;
+					*(result + index) = ('0' + digits) as uint8;
 					++index;
 				}
 				printedDigits = availableDigits;
@@ -597,7 +597,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 				}
 				else
 				{
-					*(result + index) = ('0' + digits) as uint32 as uint8;
+					*(result + index) = ('0' + digits) as uint8;
 					++index;
 				}
 				printedDigits = availableDigits;
@@ -652,7 +652,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	{
 		if (digits == 0u)
 		{
-			memset(result + index, '0' as uint32 as uint8, maximum);
+			memset(result + index, '0' as uint8, maximum);
 		}
 		else
 		{
@@ -669,7 +669,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 		}
 		else
 		{
-			*(result + index) = ('0' + digits) as uint32 as uint8;
+			*(result + index) = ('0' + digits) as uint8;
 			++index;
 		}
 	}
@@ -680,9 +680,9 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 		{
 			--roundIndex;
 			let c: char;
-			if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+			if (roundIndex == -1 || (c = *(result + roundIndex) as char, c == '-'))
 			{
-				*(result + roundIndex + 1) = '1' as uint32 as uint8;
+				*(result + roundIndex + 1) = '1' as uint8;
 				++exp;
 				break;
 			}
@@ -692,7 +692,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 			}
 			else if (c == '9')
 			{
-				*(result + roundIndex) = '0' as uint32 as uint8;
+				*(result + roundIndex) = '0' as uint8;
 				roundUp = 1;
 				continue;
 			}
@@ -702,22 +702,22 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 				{
 					break;
 				}
-				*(result + roundIndex) = (c + 1) as uint32 as uint8;
+				*(result + roundIndex) = (c + 1) as uint8;
 				break;
 			}
 		}
 	}
-	*(result + index) = 'e' as uint32 as uint8;
+	*(result + index) = 'e' as uint8;
 	++index;
 	if (exp < 0)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 		exp = -exp;
 	}
 	else
 	{
-		*(result + index) = '+' as uint32 as uint8;
+		*(result + index) = '+' as uint8;
 		++index;
 	}
 
@@ -725,7 +725,7 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 	{
 		const c = exp % 10;
 		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
-		*(result + index + 2) = ('0' + c) as uint32 as uint8;
+		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else
@@ -740,14 +740,14 @@ export function d2exp_buffered_n(d: float64, precision: uint32, result: *uint8) 
 export function d2exp_buffered(d: float64, precision: uint32, result: *uint8)
 {
 	const len = d2exp_buffered_n(d, precision, result);
-	*(result + len) = '\x00' as uint32 as uint8;
+	*(result + len) = '\x00' as uint8;
 }
 
 export function d2exp(d: float64, precision: uint32) -> *uint8
 {
 	const buffer = __builtin_pointer_cast(*uint8, libc::malloc(2000u));
 	const index = d2exp_buffered_n(d, precision, buffer);
-	*(buffer + index) = '\x00' as uint32 as uint8;
+	*(buffer + index) = '\x00' as uint8;
 	return buffer;
 }
 
@@ -780,16 +780,16 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 		let index = 0;
 		if (ieeeSign)
 		{
-			*(result + index) = '-' as uint32 as uint8;
+			*(result + index) = '-' as uint8;
 			++index;
 		}
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 		if (precision > 0u && !strip_trailing_zeros)
 		{
-			*(result + index) = '.' as uint32 as uint8;
+			*(result + index) = '.' as uint8;
 			++index;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		return result + index;
@@ -812,7 +812,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 	let nonzero = false;
 	if (ieeeSign)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 	}
 	if (e2 >= -52)
@@ -842,12 +842,12 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 	}
 	if (!nonzero)
 	{
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 	}
 	if (precision > 0u)
 	{
-		*(result + index) = '.' as uint32 as uint8;
+		*(result + index) = '.' as uint8;
 		++index;
 	}
 	if (e2 < 0)
@@ -860,13 +860,13 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 		if (blocks <= MIN_BLOCK_2[idx])
 		{
 			i = blocks;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		else if (i < MIN_BLOCK_2[idx])
 		{
 			i = MIN_BLOCK_2[idx];
-			memset(result + index, '0' as uint32 as uint8, 9u * i);
+			memset(result + index, '0' as uint8, 9u * i);
 			index += 9 * i as int32;
 		}
 		for (; i < blocks; ++i)
@@ -878,7 +878,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 				// If the remaining digits are all 0, then we might as well use memset.
 				// No rounding required in this case.
 				const fill = precision - 9u * i;
-				memset(result + index, '0' as uint32 as uint8, fill);
+				memset(result + index, '0' as uint8, fill);
 				index += fill as int32;
 				break;
 			}
@@ -934,15 +934,15 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 			{
 				--roundIndex;
 				let c: char;
-				if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+				if (roundIndex == -1 || (c = *(result + roundIndex) as char, c == '-'))
 				{
-					*(result + roundIndex + 1) = '1' as uint32 as uint8;
+					*(result + roundIndex + 1) = '1' as uint8;
 					if (dotIndex > 0)
 					{
-						*(result + dotIndex) = '0' as uint32 as uint8;
-						*(result + dotIndex + 1) = '.' as uint32 as uint8;
+						*(result + dotIndex) = '0' as uint8;
+						*(result + dotIndex + 1) = '.' as uint8;
 					}
-					*(result + index) = '0' as uint32 as uint8;
+					*(result + index) = '0' as uint8;
 					++index;
 					break;
 				}
@@ -953,7 +953,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 				}
 				else if (c == '9')
 				{
-					*(result + roundIndex) = '0' as uint32 as uint8;
+					*(result + roundIndex) = '0' as uint8;
 					roundUp = 1;
 					continue;
 				}
@@ -962,7 +962,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 					if (roundUp == 2 && c as int32 % 2 == 0) {
 						break;
 					}
-					*(result + roundIndex) = (c + 1) as uint32 as uint8;
+					*(result + roundIndex) = (c + 1) as uint8;
 					break;
 				}
 			}
@@ -970,7 +970,7 @@ export function d2fixed_short(d: float64, precision: uint32, result: *uint8, str
 	}
 	else if (!strip_trailing_zeros)
 	{
-		memset(result + index, '0' as uint32 as uint8, precision);
+		memset(result + index, '0' as uint8, precision);
 		index += precision as int32;
 	}
 	if (strip_trailing_zeros)
@@ -1012,16 +1012,16 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		let index = 0;
 		if (ieeeSign)
 		{
-			*(result + index) = '-' as uint32 as uint8;
+			*(result + index) = '-' as uint8;
 			++index;
 		}
-		*(result + index) = '0' as uint32 as uint8;
+		*(result + index) = '0' as uint8;
 		++index;
 		if (precision > 0u)
 		{
-			*(result + index) = '.' as uint32 as uint8;
+			*(result + index) = '.' as uint8;
 			++index;
-			memset(result + index, '0' as uint32 as uint8, precision);
+			memset(result + index, '0' as uint8, precision);
 			index += precision as int32;
 		}
 		if (capital_e)
@@ -1054,7 +1054,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	let index = 0;
 	if (ieeeSign)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 	}
 	let digits = 0u32;
@@ -1098,7 +1098,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 				}
 				else
 				{
-					*(result + index) = ('0' + digits) as uint32 as uint8;
+					*(result + index) = ('0' + digits) as uint8;
 					++index;
 				}
 				printedDigits = availableDigits;
@@ -1150,7 +1150,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 				}
 				else
 				{
-					*(result + index) = ('0' + digits) as uint32 as uint8;
+					*(result + index) = ('0' + digits) as uint8;
 					++index;
 				}
 				printedDigits = availableDigits;
@@ -1205,7 +1205,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	{
 		if (digits == 0u)
 		{
-			memset(result + index, '0' as uint32 as uint8, maximum);
+			memset(result + index, '0' as uint8, maximum);
 		}
 		else
 		{
@@ -1222,7 +1222,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		}
 		else
 		{
-			*(result + index) = ('0' + digits) as uint32 as uint8;
+			*(result + index) = ('0' + digits) as uint8;
 			++index;
 		}
 	}
@@ -1233,9 +1233,9 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 		{
 			--roundIndex;
 			let c: char;
-			if (roundIndex == -1 || (c = *(result + roundIndex) as uint32 as char, c == '-'))
+			if (roundIndex == -1 || (c = *(result + roundIndex) as char, c == '-'))
 			{
-				*(result + roundIndex + 1) = '1' as uint32 as uint8;
+				*(result + roundIndex + 1) = '1' as uint8;
 				++exp;
 				break;
 			}
@@ -1245,7 +1245,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 			}
 			else if (c == '9')
 			{
-				*(result + roundIndex) = '0' as uint32 as uint8;
+				*(result + roundIndex) = '0' as uint8;
 				roundUp = 1;
 				continue;
 			}
@@ -1255,7 +1255,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 				{
 					break;
 				}
-				*(result + roundIndex) = (c + 1) as uint32 as uint8;
+				*(result + roundIndex) = (c + 1) as uint8;
 				break;
 			}
 		}
@@ -1274,22 +1274,22 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	}
 	if (capital_e)
 	{
-		*(result + index) = 'E' as uint32 as uint8;
+		*(result + index) = 'E' as uint8;
 	}
 	else
 	{
-		*(result + index) = 'e' as uint32 as uint8;
+		*(result + index) = 'e' as uint8;
 	}
 	++index;
 	if (exp < 0)
 	{
-		*(result + index) = '-' as uint32 as uint8;
+		*(result + index) = '-' as uint8;
 		++index;
 		exp = -exp;
 	}
 	else
 	{
-		*(result + index) = '+' as uint32 as uint8;
+		*(result + index) = '+' as uint8;
 		++index;
 	}
 
@@ -1297,7 +1297,7 @@ export function d2exp_short(d: float64, precision: uint32, result: *uint8, capit
 	{
 		const c = exp % 10;
 		memcpy(result + index, DIGIT_TABLE.begin() + 2 * (exp / 10), 2u);
-		*(result + index + 2) = ('0' + c) as uint32 as uint8;
+		*(result + index + 2) = ('0' + c) as uint8;
 		index += 3;
 	}
 	else

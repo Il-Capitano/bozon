@@ -29,7 +29,7 @@ export operator * (it: path_iterator) -> str
 
 export operator ++ (it: &path_iterator) -> &path_iterator
 {
-	while (it._it != it._path_end && *it._it != '/' as uint32 as uint8)
+	while (it._it != it._path_end && *it._it != '/' as uint8)
 	{
 		++it._it;
 	}

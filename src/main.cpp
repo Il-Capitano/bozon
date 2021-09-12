@@ -1574,6 +1574,14 @@ struct foo<...Ts> {} // variadic
 #include "crash_handling.h"
 #include "timer.h"
 
+#ifdef NDEBUG
+// use std::exit instead of returning to avoid LLVM corrupting the heap
+// this happens rarely in debug mode, but is common for release builds
+#define return_from_main(val) std::exit((val))
+#else
+#define return_from_main(val) return (val)
+#endif // NDEBUG
+
 int main(int argc, char const **argv)
 {
 #ifdef __has_feature
@@ -1598,60 +1606,60 @@ int main(int argc, char const **argv)
 	if (!global_ctx.parse_command_line(argc, argv))
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 1;
+		return_from_main(1);
 	}
 	auto const after_command_line_parsing = timer::now();
 
 	if (compile_until <= compilation_phase::parse_command_line)
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 0;
+		return_from_main(0);
 	}
 
 	if (!global_ctx.initialize_llvm())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 2;
+		return_from_main(2);
 	}
 	if (!global_ctx.initialize_builtins())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 2;
+		return_from_main(2);
 	}
 
 	auto const before_parse_global_symbols = timer::now();
 	if (!global_ctx.parse_global_symbols())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 3;
+		return_from_main(3);
 	}
 	auto const after_parse_global_symbols = timer::now();
 
 	if (compile_until <= compilation_phase::parse_global_symbols)
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 0;
+		return_from_main(0);
 	}
 
 	auto const before_parse = timer::now();
 	if (!global_ctx.parse())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 4;
+		return_from_main(4);
 	}
 	auto const after_parse = timer::now();
 
 	if (compile_until <= compilation_phase::parse)
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 0;
+		return_from_main(0);
 	}
 
 	auto const before_bitcode_emission = timer::now();
 	if (!global_ctx.emit_bitcode())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 5;
+		return_from_main(5);
 	}
 	auto const after_bitcode_emission = timer::now();
 
@@ -1663,7 +1671,7 @@ int main(int argc, char const **argv)
 	if (!global_ctx.optimize())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 6;
+		return_from_main(6);
 	}
 	auto const after_optimization = timer::now();
 
@@ -1671,14 +1679,14 @@ int main(int argc, char const **argv)
 	if (!global_ctx.emit_file())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 7;
+		return_from_main(7);
 	}
 	auto const after_file_emission = timer::now();
 
 	if (compile_until <= compilation_phase::emit_bitcode)
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
-		return 0;
+		return_from_main(0);
 	}
 
 	auto const end = timer::now();
@@ -1706,11 +1714,5 @@ int main(int argc, char const **argv)
 		bz::print("file emission time:       {:8.3f}ms\n", in_ms(file_emission_time));
 	}
 
-#ifdef NDEBUG
-	// use std::exit instead of returning to avoid LLVM corrupting the heap
-	// this happens rarely in debug mode, but is common for release builds
-	std::exit(0);
-#endif
-
-	return 0;
+	return_from_main(0);
 }

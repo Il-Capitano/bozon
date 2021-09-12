@@ -10,7 +10,7 @@ import meta::comptime;
 @no_comptime_checking
 function print_ascii_char(c: char)
 {
-	const c_int_val = c as uint32 as uint8;
+	const c_int_val = c as uint8;
 	std::print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
 }
 
@@ -389,7 +389,7 @@ export function resize(self: &string, new_size: usize, c: char)
 		const old_end = self.end_ptr();
 		const size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		memset(old_end, c as uint32 as uint8, size_diff);
+		memset(old_end, c as uint8, size_diff);
 	}
 	else
 	{
@@ -397,7 +397,7 @@ export function resize(self: &string, new_size: usize, c: char)
 		const old_end = self.end_ptr();
 		const size_diff = new_size - self.size();
 		self.set_size_unsafe(new_size);
-		memset(old_end, c as uint32 as uint8, size_diff);
+		memset(old_end, c as uint8, size_diff);
 	}
 }
 

@@ -16,7 +16,7 @@ function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint
 	let result: [[max_uint_string_length: uint8], uint32];
 	if (n < 10u)
 	{
-		result[0, max_uint_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[0, max_uint_string_length - 1u] = ('0' + n) as uint8;
 		result[1] = 1u;
 	}
 	else
@@ -27,7 +27,7 @@ function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint
 			const digit = n % 10u;
 			n /= 10u;
 			--it;
-			*it = ('0' + digit) as uint32 as uint8;
+			*it = ('0' + digit) as uint8;
 		}
 		result[1] = (result[0].end() - it) as uint32;
 	}
@@ -43,7 +43,7 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 	let result: [[max_int_string_length: uint8], uint32];
 	if (n < 10u)
 	{
-		result[0, max_int_string_length - 1u] = ('0' + n) as uint32 as uint8;
+		result[0, max_int_string_length - 1u] = ('0' + n) as uint8;
 		result[1] = 1u;
 	}
 	else
@@ -54,13 +54,13 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 			const digit = n % 10u;
 			n /= 10u;
 			--it;
-			*it = ('0' + digit) as uint32 as uint8;
+			*it = ('0' + digit) as uint8;
 		}
 		result[1] = (result[0].end() - it) as uint32;
 	}
 	if (is_negative)
 	{
-		*(result[0].end() - result[1] - 1u) = '-' as uint32 as uint8;
+		*(result[0].end() - result[1] - 1u) = '-' as uint8;
 		++result[1];
 	}
 	return result;
@@ -84,7 +84,7 @@ function println = __builtin_println_stdout;
 
 function print_ascii_char(c: char)
 {
-	const c_int_val = c as uint32 as uint8;
+	const c_int_val = c as uint8;
 	print(__builtin_str_from_ptrs(&c_int_val, &c_int_val + 1));
 }
 

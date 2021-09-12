@@ -83,8 +83,13 @@ function main(args: [: const str]) -> int32
 	static_assert(typeof foo_t.inner_var == const int32);
 	static_assert(foo_t.inner_var == 0);
 	static_assert(foo_t.asdf == int32);
-	// consteval val = (foo_t.inner_t)();
-	// static_assert(val.inner_n == 0 && val.inner_s == "");
+	consteval val = (foo_t.inner_t)();
+	static_assert(val.inner_n == 0 && val.inner_s == "");
+
+	(consteval {
+		let res = (foo_t.inner_t)();
+		res
+	});
 
 	(foo_t.foo)();
 	(foo_t.foo)(3);
@@ -441,15 +446,28 @@ function main(args: [: const str]) -> int32
 	});
 
 	std::printf(
-		"this is a very long message with {} arguments: {} {} {} {}",
+		"this is a very long message with {} arguments: {} {} {} {}\n",
 		"a lot of", 3, 2.124, [ "Hello", "World" ], [[3: int32]]()
 	);
+
+	std::printf("{:%}\n", 1.2345);
+	std::printf("{:%}\n", 12.345);
+	std::printf("{:%}\n", 0.005);
+
+	if consteval (std::format("{}", 12) == "12")
+	{
+	}
+	else
+	{
+		static_assert(std::format("{}", 12) == "13");
+	}
 
 	// consteval x = std::sqrt(-1.0);
 
 	// (consteval std::assert(false));
 
-	// const n = if (std::format("{}", 12) == "12") { 1 } else { unreachable };
+	@maybe_unused
+	const n = if (std::format("{}", 12) == "12") { 1 } else { unreachable };
 
 	const n = 3;
 	@maybe_unused const n = switch (n) {
@@ -1490,6 +1508,7 @@ function complex_test()
 	type_test(uint32, 2);
 	type_test(float32, 1);
 	// type_test(str, 1);
+	int32.type_test(3);
 	static_assert(typeof type_test(char, 10) == char);
 }
 

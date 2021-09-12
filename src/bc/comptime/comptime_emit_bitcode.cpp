@@ -3932,22 +3932,19 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			// this is a cast from i32 to i32 in IR, so we return the original value
-			bz_assert((
-				expr_kind == ast::type_info::char_
-				&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
-			)
-			|| (
-				(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
-				&& dest_kind == ast::type_info::char_
-			));
+			// this is a cast from i32 or to i32 in IR, so we emit an integer cast
+			bz_assert(
+				(expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
+				|| ( ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
+			);
+			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, ast::is_signed_integer_kind(expr_kind), "cast_tmp");
 			if (result_address == nullptr)
 			{
-				return { val_ptr::value, expr };
+				return { val_ptr::value, res };
 			}
 			else
 			{
-				context.builder.CreateStore(expr, result_address);
+				context.builder.CreateStore(res, result_address);
 				return { val_ptr::reference, result_address };
 			}
 		}
@@ -4415,6 +4412,32 @@ static val_ptr emit_bitcode(
 		result->addIncoming(then_val_value, then_bb_end);
 		result->addIncoming(else_val_value, else_bb_end);
 		return { val_ptr::value, result };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	[[maybe_unused]] lex::src_tokens src_tokens,
+	ast::expr_if_consteval const &if_expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(if_expr.condition.is<ast::constant_expression>());
+	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(condition_value.is<ast::constant_value::boolean>());
+	if (condition_value.get<ast::constant_value::boolean>())
+	{
+		return emit_bitcode<abi>(if_expr.then_block, context, result_address);
+	}
+	else if (if_expr.else_block.not_null())
+	{
+		return emit_bitcode<abi>(if_expr.else_block, context, result_address);
+	}
+	else
+	{
+		bz_assert(result_address == nullptr);
+		return {};
 	}
 }
 
@@ -5448,22 +5471,9 @@ static llvm::Function *create_function_from_symbol_impl(
 		return llvm::FunctionType::get(real_result_t, llvm::ArrayRef(args.data(), args.size()), false);
 	}();
 
-	// bz_assert(func_body.symbol_name != "");
-	auto const name_string = [&]() -> bz::u8string {
-		if (func_body.symbol_name != "")
-		{
-			return func_body.symbol_name;
-		}
-		else if (func_body.function_name_or_operator_kind.is<ast::identifier>())
-		{
-			return func_body.function_name_or_operator_kind.get<ast::identifier>().as_string();
-		}
-		else
-		{
-			return bz::format("operator.{}", func_body.function_name_or_operator_kind.get<uint32_t>());
-		}
-	}();
-	auto const name = llvm::StringRef(name_string.data_as_char_ptr(), name_string.size());
+	bz_assert(func_body.symbol_name != "");
+	auto const name_string = func_body.symbol_name.as_string_view();
+	auto const name = llvm::StringRef(name_string.data(), name_string.size());
 
 	auto const linkage = llvm::Function::ExternalLinkage;
 
@@ -5963,6 +5973,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	ctx::comptime_executor_context &context
 )
 {
+	bz_assert(!body->has_builtin_implementation());
 	auto const called_fn = context.get_function(body);
 	bz_assert(called_fn != nullptr);
 

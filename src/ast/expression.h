@@ -29,6 +29,7 @@ struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
 struct expr_if;
+struct expr_if_consteval;
 struct expr_switch;
 struct expr_break;
 struct expr_continue;
@@ -58,6 +59,7 @@ using expr_t = node<
 	expr_type_member_access,
 	expr_compound,
 	expr_if,
+	expr_if_consteval,
 	expr_switch,
 	expr_break,
 	expr_continue
@@ -75,6 +77,7 @@ using unresolved_expr_t = node<
 	expr_unresolved_member_access,
 	expr_compound,
 	expr_if,
+	expr_if_consteval,
 	expr_switch,
 	expr_unresolved_array_type
 >;
@@ -540,6 +543,34 @@ struct expr_if
 	{}
 };
 
+struct expr_if_consteval
+{
+	expression condition;
+	expression then_block;
+	expression else_block;
+
+	declare_default_5(expr_if_consteval)
+
+	expr_if_consteval(
+		expression _condition,
+		expression _then_block,
+		expression _else_block
+	)
+		: condition (std::move(_condition)),
+		  then_block(std::move(_then_block)),
+		  else_block(std::move(_else_block))
+	{}
+
+	expr_if_consteval(
+		expression _condition,
+		expression _then_block
+	)
+		: condition (std::move(_condition)),
+		  then_block(std::move(_then_block)),
+		  else_block()
+	{}
+};
+
 struct switch_case
 {
 	arena_vector<expression> values;
@@ -716,6 +747,7 @@ def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
 def_make_fn(expr_t, expr_if)
+def_make_fn(expr_t, expr_if_consteval)
 def_make_fn(expr_t, expr_switch)
 def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
@@ -738,6 +770,7 @@ def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_cast)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_member_access)
 def_make_unresolved_fn(unresolved_expr_t, expr_compound)
 def_make_unresolved_fn(unresolved_expr_t, expr_if)
+def_make_unresolved_fn(unresolved_expr_t, expr_if_consteval)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
 

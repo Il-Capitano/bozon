@@ -90,7 +90,7 @@ export function copy_special_str(result: *uint8, sign: bool, exponent: bool, man
 	}
 	if (sign)
 	{
-		*result = '-' as uint32 as uint8;
+		*result = '-' as uint8;
 	}
 	if (exponent)
 	{
@@ -131,7 +131,7 @@ export function copy_short_special_str(result: *uint8, sign: bool, exponent: boo
 
 	if (sign)
 	{
-		*result = '-' as uint32 as uint8;
+		*result = '-' as uint8;
 		++result;
 	}
 	if (exponent)

@@ -2637,22 +2637,13 @@ static match_level_t get_type_match_level(
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
-		if (ast::is_complete(dest))
+		if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
 		{
-			auto then_result = get_type_match_level(dest, if_expr.then_block, context);
-			auto else_result = get_type_match_level(dest, if_expr.else_block, context);
-			if (then_result.is_null() || else_result.is_null())
-			{
-				return match_level_t{};
-			}
-			else if (then_result < else_result)
-			{
-				return then_result;
-			}
-			else
-			{
-				return else_result;
-			}
+			return get_type_match_level(dest, if_expr.else_block, context);
+		}
+		else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+		{
+			return get_type_match_level(dest, if_expr.then_block, context);
 		}
 		else
 		{
@@ -2662,18 +2653,14 @@ static match_level_t get_type_match_level(
 			{
 				return match_level_t{};
 			}
-
-			if (ast::is_complete(dest))
+			else if (ast::is_complete(dest))
 			{
-				// return the worse match
-				if (then_result < else_result)
-				{
-					return then_result;
-				}
-				else
-				{
-					return else_result;
-				}
+				match_level_t result;
+				auto &vec = result.emplace<bz::vector<match_level_t>>();
+				vec.reserve(2);
+				vec.push_back(std::move(then_result));
+				vec.push_back(std::move(else_result));
+				return result;
 			}
 
 			ast::typespec then_matched_type = dest;
@@ -2777,8 +2764,7 @@ static match_level_t get_type_match_level(
 			}
 		}
 
-		// return the worst match
-		return case_match_levels.min(case_match_levels[0]);
+		return match_level_t(std::move(case_match_levels));
 	}
 	else if (expr.is_typename())
 	{
@@ -3549,7 +3535,17 @@ static void match_expression_to_type_impl(
 	if (expr.is_if_expr())
 	{
 		auto &if_expr = expr.get_if_expr();
-		if (ast::is_complete(dest))
+		if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
+		{
+			match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
+			return;
+		}
+		else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+		{
+			match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
+			return;
+		}
+		else if (ast::is_complete(dest))
 		{
 			match_expression_to_type_impl(if_expr.then_block, dest_container, dest, context);
 			match_expression_to_type_impl(if_expr.else_block, dest_container, dest, context);
@@ -3565,10 +3561,8 @@ static void match_expression_to_type_impl(
 			if (then_matched_type.is_empty() || else_matched_type.is_empty())
 			{
 				expr.to_error();
-				if (!ast::is_complete(dest_container))
-				{
-					dest_container.clear();
-				}
+				bz_assert(!ast::is_complete(dest_container));
+				dest_container.clear();
 				return;
 			}
 
@@ -3935,7 +3929,7 @@ static void match_expression_to_type_impl(
 		parse::consteval_try(expr, context);
 		if (!expr.is<ast::constant_expression>())
 		{
-			context.report_error(expr, "expression must be a constant expression");
+			context.report_error(expr, "expression must be a constant expression", parse::get_consteval_fail_notes(expr));
 			if (!ast::is_complete(dest_container))
 			{
 				dest_container.clear();
@@ -5012,7 +5006,9 @@ ast::expression parse_context::make_function_call_expression(
 		if (called_type.is<ast::ts_base_type>())
 		{
 			auto const info = called_type.get<ast::ts_base_type>().info;
+			this->add_to_resolve_queue(called.src_tokens, *info);
 			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
 			auto const possible_funcs = info->constructors
 				.transform([&](auto const &ptr) {
 					return possible_func_t{ get_function_call_match_level({}, *ptr, args, *this, src_tokens), {}, ptr };
@@ -6236,6 +6232,7 @@ ast::constant_value parse_context::execute_function(
 		body,
 		params
 	);
+	// bz_assert(errors.not_empty() || result.not_null() || this->has_errors());
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())
 	{

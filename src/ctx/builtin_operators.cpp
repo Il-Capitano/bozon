@@ -3344,10 +3344,7 @@ ast::expression make_builtin_cast(
 				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
-		else if (
-			expr_kind == ast::type_info::char_
-			&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
-		)
+		else if (expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
 		{
 			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(
@@ -3357,10 +3354,7 @@ ast::expression make_builtin_cast(
 				ast::make_expr_cast(std::move(expr), std::move(dest_type))
 			);
 		}
-		else if (
-			(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
-			&& dest_kind == ast::type_info::char_
-		)
+		else if (ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
 		{
 			ast::typespec dest_t_copy = dest_t;
 			return ast::make_dynamic_expression(

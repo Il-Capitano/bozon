@@ -3227,22 +3227,19 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			// this is a cast from i32 to i32 in IR, so we return the original value
-			bz_assert((
-				expr_kind == ast::type_info::char_
-				&& (dest_kind == ast::type_info::uint32_ || dest_kind == ast::type_info::int32_)
-			)
-			|| (
-				(expr_kind == ast::type_info::uint32_ || expr_kind == ast::type_info::int32_)
-				&& dest_kind == ast::type_info::char_
-			));
+			// this is a cast from i32 or to i32 in IR, so we emit an integer cast
+			bz_assert(
+				(expr_kind == ast::type_info::char_ && ast::is_integer_kind(dest_kind))
+				|| ( ast::is_integer_kind(expr_kind) && dest_kind == ast::type_info::char_)
+			);
+			auto const res = context.builder.CreateIntCast(expr, llvm_dest_t, ast::is_signed_integer_kind(expr_kind), "cast_tmp");
 			if (result_address == nullptr)
 			{
-				return { val_ptr::value, expr };
+				return { val_ptr::value, res };
 			}
 			else
 			{
-				context.builder.CreateStore(expr, result_address);
+				context.builder.CreateStore(res, result_address);
 				return { val_ptr::reference, result_address };
 			}
 		}
@@ -3653,6 +3650,31 @@ static val_ptr emit_bitcode(
 		result->addIncoming(then_val_value, then_bb_end);
 		result->addIncoming(else_val_value, else_bb_end);
 		return { val_ptr::value, result };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	ast::expr_if_consteval const &if_expr,
+	ctx::bitcode_context &context,
+	llvm::Value *result_address
+)
+{
+	bz_assert(if_expr.condition.is<ast::constant_expression>());
+	auto const &condition_value = if_expr.condition.get<ast::constant_expression>().value;
+	bz_assert(condition_value.is<ast::constant_value::boolean>());
+	if (condition_value.get<ast::constant_value::boolean>())
+	{
+		return emit_bitcode<abi>(if_expr.then_block, context, result_address);
+	}
+	else if (if_expr.else_block.not_null())
+	{
+		return emit_bitcode<abi>(if_expr.else_block, context, result_address);
+	}
+	else
+	{
+		bz_assert(result_address == nullptr);
+		return {};
 	}
 }
 
@@ -4991,6 +5013,19 @@ void emit_global_type_symbol(ast::decl_struct const &struct_decl, ctx::bitcode_c
 	default:
 		bz_unreachable;
 	}
+
+	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	{
+		for (
+			auto const &inner_struct_decl :
+			struct_decl.info.body.get<bz::vector<ast::statement>>()
+				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
+		)
+		{
+			emit_global_type_symbol(inner_struct_decl, context);
+		}
+	}
 }
 
 void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
@@ -5014,6 +5049,19 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 	}
 	default:
 		bz_unreachable;
+	}
+
+	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	{
+		for (
+			auto const &inner_struct_decl :
+			struct_decl.info.body.get<bz::vector<ast::statement>>()
+				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
+				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
+		)
+		{
+			emit_global_type(inner_struct_decl, context);
+		}
 	}
 }
 
