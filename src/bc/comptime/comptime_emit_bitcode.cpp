@@ -4590,6 +4590,17 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static val_ptr emit_bitcode(
+	lex::src_tokens,
+	ast::expr_generic_type_instantiation const &,
+	ctx::comptime_executor_context &,
+	llvm::Value *
+)
+{
+	bz_unreachable;
+}
+
+template<abi::platform_abi abi>
 static llvm::Constant *get_value(
 	ast::constant_value const &value,
 	ast::typespec_view type,

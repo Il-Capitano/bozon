@@ -42,7 +42,7 @@ struct constant_value : bz::variant<
 	function_set_t,
 	function_set_t,
 
-	ast::typespec,
+	typespec,
 
 	// structs
 	bz::vector<constant_value>
@@ -64,7 +64,7 @@ struct constant_value : bz::variant<
 		function_set_t,
 		function_set_t,
 
-		ast::typespec,
+		typespec,
 
 		// structs
 		bz::vector<constant_value>
@@ -86,7 +86,7 @@ struct constant_value : bz::variant<
 		function        = base_t::index_of<function_body *>,
 		unqualified_function_set_id,
 		qualified_function_set_id,
-		type            = base_t::index_of<ast::typespec>,
+		type            = base_t::index_of<typespec>,
 		aggregate,
 	};
 

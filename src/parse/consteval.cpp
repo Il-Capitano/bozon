@@ -2971,6 +2971,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
+			bz_unreachable;
+		},
 	});
 }
 
@@ -3299,6 +3302,9 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
+			bz_unreachable;
+		},
 	});
 }
 
@@ -3626,6 +3632,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 		},
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
+		},
+		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
+			bz_unreachable;
 		},
 	});
 }
@@ -4100,6 +4109,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			notes.emplace_back(ctx::parse_context::make_note(
 				expr.src_tokens, "'continue' is not a constant expression"
 			));
+		},
+		[](ast::expr_generic_type_instantiation const &) {
+			bz_unreachable;
 		},
 	});
 }

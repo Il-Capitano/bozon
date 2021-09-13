@@ -1004,6 +1004,12 @@ private:
 	{}
 public:
 
+	bool is_generic(void) const noexcept
+	{ return (this->flags & generic) != 0; }
+
+	bool is_generic_instantiation(void) const noexcept
+	{ return (this->flags & generic_instantiation) != 0; }
+
 	bool is_default_constructible(void) const noexcept
 	{ return (this->flags & default_constructible) != 0; }
 

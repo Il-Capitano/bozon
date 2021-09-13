@@ -154,6 +154,22 @@ void parse_context::pop_parsing_variadic_expansion(bool prev_value) noexcept
 	this->parsing_variadic_expansion = prev_value;
 }
 
+void parse_context::push_parsing_template_argument(void) noexcept
+{
+	++this->parsing_template_argument;
+}
+
+void parse_context::pop_parsing_template_argument(void) noexcept
+{
+	bz_assert(this->parsing_template_argument > 0);
+	--this->parsing_template_argument;
+}
+
+bool parse_context::is_parsing_template_argument(void) const noexcept
+{
+	return this->parsing_template_argument != 0;
+}
+
 bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl)
 {
 	if (!this->variadic_info.is_resolving_variadic)
@@ -1230,9 +1246,12 @@ static ast::expression make_type_expression(
 )
 {
 	auto &info = type->info;
-	context.add_to_resolve_queue(src_tokens, info);
-	resolve::resolve_type_info_symbol(info, context);
-	context.pop_resolve_queue();
+	if (!info.is_generic())
+	{
+		context.add_to_resolve_queue(src_tokens, info);
+		resolve::resolve_type_info_symbol(info, context);
+		context.pop_resolve_queue();
+	}
 	if (info.state != ast::resolve_state::error)
 	{
 		return ast::make_constant_expression(
@@ -5877,6 +5896,33 @@ ast::expression parse_context::make_member_access_expression(
 		result_kind, std::move(result_type),
 		ast::make_expr_member_access(std::move(base), index)
 	);
+}
+
+ast::expression parse_context::make_generic_type_instantiation_expression(
+	lex::src_tokens src_tokens,
+	ast::expression base,
+	ast::arena_vector<ast::expression> args
+)
+{
+	if (
+		base.is_error()
+		|| args.is_any([](auto const &arg) { return arg.is_error(); })
+	)
+	{
+		return ast::make_error_expression(src_tokens);
+	}
+	else if (
+		base.is_unresolved()
+		|| args.is_any([](auto const &arg) { return arg.is_unresolved(); })
+	)
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_generic_type_instantiation(std::move(base), std::move(args))
+		);
+	}
+	this->report_error(src_tokens, "generic type instantiation not yet implemented");
+	return ast::make_error_expression(src_tokens);
 }
 
 void parse_context::match_expression_to_type(
