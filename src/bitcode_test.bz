@@ -78,8 +78,16 @@ struct foo_t
 	function foo(: int32) {}
 }
 
+struct generic_type_test<T: typename>
+{
+	.value: T;
+}
+
 function main(args: [: const str]) -> int32
 {
+	let _n = 0;
+	let [_a, _b] = [ 0, 1 ];
+	// generic_type_test<int32>;
 	static_assert(typeof foo_t.inner_var == const int32);
 	static_assert(foo_t.inner_var == 0);
 	static_assert(foo_t.asdf == int32);

@@ -245,6 +245,11 @@ struct parse_context
 	);
 	// should only be used for generic intrinsic instantiation reporting
 	[[nodiscard]] static source_highlight make_note(bz::u8string message);
+	[[nodiscard]] static source_highlight make_note_with_suggestion_before(
+		lex::src_tokens src_tokens,
+		lex::token_pos it, bz::u8string suggestion,
+		bz::u8string message
+	);
 	[[nodiscard]] static source_highlight make_note_with_suggestion_around(
 		lex::src_tokens src_tokens,
 		lex::token_pos begin, bz::u8string first_suggestion,

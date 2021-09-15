@@ -683,6 +683,35 @@ void parse_context::report_parenthesis_suppressed_warning(
 	}
 }
 
+[[nodiscard]] source_highlight parse_context::make_note_with_suggestion_before(
+	lex::src_tokens src_tokens,
+	lex::token_pos it, bz::u8string suggestion,
+	bz::u8string message
+)
+{
+	bz_assert(it != nullptr);
+	if (src_tokens.pivot == nullptr)
+	{
+		return source_highlight{
+			it->src_pos.file_id, it->src_pos.line,
+			char_pos(), char_pos(), char_pos(),
+			{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion) },
+			{},
+			std::move(message)
+		};
+	}
+	else
+	{
+		return source_highlight{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion) },
+			{},
+			std::move(message)
+		};
+	}
+}
+
 [[nodiscard]] source_highlight parse_context::make_note_with_suggestion_around(
 	lex::src_tokens src_tokens,
 	lex::token_pos begin, bz::u8string first_suggestion,
@@ -871,7 +900,11 @@ void parse_context::remove_scope(void)
 				this->report_warning(
 					warning_kind::unused_variable,
 					*var_decl,
-					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified())
+					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified()),
+					{ this->make_note_with_suggestion_before(
+						{}, var_decl->get_id().tokens.end - 1, "_",
+						"prefix variable name with an underscore to suppress this warning"
+					) }
 				);
 			}
 		}

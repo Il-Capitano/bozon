@@ -110,7 +110,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				// e.g. function foo(a, b,, c) is not allowed
 				context.report_error(stream, "expected an identifier or ':'");
 			}
-			return ast::decl_variable(
+			auto result = ast::decl_variable(
 				{ prototype_begin, id == end ? prototype_begin : id, stream },
 				prototype,
 				ast::var_id_and_type(
@@ -118,6 +118,11 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 					ast::type_as_expression(ast::make_auto_typespec(id))
 				)
 			);
+			if (id->kind == lex::token::identifier && result.get_id().values.back().starts_with('_'))
+			{
+				result.flags |= ast::decl_variable::maybe_unused;
+			}
+			return result;
 		}
 
 		++stream; // ':'
@@ -128,7 +133,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			lex::token::square_close
 		>(stream, end, context);
 
-		return ast::decl_variable(
+		auto result = ast::decl_variable(
 			{ prototype_begin, id, stream },
 			prototype,
 			ast::var_id_and_type(
@@ -136,6 +141,11 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				ast::type_as_expression(ast::make_unresolved_typespec(type))
 			)
 		);
+		if (id->kind == lex::token::identifier && result.get_id().values.back().starts_with('_'))
+		{
+			result.flags |= ast::decl_variable::maybe_unused;
+		}
+		return result;
 	}
 }
 
