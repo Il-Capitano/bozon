@@ -5005,55 +5005,74 @@ void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_conte
 	bz_unreachable;
 }
 
-void emit_global_type_symbol(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
+void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &context)
 {
-	if (context.types_.find(&struct_decl.info) != context.types_.end())
+	if (context.types_.find(&info) != context.types_.end())
 	{
 		return;
 	}
-	switch (struct_decl.info.kind)
+
+	if (info.is_generic())
+	{
+		for (auto const &instantiation : info.generic_instantiations)
+		{
+			emit_global_type_symbol(*instantiation, context);
+		}
+		return;
+	}
+
+	switch (info.kind)
 	{
 	case ast::type_info::forward_declaration:
 	case ast::type_info::aggregate:
 	{
-		auto const name = llvm::StringRef(struct_decl.info.symbol_name.data_as_char_ptr(), struct_decl.info.symbol_name.size());
-		context.add_base_type(&struct_decl.info, llvm::StructType::create(context.get_llvm_context(), name));
+		auto const name = llvm::StringRef(info.symbol_name.data_as_char_ptr(), info.symbol_name.size());
+		context.add_base_type(&info, llvm::StructType::create(context.get_llvm_context(), name));
 		break;
 	}
 	default:
 		bz_unreachable;
 	}
 
-	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	if (info.body.is<bz::vector<ast::statement>>())
 	{
 		for (
 			auto const &inner_struct_decl :
-			struct_decl.info.body.get<bz::vector<ast::statement>>()
+			info.body.get<bz::vector<ast::statement>>()
 				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
 				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
 		)
 		{
-			emit_global_type_symbol(inner_struct_decl, context);
+			emit_global_type_symbol(inner_struct_decl.info, context);
 		}
 	}
 }
 
-void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context &context)
+void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context)
 {
-	auto const type = context.get_base_type(&struct_decl.info);
+	if (info.is_generic())
+	{
+		for (auto const &instantiation : info.generic_instantiations)
+		{
+			emit_global_type(*instantiation, context);
+		}
+		return;
+	}
+
+	auto const type = context.get_base_type(&info);
 	bz_assert(type != nullptr);
 	bz_assert(type->isStructTy());
 	auto const struct_type = static_cast<llvm::StructType *>(type);
-	switch (struct_decl.info.kind)
+	switch (info.kind)
 	{
 	case ast::type_info::forward_declaration:
 		// there's nothing to do
 		return;
 	case ast::type_info::aggregate:
 	{
-		auto const types = struct_decl.info.member_variables
+		auto const types = info.member_variables
 			.transform([&](auto const &member) { return get_llvm_type(member->get_type(), context); })
-			.collect();
+			.collect<ast::arena_vector>();
 		struct_type->setBody(llvm::ArrayRef<llvm::Type *>(types.data(), types.size()));
 		break;
 	}
@@ -5061,16 +5080,16 @@ void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context 
 		bz_unreachable;
 	}
 
-	if (struct_decl.info.body.is<bz::vector<ast::statement>>())
+	if (info.body.is<bz::vector<ast::statement>>())
 	{
 		for (
 			auto const &inner_struct_decl :
-			struct_decl.info.body.get<bz::vector<ast::statement>>()
+			info.body.get<bz::vector<ast::statement>>()
 				.filter([](auto const &stmt) { return stmt.template is<ast::decl_struct>(); })
 				.transform([](auto const &stmt) -> auto const & { return stmt.template get<ast::decl_struct>(); })
 		)
 		{
-			emit_global_type(inner_struct_decl, context);
+			emit_global_type(inner_struct_decl.info, context);
 		}
 	}
 }

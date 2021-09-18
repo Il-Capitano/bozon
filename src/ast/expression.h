@@ -613,7 +613,11 @@ struct expr_continue
 
 struct expr_generic_type_instantiation
 {
-	type_info *type;
+	type_info *info;
+
+	expr_generic_type_instantiation(type_info *_info)
+		: info(_info)
+	{}
 };
 
 

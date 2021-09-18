@@ -770,11 +770,11 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type_symbol(*struct_decl, context);
+			bc::runtime::emit_global_type_symbol(struct_decl->info, context);
 		}
 		for (auto const struct_decl : file._global_decls.type_range())
 		{
-			bc::runtime::emit_global_type(*struct_decl, context);
+			bc::runtime::emit_global_type(struct_decl->info, context);
 		}
 		for (auto const var_decl : file._global_decls.var_decl_range())
 		{

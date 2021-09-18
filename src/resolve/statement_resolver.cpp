@@ -1921,6 +1921,10 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	context.add_scope();
 	add_type_info_members(info, context);
+	for (auto &param : info.generic_parameters)
+	{
+		context.add_local_variable(param);
+	}
 
 	for (auto const ctor : info.constructors)
 	{
