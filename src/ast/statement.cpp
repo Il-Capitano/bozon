@@ -570,6 +570,42 @@ type_info *type_info::add_generic_instantiation(
 	return info;
 }
 
+bz::u8string type_info::get_typename_as_string(void) const
+{
+	switch (this->kind)
+	{
+	case aggregate:
+	case forward_declaration:
+		if (this->is_generic_instantiation())
+		{
+			auto result = this->type_name.format_as_unqualified();
+			result += '<';
+			bool first = true;
+			for (auto const &param : this->generic_parameters)
+			{
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					result += ", ";
+				}
+				bz_assert(param.init_expr.is<ast::constant_expression>());
+				result += get_value_string(param.init_expr.get<ast::constant_expression>().value);
+			}
+			result += '>';
+			return result;
+		}
+		else
+		{
+			return this->type_name.format_as_unqualified();
+		}
+	default:
+		return decode_symbol_name(this->symbol_name);
+	}
+}
+
 static_assert(type_info::int8_    ==  0);
 static_assert(type_info::int16_   ==  1);
 static_assert(type_info::int32_   ==  2);

@@ -267,7 +267,7 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 		if (info.is_generic_instantiation())
 		{
 			notes.emplace_back(context.make_note(
-				info.src_tokens, bz::format("in generic instantiation of 'struct {}'", info.type_name.format_as_unqualified())
+				info.src_tokens, bz::format("in generic instantiation of 'struct {}'", info.get_typename_as_string())
 			));
 		}
 	}
@@ -301,7 +301,7 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 			auto const info = required_from.body_or_info.get<ast::type_info *>();
 			notes.emplace_back(context.make_note(
 				required_from.src_tokens,
-				bz::format("required from generic instantiation of 'struct {}'", info->type_name.format_as_unqualified())
+				bz::format("required from generic instantiation of 'struct {}'", info->get_typename_as_string())
 			));
 		}
 	}
@@ -473,7 +473,7 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 			{
 				notes.back().message = bz::format(
 					"required from instantiation of type 'struct {}'",
-					dep.requested.get<ast::type_info *>()->type_name.format_as_unqualified()
+					dep.requested.get<ast::type_info *>()->get_typename_as_string()
 				);
 			}
 		}
@@ -546,7 +546,7 @@ void parse_context::report_circular_dependency_error(ast::type_info &info) const
 
 	this->report_error(
 		info.src_tokens,
-		bz::format("circular dependency encountered while resolving type 'struct {}'", info.type_name.format_as_unqualified()),
+		bz::format("circular dependency encountered while resolving type 'struct {}'", info.get_typename_as_string()),
 		std::move(notes)
 	);
 }
@@ -2479,6 +2479,14 @@ static match_level_t get_strict_type_match_level(
 			return match_level_t{};
 		}
 	}
+	else if (
+		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
+		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		return result + 1;
+	}
 	else
 	{
 		return match_level_t{};
@@ -2664,7 +2672,7 @@ static match_level_t get_type_match_level(
 			return result;
 		}
 	}
-	else if (dest.is<ast::ts_auto>())
+	else if (dest.is<ast::ts_auto>() || (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()))
 	{
 		return get_strict_type_match_level(dest, expr_type_without_const, false);
 	}
@@ -2965,6 +2973,16 @@ enum class type_match_result
 		dest_container.copy_from(dest, source);
 		return type_match_result::good;
 	}
+	else if (
+		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
+		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_base_type>());
+		dest_container.nodes.back().get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
+		return type_match_result::good;
+	}
 	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
 	{
 		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
@@ -3201,6 +3219,18 @@ static void match_typename_to_type_impl(
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
 		dest = ast::remove_const_or_consteval(dest_container);
+		return type_match_result::good;
+	}
+	else if (
+		dest.is<ast::ts_base_type>()
+		&& dest.get<ast::ts_base_type>().info->is_generic()
+		&& expr_type_without_const.is<ast::ts_base_type>()
+		&& expr_type_without_const.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& expr_type_without_const.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_base_type>());
+		dest_container.nodes.back().get<ast::ts_base_type>() = expr_type_without_const.get<ast::ts_base_type>();
 		return type_match_result::good;
 	}
 	else if (dest == expr_type_without_const)
@@ -5472,7 +5502,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					bz::format("too many initializers for type '{}'", type),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
@@ -5484,7 +5514,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					bz::format("missing initializer for field '{}' in type '{}'", info->member_variables.back()->get_unqualified_id_value(), type),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
@@ -5506,7 +5536,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					std::move(message),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));

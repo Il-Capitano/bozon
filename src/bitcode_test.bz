@@ -78,16 +78,8 @@ struct foo_t
 	function foo(: int32) {}
 }
 
-struct generic_type_test<T: typename>
-{
-	.value: T;
-}
-
 function main(args: [: const str]) -> int32
 {
-	let _n = 0;
-	let [_a, _b] = [ 0, 1 ];
-	// generic_type_test<int32>;
 	static_assert(typeof foo_t.inner_var == const int32);
 	static_assert(foo_t.inner_var == 0);
 	static_assert(foo_t.asdf == int32);
@@ -359,6 +351,9 @@ function main(args: [: const str]) -> int32
 
 	std::println("\n==== string_test ====");
 	string_test();
+
+	std::println("\n==== generic_type_test ====");
+	generic_type_test();
 
 	std::println("\n==== end main ====");
 	std::printf("e  = {}\n", std::e);
@@ -1699,4 +1694,30 @@ export function string_test()
 		let arr: [int64, int32];
 		std::format("{}", arr[0]) == "0"
 	});
+}
+
+struct vec3<T: typename>
+{
+	static_assert(T == float32 || T == float64, "only floating point types are allowed");
+
+	type value_type = T;
+
+	.x: T;
+	.y: T;
+	.z: T;
+}
+
+function abs(v: #const vec3) -> (typeof v).value_type
+{
+	return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+function generic_type_test()
+{
+	let v = vec3<float32>[ 1.0f32, 0.0f32, 0.0f32 ];
+	v.abs();
+
+	static_assert(typeof v.x == float32);
+
+	std::printf("({}, {}, {})\n", v.x, v.y, v.z);
 }

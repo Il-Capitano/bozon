@@ -325,8 +325,8 @@ bool is_complete(typespec_view ts) noexcept
 	auto const is_auto_ref_or_variadic = ts.nodes.front().is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
 
 	return !is_auto_ref_or_variadic && ts.nodes.back().visit(bz::overload{
-		[](ts_base_type const &) {
-			return true;
+		[](ts_base_type const &base_t) {
+			return !base_t.info->is_generic();
 		},
 		[](ts_void const &) {
 			return true;
@@ -839,7 +839,7 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 				result += "<unresolved>";
 			},
 			[&](ast::ts_base_type const &base_type) {
-				result += ast::type_info::decode_symbol_name(base_type.info->symbol_name);
+				result += base_type.info->get_typename_as_string();
 			},
 			[&](ast::ts_void const &) {
 				result += "void";

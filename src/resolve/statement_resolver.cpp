@@ -1733,11 +1733,11 @@ static void resolve_type_info_symbol_impl(ast::type_info &info, [[maybe_unused]]
 {
 	if (info.type_name.is_qualified)
 	{
-		info.symbol_name = bz::format("struct.{}", info.type_name.format_as_unqualified());
+		info.symbol_name = bz::format("struct.{}", info.get_typename_as_string());
 	}
 	else
 	{
-		info.symbol_name = bz::format("non_global_struct.{}", info.type_name.format_as_unqualified());
+		info.symbol_name = bz::format("non_global_struct.{}", info.get_typename_as_string());
 	}
 	info.state = ast::resolve_state::symbol;
 }

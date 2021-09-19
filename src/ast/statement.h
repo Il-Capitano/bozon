@@ -1064,18 +1064,25 @@ public:
 		return type_info(name, kind);
 	}
 
+	bz::u8string get_typename_as_string(void) const;
+
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
 	{
 		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_ = "struct.";
+		constexpr bz::u8string_view non_global_struct = "non_global_struct.";
 		if (symbol_name.starts_with(builtin))
 		{
 			return symbol_name.substring(builtin.length());
 		}
+		else if (symbol_name.starts_with(struct_))
+		{
+			return symbol_name.substring(struct_.length());
+		}
 		else
 		{
-			bz_assert(symbol_name.starts_with(struct_));
-			return symbol_name.substring(struct_.length());
+			bz_assert(symbol_name.starts_with(non_global_struct));
+			return symbol_name.substring(non_global_struct.length());
 		}
 	}
 
@@ -1087,6 +1094,7 @@ public:
 		auto const whole_str = bz::u8string_view(it, end);
 		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_ = "struct.";
+		constexpr bz::u8string_view non_global_struct = "non_global_struct.";
 		if (whole_str.starts_with(builtin))
 		{
 			static_assert(builtin.length() == builtin.size());
@@ -1095,11 +1103,19 @@ public:
 			it = dot;
 			return bz::u8string(begin, dot);
 		}
-		else
+		else if (whole_str.starts_with(struct_))
 		{
-			bz_assert(whole_str.starts_with(struct_));
 			static_assert(struct_.length() == struct_.size());
 			auto const begin = bz::u8string_view::const_iterator(it.data() + struct_.size());
+			auto const dot = whole_str.find(begin, '.');
+			it = dot;
+			return bz::u8string(begin, dot);
+		}
+		else
+		{
+			bz_assert(whole_str.starts_with(non_global_struct));
+			static_assert(non_global_struct.length() == non_global_struct.size());
+			auto const begin = bz::u8string_view::const_iterator(it.data() + non_global_struct.size());
 			auto const dot = whole_str.find(begin, '.');
 			it = dot;
 			return bz::u8string(begin, dot);
