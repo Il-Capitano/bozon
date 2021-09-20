@@ -530,33 +530,30 @@ static ast::expression parse_primary_expression(
 	{
 		auto const begin_token = stream;
 		bool const is_qualified = stream->kind == lex::token::scope;
-		bool is_last_scope = !is_qualified;
-		while (stream != end)
+		if (is_qualified)
 		{
-			if (is_last_scope && stream->kind == lex::token::identifier)
+			++stream; // '::'
+			if (stream == end || stream->kind != lex::token::identifier)
 			{
-				++stream;
+				bz_assert(stream == end || stream->kind != lex::token::angle_open);
+				// either an identifier or a '<' is expected
+				context.assert_token(stream, lex::token::identifier, lex::token::angle_open);
+				return ast::make_error_expression({ begin_token, begin_token, stream });
 			}
-			else if (!is_last_scope && stream->kind == lex::token::scope)
-			{
-				++stream;
-			}
-			else
-			{
-				break;
-			}
-			is_last_scope = !is_last_scope;
 		}
-		if (is_last_scope)
+		bz_assert(stream != end && stream->kind == lex::token::identifier);
+		++stream; // id
+		while (
+			stream != end
+			&& stream->kind == lex::token::scope
+			&& stream + 1 != end
+			&& (stream + 1)->kind == lex::token::identifier
+		)
 		{
-			context.assert_token(stream, lex::token::identifier);
-			return ast::make_error_expression(
-				{ begin_token, begin_token, stream },
-				ast::make_expr_identifier(ast::make_identifier({ begin_token, stream }))
-			);
+			++stream; // '::'
+			++stream; // id
 		}
-		auto const end_token = stream;
-		return context.make_identifier_expression(ast::make_identifier({ begin_token, end_token }));
+		return context.make_identifier_expression(ast::make_identifier({ begin_token, stream }));
 	}
 
 	// literals
@@ -755,10 +752,49 @@ static ast::expression parse_expression_helper(
 
 	while (
 		stream != end
-		// not really clean... we assign to both op and op_prec here
-		&& (op_prec = get_binary_or_call_precedence((op = stream)->kind)) <= prec
+		// this is a really messy condition, basically we look for the beginning of a generic type instantiation,
+		// e.g. `std::vector<int32>` or `std::vector::<int32>`
+		// also if the operator is '>', we have to check whether we are parsing a template argument
+		&& (
+			(lhs.is_generic_type() && stream->kind == lex::token::angle_open)
+			|| (stream->kind == lex::token::scope && stream + 1 != end && (stream + 1)->kind == lex::token::angle_open)
+			// not really clean... we assign to both op and op_prec here
+			|| (
+				(op_prec = get_binary_or_call_precedence((op = stream)->kind)) <= prec
+				&& (op->kind != lex::token::angle_close || !context.is_parsing_template_argument())
+			)
+		)
 	)
 	{
+		if (
+			(lhs.is_generic_type() && stream->kind == lex::token::angle_open)
+			|| (stream->kind == lex::token::scope && stream + 1 != end && (stream + 1)->kind == lex::token::angle_open)
+		)
+		{
+			auto const angle_open_it = stream->kind == lex::token::scope ? stream + 1 : stream;
+			if (stream->kind == lex::token::scope)
+			{
+				++stream; // '::'
+				++stream; // '<'
+			}
+			else
+			{
+				++stream; // '<'
+			}
+			context.push_parsing_template_argument();
+			auto args = parse_expression_comma_list(stream, end, context);
+			if (context.assert_token(stream, lex::token::angle_close)->kind != lex::token::angle_close)
+			{
+				context.report_paren_match_error(stream, angle_open_it);
+			}
+			context.pop_parsing_template_argument();
+			lhs = context.make_generic_type_instantiation_expression(
+				{ lhs.src_tokens.begin, angle_open_it, stream },
+				std::move(lhs), std::move(args)
+			);
+			continue;
+		}
+
 		++stream;
 
 		switch (op->kind)

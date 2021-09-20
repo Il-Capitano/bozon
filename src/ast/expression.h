@@ -33,6 +33,7 @@ struct expr_if_consteval;
 struct expr_switch;
 struct expr_break;
 struct expr_continue;
+struct expr_generic_type_instantiation;
 
 struct expr_unresolved_subscript;
 struct expr_unresolved_function_call;
@@ -40,6 +41,7 @@ struct expr_unresolved_universal_function_call;
 struct expr_unresolved_cast;
 struct expr_unresolved_member_access;
 struct expr_unresolved_array_type;
+struct expr_unresolved_generic_type_instantiation;
 
 
 using expr_t = node<
@@ -62,7 +64,8 @@ using expr_t = node<
 	expr_if_consteval,
 	expr_switch,
 	expr_break,
-	expr_continue
+	expr_continue,
+	expr_generic_type_instantiation
 >;
 
 using unresolved_expr_t = node<
@@ -79,7 +82,8 @@ using unresolved_expr_t = node<
 	expr_if,
 	expr_if_consteval,
 	expr_switch,
-	expr_unresolved_array_type
+	expr_unresolved_array_type,
+	expr_unresolved_generic_type_instantiation
 >;
 
 enum class expression_type_kind
@@ -245,6 +249,9 @@ struct expression : bz::variant<
 
 	constant_value &get_literal_value(void) noexcept;
 	constant_value const &get_literal_value(void) const noexcept;
+
+	bool is_generic_type(void) const noexcept;
+	type_info *get_generic_type(void) const noexcept;
 
 	void set_type(ast::typespec new_type);
 	void set_type_kind(expression_type_kind new_kind);
@@ -604,6 +611,15 @@ struct expr_continue
 {
 };
 
+struct expr_generic_type_instantiation
+{
+	type_info *info;
+
+	expr_generic_type_instantiation(type_info *_info)
+		: info(_info)
+	{}
+};
+
 
 struct expr_unresolved_subscript
 {
@@ -704,6 +720,22 @@ struct expr_unresolved_array_type
 	{}
 };
 
+struct expr_unresolved_generic_type_instantiation
+{
+	expression               base;
+	arena_vector<expression> args;
+
+	declare_default_5(expr_unresolved_generic_type_instantiation)
+
+	expr_unresolved_generic_type_instantiation(
+		expression               _base,
+		arena_vector<expression> _args
+	)
+		: base(std::move(_base)),
+		  args(std::move(_args))
+	{}
+};
+
 
 template<typename ...Args>
 expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
@@ -751,6 +783,7 @@ def_make_fn(expr_t, expr_if_consteval)
 def_make_fn(expr_t, expr_switch)
 def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
+def_make_fn(expr_t, expr_generic_type_instantiation)
 
 #undef def_make_fn
 
@@ -773,6 +806,7 @@ def_make_unresolved_fn(unresolved_expr_t, expr_if)
 def_make_unresolved_fn(unresolved_expr_t, expr_if_consteval)
 def_make_unresolved_fn(unresolved_expr_t, expr_switch)
 def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_array_type)
+def_make_unresolved_fn(unresolved_expr_t, expr_unresolved_generic_type_instantiation)
 
 #undef def_make_unresolved_fn
 

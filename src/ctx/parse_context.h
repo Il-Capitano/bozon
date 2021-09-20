@@ -61,6 +61,7 @@ struct parse_context
 	bool in_loop = false;
 	variadic_resolve_info_t variadic_info = { false, false, 0, 0, {} };
 	bool parsing_variadic_expansion = false;
+	int parsing_template_argument = 0;
 
 	bz::vector<resolve_queue_t> resolve_queue{};
 
@@ -91,6 +92,10 @@ struct parse_context
 
 	[[nodiscard]] bool push_parsing_variadic_expansion(void) noexcept;
 	void pop_parsing_variadic_expansion(bool prev_value) noexcept;
+
+	void push_parsing_template_argument(void) noexcept;
+	void pop_parsing_template_argument(void) noexcept;
+	bool is_parsing_template_argument(void) const noexcept;
 
 	bool register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl);
 	uint32_t get_variadic_index(void) const;
@@ -240,6 +245,11 @@ struct parse_context
 	);
 	// should only be used for generic intrinsic instantiation reporting
 	[[nodiscard]] static source_highlight make_note(bz::u8string message);
+	[[nodiscard]] static source_highlight make_note_with_suggestion_before(
+		lex::src_tokens src_tokens,
+		lex::token_pos it, bz::u8string suggestion,
+		bz::u8string message
+	);
 	[[nodiscard]] static source_highlight make_note_with_suggestion_around(
 		lex::src_tokens src_tokens,
 		lex::token_pos begin, bz::u8string first_suggestion,
@@ -373,18 +383,18 @@ struct parse_context
 	ast::expression make_function_call_expression(
 		lex::src_tokens src_tokens,
 		ast::expression called,
-		ast::arena_vector<ast::expression> params
+		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_universal_function_call_expression(
 		lex::src_tokens src_tokens,
 		ast::expression base,
 		ast::identifier id,
-		ast::arena_vector<ast::expression> params
+		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_subscript_operator_expression(
 		lex::src_tokens src_tokens,
 		ast::expression called,
-		ast::arena_vector<ast::expression> params
+		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_cast_expression(
 		lex::src_tokens src_tokens,
@@ -395,6 +405,11 @@ struct parse_context
 		lex::src_tokens src_tokens,
 		ast::expression base,
 		lex::token_pos member
+	);
+	ast::expression make_generic_type_instantiation_expression(
+		lex::src_tokens src_tokens,
+		ast::expression base,
+		ast::arena_vector<ast::expression> args
 	);
 
 	void match_expression_to_type(

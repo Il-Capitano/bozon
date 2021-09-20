@@ -3,6 +3,7 @@
 
 #include "core.h"
 
+#include "lex/token.h"
 #include "node.h"
 #include "expression.h"
 #include "typespec.h"
@@ -488,6 +489,12 @@ inline bool is_generic_parameter(decl_variable const &var_decl)
 		);
 }
 
+struct generic_required_from_t
+{
+	lex::src_tokens src_tokens;
+	bz::variant<function_body *, type_info *> body_or_info;
+};
+
 struct function_body
 {
 	using body_t = bz::variant<lex::token_range, bz::vector<statement>>;
@@ -675,16 +682,18 @@ struct function_body
 
 	type_info *constructor_or_destructor_of;
 
-	arena_vector<ast_unique_ptr<function_body>>               generic_specializations;
-	arena_vector<std::pair<lex::src_tokens, function_body *>> generic_required_from;
+	arena_vector<ast_unique_ptr<function_body>> generic_specializations;
+	arena_vector<generic_required_from_t>       generic_required_from;
 	function_body *generic_parent = nullptr;
 
 //	declare_default_5(function_body)
 	function_body(void)             = default;
 	function_body(function_body &&) = default;
 
-	function_body(function_body const &other)
-		: params        (other.params),
+	struct generic_copy_t {};
+
+	function_body(function_body const &other, generic_copy_t)
+		: params        (),
 		  return_type   (other.return_type),
 		  body          (other.body),
 		  function_name_or_operator_kind(other.function_name_or_operator_kind),
@@ -693,7 +702,7 @@ struct function_body
 		  state         (other.state),
 		  cc            (other.cc),
 		  intrinsic_kind(other.intrinsic_kind),
-		  flags         (other.flags),
+		  flags         ((other.flags & ~generic) | generic_specialization),
 		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from),
@@ -716,8 +725,11 @@ struct function_body
 	bz::u8string get_symbol_name(void) const;
 	bz::u8string get_candidate_message(void) const;
 
-	ast_unique_ptr<function_body> get_copy_for_generic_specialization(arena_vector<std::pair<lex::src_tokens, function_body *>> required_from);
-	function_body *add_specialized_body(ast_unique_ptr<function_body> body);
+	arena_vector<decl_variable> get_params_copy_for_generic_specialization(void);
+	function_body *add_specialized_body(
+		arena_vector<decl_variable> params,
+		arena_vector<generic_required_from_t> required_from
+	);
 
 	void resolve_symbol_name(void)
 	{
@@ -969,6 +981,7 @@ struct type_info
 	arena_vector<decl_variable>             generic_parameters{};
 	arena_vector<ast_unique_ptr<type_info>> generic_instantiations{};
 	type_info *generic_parent = nullptr;
+	arena_vector<generic_required_from_t> generic_required_from;
 
 //	function_body *move_constructor;
 //	function_body_ptr move_destuctor;
@@ -981,12 +994,7 @@ struct type_info
 		  flags(0),
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
-		  body(range),
-		  member_variables{},
-		  default_op_assign(),
-		  default_op_move_assign(),
-		  default_default_constructor(),
-		  default_copy_constructor()
+		  body(range)
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
@@ -1000,12 +1008,21 @@ struct type_info
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body(range),
-		  member_variables{},
-		  default_op_assign(),
-		  default_op_move_assign(),
-		  default_default_constructor(),
-		  default_copy_constructor(),
 		  generic_parameters(std::move(_generic_parameters))
+	{}
+
+	struct generic_copy_t {};
+
+	type_info(type_info const &other, generic_copy_t)
+		: src_tokens(other.src_tokens),
+		  kind(other.kind),
+		  state(resolve_state::none),
+		  file_id(other.file_id),
+		  flags((other.flags & ~generic) | generic_instantiation),
+		  type_name(other.type_name),
+		  symbol_name(),
+		  body(other.body),
+		  generic_required_from(other.generic_required_from)
 	{}
 
 private:
@@ -1035,6 +1052,12 @@ private:
 	{}
 public:
 
+	bool is_generic(void) const noexcept
+	{ return (this->flags & generic) != 0; }
+
+	bool is_generic_instantiation(void) const noexcept
+	{ return (this->flags & generic_instantiation) != 0; }
+
 	bool is_default_constructible(void) const noexcept
 	{ return (this->flags & default_constructible) != 0; }
 
@@ -1061,23 +1084,36 @@ public:
 	static function_body_ptr make_default_default_constructor(lex::src_tokens src_tokens, type_info &info);
 	static function_body_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
 
+	arena_vector<decl_variable> get_params_copy_for_generic_instantiation(void);
+	type_info *add_generic_instantiation(
+		arena_vector<decl_variable> generic_params,
+		arena_vector<generic_required_from_t> required_from
+	);
+
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{
 		return type_info(name, kind);
 	}
 
+	bz::u8string get_typename_as_string(void) const;
+
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
 	{
 		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_ = "struct.";
+		constexpr bz::u8string_view non_global_struct = "non_global_struct.";
 		if (symbol_name.starts_with(builtin))
 		{
 			return symbol_name.substring(builtin.length());
 		}
+		else if (symbol_name.starts_with(struct_))
+		{
+			return symbol_name.substring(struct_.length());
+		}
 		else
 		{
-			bz_assert(symbol_name.starts_with(struct_));
-			return symbol_name.substring(struct_.length());
+			bz_assert(symbol_name.starts_with(non_global_struct));
+			return symbol_name.substring(non_global_struct.length());
 		}
 	}
 
@@ -1089,6 +1125,7 @@ public:
 		auto const whole_str = bz::u8string_view(it, end);
 		constexpr bz::u8string_view builtin = "builtin.";
 		constexpr bz::u8string_view struct_ = "struct.";
+		constexpr bz::u8string_view non_global_struct = "non_global_struct.";
 		if (whole_str.starts_with(builtin))
 		{
 			static_assert(builtin.length() == builtin.size());
@@ -1097,11 +1134,19 @@ public:
 			it = dot;
 			return bz::u8string(begin, dot);
 		}
-		else
+		else if (whole_str.starts_with(struct_))
 		{
-			bz_assert(whole_str.starts_with(struct_));
 			static_assert(struct_.length() == struct_.size());
 			auto const begin = bz::u8string_view::const_iterator(it.data() + struct_.size());
+			auto const dot = whole_str.find(begin, '.');
+			it = dot;
+			return bz::u8string(begin, dot);
+		}
+		else
+		{
+			bz_assert(whole_str.starts_with(non_global_struct));
+			static_assert(non_global_struct.length() == non_global_struct.size());
+			auto const begin = bz::u8string_view::const_iterator(it.data() + non_global_struct.size());
 			auto const dot = whole_str.find(begin, '.');
 			it = dot;
 			return bz::u8string(begin, dot);

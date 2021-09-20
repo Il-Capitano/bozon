@@ -864,6 +864,24 @@ static ast::expression resolve_expr(
 	}
 }
 
+static ast::expression resolve_expr(
+	lex::src_tokens src_tokens,
+	ast::expr_unresolved_generic_type_instantiation generic_instantiation,
+	ctx::parse_context &context
+)
+{
+	resolve_expression(generic_instantiation.base, context);
+	for (auto &arg : generic_instantiation.args)
+	{
+		resolve_expression(arg, context);
+	}
+	return context.make_generic_type_instantiation_expression(
+		src_tokens,
+		std::move(generic_instantiation.base),
+		std::move(generic_instantiation.args)
+	);
+}
+
 void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 {
 	if (expr.is_unresolved())

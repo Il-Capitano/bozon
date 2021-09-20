@@ -20,8 +20,8 @@ void emit_function_bitcode(
 );
 
 void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context);
-void emit_global_type_symbol(ast::decl_struct const &struct_decl, ctx::bitcode_context &context);
-void emit_global_type(ast::decl_struct const &struct_decl, ctx::bitcode_context &context);
+void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &context);
+void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context);
 void emit_necessary_functions(ctx::bitcode_context &context);
 
 } // namespace bc::runtime

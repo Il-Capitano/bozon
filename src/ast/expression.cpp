@@ -193,6 +193,23 @@ constant_value const &expression::get_literal_value(void) const noexcept
 	return this->get<constant_expression>().value;
 }
 
+bool expression::is_generic_type(void) const noexcept
+{
+	if (!this->is_typename())
+	{
+		return false;
+	}
+
+	auto const type = this->get_typename().as_typespec_view();
+	return type.is<ts_base_type>() && type.get<ts_base_type>().info->is_generic();
+}
+
+type_info *expression::get_generic_type(void) const noexcept
+{
+	bz_assert(this->is_generic_type());
+	return this->get_typename().get<ts_base_type>().info;
+}
+
 void expression::set_type(ast::typespec new_type)
 {
 	if (this->is<ast::constant_expression>())

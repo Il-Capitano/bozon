@@ -1635,6 +1635,7 @@ void resolve_function(
 	)
 	{
 		context.report_circular_dependency_error(func_body);
+		func_body.state = ast::resolve_state::error;
 		return;
 	}
 
@@ -1655,15 +1656,88 @@ void resolve_function(
 	context_ptr->set_current_file_info(original_file_info);
 }
 
+static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_context &context)
+{
+	info.state = ast::resolve_state::resolving_parameters;
+
+	bool good = true;
+	for (auto &p : info.generic_parameters)
+	{
+		if (p.state == ast::resolve_state::none)
+		{
+			p.state = ast::resolve_state::resolving_symbol;
+			resolve_variable_type(p, context);
+			if (p.state != ast::resolve_state::error)
+			{
+				p.state = ast::resolve_state::symbol;
+			}
+		}
+		if (p.get_type().is_empty())
+		{
+			good = false;
+		}
+	}
+
+	if (!info.generic_parameters.empty())
+	{
+		for (auto const &param : info.generic_parameters.slice(0, info.generic_parameters.size() - 1))
+		{
+			if (param.get_type().is<ast::ts_variadic>())
+			{
+				context.report_error(
+					param.src_tokens,
+					bz::format("a parameter with variadic type '{}' must be the last parameter", param.get_type())
+				);
+				good = false;
+			}
+		}
+		if (info.generic_parameters.back().get_type().is<ast::ts_variadic>())
+		{
+			info.generic_parameters.back().flags |= ast::decl_variable::variadic;
+		}
+	}
+
+	if (!good)
+	{
+		info.state = ast::resolve_state::error;
+		return;
+	}
+
+	info.state = ast::resolve_state::parameters;
+}
+
+void resolve_type_info_parameters(ast::type_info &info, ctx::parse_context &context)
+{
+	if (info.state >= ast::resolve_state::parameters || info.state == ast::resolve_state::error)
+	{
+		return;
+	}
+	else if (info.state == ast::resolve_state::resolving_parameters)
+	{
+		context.report_circular_dependency_error(info);
+		info.state = ast::resolve_state::error;
+		return;
+	}
+
+	auto const original_file_info = context.get_current_file_info();
+	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
+	if (original_file_info.file_id != stmt_file_id)
+	{
+		context.set_current_file(stmt_file_id);
+	}
+	resolve_type_info_parameters_impl(info, context);
+	context.set_current_file_info(original_file_info);
+}
+
 static void resolve_type_info_symbol_impl(ast::type_info &info, [[maybe_unused]] ctx::parse_context &context)
 {
 	if (info.type_name.is_qualified)
 	{
-		info.symbol_name = bz::format("struct.{}", info.type_name.format_as_unqualified());
+		info.symbol_name = bz::format("struct.{}", info.get_typename_as_string());
 	}
 	else
 	{
-		info.symbol_name = bz::format("non_global_struct.{}", info.type_name.format_as_unqualified());
+		info.symbol_name = bz::format("non_global_struct.{}", info.get_typename_as_string());
 	}
 	info.state = ast::resolve_state::symbol;
 }
@@ -1675,6 +1749,7 @@ void resolve_type_info_symbol(ast::type_info &info, ctx::parse_context &context)
 		return;
 	}
 	bz_assert(info.state != ast::resolve_state::resolving_symbol);
+	bz_assert(!info.is_generic());
 
 	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
@@ -1818,6 +1893,15 @@ static void add_flags(ast::type_info &info)
 
 static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &context)
 {
+	if (info.is_generic())
+	{
+		if (info.state < ast::resolve_state::parameters)
+		{
+			resolve_type_info_parameters_impl(info, context);
+		}
+		return;
+	}
+
 	if (info.state < ast::resolve_state::symbol)
 	{
 		resolve_type_info_symbol_impl(info, context);
@@ -1837,6 +1921,10 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	context.add_scope();
 	add_type_info_members(info, context);
+	for (auto &param : info.generic_parameters)
+	{
+		context.add_local_variable(param);
+	}
 
 	for (auto const ctor : info.constructors)
 	{
@@ -1883,6 +1971,9 @@ void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
 		info.state = ast::resolve_state::error;
 		return;
 	}
+
+	bz_assert(info.state != ast::resolve_state::resolving_parameters);
+	bz_assert(info.state != ast::resolve_state::resolving_symbol);
 
 	auto const original_file_info = context.get_current_file_info();
 	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;

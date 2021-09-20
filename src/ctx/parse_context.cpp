@@ -154,6 +154,22 @@ void parse_context::pop_parsing_variadic_expansion(bool prev_value) noexcept
 	this->parsing_variadic_expansion = prev_value;
 }
 
+void parse_context::push_parsing_template_argument(void) noexcept
+{
+	++this->parsing_template_argument;
+}
+
+void parse_context::pop_parsing_template_argument(void) noexcept
+{
+	bz_assert(this->parsing_template_argument > 0);
+	--this->parsing_template_argument;
+}
+
+bool parse_context::is_parsing_template_argument(void) const noexcept
+{
+	return this->parsing_template_argument != 0;
+}
+
 bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl)
 {
 	if (!this->variadic_info.is_resolving_variadic)
@@ -221,72 +237,123 @@ static source_highlight get_function_parameter_types_note(lex::src_tokens src_to
 
 static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, parse_context const &context)
 {
-	if (context.resolve_queue.size() == 0 || !context.resolve_queue.back().requested.is<ast::function_body *>())
+	if (context.resolve_queue.size() == 0)
 	{
 		return;
 	}
 
-	auto const &body = *context.resolve_queue.back().requested.get<ast::function_body *>();
-	if (!body.is_generic_specialization())
+	auto &dep = context.resolve_queue.back();
+	if (dep.requested.is<ast::function_body *>())
 	{
-		return;
+		auto const &body = *dep.requested.get<ast::function_body *>();
+		if (body.is_generic_specialization())
+		{
+			if (body.is_intrinsic())
+			{
+				// intrinsics don't have a definition, so the source position can't be reported
+				notes.emplace_back(context.make_note(bz::format("in generic instantiation of '{}'", body.get_signature())));
+			}
+			else
+			{
+				notes.emplace_back(context.make_note(
+					body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
+				));
+			}
+		}
+	}
+	else if (dep.requested.is<ast::type_info *>())
+	{
+		auto const &info = *dep.requested.get<ast::type_info *>();
+		if (info.is_generic_instantiation())
+		{
+			notes.emplace_back(context.make_note(
+				info.src_tokens, bz::format("in generic instantiation of 'struct {}'", info.get_typename_as_string())
+			));
+		}
 	}
 
-	if (body.is_intrinsic())
-	{
-		// intrinsics don't have a definition, so the source position can't be reported
-		notes.emplace_back(context.make_note(bz::format("in generic instantiation of '{}'", body.get_signature())));
-	}
-	else
-	{
-		notes.emplace_back(context.make_note(
-			body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
-		));
-	}
+	auto const generic_required_from =
+		dep.requested.is<ast::function_body *>() ? dep.requested.get<ast::function_body *>()->generic_required_from.as_array_view() :
+		dep.requested.is<ast::type_info *>() ? dep.requested.get<ast::type_info *>()->generic_required_from.as_array_view() :
+		bz::array_view<ast::generic_required_from_t>();
 
-	for (auto const &required_from : body.generic_required_from.reversed())
+	for (auto const &required_from : generic_required_from.reversed())
 	{
-		if (required_from.first.pivot == nullptr)
+		if (required_from.src_tokens.pivot == nullptr)
 		{
 			notes.emplace_back(context.make_note("required from unknown location"));
 		}
-		else if (required_from.second == nullptr)
+		else if (required_from.body_or_info.is_null())
 		{
-			notes.emplace_back(context.make_note(required_from.first, "required from here"));
+			notes.emplace_back(context.make_note(required_from.src_tokens, "required from here"));
+		}
+		else if (required_from.body_or_info.is<ast::function_body *>())
+		{
+			auto const body = required_from.body_or_info.get<ast::function_body *>();
+			notes.emplace_back(context.make_note(
+				required_from.src_tokens,
+				bz::format("required from generic instantiation of '{}'", body->get_signature())
+			));
 		}
 		else
 		{
+			bz_assert(required_from.body_or_info.is<ast::type_info *>());
+			auto const info = required_from.body_or_info.get<ast::type_info *>();
 			notes.emplace_back(context.make_note(
-				required_from.first,
-				bz::format("required from generic instantiation of '{}'", required_from.second->get_signature())
+				required_from.src_tokens,
+				bz::format("required from generic instantiation of 'struct {}'", info->get_typename_as_string())
 			));
 		}
 	}
 }
 
-static ast::arena_vector<std::pair<lex::src_tokens, ast::function_body *>> get_generic_requirements(
+static ast::arena_vector<ast::generic_required_from_t> get_generic_requirements(
 	lex::src_tokens src_tokens,
 	parse_context &context
 )
 {
 	bz_assert(src_tokens.pivot != nullptr);
-	ast::arena_vector<std::pair<lex::src_tokens, ast::function_body *>> result;
-	auto const is_generic_specialization_dep = [](auto const &dep) {
-		auto const body = dep.requested.template get_if<ast::function_body *>();
-		return body != nullptr && (*body)->is_generic_specialization();
-	};
-	if (!context.resolve_queue.empty() && is_generic_specialization_dep(context.resolve_queue.back()))
+	ast::arena_vector<ast::generic_required_from_t> result;
+	if (!context.resolve_queue.empty())
 	{
 		// inherit dependencies from parent function
 		auto &dep = context.resolve_queue.back();
-		result = dep.requested.get<ast::function_body *>()->generic_required_from;
-		result.push_back({ src_tokens, dep.requested.get<ast::function_body *>() });
+		if (dep.requested.is<ast::function_body *>())
+		{
+			auto const body = dep.requested.get<ast::function_body *>();
+			result = body->generic_required_from;
+			if (body->is_generic_specialization())
+			{
+				result.push_back({ src_tokens, dep.requested.get<ast::function_body *>() });
+			}
+			else
+			{
+				result.push_back({ src_tokens, {} });
+			}
+		}
+		else if (dep.requested.is<ast::type_info *>())
+		{
+			auto const info = dep.requested.get<ast::type_info *>();
+			result = info->generic_required_from;
+			if (info->is_generic_instantiation())
+			{
+				result.push_back({ src_tokens, dep.requested.get<ast::type_info *>() });
+			}
+			else
+			{
+				result.push_back({ src_tokens, {} });
+			}
+		}
+		else
+		{
+			result.push_back({ src_tokens, {} });
+		}
 	}
 	else
 	{
-		result.push_back({ src_tokens, nullptr });
+		result.push_back({ src_tokens, {} });
 	}
-	bz_assert(result.front().first.pivot != nullptr);
+	bz_assert(result.front().src_tokens.pivot != nullptr);
 	return result;
 }
 
@@ -406,7 +473,7 @@ static bz::vector<source_highlight> get_circular_notes(T *decl, parse_context co
 			{
 				notes.back().message = bz::format(
 					"required from instantiation of type 'struct {}'",
-					dep.requested.get<ast::type_info *>()->type_name.format_as_unqualified()
+					dep.requested.get<ast::type_info *>()->get_typename_as_string()
 				);
 			}
 		}
@@ -479,7 +546,7 @@ void parse_context::report_circular_dependency_error(ast::type_info &info) const
 
 	this->report_error(
 		info.src_tokens,
-		bz::format("circular dependency encountered while resolving type 'struct {}'", info.type_name.format_as_unqualified()),
+		bz::format("circular dependency encountered while resolving type 'struct {}'", info.get_typename_as_string()),
 		std::move(notes)
 	);
 }
@@ -664,6 +731,35 @@ void parse_context::report_parenthesis_suppressed_warning(
 	else
 	{
 		return make_note(open_paren_it, "to match this:", suggested_paren_pos, suggestion_str);
+	}
+}
+
+[[nodiscard]] source_highlight parse_context::make_note_with_suggestion_before(
+	lex::src_tokens src_tokens,
+	lex::token_pos it, bz::u8string suggestion,
+	bz::u8string message
+)
+{
+	bz_assert(it != nullptr);
+	if (src_tokens.pivot == nullptr)
+	{
+		return source_highlight{
+			it->src_pos.file_id, it->src_pos.line,
+			char_pos(), char_pos(), char_pos(),
+			{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion) },
+			{},
+			std::move(message)
+		};
+	}
+	else
+	{
+		return source_highlight{
+			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
+			src_tokens.begin->src_pos.begin, src_tokens.pivot->src_pos.begin, (src_tokens.end - 1)->src_pos.end,
+			{ char_pos(), char_pos(), it->src_pos.begin, std::move(suggestion) },
+			{},
+			std::move(message)
+		};
 	}
 }
 
@@ -855,7 +951,11 @@ void parse_context::remove_scope(void)
 				this->report_warning(
 					warning_kind::unused_variable,
 					*var_decl,
-					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified())
+					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified()),
+					{ this->make_note_with_suggestion_before(
+						{}, var_decl->get_id().tokens.end - 1, "_",
+						"prefix variable name with an underscore to suppress this warning"
+					) }
 				);
 			}
 		}
@@ -1230,9 +1330,12 @@ static ast::expression make_type_expression(
 )
 {
 	auto &info = type->info;
-	context.add_to_resolve_queue(src_tokens, info);
-	resolve::resolve_type_info_symbol(info, context);
-	context.pop_resolve_queue();
+	if (!info.is_generic())
+	{
+		context.add_to_resolve_queue(src_tokens, info);
+		resolve::resolve_type_info_symbol(info, context);
+		context.pop_resolve_queue();
+	}
 	if (info.state != ast::resolve_state::error)
 	{
 		return ast::make_constant_expression(
@@ -2040,32 +2143,12 @@ ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, ast::arena
 	}
 
 	elems = expand_params(std::move(elems));
-	auto const is_typename = [&]() {
-		for (auto const &e : elems)
-		{
-			if (!e.is_typename())
-			{
-				return false;
-			}
-		}
-		return true;
-	}();
-	auto const has_error = [&]() {
-		for (auto const &e : elems)
-		{
-			if (e.is_error())
-			{
-				return true;
-			}
-		}
-		return false;
-	}();
 
-	if (has_error)
+	if (elems.is_any([](auto &expr) { return expr.is_error(); }))
 	{
 		return ast::make_error_expression(src_tokens, ast::make_expr_tuple(std::move(elems)));
 	}
-	else if (is_typename)
+	else if (elems.is_all([](auto &expr) { return expr.is_typename(); }))
 	{
 		bz::vector<ast::typespec> types = {};
 		types.reserve(elems.size());
@@ -2396,6 +2479,14 @@ static match_level_t get_strict_type_match_level(
 			return match_level_t{};
 		}
 	}
+	else if (
+		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
+		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		return result + 1;
+	}
 	else
 	{
 		return match_level_t{};
@@ -2581,7 +2672,7 @@ static match_level_t get_type_match_level(
 			return result;
 		}
 	}
-	else if (dest.is<ast::ts_auto>())
+	else if (dest.is<ast::ts_auto>() || (dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()))
 	{
 		return get_strict_type_match_level(dest, expr_type_without_const, false);
 	}
@@ -2882,6 +2973,16 @@ enum class type_match_result
 		dest_container.copy_from(dest, source);
 		return type_match_result::good;
 	}
+	else if (
+		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
+		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_base_type>());
+		dest_container.nodes.back().get<ast::ts_base_type>() = source.get<ast::ts_base_type>();
+		return type_match_result::good;
+	}
 	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
 	{
 		bz_assert(dest_container.nodes.back().is<ast::ts_tuple>());
@@ -3118,6 +3219,18 @@ static void match_typename_to_type_impl(
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
 		dest = ast::remove_const_or_consteval(dest_container);
+		return type_match_result::good;
+	}
+	else if (
+		dest.is<ast::ts_base_type>()
+		&& dest.get<ast::ts_base_type>().info->is_generic()
+		&& expr_type_without_const.is<ast::ts_base_type>()
+		&& expr_type_without_const.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& expr_type_without_const.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_base_type>());
+		dest_container.nodes.back().get<ast::ts_base_type>() = expr_type_without_const.get<ast::ts_base_type>();
 		return type_match_result::good;
 	}
 	else if (dest == expr_type_without_const)
@@ -3531,6 +3644,7 @@ static void match_expression_to_type_impl(
 	parse_context &context
 )
 {
+	bz_assert(!dest.is<ast::ts_unresolved>());
 	// basically a slightly different implementation of get_type_match_level
 	if (expr.is_if_expr())
 	{
@@ -4211,34 +4325,34 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	return { {}, nullptr };
 }
 
-static void expand_function_body_params(ast::function_body *body, size_t params_count)
+static void expand_variadic_params(ast::arena_vector<ast::decl_variable> &params, size_t params_count)
 {
-	if (body->params.empty() || !body->params.back().get_type().is<ast::ts_variadic>())
+	if (params.empty() || !params.back().get_type().is<ast::ts_variadic>())
 	{
 		return;
 	}
-	if (params_count < body->params.size())
+	if (params_count < params.size())
 	{
-		body->params.pop_back();
+		params.pop_back();
 		return;
 	}
-	bz_assert(params_count >= body->params.size());
-	bz_assert(!body->params.empty());
-	bz_assert(body->params.back().get_type().is<ast::ts_variadic>());
-	auto const diff = params_count - body->params.size();
-	body->params.reserve(params_count);
-	auto &params_back = body->params.back();
+	bz_assert(params_count >= params.size());
+	bz_assert(!params.empty());
+	bz_assert(params.back().get_type().is<ast::ts_variadic>());
+	auto const diff = params_count - params.size();
+	params.reserve(params_count);
+	auto &params_back = params.back();
 	params_back.get_type().remove_layer();
 	for (size_t i = 0; i < diff; ++i)
 	{
-		body->params.push_back(params_back);
+		params.push_back(params_back);
 	}
 }
 
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	ast::arena_vector<ast::expression> params,
+	ast::arena_vector<ast::expression> args,
 	parse_context &context,
 	ast::resolve_order resolve_order
 )
@@ -4246,20 +4360,19 @@ static ast::expression make_expr_function_call_from_body(
 	if (body->is_generic())
 	{
 		auto required_from = get_generic_requirements(src_tokens, context);
-		bz_assert(required_from.front().first.pivot != nullptr);
-		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
-		expand_function_body_params(specialized_body.get(), params.size());
-		context.add_to_resolve_queue(src_tokens, *specialized_body);
-		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+		bz_assert(required_from.front().src_tokens.pivot != nullptr);
+		auto generic_params = body->get_params_copy_for_generic_specialization();
+		expand_variadic_params(generic_params, args.size());
+		for (auto const [arg, generic_param] : bz::zip(args, generic_params))
 		{
-			context.match_expression_to_variable(param, func_body_param);
-			if (!func_body_param.get_type().is<ast::ts_variadic>() && ast::is_generic_parameter(func_body_param))
+			context.match_expression_to_variable(arg, generic_param);
+			bz_assert(!generic_param.get_type().is<ast::ts_variadic>());
+			if (ast::is_generic_parameter(generic_param))
 			{
-				func_body_param.init_expr = param;
+				generic_param.init_expr = arg;
 			}
 		}
-		context.pop_resolve_queue();
-		body = body->add_specialized_body(std::move(specialized_body));
+		body = body->add_specialized_body(std::move(generic_params), std::move(required_from));
 		context.add_to_resolve_queue(src_tokens, *body);
 		bz_assert(!body->is_generic());
 		if (body != context.current_function && !context.generic_functions.contains(body))
@@ -4271,16 +4384,16 @@ static ast::expression make_expr_function_call_from_body(
 	{
 		// expand_function_body_params(body, params.size()); // this is not needed here as variadic functions are always generic
 		context.add_to_resolve_queue(src_tokens, *body);
-		for (auto const [param, func_body_param] : bz::zip(params, body->params))
+		for (auto const [arg, func_body_param] : bz::zip(args, body->params))
 		{
-			context.match_expression_to_variable(param, func_body_param);
+			context.match_expression_to_variable(arg, func_body_param);
 		}
 	}
 	resolve::resolve_function_symbol({}, *body, context);
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
-		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order));
+		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
 
 	auto &ret_t = body->return_type;
@@ -4294,14 +4407,14 @@ static ast::expression make_expr_function_call_from_body(
 	return ast::make_dynamic_expression(
 		src_tokens,
 		return_type_kind, return_type,
-		ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order)
+		ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
 	);
 }
 
 static ast::expression make_expr_function_call_from_body(
 	lex::src_tokens src_tokens,
 	ast::function_body *body,
-	ast::arena_vector<ast::expression> params,
+	ast::arena_vector<ast::expression> args,
 	ast::constant_value value,
 	parse_context &context,
 	ast::resolve_order resolve_order = ast::resolve_order::regular
@@ -4310,21 +4423,24 @@ static ast::expression make_expr_function_call_from_body(
 	if (body->is_generic())
 	{
 		auto required_from = get_generic_requirements(src_tokens, context);
-		auto specialized_body = body->get_copy_for_generic_specialization(std::move(required_from));
-		context.add_to_resolve_queue(src_tokens, *specialized_body);
-		for (auto const [param, func_body_param] : bz::zip(params, specialized_body->params))
+		bz_assert(required_from.front().src_tokens.pivot != nullptr);
+		auto generic_params = body->get_params_copy_for_generic_specialization();
+		expand_variadic_params(generic_params, args.size());
+		context.add_to_resolve_queue(src_tokens, *body);
+		for (auto const [arg, generic_param] : bz::zip(args, generic_params))
 		{
-			context.match_expression_to_variable(param, func_body_param);
-			if (ast::is_generic_parameter(func_body_param))
+			context.match_expression_to_variable(arg, generic_param);
+			bz_assert(!generic_param.get_type().is<ast::ts_variadic>());
+			if (ast::is_generic_parameter(generic_param))
 			{
-				func_body_param.init_expr = param;
+				generic_param.init_expr = arg;
 			}
 		}
 		context.pop_resolve_queue();
-		body = body->add_specialized_body(std::move(specialized_body));
+		body = body->add_specialized_body(std::move(generic_params), std::move(required_from));
 		context.add_to_resolve_queue(src_tokens, *body);
 		bz_assert(!body->is_generic());
-		if (!context.generic_functions.contains(body))
+		if (body != context.current_function && !context.generic_functions.contains(body))
 		{
 			context.generic_functions.push_back(body);
 		}
@@ -4332,16 +4448,16 @@ static ast::expression make_expr_function_call_from_body(
 	else
 	{
 		context.add_to_resolve_queue(src_tokens, *body);
-		for (auto const [param, func_body_param] : bz::zip(params, body->params))
+		for (auto const [arg, func_body_param] : bz::zip(args, body->params))
 		{
-			context.match_expression_to_variable(param, func_body_param);
+			context.match_expression_to_variable(arg, func_body_param);
 		}
 	}
 	resolve::resolve_function_symbol({}, *body, context);
 	context.pop_resolve_queue();
 	if (body->state == ast::resolve_state::error)
 	{
-		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order));
+		return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
 	}
 
 	auto &ret_t = body->return_type;
@@ -4356,7 +4472,7 @@ static ast::expression make_expr_function_call_from_body(
 		src_tokens,
 		return_type_kind, return_type,
 		std::move(value),
-		ast::make_expr_function_call(src_tokens, std::move(params), body, resolve_order)
+		ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
 	);
 }
 
@@ -5387,7 +5503,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					bz::format("too many initializers for type '{}'", type),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
@@ -5399,7 +5515,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					bz::format("missing initializer for field '{}' in type '{}'", info->member_variables.back()->get_unqualified_id_value(), type),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
@@ -5421,7 +5537,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 					std::move(message),
 					{ this->make_note(
 						info->src_tokens,
-						bz::format("'struct {}' is defined here", info->type_name.format_as_unqualified())
+						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
 				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
@@ -5876,6 +5992,79 @@ ast::expression parse_context::make_member_access_expression(
 		src_tokens,
 		result_kind, std::move(result_type),
 		ast::make_expr_member_access(std::move(base), index)
+	);
+}
+
+ast::expression parse_context::make_generic_type_instantiation_expression(
+	lex::src_tokens src_tokens,
+	ast::expression base,
+	ast::arena_vector<ast::expression> args
+)
+{
+	args = expand_params(std::move(args));
+	if (base.is_error() || args.is_any([](auto const &arg) { return arg.is_error(); }))
+	{
+		return ast::make_error_expression(src_tokens);
+	}
+	else if (base.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
+	{
+		return ast::make_unresolved_expression(
+			src_tokens,
+			ast::make_unresolved_expr_unresolved_generic_type_instantiation(std::move(base), std::move(args))
+		);
+	}
+
+	if (!base.is_generic_type())
+	{
+		if (base.is_typename())
+		{
+			this->report_error(base.src_tokens, bz::format("type '{}' is not generic", base.get_typename()));
+		}
+		else
+		{
+			this->report_error(base.src_tokens, "expression is not a generic type");
+		}
+		return ast::make_error_expression(src_tokens);
+	}
+
+	auto info = base.get_generic_type();
+	this->add_to_resolve_queue(src_tokens, *info);
+	resolve::resolve_type_info_parameters(*info, *this);
+	this->pop_resolve_queue();
+
+	auto required_from = get_generic_requirements(src_tokens, *this);
+	auto generic_params = info->get_params_copy_for_generic_instantiation();
+	expand_variadic_params(generic_params, args.size());
+	if (generic_params.size() != args.size())
+	{
+		this->report_error(src_tokens, "number of arguments doesn't match the number of parameters");
+		return ast::make_error_expression(src_tokens);
+	}
+	bool good = true;
+	for (auto const [arg, generic_param] : bz::zip(args, generic_params))
+	{
+		this->match_expression_to_variable(arg, generic_param);
+		parse::consteval_try(arg, *this);
+		bz_assert(!generic_param.get_type().is<ast::ts_variadic>());
+		good &= arg.not_error();
+		if (arg.not_error())
+		{
+			generic_param.init_expr = std::move(arg);
+		}
+	}
+	if (!good)
+	{
+		return ast::make_error_expression(src_tokens);
+	}
+
+	info = info->add_generic_instantiation(std::move(generic_params), std::move(required_from));
+	bz_assert(!info->is_generic());
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
+		ast::constant_value(ast::make_base_type_typespec(src_tokens, info)),
+		ast::make_expr_generic_type_instantiation(info)
 	);
 }
 
