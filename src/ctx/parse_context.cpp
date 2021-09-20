@@ -3644,6 +3644,7 @@ static void match_expression_to_type_impl(
 	parse_context &context
 )
 {
+	bz_assert(!dest.is<ast::ts_unresolved>());
 	// basically a slightly different implementation of get_type_match_level
 	if (expr.is_if_expr())
 	{
@@ -6027,6 +6028,10 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	}
 
 	auto info = base.get_generic_type();
+	this->add_to_resolve_queue(src_tokens, *info);
+	resolve::resolve_type_info_parameters(*info, *this);
+	this->pop_resolve_queue();
+
 	auto required_from = get_generic_requirements(src_tokens, *this);
 	auto generic_params = info->get_params_copy_for_generic_instantiation();
 	expand_variadic_params(generic_params, args.size());
