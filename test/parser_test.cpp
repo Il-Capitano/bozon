@@ -751,7 +751,7 @@ do {                                                                            
 	x_if("&", false, 0);
 	x_ic("&", false, 0);
 	x_ui("&", false, 0);
-	x_uu("&", a.second == b.second, a.second);
+	x_uu("&", true, std::max(a.second, b.second));
 	x_uf("&", false, 0);
 	x_uc("&", false, 0);
 	x_fi("&", false, 0);
@@ -768,7 +768,7 @@ do {                                                                            
 	x_if("^", false, 0);
 	x_ic("^", false, 0);
 	x_ui("^", false, 0);
-	x_uu("^", a.second == b.second, a.second);
+	x_uu("^", true, std::max(a.second, b.second));
 	x_uf("^", false, 0);
 	x_uc("^", false, 0);
 	x_fi("^", false, 0);
@@ -785,7 +785,7 @@ do {                                                                            
 	x_if("|", false, 0);
 	x_ic("|", false, 0);
 	x_ui("|", false, 0);
-	x_uu("|", a.second == b.second, a.second);
+	x_uu("|", true, std::max(a.second, b.second));
 	x_uf("|", false, 0);
 	x_uc("|", false, 0);
 	x_fi("|", false, 0);
@@ -802,7 +802,7 @@ do {                                                                            
 	x_if("&=", false, 0);
 	x_ic("&=", false, 0);
 	x_ui("&=", false, 0);
-	x_uu("&=", a.second == b.second, a.second);
+	x_uu("&=", a.second >= b.second, a.second);
 	x_uf("&=", false, 0);
 	x_uc("&=", false, 0);
 	x_fi("&=", false, 0);
@@ -819,7 +819,7 @@ do {                                                                            
 	x_if("^=", false, 0);
 	x_ic("^=", false, 0);
 	x_ui("^=", false, 0);
-	x_uu("^=", a.second == b.second, a.second);
+	x_uu("^=", a.second >= b.second, a.second);
 	x_uf("^=", false, 0);
 	x_uc("^=", false, 0);
 	x_fi("^=", false, 0);
@@ -836,7 +836,7 @@ do {                                                                            
 	x_if("|=", false, 0);
 	x_ic("|=", false, 0);
 	x_ui("|=", false, 0);
-	x_uu("|=", a.second == b.second, a.second);
+	x_uu("|=", a.second >= b.second, a.second);
 	x_uf("|=", false, 0);
 	x_uc("|=", false, 0);
 	x_fi("|=", false, 0);

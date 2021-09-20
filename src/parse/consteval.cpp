@@ -2195,9 +2195,24 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		else
 		{
+			auto const param_type = ast::remove_const_or_consteval(func_call.params[0].get<ast::constant_expression>().type);
+			bz_assert(param_type.is<ast::ts_base_type>());
+			auto const param_kind = param_type.get<ast::ts_base_type>().info->kind;
 			bz_assert(value.is<ast::constant_value::uint>());
 			auto const uint_val = value.get<ast::constant_value::uint>();
-			return ast::constant_value(~uint_val);
+			switch (param_kind)
+			{
+			case ast::type_info::uint8_:
+				return ast::constant_value(uint64_t(uint8_t(~uint_val)));
+			case ast::type_info::uint16_:
+				return ast::constant_value(uint64_t(uint16_t(~uint_val)));
+			case ast::type_info::uint32_:
+				return ast::constant_value(uint64_t(uint32_t(~uint_val)));
+			case ast::type_info::uint64_:
+				return ast::constant_value(~uint_val);
+			default:
+				bz_unreachable;
+			}
 		}
 	}
 	case ast::function_body::builtin_unary_bool_not:
