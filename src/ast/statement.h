@@ -624,9 +624,10 @@ struct function_body
 		fshr_u8, fshr_u16, fshr_u32, fshr_u64,
 
 		_builtin_last,
+		_builtin_default_constructor_first = _builtin_last,
 
 		// these functions don't have a __builtin_* variant
-		i8_default_constructor,
+		i8_default_constructor = _builtin_default_constructor_first,
 		i16_default_constructor,
 		i32_default_constructor,
 		i64_default_constructor,
@@ -641,9 +642,11 @@ struct function_body
 		bool_default_constructor,
 		null_t_default_constructor,
 
-		builtin_unary_plus,
+		_builtin_default_constructor_last,
+		_builtin_operator_first = _builtin_default_constructor_last,
+
+		builtin_unary_plus = _builtin_operator_first,
 		builtin_unary_minus,
-		builtin_unary_address_of,
 		builtin_unary_dereference,
 		builtin_unary_bit_not,
 		builtin_unary_bool_not,
@@ -667,6 +670,18 @@ struct function_body
 		builtin_binary_less_than_eq,
 		builtin_binary_greater_than,
 		builtin_binary_greater_than_eq,
+		builtin_binary_bit_and,
+		builtin_binary_bit_and_eq,
+		builtin_binary_bit_xor,
+		builtin_binary_bit_xor_eq,
+		builtin_binary_bit_or,
+		builtin_binary_bit_or_eq,
+		builtin_binary_bit_left_shift,
+		builtin_binary_bit_left_shift_eq,
+		builtin_binary_bit_right_shift,
+		builtin_binary_bit_right_shift_eq,
+
+		_builtin_operator_last,
 	};
 
 	arena_vector<decl_variable> params;
@@ -726,7 +741,7 @@ struct function_body
 	bz::u8string get_candidate_message(void) const;
 
 	arena_vector<decl_variable> get_params_copy_for_generic_specialization(void);
-	function_body *add_specialized_body(
+	std::pair<function_body *, bz::u8string> add_specialized_body(
 		arena_vector<decl_variable> params,
 		arena_vector<generic_required_from_t> required_from
 	);

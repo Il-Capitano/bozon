@@ -1014,15 +1014,32 @@ static val_ptr emit_default_copy_assign(
 	llvm::Value *result_address
 )
 {
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
+	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
 
-	auto const base_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	emit_copy_assign<abi>(src_tokens, base_type, lhs_val, rhs_val, context);
+	if (is_rhs_null_pointer)
+	{
+		auto const lhs_llvm_type = lhs_val.get_type();
+		bz_assert(lhs_llvm_type->isPointerTy());
+		auto const rhs_null_val = val_ptr{
+			val_ptr::value,
+				llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type))
+		};
+		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
+	}
+	else
+	{
+		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
+	}
+
 	if (result_address != nullptr)
 	{
-		return emit_copy_constructor<abi>(src_tokens, lhs_val, base_type, context, result_address);
+		return emit_copy_constructor<abi>(src_tokens, lhs_val, lhs_type, context, result_address);
 	}
 	else
 	{
@@ -1039,15 +1056,32 @@ static val_ptr emit_default_move_assign(
 	llvm::Value *result_address
 )
 {
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
+	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
 
-	auto const base_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	emit_move_assign<abi>(src_tokens, base_type, lhs_val, rhs_val, context);
+	if (is_rhs_null_pointer)
+	{
+		auto const lhs_llvm_type = lhs_val.get_type();
+		bz_assert(lhs_llvm_type->isPointerTy());
+		auto const rhs_null_val = val_ptr{
+			val_ptr::value,
+				llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type))
+		};
+		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
+	}
+	else
+	{
+		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
+	}
+
 	if (result_address != nullptr)
 	{
-		return emit_copy_constructor<abi>(src_tokens, lhs_val, base_type, context, result_address);
+		return emit_copy_constructor<abi>(src_tokens, lhs_val, lhs_type, context, result_address);
 	}
 	else
 	{
@@ -1170,6 +1204,242 @@ static val_ptr emit_bitcode(
 }
 
 template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_address_of(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr);
+	if (val.kind != val_ptr::reference)
+	{
+		if (auto const id_expr = expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
+		{
+			emit_error(
+				expr.src_tokens,
+				bz::format("unable to take address of variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
+				context
+			);
+		}
+		else
+		{
+			emit_error(expr.src_tokens, "unable to take address of value", context);
+		}
+		// just make sure the returned value is valid
+		if (result_address == nullptr)
+		{
+			auto const ptr_type = llvm::PointerType::get(val.val->getType(), 0);
+			return { val_ptr::value, llvm::Constant::getNullValue(ptr_type) };
+		}
+		else
+		{
+			return { val_ptr::reference, result_address };
+		}
+	}
+	else
+	{
+		if (result_address == nullptr)
+		{
+			return { val_ptr::value, val.val };
+		}
+		else
+		{
+			context.builder.CreateStore(val.val, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_plus(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	return emit_bitcode<abi>(expr, context, result_address);
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_minus(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	bz_assert(expr_t.is<ast::ts_base_type>());
+	auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
+	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
+	auto const res = ast::is_floating_point_kind(expr_kind)
+		? context.builder.CreateFNeg(val, "unary_minus_tmp")
+		: context.builder.CreateNeg(val, "unary_minus_tmp");
+	if (result_address == nullptr)
+	{
+		return { val_ptr::value, res };
+	}
+	else
+	{
+		context.builder.CreateStore(res, result_address);
+		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_dereference(
+	lex::src_tokens src_tokens,
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
+	if (result_address == nullptr)
+	{
+		return { val_ptr::reference, val };
+	}
+	else
+	{
+		emit_copy_constructor<abi>(
+			src_tokens,
+			{ val_ptr::reference, val },
+			ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first),
+			context,
+			result_address
+		);
+		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_bit_not(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
+	auto const res = context.builder.CreateNot(val, "unary_bit_not_tmp");
+	if (result_address == nullptr)
+	{
+		return { val_ptr::value, res };
+	}
+	else
+	{
+		context.builder.CreateStore(res, result_address);
+		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_bool_not(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
+	auto const res = context.builder.CreateNot(val, "unary_bool_not_tmp");
+	if (result_address == nullptr)
+	{
+		return { val_ptr::value, res };
+	}
+	else
+	{
+		context.builder.CreateStore(res, result_address);
+		return { val_ptr::reference, result_address };
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_plus_plus(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+	auto const original_value = val.get_value(context.builder);
+	if (original_value->getType()->isPointerTy())
+	{
+		auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, 1);
+		context.builder.CreateStore(incremented_value, val.val);
+		if (result_address == nullptr)
+		{
+			return val;
+		}
+		else
+		{
+			context.builder.CreateStore(incremented_value, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+	else
+	{
+		bz_assert(original_value->getType()->isIntegerTy());
+		auto const incremented_value = context.builder.CreateAdd(
+			original_value,
+			llvm::ConstantInt::get(original_value->getType(), 1)
+		);
+		context.builder.CreateStore(incremented_value, val.val);
+		if (result_address == nullptr)
+		{
+			return val;
+		}
+		else
+		{
+			context.builder.CreateStore(incremented_value, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+}
+
+template<abi::platform_abi abi>
+static val_ptr emit_builtin_unary_minus_minus(
+	ast::expression const &expr,
+	ctx::comptime_executor_context &context,
+	llvm::Value *result_address
+)
+{
+	auto const val = emit_bitcode<abi>(expr, context, nullptr);
+	bz_assert(val.kind == val_ptr::reference);
+	auto const original_value = val.get_value(context.builder);
+	if (original_value->getType()->isPointerTy())
+	{
+		auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, uint64_t(-1));
+		context.builder.CreateStore(incremented_value, val.val);
+		if (result_address == nullptr)
+		{
+			return val;
+		}
+		else
+		{
+			context.builder.CreateStore(incremented_value, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+	else
+	{
+		bz_assert(original_value->getType()->isIntegerTy());
+		auto const incremented_value = context.builder.CreateAdd(
+			original_value,
+			llvm::ConstantInt::get(original_value->getType(), uint64_t(-1))
+		);
+		context.builder.CreateStore(incremented_value, val.val);
+		if (result_address == nullptr)
+		{
+			return val;
+		}
+		else
+		{
+			context.builder.CreateStore(incremented_value, result_address);
+			return { val_ptr::reference, result_address };
+		}
+	}
+}
+
+template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	[[maybe_unused]] lex::src_tokens src_tokens,
 	ast::expr_unary_op const &unary_op,
@@ -1181,185 +1451,12 @@ static val_ptr emit_bitcode(
 	{
 	// ==== non-overloadable ====
 	case lex::token::address_of:         // '&'
-	{
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr);
-		if (val.kind != val_ptr::reference)
-		{
-			if (auto const id_expr = unary_op.expr.get_expr().get_if<ast::expr_identifier>(); id_expr && id_expr->decl != nullptr)
-			{
-				emit_error(
-					unary_op.expr.src_tokens,
-					bz::format("unable to take address of variable '{}'", id_expr->decl->get_id().format_as_unqualified()),
-					context
-				);
-			}
-			else
-			{
-				emit_error(unary_op.expr.src_tokens, "unable to take address of value", context);
-			}
-			// just make sure the returned value is valid
-			if (result_address == nullptr)
-			{
-				auto const ptr_type = llvm::PointerType::get(val.val->getType(), 0);
-				return { val_ptr::value, llvm::Constant::getNullValue(ptr_type) };
-			}
-			else
-			{
-				return { val_ptr::reference, result_address };
-			}
-		}
-		else
-		{
-			if (result_address == nullptr)
-			{
-				return { val_ptr::value, val.val };
-			}
-			else
-			{
-				context.builder.CreateStore(val.val, result_address);
-				return { val_ptr::reference, result_address };
-			}
-		}
-	}
+		return emit_builtin_unary_address_of<abi>(unary_op.expr, context, result_address);
 	case lex::token::kw_sizeof:          // 'sizeof'
 		// this is always a constant expression
 		bz_unreachable;
 
-	// ==== overloadable ====
-	case lex::token::plus:               // '+'
-	{
-		return emit_bitcode<abi>(unary_op.expr, context, result_address);
-	}
-	case lex::token::minus:              // '-'
-	{
-		auto const expr_t = ast::remove_const_or_consteval(unary_op.expr.get_expr_type_and_kind().first);
-		bz_assert(expr_t.is<ast::ts_base_type>());
-		auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr).get_value(context.builder);
-		auto const res = ast::is_floating_point_kind(expr_kind)
-			? context.builder.CreateFNeg(val, "unary_minus_tmp")
-			: context.builder.CreateNeg(val, "unary_minus_tmp");
-		if (result_address == nullptr)
-		{
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			context.builder.CreateStore(res, result_address);
-			return { val_ptr::reference, result_address };
-		}
-	}
-	case lex::token::dereference:        // '*'
-	{
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr).get_value(context.builder);
-		if (result_address == nullptr)
-		{
-			return { val_ptr::reference, val };
-		}
-		else
-		{
-			emit_copy_constructor<abi>(
-				src_tokens,
-				{ val_ptr::reference, val },
-				ast::remove_const_or_consteval(unary_op.expr.get_expr_type_and_kind().first),
-				context,
-				result_address
-			);
-			return { val_ptr::reference, result_address };
-		}
-	}
-	case lex::token::bit_not:            // '~'
-	case lex::token::bool_not:           // '!'
-	{
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr).get_value(context.builder);
-		auto const res = context.builder.CreateNot(val, "unary_bit_not_tmp");
-		if (result_address == nullptr)
-		{
-			return { val_ptr::value, res };
-		}
-		else
-		{
-			context.builder.CreateStore(res, result_address);
-			return { val_ptr::reference, result_address };
-		}
-	}
-
-	case lex::token::plus_plus:          // '++'
-	{
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr);
-		bz_assert(val.kind == val_ptr::reference);
-		auto const original_value = val.get_value(context.builder);
-		if (original_value->getType()->isPointerTy())
-		{
-			auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, 1);
-			context.builder.CreateStore(incremented_value, val.val);
-			if (result_address == nullptr)
-			{
-				return val;
-			}
-			else
-			{
-				context.builder.CreateStore(incremented_value, result_address);
-				return { val_ptr::reference, result_address };
-			}
-		}
-		else
-		{
-			bz_assert(original_value->getType()->isIntegerTy());
-			auto const incremented_value = context.builder.CreateAdd(
-				original_value,
-				llvm::ConstantInt::get(original_value->getType(), 1)
-			);
-			context.builder.CreateStore(incremented_value, val.val);
-			if (result_address == nullptr)
-			{
-				return val;
-			}
-			else
-			{
-				context.builder.CreateStore(incremented_value, result_address);
-				return { val_ptr::reference, result_address };
-			}
-		}
-	}
-	case lex::token::minus_minus:        // '--'
-	{
-		auto const val = emit_bitcode<abi>(unary_op.expr, context, nullptr);
-		bz_assert(val.kind == val_ptr::reference);
-		auto const original_value = val.get_value(context.builder);
-		if (original_value->getType()->isPointerTy())
-		{
-			auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, uint64_t(-1));
-			context.builder.CreateStore(incremented_value, val.val);
-			if (result_address == nullptr)
-			{
-				return val;
-			}
-			else
-			{
-				context.builder.CreateStore(incremented_value, result_address);
-				return { val_ptr::reference, result_address };
-			}
-		}
-		else
-		{
-			bz_assert(original_value->getType()->isIntegerTy());
-			auto const incremented_value = context.builder.CreateAdd(
-				original_value,
-				llvm::ConstantInt::get(original_value->getType(), uint64_t(-1))
-			);
-			context.builder.CreateStore(incremented_value, val.val);
-			if (result_address == nullptr)
-			{
-				return val;
-			}
-			else
-			{
-				context.builder.CreateStore(incremented_value, result_address);
-				return { val_ptr::reference, result_address };
-			}
-		}
-	}
+	// overloadables are handled as function calls
 	default:
 		bz_unreachable;
 		return {};
@@ -1370,30 +1467,30 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_assign(
 	lex::src_tokens src_tokens,
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	if (ast::is_lvalue(binary_op.rhs.get_expr_type_and_kind().second))
+	if (ast::is_lvalue(rhs.get_expr_type_and_kind().second))
 	{
-		return emit_default_copy_assign<abi>(src_tokens, binary_op.lhs, binary_op.rhs, context, result_address);
+		return emit_default_copy_assign<abi>(src_tokens, lhs, rhs, context, result_address);
 	}
 	else
 	{
-		return emit_default_move_assign<abi>(src_tokens, binary_op.lhs, binary_op.rhs, context, result_address);
+		return emit_default_move_assign<abi>(src_tokens, lhs, rhs, context, result_address);
 	}
 }
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_plus(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1403,8 +1500,8 @@ static val_ptr emit_builtin_binary_plus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
-			auto const lhs_val = emit_bitcode<abi>(binary_op.lhs, context, nullptr).get_value(context.builder);
-			auto const rhs_val = emit_bitcode<abi>(binary_op.rhs, context, nullptr).get_value(context.builder);
+			auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+			auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFAdd(lhs_val, rhs_val, "add_tmp")
 				: context.builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
@@ -1508,13 +1605,12 @@ static val_ptr emit_builtin_binary_plus(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_plus_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1607,13 +1703,12 @@ static val_ptr emit_builtin_binary_plus_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_minus(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1623,8 +1718,8 @@ static val_ptr emit_builtin_binary_minus(
 		auto const rhs_kind = rhs_t.get<ast::ts_base_type>().info->kind;
 		if (ast::is_arithmetic_kind(lhs_kind) && ast::is_arithmetic_kind(rhs_kind))
 		{
-			auto const lhs_val = emit_bitcode<abi>(binary_op.lhs, context, nullptr).get_value(context.builder);
-			auto const rhs_val = emit_bitcode<abi>(binary_op.rhs, context, nullptr).get_value(context.builder);
+			auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+			auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
 			auto const result_val = ast::is_floating_point_kind(lhs_kind)
 				? context.builder.CreateFSub(lhs_val, rhs_val, "sub_tmp")
 				: context.builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
@@ -1725,13 +1820,12 @@ static val_ptr emit_builtin_binary_minus(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_minus_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1831,13 +1925,12 @@ static val_ptr emit_builtin_binary_minus_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_multiply(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1863,13 +1956,12 @@ static val_ptr emit_builtin_binary_multiply(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_multiply_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1900,13 +1992,12 @@ static val_ptr emit_builtin_binary_multiply_eq(
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide(
 	lex::src_tokens src_tokens,
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -1954,13 +2045,12 @@ static val_ptr emit_builtin_binary_divide(
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_divide_eq(
 	lex::src_tokens src_tokens,
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2011,13 +2101,12 @@ static val_ptr emit_builtin_binary_divide_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_modulo(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2043,13 +2132,12 @@ static val_ptr emit_builtin_binary_modulo(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_modulo_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2079,12 +2167,13 @@ static val_ptr emit_builtin_binary_modulo_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_cmp(
-	ast::expr_binary_op const &binary_op,
+	uint32_t op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto const op = binary_op.op;
 	bz_assert(
 		op == lex::token::equals
 		|| op == lex::token::not_equals
@@ -2093,8 +2182,6 @@ static val_ptr emit_builtin_binary_cmp(
 		|| op == lex::token::greater_than
 		|| op == lex::token::greater_than_eq
 	);
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 	// 0: signed int
@@ -2151,7 +2238,7 @@ static val_ptr emit_builtin_binary_cmp(
 		return preds[kind][pred];
 	};
 
-	if (lhs_t.is<ast::ts_base_type>())
+	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
 		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2176,11 +2263,31 @@ static val_ptr emit_builtin_binary_cmp(
 	}
 	else // if pointer
 	{
-		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
+		auto const [lhs_val, rhs_val] = [&]() -> std::pair<llvm::Value *, llvm::Value *> {
+			if (lhs_t.is<ast::ts_base_type>())
+			{
+				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
+				auto const lhs_val = llvm::ConstantInt::get(rhs_val->getType(), 0);
+				return { lhs_val, rhs_val };
+			}
+			else if (rhs_t.is<ast::ts_base_type>())
+			{
+				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+				auto const rhs_val = llvm::ConstantInt::get(lhs_val->getType(), 0);
+				return { lhs_val, rhs_val };
+			}
+			else
+			{
+				bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
+				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
+				return { lhs_val, rhs_val };
+			}
+		}();
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -2197,13 +2304,12 @@ static val_ptr emit_builtin_binary_cmp(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_and(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2231,13 +2337,12 @@ static val_ptr emit_builtin_binary_bit_and(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_and_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2269,13 +2374,12 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_xor(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2303,13 +2407,12 @@ static val_ptr emit_builtin_binary_bit_xor(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_xor_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2341,13 +2444,12 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_or(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2375,13 +2477,12 @@ static val_ptr emit_builtin_binary_bit_or(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_bit_or_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2413,13 +2514,12 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_left_shift(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2444,13 +2544,12 @@ static val_ptr emit_builtin_binary_left_shift(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_left_shift_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2479,13 +2578,12 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_right_shift(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2510,13 +2608,12 @@ static val_ptr emit_builtin_binary_right_shift(
 
 template<abi::platform_abi abi>
 static val_ptr emit_builtin_binary_right_shift_eq(
-	ast::expr_binary_op const &binary_op,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
 )
 {
-	auto &lhs = binary_op.lhs;
-	auto &rhs = binary_op.rhs;
 	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 
@@ -2684,7 +2781,7 @@ static val_ptr emit_builtin_binary_bool_or(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	lex::src_tokens src_tokens,
+	[[maybe_unused]] lex::src_tokens src_tokens,
 	ast::expr_binary_op const &binary_op,
 	ctx::comptime_executor_context &context,
 	llvm::Value *result_address
@@ -2702,63 +2799,15 @@ static val_ptr emit_bitcode(
 		context.pop_expression_scope();
 		return emit_bitcode<abi>(binary_op.rhs, context, result_address);
 	}
-
-	// ==== overloadable ====
-	case lex::token::assign:             // '='
-		return emit_builtin_binary_assign<abi>(src_tokens, binary_op, context, result_address);
-	case lex::token::plus:               // '+'
-		return emit_builtin_binary_plus<abi>(binary_op, context, result_address);
-	case lex::token::plus_eq:            // '+='
-		return emit_builtin_binary_plus_eq<abi>(binary_op, context, result_address);
-	case lex::token::minus:              // '-'
-		return emit_builtin_binary_minus<abi>(binary_op, context, result_address);
-	case lex::token::minus_eq:           // '-='
-		return emit_builtin_binary_minus_eq<abi>(binary_op, context, result_address);
-	case lex::token::multiply:           // '*'
-		return emit_builtin_binary_multiply<abi>(binary_op, context, result_address);
-	case lex::token::multiply_eq:        // '*='
-		return emit_builtin_binary_multiply_eq<abi>(binary_op, context, result_address);
-	case lex::token::divide:             // '/'
-		return emit_builtin_binary_divide<abi>(src_tokens, binary_op, context, result_address);
-	case lex::token::divide_eq:          // '/='
-		return emit_builtin_binary_divide_eq<abi>(src_tokens, binary_op, context, result_address);
-	case lex::token::modulo:             // '%'
-		return emit_builtin_binary_modulo<abi>(binary_op, context, result_address);
-	case lex::token::modulo_eq:          // '%='
-		return emit_builtin_binary_modulo_eq<abi>(binary_op, context, result_address);
-	case lex::token::equals:             // '=='
-	case lex::token::not_equals:         // '!='
-	case lex::token::less_than:          // '<'
-	case lex::token::less_than_eq:       // '<='
-	case lex::token::greater_than:       // '>'
-	case lex::token::greater_than_eq:    // '>='
-		return emit_builtin_binary_cmp<abi>(binary_op, context, result_address);
-	case lex::token::bit_and:            // '&'
-		return emit_builtin_binary_bit_and<abi>(binary_op, context, result_address);
-	case lex::token::bit_and_eq:         // '&='
-		return emit_builtin_binary_bit_and_eq<abi>(binary_op, context, result_address);
-	case lex::token::bit_xor:            // '^'
-		return emit_builtin_binary_bit_xor<abi>(binary_op, context, result_address);
-	case lex::token::bit_xor_eq:         // '^='
-		return emit_builtin_binary_bit_xor_eq<abi>(binary_op, context, result_address);
-	case lex::token::bit_or:             // '|'
-		return emit_builtin_binary_bit_or<abi>(binary_op, context, result_address);
-	case lex::token::bit_or_eq:          // '|='
-		return emit_builtin_binary_bit_or_eq<abi>(binary_op, context, result_address);
-	case lex::token::bit_left_shift:     // '<<'
-		return emit_builtin_binary_left_shift<abi>(binary_op, context, result_address);
-	case lex::token::bit_left_shift_eq:  // '<<='
-		return emit_builtin_binary_left_shift_eq<abi>(binary_op, context, result_address);
-	case lex::token::bit_right_shift:    // '>>'
-		return emit_builtin_binary_right_shift<abi>(binary_op, context, result_address);
-	case lex::token::bit_right_shift_eq: // '>>='
-		return emit_builtin_binary_right_shift_eq<abi>(binary_op, context, result_address);
 	case lex::token::bool_and:           // '&&'
 		return emit_builtin_binary_bool_and<abi>(binary_op, context, result_address);
 	case lex::token::bool_xor:           // '^^'
 		return emit_builtin_binary_bool_xor<abi>(binary_op, context, result_address);
 	case lex::token::bool_or:            // '||'
 		return emit_builtin_binary_bool_or<abi>(binary_op, context, result_address);
+
+	// ==== overloadable ====
+	// they are handled as intrinsic functions
 
 	// these have no built-in operations
 	case lex::token::dot_dot:            // '..'
@@ -2903,6 +2952,8 @@ static val_ptr emit_bitcode(
 		switch (func_call.func_body->intrinsic_kind)
 		{
 		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
+		static_assert(ast::function_body::_builtin_operator_last - ast::function_body::_builtin_operator_first == 34);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -3435,6 +3486,76 @@ static val_ptr emit_bitcode(
 			// these functions are guaranteed to be evaluated at compile time
 			bz_unreachable;
 
+		case ast::function_body::builtin_unary_plus:
+			return emit_builtin_unary_plus<abi>(func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_minus:
+			return emit_builtin_unary_minus<abi>(func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_dereference:
+			return emit_builtin_unary_dereference<abi>(src_tokens, func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_bit_not:
+			return emit_builtin_unary_bit_not<abi>(func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_bool_not:
+			return emit_builtin_unary_bool_not<abi>(func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_plus_plus:
+			return emit_builtin_unary_plus_plus<abi>(func_call.params[0], context, result_address);
+		case ast::function_body::builtin_unary_minus_minus:
+			return emit_builtin_unary_minus_minus<abi>(func_call.params[0], context, result_address);
+
+		case ast::function_body::builtin_binary_assign:
+			return emit_builtin_binary_assign<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_plus:
+			return emit_builtin_binary_plus<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_plus_eq:
+			return emit_builtin_binary_plus_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_minus:
+			return emit_builtin_binary_minus<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_minus_eq:
+			return emit_builtin_binary_minus_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_multiply:
+			return emit_builtin_binary_multiply<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_multiply_eq:
+			return emit_builtin_binary_multiply_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_divide:
+			return emit_builtin_binary_divide<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_divide_eq:
+			return emit_builtin_binary_divide_eq<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_modulo:
+			return emit_builtin_binary_modulo<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_modulo_eq:
+			return emit_builtin_binary_modulo_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_equals:
+			return emit_builtin_binary_cmp<abi>(lex::token::equals, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_not_equals:
+			return emit_builtin_binary_cmp<abi>(lex::token::not_equals, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_less_than:
+			return emit_builtin_binary_cmp<abi>(lex::token::less_than, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_less_than_eq:
+			return emit_builtin_binary_cmp<abi>(lex::token::less_than_eq, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_greater_than:
+			return emit_builtin_binary_cmp<abi>(lex::token::greater_than, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_greater_than_eq:
+			return emit_builtin_binary_cmp<abi>(lex::token::greater_than_eq, func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_and:
+			return emit_builtin_binary_bit_and<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_and_eq:
+			return emit_builtin_binary_bit_and_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_xor:
+			return emit_builtin_binary_bit_xor<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_xor_eq:
+			return emit_builtin_binary_bit_xor_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_or:
+			return emit_builtin_binary_bit_or<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_or_eq:
+			return emit_builtin_binary_bit_or_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_left_shift:
+			return emit_builtin_binary_left_shift<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_left_shift_eq:
+			return emit_builtin_binary_left_shift_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_right_shift:
+			return emit_builtin_binary_right_shift<abi>(func_call.params[0], func_call.params[1], context, result_address);
+		case ast::function_body::builtin_binary_bit_right_shift_eq:
+			return emit_builtin_binary_right_shift_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+
 		default:
 			break;
 		}
@@ -3583,7 +3704,7 @@ static val_ptr emit_bitcode(
 		);
 
 		auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
-		// if (!file.ends_with("__comptime_checking.bz"))
+		if (!file.ends_with("__comptime_checking.bz"))
 		{
 			auto const line = src_tokens.pivot->src_pos.line;
 			auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());

@@ -1548,7 +1548,7 @@ static ast::expression get_builtin_binary_plus(
 }
 
 // sint - sint -> sint
-// uint - uint -> sint
+// uint - uint -> uint
 // float - float -> float
 // char - int -> char
 // char - char -> int32
@@ -3599,14 +3599,14 @@ struct unary_operator_parse_function_t
 constexpr auto builtin_unary_operators = []() {
 	using T = unary_operator_parse_function_t;
 	auto result = bz::array{
-		T{ lex::token::plus,        &get_builtin_unary_plus                  }, // +
-		T{ lex::token::minus,       &get_builtin_unary_minus                 }, // -
-		T{ lex::token::address_of,  &get_builtin_unary_address_of            }, // &
-		T{ lex::token::dereference, &get_builtin_unary_dereference           }, // *
-		T{ lex::token::bit_not,     &get_builtin_unary_bit_not               }, // ~
-		T{ lex::token::bool_not,    &get_builtin_unary_bool_not              }, // !
-		T{ lex::token::plus_plus,   &get_builtin_unary_plus_plus_minus_minus }, // ++
-		T{ lex::token::minus_minus, &get_builtin_unary_plus_plus_minus_minus }, // --
+		T{ lex::token::plus,        &get_builtin_unary_plus                  }, // +    ====
+		T{ lex::token::minus,       &get_builtin_unary_minus                 }, // -    ====
+		T{ lex::token::address_of,  &get_builtin_unary_address_of            }, // &    ====
+		T{ lex::token::dereference, &get_builtin_unary_dereference           }, // *    ====
+		T{ lex::token::bit_not,     &get_builtin_unary_bit_not               }, // ~    ====
+		T{ lex::token::bool_not,    &get_builtin_unary_bool_not              }, // !    ====
+		T{ lex::token::plus_plus,   &get_builtin_unary_plus_plus_minus_minus }, // ++   ====
+		T{ lex::token::minus_minus, &get_builtin_unary_plus_plus_minus_minus }, // --   ====
 		T{ lex::token::dot_dot_dot, &get_builtin_unary_dot_dot_dot           }, // ...
 
 		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
@@ -3702,23 +3702,23 @@ struct binary_operator_parse_function_t
 constexpr auto builtin_binary_operators = []() {
 	using T = binary_operator_parse_function_t;
 	auto result = bz::array{
-		T{ lex::token::assign,             &get_builtin_binary_assign             }, // =
-		T{ lex::token::plus,               &get_builtin_binary_plus               }, // +
-		T{ lex::token::plus_eq,            &get_builtin_binary_plus_minus_eq      }, // +=
-		T{ lex::token::minus,              &get_builtin_binary_minus              }, // -
-		T{ lex::token::minus_eq,           &get_builtin_binary_plus_minus_eq      }, // -=
-		T{ lex::token::multiply,           &get_builtin_binary_multiply_divide    }, // *
-		T{ lex::token::multiply_eq,        &get_builtin_binary_multiply_divide_eq }, // *=
-		T{ lex::token::divide,             &get_builtin_binary_multiply_divide    }, // /
-		T{ lex::token::divide_eq,          &get_builtin_binary_multiply_divide_eq }, // /=
-		T{ lex::token::modulo,             &get_builtin_binary_modulo             }, // %
-		T{ lex::token::modulo_eq,          &get_builtin_binary_modulo_eq          }, // %=
-		T{ lex::token::equals,             &get_builtin_binary_equals_not_equals  }, // ==
-		T{ lex::token::not_equals,         &get_builtin_binary_equals_not_equals  }, // !=
-		T{ lex::token::less_than,          &get_builtin_binary_compare            }, // <
-		T{ lex::token::less_than_eq,       &get_builtin_binary_compare            }, // <=
-		T{ lex::token::greater_than,       &get_builtin_binary_compare            }, // >
-		T{ lex::token::greater_than_eq,    &get_builtin_binary_compare            }, // >=
+		T{ lex::token::assign,             &get_builtin_binary_assign             }, // =      ====
+		T{ lex::token::plus,               &get_builtin_binary_plus               }, // +      ====
+		T{ lex::token::plus_eq,            &get_builtin_binary_plus_minus_eq      }, // +=     ====
+		T{ lex::token::minus,              &get_builtin_binary_minus              }, // -      ====
+		T{ lex::token::minus_eq,           &get_builtin_binary_plus_minus_eq      }, // -=     ====
+		T{ lex::token::multiply,           &get_builtin_binary_multiply_divide    }, // *      ====
+		T{ lex::token::multiply_eq,        &get_builtin_binary_multiply_divide_eq }, // *=     ====
+		T{ lex::token::divide,             &get_builtin_binary_multiply_divide    }, // /      ====
+		T{ lex::token::divide_eq,          &get_builtin_binary_multiply_divide_eq }, // /=     ====
+		T{ lex::token::modulo,             &get_builtin_binary_modulo             }, // %      ====
+		T{ lex::token::modulo_eq,          &get_builtin_binary_modulo_eq          }, // %=     ====
+		T{ lex::token::equals,             &get_builtin_binary_equals_not_equals  }, // ==     ====
+		T{ lex::token::not_equals,         &get_builtin_binary_equals_not_equals  }, // !=     ====
+		T{ lex::token::less_than,          &get_builtin_binary_compare            }, // <      ====
+		T{ lex::token::less_than_eq,       &get_builtin_binary_compare            }, // <=     ====
+		T{ lex::token::greater_than,       &get_builtin_binary_compare            }, // >      ====
+		T{ lex::token::greater_than_eq,    &get_builtin_binary_compare            }, // >=     ====
 		T{ lex::token::bit_and,            &get_builtin_binary_bit_and_xor_or     }, // &
 		T{ lex::token::bit_and_eq,         &get_builtin_binary_bit_and_xor_or_eq  }, // &=
 		T{ lex::token::bit_xor,            &get_builtin_binary_bit_and_xor_or     }, // ^
@@ -3729,10 +3729,10 @@ constexpr auto builtin_binary_operators = []() {
 		T{ lex::token::bit_left_shift_eq,  &get_builtin_binary_bit_shift_eq       }, // <<=
 		T{ lex::token::bit_right_shift,    &get_builtin_binary_bit_shift          }, // >>
 		T{ lex::token::bit_right_shift_eq, &get_builtin_binary_bit_shift_eq       }, // >>=
+
 		T{ lex::token::bool_and,           &get_builtin_binary_bool_and_xor_or    }, // &&
 		T{ lex::token::bool_xor,           &get_builtin_binary_bool_and_xor_or    }, // ^^
 		T{ lex::token::bool_or,            &get_builtin_binary_bool_and_xor_or    }, // ||
-
 		T{ lex::token::comma,              &get_builtin_binary_comma              }, // ,
 	};
 

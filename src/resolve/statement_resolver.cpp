@@ -1528,14 +1528,21 @@ void resolve_function_symbol(
 	bz::optional<ctx::parse_context> new_context{};
 	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
 
-	auto const original_file_info = context_ptr->get_current_file_info();
-	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
+	if (!func_body.is_builtin_operator())
 	{
-		context_ptr->set_current_file(stmt_file_id);
+		auto const original_file_info = context_ptr->get_current_file_info();
+		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
+		if (original_file_info.file_id != stmt_file_id)
+		{
+			context_ptr->set_current_file(stmt_file_id);
+		}
+		resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
+		context_ptr->set_current_file_info(original_file_info);
 	}
-	resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
-	context_ptr->set_current_file_info(original_file_info);
+	else
+	{
+		resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
+	}
 }
 
 static void resolve_local_statements(

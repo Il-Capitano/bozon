@@ -5,127 +5,6 @@
 namespace parse
 {
 
-static ast::constant_value evaluate_unary_plus(
-	[[maybe_unused]] ast::expression const &original_expr,
-	ast::expression const &expr,
-	[[maybe_unused]] ctx::parse_context &context
-)
-{
-	bz_assert(expr.is<ast::constant_expression>());
-	auto const &const_expr = expr.get<ast::constant_expression>();
-	auto const &value = const_expr.value;
-	// this is a no-op, it doesn't change the value
-	return value;
-}
-
-static ast::constant_value evaluate_unary_minus(
-	ast::expression const &original_expr,
-	ast::expression const &expr,
-	ctx::parse_context &context
-)
-{
-	bz_assert(expr.is<ast::constant_expression>());
-	auto const &const_expr = expr.get<ast::constant_expression>();
-	auto const &value = const_expr.value;
-
-	switch (value.kind())
-	{
-	case ast::constant_value::sint:
-	{
-		bz_assert(ast::remove_const_or_consteval(const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_const_or_consteval(const_expr.type).get<ast::ts_base_type>().info->kind;
-		auto const int_val = value.get<ast::constant_value::sint>();
-		return ast::constant_value(safe_unary_minus(
-			original_expr.src_tokens, original_expr.paren_level,
-			int_val, type, context
-		));
-	}
-	case ast::constant_value::float32:
-	{
-		// there's no possible overflow with floating point numbers
-		auto const float_val = value.get<ast::constant_value::float32>();
-		return ast::constant_value(-float_val);
-	}
-	case ast::constant_value::float64:
-	{
-		// there's no possible overflow with floating point numbers
-		auto const float_val = value.get<ast::constant_value::float64>();
-		return ast::constant_value(-float_val);
-	}
-	default:
-		bz_unreachable;
-	}
-}
-
-static ast::constant_value evaluate_unary_bit_not(
-	[[maybe_unused]] ast::expression const &original_expr,
-	ast::expression const &expr,
-	[[maybe_unused]] ctx::parse_context &context
-)
-{
-	bz_assert(expr.is<ast::constant_expression>());
-	auto const &const_expr = expr.get<ast::constant_expression>();
-	auto const &value = const_expr.value;
-
-	bz_assert(value.is<ast::constant_value::uint>() || value.is<ast::constant_value::boolean>());
-	if (value.is<ast::constant_value::uint>())
-	{
-		bz_assert(ast::remove_const_or_consteval(const_expr.type).is<ast::ts_base_type>());
-		auto const type = ast::remove_const_or_consteval(const_expr.type).get<ast::ts_base_type>().info->kind;
-		auto const int_val = value.get<ast::constant_value::uint>();
-
-		uint64_t const result =
-			type == ast::type_info::uint8_  ? static_cast<uint8_t> (~int_val) :
-			type == ast::type_info::uint16_ ? static_cast<uint16_t>(~int_val) :
-			type == ast::type_info::uint32_ ? static_cast<uint32_t>(~int_val) :
-			static_cast<uint64_t>(~int_val);
-
-		return ast::constant_value(result);
-	}
-	else
-	{
-		auto const bool_val = value.get<ast::constant_value::boolean>();
-		return ast::constant_value(!bool_val);
-	}
-}
-
-static ast::constant_value evaluate_unary_bool_not(
-	[[maybe_unused]] ast::expression const &original_expr,
-	ast::expression const &expr,
-	[[maybe_unused]] ctx::parse_context &context
-)
-{
-	bz_assert(expr.is<ast::constant_expression>());
-	auto const &const_expr = expr.get<ast::constant_expression>();
-	auto const &value = const_expr.value;
-
-	bz_assert(value.is<ast::constant_value::boolean>());
-	auto const bool_val = value.get<ast::constant_value::boolean>();
-	return ast::constant_value(!bool_val);
-}
-
-static ast::constant_value evaluate_unary_op(
-	ast::expression const &original_expr,
-	uint32_t op, ast::expression const &expr,
-	ctx::parse_context &context
-)
-{
-	switch (op)
-	{
-	case lex::token::plus:
-		return evaluate_unary_plus(original_expr, expr, context);
-	case lex::token::minus:
-		return evaluate_unary_minus(original_expr, expr, context);
-	case lex::token::bit_not:
-		return evaluate_unary_bit_not(original_expr, expr, context);
-	case lex::token::bool_not:
-		return evaluate_unary_bool_not(original_expr, expr, context);
-	default:
-		return {};
-	}
-}
-
-
 static ast::constant_value evaluate_binary_plus(
 	ast::expression const &original_expr,
 	ast::expression const &lhs, ast::expression const &rhs,
@@ -1817,6 +1696,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	switch (func_call.func_body->intrinsic_kind)
 	{
 	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
+	static_assert(ast::function_body::_builtin_operator_last - ast::function_body::_builtin_operator_first == 34);
 	case ast::function_body::builtin_str_eq:
 	{
 		bz_assert(func_call.params.size() == 2);
@@ -2227,6 +2108,171 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		return ast::constant_value(bool());
 	case ast::function_body::null_t_default_constructor:
 		return ast::constant_value(ast::internal::null_t());
+
+	case ast::function_body::builtin_unary_plus:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &const_expr = func_call.params[0].get<ast::constant_expression>();
+		auto const &value = const_expr.value;
+		return value;
+	}
+	case ast::function_body::builtin_unary_minus:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &const_expr = func_call.params[0].get<ast::constant_expression>();
+		auto const &value = const_expr.value;
+		if (value.is<ast::constant_value::sint>())
+		{
+			bz_assert(ast::remove_const_or_consteval(const_expr.type).is<ast::ts_base_type>());
+			auto const type = ast::remove_const_or_consteval(const_expr.type).get<ast::ts_base_type>().info->kind;
+			auto const int_val = value.get<ast::constant_value::sint>();
+			return ast::constant_value(safe_unary_minus(
+				original_expr.src_tokens, original_expr.paren_level,
+				int_val, type, context
+			));
+		}
+		else if (value.is<ast::constant_value::float32>())
+		{
+			auto const float_val = value.get<ast::constant_value::float32>();
+			return ast::constant_value(-float_val);
+		}
+		else
+		{
+			bz_assert(value.is<ast::constant_value::float64>());
+			auto const float_val = value.get<ast::constant_value::float64>();
+			return ast::constant_value(-float_val);
+		}
+	}
+	case ast::function_body::builtin_unary_dereference:
+		return {};
+	case ast::function_body::builtin_unary_bit_not:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		auto const &value = func_call.params[0].get<ast::constant_expression>().value;
+		if (value.is<ast::constant_value::boolean>())
+		{
+			auto const bool_val = value.get<ast::constant_value::boolean>();
+			return ast::constant_value(!bool_val);
+		}
+		else
+		{
+			bz_assert(value.is<ast::constant_value::uint>());
+			auto const uint_val = value.get<ast::constant_value::uint>();
+			return ast::constant_value(~uint_val);
+		}
+	}
+	case ast::function_body::builtin_unary_bool_not:
+	{
+		bz_assert(func_call.params.size() == 1);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded())
+		{
+			return {};
+		}
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::boolean>());
+		auto const bool_val = func_call.params[0].get<ast::constant_expression>().value.get<ast::constant_value::boolean>();
+		return ast::constant_value(!bool_val);
+	}
+	case ast::function_body::builtin_unary_plus_plus:
+	case ast::function_body::builtin_unary_minus_minus:
+		return {};
+
+	case ast::function_body::builtin_binary_assign:
+	case ast::function_body::builtin_binary_plus:
+	case ast::function_body::builtin_binary_plus_eq:
+	case ast::function_body::builtin_binary_minus:
+	case ast::function_body::builtin_binary_minus_eq:
+	case ast::function_body::builtin_binary_multiply:
+	case ast::function_body::builtin_binary_multiply_eq:
+	case ast::function_body::builtin_binary_divide:
+	case ast::function_body::builtin_binary_divide_eq:
+	case ast::function_body::builtin_binary_modulo:
+	case ast::function_body::builtin_binary_modulo_eq:
+	case ast::function_body::builtin_binary_equals:
+	case ast::function_body::builtin_binary_not_equals:
+	case ast::function_body::builtin_binary_less_than:
+	case ast::function_body::builtin_binary_less_than_eq:
+	case ast::function_body::builtin_binary_greater_than:
+	case ast::function_body::builtin_binary_greater_than_eq:
+	case ast::function_body::builtin_binary_bit_and:
+	case ast::function_body::builtin_binary_bit_and_eq:
+	case ast::function_body::builtin_binary_bit_xor:
+	case ast::function_body::builtin_binary_bit_xor_eq:
+	case ast::function_body::builtin_binary_bit_or:
+	case ast::function_body::builtin_binary_bit_or_eq:
+	case ast::function_body::builtin_binary_bit_left_shift:
+	case ast::function_body::builtin_binary_bit_left_shift_eq:
+	case ast::function_body::builtin_binary_bit_right_shift:
+	case ast::function_body::builtin_binary_bit_right_shift_eq:
+		bz_assert(func_call.params.size() == 2);
+		if (exec_kind == function_execution_kind::force_evaluate)
+		{
+			consteval_try(func_call.params[0], context);
+			consteval_try(func_call.params[1], context);
+		}
+		else if (exec_kind == function_execution_kind::force_evaluate_without_error)
+		{
+			consteval_try_without_error(func_call.params[0], context);
+			consteval_try_without_error(func_call.params[1], context);
+		}
+		if (!func_call.params[0].has_consteval_succeeded() || !func_call.params[1].has_consteval_succeeded())
+		{
+			return {};
+		}
+		return evaluate_binary_op(
+			original_expr,
+			func_call.func_body->function_name_or_operator_kind.get<uint32_t>(),
+			func_call.params[0],
+			func_call.params[1],
+			context
+		);
 
 	default:
 		bz_unreachable;
@@ -2694,14 +2740,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 			return result;
 		},
-		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+			// builtin operators are handled as intrinsic functions
 			consteval_guaranteed(unary_op.expr, context);
-			if (!unary_op.expr.has_consteval_succeeded())
-			{
-				return {};
-			}
-
-			return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
+			return {};
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_guaranteed(binary_op.lhs, context);
@@ -3017,16 +3059,10 @@ static ast::constant_value try_evaluate_expr(
 			}
 			return result;
 		},
-		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+			// builtin operators are handled as intrinsic functions
 			consteval_try(unary_op.expr, context);
-			if (unary_op.expr.has_consteval_succeeded())
-			{
-				return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
-			}
-			else
-			{
-				return {};
-			}
+			return {};
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_try(binary_op.lhs, context);
@@ -3348,16 +3384,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 			return result;
 		},
-		[&expr, &context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+		[&context](ast::expr_unary_op &unary_op) -> ast::constant_value {
+			// builtin operators are handled as intrinsic functions
 			consteval_try_without_error(unary_op.expr, context);
-			if (unary_op.expr.has_consteval_succeeded())
-			{
-				return evaluate_unary_op(expr, unary_op.op, unary_op.expr, context);
-			}
-			else
-			{
-				return {};
-			}
+			return {};
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_try_without_error(binary_op.lhs, context);

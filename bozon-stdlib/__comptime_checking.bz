@@ -204,52 +204,52 @@ function not_empty(&const vec) -> bool
 	return vec._data_begin != vec._data_end;
 }
 
-function as_slice(&vec) -> [: typeof *vec._data_begin]
+function as_slice(&vec) -> [: (typeof vec).value_type]
 {
 	return __builtin_slice_from_ptrs(vec._data_begin, vec._data_end);
 }
 
-function as_slice(&const vec) -> [: const typeof *vec._data_begin]
+function as_slice(&const vec) -> [: const (typeof vec).value_type]
 {
 	return __builtin_slice_from_const_ptrs(vec._data_begin, vec._data_end);
 }
 
-operator [] (&vec, i: uint64) -> &typeof *vec._data_begin
+operator [] (&vec, i: uint64) -> &(typeof vec).value_type
 {
 	return *(vec._data_begin + i);
 }
 
-operator [] (&const vec, i: uint64) -> &const typeof *vec._data_begin
+operator [] (&const vec, i: uint64) -> &const (typeof vec).value_type
 {
 	return *(vec._data_begin + i);
 }
 
-operator [] (&vec, i: int64) -> &typeof *vec._data_begin
+operator [] (&vec, i: int64) -> &(typeof vec).value_type
 {
 	return *(vec._data_begin + i);
 }
 
-operator [] (&const vec, i: int64) -> &const typeof *vec._data_begin
+operator [] (&const vec, i: int64) -> &const (typeof vec).value_type
 {
 	return *(vec._data_begin + i);
 }
 
-function front(&vec) -> &typeof *vec._data_begin
+function front(&vec) -> &(typeof vec).value_type
 {
 	return *vec._data_begin;
 }
 
-function front(&const vec) -> &const typeof *vec._data_begin
+function front(&const vec) -> &const (typeof vec).value_type
 {
 	return *vec._data_begin;
 }
 
-function back(&vec) -> &typeof *vec._data_begin
+function back(&vec) -> &(typeof vec).value_type
 {
 	return *(vec._data_end - 1);
 }
 
-function back(&const vec) -> &const typeof *vec._data_begin
+function back(&const vec) -> &const (typeof vec).value_type
 {
 	return *(vec._data_end - 1);
 }
@@ -271,7 +271,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 
 function reserve(&vec, new_capacity: usize)
 {
-	type value_type = typeof *vec._data_begin;
+	type value_type = (typeof vec).value_type;
 
 	new_capacity = round_to_next_power_of_two(new_capacity);
 
@@ -295,7 +295,7 @@ function reserve(&vec, new_capacity: usize)
 
 function push_back(&vec, val)
 {
-	type value_type = typeof *vec._data_begin;
+	type value_type = (typeof vec).value_type;
 	static_assert(value_type == typeof val, "invalid type in push_back");
 
 	vec.reserve(vec.size() + 1u);
@@ -307,7 +307,7 @@ function push_back(&vec, val)
 
 function emplace_back(&vec, ...##args)
 {
-	type value_type = typeof *vec._data_begin;
+	type value_type = (typeof vec).value_type;
 
 	vec.reserve(vec.size() + 1u);
 	__builtin_inplace_construct(vec._data_end, value_type(...args));
@@ -353,6 +353,8 @@ function assign_vector(&lhs, &rhs)
 
 struct call_stack_t
 {
+	type value_type = uint64;
+
 	._data_begin: *uint64;
 	._data_end:   *uint64;
 	._alloc_end:  *uint64;
@@ -416,6 +418,8 @@ operator = (lhs: &error_t, rhs: error_t) -> &error_t
 
 struct error_array_t
 {
+	type value_type = error_t;
+
 	._data_begin: *error_t;
 	._data_end:   *error_t;
 	._alloc_end:  *error_t;
@@ -633,6 +637,8 @@ function swap(a: &malloc_info_t, b: &malloc_info_t)
 
 struct malloc_info_array_t
 {
+	type value_type = malloc_info_t;
+
 	._data_begin: *malloc_info_t;
 	._data_end:   *malloc_info_t;
 	._alloc_end:  *malloc_info_t;
@@ -1810,6 +1816,8 @@ function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint
 
 struct vector_str
 {
+	type value_type = std::string;
+
 	._data_begin: *std::string;
 	._data_end:   *std::string;
 	._alloc_end:  *std::string;
