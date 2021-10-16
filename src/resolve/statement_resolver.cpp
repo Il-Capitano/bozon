@@ -1824,6 +1824,15 @@ static void add_type_info_members(
 			{
 				info.member_variables.push_back(&var_decl);
 			}
+			else
+			{
+				var_decl.flags |= ast::decl_variable::maybe_unused;
+				context.add_local_variable(var_decl);
+			}
+		}
+		else if (stmt.is<ast::decl_type_alias>())
+		{
+			context.add_local_type_alias(stmt.get<ast::decl_type_alias>());
 		}
 	}
 }

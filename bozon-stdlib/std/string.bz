@@ -1,9 +1,7 @@
-import libc::stdlib;
 import print;
 import unicode;
 import utils;
 import format;
-
 import meta::comptime;
 
 /*
@@ -74,32 +72,6 @@ export function comptime_println(p: *const void)
 
 static_assert(sizeof string == 3u * sizeof *uint8);
 consteval short_string_max_size = 2u * sizeof *uint8;
-
-@no_comptime_checking
-function malloc(n: usize) -> *uint8
-{
-	if (meta::is_comptime())
-	{
-		return meta::malloc(uint8, n);
-	}
-	else
-	{
-		return __builtin_pointer_cast(*uint8, libc::malloc(n));
-	}
-}
-
-@no_comptime_checking
-function free(p: *void)
-{
-	if (meta::is_comptime())
-	{
-		meta::free(p);
-	}
-	else
-	{
-		libc::free(p);
-	}
-}
 
 export struct string
 {
@@ -206,7 +178,7 @@ function rounded_alloc(n: usize) -> [*uint8, usize]
 	else
 	{
 		const rounded_n = round_to_next_power_of_two(n);
-		return [ malloc(rounded_n), rounded_n ];
+		return [ malloc(uint8, rounded_n), rounded_n ];
 	}
 }
 
