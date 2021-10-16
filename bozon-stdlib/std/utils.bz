@@ -1,3 +1,6 @@
+import libc::stdlib;
+import meta::comptime;
+
 export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
 export function memset  = __builtin_memset;
@@ -8,3 +11,41 @@ export function assert(b: bool)
 }
 
 @symbol_name("exit") export function exit(code: int32) -> void;
+
+@no_comptime_checking
+export function malloc(T: typename, n: usize) -> *T
+{
+	static_assert(&T != T, "type in malloc can't be a reference type");
+	static_assert(const T != T, "type in malloc can't be const");
+	static_assert(consteval T != T, "type in malloc can't be consteval");
+
+	if (meta::is_comptime())
+	{
+		return meta::malloc(T, n);
+	}
+	else
+	{
+		return __builtin_pointer_cast(*T, libc::malloc(n));
+	}
+}
+
+@no_comptime_checking
+export function free(p: *void)
+{
+	if (meta::is_comptime())
+	{
+		meta::free(p);
+	}
+	else
+	{
+		libc::free(p);
+	}
+}
+
+export function swap(a: &auto, b: &auto)
+{
+	static_assert(typeof a == typeof b, "different types in swap");
+	const tmp = a;
+	a = b;
+	b = tmp;
+}
