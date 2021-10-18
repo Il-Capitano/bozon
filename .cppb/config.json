@@ -101,7 +101,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-10",
-					"libraries": [ "LLVM-12", "backtrace" ],
+					"libraries": [ "LLVM-13", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -136,7 +136,7 @@
 		},
 		"ryu_format.linux.o": {
 			"dependencies": [ "ryu_format.linux.ll" ],
-			"command": "llc-12 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
+			"command": "llc-13 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
 		},
 		"ryu_format.ll": {
 			"dependencies": [ "ryu_format.bz" ],
@@ -160,7 +160,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-12 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-12"
+			"command": "clang-13 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-13"
 		},
 		"builtins.o": {
 			"dependencies": [ "builtins.c" ],
@@ -168,7 +168,7 @@
 		},
 		"builtins.linux.o": {
 			"dependencies": [ "builtins.c" ],
-			"command": "clang-12 -c builtins.c -O3 -o builtins.linux.o"
+			"command": "clang-13 -c builtins.c -O3 -o builtins.linux.o"
 		},
 		"generate_opts": {
 			"command": "python3 scripts/gen_opts.py",
@@ -176,11 +176,11 @@
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
-			"command": "clang++-12 -c -g `llvm-config-12 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+			"command": "clang++-13 -c -g `llvm-config-13 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
 		},
 		"fuzz-test/lex/fuzz.out": {
 			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
-			"command": "clang++-12 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-12 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+			"command": "clang++-13 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-13 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
 		},
 		"run-lex-fuzzer": {
 			"dependencies": [ "fuzz-test/lex/fuzz.out" ],
