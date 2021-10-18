@@ -37,9 +37,6 @@ def get_opts(opt_level):
         assert opt.startswith('-') and not opt.startswith('--')
     opts = [opt[1:] for opt in opts]
 
-    for opt in opts:
-        assert opt in implemented_opts, f'{opt} is not implemented!'
-
     result_str = result_line_start
     current_len = len(result_str)
     for opt in opts:
