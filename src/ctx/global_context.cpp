@@ -1274,8 +1274,8 @@ bool global_context::emit_llvm_ir(void)
 		case ctcli::group_element("--opt mldst-motion"):
 			opt_pass_manager.add(llvm::createMergedLoadStoreMotionPass());
 			break;
-		case ctcli::group_element("--opt openmpopt"):
-			opt_pass_manager.add(llvm::createOpenMPOptLegacyPass());
+		case ctcli::group_element("--opt openmp-opt-cgscc"):
+			opt_pass_manager.add(llvm::createOpenMPOptCGSCCLegacyPass());
 			break;
 		case ctcli::group_element("--opt opt-remark-emitter"):
 			opt_pass_manager.add(new llvm::OptimizationRemarkEmitterWrapperPass());

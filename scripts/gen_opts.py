@@ -11,7 +11,7 @@ implemented_opts = [
     'lazy-branch-prob', 'lazy-value-info', 'lcssa', 'lcssa-verification', 'libcalls-shrinkwrap', 'licm', 'loop-accesses',
     'loop-deletion', 'loop-distribute', 'loop-idiom', 'loop-load-elim', 'loop-rotate', 'loop-simplify', 'loop-sink', 'loop-unroll',
     'loop-unswitch', 'loop-vectorize', 'loops', 'lower-constant-intrinsics', 'lower-expect', 'mem2reg', 'memcpyopt', 'memdep',
-    'memoryssa', 'mldst-motion', 'openmpopt', 'opt-remark-emitter', 'pgo-memop-opt', 'phi-values', 'postdomtree',
+    'memoryssa', 'mldst-motion', 'openmp-opt-cgscc', 'opt-remark-emitter', 'pgo-memop-opt', 'phi-values', 'postdomtree',
     'profile-summary-info', 'prune-eh', 'reassociate', 'rpo-function-attrs', 'scalar-evolution', 'sccp', 'scoped-noalias-aa',
     'simplifycfg', 'slp-vectorizer', 'speculative-execution', 'sroa', 'strip-dead-prototypes', 'tailcallelim', 'targetlibinfo',
     'tbaa', 'transform-warning', 'tti', 'vector-combine', 'verify'
@@ -21,9 +21,9 @@ result_line_start = ''
 
 def get_opts(opt_level):
     if os.name == 'nt':
-        command = f'opt {opt_level} -disable-output -debug-pass=Arguments < NUL 2>&1'
+        command = f'opt {opt_level} -disable-output -debug-pass=Arguments -enable-new-pm=0 < NUL 2>&1'
     else:
-        command = f'opt-12 {opt_level} -disable-output -debug-pass=Arguments < /dev/null 2>&1'
+        command = f'opt-13 {opt_level} -disable-output -debug-pass=Arguments -enable-new-pm=0 < /dev/null 2>&1'
     opt_output = (subprocess.run(command, capture_output=True, shell=True)
         .stdout.decode('utf-8'))
     lines = [opt.strip() for opt in opt_output.strip().replace('\r', '').split('\n')]
