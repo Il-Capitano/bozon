@@ -187,6 +187,13 @@ struct comptime_executor_context
 
 	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
 	llvm::Value *create_cast_to_int(bc::val_ptr val);
+	llvm::Value *create_load(llvm::Value *ptr, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Value *ptr, bz::array_view<llvm::Value * const> indces, bz::u8string_view name = "");
+	llvm::Value *create_struct_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
+	llvm::Value *create_array_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
 
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;

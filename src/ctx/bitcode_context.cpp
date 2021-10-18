@@ -162,7 +162,7 @@ llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_t
 		auto const dest_ptr = this->builder.CreateBitCast(
 			val.val, llvm::PointerType::get(dest_type, 0)
 		);
-		return this->builder.CreateLoad(dest_ptr);
+		return this->create_load(dest_ptr);
 	}
 	else
 	{
@@ -172,7 +172,7 @@ llvm::Value *bitcode_context::create_bitcast(bc::val_ptr val, llvm::Type *dest_t
 			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
 		);
 		this->builder.CreateStore(src_value, cast_ptr);
-		return this->builder.CreateLoad(dest_ptr);
+		return this->create_load(dest_ptr);
 	}
 }
 
@@ -203,6 +203,56 @@ llvm::Value *bitcode_context::create_cast_to_int(bc::val_ptr val)
 		}
 	}();
 	return this->create_bitcast(val, dest_type);
+}
+
+llvm::Value *bitcode_context::create_load(llvm::Value *ptr, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateLoad(ptr->getType()->getPointerElementType(), ptr, name_ref);
+}
+
+llvm::Value *bitcode_context::create_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateConstGEP1_64(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+}
+
+llvm::Value *bitcode_context::create_gep(llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateConstGEP2_64(ptr->getType()->getPointerElementType(), ptr, idx0, idx1, name_ref);
+}
+
+llvm::Value *bitcode_context::create_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+}
+
+llvm::Value *bitcode_context::create_gep(llvm::Value *ptr, bz::array_view<llvm::Value * const> indices, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, llvm::ArrayRef(indices.data(), indices.size()), name_ref);
+}
+
+llvm::Value *bitcode_context::create_struct_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	return this->builder.CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+}
+
+llvm::Value *bitcode_context::create_array_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
+{
+	auto const name_ref = llvm::StringRef(name.data(), name.size());
+	bz_assert(ptr->getType()->isPointerTy());
+	auto const zero_value = llvm::ConstantInt::get(this->get_uint64_t(), 0);
+	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, { zero_value, idx }, name_ref);
 }
 
 llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const

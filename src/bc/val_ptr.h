@@ -40,7 +40,7 @@ struct val_ptr
 
 		if (this->kind == reference)
 		{
-			auto const loaded_val = builder.CreateLoad(this->val, "load_tmp");
+			auto const loaded_val = builder.CreateLoad(this->val->getType()->getPointerElementType(), this->val, "load_tmp");
 			return loaded_val;
 		}
 		else

@@ -48,9 +48,9 @@
 				},
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
-					"compiler": "clang-12",
-					"libraries": [ "LLVM-12", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-12", "ryu_format.linux.o" ],
+					"compiler": "clang-13",
+					"libraries": [ "LLVM-13", "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-13", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ],
 					"emit_compile_commands": false
 				},

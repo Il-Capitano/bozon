@@ -354,7 +354,7 @@ static void push_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 		auto const &info = *type.get<ast::ts_base_type>().info;
 		for (auto const &[member, i] : info.member_variables.enumerate())
 		{
-			auto const member_ptr = context.builder.CreateStructGEP(ptr, i);
+			auto const member_ptr = context.create_struct_gep(ptr, i);
 			push_destructor_call(member_ptr, member->get_type(), context);
 		}
 		if (info.destructor != nullptr)
@@ -367,7 +367,7 @@ static void push_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 	{
 		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
 		{
-			auto const member_ptr = context.builder.CreateStructGEP(ptr, i);
+			auto const member_ptr = context.create_struct_gep(ptr, i);
 			push_destructor_call(member_ptr, member_type, context);
 		}
 	}
@@ -377,7 +377,7 @@ static void push_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
 		for (auto const i : bz::iota(0, array_size))
 		{
-			auto const elem_ptr = context.builder.CreateStructGEP(ptr, i);
+			auto const elem_ptr = context.create_struct_gep(ptr, i);
 			push_destructor_call(elem_ptr, elem_type, context);
 		}
 	}
@@ -405,7 +405,7 @@ static void emit_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 		auto const members_count = info.member_variables.size();
 		for (auto const &[member, i] : info.member_variables.reversed().enumerate())
 		{
-			auto const member_ptr = context.builder.CreateStructGEP(ptr, members_count - i - 1);
+			auto const member_ptr = context.create_struct_gep(ptr, members_count - i - 1);
 			emit_destructor_call(member_ptr, member->get_type(), context);
 		}
 	}
@@ -414,7 +414,7 @@ static void emit_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 		auto const members_count = type.get<ast::ts_tuple>().types.size();
 		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.reversed().enumerate())
 		{
-			auto const member_ptr = context.builder.CreateStructGEP(ptr, members_count - i - 1);
+			auto const member_ptr = context.create_struct_gep(ptr, members_count - i - 1);
 			emit_destructor_call(member_ptr, member_type, context);
 		}
 	}
@@ -424,7 +424,7 @@ static void emit_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 		auto const elem_type = type.get<ast::ts_array>().elem_type.as_typespec_view();
 		for (auto const i : bz::iota(0, array_size))
 		{
-			auto const elem_ptr = context.builder.CreateStructGEP(ptr, array_size - i - 1);
+			auto const elem_ptr = context.create_struct_gep(ptr, array_size - i - 1);
 			emit_destructor_call(elem_ptr, elem_type, context);
 		}
 	}
@@ -518,10 +518,10 @@ static val_ptr emit_copy_constructor(
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
 				emit_copy_constructor<abi>(
-					{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
+					{ val_ptr::reference, context.create_struct_gep(expr_val.val, i) },
 					member->get_type(),
 					context,
-					context.builder.CreateStructGEP(result_address, i)
+					context.create_struct_gep(result_address, i)
 				);
 			}
 		}
@@ -536,10 +536,10 @@ static val_ptr emit_copy_constructor(
 		for (auto const i : bz::iota(0, expr_type.get<ast::ts_array>().size))
 		{
 			emit_copy_constructor<abi>(
-				{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(expr_val.val, i) },
 				type,
 				context,
-				context.builder.CreateStructGEP(result_address, i)
+				context.create_struct_gep(result_address, i)
 			);
 		}
 	}
@@ -548,10 +548,10 @@ static val_ptr emit_copy_constructor(
 		for (auto const &[member_type, i] : expr_type.get<ast::ts_tuple>().types.enumerate())
 		{
 			emit_copy_constructor<abi>(
-				{ val_ptr::reference, context.builder.CreateStructGEP(expr_val.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(expr_val.val, i) },
 				member_type,
 				context,
-				context.builder.CreateStructGEP(result_address, i)
+				context.create_struct_gep(result_address, i)
 			);
 		}
 	}
@@ -644,7 +644,7 @@ static val_ptr emit_default_constructor(
 				emit_default_constructor<abi>(
 					member->get_type(),
 					context,
-					context.builder.CreateStructGEP(result_address, i)
+					context.create_struct_gep(result_address, i)
 				);
 			}
 		}
@@ -661,7 +661,7 @@ static val_ptr emit_default_constructor(
 			emit_default_constructor<abi>(
 				elem_type,
 				context,
-				context.builder.CreateStructGEP(result_address, i)
+				context.create_struct_gep(result_address, i)
 			);
 		}
 	}
@@ -672,7 +672,7 @@ static val_ptr emit_default_constructor(
 			emit_default_constructor<abi>(
 				member_type,
 				context,
-				context.builder.CreateStructGEP(result_address, i)
+				context.create_struct_gep(result_address, i)
 			);
 		}
 	}
@@ -712,8 +712,8 @@ static void emit_copy_assign(
 			{
 				emit_copy_assign<abi>(
 					member->get_type(),
-					{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-					{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+					{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+					{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 					context
 				);
 			}
@@ -731,8 +731,8 @@ static void emit_copy_assign(
 		{
 			emit_copy_assign<abi>(
 				elem_type,
-				{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-				{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 				context
 			);
 		}
@@ -743,8 +743,8 @@ static void emit_copy_assign(
 		{
 			emit_copy_assign<abi>(
 				member_type,
-				{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-				{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 				context
 			);
 		}
@@ -787,8 +787,8 @@ static void emit_move_assign(
 			{
 				emit_move_assign<abi>(
 					member->get_type(),
-					{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-					{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+					{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+					{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 					context
 				);
 			}
@@ -806,8 +806,8 @@ static void emit_move_assign(
 		{
 			emit_move_assign<abi>(
 				elem_type,
-				{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-				{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 				context
 			);
 		}
@@ -818,8 +818,8 @@ static void emit_move_assign(
 		{
 			emit_move_assign<abi>(
 				member_type,
-				{ val_ptr::reference, context.builder.CreateStructGEP(lhs.val, i) },
-				{ val_ptr::reference, context.builder.CreateStructGEP(rhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(lhs.val, i) },
+				{ val_ptr::reference, context.create_struct_gep(rhs.val, i) },
 				context
 			);
 		}
@@ -990,7 +990,7 @@ static val_ptr emit_bitcode(
 
 	for (unsigned i = 0; i < tuple_expr.elems.size(); ++i)
 	{
-		auto const elem_result_address = context.builder.CreateStructGEP(result_address, i);
+		auto const elem_result_address = context.create_struct_gep(result_address, i);
 		emit_bitcode<abi>(tuple_expr.elems[i], context, elem_result_address);
 	}
 	return { val_ptr::reference, result_address };
@@ -1127,7 +1127,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 	auto const original_value = val.get_value(context.builder);
 	if (original_value->getType()->isPointerTy())
 	{
-		auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, 1);
+		auto const incremented_value = context.create_gep(original_value, 1);
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
 		{
@@ -1171,7 +1171,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 	auto const original_value = val.get_value(context.builder);
 	if (original_value->getType()->isPointerTy())
 	{
-		auto const incremented_value = context.builder.CreateConstGEP1_64(original_value, uint64_t(-1));
+		auto const incremented_value = context.create_gep(original_value, uint64_t(-1));
 		context.builder.CreateStore(incremented_value, val.val);
 		if (result_address == nullptr)
 		{
@@ -1330,7 +1330,7 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			rhs_val = context.builder.CreateIntCast(rhs_val, context.get_usize_t(), false);
 		}
-		auto const result_val = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp");
+		auto const result_val = context.create_gep(lhs_val, rhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
 			return { val_ptr::value, result_val };
@@ -1352,7 +1352,7 @@ static val_ptr emit_builtin_binary_plus(
 		{
 			lhs_val = context.builder.CreateIntCast(lhs_val, context.get_usize_t(), false);
 		}
-		auto const result_val = context.builder.CreateGEP(rhs_val, lhs_val, "ptr_add_tmp");
+		auto const result_val = context.create_gep(rhs_val, lhs_val, "ptr_add_tmp");
 		if (result_address == nullptr)
 		{
 			return { val_ptr::value, result_val };
@@ -1449,7 +1449,7 @@ static val_ptr emit_builtin_binary_plus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const res = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_add_tmp");
+		auto const res = context.create_gep(lhs_val, rhs_val, "ptr_add_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)
 		{
@@ -1551,7 +1551,7 @@ static val_ptr emit_builtin_binary_minus(
 		}
 		// negate rhs_val
 		rhs_val = context.builder.CreateNeg(rhs_val);
-		auto const result_val = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_sub_tmp");
+		auto const result_val = context.create_gep(lhs_val, rhs_val, "ptr_sub_tmp");
 		if (result_address == nullptr)
 		{
 			return { val_ptr::value, result_val };
@@ -1671,7 +1671,7 @@ static val_ptr emit_builtin_binary_minus_eq(
 		auto const lhs_val_ref = emit_bitcode<abi>(lhs, context, nullptr);
 		bz_assert(lhs_val_ref.kind == val_ptr::reference);
 		auto const lhs_val = lhs_val_ref.get_value(context.builder);
-		auto const res = context.builder.CreateGEP(lhs_val, rhs_val, "ptr_sub_tmp");
+		auto const res = context.create_gep(lhs_val, rhs_val, "ptr_sub_tmp");
 		context.builder.CreateStore(res, lhs_val_ref.val);
 		if (result_address == nullptr)
 		{
@@ -2634,8 +2634,8 @@ static val_ptr emit_bitcode(
 			auto const end_ptr   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			if (result_address != nullptr)
 			{
-				auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
-				auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+				auto const result_begin_ptr = context.create_struct_gep(result_address, 0);
+				auto const result_end_ptr   = context.create_struct_gep(result_address, 1);
 				context.builder.CreateStore(begin_ptr, result_begin_ptr);
 				context.builder.CreateStore(end_ptr, result_end_ptr);
 				return val_ptr{ val_ptr::reference, result_address };
@@ -2713,8 +2713,8 @@ static val_ptr emit_bitcode(
 			auto const end_ptr   = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
 			if (result_address != nullptr)
 			{
-				auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
-				auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+				auto const result_begin_ptr = context.create_struct_gep(result_address, 0);
+				auto const result_end_ptr   = context.create_struct_gep(result_address, 1);
 				context.builder.CreateStore(begin_ptr, result_begin_ptr);
 				context.builder.CreateStore(end_ptr, result_end_ptr);
 				return val_ptr{ val_ptr::reference, result_address };
@@ -3086,7 +3086,7 @@ static val_ptr emit_bitcode(
 			}
 			else
 			{
-				auto const loaded_val = context.builder.CreateLoad(call);
+				auto const loaded_val = context.create_load(call);
 				context.builder.CreateStore(loaded_val, result_address);
 				return { val_ptr::reference, result_address };
 			}
@@ -3155,8 +3155,7 @@ static val_ptr emit_bitcode(
 		llvm::Value *result_ptr;
 		if (array.kind == val_ptr::reference)
 		{
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
-			result_ptr = context.builder.CreateGEP(array.val, llvm::ArrayRef(indicies));
+			result_ptr = context.create_array_gep(array.val, index_val);
 		}
 		else
 		{
@@ -3164,8 +3163,7 @@ static val_ptr emit_bitcode(
 			auto const array_type = array_value->getType();
 			auto const array_address = context.create_alloca(array_type);
 			context.builder.CreateStore(array_value, array_address);
-			std::array<llvm::Value *, 2> indicies = { llvm::ConstantInt::get(context.get_usize_t(), 0), index_val };
-			result_ptr = context.builder.CreateGEP(array_address, llvm::ArrayRef(indicies));
+			result_ptr = context.create_array_gep(array_address, index_val);
 		}
 
 		if (result_address == nullptr)
@@ -3194,7 +3192,7 @@ static val_ptr emit_bitcode(
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
 		}
-		auto const result_ptr = context.builder.CreateGEP(begin_ptr, index_val);
+		auto const result_ptr = context.create_gep(begin_ptr, index_val);
 
 		if (result_address == nullptr)
 		{
@@ -3225,7 +3223,7 @@ static val_ptr emit_bitcode(
 		llvm::Value *result_ptr;
 		if (tuple.kind == val_ptr::reference)
 		{
-			result_ptr = context.builder.CreateStructGEP(tuple.val, index_int_value);
+			result_ptr = context.create_struct_gep(tuple.val, index_int_value);
 		}
 		else
 		{
@@ -3381,16 +3379,16 @@ static val_ptr emit_bitcode(
 		auto const [begin_ptr, end_ptr] = [&]() {
 			if (expr_val.kind == val_ptr::reference)
 			{
-				auto const begin_ptr = context.builder.CreateConstGEP2_64(expr_val.val, 0, 0);
-				auto const end_ptr   = context.builder.CreateConstGEP2_64(expr_val.val, 0, expr_t.get<ast::ts_array>().size);
+				auto const begin_ptr = context.create_gep(expr_val.val, 0, 0);
+				auto const end_ptr   = context.create_gep(expr_val.val, 0, expr_t.get<ast::ts_array>().size);
 				return std::make_pair(begin_ptr, end_ptr);
 			}
 			else
 			{
 				auto const alloca = context.create_alloca(expr_val.get_type());
 				context.builder.CreateStore(expr_val.get_value(context.builder), alloca);
-				auto const begin_ptr = context.builder.CreateConstGEP2_64(alloca, 0, 0);
-				auto const end_ptr   = context.builder.CreateConstGEP2_64(alloca, 0, expr_t.get<ast::ts_array>().size);
+				auto const begin_ptr = context.create_gep(alloca, 0, 0);
+				auto const end_ptr   = context.create_gep(alloca, 0, expr_t.get<ast::ts_array>().size);
 				return std::make_pair(begin_ptr, end_ptr);
 			}
 		}();
@@ -3411,8 +3409,8 @@ static val_ptr emit_bitcode(
 		}
 		else
 		{
-			auto const result_begin_ptr = context.builder.CreateStructGEP(result_address, 0);
-			auto const result_end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+			auto const result_begin_ptr = context.create_struct_gep(result_address, 0);
+			auto const result_end_ptr   = context.create_struct_gep(result_address, 1);
 			context.builder.CreateStore(begin_ptr, result_begin_ptr);
 			context.builder.CreateStore(end_ptr, result_end_ptr);
 			return val_ptr{ val_ptr::reference, result_address };
@@ -3458,7 +3456,7 @@ static val_ptr emit_bitcode(
 	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
 	for (size_t i = 0; i < struct_init.exprs.size(); ++i)
 	{
-		auto const member_ptr = context.builder.CreateStructGEP(result_ptr, i);
+		auto const member_ptr = context.create_struct_gep(result_ptr, i);
 		emit_bitcode<abi>(struct_init.exprs[i], context, member_ptr);
 	}
 	return { val_ptr::reference, result_ptr };
@@ -3483,7 +3481,7 @@ static val_ptr emit_bitcode(
 	{
 		for (auto const i : bz::iota(0, size))
 		{
-			auto const elem_result_address = context.builder.CreateStructGEP(result_address, i);
+			auto const elem_result_address = context.create_struct_gep(result_address, i);
 			emit_bitcode<abi>(array_default_construct.elem_ctor_call, context, elem_result_address);
 		}
 		return { val_ptr::reference, result_address };
@@ -3503,7 +3501,7 @@ static val_ptr emit_bitcode(
 		iter_val->addIncoming(zero_value, start_bb);
 
 		context.builder.SetInsertPoint(loop_bb);
-		auto const elem_result_address = context.builder.CreateGEP(result_address, { zero_value, iter_val });
+		auto const elem_result_address = context.create_array_gep(result_address, iter_val);
 		emit_bitcode<abi>(array_default_construct.elem_ctor_call, context, elem_result_address);
 		auto const one_value = llvm::ConstantInt::get(iter_val->getType(), 1);
 		auto const next_iter_val = context.builder.CreateAdd(iter_val, one_value);
@@ -3550,8 +3548,8 @@ static val_ptr emit_bitcode(
 	{
 		if (result_address != nullptr)
 		{
-			auto const begin_ptr = context.builder.CreateStructGEP(result_address, 0);
-			auto const end_ptr   = context.builder.CreateStructGEP(result_address, 1);
+			auto const begin_ptr = context.create_struct_gep(result_address, 0);
+			auto const end_ptr   = context.create_struct_gep(result_address, 1);
 			bz_assert(begin_ptr->getType() == end_ptr->getType());
 			bz_assert(begin_ptr->getType()->isPointerTy() && begin_ptr->getType()->getPointerElementType()->isPointerTy());
 			auto const ptr_type = static_cast<llvm::PointerType *>(begin_ptr->getType()->getPointerElementType());
@@ -3584,7 +3582,7 @@ static val_ptr emit_bitcode(
 	auto const base = emit_bitcode<abi>(member_access.base, context, nullptr);
 	if (base.kind == val_ptr::reference)
 	{
-		auto const ptr = context.builder.CreateStructGEP(base.val, member_access.index);
+		auto const ptr = context.create_struct_gep(base.val, member_access.index);
 		if (result_address == nullptr)
 		{
 			return { val_ptr::reference, ptr };
@@ -3995,11 +3993,11 @@ static llvm::Constant *get_value(
 
 		auto const string_constant = context.create_string(str);
 
-		auto const begin_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, 0);
+		auto const begin_ptr = context.create_gep(string_constant, 0, 0);
 		auto const const_begin_ptr = llvm::dyn_cast<llvm::Constant>(begin_ptr);
 		bz_assert(const_begin_ptr != nullptr);
 
-		auto const end_ptr = context.builder.CreateConstGEP2_64(string_constant, 0, str.size());
+		auto const end_ptr = context.create_gep(string_constant, 0, str.size());
 		auto const const_end_ptr = llvm::dyn_cast<llvm::Constant>(end_ptr);
 		bz_assert(const_end_ptr != nullptr);
 		llvm::Constant *elems[] = { const_begin_ptr, const_end_ptr };
@@ -4459,7 +4457,7 @@ static void emit_bitcode(
 				auto const alloca = context.create_alloca(result_type);
 				auto const result_ptr = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(ret_type, 0));
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
-				auto const result = context.builder.CreateLoad(result_ptr);
+				auto const result = context.create_load(result_ptr);
 				context.emit_all_destructor_calls();
 				context.builder.CreateRet(result);
 				break;
@@ -4514,7 +4512,7 @@ static void add_variable_helper(
 		if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 		{
 			bz_assert(ptr->getType()->isPointerTy() && ptr->getType()->getPointerElementType()->isPointerTy());
-			context.add_variable(&var_decl, context.builder.CreateLoad(ptr));
+			context.add_variable(&var_decl, context.create_load(ptr));
 		}
 		else
 		{
@@ -4525,7 +4523,7 @@ static void add_variable_helper(
 	{
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
-			auto const gep_ptr = context.builder.CreateStructGEP(ptr, i);
+			auto const gep_ptr = context.create_struct_gep(ptr, i);
 			add_variable_helper(decl, gep_ptr, context);
 		}
 	}
@@ -4988,8 +4986,8 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(
 						alloca, llvm::PointerType::get(llvm::StructType::get(first_type, second_type), 0)
 					);
-					auto const first_address  = context.builder.CreateStructGEP(alloca_cast, 0);
-					auto const second_address = context.builder.CreateStructGEP(alloca_cast, 1);
+					auto const first_address  = context.create_struct_gep(alloca_cast, 0);
+					auto const second_address = context.create_struct_gep(alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					push_destructor_call(alloca, p.get_type(), context);
