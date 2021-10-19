@@ -94,5 +94,6 @@ int main(int argc, char const **argv)
 
 	global_ctx.report_and_clear_errors_and_warnings();
 
-	return passed_count == test_count ? 0 : 1;
+	std::exit(passed_count == test_count ? 0 : 1);
+	return 0;
 }
