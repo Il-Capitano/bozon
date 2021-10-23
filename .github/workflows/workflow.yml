@@ -73,7 +73,7 @@ jobs:
         cd ..
     - run: touch ryu_format.ll
     - name: Build bozon
-      run: cppb/bin/cppb build -v --build-config gcc --jobs 4
+      run: cppb/bin/cppb build -v --build-config gcc
     - name: Compile bitcode_test.bz
       run: cppb/bin/cppb run -v --build-config gcc
     - name: Build tests
