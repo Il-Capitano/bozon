@@ -2,6 +2,7 @@
 #include <csignal>
 #include <cstdlib>
 #include <bz/format.h>
+#include "colors.h"
 
 #ifdef __linux__
 
@@ -98,9 +99,18 @@ static void print_stacktrace(void)
 
 #endif // __linux__
 
+static void print_internal_compiler_error_message(bz::u8string_view msg)
+{
+	bz::print(
+		stderr, "{}bozon:{} {}internal compiler error:{} {}\n",
+		colors::bright_white, colors::clear, colors::bright_red, colors::clear,
+		msg
+	);
+}
+
 static void handle_segv(int)
 {
-	bz::print(stderr, "Segmentation fault\n");
+	print_internal_compiler_error_message("segmentation fault");
 	print_stacktrace();
 	std::_Exit(-1);
 }
@@ -113,7 +123,7 @@ static void handle_int(int)
 
 static void handle_ill(int)
 {
-	bz::print(stderr, "Invalid instruction\n");
+	print_internal_compiler_error_message("invalid instruction");
 	print_stacktrace();
 	std::_Exit(-1);
 }
