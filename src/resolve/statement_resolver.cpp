@@ -1172,8 +1172,23 @@ static bool resolve_function_parameters_helper(
 	{
 		if (func_body.params.empty())
 		{
-			bz_assert(func_body.get_constructor_of()->default_constructor == nullptr);
-			func_body.get_constructor_of()->default_constructor = &func_body;
+			auto const info = func_body.get_constructor_of();
+			if (info->default_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of default constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->default_constructor->src_tokens,
+						"default constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->default_constructor = &func_body;
+			}
 		}
 		else if (
 			func_body.params.size() == 1
@@ -1184,7 +1199,23 @@ static bool resolve_function_parameters_helper(
 			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
-			func_body.get_constructor_of()->copy_constructor = &func_body;
+			auto const info = func_body.get_constructor_of();
+			if (info->copy_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of copy constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->copy_constructor->src_tokens,
+						"copy constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->copy_constructor = &func_body;
+			}
 		}
 	}
 	return good;
@@ -1313,6 +1344,7 @@ static bool resolve_function_return_type_helper(ast::function_body &func_body, c
 	}
 	else if (func_body.is_constructor())
 	{
+		// constructors can't have their return type specified, so we have to always set it here
 		func_body.return_type = ast::make_base_type_typespec({}, func_body.get_constructor_of());
 		return true;
 	}
