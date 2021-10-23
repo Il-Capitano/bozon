@@ -677,6 +677,22 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
+		else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				"a variable with a reference type must be initialized"
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
+		else if (var_decl.get_type().is<ast::ts_move_reference>())
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				"a variable with a move reference type must be initialized"
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
 		else if (var_decl.get_type().is<ast::ts_base_type>())
 		{
 			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
@@ -697,6 +713,13 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 					)
 				);
 				parse::consteval_guaranteed(var_decl.init_expr, context);
+			}
+			else
+			{
+				context.report_error(
+					var_decl.src_tokens,
+					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
+				);
 			}
 		}
 	}
@@ -1974,10 +1997,18 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	for (auto const member : info.member_variables)
 	{
-		resolve_variable(*member, context);
-		if (member->state == ast::resolve_state::error)
+		if (member->state == ast::resolve_state::none)
 		{
-			info.state = ast::resolve_state::error;
+			member->state = ast::resolve_state::resolving_symbol;
+			resolve_variable_type(*member, context);
+			if (member->state != ast::resolve_state::error)
+			{
+				member->state = ast::resolve_state::symbol;
+			}
+			else
+			{
+				info.state = ast::resolve_state::error;
+			}
 		}
 	}
 	add_default_constructors(info);
@@ -1995,7 +2026,11 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	for (auto &stmt : info_body)
 	{
-		resolve_global_statement(stmt, context);
+		// don't resolve member variables as global statements
+		if (!stmt.is<ast::decl_variable>() || !stmt.get<ast::decl_variable>().is_member())
+		{
+			resolve_global_statement(stmt, context);
+		}
 	}
 	context.remove_scope();
 }

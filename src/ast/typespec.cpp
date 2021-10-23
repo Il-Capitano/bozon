@@ -198,6 +198,10 @@ bool typespec_view::is_typename(void) const noexcept
 			bz_unreachable;
 			return false;
 		},
+		[&](ts_move_reference const &) {
+			bz_unreachable;
+			return false;
+		},
 		[&](ts_auto_reference const &) {
 			bz_unreachable;
 			return false;
@@ -563,6 +567,7 @@ bool is_default_zero_initialized(typespec_view ts) noexcept
 
 bz::u8string typespec_view::get_symbol_name(void) const
 {
+	static_assert(typespec_types::size() == 17);
 	bz::u8string result = "";
 	for (auto &node : this->nodes)
 	{
@@ -592,6 +597,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			[&](ts_lvalue_reference const &) {
 				result += "0R.";
 			},
+			[&](ts_move_reference const &) {
+				result += "0M.";
+			},
 			[&](ts_tuple const &tuple_t) {
 				result += bz::format("0T.{}", tuple_t.types.size());
 				for (auto const &elem_type : tuple_t.types)
@@ -616,10 +624,12 @@ bz::u8string typespec::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
-	constexpr bz::u8string_view pointer    = "0P.";
-	constexpr bz::u8string_view reference  = "0R.";
-	constexpr bz::u8string_view const_     = "const.";
-	constexpr bz::u8string_view consteval_ = "consteval.";
+	static_assert(typespec_types::size() == 17);
+	constexpr bz::u8string_view pointer        = "0P.";
+	constexpr bz::u8string_view reference      = "0R.";
+	constexpr bz::u8string_view move_reference = "0M.";
+	constexpr bz::u8string_view const_         = "const.";
+	constexpr bz::u8string_view consteval_     = "consteval.";
 
 	constexpr bz::u8string_view void_       = "void";
 	constexpr bz::u8string_view array       = "0A.";
@@ -651,6 +661,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "&";
 			it = bz::u8string_view::const_iterator(it.data() + reference.size());
+		}
+		else if (symbol_name.starts_with(move_reference))
+		{
+			result += "move ";
+			it = bz::u8string_view::const_iterator(it.data() + move_reference.size());
 		}
 		else if (symbol_name.starts_with(const_))
 		{
@@ -831,6 +846,7 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
+	static_assert(ast::typespec_types::size() == 17);
 	bz::u8string result = "";
 	for (auto &node : typespec.nodes)
 	{
@@ -909,6 +925,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_lvalue_reference const &) {
 				result += '&';
+			},
+			[&](ast::ts_move_reference const &) {
+				result += "move ";
 			},
 			[&](ast::ts_auto_reference const &) {
 				result += '#';

@@ -23,6 +23,7 @@ struct ts_const;
 struct ts_consteval;
 struct ts_pointer;
 struct ts_lvalue_reference;
+struct ts_move_reference;
 struct ts_auto_reference;
 struct ts_auto_reference_const;
 struct ts_variadic;
@@ -41,6 +42,7 @@ using typespec_types = bz::meta::type_pack<
 	ts_consteval,
 	ts_pointer,
 	ts_lvalue_reference,
+	ts_move_reference,
 	ts_auto_reference,
 	ts_auto_reference_const,
 	ts_variadic
@@ -217,6 +219,9 @@ struct ts_pointer
 {};
 
 struct ts_lvalue_reference
+{};
+
+struct ts_move_reference
 {};
 
 struct ts_auto_reference

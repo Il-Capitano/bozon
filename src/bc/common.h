@@ -45,6 +45,7 @@ llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, Context &context
 template<typename Context>
 llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_level = true)
 {
+	static_assert(ast::typespec_types::size() == 17);
 	switch (ts.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
@@ -71,6 +72,11 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 	{
 		auto const base = get_llvm_type(ts.get<ast::ts_lvalue_reference>(), context, false);
+		return llvm::PointerType::get(base, 0);
+	}
+	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
+	{
+		auto const base = get_llvm_type(ts.get<ast::ts_move_reference>(), context, false);
 		return llvm::PointerType::get(base, 0);
 	}
 	case ast::typespec_node_t::index_of<ast::ts_function>:

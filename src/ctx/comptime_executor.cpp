@@ -723,6 +723,9 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 		[](ast::ts_lvalue_reference const &) {
 			bz_unreachable;
 		},
+		[](ast::ts_move_reference const &) {
+			bz_unreachable;
+		},
 		[](ast::ts_auto_reference const &) {
 			bz_unreachable;
 		},
