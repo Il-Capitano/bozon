@@ -5685,6 +5685,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		if (decl.is<ast::decl_variable>())
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
+			bz_assert(var_decl.get_id().values.size() == 1);
 			if (var_decl.is_member() || var_decl.get_id().values[0] != member->value)
 			{
 				continue;
@@ -5696,6 +5697,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 			}
 			else if (var_decl.is_variadic())
 			{
+				bz_unreachable;
 			}
 			else
 			{
@@ -5706,6 +5708,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_function>())
 		{
 			auto &func_decl = decl.get<ast::decl_function>();
+			bz_assert(func_decl.id.values.size() <= 1);
 			if (func_decl.body.is_constructor() || func_decl.body.is_destructor() || func_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5728,6 +5731,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_function_alias>())
 		{
 			auto &alias_decl = decl.get<ast::decl_function_alias>();
+			bz_assert(alias_decl.id.values.size() == 1);
 			if (alias_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5750,6 +5754,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_struct>())
 		{
 			auto &struct_decl = decl.get<ast::decl_struct>();
+			bz_assert(struct_decl.id.values.size() == 1);
 			if (struct_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5768,6 +5773,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_type_alias>())
 		{
 			auto &alias_decl = decl.get<ast::decl_type_alias>();
+			bz_assert(alias_decl.id.values.size() == 1);
 			if (alias_decl.id.values[0] != member->value)
 			{
 				continue;
