@@ -215,6 +215,18 @@ uint32_t parse_context::get_variadic_index(void) const
 	return this->variadic_info.variadic_index;
 }
 
+[[nodiscard]] ast::function_body *parse_context::push_current_function(ast::function_body *new_function) noexcept
+{
+	auto const result = this->current_function;
+	this->current_function = new_function;
+	return result;
+}
+
+void parse_context::pop_current_function(ast::function_body *prev_function) noexcept
+{
+	this->current_function = prev_function;
+}
+
 static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
 {
 	if (args.size() == 0)
@@ -976,9 +988,41 @@ void parse_context::remove_scope(void)
 void parse_context::add_unresolved_local(ast::identifier const &id)
 {
 	bz_assert(!id.is_qualified);
-	bz_assert(id.values.size() == 1);
-	bz_assert(this->scope_decls.not_empty());
-	this->scope_decls.back().add_unresolved_id(id);
+	if (id.values.not_empty())
+	{
+		bz_assert(id.values.size() == 1);
+		bz_assert(this->scope_decls.not_empty());
+		this->scope_decls.back().add_unresolved_id(id);
+	}
+}
+
+void parse_context::add_unresolved_var_decl(ast::decl_variable const &var_decl)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		this->add_unresolved_local(var_decl.get_id());
+	}
+	else
+	{
+		auto it = var_decl.tuple_decls.begin();
+		auto const end = var_decl.tuple_decls.end();
+		for (; it != end; ++it)
+		{
+			if (it->is_variadic())
+			{
+				break;
+			}
+			this->add_unresolved_var_decl(*it);
+		}
+		if (it != end && it->is_variadic())
+		{
+			this->add_unresolved_var_decl(*it);
+		}
+		else if (var_decl.original_tuple_variadic_decl != nullptr)
+		{
+			this->add_unresolved_var_decl(*var_decl.original_tuple_variadic_decl);
+		}
+	}
 }
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)

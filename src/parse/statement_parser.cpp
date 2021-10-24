@@ -149,21 +149,6 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 	}
 }
 
-static void add_unresolved_var_decl(ast::decl_variable &var_decl, ctx::parse_context &context)
-{
-	if (var_decl.tuple_decls.empty())
-	{
-		context.add_unresolved_local(var_decl.get_id());
-	}
-	else
-	{
-		for (auto &inner_decl : var_decl.tuple_decls)
-		{
-			add_unresolved_var_decl(inner_decl, context);
-		}
-	}
-}
-
 template<parse_scope scope>
 ast::statement parse_decl_variable(
 	lex::token_pos &stream, lex::token_pos end,
@@ -238,7 +223,7 @@ ast::statement parse_decl_variable(
 				context.report_error(lex::src_tokens::from_range({ stream, end }));
 			}
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			add_unresolved_var_decl(var_decl, context);
+			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}
 	}
@@ -274,7 +259,7 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			add_unresolved_var_decl(var_decl, context);
+			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}
 	}
@@ -335,11 +320,7 @@ ast::statement parse_decl_type_alias(
 		);
 		bz_assert(result.is<ast::decl_type_alias>());
 		auto &type_alias = result.get<ast::decl_type_alias>();
-		resolve::resolve_type_alias(type_alias, context);
-		if (type_alias.state != ast::resolve_state::error)
-		{
-			context.add_local_type_alias(type_alias);
-		}
+		context.add_unresolved_local(type_alias.id);
 		return result;
 	}
 }
@@ -1266,7 +1247,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
-	add_unresolved_var_decl(iter_deref_var_decl, context);
+	context.add_unresolved_var_decl(iter_deref_var_decl);
 
 	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
 	consume_semi_colon_at_end_of_expression(stream, end, context, body);

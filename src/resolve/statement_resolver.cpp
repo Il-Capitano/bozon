@@ -1322,6 +1322,28 @@ void resolve_function_parameters(
 	context_ptr->set_current_file_info(original_file_info);
 }
 
+static void add_parameters_as_unresolved_local_variables(ast::function_body &func_body, ctx::parse_context &context)
+{
+	auto       params_it  = func_body.params.begin();
+	auto const params_end = func_body.params.end();
+	for (; params_it != params_end; ++params_it)
+	{
+		if (params_it->is_variadic())
+		{
+			break;
+		}
+		context.add_unresolved_var_decl(*params_it);
+	}
+	if (
+		func_body.generic_parent != nullptr
+		&& !func_body.generic_parent->params.empty()
+		&& func_body.generic_parent->params.back().get_type().is<ast::ts_variadic>()
+	)
+	{
+		context.add_unresolved_var_decl(func_body.generic_parent->params.back());
+	}
+}
+
 static void add_parameters_as_local_variables(ast::function_body &func_body, ctx::parse_context &context)
 {
 	auto       params_it  = func_body.params.begin();
@@ -1652,25 +1674,28 @@ static void resolve_function_impl(
 		return;
 	}
 
-	auto const prev_function = context.current_function;
-	context.current_function = &func_body;
-	context.add_scope();
-	add_parameters_as_local_variables(func_body, context);
-
+	auto const prev_function = context.push_current_function(&func_body);
 	func_body.state = ast::resolve_state::resolving_all;
 
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
+
+	context.add_scope();
+	add_parameters_as_unresolved_local_variables(func_body, context);
 	context.add_scope();
 	func_body.body = parse::parse_local_statements(stream, end, context);
 	context.remove_scope();
+	context.remove_scope();
+
+	context.add_scope();
+	add_parameters_as_local_variables(func_body, context);
 	context.add_scope();
 	resolve_local_statements(func_body.body.get<bz::vector<ast::statement>>(), context);
 	context.remove_scope();
+	context.remove_scope();
 
 	func_body.state = ast::resolve_state::all;
-	context.remove_scope();
-	context.current_function = prev_function;
+	context.pop_current_function(prev_function);
 }
 
 void resolve_function(

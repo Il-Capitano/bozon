@@ -100,6 +100,9 @@ struct parse_context
 	bool register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl);
 	uint32_t get_variadic_index(void) const;
 
+	[[nodiscard]] ast::function_body *push_current_function(ast::function_body *new_function) noexcept;
+	void pop_current_function(ast::function_body *prev_function) noexcept;
+
 	void report_error(lex::token_pos it) const;
 	void report_error(
 		lex::token_pos it, bz::u8string message,
@@ -354,6 +357,7 @@ struct parse_context
 	void remove_scope(void);
 
 	void add_unresolved_local(ast::identifier const &id);
+	void add_unresolved_var_decl(ast::decl_variable const &var_decl);
 
 	void add_local_variable(ast::decl_variable &var_decl);
 	void add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
