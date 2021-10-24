@@ -2531,7 +2531,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -2804,6 +2804,7 @@ static val_ptr emit_bitcode(
 			// these are handled already because they are marked as 'consteval'
 			bz_unreachable;
 
+		case ast::function_body::typename_as_str:
 		case ast::function_body::i8_default_constructor:
 		case ast::function_body::i16_default_constructor:
 		case ast::function_body::i32_default_constructor:
