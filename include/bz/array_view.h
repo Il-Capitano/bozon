@@ -83,6 +83,9 @@ public:
 	constexpr bool empty(void) const noexcept
 	{ return this->_data_begin == this->_data_end; }
 
+	constexpr bool not_empty(void) const noexcept
+	{ return this->_data_begin != this->_data_end; }
+
 
 	constexpr iterator begin(void) const noexcept
 	{ return iterator(this->_data_begin); }

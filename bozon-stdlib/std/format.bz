@@ -9,7 +9,6 @@ import ryu::f2s;
 import ryu::d2fixed;
 import ryu::digit_table;
 import meta::comptime;
-import libc::stdlib;
 
 export struct format_buffer
 {
@@ -334,7 +333,7 @@ consteval function check_format_spec_str(
 	return current_index + 1u;
 }
 
-consteval function check_fmt_str(fmt_str: str, passed_args_count: usize)
+consteval function check_fmt_str(fmt_str: str, passed_args_count: usize) -> bool
 {
 	const begin = fmt_str.begin_ptr();
 	const end   = fmt_str.end_ptr();
@@ -373,7 +372,7 @@ consteval function check_fmt_str(fmt_str: str, passed_args_count: usize)
 						fmt_str, position, __builtin_str_from_ptrs(next_bracket, end)
 					);
 					meta::compile_error(message.as_str());
-					return;
+					unreachable;
 				}
 				const closing_bracket_it = string_find(__builtin_str_from_ptrs(it, end), '}');
 				assert(closing_bracket_it != end);
@@ -383,6 +382,8 @@ consteval function check_fmt_str(fmt_str: str, passed_args_count: usize)
 			else => unreachable
 		}
 	}
+
+	return true;
 }
 
 consteval function count_args_in_str(fmt_str: str) -> usize
@@ -590,8 +591,14 @@ export function format(fmt_str: consteval str, args: ...#const auto) -> string
 		[...(typeof args, ++i)];
 		i
 	};
-	(consteval check_fmt_str(fmt_str, passed_args_count));
-	return format_unchecked_fmt(fmt_str, ...args);
+	if consteval (check_fmt_str(fmt_str, passed_args_count))
+	{
+		return format_unchecked_fmt(fmt_str, ...args);
+	}
+	else
+	{
+		return string();
+	}
 }
 
 export consteval function comptime_format(fmt_str: consteval str, args: ...#const auto) -> str
@@ -601,9 +608,15 @@ export consteval function comptime_format(fmt_str: consteval str, args: ...#cons
 		[...(typeof args, ++i)];
 		i
 	};
-	(consteval check_fmt_str(fmt_str, passed_args_count));
-	const s = format_unchecked_fmt(fmt_str, ...args);
-	return s.as_str().meta::create_global_string();
+	if consteval (check_fmt_str(fmt_str, passed_args_count))
+	{
+		const s = format_unchecked_fmt(fmt_str, ...args);
+		return s.as_str().meta::create_global_string();
+	}
+	else
+	{
+		return "";
+	}
 }
 
 export function printf(fmt_str: consteval str, args: ...#const auto)
@@ -613,10 +626,12 @@ export function printf(fmt_str: consteval str, args: ...#const auto)
 		[...(typeof args, ++i)];
 		i
 	};
-	(consteval check_fmt_str(fmt_str, passed_args_count));
-	let buf = format_buffer[ string() ];
-	buf.format_into(fmt_str, ...args);
-	print(buf._str.as_str());
+	if consteval (check_fmt_str(fmt_str, passed_args_count))
+	{
+		let buf = format_buffer[ string() ];
+		buf.format_into(fmt_str, ...args);
+		print(buf._str.as_str());
+	}
 }
 
 
@@ -1336,12 +1351,7 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		const buf = if (meta::is_comptime()) {
-			meta::malloc(uint8, result_len)
-		} else {
-			__builtin_pointer_cast(*uint8, libc::malloc(result_len))
-		};
-		buf
+		malloc(uint8, result_len)
 	};
 	assert(result_buffer != null);
 
@@ -1365,14 +1375,7 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 
 	if (result_buffer != static_buffer.begin())
 	{
-		if (meta::is_comptime())
-		{
-			meta::free(result_buffer);
-		}
-		else
-		{
-			libc::free(result_buffer);
-		}
+		free(result_buffer);
 	}
 }
 
@@ -1393,12 +1396,7 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		const buf = if (meta::is_comptime()) {
-			meta::malloc(uint8, result_len)
-		} else {
-			__builtin_pointer_cast(*uint8, libc::malloc(result_len))
-		};
-		buf
+		malloc(uint8, result_len)
 	};
 	assert(result_buffer != null);
 
@@ -1422,14 +1420,7 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 
 	if (result_buffer != static_buffer.begin())
 	{
-		if (meta::is_comptime())
-		{
-			meta::free(result_buffer);
-		}
-		else
-		{
-			libc::free(result_buffer);
-		}
+		free(result_buffer);
 	}
 }
 
@@ -1520,12 +1511,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {
-		const buf = if (meta::is_comptime()) {
-			meta::malloc(uint8, result_len)
-		} else {
-			__builtin_pointer_cast(*uint8, libc::malloc(result_len))
-		};
-		buf
+		malloc(uint8, result_len)
 	};
 	assert(result_buffer != null);
 
@@ -1581,14 +1567,7 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 
 	if (result_buffer != static_buffer.begin())
 	{
-		if (meta::is_comptime())
-		{
-			meta::free(result_buffer);
-		}
-		else
-		{
-			libc::free(result_buffer);
-		}
+		free(result_buffer);
 	}
 }
 

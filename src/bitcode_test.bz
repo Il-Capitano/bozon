@@ -992,7 +992,8 @@ function static_assert_test() -> void
 
 	let &i_ref = i;
 //	let i_ref_: typeof i_ref;
-	@maybe_unused let i_ref_: typeof *&i_ref;
+	let i_ref_: typeof *&i_ref = i_ref;
+	static_assert(typeof i_ref_ == typeof i_ref);
 
 	static_assert(const int32 == const const int32);
 	static_assert(&int32 == & &int32);

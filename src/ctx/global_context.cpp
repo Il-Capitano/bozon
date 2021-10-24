@@ -108,6 +108,7 @@ global_context::global_context(void)
 	  _builtin_types{},
 	  _builtin_functions{},
 	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
+	  _builtin_operators{},
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -204,6 +205,25 @@ bz::array_view<uint32_t const> global_context::get_builtin_universal_functions(b
 	else
 	{
 		return {};
+	}
+}
+
+bz::array_view<ast::function_body> global_context::get_builtin_operators(uint32_t op_kind)
+{
+	auto const it = std::find_if(
+		this->_builtin_operators.begin(), this->_builtin_operators.end(),
+		[op_kind](auto const &builtin_op) {
+			return builtin_op.op == op_kind;
+		}
+	);
+
+	if (it == this->_builtin_operators.end())
+	{
+		return {};
+	}
+	else
+	{
+		return it->bodies;
 	}
 }
 
@@ -696,6 +716,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto const pointer_size = this->_data_layout->getPointerSize();
 	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
 	this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
+	this->_builtin_operators = ast::make_builtin_operators(this->_builtin_type_infos);
 
 	auto const stdlib_dir_sv = std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size());
 	auto const builtins_file_path = fs::path(stdlib_dir_sv) / "__builtins.bz";

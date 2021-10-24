@@ -246,9 +246,9 @@ constexpr auto token_info = []() {
 	result[lex::token::greater_than]    = { lex::token::greater_than,    ">",  "", binary_builtin_flags | binary_overloadable_flags };
 	result[lex::token::greater_than_eq] = { lex::token::greater_than_eq, ">=", "", binary_builtin_flags | binary_overloadable_flags };
 
-	result[lex::token::bool_and] = { lex::token::bool_and, "&&", "", binary_builtin_flags | binary_overloadable_flags };
-	result[lex::token::bool_xor] = { lex::token::bool_xor, "^^", "", binary_builtin_flags | binary_overloadable_flags };
-	result[lex::token::bool_or]  = { lex::token::bool_or,  "||", "", binary_builtin_flags | binary_overloadable_flags };
+	result[lex::token::bool_and] = { lex::token::bool_and, "&&", "", binary_builtin_flags };
+	result[lex::token::bool_xor] = { lex::token::bool_xor, "^^", "", binary_builtin_flags };
+	result[lex::token::bool_or]  = { lex::token::bool_or,  "||", "", binary_builtin_flags };
 	result[lex::token::bool_not] = { lex::token::bool_not, "!",  "", unary_builtin_flags  | unary_overloadable_flags  };
 
 	result[lex::token::comma]      = { lex::token::comma,      ",",   "", binary_builtin_flags     };

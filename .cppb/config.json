@@ -60,11 +60,10 @@
 					"optimization": "0"
 				},
 				"release": {
-					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2" ],
+					"cpp_compiler_flags": [ "-march=native", "-mtune=native", "-ferror-limit=2", "-flto" ],
 					"defines": [ "NDEBUG" ],
 					"optimization": "3",
-					"link_flags": [ "-flto" ],
-					"cpp_compiler_flags": [ "-flto" ]
+					"link_flags": [ "-flto" ]
 				}
 			}
 		},

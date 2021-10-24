@@ -162,7 +162,7 @@ struct array
 };
 
 template<typename T, typename ...U>
-array(T, U ...) -> array<meta::enable_if<meta::is_same<T, T, U...>, T>, 1 + sizeof... (U)>;
+array(T, U ...) -> array<T, 1 + sizeof... (U)>;
 
 bz_end_namespace
 

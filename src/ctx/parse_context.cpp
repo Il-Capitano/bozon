@@ -2531,6 +2531,14 @@ static match_level_t get_strict_type_match_level(
 	{
 		return result + 1;
 	}
+	else if (dest.is<ast::ts_array_slice>() && source.is<ast::ts_array_slice>())
+	{
+		return get_strict_type_match_level(
+			dest.get<ast::ts_array_slice>().elem_type,
+			source.get<ast::ts_array_slice>().elem_type,
+			false
+		) + result;
+	}
 	else
 	{
 		return match_level_t{};
@@ -2646,7 +2654,7 @@ static match_level_t get_type_match_level(
 		auto const expr_elem_t = expr_type_without_const.is<ast::ts_array>()
 			? expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view()
 			: expr_type_without_const.get<ast::ts_array_slice>().elem_type.as_typespec_view();
-		auto const is_const_expr_elem_t= expr_type_without_const.is<ast::ts_array>()
+		auto const is_const_expr_elem_t = expr_type_without_const.is<ast::ts_array>()
 			? expr_type.is<ast::ts_const>()
 			: expr_elem_t.is<ast::ts_const>();
 		auto const expr_elem_t_without_const = ast::remove_const_or_consteval(expr_elem_t);
@@ -2990,8 +2998,7 @@ enum class type_match_result
 	ast::typespec &dest_container,
 	ast::typespec_view source,
 	ast::typespec_view dest,
-	bool accept_void,
-	[[maybe_unused]] parse_context &context
+	bool accept_void
 )
 {
 	bz_assert(ast::is_complete(source));
@@ -3043,9 +3050,19 @@ enum class type_match_result
 		type_match_result result = type_match_result::good;
 		for (auto const [dest_elem, source_elem] : bz::zip(dest_types, source_types))
 		{
-			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false, context));
+			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false));
 		}
 		return result;
+	}
+	else if (dest.is<ast::ts_array_slice>() && source.is<ast::ts_array_slice>())
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
+		return strict_match_types(
+			dest_container.nodes.back().get<ast::ts_array_slice>().elem_type,
+			source.get<ast::ts_array_slice>().elem_type,
+			dest.get<ast::ts_array_slice>().elem_type,
+			false
+		);
 	}
 	else
 	{
@@ -3142,7 +3159,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					inner_expr_type.get<ast::ts_const>(),
 					inner_dest.get<ast::ts_const>(),
-					true, context
+					true
 				);
 			}
 			else
@@ -3151,7 +3168,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					inner_expr_type,
 					inner_dest.get<ast::ts_const>(),
-					true, context
+					true
 				);
 			}
 		}
@@ -3161,7 +3178,7 @@ static void match_typename_to_type_impl(
 				dest_container,
 				inner_expr_type,
 				inner_dest,
-				true, context
+				true
 			);
 		}
 	}
@@ -3197,7 +3214,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					expr_type.get<ast::ts_const>(),
 					inner_dest.get<ast::ts_const>(),
-					true, context
+					true
 				);
 			}
 			else
@@ -3206,7 +3223,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					expr_type,
 					inner_dest.get<ast::ts_const>(),
-					true, context
+					true
 				);
 			}
 		}
@@ -3216,7 +3233,7 @@ static void match_typename_to_type_impl(
 				dest_container,
 				expr_type,
 				inner_dest,
-				true, context
+				true
 			);
 		}
 	}
@@ -3364,8 +3381,7 @@ static void match_typename_to_type_impl(
 					inner_container,
 					ast::remove_const_or_consteval(inner_expr_type),
 					ast::remove_const_or_consteval(inner_dest),
-					false,
-					context
+					false
 				);
 			}
 		}
@@ -3382,8 +3398,7 @@ static void match_typename_to_type_impl(
 					inner_container,
 					inner_expr_type,
 					ast::remove_const_or_consteval(inner_dest),
-					false,
-					context
+					false
 				));
 			}
 		}
@@ -3455,9 +3470,20 @@ static void match_literal_to_type(
 		if (is_any)
 		{
 			auto &literal_value = expr.get_literal_value();
-			bz_assert(literal_value.is<ast::constant_value::sint>());
-			auto const int_value = static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>());
-			bz_assert(static_cast<int64_t>(int_value) >= 0);
+			auto const int_value = [&]() {
+				// the value can be unsigned in case the value cannot fit into a int64
+				if (literal_value.is<ast::constant_value::uint>())
+				{
+					return literal_value.get<ast::constant_value::uint>();
+				}
+				else
+				{
+					bz_assert(literal_value.is<ast::constant_value::sint>());
+					auto const result = literal_value.get<ast::constant_value::sint>();
+					bz_assert(result >= 0);
+					return static_cast<uint64_t>(result);
+				}
+			}();
 			auto const dest_max_value = [&]() -> uint64_t {
 				switch (dest_kind)
 				{
@@ -4416,7 +4442,13 @@ static ast::expression make_expr_function_call_from_body(
 				generic_param.init_expr = arg;
 			}
 		}
-		body = body->add_specialized_body(std::move(generic_params), std::move(required_from));
+		auto [result_body, message] = body->add_specialized_body(std::move(generic_params), std::move(required_from));
+		if (result_body == nullptr)
+		{
+			context.report_error(src_tokens, std::move(message));
+			return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
+		}
+		body = result_body;
 		context.add_to_resolve_queue(src_tokens, *body);
 		bz_assert(!body->is_generic());
 		if (body != context.current_function && !context.generic_functions.contains(body))
@@ -4481,7 +4513,13 @@ static ast::expression make_expr_function_call_from_body(
 			}
 		}
 		context.pop_resolve_queue();
-		body = body->add_specialized_body(std::move(generic_params), std::move(required_from));
+		auto [result_body, message] = body->add_specialized_body(std::move(generic_params), std::move(required_from));
+		if (result_body == nullptr)
+		{
+			context.report_error(src_tokens, std::move(message));
+			return ast::make_error_expression(src_tokens, ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order));
+		}
+		body = result_body;
 		context.add_to_resolve_queue(src_tokens, *body);
 		bz_assert(!body->is_generic());
 		if (body != context.current_function && !context.generic_functions.contains(body))
@@ -4589,6 +4627,20 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	return possible_funcs;
 }
 
+static bz::vector<possible_func_t> get_possible_funcs_for_builtin_operator(
+	uint32_t op,
+	lex::src_tokens src_tokens,
+	ast::expression &expr,
+	parse_context &context
+)
+{
+	return context.global_ctx.get_builtin_operators(op)
+		.transform([&](auto &body) {
+			auto match_level = get_function_call_match_level({}, body, expr, context, src_tokens);
+			return possible_func_t{ std::move(match_level), {}, &body };
+		}).collect();
+}
+
 ast::expression parse_context::make_unary_operator_expression(
 	lex::src_tokens src_tokens,
 	uint32_t op_kind,
@@ -4619,17 +4671,14 @@ ast::expression parse_context::make_unary_operator_expression(
 	auto [type, type_kind] = expr.get_expr_type_and_kind();
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
-	if (
-		!is_unary_overloadable_operator(op_kind)
-		|| (is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op_kind))
-	)
+	if (!is_unary_overloadable_operator(op_kind))
 	{
-		auto result = make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
-		result.src_tokens = src_tokens;
-		return result;
+		return make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
 	}
 
-	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, expr, *this);
+	auto const possible_funcs = is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op_kind)
+		? get_possible_funcs_for_builtin_operator(op_kind, src_tokens, expr, *this)
+		: get_possible_funcs_for_operator(op_kind, src_tokens, expr, *this);
 	if (possible_funcs.empty())
 	{
 		this->report_error(
@@ -4754,6 +4803,21 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	return possible_funcs;
 }
 
+static bz::vector<possible_func_t> get_possible_funcs_for_builtin_operator(
+	uint32_t op,
+	lex::src_tokens src_tokens,
+	ast::expression &lhs,
+	ast::expression &rhs,
+	parse_context &context
+)
+{
+	return context.global_ctx.get_builtin_operators(op)
+		.transform([&](auto &body) {
+			auto match_level = get_function_call_match_level({}, body, lhs, rhs, context, src_tokens);
+			return possible_func_t{ std::move(match_level), {}, &body };
+		}).collect();
+}
+
 ast::expression parse_context::make_binary_operator_expression(
 	lex::src_tokens src_tokens,
 	uint32_t op_kind,
@@ -4811,21 +4875,17 @@ ast::expression parse_context::make_binary_operator_expression(
 	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
 	// if it's a non-overloadable operator or a built-in with a built-in type operand,
 	// user-defined operators shouldn't be looked at
-	if (
-		!is_binary_overloadable_operator(op_kind)
-		|| (
-			is_builtin_type(ast::remove_const_or_consteval(lhs_type))
-			&& is_builtin_type(ast::remove_const_or_consteval(rhs_type))
-			&& is_binary_builtin_operator(op_kind)
-		)
-	)
+	if (!is_binary_overloadable_operator(op_kind))
 	{
-		auto result = make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
-		result.src_tokens = src_tokens;
-		return result;
+		return make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
 	}
 
-	auto const possible_funcs = get_possible_funcs_for_operator(op_kind, src_tokens, lhs, rhs, *this);
+	auto const possible_funcs = is_builtin_type(ast::remove_const_or_consteval(lhs_type))
+		&& is_builtin_type(ast::remove_const_or_consteval(rhs_type))
+		&& is_binary_builtin_operator(op_kind)
+			? get_possible_funcs_for_builtin_operator(op_kind, src_tokens, lhs, rhs, *this)
+			: get_possible_funcs_for_operator(op_kind, src_tokens, lhs, rhs, *this);
+
 	if (possible_funcs.empty())
 	{
 		this->report_error(
@@ -4843,13 +4903,26 @@ ast::expression parse_context::make_binary_operator_expression(
 		args.reserve(2);
 		args.emplace_back(std::move(lhs));
 		args.emplace_back(std::move(rhs));
-		auto const [best_stmt, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+		auto [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 		if (best_body == nullptr)
 		{
 			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(args[0]), std::move(args[1])));
 		}
 		else
 		{
+			// special case for string comparision
+			if (
+				(op_kind == lex::token::equals || op_kind == lex::token::not_equals)
+				&& best_body->params[0].get_type().is<ast::ts_base_type>()
+				&& best_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_
+				&& best_body->params[1].get_type().is<ast::ts_base_type>()
+				&& best_body->params[1].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_
+			)
+			{
+				best_body = this->get_builtin_function(
+					op_kind == lex::token::equals ? ast::function_body::builtin_str_eq : ast::function_body::builtin_str_neq
+				);
+			}
 			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
 				? ast::resolve_order::regular
 				: ast::resolve_order::reversed;
