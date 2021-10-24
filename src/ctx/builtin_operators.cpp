@@ -115,6 +115,11 @@ static ast::expression get_type_op_unary_reference(
 	{
 		// nothing
 	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "reference to move reference type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
 		context.report_error(src_tokens, "reference to auto reference type is not allowed");
@@ -166,6 +171,11 @@ static ast::expression get_type_op_unary_auto_ref(
 	else if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "auto reference to reference type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "auto reference to move reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
@@ -232,6 +242,11 @@ static ast::expression get_type_op_unary_auto_ref_const(
 		context.report_error(src_tokens, "auto reference-const to reference type is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "auto reference-const to move reference type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
 		context.report_error(src_tokens, "auto reference-const to auto reference type is not allowed");
@@ -277,6 +292,11 @@ static ast::expression get_type_op_unary_pointer(
 	if (result_type.is<ast::ts_lvalue_reference>())
 	{
 		context.report_error(src_tokens, "pointer to reference is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "pointer to move reference is not allowed");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
 	else if (result_type.is<ast::ts_auto_reference>())
@@ -361,6 +381,11 @@ static ast::expression get_type_op_unary_const(
 		context.report_error(src_tokens, "a reference type cannot be 'const'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "a move reference type cannot be 'const'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
 		context.report_error(src_tokens, "an auto reference type cannot be 'const'");
@@ -417,6 +442,11 @@ static ast::expression get_type_op_unary_consteval(
 		context.report_error(src_tokens, "a reference type cannot be 'consteval'");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		context.report_error(src_tokens, "a move reference type cannot be 'consteval'");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
 	else if (result_type.is<ast::ts_auto_reference>())
 	{
 		context.report_error(src_tokens, "an auto reference type cannot be 'consteval'");
@@ -443,6 +473,63 @@ static ast::expression get_type_op_unary_consteval(
 	else
 	{
 		result_type.add_layer<ast::ts_consteval>();
+	}
+
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::type_name,
+		ast::make_typename_typespec(nullptr),
+		ast::constant_value(std::move(result_type)),
+		ast::make_expr_unary_op(op_kind, std::move(expr))
+	);
+}
+
+// move (typename) -> (move typename)
+static ast::expression get_type_op_unary_move(
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(op_kind == lex::token::kw_move);
+	bz_assert(expr.not_error());
+	bz_assert(expr.is_typename());
+
+	ast::typespec result_type = expr.get_typename();
+	result_type.src_tokens = src_tokens;
+	if (result_type.is<ast::ts_consteval>())
+	{
+		context.report_error(src_tokens, "move reference to consteval type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_lvalue_reference>())
+	{
+		context.report_error(src_tokens, "move reference to reference type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_move_reference>())
+	{
+		// nothing
+	}
+	else if (result_type.is<ast::ts_auto_reference>())
+	{
+		context.report_error(src_tokens, "move reference to auto reference type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_auto_reference_const>())
+	{
+		context.report_error(src_tokens, "move reference to auto reference-const type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else if (result_type.is<ast::ts_variadic>())
+	{
+		context.report_error(src_tokens, "move reference to variadic type is not allowed");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+	else
+	{
+		result_type.add_layer<ast::ts_move_reference>();
 	}
 
 	return ast::make_constant_expression(
@@ -1101,6 +1188,7 @@ constexpr auto type_op_unary_operators = []() {
 		T{ lex::token::dot_dot_dot,    &get_type_op_unary_dot_dot_dot    }, // ...
 		T{ lex::token::kw_const,       &get_type_op_unary_const          }, // const
 		T{ lex::token::kw_consteval,   &get_type_op_unary_consteval      }, // consteval
+		T{ lex::token::kw_move,        &get_type_op_unary_move           }, // move
 	};
 
 	auto const type_op_unary_count = []() {

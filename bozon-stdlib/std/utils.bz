@@ -1,5 +1,6 @@
 import libc::stdlib;
 import meta::comptime;
+import format;
 
 export function memcpy  = __builtin_memcpy;
 export function memmove = __builtin_memmove;
@@ -48,4 +49,97 @@ export function swap(a: &auto, b: &auto)
 	const tmp = a;
 	a = b;
 	b = tmp;
+}
+
+consteval function is_integer_type(T: typename) -> bool
+{
+	return T == int8 || T == int16 || T == int32 || T == int64
+		|| T == uint8 || T == uint16 || T == uint32 || T == uint64;
+}
+
+export struct range_t<T: typename>
+{
+	static_assert(
+		is_integer_type(T),
+		comptime_format("invalid type argument '{}' for std::range_t", __builtin_typename_as_str(T))
+	);
+
+	type value_type = T;
+
+	._begin: T;
+	._end: T;
+}
+
+export struct range_iterator_t<T: typename>
+{
+	static_assert(
+		is_integer_type(T),
+		comptime_format("invalid type argument '{}' for std::range_iterator_t", __builtin_typename_as_str(T))
+	);
+
+	type value_type = T;
+
+	._value: T;
+}
+
+export function range(end) -> range_t<typeof end>
+{
+	type T = typeof end;
+	return range_t<T>[ 0 as T, end ];
+}
+
+export function range(begin, end) -> range_t<typeof begin>
+{
+	static_assert(
+		typeof begin == typeof end,
+		comptime_format(
+			"begin and end have different types '{}' and '{}' in std::range",
+			__builtin_typename_as_str(typeof begin), __builtin_typename_as_str(typeof end)
+		)
+	);
+	if consteval (typeof begin == typeof end)
+	{
+		type T = typeof begin;
+		return range_t<T>[ begin, end ];
+	}
+	else
+	{
+		type T = typeof begin;
+		return range_t<T>[ 0 as T, 0 as T ];
+	}
+}
+
+export function begin(range: range_t) -> range_iterator_t<(typeof range).value_type>
+{
+	type T = (typeof range).value_type;
+	return range_iterator_t<T>[ range._begin ];
+}
+
+export function end(range: range_t) -> range_iterator_t<(typeof range).value_type>
+{
+	type T = (typeof range).value_type;
+	return range_iterator_t<T>[ range._end ];
+}
+
+export operator * (it: range_iterator_t) -> (typeof it).value_type
+{
+	return it._value;
+}
+
+export operator ++ (it: &range_iterator_t) -> typeof it
+{
+	++it._value;
+	return it;
+}
+
+export operator == (lhs: range_iterator_t, rhs: range_iterator_t) -> bool
+{
+	static_assert(typeof lhs == typeof rhs);
+	return lhs._value == rhs._value;
+}
+
+export operator != (lhs: range_iterator_t, rhs: range_iterator_t) -> bool
+{
+	static_assert(typeof lhs == typeof rhs);
+	return lhs._value != rhs._value;
 }

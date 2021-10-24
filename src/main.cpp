@@ -1574,7 +1574,7 @@ struct foo<...Ts> {} // variadic
 #include "crash_handling.h"
 #include "timer.h"
 
-#ifdef NDEBUG
+#if defined(NDEBUG) || defined(_WIN32)
 // use std::exit instead of returning to avoid LLVM corrupting the heap
 // this happens rarely in debug mode, but is common for release builds
 #define return_from_main(val) std::exit((val))

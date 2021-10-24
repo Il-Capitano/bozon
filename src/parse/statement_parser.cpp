@@ -149,22 +149,7 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 	}
 }
 
-static void add_unresolved_var_decl(ast::decl_variable &var_decl, ctx::parse_context &context)
-{
-	if (var_decl.tuple_decls.empty())
-	{
-		context.add_unresolved_local(var_decl.get_id());
-	}
-	else
-	{
-		for (auto &inner_decl : var_decl.tuple_decls)
-		{
-			add_unresolved_var_decl(inner_decl, context);
-		}
-	}
-}
-
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_variable(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -189,7 +174,7 @@ ast::statement parse_decl_variable(
 		auto const init_expr = get_expression_tokens<>(stream, end, context);
 		auto const end_token = stream;
 		context.assert_token(stream, lex::token::semi_colon);
-		if constexpr (is_global)
+		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
@@ -199,13 +184,16 @@ ast::statement parse_decl_variable(
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
 			bz_assert(id_tokens.end - id_tokens.begin <= 1);
-			if (id_tokens.begin != nullptr)
+			if constexpr (scope == parse_scope::global)
 			{
-				var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
-			}
-			else
-			{
-				var_decl.id_and_type.id.is_qualified = true;
+				if (id_tokens.begin != nullptr)
+				{
+					var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
+				}
+				else
+				{
+					var_decl.id_and_type.id.is_qualified = true;
+				}
 			}
 			return result;
 		}
@@ -235,7 +223,7 @@ ast::statement parse_decl_variable(
 				context.report_error(lex::src_tokens::from_range({ stream, end }));
 			}
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			add_unresolved_var_decl(var_decl, context);
+			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}
 	}
@@ -243,7 +231,7 @@ ast::statement parse_decl_variable(
 	{
 		auto const end_token = stream;
 		context.assert_token(stream, lex::token::semi_colon);
-		if constexpr (is_global)
+		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
 			auto result = ast::statement(ast::make_ast_unique<ast::decl_variable>(std::move(result_decl)));
 			bz_assert(result.is<ast::decl_variable>());
@@ -252,13 +240,16 @@ ast::statement parse_decl_variable(
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
 			auto const id_tokens = var_decl.id_and_type.id.tokens;
 			bz_assert(id_tokens.end - id_tokens.begin <= 1);
-			if (id_tokens.begin != nullptr)
+			if constexpr (scope == parse_scope::global)
 			{
-				var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
-			}
-			else
-			{
-				var_decl.id_and_type.id.is_qualified = true;
+				if (id_tokens.begin != nullptr)
+				{
+					var_decl.id_and_type.id = context.make_qualified_identifier(id_tokens.begin);
+				}
+				else
+				{
+					var_decl.id_and_type.id.is_qualified = true;
+				}
 			}
 			return result;
 		}
@@ -268,23 +259,28 @@ ast::statement parse_decl_variable(
 			bz_assert(result.is<ast::decl_variable>());
 			auto &var_decl = result.get<ast::decl_variable>();
 			var_decl.src_tokens = { begin_token, var_decl.src_tokens.pivot, end_token };
-			add_unresolved_var_decl(var_decl, context);
+			context.add_unresolved_var_decl(var_decl);
 			return result;
 		}
 	}
 }
 
-template ast::statement parse_decl_variable<false>(
+template ast::statement parse_decl_variable<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_variable<true>(
+template ast::statement parse_decl_variable<parse_scope::struct_body>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template ast::statement parse_decl_variable<parse_scope::local>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<parse_scope scope>
 ast::statement parse_decl_type_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -299,11 +295,19 @@ ast::statement parse_decl_type_alias(
 	auto const alias_tokens = get_expression_tokens<>(stream, end, context);
 	auto const end_token = stream;
 	context.assert_token(stream, lex::token::semi_colon);
-	if constexpr (is_global)
+	if constexpr (scope == parse_scope::global)
 	{
 		return ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
 			context.make_qualified_identifier(id),
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+		);
+	}
+	else if constexpr (scope == parse_scope::struct_body)
+	{
+		return ast::make_decl_type_alias(
+			lex::src_tokens{ begin_token, id, end_token },
+			ast::make_identifier(id),
 			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
 		);
 	}
@@ -316,21 +320,22 @@ ast::statement parse_decl_type_alias(
 		);
 		bz_assert(result.is<ast::decl_type_alias>());
 		auto &type_alias = result.get<ast::decl_type_alias>();
-		resolve::resolve_type_alias(type_alias, context);
-		if (type_alias.state != ast::resolve_state::error)
-		{
-			context.add_local_type_alias(type_alias);
-		}
+		context.add_unresolved_local(type_alias.id);
 		return result;
 	}
 }
 
-template ast::statement parse_decl_type_alias<false>(
+template ast::statement parse_decl_type_alias<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_type_alias<true>(
+template ast::statement parse_decl_type_alias<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_type_alias<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -517,7 +522,7 @@ static abi::calling_convention get_calling_convention(lex::token_pos it, ctx::pa
 	}
 }
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_function_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -551,7 +556,7 @@ ast::statement parse_decl_function_or_alias(
 		++stream; // '='
 		auto const alias_expr = get_expression_tokens<>(stream, end, context);
 		context.assert_token(stream, lex::token::semi_colon);
-		auto func_id = is_global
+		auto func_id = scope == parse_scope::global
 			? context.make_qualified_identifier(id)
 			: ast::make_identifier(id);
 		if (begin->kind == lex::token::kw_consteval)
@@ -570,7 +575,9 @@ ast::statement parse_decl_function_or_alias(
 	}
 	else
 	{
-		auto const func_name = is_global ? context.make_qualified_identifier(id) : ast::make_identifier(id);
+		auto const func_name = scope == parse_scope::global
+			? context.make_qualified_identifier(id)
+			: ast::make_identifier(id);
 		auto body = parse_function_body(src_tokens, std::move(func_name), stream, end, context);
 		body.cc = cc;
 		if (id->value == "main")
@@ -583,7 +590,7 @@ ast::statement parse_decl_function_or_alias(
 			body.flags |= ast::function_body::only_consteval;
 		}
 
-		if constexpr (is_global)
+		if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 		{
 			return ast::make_decl_function(context.make_qualified_identifier(id), std::move(body));
 		}
@@ -603,17 +610,22 @@ ast::statement parse_decl_function_or_alias(
 	}
 }
 
-template ast::statement parse_decl_function_or_alias<false>(
+template ast::statement parse_decl_function_or_alias<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_function_or_alias<true>(
+template ast::statement parse_decl_function_or_alias<parse_scope::struct_body>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template ast::statement parse_decl_function_or_alias<parse_scope::local>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<parse_scope scope>
 ast::statement parse_consteval_decl(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -623,30 +635,35 @@ ast::statement parse_consteval_decl(
 	bz_assert(stream->kind == lex::token::kw_consteval);
 	if (stream + 1 == end)
 	{
-		return parse_decl_variable<is_global>(stream, end, context);
+		return parse_decl_variable<scope>(stream, end, context);
 	}
 	auto const next_token_kind = (stream + 1)->kind;
 	if (next_token_kind == lex::token::kw_function)
 	{
-		return parse_decl_function_or_alias<is_global>(stream, end, context);
+		return parse_decl_function_or_alias<scope>(stream, end, context);
 	}
 	else
 	{
-		return parse_decl_variable<is_global>(stream, end, context);
+		return parse_decl_variable<scope>(stream, end, context);
 	}
 }
 
-template ast::statement parse_consteval_decl<false>(
+template ast::statement parse_consteval_decl<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_consteval_decl<true>(
+template ast::statement parse_consteval_decl<parse_scope::struct_body>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template ast::statement parse_consteval_decl<parse_scope::local>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template<parse_scope scope>
 ast::statement parse_decl_operator(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -686,7 +703,7 @@ ast::statement parse_decl_operator(
 
 	auto body = parse_function_body(src_tokens, op->kind, stream, end, context);
 
-	if constexpr (is_global)
+	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
 		return ast::make_decl_operator(context.current_scope, op, std::move(body));
 	}
@@ -705,12 +722,17 @@ ast::statement parse_decl_operator(
 	}
 }
 
-template ast::statement parse_decl_operator<false>(
+template ast::statement parse_decl_operator<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_operator<true>(
+template ast::statement parse_decl_operator<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_operator<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -877,7 +899,7 @@ static ast::statement parse_decl_struct_impl(
 	}
 }
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_struct(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -889,7 +911,7 @@ ast::statement parse_decl_struct(
 		return result;
 	}
 
-	if constexpr (is_global)
+	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
 		return result;
 	}
@@ -904,12 +926,17 @@ ast::statement parse_decl_struct(
 	}
 }
 
-template ast::statement parse_decl_struct<false>(
+template ast::statement parse_decl_struct<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_decl_struct<true>(
+template ast::statement parse_decl_struct<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_decl_struct<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -935,7 +962,7 @@ ast::statement parse_decl_import(
 	}
 }
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_attribute_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -971,9 +998,11 @@ ast::statement parse_attribute_statement(
 		}
 	}
 
-	constexpr auto parser_fn = is_global ? &parse_global_statement : &parse_local_statement;
+	constexpr auto parser_fn = scope == parse_scope::global ? &parse_global_statement
+		: scope == parse_scope::struct_body ? &parse_struct_body_statement
+		: &parse_local_statement;
 	auto statement = parser_fn(stream, end, context);
-	if constexpr (is_global)
+	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
 		statement.set_attributes_without_resolve(std::move(attributes));
 	}
@@ -985,13 +1014,17 @@ ast::statement parse_attribute_statement(
 	return statement;
 }
 
-// explicit intantiation of parse_attribute_statement, because it is referenced in parse_common.h
-template ast::statement parse_attribute_statement<false>(
+template ast::statement parse_attribute_statement<parse_scope::global>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template ast::statement parse_attribute_statement<true>(
+template ast::statement parse_attribute_statement<parse_scope::struct_body>(
+	lex::token_pos &stream, lex::token_pos end,
+	ctx::parse_context &context
+);
+
+template ast::statement parse_attribute_statement<parse_scope::local>(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
@@ -1214,7 +1247,7 @@ static ast::statement parse_stmt_foreach_impl(
 
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
-	add_unresolved_var_decl(iter_deref_var_decl, context);
+	context.add_unresolved_var_decl(iter_deref_var_decl);
 
 	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
 	consume_semi_colon_at_end_of_expression(stream, end, context, body);

@@ -94,5 +94,10 @@ int main(int argc, char const **argv)
 
 	global_ctx.report_and_clear_errors_and_warnings();
 
-	return passed_count == test_count ? 0 : 1;
+// see explanation in src/main.cpp
+#ifdef _WIN32
+	std::exit(passed_count == test_count ? 0 : 1);
+#else
+	return 0;
+#endif // windows
 }

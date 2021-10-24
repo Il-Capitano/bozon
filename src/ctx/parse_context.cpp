@@ -215,6 +215,18 @@ uint32_t parse_context::get_variadic_index(void) const
 	return this->variadic_info.variadic_index;
 }
 
+[[nodiscard]] ast::function_body *parse_context::push_current_function(ast::function_body *new_function) noexcept
+{
+	auto const result = this->current_function;
+	this->current_function = new_function;
+	return result;
+}
+
+void parse_context::pop_current_function(ast::function_body *prev_function) noexcept
+{
+	this->current_function = prev_function;
+}
+
 static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
 {
 	if (args.size() == 0)
@@ -976,9 +988,41 @@ void parse_context::remove_scope(void)
 void parse_context::add_unresolved_local(ast::identifier const &id)
 {
 	bz_assert(!id.is_qualified);
-	bz_assert(id.values.size() == 1);
-	bz_assert(this->scope_decls.not_empty());
-	this->scope_decls.back().add_unresolved_id(id);
+	if (id.values.not_empty())
+	{
+		bz_assert(id.values.size() == 1);
+		bz_assert(this->scope_decls.not_empty());
+		this->scope_decls.back().add_unresolved_id(id);
+	}
+}
+
+void parse_context::add_unresolved_var_decl(ast::decl_variable const &var_decl)
+{
+	if (var_decl.tuple_decls.empty())
+	{
+		this->add_unresolved_local(var_decl.get_id());
+	}
+	else
+	{
+		auto it = var_decl.tuple_decls.begin();
+		auto const end = var_decl.tuple_decls.end();
+		for (; it != end; ++it)
+		{
+			if (it->is_variadic())
+			{
+				break;
+			}
+			this->add_unresolved_var_decl(*it);
+		}
+		if (it != end && it->is_variadic())
+		{
+			this->add_unresolved_var_decl(*it);
+		}
+		else if (var_decl.original_tuple_variadic_decl != nullptr)
+		{
+			this->add_unresolved_var_decl(*var_decl.original_tuple_variadic_decl);
+		}
+	}
 }
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
@@ -5758,6 +5802,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		if (decl.is<ast::decl_variable>())
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
+			bz_assert(var_decl.get_id().values.size() == 1);
 			if (var_decl.is_member() || var_decl.get_id().values[0] != member->value)
 			{
 				continue;
@@ -5769,6 +5814,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 			}
 			else if (var_decl.is_variadic())
 			{
+				bz_unreachable;
 			}
 			else
 			{
@@ -5779,6 +5825,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_function>())
 		{
 			auto &func_decl = decl.get<ast::decl_function>();
+			bz_assert(func_decl.id.values.size() <= 1);
 			if (func_decl.body.is_constructor() || func_decl.body.is_destructor() || func_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5801,6 +5848,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_function_alias>())
 		{
 			auto &alias_decl = decl.get<ast::decl_function_alias>();
+			bz_assert(alias_decl.id.values.size() == 1);
 			if (alias_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5823,6 +5871,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_struct>())
 		{
 			auto &struct_decl = decl.get<ast::decl_struct>();
+			bz_assert(struct_decl.id.values.size() == 1);
 			if (struct_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -5841,6 +5890,7 @@ static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos me
 		else if (decl.is<ast::decl_type_alias>())
 		{
 			auto &alias_decl = decl.get<ast::decl_type_alias>();
+			bz_assert(alias_decl.id.values.size() == 1);
 			if (alias_decl.id.values[0] != member->value)
 			{
 				continue;
@@ -6302,6 +6352,9 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 				return 1;
 			},
 			[](ast::ts_lvalue_reference const &) {
+				return 1;
+			},
+			[](ast::ts_move_reference const &) {
 				return 1;
 			},
 			[](ast::ts_auto_reference const &) {

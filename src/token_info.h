@@ -300,7 +300,8 @@ constexpr auto token_info = []() {
 
 	result[lex::token::kw_sizeof] = { lex::token::kw_sizeof, "sizeof", "", keyword_flags | unary_builtin_flags };
 	result[lex::token::kw_typeof] = { lex::token::kw_typeof, "typeof", "", keyword_flags | unary_builtin_flags };
-	result[lex::token::kw_move]   = { lex::token::kw_move,   "move",   "", keyword_flags | unary_builtin_flags };
+
+	result[lex::token::kw_move]   = { lex::token::kw_move,   "move",   "", keyword_flags | unary_type_op_flags | unary_builtin_flags };
 
 	result[lex::token::kw_auto]     = { lex::token::kw_auto,     "auto",     "", keyword_flags | expr_type_flags };
 	result[lex::token::kw_typename] = { lex::token::kw_typename, "typename", "", keyword_flags | expr_type_flags };

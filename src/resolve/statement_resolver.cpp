@@ -677,6 +677,22 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			);
 			var_decl.state = ast::resolve_state::error;
 		}
+		else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				"a variable with a reference type must be initialized"
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
+		else if (var_decl.get_type().is<ast::ts_move_reference>())
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				"a variable with a move reference type must be initialized"
+			);
+			var_decl.state = ast::resolve_state::error;
+		}
 		else if (var_decl.get_type().is<ast::ts_base_type>())
 		{
 			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
@@ -697,6 +713,13 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 					)
 				);
 				parse::consteval_guaranteed(var_decl.init_expr, context);
+			}
+			else
+			{
+				context.report_error(
+					var_decl.src_tokens,
+					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
+				);
 			}
 		}
 	}
@@ -1172,8 +1195,23 @@ static bool resolve_function_parameters_helper(
 	{
 		if (func_body.params.empty())
 		{
-			bz_assert(func_body.get_constructor_of()->default_constructor == nullptr);
-			func_body.get_constructor_of()->default_constructor = &func_body;
+			auto const info = func_body.get_constructor_of();
+			if (info->default_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of default constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->default_constructor->src_tokens,
+						"default constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->default_constructor = &func_body;
+			}
 		}
 		else if (
 			func_body.params.size() == 1
@@ -1184,7 +1222,23 @@ static bool resolve_function_parameters_helper(
 			&& func_body.params[0].get_type().nodes[2].get<ast::ts_base_type>().info == func_body.get_constructor_of()
 		)
 		{
-			func_body.get_constructor_of()->copy_constructor = &func_body;
+			auto const info = func_body.get_constructor_of();
+			if (info->copy_constructor != nullptr)
+			{
+				context.report_error(
+					func_body.src_tokens,
+					bz::format("redefinition of copy constructor for type '{}'", ast::make_base_type_typespec({}, info)),
+					{ context.make_note(
+						info->copy_constructor->src_tokens,
+						"copy constructor previously defined here"
+					) }
+				);
+				return false;
+			}
+			else
+			{
+				info->copy_constructor = &func_body;
+			}
 		}
 	}
 	return good;
@@ -1268,6 +1322,28 @@ void resolve_function_parameters(
 	context_ptr->set_current_file_info(original_file_info);
 }
 
+static void add_parameters_as_unresolved_local_variables(ast::function_body &func_body, ctx::parse_context &context)
+{
+	auto       params_it  = func_body.params.begin();
+	auto const params_end = func_body.params.end();
+	for (; params_it != params_end; ++params_it)
+	{
+		if (params_it->is_variadic())
+		{
+			break;
+		}
+		context.add_unresolved_var_decl(*params_it);
+	}
+	if (
+		func_body.generic_parent != nullptr
+		&& !func_body.generic_parent->params.empty()
+		&& func_body.generic_parent->params.back().get_type().is<ast::ts_variadic>()
+	)
+	{
+		context.add_unresolved_var_decl(func_body.generic_parent->params.back());
+	}
+}
+
 static void add_parameters_as_local_variables(ast::function_body &func_body, ctx::parse_context &context)
 {
 	auto       params_it  = func_body.params.begin();
@@ -1313,6 +1389,7 @@ static bool resolve_function_return_type_helper(ast::function_body &func_body, c
 	}
 	else if (func_body.is_constructor())
 	{
+		// constructors can't have their return type specified, so we have to always set it here
 		func_body.return_type = ast::make_base_type_typespec({}, func_body.get_constructor_of());
 		return true;
 	}
@@ -1604,25 +1681,28 @@ static void resolve_function_impl(
 		return;
 	}
 
-	auto const prev_function = context.current_function;
-	context.current_function = &func_body;
-	context.add_scope();
-	add_parameters_as_local_variables(func_body, context);
-
+	auto const prev_function = context.push_current_function(&func_body);
 	func_body.state = ast::resolve_state::resolving_all;
 
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
+
+	context.add_scope();
+	add_parameters_as_unresolved_local_variables(func_body, context);
 	context.add_scope();
 	func_body.body = parse::parse_local_statements(stream, end, context);
 	context.remove_scope();
+	context.remove_scope();
+
+	context.add_scope();
+	add_parameters_as_local_variables(func_body, context);
 	context.add_scope();
 	resolve_local_statements(func_body.body.get<bz::vector<ast::statement>>(), context);
 	context.remove_scope();
+	context.remove_scope();
 
 	func_body.state = ast::resolve_state::all;
-	context.remove_scope();
-	context.current_function = prev_function;
+	context.pop_current_function(prev_function);
 }
 
 void resolve_function(
@@ -1949,10 +2029,18 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	for (auto const member : info.member_variables)
 	{
-		resolve_variable(*member, context);
-		if (member->state == ast::resolve_state::error)
+		if (member->state == ast::resolve_state::none)
 		{
-			info.state = ast::resolve_state::error;
+			member->state = ast::resolve_state::resolving_symbol;
+			resolve_variable_type(*member, context);
+			if (member->state != ast::resolve_state::error)
+			{
+				member->state = ast::resolve_state::symbol;
+			}
+			else
+			{
+				info.state = ast::resolve_state::error;
+			}
 		}
 	}
 	add_default_constructors(info);
@@ -1970,7 +2058,11 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	for (auto &stmt : info_body)
 	{
-		resolve_global_statement(stmt, context);
+		// don't resolve member variables as global statements
+		if (!stmt.is<ast::decl_variable>() || !stmt.get<ast::decl_variable>().is_member())
+		{
+			resolve_global_statement(stmt, context);
+		}
 	}
 	context.remove_scope();
 }

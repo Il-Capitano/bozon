@@ -1695,7 +1695,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->is_intrinsic());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_operator_last - ast::function_body::_builtin_operator_first == 34);
 	case ast::function_body::builtin_str_eq:
@@ -1989,6 +1989,16 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			}
 		}
 		return {};
+
+	case ast::function_body::typename_as_str:
+	{
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		return ast::constant_value(bz::format("{}", type));
+	}
 
 	case ast::function_body::memcpy:
 	case ast::function_body::memmove:

@@ -62,9 +62,9 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/MC/MCAsmInfo.h>
 
-#if LLVM_VERSION_MAJOR < 12
-#error LLVM 12 is required
-#endif // LLVM 12
+#if LLVM_VERSION_MAJOR < 13
+#error LLVM 13 is required
+#endif // LLVM 13
 
 namespace ctx
 {
@@ -155,7 +155,7 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *global_context::get_builtin_function(uint32_t kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
 	bz_assert(kind < this->_builtin_functions.size());
 	switch (kind)
 	{
@@ -440,7 +440,7 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 
 bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 122);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
 	if (kind == "str_eq")
 	{
 		if (this->_builtin_str_eq_func != nullptr)
