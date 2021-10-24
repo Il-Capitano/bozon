@@ -457,7 +457,7 @@ function main(args: [: const str]) -> int32
 	std::printf("{:%}\n", 12.345);
 	std::printf("{:%}\n", 0.005);
 
-	for (const i in std::range(3, 12))
+	for (const i in std::range(0, 10))
 	{
 		std::printf("{} ", i);
 	}
