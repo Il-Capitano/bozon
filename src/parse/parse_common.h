@@ -9,6 +9,11 @@
 namespace parse
 {
 
+enum class parse_scope
+{
+	global, struct_body, local
+};
+
 ast::expression parse_parenthesized_condition(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -289,43 +294,43 @@ ast::statement parse_stmt_static_assert(
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_variable(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_type_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_function_or_alias(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_consteval_decl(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_operator(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_decl_struct(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
 );
 
-template<bool is_global>
+template<parse_scope scope>
 ast::statement parse_attribute_statement(
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context
@@ -379,30 +384,38 @@ ast::statement default_parse_type_info_statement(
 constexpr bz::array statement_parsers = {
 	statement_parser{ lex::token::kw_static_assert, statement_parser::local | statement_parser::global | statement_parser::struct_body, &parse_stmt_static_assert },
 
-	statement_parser{ lex::token::kw_let,           statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
-	statement_parser{ lex::token::kw_const,         statement_parser::global | statement_parser::struct_body, &parse_decl_variable<true>,          },
-	statement_parser{ lex::token::kw_consteval,     statement_parser::global | statement_parser::struct_body, &parse_consteval_decl<true>,         },
-	statement_parser{ lex::token::kw_type,          statement_parser::global | statement_parser::struct_body, &parse_decl_type_alias<true>,        },
-	statement_parser{ lex::token::kw_function,      statement_parser::global | statement_parser::struct_body, &parse_decl_function_or_alias<true>, },
-	statement_parser{ lex::token::kw_operator,      statement_parser::global | statement_parser::struct_body, &parse_decl_operator<true>,          },
-	statement_parser{ lex::token::kw_struct,        statement_parser::global | statement_parser::struct_body, &parse_decl_struct<true>,            },
+	statement_parser{ lex::token::kw_let,           statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
+	statement_parser{ lex::token::kw_const,         statement_parser::global, &parse_decl_variable<parse_scope::global>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::global, &parse_consteval_decl<parse_scope::global>,         },
+	statement_parser{ lex::token::kw_type,          statement_parser::global, &parse_decl_type_alias<parse_scope::global>,        },
+	statement_parser{ lex::token::kw_function,      statement_parser::global, &parse_decl_function_or_alias<parse_scope::global>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::global, &parse_decl_operator<parse_scope::global>,          },
+	statement_parser{ lex::token::kw_struct,        statement_parser::global, &parse_decl_struct<parse_scope::global>,            },
 
-	statement_parser{ lex::token::at,               statement_parser::global, &parse_attribute_statement<true>,    },
-	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,             },
-	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                  },
+	statement_parser{ lex::token::at,               statement_parser::global, &parse_attribute_statement<parse_scope::global>,    },
+	statement_parser{ lex::token::kw_export,        statement_parser::global, &parse_export_statement,                            },
+	statement_parser{ lex::token::kw_import,        statement_parser::global, &parse_decl_import,                                 },
 
-	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<false>,          },
-	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<false>,          },
-	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_consteval_decl<false>,         },
-	statement_parser{ lex::token::kw_type,          statement_parser::local, &parse_decl_type_alias<false>,        },
-	statement_parser{ lex::token::kw_function,      statement_parser::local, &parse_decl_function_or_alias<false>, },
-	statement_parser{ lex::token::kw_operator,      statement_parser::local, &parse_decl_operator<false>,          },
-	statement_parser{ lex::token::at,               statement_parser::local, &parse_attribute_statement<false>,    },
-	statement_parser{ lex::token::kw_while,         statement_parser::local, &parse_stmt_while,                    },
-	statement_parser{ lex::token::kw_for,           statement_parser::local, &parse_stmt_for_or_foreach,           },
-	statement_parser{ lex::token::kw_return,        statement_parser::local, &parse_stmt_return,                   },
-	statement_parser{ lex::token::semi_colon,       statement_parser::local, &parse_stmt_no_op,                    },
-	statement_parser{ lex::token::kw_export,        statement_parser::local, &parse_local_export_statement,        },
+	statement_parser{ lex::token::kw_let,           statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
+	statement_parser{ lex::token::kw_const,         statement_parser::struct_body, &parse_decl_variable<parse_scope::struct_body>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::struct_body, &parse_consteval_decl<parse_scope::struct_body>,         },
+	statement_parser{ lex::token::kw_type,          statement_parser::struct_body, &parse_decl_type_alias<parse_scope::struct_body>,        },
+	statement_parser{ lex::token::kw_function,      statement_parser::struct_body, &parse_decl_function_or_alias<parse_scope::struct_body>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::struct_body, &parse_decl_operator<parse_scope::struct_body>,          },
+	statement_parser{ lex::token::kw_struct,        statement_parser::struct_body, &parse_decl_struct<parse_scope::struct_body>,            },
+
+	statement_parser{ lex::token::kw_let,           statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
+	statement_parser{ lex::token::kw_const,         statement_parser::local, &parse_decl_variable<parse_scope::local>,          },
+	statement_parser{ lex::token::kw_consteval,     statement_parser::local, &parse_consteval_decl<parse_scope::local>,         },
+	statement_parser{ lex::token::kw_type,          statement_parser::local, &parse_decl_type_alias<parse_scope::local>,        },
+	statement_parser{ lex::token::kw_function,      statement_parser::local, &parse_decl_function_or_alias<parse_scope::local>, },
+	statement_parser{ lex::token::kw_operator,      statement_parser::local, &parse_decl_operator<parse_scope::local>,          },
+	statement_parser{ lex::token::at,               statement_parser::local, &parse_attribute_statement<parse_scope::local>,    },
+	statement_parser{ lex::token::kw_while,         statement_parser::local, &parse_stmt_while,                                 },
+	statement_parser{ lex::token::kw_for,           statement_parser::local, &parse_stmt_for_or_foreach,                        },
+	statement_parser{ lex::token::kw_return,        statement_parser::local, &parse_stmt_return,                                },
+	statement_parser{ lex::token::semi_colon,       statement_parser::local, &parse_stmt_no_op,                                 },
+	statement_parser{ lex::token::kw_export,        statement_parser::local, &parse_local_export_statement,                     },
 };
 
 template<uint32_t flag>
