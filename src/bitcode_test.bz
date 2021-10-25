@@ -457,17 +457,15 @@ function main(args: [: const str]) -> int32
 	std::printf("{:%}\n", 12.345);
 	std::printf("{:%}\n", 0.005);
 
-	for (const i in std::range(0, 10))
+	for (const i in std::iota(0, 10))
 	{
 		std::printf("{} ", i);
 	}
 	std::printf("\n");
 
-	if consteval (std::format("{}", 12) == "12")
+	if consteval (std::format("{}", 12) != "12")
 	{
-	}
-	else
-	{
+		static_assert(std::format("{}", 12) == "11");
 		static_assert(std::format("{}", 12) == "13");
 	}
 
