@@ -128,8 +128,22 @@ static void handle_ill(int)
 	std::_Exit(-1);
 }
 
+static void handle_assert_fail(char const *expr, char const *file, int line)
+{
+	print_internal_compiler_error_message(bz::format("assertion failure at {}:{}: '{}'", file, line, expr));
+	print_stacktrace();
+}
+
+static void handle_unreachable(char const *file, int line)
+{
+	print_internal_compiler_error_message(bz::format("unreachable hit at {}:{}", file, line));
+	print_stacktrace();
+}
+
 void register_crash_handlers(void)
 {
+	bz::register_assert_fail_handler(&handle_assert_fail);
+	bz::register_unreachable_handler(&handle_unreachable);
 	std::signal(SIGSEGV, &handle_segv);
 	std::signal(SIGINT,  &handle_int);
 	std::signal(SIGILL,  &handle_ill);

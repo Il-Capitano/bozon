@@ -477,7 +477,7 @@ public:
 			(meta::is_invocable_v<Visitor, Ts &> && ...),
 			"Visitor is not invocable for one or more variants"
 		);
-		bz_assert(this->_index != null, "visit called on empty variant");
+		bz_assert(this->_index != null && "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> &>()));
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void *);
@@ -512,7 +512,7 @@ public:
 			(meta::is_invocable_v<Visitor, Ts const &> && ...),
 			"Visitor is not invocable for one or more variants"
 		);
-		bz_assert(this->_index != null, "visit called on empty variant");
+		bz_assert(this->_index != null && "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> const &>()));
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void const *);

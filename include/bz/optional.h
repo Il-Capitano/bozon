@@ -225,13 +225,13 @@ public:
 
 	auto &get(void) noexcept
 	{
-		bz_assert(this->_has_value, "bz::optional::get() called, but there's no value to return");
+		bz_assert(this->_has_value && "bz::optional::get() called, but there's no value to return");
 		return this->no_check_get();
 	}
 
 	auto &get(void) const noexcept
 	{
-		bz_assert(this->_has_value, "bz::optional::get() called, but there's no value to return");
+		bz_assert(this->_has_value && "bz::optional::get() called, but there's no value to return");
 		return this->no_check_get();
 	}
 

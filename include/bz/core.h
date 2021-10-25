@@ -12,11 +12,11 @@
 #define bz_unlikely
 
 #ifndef NDEBUG
-#define bz_assert(expr, ...)                                                                             \
-(!!(expr)                                                                                                \
-? (void)0                                                                                                \
-: (void)(                                                                                                \
-    ::bz::_assert_begin(#expr, __FILE__, __LINE__), ::bz::_assert_message(__VA_ARGS__), __builtin_trap() \
+#define bz_assert(expr)                                                           \
+(!!(expr)                                                                         \
+? (void)0                                                                         \
+: (void)(                                                                         \
+    ::bz::_handle_assert_fail(#expr, __FILE__, __LINE__), __builtin_unreachable() \
 ))
 #else
 #define bz_assert(expr, ...)
@@ -24,7 +24,7 @@
 
 #ifndef NDEBUG
 #define bz_unreachable \
-(::bz::_unreachable_message(__FILE__, __LINE__), __builtin_trap())
+(::bz::_handle_unreachable(__FILE__, __LINE__), __builtin_unreachable())
 #else
 #define bz_unreachable \
 (__builtin_unreachable())
@@ -32,23 +32,57 @@
 
 bz_begin_namespace
 
-inline void _assert_begin(const char *expr, const char *file, int line)
+using assert_fail_handler_t = void (*)(char const *expr, char const *file, int line);
+using unreachable_handler_t = void (*)(char const *file, int line);
+
+inline void _default_handle_assert_fail(char const *expr, char const *file, int line)
 {
 	std::cerr << "assertion failed at " << file << ':' << line << "\n"
 		"    expression: " << expr << '\n';
 }
 
-inline void _assert_message(char const *message)
+inline void _default_handle_unreachable(char const *file, int line)
 {
-	std::cerr << "    message: " << message << '\n';
+	std::cerr << "hit unreachable code at " << file << ':' << line << '\n';
 }
 
-inline void _assert_message()
-{}
+inline assert_fail_handler_t _assert_fail_handler = nullptr;
+inline unreachable_handler_t _unreachable_handler = nullptr;
 
-inline void _unreachable_message(const char *file, int line)
+[[noreturn]] inline void _handle_assert_fail(char const *expr, char const *file, int line)
 {
-	std::cerr << "hit unreachable code at " << file << ':' << line << "\n";
+	if (_assert_fail_handler != nullptr)
+	{
+		_assert_fail_handler(expr, file, line);
+	}
+	else
+	{
+		_default_handle_assert_fail(expr, file, line);
+	}
+	std::abort();
+}
+
+[[noreturn]] inline void _handle_unreachable(char const *file, int line)
+{
+	if (_unreachable_handler != nullptr)
+	{
+		_unreachable_handler(file, line);
+	}
+	else
+	{
+		_default_handle_unreachable(file, line);
+	}
+	std::abort();
+}
+
+inline void register_assert_fail_handler(assert_fail_handler_t handler)
+{
+	_assert_fail_handler = handler;
+}
+
+inline void register_unreachable_handler(unreachable_handler_t handler)
+{
+	_unreachable_handler = handler;
 }
 
 #if __cpp_exceptions
