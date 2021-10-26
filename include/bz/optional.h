@@ -10,8 +10,7 @@ namespace internal
 {
 
 struct optional_trivial
-{
-};
+{};
 
 template<typename Optional, typename Element>
 struct optional_destructor_base

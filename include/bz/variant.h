@@ -7,12 +7,268 @@
 
 bz_begin_namespace
 
-template<typename ...>
-class variant;
+namespace internal
+{
+
+template<typename ...Ts>
+struct variant_storage_t
+{
+public:
+	template<size_t N>
+	using value_type = meta::nth_type<N, Ts...>;
+
+protected:
+	static constexpr size_t null = std::numeric_limits<size_t>::max();
+
+	static constexpr auto data_align = meta::lcm_index<alignof (Ts)...>;
+	static constexpr auto data_size  = meta::max_index<sizeof (Ts)...>;
+
+	static constexpr auto _index_type_dummy = []()
+	{
+		constexpr auto elem_count = sizeof... (Ts);
+		static_assert(alignof(std::max_align_t) == 16);
+		static_assert(elem_count < std::numeric_limits<uint64_t>::max());
+		static_assert(
+			data_align == 1
+			|| data_align == 2
+			|| data_align == 4
+			|| data_align == 8
+			|| data_align == 16
+		);
+		if constexpr (data_align <= 1 && elem_count < std::numeric_limits<uint8_t>::max())
+		{
+			return uint8_t();
+		}
+		else if constexpr (data_align <= 2 && elem_count < std::numeric_limits<uint16_t>::max())
+		{
+			return uint16_t();
+		}
+		else if constexpr (data_align <= 4 && elem_count < std::numeric_limits<uint32_t>::max())
+		{
+			return uint32_t();
+		}
+		else if constexpr (data_align <= 16 && elem_count < std::numeric_limits<uint64_t>::max())
+		{
+			return uint64_t();
+		}
+	}();
+	using index_t = meta::remove_cv_reference<decltype(_index_type_dummy)>;
+
+	alignas(data_align) uint8_t _data[data_size];
+	index_t _index = null;
+
+
+	template<size_t N>
+	value_type<N> &no_check_get(void) noexcept
+	{ return *reinterpret_cast<value_type<N> *>(this->_data); }
+
+	template<size_t N>
+	value_type<N> const &no_check_get(void) const noexcept
+	{ return *reinterpret_cast<const value_type<N> *>(this->_data); }
+
+	template<size_t N, typename ...Args>
+	void no_clear_emplace(Args &&...args) noexcept(
+		meta::is_nothrow_constructible_v<value_type<N>, Args...>
+	)
+	{
+		new(this->_data) value_type<N>{std::forward<Args>(args)...};
+		this->_index = N;
+	}
+};
+
+template<typename ...Ts>
+struct variant_trivial_base : public variant_storage_t<Ts...>
+{
+private:
+	using self_t = variant_trivial_base<Ts...>;
+	using base_t = variant_storage_t<Ts...>;
+protected:
+	using base_t::null;
+
+public:
+	using base_t::value_type;
+public:
+	void clear() noexcept
+	{
+		this->_index = null;
+	}
+
+	void assign(self_t const &other) noexcept
+	{
+		*this = other;
+	}
+
+	void assign(self_t &&other) noexcept
+	{
+		*this = std::move(other);
+	}
+};
+
+template<typename ...Ts>
+struct variant_non_trivial_base : public variant_storage_t<Ts...>
+{
+private:
+	using self_t = variant_non_trivial_base<Ts...>;
+	using base_t = variant_storage_t<Ts...>;
+
+protected:
+	using base_t::null;
+private:
+	void no_null_clear(void) noexcept
+	{
+		[&]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			((this->_index == Ns
+			? (void)(this->template no_check_get<Ns>().~Ts())
+			: (void)0 ), ...);
+		}(std::make_index_sequence<sizeof... (Ts)>());
+	}
+
+public:
+	using base_t::value_type;
+public:
+	variant_non_trivial_base(void) noexcept = default;
+
+	variant_non_trivial_base(self_t const &other) noexcept(
+		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
+	)
+		: base_t()
+	{
+		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			((other._index == Ns
+			? (void)(this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>()))
+			: (void)0 ), ...);
+		}(std::make_index_sequence<sizeof...(Ts)>());
+	}
+
+	variant_non_trivial_base(self_t &&other) noexcept(
+		(meta::is_nothrow_move_constructible_v<Ts> && ...)
+	)
+		: base_t()
+	{
+		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			((other._index == Ns
+			? (void)(this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>())))
+			: (void)0 ), ...);
+		}(std::make_index_sequence<sizeof...(Ts)>());
+	}
+
+	~variant_non_trivial_base(void) noexcept
+	{
+		this->no_null_clear();
+	}
+
+	self_t &operator = (self_t const &rhs) noexcept(
+		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
+		&& (meta::is_nothrow_copy_assignable_v<Ts> && ...)
+	)
+	{
+		this->assign(rhs);
+		return *this;
+	}
+
+	self_t &operator = (self_t &&rhs) noexcept(
+		(meta::is_nothrow_move_constructible_v<Ts> && ...)
+		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
+	)
+	{
+		this->assign(std::move(rhs));
+		return *this;
+	}
+
+	void clear() noexcept
+	{
+		if (this->_index == null)
+		{
+			return;
+		}
+		this->no_null_clear();
+		this->_index = null;
+	}
+
+	void assign(self_t const &other) noexcept(
+		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
+		&& (meta::is_nothrow_copy_assignable_v<Ts> && ...)
+	)
+	{
+		if (this == &other)
+		{
+			return;
+		}
+
+		if (other._index == null)
+		{
+			this->clear();
+			return;
+		}
+
+		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			((other._index == Ns
+			? (void)[&other, this]()
+			{
+				if (this->_index == Ns)
+				{
+					this->template no_check_get<Ns>() = other.template no_check_get<Ns>();
+				}
+				else
+				{
+					this->clear();
+					this->template no_clear_emplace<Ns>(other.template no_check_get<Ns>());
+				}
+			}()
+			: (void)0 ), ...);
+		}(std::make_index_sequence<sizeof... (Ts)>());
+	}
+
+	void assign(self_t &&other) noexcept(
+		(meta::is_nothrow_move_constructible_v<Ts> && ...)
+		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
+	)
+	{
+		if (this == &other)
+		{
+			return;
+		}
+
+		if (other._index == null)
+		{
+			this->clear();
+			return;
+		}
+
+		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
+		{
+			((other._index == Ns
+			? (void)[&other, this]()
+			{
+				if (this->_index == Ns)
+				{
+					this->template no_check_get<Ns>() = std::move(other.template no_check_get<Ns>());
+				}
+				else
+				{
+					this->clear();
+					this->template no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>()));
+				}
+			}()
+			: (void)0 ), ...);
+		}(std::make_index_sequence<sizeof... (Ts)>());
+	}
+};
+
+} // namespace internal
 
 
 template<typename ...Ts>
-class variant
+class variant :
+	public meta::conditional<
+		(meta::is_trivial_v<Ts> && ...),
+		internal::variant_trivial_base<Ts...>,
+		internal::variant_non_trivial_base<Ts...>
+	>
 {
 	static_assert(sizeof... (Ts) > 0);
 	// don't allow void as a type
@@ -24,6 +280,11 @@ class variant
 
 private:
 	using self_t = variant<Ts...>;
+	using base_t = meta::conditional<
+		(meta::is_trivial_v<Ts> && ...),
+		internal::variant_trivial_base<Ts...>,
+		internal::variant_non_trivial_base<Ts...>
+	>;
 
 	template<typename T>
 	struct value_type_impl
@@ -62,7 +323,7 @@ private:
 
 public:
 	template<size_t N>
-	using value_type = meta::nth_type<N, Ts...>;
+	using value_type = typename base_t::template value_type<N>;
 	template<typename T>
 	using value_type_from = typename value_type_impl<T>::type;
 
@@ -70,82 +331,6 @@ public:
 	static constexpr size_t index_of = meta::type_index<T, Ts...>;
 
 private:
-	static constexpr auto data_align = meta::lcm_index<alignof (Ts)...>;
-	static constexpr auto data_size  = meta::max_index<sizeof (Ts)...>;
-
-	static constexpr auto _index_type_dummy = []()
-	{
-		constexpr auto elem_count = sizeof... (Ts);
-		static_assert(alignof(std::max_align_t) == 16);
-		static_assert(elem_count < std::numeric_limits<uint64_t>::max());
-		static_assert(
-			data_align == 1
-			|| data_align == 2
-			|| data_align == 4
-			|| data_align == 8
-			|| data_align == 16
-		);
-		if constexpr (data_align <= 1 && elem_count < std::numeric_limits<uint8_t>::max())
-		{
-			return uint8_t();
-		}
-		else if constexpr (data_align <= 2 && elem_count < std::numeric_limits<uint16_t>::max())
-		{
-			return uint16_t();
-		}
-		else if constexpr (data_align <= 4 && elem_count < std::numeric_limits<uint32_t>::max())
-		{
-			return uint32_t();
-		}
-		else if constexpr (data_align <= 16 && elem_count < std::numeric_limits<uint64_t>::max())
-		{
-			return uint64_t();
-		}
-	}();
-	using index_t = meta::remove_cv_reference<decltype(_index_type_dummy)>;
-
-	alignas(data_align) uint8_t _data[data_size];
-	index_t _index;
-
-
-	template<size_t N>
-	value_type<N> &no_check_get(void) noexcept
-	{ return *reinterpret_cast<value_type<N> *>(this->_data); }
-
-	template<size_t N>
-	value_type<N> const &no_check_get(void) const noexcept
-	{ return *reinterpret_cast<const value_type<N> *>(this->_data); }
-
-
-	template<size_t N, typename ...Args>
-	void no_clear_emplace(Args &&...args) noexcept(
-		meta::is_nothrow_constructible_v<value_type<N>, Args...>
-	)
-	{
-		if constexpr (meta::is_constructible_v<value_type<N>, Args...>)
-		{
-			new(this->_data) value_type<N>(std::forward<Args>(args)...);
-		}
-		else
-		{
-			new(this->_data) value_type<N>{std::forward<Args>(args)...};
-		}
-		this->_index = N;
-	}
-
-
-	void no_null_clear(void) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-	)
-	{
-		[&]<size_t ...Ns>(std::index_sequence<Ns...>)
-		{
-			((this->_index == Ns
-			? (void)(this->no_check_get<Ns>().~Ts())
-			: (void)0 ), ...);
-		}(std::make_index_sequence<sizeof... (Ts)>());
-	}
-
 	template<size_t N>
 	struct _index_indicator
 	{};
@@ -155,11 +340,8 @@ private:
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 		: variant()
-	{ this->no_clear_emplace<N>(std::forward<Args>(args)...); }
+	{ this->template no_clear_emplace<N>(std::forward<Args>(args)...); }
 
-
-protected:
-	static constexpr size_t null = std::numeric_limits<size_t>::max();
 
 public:
 	template<size_t N, typename ...Args>
@@ -174,91 +356,6 @@ public:
 	)
 	{ return make<index_of<T>>(std::forward<Args>(args)...); }
 
-	void clear() noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-	)
-	{
-		if (this->_index == null)
-		{
-			return;
-		}
-		this->no_null_clear();
-		this->_index = null;
-	}
-
-	void assign(self_t const &other) noexcept(
-		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
-	)
-	{
-		if (this == &other)
-		{
-			return;
-		}
-
-		if (other._index == null)
-		{
-			this->clear();
-			return;
-		}
-
-		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
-		{
-			((other._index == Ns
-			? (void)[&other, this]()
-			{
-				if (this->_index == Ns)
-				{
-					this->no_check_get<Ns>() = other.template no_check_get<Ns>();
-				}
-				else
-				{
-					this->clear();
-					this->no_clear_emplace<Ns>(other.template no_check_get<Ns>());
-				}
-			}()
-			: (void)0 ), ...);
-		}(std::make_index_sequence<sizeof... (Ts)>());
-	}
-
-	void assign(self_t &&other) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-		&& (meta::is_nothrow_move_constructible_v<Ts> && ...)
-		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
-	)
-	{
-		if (this == &other)
-		{
-			return;
-		}
-
-		if (other._index == null)
-		{
-			this->clear();
-			return;
-		}
-
-		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
-		{
-			((other._index == Ns
-			? (void)[&other, this]()
-			{
-				if (this->_index == Ns)
-				{
-					this->no_check_get<Ns>()
-						= std::move(other.template no_check_get<Ns>());
-				}
-				else
-				{
-					this->clear();
-					this->no_clear_emplace<Ns>(
-						std::move(other.template no_check_get<Ns>())
-					);
-				}
-			}()
-			: (void)0 ), ...);
-		}(std::make_index_sequence<sizeof... (Ts)>());
-	}
-
 	template<size_t N, typename ...Args>
 	auto &emplace(Args &&...args) noexcept(
 		(meta::is_nothrow_destructible_v<Ts> && ...)
@@ -266,8 +363,8 @@ public:
 	)
 	{
 		this->clear();
-		this->no_clear_emplace<N>(std::forward<Args>(args)...);
-		return this->no_check_get<N>();
+		this->template no_clear_emplace<N>(std::forward<Args>(args)...);
+		return this->template no_check_get<N>();
 	}
 
 	template<typename T, typename ...Args>
@@ -277,59 +374,9 @@ public:
 	)
 	{ return this->emplace<index_of<T>>(std::forward<Args>(args)...); }
 
-	variant(void) noexcept
-		: _index(null)
-	{}
-
-	variant(self_t const &other) noexcept(
-		(meta::is_nothrow_copy_constructible_v<Ts> && ...)
-	)
-		: variant()
-	{
-		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
-		{
-			((other._index == Ns
-			? (void)(this->no_clear_emplace<Ns>(other.template no_check_get<Ns>()))
-			: (void)0 ), ...);
-		}(std::make_index_sequence<sizeof...(Ts)>());
-	}
-
-	variant(self_t &&other) noexcept(
-		(meta::is_nothrow_move_constructible_v<Ts> && ...)
-	)
-		: variant()
-	{
-		[&other, this]<size_t ...Ns>(std::index_sequence<Ns...>)
-		{
-			((other._index == Ns
-			? (void)(this->no_clear_emplace<Ns>(std::move(other.template no_check_get<Ns>())))
-			: (void)0 ), ...);
-		}(std::make_index_sequence<sizeof...(Ts)>());
-	}
-
-	~variant(void) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-	)
-	{ this->no_null_clear(); }
-
-	self_t &operator = (self_t const &rhs) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-		&& (meta::is_nothrow_copy_assignable_v<Ts> && ...)
-	)
-	{
-		this->assign(rhs);
-		return *this;
-	}
-
-	self_t &operator = (self_t &&rhs) noexcept(
-		(meta::is_nothrow_destructible_v<Ts> && ...)
-		&& (meta::is_nothrow_move_assignable_v<Ts> && ...)
-	)
-	{
-		this->assign(std::move(rhs));
-		return *this;
-	}
-
+	variant(void) noexcept = default;
+	using base_t::base_t;
+	using base_t::operator =;
 
 	template<
 		typename T,
@@ -344,7 +391,7 @@ public:
 	variant(T &&val) noexcept(
 		meta::is_nothrow_constructible_v<value_type_from<T>, T>
 	)
-	{ this->no_clear_emplace<index_of<value_type_from<T>>>(std::forward<T>(val)); }
+	{ this->template no_clear_emplace<index_of<value_type_from<T>>>(std::forward<T>(val)); }
 
 	template<
 		typename T,
@@ -364,12 +411,12 @@ public:
 		constexpr auto index = index_of<value_type_from<T>>;
 		if (this->_index == index)
 		{
-			this->no_check_get<index>() = std::forward<T>(val);
+			this->template no_check_get<index>() = std::forward<T>(val);
 		}
 		else
 		{
 			this->clear();
-			this->no_clear_emplace<index>(std::forward<T>(val));
+			this->template no_clear_emplace<index>(std::forward<T>(val));
 		}
 		return *this;
 	}
@@ -378,14 +425,14 @@ public:
 	value_type<N> &get(void) noexcept
 	{
 		bz_assert(this->_index == N);
-		return this->no_check_get<N>();
+		return this->template no_check_get<N>();
 	}
 
 	template<size_t N>
 	value_type<N> const &get(void) const noexcept
 	{
 		bz_assert(this->_index == N);
-		return this->no_check_get<N>();
+		return this->template no_check_get<N>();
 	}
 
 	template<typename T>
@@ -409,10 +456,10 @@ public:
 		bz_assert(this->_index == N);
 		using T = value_type<N>;
 
-		T &value = this->no_check_get<N>();
+		T &value = this->template no_check_get<N>();
 		T result = std::move(value);
 		value.~T();
-		this->_index = null;
+		this->_index = base_t::null;
 
 		return result;
 	}
@@ -430,7 +477,7 @@ public:
 	{
 		if (this->_index == N)
 		{
-			return &this->no_check_get<N>();
+			return &this->template no_check_get<N>();
 		}
 		else
 		{
@@ -439,11 +486,11 @@ public:
 	}
 
 	template<size_t N>
-	const value_type<N> *get_if(void) const noexcept
+	value_type<N> const *get_if(void) const noexcept
 	{
 		if (this->_index == N)
 		{
-			return &this->no_check_get<N>();
+			return &this->template no_check_get<N>();
 		}
 		else
 		{
@@ -456,7 +503,7 @@ public:
 	{ return this->get_if<index_of<T>>(); }
 
 	template<typename T>
-	const T *get_if(void) const noexcept
+	T const *get_if(void) const noexcept
 	{ return this->get_if<index_of<T>>(); }
 
 
@@ -477,7 +524,7 @@ public:
 			(meta::is_invocable_v<Visitor, Ts &> && ...),
 			"Visitor is not invocable for one or more variants"
 		);
-		bz_assert(this->_index != null && "visit called on empty variant");
+		bz_assert(this->_index != base_t::null && "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> &>()));
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void *);
@@ -512,7 +559,7 @@ public:
 			(meta::is_invocable_v<Visitor, Ts const &> && ...),
 			"Visitor is not invocable for one or more variants"
 		);
-		bz_assert(this->_index != null && "visit called on empty variant");
+		bz_assert(this->_index != base_t::null && "visit called on empty variant");
 		using ret_t     = decltype(visitor(std::declval<value_type<0> const &>()));
 		using visitor_t = decltype(visitor);
 		using fn_t      = ret_t (*)(visitor_t, void const *);
@@ -535,10 +582,10 @@ public:
 	{ return this->_index; }
 
 	bool is_null(void) const noexcept
-	{ return this->_index == null; }
+	{ return this->_index == base_t::null; }
 
 	bool not_null(void) const noexcept
-	{ return this->_index != null; }
+	{ return this->_index != base_t::null; }
 
 	template<typename T>
 	bool is(void) const noexcept
