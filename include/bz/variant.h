@@ -26,7 +26,7 @@ protected:
 	static constexpr auto _index_type_dummy = []()
 	{
 		constexpr auto elem_count = sizeof... (Ts);
-		static_assert(alignof(std::max_align_t) == 16);
+		static_assert(alignof(std::max_align_t) <= 16);
 		static_assert(elem_count < std::numeric_limits<uint64_t>::max());
 		static_assert(
 			data_align == 1
@@ -71,7 +71,14 @@ protected:
 		meta::is_nothrow_constructible_v<value_type<N>, Args...>
 	)
 	{
-		new(this->_data) value_type<N>{std::forward<Args>(args)...};
+		if constexpr (meta::is_constructible_v<value_type<N>, Args...>)
+		{
+			new(this->_data) value_type<N>(std::forward<Args>(args)...);
+		}
+		else
+		{
+			new(this->_data) value_type<N>{std::forward<Args>(args)...};
+		}
 		this->_index = N;
 	}
 };
