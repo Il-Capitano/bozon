@@ -1,0 +1,151 @@
+import utils;
+
+export struct vector<T: typename>
+{
+	static_assert(&T != T, "vector value_type can't be a reference type");
+	static_assert(const T != T, "vector value_type can't be const");
+	static_assert(consteval T != T, "vector value_type can't be consteval");
+
+	type value_type = T;
+	type _self_t = vector<T>;
+
+	._data_begin: *T;
+	._data_end:   *T;
+	._alloc_end:  *T;
+
+	destructor(&self)
+	{
+		self.clear();
+		free(self._data_begin);
+	}
+
+	constructor()
+	{
+		return _self_t[ null, null, null ];
+	}
+
+	constructor(other: &const _self_t)
+	{
+		const size = other.size();
+		if (size == 0u)
+		{
+			return _self_t();
+		}
+		const [data_begin, alloc_size] = rounded_alloc(T, size);
+		const data_end = data_begin + size;
+		let self_it = data_begin;
+		let other_it = other._data_begin;
+		for (; self_it != data_end; ++self_it, ++other_it)
+		{
+			__builtin_inplace_construct(self_it, *other_it);
+		}
+		return _self_t[ data_begin, data_end, data_begin + alloc_size ];
+	}
+}
+
+export operator = (self: &vector, other: &const vector) -> &typeof self
+{
+	if consteval ((typeof self).value_type != (typeof other).value_type)
+	{
+		static_assert((typeof self).value_type == (typeof other).value_type, "different value_types in vector assignment");
+	}
+	else
+	{
+		if (&self == &other)
+		{
+			return self;
+		}
+		const size = other.size();
+		self.clear();
+		self.reserve(size);
+		self._data_end = self._data_begin + size;
+		let self_it = self._data_begin;
+		let other_it = other._data_begin;
+		for (; self_it != self._data_end; ++self_it, ++other_it)
+		{
+			__builtin_inplace_construct(self_it, *other_it);
+		}
+		return self;
+	}
+}
+
+export operator = (self: &vector, other: vector) -> &typeof self
+{
+	if consteval ((typeof self).value_type != (typeof other).value_type)
+	{
+		static_assert((typeof self).value_type == (typeof other).value_type, "different value_types in vector assignment");
+	}
+	else
+	{
+		self.swap(other);
+		return self;
+	}
+}
+
+export function swap(a: &vector, b: &vector)
+{
+	if consteval ((typeof a).value_type != (typeof b).value_type)
+	{
+		static_assert((typeof a).value_type == (typeof b).value_type, "different value_types in vector swap");
+	}
+	else
+	{
+		swap(a._data_begin, b._data_begin);
+		swap(a._data_end,   b._data_end);
+		swap(a._alloc_end,  b._alloc_end);
+	}
+}
+
+export function release(self: &vector) -> (typeof self)._self_t
+{
+	const data_begin = self._data_begin;
+	const data_end   = self._data_end;
+	const alloc_end  = self._alloc_end;
+	self._data_begin = null;
+	self._data_end   = null;
+	self._alloc_end  = null;
+	return (typeof self)._self_t[ data_begin, data_end, alloc_end ];
+}
+
+export function clear(self: &vector)
+{
+	for (let it = self._data_end; it != self._data_begin;)
+	{
+		--it;
+		__builtin_call_destructor(*it);
+	}
+	self._data_end = self._data_begin;
+}
+
+function size(vec: #const vector) -> usize
+{
+	return (vec._data_end - vec._data_begin) as usize;
+}
+
+function round_to_next_power_of_two(n: usize) -> usize
+{
+	// https://stackoverflow.com/a/466242/11488457
+	static_assert(sizeof usize == 8u);
+	n -= 1u;
+	n |= n >>  1;
+	n |= n >>  2;
+	n |= n >>  4;
+	n |= n >>  8;
+	n |= n >> 16;
+	n |= n >> 32;
+	n += 1u;
+	return n;
+}
+
+function rounded_alloc(T: typename, n: usize) -> [*T, usize]
+{
+	if (n == 0u)
+	{
+		return [ null, 0u ];
+	}
+	else
+	{
+		const rounded_n = round_to_next_power_of_two(n);
+		return [ malloc(T, rounded_n), rounded_n ];
+	}
+}

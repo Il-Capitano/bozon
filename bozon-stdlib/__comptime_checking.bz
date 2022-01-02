@@ -1,10 +1,208 @@
-import ::std::string;
+import ::std::unicode;
 
 consteval warning_kind_int_overflow     = 0u32;
 consteval warning_kind_float_nan_math   = 4u32;
 consteval warning_kind_comptime_warning = 23u32;
 consteval warning_kind_error            = 24u32;
 
+function alloc = __builtin_comptime_malloc_type;
+function free  = __builtin_comptime_free;
+
+function round_to_next_power_of_two(n: usize) -> usize
+{
+	// https://stackoverflow.com/a/466242/11488457
+	n -= 1u;
+	n |= n >> 1;
+	n |= n >> 2;
+	n |= n >> 4;
+	n |= n >> 8;
+	n |= n >> 16;
+	n |= n >> 32;
+	n += 1u;
+	return n;
+}
+
+function rounded_alloc(n: usize) -> [*uint8, usize]
+{
+	if (n == 0u)
+	{
+		return [ null, 0u ];
+	}
+	else
+	{
+		const rounded_n = round_to_next_power_of_two(n);
+		return [ alloc(uint8, rounded_n), rounded_n ];
+	}
+}
+
+struct string
+{
+	._data_begin: *uint8;
+	._data_end:   *uint8;
+	._alloc_end:  *uint8;
+
+	destructor(&self)
+	{
+		free(self._data_begin);
+	}
+
+	constructor()
+	{
+		return string[ null, null, null ];
+	}
+
+	constructor(s: str)
+	{
+		const size = s.size();
+		if (size == 0u)
+		{
+			return string[ null, null, null ];
+		}
+		else
+		{
+			const [data_begin, alloc_size] = rounded_alloc(size);
+			__builtin_memcpy(data_begin, s.begin_ptr(), size);
+			return string[ data_begin, data_begin + size, data_begin + alloc_size ];
+		}
+	}
+
+	constructor(other: &const string)
+	{
+		return string(other.as_str());
+	}
+
+	operator = (self: &string, other: &const string) -> &string
+	{
+		if (&self as *const string == &other)
+		{
+			return self;
+		}
+		const size = other.size();
+		self.reserve(size);
+		__builtin_memcpy(self.begin_ptr(), other.begin_ptr(), size);
+		self._set_size_unsafe(size);
+		return self;
+	}
+
+	operator = (self: &string, other: string) -> &string
+	{
+		self.swap(other);
+		return self;
+	}
+
+	operator = (self: &string, rhs: str) -> &string
+	{
+		const size = rhs.size();
+		if (self.capacity() >= size)
+		{
+			__builtin_memcpy(self.begin_ptr(), rhs.begin_ptr(), size);
+			self._set_size_unsafe(size);
+		}
+		else
+		{
+			self = string(rhs);
+		}
+		return self;
+	}
+
+	function _set_size_unsafe(s: &string, size: usize)
+	{
+		s._data_end = s._data_begin + size;
+	}
+
+	function as_str(s: &const string) -> str
+	{
+		return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
+	}
+
+	function release(self: &string) -> string
+	{
+		const data_begin = self._data_begin;
+		const data_end   = self._data_end;
+		const alloc_end  = self._alloc_end;
+		self._data_begin = null;
+		self._data_end   = null;
+		self._alloc_end  = null;
+		return string[ data_begin, data_end, alloc_end ];
+	}
+
+	function reserve(self: &string, new_capacity: usize)
+	{
+		if (new_capacity > self.capacity())
+		{
+			const [data_begin, alloc_size] = rounded_alloc(new_capacity);
+			const size = self.size();
+			__builtin_memcpy(data_begin, self.begin_ptr(), size);
+			free(self._data_begin);
+			self._data_begin = data_begin;
+			self._data_end   = data_begin + size;
+			self._alloc_end  = data_begin + alloc_size;
+		}
+	}
+
+	function begin_ptr(self: &const string) -> *uint8
+	{
+		return self._data_begin;
+	}
+
+	function end_ptr(self: &const string) -> *uint8
+	{
+		return self._data_end;
+	}
+
+	operator ..= (lhs: &string, rhs: #const string) -> &string
+	{
+		const rhs_size = rhs.size();
+		const result_size = lhs.size() + rhs_size;
+		lhs.reserve(result_size);
+
+		// lhs.reserve could change rhs, if you write something like s ..= s
+		const rhs_begin = rhs.begin_ptr();
+		__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+		lhs._set_size_unsafe(result_size);
+		return lhs;
+	}
+
+	operator ..= (lhs: &string, rhs: str) -> &string
+	{
+		const rhs_size = rhs.size();
+		const result_size = lhs.size() + rhs_size;
+		lhs.reserve(result_size);
+
+		const rhs_begin = rhs.begin_ptr();
+		__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+		lhs._set_size_unsafe(result_size);
+		return lhs;
+	}
+
+	operator ..= (lhs: &string, rhs: char) -> &string
+	{
+		const rhs_encoded = std::encode_char_utf8(rhs);
+		const rhs_begin = rhs_encoded[0].begin();
+		const rhs_size = rhs_encoded[1] as usize;
+
+		const result_size = lhs.size() + rhs_size;
+		lhs.reserve(result_size);
+		__builtin_memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+		lhs._set_size_unsafe(result_size);
+		return lhs;
+	}
+}
+
+function swap(a: &string, b: &string)
+{
+	swap(a._data_begin, b._data_begin);
+	swap(a._data_end,   b._data_end);
+	swap(a._alloc_end,  b._alloc_end);
+}
+
+
+struct vector<T: typename>
+{
+	._data_begin: *T;
+	._data_end:   *T;
+	._alloc_end:  *T;
+}
 
 // copied from std::format
 
@@ -66,13 +264,13 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 	return result;
 }
 
-function append_number(s: &std::string, n: int64)
+function append_number(s: &string, n: int64)
 {
 	const [buffer, size] = get_int_as_string(if (n < 0) { (-n) as uint64 } else { n as uint64 }, n < 0);
 	s ..= __builtin_str_from_ptrs(buffer.end() - size, buffer.end());
 }
 
-function append_number(s: &std::string, n: uint64)
+function append_number(s: &string, n: uint64)
 {
 	const [buffer, size] = get_uint_as_string(n);
 	s ..= __builtin_str_from_ptrs(buffer.end() - size, buffer.end());
@@ -148,9 +346,6 @@ export function println(p: *const void)
 //   - operator = in the form of `operator = (&lhs, #const rhs) -> typeof lhs { lhs.assign_vector(rhs); return lhs; }`
 // the structs must have ._data_begin, ._data_end, ._alloc_end members which are the same pointer types
 
-function alloc = __builtin_comptime_malloc_type;
-function free  = __builtin_comptime_free;
-
 function destruct_vector(&vec)
 {
 	for (let &elem in vec.as_slice())
@@ -166,7 +361,7 @@ function destruct_vector(&vec)
 function swap(a: &auto, b: &auto)
 {
 	static_assert(typeof a == typeof b, "different types in swap");
-	static_assert(typeof a != &std::string);
+	static_assert(typeof a != &string);
 	const temp = a;
 	a = b;
 	b = temp;
@@ -254,20 +449,6 @@ function back(&const vec) -> &const (typeof vec).value_type
 	return *(vec._data_end - 1);
 }
 
-
-function round_to_next_power_of_two(n: usize) -> usize
-{
-	// https://stackoverflow.com/a/466242/11488457
-	n -= 1u;
-	n |= n >> 1;
-	n |= n >> 2;
-	n |= n >> 4;
-	n |= n >> 8;
-	n |= n >> 16;
-	n |= n >> 32;
-	n += 1u;
-	return n;
-}
 
 function reserve(&vec, new_capacity: usize)
 {
@@ -393,7 +574,7 @@ struct error_t
 {
 	.kind: uint32;
 	.src_tokens: src_tokens_t;
-	.message: std::string;
+	.message: string;
 	.call_stack: [: uint64];
 
 	destructor(&self)
@@ -459,7 +640,7 @@ let call_stack = call_stack_t[ null, null, null ];
 @comptime_error_checking("cleanup")
 function cleanup()
 {
-	__builtin_call_destructor(global_strings); // needs to be first, because std::string functions need call stacks
+	__builtin_call_destructor(global_strings);
 	__builtin_call_destructor(malloc_infos);
 	__builtin_call_destructor(errors);
 	__builtin_call_destructor(call_stack);
@@ -506,7 +687,7 @@ function get_error_message_char_by_index(i: uint64, buffer: *uint8)
 {
 	if (i < errors.size())
 	{
-		__builtin_memcpy(buffer, errors[i].message.data(), errors[i].message.size());
+		__builtin_memcpy(buffer, errors[i].message.begin_ptr(), errors[i].message.size());
 	}
 }
 
@@ -569,7 +750,7 @@ function add_error(kind: uint32, begin: uint64, pivot: uint64, end: uint64, mess
 {
 	const call_stack_array = get_call_stack_array_copy();
 	const message_str = str_from_c_str(message);
-	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message_str), call_stack_array ]);
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message_str), call_stack_array ]);
 }
 
 @comptime_error_checking("push_call")
@@ -728,20 +909,20 @@ function check_leaks() -> bool
 }
 
 
-function make_index_error_message(index: usize, size: usize) -> std::string
+function make_index_error_message(index: usize, size: usize) -> string
 {
-	let result = std::string("index ");
+	let result = string("index ");
 	result.append_number(index);
 	result ..= " is out-of-bounds for an array of size ";
 	result.append_number(size);
 	return result.release();
 }
 
-function make_index_error_message(index: isize, size: usize) -> std::string
+function make_index_error_message(index: isize, size: usize) -> string
 {
 	if (index < 0)
 	{
-		let result = std::string("negative index ");
+		let result = string("negative index ");
 		result.append_number(index);
 		result ..= " in subscript for an array of size ";
 		result.append_number(size);
@@ -797,9 +978,9 @@ function index_check_signed(
 	}
 }
 
-function make_malloc_error_message(size: usize) -> std::string
+function make_malloc_error_message(size: usize) -> string
 {
-	let result = std::string("failed to allocate ");
+	let result = string("failed to allocate ");
 	result.append_number(size);
 	result ..= " bytes in comptime malloc";
 	return result.release();
@@ -901,9 +1082,9 @@ function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: 
 	}
 }
 
-function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int64) -> std::string
+function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
-	let result = std::string("overflow in compile time execution of '");
+	let result = string("overflow in compile time execution of '");
 	result.append_number(lhs);
 	result ..= " / ";
 	result.append_number(rhs);
@@ -914,9 +1095,9 @@ function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int6
 	return result.release();
 }
 
-function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> std::string
+function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
-	let result = std::string("dividing by zero in compile time execution of '");
+	let result = string("dividing by zero in compile time execution of '");
 	result.append_number(lhs);
 	result ..= " / ";
 	result.append_number(rhs);
@@ -926,9 +1107,9 @@ function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64
 	return result.release();
 }
 
-function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> std::string
+function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> string
 {
-	let result = std::string("dividing by zero in compile time execution of '");
+	let result = string("dividing by zero in compile time execution of '");
 	result.append_number(lhs);
 	result ..= " / ";
 	result.append_number(rhs);
@@ -1792,23 +1973,23 @@ function lgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64)
 
 function emit_diagnostic(kind: uint32, message: str, call_stack: [: uint64], begin: uint64, pivot: uint64, end: uint64)
 {
-	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack ]);
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message), call_stack ]);
 }
 
 function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	const call_stack_array = get_call_stack_array_copy();
-	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], std::string(message), call_stack_array ]);
+	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message), call_stack_array ]);
 }
 
 
-@__builtin("comptime_compile_error_src_tokens")
+@__builtin
 function __builtin_comptime_compile_error_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	emit_diagnostic(warning_kind_error, message, begin, pivot, end);
 }
 
-@__builtin("comptime_compile_warning_src_tokens")
+@__builtin
 function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	emit_diagnostic(warning_kind_comptime_warning, message, begin, pivot, end);
@@ -1816,11 +1997,11 @@ function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint
 
 struct vector_str
 {
-	type value_type = std::string;
+	type value_type = string;
 
-	._data_begin: *std::string;
-	._data_end:   *std::string;
-	._alloc_end:  *std::string;
+	._data_begin: *string;
+	._data_end:   *string;
+	._alloc_end:  *string;
 
 	destructor(&self)
 	{
@@ -1849,7 +2030,7 @@ operator = (lhs: &vector_str, rhs: vector_str) -> &vector_str
 @comptime_error_checking("global_strings_var")
 let global_strings = vector_str[ null, null, null ];
 
-@__builtin("comptime_create_global_string")
+@__builtin
 consteval function __builtin_comptime_create_global_string(s: str) -> str
 {
 	global_strings.emplace_back(s);

@@ -183,7 +183,7 @@ ast::expression parse_compound_expression(
 	bz_assert(stream->kind == lex::token::curly_open);
 	auto const begin = stream;
 	++stream; // '{'
-	context.add_scope();
+	auto const prev_size = context.add_unresolved_scope();
 	ast::arena_vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
@@ -202,7 +202,7 @@ ast::expression parse_compound_expression(
 		}
 		statements.emplace_back(parse_local_statement_without_semi_colon(stream, end, context));
 	}
-	context.remove_scope();
+	context.remove_unresolved_scope(prev_size);
 	if (stream != end && stream->kind == lex::token::curly_close)
 	{
 		++stream; // '}'
@@ -217,7 +217,7 @@ ast::expression parse_compound_expression(
 		return ast::make_constant_expression(
 			{ begin, begin, stream },
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::constant_value(),
+			ast::constant_value::get_void(),
 			ast::make_expr_compound(decltype(statements)(), ast::expression())
 		);
 	}

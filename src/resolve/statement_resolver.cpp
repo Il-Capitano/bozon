@@ -8,6 +8,321 @@
 namespace resolve
 {
 
+static void apply_maybe_unused_to_var_decl(ast::decl_variable &var_decl)
+{
+	var_decl.flags |= ast::decl_variable::maybe_unused;
+	for (auto &decl : var_decl.tuple_decls)
+	{
+		apply_maybe_unused_to_var_decl(decl);
+	}
+}
+
+static void apply_attribute(
+	ast::decl_variable &var_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.name->value == "maybe_unused")
+	{
+		if (attribute.args.size() != 0)
+		{
+			context.report_error(
+				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
+				"@maybe_unused expects no arguments"
+			);
+		}
+		apply_maybe_unused_to_var_decl(var_decl);
+	}
+	else if (attribute.name->value == "comptime_error_checking")
+	{
+		if (attribute.args.size() != 1)
+		{
+			context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+			return;
+		}
+
+		{
+			parse::consteval_try(attribute.args[0], context);
+			auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+			auto const type_without_const = ast::remove_const_or_consteval(type);
+			if (
+				!type_without_const.is<ast::ts_base_type>()
+				|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+			)
+			{
+				context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
+				return;
+			}
+		}
+
+		auto const kind = attribute.args[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::string>().as_string_view();
+
+		if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
+		{
+			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+		}
+	}
+	else if (attribute.name->value == "no_runtime_emit")
+	{
+		if (attribute.args.size() != 0)
+		{
+			context.report_error(
+				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
+				"@no_runtime_emit expects no arguments"
+			);
+		}
+		var_decl.flags |= ast::decl_variable::no_runtime_emit;
+	}
+	else
+	{
+		context.report_warning(
+			ctx::warning_kind::unknown_attribute,
+			attribute.name,
+			bz::format("unknown attribute '@{}'", attribute.name->value)
+		);
+	}
+}
+
+static void apply_symbol_name(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	bz_assert(attribute.name->value == "symbol_name");
+	if (attribute.args.size() != 1)
+	{
+		context.report_error(attribute.name, "@symbol_name expects exactly one argument");
+		return;
+	}
+
+	if (func_body.is_generic())
+	{
+		context.report_error(attribute.name, "@symbol_name cannot be applied to generic functions");
+		return;
+	}
+
+	// symbol name
+	{
+		parse::consteval_try(attribute.args[0], context);
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "name in @symbol_name must have type 'str'");
+			return;
+		}
+	}
+
+	auto const symbol_name = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+
+	func_body.symbol_name = symbol_name;
+	func_body.flags |= ast::function_body::external_linkage;
+}
+
+static void apply_no_comptime_checking(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (!attribute.args.empty())
+	{
+		context.report_error(attribute.name, "@no_comptime_checking expects no arguments");
+	}
+
+	func_body.flags |= ast::function_body::no_comptime_checking;
+	for (auto const &specialization : func_body.generic_specializations)
+	{
+		specialization->flags |= ast::function_body::no_comptime_checking;
+	}
+}
+
+static void apply_comptime_error_checking(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.args.size() != 1)
+	{
+		context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+		return;
+	}
+
+	{
+		parse::consteval_try(attribute.args[0], context);
+		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
+		auto const type_without_const = ast::remove_const_or_consteval(type);
+		if (
+			!type_without_const.is<ast::ts_base_type>()
+			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
+		)
+		{
+			context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
+			return;
+		}
+	}
+
+	auto const kind = attribute.args[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::string>().as_string_view();
+
+	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
+	{
+		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+	}
+	func_body.flags |= ast::function_body::no_comptime_checking;
+}
+
+static void apply_attribute(
+	ast::function_body &func_body,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	auto const attr_name = attribute.name->value;
+	if (attr_name == "symbol_name")
+	{
+		apply_symbol_name(func_body, attribute, context);
+	}
+	else if (attr_name == "no_comptime_checking")
+	{
+		apply_no_comptime_checking(func_body, attribute, context);
+	}
+	else if (attr_name == "comptime_error_checking")
+	{
+		apply_comptime_error_checking(func_body, attribute, context);
+	}
+	else
+	{
+		context.report_warning(
+			ctx::warning_kind::unknown_attribute,
+			attribute.name,
+			bz::format("unknown attribute '@{}'", attr_name)
+		);
+	}
+}
+
+static void apply_builtin(
+	ast::decl_function &func_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.args.size() != 0)
+	{
+		context.report_error(attribute.name, "@__builtin expects no arguments");
+	}
+
+	if (!context.global_ctx.add_builtin_function(&func_decl))
+	{
+		context.report_error(func_decl.body.src_tokens, "invalid function for @__builtin");
+	}
+	else
+	{
+		func_decl.body.flags |= ast::function_body::intrinsic;
+	}
+}
+
+static void apply_builtin(
+	ast::decl_operator &op_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	if (attribute.args.size() != 0)
+	{
+		context.report_error(attribute.name, "@__builtin expects no arguments");
+	}
+
+	if (!context.global_ctx.add_builtin_operator(&op_decl))
+	{
+		context.report_error(op_decl.body.src_tokens, "invalid operator for @__builtin");
+	}
+	else
+	{
+		op_decl.body.flags |= ast::function_body::intrinsic;
+	}
+}
+
+static void apply_attribute(
+	ast::decl_function &func_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	auto const attr_name = attribute.name->value;
+	if (attr_name == "__builtin")
+	{
+		apply_builtin(func_decl, attribute, context);
+	}
+	else
+	{
+		apply_attribute(func_decl.body, attribute, context);
+	}
+}
+
+static void apply_attribute(
+	ast::decl_operator &op_decl,
+	ast::attribute &attribute,
+	ctx::parse_context &context
+)
+{
+	auto const attr_name = attribute.name->value;
+	if (attr_name == "__builtin")
+	{
+		apply_builtin(op_decl, attribute, context);
+	}
+	else
+	{
+		apply_attribute(op_decl.body, attribute, context);
+	}
+}
+
+static bool resolve_attribute(ast::attribute &attribute, ctx::parse_context &context)
+{
+	if (attribute.args.size() != 0)
+	{
+		// attributes have already been resolved
+		return true;
+	}
+	auto [stream, end] = attribute.arg_tokens;
+	bool good = true;
+	if (stream != end)
+	{
+		attribute.args = parse::parse_expression_comma_list(stream, end, context);
+		if (stream != end)
+		{
+			context.report_error({ stream, stream, end });
+		}
+
+		for (auto &arg : attribute.args)
+		{
+			resolve_expression(arg, context);
+			parse::consteval_try(arg, context);
+			if (arg.not_error() && !arg.is<ast::constant_expression>())
+			{
+				good = false;
+				context.report_error(
+					arg,
+					"attribute argument must be a constant expression",
+					parse::get_consteval_fail_notes(arg)
+				);
+			}
+		}
+	}
+	return good;
+}
+
 static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &context)
 {
 	resolve_expression(while_stmt.condition, context);
@@ -74,7 +389,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		range_expr_src_tokens,
 		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
-		std::move(range_begin_expr)
+		std::move(range_begin_expr),
+		context.get_current_enclosing_scope()
 	);
 	bz_assert(foreach_stmt.iter_var_decl.is<ast::decl_variable>());
 	auto &iter_var_decl = foreach_stmt.iter_var_decl.get<ast::decl_variable>();
@@ -111,7 +427,8 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 		range_expr_src_tokens,
 		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(ast::make_auto_typespec(nullptr))),
-		std::move(range_end_expr)
+		std::move(range_end_expr),
+		context.get_current_enclosing_scope()
 	);
 	bz_assert(foreach_stmt.end_var_decl.is<ast::decl_variable>());
 	auto &end_var_decl = foreach_stmt.end_var_decl.get<ast::decl_variable>();
@@ -482,14 +799,9 @@ void resolve_typespec(ast::typespec &ts, ctx::parse_context &context, precedence
 
 void resolve_stmt_static_assert(ast::stmt_static_assert &static_assert_stmt, ctx::parse_context &context)
 {
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = static_assert_stmt.static_assert_pos->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
+	auto prev_scopes = context.push_enclosing_scope(static_assert_stmt.enclosing_scope);
 	resolve_stmt(static_assert_stmt, context);
-	context.set_current_file_info(original_file_info);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void apply_prototype(
@@ -604,6 +916,21 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 	apply_prototype(var_decl.get_prototype_range(), var_decl, context);
 }
 
+static void resolve_attributes(
+	ast::decl_variable &var_decl,
+	ctx::parse_context &context
+)
+{
+	for (auto &attribute : var_decl.attributes)
+	{
+		auto const good = resolve_attribute(attribute, context);
+		if (good)
+		{
+			apply_attribute(var_decl, attribute, context);
+		}
+	}
+}
+
 static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_decl, ctx::parse_context &context)
 {
 	bz_assert(!var_decl.get_type().is_empty());
@@ -708,7 +1035,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 					ast::make_expr_function_call(
 						var_decl.src_tokens,
 						ast::arena_vector<ast::expression>{},
-						def_ctor,
+						&def_ctor->body,
 						ast::resolve_order::regular
 					)
 				);
@@ -753,6 +1080,8 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 		var_decl.state = ast::resolve_state::error;
 		var_decl.clear_type();
 	}
+
+	resolve_attributes(var_decl, context);
 }
 
 static void resolve_variable_symbol_impl(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -793,14 +1122,16 @@ void resolve_variable_symbol(ast::decl_variable &var_decl, ctx::parse_context &c
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = var_decl.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
+	if (var_decl.is_global())
 	{
-		context.set_current_file(stmt_file_id);
+		auto prev_scopes = context.push_enclosing_scope(var_decl.enclosing_scope);
+		resolve_variable_symbol_impl(var_decl, context);
+		context.pop_enclosing_scope(std::move(prev_scopes));
 	}
-	resolve_variable_symbol_impl(var_decl, context);
-	context.set_current_file_info(original_file_info);
+	else
+	{
+		resolve_variable_symbol_impl(var_decl, context);
+	}
 }
 
 static void resolve_variable_impl(ast::decl_variable &var_decl, ctx::parse_context &context)
@@ -836,14 +1167,16 @@ void resolve_variable(ast::decl_variable &var_decl, ctx::parse_context &context)
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = var_decl.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
+	if (var_decl.is_global())
 	{
-		context.set_current_file(stmt_file_id);
+		auto prev_scopes = context.push_enclosing_scope(var_decl.enclosing_scope);
+		resolve_variable_impl(var_decl, context);
+		context.pop_enclosing_scope(std::move(prev_scopes));
 	}
-	resolve_variable_impl(var_decl, context);
-	context.set_current_file_info(original_file_info);
+	else
+	{
+		resolve_variable_impl(var_decl, context);
+	}
 }
 
 static void resolve_type_alias_impl(ast::decl_type_alias &alias_decl, ctx::parse_context &context)
@@ -930,14 +1263,48 @@ void resolve_type_alias(ast::decl_type_alias &alias_decl, ctx::parse_context &co
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
+	if (alias_decl.is_global())
 	{
-		context.set_current_file(stmt_file_id);
+		auto prev_scopes = context.push_enclosing_scope(alias_decl.enclosing_scope);
+		resolve_type_alias_impl(alias_decl, context);
+		context.pop_enclosing_scope(std::move(prev_scopes));
 	}
-	resolve_type_alias_impl(alias_decl, context);
-	context.set_current_file_info(original_file_info);
+	else
+	{
+		resolve_type_alias_impl(alias_decl, context);
+	}
+}
+
+static ast::arena_vector<ast::decl_function *> get_function_decls_from_set(ast::function_set_t const &func_set)
+{
+	ast::arena_vector<ast::decl_function *> result = {};
+	bz_assert(func_set.stmts.not_empty());
+	auto const size = func_set.stmts
+		.transform([](ast::statement_view const stmt) -> size_t {
+			if (stmt.is<ast::decl_function>())
+			{
+				return 1;
+			}
+			else
+			{
+				bz_assert(stmt.is<ast::decl_function_alias>());
+				return stmt.get<ast::decl_function_alias>().aliased_decls.size();
+			}
+		}).sum();
+	result.reserve(size);
+	for (auto const &stmt : func_set.stmts)
+	{
+		if (stmt.is<ast::decl_function>())
+		{
+			result.push_back(&stmt.get<ast::decl_function>());
+		}
+		else
+		{
+			bz_assert(stmt.is<ast::decl_function_alias>());
+			result.append(stmt.get<ast::decl_function_alias>().aliased_decls);
+		}
+	}
+	return result;
 }
 
 static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ctx::parse_context &context)
@@ -984,9 +1351,9 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 	auto const &value = alias_decl.alias_expr.get<ast::constant_expression>().value;
 	if (value.is<ast::constant_value::function>())
 	{
-		auto const func_body = value.get<ast::constant_value::function>();
-		bz_assert(alias_decl.aliased_bodies.empty());
-		alias_decl.aliased_bodies = { func_body };
+		auto const func_decl = value.get<ast::constant_value::function>();
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = { func_decl };
 		alias_decl.state = ast::resolve_state::all;
 	}
 	else if (value.is<ast::constant_value::unqualified_function_set_id>() || value.is<ast::constant_value::qualified_function_set_id>())
@@ -994,11 +1361,9 @@ static void resolve_function_alias_impl(ast::decl_function_alias &alias_decl, ct
 		auto const &func_set = value.is<ast::constant_value::unqualified_function_set_id>()
 			? value.get<ast::constant_value::unqualified_function_set_id>()
 			: value.get<ast::constant_value::qualified_function_set_id>();
-		bz_assert(alias_decl.aliased_bodies.empty());
-		alias_decl.aliased_bodies = value.is<ast::constant_value::unqualified_function_set_id>()
-			? context.get_function_bodies_from_unqualified_id(alias_decl.alias_expr.src_tokens, func_set)
-			: context.get_function_bodies_from_qualified_id(alias_decl.alias_expr.src_tokens, func_set);
-		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_bodies.empty())
+		bz_assert(alias_decl.aliased_decls.empty());
+		alias_decl.aliased_decls = get_function_decls_from_set(func_set);
+		if (alias_decl.state != ast::resolve_state::error && !alias_decl.aliased_decls.empty())
 		{
 			alias_decl.state = ast::resolve_state::all;
 		}
@@ -1029,14 +1394,39 @@ void resolve_function_alias(ast::decl_function_alias &alias_decl, ctx::parse_con
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = alias_decl.id.tokens.begin->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
+	auto prev_scopes = context.push_enclosing_scope(alias_decl.enclosing_scope);
 	resolve_function_alias_impl(alias_decl, context);
-	context.set_current_file_info(original_file_info);
+	context.pop_enclosing_scope(std::move(prev_scopes));
+}
+
+static void resolve_attributes(
+	ast::decl_function &func_decl,
+	ctx::parse_context &context
+)
+{
+	for (auto &attribute : func_decl.attributes)
+	{
+		auto const good = resolve_attribute(attribute, context);
+		if (good)
+		{
+			apply_attribute(func_decl, attribute, context);
+		}
+	}
+}
+
+static void resolve_attributes(
+	ast::decl_operator &op_decl,
+	ctx::parse_context &context
+)
+{
+	for (auto &attribute : op_decl.attributes)
+	{
+		auto const good = resolve_attribute(attribute, context);
+		if (good)
+		{
+			apply_attribute(op_decl, attribute, context);
+		}
+	}
 }
 
 static bool resolve_function_parameters_helper(
@@ -1046,6 +1436,7 @@ static bool resolve_function_parameters_helper(
 )
 {
 	bz_assert(func_body.state == ast::resolve_state::resolving_parameters);
+
 	bool good = true;
 	bool is_generic = false;
 	for (auto &p : func_body.params)
@@ -1115,13 +1506,15 @@ static bool resolve_function_parameters_helper(
 		)
 		{
 			auto const info = lhs_t.get<ast::ts_lvalue_reference>().get<ast::ts_base_type>().info;
+			bz_assert(func_stmt.is<ast::decl_operator>());
+			auto const op_decl = &func_stmt.get<ast::decl_operator>();
 			if (rhs_t.is<ast::ts_lvalue_reference>())
 			{
-				info->op_assign = &func_body;
+				info->op_assign = op_decl;
 			}
 			else
 			{
-				info->op_move_assign = &func_body;
+				info->op_move_assign = op_decl;
 			}
 		}
 	}
@@ -1202,7 +1595,7 @@ static bool resolve_function_parameters_helper(
 					func_body.src_tokens,
 					bz::format("redefinition of default constructor for type '{}'", ast::make_base_type_typespec({}, info)),
 					{ context.make_note(
-						info->default_constructor->src_tokens,
+						info->default_constructor->body.src_tokens,
 						"default constructor previously defined here"
 					) }
 				);
@@ -1210,7 +1603,8 @@ static bool resolve_function_parameters_helper(
 			}
 			else
 			{
-				info->default_constructor = &func_body;
+				bz_assert(func_stmt.is<ast::decl_function>());
+				info->default_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
 		else if (
@@ -1229,7 +1623,7 @@ static bool resolve_function_parameters_helper(
 					func_body.src_tokens,
 					bz::format("redefinition of copy constructor for type '{}'", ast::make_base_type_typespec({}, info)),
 					{ context.make_note(
-						info->copy_constructor->src_tokens,
+						info->copy_constructor->body.src_tokens,
 						"copy constructor previously defined here"
 					) }
 				);
@@ -1237,10 +1631,25 @@ static bool resolve_function_parameters_helper(
 			}
 			else
 			{
-				info->copy_constructor = &func_body;
+				bz_assert(func_stmt.is<ast::decl_function>());
+				info->copy_constructor = &func_stmt.get<ast::decl_function>();
 			}
 		}
 	}
+
+	if (func_stmt.is<ast::decl_function>())
+	{
+		resolve_attributes(func_stmt.get<ast::decl_function>(), context);
+	}
+	else if (func_stmt.is<ast::decl_operator>())
+	{
+		resolve_attributes(func_stmt.get<ast::decl_operator>(), context);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+
 	return good;
 }
 
@@ -1261,37 +1670,6 @@ static void resolve_function_parameters_impl(
 	}
 }
 
-static ctx::parse_context *get_context_ptr(bool is_local, bz::optional<ctx::parse_context> &new_context, ctx::parse_context &context)
-{
-	if (is_local)
-	{
-		auto const var_count = context.scope_decls
-			.transform([](auto const &decl_set) { return decl_set.var_decl_range().count(); })
-			.sum();
-		if (var_count == 0)
-		{
-			return &context;
-		}
-		else
-		{
-			new_context.emplace(context, ctx::parse_context::local_copy_t{});
-			return &new_context.get();
-		}
-	}
-	else
-	{
-		if (context.scope_decls.empty())
-		{
-			return &context;
-		}
-		else
-		{
-			new_context.emplace(context, ctx::parse_context::global_copy_t{});
-			return &new_context.get();
-		}
-	}
-}
-
 void resolve_function_parameters(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
@@ -1309,17 +1687,9 @@ void resolve_function_parameters(
 		return;
 	}
 
-	bz::optional<ctx::parse_context> new_context{};
-	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
-
-	auto const original_file_info = context_ptr->get_current_file_info();
-	auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context_ptr->set_current_file(stmt_file_id);
-	}
-	resolve_function_parameters_impl(func_stmt, func_body, *context_ptr);
-	context_ptr->set_current_file_info(original_file_info);
+	auto prev_scopes = context.push_enclosing_scope(func_body.get_enclosing_scope());
+	resolve_function_parameters_impl(func_stmt, func_body, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void add_parameters_as_unresolved_local_variables(ast::function_body &func_body, ctx::parse_context &context)
@@ -1362,7 +1732,9 @@ static void add_parameters_as_local_variables(ast::function_body &func_body, ctx
 		&& func_body.generic_parent->params.back().get_type().is<ast::ts_variadic>()
 	)
 	{
-		auto variadic_params = bz::basic_range{ params_it, params_end }.transform([](auto &p) { return &p; }).collect();
+		auto variadic_params = bz::basic_range{ params_it, params_end }
+			.transform([](auto &p) { return &p; })
+			.collect<ast::arena_vector>();
 		context.add_local_variable(func_body.generic_parent->params.back(), std::move(variadic_params));
 	}
 }
@@ -1572,17 +1944,42 @@ static void resolve_function_symbol_impl(
 	ctx::parse_context &context
 )
 {
-	func_body.state = ast::resolve_state::resolving_symbol;
-	context.add_scope();
-	if (resolve_function_symbol_helper(func_stmt, func_body, context))
+	if (func_body.state == ast::resolve_state::none)
 	{
-		func_body.state = func_body.is_generic() ? ast::resolve_state::parameters : ast::resolve_state::symbol;
+		context.push_local_scope(&func_body.scope);
+		func_body.state = ast::resolve_state::resolving_parameters;
+		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
+		{
+			func_body.state = ast::resolve_state::error;
+			context.pop_local_scope();
+			return;
+		}
 	}
-	else
+	if (func_body.state <= ast::resolve_state::parameters)
 	{
-		func_body.state = ast::resolve_state::error;
+		if (func_body.state == ast::resolve_state::parameters)
+		{
+			context.push_local_scope(&func_body.scope);
+		}
+		func_body.state = ast::resolve_state::resolving_symbol;
+		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
+		{
+			func_body.state = ast::resolve_state::error;
+			context.pop_local_scope();
+			return;
+		}
+		else if (func_body.is_generic())
+		{
+			func_body.state = ast::resolve_state::parameters;
+			context.pop_local_scope();
+			return;
+		}
+		else
+		{
+			func_body.state = ast::resolve_state::symbol;
+			context.pop_local_scope();
+		}
 	}
-	context.remove_scope();
 }
 
 void resolve_function_symbol(
@@ -1602,24 +1999,9 @@ void resolve_function_symbol(
 		return;
 	}
 
-	bz::optional<ctx::parse_context> new_context{};
-	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
-
-	if (!func_body.is_builtin_operator())
-	{
-		auto const original_file_info = context_ptr->get_current_file_info();
-		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-		if (original_file_info.file_id != stmt_file_id)
-		{
-			context_ptr->set_current_file(stmt_file_id);
-		}
-		resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
-		context_ptr->set_current_file_info(original_file_info);
-	}
-	else
-	{
-		resolve_function_symbol_impl(func_stmt, func_body, *context_ptr);
-	}
+	auto prev_scopes = context.push_enclosing_scope(func_body.get_enclosing_scope());
+	resolve_function_symbol_impl(func_stmt, func_body, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void resolve_local_statements(
@@ -1641,12 +2023,12 @@ static void resolve_function_impl(
 {
 	if (func_body.state == ast::resolve_state::none)
 	{
-		context.add_scope();
+		context.push_local_scope(&func_body.scope);
 		func_body.state = ast::resolve_state::resolving_parameters;
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.remove_scope();
+			context.pop_local_scope();
 			return;
 		}
 	}
@@ -1654,25 +2036,25 @@ static void resolve_function_impl(
 	{
 		if (func_body.state == ast::resolve_state::parameters)
 		{
-			context.add_scope();
+			context.push_local_scope(&func_body.scope);
 		}
 		func_body.state = ast::resolve_state::resolving_symbol;
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.remove_scope();
+			context.pop_local_scope();
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context.remove_scope();
+			context.pop_local_scope();
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.remove_scope();
+			context.pop_local_scope();
 		}
 	}
 
@@ -1687,19 +2069,16 @@ static void resolve_function_impl(
 	bz_assert(func_body.body.is<lex::token_range>());
 	auto [stream, end] = func_body.body.get<lex::token_range>();
 
-	context.add_scope();
-	add_parameters_as_unresolved_local_variables(func_body, context);
-	context.add_scope();
-	func_body.body = parse::parse_local_statements(stream, end, context);
-	context.remove_scope();
-	context.remove_scope();
+	{
+		auto const prev_size = context.add_unresolved_scope();
+		add_parameters_as_unresolved_local_variables(func_body, context);
+		func_body.body = parse::parse_local_statements(stream, end, context);
+		context.remove_unresolved_scope(prev_size);
+	}
 
-	context.add_scope();
-	add_parameters_as_local_variables(func_body, context);
-	context.add_scope();
-	resolve_local_statements(func_body.body.get<bz::vector<ast::statement>>(), context);
-	context.remove_scope();
-	context.remove_scope();
+	context.push_local_scope(&func_body.scope);
+	resolve_local_statements(func_body.get_statements(), context);
+	context.pop_local_scope();
 
 	func_body.state = ast::resolve_state::all;
 	context.pop_current_function(prev_function);
@@ -1726,21 +2105,9 @@ void resolve_function(
 		return;
 	}
 
-	bz::optional<ctx::parse_context> new_context{};
-	auto const context_ptr = get_context_ptr(func_body.is_local(), new_context, context);
-
-	auto const original_file_info = context_ptr->get_current_file_info();
-	// this check is needed because of generic built-in functions like __builtin_slice_size
-	if (func_body.src_tokens.pivot != nullptr)
-	{
-		auto const stmt_file_id = func_body.src_tokens.pivot->src_pos.file_id;
-		if (original_file_info.file_id != stmt_file_id)
-		{
-			context_ptr->set_current_file(stmt_file_id);
-		}
-	}
-	resolve_function_impl(func_stmt, func_body, *context_ptr);
-	context_ptr->set_current_file_info(original_file_info);
+	auto prev_scopes = context.push_enclosing_scope(func_body.get_enclosing_scope());
+	resolve_function_impl(func_stmt, func_body, context);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void resolve_type_info_parameters_impl(ast::type_info &info, ctx::parse_context &context)
@@ -1806,14 +2173,9 @@ void resolve_type_info_parameters(ast::type_info &info, ctx::parse_context &cont
 		return;
 	}
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
+	auto prev_scopes = context.push_enclosing_scope(info.get_enclosing_scope());
 	resolve_type_info_parameters_impl(info, context);
-	context.set_current_file_info(original_file_info);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void resolve_type_info_symbol_impl(ast::type_info &info, [[maybe_unused]] ctx::parse_context &context)
@@ -1838,14 +2200,9 @@ void resolve_type_info_symbol(ast::type_info &info, ctx::parse_context &context)
 	bz_assert(info.state != ast::resolve_state::resolving_symbol);
 	bz_assert(!info.is_generic());
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
+	auto prev_scopes = context.push_enclosing_scope(info.get_enclosing_scope());
 	resolve_type_info_symbol_impl(info, context);
-	context.set_current_file_info(original_file_info);
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 static void add_type_info_members(
@@ -1858,44 +2215,48 @@ static void add_type_info_members(
 	{
 		if (stmt.is<ast::decl_function>())
 		{
-			auto &body = stmt.get<ast::decl_function>().body;
-			if (body.is_destructor())
+			auto &decl = stmt.get<ast::decl_function>();
+			if (decl.body.is_destructor())
 			{
 				if (info.destructor != nullptr)
 				{
 					auto const type_name = ast::type_info::decode_symbol_name(info.symbol_name);
 					context.report_error(
-						body.src_tokens, bz::format("redefinition of destructor for type '{}'", type_name),
-						{ context.make_note(info.destructor->src_tokens, "previously defined here") }
+						decl.body.src_tokens, bz::format("redefinition of destructor for type '{}'", type_name),
+						{ context.make_note(info.destructor->body.src_tokens, "previously defined here") }
 					);
 				}
 
-				body.constructor_or_destructor_of = &info;
-				info.destructor = &body;
+				decl.body.constructor_or_destructor_of = &info;
+				info.destructor = &decl;
 			}
-			else if (body.is_constructor())
+			else if (decl.body.is_constructor())
 			{
-				if (body.return_type.is<ast::ts_unresolved>())
+				if (decl.body.return_type.is<ast::ts_unresolved>())
 				{
-					auto const tokens = body.return_type.get<ast::ts_unresolved>().tokens;
+					auto const tokens = decl.body.return_type.get<ast::ts_unresolved>().tokens;
 					auto const constructor_of_type = ast::type_info::decode_symbol_name(info.symbol_name);
 					context.report_error(
 						{ tokens.begin, tokens.begin, tokens.end },
 						"a return type cannot be provided for a constructor",
 						{ context.make_note(
-							body.src_tokens,
+							decl.body.src_tokens,
 							bz::format("in constructor for type '{}'", constructor_of_type)
 						) }
 					);
 				}
 
-				body.constructor_or_destructor_of = &info;
-				info.constructors.push_back(&body);
+				decl.body.constructor_or_destructor_of = &info;
+				info.constructors.push_back(&decl);
 			}
 			else
 			{
-				context.add_local_function(stmt.get<ast::decl_function>());
+				info.scope.get_global().add_function(stmt.get<ast::decl_function>());
 			}
+		}
+		else if (stmt.is<ast::decl_operator>())
+		{
+			info.scope.get_global().add_operator(stmt.get<ast::decl_operator>());
 		}
 		else if (stmt.is<ast::decl_variable>())
 		{
@@ -1906,13 +2267,25 @@ static void add_type_info_members(
 			}
 			else
 			{
-				var_decl.flags |= ast::decl_variable::maybe_unused;
-				context.add_local_variable(var_decl);
+				info.scope.get_global().add_variable(var_decl);
 			}
 		}
 		else if (stmt.is<ast::decl_type_alias>())
 		{
-			context.add_local_type_alias(stmt.get<ast::decl_type_alias>());
+			info.scope.get_global().add_type_alias(stmt.get<ast::decl_type_alias>());
+		}
+		else if (stmt.is<ast::decl_struct>())
+		{
+			info.scope.get_global().add_struct(stmt.get<ast::decl_struct>());
+		}
+		else if (stmt.is<ast::stmt_static_assert>())
+		{
+			// nothing
+		}
+		else
+		{
+			// bz::log("{}\n", stmt.kind());
+			bz_unreachable;
 		}
 	}
 }
@@ -1941,6 +2314,20 @@ static void add_default_constructors(ast::type_info &info)
 	info.default_op_assign = ast::type_info::make_default_op_assign(info.src_tokens, info);
 	bz_assert(info.default_op_move_assign == nullptr);
 	info.default_op_move_assign = ast::type_info::make_default_op_move_assign(info.src_tokens, info);
+	if (
+		!info.body.get<bz::vector<ast::statement>>()
+			.filter([](auto const &stmt) {
+				return stmt.template is<ast::decl_operator>();
+			})
+			.transform([](auto const &stmt) {
+				return stmt.template get<ast::decl_operator>().body.function_name_or_operator_kind.template get<uint32_t>();
+			})
+			.contains(lex::token::assign)
+	)
+	{
+		info.scope.get_global().add_operator(*info.default_op_assign);
+		info.scope.get_global().add_operator(*info.default_op_move_assign);
+	}
 }
 
 static void add_flags(ast::type_info &info)
@@ -2013,18 +2400,20 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	info.body.emplace<bz::vector<ast::statement>>();
 	auto &info_body = info.body.get<bz::vector<ast::statement>>();
+
+	auto prev_scope_info = context.push_global_scope(&info.scope);
+	// bz::log(">>> pushing struct scope: {} ({})\n", &info.scope, info.get_typename_as_string());
 	info_body = parse::parse_struct_body_statements(stream, end, context);
 
-	context.add_scope();
 	add_type_info_members(info, context);
 	for (auto &param : info.generic_parameters)
 	{
-		context.add_local_variable(param);
+		info.scope.get_global().add_variable(param);
 	}
 
-	for (auto const ctor : info.constructors)
+	for (auto const ctor_decl : info.constructors)
 	{
-		resolve_function_parameters({}, *ctor, context);
+		resolve_function_parameters(ctor_decl, ctor_decl->body, context);
 	}
 
 	for (auto const member : info.member_variables)
@@ -2048,7 +2437,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 
 	if (info.state == ast::resolve_state::error)
 	{
-		context.remove_scope();
+		context.pop_global_scope(std::move(prev_scope_info));
 		return;
 	}
 	else
@@ -2064,7 +2453,7 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 			resolve_global_statement(stmt, context);
 		}
 	}
-	context.remove_scope();
+	context.pop_global_scope(std::move(prev_scope_info));
 }
 
 void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
@@ -2083,486 +2472,9 @@ void resolve_type_info(ast::type_info &info, ctx::parse_context &context)
 	bz_assert(info.state != ast::resolve_state::resolving_parameters);
 	bz_assert(info.state != ast::resolve_state::resolving_symbol);
 
-	auto const original_file_info = context.get_current_file_info();
-	auto const stmt_file_id = info.src_tokens.pivot->src_pos.file_id;
-	if (original_file_info.file_id != stmt_file_id)
-	{
-		context.set_current_file(stmt_file_id);
-	}
+	auto prev_scopes = context.push_enclosing_scope(info.get_enclosing_scope());
 	resolve_type_info_impl(info, context);
-	context.set_current_file_info(original_file_info);
-}
-
-static void apply_attribute(
-	ast::stmt_while &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_for &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_foreach &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_return &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_no_op &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_static_assert &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::stmt_expression &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_maybe_unused_to_var_decl(ast::decl_variable &var_decl)
-{
-	var_decl.flags |= ast::decl_variable::maybe_unused;
-	for (auto &decl : var_decl.tuple_decls)
-	{
-		apply_maybe_unused_to_var_decl(decl);
-	}
-}
-
-static void apply_attribute(
-	ast::decl_variable &var_decl,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	if (attribute.name->value == "maybe_unused")
-	{
-		if (attribute.args.size() != 0)
-		{
-			context.report_error(
-				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
-				"@maybe_unused expects no arguments"
-			);
-		}
-		apply_maybe_unused_to_var_decl(var_decl);
-	}
-	else if (attribute.name->value == "comptime_error_checking")
-	{
-		if (attribute.args.size() != 1)
-		{
-			context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
-			return;
-		}
-
-		{
-			parse::consteval_try(attribute.args[0], context);
-			auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-			auto const type_without_const = ast::remove_const_or_consteval(type);
-			if (
-				!type_without_const.is<ast::ts_base_type>()
-				|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-			)
-			{
-				context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
-				return;
-			}
-		}
-
-		auto const kind = attribute.args[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::string>().as_string_view();
-
-		if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
-		{
-			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
-		}
-	}
-	else if (attribute.name->value == "no_runtime_emit")
-	{
-		if (attribute.args.size() != 0)
-		{
-			context.report_error(
-				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
-				"@no_runtime_emit expects no arguments"
-			);
-		}
-		var_decl.flags |= ast::decl_variable::no_runtime_emit;
-	}
-	else
-	{
-		context.report_warning(
-			ctx::warning_kind::unknown_attribute,
-			attribute.name,
-			bz::format("unknown attribute '{}'", attribute.name->value)
-		);
-	}
-}
-
-static void apply_symbol_name(
-	ast::function_body &func_body,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	bz_assert(attribute.name->value == "symbol_name");
-	if (attribute.args.size() != 1)
-	{
-		context.report_error(attribute.name, "@symbol_name expects exactly one argument");
-		return;
-	}
-
-	bz_assert(func_body.state >= ast::resolve_state::parameters);
-	if (func_body.is_generic())
-	{
-		context.report_error(attribute.name, "@symbol_name cannot be applied to generic functions");
-		return;
-	}
-
-	// symbol name
-	{
-		parse::consteval_try(attribute.args[0], context);
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "name in @symbol_name must have type 'str'");
-			return;
-		}
-	}
-
-	auto const symbol_name = attribute.args[0]
-		.get<ast::constant_expression>().value
-		.get<ast::constant_value::string>().as_string_view();
-
-	func_body.symbol_name = symbol_name;
-	func_body.flags |= ast::function_body::external_linkage;
-}
-
-static void apply_no_comptime_checking(
-	ast::function_body &func_body,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	if (!attribute.args.empty())
-	{
-		context.report_error(attribute.name, "@no_comptime_checking expects no arguments");
-	}
-
-	func_body.flags |= ast::function_body::no_comptime_checking;
-	for (auto const &specialization : func_body.generic_specializations)
-	{
-		specialization->flags |= ast::function_body::no_comptime_checking;
-	}
-}
-
-static void apply_comptime_error_checking(
-	ast::function_body &func_body,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	if (attribute.args.size() != 1)
-	{
-		context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
-		return;
-	}
-
-	{
-		parse::consteval_try(attribute.args[0], context);
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
-			return;
-		}
-	}
-
-	auto const kind = attribute.args[0]
-		.get<ast::constant_expression>().value
-		.get<ast::constant_value::string>().as_string_view();
-
-	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
-	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
-	}
-	func_body.flags |= ast::function_body::no_comptime_checking;
-}
-
-static void apply_builtin(
-	ast::function_body &func_body,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	if (attribute.args.size() != 1)
-	{
-		context.report_error(attribute.name, "@__builtin expects exactly one argument");
-		return;
-	}
-
-	{
-		parse::consteval_try(attribute.args[0], context);
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "kind in @__builtin must have type 'str'");
-			return;
-		}
-	}
-
-	auto const kind = attribute.args[0]
-		.get<ast::constant_expression>().value
-		.get<ast::constant_value::string>().as_string_view();
-
-	if (!context.global_ctx.add_builtin_function(kind, &func_body))
-	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @__builtin", kind));
-	}
-	func_body.flags |= ast::function_body::intrinsic;
-}
-
-static void apply_attribute(
-	ast::decl_function &func_decl,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	auto const attr_name = attribute.name->value;
-	if (attr_name == "symbol_name")
-	{
-		apply_symbol_name(func_decl.body, attribute, context);
-	}
-	else if (attr_name == "no_comptime_checking")
-	{
-		apply_no_comptime_checking(func_decl.body, attribute, context);
-	}
-	else if (attr_name == "comptime_error_checking")
-	{
-		apply_comptime_error_checking(func_decl.body, attribute, context);
-	}
-	else if (attr_name == "__builtin")
-	{
-		apply_builtin(func_decl.body, attribute, context);
-	}
-	else
-	{
-		context.report_warning(
-			ctx::warning_kind::unknown_attribute,
-			attribute.name,
-			bz::format("unknown attribute '{}'", attr_name)
-		);
-	}
-}
-
-static void apply_attribute(
-	ast::decl_operator &op_decl,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	auto const attr_name = attribute.name->value;
-	if (attr_name == "symbol_name")
-	{
-		apply_symbol_name(op_decl.body, attribute, context);
-	}
-	else if (attr_name == "no_comptime_checking")
-	{
-		apply_no_comptime_checking(op_decl.body, attribute, context);
-	}
-	else if (attr_name == "comptime_error_checking")
-	{
-		apply_comptime_error_checking(op_decl.body, attribute, context);
-	}
-	else if (attr_name == "builtin")
-	{
-		apply_builtin(op_decl.body, attribute, context);
-	}
-	else
-	{
-		context.report_warning(
-			ctx::warning_kind::unknown_attribute,
-			attribute.name,
-			bz::format("unknown attribute '{}'", attr_name)
-		);
-	}
-}
-
-static void apply_attribute(
-	ast::decl_function_alias &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::decl_type_alias &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::decl_struct &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-static void apply_attribute(
-	ast::decl_import &,
-	ast::attribute const &attribute,
-	ctx::parse_context &context
-)
-{
-	context.report_warning(
-		ctx::warning_kind::unknown_attribute,
-		attribute.name,
-		bz::format("unknown attribute '{}'", attribute.name->value)
-	);
-}
-
-
-static void apply_attribute(
-	ast::statement_view stmt,
-	ast::attribute &attribute,
-	ctx::parse_context &context
-)
-{
-	stmt.visit([&](auto &s) {
-		apply_attribute(s, attribute, context);
-	});
-}
-
-void resolve_attributes(ast::statement_view stmt, ctx::parse_context &context)
-{
-	auto const attributes = stmt.get_attributes();
-	for (auto &attribute : attributes)
-	{
-		if (attribute.args.size() != 0)
-		{
-			// attributes have already been resolved
-			return;
-		}
-		auto [stream, end] = attribute.arg_tokens;
-		if (stream != end)
-		{
-			attribute.args = parse::parse_expression_comma_list(stream, end, context);
-			if (stream != end)
-			{
-				context.report_error({ stream, stream, end });
-			}
-
-			for (auto &arg : attribute.args)
-			{
-				resolve_expression(arg, context);
-				parse::consteval_try(arg, context);
-				if (arg.not_error() && !arg.is<ast::constant_expression>())
-				{
-					context.report_error(
-						arg,
-						"attribute argument must be a constant expression",
-						parse::get_consteval_fail_notes(arg)
-					);
-				}
-			}
-		}
-
-		apply_attribute(stmt, attribute, context);
-	}
+	context.pop_enclosing_scope(std::move(prev_scopes));
 }
 
 void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
@@ -2620,7 +2532,6 @@ void resolve_global_statement(ast::statement &stmt, ctx::parse_context &context)
 			bz_unreachable;
 		}
 	});
-	resolve_attributes(stmt, context);
 }
 
 } // namespace resolve

@@ -1700,3 +1700,13 @@ export function format_to(&const [...elems], buffer: &format_buffer, fmt_spec: f
 	tuple_format_to_impl(buffer, [ ...&elems ], fmt_spec);
 	buffer.write_into(" ]");
 }
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: str)
+{
+	s.as_str().format_to(buffer, fmt_spec);
+}
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	s.as_str().format_to(buffer, fmt_spec);
+}

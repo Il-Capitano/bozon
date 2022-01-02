@@ -115,10 +115,10 @@ public:
 	{ return array_view<value_type const>{ this->_data_begin, this->_data_end }; }
 
 
-	array_view<value_type> slice(std::size_t begin) noexcept
+	array_view<value_type> slice(std::size_t begin) const noexcept
 	{ return array_view<value_type>(std::min(this->_data_begin + begin, this->_data_end), this->_data_end); }
 
-	array_view<value_type> slice(std::size_t begin, std::size_t end) noexcept
+	array_view<value_type> slice(std::size_t begin, std::size_t end) const noexcept
 	{
 		return array_view<value_type>(
 			std::min(this->_data_begin + begin, this->_data_end),

@@ -8,6 +8,8 @@
 namespace ctx
 {
 
+/*
+
 struct function_overload_set
 {
 	ast::identifier id;
@@ -123,6 +125,8 @@ struct decl_set
 
 	void add_unresolved_id(ast::identifier id);
 };
+
+*/
 
 } // namespace ctx
 

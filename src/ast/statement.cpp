@@ -216,8 +216,9 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 	func_body->params = std::move(params);
 	func_body->generic_parent = this;
 	func_body->generic_required_from.append(std::move(required_from));
-	if (func_body->is_intrinsic())
+	if (false && func_body->is_intrinsic())
 	{
+		bz_unreachable;
 		switch (func_body->intrinsic_kind)
 		{
 		case builtin_slice_begin_ptr:
@@ -427,13 +428,20 @@ std::pair<function_body *, bz::u8string> function_body::add_specialized_body(
 		case builtin_binary_bit_right_shift_eq:
 			bz_unreachable;
 
-		static_assert(_builtin_last - _builtin_first == 123);
-		static_assert(_builtin_operator_last - _builtin_operator_first == 34);
+		static_assert(_builtin_last - _builtin_first == 125);
+		static_assert(_builtin_unary_operator_last - _builtin_unary_operator_first == 7);
+		static_assert(_builtin_binary_operator_last - _builtin_binary_operator_first == 27);
 		default:
 			break;
 		}
 	}
 	return { func_body, bz::u8string() };
+}
+
+enclosing_scope_t function_body::get_enclosing_scope(void) const noexcept
+{
+	bz_assert(this->scope.is_local());
+	return this->scope.get_local().parent;
 }
 
 bz::u8string function_body::decode_symbol_name(
@@ -554,7 +562,7 @@ bz::u8string function_body::decode_symbol_name(
 	return result;
 }
 
-type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens src_tokens, type_info &info)
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
@@ -573,27 +581,29 @@ type_info::function_body_ptr type_info::make_default_op_assign(lex::src_tokens s
 		return result;
 	}();
 
-	auto result = make_ast_unique<function_body>();
-	result->params.reserve(2);
-	result->params.emplace_back(
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
 	);
-	result->params.emplace_back(
+	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
 	);
-	result->return_type = std::move(ret_t);
-	result->function_name_or_operator_kind = lex::token::assign;
-	result->src_tokens = src_tokens;
-	result->state = resolve_state::symbol;
-	result->flags |= function_body::default_op_assign;
+	result->body.return_type = std::move(ret_t);
+	result->body.function_name_or_operator_kind = lex::token::assign;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_op_assign;
 	return result;
 }
 
-type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info)
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
@@ -607,27 +617,29 @@ type_info::function_body_ptr type_info::make_default_op_move_assign(lex::src_tok
 		return result;
 	}();
 
-	auto result = make_ast_unique<function_body>();
-	result->params.reserve(2);
-	result->params.emplace_back(
+	auto result = make_ast_unique<decl_operator>();
+	result->body.params.reserve(2);
+	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(lhs_t))),
+		enclosing_scope_t{}
 	);
-	result->params.emplace_back(
+	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(rhs_t))),
+		enclosing_scope_t{}
 	);
-	result->return_type = std::move(ret_t);
-	result->function_name_or_operator_kind = lex::token::assign;
-	result->src_tokens = src_tokens;
-	result->state = resolve_state::symbol;
-	result->flags |= function_body::default_op_move_assign;
+	result->body.return_type = std::move(ret_t);
+	result->body.function_name_or_operator_kind = lex::token::assign;
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_op_move_assign;
 	return result;
 }
 
-type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);
 	param_t.add_layer<ts_const>();
@@ -635,22 +647,23 @@ type_info::function_body_ptr type_info::make_default_copy_constructor(lex::src_t
 
 	auto ret_t = make_base_type_typespec({}, &info);
 
-	auto result = make_ast_unique<function_body>();
-	result->params.emplace_back(
+	auto result = make_ast_unique<decl_function>();
+	result->body.params.emplace_back(
 		lex::src_tokens{},
 		lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(param_t)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(param_t))),
+		enclosing_scope_t{}
 	);
-	result->return_type = std::move(ret_t);
-	result->src_tokens = src_tokens;
-	result->state = resolve_state::symbol;
-	result->flags |= function_body::default_copy_constructor;
-	result->flags |= function_body::constructor;
-	result->constructor_or_destructor_of = &info;
+	result->body.return_type = std::move(ret_t);
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_copy_constructor;
+	result->body.flags |= function_body::constructor;
+	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
 
-type_info::function_body_ptr type_info::make_default_default_constructor(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_function_ptr type_info::make_default_default_constructor(lex::src_tokens src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);
 	param_t.add_layer<ts_const>();
@@ -658,13 +671,13 @@ type_info::function_body_ptr type_info::make_default_default_constructor(lex::sr
 
 	auto ret_t = make_base_type_typespec({}, &info);
 
-	auto result = make_ast_unique<function_body>();
-	result->return_type = std::move(ret_t);
-	result->src_tokens = src_tokens;
-	result->state = resolve_state::symbol;
-	result->flags |= function_body::default_default_constructor;
-	result->flags |= function_body::constructor;
-	result->constructor_or_destructor_of = &info;
+	auto result = make_ast_unique<decl_function>();
+	result->body.return_type = std::move(ret_t);
+	result->body.src_tokens = src_tokens;
+	result->body.state = resolve_state::symbol;
+	result->body.flags |= function_body::default_default_constructor;
+	result->body.flags |= function_body::constructor;
+	result->body.constructor_or_destructor_of = &info;
 	return result;
 }
 
@@ -763,6 +776,17 @@ bz::u8string type_info::get_typename_as_string(void) const
 	}
 }
 
+enclosing_scope_t type_info::get_scope(void) noexcept
+{
+	return { &this->scope, 0 };
+}
+
+enclosing_scope_t type_info::get_enclosing_scope(void) const noexcept
+{
+	bz_assert(this->scope.is_global());
+	return this->scope.get_global().parent;
+}
+
 static_assert(type_info::int8_    ==  0);
 static_assert(type_info::int16_   ==  1);
 static_assert(type_info::int32_   ==  2);
@@ -778,63 +802,63 @@ static_assert(type_info::str_     == 11);
 static_assert(type_info::bool_    == 12);
 static_assert(type_info::null_t_  == 13);
 
-static type_info::function_body_ptr make_default_constructor(type_info *info)
+static type_info::decl_function_ptr make_default_constructor(type_info *info)
 {
-	auto result = make_ast_unique<function_body>();
-	result->return_type = make_base_type_typespec({}, info);
+	auto result = make_ast_unique<decl_function>();
+	result->body.return_type = make_base_type_typespec({}, info);
 	switch (info->kind)
 	{
 		case type_info::int8_:
-			result->intrinsic_kind = function_body::i8_default_constructor;
+			result->body.intrinsic_kind = function_body::i8_default_constructor;
 			break;
 		case type_info::int16_:
-			result->intrinsic_kind = function_body::i16_default_constructor;
+			result->body.intrinsic_kind = function_body::i16_default_constructor;
 			break;
 		case type_info::int32_:
-			result->intrinsic_kind = function_body::i32_default_constructor;
+			result->body.intrinsic_kind = function_body::i32_default_constructor;
 			break;
 		case type_info::int64_:
-			result->intrinsic_kind = function_body::i64_default_constructor;
+			result->body.intrinsic_kind = function_body::i64_default_constructor;
 			break;
 		case type_info::uint8_:
-			result->intrinsic_kind = function_body::u8_default_constructor;
+			result->body.intrinsic_kind = function_body::u8_default_constructor;
 			break;
 		case type_info::uint16_:
-			result->intrinsic_kind = function_body::u16_default_constructor;
+			result->body.intrinsic_kind = function_body::u16_default_constructor;
 			break;
 		case type_info::uint32_:
-			result->intrinsic_kind = function_body::u32_default_constructor;
+			result->body.intrinsic_kind = function_body::u32_default_constructor;
 			break;
 		case type_info::uint64_:
-			result->intrinsic_kind = function_body::u64_default_constructor;
+			result->body.intrinsic_kind = function_body::u64_default_constructor;
 			break;
 		case type_info::float32_:
-			result->intrinsic_kind = function_body::f32_default_constructor;
+			result->body.intrinsic_kind = function_body::f32_default_constructor;
 			break;
 		case type_info::float64_:
-			result->intrinsic_kind = function_body::f64_default_constructor;
+			result->body.intrinsic_kind = function_body::f64_default_constructor;
 			break;
 		case type_info::char_:
-			result->intrinsic_kind = function_body::char_default_constructor;
+			result->body.intrinsic_kind = function_body::char_default_constructor;
 			break;
 		case type_info::str_:
-			result->intrinsic_kind = function_body::str_default_constructor;
+			result->body.intrinsic_kind = function_body::str_default_constructor;
 			break;
 		case type_info::bool_:
-			result->intrinsic_kind = function_body::bool_default_constructor;
+			result->body.intrinsic_kind = function_body::bool_default_constructor;
 			break;
 		case type_info::null_t_:
-			result->intrinsic_kind = function_body::null_t_default_constructor;
+			result->body.intrinsic_kind = function_body::null_t_default_constructor;
 			break;
 		default:
 			bz_unreachable;
 	}
-	result->flags = function_body::intrinsic
+	result->body.flags = function_body::intrinsic
 		| function_body::constructor
 		| function_body::default_default_constructor;
-	result->constructor_or_destructor_of = info;
-	result->state = resolve_state::symbol;
-	result->symbol_name = result->get_symbol_name();
+	result->body.constructor_or_destructor_of = info;
+	result->body.state = resolve_state::symbol;
+	result->body.symbol_name = result->body.get_symbol_name();
 	return result;
 }
 
@@ -910,7 +934,8 @@ static function_body create_builtin_function(
 	params.reserve(sizeof... (Ts));
 	((params.emplace_back(
 		lex::src_tokens{}, lex::token_range{},
-		var_id_and_type(identifier{}, type_as_expression(std::move(arg_types)))
+		var_id_and_type(identifier{}, type_as_expression(std::move(arg_types))),
+		enclosing_scope_t{}
 	)), ...);
 	auto const is_generic = [&]() {
 		for (auto const &param : params)
@@ -938,7 +963,7 @@ static function_body create_builtin_function(
 	return result;
 }
 
-bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size)
+bz::vector<decl_function> make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size)
 {
 	auto const bool_type     = make_base_type_typespec({}, &builtin_type_infos[type_info::bool_]);
 	auto const uint8_type    = make_base_type_typespec({}, &builtin_type_infos[type_info::uint8_]);
@@ -1014,162 +1039,170 @@ bz::vector<function_body> make_builtin_functions(bz::array_view<type_info> built
 		return result;
 	}();
 
-#define add_builtin(pos, kind, symbol_name, ...) \
-result.push_back(((void)([]() { static_assert(kind == pos); }), create_builtin_function(kind, symbol_name, __VA_ARGS__)))
+	size_t pos = 0;
 
-	bz::vector<function_body> result;
+#define add_builtin(func_kind, symbol_name, ...)                       \
+(result.emplace_back(                                                  \
+    make_identifier(intrinsic_info[pos].func_name),                    \
+    (                                                                  \
+        [&]() { bz_assert(func_kind == intrinsic_info[pos].kind); }(), \
+        create_builtin_function(func_kind, symbol_name, __VA_ARGS__)   \
+    )                                                                  \
+), ++pos)
+
+	bz::vector<decl_function> result;
 	result.reserve(intrinsic_info.size());
 
-	add_builtin( 0, function_body::builtin_str_eq,          "", bool_type,  str_type, str_type);
-	add_builtin( 1, function_body::builtin_str_neq,         "", bool_type,  str_type, str_type);
-	add_builtin( 2, function_body::builtin_str_length,      "", usize_type, str_type);
-	add_builtin( 3, function_body::builtin_str_starts_with, "", bool_type,  str_type, str_type);
-	add_builtin( 4, function_body::builtin_str_ends_with,   "", bool_type,  str_type, str_type);
+	add_builtin(function_body::builtin_str_eq,          "", bool_type,  str_type, str_type);
+	add_builtin(function_body::builtin_str_neq,         "", bool_type,  str_type, str_type);
+	add_builtin(function_body::builtin_str_length,      "", usize_type, str_type);
+	add_builtin(function_body::builtin_str_starts_with, "", bool_type,  str_type, str_type);
+	add_builtin(function_body::builtin_str_ends_with,   "", bool_type,  str_type, str_type);
 
-	add_builtin( 5, function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type);
-	add_builtin( 6, function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type);
-	add_builtin( 7, function_body::builtin_str_size,              "", usize_type, str_type);
-	add_builtin( 8, function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type);
+	add_builtin(function_body::builtin_str_begin_ptr,         "", uint8_const_ptr_type, str_type);
+	add_builtin(function_body::builtin_str_end_ptr,           "", uint8_const_ptr_type, str_type);
+	add_builtin(function_body::builtin_str_size,              "", usize_type, str_type);
+	add_builtin(function_body::builtin_str_from_ptrs,         "", str_type, uint8_const_ptr_type, uint8_const_ptr_type);
 
-	add_builtin( 9, function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type);
-	add_builtin(10, function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type);
-	add_builtin(11, function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type);
-	add_builtin(12, function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type);
-	add_builtin(13, function_body::builtin_slice_size,            "", usize_type, slice_const_auto_type);
-	add_builtin(14, function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type);
-	add_builtin(15, function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type);
+	add_builtin(function_body::builtin_slice_begin_ptr,       "", {}, slice_auto_type);
+	add_builtin(function_body::builtin_slice_begin_const_ptr, "", {}, slice_const_auto_type);
+	add_builtin(function_body::builtin_slice_end_ptr,         "", {}, slice_auto_type);
+	add_builtin(function_body::builtin_slice_end_const_ptr,   "", {}, slice_const_auto_type);
+	add_builtin(function_body::builtin_slice_size,            "", usize_type, slice_const_auto_type);
+	add_builtin(function_body::builtin_slice_from_ptrs,       "", {}, auto_ptr_type, auto_ptr_type);
+	add_builtin(function_body::builtin_slice_from_const_ptrs, "", {}, auto_const_ptr_type, auto_const_ptr_type);
 
-	add_builtin(16, function_body::builtin_pointer_cast,   "", {}, typename_ptr_type, void_const_ptr_type);
-	add_builtin(17, function_body::builtin_pointer_to_int, "", usize_type, void_const_ptr_type);
-	add_builtin(18, function_body::builtin_int_to_pointer, "", {}, typename_ptr_type, usize_type);
+	add_builtin(function_body::builtin_pointer_cast,   "", {}, typename_ptr_type, void_const_ptr_type);
+	add_builtin(function_body::builtin_pointer_to_int, "", usize_type, void_const_ptr_type);
+	add_builtin(function_body::builtin_int_to_pointer, "", {}, typename_ptr_type, usize_type);
 
-	add_builtin(19, function_body::builtin_call_destructor,   "", void_type, ref_auto_type);
-	add_builtin(20, function_body::builtin_inplace_construct, "", void_type, auto_ptr_type, auto_type);
+	add_builtin(function_body::builtin_call_destructor,   "", void_type, ref_auto_type);
+	add_builtin(function_body::builtin_inplace_construct, "", void_type, auto_ptr_type, auto_type);
 
-	add_builtin(21, function_body::builtin_is_comptime,   "", bool_type);
-	add_builtin(22, function_body::builtin_is_option_set, "", bool_type, str_type);
-	add_builtin(23, function_body::builtin_panic,         "__bozon_builtin_panic", void_type);
+	add_builtin(function_body::builtin_is_comptime,   "", bool_type);
+	add_builtin(function_body::builtin_is_option_set, "", bool_type, str_type);
+	add_builtin(function_body::builtin_panic,         "__bozon_builtin_panic", void_type);
 
-	add_builtin(24, function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type);
-	add_builtin(25, function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type);
-	add_builtin(26, function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type);
-	add_builtin(27, function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type);
+	add_builtin(function_body::print_stdout,   "__bozon_builtin_print_stdout",   void_type, str_type);
+	add_builtin(function_body::println_stdout, "__bozon_builtin_println_stdout", void_type, str_type);
+	add_builtin(function_body::print_stderr,   "__bozon_builtin_print_stderr",   void_type, str_type);
+	add_builtin(function_body::println_stderr, "__bozon_builtin_println_stderr", void_type, str_type);
 
-	add_builtin(28, function_body::comptime_malloc,      "__bozon_builtin_comptime_malloc", void_ptr_type, usize_type);
-	add_builtin(29, function_body::comptime_malloc_type, "", {}, typename_type, usize_type);
-	add_builtin(30, function_body::comptime_free,        "__bozon_builtin_comptime_free",   void_type, void_ptr_type);
+	add_builtin(function_body::comptime_malloc,      "__bozon_builtin_comptime_malloc", void_ptr_type, usize_type);
+	add_builtin(function_body::comptime_malloc_type, "", {}, typename_type, usize_type);
+	add_builtin(function_body::comptime_free,        "__bozon_builtin_comptime_free",   void_type, void_ptr_type);
 
-	add_builtin(31, function_body::comptime_compile_error,   "", void_type, str_type);
-	add_builtin(32, function_body::comptime_compile_warning, "", void_type, str_type);
+	add_builtin(function_body::comptime_compile_error,   "", void_type, str_type);
+	add_builtin(function_body::comptime_compile_warning, "", void_type, str_type);
 
-	add_builtin(33, function_body::comptime_compile_error_src_tokens,   "", void_type, str_type, uint64_type, uint64_type, uint64_type);
-	add_builtin(34, function_body::comptime_compile_warning_src_tokens, "", void_type, str_type, uint64_type, uint64_type, uint64_type);
+	add_builtin(function_body::comptime_compile_error_src_tokens,   "", void_type, str_type, uint64_type, uint64_type, uint64_type);
+	add_builtin(function_body::comptime_compile_warning_src_tokens, "", void_type, str_type, uint64_type, uint64_type, uint64_type);
 
-	add_builtin(35, function_body::comptime_create_global_string, "", str_type, str_type);
+	add_builtin(function_body::comptime_create_global_string, "", str_type, str_type);
 
-	add_builtin(36, function_body::typename_as_str, "", str_type, typename_type);
+	add_builtin(function_body::typename_as_str, "", str_type, typename_type);
 
-	add_builtin(37, function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type);
-	add_builtin(38, function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type);
-	add_builtin(39, function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type);
+	add_builtin(function_body::memcpy,  "llvm.memcpy.p0i8.p0i8.i64",  void_type, void_ptr_type, void_const_ptr_type, uint64_type);
+	add_builtin(function_body::memmove, "llvm.memmove.p0i8.p0i8.i64", void_type, void_ptr_type, void_const_ptr_type, uint64_type);
+	add_builtin(function_body::memset,  "llvm.memset.p0i8.i64", void_type, void_ptr_type, uint8_type, uint64_type);
 
-	add_builtin(40, function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type);
-	add_builtin(41, function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type);
-	add_builtin(42, function_body::exp2_f32,  "llvm.exp2.f32",  float32_type, float32_type);
-	add_builtin(43, function_body::exp2_f64,  "llvm.exp2.f64",  float64_type, float64_type);
-	add_builtin(44, function_body::expm1_f32, "expm1f",         float32_type, float32_type);
-	add_builtin(45, function_body::expm1_f64, "expm1",          float64_type, float64_type);
-	add_builtin(46, function_body::log_f32,   "llvm.log.f32",   float32_type, float32_type);
-	add_builtin(47, function_body::log_f64,   "llvm.log.f64",   float64_type, float64_type);
-	add_builtin(48, function_body::log10_f32, "llvm.log10.f32", float32_type, float32_type);
-	add_builtin(49, function_body::log10_f64, "llvm.log10.f64", float64_type, float64_type);
-	add_builtin(50, function_body::log2_f32,  "llvm.log2.f32",  float32_type, float32_type);
-	add_builtin(51, function_body::log2_f64,  "llvm.log2.f64",  float64_type, float64_type);
-	add_builtin(52, function_body::log1p_f32, "log1pf",         float32_type, float32_type);
-	add_builtin(53, function_body::log1p_f64, "log1p",          float64_type, float64_type);
+	add_builtin(function_body::exp_f32,   "llvm.exp.f32",   float32_type, float32_type);
+	add_builtin(function_body::exp_f64,   "llvm.exp.f64",   float64_type, float64_type);
+	add_builtin(function_body::exp2_f32,  "llvm.exp2.f32",  float32_type, float32_type);
+	add_builtin(function_body::exp2_f64,  "llvm.exp2.f64",  float64_type, float64_type);
+	add_builtin(function_body::expm1_f32, "expm1f",         float32_type, float32_type);
+	add_builtin(function_body::expm1_f64, "expm1",          float64_type, float64_type);
+	add_builtin(function_body::log_f32,   "llvm.log.f32",   float32_type, float32_type);
+	add_builtin(function_body::log_f64,   "llvm.log.f64",   float64_type, float64_type);
+	add_builtin(function_body::log10_f32, "llvm.log10.f32", float32_type, float32_type);
+	add_builtin(function_body::log10_f64, "llvm.log10.f64", float64_type, float64_type);
+	add_builtin(function_body::log2_f32,  "llvm.log2.f32",  float32_type, float32_type);
+	add_builtin(function_body::log2_f64,  "llvm.log2.f64",  float64_type, float64_type);
+	add_builtin(function_body::log1p_f32, "log1pf",         float32_type, float32_type);
+	add_builtin(function_body::log1p_f64, "log1p",          float64_type, float64_type);
 
-	add_builtin(54, function_body::sqrt_f32,  "llvm.sqrt.f32", float32_type, float32_type);
-	add_builtin(55, function_body::sqrt_f64,  "llvm.sqrt.f64", float64_type, float64_type);
-	add_builtin(56, function_body::pow_f32,   "llvm.pow.f32",  float32_type, float32_type, float32_type);
-	add_builtin(57, function_body::pow_f64,   "llvm.pow.f64",  float64_type, float64_type, float64_type);
-	add_builtin(58, function_body::cbrt_f32,  "cbrtf",         float32_type, float32_type);
-	add_builtin(59, function_body::cbrt_f64,  "cbrt",          float64_type, float64_type);
-	add_builtin(60, function_body::hypot_f32, "hypotf",        float32_type, float32_type, float32_type);
-	add_builtin(61, function_body::hypot_f64, "hypot",         float64_type, float64_type, float64_type);
+	add_builtin(function_body::sqrt_f32,  "llvm.sqrt.f32", float32_type, float32_type);
+	add_builtin(function_body::sqrt_f64,  "llvm.sqrt.f64", float64_type, float64_type);
+	add_builtin(function_body::pow_f32,   "llvm.pow.f32",  float32_type, float32_type, float32_type);
+	add_builtin(function_body::pow_f64,   "llvm.pow.f64",  float64_type, float64_type, float64_type);
+	add_builtin(function_body::cbrt_f32,  "cbrtf",         float32_type, float32_type);
+	add_builtin(function_body::cbrt_f64,  "cbrt",          float64_type, float64_type);
+	add_builtin(function_body::hypot_f32, "hypotf",        float32_type, float32_type, float32_type);
+	add_builtin(function_body::hypot_f64, "hypot",         float64_type, float64_type, float64_type);
 
-	add_builtin(62, function_body::sin_f32,   "llvm.sin.f32", float32_type, float32_type);
-	add_builtin(63, function_body::sin_f64,   "llvm.sin.f64", float64_type, float64_type);
-	add_builtin(64, function_body::cos_f32,   "llvm.cos.f32", float32_type, float32_type);
-	add_builtin(65, function_body::cos_f64,   "llvm.cos.f64", float64_type, float64_type);
-	add_builtin(66, function_body::tan_f32,   "tanf",         float32_type, float32_type);
-	add_builtin(67, function_body::tan_f64,   "tan",          float64_type, float64_type);
-	add_builtin(68, function_body::asin_f32,  "asinf",        float32_type, float32_type);
-	add_builtin(69, function_body::asin_f64,  "asin",         float64_type, float64_type);
-	add_builtin(70, function_body::acos_f32,  "acosf",        float32_type, float32_type);
-	add_builtin(71, function_body::acos_f64,  "acos",         float64_type, float64_type);
-	add_builtin(72, function_body::atan_f32,  "atanf",        float32_type, float32_type);
-	add_builtin(73, function_body::atan_f64,  "atan",         float64_type, float64_type);
-	add_builtin(74, function_body::atan2_f32, "atan2f",       float32_type, float32_type, float32_type);
-	add_builtin(75, function_body::atan2_f64, "atan2",        float64_type, float64_type, float64_type);
+	add_builtin(function_body::sin_f32,   "llvm.sin.f32", float32_type, float32_type);
+	add_builtin(function_body::sin_f64,   "llvm.sin.f64", float64_type, float64_type);
+	add_builtin(function_body::cos_f32,   "llvm.cos.f32", float32_type, float32_type);
+	add_builtin(function_body::cos_f64,   "llvm.cos.f64", float64_type, float64_type);
+	add_builtin(function_body::tan_f32,   "tanf",         float32_type, float32_type);
+	add_builtin(function_body::tan_f64,   "tan",          float64_type, float64_type);
+	add_builtin(function_body::asin_f32,  "asinf",        float32_type, float32_type);
+	add_builtin(function_body::asin_f64,  "asin",         float64_type, float64_type);
+	add_builtin(function_body::acos_f32,  "acosf",        float32_type, float32_type);
+	add_builtin(function_body::acos_f64,  "acos",         float64_type, float64_type);
+	add_builtin(function_body::atan_f32,  "atanf",        float32_type, float32_type);
+	add_builtin(function_body::atan_f64,  "atan",         float64_type, float64_type);
+	add_builtin(function_body::atan2_f32, "atan2f",       float32_type, float32_type, float32_type);
+	add_builtin(function_body::atan2_f64, "atan2",        float64_type, float64_type, float64_type);
 
-	add_builtin(76, function_body::sinh_f32,  "sinhf",  float32_type, float32_type);
-	add_builtin(77, function_body::sinh_f64,  "sinh",   float64_type, float64_type);
-	add_builtin(78, function_body::cosh_f32,  "coshf",  float32_type, float32_type);
-	add_builtin(79, function_body::cosh_f64,  "cosh",   float64_type, float64_type);
-	add_builtin(80, function_body::tanh_f32,  "tanhf",  float32_type, float32_type);
-	add_builtin(81, function_body::tanh_f64,  "tanh",   float64_type, float64_type);
-	add_builtin(82, function_body::asinh_f32, "asinhf", float32_type, float32_type);
-	add_builtin(83, function_body::asinh_f64, "asinh",  float64_type, float64_type);
-	add_builtin(84, function_body::acosh_f32, "acoshf", float32_type, float32_type);
-	add_builtin(85, function_body::acosh_f64, "acosh",  float64_type, float64_type);
-	add_builtin(86, function_body::atanh_f32, "atanhf", float32_type, float32_type);
-	add_builtin(87, function_body::atanh_f64, "atanh",  float64_type, float64_type);
+	add_builtin(function_body::sinh_f32,  "sinhf",  float32_type, float32_type);
+	add_builtin(function_body::sinh_f64,  "sinh",   float64_type, float64_type);
+	add_builtin(function_body::cosh_f32,  "coshf",  float32_type, float32_type);
+	add_builtin(function_body::cosh_f64,  "cosh",   float64_type, float64_type);
+	add_builtin(function_body::tanh_f32,  "tanhf",  float32_type, float32_type);
+	add_builtin(function_body::tanh_f64,  "tanh",   float64_type, float64_type);
+	add_builtin(function_body::asinh_f32, "asinhf", float32_type, float32_type);
+	add_builtin(function_body::asinh_f64, "asinh",  float64_type, float64_type);
+	add_builtin(function_body::acosh_f32, "acoshf", float32_type, float32_type);
+	add_builtin(function_body::acosh_f64, "acosh",  float64_type, float64_type);
+	add_builtin(function_body::atanh_f32, "atanhf", float32_type, float32_type);
+	add_builtin(function_body::atanh_f64, "atanh",  float64_type, float64_type);
 
-	add_builtin(88, function_body::erf_f32,    "erff",    float32_type, float32_type);
-	add_builtin(89, function_body::erf_f64,    "erf",     float64_type, float64_type);
-	add_builtin(90, function_body::erfc_f32,   "erfcf",   float32_type, float32_type);
-	add_builtin(91, function_body::erfc_f64,   "erfc",    float64_type, float64_type);
-	add_builtin(92, function_body::tgamma_f32, "tgammaf", float32_type, float32_type);
-	add_builtin(93, function_body::tgamma_f64, "tgamma",  float64_type, float64_type);
-	add_builtin(94, function_body::lgamma_f32, "lgammaf", float32_type, float32_type);
-	add_builtin(95, function_body::lgamma_f64, "lgamma",  float64_type, float64_type);
+	add_builtin(function_body::erf_f32,    "erff",    float32_type, float32_type);
+	add_builtin(function_body::erf_f64,    "erf",     float64_type, float64_type);
+	add_builtin(function_body::erfc_f32,   "erfcf",   float32_type, float32_type);
+	add_builtin(function_body::erfc_f64,   "erfc",    float64_type, float64_type);
+	add_builtin(function_body::tgamma_f32, "tgammaf", float32_type, float32_type);
+	add_builtin(function_body::tgamma_f64, "tgamma",  float64_type, float64_type);
+	add_builtin(function_body::lgamma_f32, "lgammaf", float32_type, float32_type);
+	add_builtin(function_body::lgamma_f64, "lgamma",  float64_type, float64_type);
 
-	add_builtin( 96, function_body::bitreverse_u8,  "llvm.bitreverse.i8",  uint8_type,  uint8_type);
-	add_builtin( 97, function_body::bitreverse_u16, "llvm.bitreverse.i16", uint16_type, uint16_type);
-	add_builtin( 98, function_body::bitreverse_u32, "llvm.bitreverse.i32", uint32_type, uint32_type);
-	add_builtin( 99, function_body::bitreverse_u64, "llvm.bitreverse.i64", uint64_type, uint64_type);
-	add_builtin(100, function_body::popcount_u8,    "llvm.ctpop.i8",  uint8_type,  uint8_type);
-	add_builtin(101, function_body::popcount_u16,   "llvm.ctpop.i16", uint16_type, uint16_type);
-	add_builtin(102, function_body::popcount_u32,   "llvm.ctpop.i32", uint32_type, uint32_type);
-	add_builtin(103, function_body::popcount_u64,   "llvm.ctpop.i64", uint64_type, uint64_type);
-	add_builtin(104, function_body::byteswap_u16,   "llvm.bswap.i16", uint16_type, uint16_type);
-	add_builtin(105, function_body::byteswap_u32,   "llvm.bswap.i32", uint32_type, uint32_type);
-	add_builtin(106, function_body::byteswap_u64,   "llvm.bswap.i64", uint64_type, uint64_type);
+	add_builtin(function_body::bitreverse_u8,  "llvm.bitreverse.i8",  uint8_type,  uint8_type);
+	add_builtin(function_body::bitreverse_u16, "llvm.bitreverse.i16", uint16_type, uint16_type);
+	add_builtin(function_body::bitreverse_u32, "llvm.bitreverse.i32", uint32_type, uint32_type);
+	add_builtin(function_body::bitreverse_u64, "llvm.bitreverse.i64", uint64_type, uint64_type);
+	add_builtin(function_body::popcount_u8,    "llvm.ctpop.i8",  uint8_type,  uint8_type);
+	add_builtin(function_body::popcount_u16,   "llvm.ctpop.i16", uint16_type, uint16_type);
+	add_builtin(function_body::popcount_u32,   "llvm.ctpop.i32", uint32_type, uint32_type);
+	add_builtin(function_body::popcount_u64,   "llvm.ctpop.i64", uint64_type, uint64_type);
+	add_builtin(function_body::byteswap_u16,   "llvm.bswap.i16", uint16_type, uint16_type);
+	add_builtin(function_body::byteswap_u32,   "llvm.bswap.i32", uint32_type, uint32_type);
+	add_builtin(function_body::byteswap_u64,   "llvm.bswap.i64", uint64_type, uint64_type);
 
-	add_builtin(107, function_body::clz_u8,   "llvm.ctlz.i8",  uint8_type,  uint8_type);
-	add_builtin(108, function_body::clz_u16,  "llvm.ctlz.i16", uint16_type, uint16_type);
-	add_builtin(109, function_body::clz_u32,  "llvm.ctlz.i32", uint32_type, uint32_type);
-	add_builtin(110, function_body::clz_u64,  "llvm.ctlz.i64", uint64_type, uint64_type);
-	add_builtin(111, function_body::ctz_u8,   "llvm.cttz.i8",  uint8_type,  uint8_type);
-	add_builtin(112, function_body::ctz_u16,  "llvm.cttz.i16", uint16_type, uint16_type);
-	add_builtin(113, function_body::ctz_u32,  "llvm.cttz.i32", uint32_type, uint32_type);
-	add_builtin(114, function_body::ctz_u64,  "llvm.cttz.i64", uint64_type, uint64_type);
-	add_builtin(115, function_body::fshl_u8,  "llvm.fshl.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type);
-	add_builtin(116, function_body::fshl_u16, "llvm.fshl.i16", uint16_type, uint16_type, uint16_type, uint16_type);
-	add_builtin(117, function_body::fshl_u32, "llvm.fshl.i32", uint32_type, uint32_type, uint32_type, uint32_type);
-	add_builtin(118, function_body::fshl_u64, "llvm.fshl.i64", uint64_type, uint64_type, uint64_type, uint64_type);
-	add_builtin(119, function_body::fshr_u8,  "llvm.fshr.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type);
-	add_builtin(120, function_body::fshr_u16, "llvm.fshr.i16", uint16_type, uint16_type, uint16_type, uint16_type);
-	add_builtin(121, function_body::fshr_u32, "llvm.fshr.i32", uint32_type, uint32_type, uint32_type, uint32_type);
-	add_builtin(122, function_body::fshr_u64, "llvm.fshr.i64", uint64_type, uint64_type, uint64_type, uint64_type);
+	add_builtin(function_body::clz_u8,   "llvm.ctlz.i8",  uint8_type,  uint8_type);
+	add_builtin(function_body::clz_u16,  "llvm.ctlz.i16", uint16_type, uint16_type);
+	add_builtin(function_body::clz_u32,  "llvm.ctlz.i32", uint32_type, uint32_type);
+	add_builtin(function_body::clz_u64,  "llvm.ctlz.i64", uint64_type, uint64_type);
+	add_builtin(function_body::ctz_u8,   "llvm.cttz.i8",  uint8_type,  uint8_type);
+	add_builtin(function_body::ctz_u16,  "llvm.cttz.i16", uint16_type, uint16_type);
+	add_builtin(function_body::ctz_u32,  "llvm.cttz.i32", uint32_type, uint32_type);
+	add_builtin(function_body::ctz_u64,  "llvm.cttz.i64", uint64_type, uint64_type);
+	add_builtin(function_body::fshl_u8,  "llvm.fshl.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type);
+	add_builtin(function_body::fshl_u16, "llvm.fshl.i16", uint16_type, uint16_type, uint16_type, uint16_type);
+	add_builtin(function_body::fshl_u32, "llvm.fshl.i32", uint32_type, uint32_type, uint32_type, uint32_type);
+	add_builtin(function_body::fshl_u64, "llvm.fshl.i64", uint64_type, uint64_type, uint64_type, uint64_type);
+	add_builtin(function_body::fshr_u8,  "llvm.fshr.i8",  uint8_type,  uint8_type,  uint8_type,  uint8_type);
+	add_builtin(function_body::fshr_u16, "llvm.fshr.i16", uint16_type, uint16_type, uint16_type, uint16_type);
+	add_builtin(function_body::fshr_u32, "llvm.fshr.i32", uint32_type, uint32_type, uint32_type, uint32_type);
+	add_builtin(function_body::fshr_u64, "llvm.fshr.i64", uint64_type, uint64_type, uint64_type, uint64_type);
 #undef add_builtin
 	bz_assert(result.size() == intrinsic_info.size());
 
-	result[function_body::builtin_is_option_set              ].flags |= function_body::only_consteval;
-	result[function_body::comptime_compile_error             ].flags |= function_body::only_consteval;
-	result[function_body::comptime_compile_warning           ].flags |= function_body::only_consteval;
-	result[function_body::comptime_compile_error_src_tokens  ].flags |= function_body::only_consteval;
-	result[function_body::comptime_compile_warning_src_tokens].flags |= function_body::only_consteval;
+	result[function_body::builtin_is_option_set              ].body.flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_error             ].body.flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_warning           ].body.flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_error_src_tokens  ].body.flags |= function_body::only_consteval;
+	result[function_body::comptime_compile_warning_src_tokens].body.flags |= function_body::only_consteval;
 
 	return result;
 }
@@ -2025,6 +2058,8 @@ static function_body make_builtin_operator_function_body(
 		result.resolve_symbol_name();
 	}
 
+	result.scope = make_local_scope({});
+
 	return result;
 }
 
@@ -2100,14 +2135,22 @@ static builtin_operator make_builtin_operator(uint32_t kind, bz::array_view<type
 	builtin_operator result;
 	result.op = kind;
 
-	result.bodies.reserve(unary_range.size() + binary_range.size());
+	result.decls.reserve(unary_range.size() + binary_range.size());
 	for (auto const &builtin_unary_op : unary_range)
 	{
-		result.bodies.push_back(make_builtin_operator_function_body(builtin_unary_op, builtin_type_infos));
+		result.decls.emplace_back(
+			bz::vector<bz::u8string_view>{},
+			nullptr,
+			make_builtin_operator_function_body(builtin_unary_op, builtin_type_infos)
+		);
 	}
 	for (auto const &builtin_binary_op : binary_range)
 	{
-		result.bodies.push_back(make_builtin_operator_function_body(builtin_binary_op, builtin_type_infos));
+		result.decls.emplace_back(
+			bz::vector<bz::u8string_view>{},
+			nullptr,
+			make_builtin_operator_function_body(builtin_binary_op, builtin_type_infos)
+		);
 	}
 
 	return result;
@@ -2121,8 +2164,8 @@ bz::vector<builtin_operator> make_builtin_operators(bz::array_view<type_info> bu
 	}).collect();
 
 	bz_assert(result.is_all([](auto const &builtin_op) {
-		return builtin_op.bodies.is_all([op = builtin_op.op](auto const &body) {
-			return body.function_name_or_operator_kind == op;
+		return builtin_op.decls.is_all([op = builtin_op.op](auto const &decl) {
+			return decl.body.function_name_or_operator_kind == op;
 		});
 	}));
 

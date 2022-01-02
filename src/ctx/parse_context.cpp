@@ -56,34 +56,20 @@ parse_context::parse_context(global_context &_global_ctx)
 
 parse_context::parse_context(parse_context const &other, local_copy_t)
 	: global_ctx(other.global_ctx),
-	  global_decls(other.global_decls),
-	  scope_decls{},
 	  // generic_functions(other.generic_functions),
 	  // generic_function_scope_start(other.generic_function_scope_start),
-	  current_file_id(other.current_file_id),
-	  current_scope(other.current_scope),
+	  current_global_scope(other.current_global_scope),
+	  current_local_scope(other.current_local_scope),
 	  current_function(nullptr),
 	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  variadic_info(other.variadic_info),
 	  parsing_variadic_expansion(other.parsing_variadic_expansion),
 	  resolve_queue(other.resolve_queue)
-{
-	this->scope_decls.resize(other.scope_decls.size());
-	for (auto const [self_scope, other_scope] : bz::zip(this->scope_decls, other.scope_decls))
-	{
-		// variable declarations aren't copied
-		self_scope.symbols = other_scope.symbols.filter([](auto const &symbol) {
-			return !symbol.template is<ast::decl_variable *>();
-		}).collect();
-		self_scope.op_sets = other_scope.op_sets;
-	}
-}
+{}
 
 parse_context::parse_context(parse_context const &other, global_copy_t)
 	: global_ctx(other.global_ctx),
-	  global_decls(other.global_decls),
-	  current_file_id(other.current_file_id),
-	  current_scope(other.current_scope),
+	  current_global_scope(other.current_global_scope),
 	  is_aggressive_consteval_enabled(other.is_aggressive_consteval_enabled),
 	  resolve_queue(other.resolve_queue)
 {}
@@ -108,7 +94,7 @@ ast::typespec_view parse_context::get_builtin_type(bz::u8string_view name) const
 	return this->global_ctx.get_builtin_type(name);
 }
 
-ast::function_body *parse_context::get_builtin_function(uint32_t kind) const
+ast::decl_function *parse_context::get_builtin_function(uint32_t kind) const
 {
 	return this->global_ctx.get_builtin_function(kind);
 }
@@ -170,7 +156,7 @@ bool parse_context::is_parsing_template_argument(void) const noexcept
 	return this->parsing_template_argument != 0;
 }
 
-bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl)
+bool parse_context::register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl_ref variadic_decl)
 {
 	if (!this->variadic_info.is_resolving_variadic)
 	{
@@ -179,13 +165,13 @@ bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_d
 	}
 	else if (this->variadic_info.found_variadic)
 	{
-		if (this->variadic_info.variadic_size != variadic_decl.var_decls.size())
+		if (this->variadic_info.variadic_size != variadic_decl.variadic_decls.size())
 		{
 			this->report_error(
 				src_tokens,
 				bz::format(
 					"variadic expression length {} doesn't match previous length of {}",
-					variadic_decl.var_decls.size(), this->variadic_info.variadic_size
+					variadic_decl.variadic_decls.size(), this->variadic_info.variadic_size
 				),
 				{ this->make_note(
 					this->variadic_info.first_variadic_src_tokens,
@@ -196,7 +182,7 @@ bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_d
 		}
 		else
 		{
-			bz_assert(variadic_decl.var_decls.empty() || this->variadic_info.variadic_index < variadic_decl.var_decls.size());
+			bz_assert(variadic_decl.variadic_decls.empty() || this->variadic_info.variadic_index < variadic_decl.variadic_decls.size());
 			return true;
 		}
 	}
@@ -205,9 +191,14 @@ bool parse_context::register_variadic(lex::src_tokens src_tokens, variadic_var_d
 		bz_assert(this->variadic_info.variadic_index == 0);
 		this->variadic_info.found_variadic = true;
 		this->variadic_info.first_variadic_src_tokens = src_tokens;
-		this->variadic_info.variadic_size = static_cast<uint32_t>(variadic_decl.var_decls.size());
+		this->variadic_info.variadic_size = static_cast<uint32_t>(variadic_decl.variadic_decls.size());
 		return true;
 	}
+}
+
+bool parse_context::register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl const &variadic_decl)
+{
+	return this->register_variadic(src_tokens, ast::variadic_var_decl_ref{ variadic_decl.original_decl, variadic_decl.variadic_decls });
 }
 
 uint32_t parse_context::get_variadic_index(void) const
@@ -225,6 +216,156 @@ uint32_t parse_context::get_variadic_index(void) const
 void parse_context::pop_current_function(ast::function_body *prev_function) noexcept
 {
 	this->current_function = prev_function;
+}
+
+[[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_global_scope(ast::scope_t *new_scope) noexcept
+{
+	// bz::log("pushing global scope {}\n", new_scope);
+	auto prev_scopes = global_local_scope_pair_t{
+		this->current_global_scope,
+		this->current_local_scope,
+		std::move(this->current_unresolved_locals)
+	};
+	bz_assert(new_scope->is_global());
+	this->current_global_scope = new_scope;
+	this->current_local_scope = {};
+	this->current_unresolved_locals = {};
+	return prev_scopes;
+}
+
+void parse_context::pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept
+{
+	// bz::log("popping global scope\n");
+	this->current_global_scope = prev_scopes.global_scope;
+	this->current_local_scope  = prev_scopes.local_scope;
+	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
+}
+
+void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
+{
+	// bz::log("pushing local scope ({}, ...) from ({}, {})\n", new_scope, this->get_current_enclosing_scope().scope, this->get_current_enclosing_scope().symbol_count);
+	bz_assert(new_scope->is_local());
+	bz_assert(new_scope->get_local().parent == this->get_current_enclosing_scope());
+	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
+}
+
+void parse_context::pop_local_scope(void) noexcept
+{
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto const parent = this->current_local_scope.scope->get_local().parent;
+	bz_assert(parent.scope != nullptr);
+	if (parent.scope == this->current_global_scope)
+	{
+		// bz::log("popping local scope {} to none\n", this->current_local_scope.scope);
+		this->current_local_scope = {};
+	}
+	else
+	{
+		// bz::log("popping local scope {} to ({}, {})\n", this->current_local_scope.scope, parent.scope, parent.symbol_count);
+		this->current_local_scope = parent;
+		// bz::log("sanity check: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
+	}
+}
+
+static ast::scope_t *get_global_scope(ast::enclosing_scope_t scope, ast::scope_t *builtin_global_scope) noexcept
+{
+	bz_assert(scope.scope != nullptr);
+
+	auto parent = scope;
+	do
+	{
+		scope = parent;
+		if (parent.scope->is_local())
+		{
+			parent = parent.scope->get_local().parent;
+		}
+		else
+		{
+			parent = parent.scope->get_global().parent;
+		}
+	} while (parent.scope != builtin_global_scope && parent.scope != nullptr);
+
+	bz_assert(scope.scope != nullptr);
+	bz_assert(scope.scope->is_global());
+	return scope.scope;
+}
+
+[[nodiscard]] parse_context::global_local_scope_pair_t parse_context::push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept
+{
+	// bz::log("pushing enclosing scope ({}, {})\n", new_scope.scope, new_scope.symbol_count);
+	auto const prev_scopes = global_local_scope_pair_t{
+		this->current_global_scope,
+		this->current_local_scope,
+		std::move(this->current_unresolved_locals)
+	};
+
+	this->current_global_scope = get_global_scope(new_scope, this->global_ctx._builtin_global_scope);
+	this->current_local_scope = new_scope;
+	this->current_unresolved_locals = {};
+
+	return prev_scopes;
+}
+
+void parse_context::pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept
+{
+	// bz::log("pop_enclosing_scope\n");
+	this->current_global_scope = prev_scopes.global_scope;
+	this->current_local_scope  = prev_scopes.local_scope;
+	this->current_unresolved_locals = std::move(prev_scopes.unresolved_locals);
+}
+
+bz::array_view<bz::u8string_view const> parse_context::get_current_enclosing_id_scope(void) const noexcept
+{
+	if (this->current_local_scope.scope != nullptr)
+	{
+		if (this->current_local_scope.scope->is_local())
+		{
+			return {};
+		}
+		else
+		{
+			return this->current_local_scope.scope->get_global().id_scope;
+		}
+	}
+	else
+	{
+		return this->current_global_scope->get_global().id_scope;
+	}
+}
+
+ast::enclosing_scope_t parse_context::get_current_enclosing_scope(void) const noexcept
+{
+	// bz::log("get_current_enclosing_scope: ({}, {})\n", this->current_local_scope.scope, this->current_local_scope.symbol_count);
+	if (this->current_local_scope.scope == nullptr)
+	{
+		return { this->current_global_scope, 0 };
+	}
+	else
+	{
+		return this->current_local_scope;
+	}
+}
+
+bool parse_context::has_common_global_scope(ast::enclosing_scope_t scope) const noexcept
+{
+	while (scope.scope != nullptr)
+	{
+		if (scope.scope == this->current_global_scope)
+		{
+			return true;
+		}
+		else if (scope.scope->is_local())
+		{
+			scope = scope.scope->get_local().parent;
+		}
+		else
+		{
+			scope = scope.scope->get_global().parent;
+		}
+	}
+
+	return false;
 }
 
 static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
@@ -876,14 +1017,6 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-void parse_context::set_current_file(uint32_t file_id)
-{
-	this->current_file_id = file_id;
-	auto &file = this->global_ctx.get_src_file(file_id);
-	this->current_scope   = file._scope;
-	this->global_decls    = &file._global_decls;
-}
-
 bool parse_context::has_errors(void) const
 {
 	return this->global_ctx.has_errors();
@@ -944,19 +1077,26 @@ void parse_context::report_ambiguous_id_error(lex::token_pos id) const
 	this->report_error(id, bz::format("identifier '{}' is ambiguous", id->value));
 }
 
+/*
 
 void parse_context::add_scope(void)
 {
-	this->scope_decls.push_back({});
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &inner_scope = this->current_local_scope.scope->get_local().inner_scopes.emplace_back(ast::local_scope_t{});
+	inner_scope.get_local().parent = this->current_local_scope;
+	this->current_local_scope = { &inner_scope, 0 };
 	this->generic_function_scope_start.push_back(this->generic_functions.size());
 }
 
 void parse_context::remove_scope(void)
 {
-	bz_assert(!this->scope_decls.empty());
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &current_scope = this->current_local_scope.scope->get_local();
 	if (is_warning_enabled(warning_kind::unused_variable))
 	{
-		for (auto const var_decl : this->scope_decls.back().var_decl_range())
+		for (auto const var_decl : current_scope.var_decl_range())
 		{
 			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && !var_decl->get_id().values.empty())
 			{
@@ -982,7 +1122,37 @@ void parse_context::remove_scope(void)
 	}
 	this->generic_functions.resize(generic_functions_start_index);
 	this->generic_function_scope_start.pop_back();
-	this->scope_decls.pop_back();
+	bz_assert(current_scope.parent.scope->is_local());
+	this->current_local_scope = current_scope.parent;
+}
+
+*/
+
+static bz::u8string format_array(bz::array_view<bz::u8string_view const> ids)
+{
+	if (ids.empty())
+	{
+		return "[]";
+	}
+	bz::u8string result = bz::format("[ '{}'", ids[0]);
+	for (auto const id : ids.slice(1))
+	{
+		result += bz::format(", '{}'", id);
+	}
+	result += " ]";
+	return result;
+}
+
+[[nodiscard]] size_t parse_context::add_unresolved_scope(void)
+{
+	// bz::log("++ new scope: {} {}\n", this->current_unresolved_locals.size(), format_array(this->current_unresolved_locals));
+	return this->current_unresolved_locals.size();
+}
+
+void parse_context::remove_unresolved_scope(size_t prev_size)
+{
+	// bz::log("-- remove scope: {} {}\n", prev_size, format_array(this->current_unresolved_locals));
+	this->current_unresolved_locals.resize(prev_size);
 }
 
 void parse_context::add_unresolved_local(ast::identifier const &id)
@@ -991,8 +1161,8 @@ void parse_context::add_unresolved_local(ast::identifier const &id)
 	if (id.values.not_empty())
 	{
 		bz_assert(id.values.size() == 1);
-		bz_assert(this->scope_decls.not_empty());
-		this->scope_decls.back().add_unresolved_id(id);
+		// bz::log("adding '{}'\n", id.values[0]);
+		this->current_unresolved_locals.push_back(id.values[0]);
 	}
 }
 
@@ -1027,11 +1197,15 @@ void parse_context::add_unresolved_var_decl(ast::decl_variable const &var_decl)
 
 void parse_context::add_local_variable(ast::decl_variable &var_decl)
 {
-	bz_assert(this->scope_decls.size() != 0);
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &current_scope = this->current_local_scope.scope->get_local();
 	if (var_decl.tuple_decls.empty())
 	{
 		var_decl.flags &= ~ast::decl_variable::used;
-		this->scope_decls.back().add_local_variable(var_decl);
+		current_scope.add_variable(var_decl);
+		this->current_local_scope.symbol_count += 1;
+		bz_assert(current_scope.symbols.size() == this->current_local_scope.symbol_count);
 	}
 	else
 	{
@@ -1049,7 +1223,7 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 		{
 			auto const variadic_decls = bz::basic_range{ it, end }
 				.transform([](auto &decl) { return &decl; })
-				.collect();
+				.collect<ast::arena_vector>();
 			this->add_local_variable(*it, std::move(variadic_decls));
 		}
 		else if (var_decl.original_tuple_variadic_decl != nullptr)
@@ -1059,12 +1233,15 @@ void parse_context::add_local_variable(ast::decl_variable &var_decl)
 	}
 }
 
-void parse_context::add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls)
+void parse_context::add_local_variable(ast::decl_variable &original_decl, ast::arena_vector<ast::decl_variable *> variadic_decls)
 {
-	bz_assert(this->scope_decls.size() != 0);
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &current_scope = this->current_local_scope.scope->get_local();
 	if (original_decl.tuple_decls.empty())
 	{
-		this->scope_decls.back().add_local_variadic_variable(original_decl, std::move(variadic_decls));
+		current_scope.add_variable(original_decl, std::move(variadic_decls));
+		this->current_local_scope.symbol_count += 1;
 	}
 	else
 	{
@@ -1075,7 +1252,7 @@ void parse_context::add_local_variable(ast::decl_variable &original_decl, bz::ve
 				variadic_decls.transform([i](auto const decl) {
 					bz_assert(!decl->tuple_decls.empty());
 					return &decl->tuple_decls[i];
-				}).collect()
+				}).collect<ast::arena_vector>()
 			);
 		}
 	}
@@ -1083,8 +1260,11 @@ void parse_context::add_local_variable(ast::decl_variable &original_decl, bz::ve
 
 void parse_context::add_local_function(ast::decl_function &func_decl)
 {
-	bz_assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().add_local_function(func_decl);
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &current_scope = this->current_local_scope.scope->get_local();
+	current_scope.add_function(func_decl);
+	this->current_local_scope.symbol_count += 1;
 }
 
 void parse_context::add_local_operator(ast::decl_operator &op_decl)
@@ -1094,8 +1274,11 @@ void parse_context::add_local_operator(ast::decl_operator &op_decl)
 
 void parse_context::add_local_type_alias(ast::decl_type_alias &type_alias)
 {
-	bz_assert(this->scope_decls.size() != 0);
-	this->scope_decls.back().add_local_type_alias(type_alias);
+	bz_assert(this->current_local_scope.scope != nullptr);
+	bz_assert(this->current_local_scope.scope->is_local());
+	auto &current_scope = this->current_local_scope.scope->get_local();
+	current_scope.add_type_alias(type_alias);
+	this->current_local_scope.symbol_count += 1;
 }
 
 /*
@@ -1234,12 +1417,7 @@ ast::expression::expr_type_t parse_context::get_identifier_type(lex::token_pos i
 static ast::typespec get_function_type(ast::function_body &body)
 {
 	auto const &return_type = body.return_type;
-	bz::vector<ast::typespec> param_types;
-	param_types.reserve(body.params.size());
-	for (auto &p : body.params)
-	{
-		param_types.emplace_back(p.get_type());
-	}
+	auto param_types = body.params.transform([](auto &p) { return p.get_type(); }).collect();
 	return ast::typespec(body.src_tokens, { ast::ts_function{ std::move(param_types), return_type } });
 }
 
@@ -1322,28 +1500,88 @@ static ast::expression make_variable_expression(
 	return make_variable_expression(src_tokens, var_decl, ast::make_expr_identifier(std::move(id), var_decl), context);
 }
 
+struct function_overload_set_decls
+{
+	ast::arena_vector<ast::decl_function *> func_decls;
+	ast::arena_vector<ast::decl_function_alias *> alias_decls;
+};
+
 static ast::expression make_function_name_expression(
 	lex::src_tokens src_tokens,
 	ast::identifier id,
-	function_overload_set const *fn_set
+	ast::decl_function *func_decl
 )
 {
-	if (
-		fn_set->func_decls.size() + fn_set->alias_decls
-				.transform([](auto const &decl) {
-					return decl.template get<ast::decl_function_alias>().aliased_bodies.size();
-				}).sum()
-			>= 2
-	)
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::function_name, get_function_type(func_decl->body),
+		ast::constant_value(func_decl),
+		ast::make_expr_identifier(id)
+	);
+}
+
+static ast::expression make_function_name_expression(
+	lex::src_tokens src_tokens,
+	ast::identifier id,
+	ast::decl_function_alias *alias_decl
+)
+{
+	if (alias_decl->aliased_decls.size() == 1)
+	{
+		return make_function_name_expression(src_tokens, std::move(id), alias_decl->aliased_decls[0]);
+	}
+
+	auto id_value = ast::constant_value();
+	if (id.is_qualified)
+	{
+		id_value.emplace<ast::constant_value::qualified_function_set_id>(
+			id.values, ast::arena_vector<ast::statement_view>{ alias_decl }
+		);
+	}
+	else
+	{
+		id_value.emplace<ast::constant_value::unqualified_function_set_id>(
+			id.values, ast::arena_vector<ast::statement_view>{ alias_decl }
+		);
+	}
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::function_name, ast::typespec(),
+		ast::constant_value(std::move(id_value)),
+		ast::make_expr_identifier(id)
+	);
+}
+
+static ast::expression make_function_name_expression(
+	lex::src_tokens src_tokens,
+	ast::identifier id,
+	function_overload_set_decls const &fn_set
+)
+{
+	auto const set_size = fn_set.func_decls.size()
+		+ fn_set.alias_decls.transform([](auto const decl) {
+			return decl->aliased_decls.size();
+		}).sum();
+	if (set_size >= 2)
 	{
 		auto id_value = ast::constant_value();
 		if (id.is_qualified)
 		{
-			id_value.emplace<ast::constant_value::qualified_function_set_id>(id.values, ast::arena_vector<ast::statement_view>{});
+			auto &stmts = id_value.emplace<ast::constant_value::qualified_function_set_id>(
+				id.values, ast::arena_vector<ast::statement_view>{}
+			).stmts;
+			stmts.reserve(fn_set.func_decls.size() + fn_set.alias_decls.size());
+			stmts.append(fn_set.func_decls.transform([](auto const func_decl) { return ast::statement_view(func_decl); }));
+			stmts.append(fn_set.alias_decls.transform([](auto const alias_decl) { return ast::statement_view(alias_decl); }));
 		}
 		else
 		{
-			id_value.emplace<ast::constant_value::unqualified_function_set_id>(id.values, ast::arena_vector<ast::statement_view>{});
+			auto &stmts = id_value.emplace<ast::constant_value::unqualified_function_set_id>(
+				id.values, ast::arena_vector<ast::statement_view>{}
+			).stmts;
+			stmts.reserve(fn_set.func_decls.size() + fn_set.alias_decls.size());
+			stmts.append(fn_set.func_decls.transform([](auto const func_decl) { return ast::statement_view(func_decl); }));
+			stmts.append(fn_set.alias_decls.transform([](auto const alias_decl) { return ast::statement_view(alias_decl); }));
 		}
 		return ast::make_constant_expression(
 			src_tokens,
@@ -1354,15 +1592,10 @@ static ast::expression make_function_name_expression(
 	}
 	else
 	{
-		auto const body = fn_set->func_decls.empty()
-			? fn_set->alias_decls.front().get<ast::decl_function_alias>().aliased_bodies.front()
-			: &fn_set->func_decls.front().get<ast::decl_function>().body;
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::function_name, get_function_type(*body),
-			ast::constant_value(body),
-			ast::make_expr_identifier(id)
-		);
+		auto const decl = fn_set.func_decls.empty()
+			? fn_set.alias_decls.front()->aliased_decls.front()
+			: fn_set.func_decls.front();
+		return make_function_name_expression(src_tokens, std::move(id), decl);
 	}
 }
 
@@ -1419,17 +1652,788 @@ static ast::expression make_type_alias_expression(
 	}
 }
 
-static symbol_t *find_decl_in_local_scope(bz::array_view<decl_set> scopes, ast::identifier const &id)
+using symbol_t = bz::variant<
+	ast::decl_variable *,
+	ast::variadic_var_decl_ref,
+	ast::decl_function *,
+	ast::decl_function_alias *,
+	function_overload_set_decls,
+	ast::decl_type_alias *,
+	ast::decl_struct *
+>;
+
+static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 {
-	for (auto &scope : scopes.reversed())
+	static_assert(ast::local_symbol_t::variant_count == 6);
+	switch (symbol.index())
 	{
-		auto const symbol_ptr = scope.find_by_id(id);
-		if (symbol_ptr != nullptr)
+	case ast::local_symbol_t::index_of<ast::decl_variable *>:
+		return symbol.get_variable();
+	case ast::local_symbol_t::index_of<ast::variadic_var_decl>:
+	{
+		auto const &variadic_decl = symbol.get_variadic_variable();
+		return ast::variadic_var_decl_ref{ variadic_decl.original_decl, variadic_decl.variadic_decls };
+	}
+	case ast::local_symbol_t::index_of<ast::decl_function *>:
+		return symbol.get_function();
+	case ast::local_symbol_t::index_of<ast::decl_function_alias *>:
+		return symbol.get_function_alias();
+	case ast::local_symbol_t::index_of<ast::decl_type_alias *>:
+		return symbol.get_type_alias();
+	case ast::local_symbol_t::index_of<ast::decl_struct *>:
+		return symbol.get_struct();
+	default:
+		bz_unreachable;
+	}
+}
+
+static ast::expression expression_from_symbol(
+	lex::src_tokens src_tokens,
+	ast::identifier id,
+	symbol_t const &symbol,
+	parse_context &context
+)
+{
+	static_assert(symbol_t::variant_count == 7);
+
+	switch (symbol.index())
+	{
+	case symbol_t::index_of<ast::decl_variable *>:
+	{
+		auto const var_decl = symbol.get<ast::decl_variable *>();
+		if (var_decl->state < ast::resolve_state::symbol)
 		{
-			return symbol_ptr;
+			context.add_to_resolve_queue(src_tokens, *var_decl);
+			resolve::resolve_variable_symbol(*var_decl, context);
+			context.pop_resolve_queue();
+		}
+		return make_variable_expression(src_tokens, std::move(id), symbol.get<ast::decl_variable *>(), context);
+	}
+	case symbol_t::index_of<ast::variadic_var_decl_ref>:
+	{
+		auto const &variadic_decl = symbol.get<ast::variadic_var_decl_ref>();
+		if (context.parsing_variadic_expansion)
+		{
+			return ast::make_unresolved_expression(
+				src_tokens,
+				ast::make_unresolved_expr_identifier(std::move(id))
+			);
+		}
+
+		auto const is_valid = context.register_variadic(src_tokens, variadic_decl);
+		if (!is_valid)
+		{
+			return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
+		}
+		else if (variadic_decl.variadic_decls.empty())
+		{
+			return ast::make_unresolved_expression(src_tokens);
+		}
+		else
+		{
+			return make_variable_expression(
+				src_tokens,
+				std::move(id),
+				variadic_decl.variadic_decls[context.get_variadic_index()],
+				context
+			);
 		}
 	}
-	return nullptr;
+	case symbol_t::index_of<ast::decl_function *>:
+	{
+		auto const func_decl = symbol.get<ast::decl_function *>();
+		return make_function_name_expression(src_tokens, std::move(id), func_decl);
+	}
+	case symbol_t::index_of<ast::decl_function_alias *>:
+	{
+		auto const alias_decl = symbol.get<ast::decl_function_alias *>();
+		return make_function_name_expression(src_tokens, std::move(id), alias_decl);
+	}
+	case symbol_t::index_of<function_overload_set_decls>:
+	{
+		auto const &func_set = symbol.get<function_overload_set_decls>();
+		for (auto const alias_decl : func_set.alias_decls)
+		{
+			context.add_to_resolve_queue(src_tokens, *alias_decl);
+			resolve::resolve_function_alias(*alias_decl, context);
+			context.pop_resolve_queue();
+		}
+		return make_function_name_expression(src_tokens, std::move(id), func_set);
+	}
+	case symbol_t::index_of<ast::decl_type_alias *>:
+	{
+		auto const alias_decl = symbol.get<ast::decl_type_alias *>();
+		if (alias_decl->state != ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(src_tokens, *alias_decl);
+			resolve::resolve_type_alias(*alias_decl, context);
+			context.pop_resolve_queue();
+		}
+		return make_type_alias_expression(src_tokens, std::move(id), symbol.get<ast::decl_type_alias *>());
+	}
+	case symbol_t::index_of<ast::decl_struct *>:
+		return make_type_expression(src_tokens, std::move(id), symbol.get<ast::decl_struct *>(), context);
+	default:
+		bz_unreachable;
+	}
+}
+
+static source_highlight get_ambiguous_note(symbol_t const &symbol)
+{
+	static_assert(symbol_t::variant_count == 7);
+	switch (symbol.index())
+	{
+	case symbol_t::index_of<ast::decl_variable *>:
+	{
+		auto const var_decl = symbol.get<ast::decl_variable *>();
+		return parse_context::make_note(
+			var_decl->src_tokens,
+			bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<ast::variadic_var_decl_ref>:
+	{
+		auto const &[var_decl, _] = symbol.get<ast::variadic_var_decl_ref>();
+		return parse_context::make_note(
+			var_decl->src_tokens,
+			bz::format("it may refer to the variable '{}'", var_decl->get_id().format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<ast::decl_function *>:
+	{
+		auto const func_decl = symbol.get<ast::decl_function *>();
+		return parse_context::make_note(
+			func_decl->body.src_tokens,
+			bz::format("it may refer to '{}'", func_decl->body.get_signature())
+		);
+	}
+	case symbol_t::index_of<ast::decl_function_alias *>:
+	{
+		auto const alias_decl = symbol.get<ast::decl_function_alias *>();
+		return parse_context::make_note(
+			alias_decl->src_tokens,
+			bz::format("it may refer to the alias 'function {}'", alias_decl->id.format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<function_overload_set_decls>:
+	{
+		auto const &[func_decls, alias_decls] = symbol.get<function_overload_set_decls>();
+		if (func_decls.not_empty())
+		{
+			return parse_context::make_note(
+				func_decls.front()->body.src_tokens,
+				bz::format("it may refer to '{}'", func_decls.front()->body.get_signature())
+			);
+		}
+		else
+		{
+			bz_assert(alias_decls.not_empty());
+			return parse_context::make_note(
+				alias_decls.front()->src_tokens,
+				bz::format("it may refer to the alias 'function {}'", alias_decls.front()->id.format_as_unqualified())
+			);
+		}
+	}
+	case symbol_t::index_of<ast::decl_type_alias *>:
+	{
+		auto const alias_decl = symbol.get<ast::decl_type_alias *>();
+		return parse_context::make_note(
+			alias_decl->src_tokens,
+			bz::format("it may refer to the alias 'type {}'", alias_decl->id.format_as_unqualified())
+		);
+	}
+	case symbol_t::index_of<ast::decl_struct *>:
+	{
+		auto const struct_decl = symbol.get<ast::decl_struct *>();
+		return parse_context::make_note(
+			struct_decl->info.src_tokens,
+			bz::format("it may refer to the type 'struct {}'", struct_decl->id.format_as_unqualified())
+		);
+	}
+	default:
+		bz_unreachable;
+	}
+}
+
+static ast::function_overload_set *find_function_set_by_qualified_id(
+	bz::array_view<ast::function_overload_set> func_sets,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		func_sets.begin(), func_sets.end(),
+		[&id](auto const &set) {
+			bz_assert(set.id.is_qualified);
+			return set.id == id;
+		}
+	);
+	if (it != func_sets.end())
+	{
+		return &*it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+static ast::decl_variable *find_variable_by_qualified_id(
+	bz::array_view<ast::decl_variable *> variables,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		variables.begin(), variables.end(),
+		[&id](auto const decl) {
+			return decl->get_id() == id;
+		}
+	);
+	if (it != variables.end())
+	{
+		return *it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+static ast::variadic_var_decl_ref find_variadic_variable_by_qualified_id(
+	bz::array_view<ast::variadic_var_decl> variadic_variables,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		variadic_variables.begin(), variadic_variables.end(),
+		[&id](auto const variadic_var) {
+			return variadic_var.original_decl->get_id() == id;
+		}
+	);
+	if (it != variadic_variables.end())
+	{
+		return { it->original_decl, it->variadic_decls };
+	}
+	else
+	{
+		return {};
+	}
+}
+
+static ast::decl_type_alias *find_type_alias_by_qualified_id(
+	bz::array_view<ast::decl_type_alias *> type_aliases,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		type_aliases.begin(), type_aliases.end(),
+		[&id](auto const alias) {
+			return alias->id == id;
+		}
+	);
+	if (it != type_aliases.end())
+	{
+		return *it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+static ast::decl_struct *find_struct_by_qualified_id(
+	bz::array_view<ast::decl_struct *> structs,
+	ast::identifier const &id
+)
+{
+	auto const it = std::find_if(
+		structs.begin(), structs.end(),
+		[&id](auto const decl) {
+			return decl->id == id;
+		}
+	);
+	if (it != structs.end())
+	{
+		return *it;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+static bool unqualified_equals(
+	ast::identifier const &lhs,
+	ast::identifier const &rhs,
+	bz::array_view<bz::u8string_view const> rhs_id_scope
+)
+{
+	bz_assert(!rhs.is_qualified);
+	if (rhs.values.size() > lhs.values.size())
+	{
+		return false;
+	}
+	else if (rhs.values.size() + rhs_id_scope.size() < lhs.values.size())
+	{
+		return false;
+	}
+	else
+	{
+		auto const lhs_size = lhs.values.size();
+		auto const rhs_size = rhs.values.size();
+		return lhs.values.slice(lhs_size - rhs_size, lhs_size) == rhs.values.as_array_view()
+			&& lhs.values.slice(0, lhs_size - rhs_size) == rhs_id_scope.slice(0, lhs_size - rhs_size);
+	}
+}
+
+static auto get_function_set_range_by_unqualified_id(
+	bz::array_view<ast::function_overload_set> func_sets,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return func_sets.filter(
+		[&id, id_scope](auto const &set) {
+			return unqualified_equals(set.id, id, id_scope);
+			return set.id.is_qualified
+				? unqualified_equals(set.id, id, id_scope)
+				: set.id == id;
+		}
+	);
+}
+
+static auto get_variable_range_by_unqualified_id(
+	bz::array_view<ast::decl_variable *> variables,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return variables.filter(
+		[&id, id_scope](auto const decl) {
+			return unqualified_equals(decl->get_id(), id, id_scope);
+		}
+	);
+}
+
+static auto get_variadic_variable_range_by_unqualified_id(
+	bz::array_view<ast::variadic_var_decl> variadic_variables,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return variadic_variables.filter(
+		[&id, id_scope](auto const &variadic_var) {
+			return unqualified_equals(variadic_var.original_decl->get_id(), id, id_scope);
+		}
+	);
+}
+
+static auto get_type_alias_range_by_unqualified_id(
+	bz::array_view<ast::decl_type_alias *> type_aliases,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return type_aliases.filter(
+		[&id, id_scope](auto const alias) {
+			return unqualified_equals(alias->id, id, id_scope);
+		}
+	);
+}
+
+static auto get_struct_range_by_unqualified_id(
+	bz::array_view<ast::decl_struct *> structs,
+	ast::identifier const &id,
+	bz::array_view<bz::u8string_view const> id_scope
+)
+{
+	return structs.filter(
+		[&id, id_scope](auto const decl) {
+			return unqualified_equals(decl->id, id, id_scope);
+		}
+	);
+}
+
+static void try_find_function_set_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const func_set = find_function_set_by_qualified_id(scope.function_sets, id);
+	if (func_set != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				func_set->func_decls.not_empty()
+				? context.make_note(
+					func_set->func_decls.front()->body.src_tokens,
+					bz::format("it may refer to '{}'", func_set->func_decls.front()->body.get_signature())
+				)
+				: context.make_note(
+					func_set->alias_decls.front()->src_tokens,
+					bz::format("it may refer to the alias 'function {}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (func_set != nullptr)
+	{
+		auto &decls = result.emplace<function_overload_set_decls>();
+		decls.func_decls.append(func_set->func_decls);
+		decls.alias_decls.append(func_set->alias_decls);
+	}
+}
+
+static void try_find_variable_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const var_decl = find_variable_by_qualified_id(scope.variables, id);
+	if (var_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					var_decl->src_tokens,
+					bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (var_decl != nullptr)
+	{
+		result = var_decl;
+	}
+}
+
+static void try_find_variadic_variable_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const var_decl = find_variadic_variable_by_qualified_id(scope.variadic_variables, id);
+	if (var_decl.original_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					var_decl.original_decl->src_tokens,
+					bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (var_decl.original_decl != nullptr)
+	{
+		result = var_decl;
+	}
+}
+
+static void try_find_type_alias_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const alias_decl = find_type_alias_by_qualified_id(scope.type_aliases, id);
+	if (alias_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					alias_decl->src_tokens,
+					bz::format("it may refer to the alias 'type {}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (alias_decl != nullptr)
+	{
+		result = alias_decl;
+	}
+}
+
+static void try_find_struct_by_qualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	auto const struct_decl = find_struct_by_qualified_id(scope.structs, id);
+	if (struct_decl != nullptr && result.not_null())
+	{
+		context.report_error(
+			lex::src_tokens::from_range(id.tokens),
+			bz::format("identifier '{}' is ambiguous", id.as_string()),
+			{
+				get_ambiguous_note(result),
+				context.make_note(
+					struct_decl->info.src_tokens,
+					bz::format("it may refer to the type 'struct {}'", id.format_as_unqualified())
+				)
+			}
+		);
+	}
+	else if (struct_decl != nullptr)
+	{
+		result = struct_decl;
+	}
+}
+
+static void try_find_function_set_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, scope.id_scope))
+	{
+		if (result.not_null() && !result.is<function_overload_set_decls>())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					func_set.func_decls.not_empty()
+					? context.make_note(
+						func_set.func_decls.front()->body.src_tokens,
+						bz::format("it may refer to '{}'", func_set.func_decls.front()->body.get_signature())
+					)
+					: context.make_note(
+						func_set.alias_decls.front()->src_tokens,
+						bz::format("it may refer to the alias 'function {}'", id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			auto &decls = result.is_null()
+				? result.emplace<function_overload_set_decls>()
+				: result.get<function_overload_set_decls>();
+			decls.func_decls.append(func_set.func_decls);
+			decls.alias_decls.append(func_set.alias_decls);
+		}
+	}
+}
+
+static void try_find_variable_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const var_decl : get_variable_range_by_unqualified_id(scope.variables, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						var_decl->src_tokens,
+						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = var_decl;
+		}
+	}
+}
+
+static void try_find_variadic_variable_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const &variadic_var_decl : get_variadic_variable_range_by_unqualified_id(scope.variadic_variables, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						variadic_var_decl.original_decl->src_tokens,
+						bz::format("it may refer to the variable '{}'", id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = ast::variadic_var_decl_ref{ variadic_var_decl.original_decl, variadic_var_decl.variadic_decls };
+		}
+	}
+}
+
+static void try_find_type_alias_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const alias_decl : get_type_alias_range_by_unqualified_id(scope.type_aliases, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						alias_decl->src_tokens,
+						bz::format("it may refer to the alias 'type {}'", id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = alias_decl;
+		}
+	}
+}
+
+static void try_find_struct_by_unqualified_id(
+	symbol_t &result,
+	ast::global_scope_t &scope,
+	ast::identifier const &id,
+	parse_context &context
+)
+{
+	for (auto const struct_decl : get_struct_range_by_unqualified_id(scope.structs, id, scope.id_scope))
+	{
+		if (result.not_null())
+		{
+			context.report_error(
+				lex::src_tokens::from_range(id.tokens),
+				bz::format("identifier '{}' is ambiguous", id.as_string()),
+				{
+					get_ambiguous_note(result),
+					context.make_note(
+						struct_decl->info.src_tokens,
+						bz::format("it may refer to the type 'struct {}'", id.format_as_unqualified())
+					)
+				}
+			);
+			return;
+		}
+		else
+		{
+			result = struct_decl;
+		}
+	}
+}
+
+static symbol_t find_id_in_global_scope(ast::global_scope_t &scope, ast::identifier const &id, parse_context &context)
+{
+	if (id.values.empty())
+	{
+		return {};
+	}
+
+	if (id.is_qualified)
+	{
+		if (scope.parent.scope != nullptr)
+		{
+			// in this case the scope must be inside a struct, meaning the symbols can't be accessed with a qualified lookup
+			return {};
+		}
+
+		symbol_t result;
+
+		try_find_function_set_by_qualified_id(result, scope, id, context);
+		try_find_variable_by_qualified_id(result, scope, id, context);
+		try_find_variadic_variable_by_qualified_id(result, scope, id, context);
+		try_find_type_alias_by_qualified_id(result, scope, id, context);
+		try_find_struct_by_qualified_id(result, scope, id, context);
+
+		return result;
+	}
+	else
+	{
+		symbol_t result;
+
+		try_find_function_set_by_unqualified_id(result, scope, id, context);
+		try_find_variable_by_unqualified_id(result, scope, id, context);
+		try_find_variadic_variable_by_unqualified_id(result, scope, id, context);
+		try_find_type_alias_by_unqualified_id(result, scope, id, context);
+		try_find_struct_by_unqualified_id(result, scope, id, context);
+
+		return result;
+	}
+}
+
+static symbol_t find_id_in_scope(ast::enclosing_scope_t scope, ast::identifier const &id, parse_context &context)
+{
+	// bz::log("find_id_in_scope: ({}, {})\n", scope.scope, scope.symbol_count);
+	while (scope.scope != nullptr)
+	{
+		if (scope.scope->is_local())
+		{
+			auto const res = scope.scope->get_local().find_by_id(id, scope.symbol_count);
+			if (res != nullptr)
+			{
+				return symbol_ref_from_local_symbol(*res);
+			}
+
+			scope = scope.scope->get_local().parent;
+		}
+		else if (scope.scope->is_global())
+		{
+			auto result = find_id_in_global_scope(scope.scope->get_global(), id, context);
+			if (result.not_null())
+			{
+				return result;
+			}
+
+			scope = scope.scope->get_global().parent;
+		}
+		else
+		{
+			bz_unreachable;
+		}
+	}
+	return {};
 }
 
 ast::expression parse_context::make_identifier_expression(ast::identifier id)
@@ -1439,133 +2443,19 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 	// in case there's shadowing
 	auto const src_tokens = lex::src_tokens::from_range(id.tokens);
 
-	if (!id.is_qualified && id.values.size() == 1)
+	if (!id.is_qualified && id.values.size() == 1 && this->current_unresolved_locals.contains(id.values[0]))
 	{
-		auto const symbol_ptr = find_decl_in_local_scope(this->scope_decls, id);
-		if (symbol_ptr != nullptr)
-		{
-			return symbol_ptr->visit(bz::overload{
-				[&src_tokens, &id, this](ast::decl_variable *var_decl) {
-					return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
-				},
-				[&src_tokens, &id, this](variadic_var_decl const &variadic_decl) {
-					if (this->parsing_variadic_expansion)
-					{
-						return ast::make_unresolved_expression(
-							src_tokens,
-							ast::make_unresolved_expr_identifier(std::move(id))
-						);
-					}
-
-					auto const is_valid = this->register_variadic(src_tokens, variadic_decl);
-					if (!is_valid)
-					{
-						return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
-					}
-					else if (variadic_decl.var_decls.empty())
-					{
-						return ast::make_unresolved_expression(src_tokens);
-					}
-					else
-					{
-						return make_variable_expression(
-							src_tokens,
-							std::move(id),
-							variadic_decl.var_decls[this->get_variadic_index()],
-							*this
-						);
-					}
-				},
-				[&src_tokens, &id](function_overload_set const &func_set) {
-					return make_function_name_expression(src_tokens, std::move(id), &func_set);
-				},
-				[&src_tokens, &id](ast::decl_type_alias *type_alias) {
-					return make_type_alias_expression(src_tokens, std::move(id), type_alias);
-				},
-				[&src_tokens, &id, this](ast::decl_struct *type) {
-					return make_type_expression(src_tokens, std::move(id), type, *this);
-				},
-				[&src_tokens, &id](ast::identifier const &) {
-					return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_identifier(std::move(id)));
-				},
-			});
-		}
-	}
-
-	// ==== export (global) decls ====
-	auto symbols = this->global_decls->find_by_unqualified_id(id, this->current_scope);
-
-	if (symbols.size() == 1)
-	{
-		return symbols[0]->visit(bz::overload{
-			[&src_tokens, &id, this](ast::decl_variable *var_decl) {
-				this->add_to_resolve_queue(src_tokens, *var_decl);
-				resolve::resolve_variable(*var_decl, *this);
-				this->pop_resolve_queue();
-				return make_variable_expression(src_tokens, std::move(id), var_decl, *this);
-			},
-			[&src_tokens, &id, this](variadic_var_decl const &variadic_decl) {
-				auto const is_valid = this->register_variadic(src_tokens, variadic_decl);
-				if (!is_valid)
-				{
-					return ast::make_error_expression(src_tokens, ast::make_expr_identifier(std::move(id)));
-				}
-				else if (variadic_decl.var_decls.empty())
-				{
-					return ast::make_unresolved_expression(src_tokens);
-				}
-				else
-				{
-					return make_variable_expression(
-						src_tokens,
-						std::move(id),
-						variadic_decl.var_decls[this->get_variadic_index()],
-						*this
-					);
-				}
-			},
-			[&src_tokens, &id, this](function_overload_set const &func_set) {
-				for (auto &alias_decl : func_set.alias_decls)
-				{
-					this->add_to_resolve_queue(src_tokens, alias_decl.get<ast::decl_function_alias>());
-					resolve::resolve_function_alias(alias_decl.get<ast::decl_function_alias>(), *this);
-					this->pop_resolve_queue();
-				}
-				return make_function_name_expression(src_tokens, std::move(id), &func_set);
-			},
-			[&src_tokens, &id, this](ast::decl_type_alias *type_alias) {
-				this->add_to_resolve_queue(src_tokens, *type_alias);
-				resolve::resolve_type_alias(*type_alias, *this);
-				this->pop_resolve_queue();
-				return make_type_alias_expression(src_tokens, std::move(id), type_alias);
-			},
-			[&src_tokens, &id, this](ast::decl_struct *type) {
-				return make_type_expression(src_tokens, std::move(id), type, *this);
-			},
-			[](ast::identifier const &) {
-				bz_unreachable;
-				return ast::expression();
-			},
-		});
-	}
-	else if (symbols.not_empty())
-	{
-		bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-		auto value = ast::constant_value();
-		if (id.is_qualified)
-		{
-			value.emplace<ast::constant_value::qualified_function_set_id>(id.values, ast::arena_vector<ast::statement_view>{});
-		}
-		else
-		{
-			value.emplace<ast::constant_value::unqualified_function_set_id>(id.values, ast::arena_vector<ast::statement_view>{});
-		}
-		return ast::make_constant_expression(
+		return ast::make_unresolved_expression(
 			src_tokens,
-			ast::expression_type_kind::function_name, ast::typespec(),
-			std::move(value),
-			ast::make_expr_identifier(std::move(id))
+			ast::make_unresolved_expr_identifier(std::move(id))
 		);
+	}
+
+	auto const symbol = find_id_in_scope(this->get_current_enclosing_scope(), id, *this);
+
+	if (symbol.not_null())
+	{
+		return expression_from_symbol(src_tokens, std::move(id), symbol, *this);
 	}
 
 	// builtin types
@@ -1585,23 +2475,25 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 		}
 		else if (id_value.starts_with("__builtin"))
 		{
+			// bz::log("{}\n", id_value);
 			auto const it = std::find_if(ast::intrinsic_info.begin(), ast::intrinsic_info.end(), [id_value](auto const &p) {
 				return p.func_name == id_value;
 			});
 			if (it != ast::intrinsic_info.end())
 			{
-				auto const func_body = this->get_builtin_function(it->kind);
+				auto const func_decl = this->get_builtin_function(it->kind);
 				return ast::make_constant_expression(
 					src_tokens,
 					ast::expression_type_kind::function_name,
-					get_function_type(*func_body),
-					ast::constant_value(func_body),
+					get_function_type(func_decl->body),
+					ast::constant_value(func_decl),
 					ast::make_expr_identifier(id)
 				);
 			}
 		}
 	}
 
+	// bz::log("failed to find '{}'\n", id.as_string());
 	this->report_error(src_tokens, bz::format("undeclared identifier '{}'", id.as_string()));
 	return ast::make_error_expression(src_tokens, ast::make_expr_identifier(ast::expr_identifier(std::move(id))));
 }
@@ -2181,7 +3073,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, ast::arena_vector<ast::expression> elems) const
 {
-	if (elems.is_any([](auto &expr) { return expr.is_unresolved(); }))
+	if (this->current_unresolved_locals.not_empty() || elems.is_any([](auto &expr) { return expr.is_unresolved(); }))
 	{
 		return ast::make_unresolved_expression(src_tokens, ast::make_unresolved_expr_tuple(std::move(elems)));
 	}
@@ -4157,6 +5049,7 @@ static match_level_t get_function_call_match_level(
 
 	match_level_t result = bz::vector<match_level_t>{};
 	auto &result_vec = result.get<bz::vector<match_level_t>>();
+	result_vec.reserve(params.size());
 
 	bool good = true;
 	auto const add_to_result = [&](match_level_t match)
@@ -4473,6 +5366,17 @@ static ast::expression make_expr_function_call_from_body(
 	}
 
 	auto &ret_t = body->return_type;
+	if (ret_t.is_typename())
+	{
+		auto result = ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
+			ast::make_expr_function_call(src_tokens, std::move(args), body, resolve_order)
+		);
+		parse::consteval_try(result, context);
+		return result;
+	}
+
 	auto return_type_kind = ast::expression_type_kind::rvalue;
 	auto return_type = ast::remove_const_or_consteval(ret_t);
 	if (ret_t.is<ast::ts_lvalue_reference>())
@@ -4558,87 +5462,80 @@ static ast::expression make_expr_function_call_from_body(
 	);
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_operator(
-	uint32_t op,
+static void get_possible_funcs_for_operator_helper(
+	bz::vector<possible_func_t> &result,
 	lex::src_tokens src_tokens,
+	uint32_t op,
+	ast::expression &expr,
+	ast::global_scope_t &scope,
+	parse_context &context
+)
+{
+	auto const id_scope = scope.id_scope;
+	for (
+		auto const &op_set :
+		scope.operator_sets.filter([op, id_scope](auto const &op_set) {
+			return op_set.op == op
+				&& op_set.id_scope.size() <= id_scope.size()
+				&& op_set.id_scope == id_scope.slice(0, op_set.id_scope.size());
+		}
+	))
+	{
+		for (auto const op : op_set.op_decls)
+		{
+			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op->body))
+			{
+				auto match_level = get_function_call_match_level(op, op->body, expr, context, src_tokens);
+				result.push_back({ std::move(match_level), op, &op->body });
+			}
+		}
+	}
+}
+
+static void get_possible_funcs_for_operator_helper(
+	bz::vector<possible_func_t> &result,
+	lex::src_tokens src_tokens,
+	uint32_t op,
+	ast::expression &expr,
+	ast::enclosing_scope_t scope,
+	parse_context &context
+)
+{
+	while (scope.scope != nullptr)
+	{
+		if (scope.scope->is_local())
+		{
+			// we do nothing, because operators can't be local
+			static_assert(ast::local_symbol_t::variant_count == 6);
+			scope = scope.scope->get_local().parent;
+		}
+		else
+		{
+			bz_assert(scope.scope->is_global());
+			get_possible_funcs_for_operator_helper(result, src_tokens, op, expr, scope.scope->get_global(), context);
+			scope = scope.scope->get_global().parent;
+		}
+	}
+}
+
+static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+	lex::src_tokens src_tokens,
+	uint32_t op,
 	ast::expression &expr,
 	parse_context &context
 )
 {
-	auto const expr_scope = [&]() -> bz::array_view<bz::u8string_view const> {
-		auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
-		if (expr_t.is<ast::ts_base_type>())
-		{
-			auto const &id = expr_t.get<ast::ts_base_type>().info->type_name;
-			if (id.is_qualified)
-			{
-				return id.values;
-			}
-		}
-		return {};
-	}();
-	auto const current_scope = context.current_scope;
-
 	bz::vector<possible_func_t> possible_funcs = {};
-	auto const compare_scopes = [](
-		bz::array_view<bz::u8string_view const> op_scope,
-		bz::array_view<bz::u8string_view const> current_scope
-	) {
-		return op_scope.size() <= current_scope.size() && std::equal(op_scope.begin(), op_scope.end(), current_scope.begin());
-	};
 
-	// we go through the scope decls for a matching declaration
-	for (auto &scope : context.scope_decls.reversed())
+	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, context.get_current_enclosing_scope(), context);
+	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	if (expr_type.is<ast::ts_base_type>())
 	{
-		auto const filtered_sets = scope.op_sets
-			.filter([op](auto const &op_set) {
-				return op == op_set.op;
-			});
-		for (auto const &op_set : filtered_sets)
-		{
-			for (auto &op : op_set.op_decls)
-			{
-				auto &body = op.get<ast::decl_operator>().body;
-				auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), op, &body });
-			}
-		}
-	}
-
-	auto &global_decls = *context.global_decls;
-	auto const filtered_sets = global_decls.op_sets
-		.filter([op, expr_scope, current_scope, compare_scopes](auto const &op_set) {
-			return op == op_set.op
-				&& (
-					compare_scopes(op_set.scope, current_scope)
-					|| compare_scopes(op_set.scope, expr_scope)
-				);
-		});
-	for (auto const &op_set : filtered_sets)
-	{
-		for (auto &op : op_set.op_decls)
-		{
-			auto &body = op.get<ast::decl_operator>().body;
-			auto match_level = get_function_call_match_level(op, body, expr, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), op, &body });
-		}
+		auto const base_type_enclosing_scope = expr_type.get<ast::ts_base_type>().info->get_scope();
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, base_type_enclosing_scope, context);
 	}
 
 	return possible_funcs;
-}
-
-static bz::vector<possible_func_t> get_possible_funcs_for_builtin_operator(
-	uint32_t op,
-	lex::src_tokens src_tokens,
-	ast::expression &expr,
-	parse_context &context
-)
-{
-	return context.global_ctx.get_builtin_operators(op)
-		.transform([&](auto &body) {
-			auto match_level = get_function_call_match_level({}, body, expr, context, src_tokens);
-			return possible_func_t{ std::move(match_level), {}, &body };
-		}).collect();
 }
 
 ast::expression parse_context::make_unary_operator_expression(
@@ -4668,17 +5565,13 @@ ast::expression parse_context::make_unary_operator_expression(
 		this->report_error(expr, bz::format("expected a type after '{}'", token_info[op_kind].token_value));
 	}
 
-	auto [type, type_kind] = expr.get_expr_type_and_kind();
-	// if it's a non-overloadable operator or a built-in with a built-in type operand,
-	// user-defined operators shouldn't be looked at
+	// if it's a non-overloadable operator user-defined operators shouldn't be looked at
 	if (!is_unary_overloadable_operator(op_kind))
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(expr), *this);
 	}
 
-	auto const possible_funcs = is_builtin_type(ast::remove_const_or_consteval(type)) && is_unary_builtin_operator(op_kind)
-		? get_possible_funcs_for_builtin_operator(op_kind, src_tokens, expr, *this)
-		: get_possible_funcs_for_operator(op_kind, src_tokens, expr, *this);
+	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, expr, *this);
 	if (possible_funcs.empty())
 	{
 		this->report_error(
@@ -4706,116 +5599,101 @@ ast::expression parse_context::make_unary_operator_expression(
 	}
 }
 
-static bz::vector<possible_func_t> get_possible_funcs_for_operator(
-	uint32_t op,
+static void get_possible_funcs_for_operator_helper(
+	bz::vector<possible_func_t> &result,
 	lex::src_tokens src_tokens,
+	uint32_t op,
+	ast::expression &lhs,
+	ast::expression &rhs,
+	ast::global_scope_t &scope,
+	parse_context &context
+)
+{
+	auto const id_scope = scope.id_scope;
+	for (
+		auto const &op_set :
+		scope.operator_sets.filter([op, id_scope](auto const &op_set) {
+			return op_set.op == op
+				&& op_set.id_scope.size() <= id_scope.size()
+				&& op_set.id_scope == id_scope.slice(0, op_set.id_scope.size());
+		}
+	))
+	{
+		for (auto const op_decl : op_set.op_decls)
+		{
+			if (!result.transform([](auto const &possible_func) { return possible_func.func_body; }).contains(&op_decl->body))
+			{
+				auto match_level = get_function_call_match_level(op_decl, op_decl->body, lhs, rhs, context, src_tokens);
+				result.push_back({ std::move(match_level), op_decl, &op_decl->body });
+			}
+		}
+	}
+}
+
+static void get_possible_funcs_for_operator_helper(
+	bz::vector<possible_func_t> &result,
+	lex::src_tokens src_tokens,
+	uint32_t op,
+	ast::expression &lhs,
+	ast::expression &rhs,
+	ast::enclosing_scope_t scope,
+	parse_context &context
+)
+{
+	while (scope.scope != nullptr)
+	{
+		if (scope.scope->is_local())
+		{
+			// we do nothing, because operators can't be local
+			static_assert(ast::local_symbol_t::variant_count == 6);
+			scope = scope.scope->get_local().parent;
+		}
+		else
+		{
+			bz_assert(scope.scope->is_global());
+			get_possible_funcs_for_operator_helper(result, src_tokens, op, lhs, rhs, scope.scope->get_global(), context);
+			scope = scope.scope->get_global().parent;
+		}
+	}
+}
+
+static bz::vector<possible_func_t> get_possible_funcs_for_operator(
+	lex::src_tokens src_tokens,
+	uint32_t op,
 	ast::expression &lhs,
 	ast::expression &rhs,
 	parse_context &context
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const lhs_scope = [&]() -> bz::array_view<bz::u8string_view const> {
-		if (lhs_t.is<ast::ts_base_type>())
-		{
-			auto const &id = lhs_t.get<ast::ts_base_type>().info->type_name;
-			if (id.is_qualified)
-			{
-				return id.values;
-			}
-		}
-		return {};
-	}();
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
-	auto const rhs_scope = [&]() -> bz::array_view<bz::u8string_view const> {
-		if (rhs_t.is<ast::ts_base_type>())
-		{
-			auto const &id = rhs_t.get<ast::ts_base_type>().info->type_name;
-			if (id.is_qualified)
-			{
-				return id.values;
-			}
-		}
-		return {};
-	}();
-	auto const current_scope = context.current_scope;
-
 	bz::vector<possible_func_t> possible_funcs = {};
-	auto const compare_scopes = [](
-		bz::array_view<bz::u8string_view const> op_scope,
-		bz::array_view<bz::u8string_view const> current_scope
-	) {
-		return op_scope.size() <= current_scope.size() && std::equal(op_scope.begin(), op_scope.end(), current_scope.begin());
-	};
 
-	// we go through the scope decls for a matching declaration
-	for (auto &scope : context.scope_decls.reversed())
+	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, context.get_current_enclosing_scope(), context);
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	if (lhs_type.is<ast::ts_base_type>())
 	{
-		auto const filtered_sets = scope.op_sets
-			.filter([op](auto const &op_set) {
-				return op == op_set.op;
-			});
-		for (auto const &op_set : filtered_sets)
+		auto const lhs_enclosing_scope = lhs_type.get<ast::ts_base_type>().info->get_scope();
+		/*
+		if (bz::format("{}", lhs_type) == "std::string")
 		{
-			for (auto &op : op_set.op_decls)
+			bz::log("HELLO, {}\n", op == lex::token::assign);
+			auto const &scope = lhs_enclosing_scope.scope->get_global();
+			bz::log("{}\n", scope.operator_sets.size());
+			if (scope.operator_sets.not_empty())
 			{
-				auto &body = op.get<ast::decl_operator>().body;
-				auto match_level = get_function_call_match_level(op, body, lhs, rhs, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), op, &body });
+				bz::log("{}\n", format_array(scope.operator_sets.front().id_scope));
 			}
 		}
+		*/
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, lhs_enclosing_scope, context);
 	}
-
-	auto &global_decls = *context.global_decls;
-	auto const filtered_sets = global_decls.op_sets
-		.filter([op, lhs_scope, rhs_scope, current_scope, compare_scopes](auto const &op_set) {
-			return op == op_set.op
-				&& (
-					compare_scopes(op_set.scope, current_scope)
-					|| compare_scopes(op_set.scope, lhs_scope)
-					|| compare_scopes(op_set.scope, rhs_scope)
-				);
-		});
-	for (auto const &op_set : filtered_sets)
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	if (rhs_type.is<ast::ts_base_type>())
 	{
-		for (auto &op_decl : op_set.op_decls)
-		{
-			auto &body = op_decl.get<ast::decl_operator>().body;
-			auto match_level = get_function_call_match_level(op_decl, body, lhs, rhs, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), op_decl, &body });
-		}
-	}
-
-	if (op == lex::token::assign && lhs_t.is<ast::ts_base_type>())
-	{
-		auto const lhs_info = lhs_t.get<ast::ts_base_type>().info;
-		if (lhs_info->kind == ast::type_info::aggregate && lhs_info->op_assign == nullptr && lhs_info->op_move_assign == nullptr)
-		{
-			auto &op_assign = *lhs_info->default_op_assign;
-			auto op_assign_match_level = get_function_call_match_level({}, op_assign, lhs, rhs, context, src_tokens);
-			possible_funcs.push_back({ std::move(op_assign_match_level), {}, &op_assign });
-			auto &op_move_assign = *lhs_info->default_op_move_assign;
-			auto op_move_assign_match_level = get_function_call_match_level({}, op_move_assign, lhs, rhs, context, src_tokens);
-			possible_funcs.push_back({ std::move(op_move_assign_match_level), {}, &op_move_assign });
-		}
+		auto const rhs_enclosing_scope = rhs_type.get<ast::ts_base_type>().info->get_scope();
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, rhs_enclosing_scope, context);
 	}
 
 	return possible_funcs;
-}
-
-static bz::vector<possible_func_t> get_possible_funcs_for_builtin_operator(
-	uint32_t op,
-	lex::src_tokens src_tokens,
-	ast::expression &lhs,
-	ast::expression &rhs,
-	parse_context &context
-)
-{
-	return context.global_ctx.get_builtin_operators(op)
-		.transform([&](auto &body) {
-			auto match_level = get_function_call_match_level({}, body, lhs, rhs, context, src_tokens);
-			return possible_func_t{ std::move(match_level), {}, &body };
-		}).collect();
 }
 
 ast::expression parse_context::make_binary_operator_expression(
@@ -4867,24 +5745,17 @@ ast::expression parse_context::make_binary_operator_expression(
 	}
 	else if (is_binary_type_op(op_kind) && !is_binary_builtin_operator(op_kind))
 	{
-		// there's no operator such as this ('as' is handled earlier)
+		// there's no such operator ('as' is handled earlier)
 		bz_unreachable;
 	}
 
-	auto const [lhs_type, lhs_type_kind] = lhs.get_expr_type_and_kind();
-	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
-	// if it's a non-overloadable operator or a built-in with a built-in type operand,
-	// user-defined operators shouldn't be looked at
+	// if it's a non-overloadable operator user-defined operators shouldn't be looked at
 	if (!is_binary_overloadable_operator(op_kind))
 	{
 		return make_builtin_operation(src_tokens, op_kind, std::move(lhs), std::move(rhs), *this);
 	}
 
-	auto const possible_funcs = is_builtin_type(ast::remove_const_or_consteval(lhs_type))
-		&& is_builtin_type(ast::remove_const_or_consteval(rhs_type))
-		&& is_binary_builtin_operator(op_kind)
-			? get_possible_funcs_for_builtin_operator(op_kind, src_tokens, lhs, rhs, *this)
-			: get_possible_funcs_for_operator(op_kind, src_tokens, lhs, rhs, *this);
+	auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, op_kind, lhs, rhs, *this);
 
 	if (possible_funcs.empty())
 	{
@@ -4910,19 +5781,6 @@ ast::expression parse_context::make_binary_operator_expression(
 		}
 		else
 		{
-			// special case for string comparision
-			if (
-				(op_kind == lex::token::equals || op_kind == lex::token::not_equals)
-				&& best_body->params[0].get_type().is<ast::ts_base_type>()
-				&& best_body->params[0].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_
-				&& best_body->params[1].get_type().is<ast::ts_base_type>()
-				&& best_body->params[1].get_type().get<ast::ts_base_type>().info->kind == ast::type_info::str_
-			)
-			{
-				best_body = this->get_builtin_function(
-					op_kind == lex::token::equals ? ast::function_body::builtin_str_eq : ast::function_body::builtin_str_neq
-				);
-			}
 			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
 				? ast::resolve_order::regular
 				: ast::resolve_order::reversed;
@@ -4939,94 +5797,34 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 )
 {
 	bz::vector<possible_func_t> possible_funcs = {};
-	if (unqualified_function_set.stmts.not_empty())
-	{
-		auto const size = unqualified_function_set.stmts
-			.transform([](ast::statement_view const stmt) -> size_t {
-				if (stmt.is<ast::decl_function>())
-				{
-					return 1;
-				}
-				else
-				{
-					bz_assert(stmt.is<ast::decl_function_alias>());
-					return stmt.get<ast::decl_function_alias>().aliased_bodies.size();
-				}
-			}).sum();
-		possible_funcs.reserve(size);
-		for (auto const &stmt : unqualified_function_set.stmts)
-		{
+	auto const size = unqualified_function_set.stmts
+		.transform([](ast::statement_view const stmt) -> size_t {
 			if (stmt.is<ast::decl_function>())
 			{
-				auto &body = stmt.get<ast::decl_function>().body;
-				auto match_level = get_function_call_match_level(stmt, body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), stmt, &body });
+				return 1;
 			}
 			else
 			{
 				bz_assert(stmt.is<ast::decl_function_alias>());
-				for (auto const body : stmt.get<ast::decl_function_alias>().aliased_bodies)
-				{
-					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					possible_funcs.push_back({ std::move(match_level), stmt, body });
-				}
+				return stmt.get<ast::decl_function_alias>().aliased_decls.size();
 			}
-		}
-		return possible_funcs;
-	}
-
-	auto const id = ast::identifier{ {}, unqualified_function_set.id, false };
-	if (id.values.size() == 1)
+		}).sum();
+	possible_funcs.reserve(size);
+	for (auto const &stmt : unqualified_function_set.stmts)
 	{
-		auto const symbol_ptr = find_decl_in_local_scope(context.scope_decls, id);
-		if (symbol_ptr != nullptr)
+		if (stmt.is<ast::decl_function>())
 		{
-			bz_assert(symbol_ptr->is<function_overload_set>());
-			auto &set = symbol_ptr->get<function_overload_set>();
-			possible_funcs.reserve(set.func_decls.size() + set.alias_decls.size());
-			for (auto &fn : set.func_decls)
-			{
-				auto &body = fn.get<ast::decl_function>().body;
-				auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), fn, &body });
-			}
-			for (auto &alias_decl : set.alias_decls)
-			{
-				auto &alias = alias_decl.get<ast::decl_function_alias>();
-				context.add_to_resolve_queue(src_tokens, alias);
-				resolve::resolve_function_alias(alias, context);
-				context.pop_resolve_queue();
-				for (auto const body : alias.aliased_bodies)
-				{
-					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-				}
-			}
-			return possible_funcs;
+			auto &body = stmt.get<ast::decl_function>().body;
+			auto match_level = get_function_call_match_level(stmt, body, params, context, src_tokens);
+			possible_funcs.push_back({ std::move(match_level), stmt, &body });
 		}
-	}
-
-	auto const symbols = context.global_decls->find_by_unqualified_id(id, context.current_scope);
-	bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-	for (auto const symbol : symbols)
-	{
-		auto &func_set = symbol->get<function_overload_set>();
-		for (auto &fn : func_set.func_decls)
+		else
 		{
-			auto &body = fn.get<ast::decl_function>().body;
-			auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), fn, &body });
-		}
-		for (auto &alias_decl : func_set.alias_decls)
-		{
-			auto &alias = alias_decl.get<ast::decl_function_alias>();
-			context.add_to_resolve_queue(src_tokens, alias);
-			resolve::resolve_function_alias(alias, context);
-			context.pop_resolve_queue();
-			for (auto const body : alias.aliased_bodies)
+			bz_assert(stmt.is<ast::decl_function_alias>());
+			for (auto const decl : stmt.get<ast::decl_function_alias>().aliased_decls)
 			{
-				auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), alias_decl, body });
+				auto match_level = get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+				possible_funcs.push_back({ std::move(match_level), stmt, &decl->body });
 			}
 		}
 	}
@@ -5041,67 +5839,39 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 )
 {
 	bz::vector<possible_func_t> possible_funcs = {};
-	if (qualified_function_set.stmts.not_empty())
-	{
-		auto const size = qualified_function_set.stmts
-			.transform([](ast::statement_view const stmt) -> size_t {
-				if (stmt.is<ast::decl_function>())
-				{
-					return 1;
-				}
-				else
-				{
-					bz_assert(stmt.is<ast::decl_function_alias>());
-					return stmt.get<ast::decl_function_alias>().aliased_bodies.size();
-				}
-			}).sum();
-		possible_funcs.reserve(size);
-		for (auto const &stmt : qualified_function_set.stmts)
-		{
+
+	auto const size = qualified_function_set.stmts
+		.transform([](ast::statement_view const stmt) -> size_t {
 			if (stmt.is<ast::decl_function>())
 			{
-				auto &body = stmt.get<ast::decl_function>().body;
-				auto match_level = get_function_call_match_level(stmt, body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), stmt, &body });
+				return 1;
 			}
 			else
 			{
 				bz_assert(stmt.is<ast::decl_function_alias>());
-				for (auto const body : stmt.get<ast::decl_function_alias>().aliased_bodies)
-				{
-					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					possible_funcs.push_back({ std::move(match_level), stmt, body });
-				}
+				return stmt.get<ast::decl_function_alias>().aliased_decls.size();
+			}
+		}).sum();
+	possible_funcs.reserve(size);
+	for (auto const &stmt : qualified_function_set.stmts)
+	{
+		if (stmt.is<ast::decl_function>())
+		{
+			auto &body = stmt.get<ast::decl_function>().body;
+			auto match_level = get_function_call_match_level(stmt, body, params, context, src_tokens);
+			possible_funcs.push_back({ std::move(match_level), stmt, &body });
+		}
+		else
+		{
+			bz_assert(stmt.is<ast::decl_function_alias>());
+			for (auto const decl : stmt.get<ast::decl_function_alias>().aliased_decls)
+			{
+				auto match_level = get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+				possible_funcs.push_back({ std::move(match_level), stmt, &decl->body });
 			}
 		}
-		return possible_funcs;
 	}
 
-	auto const id = ast::identifier{ {}, qualified_function_set.id, true };
-	auto const symbols = context.global_decls->find_by_unqualified_id(id, context.current_scope);
-	bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-	for (auto const symbol : symbols)
-	{
-		auto &func_set = symbol->get<function_overload_set>();
-		for (auto &fn : func_set.func_decls)
-		{
-			auto &body = fn.get<ast::decl_function>().body;
-			auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), fn, &body });
-		}
-		for (auto &alias_decl : func_set.alias_decls)
-		{
-			auto &alias = alias_decl.get<ast::decl_function_alias>();
-			context.add_to_resolve_queue(src_tokens, alias);
-			resolve::resolve_function_alias(alias, context);
-			context.pop_resolve_queue();
-			for (auto const body : alias.aliased_bodies)
-			{
-				auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-			}
-		}
-	}
 	return possible_funcs;
 }
 
@@ -5120,7 +5890,11 @@ ast::expression parse_context::make_function_call_expression(
 			ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
 		);
 	}
-	else if (called.is_unresolved() || args.is_any([](auto const &arg) { return arg.is_unresolved(); }))
+	else if (
+		this->current_unresolved_locals.not_empty()
+		|| called.is_unresolved()
+		|| args.is_any([](auto const &arg) { return arg.is_unresolved(); })
+	)
 	{
 		return ast::make_unresolved_expression(
 			src_tokens,
@@ -5136,19 +5910,19 @@ ast::expression parse_context::make_function_call_expression(
 		auto &const_called = called.get<ast::constant_expression>();
 		if (const_called.value.kind() == ast::constant_value::function)
 		{
-			auto const func_body = const_called.value.get<ast::constant_value::function>();
-			if (get_function_call_match_level({}, *func_body, args, *this, src_tokens).is_null())
+			auto const func_decl = const_called.value.get<ast::constant_value::function>();
+			if (get_function_call_match_level(func_decl, func_decl->body, args, *this, src_tokens).is_null())
 			{
-				if (func_body->state != ast::resolve_state::error)
+				if (func_decl->body.state != ast::resolve_state::error)
 				{
-					if (func_body->is_intrinsic())
+					if (func_decl->body.is_intrinsic())
 					{
 						this->report_error(
 							src_tokens,
 							"couldn't match the function call to the function",
 							{
 								get_function_parameter_types_note(src_tokens, args),
-								this->make_note(func_body->get_candidate_message())
+								this->make_note(func_decl->body.get_candidate_message())
 							}
 						);
 					}
@@ -5159,18 +5933,18 @@ ast::expression parse_context::make_function_call_expression(
 							"couldn't match the function call to the function",
 							{
 								get_function_parameter_types_note(src_tokens, args),
-								this->make_note(func_body->src_tokens, func_body->get_candidate_message())
+								this->make_note(func_decl->body.src_tokens, func_decl->body.get_candidate_message())
 							}
 						);
 					}
 				}
 				return ast::make_error_expression(
 					src_tokens,
-					ast::make_expr_function_call(src_tokens, std::move(args), func_body, ast::resolve_order::regular)
+					ast::make_expr_function_call(src_tokens, std::move(args), &func_decl->body, ast::resolve_order::regular)
 				);
 			}
 
-			return make_expr_function_call_from_body(src_tokens, func_body, std::move(args), *this);
+			return make_expr_function_call_from_body(src_tokens, &func_decl->body, std::move(args), *this);
 		}
 		else
 		{
@@ -5243,8 +6017,11 @@ ast::expression parse_context::make_function_call_expression(
 			resolve::resolve_type_info(*info, *this);
 			this->pop_resolve_queue();
 			auto const possible_funcs = info->constructors
-				.transform([&](auto const &ptr) {
-					return possible_func_t{ get_function_call_match_level({}, *ptr, args, *this, src_tokens), {}, ptr };
+				.transform([&](auto const ctor_decl) {
+					return possible_func_t{
+						get_function_call_match_level(ctor_decl, ctor_decl->body, args, *this, src_tokens),
+						ctor_decl, &ctor_decl->body
+					};
 				})
 				.collect<ast::arena_vector>();
 
@@ -5382,78 +6159,113 @@ ast::expression parse_context::make_function_call_expression(
 	}
 }
 
+static void get_possible_funcs_for_universal_function_call_helper(
+	bz::vector<possible_func_t> &result,
+	lex::src_tokens src_tokens,
+	ast::identifier const &id,
+	bz::array_view<ast::expression> params,
+	ast::global_scope_t &scope,
+	parse_context &context
+)
+{
+	auto const id_scope = scope.id_scope;
+	if (id.is_qualified)
+	{
+		bz_unreachable;
+	}
+	else
+	{
+		for (auto const &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, id_scope))
+		{
+			for (auto const func : func_set.func_decls.filter(
+				[&result](auto const func) {
+					return !result.member<&possible_func_t::func_body>().contains(&func->body);
+				})
+			)
+			{
+				auto match_level = get_function_call_match_level(func, func->body, params, context, src_tokens);
+				result.push_back({ std::move(match_level), func, &func->body });
+			}
+
+			for (auto const alias : func_set.alias_decls)
+			{
+				for (auto const decl : alias->aliased_decls.filter(
+					[&result](auto const decl) {
+						return !result.member<&possible_func_t::func_body>().contains(&decl->body);
+					}
+				))
+				{
+					auto match_level = get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+					result.push_back({ std::move(match_level), alias, &decl->body });
+				}
+			}
+		}
+	}
+}
+
+static void get_possible_funcs_for_universal_function_call_helper(
+	bz::vector<possible_func_t> &result,
+	lex::src_tokens src_tokens,
+	ast::identifier const &id,
+	bz::array_view<ast::expression> params,
+	ast::enclosing_scope_t scope,
+	parse_context &context
+)
+{
+	while (scope.scope != nullptr)
+	{
+		if (scope.scope->is_local() && result.not_empty())
+		{
+			break;
+		}
+		else if (scope.scope->is_local())
+		{
+			scope = scope.scope->get_local().parent;
+		}
+		else
+		{
+			get_possible_funcs_for_universal_function_call_helper(result, src_tokens, id, params, scope.scope->get_global(), context);
+			scope = scope.scope->get_global().parent;
+		}
+	}
+}
+
 static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_call(
 	lex::src_tokens src_tokens,
 	ast::identifier const &id,
-	bz::array_view<bz::u8string_view const> base_scope,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
 {
 	bz::vector<possible_func_t> possible_funcs = {};
-	if (!id.is_qualified && id.values.size() == 1)
+
+	get_possible_funcs_for_universal_function_call_helper(
+		possible_funcs, src_tokens, id, params, context.get_current_enclosing_scope(), context
+	);
+
+	if (params.not_empty())
 	{
-		auto const symbol_ptr = find_decl_in_local_scope(context.scope_decls, id);
-		if (symbol_ptr != nullptr && symbol_ptr->is<function_overload_set>())
+		auto const type = ast::remove_const_or_consteval(params.front().get_expr_type_and_kind().first);
+		if (type.is<ast::ts_base_type>())
 		{
-			auto &func_set = symbol_ptr->get<function_overload_set>();
-			possible_funcs.reserve(func_set.func_decls.size() + func_set.alias_decls.size());
-			for (auto &fn : func_set.func_decls)
-			{
-				auto &body = fn.get<ast::decl_function>().body;
-				auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), fn, &body });
-			}
-			for (auto &alias_decl : func_set.alias_decls)
-			{
-				auto &alias = alias_decl.get<ast::decl_function_alias>();
-				context.add_to_resolve_queue(src_tokens, alias);
-				resolve::resolve_function_alias(alias, context);
-				context.pop_resolve_queue();
-				for (auto const body : alias.aliased_bodies)
-				{
-					auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-					possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-				}
-			}
-			return possible_funcs;
+			auto const info = type.get<ast::ts_base_type>().info;
+			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
+			get_possible_funcs_for_universal_function_call_helper(
+				possible_funcs, src_tokens, id, params, info->get_scope(), context
+			);
 		}
 	}
 
 	if (id.values.size() == 1)
 	{
 		auto const kinds = context.get_builtin_universal_functions(id.values.front());
-		for (auto const body : kinds.transform([&](auto const kind) { return context.global_ctx.get_builtin_function(kind); }))
+		for (auto const decl : kinds.transform([&](auto const kind) { return context.global_ctx.get_builtin_function(kind); }))
 		{
-			auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), {}, body });
+			auto match_level = get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+			possible_funcs.push_back({ std::move(match_level), decl, &decl->body });
 		}
 	}
 
-	auto const symbols = context.global_decls->find_by_unqualified_id(id, context.current_scope, base_scope);
-	bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-	for (auto const symbol : symbols)
-	{
-		auto &func_set = symbol->get<function_overload_set>();
-		for (auto &fn : func_set.func_decls)
-		{
-			auto &body = fn.get<ast::decl_function>().body;
-			auto match_level = get_function_call_match_level(fn, body, params, context, src_tokens);
-			possible_funcs.push_back({ std::move(match_level), fn, &body });
-		}
-		for (auto &alias_decl : func_set.alias_decls)
-		{
-			auto &alias = alias_decl.get<ast::decl_function_alias>();
-			context.add_to_resolve_queue(src_tokens, alias);
-			resolve::resolve_function_alias(alias, context);
-			context.pop_resolve_queue();
-			for (auto const body : alias.aliased_bodies)
-			{
-				auto match_level = get_function_call_match_level({}, *body, params, context, src_tokens);
-				possible_funcs.push_back({ std::move(match_level), alias_decl, body });
-			}
-		}
-	}
 	return possible_funcs;
 }
 
@@ -5496,21 +6308,8 @@ ast::expression parse_context::make_universal_function_call_expression(
 		}
 	}
 
-	auto const base_scope = [&]() -> bz::array_view<bz::u8string_view const> {
-		auto const base_t = ast::remove_const_or_consteval(base.get_expr_type_and_kind().first);
-		if (base_t.is<ast::ts_base_type>())
-		{
-			auto const &id = base_t.get<ast::ts_base_type>().info->type_name;
-			if (id.is_qualified)
-			{
-				return id.values;
-			}
-		}
-		return {};
-	}();
-
 	args.push_front(std::move(base));
-	auto const possible_funcs = get_possible_funcs_for_universal_function_call(src_tokens, id, base_scope, args, *this);
+	auto const possible_funcs = get_possible_funcs_for_universal_function_call(src_tokens, id, args, *this);
 	if (possible_funcs.empty())
 	{
 		this->report_error(src_tokens, bz::format("no candidate found for universal function call to '{}'", id.as_string()));
@@ -5589,7 +6388,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
 		}
 		else if (
-			this->current_file_id != info->file_id
+			!this->has_common_global_scope(info->get_scope())
 			&& info->member_variables.is_any([](auto const member) { return member->get_unqualified_id_value().starts_with('_'); })
 		)
 		{
@@ -5707,7 +6506,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 			}
 			else
 			{
-				auto const possible_funcs = get_possible_funcs_for_operator(lex::token::square_open, src_tokens, called, arg, *this);
+				auto const possible_funcs = get_possible_funcs_for_operator(src_tokens, lex::token::square_open, called, arg, *this);
 				if (possible_funcs.empty())
 				{
 					this->report_error(
@@ -5779,148 +6578,6 @@ ast::expression parse_context::make_cast_expression(
 	}
 }
 
-static symbol_t search_type_info_members(ast::type_info *info, lex::token_pos member, parse_context &context)
-{
-	lex::src_tokens result_src_tokens;
-	symbol_t result;
-	bz_assert(info->body.is<bz::vector<ast::statement>>());
-	auto const report_ambigious_error = [&](lex::src_tokens new_src_tokens) {
-		context.report_error(
-			member,
-			bz::format(
-				"member '{}' is ambiguous in type '{}'",
-				member->value, ast::type_info::decode_symbol_name(info->symbol_name)
-			),
-			{
-				context.make_note(result_src_tokens, "first found here"),
-				context.make_note(new_src_tokens, "second found here")
-			}
-		);
-	};
-	for (auto &decl : info->body.get<bz::vector<ast::statement>>())
-	{
-		if (decl.is<ast::decl_variable>())
-		{
-			auto &var_decl = decl.get<ast::decl_variable>();
-			bz_assert(var_decl.get_id().values.size() == 1);
-			if (var_decl.is_member() || var_decl.get_id().values[0] != member->value)
-			{
-				continue;
-			}
-			else if (result.not_null())
-			{
-				report_ambigious_error(var_decl.src_tokens);
-				return symbol_t{};
-			}
-			else if (var_decl.is_variadic())
-			{
-				bz_unreachable;
-			}
-			else
-			{
-				result_src_tokens = var_decl.src_tokens;
-				result = &var_decl;
-			}
-		}
-		else if (decl.is<ast::decl_function>())
-		{
-			auto &func_decl = decl.get<ast::decl_function>();
-			bz_assert(func_decl.id.values.size() <= 1);
-			if (func_decl.body.is_constructor() || func_decl.body.is_destructor() || func_decl.id.values[0] != member->value)
-			{
-				continue;
-			}
-			else if (result.is<function_overload_set>())
-			{
-				result.get<function_overload_set>().func_decls.push_back(decl);
-			}
-			else if (result.not_null())
-			{
-				report_ambigious_error(func_decl.body.src_tokens);
-				return symbol_t{};
-			}
-			else
-			{
-				result_src_tokens = func_decl.body.src_tokens;
-				result = function_overload_set{ func_decl.id, { decl }, {} };
-			}
-		}
-		else if (decl.is<ast::decl_function_alias>())
-		{
-			auto &alias_decl = decl.get<ast::decl_function_alias>();
-			bz_assert(alias_decl.id.values.size() == 1);
-			if (alias_decl.id.values[0] != member->value)
-			{
-				continue;
-			}
-			else if (result.is<function_overload_set>())
-			{
-				result.get<function_overload_set>().alias_decls.push_back(decl);
-			}
-			else if (result.not_null())
-			{
-				report_ambigious_error(alias_decl.src_tokens);
-				return symbol_t{};
-			}
-			else
-			{
-				result_src_tokens = alias_decl.src_tokens;
-				result = function_overload_set{ alias_decl.id, {}, { decl } };
-			}
-		}
-		else if (decl.is<ast::decl_struct>())
-		{
-			auto &struct_decl = decl.get<ast::decl_struct>();
-			bz_assert(struct_decl.id.values.size() == 1);
-			if (struct_decl.id.values[0] != member->value)
-			{
-				continue;
-			}
-			else if (result.not_null())
-			{
-				report_ambigious_error(struct_decl.info.src_tokens);
-				return symbol_t{};
-			}
-			else
-			{
-				result_src_tokens = struct_decl.info.src_tokens;
-				result = &struct_decl;
-			}
-		}
-		else if (decl.is<ast::decl_type_alias>())
-		{
-			auto &alias_decl = decl.get<ast::decl_type_alias>();
-			bz_assert(alias_decl.id.values.size() == 1);
-			if (alias_decl.id.values[0] != member->value)
-			{
-				continue;
-			}
-			else if (result.not_null())
-			{
-				report_ambigious_error(alias_decl.src_tokens);
-				return symbol_t{};
-			}
-			else
-			{
-				result_src_tokens = alias_decl.src_tokens;
-				result = &alias_decl;
-			}
-		}
-	}
-
-	if (result.is_null())
-	{
-		context.report_error(
-			member,
-			bz::format(
-				"no member named '{}' in type '{}'",
-				member->value, ast::type_info::decode_symbol_name(info->symbol_name)
-			)
-		);
-	}
-	return result;
-}
-
 ast::expression parse_context::make_member_access_expression(
 	lex::src_tokens src_tokens,
 	ast::expression base,
@@ -5950,82 +6607,19 @@ ast::expression parse_context::make_member_access_expression(
 		}
 
 		auto const info = type.get<ast::ts_base_type>().info;
-		auto const symbol = search_type_info_members(info, member, *this);
+		bz_assert(info->scope.is_global());
+		auto id = ast::make_identifier(member);
+		auto const symbol = find_id_in_global_scope(info->scope.get_global(), id, *this);
+
 		if (symbol.is_null())
 		{
+			this->report_error(member, bz::format("no member named '{}' in type '{}'", member->value, type));
 			return ast::make_error_expression(src_tokens, ast::make_expr_type_member_access(std::move(base), member, nullptr));
 		}
-
-		return symbol.visit(bz::overload{
-			[this, &src_tokens, &member, &base](ast::decl_variable *var_decl) -> ast::expression {
-				return make_variable_expression(
-					src_tokens,
-					var_decl,
-					ast::make_expr_type_member_access(std::move(base), member, var_decl), *this
-				);
-			},
-			[](variadic_var_decl const &) -> ast::expression {
-				bz_unreachable;
-			},
-			[this, &src_tokens, &member, &base](function_overload_set const &func_set) -> ast::expression {
-				for (auto &stmt : func_set.alias_decls)
-				{
-					auto &alias_decl = stmt.get<ast::decl_function_alias>();
-					this->add_to_resolve_queue(lex::src_tokens::from_single_token(member), alias_decl);
-					resolve::resolve_function_alias(alias_decl, *this);
-					this->pop_resolve_queue();
-				}
-
-				ast::constant_value value;
-				auto &result_func_set = value.emplace<ast::constant_value::qualified_function_set_id>();
-				result_func_set.id.push_back(member->value);
-				result_func_set.stmts.reserve(func_set.func_decls.size() + func_set.alias_decls.size());
-				result_func_set.stmts.append(func_set.func_decls);
-				result_func_set.stmts.append(func_set.alias_decls);
-				bz_assert(result_func_set.stmts.not_empty());
-				return ast::make_constant_expression(
-					src_tokens,
-					ast::expression_type_kind::function_name, ast::typespec(),
-					std::move(value),
-					ast::make_expr_type_member_access(std::move(base), member, nullptr)
-				);
-			},
-			[this, &src_tokens, &member, &base](ast::decl_type_alias *alias_decl) {
-				this->add_to_resolve_queue(lex::src_tokens::from_single_token(member), *alias_decl);
-				resolve::resolve_type_alias(*alias_decl, *this);
-				this->pop_resolve_queue();
-				if (alias_decl->state != ast::resolve_state::error)
-				{
-					auto const type = alias_decl->get_type();
-					return ast::make_constant_expression(
-						src_tokens,
-						ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-						ast::constant_value(type),
-						ast::make_expr_type_member_access(std::move(base), member, nullptr)
-					);
-				}
-				else
-				{
-					return ast::make_error_expression(
-						src_tokens,
-						ast::make_expr_type_member_access(std::move(base), member, nullptr)
-					);
-				}
-			},
-			[&src_tokens, &member, &base](ast::decl_struct *struct_decl) {
-				auto &info = struct_decl->info;
-				auto type = ast::make_base_type_typespec(lex::src_tokens::from_single_token(member), &info);
-				return ast::make_constant_expression(
-					src_tokens,
-					ast::expression_type_kind::type_name, ast::make_typename_typespec(nullptr),
-					ast::constant_value(std::move(type)),
-					ast::make_expr_type_member_access(std::move(base), member, nullptr)
-				);
-			},
-			[](ast::identifier const &) -> ast::expression {
-				bz_unreachable;
-			},
-		});
+		else
+		{
+			return expression_from_symbol(src_tokens, std::move(id), symbol, *this);
+		}
 	}
 
 	auto const [base_type, base_type_kind] = base.get_expr_type_and_kind();
@@ -6049,14 +6643,14 @@ ast::expression parse_context::make_member_access_expression(
 			return {};
 		}
 	}();
-	auto const type_file_id = [&]() -> uint32_t {
+	auto const type_global_scope = [&]() -> ast::enclosing_scope_t {
 		if (base_t.is<ast::ts_base_type>())
 		{
-			return base_t.get<ast::ts_base_type>().info->file_id;
+			return base_t.get<ast::ts_base_type>().info->get_scope();
 		}
 		else
 		{
-			return 0;
+			return {};
 		}
 	}();
 	auto const it = std::find_if(
@@ -6070,7 +6664,10 @@ ast::expression parse_context::make_member_access_expression(
 		this->report_error(member, bz::format("no member named '{}' in value of type '{}'", member->value, base_t));
 		return ast::make_error_expression(src_tokens, ast::make_expr_member_access(std::move(base), 0));
 	}
-	else if (auto const member_ptr = *it; this->current_file_id != type_file_id && member_ptr->get_unqualified_id_value().starts_with('_'))
+	else if (
+		auto const member_ptr = *it;
+		!this->has_common_global_scope(type_global_scope) && member_ptr->get_unqualified_id_value().starts_with('_')
+	)
 	{
 		auto notes = [&]() -> bz::vector<source_highlight> {
 			if (do_verbose)
@@ -6385,150 +6982,11 @@ size_t parse_context::get_sizeof(ast::typespec_view ts)
 	return this->global_ctx._comptime_executor.get_size(ts);
 }
 
-bz::vector<ast::function_body *> parse_context::get_function_bodies_from_unqualified_id(
-	lex::src_tokens requester,
-	ast::function_set_t const &func_set
-)
-{
-	bz::vector<ast::function_body *> result = {};
-	if (func_set.stmts.not_empty())
-	{
-		auto const size = func_set.stmts
-			.transform([](ast::statement_view const stmt) -> size_t {
-				if (stmt.is<ast::decl_function>())
-				{
-					return 1;
-				}
-				else
-				{
-					bz_assert(stmt.is<ast::decl_function_alias>());
-					return stmt.get<ast::decl_function_alias>().aliased_bodies.size();
-				}
-			}).sum();
-		result.reserve(size);
-		for (auto const &stmt : func_set.stmts)
-		{
-			if (stmt.is<ast::decl_function>())
-			{
-				result.push_back(&stmt.get<ast::decl_function>().body);
-			}
-			else
-			{
-				bz_assert(stmt.is<ast::decl_function_alias>());
-				result.append(stmt.get<ast::decl_function_alias>().aliased_bodies);
-			}
-		}
-		return result;
-	}
-
-	auto const id = ast::identifier{ {}, func_set.id, false };
-	if (id.values.size() == 1)
-	{
-		auto const symbol_ptr = find_decl_in_local_scope(this->scope_decls, id);
-		if (symbol_ptr != nullptr)
-		{
-			bz_assert(symbol_ptr->is<function_overload_set>());
-			auto &set = symbol_ptr->get<function_overload_set>();
-			for (auto &fn : set.func_decls)
-			{
-				result.push_back(&fn.get<ast::decl_function>().body);
-			}
-			for (auto &alias_decl : set.alias_decls)
-			{
-				auto &alias = alias_decl.get<ast::decl_function_alias>();
-				this->add_to_resolve_queue(requester, alias);
-				resolve::resolve_function_alias(alias, *this);
-				this->pop_resolve_queue();
-				result.append(alias.aliased_bodies);
-			}
-			return result;
-		}
-	}
-
-	auto const symbols = this->global_decls->find_by_unqualified_id(id, this->current_scope);
-	bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-	for (auto const symbol : symbols)
-	{
-		auto &func_set = symbol->get<function_overload_set>();
-		for (auto &fn : func_set.func_decls)
-		{
-			result.push_back(&fn.template get<ast::decl_function>().body);
-		}
-		for (auto &alias_decl : func_set.alias_decls)
-		{
-			auto &alias = alias_decl.template get<ast::decl_function_alias>();
-			this->add_to_resolve_queue(requester, alias);
-			resolve::resolve_function_alias(alias, *this);
-			this->pop_resolve_queue();
-			result.append(alias.aliased_bodies);
-		}
-	}
-	return result;
-}
-
-bz::vector<ast::function_body *> parse_context::get_function_bodies_from_qualified_id(
-	lex::src_tokens requester,
-	ast::function_set_t const &func_set
-)
-{
-	bz::vector<ast::function_body *> result = {};
-	if (func_set.stmts.not_empty())
-	{
-		auto const size = func_set.stmts
-			.transform([](ast::statement_view const stmt) -> size_t {
-				if (stmt.is<ast::decl_function>())
-				{
-					return 1;
-				}
-				else
-				{
-					bz_assert(stmt.is<ast::decl_function_alias>());
-					return stmt.get<ast::decl_function_alias>().aliased_bodies.size();
-				}
-			}).sum();
-		result.reserve(size);
-		for (auto const &stmt : func_set.stmts)
-		{
-			if (stmt.is<ast::decl_function>())
-			{
-				result.push_back(&stmt.get<ast::decl_function>().body);
-			}
-			else
-			{
-				bz_assert(stmt.is<ast::decl_function_alias>());
-				result.append(stmt.get<ast::decl_function_alias>().aliased_bodies);
-			}
-		}
-		return result;
-	}
-
-	auto const id = ast::identifier{ {}, func_set.id, true };
-	auto const symbols = this->global_decls->find_by_unqualified_id(id, this->current_scope);
-	bz_assert(symbols.is_all([](auto const symbol) { return symbol->template is<function_overload_set>(); }));
-	for (auto const symbol : symbols)
-	{
-		auto &func_set = symbol->get<function_overload_set>();
-		for (auto &fn : func_set.func_decls)
-		{
-			result.push_back(&fn.get<ast::decl_function>().body);
-		}
-		for (auto &alias_decl : func_set.alias_decls)
-		{
-			auto &alias = alias_decl.get<ast::decl_function_alias>();
-			this->add_to_resolve_queue(requester, alias);
-			resolve::resolve_function_alias(alias, *this);
-			this->pop_resolve_queue();
-			result.append(alias.aliased_bodies);
-		}
-	}
-	return result;
-}
-
 ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 {
 	ast::identifier result;
 	result.is_qualified = true;
-	result.values = this->current_scope;
+	result.values = this->get_current_enclosing_id_scope();
 	result.values.push_back(id->value);
 	result.tokens = { id, id + 1 };
 	return result;
@@ -6571,6 +7029,7 @@ ast::constant_value parse_context::execute_compound_expression(
 {
 	auto const original_parse_ctx = this->global_ctx._comptime_executor.current_parse_ctx;
 	this->global_ctx._comptime_executor.current_parse_ctx = this;
+	// bz::log("line {}\n", src_tokens.pivot->src_pos.line);
 	auto [result, errors] = this->global_ctx._comptime_executor.execute_compound_expression(expr);
 	this->global_ctx._comptime_executor.current_parse_ctx = original_parse_ctx;
 	if (!errors.empty())

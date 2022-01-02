@@ -451,7 +451,6 @@ public:
 				--this->_data_end;
 				this->_data_end->~value_type();
 			}
-			this->shrink_to_fit();
 		}
 		else
 		{

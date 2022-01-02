@@ -1695,11 +1695,14 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->is_intrinsic());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 125);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
-	static_assert(ast::function_body::_builtin_operator_last - ast::function_body::_builtin_operator_first == 34);
+	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
+	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
 	case ast::function_body::builtin_str_eq:
 	{
+		bz::log("{}\n", original_expr.src_tokens.pivot->src_pos.line);
+		bz::log("{}\n", func_call.func_body->src_tokens.pivot->src_pos.line);
 		bz_assert(func_call.params.size() == 2);
 		if (exec_kind == function_execution_kind::force_evaluate)
 		{
@@ -1998,6 +2001,26 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			.get<ast::constant_expression>().value
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(bz::format("{}", type));
+	}
+	case ast::function_body::remove_pointer:
+	{
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		bz_assert(type.is<ast::ts_pointer>());
+		return ast::constant_value(type.get<ast::ts_pointer>());
+	}
+	case ast::function_body::remove_reference:
+	{
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		bz_assert(type.is<ast::ts_lvalue_reference>());
+		return ast::constant_value(type.get<ast::ts_lvalue_reference>());
 	}
 
 	case ast::function_body::memcpy:
@@ -2368,15 +2391,15 @@ static ast::constant_value get_default_constructed_value(
 			}
 			else
 			{
-				auto const body = base_t.info->default_constructor;
-				bz_assert(body != nullptr);
+				auto const decl = base_t.info->default_constructor;
+				bz_assert(decl != nullptr);
 				if (exec_kind == function_execution_kind::force_evaluate)
 				{
-					return context.execute_function(src_tokens, body, {});
+					return context.execute_function(src_tokens, &decl->body, {});
 				}
 				else if (exec_kind == function_execution_kind::force_evaluate_without_error)
 				{
-					return context.execute_function_without_error(src_tokens, body, {});
+					return context.execute_function_without_error(src_tokens, &decl->body, {});
 				}
 				else
 				{
@@ -2431,7 +2454,7 @@ static ast::constant_value evaluate_function_call(
 	ctx::parse_context &context
 )
 {
-	if (func_call.func_body->is_intrinsic())
+	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
 		return evaluate_intrinsic_function_call(original_expr, func_call, exec_kind, context);
 	}
@@ -3049,6 +3072,8 @@ static ast::constant_value try_evaluate_expr(
 	ctx::parse_context &context
 )
 {
+	bz_assert(!expr.has_consteval_succeeded());
+
 	return expr.get_expr().visit(bz::overload{
 		[](ast::expr_identifier &) -> ast::constant_value {
 			// identifiers are only constant expressions if they are a consteval
@@ -3091,7 +3116,6 @@ static ast::constant_value try_evaluate_expr(
 		},
 		[&expr, &context](ast::expr_binary_op &binary_op) -> ast::constant_value {
 			consteval_try(binary_op.lhs, context);
-			consteval_try(binary_op.rhs, context);
 
 			// special case for bool_and and bool_or shortcircuiting
 			if (binary_op.lhs.has_consteval_succeeded())
@@ -3120,6 +3144,8 @@ static ast::constant_value try_evaluate_expr(
 					}
 				}
 			}
+
+			consteval_try(binary_op.rhs, context);
 
 			if (binary_op.lhs.has_consteval_succeeded() && binary_op.rhs.has_consteval_succeeded())
 			{

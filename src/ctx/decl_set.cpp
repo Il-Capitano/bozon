@@ -3,6 +3,8 @@
 namespace ctx
 {
 
+/*
+
 ast::identifier const &get_symbol_id(symbol_t const &symbol)
 {
 	return symbol.visit(bz::overload{
@@ -405,5 +407,7 @@ void decl_set::add_unresolved_id(ast::identifier id)
 {
 	this->symbols.push_back(std::move(id));
 }
+
+*/
 
 } // namespace ctx
