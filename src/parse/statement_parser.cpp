@@ -617,11 +617,7 @@ ast::statement parse_decl_function_or_alias(
 			bz_assert(result.is<ast::decl_function>());
 			auto &func_decl = result.get<ast::decl_function>();
 			func_decl.body.flags |= ast::function_body::local;
-			resolve::resolve_function(result, func_decl.body, context);
-			if (func_decl.body.state != ast::resolve_state::error)
-			{
-				context.add_unresolved_local(func_name);
-			}
+			context.add_unresolved_local(func_name);
 			return result;
 		}
 	}
