@@ -3375,7 +3375,7 @@ static match_level_t get_strict_type_match_level(
 	}
 	else if (dest == source)
 	{
-		return result + 2;
+		return result + 3;
 	}
 	else if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
 	{
@@ -3421,7 +3421,7 @@ static match_level_t get_strict_type_match_level(
 		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
 	)
 	{
-		return result + 1;
+		return result + 2;
 	}
 	else if (dest.is<ast::ts_array_slice>() && source.is<ast::ts_array_slice>())
 	{
@@ -4988,7 +4988,8 @@ static void match_expression_to_type_impl(
 	}
 
 	if (
-		dest_container.is<ast::ts_lvalue_reference>()
+		!dest_container.is_typename()
+		&& dest_container.is<ast::ts_lvalue_reference>()
 		&& expr.get_expr_type_and_kind().second != ast::expression_type_kind::lvalue_reference
 	)
 	{
@@ -5000,7 +5001,7 @@ static void match_expression_to_type_impl(
 		);
 	}
 
-	if (dest_container.is<ast::ts_consteval>())
+	if (!dest_container.is_typename() && dest_container.is<ast::ts_consteval>())
 	{
 		parse::consteval_try(expr, context);
 		if (!expr.is<ast::constant_expression>())
