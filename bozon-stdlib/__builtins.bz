@@ -1,56 +1,4 @@
 @__builtin
-function __builtin_str_eq(lhs: str, rhs: str) -> bool
-{
-	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
-	{
-		return false;
-	}
-
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
-	if (lhs_it == rhs_it)
-	{
-		return true;
-	}
-
-	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
-	{
-		if (*lhs_it != *rhs_it)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-@__builtin
-function __builtin_str_neq(lhs: str, rhs: str) -> bool
-{
-	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
-	{
-		return true;
-	}
-
-	let lhs_it = __builtin_str_begin_ptr(lhs);
-	let rhs_it = __builtin_str_begin_ptr(rhs);
-	const lhs_end = __builtin_str_end_ptr(lhs);
-	if (lhs_it == rhs_it)
-	{
-		return false;
-	}
-
-	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
-	{
-		if (*lhs_it != *rhs_it)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-@__builtin
 function __builtin_str_length(s: str) -> usize
 {
 	let continuation_byte_count = 0uz;
@@ -151,38 +99,37 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 // src_tokens variants are handled in __comptime_checking.bz
 
 @__builtin consteval function __builtin_typename_as_str(T: typename) -> str;
-@__builtin consteval function __builtin_remove_pointer(T: *typename) -> typename;
-@__builtin consteval function __builtin_remove_reference(T: &typename) -> typename;
+@__builtin consteval function __builtin_remove_const(T: typename) -> typename;
+@__builtin consteval function __builtin_remove_consteval(T: typename) -> typename;
+@__builtin consteval function __builtin_remove_pointer(T: typename) -> typename;
+@__builtin consteval function __builtin_remove_reference(T: typename) -> typename;
 
 @__builtin @symbol_name(
-//	if (sizeof usize == 8u) {
-//		"llvm.memcpy.p0i8.p0i8.i64"
-//	} else if (sizeof usize == 4u) {
-//		"llvm.memcpy.p0i8.p0i8.i32"
-//	} else {
-//		unreachable
-//	}
-	"llvm.memcpy.p0i8.p0i8.i64"
+	if (sizeof usize == 8u) {
+		"llvm.memcpy.p0i8.p0i8.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memcpy.p0i8.p0i8.i32"
+	} else {
+		unreachable
+	}
 ) function __builtin_memcpy(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-//	if (sizeof usize == 8u) {
-//		"llvm.memmove.p0i8.p0i8.i64"
-//	} else if (sizeof usize == 4u) {
-//		"llvm.memmove.p0i8.p0i8.i32"
-//	} else {
-//		unreachable
-//	}
-	"llvm.memmove.p0i8.p0i8.i64"
+	if (sizeof usize == 8u) {
+		"llvm.memmove.p0i8.p0i8.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memmove.p0i8.p0i8.i32"
+	} else {
+		unreachable
+	}
 ) function __builtin_memmove(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
-//	if (sizeof usize == 8u) {
-//		"llvm.memset.p0i8.i64"
-//	} else if (sizeof usize == 4u) {
-//		"llvm.memset.p0i8.i32"
-//	} else {
-//		unreachable
-//	}
-	"llvm.memset.p0i8.i64"
+	if (sizeof usize == 8u) {
+		"llvm.memset.p0i8.i64"
+	} else if (sizeof usize == 4u) {
+		"llvm.memset.p0i8.i32"
+	} else {
+		unreachable
+	}
 ) function __builtin_memset(dest: *void, val: uint8, n: usize);
 
 @__builtin @symbol_name("llvm.exp.f32") function __builtin_exp_f32(x: float32) -> float32;
@@ -508,7 +455,27 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator == (lhs: char, rhs: char) -> bool;
 @__builtin operator == (lhs: str, rhs: str) -> bool
 {
-	return __builtin_str_eq(lhs, rhs);
+	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
+	{
+		return false;
+	}
+
+	let lhs_it = __builtin_str_begin_ptr(lhs);
+	let rhs_it = __builtin_str_begin_ptr(rhs);
+	const lhs_end = __builtin_str_end_ptr(lhs);
+	if (lhs_it == rhs_it)
+	{
+		return true;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 @__builtin operator == (lhs: bool, rhs: bool) -> bool;
 @__builtin operator == (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
@@ -528,7 +495,27 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator != (lhs: char, rhs: char) -> bool;
 @__builtin operator != (lhs: str, rhs: str) -> bool
 {
-	return __builtin_str_neq(lhs, rhs);
+	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
+	{
+		return true;
+	}
+
+	let lhs_it = __builtin_str_begin_ptr(lhs);
+	let rhs_it = __builtin_str_begin_ptr(rhs);
+	const lhs_end = __builtin_str_end_ptr(lhs);
+	if (lhs_it == rhs_it)
+	{
+		return false;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 @__builtin operator != (lhs: bool, rhs: bool) -> bool;
 @__builtin operator != (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);

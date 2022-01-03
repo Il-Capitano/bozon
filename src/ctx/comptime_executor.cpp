@@ -590,7 +590,6 @@ void comptime_executor_context::pop_loop(loop_info_t info) noexcept
 
 void comptime_executor_context::ensure_function_emission(ast::function_body *body)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 125);
 	if (!body->has_builtin_implementation() || body->body.not_null())
 	{
 		if (!body->is_comptime_bitcode_emitted())

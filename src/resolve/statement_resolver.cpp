@@ -29,7 +29,7 @@ static void apply_attribute(
 		{
 			context.report_error(
 				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
-				"@maybe_unused expects no arguments"
+				"'@maybe_unused' expects no arguments"
 			);
 		}
 		apply_maybe_unused_to_var_decl(var_decl);
@@ -38,22 +38,19 @@ static void apply_attribute(
 	{
 		if (attribute.args.size() != 1)
 		{
-			context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+			context.report_error(attribute.name, "'@comptime_error_checking' expects exactly one argument");
 			return;
 		}
 
 		{
+			auto str_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::str_));
+			context.match_expression_to_type(attribute.args[0], str_type);
 			parse::consteval_try(attribute.args[0], context);
-			auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-			auto const type_without_const = ast::remove_const_or_consteval(type);
-			if (
-				!type_without_const.is<ast::ts_base_type>()
-				|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-			)
-			{
-				context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
-				return;
-			}
+		}
+
+		if (!attribute.args[0].is<ast::constant_expression>())
+		{
+			return;
 		}
 
 		auto const kind = attribute.args[0]
@@ -62,7 +59,7 @@ static void apply_attribute(
 
 		if (!context.global_ctx.add_comptime_checking_variable(kind, &var_decl))
 		{
-			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+			context.report_error(attribute.args[0], bz::format("invalid kind '{}' for '@comptime_error_checking'", kind));
 		}
 	}
 	else if (attribute.name->value == "no_runtime_emit")
@@ -71,7 +68,7 @@ static void apply_attribute(
 		{
 			context.report_error(
 				{ attribute.arg_tokens.begin, attribute.arg_tokens.begin, attribute.arg_tokens.end },
-				"@no_runtime_emit expects no arguments"
+				"'@no_runtime_emit' expects no arguments"
 			);
 		}
 		var_decl.flags |= ast::decl_variable::no_runtime_emit;
@@ -95,29 +92,25 @@ static void apply_symbol_name(
 	bz_assert(attribute.name->value == "symbol_name");
 	if (attribute.args.size() != 1)
 	{
-		context.report_error(attribute.name, "@symbol_name expects exactly one argument");
+		context.report_error(attribute.name, "'@symbol_name' expects exactly one argument");
 		return;
 	}
 
 	if (func_body.is_generic())
 	{
-		context.report_error(attribute.name, "@symbol_name cannot be applied to generic functions");
+		context.report_error(attribute.name, "'@symbol_name' cannot be applied to generic functions");
 		return;
 	}
 
-	// symbol name
 	{
+		auto str_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::str_));
+		context.match_expression_to_type(attribute.args[0], str_type);
 		parse::consteval_try(attribute.args[0], context);
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "name in @symbol_name must have type 'str'");
-			return;
-		}
+	}
+
+	if (!attribute.args[0].is<ast::constant_expression>())
+	{
+		return;
 	}
 
 	auto const symbol_name = attribute.args[0]
@@ -136,7 +129,7 @@ static void apply_no_comptime_checking(
 {
 	if (!attribute.args.empty())
 	{
-		context.report_error(attribute.name, "@no_comptime_checking expects no arguments");
+		context.report_error(attribute.name, "'@no_comptime_checking' expects no arguments");
 	}
 
 	func_body.flags |= ast::function_body::no_comptime_checking;
@@ -154,22 +147,19 @@ static void apply_comptime_error_checking(
 {
 	if (attribute.args.size() != 1)
 	{
-		context.report_error(attribute.name, "@comptime_error_checking expects exactly one argument");
+		context.report_error(attribute.name, "'@comptime_error_checking' expects exactly one argument");
 		return;
 	}
 
 	{
+		auto str_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::str_));
+		context.match_expression_to_type(attribute.args[0], str_type);
 		parse::consteval_try(attribute.args[0], context);
-		auto const [type, _] = attribute.args[0].get_expr_type_and_kind();
-		auto const type_without_const = ast::remove_const_or_consteval(type);
-		if (
-			!type_without_const.is<ast::ts_base_type>()
-			|| type_without_const.get<ast::ts_base_type>().info->kind != ast::type_info::str_
-		)
-		{
-			context.report_error(attribute.args[0], "kind in @comptime_error_checking must have type 'str'");
-			return;
-		}
+	}
+
+	if (!attribute.args[0].is<ast::constant_expression>())
+	{
+		return;
 	}
 
 	auto const kind = attribute.args[0]
@@ -178,7 +168,7 @@ static void apply_comptime_error_checking(
 
 	if (!context.global_ctx.add_comptime_checking_function(kind, &func_body))
 	{
-		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for @comptime_error_checking", kind));
+		context.report_error(attribute.args[0], bz::format("invalid kind '{}' for '@comptime_error_checking'", kind));
 	}
 	func_body.flags |= ast::function_body::no_comptime_checking;
 }
@@ -220,12 +210,12 @@ static void apply_builtin(
 {
 	if (attribute.args.size() != 0)
 	{
-		context.report_error(attribute.name, "@__builtin expects no arguments");
+		context.report_error(attribute.name, "'@__builtin' expects no arguments");
 	}
 
 	if (!context.global_ctx.add_builtin_function(&func_decl))
 	{
-		context.report_error(func_decl.body.src_tokens, "invalid function for @__builtin");
+		context.report_error(func_decl.body.src_tokens, "invalid function for '@__builtin'");
 	}
 	else
 	{
@@ -241,12 +231,12 @@ static void apply_builtin(
 {
 	if (attribute.args.size() != 0)
 	{
-		context.report_error(attribute.name, "@__builtin expects no arguments");
+		context.report_error(attribute.name, "'@__builtin' expects no arguments");
 	}
 
 	if (!context.global_ctx.add_builtin_operator(&op_decl))
 	{
-		context.report_error(op_decl.body.src_tokens, "invalid operator for @__builtin");
+		context.report_error(op_decl.body.src_tokens, "invalid operator for '@__builtin'");
 	}
 	else
 	{

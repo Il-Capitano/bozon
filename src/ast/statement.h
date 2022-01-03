@@ -446,9 +446,7 @@ struct function_body
 	{
 		_builtin_first,
 
-		builtin_str_eq = _builtin_first,
-		builtin_str_neq,
-		builtin_str_length,
+		builtin_str_length = _builtin_first,
 		builtin_str_starts_with,
 		builtin_str_ends_with,
 
@@ -495,6 +493,8 @@ struct function_body
 		// type manipulation functions
 
 		typename_as_str,
+		remove_const,
+		remove_consteval,
 		remove_pointer,
 		remove_reference,
 
@@ -1370,9 +1370,7 @@ struct builtin_operator
 
 bz::vector<type_info>              make_builtin_type_infos(void);
 bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
-bz::vector<decl_function>          make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
-bz::vector<builtin_operator>       make_builtin_operators(bz::array_view<type_info> builtin_type_infos);
 
 scope_t make_builtin_global_scope(
 	bz::array_view<decl_function *> builtin_functions,
@@ -1389,8 +1387,6 @@ constexpr auto intrinsic_info = []() {
 	static_assert(function_body::_builtin_last - function_body::_builtin_first == 125);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
-		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
-		{ function_body::builtin_str_neq,         "__builtin_str_neq"         },
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
 		{ function_body::builtin_str_starts_with, "__builtin_str_starts_with" },
 		{ function_body::builtin_str_ends_with,   "__builtin_str_ends_with"   },
@@ -1436,6 +1432,8 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
 		{ function_body::typename_as_str,  "__builtin_typename_as_str"  },
+		{ function_body::remove_const,     "__builtin_remove_const"     },
+		{ function_body::remove_consteval, "__builtin_remove_consteval" },
 		{ function_body::remove_pointer,   "__builtin_remove_pointer"   },
 		{ function_body::remove_reference, "__builtin_remove_reference" },
 

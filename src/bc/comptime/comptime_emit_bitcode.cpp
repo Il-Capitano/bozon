@@ -3469,6 +3469,8 @@ static val_ptr emit_bitcode(
 		}
 
 		case ast::function_body::typename_as_str:
+		case ast::function_body::remove_const:
+		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
 		case ast::function_body::remove_reference:
 		case ast::function_body::i8_default_constructor:
