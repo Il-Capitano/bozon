@@ -503,6 +503,22 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			{}, {}
 		});
 	}
+	if (errors.not_empty())
+	{
+		return false;
+	}
+
+	if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
+	{
+		compile_until = compilation_phase::parse_command_line;
+		return true;
+	}
+	else if (display_version)
+	{
+		print_version_info();
+		compile_until = compilation_phase::parse_command_line;
+		return true;
+	}
 
 	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
 	{
@@ -530,15 +546,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	else
 	{
-		if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
-		{
-			compile_until = compilation_phase::parse_command_line;
-		}
-		else if (display_version)
-		{
-			print_version_info();
-			compile_until = compilation_phase::parse_command_line;
-		}
 		return true;
 	}
 }
@@ -788,6 +795,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return this->emit_llvm_bc();
 	case emit_type::llvm_ir:
 		return this->emit_llvm_ir();
+	case emit_type::null:
+		return true;
 	}
 	bz_unreachable;
 }

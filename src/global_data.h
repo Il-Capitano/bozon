@@ -21,6 +21,7 @@ enum class emit_type
 	asm_,
 	llvm_bc,
 	llvm_ir,
+	null,
 };
 
 inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
@@ -40,6 +41,10 @@ inline bz::optional<emit_type> parse_emit_type(bz::u8string_view arg)
 	else if (arg == "llvm-ir")
 	{
 		return emit_type::llvm_ir;
+	}
+	else if (arg == "null")
+	{
+		return emit_type::null;
 	}
 	else
 	{

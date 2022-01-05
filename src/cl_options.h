@@ -89,13 +89,13 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 
 template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
-	ctcli::create_option("-V, --version",                    "Print compiler version"),
-	ctcli::create_option("-I, --import-dir <dir>",           "Add <dir> as an import directory", ctcli::arg_type::string),
-	ctcli::create_option("-o, --output <file>",              "Write output to <file>", ctcli::arg_type::string),
-	ctcli::create_option("-D, --define <option>",            "Set <option> for compilation", ctcli::arg_type::string),
-	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
-	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
-	ctcli::create_option("--no-panic-on-unreachable",        "Don't call '__builtin_panic()' if unreachable is hit"),
+	ctcli::create_option("-V, --version",                         "Print compiler version"),
+	ctcli::create_option("-I, --import-dir <dir>",                "Add <dir> as an import directory", ctcli::arg_type::string),
+	ctcli::create_option("-o, --output <file>",                   "Write output to <file>", ctcli::arg_type::string),
+	ctcli::create_option("-D, --define <option>",                 "Set <option> for compilation", ctcli::arg_type::string),
+	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir|null}", "Emit the specified code type or nothing (default=obj)"),
+	ctcli::create_option("--target=<target-triple>",              "Set compilation target to <target-triple>", ctcli::arg_type::string),
+	ctcli::create_option("--no-panic-on-unreachable",             "Don't call '__builtin_panic()' if unreachable is hit"),
 
 	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
@@ -168,21 +168,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
-	if (arg == "obj")
+	auto const result = parse_emit_type(arg);
+	if (result.has_value())
 	{
-		return emit_type::obj;
-	}
-	else if (arg == "asm")
-	{
-		return emit_type::asm_;
-	}
-	else if (arg == "llvm-bc")
-	{
-		return emit_type::llvm_bc;
-	}
-	else if (arg == "llvm-ir")
-	{
-		return emit_type::llvm_ir;
+		return result.get();
 	}
 	else
 	{
@@ -192,13 +181,10 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = 
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--x86-asm-syntax")> = [](bz::u8string_view arg) -> std::optional<x86_asm_syntax_kind> {
-	if (arg == "att")
+	auto const result = parse_x86_asm_syntax(arg);
+	if (result.has_value())
 	{
-		return x86_asm_syntax_kind::att;
-	}
-	else if (arg == "intel")
-	{
-		return x86_asm_syntax_kind::intel;
+		return result.get();
 	}
 	else
 	{
