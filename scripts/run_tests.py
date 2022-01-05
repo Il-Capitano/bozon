@@ -28,6 +28,8 @@ bright_magenta = "\033[95m"
 bright_cyan    = "\033[96m"
 bright_white   = "\033[97m"
 
+error = False
+
 for test_file in test_files:
     process = subprocess.run(
         [ bozon, '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', test_file ],
@@ -38,6 +40,7 @@ for test_file in test_files:
     if process.returncode == 0:
         print(f'    {test_file:.<60}{bright_green}OK{clear}')
     else:
+        error = True
         print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
         if stdout != '':
             print('stdout:')
@@ -45,3 +48,6 @@ for test_file in test_files:
         if stderr != '':
             print('stderr:')
             print(stderr)
+
+if error:
+    exit(1)
