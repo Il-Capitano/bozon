@@ -876,8 +876,14 @@ void parse_context::report_parenthesis_suppressed_warning(
 		return make_note(open_paren_it, "to match this:");
 	}
 
-	bz_assert(open_paren_it->kind == lex::token::paren_open || open_paren_it->kind == lex::token::square_open);
-	auto const suggestion_str = open_paren_it->kind == lex::token::paren_open ? ")" : "]";
+	bz_assert(
+		open_paren_it->kind == lex::token::paren_open
+		|| open_paren_it->kind == lex::token::square_open
+		|| open_paren_it->kind == lex::token::angle_open
+	);
+	auto const suggestion_str = open_paren_it->kind == lex::token::paren_open ? ")"
+		: open_paren_it->kind == lex::token::square_open ? "]"
+		: ">";
 	auto const [suggested_paren_pos, suggested_paren_line] = [&]() {
 		switch (it->kind)
 		{
@@ -892,6 +898,15 @@ void parse_context::report_parenthesis_suppressed_warning(
 			}
 		case lex::token::square_close:
 			if ((open_paren_it - 1)->kind == lex::token::square_open && (open_paren_it - 1)->src_pos.end == open_paren_it->src_pos.begin)
+			{
+				return std::make_pair(it->src_pos.begin, it->src_pos.line);
+			}
+			else
+			{
+				return std::make_pair((it - 1)->src_pos.end, (it - 1)->src_pos.line);
+			}
+		case lex::token::angle_close:
+			if ((open_paren_it - 1)->kind == lex::token::angle_open && (open_paren_it - 1)->src_pos.end == open_paren_it->src_pos.begin)
 			{
 				return std::make_pair(it->src_pos.begin, it->src_pos.line);
 			}
@@ -5563,8 +5578,14 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
 	if (expr_type.is<ast::ts_base_type>())
 	{
-		auto const base_type_enclosing_scope = expr_type.get<ast::ts_base_type>().info->get_scope();
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, base_type_enclosing_scope, context);
+		auto const info = expr_type.get<ast::ts_base_type>().info;
+		if (info->state != ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, info->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -5703,26 +5724,26 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
 	if (lhs_type.is<ast::ts_base_type>())
 	{
-		auto const lhs_enclosing_scope = lhs_type.get<ast::ts_base_type>().info->get_scope();
-		/*
-		if (bz::format("{}", lhs_type) == "std::string")
+		auto const info = lhs_type.get<ast::ts_base_type>().info;
+		if (info->state != ast::resolve_state::all)
 		{
-			bz::log("HELLO, {}\n", op == lex::token::assign);
-			auto const &scope = lhs_enclosing_scope.scope->get_global();
-			bz::log("{}\n", scope.operator_sets.size());
-			if (scope.operator_sets.not_empty())
-			{
-				bz::log("{}\n", format_array(scope.operator_sets.front().id_scope));
-			}
+			context.add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, context);
+			context.pop_resolve_queue();
 		}
-		*/
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, lhs_enclosing_scope, context);
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
 	if (rhs_type.is<ast::ts_base_type>())
 	{
-		auto const rhs_enclosing_scope = rhs_type.get<ast::ts_base_type>().info->get_scope();
-		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, rhs_enclosing_scope, context);
+		auto const info = rhs_type.get<ast::ts_base_type>().info;
+		if (info->state != ast::resolve_state::all)
+		{
+			context.add_to_resolve_queue(src_tokens, *info);
+			resolve::resolve_type_info(*info, context);
+			context.pop_resolve_queue();
+		}
+		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
 
 	return possible_funcs;
@@ -6311,6 +6332,12 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 		if (type.is<ast::ts_base_type>())
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
+			if (info->state != ast::resolve_state::all)
+			{
+				context.add_to_resolve_queue(src_tokens, *info);
+				resolve::resolve_type_info(*info, context);
+				context.pop_resolve_queue();
+			}
 			// TODO: don't use info->enclosing_scope here, because that includes non-exported symbols too
 			get_possible_funcs_for_universal_function_call_helper(
 				possible_funcs, src_tokens, id, params, info->get_scope(), context
