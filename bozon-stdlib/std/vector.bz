@@ -151,6 +151,17 @@ export struct vector<T: typename>
 		__builtin_inplace_construct(self._data_end, value);
 		self._data_end += 1;
 	}
+
+	function emplace_back(self: &_self_t, args: ...##auto) -> &value_type
+	{
+		if (self._data_end == self._alloc_end)
+		{
+			self.reserve(self.size() + 1u);
+		}
+		__builtin_inplace_construct(self._data_end, value_type(...args));
+		self._data_end += 1;
+		return *(self._data_end - 1);
+	}
 }
 
 export function swap(a: &vector, b: &vector)
