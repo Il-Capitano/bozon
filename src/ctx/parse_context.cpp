@@ -249,10 +249,48 @@ void parse_context::push_local_scope(ast::scope_t *new_scope) noexcept
 	this->current_local_scope = { new_scope, new_scope->get_local().symbols.size() };
 }
 
-void parse_context::pop_local_scope(void) noexcept
+static auto var_decl_range(bz::array_view<ast::local_symbol_t const> symbols)
+{
+	return symbols
+		.filter([](auto const &symbol) {
+			return symbol.template is<ast::decl_variable *>()
+				|| (
+					symbol.template is<ast::variadic_var_decl>()
+					&& symbol.template get<ast::variadic_var_decl>().variadic_decls.not_empty()
+				);
+		})
+		.transform([](auto const &symbol) {
+			return symbol.template is<ast::decl_variable *>()
+				? symbol.template get<ast::decl_variable *>()
+				: symbol.template get<ast::variadic_var_decl>().original_decl;
+		});
+}
+
+void parse_context::pop_local_scope(bool report_unused) noexcept
 {
 	bz_assert(this->current_local_scope.scope != nullptr);
 	bz_assert(this->current_local_scope.scope->is_local());
+
+	if (report_unused && is_warning_enabled(warning_kind::unused_variable))
+	{
+		auto const &symbols = this->current_local_scope.scope->get_local().symbols.slice(0, this->current_local_scope.symbol_count);
+		for (auto const var_decl : var_decl_range(symbols))
+		{
+			if (!var_decl->is_used() && !var_decl->is_maybe_unused() && var_decl->get_id().values.not_empty())
+			{
+				this->report_warning(
+					warning_kind::unused_variable,
+					var_decl->src_tokens,
+					bz::format("unused variable '{}'", var_decl->get_id().format_as_unqualified()),
+					{ this->make_note_with_suggestion_before(
+						{}, var_decl->get_id().tokens.end - 1, "_",
+						"prefix variable name with an underscore to suppress this warning"
+					) }
+				);
+			}
+		}
+	}
+
 	auto const parent = this->current_local_scope.scope->get_local().parent;
 	bz_assert(parent.scope != nullptr);
 	if (parent.scope == this->current_global_scope)
@@ -401,17 +439,9 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 		auto const &body = *dep.requested.get<ast::function_body *>();
 		if (body.is_generic_specialization())
 		{
-			if (body.is_intrinsic())
-			{
-				// intrinsics don't have a definition, so the source position can't be reported
-				notes.emplace_back(context.make_note(bz::format("in generic instantiation of '{}'", body.get_signature())));
-			}
-			else
-			{
-				notes.emplace_back(context.make_note(
-					body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
-				));
-			}
+			notes.emplace_back(context.make_note(
+				body.src_tokens, bz::format("in generic instantiation of '{}'", body.get_signature())
+			));
 		}
 	}
 	else if (dep.requested.is<ast::type_info *>())
@@ -1428,7 +1458,6 @@ static ast::expression make_variable_expression(
 	parse_context &context
 )
 {
-	var_decl->flags |= ast::decl_variable::used;
 	auto id_type_kind = ast::expression_type_kind::lvalue;
 	ast::typespec_view id_type = var_decl->get_type();
 	if (id_type.is<ast::ts_lvalue_reference>())
@@ -1707,11 +1736,13 @@ static ast::expression expression_from_symbol(
 			resolve::resolve_variable_symbol(*var_decl, context);
 			context.pop_resolve_queue();
 		}
+		var_decl->flags |= ast::decl_variable::used;
 		return make_variable_expression(src_tokens, std::move(id), symbol.get<ast::decl_variable *>(), context);
 	}
 	case symbol_t::index_of<ast::variadic_var_decl_ref>:
 	{
 		auto const &variadic_decl = symbol.get<ast::variadic_var_decl_ref>();
+		variadic_decl.original_decl->flags |= ast::decl_variable::used;
 		if (context.parsing_variadic_expansion)
 		{
 			return ast::make_unresolved_expression(
@@ -1747,6 +1778,9 @@ static ast::expression expression_from_symbol(
 	case symbol_t::index_of<ast::decl_function_alias *>:
 	{
 		auto const alias_decl = symbol.get<ast::decl_function_alias *>();
+		context.add_to_resolve_queue(src_tokens, *alias_decl);
+		resolve::resolve_function_alias(*alias_decl, context);
+		context.pop_resolve_queue();
 		return make_function_name_expression(src_tokens, std::move(id), alias_decl);
 	}
 	case symbol_t::index_of<function_overload_set_decls>:
@@ -1994,9 +2028,6 @@ static auto get_function_set_range_by_unqualified_id(
 	return func_sets.filter(
 		[&id, id_scope](auto const &set) {
 			return unqualified_equals(set.id, id, id_scope);
-			return set.id.is_qualified
-				? unqualified_equals(set.id, id, id_scope)
-				: set.id == id;
 		}
 	);
 }
@@ -6169,14 +6200,41 @@ static void get_possible_funcs_for_universal_function_call_helper(
 	parse_context &context
 )
 {
-	auto const id_scope = scope.id_scope;
 	if (id.is_qualified)
 	{
-		bz_unreachable;
+		auto const func_set = find_function_set_by_qualified_id(scope.function_sets, id);
+		if (func_set != nullptr)
+		{
+			for (auto const func : func_set->func_decls.filter(
+				[&result](auto const func) {
+					return !result.member<&possible_func_t::func_body>().contains(&func->body);
+				})
+			)
+			{
+				auto match_level = get_function_call_match_level(func, func->body, params, context, src_tokens);
+				result.push_back({ std::move(match_level), func, &func->body });
+			}
+
+			for (auto const alias : func_set->alias_decls)
+			{
+				context.add_to_resolve_queue(src_tokens, *alias);
+				resolve::resolve_function_alias(*alias, context);
+				context.pop_resolve_queue();
+				for (auto const decl : alias->aliased_decls.filter(
+					[&result](auto const decl) {
+						return !result.member<&possible_func_t::func_body>().contains(&decl->body);
+					}
+				))
+				{
+					auto match_level = get_function_call_match_level(decl, decl->body, params, context, src_tokens);
+					result.push_back({ std::move(match_level), alias, &decl->body });
+				}
+			}
+		}
 	}
 	else
 	{
-		for (auto const &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, id_scope))
+		for (auto const &func_set : get_function_set_range_by_unqualified_id(scope.function_sets, id, scope.id_scope))
 		{
 			for (auto const func : func_set.func_decls.filter(
 				[&result](auto const func) {
@@ -6190,6 +6248,9 @@ static void get_possible_funcs_for_universal_function_call_helper(
 
 			for (auto const alias : func_set.alias_decls)
 			{
+				context.add_to_resolve_queue(src_tokens, *alias);
+				resolve::resolve_function_alias(*alias, context);
+				context.pop_resolve_queue();
 				for (auto const decl : alias->aliased_decls.filter(
 					[&result](auto const decl) {
 						return !result.member<&possible_func_t::func_body>().contains(&decl->body);

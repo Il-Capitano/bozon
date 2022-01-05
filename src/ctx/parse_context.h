@@ -115,7 +115,7 @@ struct parse_context
 	void pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept;
 
 	void push_local_scope(ast::scope_t *new_scope) noexcept;
-	void pop_local_scope(void) noexcept;
+	void pop_local_scope(bool report_unused) noexcept;
 
 	[[nodiscard]] global_local_scope_pair_t push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept;
 	void pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept;

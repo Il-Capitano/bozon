@@ -274,7 +274,7 @@ static ast::expression resolve_expr(
 		is_noreturn |= is_statement_noreturn(stmt);
 	}
 	resolve_expression(compound_expr.final_expr, context);
-	context.pop_local_scope();
+	context.pop_local_scope(true);
 	if (compound_expr.final_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));

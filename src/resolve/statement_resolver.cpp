@@ -1941,7 +1941,7 @@ static void resolve_function_symbol_impl(
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 	}
@@ -1955,19 +1955,19 @@ static void resolve_function_symbol_impl(
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 		}
 	}
 }
@@ -2018,7 +2018,7 @@ static void resolve_function_impl(
 		if (!resolve_function_parameters_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 	}
@@ -2032,19 +2032,19 @@ static void resolve_function_impl(
 		if (!resolve_function_symbol_helper(func_stmt, func_body, context))
 		{
 			func_body.state = ast::resolve_state::error;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 		else if (func_body.is_generic())
 		{
 			func_body.state = ast::resolve_state::parameters;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 			return;
 		}
 		else
 		{
 			func_body.state = ast::resolve_state::symbol;
-			context.pop_local_scope();
+			context.pop_local_scope(false);
 		}
 	}
 
@@ -2068,7 +2068,7 @@ static void resolve_function_impl(
 
 	context.push_local_scope(&func_body.scope);
 	resolve_local_statements(func_body.get_statements(), context);
-	context.pop_local_scope();
+	context.pop_local_scope(true);
 
 	func_body.state = ast::resolve_state::all;
 	context.pop_current_function(prev_function);
@@ -2364,6 +2364,29 @@ static void add_flags(ast::type_info &info)
 	}
 }
 
+static void resolve_member_type_size(lex::src_tokens src_tokens, ast::typespec_view member_type, ctx::parse_context &context)
+{
+	member_type = ast::remove_const_or_consteval(member_type);
+	if (member_type.is<ast::ts_base_type>())
+	{
+		auto const info = member_type.get<ast::ts_base_type>().info;
+		context.add_to_resolve_queue(src_tokens, *info);
+		resolve_type_info(*info, context);
+		context.pop_resolve_queue();
+	}
+	else if (member_type.is<ast::ts_array>())
+	{
+		resolve_member_type_size(src_tokens, member_type.get<ast::ts_array>().elem_type, context);
+	}
+	else if (member_type.is<ast::ts_tuple>())
+	{
+		for (auto const &elem : member_type.get<ast::ts_tuple>().types)
+		{
+			resolve_member_type_size(src_tokens, elem, context);
+		}
+	}
+}
+
 static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &context)
 {
 	if (info.is_generic())
@@ -2412,6 +2435,24 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 		{
 			member->state = ast::resolve_state::resolving_symbol;
 			resolve_variable_type(*member, context);
+			resolve_member_type_size(member->src_tokens, member->get_type(), context);
+			if (!ast::is_complete(member->get_type()))
+			{
+				context.report_error(
+					member->src_tokens,
+					bz::format("member '{}' has incomplete type '{}'", member->get_id().as_string(), member->get_type())
+				);
+				member->state = ast::resolve_state::error;
+			}
+			else if (!context.is_instantiable(member->get_type()))
+			{
+				context.report_error(
+					member->src_tokens,
+					bz::format("member '{}' has type '{}' that is not instantiable", member->get_id().as_string(), member->get_type())
+				);
+				member->state = ast::resolve_state::error;
+			}
+
 			if (member->state != ast::resolve_state::error)
 			{
 				member->state = ast::resolve_state::symbol;
@@ -2422,8 +2463,6 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 			}
 		}
 	}
-	add_default_constructors(info);
-	add_flags(info);
 
 	if (info.state == ast::resolve_state::error)
 	{
@@ -2432,6 +2471,8 @@ static void resolve_type_info_impl(ast::type_info &info, ctx::parse_context &con
 	}
 	else
 	{
+		add_default_constructors(info);
+		add_flags(info);
 		info.state = ast::resolve_state::all;
 	}
 
