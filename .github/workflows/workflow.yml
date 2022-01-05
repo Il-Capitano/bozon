@@ -81,9 +81,7 @@ jobs:
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
-      run: |
-        cppb/bin/cppb run -v --build-config test-gcc
-        cppb/bin/cppb run-rule run-tests
+      run: cppb/bin/cppb run -v --build-config test-gcc
     - name: Compile ryu_format.bz
       run: cppb/bin/cppb run-rule ryu_format.gcc.ll -f
   linux-clang:
@@ -155,8 +153,6 @@ jobs:
     - name: Build tests
       run: cppb/bin/cppb build -v --build-config test-gcc
     - name: Run tests
-      run: |
-        cppb/bin/cppb run -v --build-config test-gcc
-        cppb/bin/cppb run-rule run-tests
+      run: cppb/bin/cppb run -v --build-config test-gcc
     - name: Compile ryu_format.bz
       run: cppb/bin/cppb run-rule ryu_format.linux.gcc.ll -f
