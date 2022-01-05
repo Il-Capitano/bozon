@@ -104,6 +104,11 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin consteval function __builtin_remove_pointer(T: typename) -> typename;
 @__builtin consteval function __builtin_remove_reference(T: typename) -> typename;
 
+@__builtin consteval function __builtin_is_default_constructible(T: typename) -> bool;
+@__builtin consteval function __builtin_is_copy_constructible(T: typename) -> bool;
+@__builtin consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
+@__builtin consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
+
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memcpy.p0i8.p0i8.i64"
@@ -318,14 +323,14 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator + (lhs: char, rhs: uint64) -> char;
 @__builtin operator + (lhs:  int64, rhs: char) -> char;
 @__builtin operator + (lhs: uint64, rhs: char) -> char;
-@__builtin operator + (lhs: *auto, rhs: isize) -> typeof lhs;
-@__builtin operator + (lhs: *auto, rhs: usize) -> typeof lhs;
-@__builtin operator + (lhs: *const auto, rhs: isize) -> typeof lhs;
-@__builtin operator + (lhs: *const auto, rhs: usize) -> typeof lhs;
-@__builtin operator + (lhs: isize, rhs: *auto) -> typeof rhs;
-@__builtin operator + (lhs: usize, rhs: *auto) -> typeof rhs;
-@__builtin operator + (lhs: isize, rhs: *const auto) -> typeof rhs;
-@__builtin operator + (lhs: usize, rhs: *const auto) -> typeof rhs;
+@__builtin operator + (lhs: *auto, rhs:  int64) -> typeof lhs;
+@__builtin operator + (lhs: *auto, rhs: uint64) -> typeof lhs;
+@__builtin operator + (lhs: *const auto, rhs:  int64) -> typeof lhs;
+@__builtin operator + (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin operator + (lhs:  int64, rhs: *auto) -> typeof rhs;
+@__builtin operator + (lhs: uint64, rhs: *auto) -> typeof rhs;
+@__builtin operator + (lhs:  int64, rhs: *const auto) -> typeof rhs;
+@__builtin operator + (lhs: uint64, rhs: *const auto) -> typeof rhs;
 
 @__builtin operator += (lhs: &int8,  rhs: int8)  -> &int8;
 @__builtin operator += (lhs: &int16, rhs: int16) -> &int16;
@@ -339,10 +344,10 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator += (lhs: &float64, rhs: float64) -> &float64;
 @__builtin operator += (lhs: &char, rhs:  int64) -> &char;
 @__builtin operator += (lhs: &char, rhs: uint64) -> &char;
-@__builtin operator += (lhs: &*auto, rhs: isize) -> typeof lhs;
-@__builtin operator += (lhs: &*auto, rhs: usize) -> typeof lhs;
-@__builtin operator += (lhs: &*const auto, rhs: isize) -> typeof lhs;
-@__builtin operator += (lhs: &*const auto, rhs: usize) -> typeof lhs;
+@__builtin operator += (lhs: &*auto, rhs:  int64) -> typeof lhs;
+@__builtin operator += (lhs: &*auto, rhs: uint64) -> typeof lhs;
+@__builtin operator += (lhs: &*const auto, rhs:  int64) -> typeof lhs;
+@__builtin operator += (lhs: &*const auto, rhs: uint64) -> typeof lhs;
 
 @__builtin operator - (lhs: int8,  rhs: int8)  -> int8;
 @__builtin operator - (lhs: int16, rhs: int16) -> int16;
@@ -357,10 +362,10 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator - (lhs: char, rhs:  int64) -> char;
 @__builtin operator - (lhs: char, rhs: uint64) -> char;
 @__builtin operator - (lhs: char, rhs: char) -> int32;
-@__builtin operator - (lhs: *auto, rhs: isize) -> typeof lhs;
-@__builtin operator - (lhs: *auto, rhs: usize) -> typeof lhs;
-@__builtin operator - (lhs: *const auto, rhs: isize) -> typeof lhs;
-@__builtin operator - (lhs: *const auto, rhs: usize) -> typeof lhs;
+@__builtin operator - (lhs: *auto, rhs:  int64) -> typeof lhs;
+@__builtin operator - (lhs: *auto, rhs: uint64) -> typeof lhs;
+@__builtin operator - (lhs: *const auto, rhs:  int64) -> typeof lhs;
+@__builtin operator - (lhs: *const auto, rhs: uint64) -> typeof lhs;
 @__builtin operator - (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, isize);
 
 @__builtin operator -= (lhs: &int8,  rhs: int8)  -> &int8;
@@ -375,10 +380,10 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin operator -= (lhs: &float64, rhs: float64) -> &float64;
 @__builtin operator -= (lhs: &char, rhs:  int64) -> &char;
 @__builtin operator -= (lhs: &char, rhs: uint64) -> &char;
-@__builtin operator -= (lhs: &*auto, rhs: isize) -> typeof lhs;
-@__builtin operator -= (lhs: &*auto, rhs: usize) -> typeof lhs;
-@__builtin operator -= (lhs: &*const auto, rhs: isize) -> typeof lhs;
-@__builtin operator -= (lhs: &*const auto, rhs: usize) -> typeof lhs;
+@__builtin operator -= (lhs: &*auto, rhs:  int64) -> typeof lhs;
+@__builtin operator -= (lhs: &*auto, rhs: uint64) -> typeof lhs;
+@__builtin operator -= (lhs: &*const auto, rhs:  int64) -> typeof lhs;
+@__builtin operator -= (lhs: &*const auto, rhs: uint64) -> typeof lhs;
 
 @__builtin operator * (lhs: int8,  rhs: int8)  -> int8;
 @__builtin operator * (lhs: int16, rhs: int16) -> int16;

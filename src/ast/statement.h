@@ -327,10 +327,6 @@ struct decl_variable
 		  enclosing_scope(_enclosing_scope)
 	{}
 
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
-
 	bool is_maybe_unused(void) const noexcept
 	{ return (this->flags & maybe_unused) != 0; }
 
@@ -497,6 +493,11 @@ struct function_body
 		remove_consteval,
 		remove_pointer,
 		remove_reference,
+
+		is_default_constructible,
+		is_copy_constructible,
+		is_trivially_copy_constructible,
+		is_trivially_destructible,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -1384,7 +1385,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 125);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 129);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1436,6 +1437,11 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::remove_consteval, "__builtin_remove_consteval" },
 		{ function_body::remove_pointer,   "__builtin_remove_pointer"   },
 		{ function_body::remove_reference, "__builtin_remove_reference" },
+
+		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
+		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },
+		{ function_body::is_trivially_copy_constructible, "__builtin_is_trivially_copy_constructible" },
+		{ function_body::is_trivially_destructible,       "__builtin_is_trivially_destructible"       },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions

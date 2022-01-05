@@ -2574,7 +2574,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 125);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 129);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2855,6 +2855,10 @@ static val_ptr emit_bitcode(
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
 		case ast::function_body::remove_reference:
+		case ast::function_body::is_default_constructible:
+		case ast::function_body::is_copy_constructible:
+		case ast::function_body::is_trivially_copy_constructible:
+		case ast::function_body::is_trivially_destructible:
 		case ast::function_body::i8_default_constructor:
 		case ast::function_body::i16_default_constructor:
 		case ast::function_body::i32_default_constructor:
@@ -3826,7 +3830,7 @@ static val_ptr emit_bitcode(
 
 	auto const switch_inst = context.builder.CreateSwitch(matched_value, default_bb, static_cast<unsigned>(case_count));
 	ast::arena_vector<std::pair<llvm::BasicBlock *, val_ptr>> case_result_vals;
-	case_result_vals.reserve(switch_expr.cases.size() + 1);
+	case_result_vals.reserve(switch_expr.cases.size() + static_cast<size_t>(has_default));
 	if (has_default)
 	{
 		context.builder.SetInsertPoint(default_bb);
@@ -3850,8 +3854,8 @@ static val_ptr emit_bitcode(
 		case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
 	}
 	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
-	auto const has_value = case_result_vals.is_any([](auto const &pair) {
-		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
+	auto const has_value = case_result_vals.is_all([&](auto const &pair) {
+		return context.has_terminator(pair.first) || pair.second.val != nullptr || pair.second.consteval_val != nullptr;
 	});
 	if (result_address == nullptr && has_default && has_value)
 	{

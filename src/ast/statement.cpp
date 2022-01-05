@@ -5,15 +5,6 @@
 namespace ast
 {
 
-lex::token_pos decl_variable::get_tokens_begin(void) const
-{ return this->src_tokens.begin; }
-
-lex::token_pos decl_variable::get_tokens_pivot(void) const
-{ return this->src_tokens.pivot; }
-
-lex::token_pos decl_variable::get_tokens_end(void) const
-{ return this->src_tokens.end; }
-
 bz::u8string function_body::get_signature(void) const
 {
 	auto const is_op = this->function_name_or_operator_kind.is<uint32_t>();

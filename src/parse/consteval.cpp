@@ -1696,7 +1696,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 125);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 129);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1947,6 +1947,47 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		{
 			return ast::constant_value(type);
 		}
+	}
+
+	case ast::function_body::is_default_constructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		return ast::constant_value(ast::is_default_constructible(type));
+	}
+	case ast::function_body::is_copy_constructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		return ast::constant_value(ast::is_copy_constructible(type));
+	}
+	case ast::function_body::is_trivially_copy_constructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		return ast::constant_value(ast::is_trivially_copy_constructible(type));
+	}
+	case ast::function_body::is_trivially_destructible:
+	{
+		bz_assert(func_call.params.size() == 1);
+		bz_assert(func_call.params[0].is<ast::constant_expression>());
+		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+		auto const type = func_call.params[0]
+			.get<ast::constant_expression>().value
+			.get<ast::constant_value::type>().as_typespec_view();
+		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
 
 	case ast::function_body::memcpy:
