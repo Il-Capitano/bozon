@@ -1,4 +1,6 @@
 import utils;
+import meta::comptime;
+import format;
 
 export struct vector<T: typename>
 {
@@ -33,23 +35,12 @@ export struct vector<T: typename>
 		}
 		const [data_begin, alloc_size] = rounded_alloc(T, size);
 		const data_end = data_begin + size;
-		let self_it = data_begin;
-		let other_it = other._data_begin;
-		for (; self_it != data_end; ++self_it, ++other_it)
-		{
-			__builtin_inplace_construct(self_it, *other_it);
-		}
-		return _self_t[ data_begin, data_end, data_begin + alloc_size ];
+		const alloc_end = data_begin + alloc_size;
+		copy_range(data_begin, data_end, other._data_begin);
+		return _self_t[ data_begin, data_end, alloc_end ];
 	}
-}
 
-export operator = (self: &vector, other: &const vector) -> &typeof self
-{
-	if consteval ((typeof self).value_type != (typeof other).value_type)
-	{
-		static_assert((typeof self).value_type == (typeof other).value_type, "different value_types in vector assignment");
-	}
-	else
+	operator = (self: &_self_t, other: &const _self_t) -> &_self_t
 	{
 		if (&self == &other)
 		{
@@ -59,67 +50,150 @@ export operator = (self: &vector, other: &const vector) -> &typeof self
 		self.clear();
 		self.reserve(size);
 		self._data_end = self._data_begin + size;
-		let self_it = self._data_begin;
-		let other_it = other._data_begin;
-		for (; self_it != self._data_end; ++self_it, ++other_it)
-		{
-			__builtin_inplace_construct(self_it, *other_it);
-		}
+		copy_range(self._data_begin, self._data_end, other._data_begin);
 		return self;
 	}
-}
 
-export operator = (self: &vector, other: vector) -> &typeof self
-{
-	if consteval ((typeof self).value_type != (typeof other).value_type)
-	{
-		static_assert((typeof self).value_type == (typeof other).value_type, "different value_types in vector assignment");
-	}
-	else
+	operator = (self: &_self_t, other: _self_t) -> &_self_t
 	{
 		self.swap(other);
 		return self;
 	}
+
+	function size(self: #const _self_t) -> usize
+	{
+		return (self._data_end - self._data_begin) as usize;
+	}
+
+	function capacity(self: #const _self_t) -> usize
+	{
+		return (self._alloc_end - self._data_begin) as usize;
+	}
+
+	function as_slice(self: &_self_t) -> [: value_type]
+	{
+		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+	}
+
+	function as_slice(self: &const _self_t) -> [: const value_type]
+	{
+		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+	}
+
+	operator [] (self: &_self_t, i: int64) -> &value_type
+	{
+		assert(i >= 0 && i as uint64 < self.size());
+		return *(self._data_begin + i);
+	}
+
+	operator [] (self: &_self_t, i: uint64) -> &value_type
+	{
+		assert(i < self.size());
+		return *(self._data_begin + i);
+	}
+
+	operator [] (self: &const _self_t, i: int64) -> &const value_type
+	{
+		assert(i >= 0 && i as uint64 < self.size());
+		return *(self._data_begin + i);
+	}
+
+	operator [] (self: &const _self_t, i: uint64) -> &const value_type
+	{
+		assert(i < self.size());
+		return *(self._data_begin + i);
+	}
+
+
+	function reserve(self: &_self_t, new_capacity: usize)
+	{
+		if (new_capacity > self.capacity())
+		{
+			const [new_data_begin, new_alloc_size] = rounded_alloc(T, new_capacity);
+			const new_data_end = new_data_begin + self.size();
+			const new_alloc_end = new_data_begin + new_alloc_size;
+			copy_range(new_data_begin, new_data_end, self._data_begin);
+			self.clear();
+			free(self._data_begin);
+			self._data_begin = new_data_begin;
+			self._data_end   = new_data_end;
+			self._alloc_end  = new_alloc_end;
+		}
+	}
+
+	function release(self: &_self_t) -> _self_t
+	{
+		const data_begin = self._data_begin;
+		const data_end   = self._data_end;
+		const alloc_end  = self._alloc_end;
+		self._data_begin = null;
+		self._data_end   = null;
+		self._alloc_end  = null;
+		return _self_t[ data_begin, data_end, alloc_end ];
+	}
+
+	function clear(self: &_self_t)
+	{
+		for (let it = self._data_end; it != self._data_begin;)
+		{
+			--it;
+			__builtin_call_destructor(*it);
+		}
+		self._data_end = self._data_begin;
+	}
+
+	function push_back(self: &_self_t, value: ##value_type)
+	{
+		if (self._data_end == self._alloc_end)
+		{
+			self.reserve(self.size() + 1u);
+		}
+		__builtin_inplace_construct(self._data_end, value);
+		self._data_end += 1;
+	}
 }
 
 export function swap(a: &vector, b: &vector)
+	-> (if consteval (typeof a != typeof b) {
+		(consteval meta::compile_error(comptime_format(
+			"different 'std::vector' types in swap: '{}' and '{}'",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof a)),
+			__builtin_typename_as_str(__builtin_remove_reference(typeof b)),
+		)))
+	} else {}, void)
 {
-	if consteval ((typeof a).value_type != (typeof b).value_type)
-	{
-		static_assert((typeof a).value_type == (typeof b).value_type, "different value_types in vector swap");
-	}
-	else
-	{
-		swap(a._data_begin, b._data_begin);
-		swap(a._data_end,   b._data_end);
-		swap(a._alloc_end,  b._alloc_end);
-	}
+	swap(a._data_begin, b._data_begin);
+	swap(a._data_end,   b._data_end);
+	swap(a._alloc_end,  b._alloc_end);
 }
 
-export function release(self: &vector) -> (typeof self)._self_t
+export function begin(vec: &vector) -> *(typeof vec).value_type
 {
-	const data_begin = self._data_begin;
-	const data_end   = self._data_end;
-	const alloc_end  = self._alloc_end;
-	self._data_begin = null;
-	self._data_end   = null;
-	self._alloc_end  = null;
-	return (typeof self)._self_t[ data_begin, data_end, alloc_end ];
+	return vec._data_begin;
 }
 
-export function clear(self: &vector)
+export function end(vec: &vector) -> *(typeof vec).value_type
 {
-	for (let it = self._data_end; it != self._data_begin;)
+	return vec._data_end;
+}
+
+export function begin(vec: &const vector) -> *const (typeof vec).value_type
+{
+	return vec._data_begin;
+}
+
+export function end(vec: &const vector) -> *const (typeof vec).value_type
+{
+	return vec._data_end;
+}
+
+
+function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+{
+	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		--it;
-		__builtin_call_destructor(*it);
+		__builtin_inplace_construct(it, *other_it);
 	}
-	self._data_end = self._data_begin;
-}
-
-function size(vec: #const vector) -> usize
-{
-	return (vec._data_end - vec._data_begin) as usize;
 }
 
 function round_to_next_power_of_two(n: usize) -> usize
