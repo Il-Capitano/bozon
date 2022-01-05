@@ -30,7 +30,7 @@
 				"no-defaulted-function-deleted"
 			],
 
-			"prebuild_rules": [ "generate_opts" ],
+			"prebuild_rules": [ "generate-opts" ],
 
 			"configs": {
 				"windows-debug": {},
@@ -170,8 +170,12 @@
 			"dependencies": [ "builtins.c" ],
 			"command": "clang-13 -c builtins.c -O3 -o builtins.linux.o"
 		},
-		"generate_opts": {
+		"generate-opts": {
 			"command": "python3 scripts/gen_opts.py",
+			"is_file": false
+		},
+		"run-tests": {
+			"command": "python3 scripts/run_tests.py",
 			"is_file": false
 		},
 		"fuzz-test/lex/fuzz.o": {

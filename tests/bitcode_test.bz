@@ -1,0 +1,1749 @@
+import std::print;
+import std::math;
+import std::utils;
+import std::generic;
+import std::complex;
+import std::algorithm;
+import std::bit;
+import std::format;
+import std::string;
+import std::vector;
+
+import std::libc::math;
+import std::libc::stdlib;
+import std::libc::stdio;
+
+import std::fs::path;
+
+import std::meta::comptime;
+
+import private_member_test;
+
+function factorial(n: auto) -> typeof n
+{
+	let res = 1 as typeof n;
+	for (let i = 2 as typeof n; i <= n; ++i)
+	{
+		res *= i;
+	}
+	return res;
+}
+
+function factorial_recursive(n: auto) -> typeof n
+{
+	if (n <= 1)
+	{
+		return 1;
+	}
+	else
+	{
+		return n * factorial_recursive(n - 1);
+	}
+}
+
+let global = [3, "hello"];
+// let global = [3i64, 23.234];
+consteval c = 5;
+static_assert(c == 5);
+
+type asdf0 = int32;
+type asdf = const asdf0;
+static_assert(asdf == const int32);
+static_assert(0.1 + 0.2 != 0.3);
+
+struct foo_t
+{
+	.n: int32;
+	.s: str;
+
+	constructor()
+	{
+		return foo_t[ 1, "default" ];
+	}
+
+	constructor(n: int32, s: str)
+	{
+		return foo_t[ n, s ];
+	}
+
+	consteval inner_var = 0;
+	type asdf = int32;
+
+	struct inner_t
+	{
+		.inner_n: int32;
+		.inner_s: str;
+	}
+
+	function foo() {}
+	function foo(: int32) {}
+}
+
+function main(args: [: const str]) -> int32
+{
+	static_assert(typeof foo_t.inner_var == const int32);
+	static_assert(foo_t.inner_var == 0);
+	static_assert(foo_t.asdf == int32);
+	consteval val = (foo_t.inner_t)();
+	static_assert(val.inner_n == 0 && val.inner_s == "");
+
+	(consteval {
+		let res = (foo_t.inner_t)();
+		res
+	});
+
+	(foo_t.foo)();
+	(foo_t.foo)(3);
+	// (foo_t.foo)(3, 4);
+
+	consteval t = [int32, float64, [str]]();
+	static_assert(typeof t == const [int32, float64, [str]]);
+	static_assert(t[0] == 0 && t[1] == 0.0 && t[2, 0] == "");
+	let arr = [17, 17: foo_t]();
+	for (let &const val in arr[0])
+	{
+		std::assert(val.n == 1);
+		std::assert(val.s == "default");
+	}
+	// foo_t();
+	(consteval {
+		const p = std::meta::malloc(int32, 1u);
+		std::meta::free(p);
+	});
+	@maybe_unused
+	let n = ((usize(-1)));
+	consteval s = {
+		const s = std::string("Hello");
+		std::meta::create_global_string(s.as_str())
+	};
+	static_assert(s == "Hello");
+
+	// let i: void;
+	std::printf("{} => ", global);
+	global[0] = 5;
+	std::printf("{}\n", global);
+	// c = 3;
+	for (const arg in args)
+	{
+		std::printf("{}\n", arg);
+		// std::println(arg.length());
+		// std::println(arg.size());
+	}
+
+	consteval n = {
+		const val = 0x1100;
+		std::popcount(val)
+	};
+	static_assert(n == 2u);
+
+	std::printf("hello\n");
+
+	// (consteval std::printf("hello {}!\n", "world"));
+
+	const n = 3;
+	switch (n)
+	{
+		0, 1, 2 => std::println(" < 3"),
+		else => std::println("something else")
+	}
+
+	const b = false;
+	switch (b)
+	{
+		true  => std::println("true"),
+		false => std::println("false")
+	}
+
+	@maybe_unused
+	const m = switch (n) {
+		1, 2, 3 => 2u32,
+		else => 0u
+	};
+
+	consteval m = switch (factorial(3)) {
+		1, 2, 3 => 0,
+		4, 5, 6 => 1,
+		else => unreachable
+	};
+	static_assert(typeof m == const int32);
+	static_assert(m == 1);
+
+	@maybe_unused
+	let &const a = switch (n) {
+		0, 1, 2 => m,
+		else => n
+	};
+
+	@maybe_unused
+	consteval n = switch (3u8) {
+		0, 1, 2u, 3, 0x4 => 3,
+		else => unreachable
+	};
+
+	const t = [ 2, "hello" ];
+	@maybe_unused const t2 = if (false) { t } else { [ 3, "world" ] };
+	@maybe_unused const t2 = (if (false) { t } else [ 3, "world" ]);
+
+	std::println("""hello "raw string"\jasdf \\\""" "\"\"\"" """ <- this was a the end of a "raw string""" "\"");
+
+	consteval pointer_size = sizeof *void;
+	static_assert(pointer_size == 8u);
+	consteval tuple_size = sizeof [int32, int64];
+	static_assert(tuple_size == 16u);
+	static_assert(sizeof "" == 16u);
+	static_assert(usize == uint64);
+
+	let arr: [12: int32];
+	@maybe_unused consteval n = arr.size();
+	// static_assert((std::assert(true), true));
+
+	std::println("");
+	std::println("hello");
+	std::printf("{}", 123);
+	std::printf("{}", 123i8);
+	std::printf("{}", factorial(5));
+	std::println("hello again!!!!\nand on a new line\n");
+
+	foo();
+
+	consteval i = factorial(3);
+	static_assert(i == 6);
+	static_assert(factorial_recursive(10) == 3628800);
+	static_assert(factorial_recursive(1) == 1);
+	static_assert(factorial(10) == 3628800);
+	static_assert((std::assert(true), true));
+	static_assert({ std::assert(true); true });
+	static_assert(switch (3) { 3 => true, else => false });
+
+	static_assert({
+		if (factorial(3) == 7)
+		{
+			return 0;
+		}
+		true
+	});
+	static_assert({
+		let arr: [3: int32];
+		for (let i = 0u; i < arr.size(); ++i)
+		{
+			arr[i] = 3;
+		}
+		arr[0] == 3
+	});
+
+
+	const m = 4;
+	consteval n = 5;
+	static_assert({
+		const res = factorial(n);
+		res == factorial(5)
+	});
+
+	let #const r = m;
+	static_assert(typeof r == &const int32);
+	let #const r = 4;
+	static_assert(typeof r == const int32);
+	let ##r = m;
+	static_assert(typeof r == &const int32);
+	let ##r = 8;
+	static_assert(typeof r == int32);
+
+	consteval fact6 = {
+		let result = 1;
+		const count = 6;
+		for (let i = 1; i <= count; ++i)
+		{
+			result *= i;
+		}
+		result
+	};
+	static_assert(fact6 == factorial(6));
+
+	let good = true;
+	for (let i = 0; i < 20; ++i)
+	{
+		if (factorial(i) != factorial_recursive(i))
+		{
+			good = false;
+		}
+	}
+
+	if (good)
+	{
+		std::println("factorial is good!!");
+	}
+	else
+	{
+		std::println("factorial is not good :(");
+	}
+
+	let n = 2;
+	std::printf("{}\n", n);
+	set_to_zero(n);
+	std::printf("{}\n", n);
+	std::assert(n == 0);
+
+	std::println("\n==== ref_test ====");
+	ref_test();
+
+	std::println("\n==== cast_test ====");
+	cast_test();
+
+	const c = 'д';
+	std::print("\n");
+	std::printf("{}\n", c as uint32);
+	std::printf("{}", c);
+	std::printf("{}", 1076 as char);
+	std::printf("{}", '\n');
+	std::printf("{}", '\u0470');
+	std::printf("{}", '\u0471');
+	std::printf("{}", '\u04c1');
+	std::printf("{}", '\U000004c1');
+	std::printf("{}", '\n');
+	std::printf("{}", 'h');
+
+	static_assert('\u0470' == 'Ѱ');
+	static_assert('\U00000470' == 'Ѱ');
+	static_assert('ѱ' - 1 == 'Ѱ');
+	static_assert('Ѱ' as uint32 == 0x470);
+//	"a" "b";
+
+	std::println("\n=== \x41 ===");
+//	+'b';
+
+	std::println("\n==== const_expr_test ====");
+	const_expr_test();
+
+	std::println("\n==== scope_test ====");
+	scope_test();
+
+	std::println("\n==== christmas_tree ====");
+	christmas_tree(4);
+
+	std::println("\n==== for_test ====");
+	for_test();
+
+	std::println("\n==== array_test ====");
+	array_test();
+
+	std::println("\n==== tuple_test ====");
+	tuple_test();
+
+	std::println("\n==== str_pointer_test ====");
+	str_pointer_test();
+
+	std::println("\n==== generic_test ====");
+	generic_test();
+
+	std::println("\n==== ambiguous_function_test ====");
+	ambiguous_function_test();
+
+	std::println("\n==== struct_test ====");
+	struct_test();
+
+	std::println("\n==== complex_test ====");
+	complex_test();
+
+	std::println("\n==== algorithm_test ====");
+	algorithm_test();
+
+	std::println("\n==== destructor_test ====");
+	destructor_test();
+
+	std::println("\n==== string_test ====");
+	string_test();
+
+	std::println("\n==== generic_type_test ====");
+	generic_type_test();
+
+	std::println("\n==== end main ====");
+	std::printf("e  = {}\n", std::e);
+	std::printf("pi = {}\n", std::pi);
+	std::printf("e  = {}\n", std::e as float32);
+	std::printf("pi = {}\n", std::pi as float32);
+	static_assert(typeof std::exp(1.0) == float64);
+
+	std::printf("{} {} {}\n", 1e14, 1.532e-3, 3e-300);
+	std::print("============\n");
+	std::printf("{}\n", ((1.0 / 0.0)));
+	static_assert(0.1 + 0.2 != 0.3);
+	std::printf("{} != {}\n", 0.1 + 0.2, 0.3);
+
+	const constants: [3: float64] = [ std::pi, std::tau, std::e ];
+	std::printf("{}\n", constants as [: const float64]);
+
+	const [...[vals]] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
+	std::assert([ ...vals ][0] == std::pi);
+	const arr: [3, 1: float64] = [ [ std::pi ], [ std::tau ], [ std::e ] ];
+	// const arr: [3, 1: float64] = [ [ 3.141592653589793 ], [ 6.283185307179586 ], [ 2.718281828459045 ] ];
+	std::printf("{}\n", arr);
+	std::printf("{}\n", 1e15);
+	let t = [ 3, 3.234, "hello" ];
+	std::printf("{}\n", t);
+	static_assert(std::format("{}", [ 3, 3.234, "hello" ]) == "[ 3, 3.234, hello ]");
+	static_assert(std::format("{}", {[ 3, 3.234, "hello" ]}) == "[ 3, 3.234, hello ]");
+
+	const s = std::string("Hello");
+	const *const p = &s;
+	std::assert(p->size() == 5u);
+	std::printf("{}\n", 1.2345e-5);
+
+
+	static_assert(std::format("{:.<+010}", 123456)     == "+123456...");
+	static_assert(std::format("{:.<+010}", -123456)    == "-123456...");
+	static_assert(std::format("{:.^+010}", 123456)     == "+00123456.");
+	static_assert(std::format("{:.^010}", -123456)     == "-00123456.");
+	static_assert(std::format("0x{:08x}", 123456u)     == "0x0001e240");
+	static_assert(std::format("0x{:08X}", 123456u)     == "0x0001E240");
+	static_assert(std::format("0x{:08x}", ((0u - 1u))) == "0xffffffff");
+	std::printf("{:018}\n", &n);
+	static_assert(std::format("{:+10}",  1.2345f32) == "   +1.2345");
+	static_assert(std::format("{:+010}", 1.2345f32) == "+0001.2345");
+	static_assert(std::format("{:+12}",  1.2345e10f32) == " +1.2345e+10");
+	static_assert(std::format("{:+012}", 1.2345e10f32) == "+01.2345e+10");
+	static_assert(std::format("{:+012}", std::inf_f32) == "        +inf");
+	static_assert(std::format("{:+012}", std::nan_f32) == "         nan");
+	static_assert(std::format("{:+015e}", 1.2345f32)    == "+001.234500e+00");
+	static_assert(std::format("{:+015E}", 1.2345f32)    == "+001.234500E+00");
+	static_assert(std::format("{:+015E}", std::inf_f64) == "           +inf");
+	static_assert(std::format("{:g}", 0.0) == "0");
+	std::printf("{:.160f}\n", -1.234567e-100);
+	std::printf("{:.160e}\n", -1.234567e-100);
+	std::printf("{:.160g}\n", -1.234567e-100);
+
+	std::printf("{:.160g}\n", 1.234567e+100);
+	std::printf("{:.1f}\n", 1.234567e+100);
+
+	std::printf("{:=^10}\n", std::string("Hello"));
+	std::printf("{:.>30}\n", 1.2345678910111213);
+	std::printf("{:.>30}\n", 1.2345678910111214);
+	std::printf("{:.>30}\n", 1.2345678910111212);
+	static_assert(std::format("{} {}!",   "Hello", "World") == "Hello World!");
+	static_assert(std::format("{1} {0}!", "Hello", "World") == "World Hello!");
+	static_assert(std::format("{0} {1}!", "Hello", "World") == "Hello World!");
+	static_assert(std::format("{1} {1}!", "Hello", "World") == "World World!");
+	static_assert(std::format("{0} {0}!", "Hello", "World") == "Hello Hello!");
+	static_assert(std::format("{0} {}!",  "Hello", "World") == "Hello World!");
+	consteval s = std::comptime_format("Hello {:.^10}", "World");
+	static_assert(typeof s == const str);
+	static_assert(s == "Hello ..World...");
+
+	std::printf("{:g}\n", 1e-10);
+
+	let t = [ 3, 1.123, "hello there" ];
+	std::printf("{} {} \"{}\"\n", ...{ let &const [...elems] = t; elems });
+
+	let &const [...elems] = t;
+	consteval size = {
+		let i = 0uz;
+		[...(typeof elems, ++i)];
+		i
+	};
+	static_assert(size == 3u);
+
+	static_assert(if (size == 3u) true else false, "hello");
+
+	std::printf("{}\n", switch (size) {
+		0, 1, 2 => [ 0, 0.0, "zero" ],
+		3, 4, 5 => [ 1, 1.0, "one" ],
+		else => unreachable,
+	});
+
+	std::printf(
+		"this is a very long message with {} arguments: {} {} {} {}\n",
+		"a lot of", 3, 2.124, [ "Hello", "World" ], [[3: int32]]()
+	);
+
+	std::printf("{:%}\n", 1.2345);
+	std::printf("{:%}\n", 12.345);
+	std::printf("{:%}\n", 0.005);
+
+	for (const i in std::iota(0, 20))
+	{
+		std::printf("{} ", i);
+	}
+	std::printf("\n");
+
+	if consteval (std::format("{}", 12) != "12")
+	{
+		static_assert(std::format("{}", 12) == "11");
+		static_assert(std::format("{}", 12) == "13");
+	}
+
+	// consteval x = std::sqrt(-1.0);
+
+	// (consteval std::assert(false));
+
+	@maybe_unused
+	const n = if (std::format("{}", 12) == "12") { 1 } else { unreachable };
+
+	const n = 3;
+	@maybe_unused const n = switch (n) {
+		3 => 3,
+		0, 1, 2 => 2,
+		else => 3,
+	};
+
+	switch (n)
+	{
+		3 => 1,
+		4 => 0.12,
+		else => {},
+	}
+
+	/*
+	let s1 = "hello1";
+	let s2 = "hello2";
+	std::println(s1 == s2);
+	std::println(s1 != s2);
+	std::logln("Hello from stderr");
+	std::logln("Hello again from stderr");
+
+	std::println(std::pi);
+	std::println(std::e);
+	std::println(std::tau);
+
+	arr2_tester();
+
+	/*
+	for (let i = 0; i < 10; ++i)
+	{
+		std::print("rand(): ");
+		std::println(std::libc::rand());
+	}
+	*/
+
+	std::libc::puts(__builtin_str_begin_ptr("Hello puts()"));
+	*/
+
+
+	return 0;
+/*
+	let bool: bool = false;
+	while (bool)
+	{
+		bool = false;
+	}
+	std::print("hello");
+	let n: int32 = 0;
+	change_val(n);
+	let str = "hello";
+	let str2 = "hello"; /* nested comment */
+	return factorial(1);
+*/
+}
+
+function set_to_zero(n: &int32) -> void
+{
+	n = 0;
+}
+
+function foo() -> void
+{
+	let i8 = 0i8;
+	let i16 = 0i16;
+	let i32 = 0i32;
+	let i64 = 0i64;
+	let u8 = 0u8;
+	let u16 = 0u16;
+	let u32 = 0u32;
+	let u64 = 0u64;
+
+	i8 == i8;
+//	i8 == u8;
+	i8 == i16;
+	i16 == i8;
+	i64 == i8;
+	i8 == i64;
+	u8 == u64;
+	u64 == u8;
+	i8 < i16;
+	i16 < i8;
+	u8 < u64;
+	u64 < u8;
+	u32 < u8;
+	u32 < u64;
+
+	u16 -= u8;
+	let p = &i8;
+	p -= u64;
+
+	u16 /= u8;
+	i16 /= i8;
+
+	i32 = -5;
+	i8 = 2i8;
+	i32 /= i8;
+	std::printf("{}\n", i32);
+
+	i32 = 1234;
+	i16 = 111i16;
+	i32 %= i16;
+	std::printf("{}\n", i32);
+	std::printf("{}\n", 1234 / 111);
+	std::printf("{}\n", 11 * 111 + 13);
+
+	let a = 'a';
+	@maybe_unused let b = 'c' + -1i8;
+
+	if (a == 'a')
+		std::println("a == 'a'");
+	else
+		std::println("a != 'a'");
+
+	if (
+		'a' + 1 == 'b'
+		&& 'c' + -1 == 'b'
+		&& 'c' + -1i8 == 'b'
+		&& 'c' - 1 == 'b'
+		&& 'a' - -1 == 'b'
+		&& 'a' - -1i8 == 'b'
+	)
+		std::println("b == 'b'");
+	else
+		std::println("b != 'b'");
+
+	const a = 1.0 * 0.5;
+	if (a == 0.5)
+	{
+		std::println("yay");
+	}
+
+	let n = 0xff;
+	const mask = 0x46;
+	n &= mask;
+	if (n == mask)
+		std::println("yay!!");
+
+	let n = 1;
+	let m = 0;
+	(n = m = 2) = m;
+	if (n == 0 && m == 2)
+		std::println("yay again!");
+
+	let n = 1u32;
+	n <<= 3u8;
+	std::printf("{}\n", n);
+	n >>= 1u8;
+	std::printf("{}\n", n);
+	let m = 5u32;
+	n += m = 2u32;
+	if (n == 6u32)
+	{
+		std::println("yay yet again!");
+	}
+}
+
+function ref_test() -> void
+{
+	function change_n(n: &int32) -> void
+	{
+		n = 1234;
+	}
+	let n = 0;
+	std::printf("{}\n", n);
+	change_n(n);
+	std::printf("{}\n", n);
+	std::assert(n == 1234);
+
+	function foo(n: int32) -> void { std::printf("{}\n", &n); }
+	function foo_ref(n: &const int32) -> void { std::printf("{}\n", &n); }
+
+	std::printf("{}\n", &n);
+	foo(n);
+	foo_ref(n);
+	std::println("first and third pointers should be the same");
+
+	let &m = n;
+	std::assert(&m == &n);
+	std::printf("{}\n", &m);
+	foo(m);
+	foo_ref(m);
+	std::println("first and third pointers should be the same");
+
+	asdfasdf([0, 1, 2, 3, 4, 5]);
+}
+
+function cast_test() -> void
+{
+	const f32 = 1.5f32;
+//	std::println(f32);
+	std::printf("{}\n", f32 as float64);
+	std::printf("{}\n", f32 as int32);
+	std::printf("{}\n", 'A' as uint32);
+	std::printf("{}\n", ' ' as uint32);
+
+	function ref_wrapper(n: &int32) -> &int32
+	{ return n; }
+
+	let n = 0;
+
+	std::printf("{}\n", n);
+	ref_wrapper(n) = 3;
+	std::printf("{}\n", n);
+
+//	let v: vec2;
+}
+
+function asdfasdf(: [int32, int32, int32, int32, int32, int32]) -> void
+{}
+
+function const_expr_test() -> void
+{
+	const n = 9'223'372'036'854'775'807; // int64
+	static_assert(typeof n == const int64);
+	const n = 9'223'372'036'854'775'808; // uint64
+	static_assert(typeof n == const uint64);
+
+//	-(-9'223'372'036'854'775'807i64 - 1);
+
+	std::assert(9'223'372'036'854'775'808 == 1u64 << 63u);
+	std::assert(((9'223'372'036'854'775'808 as uint32)) == 0u);
+
+	@maybe_unused let a = false || false;
+	const FALSE: bool = false;
+	@maybe_unused let b = false && FALSE;
+	@maybe_unused let c = true || FALSE;
+
+	const p = null as *int32;
+	std::assert(p == null);
+
+	const *const p = &n;
+	std::assert(p != null);
+
+//	*(null as *int32) = 2;
+	std::println("hello" " again" ", and again!");
+}
+
+function scope_test() -> void
+{
+	function foo() -> void { std::println("foo1"); }
+
+	{
+		function foo() -> void { std::println("foo2"); }
+//		const f = foo;
+		foo();
+	}
+
+//	const f = foo;
+
+	foo();
+
+	function foo(: const int32) -> void { std::println("foo(: const int32)"); }
+	const n = 0;
+
+	{
+		function foo(: &const int32) -> void { std::println("foo(: &const int32)"); }
+		function foo(:  const int32) -> void { std::println("foo(: const int32)"); }
+		foo(n);
+		foo(3); // this doesn't work now, because foo(: &const int32) shadows foo(: const int32)
+	}
+
+	foo(n);
+
+	function ambiguous_test_in_scope() -> void { std::println("test1"); }
+
+	@maybe_unused const f = ambiguous_test_in_scope;
+	{
+		function ambiguous_test_in_scope() -> void { std::println("test2"); }
+//		const f = ambiguous_test_in_scope;
+		ambiguous_test_in_scope();
+	}
+	@maybe_unused const f = ambiguous_test_in_scope;
+
+	@maybe_unused let n = 40 + 2;
+
+	@maybe_unused let n = 0 - -2147483648;
+//	255 / 0;
+//	n / 0;
+//	n /= 0;
+//	n % 0;
+//	n %= 0;
+
+	let u32 = 0u;
+//	u32 % 0u32 + 3u8;
+//	((u32 % 0u32)) * 3u32;
+	1u + ((u32 * 1u % 0u));
+	((u32 * 1u % 0u)) + 1u;
+
+	const n = 1u64;
+	((n << 99u));
+	const num = 65;
+	std::printf("{}\n", num as char);
+	std::printf("{}\n", 'A' as int32);
+//	-1 as char;
+
+//	1u << 99u;
+
+//	-1.0 / 0.0;
+	((1.0 / 0.0)) + 3.0;
+
+	const f = 1.0;
+	((f / 0.0)) + 1.0;
+
+	((-1 as uint64));
+
+	let p: *int32;
+	p = null;
+
+	((-((2i8 + 126i8))));
+
+//	-1 as uint64;
+
+	let f: float64;
+//	f = 3;
+//	u32 = 1.0;
+	f = 1.0;
+//	f = 1.0f32;
+
+	let b: bool;
+	b = false;
+//	b = 3;
+
+	@maybe_unused const f32 = 1.23464234 as typeof 1.0f32;
+	@maybe_unused const f32: typeof f32 = 0.0f32;
+
+	std::printf("{}\n", ((0x8000'0000 as int32)));
+
+	std::printf("{}\n", multiply(123i64, 123i8));
+	std::printf("{}\n", 123 * 123);
+	std::assert(multiply(123i64, 123i8) == 123 * 123);
+
+//	const t = int32;
+}
+
+function square(n: int32) -> typeof (n * n)
+{
+	return n * n;
+}
+
+function multiply(a: int64, b: int8) -> typeof (a * b) { return a * b; }
+
+function christmas_tree(height: int32) -> void
+{
+	for (let i = 0; i < height; ++i)
+	{
+		const spaces = height - 1 - i;
+		const stars = 2 * i;
+
+		for (let j = 0; j < spaces; ++j)
+		{
+			std::print(" ");
+		}
+		std::print("/");
+		for (let j = 0; j < stars; ++j)
+		{
+			std::print("*");
+		}
+		std::print("\\");
+
+		std::print("\n");
+	}
+
+	for (let i = 0; i < height - 1; ++i)
+	{
+		std::print(" ");
+	}
+	std::print("||\n");
+}
+
+function for_test() -> void
+{
+	for (let i = 0; i < 10; ++i)
+	{
+		std::printf("{} ", i);
+	}
+//	std::print(i);
+	std::print("\n");
+
+	let i: int32;
+	for (i = 0; i < 10; ++i)
+	{
+		std::printf("{} ", i);
+	}
+	std::printf("{}\n", i);
+
+	let i: int32;
+	let j: int32;
+	for (i = j = 0; i < 10; ++i, j += 2)
+	{
+		std::printf("({}, {}) ", i, j);
+	}
+	std::print("\n");
+
+	let i = 0;
+	for (; i < 10; ++i)
+	{
+		std::printf("{} ", i);
+	}
+	std::print("\n");
+
+	function infinite_loop() -> void
+	{
+		std::println("entered infinite_loop");
+		let i = 0;
+		for (;; ++i)
+		{
+			if (i == 10)
+			{
+				std::println("\nexiting infinite_loop");
+				return;
+			}
+			std::printf("{} ", i);
+		}
+		std::print("\n");
+	}
+
+	infinite_loop();
+
+	static_assert((((0x8000'0000 - 1u) as int32 + 1)) < 0);
+//	const int32_max = (0x8000'0000 - 1u) as int32;
+//	std::println(int32_max);
+//	const int32_max = (~1u >> 1u) as int32;
+//	std::println(int32_max);
+
+	for (let i = 0; i <= 10; ++i)
+	{
+		static_assert('\r' == '\x0d');
+		std::printf("{}\r", i);
+	}
+	std::print("\n");
+
+	function is_prime(n: int32) -> bool
+	{
+		if (n <= 1)
+		{
+			return false;
+		}
+
+		for (let i = 2; i <= n / 2; ++i)
+		{
+			if (n % i == 0)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+//	0 + 4, 1;
+
+	for (let i = 0; i < 1'000; ++i)
+	{
+		if (is_prime(i))
+		{
+			std::printf("{},", i);
+		}
+	}
+	std::print("\n");
+
+	consteval inf = ((1.0 / 0.0));
+	std::printf("{}\n", inf);
+	std::printf("{}\n", ((inf - inf)) + 1.0);
+}
+
+// static_assert(false);
+// static_assert(true ^^ true, "\u0080");
+
+function declaration_leak() -> void
+{
+	for (let i = 0; i < 10; ++i) {}
+//	i;
+}
+
+export function div_test(n: int32) -> int32
+{
+	return n / 10;
+}
+
+function static_assert_test() -> void
+{
+//	static_assert(false);
+//	static_assert(0);
+//	static_assert(true, 0);
+	static_assert('A' as int32 == 65);
+	static_assert('A' - 'a' == -32);
+	static_assert('a' - 'A' == 32);
+	static_assert('\u1234' as uint32 == 0x1234);
+//	static_assert(0.1 + 0.2 == 0.4);
+	static_assert(((127i8 + 1i8)) == -128 as int8);
+	static_assert(((-1 as uint64)) == 18446744073709551615);
+	static_assert(((-1 as uint64)) == ~0u64);
+
+	consteval int64_max = (~0u64 >> 1u) as int64;
+	consteval int64_min = (((~0u64 >> 1u) as int64 + 1));
+	static_assert(int64_max > 0);
+	static_assert(int64_min < 0);
+	static_assert(((int64_min - 1)) == int64_max);
+
+	consteval uint64_max = ((-1 as uint64));
+	static_assert(((uint64_max + 1u)) == 0u);
+	static_assert(int64_max as uint64 * 2u + 1u == uint64_max);
+
+//	uint64_max + ('\n' + 1) + uint64_max;
+
+	@maybe_unused consteval c = '\ud7ff';
+//	c + 1;
+
+	consteval s = "Hello!";
+	static_assert(s != "Hello!!");
+
+	@maybe_unused let n = null;
+	let i: int32;
+	@maybe_unused let p: *int32;
+//	const p: *int32;
+//	let ref: &int32;
+	consteval p: *int32 = null;
+	static_assert(p == null);
+
+	let &i_ref = i;
+//	let i_ref_: typeof i_ref;
+	let i_ref_: typeof *&i_ref = i_ref;
+	static_assert(typeof i_ref_ == typeof i_ref);
+
+	static_assert(const int32 == const const int32);
+	static_assert(&int32 == & &int32);
+	static_assert(typeof int64_max == const int64);
+	static_assert(typeof int64_max != consteval int64);
+
+	static_assert(typeof static_assert_test() == void);
+	static_assert(consteval [10: int32] == consteval [10: int32]);
+}
+
+function array_test() -> void
+{
+	let arr: [10: int32];
+
+	std::printf("arr[0] = {}\n", arr[0]);
+	arr[0] = 3;
+	std::printf("arr[0] = {}\n", arr[0]);
+
+	let multi_d_array: [4, 4: float64];
+	std::printf("multi_d_array[0, 0] = {}\n", multi_d_array[0, 0]);
+	multi_d_array[0, 0] = 123.0;
+	std::printf("multi_d_array[0, 0] = {}\n", multi_d_array[0, 0]);
+	multi_d_array[0][0] = 246.0;
+	std::printf("multi_d_array[0][0] = {}\n", multi_d_array[0][0]);
+//	multi_d_array[0, 4] = 246.0;
+
+	for (let i = 0; i < 4; ++i)
+	{
+		let &arr = multi_d_array[i];
+		for (let j = 0; j < 4; ++j)
+		{
+			arr[j] = ((i + 1) * (j + 1)) as float64;
+		}
+	}
+
+	@maybe_unused
+	const arr = arr;
+
+//	let arr: [10:];
+
+	print_matrix(multi_d_array);
+	for (
+		let val = &multi_d_array[0, 0];
+		val <= &multi_d_array[3, 3];
+		++val
+	)
+	{
+		*val += 0.5;
+	}
+	std::println("====");
+	print_matrix(multi_d_array);
+
+	static_assert(typeof null == __null_t);
+
+//	consteval T = int32;
+
+//	let arr: [10: consteval int32];
+
+	const matrix = {
+		let result: [4, 4: float64];
+		for (let i = 0; i < 4; ++i)
+		{
+			for (let j = 0; j < 4; ++j)
+			{
+				result[i, j] = (i * 4 + j) as float64 + 0.33;
+			}
+		}
+		result
+	};
+	print_matrix(matrix);
+}
+
+function print_matrix(arr: [4, 4: float64]) -> void
+{
+	std::print("[");
+	for (let i = 0; i < 4; ++i)
+	{
+		std::print(if (i == 0) "[ " else " [ ");
+
+		for (let j = 0; j < 4; ++j)
+		{
+			std::printf("{} ", arr[i, j]);
+		}
+		std::print(if (i == 3) "]" else "]\n");
+	}
+	std::print("]\n");
+}
+//	*/
+
+// function circle1() -> typeof circle5() {}
+// function circle2() -> typeof circle1() {}
+// function circle3() -> typeof circle2() {}
+// function circle4() -> typeof circle3() {}
+// function circle5() -> typeof circle4() {}
+
+function built_in_op_error_test() -> void
+{
+	@maybe_unused let i8  = 0i8;
+	@maybe_unused let i16 = 0i16;
+	@maybe_unused let i32 = 0i32;
+	@maybe_unused let i64 = 0i64;
+	@maybe_unused let u8  = 0u8;
+	@maybe_unused let u16 = 0u16;
+	@maybe_unused let u32 = 0u32;
+	@maybe_unused let u64 = 0u64;
+	@maybe_unused let f32 = 0.0f32;
+	@maybe_unused let f64 = 0.0f64;
+	@maybe_unused let c = ' ';
+	@maybe_unused let p = null as *int32;
+	@maybe_unused let s = "";
+
+//	-(u32 + u8);
+//	~i32;
+
+//	u8 = u64;
+//	i8 = i32 + i32;
+//	i8 = u64;
+//	u32 = i32;
+//	f32 = i32;
+//	f64 = u64;
+//	i32 = f32;
+//	f32 = f64;
+//	f64 = f32;
+//	c = i32;
+//	c = u32;
+//	i32 = c;
+
+//	i8 + u8;
+//	f32 + i32;
+//	u32 + f32;
+//	f64 + f32;
+//	f32 * f32 + f64;
+	(123 + 3);
+
+//	f32 - f64;
+//	i32 - u32;
+//	i32 - f32;
+
+//	u8 += u64;
+//	u8 -= u64;
+
+//	i32 * u32;
+//	f32 * i32;
+//	f32 * f64;
+
+//	i32 / u32;
+//	f32 / i32;
+//	f32 / f64;
+
+//	f32 *= f64;
+//	f32 /= f64;
+
+//	f32 == f64;
+
+//	u16 | u32;
+//	i32 ^ i32;
+//	i32 | u32;
+//	u32 ^= i32;
+
+//	u32 << i8;
+//	u64 >>= i16;
+//	i32 >> i32;
+
+//	i32 % u32;
+//	i32 %= u32;
+//	f32 % f32;
+//	f64 %= f64;
+}
+
+function arr2_test(: [2: int32], : str, : int32) -> [3: int8]
+{
+	let arr: [3: int8];
+	return arr;
+}
+
+function arr2_tester() -> void
+{
+	let arr: [2: int32];
+	arr2_test(arr, "hello", 3);
+	@maybe_unused const arr = arr;
+}
+
+function tuple_test() -> void
+{
+	@maybe_unused let t: [int32, float64];
+	std::printf("{}\n", [2, 2.234][1]);
+
+	consteval t = [0, 1.53, "hello"];
+	consteval str = t[2];
+	static_assert(str == t[2]);
+	@maybe_unused let &const num = t[1];
+	@maybe_unused const t = [t, 234.5f32, 0b0000'1000];
+	let t: const [int32, auto] = [123, 3.5f32];
+	static_assert(typeof t == const [int32, float32]);
+	@maybe_unused let t: [int32, float64] = [0, 2.5];
+
+	let t = [ 123, 123.123, "HELLO!!"];
+	let &i32 = t[0];
+	let &f64 = t[1];
+	let &s   = t[2];
+
+	std::printf("[{}, {}, {}]\n", t[0], t[1], t[2]);
+	i32 = 456;
+	std::printf("[{}, {}, {}]\n", t[0], t[1], t[2]);
+	s = "hello?";
+	std::printf("[{}, {}, {}]\n", t[0], t[1], t[2]);
+	f64 = i32 as float64 + 0.456;
+	std::printf("[{}, {}, {}]\n", t[0], t[1], t[2]);
+	const val = (f64 * 3.2) + (3.2 * f64);
+	std::printf("{}\n", val);
+}
+
+function optimization_test() -> void
+{
+	function do_calculation(x: float64) -> float64
+	{
+		let res = (x * 3.4) + (3.4 * x);
+		res *= res;
+		return res;
+	}
+
+	function do_work(arr: [2: int32]) -> [2: int32]
+	{
+		const tmp = arr[0];
+		arr[0] = arr[1];
+		arr[1] = tmp;
+		return arr;
+	}
+
+	let arr: [2: int32];
+	arr[0] = 123;
+	arr[1] = 456;
+	@maybe_unused const arr = do_work(arr);
+}
+
+function phi_test(x: int32, b: bool) -> int32
+{
+	let result = x;
+	if (b)
+	{
+		result *= 2;
+	}
+	else
+	{
+		result /= 2;
+	}
+	return result;
+}
+
+function str_pointer_test()
+{
+	const s = "hello";
+	const begin = s.begin_ptr();
+	const end   = s.end_ptr();
+	static_assert(typeof begin == const *const uint8);
+	static_assert(typeof begin == typeof end);
+
+	std::printf("{}, {}\n", begin, end);
+
+	std::assert(my_str_equals("hello", "hello"));
+	std::assert(my_str_equals(s, "hello"));
+
+	let arr: [10: uint8];
+	arr[0] = 'h' as uint32 as uint8;
+	arr[1] = 'e' as uint32 as uint8;
+	arr[2] = 'l' as uint32 as uint8;
+	arr[3] = 'l' as uint32 as uint8;
+	arr[4] = 'a' as uint32 as uint8;
+	const arr_s = __builtin_str_from_ptrs(&arr[0], &arr[5]);
+	static_assert(typeof arr_s == const str);
+	std::assert(arr_s == "hella");
+	arr[4] = 'o' as uint32 as uint8;
+	std::assert(arr_s != "hella");
+
+	let arr_slice = __builtin_slice_from_const_ptrs(&arr[0], &arr[5]);
+	std::printf("{}\n", arr_slice[3] as uint32 as char);
+
+	let arr: [10: int32];
+	for (let i = 0; i < 10; ++i)
+	{
+		arr[i] = i;
+	}
+	const arr = arr;
+	let arr_slice: [: const auto] = __builtin_slice_from_const_ptrs(&arr[0], &arr[((10))]);
+	std::printf("{}\n", arr_slice[4]);
+}
+
+function my_str_equals(lhs: str, rhs: str) -> bool
+{
+	let lhs_it = lhs.begin_ptr();
+	let rhs_it = rhs.begin_ptr();
+	const lhs_end = lhs.end_ptr();
+	const rhs_end = rhs.end_ptr();
+
+	if (lhs_end - lhs_it != rhs_end - rhs_it)
+	{
+		return false;
+	}
+
+	if (lhs_it == rhs_it)
+	{
+		return true;
+	}
+
+	for (; lhs_it != lhs_end; ++lhs_it, ++rhs_it)
+	{
+		if (*lhs_it != *rhs_it)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+function consteval_test(i: if (true) int32 else int64)
+{
+	static_assert(typeof i == int32);
+
+	consteval a = (if (false) 123 else 234);
+	static_assert(a == 234);
+
+	consteval len = "Hello".length();
+	static_assert(len == 5u);
+	consteval str = "Helló";
+	consteval len  = str.length();
+	consteval size = str.size();
+	static_assert(len == 5u);
+	static_assert(size == 6u);
+	static_assert(len != size);
+
+	function consteval_param(n: consteval int32) -> int32
+	{
+		static_assert(n > 0);
+		return n;
+	}
+
+	consteval_param(3);
+	// consteval_param(0);
+
+	function index(t: &const auto, n: consteval int64) -> typeof t[n]
+	{
+		return t[n];
+	}
+
+	const t = [ 3, 1.123, "Hello" ];
+	@maybe_unused let &const s = index(t, 0);
+}
+
+function add_wrapper(const lhs, const rhs) -> typeof add(lhs, rhs)
+{
+	std::println("add_wrapper(const auto, const auto)");
+	return add(lhs, rhs);
+}
+
+function add_wrapper(&const lhs, &const rhs) -> typeof add(lhs, rhs)
+{
+	std::println("add_wrapper(&const auto, &const auto)");
+	return add(lhs, rhs);
+}
+
+function add(lhs: auto, rhs: auto) -> typeof (lhs + rhs)
+{ return lhs + rhs; }
+
+function foo(lhs: auto, rhs: auto) -> int32
+{
+	lhs + rhs;
+	return 0;
+}
+
+function generic_test()
+{
+	static_assert(typeof add_wrapper(1, 2) == int32);
+	static_assert(typeof add_wrapper(1i8, 2i8) == int8);
+	static_assert(typeof add_wrapper(1i64, 2i8) == int64);
+	// static_assert(typeof add_wrapper("", "") == int32);
+//	foo("", "");
+
+	const a = 3;
+	const b = 7;
+	add_wrapper(a, b);
+	add_wrapper(a as int64, b);
+
+	@maybe_unused const s1 = "string 1";
+	@maybe_unused const s2 = "string 2";
+//	add_wrapper(s1, s2);
+
+	function circular1(n) -> typeof circular2(n) {}
+	function circular2(n) -> typeof circular3(n) {}
+	function circular3(n) -> typeof circular1(n as int32) {}
+
+//	circular1(0i64);
+}
+
+function ambiguous_function_test()
+{
+	function foo(: int32) {}
+	function foo(: int64) {}
+	foo(3);
+	// foo(3i8);
+
+	function bar(: int32, : int64) {}
+	function bar(: int64, : int32) {}
+	// bar(3, 3);
+
+	function baz(: auto) {}
+	function baz(: *auto) {}
+	let n: int32;
+	baz(&n);
+}
+
+function add_tester()
+{
+	std::add(3, 4);
+	// std::add(std::complex[ 0.0, 1.0 ], std::complex[ 1.0, -2.0 ]);
+}
+
+
+// function alias1 = alias1;
+// function alias2 = alias1;
+
+struct vec2
+{
+	.x: float64;
+	.y: float64;
+}
+
+operator + (lhs: vec2, rhs: vec2) -> vec2
+{
+	return vec2[ lhs.x + rhs.x, lhs.y + rhs.y ];
+}
+
+operator - (lhs: vec2, rhs: vec2) -> vec2
+{
+	return vec2[ lhs.x - rhs.x, lhs.y - rhs.y ];
+}
+
+operator == (lhs: vec2, rhs: vec2) -> bool
+{
+	return (lhs.x == rhs.x) & (lhs.y == rhs.y);
+}
+
+operator != (lhs: vec2, rhs: vec2) -> bool
+{
+	return !(lhs == rhs);
+}
+
+function struct_test()
+{
+	add_tester();
+	/*
+	function get_vec() -> &vec2d;
+	function modify_vec(v: vec2d) -> vec2d;
+	std::print(get_vec().x);
+	get_vec().x = 3.4;
+	static_assert(typeof get_vec() == &vec2d);
+	static_assert(typeof get_vec().x == &float64);
+	*/
+	// const v = get_vec();
+	// const v = modify_vec(v);
+
+	@maybe_unused const v = vec2[ 0.0, 0.0 ];
+	consteval v = vec2[ 1.2, -4.3 ];
+	static_assert(v.x == 1.2);
+
+	let sum = v + v;
+	// static_assert(v + v - v == v);
+	std::printf("{}, {}\n", sum.x, sum.y);
+}
+
+function complex_test()
+{
+	function println(z: std::complex)
+	{
+		if (z.im >= 0.0)
+		{
+			std::printf("{}+{}i\n", z.re, z.im);
+		}
+		else
+		{
+			std::printf("{}{}i\n", z.re, z.im);
+		}
+	}
+
+	// consteval z = std::complex[ 0.0, 1.0 ] * std::complex[ 0.0, 1.0 ];
+	// static_assert(z == std::complex[ -1.0, 0.0 ]);
+
+	const z1 = std::complex[1.0, -12.35];
+	const double_z = z1 + z1;
+	std::printf("{}\n", z1.abs());
+	std::printf("{}\n", double_z.abs());
+
+	println(z1);
+	println(z1 * z1);
+	println(z1 * z1.conjugate());
+	std::printf("{}\n", z1.abs());
+	std::printf("{}\n", (z1 * z1).abs());
+	std::printf("{}\n", z1.abs_square());
+
+	std::print("exp(1i) = ");
+	const exp1i = std::exp(std::complex[ 0.0, 1.0 ]);
+	println(exp1i);
+	std::printf("{}\n", exp1i.abs());
+	std::printf("{}\n", exp1i.phi());
+
+	let z = std::complex[ 0.0, 0.0 ];
+	z.im = 1.0;
+	z = exp1i;
+	println(z);
+	// move z;
+
+	let n = (if (z == std::complex[ 0.0, 1.0 ]) 1 else 1i64);
+	static_assert(typeof n == int64);
+
+	function void_ptr(: *const void) {}
+	void_ptr(&z);
+
+	const p: *int32 = __builtin_pointer_cast(*int32, std::libc::malloc(4u));
+	std::libc::free(p);
+	const p: *float32 = __builtin_pointer_cast(*float32, std::libc::malloc(4u));
+	std::libc::free(p);
+	type_test(int32, 3);
+	type_test(uint32, 2);
+	type_test(float32, 1);
+	// type_test(str, 1);
+	int32.type_test(3);
+	static_assert(typeof type_test(char, 10) == char);
+}
+
+function type_test(T: typename, n: int32) -> T
+{
+	let i: T = n as T;
+	return i;
+}
+
+function private_member_test()
+{
+	// const s = some_struct[ 2 ];
+	const s = make_some_struct(0);
+	// std::println(s._i);
+	std::printf("{}\n", s.get_i());
+}
+
+function algorithm_test()
+{
+	const arr = {
+		let arr: [10: int32];
+		arr.std::fill(3)
+	};
+	const it = arr.std::find(3);
+	std::assert(it != arr.end());
+	std::printf("{}\n", &*it);
+	std::printf("{}\n", *it);
+	std::printf("{}\n", it - arr.begin());
+
+	const it = arr.std::find(23);
+	std::assert(it == arr.end());
+	std::printf("{}\n", &*it);
+	std::printf("{}\n", it - arr.begin());
+
+	std::printf("{}\n", arr.std::count(3));
+	std::printf("{}\n", arr.std::count(2));
+}
+
+struct resource_t
+{
+	.i: int32;
+
+	destructor(&self)
+	{
+		std::printf("freeing resource {} at {}\n", self.i, &self);
+	}
+
+	constructor(i: int32)
+	{
+		return resource_t[ i ];
+	}
+
+	constructor(other: &const resource_t)
+	{
+		std::printf("copying resource {} from {} to {}\n", other.i, &other, ++global_tracker);
+		return resource_t[ global_tracker ];
+	}
+}
+
+function make_resource() -> resource_t
+{
+	std::printf("making resource {}\n", ++global_tracker);
+	return resource_t[ global_tracker ];
+}
+
+let global_tracker = 0;
+
+function destructor_test()
+{
+	function inner() -> int32
+	{
+		const res = make_resource();
+		std::printf("{}\n", res.i);
+		return res.i;
+	}
+
+	inner();
+
+	const res1 = make_resource();
+	@maybe_unused const res2 = res1;
+}
+
+export function string_test()
+{
+	let s = std::string("hello");
+	std::println(s);
+	std::printf("{}\n", std::string("world that is a long string").size());
+	std::printf("{}\n", std::string("world that is a long string").capacity());
+	std::printf("short string capacity: {}\n", std::string().capacity());
+
+	s = "asdf";
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s = "this is a very long string that won't have short string optimization";
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s = "asdf";
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.clear();
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('h');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('e');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('l');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('ó');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('\u0470');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+	s.push_back('\u0470');
+	std::printf("'{}' length: {}, size: {}, capacity: {}\n", s.as_str(), s.length(), s.size(), s.capacity());
+
+	{
+		let world = std::string("World");
+		world ..= '!';
+		std::print("Hello " .. world .. '\n');
+		std::print("Hello {}\n".std::format(world.as_str()));
+		std::println("---");
+		std::printf("{}\n", world.empty());
+		std::printf("{}\n", world.not_empty());
+	}
+
+	@maybe_unused
+	consteval n = {
+		const s = std::format("{}\n", "hello");
+		s.length()
+	};
+
+	consteval n = {
+		let s = std::string("hello");
+		s ..= " world!";
+		s.length()
+	};
+	static_assert(n == 12u);
+
+	std::printf("{}\n", std::string("Hello").is_ascii());
+	std::printf("{}\n", std::string("Helló").is_ascii());
+
+	let a: [int32, std::string] = [3, std::string("hello")];
+	@maybe_unused let b = a;
+	static_assert(__builtin_str_starts_with("asdf Hello", "asdf "));
+	static_assert("asdf Hello".starts_with("asdf "));
+	std::printf("{}\n", consteval {
+		const s = "asdf Hello";
+		const result = s.starts_with("asdf ");
+		result
+	});
+
+	std::printf("{}\n", std::string("???").starts_with("?"));
+	// (consteval { std::print("hello"); 0 });
+
+	@maybe_unused
+	let val = consteval (std::string("hello") == "hello");
+	static_assert(((__builtin_is_comptime())));
+
+	(consteval {
+		let s = std::string("Hello from constant expression!");
+		s.capacity()
+	});
+
+	let a = 1;
+	let b = 3;
+	const [a_ref, b_val] = [ a, b ];
+	static_assert(typeof a_ref == const int32);
+	static_assert(typeof b_val == const int32);
+
+	std::printf("hello {}{}\n", "world", '!');
+
+	@maybe_unused
+	let arr: [3: int32] = [ 0, 1, 2 ];
+
+	consteval i = true as uint32;
+	static_assert(i == 1u);
+
+	let arr: [5: int32];
+	// std::printf("{}\n", arr[2]);
+	std::printf("{}\n", arr[2]);
+
+	static_assert(std::format("{}", 1.23456) == "1.23456");
+	(consteval {
+		let arr: [int64, int32];
+		std::format("{}", arr[0]) == "0"
+	});
+}
+
+struct vec3<T: typename>
+{
+	static_assert(T == float32 || T == float64, "only floating point types are allowed");
+
+	type value_type = T;
+
+	.x: T;
+	.y: T;
+	.z: T;
+}
+
+function abs(v: #const vec3) -> (typeof v).value_type
+{
+	return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+function generic_type_test()
+{
+	let v = vec3<float32>[ 1.0f32, 0.0f32, 0.0f32 ];
+
+	static_assert(typeof v.x == float32);
+	static_assert((typeof v).value_type == float32);
+
+	std::printf("v = ({}, {}, {})\n", v.x, v.y, v.z);
+	std::printf("|v| = {}\n", v.abs());
+
+	let v = std::vector<int32>();
+	v.push_back(1);
+	std::assert(v.size() == 1u);
+	std::assert(v[0] == 1);
+	v.push_back(2);
+
+	for (const i in v)
+	{
+		std::printf("{}, ", i);
+	}
+	std::printf("\n");
+}
