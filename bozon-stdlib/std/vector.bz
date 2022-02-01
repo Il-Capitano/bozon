@@ -148,7 +148,7 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1u);
 		}
-		__builtin_inplace_construct(self._data_end, value);
+		__builtin_inplace_construct(self._data_end, value_type(__forward value));
 		self._data_end += 1;
 	}
 
@@ -158,7 +158,7 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1u);
 		}
-		__builtin_inplace_construct(self._data_end, value_type(...args));
+		__builtin_inplace_construct(self._data_end, value_type(...__forward args));
 		self._data_end += 1;
 		return *(self._data_end - 1);
 	}

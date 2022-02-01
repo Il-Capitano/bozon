@@ -260,6 +260,11 @@ export function as_str(s: &const string) -> str
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
 
+export function as_str(s: move string) -> str
+{
+	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
+}
+
 export function length(s: #const string) -> usize
 {
 	return s.as_str().length();

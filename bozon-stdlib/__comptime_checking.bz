@@ -5,10 +5,11 @@ consteval warning_kind_float_nan_math   = 4u32;
 consteval warning_kind_comptime_warning = 23u32;
 consteval warning_kind_error            = 24u32;
 
-// function alloc = __builtin_comptime_malloc_type;
-// function free  = __builtin_comptime_free;
-// function memcpy = __builtin_memcpy;
+function alloc = __builtin_comptime_malloc_type;
+function free  = __builtin_comptime_free;
+function memcpy = __builtin_memcpy;
 
+/*
 function alloc(T: typename, count: usize) -> *T
 {
 	return __builtin_comptime_malloc_type(T, count);
@@ -23,6 +24,7 @@ function memcpy(dest: *void, src: *const void, n: usize)
 {
 	__builtin_memcpy(dest, src, n);
 }
+*/
 
 function swap(a: &auto, b: &auto)
 {
@@ -756,11 +758,10 @@ function check_leaks() -> bool
 	{
 		if (!malloc_info.is_freed)
 		{
-			const call_stack = malloc_info.malloc_call_stack;
-			malloc_info.malloc_call_stack = [: uint64]();
+			let &const call_stack = malloc_info.malloc_call_stack;
 			emit_diagnostic(
 				warning_kind_error,
-				"malloc'd pointer was never freed",
+				"allocated memory was never freed",
 				call_stack,
 				malloc_info.malloc_src_tokens.begin,
 				malloc_info.malloc_src_tokens.pivot,

@@ -11,9 +11,11 @@ export function assert(b: bool)
 	if (!b) unreachable;
 }
 
-@symbol_name("exit") export function exit(code: int32) -> void;
+export function exit(code: int32) -> void
+{
+	libc::exit(code);
+}
 
-@no_comptime_checking
 export function malloc(T: typename, n: usize) -> *T
 {
 	static_assert(&T != T, "type in malloc can't be a reference type");
@@ -30,7 +32,6 @@ export function malloc(T: typename, n: usize) -> *T
 	}
 }
 
-@no_comptime_checking
 export function free(p: *void)
 {
 	if (meta::is_comptime())
