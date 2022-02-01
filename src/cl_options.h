@@ -104,9 +104,10 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
-	ctcli::create_hidden_option("--use-interpreter", "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
+	ctcli::create_hidden_option("--use-interpreter",              "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
 
-	ctcli::create_undocumented_option("--force-use-jit",   "Use the LLVM JIT for compile time code execution even if the target may not support it"),
+	ctcli::create_undocumented_option("--force-use-jit",        "Use the LLVM JIT for compile time code execution even if the target may not support it"),
+	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
 
 	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id, "warnings"),
 	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,     "optimizations"),
@@ -119,22 +120,23 @@ template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--define")>
 template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &display_version;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                   = &output_file_name;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-ir-output")> = &debug_comptime_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--use-interpreter")>          = &use_interpreter;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--force-use-jit")>            = &force_use_jit;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &return_zero_on_error;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];

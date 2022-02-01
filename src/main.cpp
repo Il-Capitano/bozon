@@ -1577,9 +1577,9 @@ struct foo<...Ts> {} // variadic
 #if defined(NDEBUG) || defined(_WIN32)
 // use std::exit instead of returning to avoid LLVM corrupting the heap
 // this happens rarely in debug mode, but is common for release builds
-#define return_from_main(val) std::exit((val))
+#define return_from_main(val) std::exit(return_zero_on_error ? 0 : (val))
 #else
-#define return_from_main(val) return (val)
+#define return_from_main(val) return (return_zero_on_error ? 0 : (val))
 #endif // NDEBUG
 
 int main(int argc, char const **argv)
