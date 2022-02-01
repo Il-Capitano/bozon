@@ -1,0 +1,31 @@
+struct resource_t
+{
+	.i: int32;
+
+	destructor(&self)
+	{
+	}
+
+	constructor(i: int32)
+	{
+		return resource_t[ i ];
+	}
+
+	constructor(other: &const resource_t)
+	{
+		return resource_t[ other.i ];
+	}
+}
+
+function func(r: move resource_t) -> int32
+{
+	return r.i;
+}
+
+function main()
+{
+	(consteval {
+		const _ = func(resource_t(123));
+	});
+	const _ = func(resource_t(123));
+}

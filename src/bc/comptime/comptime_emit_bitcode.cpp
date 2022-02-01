@@ -171,6 +171,7 @@ static llvm::Value *get_constant_zero(
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 	case ast::typespec_node_t::index_of<ast::ts_void>:
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
+	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 	default:
 		bz_unreachable;
@@ -199,7 +200,7 @@ static void push_destructor_call(
 		}
 		if (info.destructor != nullptr)
 		{
-			context.push_destructor_call(src_tokens, info.destructor, ptr);
+			context.push_destructor_call(src_tokens, &info.destructor->body, ptr);
 		}
 	}
 	else if (type.is<ast::ts_tuple>())
@@ -243,8 +244,8 @@ static void emit_destructor_call(
 		auto const &info = *type.get<ast::ts_base_type>().info;
 		if (info.destructor != nullptr)
 		{
-			auto const dtor_func = context.get_function(info.destructor);
-			auto const error_count = emit_push_call(src_tokens, info.destructor, context);
+			auto const dtor_func = context.get_function(&info.destructor->body);
+			auto const error_count = emit_push_call(src_tokens, &info.destructor->body, context);
 			context.builder.CreateCall(dtor_func, ptr);
 			emit_pop_call(error_count, context);
 		}
@@ -410,7 +411,7 @@ static void add_call_parameter(
 	constexpr auto byval_push = push_to_front
 		? static_cast<byval_push_type>(&ast::arena_vector<bool>::push_front)
 		: static_cast<byval_push_type>(&ast::arena_vector<bool>::push_back);
-	if (param_type.is<ast::ts_lvalue_reference>())
+	if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 	{
 		bz_assert(param.kind == val_ptr::reference);
 		(params.*params_push)(param.val);
@@ -633,13 +634,13 @@ static val_ptr emit_copy_constructor(
 		auto const info = expr_type.get<ast::ts_base_type>().info;
 		if (info->copy_constructor != nullptr)
 		{
-			auto const fn = context.get_function(info->copy_constructor);
+			auto const fn = context.get_function(&info->copy_constructor->body);
 			auto const ret_kind = context.get_pass_kind<abi>(expr_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->copy_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn, expr_val.val);
 				emit_pop_call(error_count, context);
 				context.builder.CreateStore(call, result_address);
@@ -648,7 +649,7 @@ static val_ptr emit_copy_constructor(
 			case abi::pass_kind::reference:
 			case abi::pass_kind::non_trivial:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->copy_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn, { result_address, expr_val.val });
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
@@ -660,7 +661,7 @@ static val_ptr emit_copy_constructor(
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->copy_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->copy_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn, expr_val.val);
 				emit_pop_call(error_count, context);
 				auto const cast_result_address = context.builder.CreatePointerCast(
@@ -763,13 +764,13 @@ static val_ptr emit_default_constructor(
 		auto const info = type.get<ast::ts_base_type>().info;
 		if (info->default_constructor != nullptr)
 		{
-			auto const fn = context.get_function(info->default_constructor);
+			auto const fn = context.get_function(&info->default_constructor->body);
 			auto const ret_kind = context.get_pass_kind<abi>(type, llvm_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->default_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn);
 				emit_pop_call(error_count, context);
 				context.builder.CreateStore(call, result_address);
@@ -778,7 +779,7 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::reference:
 			case abi::pass_kind::non_trivial:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->default_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn, result_address);
 				auto const sret_ptr_type = result_address->getType();
 				bz_assert(sret_ptr_type->isPointerTy());
@@ -790,7 +791,7 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
-				auto const error_count = emit_push_call(src_tokens, info->default_constructor, context);
+				auto const error_count = emit_push_call(src_tokens, &info->default_constructor->body, context);
 				auto const call = context.builder.CreateCall(fn);
 				emit_pop_call(error_count, context);
 				auto const cast_result_address = context.builder.CreatePointerCast(
@@ -869,10 +870,9 @@ static void emit_copy_assign(
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		bz_assert(info->op_assign != nullptr || info->op_move_assign == nullptr);
-		if (info->op_assign != nullptr)
+		if (info->op_assign != nullptr && !info->op_assign->body.is_intrinsic())
 		{
-			create_function_call<abi>(src_tokens, info->op_assign, lhs, rhs, context);
+			create_function_call<abi>(src_tokens, &info->op_assign->body, lhs, rhs, context);
 		}
 		else if (info->default_op_assign != nullptr)
 		{
@@ -949,9 +949,9 @@ static void emit_move_assign(
 		{
 			emit_copy_assign<abi>(src_tokens, type, lhs, rhs, context);
 		}
-		else if (info->op_move_assign != nullptr)
+		else if (info->op_move_assign != nullptr && !info->op_move_assign->body.is_intrinsic())
 		{
-			create_function_call<abi>(src_tokens, info->op_move_assign, lhs, rhs, context);
+			create_function_call<abi>(src_tokens, &info->op_move_assign->body, lhs, rhs, context);
 		}
 		else if (info->default_op_move_assign != nullptr)
 		{
@@ -1455,6 +1455,9 @@ static val_ptr emit_bitcode(
 	case lex::token::kw_sizeof:          // 'sizeof'
 		// this is always a constant expression
 		bz_unreachable;
+	case lex::token::kw_move:
+		bz_assert(result_address == nullptr);
+		return emit_bitcode<abi>(unary_op.expr, context, result_address);
 
 	// overloadables are handled as function calls
 	default:
@@ -2240,7 +2243,6 @@ static val_ptr emit_builtin_binary_cmp(
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
-		bz_assert(rhs_t.is<ast::ts_base_type>());
 		auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
 		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
 		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
@@ -2947,13 +2949,14 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	if (func_call.func_body->is_intrinsic())
+	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 129);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
-		static_assert(ast::function_body::_builtin_operator_last - ast::function_body::_builtin_operator_first == 34);
+		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
+		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
 		case ast::function_body::builtin_str_begin_ptr:
 		{
 			bz_assert(func_call.params.size() == 1);
@@ -3470,6 +3473,14 @@ static val_ptr emit_bitcode(
 		}
 
 		case ast::function_body::typename_as_str:
+		case ast::function_body::remove_const:
+		case ast::function_body::remove_consteval:
+		case ast::function_body::remove_pointer:
+		case ast::function_body::remove_reference:
+		case ast::function_body::is_default_constructible:
+		case ast::function_body::is_copy_constructible:
+		case ast::function_body::is_trivially_copy_constructible:
+		case ast::function_body::is_trivially_destructible:
 		case ast::function_body::i8_default_constructor:
 		case ast::function_body::i16_default_constructor:
 		case ast::function_body::i32_default_constructor:
@@ -3630,10 +3641,26 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);
-			auto const param_val = ast::is_non_trivial(param_type)
-				? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
-				: emit_bitcode<abi>(p, context, nullptr);
-			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			if (param_type.is<ast::ts_move_reference>())
+			{
+				bz_assert(param_llvm_type->isPointerTy());
+				auto const result_address = p.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
+					? context.create_alloca(param_llvm_type->getPointerElementType())
+					: nullptr;
+				auto const param_val = emit_bitcode<abi>(p, context, result_address);
+				if (result_address != nullptr)
+				{
+					push_destructor_call(src_tokens, result_address, param_type.get<ast::ts_move_reference>(), context);
+				}
+				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			}
+			else
+			{
+				auto const param_val = ast::is_non_trivial(param_type)
+					? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
+					: emit_bitcode<abi>(p, context, nullptr);
+				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			}
 		}
 	};
 
@@ -3705,7 +3732,7 @@ static val_ptr emit_bitcode(
 		);
 
 		auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
-		if (!file.ends_with("__comptime_checking.bz"))
+		// if (!file.ends_with("__comptime_checking.bz"))
 		{
 			auto const line = src_tokens.pivot->src_pos.line;
 			auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
@@ -4855,7 +4882,7 @@ static llvm::Constant *get_value(
 	case ast::constant_value::function:
 	{
 		auto const decl = value.get<ast::constant_value::function>();
-		return context.get_function(decl);
+		return context.get_function(&decl->body);
 	}
 	case ast::constant_value::aggregate:
 	{
@@ -5765,7 +5792,7 @@ static void emit_function_bitcode_impl(
 				++p_it;
 				continue;
 			}
-			if (p.get_type().is<ast::ts_lvalue_reference>())
+			if (p.get_type().is<ast::ts_lvalue_reference>() || p.get_type().is<ast::ts_move_reference>())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
 				if (p.tuple_decls.empty())

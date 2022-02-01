@@ -4,11 +4,11 @@
 #include "core.h"
 #include "typespec.h"
 #include "allocator.h"
+#include "statement_forward.h"
 
 namespace ast
 {
 
-struct function_body;
 struct statement_view;
 
 struct constant_value;
@@ -38,7 +38,7 @@ struct constant_value : bz::variant<
 	// tuples
 	bz::vector<constant_value>,
 
-	function_body *,
+	decl_function *,
 	function_set_t,
 	function_set_t,
 
@@ -60,7 +60,7 @@ struct constant_value : bz::variant<
 		// tuples
 		bz::vector<constant_value>,
 
-		function_body *,
+		decl_function *,
 		function_set_t,
 		function_set_t,
 
@@ -83,7 +83,7 @@ struct constant_value : bz::variant<
 		void_           = base_t::index_of<internal::void_t>,
 		array,
 		tuple,
-		function        = base_t::index_of<function_body *>,
+		function        = base_t::index_of<decl_function *>,
 		unqualified_function_set_id,
 		qualified_function_set_id,
 		type            = base_t::index_of<typespec>,

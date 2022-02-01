@@ -93,12 +93,13 @@ get_llvm_builtin_types(llvm::LLVMContext &context)
 	};
 }
 
-decl_set get_default_decls(void)
+ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope)
 {
-	return {
-		{}, // symbols
-		{}, // op_sets
-	};
+	ast::scope_t result;
+	auto &global_scope = result.emplace<ast::global_scope_t>();
+	global_scope.parent = { builtin_global_scope, 0 };
+	global_scope.id_scope = id_scope;
+	return result;
 }
 
 global_context::global_context(void)
@@ -106,9 +107,10 @@ global_context::global_context(void)
 	  _errors{},
 	  _builtin_type_infos(ast::make_builtin_type_infos()),
 	  _builtin_types{},
-	  _builtin_functions{},
 	  _builtin_universal_functions(ast::make_builtin_universal_functions()),
+	  _builtin_functions{},
 	  _builtin_operators{},
+	  _builtin_global_scope(),
 	  _llvm_context(),
 	  _module("test", this->_llvm_context),
 	  _target(nullptr),
@@ -153,41 +155,12 @@ ast::typespec_view global_context::get_builtin_type(bz::u8string_view name)
 	}
 }
 
-ast::function_body *global_context::get_builtin_function(uint32_t kind)
+ast::decl_function *global_context::get_builtin_function(uint32_t kind)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
 	bz_assert(kind < this->_builtin_functions.size());
-	switch (kind)
-	{
-	case ast::function_body::builtin_str_eq:
-		bz_assert(this->_builtin_str_eq_func != nullptr);
-		return this->_builtin_str_eq_func;
-	case ast::function_body::builtin_str_neq:
-		bz_assert(this->_builtin_str_neq_func != nullptr);
-		return this->_builtin_str_neq_func;
-	case ast::function_body::builtin_str_length:
-		bz_assert(this->_builtin_str_length_func != nullptr);
-		return this->_builtin_str_length_func;
-	case ast::function_body::builtin_str_starts_with:
-		bz_assert(this->_builtin_str_starts_with_func != nullptr);
-		return this->_builtin_str_starts_with_func;
-	case ast::function_body::builtin_str_ends_with:
-		bz_assert(this->_builtin_str_ends_with_func != nullptr);
-		return this->_builtin_str_ends_with_func;
-	case ast::function_body::comptime_compile_error_src_tokens:
-		bz_assert(this->_comptime_compile_error_src_tokens_func != nullptr);
-		return this->_comptime_compile_error_src_tokens_func;
-	case ast::function_body::comptime_compile_warning_src_tokens:
-		bz_assert(this->_comptime_compile_warning_src_tokens_func != nullptr);
-		return this->_comptime_compile_warning_src_tokens_func;
-	case ast::function_body::comptime_create_global_string:
-		bz_assert(this->_comptime_create_global_string_func != nullptr);
-		return this->_comptime_create_global_string_func;
-	default:
-		break;
-	}
+	bz_assert(this->_builtin_functions[kind] != nullptr);
 
-	return &this->_builtin_functions[kind];
+	return this->_builtin_functions[kind];
 }
 
 bz::array_view<uint32_t const> global_context::get_builtin_universal_functions(bz::u8string_view id)
@@ -205,25 +178,6 @@ bz::array_view<uint32_t const> global_context::get_builtin_universal_functions(b
 	else
 	{
 		return {};
-	}
-}
-
-bz::array_view<ast::function_body> global_context::get_builtin_operators(uint32_t op_kind)
-{
-	auto const it = std::find_if(
-		this->_builtin_operators.begin(), this->_builtin_operators.end(),
-		[op_kind](auto const &builtin_op) {
-			return builtin_op.op == op_kind;
-		}
-	);
-
-	if (it == this->_builtin_operators.end())
-	{
-		return {};
-	}
-	else
-	{
-		return it->bodies;
 	}
 }
 
@@ -362,7 +316,9 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 		);
 		if (file_it == this->_src_files.end())
 		{
-			return this->_src_files.emplace_back(file_path, this->_src_files.size(), std::move(scope), is_library_file || current_file._is_library_file);
+			return this->_src_files.emplace_back(
+				file_path, this->_src_files.size(), std::move(scope), is_library_file || current_file._is_library_file
+			);
 		}
 		else
 		{
@@ -384,9 +340,9 @@ uint32_t global_context::add_module(uint32_t current_file_id, ast::identifier co
 	return file._file_id;
 }
 
-decl_set const &global_context::get_file_export_decls(uint32_t file_id)
+ast::scope_t *global_context::get_file_export_decls(uint32_t file_id)
 {
-	return this->get_src_file(file_id)._export_decls;
+	return &this->get_src_file(file_id)._export_decls;
 }
 
 bool global_context::add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body)
@@ -438,87 +394,67 @@ bool global_context::add_comptime_checking_variable(bz::u8string_view kind, ast:
 	}
 }
 
-bool global_context::add_builtin_function(bz::u8string_view kind, ast::function_body *func_body)
+bool global_context::add_builtin_function(ast::decl_function *func_decl)
 {
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 123);
-	if (kind == "str_eq")
+	if (!func_decl->id.is_qualified || func_decl->id.values.size() != 1)
 	{
-		if (this->_builtin_str_eq_func != nullptr)
+		return false;
+	}
+
+	auto const id = func_decl->id.values[0];
+
+	auto const it = std::find_if(
+		ast::intrinsic_info.begin(), ast::intrinsic_info.end(),
+		[id](auto const &info) {
+			return info.func_name == id;
+		}
+	);
+
+	if (it == ast::intrinsic_info.end() || this->_builtin_functions[it->kind] != nullptr)
+	{
+		return false;
+	}
+
+	func_decl->body.intrinsic_kind = it->kind;
+	this->_builtin_functions[it->kind] = func_decl;
+	return true;
+}
+
+bool global_context::add_builtin_operator(ast::decl_operator *op_decl)
+{
+	auto const op = op_decl->op->kind;
+	if (op_decl->body.params.size() == 1)
+	{
+		auto const it = std::find_if(
+			ast::builtin_unary_operator_info.begin(), ast::builtin_unary_operator_info.end(),
+			[op](auto const &info) {
+				return op == info.op;
+			}
+		);
+		if (it == ast::builtin_unary_operator_info.end())
 		{
 			return false;
 		}
-		func_body->intrinsic_kind = ast::function_body::builtin_str_eq;
-		this->_builtin_str_eq_func = func_body;
+
+		op_decl->body.intrinsic_kind = it->kind;
+		this->_builtin_operators.push_back(op_decl);
 		return true;
 	}
-	else if (kind == "str_neq")
+	else if (op_decl->body.params.size() == 2)
 	{
-		if (this->_builtin_str_neq_func != nullptr)
+		auto const it = std::find_if(
+			ast::builtin_binary_operator_info.begin(), ast::builtin_binary_operator_info.end(),
+			[op](auto const &info) {
+				return op == info.op;
+			}
+		);
+		if (it == ast::builtin_binary_operator_info.end())
 		{
 			return false;
 		}
-		func_body->intrinsic_kind = ast::function_body::builtin_str_neq;
-		this->_builtin_str_neq_func = func_body;
-		return true;
-	}
-	else if (kind == "str_length")
-	{
-		if (this->_builtin_str_length_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::builtin_str_length;
-		this->_builtin_str_length_func = func_body;
-		return true;
-	}
-	else if (kind == "str_starts_with")
-	{
-		if (this->_builtin_str_starts_with_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::builtin_str_starts_with;
-		this->_builtin_str_starts_with_func = func_body;
-		return true;
-	}
-	else if (kind == "str_ends_with")
-	{
-		if (this->_builtin_str_ends_with_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::builtin_str_ends_with;
-		this->_builtin_str_ends_with_func = func_body;
-		return true;
-	}
-	else if (kind == "comptime_compile_error_src_tokens")
-	{
-		if (this->_comptime_compile_error_src_tokens_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::comptime_compile_error_src_tokens;
-		this->_comptime_compile_error_src_tokens_func = func_body;
-		return true;
-	}
-	else if (kind == "comptime_compile_warning_src_tokens")
-	{
-		if (this->_comptime_compile_warning_src_tokens_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::comptime_compile_warning_src_tokens;
-		this->_comptime_compile_warning_src_tokens_func = func_body;
-		return true;
-	}
-	else if (kind == "comptime_create_global_string")
-	{
-		if (this->_comptime_create_global_string_func != nullptr)
-		{
-			return false;
-		}
-		func_body->intrinsic_kind = ast::function_body::comptime_create_global_string;
-		this->_comptime_create_global_string_func = func_body;
+
+		op_decl->body.intrinsic_kind = it->kind;
+		this->_builtin_operators.push_back(op_decl);
 		return true;
 	}
 	else
@@ -567,6 +503,22 @@ void global_context::report_and_clear_errors_and_warnings(void)
 			{}, {}
 		});
 	}
+	if (errors.not_empty())
+	{
+		return false;
+	}
+
+	if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
+	{
+		compile_until = compilation_phase::parse_command_line;
+		return true;
+	}
+	else if (display_version)
+	{
+		print_version_info();
+		compile_until = compilation_phase::parse_command_line;
+		return true;
+	}
 
 	if (!ctcli::is_option_set<ctcli::option("--stdlib-dir")>())
 	{
@@ -594,15 +546,6 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	}
 	else
 	{
-		if (ctcli::print_help_if_needed("bozon", "source-file", 2, 24, 80))
-		{
-			compile_until = compilation_phase::parse_command_line;
-		}
-		else if (display_version)
-		{
-			print_version_info();
-			compile_until = compilation_phase::parse_command_line;
-		}
 		return true;
 	}
 }
@@ -715,19 +658,18 @@ void global_context::report_and_clear_errors_and_warnings(void)
 {
 	auto const pointer_size = this->_data_layout->getPointerSize();
 	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
-	this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
-	this->_builtin_operators = ast::make_builtin_operators(this->_builtin_type_infos);
+	// this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
+	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
+	// this->_builtin_operators = ast::make_builtin_operators(this->_builtin_type_infos);
 
 	auto const stdlib_dir_sv = std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size());
+
 	auto const builtins_file_path = fs::path(stdlib_dir_sv) / "__builtins.bz";
 	auto &builtins_file = this->_src_files.emplace_back(
 		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
+	this->_builtin_global_scope = &builtins_file._global_decls;
 	if (!builtins_file.parse_global_symbols(*this))
-	{
-		return false;
-	}
-	if (!builtins_file.parse(*this))
 	{
 		return false;
 	}
@@ -738,6 +680,11 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	);
 	this->_comptime_executor.comptime_checking_file_id = comptime_checking_file._file_id;
 	if (!comptime_checking_file.parse_global_symbols(*this))
+	{
+		return false;
+	}
+
+	if (!builtins_file.parse(*this))
 	{
 		return false;
 	}
@@ -789,15 +736,21 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	bz_assert(this->_compile_decls.var_decls.size() == 0);
 	for (auto const &file : this->_src_files)
 	{
-		for (auto const struct_decl : file._global_decls.type_range())
+		for (auto const struct_decl : file._global_decls.get_global().structs)
 		{
 			bc::runtime::emit_global_type_symbol(struct_decl->info, context);
 		}
-		for (auto const struct_decl : file._global_decls.type_range())
+	}
+	for (auto const &file : this->_src_files)
+	{
+		for (auto const struct_decl : file._global_decls.get_global().structs)
 		{
 			bc::runtime::emit_global_type(struct_decl->info, context);
 		}
-		for (auto const var_decl : file._global_decls.var_decl_range())
+	}
+	for (auto const &file : this->_src_files)
+	{
+		for (auto const var_decl : file._global_decls.get_global().variables)
 		{
 			bc::runtime::emit_global_variable(*var_decl, context);
 		}
@@ -842,6 +795,8 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		return this->emit_llvm_bc();
 	case emit_type::llvm_ir:
 		return this->emit_llvm_ir();
+	case emit_type::null:
+		return true;
 	}
 	bz_unreachable;
 }

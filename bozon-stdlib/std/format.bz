@@ -739,9 +739,10 @@ function print_uint_base_to_buffer(n: uint64, out: *uint8, base: consteval uint6
 		--i;
 		consteval mask = base - 1u;
 		const c = '0' + ((n >> (i * bit_width as int32)) & mask);
-		*(out + i) = c as uint8;
+		*out = c as uint8;
+		++out;
 	}
-	return out + output_len;
+	return out;
 }
 
 function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
@@ -767,9 +768,10 @@ function print_uint_hex_to_buffer(n: uint64, out: *uint8) -> *uint8
 	{
 		--i;
 		const c = table[(n >> (i * 4)) & 0b1111u64];
-		*(out + i) = c;
+		*out = c;
+		++out;
 	}
-	return out + output_len;
+	return out;
 }
 
 function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
@@ -795,9 +797,10 @@ function print_uint_HEX_to_buffer(n: uint64, out: *uint8) -> *uint8
 	{
 		--i;
 		const c = table[(n >> (i * 4)) & 0b1111u64];
-		*(out + i) = c;
+		*out = c;
+		++out;
 	}
-	return out + output_len;
+	return out;
 }
 
 // binary printing has the max number of possible chars
@@ -1699,4 +1702,14 @@ export function format_to(&const [...elems], buffer: &format_buffer, fmt_spec: f
 	buffer.write_into("[ ");
 	tuple_format_to_impl(buffer, [ ...&elems ], fmt_spec);
 	buffer.write_into(" ]");
+}
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: str)
+{
+	s.as_str().format_to(buffer, fmt_spec);
+}
+
+export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: format_spec)
+{
+	s.as_str().format_to(buffer, fmt_spec);
 }

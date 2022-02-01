@@ -25,6 +25,7 @@ static bz::u8string read_text_from_file(std::istream &file)
 	return file_str;
 }
 
+/*
 static void report_redeclaration_error(lex::src_tokens src_tokens, ctx::symbol_t *prev_symbol, ctx::global_context &global_ctx)
 {
 	if (prev_symbol != nullptr)
@@ -39,6 +40,52 @@ static void report_redeclaration_error(lex::src_tokens src_tokens, ctx::symbol_t
 		);
 	}
 }
+*/
+
+static void add_import_decls(src_file &file, ast::global_scope_t &import_scope)
+{
+	for (auto const &func_set : import_scope.function_sets)
+	{
+		for (auto const func_decl : func_set.func_decls)
+		{
+			file._global_decls.get_global().add_function(*func_decl);
+		}
+		for (auto const alias_decl : func_set.alias_decls)
+		{
+			file._global_decls.get_global().add_function_alias(*alias_decl);
+		}
+	}
+
+	for (auto const &op_set : import_scope.operator_sets)
+	{
+		for (auto const op_decl : op_set.op_decls)
+		{
+			file._global_decls.get_global().add_operator(*op_decl);
+		}
+	}
+
+	for (auto const var_decl : import_scope.variables)
+	{
+		file._global_decls.get_global().add_variable(*var_decl);
+	}
+
+	for (auto const &variadic_var_decl : import_scope.variadic_variables)
+	{
+		file._global_decls.get_global().add_variable(*variadic_var_decl.original_decl, variadic_var_decl.variadic_decls);
+	}
+
+	for (auto const type_alias_decl : import_scope.type_aliases)
+	{
+		file._global_decls.get_global().add_type_alias(*type_alias_decl);
+	}
+
+	for (auto const struct_decl : import_scope.structs)
+	{
+		file._global_decls.get_global().add_struct(*struct_decl);
+	}
+
+	static_assert(sizeof (ast::global_scope_t) == 176);
+}
 
 
 src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string_view> scope, bool is_library_file)
@@ -52,21 +99,6 @@ src_file::src_file(fs::path file_path, uint32_t file_id, bz::vector<bz::u8string
 	  _scope(std::move(scope))
 {}
 
-
-static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::global_context &global_ctx)
-{
-	for (auto const &symbol : set.symbols)
-	{
-		auto const prev_symbol = file._global_decls.add_symbol(symbol);
-		report_redeclaration_error(ctx::get_symbol_src_tokens(symbol), prev_symbol, global_ctx);
-	}
-
-	for (auto const &op_set : set.op_sets)
-	{
-		[[maybe_unused]] auto const symbol_ptr = file._global_decls.add_operator_set(op_set);
-		bz_assert(symbol_ptr == nullptr);
-	}
-}
 
 [[nodiscard]] bool src_file::read_file(ctx::global_context &global_ctx)
 {
@@ -139,13 +171,23 @@ static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::g
 	auto stream = this->_tokens.cbegin();
 	auto end    = this->_tokens.cend() - 1;
 
+	if (global_ctx._builtin_global_scope != &this->_global_decls)
+	{
+		this->_global_decls = ctx::get_default_decls(global_ctx._builtin_global_scope, this->_scope);
+	}
+	else
+	{
+		this->_global_decls = ast::make_global_scope({}, this->_scope);
+	}
+	this->_export_decls = ast::make_global_scope({}, this->_scope);
+
 	ctx::parse_context context(global_ctx);
+	context.current_global_scope = &this->_global_decls;
 
 	this->_declarations = parse::parse_global_statements(stream, end, context);
 
 	bz::vector<ast::decl_import const *> imports = {};
 
-	this->_global_decls = ctx::get_default_decls();
 	for (auto &decl : this->_declarations)
 	{
 		switch (decl.kind())
@@ -153,72 +195,60 @@ static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::g
 		case ast::statement::index<ast::decl_variable>:
 		{
 			auto &var_decl = decl.get<ast::decl_variable>();
-			auto const prev_symbol = this->_global_decls.add_variable(var_decl);
-			report_redeclaration_error(var_decl.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && var_decl.is_module_export())
+			this->_global_decls.get_global().add_variable(var_decl);
+			if (var_decl.is_module_export())
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_variable(var_decl);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_variable(var_decl);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_function>:
 		{
-			auto &body = decl.get<ast::decl_function>().body;
-			auto const prev_symbol = this->_global_decls.add_function(decl);
-			report_redeclaration_error(body.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && body.is_export())
+			auto &func_decl = decl.get<ast::decl_function>();
+			this->_global_decls.get_global().add_function(func_decl);
+			if (func_decl.body.is_export())
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_function(decl);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_function(func_decl);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_operator>:
 		{
-			auto &body = decl.get<ast::decl_operator>().body;
-			[[maybe_unused]] auto const prev_symbol = this->_global_decls.add_operator(decl);
-			bz_assert(prev_symbol == nullptr);
-			if (body.is_export())
+			auto &op_decl = decl.get<ast::decl_operator>();
+			this->_global_decls.get_global().add_operator(op_decl);
+			if (op_decl.body.is_export())
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_operator(decl);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_operator(op_decl);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_function_alias>:
 		{
-			auto &alias = decl.get<ast::decl_function_alias>();
-			auto const prev_symbol = this->_global_decls.add_function_alias(alias);
-			report_redeclaration_error(alias.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && alias.is_export)
+			auto &alias_decl = decl.get<ast::decl_function_alias>();
+			this->_global_decls.get_global().add_function_alias(alias_decl);
+			if (alias_decl.is_export)
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_function_alias(alias);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_function_alias(alias_decl);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_type_alias>:
 		{
-			auto &alias = decl.get<ast::decl_type_alias>();
-			auto const prev_symbol = this->_global_decls.add_type_alias(alias);
-			report_redeclaration_error(alias.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && alias.is_export)
+			auto &alias_decl = decl.get<ast::decl_type_alias>();
+			this->_global_decls.get_global().add_type_alias(alias_decl);
+			if (alias_decl.is_module_export())
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_type_alias(alias);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_type_alias(alias_decl);
 			}
 			break;
 		}
 		case ast::statement::index<ast::decl_struct>:
 		{
 			auto &struct_decl = decl.get<ast::decl_struct>();
-			auto const prev_symbol = this->_global_decls.add_type(struct_decl);
-			report_redeclaration_error(struct_decl.info.src_tokens, prev_symbol, global_ctx);
-			if (prev_symbol == nullptr && struct_decl.info.is_module_export())
+			this->_global_decls.get_global().add_struct(struct_decl);
+			if (struct_decl.info.is_module_export())
 			{
-				[[maybe_unused]] auto const export_prev_symbol = this->_export_decls.add_type(struct_decl);
-				bz_assert(export_prev_symbol == nullptr);
+				this->_export_decls.get_global().add_struct(struct_decl);
 			}
 			break;
 		}
@@ -238,8 +268,8 @@ static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::g
 		auto const import_file_id = global_ctx.add_module(this->_file_id, import->id);
 		if (import_file_id != std::numeric_limits<uint32_t>::max())
 		{
-			auto const &import_decls = global_ctx.get_file_export_decls(import_file_id);
-			add_to_global_decls(*this, import_decls, global_ctx);
+			auto const import_decls = global_ctx.get_file_export_decls(import_file_id);
+			add_import_decls(*this, import_decls->get_global());
 		}
 	}
 
@@ -255,10 +285,12 @@ static void add_to_global_decls(src_file &file, ctx::decl_set const &set, ctx::g
 	bz_assert(this->_stage == parsed_global_symbols);
 
 	ctx::parse_context context(global_ctx);
-	context.global_decls = &this->_global_decls;
+	context.current_global_scope = &this->_global_decls;
 
+	// bz::log("{}\n", &this->_global_decls);
 	for (auto &decl : this->_declarations)
 	{
+		// bz::log("==== {} :: {}\n", &context, context.current_global_scope);
 		resolve::resolve_global_statement(decl, context);
 	}
 	for (std::size_t i = 0; i < context.generic_functions.size(); ++i)
@@ -276,7 +308,7 @@ void src_file::aggressive_consteval(ctx::global_context &global_ctx)
 {
 	bz_assert(this->_stage == parsed);
 	ctx::parse_context context(global_ctx);
-	context.global_decls = &this->_global_decls;
+	context.current_global_scope = &this->_global_decls;
 
 	for (auto &decl : this->_declarations)
 	{

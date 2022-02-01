@@ -40,7 +40,7 @@ ast::statement parse_stmt_static_assert(
 	}
 	context.assert_token(stream, lex::token::semi_colon);
 
-	return ast::make_stmt_static_assert(static_assert_pos, args);
+	return ast::make_stmt_static_assert(static_assert_pos, args, context.get_current_enclosing_scope());
 }
 
 static ast::decl_variable parse_decl_variable_id_and_type(
@@ -67,7 +67,8 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			return ast::decl_variable(
 				{ prototype_begin, open_square, stream },
 				prototype,
-				std::move(tuple_decls)
+				std::move(tuple_decls),
+				context.get_current_enclosing_scope()
 			);
 		}
 		else
@@ -79,7 +80,8 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			return ast::decl_variable(
 				{ prototype_begin, open_square, stream },
 				prototype,
-				std::move(tuple_decls)
+				std::move(tuple_decls),
+				context.get_current_enclosing_scope()
 			);
 		}
 	}
@@ -116,7 +118,8 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 				ast::var_id_and_type(
 					id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
 					ast::type_as_expression(ast::make_auto_typespec(id))
-				)
+				),
+				context.get_current_enclosing_scope()
 			);
 			if (id->kind == lex::token::identifier && result.get_id().values.back().starts_with('_'))
 			{
@@ -139,7 +142,8 @@ static ast::decl_variable parse_decl_variable_id_and_type(
 			ast::var_id_and_type(
 				id->kind == lex::token::identifier ? ast::make_identifier(id) : ast::identifier{},
 				ast::type_as_expression(ast::make_unresolved_typespec(type))
-			)
+			),
+			context.get_current_enclosing_scope()
 		);
 		if (id->kind == lex::token::identifier && result.get_id().values.back().starts_with('_'))
 		{
@@ -297,26 +301,37 @@ ast::statement parse_decl_type_alias(
 	context.assert_token(stream, lex::token::semi_colon);
 	if constexpr (scope == parse_scope::global)
 	{
-		return ast::make_decl_type_alias(
+		auto result = ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
 			context.make_qualified_identifier(id),
-			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end }),
+			context.get_current_enclosing_scope()
 		);
+		bz_assert(result.is<ast::decl_type_alias>());
+		auto &type_alias = result.get<ast::decl_type_alias>();
+		type_alias.flags |= ast::decl_type_alias::global;
+		return result;
 	}
 	else if constexpr (scope == parse_scope::struct_body)
 	{
-		return ast::make_decl_type_alias(
+		auto result = ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
 			ast::make_identifier(id),
-			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end }),
+			context.get_current_enclosing_scope()
 		);
+		bz_assert(result.is<ast::decl_type_alias>());
+		auto &type_alias = result.get<ast::decl_type_alias>();
+		type_alias.flags |= ast::decl_type_alias::global;
+		return result;
 	}
 	else
 	{
 		auto result = ast::make_decl_type_alias(
 			lex::src_tokens{ begin_token, id, end_token },
 			ast::make_identifier(id),
-			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end })
+			ast::make_unresolved_expression({ alias_tokens.begin, alias_tokens.begin, alias_tokens.end }),
+			context.get_current_enclosing_scope()
 		);
 		bz_assert(result.is<ast::decl_type_alias>());
 		auto &type_alias = result.get<ast::decl_type_alias>();
@@ -384,6 +399,7 @@ static ast::function_body parse_function_body(
 )
 {
 	ast::function_body result = {};
+	result.scope = ast::make_local_scope(context.get_current_enclosing_scope());
 	auto const open_paren = context.assert_token(stream, lex::token::paren_open);
 	auto const param_range = get_expression_tokens<
 		lex::token::paren_close
@@ -570,7 +586,8 @@ ast::statement parse_decl_function_or_alias(
 		return ast::make_decl_function_alias(
 			src_tokens,
 			std::move(func_id),
-			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end })
+			ast::make_unresolved_expression({ alias_expr.begin, alias_expr.begin, alias_expr.end }),
+			context.get_current_enclosing_scope()
 		);
 	}
 	else
@@ -600,11 +617,7 @@ ast::statement parse_decl_function_or_alias(
 			bz_assert(result.is<ast::decl_function>());
 			auto &func_decl = result.get<ast::decl_function>();
 			func_decl.body.flags |= ast::function_body::local;
-			resolve::resolve_function(result, func_decl.body, context);
-			if (func_decl.body.state != ast::resolve_state::error)
-			{
-				context.add_local_function(func_decl);
-			}
+			context.add_unresolved_local(func_name);
 			return result;
 		}
 	}
@@ -705,11 +718,11 @@ ast::statement parse_decl_operator(
 
 	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
 	{
-		return ast::make_decl_operator(context.current_scope, op, std::move(body));
+		return ast::make_decl_operator(context.get_current_enclosing_id_scope(), op, std::move(body));
 	}
 	else
 	{
-		auto result = ast::make_decl_operator(context.current_scope, op, std::move(body));
+		auto result = ast::make_decl_operator(context.get_current_enclosing_id_scope(), op, std::move(body));
 		bz_assert(result.is<ast::decl_operator>());
 		auto &op_decl = result.get<ast::decl_operator>();
 		op_decl.body.flags |= ast::function_body::local;
@@ -876,11 +889,22 @@ static ast::statement parse_decl_struct_impl(
 		auto const range = get_tokens_in_curly<>(stream, end, context);
 		if (generic_params.not_empty())
 		{
-			return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range, std::move(generic_params));
+			return ast::make_decl_struct(
+				src_tokens,
+				context.make_qualified_identifier(id),
+				range,
+				std::move(generic_params),
+				context.get_current_enclosing_scope()
+			);
 		}
 		else
 		{
-			return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id), range);
+			return ast::make_decl_struct(
+				src_tokens,
+				context.make_qualified_identifier(id),
+				range,
+				context.get_current_enclosing_scope()
+			);
 		}
 	}
 	else if (stream == end || stream->kind != lex::token::semi_colon)
@@ -895,7 +919,11 @@ static ast::statement parse_decl_struct_impl(
 			context.report_error(stream, "a generic type must have a body");
 		}
 		++stream; // ';'
-		return ast::make_decl_struct(src_tokens, context.make_qualified_identifier(id));
+		return ast::make_decl_struct(
+			src_tokens,
+			context.make_qualified_identifier(id),
+			context.get_current_enclosing_scope()
+		);
 	}
 }
 
@@ -970,7 +998,7 @@ ast::statement parse_attribute_statement(
 {
 	bz_assert(stream != end);
 	bz_assert(stream->kind == lex::token::at);
-	bz::vector<ast::attribute> attributes = {};
+	ast::arena_vector<ast::attribute> attributes = {};
 	while (stream != end && stream->kind == lex::token::at)
 	{
 		++stream; // '@'
@@ -1002,14 +1030,29 @@ ast::statement parse_attribute_statement(
 		: scope == parse_scope::struct_body ? &parse_struct_body_statement
 		: &parse_local_statement;
 	auto statement = parser_fn(stream, end, context);
-	if constexpr (scope == parse_scope::global || scope == parse_scope::struct_body)
+
+	switch (statement.kind())
 	{
-		statement.set_attributes_without_resolve(std::move(attributes));
-	}
-	else
-	{
-		statement.set_attributes_without_resolve(std::move(attributes));
-		resolve::resolve_attributes(statement, context);
+	case ast::statement::index<ast::decl_variable>:
+		statement.get<ast::decl_variable>().attributes = std::move(attributes);
+		break;
+	case ast::statement::index<ast::decl_function>:
+		statement.get<ast::decl_function>().attributes = std::move(attributes);
+		break;
+	case ast::statement::index<ast::decl_operator>:
+		statement.get<ast::decl_operator>().attributes = std::move(attributes);
+		break;
+
+	default:
+		for (auto const &attribute : attributes)
+		{
+			context.report_warning(
+				ctx::warning_kind::unknown_attribute,
+				attribute.name,
+				bz::format("unknown attribute '@{}'", attribute.name->value)
+			);
+		}
+		break;
 	}
 	return statement;
 }
@@ -1053,7 +1096,7 @@ ast::statement parse_export_statement(
 				alias_decl.is_export = true;
 			},
 			[](ast::decl_type_alias &alias_decl) {
-				alias_decl.is_export = true;
+				alias_decl.flags |= ast::decl_type_alias::module_export;
 			},
 			[](ast::decl_variable &var_decl) {
 				var_decl.flags |= ast::decl_variable::module_export;
@@ -1104,7 +1147,7 @@ static ast::statement parse_stmt_for_impl(
 )
 {
 	// 'for' and '(' have already been consumed
-	context.add_scope();
+	auto const prev_size = context.add_unresolved_scope();
 
 	if (stream == end)
 	{
@@ -1166,7 +1209,7 @@ static ast::statement parse_stmt_for_impl(
 	consume_semi_colon_at_end_of_expression(stream, end, context, body);
 
 	context.pop_loop(prev_in_loop);
-	context.remove_scope();
+	context.remove_unresolved_scope(prev_size);
 
 	return ast::make_stmt_for(
 		std::move(init_stmt),
@@ -1225,7 +1268,7 @@ static ast::statement parse_stmt_foreach_impl(
 		>(stream, end, context);
 	}
 
-	context.add_scope();
+	auto const outer_prev_size = context.add_unresolved_scope();
 
 	auto range_var_type = ast::make_auto_typespec(nullptr);
 	range_var_type.add_layer<ast::ts_auto_reference_const>();
@@ -1234,7 +1277,8 @@ static ast::statement parse_stmt_foreach_impl(
 		range_expr_src_tokens,
 		lex::token_range{},
 		ast::var_id_and_type(ast::identifier{}, ast::type_as_expression(std::move(range_var_type))),
-		std::move(range_expr)
+		std::move(range_expr),
+		context.get_current_enclosing_scope()
 	);
 	bz_assert(range_var_decl_stmt.is<ast::decl_variable>());
 	auto &range_var_decl = range_var_decl_stmt.get<ast::decl_variable>();
@@ -1243,7 +1287,7 @@ static ast::statement parse_stmt_foreach_impl(
 	range_var_decl.id_and_type.id.is_qualified = false;
 
 	auto const prev_in_loop = context.push_loop();
-	context.add_scope();
+	auto const inner_prev_size = context.add_unresolved_scope();
 
 	bz_assert(iter_deref_var_decl_stmt.is<ast::decl_variable>());
 	auto &iter_deref_var_decl = iter_deref_var_decl_stmt.get<ast::decl_variable>();
@@ -1252,9 +1296,9 @@ static ast::statement parse_stmt_foreach_impl(
 	auto body = parse_expression_without_semi_colon(stream, end, context, no_comma);
 	consume_semi_colon_at_end_of_expression(stream, end, context, body);
 
-	context.remove_scope();
+	context.remove_unresolved_scope(inner_prev_size);
 	context.pop_loop(prev_in_loop);
-	context.remove_scope();
+	context.remove_unresolved_scope(outer_prev_size);
 
 	return ast::make_stmt_foreach(
 		std::move(range_var_decl_stmt),
@@ -1376,14 +1420,7 @@ ast::statement parse_global_statement(
 	}
 	else
 	{
-		auto const original_file_info = context.get_current_file_info();
-		if (stream->src_pos.file_id != original_file_info.file_id)
-		{
-			context.set_current_file(stream->src_pos.file_id);
-		}
-		auto result = parse_fn(stream, end, context);
-		context.set_current_file_info(original_file_info);
-		return result;
+		return parse_fn(stream, end, context);
 	}
 }
 

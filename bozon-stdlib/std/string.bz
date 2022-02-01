@@ -1,7 +1,6 @@
 import print;
 import unicode;
 import utils;
-import format;
 import meta::comptime;
 
 /*
@@ -118,40 +117,40 @@ export struct string
 	{
 		return string(other.as_str());
 	}
-}
 
-export operator = (self: &string, other: &const string) -> &string
-{
-	if (&self as *const string == &other)
+	operator = (self: &string, other: &const string) -> &string
 	{
+		if (&self as *const string == &other)
+		{
+			return self;
+		}
+		const size = other.size();
+		self.reserve(size);
+		memcpy(self.begin_ptr(), other.begin_ptr(), size);
+		self.set_size_unsafe(size);
 		return self;
 	}
-	const size = other.size();
-	self.reserve(size);
-	memcpy(self.begin_ptr(), other.begin_ptr(), size);
-	self.set_size_unsafe(size);
-	return self;
-}
 
-export operator = (self: &string, other: string) -> &string
-{
-	self.swap(other);
-	return self;
-}
+	operator = (self: &string, other: string) -> &string
+	{
+		self.swap(other);
+		return self;
+	}
 
-export operator = (self: &string, rhs: str) -> &string
-{
-	const size = rhs.size();
-	if (self.capacity() >= size)
+	operator = (self: &string, rhs: str) -> &string
 	{
-		memcpy(self.begin_ptr(), rhs.begin_ptr(), size);
-		self.set_size_unsafe(size);
+		const size = rhs.size();
+		if (self.capacity() >= size)
+		{
+			memcpy(self.begin_ptr(), rhs.begin_ptr(), size);
+			self.set_size_unsafe(size);
+		}
+		else
+		{
+			self = string(rhs);
+		}
+		return self;
 	}
-	else
-	{
-		self = string(rhs);
-	}
-	return self;
 }
 
 function round_to_next_power_of_two(n: usize) -> usize
@@ -257,6 +256,11 @@ function as_slice(s: &const string) -> [: const uint8]
 }
 
 export function as_str(s: &const string) -> str
+{
+	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
+}
+
+export function as_str(s: move string) -> str
 {
 	return __builtin_str_from_ptrs(s.begin_ptr(), s.end_ptr());
 }
@@ -591,17 +595,4 @@ export function ends_with(s: #const string, postfix: #const string) -> bool
 export function ends_with(s: #const string, postfix: str) -> bool
 {
 	return s.as_str().ends_with(postfix);
-}
-
-
-// formatting functions
-
-export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: str)
-{
-	s.as_str().format_to(buffer, fmt_spec);
-}
-
-export function format_to(s: &const string, buffer: &format_buffer, fmt_spec: format_spec)
-{
-	s.as_str().format_to(buffer, fmt_spec);
 }

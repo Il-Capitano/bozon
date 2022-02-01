@@ -8,6 +8,7 @@
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
+#include "ast/scope.h"
 
 #include "decl_set.h"
 
@@ -45,16 +46,15 @@ struct parse_context
 		lex::src_tokens first_variadic_src_tokens;
 	};
 
-	global_context               &global_ctx;
-	decl_set                     *global_decls = nullptr;
-	bz::vector<decl_set>          scope_decls{};
+	global_context &global_ctx;
 
 	bz::vector<ast::function_body *> generic_functions{};
 	bz::vector<std::size_t>          generic_function_scope_start{};
 
-	uint32_t                                current_file_id = std::numeric_limits<uint32_t>::max();
-	bz::array_view<bz::u8string_view const> current_scope{};
-	ast::function_body                     *current_function = nullptr;
+	ast::scope_t                 *current_global_scope = nullptr;
+	ast::enclosing_scope_t        current_local_scope  = {};
+	bz::vector<bz::u8string_view> current_unresolved_locals = {};
+	ast::function_body           *current_function = nullptr;
 
 	bool is_aggressive_consteval_enabled = false;
 
@@ -81,7 +81,7 @@ struct parse_context
 	ast::type_info *get_usize_type_info(void) const;
 	ast::type_info *get_isize_type_info(void) const;
 	ast::typespec_view get_builtin_type(bz::u8string_view name) const;
-	ast::function_body *get_builtin_function(uint32_t kind) const;
+	ast::decl_function *get_builtin_function(uint32_t kind) const;
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
 
 	[[nodiscard]] bool push_loop(void) noexcept;
@@ -97,11 +97,33 @@ struct parse_context
 	void pop_parsing_template_argument(void) noexcept;
 	bool is_parsing_template_argument(void) const noexcept;
 
-	bool register_variadic(lex::src_tokens src_tokens, variadic_var_decl const &variadic_decl);
+	bool register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl_ref variadic_decl);
+	bool register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl const &variadic_decl);
 	uint32_t get_variadic_index(void) const;
 
 	[[nodiscard]] ast::function_body *push_current_function(ast::function_body *new_function) noexcept;
 	void pop_current_function(ast::function_body *prev_function) noexcept;
+
+	struct global_local_scope_pair_t
+	{
+		ast::scope_t *global_scope;
+		ast::enclosing_scope_t local_scope;
+		bz::vector<bz::u8string_view> unresolved_locals;
+	};
+
+	[[nodiscard]] global_local_scope_pair_t push_global_scope(ast::scope_t *new_scope) noexcept;
+	void pop_global_scope(global_local_scope_pair_t prev_scopes) noexcept;
+
+	void push_local_scope(ast::scope_t *new_scope) noexcept;
+	void pop_local_scope(bool report_unused) noexcept;
+
+	[[nodiscard]] global_local_scope_pair_t push_enclosing_scope(ast::enclosing_scope_t new_scope) noexcept;
+	void pop_enclosing_scope(global_local_scope_pair_t prev_scopes) noexcept;
+
+	bz::array_view<bz::u8string_view const> get_current_enclosing_id_scope(void) const noexcept;
+	ast::enclosing_scope_t get_current_enclosing_scope(void) const noexcept;
+
+	bool has_common_global_scope(ast::enclosing_scope_t scope) const noexcept;
 
 	void report_error(lex::token_pos it) const;
 	void report_error(
@@ -326,41 +348,20 @@ struct parse_context
 		);
 	}
 
-	void set_current_file(uint32_t file_id);
-
-	struct src_file_info_t
-	{
-		uint32_t file_id;
-		bz::array_view<bz::u8string_view const> scope;
-		decl_set *global_decls;
-	};
-
-	src_file_info_t get_current_file_info(void) const noexcept
-	{
-		return { this->current_file_id, this->current_scope, this->global_decls };
-	}
-
-	void set_current_file_info(src_file_info_t info) noexcept
-	{
-		this->current_file_id = info.file_id;
-		this->current_scope   = info.scope;
-		this->global_decls    = info.global_decls;
-	}
-
 	bool has_errors(void) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind) const;
 	lex::token_pos assert_token(lex::token_pos &stream, uint32_t kind1, uint32_t kind2) const;
 
 	void report_ambiguous_id_error(lex::token_pos id) const;
 
-	void add_scope(void);
-	void remove_scope(void);
+	[[nodiscard]] size_t add_unresolved_scope(void);
+	void remove_unresolved_scope(size_t prev_size);
 
 	void add_unresolved_local(ast::identifier const &id);
 	void add_unresolved_var_decl(ast::decl_variable const &var_decl);
 
 	void add_local_variable(ast::decl_variable &var_decl);
-	void add_local_variable(ast::decl_variable &original_decl, bz::vector<ast::decl_variable *> variadic_decls);
+	void add_local_variable(ast::decl_variable &original_decl, ast::arena_vector<ast::decl_variable *> variadic_decls);
 	void add_local_function(ast::decl_function &func_decl);
 	void add_local_operator(ast::decl_operator &op_decl);
 	void add_local_struct(ast::decl_struct &struct_decl);
@@ -427,15 +428,6 @@ struct parse_context
 
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
-
-	bz::vector<ast::function_body *> get_function_bodies_from_unqualified_id(
-		lex::src_tokens requester,
-		ast::function_set_t const &func_set
-	);
-	bz::vector<ast::function_body *> get_function_bodies_from_qualified_id(
-		lex::src_tokens requester,
-		ast::function_set_t const &func_set
-	);
 
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 

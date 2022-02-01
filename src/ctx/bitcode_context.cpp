@@ -23,7 +23,7 @@ ast::typespec_view bitcode_context::get_builtin_type(bz::u8string_view name)
 
 ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
 {
-	return this->global_ctx.get_builtin_function(kind);
+	return &this->global_ctx.get_builtin_function(kind)->body;
 }
 
 llvm::Value *bitcode_context::get_variable(ast::decl_variable const *var_decl) const

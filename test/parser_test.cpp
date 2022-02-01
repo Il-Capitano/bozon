@@ -76,7 +76,8 @@ do {                                                                            
             ast::make_identifier(id),                                                \
             ast::type_as_expression(ast::make_unresolved_typespec(type_token_range)) \
         ),                                                                           \
-        std::move(init_expr)                                                         \
+        std::move(init_expr),                                                        \
+        parse_ctx.get_current_enclosing_scope()                                      \
     );                                                                               \
     auto &var_decl = decl.get<ast::decl_variable>();                                 \
     resolve_variable_impl(var_decl, parse_ctx);                                      \
@@ -90,8 +91,7 @@ static bz::optional<bz::u8string> get_paren_matched_range_test(ctx::global_conte
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str, it_pos)                                     \
 do {                                                       \
@@ -127,8 +127,7 @@ static bz::optional<bz::u8string> parse_primary_expression_test(ctx::global_cont
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str) xx(parse_primary_expression, str, tokens.end() - 1, (consteval_guaranteed(res, parse_ctx), true))
 #define x_warn(str) xx_warn(parse_primary_expression, str, tokens.end() - 1, (consteval_guaranteed(res, parse_ctx), true))
@@ -149,7 +148,8 @@ xx_compiles(                                                                    
 )
 
 	// add scope to allow variables
-	parse_ctx.add_scope();
+	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope());
+	parse_ctx.push_local_scope(&local_scope);
 
 
 	x_err("");
@@ -308,8 +308,7 @@ static bz::optional<bz::u8string> parse_expression_comma_list_test(ctx::global_c
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str, res_size) xx(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
 #define x_warn(str, res_size) xx_warn(parse_expression_comma_list, str, tokens.end() - 1, res.size() == res_size)
@@ -341,8 +340,7 @@ static bz::optional<bz::u8string> parse_expression_test(ctx::global_context &glo
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str) xx(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_warn(str) xx_warn(parse_expression_alt, str, tokens.end() - 1, true)
@@ -396,7 +394,8 @@ xx(                                                                             
 
 
 	// add scope to allow variables
-	parse_ctx.add_scope();
+	auto local_scope = ast::make_local_scope(parse_ctx.get_current_enclosing_scope());
+	parse_ctx.push_local_scope(&local_scope);
 
 	declare_var("i8",  "int8", "");
 	declare_var("i16", "int16", "");
@@ -980,8 +979,7 @@ static bz::optional<bz::u8string> constant_expression_test(ctx::global_context &
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str) xx(parse_expression_alt, str, tokens.end() - 1, true)
 #define x_err(str) xx_err(parse_expression_alt, str, tokens.end() - 1, true)
@@ -1063,8 +1061,7 @@ static bz::optional<bz::u8string> parse_typespec_test(ctx::global_context &globa
 {
 	ctx::lex_context lex_ctx(global_ctx);
 	ctx::parse_context parse_ctx(global_ctx);
-	ctx::decl_set global_decls = ctx::get_default_decls();
-	parse_ctx.global_decls = &global_decls;
+	parse_ctx.current_global_scope = global_ctx._builtin_global_scope;
 
 #define x(str, it_pos, kind_) xx(parse_expression_alt, str, it_pos, res.is_typename() && res.get_typename().is<kind_>())
 #define x_err(str, it_pos) xx_err(parse_expression_alt, str, it_pos, res.is_error())

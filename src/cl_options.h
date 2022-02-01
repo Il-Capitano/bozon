@@ -89,13 +89,13 @@ inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
 
 template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
-	ctcli::create_option("-V, --version",                    "Print compiler version"),
-	ctcli::create_option("-I, --import-dir <dir>",           "Add <dir> as an import directory", ctcli::arg_type::string),
-	ctcli::create_option("-o, --output <file>",              "Write output to <file>", ctcli::arg_type::string),
-	ctcli::create_option("-D, --define <option>",            "Set <option> for compilation", ctcli::arg_type::string),
-	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir}", "Emit the specified code type (default=obj)"),
-	ctcli::create_option("--target=<target-triple>",         "Set compilation target to <target-triple>", ctcli::arg_type::string),
-	ctcli::create_option("--no-panic-on-unreachable",        "Don't call '__builtin_panic()' if unreachable is hit"),
+	ctcli::create_option("-V, --version",                         "Print compiler version"),
+	ctcli::create_option("-I, --import-dir <dir>",                "Add <dir> as an import directory", ctcli::arg_type::string),
+	ctcli::create_option("-o, --output <file>",                   "Write output to <file>", ctcli::arg_type::string),
+	ctcli::create_option("-D, --define <option>",                 "Set <option> for compilation", ctcli::arg_type::string),
+	ctcli::create_option("--emit={obj|asm|llvm-bc|llvm-ir|null}", "Emit the specified code type or nothing (default=obj)"),
+	ctcli::create_option("--target=<target-triple>",              "Set compilation target to <target-triple>", ctcli::arg_type::string),
+	ctcli::create_option("--no-panic-on-unreachable",             "Don't call '__builtin_panic()' if unreachable is hit"),
 
 	ctcli::create_hidden_option("--stdlib-dir <dir>",             "Specify the standard library directory", ctcli::arg_type::string),
 	ctcli::create_hidden_option("--x86-asm-syntax={att|intel}",   "Assembly syntax used for x86 (default=att)"),
@@ -104,9 +104,10 @@ inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def>
 	ctcli::create_hidden_option("--debug-comptime-ir-output",     "Emit an LLVM IR file used in compile time code execution"),
 	ctcli::create_hidden_option("--no-error-highlight",           "Disable printing of highlighted source in error messages"),
 	ctcli::create_hidden_option("--error-report-tab-size=<size>", "Set tab size in error reporting (default=4)", ctcli::arg_type::uint64),
-	ctcli::create_hidden_option("--use-interpreter", "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
+	ctcli::create_hidden_option("--use-interpreter",              "Use the LLVM Interpreter for compile time code execution even when JIT is available"),
 
-	ctcli::create_undocumented_option("--force-use-jit",   "Use the LLVM JIT for compile time code execution even if the target may not support it"),
+	ctcli::create_undocumented_option("--force-use-jit",        "Use the LLVM JIT for compile time code execution even if the target may not support it"),
+	ctcli::create_undocumented_option("--return-zero-on-error", "Return 0 exit code even if there were build errors"),
 
 	ctcli::create_group_option("-W, --warn <warning>",     "Enable the specified <warning>",      warning_group_id, "warnings"),
 	ctcli::create_group_option("-O, --opt <optimization>", "Enable the specified <optimization>", opt_group_id,     "optimizations"),
@@ -119,22 +120,23 @@ template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--define")>
 template<> inline constexpr bool ctcli::is_array_like<ctcli::group_element("--warn error")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--version")>                  = &display_version;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--output")>                   = &output_file_name;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--profile")>                  = &do_profile;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-ir-output")>          = &debug_ir_output;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--debug-comptime-ir-output")> = &debug_comptime_ir_output;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--use-interpreter")>          = &use_interpreter;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--force-use-jit")>            = &force_use_jit;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--return-zero-on-error")>     = &return_zero_on_error;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--verbose")>                  = &do_verbose;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--target")>                   = &target;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--emit")>                     = &emit_file_type;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--x86-asm-syntax")>           = &x86_asm_syntax;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--error-report-tab-size")>    = &tab_size;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-error-highlight")>       = &no_error_highlight;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--import-dir")>               = &import_dirs;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--define")>                   = &defines;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--no-panic-on-unreachable")>  = &no_panic_on_unreachable;
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::option("--stdlib-dir")>               = &stdlib_dir;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-overflow")>             = &warnings[static_cast<size_t>(ctx::warning_kind::int_overflow)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn int-divide-by-zero")>       = &warnings[static_cast<size_t>(ctx::warning_kind::int_divide_by_zero)];
@@ -168,21 +170,10 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {
-	if (arg == "obj")
+	auto const result = parse_emit_type(arg);
+	if (result.has_value())
 	{
-		return emit_type::obj;
-	}
-	else if (arg == "asm")
-	{
-		return emit_type::asm_;
-	}
-	else if (arg == "llvm-bc")
-	{
-		return emit_type::llvm_bc;
-	}
-	else if (arg == "llvm-ir")
-	{
-		return emit_type::llvm_ir;
+		return result.get();
 	}
 	else
 	{
@@ -192,13 +183,10 @@ inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = 
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--x86-asm-syntax")> = [](bz::u8string_view arg) -> std::optional<x86_asm_syntax_kind> {
-	if (arg == "att")
+	auto const result = parse_x86_asm_syntax(arg);
+	if (result.has_value())
 	{
-		return x86_asm_syntax_kind::att;
-	}
-	else if (arg == "intel")
-	{
-		return x86_asm_syntax_kind::intel;
+		return result.get();
 	}
 	else
 	{

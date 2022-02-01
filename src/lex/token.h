@@ -122,6 +122,7 @@ struct token
 		kw_const,            // const
 		kw_consteval,        // consteval
 		kw_move,             // move
+		kw_forward,          // __forward
 
 		kw_true,             // true
 		kw_false,            // false

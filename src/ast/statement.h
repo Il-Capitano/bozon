@@ -3,12 +3,14 @@
 
 #include "core.h"
 
+#include "statement_forward.h"
 #include "lex/token.h"
 #include "node.h"
 #include "expression.h"
 #include "typespec.h"
 #include "constant_value.h"
 #include "identifier.h"
+#include "scope.h"
 #include "abi/calling_conventions.h"
 
 namespace ast
@@ -35,79 +37,6 @@ enum class resolve_state : int8_t
 	all,
 };
 
-struct stmt_while;
-struct stmt_for;
-struct stmt_foreach;
-struct stmt_return;
-struct stmt_no_op;
-struct stmt_static_assert;
-struct stmt_expression;
-
-struct decl_variable;
-struct decl_function;
-struct decl_operator;
-struct decl_function_alias;
-struct decl_type_alias;
-struct decl_struct;
-struct decl_import;
-
-
-using statement_types = bz::meta::type_pack<
-	stmt_while,
-	stmt_for,
-	stmt_foreach,
-	stmt_return,
-	stmt_no_op,
-	stmt_static_assert,
-	stmt_expression,
-	decl_variable,
-	decl_function,
-	decl_operator,
-	decl_function_alias,
-	decl_type_alias,
-	decl_struct,
-	decl_import
->;
-
-using top_level_statement_types = bz::meta::type_pack<
-	stmt_static_assert,
-	decl_variable,
-	decl_function,
-	decl_operator,
-	decl_function_alias,
-	decl_type_alias,
-	decl_struct,
-	decl_import
->;
-
-using declaration_types = bz::meta::type_pack<
-	decl_variable,
-	decl_function,
-	decl_operator,
-	decl_function_alias,
-	decl_type_alias,
-	decl_struct,
-	decl_import
->;
-
-template<typename T>
-constexpr bool is_top_level_statement_type = []<typename ...Ts, typename ...Us>(
-	bz::meta::type_pack<Ts...>,
-	bz::meta::type_pack<Us...>
-) {
-	static_assert(bz::meta::is_in_types<T, Us...>);
-	return bz::meta::is_in_types<T, Ts...>;
-}(top_level_statement_types{}, statement_types{});
-
-template<typename T>
-constexpr bool is_declaration_type = []<typename ...Ts, typename ...Us>(
-	bz::meta::type_pack<Ts...>,
-	bz::meta::type_pack<Us...>
-) {
-	static_assert(bz::meta::is_in_types<T, Us...>);
-	return bz::meta::is_in_types<T, Ts...>;
-}(declaration_types{}, statement_types{});
-
 
 using statement_node_t = bz::meta::apply_type_pack<node, statement_types>;
 using statement_node_view_t = node_view_from_node<statement_node_t>;
@@ -122,19 +51,6 @@ struct statement : statement_node_t
 	using base_t::emplace;
 
 	declare_default_5(statement)
-
-	bz::vector<attribute> _attributes;
-
-	void set_attributes_without_resolve(bz::vector<attribute> attributes)
-	{
-		this->_attributes = std::move(attributes);
-	}
-
-	auto &get_attributes(void) noexcept
-	{ return this->_attributes; }
-
-	auto const &get_attributes(void) const noexcept
-	{ return this->_attributes; }
 };
 
 struct statement_view : statement_node_view_t
@@ -148,14 +64,9 @@ struct statement_view : statement_node_view_t
 
 	declare_default_5(statement_view)
 
-	bz::array_view<attribute> _attributes;
-
 	statement_view(statement &stmt)
-		: base_t(static_cast<statement_node_t &>(stmt)), _attributes(stmt._attributes)
+		: base_t(static_cast<statement_node_t &>(stmt))
 	{}
-
-	auto get_attributes(void) const noexcept
-	{ return this->_attributes; }
 };
 
 
@@ -258,14 +169,16 @@ struct stmt_static_assert
 	lex::token_range arg_tokens;
 	expression condition;
 	expression message;
+	enclosing_scope_t enclosing_scope;
 
 	declare_default_5(stmt_static_assert)
 
-	stmt_static_assert(lex::token_pos _static_assert_pos, lex::token_range _arg_tokens)
+	stmt_static_assert(lex::token_pos _static_assert_pos, lex::token_range _arg_tokens, enclosing_scope_t _enclosing_scope)
 		: static_assert_pos(_static_assert_pos),
 		  arg_tokens(_arg_tokens),
 		  condition(),
-		  message()
+		  message(),
+		  enclosing_scope(_enclosing_scope)
 	{}
 };
 
@@ -308,17 +221,23 @@ struct decl_variable
 	var_id_and_type id_and_type;
 	arena_vector<decl_variable> tuple_decls;
 
-	expression    init_expr; // is null if there's no initializer
-	resolve_state state;
+	expression init_expr; // is null if there's no initializer
 	ast_unique_ptr<decl_variable> original_tuple_variadic_decl; // non-null only if tuple_decls has an empty variadic declaration at the end
-	uint16_t       flags;
+
+	arena_vector<attribute> attributes;
+	enclosing_scope_t enclosing_scope;
+	uint16_t       flags = 0;
+	resolve_state  state = resolve_state::none;
 
 	decl_variable(void) = default;
 	decl_variable(decl_variable const &other)
 		: src_tokens(other.src_tokens), prototype_range(other.prototype_range),
 		  id_and_type(other.id_and_type), tuple_decls(other.tuple_decls),
-		  init_expr(other.init_expr), state(other.state),
-		  original_tuple_variadic_decl(nullptr), flags(other.flags)
+		  init_expr(other.init_expr),
+		  original_tuple_variadic_decl(nullptr),
+		  attributes(other.attributes),
+		  enclosing_scope(other.enclosing_scope),
+		  flags(other.flags), state(other.state)
 	{
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
@@ -337,78 +256,76 @@ struct decl_variable
 		this->id_and_type = other.id_and_type;
 		this->tuple_decls = other.tuple_decls;
 		this->init_expr = other.init_expr;
-		this->state = other.state;
-		this->flags = other.flags;
 		if (other.original_tuple_variadic_decl != nullptr)
 		{
 			this->original_tuple_variadic_decl = make_ast_unique<decl_variable>(*other.original_tuple_variadic_decl);
 		}
+		this->attributes = other.attributes;
+		this->enclosing_scope = other.enclosing_scope;
+		this->flags = other.flags;
+		this->state = other.state;
 		return *this;
 	}
 	decl_variable &operator = (decl_variable &&) = default;
 	~decl_variable(void) noexcept = default;
 
 	decl_variable(
-		lex::src_tokens  _src_tokens,
-		lex::token_range _prototype_range,
-		var_id_and_type  _id_and_type,
-		expression       _init_expr
+		lex::src_tokens   _src_tokens,
+		lex::token_range  _prototype_range,
+		var_id_and_type   _id_and_type,
+		expression        _init_expr,
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
 		  id_and_type(std::move(_id_and_type)),
 		  tuple_decls{},
 		  init_expr  (std::move(_init_expr)),
-		  state      (resolve_state::none),
-		  flags      (0)
+		  enclosing_scope(_enclosing_scope)
 	{}
 
 	decl_variable(
-		lex::src_tokens _src_tokens,
-		lex::token_range _prototype_range,
-		var_id_and_type _id_and_type
+		lex::src_tokens   _src_tokens,
+		lex::token_range  _prototype_range,
+		var_id_and_type   _id_and_type,
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
 		  id_and_type(std::move(_id_and_type)),
 		  tuple_decls{},
 		  init_expr  (),
-		  state      (resolve_state::none),
-		  flags      (0)
+		  enclosing_scope(_enclosing_scope)
+	{}
+
+	decl_variable(
+		lex::src_tokens   _src_tokens,
+		lex::token_range  _prototype_range,
+		arena_vector<decl_variable> _tuple_decls,
+		expression        _init_expr,
+		enclosing_scope_t _enclosing_scope
+	)
+		: src_tokens (_src_tokens),
+		  prototype_range(_prototype_range),
+		  id_and_type(),
+		  tuple_decls(std::move(_tuple_decls)),
+		  init_expr  (std::move(_init_expr)),
+		  enclosing_scope(_enclosing_scope)
 	{}
 
 	decl_variable(
 		lex::src_tokens _src_tokens,
 		lex::token_range _prototype_range,
 		arena_vector<decl_variable> _tuple_decls,
-		expression      _init_expr
-	)
-		: src_tokens (_src_tokens),
-		  prototype_range(_prototype_range),
-		  id_and_type(),
-		  tuple_decls(std::move(_tuple_decls)),
-		  init_expr  (std::move(_init_expr)),
-		  state      (resolve_state::none),
-		  flags      (0)
-	{}
-
-	decl_variable(
-		lex::src_tokens _src_tokens,
-		lex::token_range _prototype_range,
-		arena_vector<decl_variable> _tuple_decls
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
 		  id_and_type(),
 		  tuple_decls(std::move(_tuple_decls)),
 		  init_expr  (),
-		  state      (resolve_state::none),
-		  flags      (0)
+		  enclosing_scope(_enclosing_scope)
 	{}
-
-	lex::token_pos get_tokens_begin(void) const;
-	lex::token_pos get_tokens_pivot(void) const;
-	lex::token_pos get_tokens_end(void) const;
 
 	bool is_maybe_unused(void) const noexcept
 	{ return (this->flags & maybe_unused) != 0; }
@@ -525,9 +442,7 @@ struct function_body
 	{
 		_builtin_first,
 
-		builtin_str_eq = _builtin_first,
-		builtin_str_neq,
-		builtin_str_length,
+		builtin_str_length = _builtin_first,
 		builtin_str_starts_with,
 		builtin_str_ends_with,
 
@@ -571,7 +486,18 @@ struct function_body
 
 		comptime_create_global_string,
 
+		// type manipulation functions
+
 		typename_as_str,
+		remove_const,
+		remove_consteval,
+		remove_pointer,
+		remove_reference,
+
+		is_default_constructible,
+		is_copy_constructible,
+		is_trivially_copy_constructible,
+		is_trivially_destructible,
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -645,9 +571,9 @@ struct function_body
 		null_t_default_constructor,
 
 		_builtin_default_constructor_last,
-		_builtin_operator_first = _builtin_default_constructor_last,
+		_builtin_unary_operator_first = _builtin_default_constructor_last,
 
-		builtin_unary_plus = _builtin_operator_first,
+		builtin_unary_plus = _builtin_unary_operator_first,
 		builtin_unary_minus,
 		builtin_unary_dereference,
 		builtin_unary_bit_not,
@@ -655,7 +581,10 @@ struct function_body
 		builtin_unary_plus_plus,
 		builtin_unary_minus_minus,
 
-		builtin_binary_assign,
+		_builtin_unary_operator_last,
+		_builtin_binary_operator_first = _builtin_unary_operator_last,
+
+		builtin_binary_assign = _builtin_binary_operator_first,
 		builtin_binary_plus,
 		builtin_binary_plus_eq,
 		builtin_binary_minus,
@@ -683,19 +612,20 @@ struct function_body
 		builtin_binary_bit_right_shift,
 		builtin_binary_bit_right_shift_eq,
 
-		_builtin_operator_last,
+		_builtin_binary_operator_last,
 	};
 
 	arena_vector<decl_variable> params;
-	typespec                   return_type;
-	body_t                     body;
+	typespec                    return_type;
+	body_t                      body;
 	bz::variant<identifier, uint32_t> function_name_or_operator_kind;
-	bz::u8string               symbol_name;
-	lex::src_tokens            src_tokens;
-	resolve_state              state = resolve_state::none;
-	abi::calling_convention    cc = abi::calling_convention::c;
-	uint8_t                    intrinsic_kind = 0;
-	uint32_t                   flags = 0;
+	bz::u8string                symbol_name;
+	lex::src_tokens             src_tokens;
+	scope_t                     scope;
+	uint32_t                    flags = 0;
+	resolve_state               state = resolve_state::none;
+	abi::calling_convention     cc = abi::calling_convention::c;
+	uint8_t                     intrinsic_kind = 0;
 
 	type_info *constructor_or_destructor_of;
 
@@ -710,16 +640,17 @@ struct function_body
 	struct generic_copy_t {};
 
 	function_body(function_body const &other, generic_copy_t)
-		: params        (),
-		  return_type   (other.return_type),
-		  body          (other.body),
+		: params         (),
+		  return_type    (other.return_type),
+		  body           (other.body),
 		  function_name_or_operator_kind(other.function_name_or_operator_kind),
-		  symbol_name   (other.symbol_name),
-		  src_tokens    (other.src_tokens),
-		  state         (other.state),
-		  cc            (other.cc),
-		  intrinsic_kind(other.intrinsic_kind),
-		  flags         ((other.flags & ~generic) | generic_specialization),
+		  symbol_name    (other.symbol_name),
+		  src_tokens     (other.src_tokens),
+		  scope          (other.scope),
+		  flags          ((other.flags & ~generic) | generic_specialization),
+		  state          (other.state),
+		  cc             (other.cc),
+		  intrinsic_kind (other.intrinsic_kind),
 		  constructor_or_destructor_of(nullptr),
 		  generic_specializations(),
 		  generic_required_from(other.generic_required_from),
@@ -812,7 +743,7 @@ struct function_body
 
 	bool has_builtin_implementation(void) const noexcept
 	{
-		return this->is_intrinsic()
+		return (this->is_intrinsic() && this->body.is_null())
 			|| this->is_default_default_constructor()
 			|| this->is_default_copy_constructor()
 			|| this->is_default_op_assign()
@@ -833,6 +764,8 @@ struct function_body
 		return this->constructor_or_destructor_of;
 	}
 
+	enclosing_scope_t get_enclosing_scope(void) const noexcept;
+
 	static bz::u8string decode_symbol_name(
 		bz::u8string_view::const_iterator &it,
 		bz::u8string_view::const_iterator end
@@ -847,8 +780,9 @@ struct function_body
 
 struct decl_function
 {
-	identifier    id;
-	function_body body;
+	identifier              id;
+	function_body           body;
+	arena_vector<attribute> attributes;
 
 	declare_default_5(decl_function)
 
@@ -866,6 +800,7 @@ struct decl_operator
 	bz::vector<bz::u8string_view> scope;
 	lex::token_pos                op;
 	function_body                 body;
+	arena_vector<attribute>       attributes;
 
 	declare_default_5(decl_operator)
 
@@ -882,47 +817,55 @@ struct decl_operator
 
 struct decl_function_alias
 {
-	lex::src_tokens             src_tokens;
-	identifier                  id;
-	expression                  alias_expr;
-	bz::vector<function_body *> aliased_bodies;
-	resolve_state               state;
-	bool                        is_export;
+	lex::src_tokens               src_tokens;
+	identifier                    id;
+	expression                    alias_expr;
+	arena_vector<decl_function *> aliased_decls;
+	enclosing_scope_t             enclosing_scope;
+	bool                          is_export = false;
+	resolve_state                 state = resolve_state::none;
 
 	declare_default_5(decl_function_alias)
 
 	decl_function_alias(
-		lex::src_tokens _src_tokens,
-		identifier      _id,
-		expression      _alias_expr
+		lex::src_tokens   _src_tokens,
+		identifier        _id,
+		expression        _alias_expr,
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens(_src_tokens),
 		  id(std::move(_id)),
 		  alias_expr(std::move(_alias_expr)),
-		  aliased_bodies{},
-		  state(resolve_state::none),
-		  is_export(false)
+		  aliased_decls{},
+		  enclosing_scope(_enclosing_scope)
 	{}
 };
 
 struct decl_type_alias
 {
-	lex::src_tokens src_tokens;
-	identifier      id;
-	expression      alias_expr;
-	resolve_state   state;
-	bool            is_export;
+	enum : uint8_t
+	{
+		module_export    = bit_at<0>,
+		global           = bit_at<1>,
+	};
+
+	lex::src_tokens   src_tokens;
+	identifier        id;
+	expression        alias_expr;
+	enclosing_scope_t enclosing_scope;
+	uint8_t           flags = 0;
+	resolve_state     state = resolve_state::none;
 
 	decl_type_alias(
-		lex::src_tokens _src_tokens,
-		identifier      _id,
-		expression      _alias_expr
+		lex::src_tokens   _src_tokens,
+		identifier        _id,
+		expression        _alias_expr,
+		enclosing_scope_t _enclosing_scope
 	)
 		: src_tokens(_src_tokens),
 		  id        (std::move(_id)),
 		  alias_expr(std::move(_alias_expr)),
-		  state     (resolve_state::none),
-		  is_export (false)
+		  enclosing_scope(_enclosing_scope)
 	{}
 
 	typespec_view get_type(void) const
@@ -936,6 +879,12 @@ struct decl_type_alias
 			return {};
 		}
 	}
+
+	bool is_module_export(void) const noexcept
+	{ return (this->flags & module_export) != 0; }
+
+	bool is_global(void) const noexcept
+	{ return (this->flags & global) != 0; }
 };
 
 struct type_info
@@ -971,29 +920,31 @@ struct type_info
 	lex::src_tokens src_tokens;
 	uint8_t         kind;
 	resolve_state   state;
-	uint32_t        file_id;
 	uint32_t        flags;
 	identifier      type_name;
 	bz::u8string    symbol_name;
 	body_t          body;
+	scope_t         scope;
 
 	bz::vector<ast::decl_variable *> member_variables;
 
-	using function_body_ptr = ast_unique_ptr<function_body>;
-	function_body_ptr default_op_assign;
-	function_body_ptr default_op_move_assign;
+	using decl_function_ptr = ast_unique_ptr<decl_function>;
+	using decl_operator_ptr = ast_unique_ptr<decl_operator>;
 
-	function_body_ptr default_default_constructor;
-	function_body_ptr default_copy_constructor;
+	decl_operator_ptr default_op_assign;
+	decl_operator_ptr default_op_move_assign;
 
-	function_body *op_assign = nullptr;
-	function_body *op_move_assign = nullptr;
+	decl_function_ptr default_default_constructor;
+	decl_function_ptr default_copy_constructor;
 
-	function_body *default_constructor = nullptr;
-	function_body *copy_constructor = nullptr;
+	decl_operator *op_assign = nullptr;
+	decl_operator *op_move_assign = nullptr;
 
-	function_body *destructor = nullptr;
-	bz::vector<function_body *> constructors{};
+	decl_function *default_constructor = nullptr;
+	decl_function *copy_constructor = nullptr;
+
+	decl_function *destructor = nullptr;
+	arena_vector<decl_function *> constructors{};
 
 	arena_vector<decl_variable>             generic_parameters{};
 	arena_vector<ast_unique_ptr<type_info>> generic_instantiations{};
@@ -1003,28 +954,34 @@ struct type_info
 //	function_body *move_constructor;
 //	function_body_ptr move_destuctor;
 
-	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range)
+	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range, enclosing_scope_t _enclosing_scope)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
-		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  flags(0),
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
-		  body(range)
+		  body(range),
+		  scope(make_global_scope(_enclosing_scope, {}))
 //		  move_constructor(nullptr),
 //		  move_destuctor(nullptr)
 	{}
 
-	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range, arena_vector<decl_variable> _generic_parameters)
+	type_info(
+		lex::src_tokens _src_tokens,
+		identifier _type_name,
+		lex::token_range range,
+		arena_vector<decl_variable> _generic_parameters,
+		enclosing_scope_t _enclosing_scope
+	)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
-		  file_id(_src_tokens.pivot == nullptr ? 0 : _src_tokens.pivot->src_pos.file_id),
 		  flags(generic),
 		  type_name(std::move(_type_name)),
 		  symbol_name(),
 		  body(range),
+		  scope(make_global_scope(_enclosing_scope, {})),
 		  generic_parameters(std::move(_generic_parameters))
 	{}
 
@@ -1034,11 +991,11 @@ struct type_info
 		: src_tokens(other.src_tokens),
 		  kind(other.kind),
 		  state(resolve_state::none),
-		  file_id(other.file_id),
 		  flags((other.flags & ~generic) | generic_instantiation),
 		  type_name(other.type_name),
 		  symbol_name(),
 		  body(other.body),
+		  scope(other.scope),
 		  generic_required_from(other.generic_required_from)
 	{}
 
@@ -1047,7 +1004,6 @@ private:
 		: src_tokens{},
 		  kind(kind),
 		  state(resolve_state::all),
-		  file_id(0),
 		  flags(
 			  default_constructible
 			  | copy_constructible
@@ -1059,6 +1015,7 @@ private:
 		  type_name(),
 		  symbol_name(bz::format("builtin.{}", name)),
 		  body(bz::vector<statement>{}),
+		  scope(make_global_scope({}, {})),
 		  member_variables{},
 		  default_op_assign(nullptr),
 		  default_op_move_assign(nullptr),
@@ -1096,10 +1053,10 @@ public:
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
 
-	static function_body_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
-	static function_body_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
-	static function_body_ptr make_default_default_constructor(lex::src_tokens src_tokens, type_info &info);
-	static function_body_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
+	static decl_operator_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
+	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
+	static decl_function_ptr make_default_default_constructor(lex::src_tokens src_tokens, type_info &info);
+	static decl_function_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
 
 	arena_vector<decl_variable> get_params_copy_for_generic_instantiation(void);
 	type_info *add_generic_instantiation(
@@ -1107,12 +1064,15 @@ public:
 		arena_vector<generic_required_from_t> required_from
 	);
 
+	bz::u8string get_typename_as_string(void) const;
+
+	enclosing_scope_t get_scope(void) noexcept;
+	enclosing_scope_t get_enclosing_scope(void) const noexcept;
+
 	static type_info make_builtin(bz::u8string_view name, uint8_t kind)
 	{
 		return type_info(name, kind);
 	}
-
-	bz::u8string get_typename_as_string(void) const;
 
 	static bz::u8string_view decode_symbol_name(bz::u8string_view symbol_name)
 	{
@@ -1316,19 +1276,34 @@ struct decl_struct
 	decl_struct(decl_struct const &) = delete;
 	decl_struct(decl_struct &&)      = default;
 
-	decl_struct(lex::src_tokens _src_tokens, identifier _id, lex::token_range _range)
+	decl_struct(
+		lex::src_tokens _src_tokens,
+		identifier _id,
+		lex::token_range _range,
+		enclosing_scope_t _enclosing_scope
+	)
 		: id  (std::move(_id)),
-		  info(_src_tokens, this->id, _range)
+		  info(_src_tokens, this->id, _range, _enclosing_scope)
 	{}
 
-	decl_struct(lex::src_tokens _src_tokens, identifier _id, lex::token_range _range, arena_vector<decl_variable> _generic_parameters)
+	decl_struct(
+		lex::src_tokens _src_tokens,
+		identifier _id,
+		lex::token_range _range,
+		arena_vector<decl_variable> _generic_parameters,
+		enclosing_scope_t _enclosing_scope
+	)
 		: id  (std::move(_id)),
-		  info(_src_tokens, this->id, _range, std::move(_generic_parameters))
+		  info(_src_tokens, this->id, _range, std::move(_generic_parameters), _enclosing_scope)
 	{}
 
-	decl_struct(lex::src_tokens _src_tokens, identifier _id)
+	decl_struct(
+		lex::src_tokens _src_tokens,
+		identifier _id,
+		enclosing_scope_t _enclosing_scope
+	)
 		: id  (std::move(_id)),
-		  info(_src_tokens, this->id, {})
+		  info(_src_tokens, this->id, {}, _enclosing_scope)
 	{}
 
 	lex::token_pos get_tokens_begin(void) const;
@@ -1391,14 +1366,17 @@ struct universal_function_set
 struct builtin_operator
 {
 	uint32_t op;
-	bz::vector<function_body> bodies;
+	bz::vector<decl_operator> decls;
 };
 
 bz::vector<type_info>              make_builtin_type_infos(void);
 bz::vector<type_and_name_pair>     make_builtin_types    (bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
-bz::vector<function_body>          make_builtin_functions(bz::array_view<type_info> builtin_type_infos, size_t pointer_size);
 bz::vector<universal_function_set> make_builtin_universal_functions(void);
-bz::vector<builtin_operator>       make_builtin_operators(bz::array_view<type_info> builtin_type_infos);
+
+scope_t make_builtin_global_scope(
+	bz::array_view<decl_function *> builtin_functions,
+	bz::array_view<decl_operator *> builtin_operators
+);
 
 struct intrinsic_info_t
 {
@@ -1407,11 +1385,9 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 123);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 129);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
-		{ function_body::builtin_str_eq,          "__builtin_str_eq"          },
-		{ function_body::builtin_str_neq,         "__builtin_str_neq"         },
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
 		{ function_body::builtin_str_starts_with, "__builtin_str_starts_with" },
 		{ function_body::builtin_str_ends_with,   "__builtin_str_ends_with"   },
@@ -1456,7 +1432,16 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
-		{ function_body::typename_as_str, "__builtin_typename_as_str" },
+		{ function_body::typename_as_str,  "__builtin_typename_as_str"  },
+		{ function_body::remove_const,     "__builtin_remove_const"     },
+		{ function_body::remove_consteval, "__builtin_remove_consteval" },
+		{ function_body::remove_pointer,   "__builtin_remove_pointer"   },
+		{ function_body::remove_reference, "__builtin_remove_reference" },
+
+		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
+		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },
+		{ function_body::is_trivially_copy_constructible, "__builtin_is_trivially_copy_constructible" },
+		{ function_body::is_trivially_destructible,       "__builtin_is_trivially_destructible"       },
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
@@ -1556,6 +1541,60 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::fshr_u16, "__builtin_fshr_u16" },
 		{ function_body::fshr_u32, "__builtin_fshr_u32" },
 		{ function_body::fshr_u64, "__builtin_fshr_u64" },
+	}};
+}();
+
+struct builtin_operator_info_t
+{
+	uint32_t kind;
+	uint32_t op;
+};
+
+constexpr auto builtin_unary_operator_info = []() {
+	static_assert(function_body::_builtin_unary_operator_last - function_body::_builtin_unary_operator_first == 7);
+	constexpr size_t size = function_body::_builtin_unary_operator_last - function_body::_builtin_unary_operator_first;
+	return bz::array<builtin_operator_info_t, size>{{
+		{ function_body::builtin_unary_plus,        lex::token::plus        },
+		{ function_body::builtin_unary_minus,       lex::token::minus       },
+		{ function_body::builtin_unary_dereference, lex::token::dereference },
+		{ function_body::builtin_unary_bit_not,     lex::token::bit_not     },
+		{ function_body::builtin_unary_bool_not,    lex::token::bool_not    },
+		{ function_body::builtin_unary_plus_plus,   lex::token::plus_plus   },
+		{ function_body::builtin_unary_minus_minus, lex::token::minus_minus },
+	}};
+}();
+
+constexpr auto builtin_binary_operator_info = []() {
+	static_assert(function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first == 27);
+	constexpr size_t size = function_body::_builtin_binary_operator_last - function_body::_builtin_binary_operator_first;
+	return bz::array<builtin_operator_info_t, size>{{
+		{ function_body::builtin_binary_assign,             lex::token::assign             },
+		{ function_body::builtin_binary_plus,               lex::token::plus               },
+		{ function_body::builtin_binary_plus_eq,            lex::token::plus_eq            },
+		{ function_body::builtin_binary_minus,              lex::token::minus              },
+		{ function_body::builtin_binary_minus_eq,           lex::token::minus_eq           },
+		{ function_body::builtin_binary_multiply,           lex::token::multiply           },
+		{ function_body::builtin_binary_multiply_eq,        lex::token::multiply_eq        },
+		{ function_body::builtin_binary_divide,             lex::token::divide             },
+		{ function_body::builtin_binary_divide_eq,          lex::token::divide_eq          },
+		{ function_body::builtin_binary_modulo,             lex::token::modulo             },
+		{ function_body::builtin_binary_modulo_eq,          lex::token::modulo_eq          },
+		{ function_body::builtin_binary_equals,             lex::token::equals             },
+		{ function_body::builtin_binary_not_equals,         lex::token::not_equals         },
+		{ function_body::builtin_binary_less_than,          lex::token::less_than          },
+		{ function_body::builtin_binary_less_than_eq,       lex::token::less_than_eq       },
+		{ function_body::builtin_binary_greater_than,       lex::token::greater_than       },
+		{ function_body::builtin_binary_greater_than_eq,    lex::token::greater_than_eq    },
+		{ function_body::builtin_binary_bit_and,            lex::token::bit_and            },
+		{ function_body::builtin_binary_bit_and_eq,         lex::token::bit_and_eq         },
+		{ function_body::builtin_binary_bit_xor,            lex::token::bit_xor            },
+		{ function_body::builtin_binary_bit_xor_eq,         lex::token::bit_xor_eq         },
+		{ function_body::builtin_binary_bit_or,             lex::token::bit_or             },
+		{ function_body::builtin_binary_bit_or_eq,          lex::token::bit_or_eq          },
+		{ function_body::builtin_binary_bit_left_shift,     lex::token::bit_left_shift     },
+		{ function_body::builtin_binary_bit_left_shift_eq,  lex::token::bit_left_shift_eq  },
+		{ function_body::builtin_binary_bit_right_shift,    lex::token::bit_right_shift    },
+		{ function_body::builtin_binary_bit_right_shift_eq, lex::token::bit_right_shift_eq },
 	}};
 }();
 

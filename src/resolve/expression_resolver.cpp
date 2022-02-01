@@ -263,14 +263,18 @@ static ast::expression resolve_expr(
 	auto result_node = ast::make_ast_unique<ast::expr_compound>(std::move(compound_expr_));
 	auto &compound_expr = *result_node;
 	bool is_noreturn = false;
-	context.add_scope();
+	if (compound_expr.scope.is_null())
+	{
+		compound_expr.scope = ast::make_local_scope(context.get_current_enclosing_scope());
+	}
+	context.push_local_scope(&compound_expr.scope);
 	for (auto &stmt : compound_expr.statements)
 	{
 		resolve_statement(stmt, context);
 		is_noreturn |= is_statement_noreturn(stmt);
 	}
 	resolve_expression(compound_expr.final_expr, context);
-	context.remove_scope();
+	context.pop_local_scope(true);
 	if (compound_expr.final_expr.is_error())
 	{
 		return ast::make_error_expression(src_tokens, std::move(result_node));
@@ -891,6 +895,7 @@ void resolve_expression(ast::expression &expr, ctx::parse_context &context)
 		expr = expr.get_unresolved_expr().visit([&](auto &inner_expr) {
 			return resolve_expr(expr.src_tokens, std::move(inner_expr), context);
 		});
+		// bz_assert(!expr.is_unresolved());
 		expr.consteval_state = expr_consteval_state;
 		expr.paren_level = expr_paren_level;
 	}

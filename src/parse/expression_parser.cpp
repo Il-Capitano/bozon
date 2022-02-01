@@ -183,7 +183,7 @@ ast::expression parse_compound_expression(
 	bz_assert(stream->kind == lex::token::curly_open);
 	auto const begin = stream;
 	++stream; // '{'
-	context.add_scope();
+	auto const prev_size = context.add_unresolved_scope();
 	ast::arena_vector<ast::statement> statements;
 	while (stream != end && stream->kind != lex::token::curly_close)
 	{
@@ -202,7 +202,7 @@ ast::expression parse_compound_expression(
 		}
 		statements.emplace_back(parse_local_statement_without_semi_colon(stream, end, context));
 	}
-	context.remove_scope();
+	context.remove_unresolved_scope(prev_size);
 	if (stream != end && stream->kind == lex::token::curly_close)
 	{
 		++stream; // '}'
@@ -217,7 +217,7 @@ ast::expression parse_compound_expression(
 		return ast::make_constant_expression(
 			{ begin, begin, stream },
 			ast::expression_type_kind::none, ast::make_void_typespec(nullptr),
-			ast::constant_value(),
+			ast::constant_value::get_void(),
 			ast::make_expr_compound(decltype(statements)(), ast::expression())
 		);
 	}
@@ -712,31 +712,42 @@ static ast::expression parse_primary_expression(
 
 	// unary operators
 	default:
-		if (is_unary_operator(stream->kind))
-		{
-			auto const op = stream;
-			if (op->kind == lex::token::dot_dot_dot)
-			{
-				auto const prec = get_unary_precedence(op->kind);
-				++stream;
-				auto const prev_parsing_variadic = context.push_parsing_variadic_expansion();
-				auto expr = parse_expression(stream, end, context, prec);
-				context.pop_parsing_variadic_expansion(prev_parsing_variadic);
-				return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
-			}
-			else
-			{
-				auto const prec = get_unary_precedence(op->kind);
-				++stream;
-				auto expr = parse_expression(stream, end, context, prec);
-				return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
-			}
-		}
-		else
+	{
+		if (!is_unary_operator(stream->kind))
 		{
 			context.report_error(stream, "expected a primary expression");
 			return ast::make_error_expression({ stream, stream, stream + 1 });
 		}
+
+		auto const op = stream;
+		if (op->kind == lex::token::dot_dot_dot)
+		{
+			auto const prec = get_unary_precedence(op->kind);
+			++stream;
+			auto const prev_parsing_variadic = context.push_parsing_variadic_expansion();
+			auto expr = parse_expression(stream, end, context, prec);
+			context.pop_parsing_variadic_expansion(prev_parsing_variadic);
+			return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
+		}
+		else if (op->kind == lex::token::kw_consteval)
+		{
+			// if it's consteval, always return an unresolved expression
+			auto const prec = get_unary_precedence(op->kind);
+			++stream;
+			auto expr = parse_expression(stream, end, context, prec);
+			return ast::make_unresolved_expression(
+				lex::src_tokens{ op, op, stream },
+				ast::make_unresolved_expr_unary_op(op->kind, std::move(expr))
+			);
+		}
+		else
+		{
+			auto const prec = get_unary_precedence(op->kind);
+			++stream;
+			auto expr = parse_expression(stream, end, context, prec);
+			return context.make_unary_operator_expression({ op, op, stream }, op->kind, std::move(expr));
+		}
+	}
 	}
 }
 

@@ -158,7 +158,7 @@ void constant_value::encode_for_symbol_name(bz::u8string &out, constant_value co
 	case function:
 	{
 		auto const func = value.get<function>();
-		auto const func_symbol = func->symbol_name.as_string_view();
+		auto const func_symbol = func->body.symbol_name.as_string_view();
 		out += 'F';
 		out += bz::format("{}", func_symbol.size());
 		out += '.';

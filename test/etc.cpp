@@ -20,6 +20,7 @@
 #include "ast/expression.cpp"
 #include "ast/statement.cpp"
 #include "ast/typespec.cpp"
+#include "ast/scope.cpp"
 
 #include "parse/safe_operations.cpp"
 

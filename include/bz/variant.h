@@ -329,6 +329,8 @@ private:
 	};
 
 public:
+	static constexpr size_t variant_count = sizeof... (Ts);
+
 	template<size_t N>
 	using value_type = typename base_t::template value_type<N>;
 	template<typename T>

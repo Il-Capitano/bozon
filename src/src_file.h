@@ -4,7 +4,8 @@
 #include "core.h"
 
 #include "lex/token.h"
-#include "ctx/decl_set.h"
+#include "ast/scope.h"
+#include "ast/statement.h"
 
 namespace ctx
 {
@@ -32,8 +33,8 @@ public:
 	bz::vector<lex::token> _tokens;
 
 	bz::vector<ast::statement> _declarations;
-	ctx::decl_set              _global_decls;
-	ctx::decl_set              _export_decls;
+	ast::scope_t               _global_decls;
+	ast::scope_t               _export_decls;
 
 	bz::vector<bz::u8string_view> _scope;
 

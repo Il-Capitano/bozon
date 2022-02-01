@@ -7,6 +7,7 @@
 #include "typespec.h"
 #include "constant_value.h"
 #include "identifier.h"
+#include "scope.h"
 
 namespace ast
 {
@@ -91,6 +92,7 @@ enum class expression_type_kind
 	lvalue,
 	lvalue_reference,
 	rvalue,
+	moved_lvalue,
 	function_name,
 	type_name,
 	tuple,
@@ -513,12 +515,19 @@ struct expr_compound
 {
 	arena_vector<statement> statements;
 	expression              final_expr;
+	scope_t                 scope;
 
 	declare_default_5(expr_compound)
 
 	expr_compound(
 		arena_vector<statement> _statements,
 		expression              _final_expr
+	);
+
+	expr_compound(
+		arena_vector<statement> _statements,
+		expression              _final_expr,
+		enclosing_scope_t       _enclosing_scope
 	);
 };
 

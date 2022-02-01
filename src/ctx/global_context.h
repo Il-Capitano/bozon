@@ -1,6 +1,8 @@
 #ifndef CTX_GLOBAL_CONTEXT_H
 #define CTX_GLOBAL_CONTEXT_H
 
+#include "core.h"
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -8,18 +10,16 @@
 #include <llvm/IR/Value.h>
 #include <llvm/Target/TargetMachine.h>
 
-#include "core.h"
-
 #include "global_data.h"
 #include "lex/token.h"
 #include "error.h"
 #include "ast/typespec.h"
 #include "ast/expression.h"
 #include "ast/statement.h"
+#include "ast/scope.h"
 #include "src_file.h"
 #include "abi/platform_abi.h"
 
-#include "decl_set.h"
 #include "comptime_executor.h"
 
 namespace ctx
@@ -32,7 +32,7 @@ struct decl_list
 	bz::vector<ast::type_info     *> type_infos;
 };
 
-decl_set get_default_decls(void);
+ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_view<bz::u8string_view const> id_scope);
 
 struct global_context
 {
@@ -44,15 +44,13 @@ struct global_context
 
 	bz::vector<ast::type_info>              _builtin_type_infos;
 	bz::vector<ast::type_and_name_pair>     _builtin_types;
-	bz::vector<ast::function_body>          _builtin_functions;
 	bz::vector<ast::universal_function_set> _builtin_universal_functions;
-	bz::vector<ast::builtin_operator>       _builtin_operators;
 
-	ast::function_body *_builtin_str_eq_func                      = nullptr;
-	ast::function_body *_builtin_str_neq_func                     = nullptr;
-	ast::function_body *_builtin_str_length_func                  = nullptr;
-	ast::function_body *_builtin_str_starts_with_func             = nullptr;
-	ast::function_body *_builtin_str_ends_with_func               = nullptr;
+	bz::vector<ast::decl_function *> _builtin_functions;
+	bz::vector<ast::decl_operator *> _builtin_operators;
+
+	ast::scope_t *_builtin_global_scope;
+
 	ast::function_body *_comptime_compile_error_src_tokens_func   = nullptr;
 	ast::function_body *_comptime_compile_warning_src_tokens_func = nullptr;
 	ast::function_body *_comptime_create_global_string_func       = nullptr;
@@ -79,9 +77,8 @@ struct global_context
 	ast::type_info *get_usize_type_info(void) const;
 	ast::type_info *get_isize_type_info(void) const;
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
-	ast::function_body *get_builtin_function(uint32_t kind);
+	ast::decl_function *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
-	bz::array_view<ast::function_body> get_builtin_operators(uint32_t op_kind);
 
 	void report_error_or_warning(error &&err)
 	{
@@ -241,7 +238,7 @@ struct global_context
 	void add_compile_struct(ast::decl_struct &struct_decl);
 
 	uint32_t add_module(uint32_t current_file_id, ast::identifier const &id);
-	ctx::decl_set const &get_file_export_decls(uint32_t file_id);
+	ast::scope_t *get_file_export_decls(uint32_t file_id);
 
 	bz::u8string get_file_name(uint32_t file_id)
 	{
@@ -258,7 +255,8 @@ struct global_context
 
 	bool add_comptime_checking_function(bz::u8string_view kind, ast::function_body *func_body);
 	bool add_comptime_checking_variable(bz::u8string_view kind, ast::decl_variable *var_decl);
-	bool add_builtin_function(bz::u8string_view kind, ast::function_body *func_body);
+	bool add_builtin_function(ast::decl_function *func_decl);
+	bool add_builtin_operator(ast::decl_operator *op_decl);
 
 	bool is_aggressive_consteval_enabled(void) const;
 
