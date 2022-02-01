@@ -150,6 +150,7 @@ static llvm::Value *get_constant_zero(
 	case ast::typespec_node_t::index_of<ast::ts_unresolved>:
 	case ast::typespec_node_t::index_of<ast::ts_void>:
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
+	case ast::typespec_node_t::index_of<ast::ts_move_reference>:
 	case ast::typespec_node_t::index_of<ast::ts_auto>:
 	default:
 		bz_unreachable;
@@ -4975,7 +4976,7 @@ static void emit_function_bitcode_impl(
 				++p_it;
 				continue;
 			}
-			if (p.get_type().is<ast::ts_lvalue_reference>())
+			if (p.get_type().is<ast::ts_lvalue_reference>() || p.get_type().is<ast::ts_move_reference>())
 			{
 				bz_assert(fn_it->getType()->isPointerTy());
 				if (p.tuple_decls.empty())
