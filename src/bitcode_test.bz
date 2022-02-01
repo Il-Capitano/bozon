@@ -109,6 +109,7 @@ function main(args: [: const str]) -> int32
 	(consteval {
 		const p = std::meta::malloc(int32, 1u);
 		std::meta::free(p);
+		// std::meta::free(p);
 	});
 	@maybe_unused
 	let n = ((usize(-1)));
@@ -490,6 +491,26 @@ function main(args: [: const str]) -> int32
 		4 => 0.12,
 		else => {},
 	}
+
+	let n = 1;
+
+	function move_func(n: move auto)
+	{
+	}
+
+	// move_func(n);
+	move_func(move n);
+
+	let res = resource_t(42);
+	move_func(__forward res);
+	std::printf("DONE 1\n");
+
+	(move_func(resource_t(11)), std::printf("DONE 2\n"));
+	std::printf("DONE 3\n");
+
+	(consteval {
+		move_func(std::string("Hello!"));
+	});
 
 	/*
 	let s1 = "hello1";
@@ -1574,6 +1595,7 @@ struct resource_t
 
 	constructor(i: int32)
 	{
+		std::printf("constructing resource {}\n", i);
 		return resource_t[ i ];
 	}
 
@@ -1740,6 +1762,8 @@ function generic_type_test()
 	std::assert(v.size() == 1u);
 	std::assert(v[0] == 1);
 	v.push_back(2);
+	v.emplace_back(3);
+	v.emplace_back();
 
 	for (const i in v)
 	{
