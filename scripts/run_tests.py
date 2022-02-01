@@ -5,11 +5,12 @@ import glob
 success_test_files = glob.glob("tests/success/*.bz")
 warning_test_files = glob.glob("tests/warning/*.bz")
 error_test_files = glob.glob("tests/error/*.bz")
-bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else 'bin/linux-debug/bozon'
+bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
 flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null' ]
 
 # enable colors for windows
-os.system('color')
+if os.name == 'nt':
+    os.system('color')
 
 clear = "\033[0m";
 
@@ -36,7 +37,7 @@ error = False
 for test_file in success_test_files:
     process = subprocess.run(
         [ bozon, *flags, test_file ],
-        capture_output=True, shell=True
+        capture_output=True
     )
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
@@ -56,7 +57,7 @@ for test_file in success_test_files:
 for test_file in warning_test_files:
     process = subprocess.run(
         [ bozon, *flags, test_file ],
-        capture_output=True, shell=True
+        capture_output=True
     )
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
@@ -76,7 +77,7 @@ for test_file in warning_test_files:
 for test_file in error_test_files:
     process = subprocess.run(
         [ bozon, *flags, test_file ],
-        capture_output=True, shell=True
+        capture_output=True
     )
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
