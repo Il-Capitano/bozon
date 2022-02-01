@@ -646,15 +646,54 @@ static ast::expression get_builtin_unary_move(
 {
 	bz_assert(op_kind == lex::token::kw_move);
 	bz_assert(expr.not_error());
-	// auto const [type, kind] = expr.get_expr_type_and_kind();
-	if (expr.is_typename())
+	auto const [type, kind] = expr.get_expr_type_and_kind();
+
+	if (kind == ast::expression_type_kind::lvalue)
 	{
-		context.report_error(src_tokens, "cannot 'move' a type");
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::moved_lvalue,
+			type,
+			ast::make_expr_unary_op(op_kind, std::move(expr))
+		);
+	}
+	else if (kind == ast::expression_type_kind::lvalue_reference)
+	{
+		context.report_error(src_tokens, "operator move cannot be applied to references");
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 	}
+	else
+	{
+		context.report_error(src_tokens, "invalid use of operator move");
+		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+	}
+}
 
-	context.report_error(src_tokens, "operator move is not yet implemented");
-	return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
+// __forward (val) -> (rvalue of typeof val)
+static ast::expression get_builtin_unary_forward(
+	lex::src_tokens src_tokens,
+	uint32_t op_kind,
+	ast::expression expr,
+	parse_context &
+)
+{
+	bz_assert(op_kind == lex::token::kw_forward);
+	bz_assert(expr.not_error());
+	auto const [type, kind] = expr.get_expr_type_and_kind();
+
+	if (kind == ast::expression_type_kind::lvalue)
+	{
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::moved_lvalue,
+			type,
+			ast::make_expr_unary_op(lex::token::kw_move, std::move(expr))
+		);
+	}
+	else
+	{
+		return expr;
+	}
 }
 
 // consteval (val) -> (force evaluate val at compile time)
@@ -1143,6 +1182,7 @@ constexpr auto builtin_unary_operators = []() {
 		T{ lex::token::kw_sizeof,    &get_builtin_unary_sizeof                }, // sizeof
 		T{ lex::token::kw_typeof,    &get_builtin_unary_typeof                }, // typeof
 		T{ lex::token::kw_move,      &get_builtin_unary_move                  }, // move
+		T{ lex::token::kw_forward,   &get_builtin_unary_forward               }, // move
 		T{ lex::token::kw_consteval, &get_builtin_unary_consteval             }, // consteval
 	};
 
