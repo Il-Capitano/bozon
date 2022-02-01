@@ -392,7 +392,7 @@ struct string
 
 function swap(a: &string, b: &string)
 {
-	swap(a._buffer, b._buffer);
+	a._buffer.swap(b._buffer);
 }
 
 // copied from std::format
@@ -722,12 +722,31 @@ let malloc_infos = vector<malloc_info_t>[ null, null, null ];
 @comptime_error_checking("register_malloc")
 function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64, end: uint64)
 {
+	for (let &malloc_info in malloc_infos.as_slice())
+	{
+		if (malloc_info.is_freed && malloc_info.ptr == ptr)
+		{
+			malloc_info.size = size;
+			malloc_info.malloc_src_tokens = src_tokens_t[ begin, pivot, end ];
+			malloc_info.malloc_call_stack = call_stack;
+			malloc_info.is_freed = false;
+			malloc_info.free_src_tokens = src_tokens_t();
+			malloc_info.free_call_stack = vector<uint64>();
+			return;
+		}
+	}
+
 	malloc_infos.push_back(malloc_info_t(ptr, size, src_tokens_t[ begin, pivot, end ]));
 }
 
 @comptime_error_checking("register_free")
 function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
+	if (ptr == null)
+	{
+		return true;
+	}
+
 	for (let &malloc_info in malloc_infos.as_slice())
 	{
 		if (malloc_info.ptr == ptr)
