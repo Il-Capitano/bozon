@@ -1484,6 +1484,10 @@ static ast::expression make_variable_expression(
 	{
 		id_type_kind = ast::expression_type_kind::lvalue_reference;
 	}
+	else if (id_type.is<ast::ts_move_reference>())
+	{
+		id_type = id_type.get<ast::ts_move_reference>();
+	}
 
 	if (id_type.is_empty())
 	{
@@ -3555,6 +3559,16 @@ static match_level_t get_type_match_level(
 			return get_strict_type_match_level(inner_dest, expr_type, false) + 5;
 		}
 	}
+	else if (dest.is<ast::ts_move_reference>())
+	{
+		if (expr_type_kind != ast::expression_type_kind::rvalue && expr_type_kind != ast::expression_type_kind::moved_lvalue)
+		{
+			return match_level_t{};
+		}
+
+		auto const inner_dest = dest.get<ast::ts_move_reference>();
+		return get_strict_type_match_level(inner_dest, expr_type_without_const, false) + 5;
+	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
 		auto const inner_dest = dest.get<ast::ts_auto_reference>();
@@ -4152,7 +4166,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					expr_type.get<ast::ts_const>(),
 					inner_dest.get<ast::ts_const>(),
-					true
+					false
 				);
 			}
 			else
@@ -4161,7 +4175,7 @@ static void match_typename_to_type_impl(
 					dest_container,
 					expr_type,
 					inner_dest.get<ast::ts_const>(),
-					true
+					false
 				);
 			}
 		}
@@ -4171,9 +4185,19 @@ static void match_typename_to_type_impl(
 				dest_container,
 				expr_type,
 				inner_dest,
-				true
+				false
 			);
 		}
+	}
+	else if (dest.is<ast::ts_move_reference>())
+	{
+		if (expr_type_kind != ast::expression_type_kind::rvalue && expr_type_kind != ast::expression_type_kind::moved_lvalue)
+		{
+			return type_match_result::error;
+		}
+
+		auto const inner_dest = dest.get<ast::ts_move_reference>();
+		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{

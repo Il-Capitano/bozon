@@ -92,6 +92,7 @@ enum class expression_type_kind
 	lvalue,
 	lvalue_reference,
 	rvalue,
+	moved_lvalue,
 	function_name,
 	type_name,
 	tuple,
