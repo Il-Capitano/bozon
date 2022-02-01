@@ -174,7 +174,7 @@ static void add_call_parameter(
 	constexpr auto byval_push = push_to_front
 		? static_cast<byval_push_type>(&ast::arena_vector<bool>::push_front)
 		: static_cast<byval_push_type>(&ast::arena_vector<bool>::push_back);
-	if (param_type.is<ast::ts_lvalue_reference>())
+	if (param_type.is<ast::ts_lvalue_reference>() || param_type.is<ast::ts_move_reference>())
 	{
 		bz_assert(param.kind == val_ptr::reference);
 		(params.*params_push)(param.val);
@@ -1217,6 +1217,9 @@ static val_ptr emit_bitcode(
 	case lex::token::kw_sizeof:          // 'sizeof'
 		// this is always a constant expression
 		bz_unreachable;
+	case lex::token::kw_move:
+		bz_assert(result_address == nullptr);
+		return emit_bitcode<abi>(unary_op.expr, context, result_address);
 
 	// overloadables are handled as function calls
 	default:
@@ -2999,10 +3002,26 @@ static val_ptr emit_bitcode(
 		else
 		{
 			auto const param_llvm_type = get_llvm_type(param_type, context);
-			auto const param_val = ast::is_non_trivial(param_type)
-				? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
-				: emit_bitcode<abi>(p, context, nullptr);
-			add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			if (param_type.is<ast::ts_move_reference>())
+			{
+				bz_assert(param_llvm_type->isPointerTy());
+				auto const result_address = p.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
+					? context.create_alloca(param_llvm_type->getPointerElementType())
+					: nullptr;
+				auto const param_val = emit_bitcode<abi>(p, context, result_address);
+				if (result_address != nullptr)
+				{
+					push_destructor_call(result_address, param_type.get<ast::ts_move_reference>(), context);
+				}
+				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			}
+			else
+			{
+				auto const param_val = ast::is_non_trivial(param_type)
+					? emit_bitcode<abi>(p, context, context.create_alloca(param_llvm_type))
+					: emit_bitcode<abi>(p, context, nullptr);
+				add_call_parameter<abi, push_to_front>(param_type, param_llvm_type, param_val, params, params_is_byval, context);
+			}
 		}
 	};
 
