@@ -2,8 +2,11 @@ import subprocess
 import os
 import glob
 
-test_files = glob.glob("tests/*.bz")
+success_test_files = glob.glob("tests/success/*.bz")
+warning_test_files = glob.glob("tests/warning/*.bz")
+error_test_files = glob.glob("tests/error/*.bz")
 bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else 'bin/linux-debug/bozon'
+flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null' ]
 
 # enable colors for windows
 os.system('color')
@@ -30,14 +33,14 @@ bright_white   = "\033[97m"
 
 error = False
 
-for test_file in test_files:
+for test_file in success_test_files:
     process = subprocess.run(
-        [ bozon, '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', test_file ],
+        [ bozon, *flags, test_file ],
         capture_output=True, shell=True
     )
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
-    if process.returncode == 0:
+    if process.returncode == 0 and stdout == '' and stderr == '':
         print(f'    {test_file:.<60}{bright_green}OK{clear}')
     else:
         error = True
@@ -48,6 +51,47 @@ for test_file in test_files:
         if stderr != '':
             print('stderr:')
             print(stderr)
+        print(f'exit code: {process.returncode}')
+
+for test_file in warning_test_files:
+    process = subprocess.run(
+        [ bozon, *flags, test_file ],
+        capture_output=True, shell=True
+    )
+    stdout = process.stdout.decode('utf-8')
+    stderr = process.stderr.decode('utf-8')
+    if process.returncode == 0 and (stdout != '' or stderr != ''):
+        print(f'    {test_file:.<60}{bright_green}OK{clear}')
+    else:
+        error = True
+        print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
+        if stdout != '':
+            print('stdout:')
+            print(stdout)
+        if stderr != '':
+            print('stderr:')
+            print(stderr)
+        print(f'exit code: {process.returncode}')
+
+for test_file in error_test_files:
+    process = subprocess.run(
+        [ bozon, *flags, test_file ],
+        capture_output=True, shell=True
+    )
+    stdout = process.stdout.decode('utf-8')
+    stderr = process.stderr.decode('utf-8')
+    if process.returncode >= 1 and process.returncode <= 7:
+        print(f'    {test_file:.<60}{bright_green}OK{clear}')
+    else:
+        error = True
+        print(f'    {test_file:.<60}{bright_red}FAIL{clear}')
+        if stdout != '':
+            print('stdout:')
+            print(stdout)
+        if stderr != '':
+            print('stderr:')
+            print(stderr)
+        print(f'exit code: {process.returncode}')
 
 if error:
     exit(1)
