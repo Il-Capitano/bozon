@@ -164,7 +164,11 @@ public:
 		: u8string()
 	{
 		auto const size = other.size();
-		if (size <= _short_string_capacity())
+		if (size == 0)
+		{
+			// nothing
+		}
+		else if (size <= _short_string_capacity())
 		{
 			this->_set_short_string_size(size);
 			std::memcpy(this->_short_string_begin(), other.data(), size);
