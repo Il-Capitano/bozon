@@ -826,7 +826,7 @@ static ast::expression parse_expression_helper(
 			}
 			else if (!id.is_qualified && id.values.size() == 1 && (stream == end || stream->kind != lex::token::paren_open))
 			{
-				auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), op, stream };
+				auto const src_tokens = lex::src_tokens{ lhs.get_tokens_begin(), id.tokens.begin, stream };
 				bz_assert(id.tokens.begin->kind == lex::token::identifier);
 				lhs = context.make_member_access_expression(src_tokens, std::move(lhs), id.tokens.begin);
 				break;
