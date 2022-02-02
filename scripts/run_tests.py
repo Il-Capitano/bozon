@@ -6,7 +6,7 @@ success_test_files = glob.glob("tests/success/*.bz")
 warning_test_files = glob.glob("tests/warning/*.bz")
 error_test_files = glob.glob("tests/error/*.bz")
 bozon = 'bin\\windows-debug\\bozon.exe' if os.name == 'nt' else './bin/linux-debug/bozon'
-flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null' ]
+flags = [ '--stdlib-dir', 'bozon-stdlib', '-Wall', '--emit=null', '-Itests/import' ]
 
 # enable colors for windows
 if os.name == 'nt':
