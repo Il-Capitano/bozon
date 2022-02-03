@@ -772,20 +772,24 @@ function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -
 @comptime_error_checking("check_leaks")
 function check_leaks() -> bool
 {
+	const has_previous_errors = has_errors();
 	let good = true;
 	for (let &malloc_info in malloc_infos.as_slice())
 	{
 		if (!malloc_info.is_freed)
 		{
 			let &const call_stack = malloc_info.malloc_call_stack;
-			emit_diagnostic(
-				warning_kind_error,
-				"allocated memory was never freed",
-				call_stack,
-				malloc_info.malloc_src_tokens.begin,
-				malloc_info.malloc_src_tokens.pivot,
-				malloc_info.malloc_src_tokens.end,
-			);
+			if (!has_previous_errors)
+			{
+				emit_diagnostic(
+					warning_kind_error,
+					"allocated memory was never freed",
+					call_stack,
+					malloc_info.malloc_src_tokens.begin,
+					malloc_info.malloc_src_tokens.pivot,
+					malloc_info.malloc_src_tokens.end,
+				);
+			}
 			good = false;
 			free(malloc_info.ptr);
 		}
