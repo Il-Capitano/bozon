@@ -1,3 +1,5 @@
+import std::libc::stdio;
+
 @__builtin
 function __builtin_str_length(s: str) -> usize
 {
@@ -85,10 +87,16 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 @__builtin consteval function __builtin_is_option_set(option: str) -> bool;
 @__builtin @symbol_name("__bozon_builtin_panic") function __builtin_panic();
 
-@__builtin @symbol_name("__bozon_builtin_print_stdout") function __builtin_print_stdout(s: str);
-@__builtin @symbol_name("__bozon_builtin_println_stdout") function __builtin_println_stdout(s: str);
-@__builtin @symbol_name("__bozon_builtin_print_stderr") function __builtin_print_stderr(s: str);
-@__builtin @symbol_name("__bozon_builtin_println_stderr") function __builtin_println_stderr(s: str);
+@__builtin
+function __builtin_print_stdout(s: str)
+{
+	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stdout());
+}
+@__builtin
+function __builtin_print_stderr(s: str)
+{
+	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stderr());
+}
 
 @__builtin @symbol_name("__bozon_builtin_comptime_malloc") consteval function __builtin_comptime_malloc(size: usize) -> *void;
 @__builtin consteval function __builtin_comptime_malloc_type(T: typename, count: usize) -> *T;
@@ -99,10 +107,18 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 // src_tokens variants are handled in __comptime_checking.bz
 
 @__builtin consteval function __builtin_typename_as_str(T: typename) -> str;
+
+@__builtin consteval function __builtin_is_const(T: typename) -> bool;
+@__builtin consteval function __builtin_is_consteval(T: typename) -> bool;
+@__builtin consteval function __builtin_is_pointer(T: typename) -> bool;
+@__builtin consteval function __builtin_is_reference(T: typename) -> bool;
+@__builtin consteval function __builtin_is_move_reference(T: typename) -> bool;
+
 @__builtin consteval function __builtin_remove_const(T: typename) -> typename;
 @__builtin consteval function __builtin_remove_consteval(T: typename) -> typename;
 @__builtin consteval function __builtin_remove_pointer(T: typename) -> typename;
 @__builtin consteval function __builtin_remove_reference(T: typename) -> typename;
+@__builtin consteval function __builtin_remove_move_reference(T: typename) -> typename;
 
 @__builtin consteval function __builtin_is_default_constructible(T: typename) -> bool;
 @__builtin consteval function __builtin_is_copy_constructible(T: typename) -> bool;

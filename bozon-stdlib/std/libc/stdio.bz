@@ -38,3 +38,6 @@ export struct FILE;
 @symbol_name("rename")  export function "c" rename(old_filename: c_str, new_filename: c_str) -> int;
 @symbol_name("tmpfile") export function "c" tmpfile() -> *FILE;
 @symbol_name("tmpnam")  export function "c" tmpnam(filename: mut_c_str) -> mut_c_str;
+
+@symbol_name("__bozon_get_stdout") export function "c" stdout() -> *FILE;
+@symbol_name("__bozon_get_stderr") export function "c" stderr() -> *FILE;

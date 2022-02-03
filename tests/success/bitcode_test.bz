@@ -109,6 +109,7 @@ function main(args: [: const str]) -> int32
 	(consteval {
 		const p = std::meta::malloc(int32, 1u);
 		std::meta::free(p);
+		// std::meta::free(p);
 	});
 	@maybe_unused
 	let n = ((usize(-1)));
@@ -143,15 +144,15 @@ function main(args: [: const str]) -> int32
 	const n = 3;
 	switch (n)
 	{
-		0, 1, 2 => std::println(" < 3"),
-		else => std::println("something else")
+		0, 1, 2 => std::print(" < 3\n"),
+		else => std::print("something else\n")
 	}
 
 	const b = false;
 	switch (b)
 	{
-		true  => std::println("true"),
-		false => std::println("false")
+		true  => std::print("true\n"),
+		false => std::print("false\n")
 	}
 
 	@maybe_unused
@@ -184,7 +185,7 @@ function main(args: [: const str]) -> int32
 	@maybe_unused const t2 = if (false) { t } else { [ 3, "world" ] };
 	@maybe_unused const t2 = (if (false) { t } else [ 3, "world" ]);
 
-	std::println("""hello "raw string"\jasdf \\\""" "\"\"\"" """ <- this was a the end of a "raw string""" "\"");
+	std::print("""hello "raw string"\jasdf \\\""" "\"\"\"" """ <- this was a the end of a "raw string""" "\"\n");
 
 	consteval pointer_size = sizeof *void;
 	static_assert(pointer_size == 8u);
@@ -197,12 +198,12 @@ function main(args: [: const str]) -> int32
 	@maybe_unused consteval n = arr.size();
 	// static_assert((std::assert(true), true));
 
-	std::println("");
-	std::println("hello");
-	std::printf("{}", 123);
-	std::printf("{}", 123i8);
-	std::printf("{}", factorial(5));
-	std::println("hello again!!!!\nand on a new line\n");
+	std::print("\n");
+	std::print("hello\n");
+	std::printf("{}\n", 123);
+	std::printf("{}\n", 123i8);
+	std::printf("{}\n", factorial(5));
+	std::print("hello again!!!!\nand on a new line\n");
 
 	foo();
 
@@ -270,11 +271,11 @@ function main(args: [: const str]) -> int32
 
 	if (good)
 	{
-		std::println("factorial is good!!");
+		std::print("factorial is good!!\n");
 	}
 	else
 	{
-		std::println("factorial is not good :(");
+		std::print("factorial is not good :(\n");
 	}
 
 	let n = 2;
@@ -283,10 +284,10 @@ function main(args: [: const str]) -> int32
 	std::printf("{}\n", n);
 	std::assert(n == 0);
 
-	std::println("\n==== ref_test ====");
+	std::print("\n==== ref_test ====\n");
 	ref_test();
 
-	std::println("\n==== cast_test ====");
+	std::print("\n==== cast_test ====\n");
 	cast_test();
 
 	const c = 'д';
@@ -308,55 +309,55 @@ function main(args: [: const str]) -> int32
 	static_assert('Ѱ' as uint32 == 0x470);
 //	"a" "b";
 
-	std::println("\n=== \x41 ===");
+	std::print("\n=== \x41 ===\n");
 //	+'b';
 
-	std::println("\n==== const_expr_test ====");
+	std::print("\n==== const_expr_test ====\n");
 	const_expr_test();
 
-	std::println("\n==== scope_test ====");
+	std::print("\n==== scope_test ====\n");
 	scope_test();
 
-	std::println("\n==== christmas_tree ====");
+	std::print("\n==== christmas_tree ====\n");
 	christmas_tree(4);
 
-	std::println("\n==== for_test ====");
+	std::print("\n==== for_test ====\n");
 	for_test();
 
-	std::println("\n==== array_test ====");
+	std::print("\n==== array_test ====\n");
 	array_test();
 
-	std::println("\n==== tuple_test ====");
+	std::print("\n==== tuple_test ====\n");
 	tuple_test();
 
-	std::println("\n==== str_pointer_test ====");
+	std::print("\n==== str_pointer_test ====\n");
 	str_pointer_test();
 
-	std::println("\n==== generic_test ====");
+	std::print("\n==== generic_test ====\n");
 	generic_test();
 
-	std::println("\n==== ambiguous_function_test ====");
+	std::print("\n==== ambiguous_function_test ====\n");
 	ambiguous_function_test();
 
-	std::println("\n==== struct_test ====");
+	std::print("\n==== struct_test ====\n");
 	struct_test();
 
-	std::println("\n==== complex_test ====");
+	std::print("\n==== complex_test ====\n");
 	complex_test();
 
-	std::println("\n==== algorithm_test ====");
+	std::print("\n==== algorithm_test ====\n");
 	algorithm_test();
 
-	std::println("\n==== destructor_test ====");
+	std::print("\n==== destructor_test ====\n");
 	destructor_test();
 
-	std::println("\n==== string_test ====");
+	std::print("\n==== string_test ====\n");
 	string_test();
 
-	std::println("\n==== generic_type_test ====");
+	std::print("\n==== generic_type_test ====\n");
 	generic_type_test();
 
-	std::println("\n==== end main ====");
+	std::print("\n==== end main ====\n");
 	std::printf("e  = {}\n", std::e);
 	std::printf("pi = {}\n", std::pi);
 	std::printf("e  = {}\n", std::e as float32);
@@ -491,6 +492,26 @@ function main(args: [: const str]) -> int32
 		else => {},
 	}
 
+	let n = 1;
+
+	function move_func(n: move auto)
+	{
+	}
+
+	// move_func(n);
+	move_func(move n);
+
+	let res = resource_t(42);
+	move_func(__forward res);
+	std::printf("DONE 1\n");
+
+	(move_func(resource_t(11)), std::printf("DONE 2\n"));
+	std::printf("DONE 3\n");
+
+	(consteval {
+		move_func(std::string("Hello!"));
+	});
+
 	/*
 	let s1 = "hello1";
 	let s2 = "hello2";
@@ -587,9 +608,9 @@ function foo() -> void
 	@maybe_unused let b = 'c' + -1i8;
 
 	if (a == 'a')
-		std::println("a == 'a'");
+		std::print("a == 'a'\n");
 	else
-		std::println("a != 'a'");
+		std::print("a != 'a'\n");
 
 	if (
 		'a' + 1 == 'b'
@@ -599,27 +620,27 @@ function foo() -> void
 		&& 'a' - -1 == 'b'
 		&& 'a' - -1i8 == 'b'
 	)
-		std::println("b == 'b'");
+		std::print("b == 'b'\n");
 	else
-		std::println("b != 'b'");
+		std::print("b != 'b'\n");
 
 	const a = 1.0 * 0.5;
 	if (a == 0.5)
 	{
-		std::println("yay");
+		std::print("yay\n");
 	}
 
 	let n = 0xff;
 	const mask = 0x46;
 	n &= mask;
 	if (n == mask)
-		std::println("yay!!");
+		std::print("yay!!\n");
 
 	let n = 1;
 	let m = 0;
 	(n = m = 2) = m;
 	if (n == 0 && m == 2)
-		std::println("yay again!");
+		std::print("yay again!\n");
 
 	let n = 1u32;
 	n <<= 3u8;
@@ -630,7 +651,7 @@ function foo() -> void
 	n += m = 2u32;
 	if (n == 6u32)
 	{
-		std::println("yay yet again!");
+		std::print("yay yet again!\n");
 	}
 }
 
@@ -652,14 +673,14 @@ function ref_test() -> void
 	std::printf("{}\n", &n);
 	foo(n);
 	foo_ref(n);
-	std::println("first and third pointers should be the same");
+	std::print("first and third pointers should be the same\n");
 
 	let &m = n;
 	std::assert(&m == &n);
 	std::printf("{}\n", &m);
 	foo(m);
 	foo_ref(m);
-	std::println("first and third pointers should be the same");
+	std::print("first and third pointers should be the same\n");
 
 	asdfasdf([0, 1, 2, 3, 4, 5]);
 }
@@ -712,15 +733,15 @@ function const_expr_test() -> void
 	std::assert(p != null);
 
 //	*(null as *int32) = 2;
-	std::println("hello" " again" ", and again!");
+	std::print("hello" " again" ", and again!" "\n");
 }
 
 function scope_test() -> void
 {
-	function foo() -> void { std::println("foo1"); }
+	function foo() -> void { std::print("foo1\n"); }
 
 	{
-		function foo() -> void { std::println("foo2"); }
+		function foo() -> void { std::print("foo2\n"); }
 //		const f = foo;
 		foo();
 	}
@@ -729,23 +750,23 @@ function scope_test() -> void
 
 	foo();
 
-	function foo(: const int32) -> void { std::println("foo(: const int32)"); }
+	function foo(: const int32) -> void { std::print("foo(: const int32)\n"); }
 	const n = 0;
 
 	{
-		function foo(: &const int32) -> void { std::println("foo(: &const int32)"); }
-		function foo(:  const int32) -> void { std::println("foo(: const int32)"); }
+		function foo(: &const int32) -> void { std::print("foo(: &const int32)\n"); }
+		function foo(:  const int32) -> void { std::print("foo(: const int32)\n"); }
 		foo(n);
 		foo(3); // this doesn't work now, because foo(: &const int32) shadows foo(: const int32)
 	}
 
 	foo(n);
 
-	function ambiguous_test_in_scope() -> void { std::println("test1"); }
+	function ambiguous_test_in_scope() -> void { std::print("test1\n"); }
 
 	@maybe_unused const f = ambiguous_test_in_scope;
 	{
-		function ambiguous_test_in_scope() -> void { std::println("test2"); }
+		function ambiguous_test_in_scope() -> void { std::print("test2\n"); }
 //		const f = ambiguous_test_in_scope;
 		ambiguous_test_in_scope();
 	}
@@ -880,13 +901,13 @@ function for_test() -> void
 
 	function infinite_loop() -> void
 	{
-		std::println("entered infinite_loop");
+		std::print("entered infinite_loop\n");
 		let i = 0;
 		for (;; ++i)
 		{
 			if (i == 10)
 			{
-				std::println("\nexiting infinite_loop");
+				std::print("\nexiting infinite_loop\n");
 				return;
 			}
 			std::printf("{} ", i);
@@ -1049,7 +1070,7 @@ function array_test() -> void
 	{
 		*val += 0.5;
 	}
-	std::println("====");
+	std::print("====\n");
 	print_matrix(multi_d_array);
 
 	static_assert(typeof null == __null_t);
@@ -1350,13 +1371,13 @@ function consteval_test(i: if (true) int32 else int64)
 
 function add_wrapper(const lhs, const rhs) -> typeof add(lhs, rhs)
 {
-	std::println("add_wrapper(const auto, const auto)");
+	std::print("add_wrapper(const auto, const auto)\n");
 	return add(lhs, rhs);
 }
 
 function add_wrapper(&const lhs, &const rhs) -> typeof add(lhs, rhs)
 {
-	std::println("add_wrapper(&const auto, &const auto)");
+	std::print("add_wrapper(&const auto, &const auto)\n");
 	return add(lhs, rhs);
 }
 
@@ -1574,6 +1595,7 @@ struct resource_t
 
 	constructor(i: int32)
 	{
+		std::printf("constructing resource {}\n", i);
 		return resource_t[ i ];
 	}
 
@@ -1610,7 +1632,7 @@ function destructor_test()
 export function string_test()
 {
 	let s = std::string("hello");
-	std::println(s);
+	std::printf("{}\n", s);
 	std::printf("{}\n", std::string("world that is a long string").size());
 	std::printf("{}\n", std::string("world that is a long string").capacity());
 	std::printf("short string capacity: {}\n", std::string().capacity());
@@ -1641,7 +1663,7 @@ export function string_test()
 		world ..= '!';
 		std::print("Hello " .. world .. '\n');
 		std::print("Hello {}\n".std::format(world.as_str()));
-		std::println("---");
+		std::print("---\n");
 		std::printf("{}\n", world.empty());
 		std::printf("{}\n", world.not_empty());
 	}
@@ -1740,6 +1762,8 @@ function generic_type_test()
 	std::assert(v.size() == 1u);
 	std::assert(v[0] == 1);
 	v.push_back(2);
+	v.emplace_back(3);
+	v.emplace_back();
 
 	for (const i in v)
 	{

@@ -1685,6 +1685,37 @@ enum class function_execution_kind
 	force_evaluate_without_error,
 };
 
+template<typename Kind>
+static ast::constant_value is_typespec_kind_helper(ast::expr_function_call &func_call)
+{
+	bz_assert(func_call.params.size() == 1);
+	bz_assert(func_call.params[0].is<ast::constant_expression>());
+	bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+	auto const type = func_call.params[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::type>().as_typespec_view();
+	return ast::constant_value(type.is<Kind>());
+}
+
+template<typename Kind>
+static ast::constant_value remove_typespec_kind_helper(ast::expr_function_call &func_call)
+{
+	bz_assert(func_call.params.size() == 1);
+	bz_assert(func_call.params[0].is<ast::constant_expression>());
+	bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
+	auto const type = func_call.params[0]
+		.get<ast::constant_expression>().value
+		.get<ast::constant_value::type>().as_typespec_view();
+	if (type.is<Kind>())
+	{
+		return ast::constant_value(type.get<Kind>());
+	}
+	else
+	{
+		return ast::constant_value(type);
+	}
+}
+
 static ast::constant_value evaluate_intrinsic_function_call(
 	ast::expression const &original_expr,
 	ast::expr_function_call &func_call,
@@ -1696,7 +1727,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 129);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 133);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1813,9 +1844,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	// builtins end here
 
 	case ast::function_body::print_stdout:
-	case ast::function_body::println_stdout:
 	case ast::function_body::print_stderr:
-	case ast::function_body::println_stderr:
 		return {};
 
 	case ast::function_body::comptime_malloc:
@@ -1880,74 +1909,28 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(bz::format("{}", type));
 	}
+
+	case ast::function_body::is_const:
+		return is_typespec_kind_helper<ast::ts_const>(func_call);
+	case ast::function_body::is_consteval:
+		return is_typespec_kind_helper<ast::ts_consteval>(func_call);
+	case ast::function_body::is_pointer:
+		return is_typespec_kind_helper<ast::ts_pointer>(func_call);
+	case ast::function_body::is_reference:
+		return is_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
+	case ast::function_body::is_move_reference:
+		return is_typespec_kind_helper<ast::ts_move_reference>(func_call);
+
 	case ast::function_body::remove_const:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
-		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::type>().as_typespec_view();
-		if (type.is<ast::ts_const>())
-		{
-			return ast::constant_value(type.get<ast::ts_const>());
-		}
-		else
-		{
-			return ast::constant_value(type);
-		}
-	}
+		return remove_typespec_kind_helper<ast::ts_const>(func_call);
 	case ast::function_body::remove_consteval:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
-		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::type>().as_typespec_view();
-		if (type.is<ast::ts_consteval>())
-		{
-			return ast::constant_value(type.get<ast::ts_consteval>());
-		}
-		else
-		{
-			return ast::constant_value(type);
-		}
-	}
+		return remove_typespec_kind_helper<ast::ts_consteval>(func_call);
 	case ast::function_body::remove_pointer:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
-		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::type>().as_typespec_view();
-		if (type.is<ast::ts_pointer>())
-		{
-			return ast::constant_value(type.get<ast::ts_pointer>());
-		}
-		else
-		{
-			return ast::constant_value(type);
-		}
-	}
+		return remove_typespec_kind_helper<ast::ts_pointer>(func_call);
 	case ast::function_body::remove_reference:
-	{
-		bz_assert(func_call.params.size() == 1);
-		bz_assert(func_call.params[0].is<ast::constant_expression>());
-		bz_assert(func_call.params[0].get<ast::constant_expression>().value.is<ast::constant_value::type>());
-		auto const type = func_call.params[0]
-			.get<ast::constant_expression>().value
-			.get<ast::constant_value::type>().as_typespec_view();
-		if (type.is<ast::ts_lvalue_reference>())
-		{
-			return ast::constant_value(type.get<ast::ts_lvalue_reference>());
-		}
-		else
-		{
-			return ast::constant_value(type);
-		}
-	}
+		return remove_typespec_kind_helper<ast::ts_lvalue_reference>(func_call);
+	case ast::function_body::remove_move_reference:
+		return remove_typespec_kind_helper<ast::ts_move_reference>(func_call);
 
 	case ast::function_body::is_default_constructible:
 	{

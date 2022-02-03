@@ -471,9 +471,7 @@ struct function_body
 		builtin_panic,
 
 		print_stdout,
-		println_stdout,
 		print_stderr,
-		println_stderr,
 
 		comptime_malloc,
 		comptime_malloc_type,
@@ -489,10 +487,18 @@ struct function_body
 		// type manipulation functions
 
 		typename_as_str,
+
+		is_const,
+		is_consteval,
+		is_pointer,
+		is_reference,
+		is_move_reference,
+
 		remove_const,
 		remove_consteval,
 		remove_pointer,
 		remove_reference,
+		remove_move_reference,
 
 		is_default_constructible,
 		is_copy_constructible,
@@ -1385,7 +1391,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 129);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 133);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1417,9 +1423,7 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_panic,         "__builtin_panic"         },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
-		{ function_body::println_stdout, "__builtin_println_stdout" },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
-		{ function_body::println_stderr, "__builtin_println_stderr" },
 
 		{ function_body::comptime_malloc,      "__builtin_comptime_malloc"      },
 		{ function_body::comptime_malloc_type, "__builtin_comptime_malloc_type" },
@@ -1432,11 +1436,19 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
-		{ function_body::typename_as_str,  "__builtin_typename_as_str"  },
-		{ function_body::remove_const,     "__builtin_remove_const"     },
-		{ function_body::remove_consteval, "__builtin_remove_consteval" },
-		{ function_body::remove_pointer,   "__builtin_remove_pointer"   },
-		{ function_body::remove_reference, "__builtin_remove_reference" },
+		{ function_body::typename_as_str, "__builtin_typename_as_str" },
+
+		{ function_body::is_const,          "__builtin_is_const"          },
+		{ function_body::is_consteval,      "__builtin_is_consteval"      },
+		{ function_body::is_pointer,        "__builtin_is_pointer"        },
+		{ function_body::is_reference,      "__builtin_is_reference"      },
+		{ function_body::is_move_reference, "__builtin_is_move_reference" },
+
+		{ function_body::remove_const,          "__builtin_remove_const"          },
+		{ function_body::remove_consteval,      "__builtin_remove_consteval"      },
+		{ function_body::remove_pointer,        "__builtin_remove_pointer"        },
+		{ function_body::remove_reference,      "__builtin_remove_reference"      },
+		{ function_body::remove_move_reference, "__builtin_remove_move_reference" },
 
 		{ function_body::is_default_constructible,        "__builtin_is_default_constructible"        },
 		{ function_body::is_copy_constructible,           "__builtin_is_copy_constructible"           },

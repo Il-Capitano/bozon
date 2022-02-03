@@ -1,5 +1,2 @@
-export function print   = __builtin_print_stdout;
-export function println = __builtin_println_stdout;
-
+export function print = __builtin_print_stdout;
 export function log   = __builtin_print_stderr;
-export function logln = __builtin_println_stderr;
