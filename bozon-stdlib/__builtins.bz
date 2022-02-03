@@ -84,7 +84,14 @@ function __builtin_str_ends_with(s: str, postfix: str) -> bool
 	-> (if consteval (__builtin_remove_pointer(typeof ptr) != typeof val) { unreachable } else {}, void);
 
 @__builtin function __builtin_is_comptime() -> bool;
-@__builtin consteval function __builtin_is_option_set(option: str) -> bool;
+
+@symbol_name("__bozon_builtin_is_option_set_impl") function is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
+@__builtin
+consteval function __builtin_is_option_set(option: str) -> bool
+{
+	return is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
+}
+
 @__builtin @symbol_name("__bozon_builtin_panic") function __builtin_panic();
 
 @__builtin

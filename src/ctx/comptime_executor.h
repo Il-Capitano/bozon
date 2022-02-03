@@ -307,7 +307,6 @@ struct comptime_executor_context
 	std::list<source_highlight>   execution_errors{}; // a list is used, so pointers are stable
 	std::list<comptime_func_call> execution_calls{};  // a list is used, so pointers are stable
 
-	llvm::Function *is_option_set_impl_func = nullptr;
 	ast::decl_variable *errors_array   = nullptr;
 	ast::decl_variable *call_stack     = nullptr;
 	ast::decl_variable *global_strings = nullptr;

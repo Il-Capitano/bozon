@@ -1026,19 +1026,15 @@ std::unique_ptr<llvm::ExecutionEngine> comptime_executor_context::create_engine(
 	}
 	std::string err;
 	llvm::EngineBuilder builder(std::move(module));
-// #ifdef __linux__
+
 	auto const is_native =
 		(
 			target == "" || target == "native"
 			|| llvm::Triple::normalize(std::string(target.data_as_char_ptr(), target.size())) == llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple())
 		)
 		&& this->get_platform_abi() != abi::platform_abi::generic;
-	auto const engine_kind = force_use_jit || (is_native && !use_interpreter)? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
-// #else
-// 	// auto const is_native = (target == "" || target == "native") && this->get_platform_abi() != abi::platform_abi::generic;
-// 	// prefer Interpreter for now even for native targets
-// 	auto const engine_kind = force_use_jit ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
-// #endif // linux
+	auto const engine_kind = force_use_jit || (is_native && !use_interpreter) ? llvm::EngineKind::JIT : llvm::EngineKind::Interpreter;
+
 	builder
 		.setEngineKind(engine_kind)
 		.setErrorStr(&err)
@@ -1069,19 +1065,6 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 		bc::comptime::emit_global_variable(*this->global_strings, *this);
 		bz_assert(this->malloc_infos != nullptr);
 		bc::comptime::emit_global_variable(*this->malloc_infos, *this);
-
-		bz_assert(this->is_option_set_impl_func == nullptr);
-		auto const func_type = llvm::FunctionType::get(
-			llvm::Type::getInt1Ty(this->get_llvm_context()),
-			{ llvm::Type::getInt8PtrTy(this->get_llvm_context()), llvm::Type::getInt8PtrTy(this->get_llvm_context()) },
-			false
-		);
-		this->is_option_set_impl_func = llvm::Function::Create(
-			func_type,
-			llvm::Function::ExternalLinkage,
-			"__bozon_builtin_is_option_set_impl",
-			this->get_module()
-		);
 
 		this->pop_module(prev_module);
 		this->add_module(std::move(module));

@@ -3188,24 +3188,6 @@ static val_ptr emit_bitcode(
 				return { val_ptr::value, result_val };
 			}
 		}
-		case ast::function_body::builtin_is_option_set:
-		{
-			bz_assert(func_call.params.size() == 1);
-			auto const option = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
-			auto const begin_ptr = context.builder.CreateExtractValue(option, 0);
-			auto const end_ptr   = context.builder.CreateExtractValue(option, 1);
-			bz_assert(context.is_option_set_impl_func != nullptr);
-			auto const is_set = context.builder.CreateCall(context.is_option_set_impl_func, { begin_ptr, end_ptr });
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(is_set, result_address);
-				return { val_ptr::reference, result_address };
-			}
-			else
-			{
-				return { val_ptr::value, is_set };
-			}
-		}
 		case ast::function_body::builtin_panic:
 		{
 			emit_error(func_call.src_tokens, "'__builtin_panic()' called in compile time execution", context);
