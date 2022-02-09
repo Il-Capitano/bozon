@@ -283,7 +283,7 @@ void typespec::move_from(typespec_view pos, typespec &&source)
 template<typename ...Kinds>
 static typespec_view remove_kind_helper(typespec_view ts) noexcept
 {
-	if (ts.nodes.size() != 0 && (ts.nodes.front().is<Kinds>() && ...))
+	if (ts.nodes.size() != 0 && (ts.nodes.front().is<Kinds>() || ...))
 	{
 		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
 	}
