@@ -49,9 +49,9 @@
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
 					"compiler": "clang-13",
-					"libraries": [ "LLVM-13", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-13", "ryu_format.linux.o" ],
-					"warnings": [ "no-unused-parameter" ],
+					"libraries": [ "LLVM-14", "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-14", "ryu_format.linux.o" ],
+					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -180,11 +180,11 @@
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
-			"command": "clang++-13 -c -g `llvm-config-13 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+			"command": "clang++-14 -c -g `llvm-config-14 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
 		},
 		"fuzz-test/lex/fuzz.out": {
 			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
-			"command": "clang++-13 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-13 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+			"command": "clang++-14 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-14 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
 		},
 		"run-lex-fuzzer": {
 			"dependencies": [ "fuzz-test/lex/fuzz.out" ],
