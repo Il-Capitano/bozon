@@ -48,7 +48,7 @@
 				},
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
-					"compiler": "clang-13",
+					"compiler": "clang-14",
 					"libraries": [ "LLVM-14", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld-14", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
@@ -160,7 +160,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-13 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-13"
+			"command": "clang-14 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-13"
 		},
 		"builtins.o": {
 			"dependencies": [ "builtins.c" ],
@@ -168,7 +168,7 @@
 		},
 		"builtins.linux.o": {
 			"dependencies": [ "builtins.c" ],
-			"command": "clang-13 -c builtins.c -O3 -o builtins.linux.o"
+			"command": "clang-14 -c builtins.c -O3 -o builtins.linux.o"
 		},
 		"generate-opts": {
 			"command": "python3 scripts/gen_opts.py",
