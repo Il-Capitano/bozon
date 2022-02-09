@@ -97,15 +97,15 @@ ast::function_body *comptime_executor_context::get_builtin_function(uint32_t kin
 	return &this->global_ctx.get_builtin_function(kind)->body;
 }
 
-llvm::Value *comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
+variable_ptr_type_pair comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? nullptr : it->second;
+	return it == this->vars_.end() ? variable_ptr_type_pair{ nullptr, nullptr } : it->second;
 }
 
-void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val)
+void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	this->vars_.insert_or_assign(var_decl, val);
+	this->vars_.insert_or_assign(var_decl, variable_ptr_type_pair{ val, type });
 }
 
 void comptime_executor_context::add_global_variable(ast::decl_variable const *var_decl)

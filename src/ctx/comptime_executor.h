@@ -127,8 +127,8 @@ struct comptime_executor_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 
-	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
-	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
+	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
+	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type);
 
 	void add_global_variable(ast::decl_variable const *var_decl);
 
@@ -279,7 +279,7 @@ struct comptime_executor_context
 	parse_context *current_parse_ctx = nullptr;
 	llvm::Module *current_module = nullptr;
 
-	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
+	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 
