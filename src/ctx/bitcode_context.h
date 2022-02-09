@@ -30,8 +30,8 @@ struct bitcode_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 
-	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
-	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
+	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
+	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type);
 
 	llvm::Type *get_base_type(ast::type_info const *info) const;
 	void add_base_type(ast::type_info const *info, llvm::Type *type);
@@ -146,7 +146,7 @@ struct bitcode_context
 	global_context &global_ctx;
 	llvm::Module *module;
 
-	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
+	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 

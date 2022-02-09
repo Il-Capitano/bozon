@@ -26,15 +26,15 @@ ast::function_body *bitcode_context::get_builtin_function(uint32_t kind)
 	return &this->global_ctx.get_builtin_function(kind)->body;
 }
 
-llvm::Value *bitcode_context::get_variable(ast::decl_variable const *var_decl) const
+bc::value_and_type_pair bitcode_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? nullptr : it->second;
+	return it == this->vars_.end() ? bc::value_and_type_pair{ nullptr, nullptr } : it->second;
 }
 
-void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val)
+void bitcode_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	this->vars_.insert_or_assign(var_decl, val);
+	this->vars_.insert_or_assign(var_decl, bc::value_and_type_pair{ val, type });
 }
 
 llvm::Type *bitcode_context::get_base_type(ast::type_info const *info) const

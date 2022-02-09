@@ -676,6 +676,7 @@ static val_ptr emit_copy_constructor(
 		{
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
+				bz_assert(!member->get_type().is<ast::ts_lvalue_reference>());
 				bz_assert(expr_val.get_type()->isStructTy());
 				auto const element_type = expr_val.get_type()->getStructElementType(i);
 				emit_copy_constructor<abi>(
@@ -2844,14 +2845,8 @@ static val_ptr emit_bitcode(
 	{
 	// ==== non-overloadable ====
 	case lex::token::comma:              // ','
-	{
-		// treat the lhs of the comma expression as seperate, so destructors are called
-		// before rhs is emitted
-		context.push_expression_scope();
 		emit_bitcode<abi>(binary_op.lhs, context, nullptr);
-		context.pop_expression_scope();
 		return emit_bitcode<abi>(binary_op.rhs, context, result_address);
-	}
 	case lex::token::bool_and:           // '&&'
 		return emit_builtin_binary_bool_and<abi>(binary_op, context, result_address);
 	case lex::token::bool_xor:           // '^^'
@@ -3057,7 +3052,7 @@ static val_ptr emit_bitcode(
 			{
 				bz_assert(context.get_str_t()->isStructTy());
 				auto const str_t = static_cast<llvm::StructType *>(context.get_str_t());
-				auto const str_member_t= str_t->getElementType(0);
+				auto const str_member_t = str_t->getElementType(0);
 				llvm::Value *result = llvm::ConstantStruct::get(
 					str_t,
 					{ llvm::UndefValue::get(str_member_t), llvm::UndefValue::get(str_member_t) }
@@ -3796,7 +3791,13 @@ static val_ptr emit_bitcode(
 			}
 			else
 			{
-				emit_copy_constructor<abi>(src_tokens, val_ptr::get_reference(call, inner_result_llvm_type), inner_result_type, context, result_address);
+				emit_copy_constructor<abi>(
+					src_tokens,
+					val_ptr::get_reference(call, inner_result_llvm_type),
+					inner_result_type,
+					context,
+					result_address
+				);
 				return val_ptr::get_reference(result_address, inner_result_llvm_type);
 			}
 		}
@@ -4230,7 +4231,7 @@ static val_ptr emit_bitcode(
 	else if (result_address != nullptr)
 	{
 		auto const result = emit_bitcode<abi>(take_ref.expr, context, nullptr);
-		auto const result_type = take_ref.expr.get_expr_type_and_kind().first;
+		auto const result_type = ast::remove_const_or_consteval(take_ref.expr.get_expr_type_and_kind().first);
 		bz_assert(result.kind == val_ptr::reference);
 		emit_copy_constructor<abi>(src_tokens, result, result_type, context, result_address);
 		return val_ptr::get_reference(result_address, result.get_type());
@@ -4344,25 +4345,25 @@ static val_ptr emit_bitcode(
 	{
 		auto const ptr_type = llvm::PointerType::get(get_llvm_type(type.get<ast::ts_array_slice>().elem_type, context), 0);
 		auto const result_type = llvm::StructType::get(ptr_type, ptr_type);
+		auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
 		if (result_address != nullptr)
 		{
 			auto const begin_ptr = context.create_struct_gep(result_address, 0);
 			auto const end_ptr   = context.create_struct_gep(result_address, 1);
 			bz_assert(begin_ptr->getType() == end_ptr->getType());
-			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
 			context.builder.CreateStore(null_value, begin_ptr);
 			context.builder.CreateStore(null_value, end_ptr);
 			return val_ptr::get_reference(result_address, result_type);
 		}
 		else
 		{
-			auto const null_value = llvm::ConstantPointerNull::get(ptr_type);
 			return val_ptr::get_value(llvm::ConstantStruct::get(result_type, null_value, null_value));
 		}
 	}
 	else
 	{
 		bz_unreachable;
+		return val_ptr::get_none();
 	}
 }
 
@@ -5306,26 +5307,13 @@ static void emit_bitcode(
 
 template<abi::platform_abi abi>
 static void emit_bitcode(
-	[[maybe_unused]] ast::stmt_no_op const & no_op_stmt,
+	[[maybe_unused]] ast::stmt_no_op const &no_op_stmt,
 	[[maybe_unused]] ctx::comptime_executor_context &context
 )
 {
 	// we do nothing
 	return;
 }
-
-/*
-static void emit_bitcode(
-	ast::stmt_compound const &comp_stmt,
-	ctx::comptime_executor_context &context
-)
-{
-	for (auto &stmt : comp_stmt.statements)
-	{
-		emit_bitcode(stmt, context);
-	}
-}
-*/
 
 template<abi::platform_abi abi>
 static void emit_bitcode(
