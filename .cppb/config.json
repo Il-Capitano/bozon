@@ -101,7 +101,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-10",
-					"libraries": [ "LLVM-13", "backtrace" ],
+					"libraries": [ "LLVM-14", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -136,7 +136,7 @@
 		},
 		"ryu_format.linux.o": {
 			"dependencies": [ "ryu_format.linux.ll" ],
-			"command": "llc-13 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
+			"command": "llc-14 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
 		},
 		"ryu_format.ll": {
 			"dependencies": [ "ryu_format.bz" ],
@@ -160,7 +160,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-14 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-13"
+			"command": "clang-14 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-14"
 		},
 		"builtins.o": {
 			"dependencies": [ "builtins.c" ],
