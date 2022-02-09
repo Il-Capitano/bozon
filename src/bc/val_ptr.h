@@ -40,7 +40,7 @@ struct val_ptr
 
 	static val_ptr get_value(llvm::Value *val, llvm::Value *consteval_val = nullptr)
 	{
-		return val_ptr(reference, val, val->getType(), consteval_val);
+		return val_ptr(value, val, val->getType(), consteval_val);
 	}
 
 	static val_ptr get_none(void)
@@ -78,11 +78,12 @@ struct val_ptr
 
 	value_and_type_pair get_value_and_type(llvm::IRBuilder<> &builder) const
 	{
-		return { this->get_value(builder), this->type };
+		return { this->get_value(builder), this->get_type() };
 	}
 
 	llvm::Type *get_type(void) const
 	{
+		// bz_assert(this->type != nullptr);
 		return this->type;
 	}
 };
