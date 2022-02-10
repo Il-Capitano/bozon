@@ -3279,7 +3279,9 @@ static val_ptr emit_bitcode(
 			? index_value.get<ast::constant_value::uint>()
 			: static_cast<uint64_t>(index_value.get<ast::constant_value::sint>());
 
-		auto const accessed_type = base_type.get<ast::ts_tuple>().types[index_int_value].as_typespec_view();
+		auto const accessed_type = base_type.is<ast::ts_tuple>()
+			? base_type.get<ast::ts_tuple>().types[index_int_value].as_typespec_view()
+			: subscript.base.get_tuple().elems[index_int_value].get_expr_type_and_kind().first;
 
 		if (tuple.kind == val_ptr::reference || (tuple.kind == val_ptr::value && accessed_type.is<ast::ts_lvalue_reference>()))
 		{
@@ -4561,27 +4563,29 @@ static void emit_bitcode(
 static void add_variable_helper(
 	ast::decl_variable const &var_decl,
 	llvm::Value *ptr,
+	llvm::Type *type,
 	ctx::bitcode_context &context
 )
 {
-	auto const result_type = get_llvm_type(ast::remove_lvalue_reference(var_decl.get_type()), context);
 	if (var_decl.tuple_decls.empty())
 	{
 		if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 		{
-			context.add_variable(&var_decl, context.create_load(llvm::PointerType::get(context.get_llvm_context(), 0), ptr), result_type);
+			context.add_variable(&var_decl, context.create_load(llvm::PointerType::get(context.get_llvm_context(), 0), ptr), type);
 		}
 		else
 		{
-			context.add_variable(&var_decl, ptr, result_type);
+			context.add_variable(&var_decl, ptr, type);
 		}
 	}
 	else
 	{
+		bz_assert(type->isStructTy());
 		for (auto const &[decl, i] : var_decl.tuple_decls.enumerate())
 		{
-			auto const gep_ptr = context.create_struct_gep(result_type, ptr, i);
-			add_variable_helper(decl, gep_ptr, context);
+			auto const gep_ptr = context.create_struct_gep(type, ptr, i);
+			auto const elem_type = type->getStructElementType(i);
+			add_variable_helper(decl, gep_ptr, elem_type, context);
 		}
 	}
 }
@@ -4603,7 +4607,7 @@ static void emit_bitcode(
 		}
 		else
 		{
-			add_variable_helper(var_decl, init_val.val, context);
+			add_variable_helper(var_decl, init_val.val, init_val.get_type(), context);
 		}
 	}
 	else
@@ -4621,7 +4625,7 @@ static void emit_bitcode(
 		{
 			emit_default_constructor<abi>(var_decl.get_type(), context, alloca);
 		}
-		add_variable_helper(var_decl, alloca, context);
+		add_variable_helper(var_decl, alloca, type, context);
 	}
 }
 
@@ -4981,9 +4985,10 @@ static void emit_function_bitcode_impl(
 				bz_assert(p.init_expr.is<ast::constant_expression>());
 				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-				auto const alloca = context.create_alloca(val->getType());
+				auto const val_type = val->getType();
+				auto const alloca = context.create_alloca(val_type);
 				context.builder.CreateStore(val, alloca);
-				add_variable_helper(p, alloca, context);
+				add_variable_helper(p, alloca, val_type, context);
 				++p_it;
 				continue;
 			}
@@ -4997,7 +5002,8 @@ static void emit_function_bitcode_impl(
 				}
 				else
 				{
-					add_variable_helper(p, fn_it, context);
+					auto const type = ast::remove_lvalue_or_move_reference(p.get_type());
+					add_variable_helper(p, fn_it, get_llvm_type(type, context), context);
 				}
 			}
 			else
@@ -5009,14 +5015,14 @@ static void emit_function_bitcode_impl(
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
 					push_destructor_call(fn_it, p.get_type(), context);
-					add_variable_helper(p, fn_it, context);
+					add_variable_helper(p, fn_it, t, context);
 					break;
 				case abi::pass_kind::value:
 				{
 					auto const alloca = context.create_alloca(t);
 					context.builder.CreateStore(fn_it, alloca);
 					push_destructor_call(alloca, p.get_type(), context);
-					add_variable_helper(p, alloca, context);
+					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::one_register:
@@ -5025,7 +5031,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
 					push_destructor_call(alloca, p.get_type(), context);
-					add_variable_helper(p, alloca, context);
+					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::two_registers:
@@ -5045,7 +5051,7 @@ static void emit_function_bitcode_impl(
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					push_destructor_call(alloca, p.get_type(), context);
-					add_variable_helper(p, alloca, context);
+					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				}
