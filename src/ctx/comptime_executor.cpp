@@ -864,8 +864,6 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			return result;
 		}
 
-		// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
-		// llvm::verifyModule(*this->current_module, &llvm::dbgs());
 		this->add_module(std::move(module));
 		// bz::log("running {} at {}:{}\n", body->get_signature(), this->global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id), src_tokens.pivot->src_pos.line);
 		auto const call_result = this->engine->runFunction(fn, {});
@@ -1102,6 +1100,8 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 		}
 		output_file.flush();
 	}
+	// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
+	// llvm::verifyModule(*module, &llvm::dbgs());
 	this->engine->addModule(std::move(module));
 }
 
