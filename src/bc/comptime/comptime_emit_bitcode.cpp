@@ -3994,7 +3994,7 @@ static val_ptr emit_bitcode(
 				else if (accessed_type.is<ast::ts_lvalue_reference>())
 				{
 					auto const ref_ptr = context.create_struct_gep(tuple.get_type(), tuple.val, index_int_value);
-					return context.builder.CreateLoad(llvm::PointerType::get(context.get_llvm_context(), 0), ref_ptr);
+					return context.builder.CreateLoad(context.get_opaque_pointer_t(), ref_ptr);
 				}
 				else
 				{
@@ -4401,7 +4401,7 @@ static val_ptr emit_bitcode(
 			else if (accessed_type.is<ast::ts_lvalue_reference>())
 			{
 				auto const ref_ptr = context.create_struct_gep(base.get_type(), base.val, member_access.index);
-				return context.builder.CreateLoad(llvm::PointerType::get(context.get_llvm_context(), 0), ref_ptr);
+				return context.builder.CreateLoad(context.get_opaque_pointer_t(), ref_ptr);
 			}
 			else
 			{
@@ -5369,7 +5369,7 @@ static void add_variable_helper(
 	{
 		if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 		{
-			context.add_variable(&var_decl, context.create_load(llvm::PointerType::get(context.get_llvm_context(), 0), ptr), type);
+			context.add_variable(&var_decl, context.create_load(context.get_opaque_pointer_t(), ptr), type);
 		}
 		else
 		{

@@ -432,6 +432,10 @@ bool is_default_constructible(typespec_view ts) noexcept
 	{
 		return is_default_constructible(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
+	{
+		return false;
+	}
 	else
 	{
 		// pointers, slices, function pointers are trivially copy constructible
@@ -551,6 +555,10 @@ bool is_default_zero_initialized(typespec_view ts) noexcept
 	else if (ts.is<ts_array>())
 	{
 		return is_default_zero_initialized(ts.get<ts_array>().elem_type);
+	}
+	else if (ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
+	{
+		return false;
 	}
 	else
 	{

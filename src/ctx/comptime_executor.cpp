@@ -487,6 +487,11 @@ llvm::StructType *comptime_executor_context::get_tuple_t(bz::array_view<llvm::Ty
 	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
 }
 
+llvm::PointerType *comptime_executor_context::get_opaque_pointer_t(void) const
+{
+	return llvm::PointerType::get(this->get_llvm_context(), 0);
+}
+
 
 bool comptime_executor_context::has_terminator(void) const
 {

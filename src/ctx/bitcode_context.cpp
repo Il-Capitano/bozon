@@ -348,6 +348,11 @@ llvm::StructType *bitcode_context::get_tuple_t(bz::array_view<llvm::Type * const
 	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
 }
 
+llvm::PointerType *bitcode_context::get_opaque_pointer_t(void) const
+{
+	return llvm::PointerType::get(this->get_llvm_context(), 0);
+}
+
 
 bool bitcode_context::has_terminator(void) const
 {
