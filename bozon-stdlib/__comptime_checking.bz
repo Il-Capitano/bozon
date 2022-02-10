@@ -1871,13 +1871,13 @@ function emit_diagnostic(kind: uint32, message: str, begin: uint64, pivot: uint6
 
 
 @__builtin
-function __builtin_comptime_compile_error_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
+consteval function __builtin_comptime_compile_error_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	emit_diagnostic(warning_kind_error, message, begin, pivot, end);
 }
 
 @__builtin
-function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
+consteval function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint64, pivot: uint64, end: uint64)
 {
 	emit_diagnostic(warning_kind_comptime_warning, message, begin, pivot, end);
 }
@@ -1887,7 +1887,7 @@ function __builtin_comptime_compile_warning_src_tokens(message: str, begin: uint
 let global_strings = vector<string>[ null, null, null ];
 
 @__builtin
-consteval function __builtin_comptime_create_global_string(s: str) -> str
+export consteval function __builtin_comptime_create_global_string(s: str) -> str
 {
 	global_strings.emplace_back(s);
 	return global_strings.back().as_str();

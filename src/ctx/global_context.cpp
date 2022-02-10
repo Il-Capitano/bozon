@@ -668,7 +668,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto &builtins_file = this->_src_files.emplace_back(
 		builtins_file_path, this->_src_files.size(), bz::vector<bz::u8string_view>{}, true
 	);
-	this->_builtin_global_scope = &builtins_file._global_decls;
+	this->_builtin_global_scope = &builtins_file._export_decls;
 	if (!builtins_file.parse_global_symbols(*this))
 	{
 		return false;

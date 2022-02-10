@@ -2532,13 +2532,16 @@ ast::expression parse_context::make_identifier_expression(ast::identifier id)
 			if (it != ast::intrinsic_info.end())
 			{
 				auto const func_decl = this->get_builtin_function(it->kind);
-				return ast::make_constant_expression(
-					src_tokens,
-					ast::expression_type_kind::function_name,
-					get_function_type(func_decl->body),
-					ast::constant_value(func_decl),
-					ast::make_expr_identifier(id)
-				);
+				if (func_decl->body.is_export())
+				{
+					return ast::make_constant_expression(
+						src_tokens,
+						ast::expression_type_kind::function_name,
+						get_function_type(func_decl->body),
+						ast::constant_value(func_decl),
+						ast::make_expr_identifier(id)
+					);
+				}
 			}
 		}
 	}
