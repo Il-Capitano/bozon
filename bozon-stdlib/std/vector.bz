@@ -4,16 +4,33 @@ import format;
 
 export struct vector<T: typename>
 {
-	static_assert(&T != T, "vector value_type can't be a reference type");
-	static_assert(const T != T, "vector value_type can't be const");
-	static_assert(consteval T != T, "vector value_type can't be consteval");
+	static_assert(
+		!__builtin_is_const(T),
+		comptime_format("vector value_type can't be a const type '{}'", __builtin_typename_as_str(T))
+	);
+	static_assert(
+		!__builtin_is_consteval(T),
+		comptime_format("vector value_type can't be a consteval type '{}'", __builtin_typename_as_str(T))
+	);
+	static_assert(
+		!__builtin_is_reference(T),
+		comptime_format("vector value_type can't be a reference type '{}'", __builtin_typename_as_str(T))
+	);
+	static_assert(
+		!__builtin_is_move_reference(T),
+		comptime_format("vector value_type can't be a move reference type '{}'", __builtin_typename_as_str(T))
+	);
 
-	type value_type = T;
+	type value_type = T
+		.__builtin_remove_reference()
+		.__builtin_remove_move_reference()
+		.__builtin_remove_const()
+		.__builtin_remove_consteval();
 	type _self_t = vector<T>;
 
-	._data_begin: *T;
-	._data_end:   *T;
-	._alloc_end:  *T;
+	._data_begin: *value_type;
+	._data_end:   *value_type;
+	._alloc_end:  *value_type;
 
 	destructor(&self)
 	{
@@ -33,7 +50,7 @@ export struct vector<T: typename>
 		{
 			return _self_t();
 		}
-		const [data_begin, alloc_size] = rounded_alloc(T, size);
+		const [data_begin, alloc_size] = rounded_alloc(value_type, size);
 		const data_end = data_begin + size;
 		const alloc_end = data_begin + alloc_size;
 		copy_range(data_begin, data_end, other._data_begin);
@@ -109,7 +126,7 @@ export struct vector<T: typename>
 	{
 		if (new_capacity > self.capacity())
 		{
-			const [new_data_begin, new_alloc_size] = rounded_alloc(T, new_capacity);
+			const [new_data_begin, new_alloc_size] = rounded_alloc(value_type, new_capacity);
 			const new_data_end = new_data_begin + self.size();
 			const new_alloc_end = new_data_begin + new_alloc_size;
 			copy_range(new_data_begin, new_data_end, self._data_begin);
