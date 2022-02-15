@@ -158,6 +158,9 @@ export function __builtin_print_stderr(s: str)
 @__builtin export consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
 @__builtin export consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
 
+@__builtin @symbol_name("llvm.lifetime.start.p0i8") function __builtin_lifetime_start(size: uint64, ptr: *void);
+@__builtin @symbol_name("llvm.lifetime.end.p0i8") function __builtin_lifetime_end(size: uint64, ptr: *void);
+
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memcpy.p0i8.p0i8.i64"

@@ -1727,7 +1727,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 134);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 136);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1996,6 +1996,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
+
+	case ast::function_body::lifetime_start:
+	case ast::function_body::lifetime_end:
+		return {};
 
 	case ast::function_body::memcpy:
 	case ast::function_body::memmove:
