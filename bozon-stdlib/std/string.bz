@@ -101,7 +101,11 @@ export struct string
 		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
-			let data_and_alloc_end: [2: *uint8];
+			// pointers are not default constructible, so we need this to make it work
+			let dummy: uint8;
+			let data_and_alloc_end: [2: *uint8] = [ &dummy, &dummy ];
+			memset(&data_and_alloc_end, 0u8, sizeof data_and_alloc_end);
+
 			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}

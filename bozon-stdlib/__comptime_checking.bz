@@ -86,9 +86,9 @@ struct vector<T: typename>
 	type value_type = T;
 	type _self_t = vector<T>;
 
-	._data_begin: *T;
-	._data_end:   *T;
-	._alloc_end:  *T;
+	._data_begin: ?*T;
+	._data_end:   ?*T;
+	._alloc_end:  ?*T;
 
 	destructor(&self)
 	{
@@ -249,7 +249,6 @@ struct vector<T: typename>
 	{
 		self.reserve(self.size() + 1u);
 		__builtin_inplace_construct(self._data_end, value_type(value));
-		memcpy(null, null, 0u);
 		self._data_end += 1;
 	}
 
