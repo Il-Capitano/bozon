@@ -956,90 +956,88 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 		resolve_expression(var_decl.init_expr, context);
 		context.match_expression_to_variable(var_decl.init_expr, var_decl);
 	}
-	else if (var_decl.init_expr.src_tokens.pivot != nullptr)
+	else if (!ast::is_complete(var_decl.get_type()))
 	{
-		if (!ast::is_complete(var_decl.get_type()))
-		{
-			var_decl.clear_type();
-		}
+		context.report_error(
+			var_decl.src_tokens,
+			bz::format(
+				"a variable with an incomplete type '{}' must be initialized",
+				var_decl.get_type()
+			)
+		);
+		var_decl.clear_type();
 		var_decl.state = ast::resolve_state::error;
 	}
-	else
+	else if (var_decl.get_type().is<ast::ts_const>())
 	{
-		if (!ast::is_complete(var_decl.get_type()))
+		context.report_error(
+			var_decl.src_tokens,
+			"a variable with a 'const' type must be initialized"
+		);
+		var_decl.state = ast::resolve_state::error;
+	}
+	else if (var_decl.get_type().is<ast::ts_consteval>())
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			"a variable with a 'consteval' type must be initialized"
+		);
+		var_decl.state = ast::resolve_state::error;
+	}
+	else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			"a variable with a reference type must be initialized"
+		);
+		var_decl.state = ast::resolve_state::error;
+	}
+	else if (var_decl.get_type().is<ast::ts_move_reference>())
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			"a variable with a move reference type must be initialized"
+		);
+		var_decl.state = ast::resolve_state::error;
+	}
+	else if (var_decl.get_type().is<ast::ts_base_type>())
+	{
+		auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
+		auto const def_ctor = info->default_constructor != nullptr
+			? info->default_constructor
+			: info->default_default_constructor.get();
+		if (def_ctor != nullptr)
 		{
-			context.report_error(
+			var_decl.init_expr = ast::make_dynamic_expression(
 				var_decl.src_tokens,
-				bz::format(
-					"a variable with an incomplete type '{}' must be initialized",
-					var_decl.get_type()
+				ast::expression_type_kind::rvalue,
+				var_decl.get_type(),
+				ast::make_expr_function_call(
+					var_decl.src_tokens,
+					ast::arena_vector<ast::expression>{},
+					&def_ctor->body,
+					ast::resolve_order::regular
 				)
 			);
-			var_decl.clear_type();
-			var_decl.state = ast::resolve_state::error;
+			parse::consteval_guaranteed(var_decl.init_expr, context);
 		}
-		else if (var_decl.get_type().is<ast::ts_const>())
+		else
 		{
 			context.report_error(
 				var_decl.src_tokens,
-				"a variable with a 'const' type must be initialized"
+				bz::format("variable type '{}' is not default constructible", var_decl.get_type())
 			);
-			var_decl.state = ast::resolve_state::error;
-		}
-		else if (var_decl.get_type().is<ast::ts_consteval>())
-		{
-			context.report_error(
-				var_decl.src_tokens,
-				"a variable with a 'consteval' type must be initialized"
-			);
-			var_decl.state = ast::resolve_state::error;
-		}
-		else if (var_decl.get_type().is<ast::ts_lvalue_reference>())
-		{
-			context.report_error(
-				var_decl.src_tokens,
-				"a variable with a reference type must be initialized"
-			);
-			var_decl.state = ast::resolve_state::error;
-		}
-		else if (var_decl.get_type().is<ast::ts_move_reference>())
-		{
-			context.report_error(
-				var_decl.src_tokens,
-				"a variable with a move reference type must be initialized"
-			);
-			var_decl.state = ast::resolve_state::error;
-		}
-		else if (var_decl.get_type().is<ast::ts_base_type>())
-		{
-			auto const info = var_decl.get_type().get<ast::ts_base_type>().info;
-			auto const def_ctor = info->default_constructor != nullptr
-				? info->default_constructor
-				: info->default_default_constructor.get();
-			if (def_ctor != nullptr)
-			{
-				var_decl.init_expr = ast::make_dynamic_expression(
-					var_decl.src_tokens,
-					ast::expression_type_kind::rvalue,
-					var_decl.get_type(),
-					ast::make_expr_function_call(
-						var_decl.src_tokens,
-						ast::arena_vector<ast::expression>{},
-						&def_ctor->body,
-						ast::resolve_order::regular
-					)
-				);
-				parse::consteval_guaranteed(var_decl.init_expr, context);
-			}
-			else
-			{
-				context.report_error(
-					var_decl.src_tokens,
-					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
-				);
-			}
 		}
 	}
+	else if (!ast::is_default_constructible(var_decl.get_type()))
+	{
+		context.report_error(
+			var_decl.src_tokens,
+			bz::format("variable type '{}' is not default constructible", var_decl.get_type())
+		);
+		var_decl.state = ast::resolve_state::error;
+	}
+
 	if (
 		!var_decl.get_type().is_empty()
 		&& !context.is_instantiable(var_decl.get_type())

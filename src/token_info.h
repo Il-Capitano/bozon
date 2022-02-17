@@ -113,6 +113,7 @@ constexpr bz::array operator_precedences = {
 	prec_t{ prec_t::unary,  lex::token::kw_move,            {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::kw_forward,         {  3, false } },
 	prec_t{ prec_t::unary,  lex::token::dot_dot_dot,        {  3, false } },
+	prec_t{ prec_t::unary,  lex::token::question_mark,      {  3, false } },
 
 	prec_t{ prec_t::binary, lex::token::kw_as,              {  4, true  } },
 
@@ -260,7 +261,9 @@ constexpr auto token_info = []() {
 	result[lex::token::arrow]       = { lex::token::arrow,       "->",  "", expr_type_flags };
 	result[lex::token::fat_arrow]   = { lex::token::fat_arrow,   "=>",  "", expr_type_flags };
 	result[lex::token::scope]       = { lex::token::scope,       "::",  "", expr_type_flags };
-	result[lex::token::dot_dot_dot] = { lex::token::dot_dot_dot, "...", "", expr_type_flags | unary_type_op_flags | unary_builtin_flags };
+
+	result[lex::token::dot_dot_dot]   = { lex::token::dot_dot_dot,   "...", "", unary_type_op_flags | unary_builtin_flags };
+	result[lex::token::question_mark] = { lex::token::question_mark, "?",   "", unary_type_op_flags                       };
 
 
 	result[lex::token::identifier]             = { lex::token::identifier,             "", "identifier",             expr_type_flags };

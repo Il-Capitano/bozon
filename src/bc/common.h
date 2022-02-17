@@ -45,7 +45,7 @@ llvm::Type *get_llvm_base_type(ast::ts_base_type const &base_t, Context &context
 template<typename Context>
 llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_level = true)
 {
-	static_assert(ast::typespec_types::size() == 17);
+	static_assert(ast::typespec_types::size() == 18);
 	switch (ts.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
@@ -68,6 +68,19 @@ llvm::Type *get_llvm_type(ast::typespec_view ts, Context &context, bool is_top_l
 	{
 		auto const base = get_llvm_type(ts.get<ast::ts_pointer>(), context, false);
 		return llvm::PointerType::get(base, 0);
+	}
+	case ast::typespec_node_t::index_of<ast::ts_optional>:
+	{
+		auto const base_type = ts.get<ast::ts_optional>();
+		if (base_type.is<ast::ts_pointer>())
+		{
+			return get_llvm_type(base_type, context);
+		}
+		else
+		{
+			auto const base = get_llvm_type(base_type, context, false);
+			return llvm::StructType::get(base, context.get_bool_t());
+		}
 	}
 	case ast::typespec_node_t::index_of<ast::ts_lvalue_reference>:
 	{

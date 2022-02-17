@@ -90,7 +90,7 @@ static llvm::Value *get_constant_zero(
 	ctx::bitcode_context &context
 )
 {
-
+	static_assert(ast::typespec_types::size() == 18);
 	switch (type.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
@@ -129,11 +129,9 @@ static llvm::Value *get_constant_zero(
 	case ast::typespec_node_t::index_of<ast::ts_consteval>:
 		return get_constant_zero(type.get<ast::ts_consteval>(), llvm_type, context);
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	{
-		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
-		bz_assert(ptr_type != nullptr);
-		return llvm::ConstantPointerNull::get(ptr_type);
-	}
+		bz_unreachable;
+	case ast::typespec_node_t::index_of<ast::ts_optional>:
+		return llvm::Constant::getNullValue(llvm_type);
 	case ast::typespec_node_t::index_of<ast::ts_function>:
 	{
 		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);

@@ -721,7 +721,8 @@ void comptime_executor_context::set_comptime_function(comptime_function_kind kin
 static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
 {
 	ast::constant_value result;
-	ast::remove_const_or_consteval(result_type).visit(bz::overload{
+	result_type = ast::remove_const_or_consteval(result_type);
+	result_type.visit(bz::overload{
 		[&](ast::ts_base_type const &base_t) {
 			switch (base_t.info->kind)
 			{
@@ -798,11 +799,38 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 		[&](ast::ts_pointer const &) {
 			if (value.PointerVal == nullptr)
 			{
-				result.emplace<ast::constant_value::null>();
+				bz_unreachable;
 			}
 			else
 			{
+				bz_unreachable;
 				// nothing
+			}
+		},
+		[&](ast::ts_optional const &) {
+			auto const base_type = result_type.get<ast::ts_optional>();
+			if (base_type.is<ast::ts_pointer>())
+			{
+				if (value.PointerVal == nullptr)
+				{
+					result.emplace<ast::constant_value::null>();
+				}
+				else
+				{
+					bz_unreachable;
+				}
+			}
+			else
+			{
+				auto const has_value = value.AggregateVal[1].IntVal.getBoolValue();
+				if (has_value)
+				{
+					result = constant_value_from_generic_value(value.AggregateVal[0], base_type);
+				}
+				else
+				{
+					result.emplace<ast::constant_value::null>();
+				}
 			}
 		},
 		[](ast::ts_lvalue_reference const &) {

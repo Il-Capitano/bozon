@@ -150,11 +150,9 @@ static llvm::Value *get_constant_zero(
 	case ast::typespec_node_t::index_of<ast::ts_consteval>:
 		return get_constant_zero(type.get<ast::ts_consteval>(), llvm_type, context);
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
-	{
-		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
-		bz_assert(ptr_type != nullptr);
-		return llvm::ConstantPointerNull::get(ptr_type);
-	}
+		bz_unreachable;
+	case ast::typespec_node_t::index_of<ast::ts_optional>:
+		return llvm::Constant::getNullValue(llvm_type);
 	case ast::typespec_node_t::index_of<ast::ts_function>:
 	{
 		auto const ptr_type = llvm::dyn_cast<llvm::PointerType>(llvm_type);
@@ -5406,9 +5404,13 @@ static void emit_bitcode(
 			emit_bitcode<abi>(var_decl.init_expr, context, alloca);
 			context.pop_expression_scope();
 		}
-		else
+		else if (var_decl.state != ast::resolve_state::error)
 		{
 			emit_default_constructor<abi>(var_decl.src_tokens, var_decl.get_type(), context, alloca);
+		}
+		else
+		{
+			emit_error(var_decl.src_tokens, "failed to resolve variable declaration", context);
 		}
 		add_variable_helper(var_decl, alloca, context);
 	}

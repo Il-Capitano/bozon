@@ -154,6 +154,7 @@ bool typespec_view::is_typename(void) const noexcept
 		return false;
 	}
 
+	static_assert(typespec_types::size() == 18);
 	return this->nodes.back().visit(bz::overload{
 		[&](ts_unresolved const &) {
 			return false;
@@ -182,35 +183,7 @@ bool typespec_view::is_typename(void) const noexcept
 		[&](ts_typename const &) {
 			return true;
 		},
-		[&](ts_const const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_consteval const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_pointer const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_lvalue_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_move_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_auto_reference const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_auto_reference_const const &) {
-			bz_unreachable;
-			return false;
-		},
-		[&](ts_variadic const &) {
+		[&](auto const &) {
 			bz_unreachable;
 			return false;
 		},
@@ -328,6 +301,7 @@ bool is_complete(typespec_view ts) noexcept
 
 	auto const is_auto_ref_or_variadic = ts.nodes.front().is_any<ts_auto_reference, ts_auto_reference_const, ts_variadic>();
 
+	static_assert(typespec_types::size() == 18);
 	return !is_auto_ref_or_variadic && ts.nodes.back().visit(bz::overload{
 		[](ts_base_type const &base_t) {
 			return !base_t.info->is_generic();
@@ -369,6 +343,7 @@ bool is_complete(typespec_view ts) noexcept
 
 bool needs_destructor(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -388,6 +363,10 @@ bool needs_destructor(typespec_view ts) noexcept
 	{
 		return needs_destructor(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return needs_destructor(ts.get<ts_optional>());
+	}
 	else
 	{
 		return false;
@@ -396,6 +375,7 @@ bool needs_destructor(typespec_view ts) noexcept
 
 bool is_non_trivial(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -415,6 +395,10 @@ bool is_non_trivial(typespec_view ts) noexcept
 	{
 		return is_non_trivial(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return is_non_trivial(ts.get<ts_optional>());
+	}
 	else
 	{
 		return false;
@@ -423,6 +407,7 @@ bool is_non_trivial(typespec_view ts) noexcept
 
 bool is_default_constructible(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -438,15 +423,20 @@ bool is_default_constructible(typespec_view ts) noexcept
 	{
 		return is_default_constructible(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_pointer>())
+	{
+		return false;
+	}
 	else
 	{
-		// pointers, slices, function pointers are trivially copy constructible
+		// slices, optionals, function pointers are default constructible
 		return true;
 	}
 }
 
 bool is_copy_constructible(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -462,6 +452,10 @@ bool is_copy_constructible(typespec_view ts) noexcept
 	{
 		return is_copy_constructible(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return is_copy_constructible(ts.get<ts_optional>());
+	}
 	else
 	{
 		// pointers, slices, function pointers are trivially copy constructible
@@ -471,6 +465,7 @@ bool is_copy_constructible(typespec_view ts) noexcept
 
 bool is_trivially_copy_constructible(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -486,6 +481,10 @@ bool is_trivially_copy_constructible(typespec_view ts) noexcept
 	{
 		return is_trivially_copy_constructible(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return is_trivially_copy_constructible(ts.get<ts_optional>());
+	}
 	else
 	{
 		// pointers, slices, function pointers are trivially copy constructible
@@ -495,6 +494,7 @@ bool is_trivially_copy_constructible(typespec_view ts) noexcept
 
 bool is_trivially_destructible(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -510,6 +510,10 @@ bool is_trivially_destructible(typespec_view ts) noexcept
 	{
 		return is_trivially_destructible(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_optional>())
+	{
+		return is_trivially_destructible(ts.get<ts_optional>());
+	}
 	else
 	{
 		// pointers, slices, function pointers are trivially destructible
@@ -519,6 +523,7 @@ bool is_trivially_destructible(typespec_view ts) noexcept
 
 bool is_trivial(typespec_view ts) noexcept
 {
+	static_assert(typespec_types::size() == 18);
 	ts = remove_const_or_consteval(ts);
 	if (ts.is<ts_base_type>())
 	{
@@ -533,6 +538,10 @@ bool is_trivial(typespec_view ts) noexcept
 	else if (ts.is<ts_array>())
 	{
 		return is_trivial(ts.get<ts_array>().elem_type);
+	}
+	else if (ts.is<ts_optional>())
+	{
+		return is_trivial(ts.get<ts_optional>());
 	}
 	else
 	{
@@ -558,16 +567,20 @@ bool is_default_zero_initialized(typespec_view ts) noexcept
 	{
 		return is_default_zero_initialized(ts.get<ts_array>().elem_type);
 	}
+	else if (ts.is<ts_pointer>())
+	{
+		return false;
+	}
 	else
 	{
-		// pointers, slices, function pointers are zero initialized
+		// slices, optionals, function pointers are zero initialized
 		return true;
 	}
 }
 
 bz::u8string typespec_view::get_symbol_name(void) const
 {
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	bz::u8string result = "";
 	for (auto &node : this->nodes)
 	{
@@ -593,6 +606,9 @@ bz::u8string typespec_view::get_symbol_name(void) const
 			},
 			[&](ts_pointer const &) {
 				result += "0P.";
+			},
+			[&](ts_optional const &) {
+				result += "0O.";
 			},
 			[&](ts_lvalue_reference const &) {
 				result += "0R.";
@@ -624,8 +640,9 @@ bz::u8string typespec::decode_symbol_name(
 	bz::u8string_view::const_iterator end
 )
 {
-	static_assert(typespec_types::size() == 17);
+	static_assert(typespec_types::size() == 18);
 	constexpr bz::u8string_view pointer        = "0P.";
+	constexpr bz::u8string_view optional       = "0O.";
 	constexpr bz::u8string_view reference      = "0R.";
 	constexpr bz::u8string_view move_reference = "0M.";
 	constexpr bz::u8string_view const_         = "const.";
@@ -656,6 +673,11 @@ bz::u8string typespec::decode_symbol_name(
 		{
 			result += "*";
 			it = bz::u8string_view::const_iterator(it.data() + pointer.size());
+		}
+		else if (symbol_name.starts_with(optional))
+		{
+			result += "?";
+			it = bz::u8string_view::const_iterator(it.data() + optional.size());
 		}
 		else if (symbol_name.starts_with(reference))
 		{
@@ -846,7 +868,7 @@ bz::u8string bz::formatter<ast::typespec>::format(ast::typespec const &typespec,
 
 bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typespec, bz::u8string_view)
 {
-	static_assert(ast::typespec_types::size() == 17);
+	static_assert(ast::typespec_types::size() == 18);
 	bz::u8string result = "";
 	for (auto &node : typespec.nodes)
 	{
@@ -922,6 +944,9 @@ bz::u8string bz::formatter<ast::typespec_view>::format(ast::typespec_view typesp
 			},
 			[&](ast::ts_pointer const &) {
 				result += '*';
+			},
+			[&](ast::ts_optional const &) {
+				result += '?';
 			},
 			[&](ast::ts_lvalue_reference const &) {
 				result += '&';
