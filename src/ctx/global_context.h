@@ -19,6 +19,7 @@
 #include "ast/scope.h"
 #include "src_file.h"
 #include "abi/platform_abi.h"
+#include "resolve/attribute_resolver.h"
 
 #include "comptime_executor.h"
 
@@ -45,6 +46,7 @@ struct global_context
 	bz::vector<ast::type_info>              _builtin_type_infos;
 	bz::vector<ast::type_and_name_pair>     _builtin_types;
 	bz::vector<ast::universal_function_set> _builtin_universal_functions;
+	bz::vector<resolve::attribute_info_t>   _builtin_attributes;
 
 	bz::vector<ast::decl_function *> _builtin_functions;
 	bz::vector<ast::decl_operator *> _builtin_operators;
@@ -79,6 +81,7 @@ struct global_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::decl_function *get_builtin_function(uint32_t kind);
 	bz::array_view<uint32_t const> get_builtin_universal_functions(bz::u8string_view id);
+	resolve::attribute_info_t *get_builtin_attribute(bz::u8string_view name);
 
 	void report_error_or_warning(error &&err)
 	{
