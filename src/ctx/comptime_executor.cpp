@@ -274,10 +274,35 @@ llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t)
 	this->builder.SetInsertPoint(this->alloca_bb);
 	auto const result = this->builder.CreateAlloca(t);
 	this->builder.SetInsertPoint(bb);
+	auto const size = this->get_size(t);
+	this->start_lifetime(result, size);
+	this->push_end_lifetime_call(result, size);
 	return result;
 }
 
 llvm::Value *comptime_executor_context::create_alloca(llvm::Type *t, size_t align)
+{
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	result->setAlignment(llvm::Align(align));
+	this->builder.SetInsertPoint(bb);
+	auto const size = this->get_size(t);
+	this->start_lifetime(result, size);
+	this->push_end_lifetime_call(result, size);
+	return result;
+}
+
+llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t)
+{
+	auto const bb = this->builder.GetInsertBlock();
+	this->builder.SetInsertPoint(this->alloca_bb);
+	auto const result = this->builder.CreateAlloca(t);
+	this->builder.SetInsertPoint(bb);
+	return result;
+}
+
+llvm::Value *comptime_executor_context::create_alloca_without_lifetime_start(llvm::Type *t, size_t align)
 {
 	auto const bb = this->builder.GetInsertBlock();
 	this->builder.SetInsertPoint(this->alloca_bb);
@@ -500,6 +525,22 @@ bool comptime_executor_context::has_terminator(llvm::BasicBlock *bb)
 	return bb->size() != 0 && bb->back().isTerminator();
 }
 
+void comptime_executor_context::start_lifetime(llvm::Value *ptr, size_t size)
+{
+	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_start));
+	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
+	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
+	this->builder.CreateCall(func, { size_val, void_ptr });
+}
+
+void comptime_executor_context::end_lifetime(llvm::Value *ptr, size_t size)
+{
+	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_end));
+	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
+	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
+	this->builder.CreateCall(func, { size_val, void_ptr });
+}
+
 bool comptime_executor_context::do_error_checking(void) const
 {
 	auto const current_function = this->current_function.first;
@@ -514,6 +555,7 @@ bool comptime_executor_context::do_error_checking(void) const
 void comptime_executor_context::push_expression_scope(void)
 {
 	this->destructor_calls.emplace_back();
+	this->end_lifetime_calls.emplace_back();
 }
 
 void comptime_executor_context::pop_expression_scope(void)
@@ -521,8 +563,10 @@ void comptime_executor_context::pop_expression_scope(void)
 	if (!this->has_terminator())
 	{
 		this->emit_destructor_calls();
+		this->emit_end_lifetime_calls();
 	}
 	this->destructor_calls.pop_back();
+	this->end_lifetime_calls.pop_back();
 }
 
 void comptime_executor_context::push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
@@ -569,6 +613,48 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 			auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
 			this->builder.CreateCall(this->get_function(func), val);
 			bc::comptime::emit_pop_call(error_count, *this);
+		}
+	}
+}
+
+void comptime_executor_context::push_end_lifetime_call(llvm::Value *ptr, size_t size)
+{
+	bz_assert(!this->end_lifetime_calls.empty());
+	this->end_lifetime_calls.back().push_back({ ptr, size });
+}
+
+void comptime_executor_context::emit_end_lifetime_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->end_lifetime_calls.empty());
+	for (auto const &[ptr, size] : this->end_lifetime_calls.back().reversed())
+	{
+		this->end_lifetime(ptr, size);
+	}
+}
+
+void comptime_executor_context::emit_loop_end_lifetime_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->destructor_calls.empty());
+	for (auto const &scope_calls : this->end_lifetime_calls.slice(this->loop_info.destructor_stack_begin).reversed())
+	{
+		for (auto const &[ptr, size] : scope_calls.reversed())
+		{
+			this->end_lifetime(ptr, size);
+		}
+	}
+}
+
+void comptime_executor_context::emit_all_end_lifetime_calls(void)
+{
+	bz_assert(!this->has_terminator());
+	bz_assert(!this->end_lifetime_calls.empty());
+	for (auto const &scope_calls : this->end_lifetime_calls.reversed())
+	{
+		for (auto const &[ptr, size] : scope_calls.reversed())
+		{
+			this->end_lifetime(ptr, size);
 		}
 	}
 }
