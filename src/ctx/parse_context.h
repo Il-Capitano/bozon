@@ -417,15 +417,6 @@ struct parse_context
 		ast::arena_vector<ast::expression> args
 	);
 
-	void match_expression_to_type(
-		ast::expression &expr,
-		ast::typespec &type
-	);
-	void match_expression_to_variable(
-		ast::expression &expr,
-		ast::decl_variable &var_decl
-	);
-
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
 

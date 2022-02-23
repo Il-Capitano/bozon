@@ -1,6 +1,7 @@
 #include "statement_resolver.h"
 #include "expression_resolver.h"
 #include "attribute_resolver.h"
+#include "match_expression.h"
 #include "parse/statement_parser.h"
 #include "parse/expression_parser.h"
 #include "parse/consteval.h"
@@ -15,7 +16,7 @@ static void resolve_stmt(ast::stmt_while &while_stmt, ctx::parse_context &contex
 	resolve_expression(while_stmt.while_block, context);
 
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-	context.match_expression_to_type(while_stmt.condition, bool_type);
+	match_expression_to_type(while_stmt.condition, bool_type, context);
 }
 
 static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
@@ -28,7 +29,7 @@ static void resolve_stmt(ast::stmt_for &for_stmt, ctx::parse_context &context)
 	auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
 	if (for_stmt.condition.not_null())
 	{
-		context.match_expression_to_type(for_stmt.condition, bool_type);
+		match_expression_to_type(for_stmt.condition, bool_type, context);
 	}
 }
 
@@ -150,7 +151,7 @@ static void resolve_stmt(ast::stmt_foreach &foreach_stmt, ctx::parse_context &co
 
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-		context.match_expression_to_type(foreach_stmt.condition, bool_type);
+		match_expression_to_type(foreach_stmt.condition, bool_type, context);
 	}
 
 	foreach_stmt.iteration = [&]() {
@@ -213,7 +214,7 @@ static void resolve_stmt(ast::stmt_return &return_stmt, ctx::parse_context &cont
 		resolve_expression(return_stmt.expr, context);
 		bz_assert(context.current_function != nullptr);
 		bz_assert(ast::is_complete(context.current_function->return_type));
-		context.match_expression_to_type(return_stmt.expr, context.current_function->return_type);
+		match_expression_to_type(return_stmt.expr, context.current_function->return_type, context);
 	}
 }
 
@@ -324,7 +325,7 @@ static void resolve_stmt(ast::stmt_static_assert &static_assert_stmt, ctx::parse
 			}
 
 			auto base_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(base_type_kind));
-			context.match_expression_to_type(expr, base_type);
+			match_expression_to_type(expr, base_type, context);
 			if (!expr.is_error())
 			{
 				parse::consteval_try(expr, context);
@@ -635,7 +636,7 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 			}
 		}
 		resolve_expression(var_decl.init_expr, context);
-		context.match_expression_to_variable(var_decl.init_expr, var_decl);
+		match_expression_to_variable(var_decl.init_expr, var_decl, context);
 	}
 	else if (var_decl.init_expr.src_tokens.pivot != nullptr)
 	{
