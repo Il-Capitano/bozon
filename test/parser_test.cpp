@@ -4,6 +4,9 @@
 #include "resolve/attribute_resolver.cpp"
 #include "resolve/expression_resolver.cpp"
 #include "resolve/statement_resolver.cpp"
+#include "resolve/match_common.cpp"
+#include "resolve/match_to_type.cpp"
+#include "resolve/match_expression.cpp"
 
 #include "test.h"
 #include "lex/lexer.h"
