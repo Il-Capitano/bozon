@@ -408,6 +408,115 @@ static match_level_t get_type_match_level(
 	return match_level_t{};
 }
 
+static match_level_t get_if_expr_type_match_level(
+	ast::typespec_view dest,
+	ast::expr_if &if_expr,
+	ctx::parse_context &context
+)
+{
+	if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
+	{
+		return get_type_match_level(dest, if_expr.else_block, context);
+	}
+	else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
+	{
+		return get_type_match_level(dest, if_expr.then_block, context);
+	}
+	else
+	{
+		auto then_result = get_type_match_level(dest, if_expr.then_block, context);
+		auto else_result = get_type_match_level(dest, if_expr.else_block, context);
+		if (then_result.is_null() || else_result.is_null())
+		{
+			return match_level_t{};
+		}
+		else if (ast::is_complete(dest))
+		{
+			match_level_t result;
+			auto &vec = result.emplace<bz::vector<match_level_t>>();
+			vec.reserve(2);
+			vec.push_back(std::move(then_result));
+			vec.push_back(std::move(else_result));
+			return result;
+		}
+
+		ast::typespec then_matched_type = dest;
+		ast::typespec else_matched_type = dest;
+		match_expression_to_type(if_expr.then_block, then_matched_type, context);
+		match_expression_to_type(if_expr.else_block, else_matched_type, context);
+
+		if (then_matched_type == else_matched_type)
+		{
+			match_level_t result;
+			auto &vec = result.emplace<bz::vector<match_level_t>>();
+			vec.reserve(2);
+			vec.push_back(std::move(then_result));
+			vec.push_back(std::move(else_result));
+			return result;
+		}
+		else
+		{
+			return match_level_t{};
+		}
+	}
+}
+
+static match_level_t get_switch_expr_type_match_level(
+	ast::typespec_view dest,
+	ast::expr_switch &switch_expr,
+	ctx::parse_context &context
+)
+{
+	auto case_match_levels = switch_expr.cases
+		.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); })
+		.transform([&dest, &context](auto &case_expr) {
+			return get_type_match_level(dest, case_expr.expr, context);
+		})
+		.collect(switch_expr.cases.size() + 1);
+	if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
+	{
+		case_match_levels.push_back(get_type_match_level(dest, switch_expr.default_case, context));
+	}
+	bz_assert(case_match_levels.not_empty());
+	auto const is_error = case_match_levels.is_any([](auto const &match_level) { return match_level.is_null(); });
+	if (is_error)
+	{
+		return match_level_t{};
+	}
+	else if (ast::is_complete(dest) || case_match_levels.size() == 1)
+	{
+		return match_level_t(std::move(case_match_levels));
+	}
+	else
+	{
+		ast::typespec dest_copy = dest;
+		auto valild_case_expr_range = switch_expr.cases
+			.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); });
+		bz_assert(!valild_case_expr_range.at_end());
+		match_expression_to_type(valild_case_expr_range.front().expr, dest_copy, context);
+		++valild_case_expr_range;
+		for (auto &[_, case_expr] : valild_case_expr_range)
+		{
+			ast::typespec dest_copy_copy = dest;
+			match_expression_to_type(case_expr, dest_copy_copy, context);
+			if (dest_copy_copy != dest_copy)
+			{
+				return match_level_t{};
+			}
+		}
+		if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
+		{
+			ast::typespec dest_copy_copy = dest;
+			match_expression_to_type(switch_expr.default_case, dest_copy_copy, context);
+			if (dest_copy_copy != dest_copy)
+			{
+				return match_level_t{};
+			}
+		}
+		return match_level_t(std::move(case_match_levels));
+	}
+}
+
 match_level_t get_type_match_level(
 	ast::typespec_view dest,
 	ast::expression &expr,
@@ -433,154 +542,15 @@ match_level_t get_type_match_level(
 	//     -> if type of expr is T, then there's nothing to do
 	//     -> else try to implicitly cast expr to T
 	// const T -> match to T (no need to worry about const)
-	if (dest.is<ast::ts_const>())
-	{
-		return get_type_match_level(dest.get<ast::ts_const>(), expr, context);
-	}
-	else if (dest.is<ast::ts_consteval>())
-	{
-		parse::consteval_try(expr, context);
-		if (!expr.is<ast::constant_expression>())
-		{
-			return match_level_t{};
-		}
-		else
-		{
-			return get_type_match_level(dest.get<ast::ts_consteval>(), expr, context);
-		}
-	}
+	dest = ast::remove_const_or_consteval(dest);
 
 	if (expr.is_if_expr())
 	{
-		auto &if_expr = expr.get_if_expr();
-		if (if_expr.then_block.is_noreturn() && !if_expr.else_block.is_noreturn())
-		{
-			return get_type_match_level(dest, if_expr.else_block, context);
-		}
-		else if (!if_expr.then_block.is_noreturn() && if_expr.else_block.is_noreturn())
-		{
-			return get_type_match_level(dest, if_expr.then_block, context);
-		}
-		else
-		{
-			auto then_result = get_type_match_level(dest, if_expr.then_block, context);
-			auto else_result = get_type_match_level(dest, if_expr.else_block, context);
-			if (then_result.is_null() || else_result.is_null())
-			{
-				return match_level_t{};
-			}
-			else if (ast::is_complete(dest))
-			{
-				match_level_t result;
-				auto &vec = result.emplace<bz::vector<match_level_t>>();
-				vec.reserve(2);
-				vec.push_back(std::move(then_result));
-				vec.push_back(std::move(else_result));
-				return result;
-			}
-
-			ast::typespec then_matched_type = dest;
-			ast::typespec else_matched_type = dest;
-			match_expression_to_type(if_expr.then_block, then_matched_type, context);
-			match_expression_to_type(if_expr.else_block, else_matched_type, context);
-
-			if (then_matched_type == else_matched_type)
-			{
-				// return the worse match
-				if (then_result < else_result)
-				{
-					return then_result;
-				}
-				else
-				{
-					return else_result;
-				}
-			}
-
-			auto after_match_then_result = get_type_match_level(else_matched_type, if_expr.then_block, context);
-			auto after_match_else_result = get_type_match_level(then_matched_type, if_expr.else_block, context);
-			if (after_match_then_result.is_null() && after_match_else_result.is_null())
-			{
-				return match_level_t{};
-			}
-			else if (after_match_then_result.is_null())
-			{
-				// return the worse match
-				if (then_result < after_match_else_result)
-				{
-					return then_result;
-				}
-				else
-				{
-					return after_match_else_result;
-				}
-			}
-			else if (after_match_else_result.is_null())
-			{
-				// return the worse match
-				if (after_match_then_result < else_result)
-				{
-					return after_match_then_result;
-				}
-				else
-				{
-					return else_result;
-				}
-			}
-			else
-			{
-				return match_level_t{};
-			}
-		}
+		return get_if_expr_type_match_level(dest, expr.get_if_expr(), context);
 	}
 	else if (expr.is_switch_expr())
 	{
-		auto &switch_expr = expr.get_switch_expr();
-		auto case_match_levels = switch_expr.cases
-			.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); })
-			.transform([&dest, &context](auto &case_expr) {
-				return get_type_match_level(dest, case_expr.expr, context);
-			})
-			.collect();
-		if (switch_expr.default_case.not_null())
-		{
-			case_match_levels.push_back(get_type_match_level(dest, switch_expr.default_case, context));
-		}
-		bz_assert(case_match_levels.not_empty());
-		auto const is_error = case_match_levels.is_any([](auto const &match_level) { return match_level.is_null(); });
-		if (is_error)
-		{
-			return match_level_t{};
-		}
-
-		if (!ast::is_complete(dest) && case_match_levels.size() > 1)
-		{
-			ast::typespec dest_copy = dest;
-			auto valild_case_expr_range = switch_expr.cases
-				.filter([](auto const &case_expr) { return !case_expr.expr.is_noreturn(); });
-			match_expression_to_type(valild_case_expr_range.front().expr, dest_copy, context);
-			++valild_case_expr_range;
-			for (auto &[_, case_expr] : valild_case_expr_range)
-			{
-				ast::typespec dest_copy_copy = dest;
-				match_expression_to_type(case_expr, dest_copy_copy, context);
-				if (dest_copy_copy != dest_copy)
-				{
-					return match_level_t{};
-				}
-			}
-			if (switch_expr.default_case.not_null() && !switch_expr.default_case.is_noreturn())
-			{
-				ast::typespec dest_copy_copy = dest;
-				match_expression_to_type(switch_expr.default_case, dest_copy_copy, context);
-				if (dest_copy_copy != dest_copy)
-				{
-					return match_level_t{};
-				}
-			}
-		}
-
-		return match_level_t(std::move(case_match_levels));
+		return get_switch_expr_type_match_level(dest, expr.get_switch_expr(), context);
 	}
 	else if (expr.is_typename())
 	{
