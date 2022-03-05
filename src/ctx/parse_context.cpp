@@ -4129,7 +4129,7 @@ ast::expression parse_context::make_function_call_expression(
 									bz::format("tuple element type '{}' is not default constructible", type)
 								);
 							})
-							.collect()
+							.collect(types.size())
 					);
 					return ast::make_error_expression(
 						src_tokens,
@@ -4479,7 +4479,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("member '{}' in type '{}' is inaccessible in this context", member->get_unqualified_id_value(), type)
 					);
 				})
-				.collect();
+				.collect(info->member_variables.size());
 			if (do_verbose)
 			{
 				notes.push_back(this->make_note("members whose names start with '_' are only accessible in the same file"));

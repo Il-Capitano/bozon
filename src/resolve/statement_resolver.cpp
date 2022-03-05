@@ -536,8 +536,8 @@ static void resolve_variable_type(ast::decl_variable &var_decl, ctx::parse_conte
 				{},
 				var_decl.tuple_decls.transform([](auto const &decl) -> ast::typespec {
 					return decl.get_type();
-				}
-			).collect<bz::vector>());
+				}).collect()
+			);
 			apply_prototype(var_decl.get_prototype_range(), var_decl, context);
 		}
 		return;
