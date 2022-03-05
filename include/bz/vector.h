@@ -941,6 +941,10 @@ template<typename Range>
 auto range_base_collect<Range>::collect(void) const
 { return this->template collect<vector>(); }
 
+template<typename Range>
+auto range_base_collect<Range>::collect(std::size_t reserve) const
+{ return this->template collect<vector>(reserve); }
+
 } // namespace internal
 
 template<typename T, typename Alloc1, typename Alloc2>
