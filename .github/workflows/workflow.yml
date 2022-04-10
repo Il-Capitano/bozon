@@ -143,7 +143,7 @@ jobs:
         git clone https://github.com/Il-Capitano/cppb.git
         cd cppb
         mkdir bin
-        make CXX=clang++14 LD=lld-14
+        make CXX=clang++-14 LD=lld-14
         cd ..
     - run: touch ryu_format.linux.ll
     - name: Build bozon
