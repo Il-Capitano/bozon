@@ -27,7 +27,8 @@
 				"all",
 				"extra",
 				"no-c++20-extensions",
-				"no-defaulted-function-deleted"
+				"no-defaulted-function-deleted",
+				"no-bitwise-instead-of-logical"
 			],
 
 			"prebuild_rules": [ "generate-opts" ],
