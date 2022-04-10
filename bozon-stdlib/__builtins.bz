@@ -60,21 +60,21 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 	return true;
 }
 
-@__builtin function __builtin_str_begin_ptr(s: str) -> *const uint8;
-@__builtin function __builtin_str_end_ptr(s: str) -> *const uint8;
+@__builtin export function __builtin_str_begin_ptr(s: str) -> *const uint8;
+@__builtin export function __builtin_str_end_ptr(s: str) -> *const uint8;
 @__builtin
-function __builtin_str_size(s: str) -> usize
+export function __builtin_str_size(s: str) -> usize
 {
 	return (__builtin_str_end_ptr(s) - __builtin_str_begin_ptr(s)) as usize;
 }
-@__builtin function __builtin_str_from_ptrs(begin: *const uint8, end: *const uint8) -> str;
+@__builtin export function __builtin_str_from_ptrs(begin: *const uint8, end: *const uint8) -> str;
 
-@__builtin function __builtin_slice_begin_ptr(slice: [: auto]) -> typeof &slice[0];
-@__builtin function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> typeof &slice[0];
-@__builtin function __builtin_slice_end_ptr(slice: [: auto]) -> typeof &slice[0];
-@__builtin function __builtin_slice_end_const_ptr(slice: [: const auto]) -> typeof &slice[0];
+@__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> typeof &slice[0];
+@__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> typeof &slice[0];
+@__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> typeof &slice[0];
+@__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> typeof &slice[0];
 @__builtin
-function __builtin_slice_size(slice: [: const auto]) -> usize
+export function __builtin_slice_size(slice: [: const auto]) -> usize
 {
 	return (__builtin_slice_end_const_ptr(slice) - __builtin_slice_begin_const_ptr(slice)) as usize;
 }
@@ -99,11 +99,11 @@ function __builtin_slice_size(slice: [: const auto]) -> usize
 		)));
 	} else {}, [: __builtin_remove_pointer(typeof begin)]);
 
-@__builtin function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
-@__builtin function __builtin_pointer_to_int(ptr: *const void) -> usize;
-@__builtin function __builtin_int_to_pointer(T: *typename, n: usize) -> T;
+@__builtin export function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
+@__builtin export function __builtin_pointer_to_int(ptr: *const void) -> usize;
+@__builtin export function __builtin_int_to_pointer(T: *typename, n: usize) -> T;
 
-@__builtin function __builtin_call_destructor(obj: &auto);
+@__builtin export function __builtin_call_destructor(obj: &auto);
 @__builtin export function __builtin_inplace_construct(ptr: *auto, val: auto)
 	-> (if consteval (__builtin_remove_pointer(typeof ptr) != typeof val) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
@@ -115,7 +115,7 @@ function __builtin_slice_size(slice: [: const auto]) -> usize
 		)));
 	} else {}, void);
 
-@__builtin function __builtin_is_comptime() -> bool;
+@__builtin export function __builtin_is_comptime() -> bool;
 
 @symbol_name("__bozon_builtin_is_option_set_impl") function is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
 @__builtin
