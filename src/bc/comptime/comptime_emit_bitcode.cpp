@@ -682,7 +682,7 @@ static val_ptr emit_copy_constructor(
 		{
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
-				bz_assert(!member->get_type().is<ast::ts_lvalue_reference>());
+				bz_assert(!member->get_type().template is<ast::ts_lvalue_reference>());
 				bz_assert(expr_val.get_type()->isStructTy());
 				auto const element_type = expr_val.get_type()->getStructElementType(i);
 				emit_copy_constructor<abi>(
@@ -888,7 +888,7 @@ static void emit_copy_assign(
 		{
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
-				bz_assert(!member->get_type().is<ast::ts_lvalue_reference>());
+				bz_assert(!member->get_type().template is<ast::ts_lvalue_reference>());
 				bz_assert(lhs.get_type() == rhs.get_type());
 				bz_assert(lhs.get_type()->isStructTy());
 				auto const element_type = lhs.get_type()->getStructElementType(i);
@@ -928,7 +928,7 @@ static void emit_copy_assign(
 	{
 		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
 		{
-			bz_assert(!member_type.is<ast::ts_lvalue_reference>());
+			bz_assert(!member_type.template is<ast::ts_lvalue_reference>());
 			bz_assert(lhs.get_type() == rhs.get_type());
 			bz_assert(lhs.get_type()->isStructTy());
 			auto const element_type = lhs.get_type()->getStructElementType(i);
@@ -978,7 +978,7 @@ static void emit_move_assign(
 		{
 			for (auto const &[member, i] : info->member_variables.enumerate())
 			{
-				bz_assert(!member->get_type().is<ast::ts_lvalue_reference>());
+				bz_assert(!member->get_type().template is<ast::ts_lvalue_reference>());
 				bz_assert(lhs.get_type() == rhs.get_type());
 				bz_assert(lhs.get_type()->isStructTy());
 				auto const element_type = lhs.get_type()->getStructElementType(i);
@@ -1018,7 +1018,7 @@ static void emit_move_assign(
 	{
 		for (auto const &[member_type, i] : type.get<ast::ts_tuple>().types.enumerate())
 		{
-			bz_assert(!member_type.is<ast::ts_lvalue_reference>());
+			bz_assert(!member_type.template is<ast::ts_lvalue_reference>());
 			bz_assert(lhs.get_type() == rhs.get_type());
 			bz_assert(lhs.get_type()->isStructTy());
 			auto const element_type = lhs.get_type()->getStructElementType(i);
