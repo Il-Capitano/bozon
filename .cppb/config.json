@@ -27,7 +27,8 @@
 				"all",
 				"extra",
 				"no-c++20-extensions",
-				"no-defaulted-function-deleted"
+				"no-defaulted-function-deleted",
+				"no-bitwise-instead-of-logical"
 			],
 
 			"prebuild_rules": [ "generate-opts" ],
@@ -48,10 +49,10 @@
 				},
 				"linux": {
 					"prelink_rules": [ "ryu_format.linux.o" ],
-					"compiler": "clang-13",
-					"libraries": [ "LLVM-13", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-13", "ryu_format.linux.o" ],
-					"warnings": [ "no-unused-parameter" ],
+					"compiler": "clang-14",
+					"libraries": [ "LLVM-14", "backtrace" ],
+					"link_flags": [ "-fuse-ld=lld-14", "ryu_format.linux.o" ],
+					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
 					"emit_compile_commands": false
 				},
 				"debug": {
@@ -101,7 +102,7 @@
 				},
 				"linux": {
 					"compiler": "gcc-10",
-					"libraries": [ "LLVM-13", "backtrace" ],
+					"libraries": [ "LLVM-14", "backtrace" ],
 					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
@@ -136,7 +137,7 @@
 		},
 		"ryu_format.linux.o": {
 			"dependencies": [ "ryu_format.linux.ll" ],
-			"command": "llc-13 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
+			"command": "llc-14 ryu_format.linux.ll --filetype=obj --relocation-model=pic -o ryu_format.linux.o"
 		},
 		"ryu_format.ll": {
 			"dependencies": [ "ryu_format.bz" ],
@@ -160,7 +161,7 @@
 		},
 		"a.out": {
 			"dependencies": [ "bitcode_test.o", "builtins.linux.o" ],
-			"command": "clang-13 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-13"
+			"command": "clang-14 bitcode_test.o builtins.linux.o -lm -o a.out -fuse-ld=lld-14"
 		},
 		"builtins.o": {
 			"dependencies": [ "builtins.c" ],
@@ -168,7 +169,7 @@
 		},
 		"builtins.linux.o": {
 			"dependencies": [ "builtins.c" ],
-			"command": "clang-13 -c builtins.c -O3 -o builtins.linux.o"
+			"command": "clang-14 -c builtins.c -O3 -o builtins.linux.o"
 		},
 		"generate-opts": {
 			"command": "python3 scripts/gen_opts.py",
@@ -180,11 +181,11 @@
 		},
 		"fuzz-test/lex/fuzz.o": {
 			"dependencies": [ "fuzz-test/lex/fuzz.cpp" ],
-			"command": "clang++-13 -c -g `llvm-config-13 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
+			"command": "clang++-14 -c -g `llvm-config-14 --cxxflags` -std=c++17 -fno-omit-frame-pointer -fsanitize=fuzzer,address -Isrc -Iinclude -DBOZON_NO_ARENA -Wall -Wextra -Wno-unused-parameter -Wno-c++20-extensions -Wno-defaulted-function-deleted -O1 -o fuzz-test/lex/fuzz.o fuzz-test/lex/fuzz.cpp"
 		},
 		"fuzz-test/lex/fuzz.out": {
 			"dependencies": [ "fuzz-test/lex/fuzz.o" ],
-			"command": "clang++-13 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-13 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
+			"command": "clang++-14 -o fuzz-test/lex/fuzz.out fuzz-test/lex/fuzz.o `llvm-config-14 --ldflags --libs --system-libs` -fsanitize=fuzzer,address -fuse-ld=lld -Wl,--unresolved-symbols=ignore-in-object-files"
 		},
 		"run-lex-fuzzer": {
 			"dependencies": [ "fuzz-test/lex/fuzz.out" ],

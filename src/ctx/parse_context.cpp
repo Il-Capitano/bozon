@@ -6965,7 +6965,7 @@ static void set_type(ast::decl_variable &var_decl, ast::typespec_view type, bool
 			else
 			{
 				bz_assert(inner_types.size() >= var_decl.tuple_decls.size());
-				var_decl.tuple_decls.reserve(inner_types.size());
+				var_decl.tuple_decls.reserve(inner_types.size()); // needed so .back() is not invalidated
 				var_decl.tuple_decls.resize(inner_types.size(), var_decl.tuple_decls.back());
 			}
 		}

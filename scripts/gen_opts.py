@@ -18,12 +18,12 @@ implemented_opts = [
 ]
 max_line_len = 87
 result_line_start = ''
+opt_bin = 'opt' if os.name == 'nt' else 'opt-14'
+args = '-disable-output -debug-pass=Arguments -enable-new-pm=0'
+null_input_args = '< NUL 2>&1' if os.name == 'nt' else '< /dev/null 2>&1'
 
 def get_opts(opt_level):
-    if os.name == 'nt':
-        command = f'opt {opt_level} -disable-output -debug-pass=Arguments -enable-new-pm=0 < NUL 2>&1'
-    else:
-        command = f'opt-13 {opt_level} -disable-output -debug-pass=Arguments -enable-new-pm=0 < /dev/null 2>&1'
+    command = f'{opt_bin} {args} {null_input_args}'
     opt_output = (subprocess.run(command, capture_output=True, shell=True)
         .stdout.decode('utf-8'))
     lines = [opt.strip() for opt in opt_output.strip().replace('\r', '').split('\n')]

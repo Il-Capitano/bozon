@@ -8,7 +8,6 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
-#include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
@@ -97,15 +96,15 @@ ast::function_body *comptime_executor_context::get_builtin_function(uint32_t kin
 	return &this->global_ctx.get_builtin_function(kind)->body;
 }
 
-llvm::Value *comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
+bc::value_and_type_pair comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? nullptr : it->second;
+	return it == this->vars_.end() ? bc::value_and_type_pair{ nullptr, nullptr } : it->second;
 }
 
-void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val)
+void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	this->vars_.insert_or_assign(var_decl, val);
+	this->vars_.insert_or_assign(var_decl, bc::value_and_type_pair{ val, type });
 }
 
 void comptime_executor_context::add_global_variable(ast::decl_variable const *var_decl)
@@ -327,7 +326,7 @@ llvm::Value *comptime_executor_context::create_bitcast(bc::val_ptr val, llvm::Ty
 		auto const dest_ptr = this->builder.CreateBitCast(
 			val.val, llvm::PointerType::get(dest_type, 0)
 		);
-		return this->create_load(dest_ptr);
+		return this->create_load(dest_type, dest_ptr);
 	}
 	else
 	{
@@ -337,7 +336,7 @@ llvm::Value *comptime_executor_context::create_bitcast(bc::val_ptr val, llvm::Ty
 			dest_ptr, llvm::PointerType::get(val.get_type(), 0)
 		);
 		this->builder.CreateStore(src_value, cast_ptr);
-		return this->create_load(dest_ptr);
+		return this->create_load(dest_type, dest_ptr);
 	}
 }
 
@@ -370,54 +369,54 @@ llvm::Value *comptime_executor_context::create_cast_to_int(bc::val_ptr val)
 	return this->create_bitcast(val, dest_type);
 }
 
-llvm::Value *comptime_executor_context::create_load(llvm::Value *ptr, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_load(llvm::Type *type, llvm::Value *ptr, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateLoad(ptr->getType()->getPointerElementType(), ptr, name_ref);
+	return this->builder.CreateLoad(type, ptr, name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateConstGEP1_64(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+	return this->builder.CreateConstGEP1_64(type, ptr, idx, name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_gep(llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateConstGEP2_64(ptr->getType()->getPointerElementType(), ptr, idx0, idx1, name_ref);
+	return this->builder.CreateConstGEP2_64(type, ptr, idx0, idx1, name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+	return this->builder.CreateGEP(type, ptr, idx, name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_gep(llvm::Value *ptr, bz::array_view<llvm::Value * const> indices, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_gep(llvm::Type *type, llvm::Value *ptr, bz::array_view<llvm::Value * const> indices, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, llvm::ArrayRef(indices.data(), indices.size()), name_ref);
+	return this->builder.CreateGEP(type, ptr, llvm::ArrayRef(indices.data(), indices.size()), name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_struct_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_struct_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
-	return this->builder.CreateStructGEP(ptr->getType()->getPointerElementType(), ptr, idx, name_ref);
+	return this->builder.CreateStructGEP(type, ptr, idx, name_ref);
 }
 
-llvm::Value *comptime_executor_context::create_array_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
+llvm::Value *comptime_executor_context::create_array_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name)
 {
 	auto const name_ref = llvm::StringRef(name.data(), name.size());
 	bz_assert(ptr->getType()->isPointerTy());
 	auto const zero_value = llvm::ConstantInt::get(this->get_uint64_t(), 0);
-	return this->builder.CreateGEP(ptr->getType()->getPointerElementType(), ptr, { zero_value, idx }, name_ref);
+	return this->builder.CreateGEP(type, ptr, { zero_value, idx }, name_ref);
 }
 
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
@@ -511,6 +510,11 @@ llvm::StructType *comptime_executor_context::get_slice_t(llvm::Type *elem_type) 
 llvm::StructType *comptime_executor_context::get_tuple_t(bz::array_view<llvm::Type * const> types) const
 {
 	return llvm::StructType::get(this->get_llvm_context(), llvm::ArrayRef(types.data(), types.data() + types.size()));
+}
+
+llvm::PointerType *comptime_executor_context::get_opaque_pointer_t(void) const
+{
+	return llvm::PointerType::get(this->get_llvm_context(), 0);
 }
 
 
@@ -951,9 +955,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 			return result;
 		}
 
-		// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
-		// llvm::verifyModule(*this->current_module, &llvm::dbgs());
 		this->add_module(std::move(module));
+		// bz::log("running {} at {}:{}\n", body->get_signature(), this->global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id), src_tokens.pivot->src_pos.line);
 		auto const call_result = this->engine->runFunction(fn, {});
 
 		if (!this->has_error())
@@ -1188,6 +1191,8 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 		}
 		output_file.flush();
 	}
+	// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
+	// llvm::verifyModule(*module, &llvm::dbgs());
 	this->engine->addModule(std::move(module));
 }
 

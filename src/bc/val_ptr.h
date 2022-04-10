@@ -10,6 +10,12 @@
 namespace bc
 {
 
+struct value_and_type_pair
+{
+	llvm::Value *ptr;
+	llvm::Type *type;
+};
+
 struct val_ptr
 {
 	enum : uintptr_t
@@ -17,9 +23,30 @@ struct val_ptr
 		reference,
 		value,
 	};
-	uintptr_t kind = 0;
-	llvm::Value *val = nullptr;
-	llvm::Value *consteval_val = nullptr;
+	uintptr_t kind;
+	llvm::Value *val;
+	llvm::Type *type;
+	llvm::Value *consteval_val;
+
+	explicit val_ptr(uintptr_t _kind, llvm::Value *_val, llvm::Type *_type, llvm::Value *_consteval_val)
+		: kind(_kind), val(_val), type(_type), consteval_val(_consteval_val)
+	{}
+
+	static val_ptr get_reference(llvm::Value *ptr, llvm::Type *type, llvm::Value *consteval_val = nullptr)
+	{
+		bz_assert(ptr->getType()->isPointerTy());
+		return val_ptr(reference, ptr, type, consteval_val);
+	}
+
+	static val_ptr get_value(llvm::Value *val, llvm::Value *consteval_val = nullptr)
+	{
+		return val_ptr(value, val, val->getType(), consteval_val);
+	}
+
+	static val_ptr get_none(void)
+	{
+		return val_ptr(0, nullptr, nullptr, nullptr);
+	}
 
 	bool has_value(void) const noexcept
 	{
@@ -40,7 +67,7 @@ struct val_ptr
 
 		if (this->kind == reference)
 		{
-			auto const loaded_val = builder.CreateLoad(this->val->getType()->getPointerElementType(), this->val, "load_tmp");
+			auto const loaded_val = builder.CreateLoad(this->type, this->val, "load_tmp");
 			return loaded_val;
 		}
 		else
@@ -49,23 +76,15 @@ struct val_ptr
 		}
 	}
 
+	value_and_type_pair get_value_and_type(llvm::IRBuilder<> &builder) const
+	{
+		return { this->get_value(builder), this->get_type() };
+	}
+
 	llvm::Type *get_type(void) const
 	{
-		if (this->consteval_val)
-		{
-			return this->consteval_val->getType();
-		}
-
-		if (this->kind == reference)
-		{
-			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(this->val->getType());
-			bz_assert(ptr_t != nullptr);
-			return ptr_t->getElementType();
-		}
-		else
-		{
-			return this->val->getType();
-		}
+		// bz_assert(this->type != nullptr);
+		return this->type;
 	}
 };
 
