@@ -183,6 +183,8 @@ struct comptime_executor_context
 	llvm::BasicBlock *add_basic_block(bz::u8string_view name);
 	llvm::Value *create_alloca(llvm::Type *t);
 	llvm::Value *create_alloca(llvm::Type *t, size_t align);
+	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t);
+	llvm::Value *create_alloca_without_lifetime_start(llvm::Type *t, size_t align);
 	llvm::Value *create_string(bz::u8string_view str);
 
 	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
@@ -220,6 +222,8 @@ struct comptime_executor_context
 	static bool has_terminator(llvm::BasicBlock *bb);
 	bool do_error_checking(void) const;
 
+	void start_lifetime(llvm::Value *ptr, size_t size);
+	void end_lifetime(llvm::Value *ptr, size_t size);
 
 	void push_expression_scope(void);
 	void pop_expression_scope(void);
@@ -228,6 +232,11 @@ struct comptime_executor_context
 	void emit_destructor_calls(void);
 	void emit_loop_destructor_calls(void);
 	void emit_all_destructor_calls(void);
+
+	void push_end_lifetime_call(llvm::Value *ptr, size_t size);
+	void emit_end_lifetime_calls(void);
+	void emit_loop_end_lifetime_calls(void);
+	void emit_all_end_lifetime_calls(void);
 
 	struct loop_info_t
 	{
@@ -296,6 +305,7 @@ struct comptime_executor_context
 	};
 
 	bz::vector<bz::vector<destructor_call_t>> destructor_calls{};
+	bz::vector<bz::vector<std::pair<llvm::Value *, size_t>>> end_lifetime_calls{};
 
 
 	std::pair<ast::function_body const *, llvm::Function *> current_function = { nullptr, nullptr };

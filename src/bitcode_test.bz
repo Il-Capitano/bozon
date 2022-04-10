@@ -512,6 +512,24 @@ function main(args: [: const str]) -> int32
 		move_func(std::string("Hello!"));
 	});
 
+	if (false)
+	{
+		// __builtin_slice_from_ptrs(null as *int32, null as *uint32);
+		__builtin_slice_from_ptrs(null as *int32, null as *int32);
+		// __builtin_inplace_construct(null as *int32, 0u);
+		__builtin_inplace_construct(null as *int32, 0);
+
+		// let p: *int32 = null as *uint32;
+		let p: *int32 = null as *int32;
+		// p = null as *uint32;
+		p = null as *int32;
+
+		// let p: *const int32 = null as *uint32;
+		let p: *const int32 = null as *int32;
+		// p = null as *uint32;
+		p = null as *int32;
+	}
+
 	/*
 	let s1 = "hello1";
 	let s2 = "hello2";

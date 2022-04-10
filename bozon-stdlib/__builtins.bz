@@ -1,7 +1,7 @@
 import std::libc::stdio;
 
 @__builtin
-function __builtin_str_length(s: str) -> usize
+export function __builtin_str_length(s: str) -> usize
 {
 	let continuation_byte_count = 0uz;
 	const begin = __builtin_str_begin_ptr(s);
@@ -19,7 +19,7 @@ function __builtin_str_length(s: str) -> usize
 }
 
 @__builtin
-function __builtin_str_starts_with(s: str, prefix: str) -> bool
+export function __builtin_str_starts_with(s: str, prefix: str) -> bool
 {
 	if (__builtin_str_size(s) < __builtin_str_size(prefix))
 	{
@@ -40,7 +40,7 @@ function __builtin_str_starts_with(s: str, prefix: str) -> bool
 }
 
 @__builtin
-function __builtin_str_ends_with(s: str, postfix: str) -> bool
+export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 {
 	if (__builtin_str_size(s) < __builtin_str_size(postfix))
 	{
@@ -78,67 +78,96 @@ function __builtin_slice_size(slice: [: const auto]) -> usize
 {
 	return (__builtin_slice_end_const_ptr(slice) - __builtin_slice_begin_const_ptr(slice)) as usize;
 }
-@__builtin function __builtin_slice_from_ptrs(begin: *auto, end: *auto)
-	-> (if consteval (typeof begin != typeof end) { unreachable } else {}, [: __builtin_remove_pointer(typeof begin)]);
-@__builtin function __builtin_slice_from_const_ptrs(begin: *const auto, end: *const auto)
-	-> (if consteval (typeof begin != typeof end) { unreachable } else {}, [: __builtin_remove_pointer(typeof begin)]);
+@__builtin export function __builtin_slice_from_ptrs(begin: *auto, end: *auto)
+	-> (if consteval (typeof begin != typeof end) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(typeof begin),
+			"' and '",
+			__builtin_typename_as_str(typeof end),
+			"' in 'function __builtin_slice_from_ptrs'"
+		)));
+	} else {}, [: __builtin_remove_pointer(typeof begin)]);
+@__builtin export function __builtin_slice_from_const_ptrs(begin: *const auto, end: *const auto)
+	-> (if consteval (typeof begin != typeof end) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(typeof begin),
+			"' and '",
+			__builtin_typename_as_str(typeof end),
+			"' in 'function __builtin_slice_from_const_ptrs'"
+		)));
+	} else {}, [: __builtin_remove_pointer(typeof begin)]);
 
 @__builtin function __builtin_pointer_cast(T: *typename, ptr: *const void) -> T;
 @__builtin function __builtin_pointer_to_int(ptr: *const void) -> usize;
 @__builtin function __builtin_int_to_pointer(T: *typename, n: usize) -> T;
 
 @__builtin function __builtin_call_destructor(obj: &auto);
-@__builtin function __builtin_inplace_construct(ptr: *auto, val: auto)
-	-> (if consteval (__builtin_remove_pointer(typeof ptr) != typeof val) { unreachable } else {}, void);
+@__builtin export function __builtin_inplace_construct(ptr: *auto, val: auto)
+	-> (if consteval (__builtin_remove_pointer(typeof ptr) != typeof val) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"value of type '",
+			__builtin_typename_as_str(typeof val),
+			"' doesn't match the pointer type '",
+			__builtin_typename_as_str(typeof ptr),
+			"' in 'function __builtin_inplace_construct'"
+		)));
+	} else {}, void);
 
 @__builtin function __builtin_is_comptime() -> bool;
 
 @symbol_name("__bozon_builtin_is_option_set_impl") function is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
 @__builtin
-consteval function __builtin_is_option_set(option: str) -> bool
+export consteval function __builtin_is_option_set(option: str) -> bool
 {
 	return is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
 }
 
-@__builtin @symbol_name("__bozon_builtin_panic") function __builtin_panic();
+@__builtin @symbol_name("__bozon_builtin_panic") export function __builtin_panic();
 
 @__builtin
-function __builtin_print_stdout(s: str)
+export function __builtin_print_stdout(s: str)
 {
 	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stdout());
 }
 @__builtin
-function __builtin_print_stderr(s: str)
+export function __builtin_print_stderr(s: str)
 {
 	std::libc::fwrite(__builtin_str_begin_ptr(s), 1u, __builtin_str_size(s), std::libc::stderr());
 }
 
 @__builtin @symbol_name("__bozon_builtin_comptime_malloc") consteval function __builtin_comptime_malloc(size: usize) -> *void;
-@__builtin consteval function __builtin_comptime_malloc_type(T: typename, count: usize) -> *T;
-@__builtin @symbol_name("__bozon_builtin_comptime_free") consteval function __builtin_comptime_free(ptr: *void);
+@__builtin export consteval function __builtin_comptime_malloc_type(T: typename, count: usize) -> *T;
+@__builtin @symbol_name("__bozon_builtin_comptime_free") export consteval function __builtin_comptime_free(ptr: *void);
 
-@__builtin consteval function __builtin_comptime_compile_error(message: str);
-@__builtin consteval function __builtin_comptime_compile_warning(message: str);
+@__builtin export consteval function __builtin_comptime_compile_error(message: str);
+@__builtin export consteval function __builtin_comptime_compile_warning(message: str);
 // src_tokens variants are handled in __comptime_checking.bz
 
-@__builtin consteval function __builtin_typename_as_str(T: typename) -> str;
+@__builtin consteval function __builtin_comptime_concatenate_strs(s: ...consteval str) -> str;
 
-@__builtin consteval function __builtin_is_const(T: typename) -> bool;
-@__builtin consteval function __builtin_is_consteval(T: typename) -> bool;
-@__builtin consteval function __builtin_is_pointer(T: typename) -> bool;
-@__builtin consteval function __builtin_is_reference(T: typename) -> bool;
-@__builtin consteval function __builtin_is_move_reference(T: typename) -> bool;
+@__builtin export consteval function __builtin_typename_as_str(T: typename) -> str;
 
-@__builtin consteval function __builtin_remove_const(T: typename) -> typename;
-@__builtin consteval function __builtin_remove_consteval(T: typename) -> typename;
-@__builtin consteval function __builtin_remove_pointer(T: typename) -> typename;
-@__builtin consteval function __builtin_remove_reference(T: typename) -> typename;
-@__builtin consteval function __builtin_remove_move_reference(T: typename) -> typename;
+@__builtin export consteval function __builtin_is_const(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_consteval(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_pointer(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_reference(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_move_reference(T: typename) -> bool;
 
-@__builtin consteval function __builtin_is_default_constructible(T: typename) -> bool;
-@__builtin consteval function __builtin_is_copy_constructible(T: typename) -> bool;
-@__builtin consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
-@__builtin consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_remove_const(T: typename) -> typename;
+@__builtin export consteval function __builtin_remove_consteval(T: typename) -> typename;
+@__builtin export consteval function __builtin_remove_pointer(T: typename) -> typename;
+@__builtin export consteval function __builtin_remove_reference(T: typename) -> typename;
+@__builtin export consteval function __builtin_remove_move_reference(T: typename) -> typename;
+
+@__builtin export consteval function __builtin_is_default_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_copy_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_copy_constructible(T: typename) -> bool;
+@__builtin export consteval function __builtin_is_trivially_destructible(T: typename) -> bool;
+
+@__builtin @symbol_name("llvm.lifetime.start.p0i8") function __builtin_lifetime_start(size: uint64, ptr: *void);
+@__builtin @symbol_name("llvm.lifetime.end.p0i8") function __builtin_lifetime_end(size: uint64, ptr: *void);
 
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
@@ -148,7 +177,7 @@ function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) function __builtin_memcpy(dest: *void, src: *const void, n: usize);
+) export function __builtin_memcpy(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memmove.p0i8.p0i8.i64"
@@ -157,7 +186,7 @@ function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) function __builtin_memmove(dest: *void, src: *const void, n: usize);
+) export function __builtin_memmove(dest: *void, src: *const void, n: usize);
 @__builtin @symbol_name(
 	if (sizeof usize == 8u) {
 		"llvm.memset.p0i8.i64"
@@ -166,330 +195,375 @@ function __builtin_print_stderr(s: str)
 	} else {
 		unreachable
 	}
-) function __builtin_memset(dest: *void, val: uint8, n: usize);
+) export function __builtin_memset(dest: *void, val: uint8, n: usize);
 
-@__builtin @symbol_name("llvm.exp.f32") function __builtin_exp_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.exp.f64") function __builtin_exp_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.exp2.f32") function __builtin_exp2_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.exp2.f64") function __builtin_exp2_f64(x: float64) -> float64;
-@__builtin @symbol_name("expm1f") function __builtin_expm1_f32(x: float32) -> float32;
-@__builtin @symbol_name("expm1")  function __builtin_expm1_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log.f32") function __builtin_log_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log.f64") function __builtin_log_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log10.f32") function __builtin_log10_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log10.f64") function __builtin_log10_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.log2.f32") function __builtin_log2_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.log2.f64") function __builtin_log2_f64(x: float64) -> float64;
-@__builtin @symbol_name("log1pf") function __builtin_log1p_f32(x: float32) -> float32;
-@__builtin @symbol_name("log1p")  function __builtin_log1p_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.exp.f32") export function __builtin_exp_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.exp.f64") export function __builtin_exp_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.exp2.f32") export function __builtin_exp2_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.exp2.f64") export function __builtin_exp2_f64(x: float64) -> float64;
+@__builtin @symbol_name("expm1f") export function __builtin_expm1_f32(x: float32) -> float32;
+@__builtin @symbol_name("expm1")  export function __builtin_expm1_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.log.f32") export function __builtin_log_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.log.f64") export function __builtin_log_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.log10.f32") export function __builtin_log10_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.log10.f64") export function __builtin_log10_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.log2.f32") export function __builtin_log2_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.log2.f64") export function __builtin_log2_f64(x: float64) -> float64;
+@__builtin @symbol_name("log1pf") export function __builtin_log1p_f32(x: float32) -> float32;
+@__builtin @symbol_name("log1p")  export function __builtin_log1p_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("llvm.sqrt.f32") function __builtin_sqrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.sqrt.f64") function __builtin_sqrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.pow.f32") function __builtin_pow_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("llvm.pow.f64") function __builtin_pow_f64(x: float64, y: float64) -> float64;
-@__builtin @symbol_name("cbrtf") function __builtin_cbrt_f32(x: float32) -> float32;
-@__builtin @symbol_name("cbrt")  function __builtin_cbrt_f64(x: float64) -> float64;
-@__builtin @symbol_name("hypotf") function __builtin_hypot_f32(x: float32, y: float32) -> float32;
-@__builtin @symbol_name("hypot")  function __builtin_hypot_f64(x: float64, y: float64) -> float64;
+@__builtin @symbol_name("llvm.sqrt.f32") export function __builtin_sqrt_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.sqrt.f64") export function __builtin_sqrt_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.pow.f32") export function __builtin_pow_f32(x: float32, y: float32) -> float32;
+@__builtin @symbol_name("llvm.pow.f64") export function __builtin_pow_f64(x: float64, y: float64) -> float64;
+@__builtin @symbol_name("cbrtf") export function __builtin_cbrt_f32(x: float32) -> float32;
+@__builtin @symbol_name("cbrt")  export function __builtin_cbrt_f64(x: float64) -> float64;
+@__builtin @symbol_name("hypotf") export function __builtin_hypot_f32(x: float32, y: float32) -> float32;
+@__builtin @symbol_name("hypot")  export function __builtin_hypot_f64(x: float64, y: float64) -> float64;
 
-@__builtin @symbol_name("llvm.sin.f32") function __builtin_sin_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.sin.f64") function __builtin_sin_f64(x: float64) -> float64;
-@__builtin @symbol_name("llvm.cos.f32") function __builtin_cos_f32(x: float32) -> float32;
-@__builtin @symbol_name("llvm.cos.f64") function __builtin_cos_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanf") function __builtin_tan_f32(x: float32) -> float32;
-@__builtin @symbol_name("tan")  function __builtin_tan_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinf") function __builtin_asin_f32(x: float32) -> float32;
-@__builtin @symbol_name("asin")  function __builtin_asin_f64(x: float64) -> float64;
-@__builtin @symbol_name("acosf") function __builtin_acos_f32(x: float32) -> float32;
-@__builtin @symbol_name("acos")  function __builtin_acos_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanf") function __builtin_atan_f32(x: float32) -> float32;
-@__builtin @symbol_name("atan")  function __builtin_atan_f64(x: float64) -> float64;
-@__builtin @symbol_name("atan2f") function __builtin_atan2_f32(y: float32, x: float32) -> float32;
-@__builtin @symbol_name("atan2")  function __builtin_atan2_f64(y: float64, x: float64) -> float64;
+@__builtin @symbol_name("llvm.sin.f32") export function __builtin_sin_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.sin.f64") export function __builtin_sin_f64(x: float64) -> float64;
+@__builtin @symbol_name("llvm.cos.f32") export function __builtin_cos_f32(x: float32) -> float32;
+@__builtin @symbol_name("llvm.cos.f64") export function __builtin_cos_f64(x: float64) -> float64;
+@__builtin @symbol_name("tanf") export function __builtin_tan_f32(x: float32) -> float32;
+@__builtin @symbol_name("tan")  export function __builtin_tan_f64(x: float64) -> float64;
+@__builtin @symbol_name("asinf") export function __builtin_asin_f32(x: float32) -> float32;
+@__builtin @symbol_name("asin")  export function __builtin_asin_f64(x: float64) -> float64;
+@__builtin @symbol_name("acosf") export function __builtin_acos_f32(x: float32) -> float32;
+@__builtin @symbol_name("acos")  export function __builtin_acos_f64(x: float64) -> float64;
+@__builtin @symbol_name("atanf") export function __builtin_atan_f32(x: float32) -> float32;
+@__builtin @symbol_name("atan")  export function __builtin_atan_f64(x: float64) -> float64;
+@__builtin @symbol_name("atan2f") export function __builtin_atan2_f32(y: float32, x: float32) -> float32;
+@__builtin @symbol_name("atan2")  export function __builtin_atan2_f64(y: float64, x: float64) -> float64;
 
-@__builtin @symbol_name("sinhf") function __builtin_sinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("sinh")  function __builtin_sinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("coshf") function __builtin_cosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("cosh")  function __builtin_cosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("tanhf") function __builtin_tanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("tanh")  function __builtin_tanh_f64(x: float64) -> float64;
-@__builtin @symbol_name("asinhf") function __builtin_asinh_f32(x: float32) -> float32;
-@__builtin @symbol_name("asinh")  function __builtin_asinh_f64(x: float64) -> float64;
-@__builtin @symbol_name("acoshf") function __builtin_acosh_f32(x: float32) -> float32;
-@__builtin @symbol_name("acosh")  function __builtin_acosh_f64(x: float64) -> float64;
-@__builtin @symbol_name("atanhf") function __builtin_atanh_f32(x: float32) -> float32;
-@__builtin @symbol_name("atanh")  function __builtin_atanh_f64(x: float64) -> float64;
+@__builtin @symbol_name("sinhf") export function __builtin_sinh_f32(x: float32) -> float32;
+@__builtin @symbol_name("sinh")  export function __builtin_sinh_f64(x: float64) -> float64;
+@__builtin @symbol_name("coshf") export function __builtin_cosh_f32(x: float32) -> float32;
+@__builtin @symbol_name("cosh")  export function __builtin_cosh_f64(x: float64) -> float64;
+@__builtin @symbol_name("tanhf") export function __builtin_tanh_f32(x: float32) -> float32;
+@__builtin @symbol_name("tanh")  export function __builtin_tanh_f64(x: float64) -> float64;
+@__builtin @symbol_name("asinhf") export function __builtin_asinh_f32(x: float32) -> float32;
+@__builtin @symbol_name("asinh")  export function __builtin_asinh_f64(x: float64) -> float64;
+@__builtin @symbol_name("acoshf") export function __builtin_acosh_f32(x: float32) -> float32;
+@__builtin @symbol_name("acosh")  export function __builtin_acosh_f64(x: float64) -> float64;
+@__builtin @symbol_name("atanhf") export function __builtin_atanh_f32(x: float32) -> float32;
+@__builtin @symbol_name("atanh")  export function __builtin_atanh_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("erff") function __builtin_erf_f32(x: float32) -> float32;
-@__builtin @symbol_name("erf")  function __builtin_erf_f64(x: float64) -> float64;
-@__builtin @symbol_name("erfcf") function __builtin_erfc_f32(x: float32) -> float32;
-@__builtin @symbol_name("erfc")  function __builtin_erfc_f64(x: float64) -> float64;
-@__builtin @symbol_name("tgammaf") function __builtin_tgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("tgamma")  function __builtin_tgamma_f64(x: float64) -> float64;
-@__builtin @symbol_name("lgammaf") function __builtin_lgamma_f32(x: float32) -> float32;
-@__builtin @symbol_name("lgamma")  function __builtin_lgamma_f64(x: float64) -> float64;
+@__builtin @symbol_name("erff") export function __builtin_erf_f32(x: float32) -> float32;
+@__builtin @symbol_name("erf")  export function __builtin_erf_f64(x: float64) -> float64;
+@__builtin @symbol_name("erfcf") export function __builtin_erfc_f32(x: float32) -> float32;
+@__builtin @symbol_name("erfc")  export function __builtin_erfc_f64(x: float64) -> float64;
+@__builtin @symbol_name("tgammaf") export function __builtin_tgamma_f32(x: float32) -> float32;
+@__builtin @symbol_name("tgamma")  export function __builtin_tgamma_f64(x: float64) -> float64;
+@__builtin @symbol_name("lgammaf") export function __builtin_lgamma_f32(x: float32) -> float32;
+@__builtin @symbol_name("lgamma")  export function __builtin_lgamma_f64(x: float64) -> float64;
 
-@__builtin @symbol_name("llvm.bitreverse.i8")  function __builtin_bitreverse_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.bitreverse.i16") function __builtin_bitreverse_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.bitreverse.i32") function __builtin_bitreverse_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.bitreverse.i64") function __builtin_bitreverse_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.ctpop.i8")  function __builtin_popcount_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.ctpop.i16") function __builtin_popcount_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.ctpop.i32") function __builtin_popcount_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.ctpop.i64") function __builtin_popcount_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.bswap.i16") function __builtin_byteswap_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.bswap.i32") function __builtin_byteswap_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.bswap.i64") function __builtin_byteswap_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.bitreverse.i8")  export function __builtin_bitreverse_u8 (n: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.bitreverse.i16") export function __builtin_bitreverse_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.bitreverse.i32") export function __builtin_bitreverse_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.bitreverse.i64") export function __builtin_bitreverse_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.ctpop.i8")  export function __builtin_popcount_u8 (n: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.ctpop.i16") export function __builtin_popcount_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.ctpop.i32") export function __builtin_popcount_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.ctpop.i64") export function __builtin_popcount_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.bswap.i16") export function __builtin_byteswap_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.bswap.i32") export function __builtin_byteswap_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.bswap.i64") export function __builtin_byteswap_u64(n: uint64) -> uint64;
 
-@__builtin @symbol_name("llvm.ctlz.i8")  function __builtin_clz_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.ctlz.i16") function __builtin_clz_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.ctlz.i32") function __builtin_clz_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.ctlz.i64") function __builtin_clz_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.cttz.i8")  function __builtin_ctz_u8 (n: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.cttz.i16") function __builtin_ctz_u16(n: uint16) -> uint16;
-@__builtin @symbol_name("llvm.cttz.i32") function __builtin_ctz_u32(n: uint32) -> uint32;
-@__builtin @symbol_name("llvm.cttz.i64") function __builtin_ctz_u64(n: uint64) -> uint64;
-@__builtin @symbol_name("llvm.fshl.i8")  function __builtin_fshl_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.fshl.i16") function __builtin_fshl_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin @symbol_name("llvm.fshl.i32") function __builtin_fshl_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin @symbol_name("llvm.fshl.i64") function __builtin_fshl_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
-@__builtin @symbol_name("llvm.fshr.i8")  function __builtin_fshr_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
-@__builtin @symbol_name("llvm.fshr.i16") function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
-@__builtin @symbol_name("llvm.fshr.i32") function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
-@__builtin @symbol_name("llvm.fshr.i64") function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+@__builtin @symbol_name("llvm.ctlz.i8")  export function __builtin_clz_u8 (n: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.ctlz.i16") export function __builtin_clz_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.ctlz.i32") export function __builtin_clz_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.ctlz.i64") export function __builtin_clz_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.cttz.i8")  export function __builtin_ctz_u8 (n: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.cttz.i16") export function __builtin_ctz_u16(n: uint16) -> uint16;
+@__builtin @symbol_name("llvm.cttz.i32") export function __builtin_ctz_u32(n: uint32) -> uint32;
+@__builtin @symbol_name("llvm.cttz.i64") export function __builtin_ctz_u64(n: uint64) -> uint64;
+@__builtin @symbol_name("llvm.fshl.i8")  export function __builtin_fshl_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.fshl.i16") export function __builtin_fshl_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
+@__builtin @symbol_name("llvm.fshl.i32") export function __builtin_fshl_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
+@__builtin @symbol_name("llvm.fshl.i64") export function __builtin_fshl_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
+@__builtin @symbol_name("llvm.fshr.i8")  export function __builtin_fshr_u8 (a: uint8,  b: uint8,  amount: uint8)  -> uint8;
+@__builtin @symbol_name("llvm.fshr.i16") export function __builtin_fshr_u16(a: uint16, b: uint16, amount: uint16) -> uint16;
+@__builtin @symbol_name("llvm.fshr.i32") export function __builtin_fshr_u32(a: uint32, b: uint32, amount: uint32) -> uint32;
+@__builtin @symbol_name("llvm.fshr.i64") export function __builtin_fshr_u64(a: uint64, b: uint64, amount: uint64) -> uint64;
 
 //
 // unary operators
 //
 
-@__builtin operator + (n: int8)  -> int8;
-@__builtin operator + (n: int16) -> int16;
-@__builtin operator + (n: int32) -> int32;
-@__builtin operator + (n: int64) -> int64;
-@__builtin operator + (n: uint8)  -> uint8;
-@__builtin operator + (n: uint16) -> uint16;
-@__builtin operator + (n: uint32) -> uint32;
-@__builtin operator + (n: uint64) -> uint64;
-@__builtin operator + (x: float32) -> float32;
-@__builtin operator + (x: float64) -> float64;
+@__builtin export operator + (n: int8)  -> int8;
+@__builtin export operator + (n: int16) -> int16;
+@__builtin export operator + (n: int32) -> int32;
+@__builtin export operator + (n: int64) -> int64;
+@__builtin export operator + (n: uint8)  -> uint8;
+@__builtin export operator + (n: uint16) -> uint16;
+@__builtin export operator + (n: uint32) -> uint32;
+@__builtin export operator + (n: uint64) -> uint64;
+@__builtin export operator + (x: float32) -> float32;
+@__builtin export operator + (x: float64) -> float64;
 
-@__builtin operator - (n: int8)  -> int8;
-@__builtin operator - (n: int16) -> int16;
-@__builtin operator - (n: int32) -> int32;
-@__builtin operator - (n: int64) -> int64;
-@__builtin operator - (x: float32) -> float32;
-@__builtin operator - (x: float64) -> float64;
+@__builtin export operator - (n: int8)  -> int8;
+@__builtin export operator - (n: int16) -> int16;
+@__builtin export operator - (n: int32) -> int32;
+@__builtin export operator - (n: int64) -> int64;
+@__builtin export operator - (x: float32) -> float32;
+@__builtin export operator - (x: float64) -> float64;
 
-@__builtin operator * (p: *auto) -> &__builtin_remove_pointer(typeof p);
-@__builtin operator * (p: *const auto) -> &__builtin_remove_pointer(typeof p);
+@__builtin export operator * (p: *auto) -> &__builtin_remove_pointer(typeof p);
+@__builtin export operator * (p: *const auto) -> &__builtin_remove_pointer(typeof p);
 
-@__builtin operator ~ (n: uint8)  -> uint8;
-@__builtin operator ~ (n: uint16) -> uint16;
-@__builtin operator ~ (n: uint32) -> uint32;
-@__builtin operator ~ (n: uint64) -> uint64;
-@__builtin operator ~ (n: bool) -> bool;
+@__builtin export operator ~ (n: uint8)  -> uint8;
+@__builtin export operator ~ (n: uint16) -> uint16;
+@__builtin export operator ~ (n: uint32) -> uint32;
+@__builtin export operator ~ (n: uint64) -> uint64;
+@__builtin export operator ~ (n: bool) -> bool;
 
-@__builtin operator ! (n: bool) -> bool;
+@__builtin export operator ! (n: bool) -> bool;
 
-@__builtin operator ++ (n: &int8)  -> &int8;
-@__builtin operator ++ (n: &int16) -> &int16;
-@__builtin operator ++ (n: &int32) -> &int32;
-@__builtin operator ++ (n: &int64) -> &int64;
-@__builtin operator ++ (n: &uint8)  -> &uint8;
-@__builtin operator ++ (n: &uint16) -> &uint16;
-@__builtin operator ++ (n: &uint32) -> &uint32;
-@__builtin operator ++ (n: &uint64) -> &uint64;
-@__builtin operator ++ (c: &char) -> &char;
-@__builtin operator ++ (p: &*auto) -> typeof p;
-@__builtin operator ++ (p: &*const auto) -> typeof p;
+@__builtin export operator ++ (n: &int8)  -> &int8;
+@__builtin export operator ++ (n: &int16) -> &int16;
+@__builtin export operator ++ (n: &int32) -> &int32;
+@__builtin export operator ++ (n: &int64) -> &int64;
+@__builtin export operator ++ (n: &uint8)  -> &uint8;
+@__builtin export operator ++ (n: &uint16) -> &uint16;
+@__builtin export operator ++ (n: &uint32) -> &uint32;
+@__builtin export operator ++ (n: &uint64) -> &uint64;
+@__builtin export operator ++ (c: &char) -> &char;
+@__builtin export operator ++ (p: &*auto) -> typeof p;
+@__builtin export operator ++ (p: &*const auto) -> typeof p;
 
-@__builtin operator -- (n: &int8)  -> &int8;
-@__builtin operator -- (n: &int16) -> &int16;
-@__builtin operator -- (n: &int32) -> &int32;
-@__builtin operator -- (n: &int64) -> &int64;
-@__builtin operator -- (n: &uint8)  -> &uint8;
-@__builtin operator -- (n: &uint16) -> &uint16;
-@__builtin operator -- (n: &uint32) -> &uint32;
-@__builtin operator -- (n: &uint64) -> &uint64;
-@__builtin operator -- (c: &char) -> &char;
-@__builtin operator -- (p: &*auto) -> typeof p;
-@__builtin operator -- (p: &*const auto) -> typeof p;
+@__builtin export operator -- (n: &int8)  -> &int8;
+@__builtin export operator -- (n: &int16) -> &int16;
+@__builtin export operator -- (n: &int32) -> &int32;
+@__builtin export operator -- (n: &int64) -> &int64;
+@__builtin export operator -- (n: &uint8)  -> &uint8;
+@__builtin export operator -- (n: &uint16) -> &uint16;
+@__builtin export operator -- (n: &uint32) -> &uint32;
+@__builtin export operator -- (n: &uint64) -> &uint64;
+@__builtin export operator -- (c: &char) -> &char;
+@__builtin export operator -- (p: &*auto) -> typeof p;
+@__builtin export operator -- (p: &*const auto) -> typeof p;
 
 
 //
 // binary operators
 //
 
-@__builtin operator = (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator = (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator = (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator = (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator = (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator = (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator = (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator = (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator = (lhs: &float32, rhs: float32) -> &float32;
-@__builtin operator = (lhs: &float64, rhs: float64) -> &float64;
-@__builtin operator = (lhs: &char, rhs: char) -> &char;
-@__builtin operator = (lhs: &str, rhs: str) -> &str;
-@__builtin operator = (lhs: &bool, rhs: bool) -> &bool;
-@__builtin operator = (lhs: &*auto, rhs: *auto) -> (if consteval (typeof *lhs != typeof *rhs) { unreachable } else {}, typeof lhs);
-@__builtin operator = (lhs: &*const auto, rhs: *const auto) -> (if consteval (typeof *lhs != typeof *rhs) { unreachable } else {}, typeof lhs);
-@__builtin operator = (lhs: &*auto, rhs: __null_t) -> typeof lhs;
-@__builtin operator = (lhs: &*const auto, rhs: __null_t) -> typeof lhs;
-@__builtin operator = (lhs: &[: auto], rhs: [: auto]) -> (if consteval (typeof lhs[0] != typeof rhs[0]) { unreachable } else {}, typeof lhs);
-@__builtin operator = (lhs: &[: const auto], rhs: [: const auto]) -> (if consteval (typeof lhs[0] != typeof rhs[0]) { unreachable } else {}, typeof lhs);
+@__builtin export operator = (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator = (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator = (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator = (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator = (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator = (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator = (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator = (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator = (lhs: &float32, rhs: float32) -> &float32;
+@__builtin export operator = (lhs: &float64, rhs: float64) -> &float64;
+@__builtin export operator = (lhs: &char, rhs: char) -> &char;
+@__builtin export operator = (lhs: &str, rhs: str) -> &str;
+@__builtin export operator = (lhs: &bool, rhs: bool) -> &bool;
+@__builtin export operator = (lhs: &*auto, rhs: *auto)
+	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in assignment"
+		)));
+	} else {}, typeof lhs);
+@__builtin export operator = (lhs: &*const auto, rhs: *const auto)
+	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in assignment"
+		)));
+	} else {}, typeof lhs);
+@__builtin export operator = (lhs: &*auto, rhs: __null_t) -> typeof lhs;
+@__builtin export operator = (lhs: &*const auto, rhs: __null_t) -> typeof lhs;
+@__builtin export operator = (lhs: &[: auto], rhs: [: auto])
+	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched slice types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in assignment"
+		)));
+	} else {}, typeof lhs);
+@__builtin export operator = (lhs: &[: const auto], rhs: [: const auto])
+	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched slice types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in assignment"
+		)));
+	} else {}, typeof lhs);
 
-@__builtin operator + (lhs: int8,  rhs: int8)  -> int8;
-@__builtin operator + (lhs: int16, rhs: int16) -> int16;
-@__builtin operator + (lhs: int32, rhs: int32) -> int32;
-@__builtin operator + (lhs: int64, rhs: int64) -> int64;
-@__builtin operator + (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator + (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator + (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator + (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator + (lhs: float32, rhs: float32) -> float32;
-@__builtin operator + (lhs: float64, rhs: float64) -> float64;
-@__builtin operator + (lhs: char, rhs:  int64) -> char;
-@__builtin operator + (lhs: char, rhs: uint64) -> char;
-@__builtin operator + (lhs:  int64, rhs: char) -> char;
-@__builtin operator + (lhs: uint64, rhs: char) -> char;
-@__builtin operator + (lhs: *auto, rhs:  int64) -> typeof lhs;
-@__builtin operator + (lhs: *auto, rhs: uint64) -> typeof lhs;
-@__builtin operator + (lhs: *const auto, rhs:  int64) -> typeof lhs;
-@__builtin operator + (lhs: *const auto, rhs: uint64) -> typeof lhs;
-@__builtin operator + (lhs:  int64, rhs: *auto) -> typeof rhs;
-@__builtin operator + (lhs: uint64, rhs: *auto) -> typeof rhs;
-@__builtin operator + (lhs:  int64, rhs: *const auto) -> typeof rhs;
-@__builtin operator + (lhs: uint64, rhs: *const auto) -> typeof rhs;
+@__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
+@__builtin export operator + (lhs: int16, rhs: int16) -> int16;
+@__builtin export operator + (lhs: int32, rhs: int32) -> int32;
+@__builtin export operator + (lhs: int64, rhs: int64) -> int64;
+@__builtin export operator + (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator + (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator + (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator + (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator + (lhs: float32, rhs: float32) -> float32;
+@__builtin export operator + (lhs: float64, rhs: float64) -> float64;
+@__builtin export operator + (lhs: char, rhs:  int64) -> char;
+@__builtin export operator + (lhs: char, rhs: uint64) -> char;
+@__builtin export operator + (lhs:  int64, rhs: char) -> char;
+@__builtin export operator + (lhs: uint64, rhs: char) -> char;
+@__builtin export operator + (lhs: *auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator + (lhs: *auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator + (lhs: *const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator + (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator + (lhs:  int64, rhs: *auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint64, rhs: *auto) -> typeof rhs;
+@__builtin export operator + (lhs:  int64, rhs: *const auto) -> typeof rhs;
+@__builtin export operator + (lhs: uint64, rhs: *const auto) -> typeof rhs;
 
-@__builtin operator += (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator += (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator += (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator += (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator += (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator += (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator += (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator += (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator += (lhs: &float32, rhs: float32) -> &float32;
-@__builtin operator += (lhs: &float64, rhs: float64) -> &float64;
-@__builtin operator += (lhs: &char, rhs:  int64) -> &char;
-@__builtin operator += (lhs: &char, rhs: uint64) -> &char;
-@__builtin operator += (lhs: &*auto, rhs:  int64) -> typeof lhs;
-@__builtin operator += (lhs: &*auto, rhs: uint64) -> typeof lhs;
-@__builtin operator += (lhs: &*const auto, rhs:  int64) -> typeof lhs;
-@__builtin operator += (lhs: &*const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator += (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator += (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator += (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator += (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator += (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator += (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator += (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator += (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator += (lhs: &float32, rhs: float32) -> &float32;
+@__builtin export operator += (lhs: &float64, rhs: float64) -> &float64;
+@__builtin export operator += (lhs: &char, rhs:  int64) -> &char;
+@__builtin export operator += (lhs: &char, rhs: uint64) -> &char;
+@__builtin export operator += (lhs: &*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator += (lhs: &*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator += (lhs: &*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator += (lhs: &*const auto, rhs: uint64) -> typeof lhs;
 
-@__builtin operator - (lhs: int8,  rhs: int8)  -> int8;
-@__builtin operator - (lhs: int16, rhs: int16) -> int16;
-@__builtin operator - (lhs: int32, rhs: int32) -> int32;
-@__builtin operator - (lhs: int64, rhs: int64) -> int64;
-@__builtin operator - (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator - (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator - (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator - (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator - (lhs: float32, rhs: float32) -> float32;
-@__builtin operator - (lhs: float64, rhs: float64) -> float64;
-@__builtin operator - (lhs: char, rhs:  int64) -> char;
-@__builtin operator - (lhs: char, rhs: uint64) -> char;
-@__builtin operator - (lhs: char, rhs: char) -> int32;
-@__builtin operator - (lhs: *auto, rhs:  int64) -> typeof lhs;
-@__builtin operator - (lhs: *auto, rhs: uint64) -> typeof lhs;
-@__builtin operator - (lhs: *const auto, rhs:  int64) -> typeof lhs;
-@__builtin operator - (lhs: *const auto, rhs: uint64) -> typeof lhs;
-@__builtin operator - (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, isize);
+@__builtin export operator - (lhs: int8,  rhs: int8)  -> int8;
+@__builtin export operator - (lhs: int16, rhs: int16) -> int16;
+@__builtin export operator - (lhs: int32, rhs: int32) -> int32;
+@__builtin export operator - (lhs: int64, rhs: int64) -> int64;
+@__builtin export operator - (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator - (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator - (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator - (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator - (lhs: float32, rhs: float32) -> float32;
+@__builtin export operator - (lhs: float64, rhs: float64) -> float64;
+@__builtin export operator - (lhs: char, rhs:  int64) -> char;
+@__builtin export operator - (lhs: char, rhs: uint64) -> char;
+@__builtin export operator - (lhs: char, rhs: char) -> int32;
+@__builtin export operator - (lhs: *auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: *auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: *const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator - (lhs: *const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator - (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in 'operator -'"
+		)));
+	} else {}, isize);
 
-@__builtin operator -= (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator -= (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator -= (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator -= (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator -= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator -= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator -= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator -= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator -= (lhs: &float32, rhs: float32) -> &float32;
-@__builtin operator -= (lhs: &float64, rhs: float64) -> &float64;
-@__builtin operator -= (lhs: &char, rhs:  int64) -> &char;
-@__builtin operator -= (lhs: &char, rhs: uint64) -> &char;
-@__builtin operator -= (lhs: &*auto, rhs:  int64) -> typeof lhs;
-@__builtin operator -= (lhs: &*auto, rhs: uint64) -> typeof lhs;
-@__builtin operator -= (lhs: &*const auto, rhs:  int64) -> typeof lhs;
-@__builtin operator -= (lhs: &*const auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator -= (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator -= (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator -= (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator -= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator -= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator -= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator -= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator -= (lhs: &float32, rhs: float32) -> &float32;
+@__builtin export operator -= (lhs: &float64, rhs: float64) -> &float64;
+@__builtin export operator -= (lhs: &char, rhs:  int64) -> &char;
+@__builtin export operator -= (lhs: &char, rhs: uint64) -> &char;
+@__builtin export operator -= (lhs: &*auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &*auto, rhs: uint64) -> typeof lhs;
+@__builtin export operator -= (lhs: &*const auto, rhs:  int64) -> typeof lhs;
+@__builtin export operator -= (lhs: &*const auto, rhs: uint64) -> typeof lhs;
 
-@__builtin operator * (lhs: int8,  rhs: int8)  -> int8;
-@__builtin operator * (lhs: int16, rhs: int16) -> int16;
-@__builtin operator * (lhs: int32, rhs: int32) -> int32;
-@__builtin operator * (lhs: int64, rhs: int64) -> int64;
-@__builtin operator * (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator * (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator * (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator * (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator * (lhs: float32, rhs: float32) -> float32;
-@__builtin operator * (lhs: float64, rhs: float64) -> float64;
+@__builtin export operator * (lhs: int8,  rhs: int8)  -> int8;
+@__builtin export operator * (lhs: int16, rhs: int16) -> int16;
+@__builtin export operator * (lhs: int32, rhs: int32) -> int32;
+@__builtin export operator * (lhs: int64, rhs: int64) -> int64;
+@__builtin export operator * (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator * (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator * (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator * (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator * (lhs: float32, rhs: float32) -> float32;
+@__builtin export operator * (lhs: float64, rhs: float64) -> float64;
 
-@__builtin operator *= (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator *= (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator *= (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator *= (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator *= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator *= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator *= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator *= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator *= (lhs: &float32, rhs: float32) -> &float32;
-@__builtin operator *= (lhs: &float64, rhs: float64) -> &float64;
+@__builtin export operator *= (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator *= (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator *= (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator *= (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator *= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator *= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator *= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator *= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator *= (lhs: &float32, rhs: float32) -> &float32;
+@__builtin export operator *= (lhs: &float64, rhs: float64) -> &float64;
 
-@__builtin operator / (lhs: int8,  rhs: int8)  -> int8;
-@__builtin operator / (lhs: int16, rhs: int16) -> int16;
-@__builtin operator / (lhs: int32, rhs: int32) -> int32;
-@__builtin operator / (lhs: int64, rhs: int64) -> int64;
-@__builtin operator / (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator / (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator / (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator / (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator / (lhs: float32, rhs: float32) -> float32;
-@__builtin operator / (lhs: float64, rhs: float64) -> float64;
+@__builtin export operator / (lhs: int8,  rhs: int8)  -> int8;
+@__builtin export operator / (lhs: int16, rhs: int16) -> int16;
+@__builtin export operator / (lhs: int32, rhs: int32) -> int32;
+@__builtin export operator / (lhs: int64, rhs: int64) -> int64;
+@__builtin export operator / (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator / (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator / (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator / (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator / (lhs: float32, rhs: float32) -> float32;
+@__builtin export operator / (lhs: float64, rhs: float64) -> float64;
 
-@__builtin operator /= (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator /= (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator /= (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator /= (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator /= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator /= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator /= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator /= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator /= (lhs: &float32, rhs: float32) -> &float32;
-@__builtin operator /= (lhs: &float64, rhs: float64) -> &float64;
+@__builtin export operator /= (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator /= (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator /= (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator /= (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator /= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator /= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator /= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator /= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator /= (lhs: &float32, rhs: float32) -> &float32;
+@__builtin export operator /= (lhs: &float64, rhs: float64) -> &float64;
 
-@__builtin operator % (lhs: int8,  rhs: int8)  -> int8;
-@__builtin operator % (lhs: int16, rhs: int16) -> int16;
-@__builtin operator % (lhs: int32, rhs: int32) -> int32;
-@__builtin operator % (lhs: int64, rhs: int64) -> int64;
-@__builtin operator % (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator % (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator % (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator % (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator % (lhs: int8,  rhs: int8)  -> int8;
+@__builtin export operator % (lhs: int16, rhs: int16) -> int16;
+@__builtin export operator % (lhs: int32, rhs: int32) -> int32;
+@__builtin export operator % (lhs: int64, rhs: int64) -> int64;
+@__builtin export operator % (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator % (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator % (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator % (lhs: uint64, rhs: uint64) -> uint64;
 
-@__builtin operator %= (lhs: &int8,  rhs: int8)  -> &int8;
-@__builtin operator %= (lhs: &int16, rhs: int16) -> &int16;
-@__builtin operator %= (lhs: &int32, rhs: int32) -> &int32;
-@__builtin operator %= (lhs: &int64, rhs: int64) -> &int64;
-@__builtin operator %= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator %= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator %= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator %= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator %= (lhs: &int8,  rhs: int8)  -> &int8;
+@__builtin export operator %= (lhs: &int16, rhs: int16) -> &int16;
+@__builtin export operator %= (lhs: &int32, rhs: int32) -> &int32;
+@__builtin export operator %= (lhs: &int64, rhs: int64) -> &int64;
+@__builtin export operator %= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator %= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator %= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator %= (lhs: &uint64, rhs: uint64) -> &uint64;
 
-@__builtin operator == (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator == (lhs: int16, rhs: int16) -> bool;
-@__builtin operator == (lhs: int32, rhs: int32) -> bool;
-@__builtin operator == (lhs: int64, rhs: int64) -> bool;
-@__builtin operator == (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator == (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator == (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator == (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator == (lhs: float32, rhs: float32) -> bool;
-@__builtin operator == (lhs: float64, rhs: float64) -> bool;
-@__builtin operator == (lhs: char, rhs: char) -> bool;
-@__builtin operator == (lhs: str, rhs: str) -> bool
+@__builtin export operator == (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator == (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator == (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator == (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator == (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator == (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator == (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator == (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator == (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator == (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator == (lhs: char, rhs: char) -> bool;
+@__builtin export operator == (lhs: str, rhs: str) -> bool
 {
 	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
 	{
@@ -513,23 +587,32 @@ function __builtin_print_stderr(s: str)
 	}
 	return true;
 }
-@__builtin operator == (lhs: bool, rhs: bool) -> bool;
-@__builtin operator == (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
-@__builtin operator == (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin operator == (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator == (lhs: bool, rhs: bool) -> bool;
+@__builtin export operator == (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator == (lhs: *const auto, rhs: __null_t) -> bool;
+@__builtin export operator == (lhs: __null_t, rhs: *const auto) -> bool;
 
-@__builtin operator != (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator != (lhs: int16, rhs: int16) -> bool;
-@__builtin operator != (lhs: int32, rhs: int32) -> bool;
-@__builtin operator != (lhs: int64, rhs: int64) -> bool;
-@__builtin operator != (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator != (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator != (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator != (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator != (lhs: float32, rhs: float32) -> bool;
-@__builtin operator != (lhs: float64, rhs: float64) -> bool;
-@__builtin operator != (lhs: char, rhs: char) -> bool;
-@__builtin operator != (lhs: str, rhs: str) -> bool
+@__builtin export operator != (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator != (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator != (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator != (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator != (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator != (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator != (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator != (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator != (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator != (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator != (lhs: char, rhs: char) -> bool;
+@__builtin export operator != (lhs: str, rhs: str) -> bool
 {
 	if (__builtin_str_size(lhs) != __builtin_str_size(rhs))
 	{
@@ -553,131 +636,176 @@ function __builtin_print_stderr(s: str)
 	}
 	return false;
 }
-@__builtin operator != (lhs: bool, rhs: bool) -> bool;
-@__builtin operator != (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
-@__builtin operator != (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin operator != (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator != (lhs: bool, rhs: bool) -> bool;
+@__builtin export operator != (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
+@__builtin export operator != (lhs: *const auto, rhs: __null_t) -> bool;
+@__builtin export operator != (lhs: __null_t, rhs: *const auto) -> bool;
 
-@__builtin operator < (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator < (lhs: int16, rhs: int16) -> bool;
-@__builtin operator < (lhs: int32, rhs: int32) -> bool;
-@__builtin operator < (lhs: int64, rhs: int64) -> bool;
-@__builtin operator < (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator < (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator < (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator < (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator < (lhs: float32, rhs: float32) -> bool;
-@__builtin operator < (lhs: float64, rhs: float64) -> bool;
-@__builtin operator < (lhs: char, rhs: char) -> bool;
-@__builtin operator < (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
+@__builtin export operator < (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator < (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator < (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator < (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator < (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator < (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator < (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator < (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator < (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator < (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator < (lhs: char, rhs: char) -> bool;
+@__builtin export operator < (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
-@__builtin operator <= (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator <= (lhs: int16, rhs: int16) -> bool;
-@__builtin operator <= (lhs: int32, rhs: int32) -> bool;
-@__builtin operator <= (lhs: int64, rhs: int64) -> bool;
-@__builtin operator <= (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator <= (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator <= (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator <= (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator <= (lhs: float32, rhs: float32) -> bool;
-@__builtin operator <= (lhs: float64, rhs: float64) -> bool;
-@__builtin operator <= (lhs: char, rhs: char) -> bool;
-@__builtin operator <= (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
+@__builtin export operator <= (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator <= (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator <= (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator <= (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator <= (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator <= (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator <= (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator <= (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator <= (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator <= (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator <= (lhs: char, rhs: char) -> bool;
+@__builtin export operator <= (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
-@__builtin operator > (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator > (lhs: int16, rhs: int16) -> bool;
-@__builtin operator > (lhs: int32, rhs: int32) -> bool;
-@__builtin operator > (lhs: int64, rhs: int64) -> bool;
-@__builtin operator > (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator > (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator > (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator > (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator > (lhs: float32, rhs: float32) -> bool;
-@__builtin operator > (lhs: float64, rhs: float64) -> bool;
-@__builtin operator > (lhs: char, rhs: char) -> bool;
-@__builtin operator > (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
+@__builtin export operator > (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator > (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator > (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator > (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator > (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator > (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator > (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator > (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator > (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator > (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator > (lhs: char, rhs: char) -> bool;
+@__builtin export operator > (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
-@__builtin operator >= (lhs: int8,  rhs: int8)  -> bool;
-@__builtin operator >= (lhs: int16, rhs: int16) -> bool;
-@__builtin operator >= (lhs: int32, rhs: int32) -> bool;
-@__builtin operator >= (lhs: int64, rhs: int64) -> bool;
-@__builtin operator >= (lhs: uint8,  rhs: uint8)  -> bool;
-@__builtin operator >= (lhs: uint16, rhs: uint16) -> bool;
-@__builtin operator >= (lhs: uint32, rhs: uint32) -> bool;
-@__builtin operator >= (lhs: uint64, rhs: uint64) -> bool;
-@__builtin operator >= (lhs: float32, rhs: float32) -> bool;
-@__builtin operator >= (lhs: float64, rhs: float64) -> bool;
-@__builtin operator >= (lhs: char, rhs: char) -> bool;
-@__builtin operator >= (lhs: *const auto, rhs: *const auto) -> (if consteval (typeof lhs != typeof rhs) { unreachable } else {}, bool);
+@__builtin export operator >= (lhs: int8,  rhs: int8)  -> bool;
+@__builtin export operator >= (lhs: int16, rhs: int16) -> bool;
+@__builtin export operator >= (lhs: int32, rhs: int32) -> bool;
+@__builtin export operator >= (lhs: int64, rhs: int64) -> bool;
+@__builtin export operator >= (lhs: uint8,  rhs: uint8)  -> bool;
+@__builtin export operator >= (lhs: uint16, rhs: uint16) -> bool;
+@__builtin export operator >= (lhs: uint32, rhs: uint32) -> bool;
+@__builtin export operator >= (lhs: uint64, rhs: uint64) -> bool;
+@__builtin export operator >= (lhs: float32, rhs: float32) -> bool;
+@__builtin export operator >= (lhs: float64, rhs: float64) -> bool;
+@__builtin export operator >= (lhs: char, rhs: char) -> bool;
+@__builtin export operator >= (lhs: *const auto, rhs: *const auto)
+	-> (if consteval (typeof lhs != typeof rhs) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"mismatched pointer types '",
+			__builtin_typename_as_str(__builtin_remove_reference(typeof lhs)),
+			"' and '",
+			__builtin_typename_as_str(typeof rhs),
+			"' in comparison operator"
+		)));
+	} else {}, bool);
 
-@__builtin operator & (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator & (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator & (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator & (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator & (lhs: bool, rhs: bool) -> bool;
+@__builtin export operator & (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator & (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator & (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator & (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator & (lhs: bool, rhs: bool) -> bool;
 
-@__builtin operator &= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator &= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator &= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator &= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator &= (lhs: &bool, rhs: bool) -> &bool;
+@__builtin export operator &= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator &= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator &= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator &= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator &= (lhs: &bool, rhs: bool) -> &bool;
 
-@__builtin operator ^ (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator ^ (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator ^ (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator ^ (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator ^ (lhs: bool, rhs: bool) -> bool;
+@__builtin export operator ^ (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator ^ (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator ^ (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator ^ (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator ^ (lhs: bool, rhs: bool) -> bool;
 
-@__builtin operator ^= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator ^= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator ^= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator ^= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator ^= (lhs: &bool, rhs: bool) -> &bool;
+@__builtin export operator ^= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator ^= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator ^= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator ^= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator ^= (lhs: &bool, rhs: bool) -> &bool;
 
-@__builtin operator | (lhs: uint8,  rhs: uint8)  -> uint8;
-@__builtin operator | (lhs: uint16, rhs: uint16) -> uint16;
-@__builtin operator | (lhs: uint32, rhs: uint32) -> uint32;
-@__builtin operator | (lhs: uint64, rhs: uint64) -> uint64;
-@__builtin operator | (lhs: bool, rhs: bool) -> bool;
+@__builtin export operator | (lhs: uint8,  rhs: uint8)  -> uint8;
+@__builtin export operator | (lhs: uint16, rhs: uint16) -> uint16;
+@__builtin export operator | (lhs: uint32, rhs: uint32) -> uint32;
+@__builtin export operator | (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator | (lhs: bool, rhs: bool) -> bool;
 
-@__builtin operator |= (lhs: &uint8,  rhs: uint8)  -> &uint8;
-@__builtin operator |= (lhs: &uint16, rhs: uint16) -> &uint16;
-@__builtin operator |= (lhs: &uint32, rhs: uint32) -> &uint32;
-@__builtin operator |= (lhs: &uint64, rhs: uint64) -> &uint64;
-@__builtin operator |= (lhs: &bool, rhs: bool) -> &bool;
+@__builtin export operator |= (lhs: &uint8,  rhs: uint8)  -> &uint8;
+@__builtin export operator |= (lhs: &uint16, rhs: uint16) -> &uint16;
+@__builtin export operator |= (lhs: &uint32, rhs: uint32) -> &uint32;
+@__builtin export operator |= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator |= (lhs: &bool, rhs: bool) -> &bool;
 
-@__builtin operator << (lhs: uint8,  rhs:  int64) -> uint8;
-@__builtin operator << (lhs: uint8,  rhs: uint64) -> uint8;
-@__builtin operator << (lhs: uint16, rhs:  int64) -> uint16;
-@__builtin operator << (lhs: uint16, rhs: uint64) -> uint16;
-@__builtin operator << (lhs: uint32, rhs:  int64) -> uint32;
-@__builtin operator << (lhs: uint32, rhs: uint64) -> uint32;
-@__builtin operator << (lhs: uint64, rhs:  int64) -> uint64;
-@__builtin operator << (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator << (lhs: uint8,  rhs:  int64) -> uint8;
+@__builtin export operator << (lhs: uint8,  rhs: uint64) -> uint8;
+@__builtin export operator << (lhs: uint16, rhs:  int64) -> uint16;
+@__builtin export operator << (lhs: uint16, rhs: uint64) -> uint16;
+@__builtin export operator << (lhs: uint32, rhs:  int64) -> uint32;
+@__builtin export operator << (lhs: uint32, rhs: uint64) -> uint32;
+@__builtin export operator << (lhs: uint64, rhs:  int64) -> uint64;
+@__builtin export operator << (lhs: uint64, rhs: uint64) -> uint64;
 
-@__builtin operator <<= (lhs: &uint8,  rhs:  int64) -> &uint8;
-@__builtin operator <<= (lhs: &uint8,  rhs: uint64) -> &uint8;
-@__builtin operator <<= (lhs: &uint16, rhs:  int64) -> &uint16;
-@__builtin operator <<= (lhs: &uint16, rhs: uint64) -> &uint16;
-@__builtin operator <<= (lhs: &uint32, rhs:  int64) -> &uint32;
-@__builtin operator <<= (lhs: &uint32, rhs: uint64) -> &uint32;
-@__builtin operator <<= (lhs: &uint64, rhs:  int64) -> &uint64;
-@__builtin operator <<= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator <<= (lhs: &uint8,  rhs:  int64) -> &uint8;
+@__builtin export operator <<= (lhs: &uint8,  rhs: uint64) -> &uint8;
+@__builtin export operator <<= (lhs: &uint16, rhs:  int64) -> &uint16;
+@__builtin export operator <<= (lhs: &uint16, rhs: uint64) -> &uint16;
+@__builtin export operator <<= (lhs: &uint32, rhs:  int64) -> &uint32;
+@__builtin export operator <<= (lhs: &uint32, rhs: uint64) -> &uint32;
+@__builtin export operator <<= (lhs: &uint64, rhs:  int64) -> &uint64;
+@__builtin export operator <<= (lhs: &uint64, rhs: uint64) -> &uint64;
 
-@__builtin operator >> (lhs: uint8,  rhs:  int64) -> uint8;
-@__builtin operator >> (lhs: uint8,  rhs: uint64) -> uint8;
-@__builtin operator >> (lhs: uint16, rhs:  int64) -> uint16;
-@__builtin operator >> (lhs: uint16, rhs: uint64) -> uint16;
-@__builtin operator >> (lhs: uint32, rhs:  int64) -> uint32;
-@__builtin operator >> (lhs: uint32, rhs: uint64) -> uint32;
-@__builtin operator >> (lhs: uint64, rhs:  int64) -> uint64;
-@__builtin operator >> (lhs: uint64, rhs: uint64) -> uint64;
+@__builtin export operator >> (lhs: uint8,  rhs:  int64) -> uint8;
+@__builtin export operator >> (lhs: uint8,  rhs: uint64) -> uint8;
+@__builtin export operator >> (lhs: uint16, rhs:  int64) -> uint16;
+@__builtin export operator >> (lhs: uint16, rhs: uint64) -> uint16;
+@__builtin export operator >> (lhs: uint32, rhs:  int64) -> uint32;
+@__builtin export operator >> (lhs: uint32, rhs: uint64) -> uint32;
+@__builtin export operator >> (lhs: uint64, rhs:  int64) -> uint64;
+@__builtin export operator >> (lhs: uint64, rhs: uint64) -> uint64;
 
-@__builtin operator >>= (lhs: &uint8,  rhs:  int64) -> &uint8;
-@__builtin operator >>= (lhs: &uint8,  rhs: uint64) -> &uint8;
-@__builtin operator >>= (lhs: &uint16, rhs:  int64) -> &uint16;
-@__builtin operator >>= (lhs: &uint16, rhs: uint64) -> &uint16;
-@__builtin operator >>= (lhs: &uint32, rhs:  int64) -> &uint32;
-@__builtin operator >>= (lhs: &uint32, rhs: uint64) -> &uint32;
-@__builtin operator >>= (lhs: &uint64, rhs:  int64) -> &uint64;
-@__builtin operator >>= (lhs: &uint64, rhs: uint64) -> &uint64;
+@__builtin export operator >>= (lhs: &uint8,  rhs:  int64) -> &uint8;
+@__builtin export operator >>= (lhs: &uint8,  rhs: uint64) -> &uint8;
+@__builtin export operator >>= (lhs: &uint16, rhs:  int64) -> &uint16;
+@__builtin export operator >>= (lhs: &uint16, rhs: uint64) -> &uint16;
+@__builtin export operator >>= (lhs: &uint32, rhs:  int64) -> &uint32;
+@__builtin export operator >>= (lhs: &uint32, rhs: uint64) -> &uint32;
+@__builtin export operator >>= (lhs: &uint64, rhs:  int64) -> &uint64;
+@__builtin export operator >>= (lhs: &uint64, rhs: uint64) -> &uint64;

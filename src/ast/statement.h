@@ -484,6 +484,8 @@ struct function_body
 
 		comptime_create_global_string,
 
+		comptime_concatenate_strs,
+
 		// type manipulation functions
 
 		typename_as_str,
@@ -507,6 +509,9 @@ struct function_body
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
+
+		lifetime_start,
+		lifetime_end,
 
 		memcpy,
 		memmove,
@@ -1391,7 +1396,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 133);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 136);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1436,6 +1441,8 @@ constexpr auto intrinsic_info = []() {
 
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
+		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
+
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 
 		{ function_body::is_const,          "__builtin_is_const"          },
@@ -1457,6 +1464,9 @@ constexpr auto intrinsic_info = []() {
 
 		// llvm intrinsics (https://releases.llvm.org/10.0.0/docs/LangRef.html#standard-c-library-intrinsics)
 		// and other C standard library functions
+
+		{ function_body::lifetime_start, "__builtin_lifetime_start" },
+		{ function_body::lifetime_end,   "__builtin_lifetime_end"   },
 
 		{ function_body::memcpy,  "__builtin_memcpy"  },
 		{ function_body::memmove, "__builtin_memmove" },

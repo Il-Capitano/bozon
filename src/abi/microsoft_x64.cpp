@@ -4,6 +4,8 @@ namespace abi
 {
 
 static constexpr bz::array pass_by_reference_attributes_microsoft_x64 = {
+	llvm::Attribute::NoAlias,
+	llvm::Attribute::NoCapture,
 	llvm::Attribute::NonNull,
 };
 

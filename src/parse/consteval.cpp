@@ -1727,7 +1727,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 133);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 136);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1899,6 +1899,30 @@ static ast::constant_value evaluate_intrinsic_function_call(
 		}
 		return {};
 
+	case ast::function_body::comptime_concatenate_strs:
+	{
+		bz_assert(func_call.params.is_all([](auto const &param) {
+			return param.template is<ast::constant_expression>();
+		}));
+		bz_assert(func_call.params.is_all([](auto const &param) {
+			return param
+				.template get<ast::constant_expression>().value
+				.template is<ast::constant_value::string>();
+		}));
+
+		auto result = func_call.params
+			.transform([](auto const &param) -> auto const & {
+				return param
+					.template get<ast::constant_expression>().value
+					.template get<ast::constant_value::string>();
+			})
+			.reduce(bz::u8string(), [](auto lhs, auto const &rhs) {
+				lhs += rhs;
+				return lhs;
+			});
+		return ast::constant_value(std::move(result));
+	}
+
 	case ast::function_body::typename_as_str:
 	{
 		bz_assert(func_call.params.size() == 1);
@@ -1972,6 +1996,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			.get<ast::constant_value::type>().as_typespec_view();
 		return ast::constant_value(ast::is_trivially_destructible(type));
 	}
+
+	case ast::function_body::lifetime_start:
+	case ast::function_body::lifetime_end:
+		return {};
 
 	case ast::function_body::memcpy:
 	case ast::function_body::memmove:

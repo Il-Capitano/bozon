@@ -2642,7 +2642,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 133);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 136);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -2865,6 +2865,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::comptime_compile_warning:
 		case ast::function_body::comptime_compile_error_src_tokens:
 		case ast::function_body::comptime_compile_warning_src_tokens:
+		case ast::function_body::comptime_concatenate_strs:
 			// these are handled already because they are marked as 'consteval'
 			bz_assert(func_call.func_body->is_only_consteval());
 			bz_unreachable;
@@ -4034,6 +4035,7 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(context.loop_info.break_bb != nullptr);
 	context.emit_loop_destructor_calls();
+	context.emit_loop_end_lifetime_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.break_bb);
 	return val_ptr::get_none();
@@ -4048,6 +4050,7 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(context.loop_info.continue_bb != nullptr);
 	context.emit_loop_destructor_calls();
+	context.emit_loop_end_lifetime_calls();
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.continue_bb);
 	return val_ptr::get_none();
@@ -4482,6 +4485,7 @@ static void emit_bitcode(
 	if (ret_stmt.expr.is_null())
 	{
 		context.emit_all_destructor_calls();
+		context.emit_all_end_lifetime_calls();
 		if (context.current_function.first->is_main())
 		{
 			context.builder.CreateRet(llvm::ConstantInt::get(context.get_int32_t(), 0));
@@ -4497,6 +4501,7 @@ static void emit_bitcode(
 		{
 			auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
 			context.emit_all_destructor_calls();
+			context.emit_all_end_lifetime_calls();
 			bz_assert(ret_val.kind == val_ptr::reference);
 			context.builder.CreateRet(ret_val.val);
 		}
@@ -4504,6 +4509,7 @@ static void emit_bitcode(
 		{
 			emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
 			context.emit_all_destructor_calls();
+			context.emit_all_end_lifetime_calls();
 			context.builder.CreateRetVoid();
 		}
 		else
@@ -4519,6 +4525,7 @@ static void emit_bitcode(
 			{
 				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, nullptr).get_value(context.builder);
 				context.emit_all_destructor_calls();
+				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(ret_val);
 				break;
 			}
@@ -4531,6 +4538,7 @@ static void emit_bitcode(
 				emit_bitcode<abi>(ret_stmt.expr, context, alloca);
 				auto const result = context.create_load(ret_type, result_ptr);
 				context.emit_all_destructor_calls();
+				context.emit_all_end_lifetime_calls();
 				context.builder.CreateRet(result);
 				break;
 			}
@@ -4613,7 +4621,10 @@ static void emit_bitcode(
 	else
 	{
 		auto const type = get_llvm_type(var_decl.get_type(), context);
-		auto const alloca = context.create_alloca(type);
+		auto const alloca = context.create_alloca_without_lifetime_start(type);
+		auto const size = context.get_size(type);
+		context.start_lifetime(alloca, size);
+		context.push_end_lifetime_call(alloca, size);
 		push_destructor_call(alloca, var_decl.get_type(), context);
 		if (var_decl.init_expr.not_null())
 		{
@@ -4985,10 +4996,12 @@ static void emit_function_bitcode_impl(
 				bz_assert(p.init_expr.is<ast::constant_expression>());
 				auto const &const_expr = p.init_expr.get<ast::constant_expression>();
 				auto const val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
-				auto const val_type = val->getType();
-				auto const alloca = context.create_alloca(val_type);
+				auto const alloca = context.create_alloca_without_lifetime_start(val->getType());
+				auto const size = context.get_size(val->getType());
+				context.start_lifetime(alloca, size);
+				context.push_end_lifetime_call(alloca, size);
 				context.builder.CreateStore(val, alloca);
-				add_variable_helper(p, alloca, val_type, context);
+				add_variable_helper(p, alloca, val->getType(), context);
 				++p_it;
 				continue;
 			}
@@ -5019,24 +5032,32 @@ static void emit_function_bitcode_impl(
 					break;
 				case abi::pass_kind::value:
 				{
-					auto const alloca = context.create_alloca(t);
+					auto const alloca = context.create_alloca_without_lifetime_start(t);
+					auto const size = context.get_size(t);
+					context.start_lifetime(alloca, size);
 					context.builder.CreateStore(fn_it, alloca);
+					context.push_end_lifetime_call(alloca, size);
 					push_destructor_call(alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::one_register:
 				{
-					auto const alloca = context.create_alloca(t);
+					auto const alloca = context.create_alloca_without_lifetime_start(t);
+					auto const size = context.get_size(t);
+					context.start_lifetime(alloca, size);
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
+					context.push_end_lifetime_call(alloca, size);
 					push_destructor_call(alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
 				case abi::pass_kind::two_registers:
 				{
-					auto const alloca = context.create_alloca(t);
+					auto const alloca = context.create_alloca_without_lifetime_start(t);
+					auto const size = context.get_size(t);
+					context.start_lifetime(alloca, size);
 					auto const first_val = fn_it;
 					auto const first_type = fn_it->getType();
 					++fn_it;
@@ -5050,6 +5071,7 @@ static void emit_function_bitcode_impl(
 					auto const second_address = context.create_struct_gep(struct_type, alloca_cast, 1);
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
+					context.push_end_lifetime_call(alloca, size);
 					push_destructor_call(alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
