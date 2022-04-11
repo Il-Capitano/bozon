@@ -1142,37 +1142,37 @@ public:
 	}
 };
 
-constexpr bool is_integer_kind(uint32_t kind)
+constexpr bool is_integer_kind(uint8_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::uint64_;
 }
 
-constexpr bool is_unsigned_integer_kind(uint32_t kind)
+constexpr bool is_unsigned_integer_kind(uint8_t kind)
 {
 	return kind >= ast::type_info::uint8_
 		&& kind <= ast::type_info::uint64_;
 }
 
-constexpr bool is_signed_integer_kind(uint32_t kind)
+constexpr bool is_signed_integer_kind(uint8_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::int64_;
 }
 
-constexpr bool is_floating_point_kind(uint32_t kind)
+constexpr bool is_floating_point_kind(uint8_t kind)
 {
 	return kind == ast::type_info::float32_
 		|| kind == ast::type_info::float64_;
 }
 
-constexpr bool is_arithmetic_kind(uint32_t kind)
+constexpr bool is_arithmetic_kind(uint8_t kind)
 {
 	return kind >= ast::type_info::int8_
 		&& kind <= ast::type_info::float64_;
 }
 
-inline bz::u8string_view get_type_name_from_kind(uint32_t kind)
+inline bz::u8string_view get_type_name_from_kind(uint8_t kind)
 {
 	switch (kind)
 	{

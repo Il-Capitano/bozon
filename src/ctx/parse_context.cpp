@@ -3817,7 +3817,7 @@ ast::expression parse_context::make_binary_operator_expression(
 		args.reserve(2);
 		args.emplace_back(std::move(lhs));
 		args.emplace_back(std::move(rhs));
-		auto [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
+		auto const [_, best_body] = find_best_match(src_tokens, possible_funcs, args, *this);
 		if (best_body == nullptr)
 		{
 			return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(args[0]), std::move(args[1])));
