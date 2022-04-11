@@ -10,7 +10,6 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
@@ -61,10 +60,11 @@
 
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/MC/MCAsmInfo.h>
+#include <llvm/MC/TargetRegistry.h>
 
-#if LLVM_VERSION_MAJOR < 13
-#error LLVM 13 is required
-#endif // LLVM 13
+#if LLVM_VERSION_MAJOR < 14
+#error LLVM 14 is required
+#endif // LLVM 14
 
 namespace ctx
 {
@@ -662,7 +662,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto const features = "";
 
 	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	auto rm = llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
 	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
 	this->_data_layout = this->_target_machine->createDataLayout();

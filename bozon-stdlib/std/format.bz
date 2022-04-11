@@ -1334,6 +1334,8 @@ function format_float64_fixed(x: float64, buffer: &format_buffer, fmt_spec: form
 {
 	// most results should fit in this buffer
 	let static_buffer: [32: uint8];
+	const finite = isfinite(x);
+	fmt_spec.zero_pad &= finite;
 
 	const abs_x = abs_f64(x);
 	const leading_digit_count = {
@@ -1386,9 +1388,9 @@ function format_float64_exponential(x: float64, buffer: &format_buffer, fmt_spec
 {
 	// most results should fit in this buffer
 	let static_buffer: [32: uint8];
-	// sign + "X." + precision + e+XXX
 	const finite = isfinite(x);
 	fmt_spec.zero_pad &= finite;
+	// sign + "X." + precision + e+XXX
 	const result_len = if (!finite) {
 		// sign + "inf" or "nan"
 		4u
@@ -1504,13 +1506,8 @@ function format_float64_percentage(x: float64, buffer: &format_buffer, fmt_spec:
 		}
 		i
 	};
-	const result_len = if (fmt_spec.precision == 0u) {
-		// sign + leading digits + '%'
-		1u + leading_digit_count + 1u
-	} else {
-		// sign + leading digits + dot + precision + '%'
-		1u + leading_digit_count + 1u + fmt_spec.precision + 1u
-	};
+	// sign + leading digits + dot + precision + '%'
+	const result_len = 1u + leading_digit_count + 1u + fmt_spec.precision + 1u;
 	const result_buffer = if (result_len <= static_buffer.size()) {
 		static_buffer.begin()
 	} else {

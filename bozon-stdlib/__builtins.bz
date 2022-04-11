@@ -62,14 +62,22 @@ export function __builtin_str_ends_with(s: str, postfix: str) -> bool
 
 @__builtin export function __builtin_str_begin_ptr(s: str) -> *const uint8;
 @__builtin export function __builtin_str_end_ptr(s: str) -> *const uint8;
-@__builtin export function __builtin_str_size(s: str) -> usize;
+@__builtin
+export function __builtin_str_size(s: str) -> usize
+{
+	return (__builtin_str_end_ptr(s) - __builtin_str_begin_ptr(s)) as usize;
+}
 @__builtin export function __builtin_str_from_ptrs(begin: *const uint8, end: *const uint8) -> str;
 
 @__builtin export function __builtin_slice_begin_ptr(slice: [: auto]) -> typeof &slice[0];
 @__builtin export function __builtin_slice_begin_const_ptr(slice: [: const auto]) -> typeof &slice[0];
 @__builtin export function __builtin_slice_end_ptr(slice: [: auto]) -> typeof &slice[0];
 @__builtin export function __builtin_slice_end_const_ptr(slice: [: const auto]) -> typeof &slice[0];
-@__builtin export function __builtin_slice_size(slice: [: const auto]) -> usize;
+@__builtin
+export function __builtin_slice_size(slice: [: const auto]) -> usize
+{
+	return (__builtin_slice_end_const_ptr(slice) - __builtin_slice_begin_const_ptr(slice)) as usize;
+}
 @__builtin export function __builtin_slice_from_ptrs(begin: *auto, end: *auto)
 	-> (if consteval (typeof begin != typeof end) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
