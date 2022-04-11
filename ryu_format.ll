@@ -473,89 +473,82 @@ bool_and_rhs:                                     ; preds = %endif
 
 bool_and_end:                                     ; preds = %bool_and_rhs, %endif
   %bool_and_tmp = phi i1 [ false, %endif ], [ %68, %bool_and_rhs ]
-  br i1 %bool_and_tmp, label %then14, label %endif60
+  br i1 %bool_and_tmp, label %then14, label %endif53
 
 then14:                                           ; preds = %bool_and_end
   %69 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %69)
   store i32 0, i32* %14, align 4
   %load_tmp15 = load i1, i1* %11, align 1
-  br i1 %load_tmp15, label %then16, label %endif21
+  br i1 %load_tmp15, label %then16, label %endif20
 
 then16:                                           ; preds = %then14
   %load_tmp17 = load i8*, i8** %7, align 8
   %load_tmp18 = load i32, i32* %14, align 4
-  %cast_tmp19 = sext i32 %load_tmp18 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp17, i64 %cast_tmp19
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp17, i32 %load_tmp18
   store i8 45, i8* %ptr_add_tmp, align 1
-  %load_tmp20 = load i32, i32* %14, align 4
-  %70 = add i32 %load_tmp20, 1
+  %load_tmp19 = load i32, i32* %14, align 4
+  %70 = add i32 %load_tmp19, 1
   store i32 %70, i32* %14, align 4
-  br label %endif21
+  br label %endif20
 
-endif21:                                          ; preds = %then16, %then14
-  %load_tmp22 = load i8*, i8** %7, align 8
-  %load_tmp23 = load i32, i32* %14, align 4
-  %cast_tmp24 = sext i32 %load_tmp23 to i64
-  %ptr_add_tmp25 = getelementptr i8, i8* %load_tmp22, i64 %cast_tmp24
-  store i8 48, i8* %ptr_add_tmp25, align 1
-  %load_tmp26 = load i32, i32* %14, align 4
-  %71 = add i32 %load_tmp26, 1
+endif20:                                          ; preds = %then16, %then14
+  %load_tmp21 = load i8*, i8** %7, align 8
+  %load_tmp22 = load i32, i32* %14, align 4
+  %ptr_add_tmp23 = getelementptr i8, i8* %load_tmp21, i32 %load_tmp22
+  store i8 48, i8* %ptr_add_tmp23, align 1
+  %load_tmp24 = load i32, i32* %14, align 4
+  %71 = add i32 %load_tmp24, 1
   store i32 %71, i32* %14, align 4
-  %load_tmp27 = load i32, i32* %6, align 4
-  %72 = icmp ugt i32 %load_tmp27, 0
-  br i1 %72, label %then28, label %endif42
+  %load_tmp25 = load i32, i32* %6, align 4
+  %72 = icmp ugt i32 %load_tmp25, 0
+  br i1 %72, label %then26, label %endif38
 
-then28:                                           ; preds = %endif21
-  %load_tmp29 = load i8*, i8** %7, align 8
+then26:                                           ; preds = %endif20
+  %load_tmp27 = load i8*, i8** %7, align 8
+  %load_tmp28 = load i32, i32* %14, align 4
+  %ptr_add_tmp29 = getelementptr i8, i8* %load_tmp27, i32 %load_tmp28
+  store i8 46, i8* %ptr_add_tmp29, align 1
   %load_tmp30 = load i32, i32* %14, align 4
-  %cast_tmp31 = sext i32 %load_tmp30 to i64
-  %ptr_add_tmp32 = getelementptr i8, i8* %load_tmp29, i64 %cast_tmp31
-  store i8 46, i8* %ptr_add_tmp32, align 1
-  %load_tmp33 = load i32, i32* %14, align 4
-  %73 = add i32 %load_tmp33, 1
+  %73 = add i32 %load_tmp30, 1
   store i32 %73, i32* %14, align 4
-  %load_tmp34 = load i8*, i8** %7, align 8
-  %load_tmp35 = load i32, i32* %14, align 4
-  %cast_tmp36 = sext i32 %load_tmp35 to i64
-  %ptr_add_tmp37 = getelementptr i8, i8* %load_tmp34, i64 %cast_tmp36
-  %load_tmp38 = load i32, i32* %6, align 4
-  %cast_tmp39 = zext i32 %load_tmp38 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp37, i8 48, i64 %cast_tmp39, i1 false)
-  %load_tmp40 = load i32, i32* %6, align 4
-  %load_tmp41 = load i32, i32* %14, align 4
-  %add_tmp = add i32 %load_tmp41, %load_tmp40
+  %load_tmp31 = load i8*, i8** %7, align 8
+  %load_tmp32 = load i32, i32* %14, align 4
+  %ptr_add_tmp33 = getelementptr i8, i8* %load_tmp31, i32 %load_tmp32
+  %load_tmp34 = load i32, i32* %6, align 4
+  %cast_tmp35 = zext i32 %load_tmp34 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp33, i8 48, i64 %cast_tmp35, i1 false)
+  %load_tmp36 = load i32, i32* %6, align 4
+  %load_tmp37 = load i32, i32* %14, align 4
+  %add_tmp = add i32 %load_tmp37, %load_tmp36
   store i32 %add_tmp, i32* %14, align 4
-  br label %endif42
+  br label %endif38
 
-endif42:                                          ; preds = %then28, %endif21
-  %load_tmp43 = load i1, i1* %8, align 1
-  br i1 %load_tmp43, label %then44, label %else
+endif38:                                          ; preds = %then26, %endif20
+  %load_tmp39 = load i1, i1* %8, align 1
+  br i1 %load_tmp39, label %then40, label %else
 
-then44:                                           ; preds = %endif42
-  %load_tmp45 = load i8*, i8** %7, align 8
-  %load_tmp46 = load i32, i32* %14, align 4
-  %cast_tmp47 = sext i32 %load_tmp46 to i64
-  %ptr_add_tmp48 = getelementptr i8, i8* %load_tmp45, i64 %cast_tmp47
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp48, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.str, i32 0, i32 0), i64 4, i1 false)
-  br label %endif53
+then40:                                           ; preds = %endif38
+  %load_tmp41 = load i8*, i8** %7, align 8
+  %load_tmp42 = load i32, i32* %14, align 4
+  %ptr_add_tmp43 = getelementptr i8, i8* %load_tmp41, i32 %load_tmp42
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp43, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.str, i32 0, i32 0), i64 4, i1 false)
+  br label %endif47
 
-else:                                             ; preds = %endif42
-  %load_tmp49 = load i8*, i8** %7, align 8
-  %load_tmp50 = load i32, i32* %14, align 4
-  %cast_tmp51 = sext i32 %load_tmp50 to i64
-  %ptr_add_tmp52 = getelementptr i8, i8* %load_tmp49, i64 %cast_tmp51
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp52, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.str.1, i32 0, i32 0), i64 4, i1 false)
-  br label %endif53
+else:                                             ; preds = %endif38
+  %load_tmp44 = load i8*, i8** %7, align 8
+  %load_tmp45 = load i32, i32* %14, align 4
+  %ptr_add_tmp46 = getelementptr i8, i8* %load_tmp44, i32 %load_tmp45
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp46, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.str.1, i32 0, i32 0), i64 4, i1 false)
+  br label %endif47
 
-endif53:                                          ; preds = %else, %then44
-  %load_tmp54 = load i32, i32* %14, align 4
-  %add_tmp55 = add i32 %load_tmp54, 4
-  store i32 %add_tmp55, i32* %14, align 4
-  %load_tmp56 = load i8*, i8** %7, align 8
-  %load_tmp57 = load i32, i32* %14, align 4
-  %cast_tmp58 = sext i32 %load_tmp57 to i64
-  %ptr_add_tmp59 = getelementptr i8, i8* %load_tmp56, i64 %cast_tmp58
+endif47:                                          ; preds = %else, %then40
+  %load_tmp48 = load i32, i32* %14, align 4
+  %add_tmp49 = add i32 %load_tmp48, 4
+  store i32 %add_tmp49, i32* %14, align 4
+  %load_tmp50 = load i8*, i8** %7, align 8
+  %load_tmp51 = load i32, i32* %14, align 4
+  %ptr_add_tmp52 = getelementptr i8, i8* %load_tmp50, i32 %load_tmp51
   %74 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %74)
   %75 = bitcast i32* %13 to i8*
@@ -576,62 +569,61 @@ endif53:                                          ; preds = %else, %then44
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %82)
   %83 = bitcast double* %5 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %83)
-  ret i8* %ptr_add_tmp59
+  ret i8* %ptr_add_tmp52
 
-endif60:                                          ; preds = %bool_and_end
+endif53:                                          ; preds = %bool_and_end
   %84 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %84)
   store i32 0, i32* %15, align 4
   %85 = bitcast i64* %16 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %85)
   store i64 0, i64* %16, align 8
-  %load_tmp61 = load i32, i32* %13, align 4
-  %86 = icmp eq i32 %load_tmp61, 0
-  br i1 %86, label %then62, label %else64
+  %load_tmp54 = load i32, i32* %13, align 4
+  %86 = icmp eq i32 %load_tmp54, 0
+  br i1 %86, label %then55, label %else57
 
-then62:                                           ; preds = %endif60
+then55:                                           ; preds = %endif53
   store i32 -1074, i32* %15, align 4
-  %load_tmp63 = load i64, i64* %12, align 8
-  store i64 %load_tmp63, i64* %16, align 8
-  br label %endif68
+  %load_tmp56 = load i64, i64* %12, align 8
+  store i64 %load_tmp56, i64* %16, align 8
+  br label %endif61
 
-else64:                                           ; preds = %endif60
-  %load_tmp65 = load i32, i32* %13, align 4
-  %sub_tmp = sub i32 %load_tmp65, 1023
-  %sub_tmp66 = sub i32 %sub_tmp, 52
-  store i32 %sub_tmp66, i32* %15, align 4
-  %load_tmp67 = load i64, i64* %12, align 8
-  %bit_or_tmp = or i64 4503599627370496, %load_tmp67
+else57:                                           ; preds = %endif53
+  %load_tmp58 = load i32, i32* %13, align 4
+  %sub_tmp = sub i32 %load_tmp58, 1023
+  %sub_tmp59 = sub i32 %sub_tmp, 52
+  store i32 %sub_tmp59, i32* %15, align 4
+  %load_tmp60 = load i64, i64* %12, align 8
+  %bit_or_tmp = or i64 4503599627370496, %load_tmp60
   store i64 %bit_or_tmp, i64* %16, align 8
-  br label %endif68
+  br label %endif61
 
-endif68:                                          ; preds = %else64, %then62
+endif61:                                          ; preds = %else57, %then55
   %87 = bitcast i1* %17 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %87)
-  %load_tmp69 = load i32, i32* %6, align 4
-  %88 = icmp ugt i32 %load_tmp69, 0
+  %load_tmp62 = load i32, i32* %6, align 4
+  %88 = icmp ugt i32 %load_tmp62, 0
   store i1 %88, i1* %17, align 1
-  %load_tmp70 = load i32, i32* %6, align 4
-  %89 = add i32 %load_tmp70, 1
+  %load_tmp63 = load i32, i32* %6, align 4
+  %89 = add i32 %load_tmp63, 1
   store i32 %89, i32* %6, align 4
   %90 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %90)
   store i32 0, i32* %18, align 4
-  %load_tmp71 = load i1, i1* %11, align 1
-  br i1 %load_tmp71, label %then72, label %endif78
+  %load_tmp64 = load i1, i1* %11, align 1
+  br i1 %load_tmp64, label %then65, label %endif70
 
-then72:                                           ; preds = %endif68
-  %load_tmp73 = load i8*, i8** %7, align 8
-  %load_tmp74 = load i32, i32* %18, align 4
-  %cast_tmp75 = sext i32 %load_tmp74 to i64
-  %ptr_add_tmp76 = getelementptr i8, i8* %load_tmp73, i64 %cast_tmp75
-  store i8 45, i8* %ptr_add_tmp76, align 1
-  %load_tmp77 = load i32, i32* %18, align 4
-  %91 = add i32 %load_tmp77, 1
+then65:                                           ; preds = %endif61
+  %load_tmp66 = load i8*, i8** %7, align 8
+  %load_tmp67 = load i32, i32* %18, align 4
+  %ptr_add_tmp68 = getelementptr i8, i8* %load_tmp66, i32 %load_tmp67
+  store i8 45, i8* %ptr_add_tmp68, align 1
+  %load_tmp69 = load i32, i32* %18, align 4
+  %91 = add i32 %load_tmp69, 1
   store i32 %91, i32* %18, align 4
-  br label %endif78
+  br label %endif70
 
-endif78:                                          ; preds = %then72, %endif68
+endif70:                                          ; preds = %then65, %endif61
   %92 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %92)
   store i32 0, i32* %19, align 4
@@ -644,57 +636,57 @@ endif78:                                          ; preds = %then72, %endif68
   %95 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %95)
   store i32 0, i32* %22, align 4
-  %load_tmp79 = load i32, i32* %15, align 4
-  %96 = icmp sge i32 %load_tmp79, -52
-  br i1 %96, label %then80, label %endif157
+  %load_tmp71 = load i32, i32* %15, align 4
+  %96 = icmp sge i32 %load_tmp71, -52
+  br i1 %96, label %then72, label %endif145
 
-then80:                                           ; preds = %endif78
+then72:                                           ; preds = %endif70
   %97 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %97)
-  %load_tmp81 = load i32, i32* %15, align 4
-  %98 = icmp slt i32 %load_tmp81, 0
-  br i1 %98, label %then82, label %else83
+  %load_tmp73 = load i32, i32* %15, align 4
+  %98 = icmp slt i32 %load_tmp73, 0
+  br i1 %98, label %then74, label %else75
 
-then82:                                           ; preds = %then80
+then74:                                           ; preds = %then72
   store i32 0, i32* %23, align 4
-  br label %endif85
+  br label %endif77
 
-else83:                                           ; preds = %then80
-  %load_tmp84 = load i32, i32* %15, align 4
-  %99 = call i32 @func.std.ryu.indexForExponent..1.builtin.uint32.builtin.uint32(i32 %load_tmp84)
+else75:                                           ; preds = %then72
+  %load_tmp76 = load i32, i32* %15, align 4
+  %99 = call i32 @func.std.ryu.indexForExponent..1.builtin.uint32.builtin.uint32(i32 %load_tmp76)
   store i32 %99, i32* %23, align 4
-  br label %endif85
+  br label %endif77
 
-endif85:                                          ; preds = %else83, %then82
+endif77:                                          ; preds = %else75, %then74
   %100 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %100)
-  %load_tmp86 = load i32, i32* %23, align 4
-  %101 = call i32 @func.std.ryu.pow10BitsForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp86)
+  %load_tmp78 = load i32, i32* %23, align 4
+  %101 = call i32 @func.std.ryu.pow10BitsForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp78)
   store i32 %101, i32* %24, align 4
   %102 = bitcast i32* %25 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %102)
-  %load_tmp87 = load i32, i32* %23, align 4
-  %103 = call i32 @func.std.ryu.lengthForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp87)
+  %load_tmp79 = load i32, i32* %23, align 4
+  %103 = call i32 @func.std.ryu.lengthForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp79)
   store i32 %103, i32* %25, align 4
   %104 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %104)
-  %load_tmp88 = load i32, i32* %25, align 4
-  %sub_tmp89 = sub i32 %load_tmp88, 1
-  store i32 %sub_tmp89, i32* %26, align 4
+  %load_tmp80 = load i32, i32* %25, align 4
+  %sub_tmp81 = sub i32 %load_tmp80, 1
+  store i32 %sub_tmp81, i32* %26, align 4
   br label %for_condition_check
 
-for_condition_check:                              ; preds = %for_iteration, %endif85
-  %load_tmp90 = load i32, i32* %26, align 4
-  %105 = icmp sge i32 %load_tmp90, 0
+for_condition_check:                              ; preds = %for_iteration, %endif77
+  %load_tmp82 = load i32, i32* %26, align 4
+  %105 = icmp sge i32 %load_tmp82, 0
   br i1 %105, label %for, label %endfor
 
-for_iteration:                                    ; preds = %endif156
-  %load_tmp91 = load i32, i32* %26, align 4
-  %106 = add i32 %load_tmp91, -1
+for_iteration:                                    ; preds = %endif144
+  %load_tmp83 = load i32, i32* %26, align 4
+  %106 = add i32 %load_tmp83, -1
   store i32 %106, i32* %26, align 4
   br label %for_condition_check
 
-endfor:                                           ; preds = %for_condition_check, %then129, %then108
+endfor:                                           ; preds = %for_condition_check, %then120, %then100
   %107 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %107)
   %108 = bitcast i32* %25 to i8*
@@ -703,910 +695,876 @@ endfor:                                           ; preds = %for_condition_check
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %109)
   %110 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %110)
-  br label %endif157
+  br label %endif145
 
 for:                                              ; preds = %for_condition_check
   %111 = bitcast i32* %27 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %111)
-  %load_tmp92 = load i32, i32* %24, align 4
-  %load_tmp93 = load i32, i32* %15, align 4
-  %sub_tmp94 = sub i32 %load_tmp92, %load_tmp93
-  store i32 %sub_tmp94, i32* %27, align 4
-  %load_tmp95 = load i64, i64* %16, align 8
-  %lshift_tmp = shl i64 %load_tmp95, 8
-  %load_tmp96 = load i32, i32* %23, align 4
-  %112 = zext i32 %load_tmp96 to i64
+  %load_tmp84 = load i32, i32* %24, align 4
+  %load_tmp85 = load i32, i32* %15, align 4
+  %sub_tmp86 = sub i32 %load_tmp84, %load_tmp85
+  store i32 %sub_tmp86, i32* %27, align 4
+  %load_tmp87 = load i64, i64* %16, align 8
+  %lshift_tmp = shl i64 %load_tmp87, 8
+  %load_tmp88 = load i32, i32* %23, align 4
+  %112 = zext i32 %load_tmp88 to i64
   %113 = getelementptr [64 x i16], [64 x i16]* @std.ryu.POW10_OFFSET, i64 0, i64 %112
-  %load_tmp97 = load i16, i16* %113, align 2
-  %cast_tmp98 = zext i16 %load_tmp97 to i32
-  %load_tmp99 = load i32, i32* %26, align 4
-  %add_tmp100 = add i32 %cast_tmp98, %load_tmp99
-  %114 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i32 %add_tmp100
+  %load_tmp89 = load i16, i16* %113, align 2
+  %cast_tmp90 = zext i16 %load_tmp89 to i32
+  %load_tmp91 = load i32, i32* %26, align 4
+  %add_tmp92 = add i32 %cast_tmp90, %load_tmp91
+  %114 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i32 %add_tmp92
   %115 = getelementptr inbounds [3 x i64], [3 x i64]* %114, i32 0, i32 0
   %116 = getelementptr inbounds [3 x i64], [3 x i64]* %114, i32 0, i32 3
   %117 = insertvalue { i64*, i64* } undef, i64* %115, 0
   %118 = insertvalue { i64*, i64* } %117, i64* %116, 1
   %119 = extractvalue { i64*, i64* } %118, 0
-  %load_tmp101 = load i32, i32* %27, align 4
-  %add_tmp102 = add i32 %load_tmp101, 8
-  %120 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp, i64* %119, i32 %add_tmp102)
+  %load_tmp93 = load i32, i32* %27, align 4
+  %add_tmp94 = add i32 %load_tmp93, 8
+  %120 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp, i64* %119, i32 %add_tmp94)
   store i32 %120, i32* %19, align 4
-  %load_tmp103 = load i32, i32* %20, align 4
-  %121 = icmp ne i32 %load_tmp103, 0
-  br i1 %121, label %then104, label %else119
+  %load_tmp95 = load i32, i32* %20, align 4
+  %121 = icmp ne i32 %load_tmp95, 0
+  br i1 %121, label %then96, label %else110
 
-then104:                                          ; preds = %for
-  %load_tmp105 = load i32, i32* %20, align 4
-  %add_tmp106 = add i32 %load_tmp105, 9
-  %load_tmp107 = load i32, i32* %6, align 4
-  %122 = icmp ugt i32 %add_tmp106, %load_tmp107
-  br i1 %122, label %then108, label %endif109
+then96:                                           ; preds = %for
+  %load_tmp97 = load i32, i32* %20, align 4
+  %add_tmp98 = add i32 %load_tmp97, 9
+  %load_tmp99 = load i32, i32* %6, align 4
+  %122 = icmp ugt i32 %add_tmp98, %load_tmp99
+  br i1 %122, label %then100, label %endif101
 
-then108:                                          ; preds = %then104
+then100:                                          ; preds = %then96
   store i32 9, i32* %21, align 4
   %123 = bitcast i32* %27 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %123)
   br label %endfor
 
-endif109:                                         ; preds = %then104
-  %load_tmp110 = load i32, i32* %19, align 4
-  %load_tmp111 = load i8*, i8** %7, align 8
-  %load_tmp112 = load i32, i32* %18, align 4
-  %cast_tmp113 = sext i32 %load_tmp112 to i64
-  %ptr_add_tmp114 = getelementptr i8, i8* %load_tmp111, i64 %cast_tmp113
-  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp110, i8* %ptr_add_tmp114)
-  %load_tmp115 = load i32, i32* %18, align 4
-  %add_tmp116 = add i32 %load_tmp115, 9
-  store i32 %add_tmp116, i32* %18, align 4
-  %load_tmp117 = load i32, i32* %20, align 4
-  %add_tmp118 = add i32 %load_tmp117, 9
-  store i32 %add_tmp118, i32* %20, align 4
-  br label %endif156
+endif101:                                         ; preds = %then96
+  %load_tmp102 = load i32, i32* %19, align 4
+  %load_tmp103 = load i8*, i8** %7, align 8
+  %load_tmp104 = load i32, i32* %18, align 4
+  %ptr_add_tmp105 = getelementptr i8, i8* %load_tmp103, i32 %load_tmp104
+  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp102, i8* %ptr_add_tmp105)
+  %load_tmp106 = load i32, i32* %18, align 4
+  %add_tmp107 = add i32 %load_tmp106, 9
+  store i32 %add_tmp107, i32* %18, align 4
+  %load_tmp108 = load i32, i32* %20, align 4
+  %add_tmp109 = add i32 %load_tmp108, 9
+  store i32 %add_tmp109, i32* %20, align 4
+  br label %endif144
 
-else119:                                          ; preds = %for
-  %load_tmp120 = load i32, i32* %19, align 4
-  %124 = icmp ne i32 %load_tmp120, 0
-  br i1 %124, label %then121, label %endif155
+else110:                                          ; preds = %for
+  %load_tmp111 = load i32, i32* %19, align 4
+  %124 = icmp ne i32 %load_tmp111, 0
+  br i1 %124, label %then112, label %endif143
 
-then121:                                          ; preds = %else119
-  %load_tmp122 = load i32, i32* %19, align 4
-  %125 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp122)
+then112:                                          ; preds = %else110
+  %load_tmp113 = load i32, i32* %19, align 4
+  %125 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp113)
   store i32 %125, i32* %21, align 4
-  %load_tmp123 = load i32, i32* %26, align 4
-  %mul_tmp = mul i32 %load_tmp123, 9
-  %load_tmp124 = load i32, i32* %21, align 4
-  %add_tmp125 = add i32 %mul_tmp, %load_tmp124
-  %sub_tmp126 = sub i32 %add_tmp125, 1
-  store i32 %sub_tmp126, i32* %22, align 4
-  %load_tmp127 = load i32, i32* %21, align 4
-  %load_tmp128 = load i32, i32* %6, align 4
-  %126 = icmp ugt i32 %load_tmp127, %load_tmp128
-  br i1 %126, label %then129, label %endif130
+  %load_tmp114 = load i32, i32* %26, align 4
+  %mul_tmp = mul i32 %load_tmp114, 9
+  %load_tmp115 = load i32, i32* %21, align 4
+  %add_tmp116 = add i32 %mul_tmp, %load_tmp115
+  %sub_tmp117 = sub i32 %add_tmp116, 1
+  store i32 %sub_tmp117, i32* %22, align 4
+  %load_tmp118 = load i32, i32* %21, align 4
+  %load_tmp119 = load i32, i32* %6, align 4
+  %126 = icmp ugt i32 %load_tmp118, %load_tmp119
+  br i1 %126, label %then120, label %endif121
 
-then129:                                          ; preds = %then121
+then120:                                          ; preds = %then112
   %127 = bitcast i32* %27 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %127)
   br label %endfor
 
-endif130:                                         ; preds = %then121
-  %load_tmp131 = load i1, i1* %17, align 1
-  br i1 %load_tmp131, label %then132, label %else143
+endif121:                                         ; preds = %then112
+  %load_tmp122 = load i1, i1* %17, align 1
+  br i1 %load_tmp122, label %then123, label %else133
 
-then132:                                          ; preds = %endif130
-  %load_tmp133 = load i32, i32* %21, align 4
+then123:                                          ; preds = %endif121
+  %load_tmp124 = load i32, i32* %21, align 4
+  %load_tmp125 = load i32, i32* %19, align 4
+  %load_tmp126 = load i8*, i8** %7, align 8
+  %load_tmp127 = load i32, i32* %18, align 4
+  %ptr_add_tmp128 = getelementptr i8, i8* %load_tmp126, i32 %load_tmp127
+  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp124, i32 %load_tmp125, i8* %ptr_add_tmp128)
+  %load_tmp129 = load i32, i32* %21, align 4
+  %add_tmp130 = add i32 %load_tmp129, 1
+  %load_tmp131 = load i32, i32* %18, align 4
+  %add_tmp132 = add i32 %load_tmp131, %add_tmp130
+  store i32 %add_tmp132, i32* %18, align 4
+  br label %endif141
+
+else133:                                          ; preds = %endif121
   %load_tmp134 = load i32, i32* %19, align 4
-  %load_tmp135 = load i8*, i8** %7, align 8
-  %load_tmp136 = load i32, i32* %18, align 4
-  %cast_tmp137 = sext i32 %load_tmp136 to i64
-  %ptr_add_tmp138 = getelementptr i8, i8* %load_tmp135, i64 %cast_tmp137
-  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp133, i32 %load_tmp134, i8* %ptr_add_tmp138)
-  %load_tmp139 = load i32, i32* %21, align 4
-  %add_tmp140 = add i32 %load_tmp139, 1
-  %load_tmp141 = load i32, i32* %18, align 4
-  %add_tmp142 = add i32 %load_tmp141, %add_tmp140
-  store i32 %add_tmp142, i32* %18, align 4
-  br label %endif153
+  %add_tmp135 = add i32 48, %load_tmp134
+  %cast_tmp136 = trunc i32 %add_tmp135 to i8
+  %load_tmp137 = load i8*, i8** %7, align 8
+  %load_tmp138 = load i32, i32* %18, align 4
+  %ptr_add_tmp139 = getelementptr i8, i8* %load_tmp137, i32 %load_tmp138
+  store i8 %cast_tmp136, i8* %ptr_add_tmp139, align 1
+  %load_tmp140 = load i32, i32* %18, align 4
+  %128 = add i32 %load_tmp140, 1
+  store i32 %128, i32* %18, align 4
+  br label %endif141
 
-else143:                                          ; preds = %endif130
-  %load_tmp144 = load i32, i32* %19, align 4
-  %cast_tmp145 = zext i32 %load_tmp144 to i64
-  %128 = trunc i64 %cast_tmp145 to i32
-  %add_tmp146 = add i32 48, %128
-  %cast_tmp147 = trunc i32 %add_tmp146 to i8
-  %load_tmp148 = load i8*, i8** %7, align 8
-  %load_tmp149 = load i32, i32* %18, align 4
-  %cast_tmp150 = sext i32 %load_tmp149 to i64
-  %ptr_add_tmp151 = getelementptr i8, i8* %load_tmp148, i64 %cast_tmp150
-  store i8 %cast_tmp147, i8* %ptr_add_tmp151, align 1
-  %load_tmp152 = load i32, i32* %18, align 4
-  %129 = add i32 %load_tmp152, 1
-  store i32 %129, i32* %18, align 4
-  br label %endif153
-
-endif153:                                         ; preds = %else143, %then132
-  %load_tmp154 = load i32, i32* %21, align 4
-  store i32 %load_tmp154, i32* %20, align 4
+endif141:                                         ; preds = %else133, %then123
+  %load_tmp142 = load i32, i32* %21, align 4
+  store i32 %load_tmp142, i32* %20, align 4
   store i32 0, i32* %21, align 4
-  br label %endif155
+  br label %endif143
 
-endif155:                                         ; preds = %endif153, %else119
-  br label %endif156
+endif143:                                         ; preds = %endif141, %else110
+  br label %endif144
 
-endif156:                                         ; preds = %endif155, %endif109
-  %130 = bitcast i32* %27 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %130)
+endif144:                                         ; preds = %endif143, %endif101
+  %129 = bitcast i32* %27 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %129)
   br label %for_iteration
 
-endif157:                                         ; preds = %endfor, %endif78
-  %load_tmp158 = load i32, i32* %15, align 4
-  %131 = icmp slt i32 %load_tmp158, 0
-  br i1 %131, label %bool_and_rhs159, label %bool_and_end161
+endif145:                                         ; preds = %endfor, %endif70
+  %load_tmp146 = load i32, i32* %15, align 4
+  %130 = icmp slt i32 %load_tmp146, 0
+  br i1 %130, label %bool_and_rhs147, label %bool_and_end149
 
-bool_and_rhs159:                                  ; preds = %endif157
-  %load_tmp160 = load i32, i32* %21, align 4
-  %132 = icmp eq i32 %load_tmp160, 0
-  br label %bool_and_end161
+bool_and_rhs147:                                  ; preds = %endif145
+  %load_tmp148 = load i32, i32* %21, align 4
+  %131 = icmp eq i32 %load_tmp148, 0
+  br label %bool_and_end149
 
-bool_and_end161:                                  ; preds = %bool_and_rhs159, %endif157
-  %bool_and_tmp162 = phi i1 [ false, %endif157 ], [ %132, %bool_and_rhs159 ]
-  br i1 %bool_and_tmp162, label %then163, label %endif259
+bool_and_end149:                                  ; preds = %bool_and_rhs147, %endif145
+  %bool_and_tmp150 = phi i1 [ false, %endif145 ], [ %131, %bool_and_rhs147 ]
+  br i1 %bool_and_tmp150, label %then151, label %endif243
 
-then163:                                          ; preds = %bool_and_end161
-  %133 = bitcast i32* %28 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %133)
-  %load_tmp164 = load i32, i32* %15, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp164
+then151:                                          ; preds = %bool_and_end149
+  %132 = bitcast i32* %28 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %132)
+  %load_tmp152 = load i32, i32* %15, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp152
   %div_tmp = sdiv i32 %unary_minus_tmp, 16
   store i32 %div_tmp, i32* %28, align 4
-  %134 = bitcast i32* %29 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %134)
-  %load_tmp165 = load i32, i32* %28, align 4
-  %135 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp165
-  %load_tmp166 = load i8, i8* %135, align 1
-  %cast_tmp167 = zext i8 %load_tmp166 to i32
-  store i32 %cast_tmp167, i32* %29, align 4
-  br label %for_condition_check168
+  %133 = bitcast i32* %29 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %133)
+  %load_tmp153 = load i32, i32* %28, align 4
+  %134 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp153
+  %load_tmp154 = load i8, i8* %134, align 1
+  %cast_tmp155 = zext i8 %load_tmp154 to i32
+  store i32 %cast_tmp155, i32* %29, align 4
+  br label %for_condition_check156
 
-for_condition_check168:                           ; preds = %for_iteration169, %then163
-  %load_tmp171 = load i32, i32* %29, align 4
-  %136 = icmp slt i32 %load_tmp171, 200
-  br i1 %136, label %for173, label %endfor170
+for_condition_check156:                           ; preds = %for_iteration157, %then151
+  %load_tmp159 = load i32, i32* %29, align 4
+  %135 = icmp slt i32 %load_tmp159, 200
+  br i1 %135, label %for161, label %endfor158
 
-for_iteration169:                                 ; preds = %endif258
-  %load_tmp172 = load i32, i32* %29, align 4
-  %137 = add i32 %load_tmp172, 1
-  store i32 %137, i32* %29, align 4
-  br label %for_condition_check168
+for_iteration157:                                 ; preds = %endif242
+  %load_tmp160 = load i32, i32* %29, align 4
+  %136 = add i32 %load_tmp160, 1
+  store i32 %136, i32* %29, align 4
+  br label %for_condition_check156
 
-endfor170:                                        ; preds = %for_condition_check168, %then231, %then207
-  %138 = bitcast i32* %29 to i8*
+endfor158:                                        ; preds = %for_condition_check156, %then218, %then195
+  %137 = bitcast i32* %29 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %137)
+  %138 = bitcast i32* %28 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %138)
-  %139 = bitcast i32* %28 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %139)
-  br label %endif259
+  br label %endif243
 
-for173:                                           ; preds = %for_condition_check168
-  %140 = bitcast i32* %30 to i8*
+for161:                                           ; preds = %for_condition_check156
+  %139 = bitcast i32* %30 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %139)
+  %load_tmp162 = load i32, i32* %15, align 4
+  %unary_minus_tmp163 = sub i32 0, %load_tmp162
+  %load_tmp164 = load i32, i32* %28, align 4
+  %mul_tmp165 = mul i32 16, %load_tmp164
+  %sub_tmp166 = sub i32 %unary_minus_tmp163, %mul_tmp165
+  %add_tmp167 = add i32 120, %sub_tmp166
+  store i32 %add_tmp167, i32* %30, align 4
+  %140 = bitcast i32* %31 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %140)
-  %load_tmp174 = load i32, i32* %15, align 4
-  %unary_minus_tmp175 = sub i32 0, %load_tmp174
-  %load_tmp176 = load i32, i32* %28, align 4
-  %mul_tmp177 = mul i32 16, %load_tmp176
-  %sub_tmp178 = sub i32 %unary_minus_tmp175, %mul_tmp177
-  %add_tmp179 = add i32 120, %sub_tmp178
-  store i32 %add_tmp179, i32* %30, align 4
-  %141 = bitcast i32* %31 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %141)
-  %load_tmp180 = load i32, i32* %28, align 4
-  %142 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %load_tmp180
-  %load_tmp181 = load i16, i16* %142, align 2
-  %cast_tmp182 = zext i16 %load_tmp181 to i32
-  %load_tmp183 = load i32, i32* %29, align 4
-  %add_tmp184 = add i32 %cast_tmp182, %load_tmp183
-  %load_tmp185 = load i32, i32* %28, align 4
-  %143 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp185
-  %load_tmp186 = load i8, i8* %143, align 1
-  %cast_tmp187 = zext i8 %load_tmp186 to i32
-  %sub_tmp188 = sub i32 %add_tmp184, %cast_tmp187
-  store i32 %sub_tmp188, i32* %31, align 4
-  %load_tmp189 = load i32, i32* %31, align 4
-  %load_tmp190 = load i32, i32* %28, align 4
-  %add_tmp191 = add i32 %load_tmp190, 1
-  %144 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %add_tmp191
-  %load_tmp192 = load i16, i16* %144, align 2
-  %cast_tmp193 = zext i16 %load_tmp192 to i32
-  %145 = icmp uge i32 %load_tmp189, %cast_tmp193
-  br i1 %145, label %then194, label %else195
+  %load_tmp168 = load i32, i32* %28, align 4
+  %141 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %load_tmp168
+  %load_tmp169 = load i16, i16* %141, align 2
+  %cast_tmp170 = zext i16 %load_tmp169 to i32
+  %load_tmp171 = load i32, i32* %29, align 4
+  %add_tmp172 = add i32 %cast_tmp170, %load_tmp171
+  %load_tmp173 = load i32, i32* %28, align 4
+  %142 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp173
+  %load_tmp174 = load i8, i8* %142, align 1
+  %cast_tmp175 = zext i8 %load_tmp174 to i32
+  %sub_tmp176 = sub i32 %add_tmp172, %cast_tmp175
+  store i32 %sub_tmp176, i32* %31, align 4
+  %load_tmp177 = load i32, i32* %31, align 4
+  %load_tmp178 = load i32, i32* %28, align 4
+  %add_tmp179 = add i32 %load_tmp178, 1
+  %143 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %add_tmp179
+  %load_tmp180 = load i16, i16* %143, align 2
+  %cast_tmp181 = zext i16 %load_tmp180 to i32
+  %144 = icmp uge i32 %load_tmp177, %cast_tmp181
+  br i1 %144, label %then182, label %else183
 
-then194:                                          ; preds = %for173
+then182:                                          ; preds = %for161
   store i32 0, i32* %19, align 4
-  br label %endif201
+  br label %endif189
 
-else195:                                          ; preds = %for173
-  %load_tmp196 = load i64, i64* %16, align 8
-  %lshift_tmp197 = shl i64 %load_tmp196, 8
-  %load_tmp198 = load i32, i32* %31, align 4
-  %146 = zext i32 %load_tmp198 to i64
-  %147 = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %146
-  %148 = getelementptr inbounds [3 x i64], [3 x i64]* %147, i32 0, i32 0
-  %149 = getelementptr inbounds [3 x i64], [3 x i64]* %147, i32 0, i32 3
-  %150 = insertvalue { i64*, i64* } undef, i64* %148, 0
-  %151 = insertvalue { i64*, i64* } %150, i64* %149, 1
-  %152 = extractvalue { i64*, i64* } %151, 0
-  %load_tmp199 = load i32, i32* %30, align 4
-  %add_tmp200 = add i32 %load_tmp199, 8
-  %153 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp197, i64* %152, i32 %add_tmp200)
-  store i32 %153, i32* %19, align 4
-  br label %endif201
+else183:                                          ; preds = %for161
+  %load_tmp184 = load i64, i64* %16, align 8
+  %lshift_tmp185 = shl i64 %load_tmp184, 8
+  %load_tmp186 = load i32, i32* %31, align 4
+  %145 = zext i32 %load_tmp186 to i64
+  %146 = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %145
+  %147 = getelementptr inbounds [3 x i64], [3 x i64]* %146, i32 0, i32 0
+  %148 = getelementptr inbounds [3 x i64], [3 x i64]* %146, i32 0, i32 3
+  %149 = insertvalue { i64*, i64* } undef, i64* %147, 0
+  %150 = insertvalue { i64*, i64* } %149, i64* %148, 1
+  %151 = extractvalue { i64*, i64* } %150, 0
+  %load_tmp187 = load i32, i32* %30, align 4
+  %add_tmp188 = add i32 %load_tmp187, 8
+  %152 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp185, i64* %151, i32 %add_tmp188)
+  store i32 %152, i32* %19, align 4
+  br label %endif189
 
-endif201:                                         ; preds = %else195, %then194
-  %load_tmp202 = load i32, i32* %20, align 4
-  %154 = icmp ne i32 %load_tmp202, 0
-  br i1 %154, label %then203, label %else218
+endif189:                                         ; preds = %else183, %then182
+  %load_tmp190 = load i32, i32* %20, align 4
+  %153 = icmp ne i32 %load_tmp190, 0
+  br i1 %153, label %then191, label %else205
 
-then203:                                          ; preds = %endif201
-  %load_tmp204 = load i32, i32* %20, align 4
-  %add_tmp205 = add i32 %load_tmp204, 9
-  %load_tmp206 = load i32, i32* %6, align 4
-  %155 = icmp ugt i32 %add_tmp205, %load_tmp206
-  br i1 %155, label %then207, label %endif208
+then191:                                          ; preds = %endif189
+  %load_tmp192 = load i32, i32* %20, align 4
+  %add_tmp193 = add i32 %load_tmp192, 9
+  %load_tmp194 = load i32, i32* %6, align 4
+  %154 = icmp ugt i32 %add_tmp193, %load_tmp194
+  br i1 %154, label %then195, label %endif196
 
-then207:                                          ; preds = %then203
+then195:                                          ; preds = %then191
   store i32 9, i32* %21, align 4
-  %156 = bitcast i32* %31 to i8*
+  %155 = bitcast i32* %31 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %155)
+  %156 = bitcast i32* %30 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %156)
-  %157 = bitcast i32* %30 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %157)
-  br label %endfor170
+  br label %endfor158
 
-endif208:                                         ; preds = %then203
-  %load_tmp209 = load i32, i32* %19, align 4
-  %load_tmp210 = load i8*, i8** %7, align 8
-  %load_tmp211 = load i32, i32* %18, align 4
-  %cast_tmp212 = sext i32 %load_tmp211 to i64
-  %ptr_add_tmp213 = getelementptr i8, i8* %load_tmp210, i64 %cast_tmp212
-  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp209, i8* %ptr_add_tmp213)
-  %load_tmp214 = load i32, i32* %18, align 4
-  %add_tmp215 = add i32 %load_tmp214, 9
-  store i32 %add_tmp215, i32* %18, align 4
-  %load_tmp216 = load i32, i32* %20, align 4
-  %add_tmp217 = add i32 %load_tmp216, 9
-  store i32 %add_tmp217, i32* %20, align 4
-  br label %endif258
+endif196:                                         ; preds = %then191
+  %load_tmp197 = load i32, i32* %19, align 4
+  %load_tmp198 = load i8*, i8** %7, align 8
+  %load_tmp199 = load i32, i32* %18, align 4
+  %ptr_add_tmp200 = getelementptr i8, i8* %load_tmp198, i32 %load_tmp199
+  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp197, i8* %ptr_add_tmp200)
+  %load_tmp201 = load i32, i32* %18, align 4
+  %add_tmp202 = add i32 %load_tmp201, 9
+  store i32 %add_tmp202, i32* %18, align 4
+  %load_tmp203 = load i32, i32* %20, align 4
+  %add_tmp204 = add i32 %load_tmp203, 9
+  store i32 %add_tmp204, i32* %20, align 4
+  br label %endif242
 
-else218:                                          ; preds = %endif201
-  %load_tmp219 = load i32, i32* %19, align 4
-  %158 = icmp ne i32 %load_tmp219, 0
-  br i1 %158, label %then220, label %endif257
+else205:                                          ; preds = %endif189
+  %load_tmp206 = load i32, i32* %19, align 4
+  %157 = icmp ne i32 %load_tmp206, 0
+  br i1 %157, label %then207, label %endif241
 
-then220:                                          ; preds = %else218
-  %load_tmp221 = load i32, i32* %19, align 4
-  %159 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp221)
-  store i32 %159, i32* %21, align 4
-  %load_tmp222 = load i32, i32* %29, align 4
-  %add_tmp223 = add i32 %load_tmp222, 1
-  %unary_minus_tmp224 = sub i32 0, %add_tmp223
-  %mul_tmp225 = mul i32 %unary_minus_tmp224, 9
-  %load_tmp226 = load i32, i32* %21, align 4
-  %add_tmp227 = add i32 %mul_tmp225, %load_tmp226
-  %sub_tmp228 = sub i32 %add_tmp227, 1
-  store i32 %sub_tmp228, i32* %22, align 4
-  %load_tmp229 = load i32, i32* %21, align 4
-  %load_tmp230 = load i32, i32* %6, align 4
-  %160 = icmp ugt i32 %load_tmp229, %load_tmp230
-  br i1 %160, label %then231, label %endif232
+then207:                                          ; preds = %else205
+  %load_tmp208 = load i32, i32* %19, align 4
+  %158 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp208)
+  store i32 %158, i32* %21, align 4
+  %load_tmp209 = load i32, i32* %29, align 4
+  %add_tmp210 = add i32 %load_tmp209, 1
+  %unary_minus_tmp211 = sub i32 0, %add_tmp210
+  %mul_tmp212 = mul i32 %unary_minus_tmp211, 9
+  %load_tmp213 = load i32, i32* %21, align 4
+  %add_tmp214 = add i32 %mul_tmp212, %load_tmp213
+  %sub_tmp215 = sub i32 %add_tmp214, 1
+  store i32 %sub_tmp215, i32* %22, align 4
+  %load_tmp216 = load i32, i32* %21, align 4
+  %load_tmp217 = load i32, i32* %6, align 4
+  %159 = icmp ugt i32 %load_tmp216, %load_tmp217
+  br i1 %159, label %then218, label %endif219
 
-then231:                                          ; preds = %then220
-  %161 = bitcast i32* %31 to i8*
+then218:                                          ; preds = %then207
+  %160 = bitcast i32* %31 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %160)
+  %161 = bitcast i32* %30 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %161)
-  %162 = bitcast i32* %30 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %162)
-  br label %endfor170
+  br label %endfor158
 
-endif232:                                         ; preds = %then220
-  %load_tmp233 = load i1, i1* %17, align 1
-  br i1 %load_tmp233, label %then234, label %else245
+endif219:                                         ; preds = %then207
+  %load_tmp220 = load i1, i1* %17, align 1
+  br i1 %load_tmp220, label %then221, label %else231
 
-then234:                                          ; preds = %endif232
-  %load_tmp235 = load i32, i32* %21, align 4
-  %load_tmp236 = load i32, i32* %19, align 4
-  %load_tmp237 = load i8*, i8** %7, align 8
+then221:                                          ; preds = %endif219
+  %load_tmp222 = load i32, i32* %21, align 4
+  %load_tmp223 = load i32, i32* %19, align 4
+  %load_tmp224 = load i8*, i8** %7, align 8
+  %load_tmp225 = load i32, i32* %18, align 4
+  %ptr_add_tmp226 = getelementptr i8, i8* %load_tmp224, i32 %load_tmp225
+  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp222, i32 %load_tmp223, i8* %ptr_add_tmp226)
+  %load_tmp227 = load i32, i32* %21, align 4
+  %add_tmp228 = add i32 %load_tmp227, 1
+  %load_tmp229 = load i32, i32* %18, align 4
+  %add_tmp230 = add i32 %load_tmp229, %add_tmp228
+  store i32 %add_tmp230, i32* %18, align 4
+  br label %endif239
+
+else231:                                          ; preds = %endif219
+  %load_tmp232 = load i32, i32* %19, align 4
+  %add_tmp233 = add i32 48, %load_tmp232
+  %cast_tmp234 = trunc i32 %add_tmp233 to i8
+  %load_tmp235 = load i8*, i8** %7, align 8
+  %load_tmp236 = load i32, i32* %18, align 4
+  %ptr_add_tmp237 = getelementptr i8, i8* %load_tmp235, i32 %load_tmp236
+  store i8 %cast_tmp234, i8* %ptr_add_tmp237, align 1
   %load_tmp238 = load i32, i32* %18, align 4
-  %cast_tmp239 = sext i32 %load_tmp238 to i64
-  %ptr_add_tmp240 = getelementptr i8, i8* %load_tmp237, i64 %cast_tmp239
-  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp235, i32 %load_tmp236, i8* %ptr_add_tmp240)
-  %load_tmp241 = load i32, i32* %21, align 4
-  %add_tmp242 = add i32 %load_tmp241, 1
-  %load_tmp243 = load i32, i32* %18, align 4
-  %add_tmp244 = add i32 %load_tmp243, %add_tmp242
-  store i32 %add_tmp244, i32* %18, align 4
-  br label %endif255
+  %162 = add i32 %load_tmp238, 1
+  store i32 %162, i32* %18, align 4
+  br label %endif239
 
-else245:                                          ; preds = %endif232
-  %load_tmp246 = load i32, i32* %19, align 4
-  %cast_tmp247 = zext i32 %load_tmp246 to i64
-  %163 = trunc i64 %cast_tmp247 to i32
-  %add_tmp248 = add i32 48, %163
-  %cast_tmp249 = trunc i32 %add_tmp248 to i8
-  %load_tmp250 = load i8*, i8** %7, align 8
-  %load_tmp251 = load i32, i32* %18, align 4
-  %cast_tmp252 = sext i32 %load_tmp251 to i64
-  %ptr_add_tmp253 = getelementptr i8, i8* %load_tmp250, i64 %cast_tmp252
-  store i8 %cast_tmp249, i8* %ptr_add_tmp253, align 1
-  %load_tmp254 = load i32, i32* %18, align 4
-  %164 = add i32 %load_tmp254, 1
-  store i32 %164, i32* %18, align 4
-  br label %endif255
-
-endif255:                                         ; preds = %else245, %then234
-  %load_tmp256 = load i32, i32* %21, align 4
-  store i32 %load_tmp256, i32* %20, align 4
+endif239:                                         ; preds = %else231, %then221
+  %load_tmp240 = load i32, i32* %21, align 4
+  store i32 %load_tmp240, i32* %20, align 4
   store i32 0, i32* %21, align 4
-  br label %endif257
+  br label %endif241
 
-endif257:                                         ; preds = %endif255, %else218
-  br label %endif258
+endif241:                                         ; preds = %endif239, %else205
+  br label %endif242
 
-endif258:                                         ; preds = %endif257, %endif208
-  %165 = bitcast i32* %31 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %165)
-  %166 = bitcast i32* %30 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %166)
-  br label %for_iteration169
+endif242:                                         ; preds = %endif241, %endif196
+  %163 = bitcast i32* %31 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %163)
+  %164 = bitcast i32* %30 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %164)
+  br label %for_iteration157
 
-endif259:                                         ; preds = %endfor170, %bool_and_end161
-  %167 = bitcast i32* %32 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %167)
-  %load_tmp260 = load i32, i32* %6, align 4
-  %load_tmp261 = load i32, i32* %20, align 4
-  %sub_tmp262 = sub i32 %load_tmp260, %load_tmp261
-  store i32 %sub_tmp262, i32* %32, align 4
-  %load_tmp263 = load i32, i32* %21, align 4
-  %168 = icmp eq i32 %load_tmp263, 0
-  br i1 %168, label %then264, label %endif265
+endif243:                                         ; preds = %endfor158, %bool_and_end149
+  %165 = bitcast i32* %32 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %165)
+  %load_tmp244 = load i32, i32* %6, align 4
+  %load_tmp245 = load i32, i32* %20, align 4
+  %sub_tmp246 = sub i32 %load_tmp244, %load_tmp245
+  store i32 %sub_tmp246, i32* %32, align 4
+  %load_tmp247 = load i32, i32* %21, align 4
+  %166 = icmp eq i32 %load_tmp247, 0
+  br i1 %166, label %then248, label %endif249
 
-then264:                                          ; preds = %endif259
+then248:                                          ; preds = %endif243
   store i32 0, i32* %19, align 4
+  br label %endif249
+
+endif249:                                         ; preds = %then248, %endif243
+  %167 = bitcast i32* %33 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %167)
+  store i32 0, i32* %33, align 4
+  %load_tmp250 = load i32, i32* %21, align 4
+  %load_tmp251 = load i32, i32* %32, align 4
+  %168 = icmp ugt i32 %load_tmp250, %load_tmp251
+  br i1 %168, label %then252, label %endif265
+
+then252:                                          ; preds = %endif249
+  %169 = bitcast i32* %34 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %169)
+  store i32 0, i32* %34, align 4
+  br label %for_condition_check253
+
+for_condition_check253:                           ; preds = %for_iteration254, %then252
+  %load_tmp256 = load i32, i32* %34, align 4
+  %load_tmp257 = load i32, i32* %21, align 4
+  %load_tmp258 = load i32, i32* %32, align 4
+  %sub_tmp259 = sub i32 %load_tmp257, %load_tmp258
+  %170 = icmp ult i32 %load_tmp256, %sub_tmp259
+  br i1 %170, label %for261, label %endfor255
+
+for_iteration254:                                 ; preds = %for261
+  %load_tmp260 = load i32, i32* %34, align 4
+  %171 = add i32 %load_tmp260, 1
+  store i32 %171, i32* %34, align 4
+  br label %for_condition_check253
+
+endfor255:                                        ; preds = %for_condition_check253
+  %172 = bitcast i32* %34 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %172)
   br label %endif265
 
-endif265:                                         ; preds = %then264, %endif259
-  %169 = bitcast i32* %33 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %169)
-  store i32 0, i32* %33, align 4
-  %load_tmp266 = load i32, i32* %21, align 4
-  %load_tmp267 = load i32, i32* %32, align 4
-  %170 = icmp ugt i32 %load_tmp266, %load_tmp267
-  br i1 %170, label %then268, label %endif281
-
-then268:                                          ; preds = %endif265
-  %171 = bitcast i32* %34 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %171)
-  store i32 0, i32* %34, align 4
-  br label %for_condition_check269
-
-for_condition_check269:                           ; preds = %for_iteration270, %then268
-  %load_tmp272 = load i32, i32* %34, align 4
-  %load_tmp273 = load i32, i32* %21, align 4
-  %load_tmp274 = load i32, i32* %32, align 4
-  %sub_tmp275 = sub i32 %load_tmp273, %load_tmp274
-  %172 = icmp ult i32 %load_tmp272, %sub_tmp275
-  br i1 %172, label %for277, label %endfor271
-
-for_iteration270:                                 ; preds = %for277
-  %load_tmp276 = load i32, i32* %34, align 4
-  %173 = add i32 %load_tmp276, 1
-  store i32 %173, i32* %34, align 4
-  br label %for_condition_check269
-
-endfor271:                                        ; preds = %for_condition_check269
-  %174 = bitcast i32* %34 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %174)
-  br label %endif281
-
-for277:                                           ; preds = %for_condition_check269
-  %load_tmp278 = load i32, i32* %19, align 4
-  %mod_tmp = urem i32 %load_tmp278, 10
+for261:                                           ; preds = %for_condition_check253
+  %load_tmp262 = load i32, i32* %19, align 4
+  %mod_tmp = urem i32 %load_tmp262, 10
   store i32 %mod_tmp, i32* %33, align 4
-  %load_tmp279 = load i32, i32* %19, align 4
-  %div_tmp280 = udiv i32 %load_tmp279, 10
-  store i32 %div_tmp280, i32* %19, align 4
-  br label %for_iteration270
+  %load_tmp263 = load i32, i32* %19, align 4
+  %div_tmp264 = udiv i32 %load_tmp263, 10
+  store i32 %div_tmp264, i32* %19, align 4
+  br label %for_iteration254
 
-endif281:                                         ; preds = %endfor271, %endif265
-  %175 = bitcast i32* %35 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %175)
+endif265:                                         ; preds = %endfor255, %endif249
+  %173 = bitcast i32* %35 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %173)
   store i32 0, i32* %35, align 4
-  %load_tmp282 = load i32, i32* %33, align 4
-  %176 = icmp ne i32 %load_tmp282, 5
-  br i1 %176, label %then283, label %else286
+  %load_tmp266 = load i32, i32* %33, align 4
+  %174 = icmp ne i32 %load_tmp266, 5
+  br i1 %174, label %then267, label %else270
 
-then283:                                          ; preds = %endif281
-  %load_tmp284 = load i32, i32* %33, align 4
-  %177 = icmp ugt i32 %load_tmp284, 5
-  %cast_tmp285 = zext i1 %177 to i32
-  store i32 %cast_tmp285, i32* %35, align 4
-  br label %endif316
+then267:                                          ; preds = %endif265
+  %load_tmp268 = load i32, i32* %33, align 4
+  %175 = icmp ugt i32 %load_tmp268, 5
+  %cast_tmp269 = zext i1 %175 to i32
+  store i32 %cast_tmp269, i32* %35, align 4
+  br label %endif300
 
-else286:                                          ; preds = %endif281
-  %178 = bitcast i32* %36 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %178)
-  %load_tmp287 = load i32, i32* %6, align 4
-  %load_tmp288 = load i32, i32* %22, align 4
-  %sub_tmp289 = sub i32 %load_tmp287, %load_tmp288
-  store i32 %sub_tmp289, i32* %36, align 4
-  %179 = bitcast i32* %37 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %179)
-  %load_tmp290 = load i32, i32* %15, align 4
-  %unary_minus_tmp291 = sub i32 0, %load_tmp290
-  %load_tmp292 = load i32, i32* %36, align 4
-  %sub_tmp293 = sub i32 %unary_minus_tmp291, %load_tmp292
-  store i32 %sub_tmp293, i32* %37, align 4
-  %180 = bitcast i1* %38 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 1, i8* %180)
-  %load_tmp294 = load i32, i32* %37, align 4
-  %181 = icmp sle i32 %load_tmp294, 0
-  br i1 %181, label %bool_or_end, label %bool_or_rhs
+else270:                                          ; preds = %endif265
+  %176 = bitcast i32* %36 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %176)
+  %load_tmp271 = load i32, i32* %6, align 4
+  %load_tmp272 = load i32, i32* %22, align 4
+  %sub_tmp273 = sub i32 %load_tmp271, %load_tmp272
+  store i32 %sub_tmp273, i32* %36, align 4
+  %177 = bitcast i32* %37 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %177)
+  %load_tmp274 = load i32, i32* %15, align 4
+  %unary_minus_tmp275 = sub i32 0, %load_tmp274
+  %load_tmp276 = load i32, i32* %36, align 4
+  %sub_tmp277 = sub i32 %unary_minus_tmp275, %load_tmp276
+  store i32 %sub_tmp277, i32* %37, align 4
+  %178 = bitcast i1* %38 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 1, i8* %178)
+  %load_tmp278 = load i32, i32* %37, align 4
+  %179 = icmp sle i32 %load_tmp278, 0
+  br i1 %179, label %bool_or_end, label %bool_or_rhs
 
-bool_or_rhs:                                      ; preds = %else286
-  %load_tmp295 = load i32, i32* %37, align 4
-  %182 = icmp slt i32 %load_tmp295, 60
-  br i1 %182, label %bool_and_rhs296, label %bool_and_end299
+bool_or_rhs:                                      ; preds = %else270
+  %load_tmp279 = load i32, i32* %37, align 4
+  %180 = icmp slt i32 %load_tmp279, 60
+  br i1 %180, label %bool_and_rhs280, label %bool_and_end283
 
-bool_and_rhs296:                                  ; preds = %bool_or_rhs
-  %load_tmp297 = load i64, i64* %16, align 8
-  %load_tmp298 = load i32, i32* %37, align 4
-  %183 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp297, i32 %load_tmp298)
-  br label %bool_and_end299
+bool_and_rhs280:                                  ; preds = %bool_or_rhs
+  %load_tmp281 = load i64, i64* %16, align 8
+  %load_tmp282 = load i32, i32* %37, align 4
+  %181 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp281, i32 %load_tmp282)
+  br label %bool_and_end283
 
-bool_and_end299:                                  ; preds = %bool_and_rhs296, %bool_or_rhs
-  %bool_and_tmp300 = phi i1 [ false, %bool_or_rhs ], [ %183, %bool_and_rhs296 ]
+bool_and_end283:                                  ; preds = %bool_and_rhs280, %bool_or_rhs
+  %bool_and_tmp284 = phi i1 [ false, %bool_or_rhs ], [ %181, %bool_and_rhs280 ]
   br label %bool_or_end
 
-bool_or_end:                                      ; preds = %bool_and_end299, %else286
-  %bool_or_tmp = phi i1 [ true, %else286 ], [ %bool_and_tmp300, %bool_and_end299 ]
+bool_or_end:                                      ; preds = %bool_and_end283, %else270
+  %bool_or_tmp = phi i1 [ true, %else270 ], [ %bool_and_tmp284, %bool_and_end283 ]
   store i1 %bool_or_tmp, i1* %38, align 1
-  %load_tmp301 = load i32, i32* %36, align 4
-  %184 = icmp slt i32 %load_tmp301, 0
-  br i1 %184, label %then302, label %endif311
+  %load_tmp285 = load i32, i32* %36, align 4
+  %182 = icmp slt i32 %load_tmp285, 0
+  br i1 %182, label %then286, label %endif295
 
-then302:                                          ; preds = %bool_or_end
+then286:                                          ; preds = %bool_or_end
+  %183 = bitcast i32* %39 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %183)
+  %load_tmp287 = load i32, i32* %36, align 4
+  %unary_minus_tmp288 = sub i32 0, %load_tmp287
+  store i32 %unary_minus_tmp288, i32* %39, align 4
+  %load_tmp289 = load i1, i1* %38, align 1
+  br i1 %load_tmp289, label %bool_and_rhs290, label %bool_and_end293
+
+bool_and_rhs290:                                  ; preds = %then286
+  %load_tmp291 = load i64, i64* %16, align 8
+  %load_tmp292 = load i32, i32* %39, align 4
+  %184 = call i1 @func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp291, i32 %load_tmp292)
+  br label %bool_and_end293
+
+bool_and_end293:                                  ; preds = %bool_and_rhs290, %then286
+  %bool_and_tmp294 = phi i1 [ false, %then286 ], [ %184, %bool_and_rhs290 ]
+  store i1 %bool_and_tmp294, i1* %38, align 1
   %185 = bitcast i32* %39 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %185)
-  %load_tmp303 = load i32, i32* %36, align 4
-  %unary_minus_tmp304 = sub i32 0, %load_tmp303
-  store i32 %unary_minus_tmp304, i32* %39, align 4
-  %load_tmp305 = load i1, i1* %38, align 1
-  br i1 %load_tmp305, label %bool_and_rhs306, label %bool_and_end309
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %185)
+  br label %endif295
 
-bool_and_rhs306:                                  ; preds = %then302
-  %load_tmp307 = load i64, i64* %16, align 8
-  %load_tmp308 = load i32, i32* %39, align 4
-  %186 = call i1 @func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp307, i32 %load_tmp308)
-  br label %bool_and_end309
+endif295:                                         ; preds = %bool_and_end293, %bool_or_end
+  %load_tmp296 = load i1, i1* %38, align 1
+  br i1 %load_tmp296, label %then297, label %else298
 
-bool_and_end309:                                  ; preds = %bool_and_rhs306, %then302
-  %bool_and_tmp310 = phi i1 [ false, %then302 ], [ %186, %bool_and_rhs306 ]
-  store i1 %bool_and_tmp310, i1* %38, align 1
-  %187 = bitcast i32* %39 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %187)
-  br label %endif311
-
-endif311:                                         ; preds = %bool_and_end309, %bool_or_end
-  %load_tmp312 = load i1, i1* %38, align 1
-  br i1 %load_tmp312, label %then313, label %else314
-
-then313:                                          ; preds = %endif311
+then297:                                          ; preds = %endif295
   store i32 2, i32* %35, align 4
-  br label %endif315
+  br label %endif299
 
-else314:                                          ; preds = %endif311
+else298:                                          ; preds = %endif295
   store i32 1, i32* %35, align 4
-  br label %endif315
+  br label %endif299
 
-endif315:                                         ; preds = %else314, %then313
-  %188 = bitcast i1* %38 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %188)
-  %189 = bitcast i32* %37 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %189)
-  %190 = bitcast i32* %36 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %190)
+endif299:                                         ; preds = %else298, %then297
+  %186 = bitcast i1* %38 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %186)
+  %187 = bitcast i32* %37 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %187)
+  %188 = bitcast i32* %36 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %188)
+  br label %endif300
+
+endif300:                                         ; preds = %endif299, %then267
+  %load_tmp301 = load i32, i32* %20, align 4
+  %189 = icmp ne i32 %load_tmp301, 0
+  br i1 %189, label %then302, label %else320
+
+then302:                                          ; preds = %endif300
+  %load_tmp303 = load i32, i32* %19, align 4
+  %190 = icmp eq i32 %load_tmp303, 0
+  br i1 %190, label %then304, label %else310
+
+then304:                                          ; preds = %then302
+  %load_tmp305 = load i8*, i8** %7, align 8
+  %load_tmp306 = load i32, i32* %18, align 4
+  %ptr_add_tmp307 = getelementptr i8, i8* %load_tmp305, i32 %load_tmp306
+  %load_tmp308 = load i32, i32* %32, align 4
+  %cast_tmp309 = zext i32 %load_tmp308 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp307, i8 48, i64 %cast_tmp309, i1 false)
   br label %endif316
 
-endif316:                                         ; preds = %endif315, %then283
-  %load_tmp317 = load i32, i32* %20, align 4
-  %191 = icmp ne i32 %load_tmp317, 0
-  br i1 %191, label %then318, label %else338
+else310:                                          ; preds = %then302
+  %load_tmp311 = load i32, i32* %32, align 4
+  %load_tmp312 = load i32, i32* %19, align 4
+  %load_tmp313 = load i8*, i8** %7, align 8
+  %load_tmp314 = load i32, i32* %18, align 4
+  %ptr_add_tmp315 = getelementptr i8, i8* %load_tmp313, i32 %load_tmp314
+  call void @func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp311, i32 %load_tmp312, i8* %ptr_add_tmp315)
+  br label %endif316
 
-then318:                                          ; preds = %endif316
-  %load_tmp319 = load i32, i32* %19, align 4
-  %192 = icmp eq i32 %load_tmp319, 0
-  br i1 %192, label %then320, label %else327
+endif316:                                         ; preds = %else310, %then304
+  %load_tmp317 = load i32, i32* %32, align 4
+  %load_tmp318 = load i32, i32* %18, align 4
+  %add_tmp319 = add i32 %load_tmp318, %load_tmp317
+  store i32 %add_tmp319, i32* %18, align 4
+  br label %endif341
 
-then320:                                          ; preds = %then318
-  %load_tmp321 = load i8*, i8** %7, align 8
-  %load_tmp322 = load i32, i32* %18, align 4
-  %cast_tmp323 = sext i32 %load_tmp322 to i64
-  %ptr_add_tmp324 = getelementptr i8, i8* %load_tmp321, i64 %cast_tmp323
-  %load_tmp325 = load i32, i32* %32, align 4
-  %cast_tmp326 = zext i32 %load_tmp325 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp324, i8 48, i64 %cast_tmp326, i1 false)
-  br label %endif334
+else320:                                          ; preds = %endif300
+  %load_tmp321 = load i1, i1* %17, align 1
+  br i1 %load_tmp321, label %then322, label %else332
 
-else327:                                          ; preds = %then318
+then322:                                          ; preds = %else320
+  %load_tmp323 = load i32, i32* %32, align 4
+  %load_tmp324 = load i32, i32* %19, align 4
+  %load_tmp325 = load i8*, i8** %7, align 8
+  %load_tmp326 = load i32, i32* %18, align 4
+  %ptr_add_tmp327 = getelementptr i8, i8* %load_tmp325, i32 %load_tmp326
+  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp323, i32 %load_tmp324, i8* %ptr_add_tmp327)
   %load_tmp328 = load i32, i32* %32, align 4
-  %load_tmp329 = load i32, i32* %19, align 4
-  %load_tmp330 = load i8*, i8** %7, align 8
-  %load_tmp331 = load i32, i32* %18, align 4
-  %cast_tmp332 = sext i32 %load_tmp331 to i64
-  %ptr_add_tmp333 = getelementptr i8, i8* %load_tmp330, i64 %cast_tmp332
-  call void @func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp328, i32 %load_tmp329, i8* %ptr_add_tmp333)
-  br label %endif334
+  %add_tmp329 = add i32 %load_tmp328, 1
+  %load_tmp330 = load i32, i32* %18, align 4
+  %add_tmp331 = add i32 %load_tmp330, %add_tmp329
+  store i32 %add_tmp331, i32* %18, align 4
+  br label %endif340
 
-endif334:                                         ; preds = %else327, %then320
-  %load_tmp335 = load i32, i32* %32, align 4
-  %load_tmp336 = load i32, i32* %18, align 4
-  %add_tmp337 = add i32 %load_tmp336, %load_tmp335
-  store i32 %add_tmp337, i32* %18, align 4
-  br label %endif362
+else332:                                          ; preds = %else320
+  %load_tmp333 = load i32, i32* %19, align 4
+  %add_tmp334 = add i32 48, %load_tmp333
+  %cast_tmp335 = trunc i32 %add_tmp334 to i8
+  %load_tmp336 = load i8*, i8** %7, align 8
+  %load_tmp337 = load i32, i32* %18, align 4
+  %ptr_add_tmp338 = getelementptr i8, i8* %load_tmp336, i32 %load_tmp337
+  store i8 %cast_tmp335, i8* %ptr_add_tmp338, align 1
+  %load_tmp339 = load i32, i32* %18, align 4
+  %191 = add i32 %load_tmp339, 1
+  store i32 %191, i32* %18, align 4
+  br label %endif340
 
-else338:                                          ; preds = %endif316
-  %load_tmp339 = load i1, i1* %17, align 1
-  br i1 %load_tmp339, label %then340, label %else351
+endif340:                                         ; preds = %else332, %then322
+  br label %endif341
 
-then340:                                          ; preds = %else338
-  %load_tmp341 = load i32, i32* %32, align 4
-  %load_tmp342 = load i32, i32* %19, align 4
-  %load_tmp343 = load i8*, i8** %7, align 8
+endif341:                                         ; preds = %endif340, %endif316
+  %load_tmp342 = load i32, i32* %35, align 4
+  %192 = icmp ne i32 %load_tmp342, 0
+  br i1 %192, label %then343, label %endif386
+
+then343:                                          ; preds = %endif341
+  %193 = bitcast i32* %40 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %193)
   %load_tmp344 = load i32, i32* %18, align 4
-  %cast_tmp345 = sext i32 %load_tmp344 to i64
-  %ptr_add_tmp346 = getelementptr i8, i8* %load_tmp343, i64 %cast_tmp345
-  call void @func.std.ryu.append_d_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp341, i32 %load_tmp342, i8* %ptr_add_tmp346)
-  %load_tmp347 = load i32, i32* %32, align 4
-  %add_tmp348 = add i32 %load_tmp347, 1
-  %load_tmp349 = load i32, i32* %18, align 4
-  %add_tmp350 = add i32 %load_tmp349, %add_tmp348
-  store i32 %add_tmp350, i32* %18, align 4
-  br label %endif361
-
-else351:                                          ; preds = %else338
-  %load_tmp352 = load i32, i32* %19, align 4
-  %cast_tmp353 = zext i32 %load_tmp352 to i64
-  %193 = trunc i64 %cast_tmp353 to i32
-  %add_tmp354 = add i32 48, %193
-  %cast_tmp355 = trunc i32 %add_tmp354 to i8
-  %load_tmp356 = load i8*, i8** %7, align 8
-  %load_tmp357 = load i32, i32* %18, align 4
-  %cast_tmp358 = sext i32 %load_tmp357 to i64
-  %ptr_add_tmp359 = getelementptr i8, i8* %load_tmp356, i64 %cast_tmp358
-  store i8 %cast_tmp355, i8* %ptr_add_tmp359, align 1
-  %load_tmp360 = load i32, i32* %18, align 4
-  %194 = add i32 %load_tmp360, 1
-  store i32 %194, i32* %18, align 4
-  br label %endif361
-
-endif361:                                         ; preds = %else351, %then340
-  br label %endif362
-
-endif362:                                         ; preds = %endif361, %endif334
-  %load_tmp363 = load i32, i32* %35, align 4
-  %195 = icmp ne i32 %load_tmp363, 0
-  br i1 %195, label %then364, label %endif411
-
-then364:                                          ; preds = %endif362
-  %196 = bitcast i32* %40 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %196)
-  %load_tmp365 = load i32, i32* %18, align 4
-  store i32 %load_tmp365, i32* %40, align 4
+  store i32 %load_tmp344, i32* %40, align 4
   br label %while_condition_check
 
-while_condition_check:                            ; preds = %then390, %then387, %then364
+while_condition_check:                            ; preds = %then367, %then364, %then343
   br i1 true, label %while, label %endwhile
 
-endwhile:                                         ; preds = %while_condition_check, %endif403, %then402, %then378
-  %197 = bitcast i32* %40 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %197)
-  br label %endif411
+endwhile:                                         ; preds = %while_condition_check, %endif379, %then378, %then356
+  %194 = bitcast i32* %40 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %194)
+  br label %endif386
 
 while:                                            ; preds = %while_condition_check
-  %load_tmp366 = load i32, i32* %40, align 4
-  %198 = add i32 %load_tmp366, -1
-  store i32 %198, i32* %40, align 4
-  %199 = bitcast i32* %41 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %199)
+  %load_tmp345 = load i32, i32* %40, align 4
+  %195 = add i32 %load_tmp345, -1
+  store i32 %195, i32* %40, align 4
+  %196 = bitcast i32* %41 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %196)
   store i32 0, i32* %41, align 4
-  %load_tmp367 = load i32, i32* %40, align 4
-  %200 = icmp eq i32 %load_tmp367, -1
-  br i1 %200, label %bool_or_end376, label %bool_or_rhs368
+  %load_tmp346 = load i32, i32* %40, align 4
+  %197 = icmp eq i32 %load_tmp346, -1
+  br i1 %197, label %bool_or_end354, label %bool_or_rhs347
 
-bool_or_rhs368:                                   ; preds = %while
-  %load_tmp369 = load i8*, i8** %7, align 8
-  %load_tmp370 = load i32, i32* %40, align 4
-  %cast_tmp371 = sext i32 %load_tmp370 to i64
-  %ptr_add_tmp372 = getelementptr i8, i8* %load_tmp369, i64 %cast_tmp371
-  %load_tmp373 = load i8, i8* %ptr_add_tmp372, align 1
-  %cast_tmp374 = zext i8 %load_tmp373 to i32
-  store i32 %cast_tmp374, i32* %41, align 4
-  %load_tmp375 = load i32, i32* %41, align 4
-  %201 = icmp eq i32 %load_tmp375, 45
-  br label %bool_or_end376
+bool_or_rhs347:                                   ; preds = %while
+  %load_tmp348 = load i8*, i8** %7, align 8
+  %load_tmp349 = load i32, i32* %40, align 4
+  %ptr_add_tmp350 = getelementptr i8, i8* %load_tmp348, i32 %load_tmp349
+  %load_tmp351 = load i8, i8* %ptr_add_tmp350, align 1
+  %cast_tmp352 = zext i8 %load_tmp351 to i32
+  store i32 %cast_tmp352, i32* %41, align 4
+  %load_tmp353 = load i32, i32* %41, align 4
+  %198 = icmp eq i32 %load_tmp353, 45
+  br label %bool_or_end354
 
-bool_or_end376:                                   ; preds = %bool_or_rhs368, %while
-  %bool_or_tmp377 = phi i1 [ true, %while ], [ %201, %bool_or_rhs368 ]
-  br i1 %bool_or_tmp377, label %then378, label %endif385
+bool_or_end354:                                   ; preds = %bool_or_rhs347, %while
+  %bool_or_tmp355 = phi i1 [ true, %while ], [ %198, %bool_or_rhs347 ]
+  br i1 %bool_or_tmp355, label %then356, label %endif362
 
-then378:                                          ; preds = %bool_or_end376
-  %load_tmp379 = load i8*, i8** %7, align 8
-  %load_tmp380 = load i32, i32* %40, align 4
-  %cast_tmp381 = sext i32 %load_tmp380 to i64
-  %ptr_add_tmp382 = getelementptr i8, i8* %load_tmp379, i64 %cast_tmp381
-  %ptr_add_tmp383 = getelementptr i8, i8* %ptr_add_tmp382, i64 1
-  store i8 49, i8* %ptr_add_tmp383, align 1
-  %load_tmp384 = load i32, i32* %22, align 4
-  %202 = add i32 %load_tmp384, 1
-  store i32 %202, i32* %22, align 4
-  %203 = bitcast i32* %41 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %203)
+then356:                                          ; preds = %bool_or_end354
+  %load_tmp357 = load i8*, i8** %7, align 8
+  %load_tmp358 = load i32, i32* %40, align 4
+  %ptr_add_tmp359 = getelementptr i8, i8* %load_tmp357, i32 %load_tmp358
+  %ptr_add_tmp360 = getelementptr i8, i8* %ptr_add_tmp359, i32 1
+  store i8 49, i8* %ptr_add_tmp360, align 1
+  %load_tmp361 = load i32, i32* %22, align 4
+  %199 = add i32 %load_tmp361, 1
+  store i32 %199, i32* %22, align 4
+  %200 = bitcast i32* %41 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %200)
   br label %endwhile
 
-endif385:                                         ; preds = %bool_or_end376
-  %load_tmp386 = load i32, i32* %41, align 4
-  %204 = icmp eq i32 %load_tmp386, 46
-  br i1 %204, label %then387, label %else388
+endif362:                                         ; preds = %bool_or_end354
+  %load_tmp363 = load i32, i32* %41, align 4
+  %201 = icmp eq i32 %load_tmp363, 46
+  br i1 %201, label %then364, label %else365
 
-then387:                                          ; preds = %endif385
-  %205 = bitcast i32* %41 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %205)
+then364:                                          ; preds = %endif362
+  %202 = bitcast i32* %41 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %202)
   br label %while_condition_check
 
-else388:                                          ; preds = %endif385
-  %load_tmp389 = load i32, i32* %41, align 4
-  %206 = icmp eq i32 %load_tmp389, 57
-  br i1 %206, label %then390, label %else395
+else365:                                          ; preds = %endif362
+  %load_tmp366 = load i32, i32* %41, align 4
+  %203 = icmp eq i32 %load_tmp366, 57
+  br i1 %203, label %then367, label %else371
 
-then390:                                          ; preds = %else388
-  %load_tmp391 = load i8*, i8** %7, align 8
-  %load_tmp392 = load i32, i32* %40, align 4
-  %cast_tmp393 = sext i32 %load_tmp392 to i64
-  %ptr_add_tmp394 = getelementptr i8, i8* %load_tmp391, i64 %cast_tmp393
-  store i8 48, i8* %ptr_add_tmp394, align 1
+then367:                                          ; preds = %else365
+  %load_tmp368 = load i8*, i8** %7, align 8
+  %load_tmp369 = load i32, i32* %40, align 4
+  %ptr_add_tmp370 = getelementptr i8, i8* %load_tmp368, i32 %load_tmp369
+  store i8 48, i8* %ptr_add_tmp370, align 1
   store i32 1, i32* %35, align 4
+  %204 = bitcast i32* %41 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %204)
+  br label %while_condition_check
+
+else371:                                          ; preds = %else365
+  %load_tmp372 = load i32, i32* %35, align 4
+  %205 = icmp eq i32 %load_tmp372, 2
+  br i1 %205, label %bool_and_rhs373, label %bool_and_end376
+
+bool_and_rhs373:                                  ; preds = %else371
+  %load_tmp374 = load i32, i32* %41, align 4
+  %mod_tmp375 = srem i32 %load_tmp374, 2
+  %206 = icmp eq i32 %mod_tmp375, 0
+  br label %bool_and_end376
+
+bool_and_end376:                                  ; preds = %bool_and_rhs373, %else371
+  %bool_and_tmp377 = phi i1 [ false, %else371 ], [ %206, %bool_and_rhs373 ]
+  br i1 %bool_and_tmp377, label %then378, label %endif379
+
+then378:                                          ; preds = %bool_and_end376
   %207 = bitcast i32* %41 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %207)
-  br label %while_condition_check
-
-else395:                                          ; preds = %else388
-  %load_tmp396 = load i32, i32* %35, align 4
-  %208 = icmp eq i32 %load_tmp396, 2
-  br i1 %208, label %bool_and_rhs397, label %bool_and_end400
-
-bool_and_rhs397:                                  ; preds = %else395
-  %load_tmp398 = load i32, i32* %41, align 4
-  %mod_tmp399 = srem i32 %load_tmp398, 2
-  %209 = icmp eq i32 %mod_tmp399, 0
-  br label %bool_and_end400
-
-bool_and_end400:                                  ; preds = %bool_and_rhs397, %else395
-  %bool_and_tmp401 = phi i1 [ false, %else395 ], [ %209, %bool_and_rhs397 ]
-  br i1 %bool_and_tmp401, label %then402, label %endif403
-
-then402:                                          ; preds = %bool_and_end400
-  %210 = bitcast i32* %41 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %210)
   br label %endwhile
 
-endif403:                                         ; preds = %bool_and_end400
-  %load_tmp404 = load i32, i32* %41, align 4
-  %add_tmp405 = add i32 %load_tmp404, 1
-  %cast_tmp406 = trunc i32 %add_tmp405 to i8
-  %load_tmp407 = load i8*, i8** %7, align 8
-  %load_tmp408 = load i32, i32* %40, align 4
-  %cast_tmp409 = sext i32 %load_tmp408 to i64
-  %ptr_add_tmp410 = getelementptr i8, i8* %load_tmp407, i64 %cast_tmp409
-  store i8 %cast_tmp406, i8* %ptr_add_tmp410, align 1
-  %211 = bitcast i32* %41 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %211)
+endif379:                                         ; preds = %bool_and_end376
+  %load_tmp380 = load i32, i32* %41, align 4
+  %add_tmp381 = add i32 %load_tmp380, 1
+  %cast_tmp382 = trunc i32 %add_tmp381 to i8
+  %load_tmp383 = load i8*, i8** %7, align 8
+  %load_tmp384 = load i32, i32* %40, align 4
+  %ptr_add_tmp385 = getelementptr i8, i8* %load_tmp383, i32 %load_tmp384
+  store i8 %cast_tmp382, i8* %ptr_add_tmp385, align 1
+  %208 = bitcast i32* %41 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %208)
   br label %endwhile
 
-endif411:                                         ; preds = %endwhile, %endif362
-  %load_tmp412 = load i1, i1* %9, align 1
-  br i1 %load_tmp412, label %then413, label %endif435
+endif386:                                         ; preds = %endwhile, %endif341
+  %load_tmp387 = load i1, i1* %9, align 1
+  br i1 %load_tmp387, label %then388, label %endif408
 
-then413:                                          ; preds = %endif411
-  br label %while_condition_check414
+then388:                                          ; preds = %endif386
+  br label %while_condition_check389
 
-while_condition_check414:                         ; preds = %while422, %then413
-  %load_tmp416 = load i8*, i8** %7, align 8
-  %load_tmp417 = load i32, i32* %18, align 4
-  %cast_tmp418 = sext i32 %load_tmp417 to i64
-  %ptr_add_tmp419 = getelementptr i8, i8* %load_tmp416, i64 %cast_tmp418
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp419, i64 -1
-  %load_tmp420 = load i8, i8* %ptr_sub_tmp, align 1
-  %cast_tmp421 = zext i8 %load_tmp420 to i32
-  %212 = icmp eq i32 %cast_tmp421, 48
-  br i1 %212, label %while422, label %endwhile415
+while_condition_check389:                         ; preds = %while396, %then388
+  %load_tmp391 = load i8*, i8** %7, align 8
+  %load_tmp392 = load i32, i32* %18, align 4
+  %ptr_add_tmp393 = getelementptr i8, i8* %load_tmp391, i32 %load_tmp392
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp393, i32 -1
+  %load_tmp394 = load i8, i8* %ptr_sub_tmp, align 1
+  %cast_tmp395 = zext i8 %load_tmp394 to i32
+  %209 = icmp eq i32 %cast_tmp395, 48
+  br i1 %209, label %while396, label %endwhile390
 
-endwhile415:                                      ; preds = %while_condition_check414
-  %load_tmp424 = load i32, i32* %18, align 4
-  %213 = icmp sgt i32 %load_tmp424, 0
-  call void @func.std.assert..1.builtin.bool.void(i1 %213)
-  %load_tmp425 = load i8*, i8** %7, align 8
-  %load_tmp426 = load i32, i32* %18, align 4
-  %cast_tmp427 = sext i32 %load_tmp426 to i64
-  %ptr_add_tmp428 = getelementptr i8, i8* %load_tmp425, i64 %cast_tmp427
-  %ptr_sub_tmp429 = getelementptr i8, i8* %ptr_add_tmp428, i64 -1
-  %load_tmp430 = load i8, i8* %ptr_sub_tmp429, align 1
-  %cast_tmp431 = zext i8 %load_tmp430 to i32
-  %214 = icmp eq i32 %cast_tmp431, 46
-  br i1 %214, label %then432, label %endif434
+endwhile390:                                      ; preds = %while_condition_check389
+  %load_tmp398 = load i32, i32* %18, align 4
+  %210 = icmp sgt i32 %load_tmp398, 0
+  call void @func.std.assert..1.builtin.bool.void(i1 %210)
+  %load_tmp399 = load i8*, i8** %7, align 8
+  %load_tmp400 = load i32, i32* %18, align 4
+  %ptr_add_tmp401 = getelementptr i8, i8* %load_tmp399, i32 %load_tmp400
+  %ptr_sub_tmp402 = getelementptr i8, i8* %ptr_add_tmp401, i32 -1
+  %load_tmp403 = load i8, i8* %ptr_sub_tmp402, align 1
+  %cast_tmp404 = zext i8 %load_tmp403 to i32
+  %211 = icmp eq i32 %cast_tmp404, 46
+  br i1 %211, label %then405, label %endif407
 
-while422:                                         ; preds = %while_condition_check414
+while396:                                         ; preds = %while_condition_check389
+  %load_tmp397 = load i32, i32* %18, align 4
+  %212 = add i32 %load_tmp397, -1
+  store i32 %212, i32* %18, align 4
+  br label %while_condition_check389
+
+then405:                                          ; preds = %endwhile390
+  %load_tmp406 = load i32, i32* %18, align 4
+  %213 = add i32 %load_tmp406, -1
+  store i32 %213, i32* %18, align 4
+  br label %endif407
+
+endif407:                                         ; preds = %then405, %endwhile390
+  br label %endif408
+
+endif408:                                         ; preds = %endif407, %endif386
+  %load_tmp409 = load i1, i1* %8, align 1
+  br i1 %load_tmp409, label %then410, label %else414
+
+then410:                                          ; preds = %endif408
+  %load_tmp411 = load i8*, i8** %7, align 8
+  %load_tmp412 = load i32, i32* %18, align 4
+  %ptr_add_tmp413 = getelementptr i8, i8* %load_tmp411, i32 %load_tmp412
+  store i8 69, i8* %ptr_add_tmp413, align 1
+  br label %endif418
+
+else414:                                          ; preds = %endif408
+  %load_tmp415 = load i8*, i8** %7, align 8
+  %load_tmp416 = load i32, i32* %18, align 4
+  %ptr_add_tmp417 = getelementptr i8, i8* %load_tmp415, i32 %load_tmp416
+  store i8 101, i8* %ptr_add_tmp417, align 1
+  br label %endif418
+
+endif418:                                         ; preds = %else414, %then410
+  %load_tmp419 = load i32, i32* %18, align 4
+  %214 = add i32 %load_tmp419, 1
+  store i32 %214, i32* %18, align 4
+  %load_tmp420 = load i32, i32* %22, align 4
+  %215 = icmp slt i32 %load_tmp420, 0
+  br i1 %215, label %then421, label %else428
+
+then421:                                          ; preds = %endif418
+  %load_tmp422 = load i8*, i8** %7, align 8
   %load_tmp423 = load i32, i32* %18, align 4
-  %215 = add i32 %load_tmp423, -1
-  store i32 %215, i32* %18, align 4
-  br label %while_condition_check414
-
-then432:                                          ; preds = %endwhile415
-  %load_tmp433 = load i32, i32* %18, align 4
-  %216 = add i32 %load_tmp433, -1
+  %ptr_add_tmp424 = getelementptr i8, i8* %load_tmp422, i32 %load_tmp423
+  store i8 45, i8* %ptr_add_tmp424, align 1
+  %load_tmp425 = load i32, i32* %18, align 4
+  %216 = add i32 %load_tmp425, 1
   store i32 %216, i32* %18, align 4
-  br label %endif434
+  %load_tmp426 = load i32, i32* %22, align 4
+  %unary_minus_tmp427 = sub i32 0, %load_tmp426
+  store i32 %unary_minus_tmp427, i32* %22, align 4
+  br label %endif433
 
-endif434:                                         ; preds = %then432, %endwhile415
-  br label %endif435
+else428:                                          ; preds = %endif418
+  %load_tmp429 = load i8*, i8** %7, align 8
+  %load_tmp430 = load i32, i32* %18, align 4
+  %ptr_add_tmp431 = getelementptr i8, i8* %load_tmp429, i32 %load_tmp430
+  store i8 43, i8* %ptr_add_tmp431, align 1
+  %load_tmp432 = load i32, i32* %18, align 4
+  %217 = add i32 %load_tmp432, 1
+  store i32 %217, i32* %18, align 4
+  br label %endif433
 
-endif435:                                         ; preds = %endif434, %endif411
-  %load_tmp436 = load i1, i1* %8, align 1
-  br i1 %load_tmp436, label %then437, label %else442
+endif433:                                         ; preds = %else428, %then421
+  %load_tmp434 = load i32, i32* %22, align 4
+  %218 = icmp sge i32 %load_tmp434, 100
+  br i1 %218, label %then435, label %else454
 
-then437:                                          ; preds = %endif435
+then435:                                          ; preds = %endif433
+  %219 = bitcast i32* %42 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %219)
+  %load_tmp436 = load i32, i32* %22, align 4
+  %mod_tmp437 = srem i32 %load_tmp436, 10
+  store i32 %mod_tmp437, i32* %42, align 4
   %load_tmp438 = load i8*, i8** %7, align 8
   %load_tmp439 = load i32, i32* %18, align 4
-  %cast_tmp440 = sext i32 %load_tmp439 to i64
-  %ptr_add_tmp441 = getelementptr i8, i8* %load_tmp438, i64 %cast_tmp440
-  store i8 69, i8* %ptr_add_tmp441, align 1
-  br label %endif447
-
-else442:                                          ; preds = %endif435
-  %load_tmp443 = load i8*, i8** %7, align 8
-  %load_tmp444 = load i32, i32* %18, align 4
-  %cast_tmp445 = sext i32 %load_tmp444 to i64
-  %ptr_add_tmp446 = getelementptr i8, i8* %load_tmp443, i64 %cast_tmp445
-  store i8 101, i8* %ptr_add_tmp446, align 1
-  br label %endif447
-
-endif447:                                         ; preds = %else442, %then437
-  %load_tmp448 = load i32, i32* %18, align 4
-  %217 = add i32 %load_tmp448, 1
-  store i32 %217, i32* %18, align 4
-  %load_tmp449 = load i32, i32* %22, align 4
-  %218 = icmp slt i32 %load_tmp449, 0
-  br i1 %218, label %then450, label %else458
-
-then450:                                          ; preds = %endif447
-  %load_tmp451 = load i8*, i8** %7, align 8
+  %ptr_add_tmp440 = getelementptr i8, i8* %load_tmp438, i32 %load_tmp439
+  %load_tmp441 = load i32, i32* %22, align 4
+  %div_tmp442 = sdiv i32 %load_tmp441, 10
+  %mul_tmp443 = mul i32 2, %div_tmp442
+  %ptr_add_tmp444 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i32 %mul_tmp443
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp440, i8* %ptr_add_tmp444, i64 2, i1 false)
+  %load_tmp445 = load i32, i32* %42, align 4
+  %add_tmp446 = add i32 48, %load_tmp445
+  %cast_tmp447 = trunc i32 %add_tmp446 to i8
+  %load_tmp448 = load i8*, i8** %7, align 8
+  %load_tmp449 = load i32, i32* %18, align 4
+  %ptr_add_tmp450 = getelementptr i8, i8* %load_tmp448, i32 %load_tmp449
+  %ptr_add_tmp451 = getelementptr i8, i8* %ptr_add_tmp450, i32 2
+  store i8 %cast_tmp447, i8* %ptr_add_tmp451, align 1
   %load_tmp452 = load i32, i32* %18, align 4
-  %cast_tmp453 = sext i32 %load_tmp452 to i64
-  %ptr_add_tmp454 = getelementptr i8, i8* %load_tmp451, i64 %cast_tmp453
-  store i8 45, i8* %ptr_add_tmp454, align 1
-  %load_tmp455 = load i32, i32* %18, align 4
-  %219 = add i32 %load_tmp455, 1
-  store i32 %219, i32* %18, align 4
-  %load_tmp456 = load i32, i32* %22, align 4
-  %unary_minus_tmp457 = sub i32 0, %load_tmp456
-  store i32 %unary_minus_tmp457, i32* %22, align 4
-  br label %endif464
+  %add_tmp453 = add i32 %load_tmp452, 3
+  store i32 %add_tmp453, i32* %18, align 4
+  %220 = bitcast i32* %42 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %220)
+  br label %endif463
 
-else458:                                          ; preds = %endif447
-  %load_tmp459 = load i8*, i8** %7, align 8
-  %load_tmp460 = load i32, i32* %18, align 4
-  %cast_tmp461 = sext i32 %load_tmp460 to i64
-  %ptr_add_tmp462 = getelementptr i8, i8* %load_tmp459, i64 %cast_tmp461
-  store i8 43, i8* %ptr_add_tmp462, align 1
-  %load_tmp463 = load i32, i32* %18, align 4
-  %220 = add i32 %load_tmp463, 1
-  store i32 %220, i32* %18, align 4
-  br label %endif464
+else454:                                          ; preds = %endif433
+  %load_tmp455 = load i8*, i8** %7, align 8
+  %load_tmp456 = load i32, i32* %18, align 4
+  %ptr_add_tmp457 = getelementptr i8, i8* %load_tmp455, i32 %load_tmp456
+  %load_tmp458 = load i32, i32* %22, align 4
+  %mul_tmp459 = mul i32 2, %load_tmp458
+  %ptr_add_tmp460 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i32 %mul_tmp459
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp457, i8* %ptr_add_tmp460, i64 2, i1 false)
+  %load_tmp461 = load i32, i32* %18, align 4
+  %add_tmp462 = add i32 %load_tmp461, 2
+  store i32 %add_tmp462, i32* %18, align 4
+  br label %endif463
 
-endif464:                                         ; preds = %else458, %then450
-  %load_tmp465 = load i32, i32* %22, align 4
-  %221 = icmp sge i32 %load_tmp465, 100
-  br i1 %221, label %then466, label %else489
-
-then466:                                          ; preds = %endif464
-  %222 = bitcast i32* %42 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %222)
-  %load_tmp467 = load i32, i32* %22, align 4
-  %mod_tmp468 = srem i32 %load_tmp467, 10
-  store i32 %mod_tmp468, i32* %42, align 4
-  %load_tmp469 = load i8*, i8** %7, align 8
-  %load_tmp470 = load i32, i32* %18, align 4
-  %cast_tmp471 = sext i32 %load_tmp470 to i64
-  %ptr_add_tmp472 = getelementptr i8, i8* %load_tmp469, i64 %cast_tmp471
-  %load_tmp473 = load i32, i32* %22, align 4
-  %div_tmp474 = sdiv i32 %load_tmp473, 10
-  %mul_tmp475 = mul i32 2, %div_tmp474
-  %cast_tmp476 = sext i32 %mul_tmp475 to i64
-  %ptr_add_tmp477 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp476
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp472, i8* %ptr_add_tmp477, i64 2, i1 false)
-  %load_tmp478 = load i32, i32* %42, align 4
-  %cast_tmp479 = sext i32 %load_tmp478 to i64
-  %223 = trunc i64 %cast_tmp479 to i32
-  %add_tmp480 = add i32 48, %223
-  %cast_tmp481 = trunc i32 %add_tmp480 to i8
-  %load_tmp482 = load i8*, i8** %7, align 8
-  %load_tmp483 = load i32, i32* %18, align 4
-  %cast_tmp484 = sext i32 %load_tmp483 to i64
-  %ptr_add_tmp485 = getelementptr i8, i8* %load_tmp482, i64 %cast_tmp484
-  %ptr_add_tmp486 = getelementptr i8, i8* %ptr_add_tmp485, i64 2
-  store i8 %cast_tmp481, i8* %ptr_add_tmp486, align 1
-  %load_tmp487 = load i32, i32* %18, align 4
-  %add_tmp488 = add i32 %load_tmp487, 3
-  store i32 %add_tmp488, i32* %18, align 4
-  %224 = bitcast i32* %42 to i8*
+endif463:                                         ; preds = %else454, %then435
+  %load_tmp464 = load i8*, i8** %7, align 8
+  %load_tmp465 = load i32, i32* %18, align 4
+  %ptr_add_tmp466 = getelementptr i8, i8* %load_tmp464, i32 %load_tmp465
+  %221 = bitcast i32* %35 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %221)
+  %222 = bitcast i32* %33 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %222)
+  %223 = bitcast i32* %32 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %223)
+  %224 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %224)
-  br label %endif500
-
-else489:                                          ; preds = %endif464
-  %load_tmp490 = load i8*, i8** %7, align 8
-  %load_tmp491 = load i32, i32* %18, align 4
-  %cast_tmp492 = sext i32 %load_tmp491 to i64
-  %ptr_add_tmp493 = getelementptr i8, i8* %load_tmp490, i64 %cast_tmp492
-  %load_tmp494 = load i32, i32* %22, align 4
-  %mul_tmp495 = mul i32 2, %load_tmp494
-  %cast_tmp496 = sext i32 %mul_tmp495 to i64
-  %ptr_add_tmp497 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp496
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp493, i8* %ptr_add_tmp497, i64 2, i1 false)
-  %load_tmp498 = load i32, i32* %18, align 4
-  %add_tmp499 = add i32 %load_tmp498, 2
-  store i32 %add_tmp499, i32* %18, align 4
-  br label %endif500
-
-endif500:                                         ; preds = %else489, %then466
-  %load_tmp501 = load i8*, i8** %7, align 8
-  %load_tmp502 = load i32, i32* %18, align 4
-  %cast_tmp503 = sext i32 %load_tmp502 to i64
-  %ptr_add_tmp504 = getelementptr i8, i8* %load_tmp501, i64 %cast_tmp503
-  %225 = bitcast i32* %35 to i8*
+  %225 = bitcast i32* %21 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %225)
-  %226 = bitcast i32* %33 to i8*
+  %226 = bitcast i32* %20 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %226)
-  %227 = bitcast i32* %32 to i8*
+  %227 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %227)
-  %228 = bitcast i32* %22 to i8*
+  %228 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %228)
-  %229 = bitcast i32* %21 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %229)
-  %230 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %230)
-  %231 = bitcast i32* %19 to i8*
+  %229 = bitcast i1* %17 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %229)
+  %230 = bitcast i64* %16 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %230)
+  %231 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %231)
-  %232 = bitcast i32* %18 to i8*
+  %232 = bitcast i32* %13 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %232)
-  %233 = bitcast i1* %17 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %233)
-  %234 = bitcast i64* %16 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %234)
-  %235 = bitcast i32* %15 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %235)
-  %236 = bitcast i32* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %236)
-  %237 = bitcast i64* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %237)
-  %238 = bitcast i1* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %238)
-  %239 = bitcast i64* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %239)
-  %240 = bitcast i1* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %240)
-  %241 = bitcast i1* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %241)
-  %242 = bitcast i8** %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %242)
-  %243 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %243)
-  %244 = bitcast double* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %244)
-  ret i8* %ptr_add_tmp504
+  %233 = bitcast i64* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %233)
+  %234 = bitcast i1* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %234)
+  %235 = bitcast i64* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %235)
+  %236 = bitcast i1* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %236)
+  %237 = bitcast i1* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %237)
+  %238 = bitcast i8** %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %238)
+  %239 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %239)
+  %240 = bitcast double* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %240)
+  ret i8* %ptr_add_tmp466
 }
 
 define i8* @d2fixed_short(double %0, i32 %1, i8* %2, i1 %3) {
@@ -1765,75 +1723,70 @@ bool_and_rhs:                                     ; preds = %endif
 
 bool_and_end:                                     ; preds = %bool_and_rhs, %endif
   %bool_and_tmp = phi i1 [ false, %endif ], [ %63, %bool_and_rhs ]
-  br i1 %bool_and_tmp, label %then14, label %endif51
+  br i1 %bool_and_tmp, label %then14, label %endif46
 
 then14:                                           ; preds = %bool_and_end
   %64 = bitcast i32* %12 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %64)
   store i32 0, i32* %12, align 4
   %load_tmp15 = load i1, i1* %9, align 1
-  br i1 %load_tmp15, label %then16, label %endif21
+  br i1 %load_tmp15, label %then16, label %endif20
 
 then16:                                           ; preds = %then14
   %load_tmp17 = load i8*, i8** %6, align 8
   %load_tmp18 = load i32, i32* %12, align 4
-  %cast_tmp19 = sext i32 %load_tmp18 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp17, i64 %cast_tmp19
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp17, i32 %load_tmp18
   store i8 45, i8* %ptr_add_tmp, align 1
-  %load_tmp20 = load i32, i32* %12, align 4
-  %65 = add i32 %load_tmp20, 1
+  %load_tmp19 = load i32, i32* %12, align 4
+  %65 = add i32 %load_tmp19, 1
   store i32 %65, i32* %12, align 4
-  br label %endif21
+  br label %endif20
 
-endif21:                                          ; preds = %then16, %then14
-  %load_tmp22 = load i8*, i8** %6, align 8
-  %load_tmp23 = load i32, i32* %12, align 4
-  %cast_tmp24 = sext i32 %load_tmp23 to i64
-  %ptr_add_tmp25 = getelementptr i8, i8* %load_tmp22, i64 %cast_tmp24
-  store i8 48, i8* %ptr_add_tmp25, align 1
-  %load_tmp26 = load i32, i32* %12, align 4
-  %66 = add i32 %load_tmp26, 1
+endif20:                                          ; preds = %then16, %then14
+  %load_tmp21 = load i8*, i8** %6, align 8
+  %load_tmp22 = load i32, i32* %12, align 4
+  %ptr_add_tmp23 = getelementptr i8, i8* %load_tmp21, i32 %load_tmp22
+  store i8 48, i8* %ptr_add_tmp23, align 1
+  %load_tmp24 = load i32, i32* %12, align 4
+  %66 = add i32 %load_tmp24, 1
   store i32 %66, i32* %12, align 4
-  %load_tmp27 = load i32, i32* %5, align 4
-  %67 = icmp ugt i32 %load_tmp27, 0
-  br i1 %67, label %bool_and_rhs28, label %bool_and_end30
+  %load_tmp25 = load i32, i32* %5, align 4
+  %67 = icmp ugt i32 %load_tmp25, 0
+  br i1 %67, label %bool_and_rhs26, label %bool_and_end28
 
-bool_and_rhs28:                                   ; preds = %endif21
-  %load_tmp29 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp29, true
-  br label %bool_and_end30
+bool_and_rhs26:                                   ; preds = %endif20
+  %load_tmp27 = load i1, i1* %7, align 1
+  %unary_bit_not_tmp = xor i1 %load_tmp27, true
+  br label %bool_and_end28
 
-bool_and_end30:                                   ; preds = %bool_and_rhs28, %endif21
-  %bool_and_tmp31 = phi i1 [ false, %endif21 ], [ %unary_bit_not_tmp, %bool_and_rhs28 ]
-  br i1 %bool_and_tmp31, label %then32, label %endif46
+bool_and_end28:                                   ; preds = %bool_and_rhs26, %endif20
+  %bool_and_tmp29 = phi i1 [ false, %endif20 ], [ %unary_bit_not_tmp, %bool_and_rhs26 ]
+  br i1 %bool_and_tmp29, label %then30, label %endif42
 
-then32:                                           ; preds = %bool_and_end30
-  %load_tmp33 = load i8*, i8** %6, align 8
+then30:                                           ; preds = %bool_and_end28
+  %load_tmp31 = load i8*, i8** %6, align 8
+  %load_tmp32 = load i32, i32* %12, align 4
+  %ptr_add_tmp33 = getelementptr i8, i8* %load_tmp31, i32 %load_tmp32
+  store i8 46, i8* %ptr_add_tmp33, align 1
   %load_tmp34 = load i32, i32* %12, align 4
-  %cast_tmp35 = sext i32 %load_tmp34 to i64
-  %ptr_add_tmp36 = getelementptr i8, i8* %load_tmp33, i64 %cast_tmp35
-  store i8 46, i8* %ptr_add_tmp36, align 1
-  %load_tmp37 = load i32, i32* %12, align 4
-  %68 = add i32 %load_tmp37, 1
+  %68 = add i32 %load_tmp34, 1
   store i32 %68, i32* %12, align 4
-  %load_tmp38 = load i8*, i8** %6, align 8
-  %load_tmp39 = load i32, i32* %12, align 4
-  %cast_tmp40 = sext i32 %load_tmp39 to i64
-  %ptr_add_tmp41 = getelementptr i8, i8* %load_tmp38, i64 %cast_tmp40
-  %load_tmp42 = load i32, i32* %5, align 4
-  %cast_tmp43 = zext i32 %load_tmp42 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp41, i8 48, i64 %cast_tmp43, i1 false)
-  %load_tmp44 = load i32, i32* %5, align 4
-  %load_tmp45 = load i32, i32* %12, align 4
-  %add_tmp = add i32 %load_tmp45, %load_tmp44
+  %load_tmp35 = load i8*, i8** %6, align 8
+  %load_tmp36 = load i32, i32* %12, align 4
+  %ptr_add_tmp37 = getelementptr i8, i8* %load_tmp35, i32 %load_tmp36
+  %load_tmp38 = load i32, i32* %5, align 4
+  %cast_tmp39 = zext i32 %load_tmp38 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp37, i8 48, i64 %cast_tmp39, i1 false)
+  %load_tmp40 = load i32, i32* %5, align 4
+  %load_tmp41 = load i32, i32* %12, align 4
+  %add_tmp = add i32 %load_tmp41, %load_tmp40
   store i32 %add_tmp, i32* %12, align 4
-  br label %endif46
+  br label %endif42
 
-endif46:                                          ; preds = %then32, %bool_and_end30
-  %load_tmp47 = load i8*, i8** %6, align 8
-  %load_tmp48 = load i32, i32* %12, align 4
-  %cast_tmp49 = sext i32 %load_tmp48 to i64
-  %ptr_add_tmp50 = getelementptr i8, i8* %load_tmp47, i64 %cast_tmp49
+endif42:                                          ; preds = %then30, %bool_and_end28
+  %load_tmp43 = load i8*, i8** %6, align 8
+  %load_tmp44 = load i32, i32* %12, align 4
+  %ptr_add_tmp45 = getelementptr i8, i8* %load_tmp43, i32 %load_tmp44
   %69 = bitcast i32* %12 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %69)
   %70 = bitcast i32* %11 to i8*
@@ -1852,104 +1805,103 @@ endif46:                                          ; preds = %then32, %bool_and_e
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %76)
   %77 = bitcast double* %4 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %77)
-  ret i8* %ptr_add_tmp50
+  ret i8* %ptr_add_tmp45
 
-endif51:                                          ; preds = %bool_and_end
+endif46:                                          ; preds = %bool_and_end
   %78 = bitcast i32* %13 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %78)
   store i32 0, i32* %13, align 4
   %79 = bitcast i64* %14 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %79)
   store i64 0, i64* %14, align 8
-  %load_tmp52 = load i32, i32* %11, align 4
-  %80 = icmp eq i32 %load_tmp52, 0
-  br i1 %80, label %then53, label %else
+  %load_tmp47 = load i32, i32* %11, align 4
+  %80 = icmp eq i32 %load_tmp47, 0
+  br i1 %80, label %then48, label %else
 
-then53:                                           ; preds = %endif51
+then48:                                           ; preds = %endif46
   store i32 -1074, i32* %13, align 4
-  %load_tmp54 = load i64, i64* %10, align 8
-  store i64 %load_tmp54, i64* %14, align 8
-  br label %endif58
+  %load_tmp49 = load i64, i64* %10, align 8
+  store i64 %load_tmp49, i64* %14, align 8
+  br label %endif53
 
-else:                                             ; preds = %endif51
-  %load_tmp55 = load i32, i32* %11, align 4
-  %sub_tmp = sub i32 %load_tmp55, 1023
-  %sub_tmp56 = sub i32 %sub_tmp, 52
-  store i32 %sub_tmp56, i32* %13, align 4
-  %load_tmp57 = load i64, i64* %10, align 8
-  %bit_or_tmp = or i64 4503599627370496, %load_tmp57
+else:                                             ; preds = %endif46
+  %load_tmp50 = load i32, i32* %11, align 4
+  %sub_tmp = sub i32 %load_tmp50, 1023
+  %sub_tmp51 = sub i32 %sub_tmp, 52
+  store i32 %sub_tmp51, i32* %13, align 4
+  %load_tmp52 = load i64, i64* %10, align 8
+  %bit_or_tmp = or i64 4503599627370496, %load_tmp52
   store i64 %bit_or_tmp, i64* %14, align 8
-  br label %endif58
+  br label %endif53
 
-endif58:                                          ; preds = %else, %then53
+endif53:                                          ; preds = %else, %then48
   %81 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %81)
   store i32 0, i32* %15, align 4
   %82 = bitcast i1* %16 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %82)
   store i1 false, i1* %16, align 1
-  %load_tmp59 = load i1, i1* %9, align 1
-  br i1 %load_tmp59, label %then60, label %endif66
+  %load_tmp54 = load i1, i1* %9, align 1
+  br i1 %load_tmp54, label %then55, label %endif60
 
-then60:                                           ; preds = %endif58
-  %load_tmp61 = load i8*, i8** %6, align 8
-  %load_tmp62 = load i32, i32* %15, align 4
-  %cast_tmp63 = sext i32 %load_tmp62 to i64
-  %ptr_add_tmp64 = getelementptr i8, i8* %load_tmp61, i64 %cast_tmp63
-  store i8 45, i8* %ptr_add_tmp64, align 1
-  %load_tmp65 = load i32, i32* %15, align 4
-  %83 = add i32 %load_tmp65, 1
+then55:                                           ; preds = %endif53
+  %load_tmp56 = load i8*, i8** %6, align 8
+  %load_tmp57 = load i32, i32* %15, align 4
+  %ptr_add_tmp58 = getelementptr i8, i8* %load_tmp56, i32 %load_tmp57
+  store i8 45, i8* %ptr_add_tmp58, align 1
+  %load_tmp59 = load i32, i32* %15, align 4
+  %83 = add i32 %load_tmp59, 1
   store i32 %83, i32* %15, align 4
-  br label %endif66
+  br label %endif60
 
-endif66:                                          ; preds = %then60, %endif58
-  %load_tmp67 = load i32, i32* %13, align 4
-  %84 = icmp sge i32 %load_tmp67, -52
-  br i1 %84, label %then68, label %endif115
+endif60:                                          ; preds = %then55, %endif53
+  %load_tmp61 = load i32, i32* %13, align 4
+  %84 = icmp sge i32 %load_tmp61, -52
+  br i1 %84, label %then62, label %endif107
 
-then68:                                           ; preds = %endif66
+then62:                                           ; preds = %endif60
   %85 = bitcast i32* %17 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %85)
-  %load_tmp69 = load i32, i32* %13, align 4
-  %86 = icmp slt i32 %load_tmp69, 0
-  br i1 %86, label %then70, label %else71
+  %load_tmp63 = load i32, i32* %13, align 4
+  %86 = icmp slt i32 %load_tmp63, 0
+  br i1 %86, label %then64, label %else65
 
-then70:                                           ; preds = %then68
+then64:                                           ; preds = %then62
   store i32 0, i32* %17, align 4
-  br label %endif73
+  br label %endif67
 
-else71:                                           ; preds = %then68
-  %load_tmp72 = load i32, i32* %13, align 4
-  %87 = call i32 @func.std.ryu.indexForExponent..1.builtin.uint32.builtin.uint32(i32 %load_tmp72)
+else65:                                           ; preds = %then62
+  %load_tmp66 = load i32, i32* %13, align 4
+  %87 = call i32 @func.std.ryu.indexForExponent..1.builtin.uint32.builtin.uint32(i32 %load_tmp66)
   store i32 %87, i32* %17, align 4
-  br label %endif73
+  br label %endif67
 
-endif73:                                          ; preds = %else71, %then70
+endif67:                                          ; preds = %else65, %then64
   %88 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %88)
-  %load_tmp74 = load i32, i32* %17, align 4
-  %89 = call i32 @func.std.ryu.pow10BitsForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp74)
+  %load_tmp68 = load i32, i32* %17, align 4
+  %89 = call i32 @func.std.ryu.pow10BitsForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp68)
   store i32 %89, i32* %18, align 4
   %90 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %90)
-  %load_tmp75 = load i32, i32* %17, align 4
-  %91 = call i32 @func.std.ryu.lengthForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp75)
+  %load_tmp69 = load i32, i32* %17, align 4
+  %91 = call i32 @func.std.ryu.lengthForIndex..1.builtin.uint32.builtin.uint32(i32 %load_tmp69)
   store i32 %91, i32* %19, align 4
   %92 = bitcast i32* %20 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %92)
-  %load_tmp76 = load i32, i32* %19, align 4
-  %sub_tmp77 = sub i32 %load_tmp76, 1
-  store i32 %sub_tmp77, i32* %20, align 4
+  %load_tmp70 = load i32, i32* %19, align 4
+  %sub_tmp71 = sub i32 %load_tmp70, 1
+  store i32 %sub_tmp71, i32* %20, align 4
   br label %for_condition_check
 
-for_condition_check:                              ; preds = %for_iteration, %endif73
-  %load_tmp78 = load i32, i32* %20, align 4
-  %93 = icmp sge i32 %load_tmp78, 0
+for_condition_check:                              ; preds = %for_iteration, %endif67
+  %load_tmp72 = load i32, i32* %20, align 4
+  %93 = icmp sge i32 %load_tmp72, 0
   br i1 %93, label %for, label %endfor
 
-for_iteration:                                    ; preds = %endif114
-  %load_tmp79 = load i32, i32* %20, align 4
-  %94 = add i32 %load_tmp79, -1
+for_iteration:                                    ; preds = %endif106
+  %load_tmp73 = load i32, i32* %20, align 4
+  %94 = add i32 %load_tmp73, -1
   store i32 %94, i32* %20, align 4
   br label %for_condition_check
 
@@ -1962,439 +1914,430 @@ endfor:                                           ; preds = %for_condition_check
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %97)
   %98 = bitcast i32* %17 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %98)
-  br label %endif115
+  br label %endif107
 
 for:                                              ; preds = %for_condition_check
   %99 = bitcast i32* %21 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %99)
-  %load_tmp80 = load i32, i32* %18, align 4
-  %load_tmp81 = load i32, i32* %13, align 4
-  %sub_tmp82 = sub i32 %load_tmp80, %load_tmp81
-  store i32 %sub_tmp82, i32* %21, align 4
+  %load_tmp74 = load i32, i32* %18, align 4
+  %load_tmp75 = load i32, i32* %13, align 4
+  %sub_tmp76 = sub i32 %load_tmp74, %load_tmp75
+  store i32 %sub_tmp76, i32* %21, align 4
   %100 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %100)
-  %load_tmp83 = load i64, i64* %14, align 8
-  %lshift_tmp = shl i64 %load_tmp83, 8
-  %load_tmp84 = load i32, i32* %17, align 4
-  %101 = zext i32 %load_tmp84 to i64
+  %load_tmp77 = load i64, i64* %14, align 8
+  %lshift_tmp = shl i64 %load_tmp77, 8
+  %load_tmp78 = load i32, i32* %17, align 4
+  %101 = zext i32 %load_tmp78 to i64
   %102 = getelementptr [64 x i16], [64 x i16]* @std.ryu.POW10_OFFSET, i64 0, i64 %101
-  %load_tmp85 = load i16, i16* %102, align 2
-  %cast_tmp86 = zext i16 %load_tmp85 to i32
-  %load_tmp87 = load i32, i32* %20, align 4
-  %add_tmp88 = add i32 %cast_tmp86, %load_tmp87
-  %103 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i32 %add_tmp88
+  %load_tmp79 = load i16, i16* %102, align 2
+  %cast_tmp80 = zext i16 %load_tmp79 to i32
+  %load_tmp81 = load i32, i32* %20, align 4
+  %add_tmp82 = add i32 %cast_tmp80, %load_tmp81
+  %103 = getelementptr [1224 x [3 x i64]], [1224 x [3 x i64]]* @std.ryu.POW10_SPLIT, i64 0, i32 %add_tmp82
   %104 = getelementptr inbounds [3 x i64], [3 x i64]* %103, i32 0, i32 0
   %105 = getelementptr inbounds [3 x i64], [3 x i64]* %103, i32 0, i32 3
   %106 = insertvalue { i64*, i64* } undef, i64* %104, 0
   %107 = insertvalue { i64*, i64* } %106, i64* %105, 1
   %108 = extractvalue { i64*, i64* } %107, 0
-  %load_tmp89 = load i32, i32* %21, align 4
-  %add_tmp90 = add i32 %load_tmp89, 8
-  %109 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp, i64* %108, i32 %add_tmp90)
+  %load_tmp83 = load i32, i32* %21, align 4
+  %add_tmp84 = add i32 %load_tmp83, 8
+  %109 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp, i64* %108, i32 %add_tmp84)
   store i32 %109, i32* %22, align 4
-  %load_tmp91 = load i1, i1* %16, align 1
-  br i1 %load_tmp91, label %then92, label %else100
+  %load_tmp85 = load i1, i1* %16, align 1
+  br i1 %load_tmp85, label %then86, label %else93
 
-then92:                                           ; preds = %for
-  %load_tmp93 = load i32, i32* %22, align 4
-  %load_tmp94 = load i8*, i8** %6, align 8
-  %load_tmp95 = load i32, i32* %15, align 4
-  %cast_tmp96 = sext i32 %load_tmp95 to i64
-  %ptr_add_tmp97 = getelementptr i8, i8* %load_tmp94, i64 %cast_tmp96
-  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp93, i8* %ptr_add_tmp97)
-  %load_tmp98 = load i32, i32* %15, align 4
-  %add_tmp99 = add i32 %load_tmp98, 9
-  store i32 %add_tmp99, i32* %15, align 4
-  br label %endif114
+then86:                                           ; preds = %for
+  %load_tmp87 = load i32, i32* %22, align 4
+  %load_tmp88 = load i8*, i8** %6, align 8
+  %load_tmp89 = load i32, i32* %15, align 4
+  %ptr_add_tmp90 = getelementptr i8, i8* %load_tmp88, i32 %load_tmp89
+  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp87, i8* %ptr_add_tmp90)
+  %load_tmp91 = load i32, i32* %15, align 4
+  %add_tmp92 = add i32 %load_tmp91, 9
+  store i32 %add_tmp92, i32* %15, align 4
+  br label %endif106
 
-else100:                                          ; preds = %for
-  %load_tmp101 = load i32, i32* %22, align 4
-  %110 = icmp ne i32 %load_tmp101, 0
-  br i1 %110, label %then102, label %endif113
+else93:                                           ; preds = %for
+  %load_tmp94 = load i32, i32* %22, align 4
+  %110 = icmp ne i32 %load_tmp94, 0
+  br i1 %110, label %then95, label %endif105
 
-then102:                                          ; preds = %else100
+then95:                                           ; preds = %else93
   %111 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %111)
-  %load_tmp103 = load i32, i32* %22, align 4
-  %112 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp103)
+  %load_tmp96 = load i32, i32* %22, align 4
+  %112 = call i32 @func.std.ryu.decimalLength9..1.builtin.uint32.builtin.uint32(i32 %load_tmp96)
   store i32 %112, i32* %23, align 4
-  %load_tmp104 = load i32, i32* %23, align 4
-  %load_tmp105 = load i32, i32* %22, align 4
-  %load_tmp106 = load i8*, i8** %6, align 8
-  %load_tmp107 = load i32, i32* %15, align 4
-  %cast_tmp108 = sext i32 %load_tmp107 to i64
-  %ptr_add_tmp109 = getelementptr i8, i8* %load_tmp106, i64 %cast_tmp108
-  call void @func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp104, i32 %load_tmp105, i8* %ptr_add_tmp109)
-  %load_tmp110 = load i32, i32* %23, align 4
-  %load_tmp111 = load i32, i32* %15, align 4
-  %add_tmp112 = add i32 %load_tmp111, %load_tmp110
-  store i32 %add_tmp112, i32* %15, align 4
+  %load_tmp97 = load i32, i32* %23, align 4
+  %load_tmp98 = load i32, i32* %22, align 4
+  %load_tmp99 = load i8*, i8** %6, align 8
+  %load_tmp100 = load i32, i32* %15, align 4
+  %ptr_add_tmp101 = getelementptr i8, i8* %load_tmp99, i32 %load_tmp100
+  call void @func.std.ryu.append_n_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp97, i32 %load_tmp98, i8* %ptr_add_tmp101)
+  %load_tmp102 = load i32, i32* %23, align 4
+  %load_tmp103 = load i32, i32* %15, align 4
+  %add_tmp104 = add i32 %load_tmp103, %load_tmp102
+  store i32 %add_tmp104, i32* %15, align 4
   store i1 true, i1* %16, align 1
   %113 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %113)
-  br label %endif113
+  br label %endif105
 
-endif113:                                         ; preds = %then102, %else100
-  br label %endif114
+endif105:                                         ; preds = %then95, %else93
+  br label %endif106
 
-endif114:                                         ; preds = %endif113, %then92
+endif106:                                         ; preds = %endif105, %then86
   %114 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %114)
   %115 = bitcast i32* %21 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %115)
   br label %for_iteration
 
-endif115:                                         ; preds = %endfor, %endif66
-  %load_tmp116 = load i1, i1* %16, align 1
-  %unary_bit_not_tmp117 = xor i1 %load_tmp116, true
-  br i1 %unary_bit_not_tmp117, label %then118, label %endif124
+endif107:                                         ; preds = %endfor, %endif60
+  %load_tmp108 = load i1, i1* %16, align 1
+  %unary_bit_not_tmp109 = xor i1 %load_tmp108, true
+  br i1 %unary_bit_not_tmp109, label %then110, label %endif115
 
-then118:                                          ; preds = %endif115
-  %load_tmp119 = load i8*, i8** %6, align 8
-  %load_tmp120 = load i32, i32* %15, align 4
-  %cast_tmp121 = sext i32 %load_tmp120 to i64
-  %ptr_add_tmp122 = getelementptr i8, i8* %load_tmp119, i64 %cast_tmp121
-  store i8 48, i8* %ptr_add_tmp122, align 1
-  %load_tmp123 = load i32, i32* %15, align 4
-  %116 = add i32 %load_tmp123, 1
+then110:                                          ; preds = %endif107
+  %load_tmp111 = load i8*, i8** %6, align 8
+  %load_tmp112 = load i32, i32* %15, align 4
+  %ptr_add_tmp113 = getelementptr i8, i8* %load_tmp111, i32 %load_tmp112
+  store i8 48, i8* %ptr_add_tmp113, align 1
+  %load_tmp114 = load i32, i32* %15, align 4
+  %116 = add i32 %load_tmp114, 1
   store i32 %116, i32* %15, align 4
-  br label %endif124
+  br label %endif115
 
-endif124:                                         ; preds = %then118, %endif115
-  %load_tmp125 = load i32, i32* %5, align 4
-  %117 = icmp ugt i32 %load_tmp125, 0
-  br i1 %117, label %then126, label %endif132
+endif115:                                         ; preds = %then110, %endif107
+  %load_tmp116 = load i32, i32* %5, align 4
+  %117 = icmp ugt i32 %load_tmp116, 0
+  br i1 %117, label %then117, label %endif122
 
-then126:                                          ; preds = %endif124
-  %load_tmp127 = load i8*, i8** %6, align 8
-  %load_tmp128 = load i32, i32* %15, align 4
-  %cast_tmp129 = sext i32 %load_tmp128 to i64
-  %ptr_add_tmp130 = getelementptr i8, i8* %load_tmp127, i64 %cast_tmp129
-  store i8 46, i8* %ptr_add_tmp130, align 1
-  %load_tmp131 = load i32, i32* %15, align 4
-  %118 = add i32 %load_tmp131, 1
+then117:                                          ; preds = %endif115
+  %load_tmp118 = load i8*, i8** %6, align 8
+  %load_tmp119 = load i32, i32* %15, align 4
+  %ptr_add_tmp120 = getelementptr i8, i8* %load_tmp118, i32 %load_tmp119
+  store i8 46, i8* %ptr_add_tmp120, align 1
+  %load_tmp121 = load i32, i32* %15, align 4
+  %118 = add i32 %load_tmp121, 1
   store i32 %118, i32* %15, align 4
-  br label %endif132
+  br label %endif122
 
-endif132:                                         ; preds = %then126, %endif124
-  %load_tmp133 = load i32, i32* %13, align 4
-  %119 = icmp slt i32 %load_tmp133, 0
-  br i1 %119, label %then134, label %else350
+endif122:                                         ; preds = %then117, %endif115
+  %load_tmp123 = load i32, i32* %13, align 4
+  %119 = icmp slt i32 %load_tmp123, 0
+  br i1 %119, label %then124, label %else328
 
-then134:                                          ; preds = %endif132
+then124:                                          ; preds = %endif122
   %120 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %120)
-  %load_tmp135 = load i32, i32* %13, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp135
+  %load_tmp125 = load i32, i32* %13, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp125
   %div_tmp = sdiv i32 %unary_minus_tmp, 16
   store i32 %div_tmp, i32* %24, align 4
   %121 = bitcast i32* %25 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %121)
-  %load_tmp136 = load i32, i32* %5, align 4
-  %div_tmp137 = udiv i32 %load_tmp136, 9
-  %add_tmp138 = add i32 %div_tmp137, 1
-  store i32 %add_tmp138, i32* %25, align 4
+  %load_tmp126 = load i32, i32* %5, align 4
+  %div_tmp127 = udiv i32 %load_tmp126, 9
+  %add_tmp128 = add i32 %div_tmp127, 1
+  store i32 %add_tmp128, i32* %25, align 4
   %122 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %122)
   store i32 0, i32* %26, align 4
   %123 = bitcast i32* %27 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %123)
   store i32 0, i32* %27, align 4
-  %load_tmp139 = load i32, i32* %25, align 4
-  %load_tmp140 = load i32, i32* %24, align 4
-  %124 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp140
-  %load_tmp141 = load i8, i8* %124, align 1
-  %cast_tmp142 = zext i8 %load_tmp141 to i32
-  %125 = icmp ule i32 %load_tmp139, %cast_tmp142
-  br i1 %125, label %then143, label %else154
+  %load_tmp129 = load i32, i32* %25, align 4
+  %load_tmp130 = load i32, i32* %24, align 4
+  %124 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp130
+  %load_tmp131 = load i8, i8* %124, align 1
+  %cast_tmp132 = zext i8 %load_tmp131 to i32
+  %125 = icmp ule i32 %load_tmp129, %cast_tmp132
+  br i1 %125, label %then133, label %else143
 
-then143:                                          ; preds = %then134
-  %load_tmp144 = load i32, i32* %25, align 4
-  store i32 %load_tmp144, i32* %27, align 4
-  %load_tmp145 = load i8*, i8** %6, align 8
-  %load_tmp146 = load i32, i32* %15, align 4
-  %cast_tmp147 = sext i32 %load_tmp146 to i64
-  %ptr_add_tmp148 = getelementptr i8, i8* %load_tmp145, i64 %cast_tmp147
-  %load_tmp149 = load i32, i32* %5, align 4
-  %cast_tmp150 = zext i32 %load_tmp149 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp148, i8 48, i64 %cast_tmp150, i1 false)
-  %load_tmp151 = load i32, i32* %5, align 4
-  %load_tmp152 = load i32, i32* %15, align 4
-  %add_tmp153 = add i32 %load_tmp152, %load_tmp151
-  store i32 %add_tmp153, i32* %15, align 4
-  br label %endif174
+then133:                                          ; preds = %then124
+  %load_tmp134 = load i32, i32* %25, align 4
+  store i32 %load_tmp134, i32* %27, align 4
+  %load_tmp135 = load i8*, i8** %6, align 8
+  %load_tmp136 = load i32, i32* %15, align 4
+  %ptr_add_tmp137 = getelementptr i8, i8* %load_tmp135, i32 %load_tmp136
+  %load_tmp138 = load i32, i32* %5, align 4
+  %cast_tmp139 = zext i32 %load_tmp138 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp137, i8 48, i64 %cast_tmp139, i1 false)
+  %load_tmp140 = load i32, i32* %5, align 4
+  %load_tmp141 = load i32, i32* %15, align 4
+  %add_tmp142 = add i32 %load_tmp141, %load_tmp140
+  store i32 %add_tmp142, i32* %15, align 4
+  br label %endif162
 
-else154:                                          ; preds = %then134
+else143:                                          ; preds = %then124
+  %load_tmp144 = load i32, i32* %27, align 4
+  %load_tmp145 = load i32, i32* %24, align 4
+  %126 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp145
+  %load_tmp146 = load i8, i8* %126, align 1
+  %cast_tmp147 = zext i8 %load_tmp146 to i32
+  %127 = icmp ult i32 %load_tmp144, %cast_tmp147
+  br i1 %127, label %then148, label %endif161
+
+then148:                                          ; preds = %else143
+  %load_tmp149 = load i32, i32* %24, align 4
+  %128 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp149
+  %load_tmp150 = load i8, i8* %128, align 1
+  %cast_tmp151 = zext i8 %load_tmp150 to i32
+  store i32 %cast_tmp151, i32* %27, align 4
+  %load_tmp152 = load i8*, i8** %6, align 8
+  %load_tmp153 = load i32, i32* %15, align 4
+  %ptr_add_tmp154 = getelementptr i8, i8* %load_tmp152, i32 %load_tmp153
   %load_tmp155 = load i32, i32* %27, align 4
-  %load_tmp156 = load i32, i32* %24, align 4
-  %126 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp156
-  %load_tmp157 = load i8, i8* %126, align 1
-  %cast_tmp158 = zext i8 %load_tmp157 to i32
-  %127 = icmp ult i32 %load_tmp155, %cast_tmp158
-  br i1 %127, label %then159, label %endif173
+  %mul_tmp = mul i32 9, %load_tmp155
+  %cast_tmp156 = zext i32 %mul_tmp to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp154, i8 48, i64 %cast_tmp156, i1 false)
+  %load_tmp157 = load i32, i32* %27, align 4
+  %mul_tmp158 = mul i32 9, %load_tmp157
+  %load_tmp159 = load i32, i32* %15, align 4
+  %add_tmp160 = add i32 %load_tmp159, %mul_tmp158
+  store i32 %add_tmp160, i32* %15, align 4
+  br label %endif161
 
-then159:                                          ; preds = %else154
-  %load_tmp160 = load i32, i32* %24, align 4
-  %128 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp160
-  %load_tmp161 = load i8, i8* %128, align 1
-  %cast_tmp162 = zext i8 %load_tmp161 to i32
-  store i32 %cast_tmp162, i32* %27, align 4
-  %load_tmp163 = load i8*, i8** %6, align 8
-  %load_tmp164 = load i32, i32* %15, align 4
-  %cast_tmp165 = sext i32 %load_tmp164 to i64
-  %ptr_add_tmp166 = getelementptr i8, i8* %load_tmp163, i64 %cast_tmp165
-  %load_tmp167 = load i32, i32* %27, align 4
-  %mul_tmp = mul i32 9, %load_tmp167
-  %cast_tmp168 = zext i32 %mul_tmp to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp166, i8 48, i64 %cast_tmp168, i1 false)
-  %load_tmp169 = load i32, i32* %27, align 4
-  %mul_tmp170 = mul i32 9, %load_tmp169
-  %load_tmp171 = load i32, i32* %15, align 4
-  %add_tmp172 = add i32 %load_tmp171, %mul_tmp170
-  store i32 %add_tmp172, i32* %15, align 4
-  br label %endif173
+endif161:                                         ; preds = %then148, %else143
+  br label %endif162
 
-endif173:                                         ; preds = %then159, %else154
-  br label %endif174
+endif162:                                         ; preds = %endif161, %then133
+  br label %for_condition_check163
 
-endif174:                                         ; preds = %endif173, %then143
-  br label %for_condition_check175
+for_condition_check163:                           ; preds = %for_iteration164, %endif162
+  %load_tmp166 = load i32, i32* %27, align 4
+  %load_tmp167 = load i32, i32* %25, align 4
+  %129 = icmp ult i32 %load_tmp166, %load_tmp167
+  br i1 %129, label %for169, label %endfor165
 
-for_condition_check175:                           ; preds = %for_iteration176, %endif174
-  %load_tmp178 = load i32, i32* %27, align 4
-  %load_tmp179 = load i32, i32* %25, align 4
-  %129 = icmp ult i32 %load_tmp178, %load_tmp179
-  br i1 %129, label %for181, label %endfor177
-
-for_iteration176:                                 ; preds = %endif283
-  %load_tmp180 = load i32, i32* %27, align 4
-  %130 = add i32 %load_tmp180, 1
+for_iteration164:                                 ; preds = %endif268
+  %load_tmp168 = load i32, i32* %27, align 4
+  %130 = add i32 %load_tmp168, 1
   store i32 %130, i32* %27, align 4
-  br label %for_condition_check175
+  br label %for_condition_check163
 
-endfor177:                                        ; preds = %for_condition_check175, %endif282, %then202
-  %load_tmp284 = load i32, i32* %26, align 4
-  %131 = icmp ne i32 %load_tmp284, 0
-  br i1 %131, label %then285, label %endif349
+endfor165:                                        ; preds = %for_condition_check163, %endif267, %then190
+  %load_tmp269 = load i32, i32* %26, align 4
+  %131 = icmp ne i32 %load_tmp269, 0
+  br i1 %131, label %then270, label %endif327
 
-for181:                                           ; preds = %for_condition_check175
+for169:                                           ; preds = %for_condition_check163
   %132 = bitcast i32* %28 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %132)
-  %load_tmp182 = load i32, i32* %13, align 4
-  %unary_minus_tmp183 = sub i32 0, %load_tmp182
-  %load_tmp184 = load i32, i32* %24, align 4
-  %mul_tmp185 = mul i32 16, %load_tmp184
-  %sub_tmp186 = sub i32 %unary_minus_tmp183, %mul_tmp185
-  %add_tmp187 = add i32 120, %sub_tmp186
-  store i32 %add_tmp187, i32* %28, align 4
+  %load_tmp170 = load i32, i32* %13, align 4
+  %unary_minus_tmp171 = sub i32 0, %load_tmp170
+  %load_tmp172 = load i32, i32* %24, align 4
+  %mul_tmp173 = mul i32 16, %load_tmp172
+  %sub_tmp174 = sub i32 %unary_minus_tmp171, %mul_tmp173
+  %add_tmp175 = add i32 120, %sub_tmp174
+  store i32 %add_tmp175, i32* %28, align 4
   %133 = bitcast i32* %29 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %133)
-  %load_tmp188 = load i32, i32* %24, align 4
-  %134 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %load_tmp188
-  %load_tmp189 = load i16, i16* %134, align 2
-  %cast_tmp190 = zext i16 %load_tmp189 to i32
-  %load_tmp191 = load i32, i32* %27, align 4
-  %add_tmp192 = add i32 %cast_tmp190, %load_tmp191
-  %load_tmp193 = load i32, i32* %24, align 4
-  %135 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp193
-  %load_tmp194 = load i8, i8* %135, align 1
-  %cast_tmp195 = zext i8 %load_tmp194 to i32
-  %sub_tmp196 = sub i32 %add_tmp192, %cast_tmp195
-  store i32 %sub_tmp196, i32* %29, align 4
-  %load_tmp197 = load i32, i32* %29, align 4
-  %load_tmp198 = load i32, i32* %24, align 4
-  %add_tmp199 = add i32 %load_tmp198, 1
-  %136 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %add_tmp199
-  %load_tmp200 = load i16, i16* %136, align 2
-  %cast_tmp201 = zext i16 %load_tmp200 to i32
-  %137 = icmp uge i32 %load_tmp197, %cast_tmp201
-  br i1 %137, label %then202, label %endif216
+  %load_tmp176 = load i32, i32* %24, align 4
+  %134 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %load_tmp176
+  %load_tmp177 = load i16, i16* %134, align 2
+  %cast_tmp178 = zext i16 %load_tmp177 to i32
+  %load_tmp179 = load i32, i32* %27, align 4
+  %add_tmp180 = add i32 %cast_tmp178, %load_tmp179
+  %load_tmp181 = load i32, i32* %24, align 4
+  %135 = getelementptr [69 x i8], [69 x i8]* @std.ryu.MIN_BLOCK_2, i64 0, i32 %load_tmp181
+  %load_tmp182 = load i8, i8* %135, align 1
+  %cast_tmp183 = zext i8 %load_tmp182 to i32
+  %sub_tmp184 = sub i32 %add_tmp180, %cast_tmp183
+  store i32 %sub_tmp184, i32* %29, align 4
+  %load_tmp185 = load i32, i32* %29, align 4
+  %load_tmp186 = load i32, i32* %24, align 4
+  %add_tmp187 = add i32 %load_tmp186, 1
+  %136 = getelementptr [69 x i16], [69 x i16]* @std.ryu.POW10_OFFSET_2, i64 0, i32 %add_tmp187
+  %load_tmp188 = load i16, i16* %136, align 2
+  %cast_tmp189 = zext i16 %load_tmp188 to i32
+  %137 = icmp uge i32 %load_tmp185, %cast_tmp189
+  br i1 %137, label %then190, label %endif203
 
-then202:                                          ; preds = %for181
+then190:                                          ; preds = %for169
   %138 = bitcast i32* %30 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %138)
-  %load_tmp203 = load i32, i32* %5, align 4
-  %load_tmp204 = load i32, i32* %27, align 4
-  %mul_tmp205 = mul i32 9, %load_tmp204
-  %sub_tmp206 = sub i32 %load_tmp203, %mul_tmp205
-  store i32 %sub_tmp206, i32* %30, align 4
-  %load_tmp207 = load i8*, i8** %6, align 8
-  %load_tmp208 = load i32, i32* %15, align 4
-  %cast_tmp209 = sext i32 %load_tmp208 to i64
-  %ptr_add_tmp210 = getelementptr i8, i8* %load_tmp207, i64 %cast_tmp209
-  %load_tmp211 = load i32, i32* %30, align 4
-  %cast_tmp212 = zext i32 %load_tmp211 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp210, i8 48, i64 %cast_tmp212, i1 false)
-  %load_tmp213 = load i32, i32* %30, align 4
-  %load_tmp214 = load i32, i32* %15, align 4
-  %add_tmp215 = add i32 %load_tmp214, %load_tmp213
-  store i32 %add_tmp215, i32* %15, align 4
+  %load_tmp191 = load i32, i32* %5, align 4
+  %load_tmp192 = load i32, i32* %27, align 4
+  %mul_tmp193 = mul i32 9, %load_tmp192
+  %sub_tmp194 = sub i32 %load_tmp191, %mul_tmp193
+  store i32 %sub_tmp194, i32* %30, align 4
+  %load_tmp195 = load i8*, i8** %6, align 8
+  %load_tmp196 = load i32, i32* %15, align 4
+  %ptr_add_tmp197 = getelementptr i8, i8* %load_tmp195, i32 %load_tmp196
+  %load_tmp198 = load i32, i32* %30, align 4
+  %cast_tmp199 = zext i32 %load_tmp198 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp197, i8 48, i64 %cast_tmp199, i1 false)
+  %load_tmp200 = load i32, i32* %30, align 4
+  %load_tmp201 = load i32, i32* %15, align 4
+  %add_tmp202 = add i32 %load_tmp201, %load_tmp200
+  store i32 %add_tmp202, i32* %15, align 4
   %139 = bitcast i32* %30 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %139)
   %140 = bitcast i32* %29 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %140)
   %141 = bitcast i32* %28 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %141)
-  br label %endfor177
+  br label %endfor165
 
-endif216:                                         ; preds = %for181
+endif203:                                         ; preds = %for169
   %142 = bitcast i32* %31 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %142)
-  %load_tmp217 = load i64, i64* %14, align 8
-  %lshift_tmp218 = shl i64 %load_tmp217, 8
-  %load_tmp219 = load i32, i32* %29, align 4
-  %143 = zext i32 %load_tmp219 to i64
+  %load_tmp204 = load i64, i64* %14, align 8
+  %lshift_tmp205 = shl i64 %load_tmp204, 8
+  %load_tmp206 = load i32, i32* %29, align 4
+  %143 = zext i32 %load_tmp206 to i64
   %144 = getelementptr [3133 x [3 x i64]], [3133 x [3 x i64]]* @std.ryu.POW10_SPLIT_2, i64 0, i64 %143
   %145 = getelementptr inbounds [3 x i64], [3 x i64]* %144, i32 0, i32 0
   %146 = getelementptr inbounds [3 x i64], [3 x i64]* %144, i32 0, i32 3
   %147 = insertvalue { i64*, i64* } undef, i64* %145, 0
   %148 = insertvalue { i64*, i64* } %147, i64* %146, 1
   %149 = extractvalue { i64*, i64* } %148, 0
-  %load_tmp220 = load i32, i32* %28, align 4
-  %add_tmp221 = add i32 %load_tmp220, 8
-  %150 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp218, i64* %149, i32 %add_tmp221)
+  %load_tmp207 = load i32, i32* %28, align 4
+  %add_tmp208 = add i32 %load_tmp207, 8
+  %150 = call i32 @func.std.ryu.mulShift_mod1e9..3.builtin.uint64.0P.const.builtin.uint64.builtin.int32.builtin.uint32(i64 %lshift_tmp205, i64* %149, i32 %add_tmp208)
   store i32 %150, i32* %31, align 4
-  %load_tmp222 = load i32, i32* %27, align 4
-  %load_tmp223 = load i32, i32* %25, align 4
-  %sub_tmp224 = sub i32 %load_tmp223, 1
-  %151 = icmp ult i32 %load_tmp222, %sub_tmp224
-  br i1 %151, label %then225, label %else233
+  %load_tmp209 = load i32, i32* %27, align 4
+  %load_tmp210 = load i32, i32* %25, align 4
+  %sub_tmp211 = sub i32 %load_tmp210, 1
+  %151 = icmp ult i32 %load_tmp209, %sub_tmp211
+  br i1 %151, label %then212, label %else219
 
-then225:                                          ; preds = %endif216
-  %load_tmp226 = load i32, i32* %31, align 4
-  %load_tmp227 = load i8*, i8** %6, align 8
-  %load_tmp228 = load i32, i32* %15, align 4
-  %cast_tmp229 = sext i32 %load_tmp228 to i64
-  %ptr_add_tmp230 = getelementptr i8, i8* %load_tmp227, i64 %cast_tmp229
-  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp226, i8* %ptr_add_tmp230)
-  %load_tmp231 = load i32, i32* %15, align 4
-  %add_tmp232 = add i32 %load_tmp231, 9
-  store i32 %add_tmp232, i32* %15, align 4
-  br label %endif283
+then212:                                          ; preds = %endif203
+  %load_tmp213 = load i32, i32* %31, align 4
+  %load_tmp214 = load i8*, i8** %6, align 8
+  %load_tmp215 = load i32, i32* %15, align 4
+  %ptr_add_tmp216 = getelementptr i8, i8* %load_tmp214, i32 %load_tmp215
+  call void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp213, i8* %ptr_add_tmp216)
+  %load_tmp217 = load i32, i32* %15, align 4
+  %add_tmp218 = add i32 %load_tmp217, 9
+  store i32 %add_tmp218, i32* %15, align 4
+  br label %endif268
 
-else233:                                          ; preds = %endif216
+else219:                                          ; preds = %endif203
   %152 = bitcast i32* %32 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %152)
-  %load_tmp234 = load i32, i32* %5, align 4
-  %load_tmp235 = load i32, i32* %27, align 4
-  %mul_tmp236 = mul i32 9, %load_tmp235
-  %sub_tmp237 = sub i32 %load_tmp234, %mul_tmp236
-  store i32 %sub_tmp237, i32* %32, align 4
+  %load_tmp220 = load i32, i32* %5, align 4
+  %load_tmp221 = load i32, i32* %27, align 4
+  %mul_tmp222 = mul i32 9, %load_tmp221
+  %sub_tmp223 = sub i32 %load_tmp220, %mul_tmp222
+  store i32 %sub_tmp223, i32* %32, align 4
   %153 = bitcast i32* %33 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %153)
   store i32 0, i32* %33, align 4
   %154 = bitcast i32* %34 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %154)
   store i32 0, i32* %34, align 4
-  br label %for_condition_check238
+  br label %for_condition_check224
 
-for_condition_check238:                           ; preds = %for_iteration239, %else233
-  %load_tmp241 = load i32, i32* %34, align 4
-  %load_tmp242 = load i32, i32* %32, align 4
-  %sub_tmp243 = sub i32 9, %load_tmp242
-  %155 = icmp ult i32 %load_tmp241, %sub_tmp243
-  br i1 %155, label %for245, label %endfor240
+for_condition_check224:                           ; preds = %for_iteration225, %else219
+  %load_tmp227 = load i32, i32* %34, align 4
+  %load_tmp228 = load i32, i32* %32, align 4
+  %sub_tmp229 = sub i32 9, %load_tmp228
+  %155 = icmp ult i32 %load_tmp227, %sub_tmp229
+  br i1 %155, label %for231, label %endfor226
 
-for_iteration239:                                 ; preds = %for245
-  %load_tmp244 = load i32, i32* %34, align 4
-  %156 = add i32 %load_tmp244, 1
+for_iteration225:                                 ; preds = %for231
+  %load_tmp230 = load i32, i32* %34, align 4
+  %156 = add i32 %load_tmp230, 1
   store i32 %156, i32* %34, align 4
-  br label %for_condition_check238
+  br label %for_condition_check224
 
-endfor240:                                        ; preds = %for_condition_check238
+endfor226:                                        ; preds = %for_condition_check224
   %157 = bitcast i32* %34 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %157)
-  %load_tmp249 = load i32, i32* %33, align 4
-  %158 = icmp ne i32 %load_tmp249, 5
-  br i1 %158, label %then250, label %else253
+  %load_tmp235 = load i32, i32* %33, align 4
+  %158 = icmp ne i32 %load_tmp235, 5
+  br i1 %158, label %then236, label %else239
 
-for245:                                           ; preds = %for_condition_check238
-  %load_tmp246 = load i32, i32* %31, align 4
-  %mod_tmp = urem i32 %load_tmp246, 10
+for231:                                           ; preds = %for_condition_check224
+  %load_tmp232 = load i32, i32* %31, align 4
+  %mod_tmp = urem i32 %load_tmp232, 10
   store i32 %mod_tmp, i32* %33, align 4
-  %load_tmp247 = load i32, i32* %31, align 4
-  %div_tmp248 = udiv i32 %load_tmp247, 10
-  store i32 %div_tmp248, i32* %31, align 4
-  br label %for_iteration239
+  %load_tmp233 = load i32, i32* %31, align 4
+  %div_tmp234 = udiv i32 %load_tmp233, 10
+  store i32 %div_tmp234, i32* %31, align 4
+  br label %for_iteration225
 
-then250:                                          ; preds = %endfor240
-  %load_tmp251 = load i32, i32* %33, align 4
-  %159 = icmp ugt i32 %load_tmp251, 5
-  %cast_tmp252 = zext i1 %159 to i32
-  store i32 %cast_tmp252, i32* %26, align 4
-  br label %endif270
+then236:                                          ; preds = %endfor226
+  %load_tmp237 = load i32, i32* %33, align 4
+  %159 = icmp ugt i32 %load_tmp237, 5
+  %cast_tmp238 = zext i1 %159 to i32
+  store i32 %cast_tmp238, i32* %26, align 4
+  br label %endif256
 
-else253:                                          ; preds = %endfor240
+else239:                                          ; preds = %endfor226
   %160 = bitcast i32* %35 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %160)
-  %load_tmp254 = load i32, i32* %13, align 4
-  %unary_minus_tmp255 = sub i32 0, %load_tmp254
-  %load_tmp256 = load i32, i32* %5, align 4
-  %sub_tmp257 = sub i32 %unary_minus_tmp255, %load_tmp256
-  %sub_tmp258 = sub i32 %sub_tmp257, 1
-  store i32 %sub_tmp258, i32* %35, align 4
+  %load_tmp240 = load i32, i32* %13, align 4
+  %unary_minus_tmp241 = sub i32 0, %load_tmp240
+  %load_tmp242 = load i32, i32* %5, align 4
+  %sub_tmp243 = sub i32 %unary_minus_tmp241, %load_tmp242
+  %sub_tmp244 = sub i32 %sub_tmp243, 1
+  store i32 %sub_tmp244, i32* %35, align 4
   %161 = bitcast i1* %36 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %161)
-  %load_tmp259 = load i32, i32* %35, align 4
-  %162 = icmp sle i32 %load_tmp259, 0
+  %load_tmp245 = load i32, i32* %35, align 4
+  %162 = icmp sle i32 %load_tmp245, 0
   br i1 %162, label %bool_or_end, label %bool_or_rhs
 
-bool_or_rhs:                                      ; preds = %else253
-  %load_tmp260 = load i32, i32* %35, align 4
-  %163 = icmp slt i32 %load_tmp260, 60
-  br i1 %163, label %bool_and_rhs261, label %bool_and_end264
+bool_or_rhs:                                      ; preds = %else239
+  %load_tmp246 = load i32, i32* %35, align 4
+  %163 = icmp slt i32 %load_tmp246, 60
+  br i1 %163, label %bool_and_rhs247, label %bool_and_end250
 
-bool_and_rhs261:                                  ; preds = %bool_or_rhs
-  %load_tmp262 = load i64, i64* %14, align 8
-  %load_tmp263 = load i32, i32* %35, align 4
-  %164 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp262, i32 %load_tmp263)
-  br label %bool_and_end264
+bool_and_rhs247:                                  ; preds = %bool_or_rhs
+  %load_tmp248 = load i64, i64* %14, align 8
+  %load_tmp249 = load i32, i32* %35, align 4
+  %164 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp248, i32 %load_tmp249)
+  br label %bool_and_end250
 
-bool_and_end264:                                  ; preds = %bool_and_rhs261, %bool_or_rhs
-  %bool_and_tmp265 = phi i1 [ false, %bool_or_rhs ], [ %164, %bool_and_rhs261 ]
+bool_and_end250:                                  ; preds = %bool_and_rhs247, %bool_or_rhs
+  %bool_and_tmp251 = phi i1 [ false, %bool_or_rhs ], [ %164, %bool_and_rhs247 ]
   br label %bool_or_end
 
-bool_or_end:                                      ; preds = %bool_and_end264, %else253
-  %bool_or_tmp = phi i1 [ true, %else253 ], [ %bool_and_tmp265, %bool_and_end264 ]
+bool_or_end:                                      ; preds = %bool_and_end250, %else239
+  %bool_or_tmp = phi i1 [ true, %else239 ], [ %bool_and_tmp251, %bool_and_end250 ]
   store i1 %bool_or_tmp, i1* %36, align 1
-  %load_tmp266 = load i1, i1* %36, align 1
-  br i1 %load_tmp266, label %then267, label %else268
+  %load_tmp252 = load i1, i1* %36, align 1
+  br i1 %load_tmp252, label %then253, label %else254
 
-then267:                                          ; preds = %bool_or_end
+then253:                                          ; preds = %bool_or_end
   store i32 2, i32* %26, align 4
-  br label %endif269
+  br label %endif255
 
-else268:                                          ; preds = %bool_or_end
+else254:                                          ; preds = %bool_or_end
   store i32 1, i32* %26, align 4
-  br label %endif269
+  br label %endif255
 
-endif269:                                         ; preds = %else268, %then267
+endif255:                                         ; preds = %else254, %then253
   %165 = bitcast i1* %36 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %165)
   %166 = bitcast i32* %35 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %166)
-  br label %endif270
+  br label %endif256
 
-endif270:                                         ; preds = %endif269, %then250
-  %load_tmp271 = load i32, i32* %32, align 4
-  %167 = icmp ugt i32 %load_tmp271, 0
-  br i1 %167, label %then272, label %endif282
+endif256:                                         ; preds = %endif255, %then236
+  %load_tmp257 = load i32, i32* %32, align 4
+  %167 = icmp ugt i32 %load_tmp257, 0
+  br i1 %167, label %then258, label %endif267
 
-then272:                                          ; preds = %endif270
-  %load_tmp273 = load i32, i32* %32, align 4
-  %load_tmp274 = load i32, i32* %31, align 4
-  %load_tmp275 = load i8*, i8** %6, align 8
-  %load_tmp276 = load i32, i32* %15, align 4
-  %cast_tmp277 = sext i32 %load_tmp276 to i64
-  %ptr_add_tmp278 = getelementptr i8, i8* %load_tmp275, i64 %cast_tmp277
-  call void @func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp273, i32 %load_tmp274, i8* %ptr_add_tmp278)
-  %load_tmp279 = load i32, i32* %32, align 4
-  %load_tmp280 = load i32, i32* %15, align 4
-  %add_tmp281 = add i32 %load_tmp280, %load_tmp279
-  store i32 %add_tmp281, i32* %15, align 4
-  br label %endif282
+then258:                                          ; preds = %endif256
+  %load_tmp259 = load i32, i32* %32, align 4
+  %load_tmp260 = load i32, i32* %31, align 4
+  %load_tmp261 = load i8*, i8** %6, align 8
+  %load_tmp262 = load i32, i32* %15, align 4
+  %ptr_add_tmp263 = getelementptr i8, i8* %load_tmp261, i32 %load_tmp262
+  call void @func.std.ryu.append_c_digits..3.builtin.uint32.builtin.uint32.0P.builtin.uint8.void(i32 %load_tmp259, i32 %load_tmp260, i8* %ptr_add_tmp263)
+  %load_tmp264 = load i32, i32* %32, align 4
+  %load_tmp265 = load i32, i32* %15, align 4
+  %add_tmp266 = add i32 %load_tmp265, %load_tmp264
+  store i32 %add_tmp266, i32* %15, align 4
+  br label %endif267
 
-endif282:                                         ; preds = %then272, %endif270
+endif267:                                         ; preds = %then258, %endif256
   %168 = bitcast i32* %33 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %168)
   %169 = bitcast i32* %32 to i8*
@@ -2405,164 +2348,157 @@ endif282:                                         ; preds = %then272, %endif270
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %171)
   %172 = bitcast i32* %28 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %172)
-  br label %endfor177
+  br label %endfor165
 
-endif283:                                         ; preds = %then225
+endif268:                                         ; preds = %then212
   %173 = bitcast i32* %31 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %173)
   %174 = bitcast i32* %29 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %174)
   %175 = bitcast i32* %28 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %175)
-  br label %for_iteration176
+  br label %for_iteration164
 
-then285:                                          ; preds = %endfor177
+then270:                                          ; preds = %endfor165
   %176 = bitcast i32* %37 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %176)
-  %load_tmp286 = load i32, i32* %15, align 4
-  store i32 %load_tmp286, i32* %37, align 4
+  %load_tmp271 = load i32, i32* %15, align 4
+  store i32 %load_tmp271, i32* %37, align 4
   %177 = bitcast i32* %38 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %177)
   store i32 0, i32* %38, align 4
   br label %while_condition_check
 
-while_condition_check:                            ; preds = %then328, %then324, %then285
+while_condition_check:                            ; preds = %then308, %then304, %then270
   br i1 true, label %while, label %endwhile
 
-endwhile:                                         ; preds = %while_condition_check, %endif341, %then340, %endif316
+endwhile:                                         ; preds = %while_condition_check, %endif320, %then319, %endif297
   %178 = bitcast i32* %38 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %178)
   %179 = bitcast i32* %37 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %179)
-  br label %endif349
+  br label %endif327
 
 while:                                            ; preds = %while_condition_check
-  %load_tmp287 = load i32, i32* %37, align 4
-  %180 = add i32 %load_tmp287, -1
+  %load_tmp272 = load i32, i32* %37, align 4
+  %180 = add i32 %load_tmp272, -1
   store i32 %180, i32* %37, align 4
   %181 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %181)
   store i32 0, i32* %39, align 4
-  %load_tmp288 = load i32, i32* %37, align 4
-  %182 = icmp eq i32 %load_tmp288, -1
-  br i1 %182, label %bool_or_end297, label %bool_or_rhs289
+  %load_tmp273 = load i32, i32* %37, align 4
+  %182 = icmp eq i32 %load_tmp273, -1
+  br i1 %182, label %bool_or_end281, label %bool_or_rhs274
 
-bool_or_rhs289:                                   ; preds = %while
+bool_or_rhs274:                                   ; preds = %while
+  %load_tmp275 = load i8*, i8** %6, align 8
+  %load_tmp276 = load i32, i32* %37, align 4
+  %ptr_add_tmp277 = getelementptr i8, i8* %load_tmp275, i32 %load_tmp276
+  %load_tmp278 = load i8, i8* %ptr_add_tmp277, align 1
+  %cast_tmp279 = zext i8 %load_tmp278 to i32
+  store i32 %cast_tmp279, i32* %39, align 4
+  %load_tmp280 = load i32, i32* %39, align 4
+  %183 = icmp eq i32 %load_tmp280, 45
+  br label %bool_or_end281
+
+bool_or_end281:                                   ; preds = %bool_or_rhs274, %while
+  %bool_or_tmp282 = phi i1 [ true, %while ], [ %183, %bool_or_rhs274 ]
+  br i1 %bool_or_tmp282, label %then283, label %endif302
+
+then283:                                          ; preds = %bool_or_end281
+  %load_tmp284 = load i8*, i8** %6, align 8
+  %load_tmp285 = load i32, i32* %37, align 4
+  %ptr_add_tmp286 = getelementptr i8, i8* %load_tmp284, i32 %load_tmp285
+  %ptr_add_tmp287 = getelementptr i8, i8* %ptr_add_tmp286, i32 1
+  store i8 49, i8* %ptr_add_tmp287, align 1
+  %load_tmp288 = load i32, i32* %38, align 4
+  %184 = icmp sgt i32 %load_tmp288, 0
+  br i1 %184, label %then289, label %endif297
+
+then289:                                          ; preds = %then283
   %load_tmp290 = load i8*, i8** %6, align 8
-  %load_tmp291 = load i32, i32* %37, align 4
-  %cast_tmp292 = sext i32 %load_tmp291 to i64
-  %ptr_add_tmp293 = getelementptr i8, i8* %load_tmp290, i64 %cast_tmp292
-  %load_tmp294 = load i8, i8* %ptr_add_tmp293, align 1
-  %cast_tmp295 = zext i8 %load_tmp294 to i32
-  store i32 %cast_tmp295, i32* %39, align 4
-  %load_tmp296 = load i32, i32* %39, align 4
-  %183 = icmp eq i32 %load_tmp296, 45
-  br label %bool_or_end297
+  %load_tmp291 = load i32, i32* %38, align 4
+  %ptr_add_tmp292 = getelementptr i8, i8* %load_tmp290, i32 %load_tmp291
+  store i8 48, i8* %ptr_add_tmp292, align 1
+  %load_tmp293 = load i8*, i8** %6, align 8
+  %load_tmp294 = load i32, i32* %38, align 4
+  %ptr_add_tmp295 = getelementptr i8, i8* %load_tmp293, i32 %load_tmp294
+  %ptr_add_tmp296 = getelementptr i8, i8* %ptr_add_tmp295, i32 1
+  store i8 46, i8* %ptr_add_tmp296, align 1
+  br label %endif297
 
-bool_or_end297:                                   ; preds = %bool_or_rhs289, %while
-  %bool_or_tmp298 = phi i1 [ true, %while ], [ %183, %bool_or_rhs289 ]
-  br i1 %bool_or_tmp298, label %then299, label %endif322
-
-then299:                                          ; preds = %bool_or_end297
-  %load_tmp300 = load i8*, i8** %6, align 8
-  %load_tmp301 = load i32, i32* %37, align 4
-  %cast_tmp302 = sext i32 %load_tmp301 to i64
-  %ptr_add_tmp303 = getelementptr i8, i8* %load_tmp300, i64 %cast_tmp302
-  %ptr_add_tmp304 = getelementptr i8, i8* %ptr_add_tmp303, i64 1
-  store i8 49, i8* %ptr_add_tmp304, align 1
-  %load_tmp305 = load i32, i32* %38, align 4
-  %184 = icmp sgt i32 %load_tmp305, 0
-  br i1 %184, label %then306, label %endif316
-
-then306:                                          ; preds = %then299
-  %load_tmp307 = load i8*, i8** %6, align 8
-  %load_tmp308 = load i32, i32* %38, align 4
-  %cast_tmp309 = sext i32 %load_tmp308 to i64
-  %ptr_add_tmp310 = getelementptr i8, i8* %load_tmp307, i64 %cast_tmp309
-  store i8 48, i8* %ptr_add_tmp310, align 1
-  %load_tmp311 = load i8*, i8** %6, align 8
-  %load_tmp312 = load i32, i32* %38, align 4
-  %cast_tmp313 = sext i32 %load_tmp312 to i64
-  %ptr_add_tmp314 = getelementptr i8, i8* %load_tmp311, i64 %cast_tmp313
-  %ptr_add_tmp315 = getelementptr i8, i8* %ptr_add_tmp314, i64 1
-  store i8 46, i8* %ptr_add_tmp315, align 1
-  br label %endif316
-
-endif316:                                         ; preds = %then306, %then299
-  %load_tmp317 = load i8*, i8** %6, align 8
-  %load_tmp318 = load i32, i32* %15, align 4
-  %cast_tmp319 = sext i32 %load_tmp318 to i64
-  %ptr_add_tmp320 = getelementptr i8, i8* %load_tmp317, i64 %cast_tmp319
-  store i8 48, i8* %ptr_add_tmp320, align 1
-  %load_tmp321 = load i32, i32* %15, align 4
-  %185 = add i32 %load_tmp321, 1
+endif297:                                         ; preds = %then289, %then283
+  %load_tmp298 = load i8*, i8** %6, align 8
+  %load_tmp299 = load i32, i32* %15, align 4
+  %ptr_add_tmp300 = getelementptr i8, i8* %load_tmp298, i32 %load_tmp299
+  store i8 48, i8* %ptr_add_tmp300, align 1
+  %load_tmp301 = load i32, i32* %15, align 4
+  %185 = add i32 %load_tmp301, 1
   store i32 %185, i32* %15, align 4
   %186 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %186)
   br label %endwhile
 
-endif322:                                         ; preds = %bool_or_end297
-  %load_tmp323 = load i32, i32* %39, align 4
-  %187 = icmp eq i32 %load_tmp323, 46
-  br i1 %187, label %then324, label %else326
+endif302:                                         ; preds = %bool_or_end281
+  %load_tmp303 = load i32, i32* %39, align 4
+  %187 = icmp eq i32 %load_tmp303, 46
+  br i1 %187, label %then304, label %else306
 
-then324:                                          ; preds = %endif322
-  %load_tmp325 = load i32, i32* %37, align 4
-  store i32 %load_tmp325, i32* %38, align 4
+then304:                                          ; preds = %endif302
+  %load_tmp305 = load i32, i32* %37, align 4
+  store i32 %load_tmp305, i32* %38, align 4
   %188 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %188)
   br label %while_condition_check
 
-else326:                                          ; preds = %endif322
-  %load_tmp327 = load i32, i32* %39, align 4
-  %189 = icmp eq i32 %load_tmp327, 57
-  br i1 %189, label %then328, label %else333
+else306:                                          ; preds = %endif302
+  %load_tmp307 = load i32, i32* %39, align 4
+  %189 = icmp eq i32 %load_tmp307, 57
+  br i1 %189, label %then308, label %else312
 
-then328:                                          ; preds = %else326
-  %load_tmp329 = load i8*, i8** %6, align 8
-  %load_tmp330 = load i32, i32* %37, align 4
-  %cast_tmp331 = sext i32 %load_tmp330 to i64
-  %ptr_add_tmp332 = getelementptr i8, i8* %load_tmp329, i64 %cast_tmp331
-  store i8 48, i8* %ptr_add_tmp332, align 1
+then308:                                          ; preds = %else306
+  %load_tmp309 = load i8*, i8** %6, align 8
+  %load_tmp310 = load i32, i32* %37, align 4
+  %ptr_add_tmp311 = getelementptr i8, i8* %load_tmp309, i32 %load_tmp310
+  store i8 48, i8* %ptr_add_tmp311, align 1
   store i32 1, i32* %26, align 4
   %190 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %190)
   br label %while_condition_check
 
-else333:                                          ; preds = %else326
-  %load_tmp334 = load i32, i32* %26, align 4
-  %191 = icmp eq i32 %load_tmp334, 2
-  br i1 %191, label %bool_and_rhs335, label %bool_and_end338
+else312:                                          ; preds = %else306
+  %load_tmp313 = load i32, i32* %26, align 4
+  %191 = icmp eq i32 %load_tmp313, 2
+  br i1 %191, label %bool_and_rhs314, label %bool_and_end317
 
-bool_and_rhs335:                                  ; preds = %else333
-  %load_tmp336 = load i32, i32* %39, align 4
-  %mod_tmp337 = srem i32 %load_tmp336, 2
-  %192 = icmp eq i32 %mod_tmp337, 0
-  br label %bool_and_end338
+bool_and_rhs314:                                  ; preds = %else312
+  %load_tmp315 = load i32, i32* %39, align 4
+  %mod_tmp316 = srem i32 %load_tmp315, 2
+  %192 = icmp eq i32 %mod_tmp316, 0
+  br label %bool_and_end317
 
-bool_and_end338:                                  ; preds = %bool_and_rhs335, %else333
-  %bool_and_tmp339 = phi i1 [ false, %else333 ], [ %192, %bool_and_rhs335 ]
-  br i1 %bool_and_tmp339, label %then340, label %endif341
+bool_and_end317:                                  ; preds = %bool_and_rhs314, %else312
+  %bool_and_tmp318 = phi i1 [ false, %else312 ], [ %192, %bool_and_rhs314 ]
+  br i1 %bool_and_tmp318, label %then319, label %endif320
 
-then340:                                          ; preds = %bool_and_end338
+then319:                                          ; preds = %bool_and_end317
   %193 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %193)
   br label %endwhile
 
-endif341:                                         ; preds = %bool_and_end338
-  %load_tmp342 = load i32, i32* %39, align 4
-  %add_tmp343 = add i32 %load_tmp342, 1
-  %cast_tmp344 = trunc i32 %add_tmp343 to i8
-  %load_tmp345 = load i8*, i8** %6, align 8
-  %load_tmp346 = load i32, i32* %37, align 4
-  %cast_tmp347 = sext i32 %load_tmp346 to i64
-  %ptr_add_tmp348 = getelementptr i8, i8* %load_tmp345, i64 %cast_tmp347
-  store i8 %cast_tmp344, i8* %ptr_add_tmp348, align 1
+endif320:                                         ; preds = %bool_and_end317
+  %load_tmp321 = load i32, i32* %39, align 4
+  %add_tmp322 = add i32 %load_tmp321, 1
+  %cast_tmp323 = trunc i32 %add_tmp322 to i8
+  %load_tmp324 = load i8*, i8** %6, align 8
+  %load_tmp325 = load i32, i32* %37, align 4
+  %ptr_add_tmp326 = getelementptr i8, i8* %load_tmp324, i32 %load_tmp325
+  store i8 %cast_tmp323, i8* %ptr_add_tmp326, align 1
   %194 = bitcast i32* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %194)
   br label %endwhile
 
-endif349:                                         ; preds = %endwhile, %endfor177
+endif327:                                         ; preds = %endwhile, %endfor165
   %195 = bitcast i32* %27 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %195)
   %196 = bitcast i32* %26 to i8*
@@ -2571,82 +2507,78 @@ endif349:                                         ; preds = %endwhile, %endfor17
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %197)
   %198 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %198)
-  br label %endif364
+  br label %endif341
 
-else350:                                          ; preds = %endif132
-  %load_tmp351 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp352 = xor i1 %load_tmp351, true
-  br i1 %unary_bit_not_tmp352, label %then353, label %endif363
+else328:                                          ; preds = %endif122
+  %load_tmp329 = load i1, i1* %7, align 1
+  %unary_bit_not_tmp330 = xor i1 %load_tmp329, true
+  br i1 %unary_bit_not_tmp330, label %then331, label %endif340
 
-then353:                                          ; preds = %else350
+then331:                                          ; preds = %else328
+  %load_tmp332 = load i8*, i8** %6, align 8
+  %load_tmp333 = load i32, i32* %15, align 4
+  %ptr_add_tmp334 = getelementptr i8, i8* %load_tmp332, i32 %load_tmp333
+  %load_tmp335 = load i32, i32* %5, align 4
+  %cast_tmp336 = zext i32 %load_tmp335 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp334, i8 48, i64 %cast_tmp336, i1 false)
+  %load_tmp337 = load i32, i32* %5, align 4
+  %load_tmp338 = load i32, i32* %15, align 4
+  %add_tmp339 = add i32 %load_tmp338, %load_tmp337
+  store i32 %add_tmp339, i32* %15, align 4
+  br label %endif340
+
+endif340:                                         ; preds = %then331, %else328
+  br label %endif341
+
+endif341:                                         ; preds = %endif340, %endif327
+  %load_tmp342 = load i1, i1* %7, align 1
+  br i1 %load_tmp342, label %then343, label %endif363
+
+then343:                                          ; preds = %endif341
+  br label %while_condition_check344
+
+while_condition_check344:                         ; preds = %while351, %then343
+  %load_tmp346 = load i8*, i8** %6, align 8
+  %load_tmp347 = load i32, i32* %15, align 4
+  %ptr_add_tmp348 = getelementptr i8, i8* %load_tmp346, i32 %load_tmp347
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp348, i32 -1
+  %load_tmp349 = load i8, i8* %ptr_sub_tmp, align 1
+  %cast_tmp350 = zext i8 %load_tmp349 to i32
+  %199 = icmp eq i32 %cast_tmp350, 48
+  br i1 %199, label %while351, label %endwhile345
+
+endwhile345:                                      ; preds = %while_condition_check344
+  %load_tmp353 = load i32, i32* %15, align 4
+  %200 = icmp sgt i32 %load_tmp353, 0
+  call void @func.std.assert..1.builtin.bool.void(i1 %200)
   %load_tmp354 = load i8*, i8** %6, align 8
   %load_tmp355 = load i32, i32* %15, align 4
-  %cast_tmp356 = sext i32 %load_tmp355 to i64
-  %ptr_add_tmp357 = getelementptr i8, i8* %load_tmp354, i64 %cast_tmp356
-  %load_tmp358 = load i32, i32* %5, align 4
-  %cast_tmp359 = zext i32 %load_tmp358 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp357, i8 48, i64 %cast_tmp359, i1 false)
-  %load_tmp360 = load i32, i32* %5, align 4
+  %ptr_add_tmp356 = getelementptr i8, i8* %load_tmp354, i32 %load_tmp355
+  %ptr_sub_tmp357 = getelementptr i8, i8* %ptr_add_tmp356, i32 -1
+  %load_tmp358 = load i8, i8* %ptr_sub_tmp357, align 1
+  %cast_tmp359 = zext i8 %load_tmp358 to i32
+  %201 = icmp eq i32 %cast_tmp359, 46
+  br i1 %201, label %then360, label %endif362
+
+while351:                                         ; preds = %while_condition_check344
+  %load_tmp352 = load i32, i32* %15, align 4
+  %202 = add i32 %load_tmp352, -1
+  store i32 %202, i32* %15, align 4
+  br label %while_condition_check344
+
+then360:                                          ; preds = %endwhile345
   %load_tmp361 = load i32, i32* %15, align 4
-  %add_tmp362 = add i32 %load_tmp361, %load_tmp360
-  store i32 %add_tmp362, i32* %15, align 4
+  %203 = add i32 %load_tmp361, -1
+  store i32 %203, i32* %15, align 4
+  br label %endif362
+
+endif362:                                         ; preds = %then360, %endwhile345
   br label %endif363
 
-endif363:                                         ; preds = %then353, %else350
-  br label %endif364
-
-endif364:                                         ; preds = %endif363, %endif349
-  %load_tmp365 = load i1, i1* %7, align 1
-  br i1 %load_tmp365, label %then366, label %endif388
-
-then366:                                          ; preds = %endif364
-  br label %while_condition_check367
-
-while_condition_check367:                         ; preds = %while375, %then366
-  %load_tmp369 = load i8*, i8** %6, align 8
-  %load_tmp370 = load i32, i32* %15, align 4
-  %cast_tmp371 = sext i32 %load_tmp370 to i64
-  %ptr_add_tmp372 = getelementptr i8, i8* %load_tmp369, i64 %cast_tmp371
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp372, i64 -1
-  %load_tmp373 = load i8, i8* %ptr_sub_tmp, align 1
-  %cast_tmp374 = zext i8 %load_tmp373 to i32
-  %199 = icmp eq i32 %cast_tmp374, 48
-  br i1 %199, label %while375, label %endwhile368
-
-endwhile368:                                      ; preds = %while_condition_check367
-  %load_tmp377 = load i32, i32* %15, align 4
-  %200 = icmp sgt i32 %load_tmp377, 0
-  call void @func.std.assert..1.builtin.bool.void(i1 %200)
-  %load_tmp378 = load i8*, i8** %6, align 8
-  %load_tmp379 = load i32, i32* %15, align 4
-  %cast_tmp380 = sext i32 %load_tmp379 to i64
-  %ptr_add_tmp381 = getelementptr i8, i8* %load_tmp378, i64 %cast_tmp380
-  %ptr_sub_tmp382 = getelementptr i8, i8* %ptr_add_tmp381, i64 -1
-  %load_tmp383 = load i8, i8* %ptr_sub_tmp382, align 1
-  %cast_tmp384 = zext i8 %load_tmp383 to i32
-  %201 = icmp eq i32 %cast_tmp384, 46
-  br i1 %201, label %then385, label %endif387
-
-while375:                                         ; preds = %while_condition_check367
-  %load_tmp376 = load i32, i32* %15, align 4
-  %202 = add i32 %load_tmp376, -1
-  store i32 %202, i32* %15, align 4
-  br label %while_condition_check367
-
-then385:                                          ; preds = %endwhile368
-  %load_tmp386 = load i32, i32* %15, align 4
-  %203 = add i32 %load_tmp386, -1
-  store i32 %203, i32* %15, align 4
-  br label %endif387
-
-endif387:                                         ; preds = %then385, %endwhile368
-  br label %endif388
-
-endif388:                                         ; preds = %endif387, %endif364
-  %load_tmp389 = load i8*, i8** %6, align 8
-  %load_tmp390 = load i32, i32* %15, align 4
-  %cast_tmp391 = sext i32 %load_tmp390 to i64
-  %ptr_add_tmp392 = getelementptr i8, i8* %load_tmp389, i64 %cast_tmp391
+endif363:                                         ; preds = %endif362, %endif341
+  %load_tmp364 = load i8*, i8** %6, align 8
+  %load_tmp365 = load i32, i32* %15, align 4
+  %ptr_add_tmp366 = getelementptr i8, i8* %load_tmp364, i32 %load_tmp365
   %204 = bitcast i1* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %204)
   %205 = bitcast i32* %15 to i8*
@@ -2671,7 +2603,7 @@ endif388:                                         ; preds = %endif387, %endif364
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %214)
   %215 = bitcast double* %4 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %215)
-  ret i8* %ptr_add_tmp392
+  ret i8* %ptr_add_tmp366
 }
 
 define i8* @f2s_short(float %0, i8* %1) {
@@ -2994,7 +2926,7 @@ then:                                             ; preds = %entry
   %load_tmp1 = load i8*, i8** %4, align 8
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp1, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.2, i32 0, i32 0), i64 3, i1 false)
   %load_tmp2 = load i8*, i8** %4, align 8
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp2, i64 3
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp2, i32 3
   %12 = bitcast i1* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %12)
   %13 = bitcast i1* %6 to i8*
@@ -3025,7 +2957,7 @@ then9:                                            ; preds = %endif7
   %load_tmp10 = load i8*, i8** %4, align 8
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp10, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.3, i32 0, i32 0), i64 3, i1 false)
   %load_tmp11 = load i8*, i8** %4, align 8
-  %ptr_add_tmp12 = getelementptr i8, i8* %load_tmp11, i64 3
+  %ptr_add_tmp12 = getelementptr i8, i8* %load_tmp11, i32 3
   %17 = bitcast i1* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %17)
   %18 = bitcast i1* %6 to i8*
@@ -3040,7 +2972,7 @@ else:                                             ; preds = %endif7
   %load_tmp13 = load i8*, i8** %4, align 8
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp13, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str.4, i32 0, i32 0), i64 3, i1 false)
   %load_tmp14 = load i8*, i8** %4, align 8
-  %ptr_add_tmp15 = getelementptr i8, i8* %load_tmp14, i64 3
+  %ptr_add_tmp15 = getelementptr i8, i8* %load_tmp14, i32 3
   %21 = bitcast i1* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %21)
   %22 = bitcast i1* %6 to i8*
@@ -3124,63 +3056,63 @@ endif6:                                           ; preds = %endif
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %27)
   %load_tmp7 = load i32, i32* %7, align 4
   %unary_minus_tmp = sub i32 0, %load_tmp7
-  %cast_tmp = zext i32 %unary_minus_tmp to i64
-  %lshift_tmp = shl i64 1, %cast_tmp
+  %28 = zext i32 %unary_minus_tmp to i64
+  %lshift_tmp = shl i64 1, %28
   %sub_tmp8 = sub i64 %lshift_tmp, 1
   store i64 %sub_tmp8, i64* %8, align 8
-  %28 = bitcast i64* %9 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %28)
+  %29 = bitcast i64* %9 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %29)
   %load_tmp9 = load i64, i64* %6, align 8
   %load_tmp10 = load i64, i64* %8, align 8
   %bit_and_tmp = and i64 %load_tmp9, %load_tmp10
   store i64 %bit_and_tmp, i64* %9, align 8
   %load_tmp11 = load i64, i64* %9, align 8
-  %29 = icmp ne i64 %load_tmp11, 0
-  br i1 %29, label %then12, label %endif13
+  %30 = icmp ne i64 %load_tmp11, 0
+  br i1 %30, label %then12, label %endif13
 
 then12:                                           ; preds = %endif6
-  %30 = bitcast i64* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %30)
-  %31 = bitcast i64* %8 to i8*
+  %31 = bitcast i64* %9 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %31)
-  %32 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %32)
-  %33 = bitcast i64* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %33)
-  %34 = bitcast %"struct.std::ryu::floating_decimal_64"** %5 to i8*
+  %32 = bitcast i64* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %32)
+  %33 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %33)
+  %34 = bitcast i64* %6 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %34)
-  %35 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %35)
-  %36 = bitcast i64* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %36)
+  %35 = bitcast %"struct.std::ryu::floating_decimal_64"** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %35)
+  %36 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %36)
+  %37 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %37)
   ret i1 false
 
 endif13:                                          ; preds = %endif6
   %load_tmp14 = load i64, i64* %6, align 8
   %load_tmp15 = load i32, i32* %7, align 4
   %unary_minus_tmp16 = sub i32 0, %load_tmp15
-  %cast_tmp17 = zext i32 %unary_minus_tmp16 to i64
-  %rshift_tmp = lshr i64 %load_tmp14, %cast_tmp17
+  %38 = zext i32 %unary_minus_tmp16 to i64
+  %rshift_tmp = lshr i64 %load_tmp14, %38
+  %load_tmp17 = load %"struct.std::ryu::floating_decimal_64"*, %"struct.std::ryu::floating_decimal_64"** %5, align 8
+  %39 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %load_tmp17, i32 0, i32 0
+  store i64 %rshift_tmp, i64* %39, align 8
   %load_tmp18 = load %"struct.std::ryu::floating_decimal_64"*, %"struct.std::ryu::floating_decimal_64"** %5, align 8
-  %37 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %load_tmp18, i32 0, i32 0
-  store i64 %rshift_tmp, i64* %37, align 8
-  %load_tmp19 = load %"struct.std::ryu::floating_decimal_64"*, %"struct.std::ryu::floating_decimal_64"** %5, align 8
-  %38 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %load_tmp19, i32 0, i32 1
-  store i32 0, i32* %38, align 4
-  %39 = bitcast i64* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %39)
-  %40 = bitcast i64* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %40)
-  %41 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %41)
-  %42 = bitcast i64* %6 to i8*
+  %40 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %load_tmp18, i32 0, i32 1
+  store i32 0, i32* %40, align 4
+  %41 = bitcast i64* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %41)
+  %42 = bitcast i64* %8 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %42)
-  %43 = bitcast %"struct.std::ryu::floating_decimal_64"** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %43)
-  %44 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %44)
-  %45 = bitcast i64* %3 to i8*
+  %43 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %43)
+  %44 = bitcast i64* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %44)
+  %45 = bitcast %"struct.std::ryu::floating_decimal_64"** %5 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %45)
+  %46 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %46)
+  %47 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %47)
   ret i1 true
 }
 
@@ -3562,7 +3494,7 @@ bool_or_rhs100:                                   ; preds = %endif98
 
 bool_or_end102:                                   ; preds = %bool_or_rhs100, %endif98
   %bool_or_tmp103 = phi i1 [ true, %endif98 ], [ %load_tmp101, %bool_or_rhs100 ]
-  br i1 %bool_or_tmp103, label %then104, label %else200
+  br i1 %bool_or_tmp103, label %then104, label %else196
 
 then104:                                          ; preds = %bool_or_end102
   br label %for_condition_check
@@ -3574,8 +3506,8 @@ for_iteration:                                    ; preds = %endif110
   br label %for_condition_check
 
 endfor:                                           ; preds = %for_condition_check, %then109
-  %load_tmp137 = load i1, i1* %15, align 1
-  br i1 %load_tmp137, label %then138, label %endif171
+  %load_tmp136 = load i1, i1* %15, align 1
+  br i1 %load_tmp136, label %then137, label %endif169
 
 for:                                              ; preds = %for_condition_check
   %118 = bitcast i64* %28 to i8*
@@ -3630,22 +3562,21 @@ endif110:                                         ; preds = %for
   %bit_and_tmp126 = and i1 %load_tmp125, %129
   store i1 %bit_and_tmp126, i1* %15, align 1
   %load_tmp127 = load i8, i8* %26, align 1
-  %cast_tmp128 = zext i8 %load_tmp127 to i32
-  %130 = icmp eq i32 %cast_tmp128, 0
-  %load_tmp129 = load i1, i1* %16, align 1
-  %bit_and_tmp130 = and i1 %load_tmp129, %130
-  store i1 %bit_and_tmp130, i1* %16, align 1
-  %load_tmp131 = load i32, i32* %32, align 4
-  %cast_tmp132 = trunc i32 %load_tmp131 to i8
-  store i8 %cast_tmp132, i8* %26, align 1
-  %load_tmp133 = load i64, i64* %31, align 8
-  store i64 %load_tmp133, i64* %11, align 8
-  %load_tmp134 = load i64, i64* %28, align 8
-  store i64 %load_tmp134, i64* %12, align 8
-  %load_tmp135 = load i64, i64* %29, align 8
-  store i64 %load_tmp135, i64* %13, align 8
-  %load_tmp136 = load i32, i32* %25, align 4
-  %131 = add i32 %load_tmp136, 1
+  %130 = icmp eq i8 %load_tmp127, 0
+  %load_tmp128 = load i1, i1* %16, align 1
+  %bit_and_tmp129 = and i1 %load_tmp128, %130
+  store i1 %bit_and_tmp129, i1* %16, align 1
+  %load_tmp130 = load i32, i32* %32, align 4
+  %cast_tmp131 = trunc i32 %load_tmp130 to i8
+  store i8 %cast_tmp131, i8* %26, align 1
+  %load_tmp132 = load i64, i64* %31, align 8
+  store i64 %load_tmp132, i64* %11, align 8
+  %load_tmp133 = load i64, i64* %28, align 8
+  store i64 %load_tmp133, i64* %12, align 8
+  %load_tmp134 = load i64, i64* %29, align 8
+  store i64 %load_tmp134, i64* %13, align 8
+  %load_tmp135 = load i32, i32* %25, align 4
+  %131 = add i32 %load_tmp135, 1
   store i32 %131, i32* %25, align 4
   %132 = bitcast i32* %32 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %132)
@@ -3659,81 +3590,80 @@ endif110:                                         ; preds = %for
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %136)
   br label %for_iteration
 
-then138:                                          ; preds = %endfor
-  br label %for_condition_check139
+then137:                                          ; preds = %endfor
+  br label %for_condition_check138
 
-for_condition_check139:                           ; preds = %for_iteration140, %then138
-  br i1 true, label %for142, label %endfor141
+for_condition_check138:                           ; preds = %for_iteration139, %then137
+  br i1 true, label %for141, label %endfor140
 
-for_iteration140:                                 ; preds = %endif152
-  br label %for_condition_check139
+for_iteration139:                                 ; preds = %endif151
+  br label %for_condition_check138
 
-endfor141:                                        ; preds = %for_condition_check139, %then151
-  br label %endif171
+endfor140:                                        ; preds = %for_condition_check138, %then150
+  br label %endif169
 
-for142:                                           ; preds = %for_condition_check139
+for141:                                           ; preds = %for_condition_check138
   %137 = bitcast i64* %33 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %137)
-  %load_tmp143 = load i64, i64* %13, align 8
-  %138 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp143)
+  %load_tmp142 = load i64, i64* %13, align 8
+  %138 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp142)
   store i64 %138, i64* %33, align 8
   %139 = bitcast i32* %34 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %139)
-  %load_tmp144 = load i64, i64* %13, align 8
-  %cast_tmp145 = trunc i64 %load_tmp144 to i32
-  %load_tmp146 = load i64, i64* %33, align 8
-  %cast_tmp147 = trunc i64 %load_tmp146 to i32
-  %mul_tmp148 = mul i32 10, %cast_tmp147
-  %sub_tmp149 = sub i32 %cast_tmp145, %mul_tmp148
-  store i32 %sub_tmp149, i32* %34, align 4
-  %load_tmp150 = load i32, i32* %34, align 4
-  %140 = icmp ne i32 %load_tmp150, 0
-  br i1 %140, label %then151, label %endif152
+  %load_tmp143 = load i64, i64* %13, align 8
+  %cast_tmp144 = trunc i64 %load_tmp143 to i32
+  %load_tmp145 = load i64, i64* %33, align 8
+  %cast_tmp146 = trunc i64 %load_tmp145 to i32
+  %mul_tmp147 = mul i32 10, %cast_tmp146
+  %sub_tmp148 = sub i32 %cast_tmp144, %mul_tmp147
+  store i32 %sub_tmp148, i32* %34, align 4
+  %load_tmp149 = load i32, i32* %34, align 4
+  %140 = icmp ne i32 %load_tmp149, 0
+  br i1 %140, label %then150, label %endif151
 
-then151:                                          ; preds = %for142
+then150:                                          ; preds = %for141
   %141 = bitcast i32* %34 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %141)
   %142 = bitcast i64* %33 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %142)
-  br label %endfor141
+  br label %endfor140
 
-endif152:                                         ; preds = %for142
+endif151:                                         ; preds = %for141
   %143 = bitcast i64* %35 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %143)
-  %load_tmp153 = load i64, i64* %12, align 8
-  %144 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp153)
+  %load_tmp152 = load i64, i64* %12, align 8
+  %144 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp152)
   store i64 %144, i64* %35, align 8
   %145 = bitcast i64* %36 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %145)
-  %load_tmp154 = load i64, i64* %11, align 8
-  %146 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp154)
+  %load_tmp153 = load i64, i64* %11, align 8
+  %146 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp153)
   store i64 %146, i64* %36, align 8
   %147 = bitcast i32* %37 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %147)
-  %load_tmp155 = load i64, i64* %11, align 8
-  %cast_tmp156 = trunc i64 %load_tmp155 to i32
-  %load_tmp157 = load i64, i64* %36, align 8
-  %cast_tmp158 = trunc i64 %load_tmp157 to i32
-  %mul_tmp159 = mul i32 10, %cast_tmp158
-  %sub_tmp160 = sub i32 %cast_tmp156, %mul_tmp159
-  store i32 %sub_tmp160, i32* %37, align 4
-  %load_tmp161 = load i8, i8* %26, align 1
-  %cast_tmp162 = zext i8 %load_tmp161 to i32
-  %148 = icmp eq i32 %cast_tmp162, 0
-  %load_tmp163 = load i1, i1* %16, align 1
-  %bit_and_tmp164 = and i1 %load_tmp163, %148
-  store i1 %bit_and_tmp164, i1* %16, align 1
-  %load_tmp165 = load i32, i32* %37, align 4
-  %cast_tmp166 = trunc i32 %load_tmp165 to i8
-  store i8 %cast_tmp166, i8* %26, align 1
-  %load_tmp167 = load i64, i64* %36, align 8
-  store i64 %load_tmp167, i64* %11, align 8
-  %load_tmp168 = load i64, i64* %35, align 8
-  store i64 %load_tmp168, i64* %12, align 8
-  %load_tmp169 = load i64, i64* %33, align 8
-  store i64 %load_tmp169, i64* %13, align 8
-  %load_tmp170 = load i32, i32* %25, align 4
-  %149 = add i32 %load_tmp170, 1
+  %load_tmp154 = load i64, i64* %11, align 8
+  %cast_tmp155 = trunc i64 %load_tmp154 to i32
+  %load_tmp156 = load i64, i64* %36, align 8
+  %cast_tmp157 = trunc i64 %load_tmp156 to i32
+  %mul_tmp158 = mul i32 10, %cast_tmp157
+  %sub_tmp159 = sub i32 %cast_tmp155, %mul_tmp158
+  store i32 %sub_tmp159, i32* %37, align 4
+  %load_tmp160 = load i8, i8* %26, align 1
+  %148 = icmp eq i8 %load_tmp160, 0
+  %load_tmp161 = load i1, i1* %16, align 1
+  %bit_and_tmp162 = and i1 %load_tmp161, %148
+  store i1 %bit_and_tmp162, i1* %16, align 1
+  %load_tmp163 = load i32, i32* %37, align 4
+  %cast_tmp164 = trunc i32 %load_tmp163 to i8
+  store i8 %cast_tmp164, i8* %26, align 1
+  %load_tmp165 = load i64, i64* %36, align 8
+  store i64 %load_tmp165, i64* %11, align 8
+  %load_tmp166 = load i64, i64* %35, align 8
+  store i64 %load_tmp166, i64* %12, align 8
+  %load_tmp167 = load i64, i64* %33, align 8
+  store i64 %load_tmp167, i64* %13, align 8
+  %load_tmp168 = load i32, i32* %25, align 4
+  %149 = add i32 %load_tmp168, 1
   store i32 %149, i32* %25, align 4
   %150 = bitcast i32* %37 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %150)
@@ -3745,191 +3675,189 @@ endif152:                                         ; preds = %for142
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %153)
   %154 = bitcast i64* %33 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %154)
-  br label %for_iteration140
+  br label %for_iteration139
 
-endif171:                                         ; preds = %endfor141, %endfor
-  %load_tmp172 = load i1, i1* %16, align 1
-  br i1 %load_tmp172, label %bool_and_rhs, label %bool_and_end
+endif169:                                         ; preds = %endfor140, %endfor
+  %load_tmp170 = load i1, i1* %16, align 1
+  br i1 %load_tmp170, label %bool_and_rhs, label %bool_and_end
 
-bool_and_rhs:                                     ; preds = %endif171
-  %load_tmp173 = load i8, i8* %26, align 1
-  %cast_tmp174 = zext i8 %load_tmp173 to i32
-  %155 = icmp eq i32 %cast_tmp174, 5
+bool_and_rhs:                                     ; preds = %endif169
+  %load_tmp171 = load i8, i8* %26, align 1
+  %155 = icmp eq i8 %load_tmp171, 5
   br label %bool_and_end
 
-bool_and_end:                                     ; preds = %bool_and_rhs, %endif171
-  %bool_and_tmp = phi i1 [ false, %endif171 ], [ %155, %bool_and_rhs ]
-  br i1 %bool_and_tmp, label %bool_and_rhs175, label %bool_and_end177
+bool_and_end:                                     ; preds = %bool_and_rhs, %endif169
+  %bool_and_tmp = phi i1 [ false, %endif169 ], [ %155, %bool_and_rhs ]
+  br i1 %bool_and_tmp, label %bool_and_rhs172, label %bool_and_end174
 
-bool_and_rhs175:                                  ; preds = %bool_and_end
-  %load_tmp176 = load i64, i64* %11, align 8
-  %mod_tmp = urem i64 %load_tmp176, 2
+bool_and_rhs172:                                  ; preds = %bool_and_end
+  %load_tmp173 = load i64, i64* %11, align 8
+  %mod_tmp = urem i64 %load_tmp173, 2
   %156 = icmp eq i64 %mod_tmp, 0
-  br label %bool_and_end177
+  br label %bool_and_end174
 
-bool_and_end177:                                  ; preds = %bool_and_rhs175, %bool_and_end
-  %bool_and_tmp178 = phi i1 [ false, %bool_and_end ], [ %156, %bool_and_rhs175 ]
-  br i1 %bool_and_tmp178, label %then179, label %endif180
+bool_and_end174:                                  ; preds = %bool_and_rhs172, %bool_and_end
+  %bool_and_tmp175 = phi i1 [ false, %bool_and_end ], [ %156, %bool_and_rhs172 ]
+  br i1 %bool_and_tmp175, label %then176, label %endif177
 
-then179:                                          ; preds = %bool_and_end177
+then176:                                          ; preds = %bool_and_end174
   store i8 4, i8* %26, align 1
-  br label %endif180
+  br label %endif177
 
-endif180:                                         ; preds = %then179, %bool_and_end177
-  %load_tmp181 = load i64, i64* %11, align 8
-  %load_tmp182 = load i64, i64* %11, align 8
-  %load_tmp183 = load i64, i64* %13, align 8
-  %157 = icmp eq i64 %load_tmp182, %load_tmp183
-  br i1 %157, label %bool_and_rhs184, label %bool_and_end191
+endif177:                                         ; preds = %then176, %bool_and_end174
+  %load_tmp178 = load i64, i64* %11, align 8
+  %load_tmp179 = load i64, i64* %11, align 8
+  %load_tmp180 = load i64, i64* %13, align 8
+  %157 = icmp eq i64 %load_tmp179, %load_tmp180
+  br i1 %157, label %bool_and_rhs181, label %bool_and_end188
 
-bool_and_rhs184:                                  ; preds = %endif180
-  %load_tmp185 = load i1, i1* %8, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp185, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end189, label %bool_or_rhs186
+bool_and_rhs181:                                  ; preds = %endif177
+  %load_tmp182 = load i1, i1* %8, align 1
+  %unary_bit_not_tmp = xor i1 %load_tmp182, true
+  br i1 %unary_bit_not_tmp, label %bool_or_end186, label %bool_or_rhs183
 
-bool_or_rhs186:                                   ; preds = %bool_and_rhs184
-  %load_tmp187 = load i1, i1* %15, align 1
-  %unary_bit_not_tmp188 = xor i1 %load_tmp187, true
-  br label %bool_or_end189
+bool_or_rhs183:                                   ; preds = %bool_and_rhs181
+  %load_tmp184 = load i1, i1* %15, align 1
+  %unary_bit_not_tmp185 = xor i1 %load_tmp184, true
+  br label %bool_or_end186
 
-bool_or_end189:                                   ; preds = %bool_or_rhs186, %bool_and_rhs184
-  %bool_or_tmp190 = phi i1 [ true, %bool_and_rhs184 ], [ %unary_bit_not_tmp188, %bool_or_rhs186 ]
-  br label %bool_and_end191
+bool_or_end186:                                   ; preds = %bool_or_rhs183, %bool_and_rhs181
+  %bool_or_tmp187 = phi i1 [ true, %bool_and_rhs181 ], [ %unary_bit_not_tmp185, %bool_or_rhs183 ]
+  br label %bool_and_end188
 
-bool_and_end191:                                  ; preds = %bool_or_end189, %endif180
-  %bool_and_tmp192 = phi i1 [ false, %endif180 ], [ %bool_or_tmp190, %bool_or_end189 ]
-  br i1 %bool_and_tmp192, label %bool_or_end196, label %bool_or_rhs193
+bool_and_end188:                                  ; preds = %bool_or_end186, %endif177
+  %bool_and_tmp189 = phi i1 [ false, %endif177 ], [ %bool_or_tmp187, %bool_or_end186 ]
+  br i1 %bool_and_tmp189, label %bool_or_end192, label %bool_or_rhs190
 
-bool_or_rhs193:                                   ; preds = %bool_and_end191
-  %load_tmp194 = load i8, i8* %26, align 1
-  %cast_tmp195 = zext i8 %load_tmp194 to i32
-  %158 = icmp uge i32 %cast_tmp195, 5
-  br label %bool_or_end196
+bool_or_rhs190:                                   ; preds = %bool_and_end188
+  %load_tmp191 = load i8, i8* %26, align 1
+  %158 = icmp uge i8 %load_tmp191, 5
+  br label %bool_or_end192
 
-bool_or_end196:                                   ; preds = %bool_or_rhs193, %bool_and_end191
-  %bool_or_tmp197 = phi i1 [ true, %bool_and_end191 ], [ %158, %bool_or_rhs193 ]
-  %cast_tmp198 = zext i1 %bool_or_tmp197 to i64
-  %add_tmp199 = add i64 %load_tmp181, %cast_tmp198
-  store i64 %add_tmp199, i64* %27, align 8
-  br label %endif251
+bool_or_end192:                                   ; preds = %bool_or_rhs190, %bool_and_end188
+  %bool_or_tmp193 = phi i1 [ true, %bool_and_end188 ], [ %158, %bool_or_rhs190 ]
+  %cast_tmp194 = zext i1 %bool_or_tmp193 to i64
+  %add_tmp195 = add i64 %load_tmp178, %cast_tmp194
+  store i64 %add_tmp195, i64* %27, align 8
+  br label %endif247
 
-else200:                                          ; preds = %bool_or_end102
+else196:                                          ; preds = %bool_or_end102
   %159 = bitcast i1* %38 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %159)
   store i1 false, i1* %38, align 1
   %160 = bitcast i64* %39 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %160)
-  %load_tmp201 = load i64, i64* %12, align 8
-  %161 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp201)
+  %load_tmp197 = load i64, i64* %12, align 8
+  %161 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp197)
   store i64 %161, i64* %39, align 8
   %162 = bitcast i64* %40 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %162)
-  %load_tmp202 = load i64, i64* %13, align 8
-  %163 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp202)
+  %load_tmp198 = load i64, i64* %13, align 8
+  %163 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp198)
   store i64 %163, i64* %40, align 8
-  %load_tmp203 = load i64, i64* %39, align 8
-  %load_tmp204 = load i64, i64* %40, align 8
-  %164 = icmp ugt i64 %load_tmp203, %load_tmp204
-  br i1 %164, label %then205, label %endif219
+  %load_tmp199 = load i64, i64* %39, align 8
+  %load_tmp200 = load i64, i64* %40, align 8
+  %164 = icmp ugt i64 %load_tmp199, %load_tmp200
+  br i1 %164, label %then201, label %endif215
 
-then205:                                          ; preds = %else200
+then201:                                          ; preds = %else196
   %165 = bitcast i64* %41 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %165)
-  %load_tmp206 = load i64, i64* %11, align 8
-  %166 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp206)
+  %load_tmp202 = load i64, i64* %11, align 8
+  %166 = call i64 @func.std.ryu.div100..1.builtin.uint64.builtin.uint64(i64 %load_tmp202)
   store i64 %166, i64* %41, align 8
   %167 = bitcast i32* %42 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %167)
-  %load_tmp207 = load i64, i64* %11, align 8
-  %cast_tmp208 = trunc i64 %load_tmp207 to i32
-  %load_tmp209 = load i64, i64* %41, align 8
-  %cast_tmp210 = trunc i64 %load_tmp209 to i32
-  %mul_tmp211 = mul i32 100, %cast_tmp210
-  %sub_tmp212 = sub i32 %cast_tmp208, %mul_tmp211
-  store i32 %sub_tmp212, i32* %42, align 4
-  %load_tmp213 = load i32, i32* %42, align 4
-  %168 = icmp uge i32 %load_tmp213, 50
+  %load_tmp203 = load i64, i64* %11, align 8
+  %cast_tmp204 = trunc i64 %load_tmp203 to i32
+  %load_tmp205 = load i64, i64* %41, align 8
+  %cast_tmp206 = trunc i64 %load_tmp205 to i32
+  %mul_tmp207 = mul i32 100, %cast_tmp206
+  %sub_tmp208 = sub i32 %cast_tmp204, %mul_tmp207
+  store i32 %sub_tmp208, i32* %42, align 4
+  %load_tmp209 = load i32, i32* %42, align 4
+  %168 = icmp uge i32 %load_tmp209, 50
   store i1 %168, i1* %38, align 1
-  %load_tmp214 = load i64, i64* %41, align 8
-  store i64 %load_tmp214, i64* %11, align 8
-  %load_tmp215 = load i64, i64* %39, align 8
-  store i64 %load_tmp215, i64* %12, align 8
-  %load_tmp216 = load i64, i64* %40, align 8
-  store i64 %load_tmp216, i64* %13, align 8
-  %load_tmp217 = load i32, i32* %25, align 4
-  %add_tmp218 = add i32 %load_tmp217, 2
-  store i32 %add_tmp218, i32* %25, align 4
+  %load_tmp210 = load i64, i64* %41, align 8
+  store i64 %load_tmp210, i64* %11, align 8
+  %load_tmp211 = load i64, i64* %39, align 8
+  store i64 %load_tmp211, i64* %12, align 8
+  %load_tmp212 = load i64, i64* %40, align 8
+  store i64 %load_tmp212, i64* %13, align 8
+  %load_tmp213 = load i32, i32* %25, align 4
+  %add_tmp214 = add i32 %load_tmp213, 2
+  store i32 %add_tmp214, i32* %25, align 4
   %169 = bitcast i32* %42 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %169)
   %170 = bitcast i64* %41 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %170)
-  br label %endif219
+  br label %endif215
 
-endif219:                                         ; preds = %then205, %else200
-  br label %for_condition_check220
+endif215:                                         ; preds = %then201, %else196
+  br label %for_condition_check216
 
-for_condition_check220:                           ; preds = %for_iteration221, %endif219
-  br i1 true, label %for223, label %endfor222
+for_condition_check216:                           ; preds = %for_iteration217, %endif215
+  br i1 true, label %for219, label %endfor218
 
-for_iteration221:                                 ; preds = %endif229
-  br label %for_condition_check220
+for_iteration217:                                 ; preds = %endif225
+  br label %for_condition_check216
 
-endfor222:                                        ; preds = %for_condition_check220, %then228
-  %load_tmp242 = load i64, i64* %11, align 8
-  %load_tmp243 = load i64, i64* %11, align 8
-  %load_tmp244 = load i64, i64* %13, align 8
-  %171 = icmp eq i64 %load_tmp243, %load_tmp244
-  br i1 %171, label %bool_or_end247, label %bool_or_rhs245
+endfor218:                                        ; preds = %for_condition_check216, %then224
+  %load_tmp238 = load i64, i64* %11, align 8
+  %load_tmp239 = load i64, i64* %11, align 8
+  %load_tmp240 = load i64, i64* %13, align 8
+  %171 = icmp eq i64 %load_tmp239, %load_tmp240
+  br i1 %171, label %bool_or_end243, label %bool_or_rhs241
 
-for223:                                           ; preds = %for_condition_check220
+for219:                                           ; preds = %for_condition_check216
   %172 = bitcast i64* %43 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %172)
-  %load_tmp224 = load i64, i64* %12, align 8
-  %173 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp224)
+  %load_tmp220 = load i64, i64* %12, align 8
+  %173 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp220)
   store i64 %173, i64* %43, align 8
   %174 = bitcast i64* %44 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %174)
-  %load_tmp225 = load i64, i64* %13, align 8
-  %175 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp225)
+  %load_tmp221 = load i64, i64* %13, align 8
+  %175 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp221)
   store i64 %175, i64* %44, align 8
-  %load_tmp226 = load i64, i64* %43, align 8
-  %load_tmp227 = load i64, i64* %44, align 8
-  %176 = icmp ule i64 %load_tmp226, %load_tmp227
-  br i1 %176, label %then228, label %endif229
+  %load_tmp222 = load i64, i64* %43, align 8
+  %load_tmp223 = load i64, i64* %44, align 8
+  %176 = icmp ule i64 %load_tmp222, %load_tmp223
+  br i1 %176, label %then224, label %endif225
 
-then228:                                          ; preds = %for223
+then224:                                          ; preds = %for219
   %177 = bitcast i64* %44 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %177)
   %178 = bitcast i64* %43 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %178)
-  br label %endfor222
+  br label %endfor218
 
-endif229:                                         ; preds = %for223
+endif225:                                         ; preds = %for219
   %179 = bitcast i64* %45 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %179)
-  %load_tmp230 = load i64, i64* %11, align 8
-  %180 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp230)
+  %load_tmp226 = load i64, i64* %11, align 8
+  %180 = call i64 @func.std.ryu.div10..1.builtin.uint64.builtin.uint64(i64 %load_tmp226)
   store i64 %180, i64* %45, align 8
   %181 = bitcast i32* %46 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %181)
-  %load_tmp231 = load i64, i64* %11, align 8
-  %cast_tmp232 = trunc i64 %load_tmp231 to i32
-  %load_tmp233 = load i64, i64* %45, align 8
-  %cast_tmp234 = trunc i64 %load_tmp233 to i32
-  %mul_tmp235 = mul i32 10, %cast_tmp234
-  %sub_tmp236 = sub i32 %cast_tmp232, %mul_tmp235
-  store i32 %sub_tmp236, i32* %46, align 4
-  %load_tmp237 = load i32, i32* %46, align 4
-  %182 = icmp uge i32 %load_tmp237, 5
+  %load_tmp227 = load i64, i64* %11, align 8
+  %cast_tmp228 = trunc i64 %load_tmp227 to i32
+  %load_tmp229 = load i64, i64* %45, align 8
+  %cast_tmp230 = trunc i64 %load_tmp229 to i32
+  %mul_tmp231 = mul i32 10, %cast_tmp230
+  %sub_tmp232 = sub i32 %cast_tmp228, %mul_tmp231
+  store i32 %sub_tmp232, i32* %46, align 4
+  %load_tmp233 = load i32, i32* %46, align 4
+  %182 = icmp uge i32 %load_tmp233, 5
   store i1 %182, i1* %38, align 1
-  %load_tmp238 = load i64, i64* %45, align 8
-  store i64 %load_tmp238, i64* %11, align 8
-  %load_tmp239 = load i64, i64* %43, align 8
-  store i64 %load_tmp239, i64* %12, align 8
-  %load_tmp240 = load i64, i64* %44, align 8
-  store i64 %load_tmp240, i64* %13, align 8
-  %load_tmp241 = load i32, i32* %25, align 4
-  %183 = add i32 %load_tmp241, 1
+  %load_tmp234 = load i64, i64* %45, align 8
+  store i64 %load_tmp234, i64* %11, align 8
+  %load_tmp235 = load i64, i64* %43, align 8
+  store i64 %load_tmp235, i64* %12, align 8
+  %load_tmp236 = load i64, i64* %44, align 8
+  store i64 %load_tmp236, i64* %13, align 8
+  %load_tmp237 = load i32, i32* %25, align 4
+  %183 = add i32 %load_tmp237, 1
   store i32 %183, i32* %25, align 4
   %184 = bitcast i32* %46 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %184)
@@ -3939,43 +3867,43 @@ endif229:                                         ; preds = %for223
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %186)
   %187 = bitcast i64* %43 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %187)
-  br label %for_iteration221
+  br label %for_iteration217
 
-bool_or_rhs245:                                   ; preds = %endfor222
-  %load_tmp246 = load i1, i1* %38, align 1
-  br label %bool_or_end247
+bool_or_rhs241:                                   ; preds = %endfor218
+  %load_tmp242 = load i1, i1* %38, align 1
+  br label %bool_or_end243
 
-bool_or_end247:                                   ; preds = %bool_or_rhs245, %endfor222
-  %bool_or_tmp248 = phi i1 [ true, %endfor222 ], [ %load_tmp246, %bool_or_rhs245 ]
-  %cast_tmp249 = zext i1 %bool_or_tmp248 to i64
-  %add_tmp250 = add i64 %load_tmp242, %cast_tmp249
-  store i64 %add_tmp250, i64* %27, align 8
+bool_or_end243:                                   ; preds = %bool_or_rhs241, %endfor218
+  %bool_or_tmp244 = phi i1 [ true, %endfor218 ], [ %load_tmp242, %bool_or_rhs241 ]
+  %cast_tmp245 = zext i1 %bool_or_tmp244 to i64
+  %add_tmp246 = add i64 %load_tmp238, %cast_tmp245
+  store i64 %add_tmp246, i64* %27, align 8
   %188 = bitcast i64* %40 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %188)
   %189 = bitcast i64* %39 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %189)
   %190 = bitcast i1* %38 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %190)
-  br label %endif251
+  br label %endif247
 
-endif251:                                         ; preds = %bool_or_end247, %bool_or_end196
+endif247:                                         ; preds = %bool_or_end243, %bool_or_end192
   %191 = bitcast i32* %47 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %191)
-  %load_tmp252 = load i32, i32* %14, align 4
-  %load_tmp253 = load i32, i32* %25, align 4
-  %add_tmp254 = add i32 %load_tmp252, %load_tmp253
-  store i32 %add_tmp254, i32* %47, align 4
+  %load_tmp248 = load i32, i32* %14, align 4
+  %load_tmp249 = load i32, i32* %25, align 4
+  %add_tmp250 = add i32 %load_tmp248, %load_tmp249
+  store i32 %add_tmp250, i32* %47, align 4
   %192 = bitcast %"struct.std::ryu::floating_decimal_64"* %48 to i8*
   call void @llvm.lifetime.start.p0i8(i64 16, i8* %192)
   store %"struct.std::ryu::floating_decimal_64" zeroinitializer, %"struct.std::ryu::floating_decimal_64"* %48, align 8
   %193 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %48, i32 0, i32 1
-  %load_tmp255 = load i32, i32* %47, align 4
-  store i32 %load_tmp255, i32* %193, align 4
+  %load_tmp251 = load i32, i32* %47, align 4
+  store i32 %load_tmp251, i32* %193, align 4
   %194 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %48, i32 0, i32 0
-  %load_tmp256 = load i64, i64* %27, align 8
-  store i64 %load_tmp256, i64* %194, align 8
-  %load_tmp257 = load %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %48, align 8
-  store %"struct.std::ryu::floating_decimal_64" %load_tmp257, %"struct.std::ryu::floating_decimal_64"* %0, align 8
+  %load_tmp252 = load i64, i64* %27, align 8
+  store i64 %load_tmp252, i64* %194, align 8
+  %load_tmp253 = load %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %48, align 8
+  store %"struct.std::ryu::floating_decimal_64" %load_tmp253, %"struct.std::ryu::floating_decimal_64"* %0, align 8
   %195 = bitcast %"struct.std::ryu::floating_decimal_64"* %48 to i8*
   call void @llvm.lifetime.end.p0i8(i64 16, i8* %195)
   %196 = bitcast i32* %47 to i8*
@@ -4213,7 +4141,7 @@ entry:                                            ; preds = %alloca
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %27)
   %load_tmp = load i64, i64* %3, align 8
   %load_tmp1 = load i64*, i64** %4, align 8
-  %ptr_add_tmp = getelementptr i64, i64* %load_tmp1, i64 0
+  %ptr_add_tmp = getelementptr i64, i64* %load_tmp1, i32 0
   %load_tmp2 = load i64, i64* %ptr_add_tmp, align 8
   %28 = call i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %load_tmp, i64 %load_tmp2, i64* %6)
   store i64 %28, i64* %7, align 8
@@ -4224,7 +4152,7 @@ entry:                                            ; preds = %alloca
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %30)
   %load_tmp3 = load i64, i64* %3, align 8
   %load_tmp4 = load i64*, i64** %4, align 8
-  %ptr_add_tmp5 = getelementptr i64, i64* %load_tmp4, i64 1
+  %ptr_add_tmp5 = getelementptr i64, i64* %load_tmp4, i32 1
   %load_tmp6 = load i64, i64* %ptr_add_tmp5, align 8
   %31 = call i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %load_tmp3, i64 %load_tmp6, i64* %8)
   store i64 %31, i64* %9, align 8
@@ -4235,7 +4163,7 @@ entry:                                            ; preds = %alloca
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %33)
   %load_tmp7 = load i64, i64* %3, align 8
   %load_tmp8 = load i64*, i64** %4, align 8
-  %ptr_add_tmp9 = getelementptr i64, i64* %load_tmp8, i64 2
+  %ptr_add_tmp9 = getelementptr i64, i64* %load_tmp8, i32 2
   %load_tmp10 = load i64, i64* %ptr_add_tmp9, align 8
   %34 = call i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %load_tmp7, i64 %load_tmp10, i64* %10)
   store i64 %34, i64* %11, align 8
@@ -4317,103 +4245,103 @@ then:                                             ; preds = %entry
   %load_tmp41 = load i64, i64* %20, align 8
   %load_tmp42 = load i32, i32* %5, align 4
   %sub_tmp = sub i32 %load_tmp42, 128
-  %cast_tmp43 = sext i32 %sub_tmp to i64
-  %rshift_tmp44 = lshr i64 %load_tmp41, %cast_tmp43
-  %51 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %rshift_tmp44)
-  %52 = bitcast i64* %20 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %52)
-  %53 = bitcast i64* %19 to i8*
+  %51 = zext i32 %sub_tmp to i64
+  %rshift_tmp43 = lshr i64 %load_tmp41, %51
+  %52 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %rshift_tmp43)
+  %53 = bitcast i64* %20 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %53)
-  %54 = bitcast i64* %18 to i8*
+  %54 = bitcast i64* %19 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %54)
-  %55 = bitcast i64* %17 to i8*
+  %55 = bitcast i64* %18 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %55)
-  %56 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %56)
-  %57 = bitcast i64* %15 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %57)
-  %58 = bitcast i32* %14 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %58)
-  %59 = bitcast i64* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %59)
-  %60 = bitcast i64* %12 to i8*
+  %56 = bitcast i64* %17 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %56)
+  %57 = bitcast i32* %16 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %57)
+  %58 = bitcast i64* %15 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %58)
+  %59 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %59)
+  %60 = bitcast i64* %13 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %60)
-  %61 = bitcast i64* %11 to i8*
+  %61 = bitcast i64* %12 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %61)
-  %62 = bitcast i64* %10 to i8*
+  %62 = bitcast i64* %11 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %62)
-  %63 = bitcast i64* %9 to i8*
+  %63 = bitcast i64* %10 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %63)
-  %64 = bitcast i64* %8 to i8*
+  %64 = bitcast i64* %9 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %64)
-  %65 = bitcast i64* %7 to i8*
+  %65 = bitcast i64* %8 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %65)
-  %66 = bitcast i64* %6 to i8*
+  %66 = bitcast i64* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %66)
-  %67 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %67)
-  %68 = bitcast i64** %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %68)
-  %69 = bitcast i64* %3 to i8*
+  %67 = bitcast i64* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %67)
+  %68 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %68)
+  %69 = bitcast i64** %4 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %69)
-  ret i32 %51
+  %70 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %70)
+  ret i32 %52
 
 else:                                             ; preds = %entry
-  %70 = bitcast i64* %21 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %70)
-  %load_tmp45 = load i64, i64* %17, align 8
-  %71 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %load_tmp45)
-  %cast_tmp46 = zext i32 %71 to i64
-  store i64 %cast_tmp46, i64* %21, align 8
-  %72 = bitcast i64* %22 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %72)
-  %load_tmp47 = load i64, i64* %21, align 8
-  %lshift_tmp48 = shl i64 %load_tmp47, 32
-  %load_tmp49 = load i64, i64* %15, align 8
-  %rshift_tmp50 = lshr i64 %load_tmp49, 32
-  %bit_or_tmp51 = or i64 %lshift_tmp48, %rshift_tmp50
-  store i64 %bit_or_tmp51, i64* %22, align 8
-  %load_tmp52 = load i64, i64* %22, align 8
-  %load_tmp53 = load i32, i32* %5, align 4
-  %sub_tmp54 = sub i32 %load_tmp53, 160
-  %cast_tmp55 = sext i32 %sub_tmp54 to i64
-  %rshift_tmp56 = lshr i64 %load_tmp52, %cast_tmp55
-  %73 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %rshift_tmp56)
-  %74 = bitcast i64* %22 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %74)
-  %75 = bitcast i64* %21 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %75)
-  %76 = bitcast i64* %17 to i8*
+  %71 = bitcast i64* %21 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %71)
+  %load_tmp44 = load i64, i64* %17, align 8
+  %72 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %load_tmp44)
+  %cast_tmp45 = zext i32 %72 to i64
+  store i64 %cast_tmp45, i64* %21, align 8
+  %73 = bitcast i64* %22 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %73)
+  %load_tmp46 = load i64, i64* %21, align 8
+  %lshift_tmp47 = shl i64 %load_tmp46, 32
+  %load_tmp48 = load i64, i64* %15, align 8
+  %rshift_tmp49 = lshr i64 %load_tmp48, 32
+  %bit_or_tmp50 = or i64 %lshift_tmp47, %rshift_tmp49
+  store i64 %bit_or_tmp50, i64* %22, align 8
+  %load_tmp51 = load i64, i64* %22, align 8
+  %load_tmp52 = load i32, i32* %5, align 4
+  %sub_tmp53 = sub i32 %load_tmp52, 160
+  %74 = zext i32 %sub_tmp53 to i64
+  %rshift_tmp54 = lshr i64 %load_tmp51, %74
+  %75 = call i32 @func.std.ryu.mod1e9..1.builtin.uint64.builtin.uint32(i64 %rshift_tmp54)
+  %76 = bitcast i64* %22 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %76)
-  %77 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %77)
-  %78 = bitcast i64* %15 to i8*
+  %77 = bitcast i64* %21 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %77)
+  %78 = bitcast i64* %17 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %78)
-  %79 = bitcast i32* %14 to i8*
+  %79 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %79)
-  %80 = bitcast i64* %13 to i8*
+  %80 = bitcast i64* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %80)
-  %81 = bitcast i64* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %81)
-  %82 = bitcast i64* %11 to i8*
+  %81 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %81)
+  %82 = bitcast i64* %13 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %82)
-  %83 = bitcast i64* %10 to i8*
+  %83 = bitcast i64* %12 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %83)
-  %84 = bitcast i64* %9 to i8*
+  %84 = bitcast i64* %11 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %84)
-  %85 = bitcast i64* %8 to i8*
+  %85 = bitcast i64* %10 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %85)
-  %86 = bitcast i64* %7 to i8*
+  %86 = bitcast i64* %9 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %86)
-  %87 = bitcast i64* %6 to i8*
+  %87 = bitcast i64* %8 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %87)
-  %88 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %88)
-  %89 = bitcast i64** %4 to i8*
+  %88 = bitcast i64* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %88)
+  %89 = bitcast i64* %6 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %89)
-  %90 = bitcast i64* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %90)
-  ret i32 %73
+  %90 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %90)
+  %91 = bitcast i64** %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %91)
+  %92 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %92)
+  ret i32 %75
 }
 
 define internal void @func.std.ryu.append_nine_digits..2.builtin.uint32.0P.builtin.uint8.void(i32 %0, i8* %1) {
@@ -4466,22 +4394,20 @@ for_iteration:                                    ; preds = %for
 endfor:                                           ; preds = %for_condition_check
   %15 = bitcast i32* %4 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %15)
-  %load_tmp25 = load i32, i32* %2, align 4
-  %cast_tmp26 = zext i32 %load_tmp25 to i64
-  %16 = trunc i64 %cast_tmp26 to i32
-  %add_tmp27 = add i32 48, %16
-  %cast_tmp28 = trunc i32 %add_tmp27 to i8
-  %load_tmp29 = load i8*, i8** %3, align 8
-  store i8 %cast_tmp28, i8* %load_tmp29, align 1
-  %17 = bitcast i8** %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %17)
-  %18 = bitcast i32* %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %18)
+  %load_tmp22 = load i32, i32* %2, align 4
+  %add_tmp23 = add i32 48, %load_tmp22
+  %cast_tmp = trunc i32 %add_tmp23 to i8
+  %load_tmp24 = load i8*, i8** %3, align 8
+  store i8 %cast_tmp, i8* %load_tmp24, align 1
+  %16 = bitcast i8** %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %16)
+  %17 = bitcast i32* %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %17)
   ret void
 
 for:                                              ; preds = %for_condition_check
-  %19 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %19)
+  %18 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %18)
   %load_tmp4 = load i32, i32* %2, align 4
   %load_tmp5 = load i32, i32* %2, align 4
   %div_tmp = udiv i32 %load_tmp5, 10000
@@ -4491,44 +4417,44 @@ for:                                              ; preds = %for_condition_check
   %load_tmp6 = load i32, i32* %2, align 4
   %div_tmp7 = udiv i32 %load_tmp6, 10000
   store i32 %div_tmp7, i32* %2, align 4
-  %20 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %20)
+  %19 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %19)
   %load_tmp8 = load i32, i32* %5, align 4
   %mod_tmp = urem i32 %load_tmp8, 100
   %lshift_tmp = shl i32 %mod_tmp, 1
   store i32 %lshift_tmp, i32* %6, align 4
-  %21 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %21)
+  %20 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %20)
   %load_tmp9 = load i32, i32* %5, align 4
   %div_tmp10 = udiv i32 %load_tmp9, 100
   %lshift_tmp11 = shl i32 %div_tmp10, 1
   store i32 %lshift_tmp11, i32* %7, align 4
   %load_tmp12 = load i8*, i8** %3, align 8
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp12, i64 7
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp12, i32 7
   %load_tmp13 = load i32, i32* %4, align 4
-  %cast_tmp = zext i32 %load_tmp13 to i64
-  %22 = sub i64 0, %cast_tmp
+  %21 = zext i32 %load_tmp13 to i64
+  %22 = sub i64 0, %21
   %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %22
   %load_tmp14 = load i32, i32* %6, align 4
-  %cast_tmp15 = zext i32 %load_tmp14 to i64
-  %ptr_add_tmp16 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp15
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp, i8* %ptr_add_tmp16, i64 2, i1 false)
-  %load_tmp17 = load i8*, i8** %3, align 8
-  %ptr_add_tmp18 = getelementptr i8, i8* %load_tmp17, i64 5
-  %load_tmp19 = load i32, i32* %4, align 4
-  %cast_tmp20 = zext i32 %load_tmp19 to i64
-  %23 = sub i64 0, %cast_tmp20
-  %ptr_sub_tmp21 = getelementptr i8, i8* %ptr_add_tmp18, i64 %23
-  %load_tmp22 = load i32, i32* %7, align 4
-  %cast_tmp23 = zext i32 %load_tmp22 to i64
-  %ptr_add_tmp24 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp23
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp21, i8* %ptr_add_tmp24, i64 2, i1 false)
-  %24 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %24)
-  %25 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %25)
-  %26 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %26)
+  %23 = zext i32 %load_tmp14 to i64
+  %ptr_add_tmp15 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %23
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp, i8* %ptr_add_tmp15, i64 2, i1 false)
+  %load_tmp16 = load i8*, i8** %3, align 8
+  %ptr_add_tmp17 = getelementptr i8, i8* %load_tmp16, i32 5
+  %load_tmp18 = load i32, i32* %4, align 4
+  %24 = zext i32 %load_tmp18 to i64
+  %25 = sub i64 0, %24
+  %ptr_sub_tmp19 = getelementptr i8, i8* %ptr_add_tmp17, i64 %25
+  %load_tmp20 = load i32, i32* %7, align 4
+  %26 = zext i32 %load_tmp20 to i64
+  %ptr_add_tmp21 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %26
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp19, i8* %ptr_add_tmp21, i64 2, i1 false)
+  %27 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %27)
+  %28 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
+  %29 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
   br label %for_iteration
 }
 
@@ -4679,8 +4605,8 @@ while_condition_check:                            ; preds = %while, %entry
   br i1 %16, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp31 = load i32, i32* %4, align 4
-  %17 = icmp uge i32 %load_tmp31, 100
+  %load_tmp26 = load i32, i32* %4, align 4
+  %17 = icmp uge i32 %load_tmp26, 100
   br i1 %17, label %then, label %endif
 
 while:                                            ; preds = %while_condition_check
@@ -4709,130 +4635,128 @@ while:                                            ; preds = %while_condition_che
   store i32 %lshift_tmp8, i32* %9, align 4
   %load_tmp9 = load i8*, i8** %5, align 8
   %load_tmp10 = load i32, i32* %3, align 4
-  %cast_tmp = zext i32 %load_tmp10 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp9, i64 %cast_tmp
-  %ptr_add_tmp11 = getelementptr i8, i8* %ptr_add_tmp, i64 1
+  %21 = zext i32 %load_tmp10 to i64
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp9, i64 %21
+  %ptr_add_tmp11 = getelementptr i8, i8* %ptr_add_tmp, i32 1
   %load_tmp12 = load i32, i32* %6, align 4
-  %cast_tmp13 = zext i32 %load_tmp12 to i64
-  %21 = sub i64 0, %cast_tmp13
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp11, i64 %21
-  %ptr_sub_tmp14 = getelementptr i8, i8* %ptr_sub_tmp, i64 -2
-  %load_tmp15 = load i32, i32* %8, align 4
-  %cast_tmp16 = zext i32 %load_tmp15 to i64
-  %ptr_add_tmp17 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp16
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp14, i8* %ptr_add_tmp17, i64 2, i1 false)
-  %load_tmp18 = load i8*, i8** %5, align 8
-  %load_tmp19 = load i32, i32* %3, align 4
-  %cast_tmp20 = zext i32 %load_tmp19 to i64
-  %ptr_add_tmp21 = getelementptr i8, i8* %load_tmp18, i64 %cast_tmp20
-  %ptr_add_tmp22 = getelementptr i8, i8* %ptr_add_tmp21, i64 1
-  %load_tmp23 = load i32, i32* %6, align 4
-  %cast_tmp24 = zext i32 %load_tmp23 to i64
-  %22 = sub i64 0, %cast_tmp24
-  %ptr_sub_tmp25 = getelementptr i8, i8* %ptr_add_tmp22, i64 %22
-  %ptr_sub_tmp26 = getelementptr i8, i8* %ptr_sub_tmp25, i64 -4
-  %load_tmp27 = load i32, i32* %9, align 4
-  %cast_tmp28 = zext i32 %load_tmp27 to i64
-  %ptr_add_tmp29 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp28
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp26, i8* %ptr_add_tmp29, i64 2, i1 false)
-  %load_tmp30 = load i32, i32* %6, align 4
-  %add_tmp = add i32 %load_tmp30, 4
+  %22 = zext i32 %load_tmp12 to i64
+  %23 = sub i64 0, %22
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp11, i64 %23
+  %ptr_sub_tmp13 = getelementptr i8, i8* %ptr_sub_tmp, i32 -2
+  %load_tmp14 = load i32, i32* %8, align 4
+  %24 = zext i32 %load_tmp14 to i64
+  %ptr_add_tmp15 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %24
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp13, i8* %ptr_add_tmp15, i64 2, i1 false)
+  %load_tmp16 = load i8*, i8** %5, align 8
+  %load_tmp17 = load i32, i32* %3, align 4
+  %25 = zext i32 %load_tmp17 to i64
+  %ptr_add_tmp18 = getelementptr i8, i8* %load_tmp16, i64 %25
+  %ptr_add_tmp19 = getelementptr i8, i8* %ptr_add_tmp18, i32 1
+  %load_tmp20 = load i32, i32* %6, align 4
+  %26 = zext i32 %load_tmp20 to i64
+  %27 = sub i64 0, %26
+  %ptr_sub_tmp21 = getelementptr i8, i8* %ptr_add_tmp19, i64 %27
+  %ptr_sub_tmp22 = getelementptr i8, i8* %ptr_sub_tmp21, i32 -4
+  %load_tmp23 = load i32, i32* %9, align 4
+  %28 = zext i32 %load_tmp23 to i64
+  %ptr_add_tmp24 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %28
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp22, i8* %ptr_add_tmp24, i64 2, i1 false)
+  %load_tmp25 = load i32, i32* %6, align 4
+  %add_tmp = add i32 %load_tmp25, 4
   store i32 %add_tmp, i32* %6, align 4
-  %23 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %23)
-  %24 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %24)
-  %25 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %25)
+  %29 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
+  %30 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %30)
+  %31 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %31)
   br label %while_condition_check
 
 then:                                             ; preds = %endwhile
-  %26 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %26)
-  %load_tmp32 = load i32, i32* %4, align 4
-  %mod_tmp33 = urem i32 %load_tmp32, 100
-  %lshift_tmp34 = shl i32 %mod_tmp33, 1
-  store i32 %lshift_tmp34, i32* %10, align 4
-  %load_tmp35 = load i32, i32* %4, align 4
-  %div_tmp36 = udiv i32 %load_tmp35, 100
-  store i32 %div_tmp36, i32* %4, align 4
-  %load_tmp37 = load i8*, i8** %5, align 8
-  %load_tmp38 = load i32, i32* %3, align 4
-  %cast_tmp39 = zext i32 %load_tmp38 to i64
-  %ptr_add_tmp40 = getelementptr i8, i8* %load_tmp37, i64 %cast_tmp39
-  %ptr_add_tmp41 = getelementptr i8, i8* %ptr_add_tmp40, i64 1
-  %load_tmp42 = load i32, i32* %6, align 4
-  %cast_tmp43 = zext i32 %load_tmp42 to i64
-  %27 = sub i64 0, %cast_tmp43
-  %ptr_sub_tmp44 = getelementptr i8, i8* %ptr_add_tmp41, i64 %27
-  %ptr_sub_tmp45 = getelementptr i8, i8* %ptr_sub_tmp44, i64 -2
-  %load_tmp46 = load i32, i32* %10, align 4
-  %cast_tmp47 = zext i32 %load_tmp46 to i64
-  %ptr_add_tmp48 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp47
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp45, i8* %ptr_add_tmp48, i64 2, i1 false)
-  %load_tmp49 = load i32, i32* %6, align 4
-  %add_tmp50 = add i32 %load_tmp49, 2
-  store i32 %add_tmp50, i32* %6, align 4
-  %28 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
+  %32 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %32)
+  %load_tmp27 = load i32, i32* %4, align 4
+  %mod_tmp28 = urem i32 %load_tmp27, 100
+  %lshift_tmp29 = shl i32 %mod_tmp28, 1
+  store i32 %lshift_tmp29, i32* %10, align 4
+  %load_tmp30 = load i32, i32* %4, align 4
+  %div_tmp31 = udiv i32 %load_tmp30, 100
+  store i32 %div_tmp31, i32* %4, align 4
+  %load_tmp32 = load i8*, i8** %5, align 8
+  %load_tmp33 = load i32, i32* %3, align 4
+  %33 = zext i32 %load_tmp33 to i64
+  %ptr_add_tmp34 = getelementptr i8, i8* %load_tmp32, i64 %33
+  %ptr_add_tmp35 = getelementptr i8, i8* %ptr_add_tmp34, i32 1
+  %load_tmp36 = load i32, i32* %6, align 4
+  %34 = zext i32 %load_tmp36 to i64
+  %35 = sub i64 0, %34
+  %ptr_sub_tmp37 = getelementptr i8, i8* %ptr_add_tmp35, i64 %35
+  %ptr_sub_tmp38 = getelementptr i8, i8* %ptr_sub_tmp37, i32 -2
+  %load_tmp39 = load i32, i32* %10, align 4
+  %36 = zext i32 %load_tmp39 to i64
+  %ptr_add_tmp40 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %36
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp38, i8* %ptr_add_tmp40, i64 2, i1 false)
+  %load_tmp41 = load i32, i32* %6, align 4
+  %add_tmp42 = add i32 %load_tmp41, 2
+  store i32 %add_tmp42, i32* %6, align 4
+  %37 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %37)
   br label %endif
 
 endif:                                            ; preds = %then, %endwhile
-  %load_tmp51 = load i32, i32* %4, align 4
-  %29 = icmp uge i32 %load_tmp51, 10
-  br i1 %29, label %then52, label %else
+  %load_tmp43 = load i32, i32* %4, align 4
+  %38 = icmp uge i32 %load_tmp43, 10
+  br i1 %38, label %then44, label %else
 
-then52:                                           ; preds = %endif
-  %30 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %30)
-  %load_tmp53 = load i32, i32* %4, align 4
-  %lshift_tmp54 = shl i32 %load_tmp53, 1
-  store i32 %lshift_tmp54, i32* %11, align 4
-  %load_tmp55 = load i32, i32* %11, align 4
-  %add_tmp56 = add i32 %load_tmp55, 1
-  %31 = zext i32 %add_tmp56 to i64
-  %32 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %31
-  %load_tmp57 = load i8*, i8** %5, align 8
-  %ptr_add_tmp58 = getelementptr i8, i8* %load_tmp57, i64 2
-  %load_tmp59 = load i8, i8* %32, align 1
-  store i8 %load_tmp59, i8* %ptr_add_tmp58, align 1
-  %load_tmp60 = load i8*, i8** %5, align 8
-  %ptr_add_tmp61 = getelementptr i8, i8* %load_tmp60, i64 1
-  store i8 46, i8* %ptr_add_tmp61, align 1
-  %load_tmp62 = load i32, i32* %11, align 4
-  %33 = zext i32 %load_tmp62 to i64
-  %34 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %33
-  %load_tmp63 = load i8*, i8** %5, align 8
-  %ptr_add_tmp64 = getelementptr i8, i8* %load_tmp63, i64 0
-  %load_tmp65 = load i8, i8* %34, align 1
-  store i8 %load_tmp65, i8* %ptr_add_tmp64, align 1
-  %35 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %35)
-  br label %endif74
+then44:                                           ; preds = %endif
+  %39 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %39)
+  %load_tmp45 = load i32, i32* %4, align 4
+  %lshift_tmp46 = shl i32 %load_tmp45, 1
+  store i32 %lshift_tmp46, i32* %11, align 4
+  %load_tmp47 = load i32, i32* %11, align 4
+  %add_tmp48 = add i32 %load_tmp47, 1
+  %40 = zext i32 %add_tmp48 to i64
+  %41 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %40
+  %load_tmp49 = load i8*, i8** %5, align 8
+  %ptr_add_tmp50 = getelementptr i8, i8* %load_tmp49, i32 2
+  %load_tmp51 = load i8, i8* %41, align 1
+  store i8 %load_tmp51, i8* %ptr_add_tmp50, align 1
+  %load_tmp52 = load i8*, i8** %5, align 8
+  %ptr_add_tmp53 = getelementptr i8, i8* %load_tmp52, i32 1
+  store i8 46, i8* %ptr_add_tmp53, align 1
+  %load_tmp54 = load i32, i32* %11, align 4
+  %42 = zext i32 %load_tmp54 to i64
+  %43 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %42
+  %load_tmp55 = load i8*, i8** %5, align 8
+  %ptr_add_tmp56 = getelementptr i8, i8* %load_tmp55, i32 0
+  %load_tmp57 = load i8, i8* %43, align 1
+  store i8 %load_tmp57, i8* %ptr_add_tmp56, align 1
+  %44 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %44)
+  br label %endif64
 
 else:                                             ; preds = %endif
-  %load_tmp66 = load i8*, i8** %5, align 8
-  %ptr_add_tmp67 = getelementptr i8, i8* %load_tmp66, i64 1
-  store i8 46, i8* %ptr_add_tmp67, align 1
-  %load_tmp68 = load i32, i32* %4, align 4
-  %cast_tmp69 = zext i32 %load_tmp68 to i64
-  %36 = trunc i64 %cast_tmp69 to i32
-  %add_tmp70 = add i32 48, %36
-  %cast_tmp71 = trunc i32 %add_tmp70 to i8
-  %load_tmp72 = load i8*, i8** %5, align 8
-  %ptr_add_tmp73 = getelementptr i8, i8* %load_tmp72, i64 0
-  store i8 %cast_tmp71, i8* %ptr_add_tmp73, align 1
-  br label %endif74
+  %load_tmp58 = load i8*, i8** %5, align 8
+  %ptr_add_tmp59 = getelementptr i8, i8* %load_tmp58, i32 1
+  store i8 46, i8* %ptr_add_tmp59, align 1
+  %load_tmp60 = load i32, i32* %4, align 4
+  %add_tmp61 = add i32 48, %load_tmp60
+  %cast_tmp = trunc i32 %add_tmp61 to i8
+  %load_tmp62 = load i8*, i8** %5, align 8
+  %ptr_add_tmp63 = getelementptr i8, i8* %load_tmp62, i32 0
+  store i8 %cast_tmp, i8* %ptr_add_tmp63, align 1
+  br label %endif64
 
-endif74:                                          ; preds = %else, %then52
-  %37 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %37)
-  %38 = bitcast i8** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %38)
-  %39 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %39)
-  %40 = bitcast i32* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %40)
+endif64:                                          ; preds = %else, %then44
+  %45 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %45)
+  %46 = bitcast i8** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %46)
+  %47 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %47)
+  %48 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %48)
   ret void
 }
 
@@ -4857,16 +4781,16 @@ entry:                                            ; preds = %alloca
   call void @func.std.assert..1.builtin.bool.void(i1 %7)
   %load_tmp2 = load i64, i64* %2, align 8
   %load_tmp3 = load i32, i32* %3, align 4
-  %cast_tmp = zext i32 %load_tmp3 to i64
-  %lshift_tmp = shl i64 1, %cast_tmp
+  %8 = zext i32 %load_tmp3 to i64
+  %lshift_tmp = shl i64 1, %8
   %sub_tmp = sub i64 %lshift_tmp, 1
   %bit_and_tmp = and i64 %load_tmp2, %sub_tmp
-  %8 = icmp eq i64 %bit_and_tmp, 0
-  %9 = bitcast i32* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %9)
-  %10 = bitcast i64* %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %10)
-  ret i1 %8
+  %9 = icmp eq i64 %bit_and_tmp, 0
+  %10 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %10)
+  %11 = bitcast i64* %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %11)
+  ret i1 %9
 }
 
 define internal i1 @func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %0, i32 %1) {
@@ -4932,9 +4856,9 @@ for_iteration:                                    ; preds = %for
   br label %for_condition_check
 
 endfor:                                           ; preds = %for_condition_check
-  %load_tmp13 = load i32, i32* %6, align 4
-  %load_tmp14 = load i32, i32* %3, align 4
-  %14 = icmp ult i32 %load_tmp13, %load_tmp14
+  %load_tmp11 = load i32, i32* %6, align 4
+  %load_tmp12 = load i32, i32* %3, align 4
+  %14 = icmp ult i32 %load_tmp11, %load_tmp12
   br i1 %14, label %then, label %endif
 
 for:                                              ; preds = %for_condition_check
@@ -4949,55 +4873,53 @@ for:                                              ; preds = %for_condition_check
   store i32 %div_tmp, i32* %4, align 4
   %load_tmp5 = load i8*, i8** %5, align 8
   %load_tmp6 = load i32, i32* %3, align 4
-  %cast_tmp = zext i32 %load_tmp6 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp5, i64 %cast_tmp
+  %16 = zext i32 %load_tmp6 to i64
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp5, i64 %16
   %load_tmp7 = load i32, i32* %6, align 4
-  %cast_tmp8 = zext i32 %load_tmp7 to i64
-  %16 = sub i64 0, %cast_tmp8
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %16
-  %ptr_sub_tmp9 = getelementptr i8, i8* %ptr_sub_tmp, i64 -2
-  %load_tmp10 = load i32, i32* %7, align 4
-  %cast_tmp11 = zext i32 %load_tmp10 to i64
-  %ptr_add_tmp12 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp11
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp9, i8* %ptr_add_tmp12, i64 2, i1 false)
-  %17 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %17)
+  %17 = zext i32 %load_tmp7 to i64
+  %18 = sub i64 0, %17
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %18
+  %ptr_sub_tmp8 = getelementptr i8, i8* %ptr_sub_tmp, i32 -2
+  %load_tmp9 = load i32, i32* %7, align 4
+  %19 = zext i32 %load_tmp9 to i64
+  %ptr_add_tmp10 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %19
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp8, i8* %ptr_add_tmp10, i64 2, i1 false)
+  %20 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %20)
   br label %for_iteration
 
 then:                                             ; preds = %endfor
-  %18 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %18)
-  %load_tmp15 = load i32, i32* %4, align 4
-  %mod_tmp16 = urem i32 %load_tmp15, 10
-  %cast_tmp17 = zext i32 %mod_tmp16 to i64
-  %19 = trunc i64 %cast_tmp17 to i32
-  %add_tmp18 = add i32 48, %19
-  store i32 %add_tmp18, i32* %8, align 4
-  %load_tmp19 = load i32, i32* %8, align 4
-  %cast_tmp20 = trunc i32 %load_tmp19 to i8
-  %load_tmp21 = load i8*, i8** %5, align 8
-  %load_tmp22 = load i32, i32* %3, align 4
-  %cast_tmp23 = zext i32 %load_tmp22 to i64
-  %ptr_add_tmp24 = getelementptr i8, i8* %load_tmp21, i64 %cast_tmp23
-  %load_tmp25 = load i32, i32* %6, align 4
-  %cast_tmp26 = zext i32 %load_tmp25 to i64
-  %20 = sub i64 0, %cast_tmp26
-  %ptr_sub_tmp27 = getelementptr i8, i8* %ptr_add_tmp24, i64 %20
-  %ptr_sub_tmp28 = getelementptr i8, i8* %ptr_sub_tmp27, i64 -1
-  store i8 %cast_tmp20, i8* %ptr_sub_tmp28, align 1
   %21 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %21)
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %21)
+  %load_tmp13 = load i32, i32* %4, align 4
+  %mod_tmp14 = urem i32 %load_tmp13, 10
+  %add_tmp15 = add i32 48, %mod_tmp14
+  store i32 %add_tmp15, i32* %8, align 4
+  %load_tmp16 = load i32, i32* %8, align 4
+  %cast_tmp = trunc i32 %load_tmp16 to i8
+  %load_tmp17 = load i8*, i8** %5, align 8
+  %load_tmp18 = load i32, i32* %3, align 4
+  %22 = zext i32 %load_tmp18 to i64
+  %ptr_add_tmp19 = getelementptr i8, i8* %load_tmp17, i64 %22
+  %load_tmp20 = load i32, i32* %6, align 4
+  %23 = zext i32 %load_tmp20 to i64
+  %24 = sub i64 0, %23
+  %ptr_sub_tmp21 = getelementptr i8, i8* %ptr_add_tmp19, i64 %24
+  %ptr_sub_tmp22 = getelementptr i8, i8* %ptr_sub_tmp21, i32 -1
+  store i8 %cast_tmp, i8* %ptr_sub_tmp22, align 1
+  %25 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %25)
   br label %endif
 
 endif:                                            ; preds = %then, %endfor
-  %22 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %22)
-  %23 = bitcast i8** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %23)
-  %24 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %24)
-  %25 = bitcast i32* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %25)
+  %26 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %26)
+  %27 = bitcast i8** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %27)
+  %28 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
+  %29 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
   ret void
 }
 
@@ -5057,8 +4979,8 @@ while_condition_check:                            ; preds = %while, %entry
   br i1 %16, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp29 = load i32, i32* %4, align 4
-  %17 = icmp uge i32 %load_tmp29, 100
+  %load_tmp24 = load i32, i32* %4, align 4
+  %17 = icmp uge i32 %load_tmp24, 100
   br i1 %17, label %then, label %endif
 
 while:                                            ; preds = %while_condition_check
@@ -5087,118 +5009,116 @@ while:                                            ; preds = %while_condition_che
   store i32 %lshift_tmp8, i32* %9, align 4
   %load_tmp9 = load i8*, i8** %5, align 8
   %load_tmp10 = load i32, i32* %3, align 4
-  %cast_tmp = zext i32 %load_tmp10 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp9, i64 %cast_tmp
+  %21 = zext i32 %load_tmp10 to i64
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp9, i64 %21
   %load_tmp11 = load i32, i32* %6, align 4
-  %cast_tmp12 = zext i32 %load_tmp11 to i64
-  %21 = sub i64 0, %cast_tmp12
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %21
-  %ptr_sub_tmp13 = getelementptr i8, i8* %ptr_sub_tmp, i64 -2
-  %load_tmp14 = load i32, i32* %8, align 4
-  %cast_tmp15 = zext i32 %load_tmp14 to i64
-  %ptr_add_tmp16 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp15
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp13, i8* %ptr_add_tmp16, i64 2, i1 false)
-  %load_tmp17 = load i8*, i8** %5, align 8
-  %load_tmp18 = load i32, i32* %3, align 4
-  %cast_tmp19 = zext i32 %load_tmp18 to i64
-  %ptr_add_tmp20 = getelementptr i8, i8* %load_tmp17, i64 %cast_tmp19
-  %load_tmp21 = load i32, i32* %6, align 4
-  %cast_tmp22 = zext i32 %load_tmp21 to i64
-  %22 = sub i64 0, %cast_tmp22
-  %ptr_sub_tmp23 = getelementptr i8, i8* %ptr_add_tmp20, i64 %22
-  %ptr_sub_tmp24 = getelementptr i8, i8* %ptr_sub_tmp23, i64 -4
-  %load_tmp25 = load i32, i32* %9, align 4
-  %cast_tmp26 = zext i32 %load_tmp25 to i64
-  %ptr_add_tmp27 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp26
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp24, i8* %ptr_add_tmp27, i64 2, i1 false)
-  %load_tmp28 = load i32, i32* %6, align 4
-  %add_tmp = add i32 %load_tmp28, 4
+  %22 = zext i32 %load_tmp11 to i64
+  %23 = sub i64 0, %22
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %23
+  %ptr_sub_tmp12 = getelementptr i8, i8* %ptr_sub_tmp, i32 -2
+  %load_tmp13 = load i32, i32* %8, align 4
+  %24 = zext i32 %load_tmp13 to i64
+  %ptr_add_tmp14 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %24
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp12, i8* %ptr_add_tmp14, i64 2, i1 false)
+  %load_tmp15 = load i8*, i8** %5, align 8
+  %load_tmp16 = load i32, i32* %3, align 4
+  %25 = zext i32 %load_tmp16 to i64
+  %ptr_add_tmp17 = getelementptr i8, i8* %load_tmp15, i64 %25
+  %load_tmp18 = load i32, i32* %6, align 4
+  %26 = zext i32 %load_tmp18 to i64
+  %27 = sub i64 0, %26
+  %ptr_sub_tmp19 = getelementptr i8, i8* %ptr_add_tmp17, i64 %27
+  %ptr_sub_tmp20 = getelementptr i8, i8* %ptr_sub_tmp19, i32 -4
+  %load_tmp21 = load i32, i32* %9, align 4
+  %28 = zext i32 %load_tmp21 to i64
+  %ptr_add_tmp22 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %28
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp20, i8* %ptr_add_tmp22, i64 2, i1 false)
+  %load_tmp23 = load i32, i32* %6, align 4
+  %add_tmp = add i32 %load_tmp23, 4
   store i32 %add_tmp, i32* %6, align 4
-  %23 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %23)
-  %24 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %24)
-  %25 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %25)
+  %29 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
+  %30 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %30)
+  %31 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %31)
   br label %while_condition_check
 
 then:                                             ; preds = %endwhile
-  %26 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %26)
-  %load_tmp30 = load i32, i32* %4, align 4
-  %mod_tmp31 = urem i32 %load_tmp30, 100
-  %lshift_tmp32 = shl i32 %mod_tmp31, 1
-  store i32 %lshift_tmp32, i32* %10, align 4
-  %load_tmp33 = load i32, i32* %4, align 4
-  %div_tmp34 = udiv i32 %load_tmp33, 100
-  store i32 %div_tmp34, i32* %4, align 4
-  %load_tmp35 = load i8*, i8** %5, align 8
-  %load_tmp36 = load i32, i32* %3, align 4
-  %cast_tmp37 = zext i32 %load_tmp36 to i64
-  %ptr_add_tmp38 = getelementptr i8, i8* %load_tmp35, i64 %cast_tmp37
-  %load_tmp39 = load i32, i32* %6, align 4
-  %cast_tmp40 = zext i32 %load_tmp39 to i64
-  %27 = sub i64 0, %cast_tmp40
-  %ptr_sub_tmp41 = getelementptr i8, i8* %ptr_add_tmp38, i64 %27
-  %ptr_sub_tmp42 = getelementptr i8, i8* %ptr_sub_tmp41, i64 -2
-  %load_tmp43 = load i32, i32* %10, align 4
-  %cast_tmp44 = zext i32 %load_tmp43 to i64
-  %ptr_add_tmp45 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp44
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp42, i8* %ptr_add_tmp45, i64 2, i1 false)
-  %load_tmp46 = load i32, i32* %6, align 4
-  %add_tmp47 = add i32 %load_tmp46, 2
-  store i32 %add_tmp47, i32* %6, align 4
-  %28 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
+  %32 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %32)
+  %load_tmp25 = load i32, i32* %4, align 4
+  %mod_tmp26 = urem i32 %load_tmp25, 100
+  %lshift_tmp27 = shl i32 %mod_tmp26, 1
+  store i32 %lshift_tmp27, i32* %10, align 4
+  %load_tmp28 = load i32, i32* %4, align 4
+  %div_tmp29 = udiv i32 %load_tmp28, 100
+  store i32 %div_tmp29, i32* %4, align 4
+  %load_tmp30 = load i8*, i8** %5, align 8
+  %load_tmp31 = load i32, i32* %3, align 4
+  %33 = zext i32 %load_tmp31 to i64
+  %ptr_add_tmp32 = getelementptr i8, i8* %load_tmp30, i64 %33
+  %load_tmp33 = load i32, i32* %6, align 4
+  %34 = zext i32 %load_tmp33 to i64
+  %35 = sub i64 0, %34
+  %ptr_sub_tmp34 = getelementptr i8, i8* %ptr_add_tmp32, i64 %35
+  %ptr_sub_tmp35 = getelementptr i8, i8* %ptr_sub_tmp34, i32 -2
+  %load_tmp36 = load i32, i32* %10, align 4
+  %36 = zext i32 %load_tmp36 to i64
+  %ptr_add_tmp37 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %36
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp35, i8* %ptr_add_tmp37, i64 2, i1 false)
+  %load_tmp38 = load i32, i32* %6, align 4
+  %add_tmp39 = add i32 %load_tmp38, 2
+  store i32 %add_tmp39, i32* %6, align 4
+  %37 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %37)
   br label %endif
 
 endif:                                            ; preds = %then, %endwhile
-  %load_tmp48 = load i32, i32* %4, align 4
-  %29 = icmp uge i32 %load_tmp48, 10
-  br i1 %29, label %then49, label %else
+  %load_tmp40 = load i32, i32* %4, align 4
+  %38 = icmp uge i32 %load_tmp40, 10
+  br i1 %38, label %then41, label %else
 
-then49:                                           ; preds = %endif
-  %30 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %30)
-  %load_tmp50 = load i32, i32* %4, align 4
-  %lshift_tmp51 = shl i32 %load_tmp50, 1
-  store i32 %lshift_tmp51, i32* %11, align 4
-  %load_tmp52 = load i8*, i8** %5, align 8
-  %load_tmp53 = load i32, i32* %3, align 4
-  %cast_tmp54 = zext i32 %load_tmp53 to i64
-  %ptr_add_tmp55 = getelementptr i8, i8* %load_tmp52, i64 %cast_tmp54
-  %load_tmp56 = load i32, i32* %6, align 4
-  %cast_tmp57 = zext i32 %load_tmp56 to i64
-  %31 = sub i64 0, %cast_tmp57
-  %ptr_sub_tmp58 = getelementptr i8, i8* %ptr_add_tmp55, i64 %31
-  %ptr_sub_tmp59 = getelementptr i8, i8* %ptr_sub_tmp58, i64 -2
-  %load_tmp60 = load i32, i32* %11, align 4
-  %cast_tmp61 = zext i32 %load_tmp60 to i64
-  %ptr_add_tmp62 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp61
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp59, i8* %ptr_add_tmp62, i64 2, i1 false)
-  %32 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %32)
-  br label %endif68
+then41:                                           ; preds = %endif
+  %39 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %39)
+  %load_tmp42 = load i32, i32* %4, align 4
+  %lshift_tmp43 = shl i32 %load_tmp42, 1
+  store i32 %lshift_tmp43, i32* %11, align 4
+  %load_tmp44 = load i8*, i8** %5, align 8
+  %load_tmp45 = load i32, i32* %3, align 4
+  %40 = zext i32 %load_tmp45 to i64
+  %ptr_add_tmp46 = getelementptr i8, i8* %load_tmp44, i64 %40
+  %load_tmp47 = load i32, i32* %6, align 4
+  %41 = zext i32 %load_tmp47 to i64
+  %42 = sub i64 0, %41
+  %ptr_sub_tmp48 = getelementptr i8, i8* %ptr_add_tmp46, i64 %42
+  %ptr_sub_tmp49 = getelementptr i8, i8* %ptr_sub_tmp48, i32 -2
+  %load_tmp50 = load i32, i32* %11, align 4
+  %43 = zext i32 %load_tmp50 to i64
+  %ptr_add_tmp51 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %43
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp49, i8* %ptr_add_tmp51, i64 2, i1 false)
+  %44 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %44)
+  br label %endif55
 
 else:                                             ; preds = %endif
-  %load_tmp63 = load i32, i32* %4, align 4
-  %cast_tmp64 = zext i32 %load_tmp63 to i64
-  %33 = trunc i64 %cast_tmp64 to i32
-  %add_tmp65 = add i32 48, %33
-  %cast_tmp66 = trunc i32 %add_tmp65 to i8
-  %load_tmp67 = load i8*, i8** %5, align 8
-  store i8 %cast_tmp66, i8* %load_tmp67, align 1
-  br label %endif68
+  %load_tmp52 = load i32, i32* %4, align 4
+  %add_tmp53 = add i32 48, %load_tmp52
+  %cast_tmp = trunc i32 %add_tmp53 to i8
+  %load_tmp54 = load i8*, i8** %5, align 8
+  store i8 %cast_tmp, i8* %load_tmp54, align 1
+  br label %endif55
 
-endif68:                                          ; preds = %else, %then49
-  %34 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %34)
-  %35 = bitcast i8** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %35)
-  %36 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %36)
-  %37 = bitcast i32* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %37)
+endif55:                                          ; preds = %else, %then41
+  %45 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %45)
+  %46 = bitcast i8** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %46)
+  %47 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %47)
+  %48 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %48)
   ret void
 }
 
@@ -5649,7 +5569,7 @@ bool_or_rhs147:                                   ; preds = %endif145
 
 bool_or_end149:                                   ; preds = %bool_or_rhs147, %endif145
   %bool_or_tmp150 = phi i1 [ true, %endif145 ], [ %load_tmp148, %bool_or_rhs147 ]
-  br i1 %bool_or_tmp150, label %then151, label %else231
+  br i1 %bool_or_tmp150, label %then151, label %else227
 
 then151:                                          ; preds = %bool_or_end149
   br label %while_condition_check
@@ -5663,8 +5583,8 @@ while_condition_check:                            ; preds = %while, %then151
   br i1 %99, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp177 = load i1, i1* %16, align 1
-  br i1 %load_tmp177, label %then178, label %endif198
+  %load_tmp176 = load i1, i1* %16, align 1
+  br i1 %load_tmp176, label %then177, label %endif196
 
 while:                                            ; preds = %while_condition_check
   %load_tmp156 = load i32, i32* %14, align 4
@@ -5677,203 +5597,198 @@ while:                                            ; preds = %while_condition_che
   %bit_and_tmp162 = and i1 %load_tmp161, %100
   store i1 %bit_and_tmp162, i1* %16, align 1
   %load_tmp163 = load i8, i8* %18, align 1
-  %cast_tmp164 = zext i8 %load_tmp163 to i32
-  %101 = icmp eq i32 %cast_tmp164, 0
-  %load_tmp165 = load i1, i1* %17, align 1
-  %bit_and_tmp166 = and i1 %load_tmp165, %101
-  store i1 %bit_and_tmp166, i1* %17, align 1
-  %load_tmp167 = load i32, i32* %12, align 4
-  %mod_tmp168 = urem i32 %load_tmp167, 10
-  %cast_tmp169 = trunc i32 %mod_tmp168 to i8
-  store i8 %cast_tmp169, i8* %18, align 1
-  %load_tmp170 = load i32, i32* %12, align 4
-  %div_tmp171 = udiv i32 %load_tmp170, 10
-  store i32 %div_tmp171, i32* %12, align 4
-  %load_tmp172 = load i32, i32* %13, align 4
-  %div_tmp173 = udiv i32 %load_tmp172, 10
-  store i32 %div_tmp173, i32* %13, align 4
-  %load_tmp174 = load i32, i32* %14, align 4
-  %div_tmp175 = udiv i32 %load_tmp174, 10
-  store i32 %div_tmp175, i32* %14, align 4
-  %load_tmp176 = load i32, i32* %27, align 4
-  %102 = add i32 %load_tmp176, 1
+  %101 = icmp eq i8 %load_tmp163, 0
+  %load_tmp164 = load i1, i1* %17, align 1
+  %bit_and_tmp165 = and i1 %load_tmp164, %101
+  store i1 %bit_and_tmp165, i1* %17, align 1
+  %load_tmp166 = load i32, i32* %12, align 4
+  %mod_tmp167 = urem i32 %load_tmp166, 10
+  %cast_tmp168 = trunc i32 %mod_tmp167 to i8
+  store i8 %cast_tmp168, i8* %18, align 1
+  %load_tmp169 = load i32, i32* %12, align 4
+  %div_tmp170 = udiv i32 %load_tmp169, 10
+  store i32 %div_tmp170, i32* %12, align 4
+  %load_tmp171 = load i32, i32* %13, align 4
+  %div_tmp172 = udiv i32 %load_tmp171, 10
+  store i32 %div_tmp172, i32* %13, align 4
+  %load_tmp173 = load i32, i32* %14, align 4
+  %div_tmp174 = udiv i32 %load_tmp173, 10
+  store i32 %div_tmp174, i32* %14, align 4
+  %load_tmp175 = load i32, i32* %27, align 4
+  %102 = add i32 %load_tmp175, 1
   store i32 %102, i32* %27, align 4
   br label %while_condition_check
 
-then178:                                          ; preds = %endwhile
-  br label %while_condition_check179
+then177:                                          ; preds = %endwhile
+  br label %while_condition_check178
 
-while_condition_check179:                         ; preds = %while183, %then178
-  %load_tmp181 = load i32, i32* %14, align 4
-  %mod_tmp182 = urem i32 %load_tmp181, 10
-  %103 = icmp eq i32 %mod_tmp182, 0
-  br i1 %103, label %while183, label %endwhile180
+while_condition_check178:                         ; preds = %while182, %then177
+  %load_tmp180 = load i32, i32* %14, align 4
+  %mod_tmp181 = urem i32 %load_tmp180, 10
+  %103 = icmp eq i32 %mod_tmp181, 0
+  br i1 %103, label %while182, label %endwhile179
 
-endwhile180:                                      ; preds = %while_condition_check179
-  br label %endif198
+endwhile179:                                      ; preds = %while_condition_check178
+  br label %endif196
 
-while183:                                         ; preds = %while_condition_check179
-  %load_tmp184 = load i8, i8* %18, align 1
-  %cast_tmp185 = zext i8 %load_tmp184 to i32
-  %104 = icmp eq i32 %cast_tmp185, 0
-  %load_tmp186 = load i1, i1* %17, align 1
-  %bit_and_tmp187 = and i1 %load_tmp186, %104
-  store i1 %bit_and_tmp187, i1* %17, align 1
-  %load_tmp188 = load i32, i32* %12, align 4
-  %mod_tmp189 = urem i32 %load_tmp188, 10
-  %cast_tmp190 = trunc i32 %mod_tmp189 to i8
-  store i8 %cast_tmp190, i8* %18, align 1
-  %load_tmp191 = load i32, i32* %12, align 4
+while182:                                         ; preds = %while_condition_check178
+  %load_tmp183 = load i8, i8* %18, align 1
+  %104 = icmp eq i8 %load_tmp183, 0
+  %load_tmp184 = load i1, i1* %17, align 1
+  %bit_and_tmp185 = and i1 %load_tmp184, %104
+  store i1 %bit_and_tmp185, i1* %17, align 1
+  %load_tmp186 = load i32, i32* %12, align 4
+  %mod_tmp187 = urem i32 %load_tmp186, 10
+  %cast_tmp188 = trunc i32 %mod_tmp187 to i8
+  store i8 %cast_tmp188, i8* %18, align 1
+  %load_tmp189 = load i32, i32* %12, align 4
+  %div_tmp190 = udiv i32 %load_tmp189, 10
+  store i32 %div_tmp190, i32* %12, align 4
+  %load_tmp191 = load i32, i32* %13, align 4
   %div_tmp192 = udiv i32 %load_tmp191, 10
-  store i32 %div_tmp192, i32* %12, align 4
-  %load_tmp193 = load i32, i32* %13, align 4
+  store i32 %div_tmp192, i32* %13, align 4
+  %load_tmp193 = load i32, i32* %14, align 4
   %div_tmp194 = udiv i32 %load_tmp193, 10
-  store i32 %div_tmp194, i32* %13, align 4
-  %load_tmp195 = load i32, i32* %14, align 4
-  %div_tmp196 = udiv i32 %load_tmp195, 10
-  store i32 %div_tmp196, i32* %14, align 4
-  %load_tmp197 = load i32, i32* %27, align 4
-  %105 = add i32 %load_tmp197, 1
+  store i32 %div_tmp194, i32* %14, align 4
+  %load_tmp195 = load i32, i32* %27, align 4
+  %105 = add i32 %load_tmp195, 1
   store i32 %105, i32* %27, align 4
-  br label %while_condition_check179
+  br label %while_condition_check178
 
-endif198:                                         ; preds = %endwhile180, %endwhile
-  %load_tmp199 = load i1, i1* %17, align 1
-  br i1 %load_tmp199, label %bool_and_rhs200, label %bool_and_end203
+endif196:                                         ; preds = %endwhile179, %endwhile
+  %load_tmp197 = load i1, i1* %17, align 1
+  br i1 %load_tmp197, label %bool_and_rhs198, label %bool_and_end200
 
-bool_and_rhs200:                                  ; preds = %endif198
-  %load_tmp201 = load i8, i8* %18, align 1
-  %cast_tmp202 = zext i8 %load_tmp201 to i32
-  %106 = icmp eq i32 %cast_tmp202, 5
-  br label %bool_and_end203
+bool_and_rhs198:                                  ; preds = %endif196
+  %load_tmp199 = load i8, i8* %18, align 1
+  %106 = icmp eq i8 %load_tmp199, 5
+  br label %bool_and_end200
 
-bool_and_end203:                                  ; preds = %bool_and_rhs200, %endif198
-  %bool_and_tmp204 = phi i1 [ false, %endif198 ], [ %106, %bool_and_rhs200 ]
-  br i1 %bool_and_tmp204, label %bool_and_rhs205, label %bool_and_end208
+bool_and_end200:                                  ; preds = %bool_and_rhs198, %endif196
+  %bool_and_tmp201 = phi i1 [ false, %endif196 ], [ %106, %bool_and_rhs198 ]
+  br i1 %bool_and_tmp201, label %bool_and_rhs202, label %bool_and_end205
 
-bool_and_rhs205:                                  ; preds = %bool_and_end203
-  %load_tmp206 = load i32, i32* %12, align 4
-  %mod_tmp207 = urem i32 %load_tmp206, 2
-  %107 = icmp eq i32 %mod_tmp207, 0
-  br label %bool_and_end208
+bool_and_rhs202:                                  ; preds = %bool_and_end200
+  %load_tmp203 = load i32, i32* %12, align 4
+  %mod_tmp204 = urem i32 %load_tmp203, 2
+  %107 = icmp eq i32 %mod_tmp204, 0
+  br label %bool_and_end205
 
-bool_and_end208:                                  ; preds = %bool_and_rhs205, %bool_and_end203
-  %bool_and_tmp209 = phi i1 [ false, %bool_and_end203 ], [ %107, %bool_and_rhs205 ]
-  br i1 %bool_and_tmp209, label %then210, label %endif211
+bool_and_end205:                                  ; preds = %bool_and_rhs202, %bool_and_end200
+  %bool_and_tmp206 = phi i1 [ false, %bool_and_end200 ], [ %107, %bool_and_rhs202 ]
+  br i1 %bool_and_tmp206, label %then207, label %endif208
 
-then210:                                          ; preds = %bool_and_end208
+then207:                                          ; preds = %bool_and_end205
   store i8 4, i8* %18, align 1
-  br label %endif211
+  br label %endif208
 
-endif211:                                         ; preds = %then210, %bool_and_end208
-  %load_tmp212 = load i32, i32* %12, align 4
-  %load_tmp213 = load i32, i32* %12, align 4
-  %load_tmp214 = load i32, i32* %14, align 4
-  %108 = icmp eq i32 %load_tmp213, %load_tmp214
-  br i1 %108, label %bool_and_rhs215, label %bool_and_end222
+endif208:                                         ; preds = %then207, %bool_and_end205
+  %load_tmp209 = load i32, i32* %12, align 4
+  %load_tmp210 = load i32, i32* %12, align 4
+  %load_tmp211 = load i32, i32* %14, align 4
+  %108 = icmp eq i32 %load_tmp210, %load_tmp211
+  br i1 %108, label %bool_and_rhs212, label %bool_and_end219
 
-bool_and_rhs215:                                  ; preds = %endif211
-  %load_tmp216 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp216, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end220, label %bool_or_rhs217
+bool_and_rhs212:                                  ; preds = %endif208
+  %load_tmp213 = load i1, i1* %7, align 1
+  %unary_bit_not_tmp = xor i1 %load_tmp213, true
+  br i1 %unary_bit_not_tmp, label %bool_or_end217, label %bool_or_rhs214
 
-bool_or_rhs217:                                   ; preds = %bool_and_rhs215
-  %load_tmp218 = load i1, i1* %16, align 1
-  %unary_bit_not_tmp219 = xor i1 %load_tmp218, true
-  br label %bool_or_end220
+bool_or_rhs214:                                   ; preds = %bool_and_rhs212
+  %load_tmp215 = load i1, i1* %16, align 1
+  %unary_bit_not_tmp216 = xor i1 %load_tmp215, true
+  br label %bool_or_end217
 
-bool_or_end220:                                   ; preds = %bool_or_rhs217, %bool_and_rhs215
-  %bool_or_tmp221 = phi i1 [ true, %bool_and_rhs215 ], [ %unary_bit_not_tmp219, %bool_or_rhs217 ]
-  br label %bool_and_end222
+bool_or_end217:                                   ; preds = %bool_or_rhs214, %bool_and_rhs212
+  %bool_or_tmp218 = phi i1 [ true, %bool_and_rhs212 ], [ %unary_bit_not_tmp216, %bool_or_rhs214 ]
+  br label %bool_and_end219
 
-bool_and_end222:                                  ; preds = %bool_or_end220, %endif211
-  %bool_and_tmp223 = phi i1 [ false, %endif211 ], [ %bool_or_tmp221, %bool_or_end220 ]
-  br i1 %bool_and_tmp223, label %bool_or_end227, label %bool_or_rhs224
+bool_and_end219:                                  ; preds = %bool_or_end217, %endif208
+  %bool_and_tmp220 = phi i1 [ false, %endif208 ], [ %bool_or_tmp218, %bool_or_end217 ]
+  br i1 %bool_and_tmp220, label %bool_or_end223, label %bool_or_rhs221
 
-bool_or_rhs224:                                   ; preds = %bool_and_end222
-  %load_tmp225 = load i8, i8* %18, align 1
-  %cast_tmp226 = zext i8 %load_tmp225 to i32
-  %109 = icmp uge i32 %cast_tmp226, 5
-  br label %bool_or_end227
+bool_or_rhs221:                                   ; preds = %bool_and_end219
+  %load_tmp222 = load i8, i8* %18, align 1
+  %109 = icmp uge i8 %load_tmp222, 5
+  br label %bool_or_end223
 
-bool_or_end227:                                   ; preds = %bool_or_rhs224, %bool_and_end222
-  %bool_or_tmp228 = phi i1 [ true, %bool_and_end222 ], [ %109, %bool_or_rhs224 ]
-  %cast_tmp229 = zext i1 %bool_or_tmp228 to i32
-  %add_tmp230 = add i32 %load_tmp212, %cast_tmp229
-  store i32 %add_tmp230, i32* %28, align 4
-  br label %endif259
+bool_or_end223:                                   ; preds = %bool_or_rhs221, %bool_and_end219
+  %bool_or_tmp224 = phi i1 [ true, %bool_and_end219 ], [ %109, %bool_or_rhs221 ]
+  %cast_tmp225 = zext i1 %bool_or_tmp224 to i32
+  %add_tmp226 = add i32 %load_tmp209, %cast_tmp225
+  store i32 %add_tmp226, i32* %28, align 4
+  br label %endif254
 
-else231:                                          ; preds = %bool_or_end149
-  br label %while_condition_check232
+else227:                                          ; preds = %bool_or_end149
+  br label %while_condition_check228
 
-while_condition_check232:                         ; preds = %while238, %else231
-  %load_tmp234 = load i32, i32* %13, align 4
-  %div_tmp235 = udiv i32 %load_tmp234, 10
-  %load_tmp236 = load i32, i32* %14, align 4
-  %div_tmp237 = udiv i32 %load_tmp236, 10
-  %110 = icmp ugt i32 %div_tmp235, %div_tmp237
-  br i1 %110, label %while238, label %endwhile233
+while_condition_check228:                         ; preds = %while234, %else227
+  %load_tmp230 = load i32, i32* %13, align 4
+  %div_tmp231 = udiv i32 %load_tmp230, 10
+  %load_tmp232 = load i32, i32* %14, align 4
+  %div_tmp233 = udiv i32 %load_tmp232, 10
+  %110 = icmp ugt i32 %div_tmp231, %div_tmp233
+  br i1 %110, label %while234, label %endwhile229
 
-endwhile233:                                      ; preds = %while_condition_check232
-  %load_tmp249 = load i32, i32* %12, align 4
-  %load_tmp250 = load i32, i32* %12, align 4
-  %load_tmp251 = load i32, i32* %14, align 4
-  %111 = icmp eq i32 %load_tmp250, %load_tmp251
-  br i1 %111, label %bool_or_end255, label %bool_or_rhs252
+endwhile229:                                      ; preds = %while_condition_check228
+  %load_tmp245 = load i32, i32* %12, align 4
+  %load_tmp246 = load i32, i32* %12, align 4
+  %load_tmp247 = load i32, i32* %14, align 4
+  %111 = icmp eq i32 %load_tmp246, %load_tmp247
+  br i1 %111, label %bool_or_end250, label %bool_or_rhs248
 
-while238:                                         ; preds = %while_condition_check232
-  %load_tmp239 = load i32, i32* %12, align 4
-  %mod_tmp240 = urem i32 %load_tmp239, 10
-  %cast_tmp241 = trunc i32 %mod_tmp240 to i8
-  store i8 %cast_tmp241, i8* %18, align 1
-  %load_tmp242 = load i32, i32* %12, align 4
+while234:                                         ; preds = %while_condition_check228
+  %load_tmp235 = load i32, i32* %12, align 4
+  %mod_tmp236 = urem i32 %load_tmp235, 10
+  %cast_tmp237 = trunc i32 %mod_tmp236 to i8
+  store i8 %cast_tmp237, i8* %18, align 1
+  %load_tmp238 = load i32, i32* %12, align 4
+  %div_tmp239 = udiv i32 %load_tmp238, 10
+  store i32 %div_tmp239, i32* %12, align 4
+  %load_tmp240 = load i32, i32* %13, align 4
+  %div_tmp241 = udiv i32 %load_tmp240, 10
+  store i32 %div_tmp241, i32* %13, align 4
+  %load_tmp242 = load i32, i32* %14, align 4
   %div_tmp243 = udiv i32 %load_tmp242, 10
-  store i32 %div_tmp243, i32* %12, align 4
-  %load_tmp244 = load i32, i32* %13, align 4
-  %div_tmp245 = udiv i32 %load_tmp244, 10
-  store i32 %div_tmp245, i32* %13, align 4
-  %load_tmp246 = load i32, i32* %14, align 4
-  %div_tmp247 = udiv i32 %load_tmp246, 10
-  store i32 %div_tmp247, i32* %14, align 4
-  %load_tmp248 = load i32, i32* %27, align 4
-  %112 = add i32 %load_tmp248, 1
+  store i32 %div_tmp243, i32* %14, align 4
+  %load_tmp244 = load i32, i32* %27, align 4
+  %112 = add i32 %load_tmp244, 1
   store i32 %112, i32* %27, align 4
-  br label %while_condition_check232
+  br label %while_condition_check228
 
-bool_or_rhs252:                                   ; preds = %endwhile233
-  %load_tmp253 = load i8, i8* %18, align 1
-  %cast_tmp254 = zext i8 %load_tmp253 to i32
-  %113 = icmp uge i32 %cast_tmp254, 5
-  br label %bool_or_end255
+bool_or_rhs248:                                   ; preds = %endwhile229
+  %load_tmp249 = load i8, i8* %18, align 1
+  %113 = icmp uge i8 %load_tmp249, 5
+  br label %bool_or_end250
 
-bool_or_end255:                                   ; preds = %bool_or_rhs252, %endwhile233
-  %bool_or_tmp256 = phi i1 [ true, %endwhile233 ], [ %113, %bool_or_rhs252 ]
-  %cast_tmp257 = zext i1 %bool_or_tmp256 to i32
-  %add_tmp258 = add i32 %load_tmp249, %cast_tmp257
-  store i32 %add_tmp258, i32* %28, align 4
-  br label %endif259
+bool_or_end250:                                   ; preds = %bool_or_rhs248, %endwhile229
+  %bool_or_tmp251 = phi i1 [ true, %endwhile229 ], [ %113, %bool_or_rhs248 ]
+  %cast_tmp252 = zext i1 %bool_or_tmp251 to i32
+  %add_tmp253 = add i32 %load_tmp245, %cast_tmp252
+  store i32 %add_tmp253, i32* %28, align 4
+  br label %endif254
 
-endif259:                                         ; preds = %bool_or_end255, %bool_or_end227
+endif254:                                         ; preds = %bool_or_end250, %bool_or_end223
   %114 = bitcast i32* %29 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %114)
-  %load_tmp260 = load i32, i32* %15, align 4
-  %load_tmp261 = load i32, i32* %27, align 4
-  %add_tmp262 = add i32 %load_tmp260, %load_tmp261
-  store i32 %add_tmp262, i32* %29, align 4
+  %load_tmp255 = load i32, i32* %15, align 4
+  %load_tmp256 = load i32, i32* %27, align 4
+  %add_tmp257 = add i32 %load_tmp255, %load_tmp256
+  store i32 %add_tmp257, i32* %29, align 4
   %115 = bitcast %"struct.std::ryu::floating_decimal_32"* %30 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %115)
   store %"struct.std::ryu::floating_decimal_32" zeroinitializer, %"struct.std::ryu::floating_decimal_32"* %30, align 4
   %116 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %30, i32 0, i32 1
-  %load_tmp263 = load i32, i32* %29, align 4
-  store i32 %load_tmp263, i32* %116, align 4
+  %load_tmp258 = load i32, i32* %29, align 4
+  store i32 %load_tmp258, i32* %116, align 4
   %117 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %30, i32 0, i32 0
-  %load_tmp264 = load i32, i32* %28, align 4
-  store i32 %load_tmp264, i32* %117, align 4
+  %load_tmp259 = load i32, i32* %28, align 4
+  store i32 %load_tmp259, i32* %117, align 4
   %118 = bitcast %"struct.std::ryu::floating_decimal_32"* %31 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %118)
   %119 = bitcast %"struct.std::ryu::floating_decimal_32"* %31 to i64*
-  %load_tmp265 = load %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %30, align 4
-  store %"struct.std::ryu::floating_decimal_32" %load_tmp265, %"struct.std::ryu::floating_decimal_32"* %31, align 4
+  %load_tmp260 = load %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %30, align 4
+  store %"struct.std::ryu::floating_decimal_32" %load_tmp260, %"struct.std::ryu::floating_decimal_32"* %31, align 4
   %120 = load i64, i64* %119, align 8
   %121 = bitcast %"struct.std::ryu::floating_decimal_32"* %31 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %121)
@@ -6102,8 +6017,7 @@ endif:                                            ; preds = %entry
   store i32 0, i32* %14, align 4
   %load_tmp3 = load i8*, i8** %3, align 8
   %load_tmp4 = load i32, i32* %14, align 4
-  %cast_tmp = sext i32 %load_tmp4 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp3, i64 %cast_tmp
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp3, i32 %load_tmp4
   %load_tmp5 = load i8, i8* %ptr_add_tmp, align 1
   %47 = icmp eq i8 %load_tmp5, 45
   br i1 %47, label %then6, label %endif8
@@ -6124,16 +6038,16 @@ for_condition_check:                              ; preds = %for_iteration, %end
   %49 = icmp slt i32 %load_tmp9, %load_tmp10
   br i1 %49, label %for, label %endfor
 
-for_iteration:                                    ; preds = %endif39, %endif23
+for_iteration:                                    ; preds = %endif37, %endif21
   %load_tmp11 = load i32, i32* %14, align 4
   %50 = add i32 %load_tmp11, 1
   store i32 %50, i32* %14, align 4
   br label %for_condition_check
 
-endfor:                                           ; preds = %for_condition_check, %then28
-  %load_tmp40 = load i32, i32* %14, align 4
-  %load_tmp41 = load i32, i32* %4, align 4
-  %51 = icmp slt i32 %load_tmp40, %load_tmp41
+endfor:                                           ; preds = %for_condition_check, %then26
+  %load_tmp38 = load i32, i32* %14, align 4
+  %load_tmp39 = load i32, i32* %4, align 4
+  %51 = icmp slt i32 %load_tmp38, %load_tmp39
   br i1 %51, label %bool_and_rhs, label %bool_and_end
 
 for:                                              ; preds = %for_condition_check
@@ -6141,22 +6055,21 @@ for:                                              ; preds = %for_condition_check
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %52)
   %load_tmp12 = load i8*, i8** %3, align 8
   %load_tmp13 = load i32, i32* %14, align 4
-  %cast_tmp14 = sext i32 %load_tmp13 to i64
-  %ptr_add_tmp15 = getelementptr i8, i8* %load_tmp12, i64 %cast_tmp14
-  %load_tmp16 = load i8, i8* %ptr_add_tmp15, align 1
-  %cast_tmp17 = zext i8 %load_tmp16 to i32
-  store i32 %cast_tmp17, i32* %15, align 4
-  %load_tmp18 = load i32, i32* %15, align 4
-  %53 = icmp eq i32 %load_tmp18, 46
-  br i1 %53, label %then19, label %endif25
+  %ptr_add_tmp14 = getelementptr i8, i8* %load_tmp12, i32 %load_tmp13
+  %load_tmp15 = load i8, i8* %ptr_add_tmp14, align 1
+  %cast_tmp = zext i8 %load_tmp15 to i32
+  store i32 %cast_tmp, i32* %15, align 4
+  %load_tmp16 = load i32, i32* %15, align 4
+  %53 = icmp eq i32 %load_tmp16, 46
+  br i1 %53, label %then17, label %endif23
 
-then19:                                           ; preds = %for
-  %load_tmp20 = load i32, i32* %8, align 4
-  %load_tmp21 = load i32, i32* %4, align 4
-  %54 = icmp ne i32 %load_tmp20, %load_tmp21
-  br i1 %54, label %then22, label %endif23
+then17:                                           ; preds = %for
+  %load_tmp18 = load i32, i32* %8, align 4
+  %load_tmp19 = load i32, i32* %4, align 4
+  %54 = icmp ne i32 %load_tmp18, %load_tmp19
+  br i1 %54, label %then20, label %endif21
 
-then22:                                           ; preds = %then19
+then20:                                           ; preds = %then17
   %55 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %55)
   %56 = bitcast i32* %14 to i8*
@@ -6185,38 +6098,38 @@ then22:                                           ; preds = %then19
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %67)
   ret i32 3
 
-endif23:                                          ; preds = %then19
-  %load_tmp24 = load i32, i32* %14, align 4
-  store i32 %load_tmp24, i32* %8, align 4
+endif21:                                          ; preds = %then17
+  %load_tmp22 = load i32, i32* %14, align 4
+  store i32 %load_tmp22, i32* %8, align 4
   %68 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %68)
   br label %for_iteration
 
-endif25:                                          ; preds = %for
-  %load_tmp26 = load i32, i32* %15, align 4
-  %69 = icmp ult i32 %load_tmp26, 48
+endif23:                                          ; preds = %for
+  %load_tmp24 = load i32, i32* %15, align 4
+  %69 = icmp ult i32 %load_tmp24, 48
   br i1 %69, label %bool_or_end, label %bool_or_rhs
 
-bool_or_rhs:                                      ; preds = %endif25
-  %load_tmp27 = load i32, i32* %15, align 4
-  %70 = icmp ugt i32 %load_tmp27, 57
+bool_or_rhs:                                      ; preds = %endif23
+  %load_tmp25 = load i32, i32* %15, align 4
+  %70 = icmp ugt i32 %load_tmp25, 57
   br label %bool_or_end
 
-bool_or_end:                                      ; preds = %bool_or_rhs, %endif25
-  %bool_or_tmp = phi i1 [ true, %endif25 ], [ %70, %bool_or_rhs ]
-  br i1 %bool_or_tmp, label %then28, label %endif29
+bool_or_end:                                      ; preds = %bool_or_rhs, %endif23
+  %bool_or_tmp = phi i1 [ true, %endif23 ], [ %70, %bool_or_rhs ]
+  br i1 %bool_or_tmp, label %then26, label %endif27
 
-then28:                                           ; preds = %bool_or_end
+then26:                                           ; preds = %bool_or_end
   %71 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %71)
   br label %endfor
 
-endif29:                                          ; preds = %bool_or_end
-  %load_tmp30 = load i32, i32* %6, align 4
-  %72 = icmp sge i32 %load_tmp30, 17
-  br i1 %72, label %then31, label %endif32
+endif27:                                          ; preds = %bool_or_end
+  %load_tmp28 = load i32, i32* %6, align 4
+  %72 = icmp sge i32 %load_tmp28, 17
+  br i1 %72, label %then29, label %endif30
 
-then31:                                           ; preds = %endif29
+then29:                                           ; preds = %endif27
   %73 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %73)
   %74 = bitcast i32* %14 to i8*
@@ -6245,152 +6158,146 @@ then31:                                           ; preds = %endif29
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %85)
   ret i32 2
 
-endif32:                                          ; preds = %endif29
-  %load_tmp33 = load i64, i64* %10, align 8
-  %mul_tmp = mul i64 10, %load_tmp33
-  %load_tmp34 = load i32, i32* %15, align 4
-  %sub_tmp = sub i32 %load_tmp34, 48
-  %cast_tmp35 = zext i32 %sub_tmp to i64
-  %add_tmp = add i64 %mul_tmp, %cast_tmp35
+endif30:                                          ; preds = %endif27
+  %load_tmp31 = load i64, i64* %10, align 8
+  %mul_tmp = mul i64 10, %load_tmp31
+  %load_tmp32 = load i32, i32* %15, align 4
+  %sub_tmp = sub i32 %load_tmp32, 48
+  %cast_tmp33 = zext i32 %sub_tmp to i64
+  %add_tmp = add i64 %mul_tmp, %cast_tmp33
   store i64 %add_tmp, i64* %10, align 8
-  %load_tmp36 = load i64, i64* %10, align 8
-  %86 = icmp ne i64 %load_tmp36, 0
-  br i1 %86, label %then37, label %endif39
+  %load_tmp34 = load i64, i64* %10, align 8
+  %86 = icmp ne i64 %load_tmp34, 0
+  br i1 %86, label %then35, label %endif37
 
-then37:                                           ; preds = %endif32
-  %load_tmp38 = load i32, i32* %6, align 4
-  %87 = add i32 %load_tmp38, 1
+then35:                                           ; preds = %endif30
+  %load_tmp36 = load i32, i32* %6, align 4
+  %87 = add i32 %load_tmp36, 1
   store i32 %87, i32* %6, align 4
-  br label %endif39
+  br label %endif37
 
-endif39:                                          ; preds = %then37, %endif32
+endif37:                                          ; preds = %then35, %endif30
   %88 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %88)
   br label %for_iteration
 
 bool_and_rhs:                                     ; preds = %endfor
-  %load_tmp42 = load i8*, i8** %3, align 8
-  %load_tmp43 = load i32, i32* %14, align 4
-  %cast_tmp44 = sext i32 %load_tmp43 to i64
-  %ptr_add_tmp45 = getelementptr i8, i8* %load_tmp42, i64 %cast_tmp44
-  %load_tmp46 = load i8, i8* %ptr_add_tmp45, align 1
-  %cast_tmp47 = zext i8 %load_tmp46 to i32
-  %89 = icmp eq i32 %cast_tmp47, 101
-  br i1 %89, label %bool_or_end55, label %bool_or_rhs48
+  %load_tmp40 = load i8*, i8** %3, align 8
+  %load_tmp41 = load i32, i32* %14, align 4
+  %ptr_add_tmp42 = getelementptr i8, i8* %load_tmp40, i32 %load_tmp41
+  %load_tmp43 = load i8, i8* %ptr_add_tmp42, align 1
+  %cast_tmp44 = zext i8 %load_tmp43 to i32
+  %89 = icmp eq i32 %cast_tmp44, 101
+  br i1 %89, label %bool_or_end51, label %bool_or_rhs45
 
-bool_or_rhs48:                                    ; preds = %bool_and_rhs
-  %load_tmp49 = load i8*, i8** %3, align 8
-  %load_tmp50 = load i32, i32* %14, align 4
-  %cast_tmp51 = sext i32 %load_tmp50 to i64
-  %ptr_add_tmp52 = getelementptr i8, i8* %load_tmp49, i64 %cast_tmp51
-  %load_tmp53 = load i8, i8* %ptr_add_tmp52, align 1
-  %cast_tmp54 = zext i8 %load_tmp53 to i32
-  %90 = icmp eq i32 %cast_tmp54, 69
-  br label %bool_or_end55
+bool_or_rhs45:                                    ; preds = %bool_and_rhs
+  %load_tmp46 = load i8*, i8** %3, align 8
+  %load_tmp47 = load i32, i32* %14, align 4
+  %ptr_add_tmp48 = getelementptr i8, i8* %load_tmp46, i32 %load_tmp47
+  %load_tmp49 = load i8, i8* %ptr_add_tmp48, align 1
+  %cast_tmp50 = zext i8 %load_tmp49 to i32
+  %90 = icmp eq i32 %cast_tmp50, 69
+  br label %bool_or_end51
 
-bool_or_end55:                                    ; preds = %bool_or_rhs48, %bool_and_rhs
-  %bool_or_tmp56 = phi i1 [ true, %bool_and_rhs ], [ %90, %bool_or_rhs48 ]
+bool_or_end51:                                    ; preds = %bool_or_rhs45, %bool_and_rhs
+  %bool_or_tmp52 = phi i1 [ true, %bool_and_rhs ], [ %90, %bool_or_rhs45 ]
   br label %bool_and_end
 
-bool_and_end:                                     ; preds = %bool_or_end55, %endfor
-  %bool_and_tmp = phi i1 [ false, %endfor ], [ %bool_or_tmp56, %bool_or_end55 ]
-  br i1 %bool_and_tmp, label %then57, label %endif121
+bool_and_end:                                     ; preds = %bool_or_end51, %endfor
+  %bool_and_tmp = phi i1 [ false, %endfor ], [ %bool_or_tmp52, %bool_or_end51 ]
+  br i1 %bool_and_tmp, label %then53, label %endif113
 
-then57:                                           ; preds = %bool_and_end
-  %load_tmp58 = load i32, i32* %14, align 4
-  store i32 %load_tmp58, i32* %9, align 4
-  %load_tmp59 = load i32, i32* %14, align 4
-  %91 = add i32 %load_tmp59, 1
+then53:                                           ; preds = %bool_and_end
+  %load_tmp54 = load i32, i32* %14, align 4
+  store i32 %load_tmp54, i32* %9, align 4
+  %load_tmp55 = load i32, i32* %14, align 4
+  %91 = add i32 %load_tmp55, 1
   store i32 %91, i32* %14, align 4
+  %load_tmp56 = load i32, i32* %14, align 4
+  %load_tmp57 = load i32, i32* %4, align 4
+  %92 = icmp slt i32 %load_tmp56, %load_tmp57
+  br i1 %92, label %bool_and_rhs58, label %bool_and_end72
+
+bool_and_rhs58:                                   ; preds = %then53
+  %load_tmp59 = load i8*, i8** %3, align 8
   %load_tmp60 = load i32, i32* %14, align 4
-  %load_tmp61 = load i32, i32* %4, align 4
-  %92 = icmp slt i32 %load_tmp60, %load_tmp61
-  br i1 %92, label %bool_and_rhs62, label %bool_and_end78
+  %ptr_add_tmp61 = getelementptr i8, i8* %load_tmp59, i32 %load_tmp60
+  %load_tmp62 = load i8, i8* %ptr_add_tmp61, align 1
+  %cast_tmp63 = zext i8 %load_tmp62 to i32
+  %93 = icmp eq i32 %cast_tmp63, 45
+  br i1 %93, label %bool_or_end70, label %bool_or_rhs64
 
-bool_and_rhs62:                                   ; preds = %then57
-  %load_tmp63 = load i8*, i8** %3, align 8
-  %load_tmp64 = load i32, i32* %14, align 4
-  %cast_tmp65 = sext i32 %load_tmp64 to i64
-  %ptr_add_tmp66 = getelementptr i8, i8* %load_tmp63, i64 %cast_tmp65
-  %load_tmp67 = load i8, i8* %ptr_add_tmp66, align 1
-  %cast_tmp68 = zext i8 %load_tmp67 to i32
-  %93 = icmp eq i32 %cast_tmp68, 45
-  br i1 %93, label %bool_or_end76, label %bool_or_rhs69
+bool_or_rhs64:                                    ; preds = %bool_and_rhs58
+  %load_tmp65 = load i8*, i8** %3, align 8
+  %load_tmp66 = load i32, i32* %14, align 4
+  %ptr_add_tmp67 = getelementptr i8, i8* %load_tmp65, i32 %load_tmp66
+  %load_tmp68 = load i8, i8* %ptr_add_tmp67, align 1
+  %cast_tmp69 = zext i8 %load_tmp68 to i32
+  %94 = icmp eq i32 %cast_tmp69, 43
+  br label %bool_or_end70
 
-bool_or_rhs69:                                    ; preds = %bool_and_rhs62
-  %load_tmp70 = load i8*, i8** %3, align 8
-  %load_tmp71 = load i32, i32* %14, align 4
-  %cast_tmp72 = sext i32 %load_tmp71 to i64
-  %ptr_add_tmp73 = getelementptr i8, i8* %load_tmp70, i64 %cast_tmp72
-  %load_tmp74 = load i8, i8* %ptr_add_tmp73, align 1
-  %cast_tmp75 = zext i8 %load_tmp74 to i32
-  %94 = icmp eq i32 %cast_tmp75, 43
-  br label %bool_or_end76
+bool_or_end70:                                    ; preds = %bool_or_rhs64, %bool_and_rhs58
+  %bool_or_tmp71 = phi i1 [ true, %bool_and_rhs58 ], [ %94, %bool_or_rhs64 ]
+  br label %bool_and_end72
 
-bool_or_end76:                                    ; preds = %bool_or_rhs69, %bool_and_rhs62
-  %bool_or_tmp77 = phi i1 [ true, %bool_and_rhs62 ], [ %94, %bool_or_rhs69 ]
-  br label %bool_and_end78
+bool_and_end72:                                   ; preds = %bool_or_end70, %then53
+  %bool_and_tmp73 = phi i1 [ false, %then53 ], [ %bool_or_tmp71, %bool_or_end70 ]
+  br i1 %bool_and_tmp73, label %then74, label %endif81
 
-bool_and_end78:                                   ; preds = %bool_or_end76, %then57
-  %bool_and_tmp79 = phi i1 [ false, %then57 ], [ %bool_or_tmp77, %bool_or_end76 ]
-  br i1 %bool_and_tmp79, label %then80, label %endif88
-
-then80:                                           ; preds = %bool_and_end78
-  %load_tmp81 = load i8*, i8** %3, align 8
-  %load_tmp82 = load i32, i32* %14, align 4
-  %cast_tmp83 = sext i32 %load_tmp82 to i64
-  %ptr_add_tmp84 = getelementptr i8, i8* %load_tmp81, i64 %cast_tmp83
-  %load_tmp85 = load i8, i8* %ptr_add_tmp84, align 1
-  %cast_tmp86 = zext i8 %load_tmp85 to i32
-  %95 = icmp eq i32 %cast_tmp86, 45
+then74:                                           ; preds = %bool_and_end72
+  %load_tmp75 = load i8*, i8** %3, align 8
+  %load_tmp76 = load i32, i32* %14, align 4
+  %ptr_add_tmp77 = getelementptr i8, i8* %load_tmp75, i32 %load_tmp76
+  %load_tmp78 = load i8, i8* %ptr_add_tmp77, align 1
+  %cast_tmp79 = zext i8 %load_tmp78 to i32
+  %95 = icmp eq i32 %cast_tmp79, 45
   store i1 %95, i1* %13, align 1
-  %load_tmp87 = load i32, i32* %14, align 4
-  %96 = add i32 %load_tmp87, 1
+  %load_tmp80 = load i32, i32* %14, align 4
+  %96 = add i32 %load_tmp80, 1
   store i32 %96, i32* %14, align 4
-  br label %endif88
+  br label %endif81
 
-endif88:                                          ; preds = %then80, %bool_and_end78
-  br label %for_condition_check89
+endif81:                                          ; preds = %then74, %bool_and_end72
+  br label %for_condition_check82
 
-for_condition_check89:                            ; preds = %for_iteration90, %endif88
-  %load_tmp92 = load i32, i32* %14, align 4
-  %load_tmp93 = load i32, i32* %4, align 4
-  %97 = icmp slt i32 %load_tmp92, %load_tmp93
-  br i1 %97, label %for95, label %endfor91
+for_condition_check82:                            ; preds = %for_iteration83, %endif81
+  %load_tmp85 = load i32, i32* %14, align 4
+  %load_tmp86 = load i32, i32* %4, align 4
+  %97 = icmp slt i32 %load_tmp85, %load_tmp86
+  br i1 %97, label %for88, label %endfor84
 
-for_iteration90:                                  ; preds = %endif120
-  %load_tmp94 = load i32, i32* %14, align 4
-  %98 = add i32 %load_tmp94, 1
+for_iteration83:                                  ; preds = %endif112
+  %load_tmp87 = load i32, i32* %14, align 4
+  %98 = add i32 %load_tmp87, 1
   store i32 %98, i32* %14, align 4
-  br label %for_condition_check89
+  br label %for_condition_check82
 
-endfor91:                                         ; preds = %for_condition_check89
-  br label %endif121
+endfor84:                                         ; preds = %for_condition_check82
+  br label %endif113
 
-for95:                                            ; preds = %for_condition_check89
+for88:                                            ; preds = %for_condition_check82
   %99 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %99)
-  %load_tmp96 = load i8*, i8** %3, align 8
-  %load_tmp97 = load i32, i32* %14, align 4
-  %cast_tmp98 = sext i32 %load_tmp97 to i64
-  %ptr_add_tmp99 = getelementptr i8, i8* %load_tmp96, i64 %cast_tmp98
-  %load_tmp100 = load i8, i8* %ptr_add_tmp99, align 1
-  %cast_tmp101 = zext i8 %load_tmp100 to i32
-  store i32 %cast_tmp101, i32* %16, align 4
-  %load_tmp102 = load i32, i32* %16, align 4
-  %100 = icmp ult i32 %load_tmp102, 48
-  br i1 %100, label %bool_or_end105, label %bool_or_rhs103
+  %load_tmp89 = load i8*, i8** %3, align 8
+  %load_tmp90 = load i32, i32* %14, align 4
+  %ptr_add_tmp91 = getelementptr i8, i8* %load_tmp89, i32 %load_tmp90
+  %load_tmp92 = load i8, i8* %ptr_add_tmp91, align 1
+  %cast_tmp93 = zext i8 %load_tmp92 to i32
+  store i32 %cast_tmp93, i32* %16, align 4
+  %load_tmp94 = load i32, i32* %16, align 4
+  %100 = icmp ult i32 %load_tmp94, 48
+  br i1 %100, label %bool_or_end97, label %bool_or_rhs95
 
-bool_or_rhs103:                                   ; preds = %for95
-  %load_tmp104 = load i32, i32* %16, align 4
-  %101 = icmp ugt i32 %load_tmp104, 57
-  br label %bool_or_end105
+bool_or_rhs95:                                    ; preds = %for88
+  %load_tmp96 = load i32, i32* %16, align 4
+  %101 = icmp ugt i32 %load_tmp96, 57
+  br label %bool_or_end97
 
-bool_or_end105:                                   ; preds = %bool_or_rhs103, %for95
-  %bool_or_tmp106 = phi i1 [ true, %for95 ], [ %101, %bool_or_rhs103 ]
-  br i1 %bool_or_tmp106, label %then107, label %endif108
+bool_or_end97:                                    ; preds = %bool_or_rhs95, %for88
+  %bool_or_tmp98 = phi i1 [ true, %for88 ], [ %101, %bool_or_rhs95 ]
+  br i1 %bool_or_tmp98, label %then99, label %endif100
 
-then107:                                          ; preds = %bool_or_end105
+then99:                                           ; preds = %bool_or_end97
   %102 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %102)
   %103 = bitcast i32* %14 to i8*
@@ -6419,46 +6326,46 @@ then107:                                          ; preds = %bool_or_end105
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %114)
   ret i32 3
 
-endif108:                                         ; preds = %bool_or_end105
-  %load_tmp109 = load i32, i32* %7, align 4
-  %115 = icmp sgt i32 %load_tmp109, 3
-  br i1 %115, label %then110, label %else
+endif100:                                         ; preds = %bool_or_end97
+  %load_tmp101 = load i32, i32* %7, align 4
+  %115 = icmp sgt i32 %load_tmp101, 3
+  br i1 %115, label %then102, label %else
 
-then110:                                          ; preds = %endif108
-  br label %endif120
+then102:                                          ; preds = %endif100
+  br label %endif112
 
-else:                                             ; preds = %endif108
-  %load_tmp111 = load i32, i32* %11, align 4
-  %mul_tmp112 = mul i32 10, %load_tmp111
-  %load_tmp113 = load i32, i32* %16, align 4
-  %sub_tmp114 = sub i32 %load_tmp113, 48
-  %add_tmp115 = add i32 %mul_tmp112, %sub_tmp114
-  store i32 %add_tmp115, i32* %11, align 4
-  %load_tmp116 = load i32, i32* %11, align 4
-  %116 = icmp ne i32 %load_tmp116, 0
-  br i1 %116, label %then117, label %endif119
+else:                                             ; preds = %endif100
+  %load_tmp103 = load i32, i32* %11, align 4
+  %mul_tmp104 = mul i32 10, %load_tmp103
+  %load_tmp105 = load i32, i32* %16, align 4
+  %sub_tmp106 = sub i32 %load_tmp105, 48
+  %add_tmp107 = add i32 %mul_tmp104, %sub_tmp106
+  store i32 %add_tmp107, i32* %11, align 4
+  %load_tmp108 = load i32, i32* %11, align 4
+  %116 = icmp ne i32 %load_tmp108, 0
+  br i1 %116, label %then109, label %endif111
 
-then117:                                          ; preds = %else
-  %load_tmp118 = load i32, i32* %7, align 4
-  %117 = add i32 %load_tmp118, 1
+then109:                                          ; preds = %else
+  %load_tmp110 = load i32, i32* %7, align 4
+  %117 = add i32 %load_tmp110, 1
   store i32 %117, i32* %7, align 4
-  br label %endif119
+  br label %endif111
 
-endif119:                                         ; preds = %then117, %else
-  br label %endif120
+endif111:                                         ; preds = %then109, %else
+  br label %endif112
 
-endif120:                                         ; preds = %endif119, %then110
+endif112:                                         ; preds = %endif111, %then102
   %118 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %118)
-  br label %for_iteration90
+  br label %for_iteration83
 
-endif121:                                         ; preds = %endfor91, %bool_and_end
-  %load_tmp122 = load i32, i32* %14, align 4
-  %load_tmp123 = load i32, i32* %4, align 4
-  %119 = icmp slt i32 %load_tmp122, %load_tmp123
-  br i1 %119, label %then124, label %endif125
+endif113:                                         ; preds = %endfor84, %bool_and_end
+  %load_tmp114 = load i32, i32* %14, align 4
+  %load_tmp115 = load i32, i32* %4, align 4
+  %119 = icmp slt i32 %load_tmp114, %load_tmp115
+  br i1 %119, label %then116, label %endif117
 
-then124:                                          ; preds = %endif121
+then116:                                          ; preds = %endif113
   %120 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %120)
   %121 = bitcast i1* %13 to i8*
@@ -6485,76 +6392,76 @@ then124:                                          ; preds = %endif121
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %131)
   ret i32 3
 
-endif125:                                         ; preds = %endif121
-  %load_tmp126 = load i1, i1* %13, align 1
-  br i1 %load_tmp126, label %then127, label %endif129
+endif117:                                         ; preds = %endif113
+  %load_tmp118 = load i1, i1* %13, align 1
+  br i1 %load_tmp118, label %then119, label %endif121
 
-then127:                                          ; preds = %endif125
-  %load_tmp128 = load i32, i32* %11, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp128
+then119:                                          ; preds = %endif117
+  %load_tmp120 = load i32, i32* %11, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp120
   store i32 %unary_minus_tmp, i32* %11, align 4
-  br label %endif129
+  br label %endif121
 
-endif129:                                         ; preds = %then127, %endif125
-  %load_tmp130 = load i32, i32* %8, align 4
-  %load_tmp131 = load i32, i32* %9, align 4
-  %132 = icmp slt i32 %load_tmp130, %load_tmp131
-  br i1 %132, label %then132, label %endif139
+endif121:                                         ; preds = %then119, %endif117
+  %load_tmp122 = load i32, i32* %8, align 4
+  %load_tmp123 = load i32, i32* %9, align 4
+  %132 = icmp slt i32 %load_tmp122, %load_tmp123
+  br i1 %132, label %then124, label %endif131
 
-then132:                                          ; preds = %endif129
-  %load_tmp133 = load i32, i32* %9, align 4
-  %load_tmp134 = load i32, i32* %8, align 4
-  %sub_tmp135 = sub i32 %load_tmp133, %load_tmp134
-  %sub_tmp136 = sub i32 %sub_tmp135, 1
-  %load_tmp137 = load i32, i32* %11, align 4
-  %sub_tmp138 = sub i32 %load_tmp137, %sub_tmp136
-  store i32 %sub_tmp138, i32* %11, align 4
-  br label %endif139
+then124:                                          ; preds = %endif121
+  %load_tmp125 = load i32, i32* %9, align 4
+  %load_tmp126 = load i32, i32* %8, align 4
+  %sub_tmp127 = sub i32 %load_tmp125, %load_tmp126
+  %sub_tmp128 = sub i32 %sub_tmp127, 1
+  %load_tmp129 = load i32, i32* %11, align 4
+  %sub_tmp130 = sub i32 %load_tmp129, %sub_tmp128
+  store i32 %sub_tmp130, i32* %11, align 4
+  br label %endif131
 
-endif139:                                         ; preds = %then132, %endif129
-  %load_tmp140 = load i32, i32* %7, align 4
-  %133 = icmp sgt i32 %load_tmp140, 3
-  br i1 %133, label %bool_and_rhs141, label %bool_and_end143
+endif131:                                         ; preds = %then124, %endif121
+  %load_tmp132 = load i32, i32* %7, align 4
+  %133 = icmp sgt i32 %load_tmp132, 3
+  br i1 %133, label %bool_and_rhs133, label %bool_and_end135
 
-bool_and_rhs141:                                  ; preds = %endif139
-  %load_tmp142 = load i1, i1* %13, align 1
-  br label %bool_and_end143
+bool_and_rhs133:                                  ; preds = %endif131
+  %load_tmp134 = load i1, i1* %13, align 1
+  br label %bool_and_end135
 
-bool_and_end143:                                  ; preds = %bool_and_rhs141, %endif139
-  %bool_and_tmp144 = phi i1 [ false, %endif139 ], [ %load_tmp142, %bool_and_rhs141 ]
-  br i1 %bool_and_tmp144, label %bool_or_end149, label %bool_or_rhs145
+bool_and_end135:                                  ; preds = %bool_and_rhs133, %endif131
+  %bool_and_tmp136 = phi i1 [ false, %endif131 ], [ %load_tmp134, %bool_and_rhs133 ]
+  br i1 %bool_and_tmp136, label %bool_or_end141, label %bool_or_rhs137
 
-bool_or_rhs145:                                   ; preds = %bool_and_end143
-  %load_tmp146 = load i32, i32* %6, align 4
-  %load_tmp147 = load i32, i32* %11, align 4
-  %add_tmp148 = add i32 %load_tmp146, %load_tmp147
-  %134 = icmp sle i32 %add_tmp148, -324
-  br label %bool_or_end149
+bool_or_rhs137:                                   ; preds = %bool_and_end135
+  %load_tmp138 = load i32, i32* %6, align 4
+  %load_tmp139 = load i32, i32* %11, align 4
+  %add_tmp140 = add i32 %load_tmp138, %load_tmp139
+  %134 = icmp sle i32 %add_tmp140, -324
+  br label %bool_or_end141
 
-bool_or_end149:                                   ; preds = %bool_or_rhs145, %bool_and_end143
-  %bool_or_tmp150 = phi i1 [ true, %bool_and_end143 ], [ %134, %bool_or_rhs145 ]
-  br i1 %bool_or_tmp150, label %bool_or_end153, label %bool_or_rhs151
+bool_or_end141:                                   ; preds = %bool_or_rhs137, %bool_and_end135
+  %bool_or_tmp142 = phi i1 [ true, %bool_and_end135 ], [ %134, %bool_or_rhs137 ]
+  br i1 %bool_or_tmp142, label %bool_or_end145, label %bool_or_rhs143
 
-bool_or_rhs151:                                   ; preds = %bool_or_end149
-  %load_tmp152 = load i64, i64* %10, align 8
-  %135 = icmp eq i64 %load_tmp152, 0
-  br label %bool_or_end153
+bool_or_rhs143:                                   ; preds = %bool_or_end141
+  %load_tmp144 = load i64, i64* %10, align 8
+  %135 = icmp eq i64 %load_tmp144, 0
+  br label %bool_or_end145
 
-bool_or_end153:                                   ; preds = %bool_or_rhs151, %bool_or_end149
-  %bool_or_tmp154 = phi i1 [ true, %bool_or_end149 ], [ %135, %bool_or_rhs151 ]
-  br i1 %bool_or_tmp154, label %then155, label %else160
+bool_or_end145:                                   ; preds = %bool_or_rhs143, %bool_or_end141
+  %bool_or_tmp146 = phi i1 [ true, %bool_or_end141 ], [ %135, %bool_or_rhs143 ]
+  br i1 %bool_or_tmp146, label %then147, label %else152
 
-then155:                                          ; preds = %bool_or_end153
+then147:                                          ; preds = %bool_or_end145
   %136 = bitcast i64* %17 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %136)
-  %load_tmp156 = load i1, i1* %12, align 1
-  %cast_tmp157 = zext i1 %load_tmp156 to i64
-  %lshift_tmp = shl i64 %cast_tmp157, 63
+  %load_tmp148 = load i1, i1* %12, align 1
+  %cast_tmp149 = zext i1 %load_tmp148 to i64
+  %lshift_tmp = shl i64 %cast_tmp149, 63
   store i64 %lshift_tmp, i64* %17, align 8
-  %load_tmp158 = load i64, i64* %17, align 8
-  %137 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp158)
-  %load_tmp159 = load double*, double** %5, align 8
-  store double %137, double* %load_tmp159, align 8
+  %load_tmp150 = load i64, i64* %17, align 8
+  %137 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp150)
+  %load_tmp151 = load double*, double** %5, align 8
+  store double %137, double* %load_tmp151, align 8
   %138 = bitcast i64* %17 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %138)
   %139 = bitcast i32* %14 to i8*
@@ -6583,34 +6490,34 @@ then155:                                          ; preds = %bool_or_end153
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %150)
   ret i32 0
 
-else160:                                          ; preds = %bool_or_end153
-  %load_tmp161 = load i32, i32* %7, align 4
-  %151 = icmp sgt i32 %load_tmp161, 3
-  br i1 %151, label %bool_or_end166, label %bool_or_rhs162
+else152:                                          ; preds = %bool_or_end145
+  %load_tmp153 = load i32, i32* %7, align 4
+  %151 = icmp sgt i32 %load_tmp153, 3
+  br i1 %151, label %bool_or_end158, label %bool_or_rhs154
 
-bool_or_rhs162:                                   ; preds = %else160
-  %load_tmp163 = load i32, i32* %6, align 4
-  %load_tmp164 = load i32, i32* %11, align 4
-  %add_tmp165 = add i32 %load_tmp163, %load_tmp164
-  %152 = icmp sge i32 %add_tmp165, 310
-  br label %bool_or_end166
+bool_or_rhs154:                                   ; preds = %else152
+  %load_tmp155 = load i32, i32* %6, align 4
+  %load_tmp156 = load i32, i32* %11, align 4
+  %add_tmp157 = add i32 %load_tmp155, %load_tmp156
+  %152 = icmp sge i32 %add_tmp157, 310
+  br label %bool_or_end158
 
-bool_or_end166:                                   ; preds = %bool_or_rhs162, %else160
-  %bool_or_tmp167 = phi i1 [ true, %else160 ], [ %152, %bool_or_rhs162 ]
-  br i1 %bool_or_tmp167, label %then168, label %endif174
+bool_or_end158:                                   ; preds = %bool_or_rhs154, %else152
+  %bool_or_tmp159 = phi i1 [ true, %else152 ], [ %152, %bool_or_rhs154 ]
+  br i1 %bool_or_tmp159, label %then160, label %endif166
 
-then168:                                          ; preds = %bool_or_end166
+then160:                                          ; preds = %bool_or_end158
   %153 = bitcast i64* %18 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %153)
-  %load_tmp169 = load i1, i1* %12, align 1
-  %cast_tmp170 = zext i1 %load_tmp169 to i64
-  %lshift_tmp171 = shl i64 %cast_tmp170, 63
-  %bit_or_tmp = or i64 %lshift_tmp171, 9218868437227405312
+  %load_tmp161 = load i1, i1* %12, align 1
+  %cast_tmp162 = zext i1 %load_tmp161 to i64
+  %lshift_tmp163 = shl i64 %cast_tmp162, 63
+  %bit_or_tmp = or i64 %lshift_tmp163, 9218868437227405312
   store i64 %bit_or_tmp, i64* %18, align 8
-  %load_tmp172 = load i64, i64* %18, align 8
-  %154 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp172)
-  %load_tmp173 = load double*, double** %5, align 8
-  store double %154, double* %load_tmp173, align 8
+  %load_tmp164 = load i64, i64* %18, align 8
+  %154 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp164)
+  %load_tmp165 = load double*, double** %5, align 8
+  store double %154, double* %load_tmp165, align 8
   %155 = bitcast i64* %18 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %155)
   %156 = bitcast i32* %14 to i8*
@@ -6639,10 +6546,10 @@ then168:                                          ; preds = %bool_or_end166
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %167)
   ret i32 0
 
-endif174:                                         ; preds = %bool_or_end166
-  br label %endif175
+endif166:                                         ; preds = %bool_or_end158
+  br label %endif167
 
-endif175:                                         ; preds = %endif174
+endif167:                                         ; preds = %endif166
   %168 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %168)
   store i32 0, i32* %19, align 4
@@ -6652,152 +6559,152 @@ endif175:                                         ; preds = %endif174
   %170 = bitcast i1* %21 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %170)
   store i1 false, i1* %21, align 1
-  %load_tmp176 = load i32, i32* %11, align 4
-  %171 = icmp sge i32 %load_tmp176, 0
-  br i1 %171, label %then177, label %else210
+  %load_tmp168 = load i32, i32* %11, align 4
+  %171 = icmp sge i32 %load_tmp168, 0
+  br i1 %171, label %then169, label %else202
 
-then177:                                          ; preds = %endif175
-  %load_tmp178 = load i64, i64* %10, align 8
-  %172 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp178)
-  %load_tmp179 = load i32, i32* %11, align 4
-  %add_tmp180 = add i32 %172, %load_tmp179
-  %load_tmp181 = load i32, i32* %11, align 4
-  %173 = call i32 @func.std.ryu.log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp181)
-  %add_tmp182 = add i32 %add_tmp180, %173
-  %sub_tmp183 = sub i32 %add_tmp182, 53
-  store i32 %sub_tmp183, i32* %19, align 4
+then169:                                          ; preds = %endif167
+  %load_tmp170 = load i64, i64* %10, align 8
+  %172 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp170)
+  %load_tmp171 = load i32, i32* %11, align 4
+  %add_tmp172 = add i32 %172, %load_tmp171
+  %load_tmp173 = load i32, i32* %11, align 4
+  %173 = call i32 @func.std.ryu.log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp173)
+  %add_tmp174 = add i32 %add_tmp172, %173
+  %sub_tmp175 = sub i32 %add_tmp174, 53
+  store i32 %sub_tmp175, i32* %19, align 4
   %174 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %174)
-  %load_tmp184 = load i32, i32* %19, align 4
-  %load_tmp185 = load i32, i32* %11, align 4
-  %sub_tmp186 = sub i32 %load_tmp184, %load_tmp185
-  %load_tmp187 = load i32, i32* %11, align 4
-  %175 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp187)
-  %sub_tmp188 = sub i32 %sub_tmp186, %175
-  %add_tmp189 = add i32 %sub_tmp188, 125
-  store i32 %add_tmp189, i32* %22, align 4
-  %load_tmp190 = load i32, i32* %22, align 4
-  %176 = icmp sge i32 %load_tmp190, 0
+  %load_tmp176 = load i32, i32* %19, align 4
+  %load_tmp177 = load i32, i32* %11, align 4
+  %sub_tmp178 = sub i32 %load_tmp176, %load_tmp177
+  %load_tmp179 = load i32, i32* %11, align 4
+  %175 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp179)
+  %sub_tmp180 = sub i32 %sub_tmp178, %175
+  %add_tmp181 = add i32 %sub_tmp180, 125
+  store i32 %add_tmp181, i32* %22, align 4
+  %load_tmp182 = load i32, i32* %22, align 4
+  %176 = icmp sge i32 %load_tmp182, 0
   call void @func.std.assert..1.builtin.bool.void(i1 %176)
-  %load_tmp191 = load i32, i32* %11, align 4
-  %177 = icmp slt i32 %load_tmp191, 326
+  %load_tmp183 = load i32, i32* %11, align 4
+  %177 = icmp slt i32 %load_tmp183, 326
   call void @func.std.assert..1.builtin.bool.void(i1 %177)
-  %load_tmp192 = load i64, i64* %10, align 8
-  %load_tmp193 = load i32, i32* %11, align 4
-  %178 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i32 %load_tmp193
+  %load_tmp184 = load i64, i64* %10, align 8
+  %load_tmp185 = load i32, i32* %11, align 4
+  %178 = getelementptr [326 x [2 x i64]], [326 x [2 x i64]]* @std.ryu.DOUBLE_POW5_SPLIT, i64 0, i32 %load_tmp185
   %179 = getelementptr inbounds [2 x i64], [2 x i64]* %178, i32 0, i32 0
   %180 = getelementptr inbounds [2 x i64], [2 x i64]* %178, i32 0, i32 2
   %181 = insertvalue { i64*, i64* } undef, i64* %179, 0
   %182 = insertvalue { i64*, i64* } %181, i64* %180, 1
   %183 = extractvalue { i64*, i64* } %182, 0
-  %load_tmp194 = load i32, i32* %22, align 4
-  %184 = call i64 @func.std.ryu.mulShift64..3.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.builtin.uint64(i64 %load_tmp192, i64* %183, i32 %load_tmp194)
+  %load_tmp186 = load i32, i32* %22, align 4
+  %184 = call i64 @func.std.ryu.mulShift64..3.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.builtin.uint64(i64 %load_tmp184, i64* %183, i32 %load_tmp186)
   store i64 %184, i64* %20, align 8
+  %load_tmp187 = load i32, i32* %19, align 4
+  %load_tmp188 = load i32, i32* %11, align 4
+  %185 = icmp slt i32 %load_tmp187, %load_tmp188
+  br i1 %185, label %bool_or_end200, label %bool_or_rhs189
+
+bool_or_rhs189:                                   ; preds = %then169
+  %load_tmp190 = load i32, i32* %19, align 4
+  %load_tmp191 = load i32, i32* %11, align 4
+  %sub_tmp192 = sub i32 %load_tmp190, %load_tmp191
+  %186 = icmp slt i32 %sub_tmp192, 64
+  br i1 %186, label %bool_and_rhs193, label %bool_and_end198
+
+bool_and_rhs193:                                  ; preds = %bool_or_rhs189
+  %load_tmp194 = load i64, i64* %10, align 8
   %load_tmp195 = load i32, i32* %19, align 4
   %load_tmp196 = load i32, i32* %11, align 4
-  %185 = icmp slt i32 %load_tmp195, %load_tmp196
-  br i1 %185, label %bool_or_end208, label %bool_or_rhs197
+  %sub_tmp197 = sub i32 %load_tmp195, %load_tmp196
+  %187 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp194, i32 %sub_tmp197)
+  br label %bool_and_end198
 
-bool_or_rhs197:                                   ; preds = %then177
-  %load_tmp198 = load i32, i32* %19, align 4
-  %load_tmp199 = load i32, i32* %11, align 4
-  %sub_tmp200 = sub i32 %load_tmp198, %load_tmp199
-  %186 = icmp slt i32 %sub_tmp200, 64
-  br i1 %186, label %bool_and_rhs201, label %bool_and_end206
+bool_and_end198:                                  ; preds = %bool_and_rhs193, %bool_or_rhs189
+  %bool_and_tmp199 = phi i1 [ false, %bool_or_rhs189 ], [ %187, %bool_and_rhs193 ]
+  br label %bool_or_end200
 
-bool_and_rhs201:                                  ; preds = %bool_or_rhs197
-  %load_tmp202 = load i64, i64* %10, align 8
-  %load_tmp203 = load i32, i32* %19, align 4
-  %load_tmp204 = load i32, i32* %11, align 4
-  %sub_tmp205 = sub i32 %load_tmp203, %load_tmp204
-  %187 = call i1 @func.std.ryu.multipleOfPowerOf2..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp202, i32 %sub_tmp205)
-  br label %bool_and_end206
-
-bool_and_end206:                                  ; preds = %bool_and_rhs201, %bool_or_rhs197
-  %bool_and_tmp207 = phi i1 [ false, %bool_or_rhs197 ], [ %187, %bool_and_rhs201 ]
-  br label %bool_or_end208
-
-bool_or_end208:                                   ; preds = %bool_and_end206, %then177
-  %bool_or_tmp209 = phi i1 [ true, %then177 ], [ %bool_and_tmp207, %bool_and_end206 ]
-  store i1 %bool_or_tmp209, i1* %21, align 1
+bool_or_end200:                                   ; preds = %bool_and_end198, %then169
+  %bool_or_tmp201 = phi i1 [ true, %then169 ], [ %bool_and_tmp199, %bool_and_end198 ]
+  store i1 %bool_or_tmp201, i1* %21, align 1
   %188 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %188)
-  br label %endif235
+  br label %endif227
 
-else210:                                          ; preds = %endif175
-  %load_tmp211 = load i64, i64* %10, align 8
-  %189 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp211)
-  %load_tmp212 = load i32, i32* %11, align 4
-  %add_tmp213 = add i32 %189, %load_tmp212
-  %load_tmp214 = load i32, i32* %11, align 4
-  %unary_minus_tmp215 = sub i32 0, %load_tmp214
-  %190 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp215)
-  %sub_tmp216 = sub i32 %add_tmp213, %190
-  %sub_tmp217 = sub i32 %sub_tmp216, 53
-  store i32 %sub_tmp217, i32* %19, align 4
+else202:                                          ; preds = %endif167
+  %load_tmp203 = load i64, i64* %10, align 8
+  %189 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp203)
+  %load_tmp204 = load i32, i32* %11, align 4
+  %add_tmp205 = add i32 %189, %load_tmp204
+  %load_tmp206 = load i32, i32* %11, align 4
+  %unary_minus_tmp207 = sub i32 0, %load_tmp206
+  %190 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp207)
+  %sub_tmp208 = sub i32 %add_tmp205, %190
+  %sub_tmp209 = sub i32 %sub_tmp208, 53
+  store i32 %sub_tmp209, i32* %19, align 4
   %191 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %191)
-  %load_tmp218 = load i32, i32* %19, align 4
-  %load_tmp219 = load i32, i32* %11, align 4
-  %sub_tmp220 = sub i32 %load_tmp218, %load_tmp219
+  %load_tmp210 = load i32, i32* %19, align 4
+  %load_tmp211 = load i32, i32* %11, align 4
+  %sub_tmp212 = sub i32 %load_tmp210, %load_tmp211
+  %load_tmp213 = load i32, i32* %11, align 4
+  %unary_minus_tmp214 = sub i32 0, %load_tmp213
+  %192 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp214)
+  %add_tmp215 = add i32 %sub_tmp212, %192
+  %sub_tmp216 = sub i32 %add_tmp215, 1
+  %add_tmp217 = add i32 %sub_tmp216, 125
+  store i32 %add_tmp217, i32* %23, align 4
+  %load_tmp218 = load i32, i32* %11, align 4
+  %unary_minus_tmp219 = sub i32 0, %load_tmp218
+  %193 = icmp slt i32 %unary_minus_tmp219, 342
+  call void @func.std.assert..1.builtin.bool.void(i1 %193)
+  %load_tmp220 = load i64, i64* %10, align 8
   %load_tmp221 = load i32, i32* %11, align 4
   %unary_minus_tmp222 = sub i32 0, %load_tmp221
-  %192 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp222)
-  %add_tmp223 = add i32 %sub_tmp220, %192
-  %sub_tmp224 = sub i32 %add_tmp223, 1
-  %add_tmp225 = add i32 %sub_tmp224, 125
-  store i32 %add_tmp225, i32* %23, align 4
-  %load_tmp226 = load i32, i32* %11, align 4
-  %unary_minus_tmp227 = sub i32 0, %load_tmp226
-  %193 = icmp slt i32 %unary_minus_tmp227, 342
-  call void @func.std.assert..1.builtin.bool.void(i1 %193)
-  %load_tmp228 = load i64, i64* %10, align 8
-  %load_tmp229 = load i32, i32* %11, align 4
-  %unary_minus_tmp230 = sub i32 0, %load_tmp229
-  %194 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i32 %unary_minus_tmp230
+  %194 = getelementptr [342 x [2 x i64]], [342 x [2 x i64]]* @std.ryu.DOUBLE_POW5_INV_SPLIT, i64 0, i32 %unary_minus_tmp222
   %195 = getelementptr inbounds [2 x i64], [2 x i64]* %194, i32 0, i32 0
   %196 = getelementptr inbounds [2 x i64], [2 x i64]* %194, i32 0, i32 2
   %197 = insertvalue { i64*, i64* } undef, i64* %195, 0
   %198 = insertvalue { i64*, i64* } %197, i64* %196, 1
   %199 = extractvalue { i64*, i64* } %198, 0
-  %load_tmp231 = load i32, i32* %23, align 4
-  %200 = call i64 @func.std.ryu.mulShift64..3.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.builtin.uint64(i64 %load_tmp228, i64* %199, i32 %load_tmp231)
+  %load_tmp223 = load i32, i32* %23, align 4
+  %200 = call i64 @func.std.ryu.mulShift64..3.builtin.uint64.0P.const.builtin.uint64.builtin.uint32.builtin.uint64(i64 %load_tmp220, i64* %199, i32 %load_tmp223)
   store i64 %200, i64* %20, align 8
-  %load_tmp232 = load i64, i64* %10, align 8
-  %load_tmp233 = load i32, i32* %11, align 4
-  %unary_minus_tmp234 = sub i32 0, %load_tmp233
-  %201 = call i1 @func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp232, i32 %unary_minus_tmp234)
+  %load_tmp224 = load i64, i64* %10, align 8
+  %load_tmp225 = load i32, i32* %11, align 4
+  %unary_minus_tmp226 = sub i32 0, %load_tmp225
+  %201 = call i1 @func.std.ryu.multipleOfPowerOf5..2.builtin.uint64.builtin.uint32.builtin.bool(i64 %load_tmp224, i32 %unary_minus_tmp226)
   store i1 %201, i1* %21, align 1
   %202 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %202)
-  br label %endif235
+  br label %endif227
 
-endif235:                                         ; preds = %else210, %bool_or_end208
+endif227:                                         ; preds = %else202, %bool_or_end200
   %203 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %203)
-  %load_tmp236 = load i32, i32* %19, align 4
-  %add_tmp237 = add i32 %load_tmp236, 1023
-  %load_tmp238 = load i64, i64* %20, align 8
-  %204 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp238)
-  %add_tmp239 = add i32 %add_tmp237, %204
-  %205 = call i32 @func.std.ryu.max32..2.builtin.int32.builtin.int32.builtin.int32(i32 0, i32 %add_tmp239)
+  %load_tmp228 = load i32, i32* %19, align 4
+  %add_tmp229 = add i32 %load_tmp228, 1023
+  %load_tmp230 = load i64, i64* %20, align 8
+  %204 = call i32 @func.std.ryu.floor_log2..1.builtin.uint64.builtin.uint32(i64 %load_tmp230)
+  %add_tmp231 = add i32 %add_tmp229, %204
+  %205 = call i32 @func.std.ryu.max32..2.builtin.int32.builtin.int32.builtin.int32(i32 0, i32 %add_tmp231)
   store i32 %205, i32* %24, align 4
-  %load_tmp240 = load i32, i32* %24, align 4
-  %206 = icmp ugt i32 %load_tmp240, 2046
-  br i1 %206, label %then241, label %endif248
+  %load_tmp232 = load i32, i32* %24, align 4
+  %206 = icmp ugt i32 %load_tmp232, 2046
+  br i1 %206, label %then233, label %endif240
 
-then241:                                          ; preds = %endif235
+then233:                                          ; preds = %endif227
   %207 = bitcast i64* %25 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %207)
-  %load_tmp242 = load i1, i1* %12, align 1
-  %cast_tmp243 = zext i1 %load_tmp242 to i64
-  %lshift_tmp244 = shl i64 %cast_tmp243, 63
-  %bit_or_tmp245 = or i64 %lshift_tmp244, 9218868437227405312
-  store i64 %bit_or_tmp245, i64* %25, align 8
-  %load_tmp246 = load i64, i64* %25, align 8
-  %208 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp246)
-  %load_tmp247 = load double*, double** %5, align 8
-  store double %208, double* %load_tmp247, align 8
+  %load_tmp234 = load i1, i1* %12, align 1
+  %cast_tmp235 = zext i1 %load_tmp234 to i64
+  %lshift_tmp236 = shl i64 %cast_tmp235, 63
+  %bit_or_tmp237 = or i64 %lshift_tmp236, 9218868437227405312
+  store i64 %bit_or_tmp237, i64* %25, align 8
+  %load_tmp238 = load i64, i64* %25, align 8
+  %208 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp238)
+  %load_tmp239 = load double*, double** %5, align 8
+  store double %208, double* %load_tmp239, align 8
   %209 = bitcast i64* %25 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %209)
   %210 = bitcast i32* %24 to i8*
@@ -6834,174 +6741,174 @@ then241:                                          ; preds = %endif235
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %225)
   ret i32 0
 
-endif248:                                         ; preds = %endif235
+endif240:                                         ; preds = %endif227
   %226 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %226)
-  %load_tmp249 = load i32, i32* %24, align 4
-  %227 = icmp eq i32 %load_tmp249, 0
-  br i1 %227, label %then250, label %else255
+  %load_tmp241 = load i32, i32* %24, align 4
+  %227 = icmp eq i32 %load_tmp241, 0
+  br i1 %227, label %then242, label %else247
 
-then250:                                          ; preds = %endif248
-  %load_tmp251 = load i32, i32* %19, align 4
-  %sub_tmp252 = sub i32 1, %load_tmp251
-  %sub_tmp253 = sub i32 %sub_tmp252, 1023
-  %sub_tmp254 = sub i32 %sub_tmp253, 52
-  store i32 %sub_tmp254, i32* %26, align 4
-  br label %endif261
+then242:                                          ; preds = %endif240
+  %load_tmp243 = load i32, i32* %19, align 4
+  %sub_tmp244 = sub i32 1, %load_tmp243
+  %sub_tmp245 = sub i32 %sub_tmp244, 1023
+  %sub_tmp246 = sub i32 %sub_tmp245, 52
+  store i32 %sub_tmp246, i32* %26, align 4
+  br label %endif253
 
-else255:                                          ; preds = %endif248
-  %load_tmp256 = load i32, i32* %24, align 4
-  %load_tmp257 = load i32, i32* %19, align 4
-  %sub_tmp258 = sub i32 %load_tmp256, %load_tmp257
-  %sub_tmp259 = sub i32 %sub_tmp258, 1023
-  %sub_tmp260 = sub i32 %sub_tmp259, 52
-  store i32 %sub_tmp260, i32* %26, align 4
-  br label %endif261
+else247:                                          ; preds = %endif240
+  %load_tmp248 = load i32, i32* %24, align 4
+  %load_tmp249 = load i32, i32* %19, align 4
+  %sub_tmp250 = sub i32 %load_tmp248, %load_tmp249
+  %sub_tmp251 = sub i32 %sub_tmp250, 1023
+  %sub_tmp252 = sub i32 %sub_tmp251, 52
+  store i32 %sub_tmp252, i32* %26, align 4
+  br label %endif253
 
-endif261:                                         ; preds = %else255, %then250
-  %load_tmp262 = load i32, i32* %26, align 4
-  %228 = icmp sge i32 %load_tmp262, 0
+endif253:                                         ; preds = %else247, %then242
+  %load_tmp254 = load i32, i32* %26, align 4
+  %228 = icmp sge i32 %load_tmp254, 0
   call void @func.std.assert..1.builtin.bool.void(i1 %228)
-  %load_tmp263 = load i64, i64* %20, align 8
-  %load_tmp264 = load i32, i32* %26, align 4
-  %sub_tmp265 = sub i32 %load_tmp264, 1
-  %cast_tmp266 = zext i32 %sub_tmp265 to i64
-  %lshift_tmp267 = shl i64 1, %cast_tmp266
-  %sub_tmp268 = sub i64 %lshift_tmp267, 1
-  %bit_and_tmp = and i64 %load_tmp263, %sub_tmp268
-  %229 = icmp eq i64 %bit_and_tmp, 0
-  %load_tmp269 = load i1, i1* %21, align 1
-  %bit_and_tmp270 = and i1 %load_tmp269, %229
-  store i1 %bit_and_tmp270, i1* %21, align 1
-  %230 = bitcast i64* %27 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %230)
-  %load_tmp271 = load i64, i64* %20, align 8
-  %load_tmp272 = load i32, i32* %26, align 4
-  %sub_tmp273 = sub i32 %load_tmp272, 1
-  %cast_tmp274 = zext i32 %sub_tmp273 to i64
-  %rshift_tmp = lshr i64 %load_tmp271, %cast_tmp274
-  %bit_and_tmp275 = and i64 %rshift_tmp, 1
-  store i64 %bit_and_tmp275, i64* %27, align 8
-  %231 = bitcast i1* %28 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 1, i8* %231)
-  %load_tmp276 = load i64, i64* %27, align 8
-  %232 = icmp ne i64 %load_tmp276, 0
-  br i1 %232, label %bool_and_rhs277, label %bool_and_end287
+  %load_tmp255 = load i64, i64* %20, align 8
+  %load_tmp256 = load i32, i32* %26, align 4
+  %sub_tmp257 = sub i32 %load_tmp256, 1
+  %229 = zext i32 %sub_tmp257 to i64
+  %lshift_tmp258 = shl i64 1, %229
+  %sub_tmp259 = sub i64 %lshift_tmp258, 1
+  %bit_and_tmp = and i64 %load_tmp255, %sub_tmp259
+  %230 = icmp eq i64 %bit_and_tmp, 0
+  %load_tmp260 = load i1, i1* %21, align 1
+  %bit_and_tmp261 = and i1 %load_tmp260, %230
+  store i1 %bit_and_tmp261, i1* %21, align 1
+  %231 = bitcast i64* %27 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %231)
+  %load_tmp262 = load i64, i64* %20, align 8
+  %load_tmp263 = load i32, i32* %26, align 4
+  %sub_tmp264 = sub i32 %load_tmp263, 1
+  %232 = zext i32 %sub_tmp264 to i64
+  %rshift_tmp = lshr i64 %load_tmp262, %232
+  %bit_and_tmp265 = and i64 %rshift_tmp, 1
+  store i64 %bit_and_tmp265, i64* %27, align 8
+  %233 = bitcast i1* %28 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 1, i8* %233)
+  %load_tmp266 = load i64, i64* %27, align 8
+  %234 = icmp ne i64 %load_tmp266, 0
+  br i1 %234, label %bool_and_rhs267, label %bool_and_end276
 
-bool_and_rhs277:                                  ; preds = %endif261
-  %load_tmp278 = load i1, i1* %21, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp278, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end285, label %bool_or_rhs279
+bool_and_rhs267:                                  ; preds = %endif253
+  %load_tmp268 = load i1, i1* %21, align 1
+  %unary_bit_not_tmp = xor i1 %load_tmp268, true
+  br i1 %unary_bit_not_tmp, label %bool_or_end274, label %bool_or_rhs269
 
-bool_or_rhs279:                                   ; preds = %bool_and_rhs277
-  %load_tmp280 = load i64, i64* %20, align 8
-  %load_tmp281 = load i32, i32* %26, align 4
-  %cast_tmp282 = zext i32 %load_tmp281 to i64
-  %rshift_tmp283 = lshr i64 %load_tmp280, %cast_tmp282
-  %bit_and_tmp284 = and i64 %rshift_tmp283, 1
-  %233 = icmp ne i64 %bit_and_tmp284, 0
-  br label %bool_or_end285
+bool_or_rhs269:                                   ; preds = %bool_and_rhs267
+  %load_tmp270 = load i64, i64* %20, align 8
+  %load_tmp271 = load i32, i32* %26, align 4
+  %235 = zext i32 %load_tmp271 to i64
+  %rshift_tmp272 = lshr i64 %load_tmp270, %235
+  %bit_and_tmp273 = and i64 %rshift_tmp272, 1
+  %236 = icmp ne i64 %bit_and_tmp273, 0
+  br label %bool_or_end274
 
-bool_or_end285:                                   ; preds = %bool_or_rhs279, %bool_and_rhs277
-  %bool_or_tmp286 = phi i1 [ true, %bool_and_rhs277 ], [ %233, %bool_or_rhs279 ]
-  br label %bool_and_end287
+bool_or_end274:                                   ; preds = %bool_or_rhs269, %bool_and_rhs267
+  %bool_or_tmp275 = phi i1 [ true, %bool_and_rhs267 ], [ %236, %bool_or_rhs269 ]
+  br label %bool_and_end276
 
-bool_and_end287:                                  ; preds = %bool_or_end285, %endif261
-  %bool_and_tmp288 = phi i1 [ false, %endif261 ], [ %bool_or_tmp286, %bool_or_end285 ]
-  store i1 %bool_and_tmp288, i1* %28, align 1
-  %234 = bitcast i64* %29 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %234)
-  %load_tmp289 = load i64, i64* %20, align 8
-  %load_tmp290 = load i32, i32* %26, align 4
-  %cast_tmp291 = zext i32 %load_tmp290 to i64
-  %rshift_tmp292 = lshr i64 %load_tmp289, %cast_tmp291
-  %load_tmp293 = load i1, i1* %28, align 1
-  %cast_tmp294 = zext i1 %load_tmp293 to i64
-  %add_tmp295 = add i64 %rshift_tmp292, %cast_tmp294
-  store i64 %add_tmp295, i64* %29, align 8
-  %load_tmp296 = load i64, i64* %29, align 8
-  %235 = icmp ule i64 %load_tmp296, 9007199254740992
-  call void @func.std.assert..1.builtin.bool.void(i1 %235)
-  %load_tmp297 = load i64, i64* %29, align 8
-  %bit_and_tmp298 = and i64 %load_tmp297, 4503599627370495
-  store i64 %bit_and_tmp298, i64* %29, align 8
-  %load_tmp299 = load i64, i64* %29, align 8
-  %236 = icmp eq i64 %load_tmp299, 0
-  br i1 %236, label %bool_and_rhs300, label %bool_and_end302
+bool_and_end276:                                  ; preds = %bool_or_end274, %endif253
+  %bool_and_tmp277 = phi i1 [ false, %endif253 ], [ %bool_or_tmp275, %bool_or_end274 ]
+  store i1 %bool_and_tmp277, i1* %28, align 1
+  %237 = bitcast i64* %29 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %237)
+  %load_tmp278 = load i64, i64* %20, align 8
+  %load_tmp279 = load i32, i32* %26, align 4
+  %238 = zext i32 %load_tmp279 to i64
+  %rshift_tmp280 = lshr i64 %load_tmp278, %238
+  %load_tmp281 = load i1, i1* %28, align 1
+  %cast_tmp282 = zext i1 %load_tmp281 to i64
+  %add_tmp283 = add i64 %rshift_tmp280, %cast_tmp282
+  store i64 %add_tmp283, i64* %29, align 8
+  %load_tmp284 = load i64, i64* %29, align 8
+  %239 = icmp ule i64 %load_tmp284, 9007199254740992
+  call void @func.std.assert..1.builtin.bool.void(i1 %239)
+  %load_tmp285 = load i64, i64* %29, align 8
+  %bit_and_tmp286 = and i64 %load_tmp285, 4503599627370495
+  store i64 %bit_and_tmp286, i64* %29, align 8
+  %load_tmp287 = load i64, i64* %29, align 8
+  %240 = icmp eq i64 %load_tmp287, 0
+  br i1 %240, label %bool_and_rhs288, label %bool_and_end290
 
-bool_and_rhs300:                                  ; preds = %bool_and_end287
-  %load_tmp301 = load i1, i1* %28, align 1
-  br label %bool_and_end302
+bool_and_rhs288:                                  ; preds = %bool_and_end276
+  %load_tmp289 = load i1, i1* %28, align 1
+  br label %bool_and_end290
 
-bool_and_end302:                                  ; preds = %bool_and_rhs300, %bool_and_end287
-  %bool_and_tmp303 = phi i1 [ false, %bool_and_end287 ], [ %load_tmp301, %bool_and_rhs300 ]
-  br i1 %bool_and_tmp303, label %then304, label %endif306
+bool_and_end290:                                  ; preds = %bool_and_rhs288, %bool_and_end276
+  %bool_and_tmp291 = phi i1 [ false, %bool_and_end276 ], [ %load_tmp289, %bool_and_rhs288 ]
+  br i1 %bool_and_tmp291, label %then292, label %endif294
 
-then304:                                          ; preds = %bool_and_end302
-  %load_tmp305 = load i32, i32* %24, align 4
-  %237 = add i32 %load_tmp305, 1
-  store i32 %237, i32* %24, align 4
-  br label %endif306
+then292:                                          ; preds = %bool_and_end290
+  %load_tmp293 = load i32, i32* %24, align 4
+  %241 = add i32 %load_tmp293, 1
+  store i32 %241, i32* %24, align 4
+  br label %endif294
 
-endif306:                                         ; preds = %then304, %bool_and_end302
-  %238 = bitcast i64* %30 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 8, i8* %238)
-  %load_tmp307 = load i1, i1* %12, align 1
-  %cast_tmp308 = zext i1 %load_tmp307 to i64
-  %lshift_tmp309 = shl i64 %cast_tmp308, 11
-  %load_tmp310 = load i32, i32* %24, align 4
-  %cast_tmp311 = zext i32 %load_tmp310 to i64
-  %bit_or_tmp312 = or i64 %lshift_tmp309, %cast_tmp311
-  %lshift_tmp313 = shl i64 %bit_or_tmp312, 52
-  %load_tmp314 = load i64, i64* %29, align 8
-  %bit_or_tmp315 = or i64 %lshift_tmp313, %load_tmp314
-  store i64 %bit_or_tmp315, i64* %30, align 8
-  %load_tmp316 = load i64, i64* %30, align 8
-  %239 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp316)
-  %load_tmp317 = load double*, double** %5, align 8
-  store double %239, double* %load_tmp317, align 8
-  %240 = bitcast i64* %30 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %240)
-  %241 = bitcast i64* %29 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %241)
-  %242 = bitcast i1* %28 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %242)
-  %243 = bitcast i64* %27 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %243)
-  %244 = bitcast i32* %26 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %244)
-  %245 = bitcast i32* %24 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %245)
-  %246 = bitcast i1* %21 to i8*
+endif294:                                         ; preds = %then292, %bool_and_end290
+  %242 = bitcast i64* %30 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 8, i8* %242)
+  %load_tmp295 = load i1, i1* %12, align 1
+  %cast_tmp296 = zext i1 %load_tmp295 to i64
+  %lshift_tmp297 = shl i64 %cast_tmp296, 11
+  %load_tmp298 = load i32, i32* %24, align 4
+  %cast_tmp299 = zext i32 %load_tmp298 to i64
+  %bit_or_tmp300 = or i64 %lshift_tmp297, %cast_tmp299
+  %lshift_tmp301 = shl i64 %bit_or_tmp300, 52
+  %load_tmp302 = load i64, i64* %29, align 8
+  %bit_or_tmp303 = or i64 %lshift_tmp301, %load_tmp302
+  store i64 %bit_or_tmp303, i64* %30, align 8
+  %load_tmp304 = load i64, i64* %30, align 8
+  %243 = call double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %load_tmp304)
+  %load_tmp305 = load double*, double** %5, align 8
+  store double %243, double* %load_tmp305, align 8
+  %244 = bitcast i64* %30 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %244)
+  %245 = bitcast i64* %29 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %245)
+  %246 = bitcast i1* %28 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %246)
-  %247 = bitcast i64* %20 to i8*
+  %247 = bitcast i64* %27 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %247)
-  %248 = bitcast i32* %19 to i8*
+  %248 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %248)
-  %249 = bitcast i32* %14 to i8*
+  %249 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %249)
-  %250 = bitcast i1* %13 to i8*
+  %250 = bitcast i1* %21 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %250)
-  %251 = bitcast i1* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %251)
-  %252 = bitcast i32* %11 to i8*
+  %251 = bitcast i64* %20 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %251)
+  %252 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %252)
-  %253 = bitcast i64* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %253)
-  %254 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %254)
-  %255 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %255)
-  %256 = bitcast i32* %7 to i8*
+  %253 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %253)
+  %254 = bitcast i1* %13 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %254)
+  %255 = bitcast i1* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %255)
+  %256 = bitcast i32* %11 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %256)
-  %257 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %257)
-  %258 = bitcast double** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %258)
-  %259 = bitcast i32* %4 to i8*
+  %257 = bitcast i64* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %257)
+  %258 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %258)
+  %259 = bitcast i32* %8 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %259)
-  %260 = bitcast i8** %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %260)
+  %260 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %260)
+  %261 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %261)
+  %262 = bitcast double** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %262)
+  %263 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %263)
+  %264 = bitcast i8** %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %264)
   ret i32 0
 }
 
@@ -7108,62 +7015,60 @@ endif:                                            ; preds = %entry
   store i32 0, i32* %14, align 4
   %load_tmp3 = load i8*, i8** %3, align 8
   %load_tmp4 = load i32, i32* %14, align 4
-  %cast_tmp = sext i32 %load_tmp4 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp3, i64 %cast_tmp
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp3, i32 %load_tmp4
   %load_tmp5 = load i8, i8* %ptr_add_tmp, align 1
-  %cast_tmp6 = zext i8 %load_tmp5 to i32
-  %47 = icmp eq i32 %cast_tmp6, 45
-  br i1 %47, label %then7, label %endif9
+  %cast_tmp = zext i8 %load_tmp5 to i32
+  %47 = icmp eq i32 %cast_tmp, 45
+  br i1 %47, label %then6, label %endif8
 
-then7:                                            ; preds = %endif
+then6:                                            ; preds = %endif
   store i1 true, i1* %12, align 1
-  %load_tmp8 = load i32, i32* %14, align 4
-  %48 = add i32 %load_tmp8, 1
+  %load_tmp7 = load i32, i32* %14, align 4
+  %48 = add i32 %load_tmp7, 1
   store i32 %48, i32* %14, align 4
-  br label %endif9
+  br label %endif8
 
-endif9:                                           ; preds = %then7, %endif
+endif8:                                           ; preds = %then6, %endif
   br label %for_condition_check
 
-for_condition_check:                              ; preds = %for_iteration, %endif9
-  %load_tmp10 = load i32, i32* %14, align 4
-  %load_tmp11 = load i32, i32* %4, align 4
-  %49 = icmp slt i32 %load_tmp10, %load_tmp11
+for_condition_check:                              ; preds = %for_iteration, %endif8
+  %load_tmp9 = load i32, i32* %14, align 4
+  %load_tmp10 = load i32, i32* %4, align 4
+  %49 = icmp slt i32 %load_tmp9, %load_tmp10
   br i1 %49, label %for, label %endfor
 
-for_iteration:                                    ; preds = %endif39, %endif24
-  %load_tmp12 = load i32, i32* %14, align 4
-  %50 = add i32 %load_tmp12, 1
+for_iteration:                                    ; preds = %endif37, %endif22
+  %load_tmp11 = load i32, i32* %14, align 4
+  %50 = add i32 %load_tmp11, 1
   store i32 %50, i32* %14, align 4
   br label %for_condition_check
 
-endfor:                                           ; preds = %for_condition_check, %then29
-  %load_tmp40 = load i32, i32* %14, align 4
-  %load_tmp41 = load i32, i32* %4, align 4
-  %51 = icmp slt i32 %load_tmp40, %load_tmp41
+endfor:                                           ; preds = %for_condition_check, %then27
+  %load_tmp38 = load i32, i32* %14, align 4
+  %load_tmp39 = load i32, i32* %4, align 4
+  %51 = icmp slt i32 %load_tmp38, %load_tmp39
   br i1 %51, label %bool_and_rhs, label %bool_and_end
 
 for:                                              ; preds = %for_condition_check
   %52 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %52)
-  %load_tmp13 = load i8*, i8** %3, align 8
-  %load_tmp14 = load i32, i32* %14, align 4
-  %cast_tmp15 = sext i32 %load_tmp14 to i64
-  %ptr_add_tmp16 = getelementptr i8, i8* %load_tmp13, i64 %cast_tmp15
-  %load_tmp17 = load i8, i8* %ptr_add_tmp16, align 1
-  %cast_tmp18 = zext i8 %load_tmp17 to i32
-  store i32 %cast_tmp18, i32* %15, align 4
-  %load_tmp19 = load i32, i32* %15, align 4
-  %53 = icmp eq i32 %load_tmp19, 46
-  br i1 %53, label %then20, label %endif26
+  %load_tmp12 = load i8*, i8** %3, align 8
+  %load_tmp13 = load i32, i32* %14, align 4
+  %ptr_add_tmp14 = getelementptr i8, i8* %load_tmp12, i32 %load_tmp13
+  %load_tmp15 = load i8, i8* %ptr_add_tmp14, align 1
+  %cast_tmp16 = zext i8 %load_tmp15 to i32
+  store i32 %cast_tmp16, i32* %15, align 4
+  %load_tmp17 = load i32, i32* %15, align 4
+  %53 = icmp eq i32 %load_tmp17, 46
+  br i1 %53, label %then18, label %endif24
 
-then20:                                           ; preds = %for
-  %load_tmp21 = load i32, i32* %8, align 4
-  %load_tmp22 = load i32, i32* %4, align 4
-  %54 = icmp ne i32 %load_tmp21, %load_tmp22
-  br i1 %54, label %then23, label %endif24
+then18:                                           ; preds = %for
+  %load_tmp19 = load i32, i32* %8, align 4
+  %load_tmp20 = load i32, i32* %4, align 4
+  %54 = icmp ne i32 %load_tmp19, %load_tmp20
+  br i1 %54, label %then21, label %endif22
 
-then23:                                           ; preds = %then20
+then21:                                           ; preds = %then18
   %55 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %55)
   %56 = bitcast i32* %14 to i8*
@@ -7192,38 +7097,38 @@ then23:                                           ; preds = %then20
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %67)
   ret i32 3
 
-endif24:                                          ; preds = %then20
-  %load_tmp25 = load i32, i32* %14, align 4
-  store i32 %load_tmp25, i32* %8, align 4
+endif22:                                          ; preds = %then18
+  %load_tmp23 = load i32, i32* %14, align 4
+  store i32 %load_tmp23, i32* %8, align 4
   %68 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %68)
   br label %for_iteration
 
-endif26:                                          ; preds = %for
-  %load_tmp27 = load i32, i32* %15, align 4
-  %69 = icmp ult i32 %load_tmp27, 48
+endif24:                                          ; preds = %for
+  %load_tmp25 = load i32, i32* %15, align 4
+  %69 = icmp ult i32 %load_tmp25, 48
   br i1 %69, label %bool_or_end, label %bool_or_rhs
 
-bool_or_rhs:                                      ; preds = %endif26
-  %load_tmp28 = load i32, i32* %15, align 4
-  %70 = icmp ugt i32 %load_tmp28, 57
+bool_or_rhs:                                      ; preds = %endif24
+  %load_tmp26 = load i32, i32* %15, align 4
+  %70 = icmp ugt i32 %load_tmp26, 57
   br label %bool_or_end
 
-bool_or_end:                                      ; preds = %bool_or_rhs, %endif26
-  %bool_or_tmp = phi i1 [ true, %endif26 ], [ %70, %bool_or_rhs ]
-  br i1 %bool_or_tmp, label %then29, label %endif30
+bool_or_end:                                      ; preds = %bool_or_rhs, %endif24
+  %bool_or_tmp = phi i1 [ true, %endif24 ], [ %70, %bool_or_rhs ]
+  br i1 %bool_or_tmp, label %then27, label %endif28
 
-then29:                                           ; preds = %bool_or_end
+then27:                                           ; preds = %bool_or_end
   %71 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %71)
   br label %endfor
 
-endif30:                                          ; preds = %bool_or_end
-  %load_tmp31 = load i32, i32* %6, align 4
-  %72 = icmp sge i32 %load_tmp31, 9
-  br i1 %72, label %then32, label %endif33
+endif28:                                          ; preds = %bool_or_end
+  %load_tmp29 = load i32, i32* %6, align 4
+  %72 = icmp sge i32 %load_tmp29, 9
+  br i1 %72, label %then30, label %endif31
 
-then32:                                           ; preds = %endif30
+then30:                                           ; preds = %endif28
   %73 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %73)
   %74 = bitcast i32* %14 to i8*
@@ -7252,151 +7157,145 @@ then32:                                           ; preds = %endif30
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %85)
   ret i32 2
 
-endif33:                                          ; preds = %endif30
-  %load_tmp34 = load i32, i32* %10, align 4
-  %mul_tmp = mul i32 10, %load_tmp34
-  %load_tmp35 = load i32, i32* %15, align 4
-  %sub_tmp = sub i32 %load_tmp35, 48
+endif31:                                          ; preds = %endif28
+  %load_tmp32 = load i32, i32* %10, align 4
+  %mul_tmp = mul i32 10, %load_tmp32
+  %load_tmp33 = load i32, i32* %15, align 4
+  %sub_tmp = sub i32 %load_tmp33, 48
   %add_tmp = add i32 %mul_tmp, %sub_tmp
   store i32 %add_tmp, i32* %10, align 4
-  %load_tmp36 = load i32, i32* %10, align 4
-  %86 = icmp ne i32 %load_tmp36, 0
-  br i1 %86, label %then37, label %endif39
+  %load_tmp34 = load i32, i32* %10, align 4
+  %86 = icmp ne i32 %load_tmp34, 0
+  br i1 %86, label %then35, label %endif37
 
-then37:                                           ; preds = %endif33
-  %load_tmp38 = load i32, i32* %6, align 4
-  %87 = add i32 %load_tmp38, 1
+then35:                                           ; preds = %endif31
+  %load_tmp36 = load i32, i32* %6, align 4
+  %87 = add i32 %load_tmp36, 1
   store i32 %87, i32* %6, align 4
-  br label %endif39
+  br label %endif37
 
-endif39:                                          ; preds = %then37, %endif33
+endif37:                                          ; preds = %then35, %endif31
   %88 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %88)
   br label %for_iteration
 
 bool_and_rhs:                                     ; preds = %endfor
-  %load_tmp42 = load i8*, i8** %3, align 8
-  %load_tmp43 = load i32, i32* %14, align 4
-  %cast_tmp44 = sext i32 %load_tmp43 to i64
-  %ptr_add_tmp45 = getelementptr i8, i8* %load_tmp42, i64 %cast_tmp44
-  %load_tmp46 = load i8, i8* %ptr_add_tmp45, align 1
-  %cast_tmp47 = zext i8 %load_tmp46 to i32
-  %89 = icmp eq i32 %cast_tmp47, 101
-  br i1 %89, label %bool_or_end55, label %bool_or_rhs48
+  %load_tmp40 = load i8*, i8** %3, align 8
+  %load_tmp41 = load i32, i32* %14, align 4
+  %ptr_add_tmp42 = getelementptr i8, i8* %load_tmp40, i32 %load_tmp41
+  %load_tmp43 = load i8, i8* %ptr_add_tmp42, align 1
+  %cast_tmp44 = zext i8 %load_tmp43 to i32
+  %89 = icmp eq i32 %cast_tmp44, 101
+  br i1 %89, label %bool_or_end51, label %bool_or_rhs45
 
-bool_or_rhs48:                                    ; preds = %bool_and_rhs
-  %load_tmp49 = load i8*, i8** %3, align 8
-  %load_tmp50 = load i32, i32* %14, align 4
-  %cast_tmp51 = sext i32 %load_tmp50 to i64
-  %ptr_add_tmp52 = getelementptr i8, i8* %load_tmp49, i64 %cast_tmp51
-  %load_tmp53 = load i8, i8* %ptr_add_tmp52, align 1
-  %cast_tmp54 = zext i8 %load_tmp53 to i32
-  %90 = icmp eq i32 %cast_tmp54, 69
-  br label %bool_or_end55
+bool_or_rhs45:                                    ; preds = %bool_and_rhs
+  %load_tmp46 = load i8*, i8** %3, align 8
+  %load_tmp47 = load i32, i32* %14, align 4
+  %ptr_add_tmp48 = getelementptr i8, i8* %load_tmp46, i32 %load_tmp47
+  %load_tmp49 = load i8, i8* %ptr_add_tmp48, align 1
+  %cast_tmp50 = zext i8 %load_tmp49 to i32
+  %90 = icmp eq i32 %cast_tmp50, 69
+  br label %bool_or_end51
 
-bool_or_end55:                                    ; preds = %bool_or_rhs48, %bool_and_rhs
-  %bool_or_tmp56 = phi i1 [ true, %bool_and_rhs ], [ %90, %bool_or_rhs48 ]
+bool_or_end51:                                    ; preds = %bool_or_rhs45, %bool_and_rhs
+  %bool_or_tmp52 = phi i1 [ true, %bool_and_rhs ], [ %90, %bool_or_rhs45 ]
   br label %bool_and_end
 
-bool_and_end:                                     ; preds = %bool_or_end55, %endfor
-  %bool_and_tmp = phi i1 [ false, %endfor ], [ %bool_or_tmp56, %bool_or_end55 ]
-  br i1 %bool_and_tmp, label %then57, label %endif121
+bool_and_end:                                     ; preds = %bool_or_end51, %endfor
+  %bool_and_tmp = phi i1 [ false, %endfor ], [ %bool_or_tmp52, %bool_or_end51 ]
+  br i1 %bool_and_tmp, label %then53, label %endif113
 
-then57:                                           ; preds = %bool_and_end
-  %load_tmp58 = load i32, i32* %14, align 4
-  store i32 %load_tmp58, i32* %9, align 4
-  %load_tmp59 = load i32, i32* %14, align 4
-  %91 = add i32 %load_tmp59, 1
+then53:                                           ; preds = %bool_and_end
+  %load_tmp54 = load i32, i32* %14, align 4
+  store i32 %load_tmp54, i32* %9, align 4
+  %load_tmp55 = load i32, i32* %14, align 4
+  %91 = add i32 %load_tmp55, 1
   store i32 %91, i32* %14, align 4
+  %load_tmp56 = load i32, i32* %14, align 4
+  %load_tmp57 = load i32, i32* %4, align 4
+  %92 = icmp slt i32 %load_tmp56, %load_tmp57
+  br i1 %92, label %bool_and_rhs58, label %bool_and_end72
+
+bool_and_rhs58:                                   ; preds = %then53
+  %load_tmp59 = load i8*, i8** %3, align 8
   %load_tmp60 = load i32, i32* %14, align 4
-  %load_tmp61 = load i32, i32* %4, align 4
-  %92 = icmp slt i32 %load_tmp60, %load_tmp61
-  br i1 %92, label %bool_and_rhs62, label %bool_and_end78
+  %ptr_add_tmp61 = getelementptr i8, i8* %load_tmp59, i32 %load_tmp60
+  %load_tmp62 = load i8, i8* %ptr_add_tmp61, align 1
+  %cast_tmp63 = zext i8 %load_tmp62 to i32
+  %93 = icmp eq i32 %cast_tmp63, 45
+  br i1 %93, label %bool_or_end70, label %bool_or_rhs64
 
-bool_and_rhs62:                                   ; preds = %then57
-  %load_tmp63 = load i8*, i8** %3, align 8
-  %load_tmp64 = load i32, i32* %14, align 4
-  %cast_tmp65 = sext i32 %load_tmp64 to i64
-  %ptr_add_tmp66 = getelementptr i8, i8* %load_tmp63, i64 %cast_tmp65
-  %load_tmp67 = load i8, i8* %ptr_add_tmp66, align 1
-  %cast_tmp68 = zext i8 %load_tmp67 to i32
-  %93 = icmp eq i32 %cast_tmp68, 45
-  br i1 %93, label %bool_or_end76, label %bool_or_rhs69
+bool_or_rhs64:                                    ; preds = %bool_and_rhs58
+  %load_tmp65 = load i8*, i8** %3, align 8
+  %load_tmp66 = load i32, i32* %14, align 4
+  %ptr_add_tmp67 = getelementptr i8, i8* %load_tmp65, i32 %load_tmp66
+  %load_tmp68 = load i8, i8* %ptr_add_tmp67, align 1
+  %cast_tmp69 = zext i8 %load_tmp68 to i32
+  %94 = icmp eq i32 %cast_tmp69, 43
+  br label %bool_or_end70
 
-bool_or_rhs69:                                    ; preds = %bool_and_rhs62
-  %load_tmp70 = load i8*, i8** %3, align 8
-  %load_tmp71 = load i32, i32* %14, align 4
-  %cast_tmp72 = sext i32 %load_tmp71 to i64
-  %ptr_add_tmp73 = getelementptr i8, i8* %load_tmp70, i64 %cast_tmp72
-  %load_tmp74 = load i8, i8* %ptr_add_tmp73, align 1
-  %cast_tmp75 = zext i8 %load_tmp74 to i32
-  %94 = icmp eq i32 %cast_tmp75, 43
-  br label %bool_or_end76
+bool_or_end70:                                    ; preds = %bool_or_rhs64, %bool_and_rhs58
+  %bool_or_tmp71 = phi i1 [ true, %bool_and_rhs58 ], [ %94, %bool_or_rhs64 ]
+  br label %bool_and_end72
 
-bool_or_end76:                                    ; preds = %bool_or_rhs69, %bool_and_rhs62
-  %bool_or_tmp77 = phi i1 [ true, %bool_and_rhs62 ], [ %94, %bool_or_rhs69 ]
-  br label %bool_and_end78
+bool_and_end72:                                   ; preds = %bool_or_end70, %then53
+  %bool_and_tmp73 = phi i1 [ false, %then53 ], [ %bool_or_tmp71, %bool_or_end70 ]
+  br i1 %bool_and_tmp73, label %then74, label %endif81
 
-bool_and_end78:                                   ; preds = %bool_or_end76, %then57
-  %bool_and_tmp79 = phi i1 [ false, %then57 ], [ %bool_or_tmp77, %bool_or_end76 ]
-  br i1 %bool_and_tmp79, label %then80, label %endif88
-
-then80:                                           ; preds = %bool_and_end78
-  %load_tmp81 = load i8*, i8** %3, align 8
-  %load_tmp82 = load i32, i32* %14, align 4
-  %cast_tmp83 = sext i32 %load_tmp82 to i64
-  %ptr_add_tmp84 = getelementptr i8, i8* %load_tmp81, i64 %cast_tmp83
-  %load_tmp85 = load i8, i8* %ptr_add_tmp84, align 1
-  %cast_tmp86 = zext i8 %load_tmp85 to i32
-  %95 = icmp eq i32 %cast_tmp86, 45
+then74:                                           ; preds = %bool_and_end72
+  %load_tmp75 = load i8*, i8** %3, align 8
+  %load_tmp76 = load i32, i32* %14, align 4
+  %ptr_add_tmp77 = getelementptr i8, i8* %load_tmp75, i32 %load_tmp76
+  %load_tmp78 = load i8, i8* %ptr_add_tmp77, align 1
+  %cast_tmp79 = zext i8 %load_tmp78 to i32
+  %95 = icmp eq i32 %cast_tmp79, 45
   store i1 %95, i1* %13, align 1
-  %load_tmp87 = load i32, i32* %14, align 4
-  %96 = add i32 %load_tmp87, 1
+  %load_tmp80 = load i32, i32* %14, align 4
+  %96 = add i32 %load_tmp80, 1
   store i32 %96, i32* %14, align 4
-  br label %endif88
+  br label %endif81
 
-endif88:                                          ; preds = %then80, %bool_and_end78
-  br label %for_condition_check89
+endif81:                                          ; preds = %then74, %bool_and_end72
+  br label %for_condition_check82
 
-for_condition_check89:                            ; preds = %for_iteration90, %endif88
-  %load_tmp92 = load i32, i32* %14, align 4
-  %load_tmp93 = load i32, i32* %4, align 4
-  %97 = icmp slt i32 %load_tmp92, %load_tmp93
-  br i1 %97, label %for95, label %endfor91
+for_condition_check82:                            ; preds = %for_iteration83, %endif81
+  %load_tmp85 = load i32, i32* %14, align 4
+  %load_tmp86 = load i32, i32* %4, align 4
+  %97 = icmp slt i32 %load_tmp85, %load_tmp86
+  br i1 %97, label %for88, label %endfor84
 
-for_iteration90:                                  ; preds = %endif120
-  %load_tmp94 = load i32, i32* %14, align 4
-  %98 = add i32 %load_tmp94, 1
+for_iteration83:                                  ; preds = %endif112
+  %load_tmp87 = load i32, i32* %14, align 4
+  %98 = add i32 %load_tmp87, 1
   store i32 %98, i32* %14, align 4
-  br label %for_condition_check89
+  br label %for_condition_check82
 
-endfor91:                                         ; preds = %for_condition_check89
-  br label %endif121
+endfor84:                                         ; preds = %for_condition_check82
+  br label %endif113
 
-for95:                                            ; preds = %for_condition_check89
+for88:                                            ; preds = %for_condition_check82
   %99 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %99)
-  %load_tmp96 = load i8*, i8** %3, align 8
-  %load_tmp97 = load i32, i32* %14, align 4
-  %cast_tmp98 = sext i32 %load_tmp97 to i64
-  %ptr_add_tmp99 = getelementptr i8, i8* %load_tmp96, i64 %cast_tmp98
-  %load_tmp100 = load i8, i8* %ptr_add_tmp99, align 1
-  %cast_tmp101 = zext i8 %load_tmp100 to i32
-  store i32 %cast_tmp101, i32* %16, align 4
-  %load_tmp102 = load i32, i32* %16, align 4
-  %100 = icmp ult i32 %load_tmp102, 48
-  br i1 %100, label %bool_or_end105, label %bool_or_rhs103
+  %load_tmp89 = load i8*, i8** %3, align 8
+  %load_tmp90 = load i32, i32* %14, align 4
+  %ptr_add_tmp91 = getelementptr i8, i8* %load_tmp89, i32 %load_tmp90
+  %load_tmp92 = load i8, i8* %ptr_add_tmp91, align 1
+  %cast_tmp93 = zext i8 %load_tmp92 to i32
+  store i32 %cast_tmp93, i32* %16, align 4
+  %load_tmp94 = load i32, i32* %16, align 4
+  %100 = icmp ult i32 %load_tmp94, 48
+  br i1 %100, label %bool_or_end97, label %bool_or_rhs95
 
-bool_or_rhs103:                                   ; preds = %for95
-  %load_tmp104 = load i32, i32* %16, align 4
-  %101 = icmp ugt i32 %load_tmp104, 57
-  br label %bool_or_end105
+bool_or_rhs95:                                    ; preds = %for88
+  %load_tmp96 = load i32, i32* %16, align 4
+  %101 = icmp ugt i32 %load_tmp96, 57
+  br label %bool_or_end97
 
-bool_or_end105:                                   ; preds = %bool_or_rhs103, %for95
-  %bool_or_tmp106 = phi i1 [ true, %for95 ], [ %101, %bool_or_rhs103 ]
-  br i1 %bool_or_tmp106, label %then107, label %endif108
+bool_or_end97:                                    ; preds = %bool_or_rhs95, %for88
+  %bool_or_tmp98 = phi i1 [ true, %for88 ], [ %101, %bool_or_rhs95 ]
+  br i1 %bool_or_tmp98, label %then99, label %endif100
 
-then107:                                          ; preds = %bool_or_end105
+then99:                                           ; preds = %bool_or_end97
   %102 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %102)
   %103 = bitcast i32* %14 to i8*
@@ -7425,46 +7324,46 @@ then107:                                          ; preds = %bool_or_end105
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %114)
   ret i32 3
 
-endif108:                                         ; preds = %bool_or_end105
-  %load_tmp109 = load i32, i32* %7, align 4
-  %115 = icmp sgt i32 %load_tmp109, 3
-  br i1 %115, label %then110, label %else
+endif100:                                         ; preds = %bool_or_end97
+  %load_tmp101 = load i32, i32* %7, align 4
+  %115 = icmp sgt i32 %load_tmp101, 3
+  br i1 %115, label %then102, label %else
 
-then110:                                          ; preds = %endif108
-  br label %endif120
+then102:                                          ; preds = %endif100
+  br label %endif112
 
-else:                                             ; preds = %endif108
-  %load_tmp111 = load i32, i32* %11, align 4
-  %mul_tmp112 = mul i32 10, %load_tmp111
-  %load_tmp113 = load i32, i32* %16, align 4
-  %sub_tmp114 = sub i32 %load_tmp113, 48
-  %add_tmp115 = add i32 %mul_tmp112, %sub_tmp114
-  store i32 %add_tmp115, i32* %11, align 4
-  %load_tmp116 = load i32, i32* %11, align 4
-  %116 = icmp ne i32 %load_tmp116, 0
-  br i1 %116, label %then117, label %endif119
+else:                                             ; preds = %endif100
+  %load_tmp103 = load i32, i32* %11, align 4
+  %mul_tmp104 = mul i32 10, %load_tmp103
+  %load_tmp105 = load i32, i32* %16, align 4
+  %sub_tmp106 = sub i32 %load_tmp105, 48
+  %add_tmp107 = add i32 %mul_tmp104, %sub_tmp106
+  store i32 %add_tmp107, i32* %11, align 4
+  %load_tmp108 = load i32, i32* %11, align 4
+  %116 = icmp ne i32 %load_tmp108, 0
+  br i1 %116, label %then109, label %endif111
 
-then117:                                          ; preds = %else
-  %load_tmp118 = load i32, i32* %7, align 4
-  %117 = add i32 %load_tmp118, 1
+then109:                                          ; preds = %else
+  %load_tmp110 = load i32, i32* %7, align 4
+  %117 = add i32 %load_tmp110, 1
   store i32 %117, i32* %7, align 4
-  br label %endif119
+  br label %endif111
 
-endif119:                                         ; preds = %then117, %else
-  br label %endif120
+endif111:                                         ; preds = %then109, %else
+  br label %endif112
 
-endif120:                                         ; preds = %endif119, %then110
+endif112:                                         ; preds = %endif111, %then102
   %118 = bitcast i32* %16 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %118)
-  br label %for_iteration90
+  br label %for_iteration83
 
-endif121:                                         ; preds = %endfor91, %bool_and_end
-  %load_tmp122 = load i32, i32* %14, align 4
-  %load_tmp123 = load i32, i32* %4, align 4
-  %119 = icmp slt i32 %load_tmp122, %load_tmp123
-  br i1 %119, label %then124, label %endif125
+endif113:                                         ; preds = %endfor84, %bool_and_end
+  %load_tmp114 = load i32, i32* %14, align 4
+  %load_tmp115 = load i32, i32* %4, align 4
+  %119 = icmp slt i32 %load_tmp114, %load_tmp115
+  br i1 %119, label %then116, label %endif117
 
-then124:                                          ; preds = %endif121
+then116:                                          ; preds = %endif113
   %120 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %120)
   %121 = bitcast i1* %13 to i8*
@@ -7491,76 +7390,76 @@ then124:                                          ; preds = %endif121
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %131)
   ret i32 3
 
-endif125:                                         ; preds = %endif121
-  %load_tmp126 = load i1, i1* %13, align 1
-  br i1 %load_tmp126, label %then127, label %endif129
+endif117:                                         ; preds = %endif113
+  %load_tmp118 = load i1, i1* %13, align 1
+  br i1 %load_tmp118, label %then119, label %endif121
 
-then127:                                          ; preds = %endif125
-  %load_tmp128 = load i32, i32* %11, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp128
+then119:                                          ; preds = %endif117
+  %load_tmp120 = load i32, i32* %11, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp120
   store i32 %unary_minus_tmp, i32* %11, align 4
-  br label %endif129
+  br label %endif121
 
-endif129:                                         ; preds = %then127, %endif125
-  %load_tmp130 = load i32, i32* %8, align 4
-  %load_tmp131 = load i32, i32* %9, align 4
-  %132 = icmp slt i32 %load_tmp130, %load_tmp131
-  br i1 %132, label %then132, label %endif139
+endif121:                                         ; preds = %then119, %endif117
+  %load_tmp122 = load i32, i32* %8, align 4
+  %load_tmp123 = load i32, i32* %9, align 4
+  %132 = icmp slt i32 %load_tmp122, %load_tmp123
+  br i1 %132, label %then124, label %endif131
 
-then132:                                          ; preds = %endif129
-  %load_tmp133 = load i32, i32* %9, align 4
-  %load_tmp134 = load i32, i32* %8, align 4
-  %sub_tmp135 = sub i32 %load_tmp133, %load_tmp134
-  %sub_tmp136 = sub i32 %sub_tmp135, 1
-  %load_tmp137 = load i32, i32* %11, align 4
-  %sub_tmp138 = sub i32 %load_tmp137, %sub_tmp136
-  store i32 %sub_tmp138, i32* %11, align 4
-  br label %endif139
+then124:                                          ; preds = %endif121
+  %load_tmp125 = load i32, i32* %9, align 4
+  %load_tmp126 = load i32, i32* %8, align 4
+  %sub_tmp127 = sub i32 %load_tmp125, %load_tmp126
+  %sub_tmp128 = sub i32 %sub_tmp127, 1
+  %load_tmp129 = load i32, i32* %11, align 4
+  %sub_tmp130 = sub i32 %load_tmp129, %sub_tmp128
+  store i32 %sub_tmp130, i32* %11, align 4
+  br label %endif131
 
-endif139:                                         ; preds = %then132, %endif129
-  %load_tmp140 = load i32, i32* %7, align 4
-  %133 = icmp sgt i32 %load_tmp140, 3
-  br i1 %133, label %bool_and_rhs141, label %bool_and_end143
+endif131:                                         ; preds = %then124, %endif121
+  %load_tmp132 = load i32, i32* %7, align 4
+  %133 = icmp sgt i32 %load_tmp132, 3
+  br i1 %133, label %bool_and_rhs133, label %bool_and_end135
 
-bool_and_rhs141:                                  ; preds = %endif139
-  %load_tmp142 = load i1, i1* %13, align 1
-  br label %bool_and_end143
+bool_and_rhs133:                                  ; preds = %endif131
+  %load_tmp134 = load i1, i1* %13, align 1
+  br label %bool_and_end135
 
-bool_and_end143:                                  ; preds = %bool_and_rhs141, %endif139
-  %bool_and_tmp144 = phi i1 [ false, %endif139 ], [ %load_tmp142, %bool_and_rhs141 ]
-  br i1 %bool_and_tmp144, label %bool_or_end149, label %bool_or_rhs145
+bool_and_end135:                                  ; preds = %bool_and_rhs133, %endif131
+  %bool_and_tmp136 = phi i1 [ false, %endif131 ], [ %load_tmp134, %bool_and_rhs133 ]
+  br i1 %bool_and_tmp136, label %bool_or_end141, label %bool_or_rhs137
 
-bool_or_rhs145:                                   ; preds = %bool_and_end143
-  %load_tmp146 = load i32, i32* %6, align 4
-  %load_tmp147 = load i32, i32* %11, align 4
-  %add_tmp148 = add i32 %load_tmp146, %load_tmp147
-  %134 = icmp sle i32 %add_tmp148, -46
-  br label %bool_or_end149
+bool_or_rhs137:                                   ; preds = %bool_and_end135
+  %load_tmp138 = load i32, i32* %6, align 4
+  %load_tmp139 = load i32, i32* %11, align 4
+  %add_tmp140 = add i32 %load_tmp138, %load_tmp139
+  %134 = icmp sle i32 %add_tmp140, -46
+  br label %bool_or_end141
 
-bool_or_end149:                                   ; preds = %bool_or_rhs145, %bool_and_end143
-  %bool_or_tmp150 = phi i1 [ true, %bool_and_end143 ], [ %134, %bool_or_rhs145 ]
-  br i1 %bool_or_tmp150, label %bool_or_end153, label %bool_or_rhs151
+bool_or_end141:                                   ; preds = %bool_or_rhs137, %bool_and_end135
+  %bool_or_tmp142 = phi i1 [ true, %bool_and_end135 ], [ %134, %bool_or_rhs137 ]
+  br i1 %bool_or_tmp142, label %bool_or_end145, label %bool_or_rhs143
 
-bool_or_rhs151:                                   ; preds = %bool_or_end149
-  %load_tmp152 = load i32, i32* %10, align 4
-  %135 = icmp eq i32 %load_tmp152, 0
-  br label %bool_or_end153
+bool_or_rhs143:                                   ; preds = %bool_or_end141
+  %load_tmp144 = load i32, i32* %10, align 4
+  %135 = icmp eq i32 %load_tmp144, 0
+  br label %bool_or_end145
 
-bool_or_end153:                                   ; preds = %bool_or_rhs151, %bool_or_end149
-  %bool_or_tmp154 = phi i1 [ true, %bool_or_end149 ], [ %135, %bool_or_rhs151 ]
-  br i1 %bool_or_tmp154, label %then155, label %else160
+bool_or_end145:                                   ; preds = %bool_or_rhs143, %bool_or_end141
+  %bool_or_tmp146 = phi i1 [ true, %bool_or_end141 ], [ %135, %bool_or_rhs143 ]
+  br i1 %bool_or_tmp146, label %then147, label %else152
 
-then155:                                          ; preds = %bool_or_end153
+then147:                                          ; preds = %bool_or_end145
   %136 = bitcast i32* %17 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %136)
-  %load_tmp156 = load i1, i1* %12, align 1
-  %cast_tmp157 = zext i1 %load_tmp156 to i32
-  %lshift_tmp = shl i32 %cast_tmp157, 31
+  %load_tmp148 = load i1, i1* %12, align 1
+  %cast_tmp149 = zext i1 %load_tmp148 to i32
+  %lshift_tmp = shl i32 %cast_tmp149, 31
   store i32 %lshift_tmp, i32* %17, align 4
-  %load_tmp158 = load i32, i32* %17, align 4
-  %137 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp158)
-  %load_tmp159 = load float*, float** %5, align 8
-  store float %137, float* %load_tmp159, align 4
+  %load_tmp150 = load i32, i32* %17, align 4
+  %137 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp150)
+  %load_tmp151 = load float*, float** %5, align 8
+  store float %137, float* %load_tmp151, align 4
   %138 = bitcast i32* %17 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %138)
   %139 = bitcast i32* %14 to i8*
@@ -7589,34 +7488,34 @@ then155:                                          ; preds = %bool_or_end153
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %150)
   ret i32 0
 
-else160:                                          ; preds = %bool_or_end153
-  %load_tmp161 = load i32, i32* %7, align 4
-  %151 = icmp sgt i32 %load_tmp161, 3
-  br i1 %151, label %bool_or_end166, label %bool_or_rhs162
+else152:                                          ; preds = %bool_or_end145
+  %load_tmp153 = load i32, i32* %7, align 4
+  %151 = icmp sgt i32 %load_tmp153, 3
+  br i1 %151, label %bool_or_end158, label %bool_or_rhs154
 
-bool_or_rhs162:                                   ; preds = %else160
-  %load_tmp163 = load i32, i32* %6, align 4
-  %load_tmp164 = load i32, i32* %11, align 4
-  %add_tmp165 = add i32 %load_tmp163, %load_tmp164
-  %152 = icmp sge i32 %add_tmp165, 40
-  br label %bool_or_end166
+bool_or_rhs154:                                   ; preds = %else152
+  %load_tmp155 = load i32, i32* %6, align 4
+  %load_tmp156 = load i32, i32* %11, align 4
+  %add_tmp157 = add i32 %load_tmp155, %load_tmp156
+  %152 = icmp sge i32 %add_tmp157, 40
+  br label %bool_or_end158
 
-bool_or_end166:                                   ; preds = %bool_or_rhs162, %else160
-  %bool_or_tmp167 = phi i1 [ true, %else160 ], [ %152, %bool_or_rhs162 ]
-  br i1 %bool_or_tmp167, label %then168, label %endif174
+bool_or_end158:                                   ; preds = %bool_or_rhs154, %else152
+  %bool_or_tmp159 = phi i1 [ true, %else152 ], [ %152, %bool_or_rhs154 ]
+  br i1 %bool_or_tmp159, label %then160, label %endif166
 
-then168:                                          ; preds = %bool_or_end166
+then160:                                          ; preds = %bool_or_end158
   %153 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %153)
-  %load_tmp169 = load i1, i1* %12, align 1
-  %cast_tmp170 = zext i1 %load_tmp169 to i32
-  %lshift_tmp171 = shl i32 %cast_tmp170, 31
-  %bit_or_tmp = or i32 %lshift_tmp171, 2139095040
+  %load_tmp161 = load i1, i1* %12, align 1
+  %cast_tmp162 = zext i1 %load_tmp161 to i32
+  %lshift_tmp163 = shl i32 %cast_tmp162, 31
+  %bit_or_tmp = or i32 %lshift_tmp163, 2139095040
   store i32 %bit_or_tmp, i32* %18, align 4
-  %load_tmp172 = load i32, i32* %18, align 4
-  %154 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp172)
-  %load_tmp173 = load float*, float** %5, align 8
-  store float %154, float* %load_tmp173, align 4
+  %load_tmp164 = load i32, i32* %18, align 4
+  %154 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp164)
+  %load_tmp165 = load float*, float** %5, align 8
+  store float %154, float* %load_tmp165, align 4
   %155 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %155)
   %156 = bitcast i32* %14 to i8*
@@ -7645,10 +7544,10 @@ then168:                                          ; preds = %bool_or_end166
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %167)
   ret i32 0
 
-endif174:                                         ; preds = %bool_or_end166
-  br label %endif175
+endif166:                                         ; preds = %bool_or_end158
+  br label %endif167
 
-endif175:                                         ; preds = %endif174
+endif167:                                         ; preds = %endif166
   %168 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %168)
   store i32 0, i32* %19, align 4
@@ -7658,166 +7557,166 @@ endif175:                                         ; preds = %endif174
   %170 = bitcast i1* %21 to i8*
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %170)
   store i1 false, i1* %21, align 1
-  %load_tmp176 = load i32, i32* %11, align 4
-  %171 = icmp sge i32 %load_tmp176, 0
-  br i1 %171, label %then177, label %else209
+  %load_tmp168 = load i32, i32* %11, align 4
+  %171 = icmp sge i32 %load_tmp168, 0
+  br i1 %171, label %then169, label %else201
 
-then177:                                          ; preds = %endif175
-  %load_tmp178 = load i32, i32* %10, align 4
-  %172 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp178)
-  %load_tmp179 = load i32, i32* %11, align 4
-  %add_tmp180 = add i32 %172, %load_tmp179
-  %load_tmp181 = load i32, i32* %11, align 4
-  %173 = call i32 @func.std.ryu.log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp181)
-  %add_tmp182 = add i32 %add_tmp180, %173
-  %sub_tmp183 = sub i32 %add_tmp182, 24
-  store i32 %sub_tmp183, i32* %19, align 4
+then169:                                          ; preds = %endif167
+  %load_tmp170 = load i32, i32* %10, align 4
+  %172 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp170)
+  %load_tmp171 = load i32, i32* %11, align 4
+  %add_tmp172 = add i32 %172, %load_tmp171
+  %load_tmp173 = load i32, i32* %11, align 4
+  %173 = call i32 @func.std.ryu.log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp173)
+  %add_tmp174 = add i32 %add_tmp172, %173
+  %sub_tmp175 = sub i32 %add_tmp174, 24
+  store i32 %sub_tmp175, i32* %19, align 4
   %174 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %174)
-  %load_tmp184 = load i32, i32* %19, align 4
-  %load_tmp185 = load i32, i32* %11, align 4
-  %sub_tmp186 = sub i32 %load_tmp184, %load_tmp185
-  %load_tmp187 = load i32, i32* %11, align 4
-  %175 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp187)
-  %sub_tmp188 = sub i32 %sub_tmp186, %175
-  %add_tmp189 = add i32 %sub_tmp188, 61
-  store i32 %add_tmp189, i32* %22, align 4
-  %load_tmp190 = load i32, i32* %22, align 4
-  %176 = icmp sge i32 %load_tmp190, 0
+  %load_tmp176 = load i32, i32* %19, align 4
+  %load_tmp177 = load i32, i32* %11, align 4
+  %sub_tmp178 = sub i32 %load_tmp176, %load_tmp177
+  %load_tmp179 = load i32, i32* %11, align 4
+  %175 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %load_tmp179)
+  %sub_tmp180 = sub i32 %sub_tmp178, %175
+  %add_tmp181 = add i32 %sub_tmp180, 61
+  store i32 %add_tmp181, i32* %22, align 4
+  %load_tmp182 = load i32, i32* %22, align 4
+  %176 = icmp sge i32 %load_tmp182, 0
   call void @func.std.assert..1.builtin.bool.void(i1 %176)
-  %load_tmp191 = load i32, i32* %10, align 4
-  %load_tmp192 = load i32, i32* %11, align 4
-  %load_tmp193 = load i32, i32* %22, align 4
-  %177 = call i32 @func.std.ryu.mulPow5divPow2..3.builtin.uint32.builtin.uint32.builtin.uint32.builtin.uint32(i32 %load_tmp191, i32 %load_tmp192, i32 %load_tmp193)
+  %load_tmp183 = load i32, i32* %10, align 4
+  %load_tmp184 = load i32, i32* %11, align 4
+  %load_tmp185 = load i32, i32* %22, align 4
+  %177 = call i32 @func.std.ryu.mulPow5divPow2..3.builtin.uint32.builtin.uint32.builtin.uint32.builtin.uint32(i32 %load_tmp183, i32 %load_tmp184, i32 %load_tmp185)
   store i32 %177, i32* %20, align 4
+  %load_tmp186 = load i32, i32* %19, align 4
+  %load_tmp187 = load i32, i32* %11, align 4
+  %178 = icmp slt i32 %load_tmp186, %load_tmp187
+  br i1 %178, label %bool_or_end199, label %bool_or_rhs188
+
+bool_or_rhs188:                                   ; preds = %then169
+  %load_tmp189 = load i32, i32* %19, align 4
+  %load_tmp190 = load i32, i32* %11, align 4
+  %sub_tmp191 = sub i32 %load_tmp189, %load_tmp190
+  %179 = icmp slt i32 %sub_tmp191, 32
+  br i1 %179, label %bool_and_rhs192, label %bool_and_end197
+
+bool_and_rhs192:                                  ; preds = %bool_or_rhs188
+  %load_tmp193 = load i32, i32* %10, align 4
   %load_tmp194 = load i32, i32* %19, align 4
   %load_tmp195 = load i32, i32* %11, align 4
-  %178 = icmp slt i32 %load_tmp194, %load_tmp195
-  br i1 %178, label %bool_or_end207, label %bool_or_rhs196
+  %sub_tmp196 = sub i32 %load_tmp194, %load_tmp195
+  %180 = call i1 @func.std.ryu.multipleOfPowerOf2_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp193, i32 %sub_tmp196)
+  br label %bool_and_end197
 
-bool_or_rhs196:                                   ; preds = %then177
-  %load_tmp197 = load i32, i32* %19, align 4
-  %load_tmp198 = load i32, i32* %11, align 4
-  %sub_tmp199 = sub i32 %load_tmp197, %load_tmp198
-  %179 = icmp slt i32 %sub_tmp199, 32
-  br i1 %179, label %bool_and_rhs200, label %bool_and_end205
+bool_and_end197:                                  ; preds = %bool_and_rhs192, %bool_or_rhs188
+  %bool_and_tmp198 = phi i1 [ false, %bool_or_rhs188 ], [ %180, %bool_and_rhs192 ]
+  br label %bool_or_end199
 
-bool_and_rhs200:                                  ; preds = %bool_or_rhs196
-  %load_tmp201 = load i32, i32* %10, align 4
-  %load_tmp202 = load i32, i32* %19, align 4
-  %load_tmp203 = load i32, i32* %11, align 4
-  %sub_tmp204 = sub i32 %load_tmp202, %load_tmp203
-  %180 = call i1 @func.std.ryu.multipleOfPowerOf2_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp201, i32 %sub_tmp204)
-  br label %bool_and_end205
-
-bool_and_end205:                                  ; preds = %bool_and_rhs200, %bool_or_rhs196
-  %bool_and_tmp206 = phi i1 [ false, %bool_or_rhs196 ], [ %180, %bool_and_rhs200 ]
-  br label %bool_or_end207
-
-bool_or_end207:                                   ; preds = %bool_and_end205, %then177
-  %bool_or_tmp208 = phi i1 [ true, %then177 ], [ %bool_and_tmp206, %bool_and_end205 ]
-  store i1 %bool_or_tmp208, i1* %21, align 1
+bool_or_end199:                                   ; preds = %bool_and_end197, %then169
+  %bool_or_tmp200 = phi i1 [ true, %then169 ], [ %bool_and_tmp198, %bool_and_end197 ]
+  store i1 %bool_or_tmp200, i1* %21, align 1
   %181 = bitcast i32* %22 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %181)
-  br label %endif250
+  br label %endif242
 
-else209:                                          ; preds = %endif175
-  %load_tmp210 = load i32, i32* %10, align 4
-  %182 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp210)
-  %load_tmp211 = load i32, i32* %11, align 4
-  %add_tmp212 = add i32 %182, %load_tmp211
-  %load_tmp213 = load i32, i32* %11, align 4
-  %unary_minus_tmp214 = sub i32 0, %load_tmp213
-  %183 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp214)
-  %sub_tmp215 = sub i32 %add_tmp212, %183
-  %sub_tmp216 = sub i32 %sub_tmp215, 24
-  store i32 %sub_tmp216, i32* %19, align 4
+else201:                                          ; preds = %endif167
+  %load_tmp202 = load i32, i32* %10, align 4
+  %182 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp202)
+  %load_tmp203 = load i32, i32* %11, align 4
+  %add_tmp204 = add i32 %182, %load_tmp203
+  %load_tmp205 = load i32, i32* %11, align 4
+  %unary_minus_tmp206 = sub i32 0, %load_tmp205
+  %183 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp206)
+  %sub_tmp207 = sub i32 %add_tmp204, %183
+  %sub_tmp208 = sub i32 %sub_tmp207, 24
+  store i32 %sub_tmp208, i32* %19, align 4
   %184 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %184)
-  %load_tmp217 = load i32, i32* %19, align 4
+  %load_tmp209 = load i32, i32* %19, align 4
+  %load_tmp210 = load i32, i32* %11, align 4
+  %sub_tmp211 = sub i32 %load_tmp209, %load_tmp210
+  %load_tmp212 = load i32, i32* %11, align 4
+  %unary_minus_tmp213 = sub i32 0, %load_tmp212
+  %185 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp213)
+  %add_tmp214 = add i32 %sub_tmp211, %185
+  %sub_tmp215 = sub i32 %add_tmp214, 1
+  %add_tmp216 = add i32 %sub_tmp215, 59
+  store i32 %add_tmp216, i32* %23, align 4
+  %load_tmp217 = load i32, i32* %10, align 4
   %load_tmp218 = load i32, i32* %11, align 4
-  %sub_tmp219 = sub i32 %load_tmp217, %load_tmp218
-  %load_tmp220 = load i32, i32* %11, align 4
-  %unary_minus_tmp221 = sub i32 0, %load_tmp220
-  %185 = call i32 @func.std.ryu.ceil_log2pow5..1.builtin.uint32.builtin.uint32(i32 %unary_minus_tmp221)
-  %add_tmp222 = add i32 %sub_tmp219, %185
-  %sub_tmp223 = sub i32 %add_tmp222, 1
-  %add_tmp224 = add i32 %sub_tmp223, 59
-  store i32 %add_tmp224, i32* %23, align 4
-  %load_tmp225 = load i32, i32* %10, align 4
-  %load_tmp226 = load i32, i32* %11, align 4
-  %unary_minus_tmp227 = sub i32 0, %load_tmp226
-  %load_tmp228 = load i32, i32* %23, align 4
-  %186 = call i32 @func.std.ryu.mulPow5InvDivPow2..3.builtin.uint32.builtin.uint32.builtin.uint32.builtin.uint32(i32 %load_tmp225, i32 %unary_minus_tmp227, i32 %load_tmp228)
+  %unary_minus_tmp219 = sub i32 0, %load_tmp218
+  %load_tmp220 = load i32, i32* %23, align 4
+  %186 = call i32 @func.std.ryu.mulPow5InvDivPow2..3.builtin.uint32.builtin.uint32.builtin.uint32.builtin.uint32(i32 %load_tmp217, i32 %unary_minus_tmp219, i32 %load_tmp220)
   store i32 %186, i32* %20, align 4
+  %load_tmp221 = load i32, i32* %19, align 4
+  %load_tmp222 = load i32, i32* %11, align 4
+  %187 = icmp slt i32 %load_tmp221, %load_tmp222
+  br i1 %187, label %bool_or_end234, label %bool_or_rhs223
+
+bool_or_rhs223:                                   ; preds = %else201
+  %load_tmp224 = load i32, i32* %19, align 4
+  %load_tmp225 = load i32, i32* %11, align 4
+  %sub_tmp226 = sub i32 %load_tmp224, %load_tmp225
+  %188 = icmp slt i32 %sub_tmp226, 32
+  br i1 %188, label %bool_and_rhs227, label %bool_and_end232
+
+bool_and_rhs227:                                  ; preds = %bool_or_rhs223
+  %load_tmp228 = load i32, i32* %10, align 4
   %load_tmp229 = load i32, i32* %19, align 4
   %load_tmp230 = load i32, i32* %11, align 4
-  %187 = icmp slt i32 %load_tmp229, %load_tmp230
-  br i1 %187, label %bool_or_end242, label %bool_or_rhs231
+  %sub_tmp231 = sub i32 %load_tmp229, %load_tmp230
+  %189 = call i1 @func.std.ryu.multipleOfPowerOf2_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp228, i32 %sub_tmp231)
+  br label %bool_and_end232
 
-bool_or_rhs231:                                   ; preds = %else209
-  %load_tmp232 = load i32, i32* %19, align 4
-  %load_tmp233 = load i32, i32* %11, align 4
-  %sub_tmp234 = sub i32 %load_tmp232, %load_tmp233
-  %188 = icmp slt i32 %sub_tmp234, 32
-  br i1 %188, label %bool_and_rhs235, label %bool_and_end240
+bool_and_end232:                                  ; preds = %bool_and_rhs227, %bool_or_rhs223
+  %bool_and_tmp233 = phi i1 [ false, %bool_or_rhs223 ], [ %189, %bool_and_rhs227 ]
+  br label %bool_or_end234
 
-bool_and_rhs235:                                  ; preds = %bool_or_rhs231
-  %load_tmp236 = load i32, i32* %10, align 4
-  %load_tmp237 = load i32, i32* %19, align 4
+bool_or_end234:                                   ; preds = %bool_and_end232, %else201
+  %bool_or_tmp235 = phi i1 [ true, %else201 ], [ %bool_and_tmp233, %bool_and_end232 ]
+  br i1 %bool_or_tmp235, label %bool_and_rhs236, label %bool_and_end240
+
+bool_and_rhs236:                                  ; preds = %bool_or_end234
+  %load_tmp237 = load i32, i32* %10, align 4
   %load_tmp238 = load i32, i32* %11, align 4
-  %sub_tmp239 = sub i32 %load_tmp237, %load_tmp238
-  %189 = call i1 @func.std.ryu.multipleOfPowerOf2_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp236, i32 %sub_tmp239)
+  %unary_minus_tmp239 = sub i32 0, %load_tmp238
+  %190 = call i1 @func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp237, i32 %unary_minus_tmp239)
   br label %bool_and_end240
 
-bool_and_end240:                                  ; preds = %bool_and_rhs235, %bool_or_rhs231
-  %bool_and_tmp241 = phi i1 [ false, %bool_or_rhs231 ], [ %189, %bool_and_rhs235 ]
-  br label %bool_or_end242
-
-bool_or_end242:                                   ; preds = %bool_and_end240, %else209
-  %bool_or_tmp243 = phi i1 [ true, %else209 ], [ %bool_and_tmp241, %bool_and_end240 ]
-  br i1 %bool_or_tmp243, label %bool_and_rhs244, label %bool_and_end248
-
-bool_and_rhs244:                                  ; preds = %bool_or_end242
-  %load_tmp245 = load i32, i32* %10, align 4
-  %load_tmp246 = load i32, i32* %11, align 4
-  %unary_minus_tmp247 = sub i32 0, %load_tmp246
-  %190 = call i1 @func.std.ryu.multipleOfPowerOf5_32..2.builtin.uint32.builtin.uint32.builtin.bool(i32 %load_tmp245, i32 %unary_minus_tmp247)
-  br label %bool_and_end248
-
-bool_and_end248:                                  ; preds = %bool_and_rhs244, %bool_or_end242
-  %bool_and_tmp249 = phi i1 [ false, %bool_or_end242 ], [ %190, %bool_and_rhs244 ]
-  store i1 %bool_and_tmp249, i1* %21, align 1
+bool_and_end240:                                  ; preds = %bool_and_rhs236, %bool_or_end234
+  %bool_and_tmp241 = phi i1 [ false, %bool_or_end234 ], [ %190, %bool_and_rhs236 ]
+  store i1 %bool_and_tmp241, i1* %21, align 1
   %191 = bitcast i32* %23 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %191)
-  br label %endif250
+  br label %endif242
 
-endif250:                                         ; preds = %bool_and_end248, %bool_or_end207
+endif242:                                         ; preds = %bool_and_end240, %bool_or_end199
   %192 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %192)
-  %load_tmp251 = load i32, i32* %19, align 4
-  %add_tmp252 = add i32 %load_tmp251, 127
-  %load_tmp253 = load i32, i32* %20, align 4
-  %193 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp253)
-  %add_tmp254 = add i32 %add_tmp252, %193
-  %194 = call i32 @func.std.ryu.max32..2.builtin.int32.builtin.int32.builtin.int32.5(i32 0, i32 %add_tmp254)
+  %load_tmp243 = load i32, i32* %19, align 4
+  %add_tmp244 = add i32 %load_tmp243, 127
+  %load_tmp245 = load i32, i32* %20, align 4
+  %193 = call i32 @func.std.ryu.floor_log2..1.builtin.uint32.builtin.uint32(i32 %load_tmp245)
+  %add_tmp246 = add i32 %add_tmp244, %193
+  %194 = call i32 @func.std.ryu.max32..2.builtin.int32.builtin.int32.builtin.int32.5(i32 0, i32 %add_tmp246)
   store i32 %194, i32* %24, align 4
-  %load_tmp255 = load i32, i32* %24, align 4
-  %195 = icmp ugt i32 %load_tmp255, 254
-  br i1 %195, label %then256, label %endif263
+  %load_tmp247 = load i32, i32* %24, align 4
+  %195 = icmp ugt i32 %load_tmp247, 254
+  br i1 %195, label %then248, label %endif255
 
-then256:                                          ; preds = %endif250
+then248:                                          ; preds = %endif242
   %196 = bitcast i32* %25 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %196)
-  %load_tmp257 = load i1, i1* %12, align 1
-  %cast_tmp258 = zext i1 %load_tmp257 to i32
-  %lshift_tmp259 = shl i32 %cast_tmp258, 31
-  %bit_or_tmp260 = or i32 %lshift_tmp259, 2139095040
-  store i32 %bit_or_tmp260, i32* %25, align 4
-  %load_tmp261 = load i32, i32* %25, align 4
-  %197 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp261)
-  %load_tmp262 = load float*, float** %5, align 8
-  store float %197, float* %load_tmp262, align 4
+  %load_tmp249 = load i1, i1* %12, align 1
+  %cast_tmp250 = zext i1 %load_tmp249 to i32
+  %lshift_tmp251 = shl i32 %cast_tmp250, 31
+  %bit_or_tmp252 = or i32 %lshift_tmp251, 2139095040
+  store i32 %bit_or_tmp252, i32* %25, align 4
+  %load_tmp253 = load i32, i32* %25, align 4
+  %197 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp253)
+  %load_tmp254 = load float*, float** %5, align 8
+  store float %197, float* %load_tmp254, align 4
   %198 = bitcast i32* %25 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %198)
   %199 = bitcast i32* %24 to i8*
@@ -7854,177 +7753,169 @@ then256:                                          ; preds = %endif250
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %214)
   ret i32 0
 
-endif263:                                         ; preds = %endif250
+endif255:                                         ; preds = %endif242
   %215 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %215)
-  %load_tmp264 = load i32, i32* %24, align 4
-  %216 = icmp eq i32 %load_tmp264, 0
-  br i1 %216, label %then265, label %else270
+  %load_tmp256 = load i32, i32* %24, align 4
+  %216 = icmp eq i32 %load_tmp256, 0
+  br i1 %216, label %then257, label %else262
 
-then265:                                          ; preds = %endif263
-  %load_tmp266 = load i32, i32* %19, align 4
-  %sub_tmp267 = sub i32 1, %load_tmp266
-  %sub_tmp268 = sub i32 %sub_tmp267, 127
-  %sub_tmp269 = sub i32 %sub_tmp268, 23
-  store i32 %sub_tmp269, i32* %26, align 4
-  br label %endif276
+then257:                                          ; preds = %endif255
+  %load_tmp258 = load i32, i32* %19, align 4
+  %sub_tmp259 = sub i32 1, %load_tmp258
+  %sub_tmp260 = sub i32 %sub_tmp259, 127
+  %sub_tmp261 = sub i32 %sub_tmp260, 23
+  store i32 %sub_tmp261, i32* %26, align 4
+  br label %endif268
 
-else270:                                          ; preds = %endif263
-  %load_tmp271 = load i32, i32* %24, align 4
-  %load_tmp272 = load i32, i32* %19, align 4
-  %sub_tmp273 = sub i32 %load_tmp271, %load_tmp272
-  %sub_tmp274 = sub i32 %sub_tmp273, 127
-  %sub_tmp275 = sub i32 %sub_tmp274, 23
-  store i32 %sub_tmp275, i32* %26, align 4
-  br label %endif276
+else262:                                          ; preds = %endif255
+  %load_tmp263 = load i32, i32* %24, align 4
+  %load_tmp264 = load i32, i32* %19, align 4
+  %sub_tmp265 = sub i32 %load_tmp263, %load_tmp264
+  %sub_tmp266 = sub i32 %sub_tmp265, 127
+  %sub_tmp267 = sub i32 %sub_tmp266, 23
+  store i32 %sub_tmp267, i32* %26, align 4
+  br label %endif268
 
-endif276:                                         ; preds = %else270, %then265
-  %load_tmp277 = load i32, i32* %26, align 4
-  %217 = icmp sge i32 %load_tmp277, 0
+endif268:                                         ; preds = %else262, %then257
+  %load_tmp269 = load i32, i32* %26, align 4
+  %217 = icmp sge i32 %load_tmp269, 0
   call void @func.std.assert..1.builtin.bool.void(i1 %217)
-  %load_tmp278 = load i32, i32* %20, align 4
-  %load_tmp279 = load i32, i32* %26, align 4
-  %sub_tmp280 = sub i32 %load_tmp279, 1
-  %cast_tmp281 = sext i32 %sub_tmp280 to i64
-  %218 = trunc i64 %cast_tmp281 to i32
-  %lshift_tmp282 = shl i32 1, %218
-  %sub_tmp283 = sub i32 %lshift_tmp282, 1
-  %bit_and_tmp = and i32 %load_tmp278, %sub_tmp283
-  %219 = icmp eq i32 %bit_and_tmp, 0
-  %load_tmp284 = load i1, i1* %21, align 1
-  %bit_and_tmp285 = and i1 %load_tmp284, %219
-  store i1 %bit_and_tmp285, i1* %21, align 1
-  %220 = bitcast i32* %27 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %220)
-  %load_tmp286 = load i32, i32* %20, align 4
-  %load_tmp287 = load i32, i32* %26, align 4
-  %sub_tmp288 = sub i32 %load_tmp287, 1
-  %cast_tmp289 = sext i32 %sub_tmp288 to i64
-  %221 = trunc i64 %cast_tmp289 to i32
-  %rshift_tmp = lshr i32 %load_tmp286, %221
-  %bit_and_tmp290 = and i32 %rshift_tmp, 1
-  store i32 %bit_and_tmp290, i32* %27, align 4
-  %222 = bitcast i1* %28 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 1, i8* %222)
-  %load_tmp291 = load i32, i32* %27, align 4
-  %223 = icmp ne i32 %load_tmp291, 0
-  br i1 %223, label %bool_and_rhs292, label %bool_and_end302
+  %load_tmp270 = load i32, i32* %20, align 4
+  %load_tmp271 = load i32, i32* %26, align 4
+  %sub_tmp272 = sub i32 %load_tmp271, 1
+  %lshift_tmp273 = shl i32 1, %sub_tmp272
+  %sub_tmp274 = sub i32 %lshift_tmp273, 1
+  %bit_and_tmp = and i32 %load_tmp270, %sub_tmp274
+  %218 = icmp eq i32 %bit_and_tmp, 0
+  %load_tmp275 = load i1, i1* %21, align 1
+  %bit_and_tmp276 = and i1 %load_tmp275, %218
+  store i1 %bit_and_tmp276, i1* %21, align 1
+  %219 = bitcast i32* %27 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %219)
+  %load_tmp277 = load i32, i32* %20, align 4
+  %load_tmp278 = load i32, i32* %26, align 4
+  %sub_tmp279 = sub i32 %load_tmp278, 1
+  %rshift_tmp = lshr i32 %load_tmp277, %sub_tmp279
+  %bit_and_tmp280 = and i32 %rshift_tmp, 1
+  store i32 %bit_and_tmp280, i32* %27, align 4
+  %220 = bitcast i1* %28 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 1, i8* %220)
+  %load_tmp281 = load i32, i32* %27, align 4
+  %221 = icmp ne i32 %load_tmp281, 0
+  br i1 %221, label %bool_and_rhs282, label %bool_and_end291
 
-bool_and_rhs292:                                  ; preds = %endif276
-  %load_tmp293 = load i1, i1* %21, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp293, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end300, label %bool_or_rhs294
+bool_and_rhs282:                                  ; preds = %endif268
+  %load_tmp283 = load i1, i1* %21, align 1
+  %unary_bit_not_tmp = xor i1 %load_tmp283, true
+  br i1 %unary_bit_not_tmp, label %bool_or_end289, label %bool_or_rhs284
 
-bool_or_rhs294:                                   ; preds = %bool_and_rhs292
-  %load_tmp295 = load i32, i32* %20, align 4
-  %load_tmp296 = load i32, i32* %26, align 4
-  %cast_tmp297 = sext i32 %load_tmp296 to i64
-  %224 = trunc i64 %cast_tmp297 to i32
-  %rshift_tmp298 = lshr i32 %load_tmp295, %224
-  %bit_and_tmp299 = and i32 %rshift_tmp298, 1
-  %225 = icmp ne i32 %bit_and_tmp299, 0
-  br label %bool_or_end300
+bool_or_rhs284:                                   ; preds = %bool_and_rhs282
+  %load_tmp285 = load i32, i32* %20, align 4
+  %load_tmp286 = load i32, i32* %26, align 4
+  %rshift_tmp287 = lshr i32 %load_tmp285, %load_tmp286
+  %bit_and_tmp288 = and i32 %rshift_tmp287, 1
+  %222 = icmp ne i32 %bit_and_tmp288, 0
+  br label %bool_or_end289
 
-bool_or_end300:                                   ; preds = %bool_or_rhs294, %bool_and_rhs292
-  %bool_or_tmp301 = phi i1 [ true, %bool_and_rhs292 ], [ %225, %bool_or_rhs294 ]
-  br label %bool_and_end302
+bool_or_end289:                                   ; preds = %bool_or_rhs284, %bool_and_rhs282
+  %bool_or_tmp290 = phi i1 [ true, %bool_and_rhs282 ], [ %222, %bool_or_rhs284 ]
+  br label %bool_and_end291
 
-bool_and_end302:                                  ; preds = %bool_or_end300, %endif276
-  %bool_and_tmp303 = phi i1 [ false, %endif276 ], [ %bool_or_tmp301, %bool_or_end300 ]
-  store i1 %bool_and_tmp303, i1* %28, align 1
-  %226 = bitcast i32* %29 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %226)
-  %load_tmp304 = load i32, i32* %20, align 4
-  %load_tmp305 = load i32, i32* %26, align 4
-  %cast_tmp306 = sext i32 %load_tmp305 to i64
-  %227 = trunc i64 %cast_tmp306 to i32
-  %rshift_tmp307 = lshr i32 %load_tmp304, %227
-  %load_tmp308 = load i1, i1* %28, align 1
-  %cast_tmp309 = zext i1 %load_tmp308 to i32
-  %add_tmp310 = add i32 %rshift_tmp307, %cast_tmp309
-  store i32 %add_tmp310, i32* %29, align 4
-  %load_tmp311 = load i32, i32* %29, align 4
-  %228 = icmp ule i32 %load_tmp311, 16777216
-  call void @func.std.assert..1.builtin.bool.void(i1 %228)
-  %load_tmp312 = load i32, i32* %29, align 4
-  %bit_and_tmp313 = and i32 %load_tmp312, 8388607
-  store i32 %bit_and_tmp313, i32* %29, align 4
-  %load_tmp314 = load i32, i32* %29, align 4
-  %229 = icmp eq i32 %load_tmp314, 0
-  br i1 %229, label %bool_and_rhs315, label %bool_and_end317
+bool_and_end291:                                  ; preds = %bool_or_end289, %endif268
+  %bool_and_tmp292 = phi i1 [ false, %endif268 ], [ %bool_or_tmp290, %bool_or_end289 ]
+  store i1 %bool_and_tmp292, i1* %28, align 1
+  %223 = bitcast i32* %29 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %223)
+  %load_tmp293 = load i32, i32* %20, align 4
+  %load_tmp294 = load i32, i32* %26, align 4
+  %rshift_tmp295 = lshr i32 %load_tmp293, %load_tmp294
+  %load_tmp296 = load i1, i1* %28, align 1
+  %cast_tmp297 = zext i1 %load_tmp296 to i32
+  %add_tmp298 = add i32 %rshift_tmp295, %cast_tmp297
+  store i32 %add_tmp298, i32* %29, align 4
+  %load_tmp299 = load i32, i32* %29, align 4
+  %224 = icmp ule i32 %load_tmp299, 16777216
+  call void @func.std.assert..1.builtin.bool.void(i1 %224)
+  %load_tmp300 = load i32, i32* %29, align 4
+  %bit_and_tmp301 = and i32 %load_tmp300, 8388607
+  store i32 %bit_and_tmp301, i32* %29, align 4
+  %load_tmp302 = load i32, i32* %29, align 4
+  %225 = icmp eq i32 %load_tmp302, 0
+  br i1 %225, label %bool_and_rhs303, label %bool_and_end305
 
-bool_and_rhs315:                                  ; preds = %bool_and_end302
-  %load_tmp316 = load i1, i1* %28, align 1
-  br label %bool_and_end317
+bool_and_rhs303:                                  ; preds = %bool_and_end291
+  %load_tmp304 = load i1, i1* %28, align 1
+  br label %bool_and_end305
 
-bool_and_end317:                                  ; preds = %bool_and_rhs315, %bool_and_end302
-  %bool_and_tmp318 = phi i1 [ false, %bool_and_end302 ], [ %load_tmp316, %bool_and_rhs315 ]
-  br i1 %bool_and_tmp318, label %then319, label %endif321
+bool_and_end305:                                  ; preds = %bool_and_rhs303, %bool_and_end291
+  %bool_and_tmp306 = phi i1 [ false, %bool_and_end291 ], [ %load_tmp304, %bool_and_rhs303 ]
+  br i1 %bool_and_tmp306, label %then307, label %endif309
 
-then319:                                          ; preds = %bool_and_end317
-  %load_tmp320 = load i32, i32* %24, align 4
-  %230 = add i32 %load_tmp320, 1
-  store i32 %230, i32* %24, align 4
-  br label %endif321
+then307:                                          ; preds = %bool_and_end305
+  %load_tmp308 = load i32, i32* %24, align 4
+  %226 = add i32 %load_tmp308, 1
+  store i32 %226, i32* %24, align 4
+  br label %endif309
 
-endif321:                                         ; preds = %then319, %bool_and_end317
-  %231 = bitcast i32* %30 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %231)
-  %load_tmp322 = load i1, i1* %12, align 1
-  %cast_tmp323 = zext i1 %load_tmp322 to i32
-  %lshift_tmp324 = shl i32 %cast_tmp323, 8
-  %load_tmp325 = load i32, i32* %24, align 4
-  %bit_or_tmp326 = or i32 %lshift_tmp324, %load_tmp325
-  %lshift_tmp327 = shl i32 %bit_or_tmp326, 23
-  %load_tmp328 = load i32, i32* %29, align 4
-  %bit_or_tmp329 = or i32 %lshift_tmp327, %load_tmp328
-  store i32 %bit_or_tmp329, i32* %30, align 4
-  %load_tmp330 = load i32, i32* %30, align 4
-  %232 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp330)
-  %load_tmp331 = load float*, float** %5, align 8
-  store float %232, float* %load_tmp331, align 4
-  %233 = bitcast i32* %30 to i8*
+endif309:                                         ; preds = %then307, %bool_and_end305
+  %227 = bitcast i32* %30 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %227)
+  %load_tmp310 = load i1, i1* %12, align 1
+  %cast_tmp311 = zext i1 %load_tmp310 to i32
+  %lshift_tmp312 = shl i32 %cast_tmp311, 8
+  %load_tmp313 = load i32, i32* %24, align 4
+  %bit_or_tmp314 = or i32 %lshift_tmp312, %load_tmp313
+  %lshift_tmp315 = shl i32 %bit_or_tmp314, 23
+  %load_tmp316 = load i32, i32* %29, align 4
+  %bit_or_tmp317 = or i32 %lshift_tmp315, %load_tmp316
+  store i32 %bit_or_tmp317, i32* %30, align 4
+  %load_tmp318 = load i32, i32* %30, align 4
+  %228 = call float @func.std.ryu.int32Bits2Float..1.builtin.uint32.builtin.float32(i32 %load_tmp318)
+  %load_tmp319 = load float*, float** %5, align 8
+  store float %228, float* %load_tmp319, align 4
+  %229 = bitcast i32* %30 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %229)
+  %230 = bitcast i32* %29 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %230)
+  %231 = bitcast i1* %28 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %231)
+  %232 = bitcast i32* %27 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %232)
+  %233 = bitcast i32* %26 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %233)
-  %234 = bitcast i32* %29 to i8*
+  %234 = bitcast i32* %24 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %234)
-  %235 = bitcast i1* %28 to i8*
+  %235 = bitcast i1* %21 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %235)
-  %236 = bitcast i32* %27 to i8*
+  %236 = bitcast i32* %20 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %236)
-  %237 = bitcast i32* %26 to i8*
+  %237 = bitcast i32* %19 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %237)
-  %238 = bitcast i32* %24 to i8*
+  %238 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %238)
-  %239 = bitcast i1* %21 to i8*
+  %239 = bitcast i1* %13 to i8*
   call void @llvm.lifetime.end.p0i8(i64 1, i8* %239)
-  %240 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %240)
-  %241 = bitcast i32* %19 to i8*
+  %240 = bitcast i1* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 1, i8* %240)
+  %241 = bitcast i32* %11 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %241)
-  %242 = bitcast i32* %14 to i8*
+  %242 = bitcast i32* %10 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %242)
-  %243 = bitcast i1* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %243)
-  %244 = bitcast i1* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 1, i8* %244)
-  %245 = bitcast i32* %11 to i8*
+  %243 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %243)
+  %244 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %244)
+  %245 = bitcast i32* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %245)
-  %246 = bitcast i32* %10 to i8*
+  %246 = bitcast i32* %6 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %246)
-  %247 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %247)
-  %248 = bitcast i32* %8 to i8*
+  %247 = bitcast float** %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %247)
+  %248 = bitcast i32* %4 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %248)
-  %249 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %249)
-  %250 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %250)
-  %251 = bitcast float** %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %251)
-  %252 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %252)
-  %253 = bitcast i8** %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %253)
+  %249 = bitcast i8** %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %249)
   ret i32 0
 }
 
@@ -8141,7 +8032,7 @@ entry:                                            ; preds = %alloca
   %load_tmp4 = load i64, i64* %12, align 8
   %load_tmp5 = load i64, i64* %6, align 8
   %load_tmp6 = load i64*, i64** %7, align 8
-  %ptr_add_tmp = getelementptr i64, i64* %load_tmp6, i64 1
+  %ptr_add_tmp = getelementptr i64, i64* %load_tmp6, i32 1
   %load_tmp7 = load i64, i64* %ptr_add_tmp, align 8
   %39 = call i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %load_tmp5, i64 %load_tmp7, i64* %14)
   %add_tmp = add i64 %load_tmp4, %39
@@ -8169,7 +8060,7 @@ endif:                                            ; preds = %then, %entry
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %42)
   %load_tmp16 = load i64, i64* %15, align 8
   %load_tmp17 = load i64*, i64** %7, align 8
-  %ptr_add_tmp18 = getelementptr i64, i64* %load_tmp17, i64 1
+  %ptr_add_tmp18 = getelementptr i64, i64* %load_tmp17, i32 1
   %load_tmp19 = load i64, i64* %ptr_add_tmp18, align 8
   %add_tmp20 = add i64 %load_tmp16, %load_tmp19
   %load_tmp21 = load i64, i64* %16, align 8
@@ -8211,7 +8102,7 @@ then35:                                           ; preds = %endif
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %49)
   %load_tmp40 = load i64, i64* %15, align 8
   %load_tmp41 = load i64*, i64** %7, align 8
-  %ptr_add_tmp42 = getelementptr i64, i64* %load_tmp41, i64 1
+  %ptr_add_tmp42 = getelementptr i64, i64* %load_tmp41, i32 1
   %load_tmp43 = load i64, i64* %ptr_add_tmp42, align 8
   %sub_tmp44 = sub i64 %load_tmp40, %load_tmp43
   %load_tmp45 = load i64, i64* %19, align 8
@@ -8285,7 +8176,7 @@ else:                                             ; preds = %endif
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %63)
   %load_tmp81 = load i64, i64* %23, align 8
   %load_tmp82 = load i64*, i64** %7, align 8
-  %ptr_add_tmp83 = getelementptr i64, i64* %load_tmp82, i64 1
+  %ptr_add_tmp83 = getelementptr i64, i64* %load_tmp82, i32 1
   %load_tmp84 = load i64, i64* %ptr_add_tmp83, align 8
   %sub_tmp85 = sub i64 %load_tmp81, %load_tmp84
   %load_tmp86 = load i64, i64* %25, align 8
@@ -8686,9 +8577,8 @@ then:                                             ; preds = %entry
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str.7, i32 0, i32 0), i64 %cast_tmp, i1 false)
   %load_tmp8 = load i32, i32* %5, align 4
   %unary_minus_tmp9 = sub i32 0, %load_tmp8
-  %cast_tmp10 = sext i32 %unary_minus_tmp9 to i64
-  %load_tmp11 = load i8*, i8** %2, align 8
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp11, i64 %cast_tmp10
+  %load_tmp10 = load i8*, i8** %2, align 8
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp10, i32 %unary_minus_tmp9
   store i8* %ptr_add_tmp, i8** %2, align 8
   %31 = bitcast %builtin.str* %6 to i8*
   call void @llvm.lifetime.end.p0i8(i64 16, i8* %31)
@@ -8698,359 +8588,355 @@ endif:                                            ; preds = %then, %entry
   %32 = bitcast i32* %7 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %32)
   store i32 0, i32* %7, align 4
-  %load_tmp12 = load i64, i64* %3, align 8
-  %rshift_tmp = lshr i64 %load_tmp12, 32
+  %load_tmp11 = load i64, i64* %3, align 8
+  %rshift_tmp = lshr i64 %load_tmp11, 32
   %33 = icmp ne i64 %rshift_tmp, 0
-  br i1 %33, label %then13, label %endif81
+  br i1 %33, label %then12, label %endif68
 
-then13:                                           ; preds = %endif
+then12:                                           ; preds = %endif
   %34 = bitcast i64* %8 to i8*
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %34)
-  %load_tmp14 = load i64, i64* %3, align 8
-  %35 = call i64 @func.std.ryu.div1e8..1.builtin.uint64.builtin.uint64(i64 %load_tmp14)
+  %load_tmp13 = load i64, i64* %3, align 8
+  %35 = call i64 @func.std.ryu.div1e8..1.builtin.uint64.builtin.uint64(i64 %load_tmp13)
   store i64 %35, i64* %8, align 8
   %36 = bitcast i32* %9 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %36)
-  %load_tmp15 = load i64, i64* %3, align 8
-  %cast_tmp16 = trunc i64 %load_tmp15 to i32
-  %load_tmp17 = load i64, i64* %8, align 8
-  %cast_tmp18 = trunc i64 %load_tmp17 to i32
-  %mul_tmp = mul i32 100000000, %cast_tmp18
-  %sub_tmp19 = sub i32 %cast_tmp16, %mul_tmp
-  store i32 %sub_tmp19, i32* %9, align 4
-  %load_tmp20 = load i64, i64* %8, align 8
-  store i64 %load_tmp20, i64* %3, align 8
+  %load_tmp14 = load i64, i64* %3, align 8
+  %cast_tmp15 = trunc i64 %load_tmp14 to i32
+  %load_tmp16 = load i64, i64* %8, align 8
+  %cast_tmp17 = trunc i64 %load_tmp16 to i32
+  %mul_tmp = mul i32 100000000, %cast_tmp17
+  %sub_tmp18 = sub i32 %cast_tmp15, %mul_tmp
+  store i32 %sub_tmp18, i32* %9, align 4
+  %load_tmp19 = load i64, i64* %8, align 8
+  store i64 %load_tmp19, i64* %3, align 8
   %37 = bitcast i32* %10 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %37)
-  %load_tmp21 = load i32, i32* %9, align 4
-  %mod_tmp = urem i32 %load_tmp21, 10000
+  %load_tmp20 = load i32, i32* %9, align 4
+  %mod_tmp = urem i32 %load_tmp20, 10000
   store i32 %mod_tmp, i32* %10, align 4
-  %load_tmp22 = load i32, i32* %9, align 4
-  %div_tmp = udiv i32 %load_tmp22, 10000
+  %load_tmp21 = load i32, i32* %9, align 4
+  %div_tmp = udiv i32 %load_tmp21, 10000
   store i32 %div_tmp, i32* %9, align 4
   %38 = bitcast i32* %11 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %38)
-  %load_tmp23 = load i32, i32* %9, align 4
-  %mod_tmp24 = urem i32 %load_tmp23, 10000
-  store i32 %mod_tmp24, i32* %11, align 4
+  %load_tmp22 = load i32, i32* %9, align 4
+  %mod_tmp23 = urem i32 %load_tmp22, 10000
+  store i32 %mod_tmp23, i32* %11, align 4
   %39 = bitcast i32* %12 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %39)
-  %load_tmp25 = load i32, i32* %10, align 4
-  %mod_tmp26 = urem i32 %load_tmp25, 100
-  %lshift_tmp = shl i32 %mod_tmp26, 1
+  %load_tmp24 = load i32, i32* %10, align 4
+  %mod_tmp25 = urem i32 %load_tmp24, 100
+  %lshift_tmp = shl i32 %mod_tmp25, 1
   store i32 %lshift_tmp, i32* %12, align 4
   %40 = bitcast i32* %13 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %40)
-  %load_tmp27 = load i32, i32* %10, align 4
-  %div_tmp28 = udiv i32 %load_tmp27, 100
-  %lshift_tmp29 = shl i32 %div_tmp28, 1
-  store i32 %lshift_tmp29, i32* %13, align 4
+  %load_tmp26 = load i32, i32* %10, align 4
+  %div_tmp27 = udiv i32 %load_tmp26, 100
+  %lshift_tmp28 = shl i32 %div_tmp27, 1
+  store i32 %lshift_tmp28, i32* %13, align 4
   %41 = bitcast i32* %14 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %41)
-  %load_tmp30 = load i32, i32* %11, align 4
-  %mod_tmp31 = urem i32 %load_tmp30, 100
-  %lshift_tmp32 = shl i32 %mod_tmp31, 1
-  store i32 %lshift_tmp32, i32* %14, align 4
+  %load_tmp29 = load i32, i32* %11, align 4
+  %mod_tmp30 = urem i32 %load_tmp29, 100
+  %lshift_tmp31 = shl i32 %mod_tmp30, 1
+  store i32 %lshift_tmp31, i32* %14, align 4
   %42 = bitcast i32* %15 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %42)
-  %load_tmp33 = load i32, i32* %11, align 4
-  %div_tmp34 = udiv i32 %load_tmp33, 100
-  %lshift_tmp35 = shl i32 %div_tmp34, 1
-  store i32 %lshift_tmp35, i32* %15, align 4
-  %load_tmp36 = load i8*, i8** %2, align 8
-  %load_tmp37 = load i32, i32* %4, align 4
-  %cast_tmp38 = zext i32 %load_tmp37 to i64
-  %ptr_add_tmp39 = getelementptr i8, i8* %load_tmp36, i64 %cast_tmp38
-  %load_tmp40 = load i32, i32* %7, align 4
-  %cast_tmp41 = zext i32 %load_tmp40 to i64
-  %43 = sub i64 0, %cast_tmp41
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp39, i64 %43
-  %ptr_sub_tmp42 = getelementptr i8, i8* %ptr_sub_tmp, i64 -1
-  %load_tmp43 = load i32, i32* %12, align 4
-  %cast_tmp44 = zext i32 %load_tmp43 to i64
-  %ptr_add_tmp45 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp44
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp42, i8* %ptr_add_tmp45, i64 2, i1 false)
-  %load_tmp46 = load i8*, i8** %2, align 8
-  %load_tmp47 = load i32, i32* %4, align 4
-  %cast_tmp48 = zext i32 %load_tmp47 to i64
-  %ptr_add_tmp49 = getelementptr i8, i8* %load_tmp46, i64 %cast_tmp48
-  %load_tmp50 = load i32, i32* %7, align 4
-  %cast_tmp51 = zext i32 %load_tmp50 to i64
-  %44 = sub i64 0, %cast_tmp51
-  %ptr_sub_tmp52 = getelementptr i8, i8* %ptr_add_tmp49, i64 %44
-  %ptr_sub_tmp53 = getelementptr i8, i8* %ptr_sub_tmp52, i64 -3
-  %load_tmp54 = load i32, i32* %13, align 4
-  %cast_tmp55 = zext i32 %load_tmp54 to i64
-  %ptr_add_tmp56 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp55
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp53, i8* %ptr_add_tmp56, i64 2, i1 false)
-  %load_tmp57 = load i8*, i8** %2, align 8
-  %load_tmp58 = load i32, i32* %4, align 4
-  %cast_tmp59 = zext i32 %load_tmp58 to i64
-  %ptr_add_tmp60 = getelementptr i8, i8* %load_tmp57, i64 %cast_tmp59
+  %load_tmp32 = load i32, i32* %11, align 4
+  %div_tmp33 = udiv i32 %load_tmp32, 100
+  %lshift_tmp34 = shl i32 %div_tmp33, 1
+  store i32 %lshift_tmp34, i32* %15, align 4
+  %load_tmp35 = load i8*, i8** %2, align 8
+  %load_tmp36 = load i32, i32* %4, align 4
+  %43 = zext i32 %load_tmp36 to i64
+  %ptr_add_tmp37 = getelementptr i8, i8* %load_tmp35, i64 %43
+  %load_tmp38 = load i32, i32* %7, align 4
+  %44 = zext i32 %load_tmp38 to i64
+  %45 = sub i64 0, %44
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp37, i64 %45
+  %ptr_sub_tmp39 = getelementptr i8, i8* %ptr_sub_tmp, i32 -1
+  %load_tmp40 = load i32, i32* %12, align 4
+  %46 = zext i32 %load_tmp40 to i64
+  %ptr_add_tmp41 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %46
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp39, i8* %ptr_add_tmp41, i64 2, i1 false)
+  %load_tmp42 = load i8*, i8** %2, align 8
+  %load_tmp43 = load i32, i32* %4, align 4
+  %47 = zext i32 %load_tmp43 to i64
+  %ptr_add_tmp44 = getelementptr i8, i8* %load_tmp42, i64 %47
+  %load_tmp45 = load i32, i32* %7, align 4
+  %48 = zext i32 %load_tmp45 to i64
+  %49 = sub i64 0, %48
+  %ptr_sub_tmp46 = getelementptr i8, i8* %ptr_add_tmp44, i64 %49
+  %ptr_sub_tmp47 = getelementptr i8, i8* %ptr_sub_tmp46, i32 -3
+  %load_tmp48 = load i32, i32* %13, align 4
+  %50 = zext i32 %load_tmp48 to i64
+  %ptr_add_tmp49 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %50
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp47, i8* %ptr_add_tmp49, i64 2, i1 false)
+  %load_tmp50 = load i8*, i8** %2, align 8
+  %load_tmp51 = load i32, i32* %4, align 4
+  %51 = zext i32 %load_tmp51 to i64
+  %ptr_add_tmp52 = getelementptr i8, i8* %load_tmp50, i64 %51
+  %load_tmp53 = load i32, i32* %7, align 4
+  %52 = zext i32 %load_tmp53 to i64
+  %53 = sub i64 0, %52
+  %ptr_sub_tmp54 = getelementptr i8, i8* %ptr_add_tmp52, i64 %53
+  %ptr_sub_tmp55 = getelementptr i8, i8* %ptr_sub_tmp54, i32 -5
+  %load_tmp56 = load i32, i32* %14, align 4
+  %54 = zext i32 %load_tmp56 to i64
+  %ptr_add_tmp57 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %54
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp55, i8* %ptr_add_tmp57, i64 2, i1 false)
+  %load_tmp58 = load i8*, i8** %2, align 8
+  %load_tmp59 = load i32, i32* %4, align 4
+  %55 = zext i32 %load_tmp59 to i64
+  %ptr_add_tmp60 = getelementptr i8, i8* %load_tmp58, i64 %55
   %load_tmp61 = load i32, i32* %7, align 4
-  %cast_tmp62 = zext i32 %load_tmp61 to i64
-  %45 = sub i64 0, %cast_tmp62
-  %ptr_sub_tmp63 = getelementptr i8, i8* %ptr_add_tmp60, i64 %45
-  %ptr_sub_tmp64 = getelementptr i8, i8* %ptr_sub_tmp63, i64 -5
-  %load_tmp65 = load i32, i32* %14, align 4
-  %cast_tmp66 = zext i32 %load_tmp65 to i64
-  %ptr_add_tmp67 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp66
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp64, i8* %ptr_add_tmp67, i64 2, i1 false)
-  %load_tmp68 = load i8*, i8** %2, align 8
-  %load_tmp69 = load i32, i32* %4, align 4
-  %cast_tmp70 = zext i32 %load_tmp69 to i64
-  %ptr_add_tmp71 = getelementptr i8, i8* %load_tmp68, i64 %cast_tmp70
-  %load_tmp72 = load i32, i32* %7, align 4
-  %cast_tmp73 = zext i32 %load_tmp72 to i64
-  %46 = sub i64 0, %cast_tmp73
-  %ptr_sub_tmp74 = getelementptr i8, i8* %ptr_add_tmp71, i64 %46
-  %ptr_sub_tmp75 = getelementptr i8, i8* %ptr_sub_tmp74, i64 -7
-  %load_tmp76 = load i32, i32* %15, align 4
-  %cast_tmp77 = zext i32 %load_tmp76 to i64
-  %ptr_add_tmp78 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp77
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp75, i8* %ptr_add_tmp78, i64 2, i1 false)
-  %load_tmp79 = load i32, i32* %7, align 4
-  %add_tmp80 = add i32 %load_tmp79, 8
-  store i32 %add_tmp80, i32* %7, align 4
-  %47 = bitcast i32* %15 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %47)
-  %48 = bitcast i32* %14 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %48)
-  %49 = bitcast i32* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %49)
-  %50 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %50)
-  %51 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %51)
-  %52 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %52)
-  %53 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %53)
-  %54 = bitcast i64* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %54)
-  br label %endif81
+  %56 = zext i32 %load_tmp61 to i64
+  %57 = sub i64 0, %56
+  %ptr_sub_tmp62 = getelementptr i8, i8* %ptr_add_tmp60, i64 %57
+  %ptr_sub_tmp63 = getelementptr i8, i8* %ptr_sub_tmp62, i32 -7
+  %load_tmp64 = load i32, i32* %15, align 4
+  %58 = zext i32 %load_tmp64 to i64
+  %ptr_add_tmp65 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %58
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp63, i8* %ptr_add_tmp65, i64 2, i1 false)
+  %load_tmp66 = load i32, i32* %7, align 4
+  %add_tmp67 = add i32 %load_tmp66, 8
+  store i32 %add_tmp67, i32* %7, align 4
+  %59 = bitcast i32* %15 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %59)
+  %60 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %60)
+  %61 = bitcast i32* %13 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %61)
+  %62 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %62)
+  %63 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %63)
+  %64 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %64)
+  %65 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %65)
+  %66 = bitcast i64* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %66)
+  br label %endif68
 
-endif81:                                          ; preds = %then13, %endif
-  %55 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %55)
-  %load_tmp82 = load i64, i64* %3, align 8
-  %cast_tmp83 = trunc i64 %load_tmp82 to i32
-  store i32 %cast_tmp83, i32* %16, align 4
+endif68:                                          ; preds = %then12, %endif
+  %67 = bitcast i32* %16 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %67)
+  %load_tmp69 = load i64, i64* %3, align 8
+  %cast_tmp70 = trunc i64 %load_tmp69 to i32
+  store i32 %cast_tmp70, i32* %16, align 4
   br label %while_condition_check
 
-while_condition_check:                            ; preds = %while, %endif81
-  %load_tmp84 = load i32, i32* %16, align 4
-  %56 = icmp uge i32 %load_tmp84, 10000
-  br i1 %56, label %while, label %endwhile
+while_condition_check:                            ; preds = %while, %endif68
+  %load_tmp71 = load i32, i32* %16, align 4
+  %68 = icmp uge i32 %load_tmp71, 10000
+  br i1 %68, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp122 = load i32, i32* %16, align 4
-  %57 = icmp uge i32 %load_tmp122, 100
-  br i1 %57, label %then123, label %endif142
+  %load_tmp103 = load i32, i32* %16, align 4
+  %69 = icmp uge i32 %load_tmp103, 100
+  br i1 %69, label %then104, label %endif120
 
 while:                                            ; preds = %while_condition_check
-  %58 = bitcast i32* %17 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %58)
-  %load_tmp85 = load i32, i32* %16, align 4
-  %load_tmp86 = load i32, i32* %16, align 4
-  %div_tmp87 = udiv i32 %load_tmp86, 10000
-  %mul_tmp88 = mul i32 10000, %div_tmp87
-  %sub_tmp89 = sub i32 %load_tmp85, %mul_tmp88
-  store i32 %sub_tmp89, i32* %17, align 4
-  %load_tmp90 = load i32, i32* %16, align 4
-  %div_tmp91 = udiv i32 %load_tmp90, 10000
-  store i32 %div_tmp91, i32* %16, align 4
-  %59 = bitcast i32* %18 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %59)
-  %load_tmp92 = load i32, i32* %17, align 4
-  %mod_tmp93 = urem i32 %load_tmp92, 100
-  %lshift_tmp94 = shl i32 %mod_tmp93, 1
-  store i32 %lshift_tmp94, i32* %18, align 4
-  %60 = bitcast i32* %19 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %60)
-  %load_tmp95 = load i32, i32* %17, align 4
-  %div_tmp96 = udiv i32 %load_tmp95, 100
-  %lshift_tmp97 = shl i32 %div_tmp96, 1
-  store i32 %lshift_tmp97, i32* %19, align 4
-  %load_tmp98 = load i8*, i8** %2, align 8
-  %load_tmp99 = load i32, i32* %4, align 4
-  %cast_tmp100 = zext i32 %load_tmp99 to i64
-  %ptr_add_tmp101 = getelementptr i8, i8* %load_tmp98, i64 %cast_tmp100
-  %load_tmp102 = load i32, i32* %7, align 4
-  %cast_tmp103 = zext i32 %load_tmp102 to i64
-  %61 = sub i64 0, %cast_tmp103
-  %ptr_sub_tmp104 = getelementptr i8, i8* %ptr_add_tmp101, i64 %61
-  %ptr_sub_tmp105 = getelementptr i8, i8* %ptr_sub_tmp104, i64 -1
-  %load_tmp106 = load i32, i32* %18, align 4
-  %cast_tmp107 = zext i32 %load_tmp106 to i64
-  %ptr_add_tmp108 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp107
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp105, i8* %ptr_add_tmp108, i64 2, i1 false)
-  %load_tmp109 = load i8*, i8** %2, align 8
-  %load_tmp110 = load i32, i32* %4, align 4
-  %cast_tmp111 = zext i32 %load_tmp110 to i64
-  %ptr_add_tmp112 = getelementptr i8, i8* %load_tmp109, i64 %cast_tmp111
-  %load_tmp113 = load i32, i32* %7, align 4
-  %cast_tmp114 = zext i32 %load_tmp113 to i64
-  %62 = sub i64 0, %cast_tmp114
-  %ptr_sub_tmp115 = getelementptr i8, i8* %ptr_add_tmp112, i64 %62
-  %ptr_sub_tmp116 = getelementptr i8, i8* %ptr_sub_tmp115, i64 -3
-  %load_tmp117 = load i32, i32* %19, align 4
-  %cast_tmp118 = zext i32 %load_tmp117 to i64
-  %ptr_add_tmp119 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp118
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp116, i8* %ptr_add_tmp119, i64 2, i1 false)
-  %load_tmp120 = load i32, i32* %7, align 4
-  %add_tmp121 = add i32 %load_tmp120, 4
-  store i32 %add_tmp121, i32* %7, align 4
-  %63 = bitcast i32* %19 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %63)
-  %64 = bitcast i32* %18 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %64)
-  %65 = bitcast i32* %17 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %65)
+  %70 = bitcast i32* %17 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %70)
+  %load_tmp72 = load i32, i32* %16, align 4
+  %load_tmp73 = load i32, i32* %16, align 4
+  %div_tmp74 = udiv i32 %load_tmp73, 10000
+  %mul_tmp75 = mul i32 10000, %div_tmp74
+  %sub_tmp76 = sub i32 %load_tmp72, %mul_tmp75
+  store i32 %sub_tmp76, i32* %17, align 4
+  %load_tmp77 = load i32, i32* %16, align 4
+  %div_tmp78 = udiv i32 %load_tmp77, 10000
+  store i32 %div_tmp78, i32* %16, align 4
+  %71 = bitcast i32* %18 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %71)
+  %load_tmp79 = load i32, i32* %17, align 4
+  %mod_tmp80 = urem i32 %load_tmp79, 100
+  %lshift_tmp81 = shl i32 %mod_tmp80, 1
+  store i32 %lshift_tmp81, i32* %18, align 4
+  %72 = bitcast i32* %19 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %72)
+  %load_tmp82 = load i32, i32* %17, align 4
+  %div_tmp83 = udiv i32 %load_tmp82, 100
+  %lshift_tmp84 = shl i32 %div_tmp83, 1
+  store i32 %lshift_tmp84, i32* %19, align 4
+  %load_tmp85 = load i8*, i8** %2, align 8
+  %load_tmp86 = load i32, i32* %4, align 4
+  %73 = zext i32 %load_tmp86 to i64
+  %ptr_add_tmp87 = getelementptr i8, i8* %load_tmp85, i64 %73
+  %load_tmp88 = load i32, i32* %7, align 4
+  %74 = zext i32 %load_tmp88 to i64
+  %75 = sub i64 0, %74
+  %ptr_sub_tmp89 = getelementptr i8, i8* %ptr_add_tmp87, i64 %75
+  %ptr_sub_tmp90 = getelementptr i8, i8* %ptr_sub_tmp89, i32 -1
+  %load_tmp91 = load i32, i32* %18, align 4
+  %76 = zext i32 %load_tmp91 to i64
+  %ptr_add_tmp92 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %76
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp90, i8* %ptr_add_tmp92, i64 2, i1 false)
+  %load_tmp93 = load i8*, i8** %2, align 8
+  %load_tmp94 = load i32, i32* %4, align 4
+  %77 = zext i32 %load_tmp94 to i64
+  %ptr_add_tmp95 = getelementptr i8, i8* %load_tmp93, i64 %77
+  %load_tmp96 = load i32, i32* %7, align 4
+  %78 = zext i32 %load_tmp96 to i64
+  %79 = sub i64 0, %78
+  %ptr_sub_tmp97 = getelementptr i8, i8* %ptr_add_tmp95, i64 %79
+  %ptr_sub_tmp98 = getelementptr i8, i8* %ptr_sub_tmp97, i32 -3
+  %load_tmp99 = load i32, i32* %19, align 4
+  %80 = zext i32 %load_tmp99 to i64
+  %ptr_add_tmp100 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %80
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp98, i8* %ptr_add_tmp100, i64 2, i1 false)
+  %load_tmp101 = load i32, i32* %7, align 4
+  %add_tmp102 = add i32 %load_tmp101, 4
+  store i32 %add_tmp102, i32* %7, align 4
+  %81 = bitcast i32* %19 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %81)
+  %82 = bitcast i32* %18 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %82)
+  %83 = bitcast i32* %17 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %83)
   br label %while_condition_check
 
-then123:                                          ; preds = %endwhile
-  %66 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %66)
-  %load_tmp124 = load i32, i32* %16, align 4
-  %mod_tmp125 = urem i32 %load_tmp124, 100
-  %lshift_tmp126 = shl i32 %mod_tmp125, 1
-  store i32 %lshift_tmp126, i32* %20, align 4
-  %load_tmp127 = load i32, i32* %16, align 4
-  %div_tmp128 = udiv i32 %load_tmp127, 100
-  store i32 %div_tmp128, i32* %16, align 4
-  %load_tmp129 = load i8*, i8** %2, align 8
-  %load_tmp130 = load i32, i32* %4, align 4
-  %cast_tmp131 = zext i32 %load_tmp130 to i64
-  %ptr_add_tmp132 = getelementptr i8, i8* %load_tmp129, i64 %cast_tmp131
-  %load_tmp133 = load i32, i32* %7, align 4
-  %cast_tmp134 = zext i32 %load_tmp133 to i64
-  %67 = sub i64 0, %cast_tmp134
-  %ptr_sub_tmp135 = getelementptr i8, i8* %ptr_add_tmp132, i64 %67
-  %ptr_sub_tmp136 = getelementptr i8, i8* %ptr_sub_tmp135, i64 -1
-  %load_tmp137 = load i32, i32* %20, align 4
-  %cast_tmp138 = zext i32 %load_tmp137 to i64
-  %ptr_add_tmp139 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp138
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp136, i8* %ptr_add_tmp139, i64 2, i1 false)
-  %load_tmp140 = load i32, i32* %7, align 4
-  %add_tmp141 = add i32 %load_tmp140, 2
-  store i32 %add_tmp141, i32* %7, align 4
-  %68 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %68)
-  br label %endif142
+then104:                                          ; preds = %endwhile
+  %84 = bitcast i32* %20 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %84)
+  %load_tmp105 = load i32, i32* %16, align 4
+  %mod_tmp106 = urem i32 %load_tmp105, 100
+  %lshift_tmp107 = shl i32 %mod_tmp106, 1
+  store i32 %lshift_tmp107, i32* %20, align 4
+  %load_tmp108 = load i32, i32* %16, align 4
+  %div_tmp109 = udiv i32 %load_tmp108, 100
+  store i32 %div_tmp109, i32* %16, align 4
+  %load_tmp110 = load i8*, i8** %2, align 8
+  %load_tmp111 = load i32, i32* %4, align 4
+  %85 = zext i32 %load_tmp111 to i64
+  %ptr_add_tmp112 = getelementptr i8, i8* %load_tmp110, i64 %85
+  %load_tmp113 = load i32, i32* %7, align 4
+  %86 = zext i32 %load_tmp113 to i64
+  %87 = sub i64 0, %86
+  %ptr_sub_tmp114 = getelementptr i8, i8* %ptr_add_tmp112, i64 %87
+  %ptr_sub_tmp115 = getelementptr i8, i8* %ptr_sub_tmp114, i32 -1
+  %load_tmp116 = load i32, i32* %20, align 4
+  %88 = zext i32 %load_tmp116 to i64
+  %ptr_add_tmp117 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %88
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp115, i8* %ptr_add_tmp117, i64 2, i1 false)
+  %load_tmp118 = load i32, i32* %7, align 4
+  %add_tmp119 = add i32 %load_tmp118, 2
+  store i32 %add_tmp119, i32* %7, align 4
+  %89 = bitcast i32* %20 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %89)
+  br label %endif120
 
-endif142:                                         ; preds = %then123, %endwhile
-  %load_tmp143 = load i32, i32* %16, align 4
-  %69 = icmp uge i32 %load_tmp143, 10
-  br i1 %69, label %then144, label %else
+endif120:                                         ; preds = %then104, %endwhile
+  %load_tmp121 = load i32, i32* %16, align 4
+  %90 = icmp uge i32 %load_tmp121, 10
+  br i1 %90, label %then122, label %else
 
-then144:                                          ; preds = %endif142
-  %70 = bitcast i32* %21 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %70)
-  %load_tmp145 = load i32, i32* %16, align 4
-  %lshift_tmp146 = shl i32 %load_tmp145, 1
-  store i32 %lshift_tmp146, i32* %21, align 4
+then122:                                          ; preds = %endif120
+  %91 = bitcast i32* %21 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %91)
+  %load_tmp123 = load i32, i32* %16, align 4
+  %lshift_tmp124 = shl i32 %load_tmp123, 1
+  store i32 %lshift_tmp124, i32* %21, align 4
+  %load_tmp125 = load i8*, i8** %2, align 8
+  %ptr_add_tmp126 = getelementptr i8, i8* %load_tmp125, i32 1
+  %load_tmp127 = load i32, i32* %21, align 4
+  %92 = zext i32 %load_tmp127 to i64
+  %ptr_add_tmp128 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %92
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp126, i8* %ptr_add_tmp128, i64 2, i1 false)
+  %93 = bitcast i32* %21 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %93)
+  br label %endif134
+
+else:                                             ; preds = %endif120
+  %load_tmp129 = load i32, i32* %16, align 4
+  %add_tmp130 = add i32 48, %load_tmp129
+  %cast_tmp131 = trunc i32 %add_tmp130 to i8
+  %load_tmp132 = load i8*, i8** %2, align 8
+  %ptr_add_tmp133 = getelementptr i8, i8* %load_tmp132, i32 1
+  store i8 %cast_tmp131, i8* %ptr_add_tmp133, align 1
+  br label %endif134
+
+endif134:                                         ; preds = %else, %then122
+  %94 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
+  %load_tmp135 = load i32, i32* %94, align 4
+  %95 = icmp sge i32 %load_tmp135, 0
+  br i1 %95, label %then136, label %endif143
+
+then136:                                          ; preds = %endif134
+  %load_tmp137 = load i8*, i8** %2, align 8
+  %load_tmp138 = load i32, i32* %4, align 4
+  %96 = zext i32 %load_tmp138 to i64
+  %ptr_add_tmp139 = getelementptr i8, i8* %load_tmp137, i64 %96
+  %ptr_add_tmp140 = getelementptr i8, i8* %ptr_add_tmp139, i32 1
+  %97 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
+  %load_tmp141 = load i32, i32* %97, align 4
+  %cast_tmp142 = sext i32 %load_tmp141 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp140, i8 48, i64 %cast_tmp142, i1 false)
+  br label %endif143
+
+endif143:                                         ; preds = %then136, %endif134
+  %load_tmp144 = load i32, i32* %5, align 4
+  %98 = icmp sge i32 %load_tmp144, 0
+  br i1 %98, label %then145, label %endif156
+
+then145:                                          ; preds = %endif143
+  %load_tmp146 = load i8*, i8** %2, align 8
   %load_tmp147 = load i8*, i8** %2, align 8
-  %ptr_add_tmp148 = getelementptr i8, i8* %load_tmp147, i64 1
-  %load_tmp149 = load i32, i32* %21, align 4
-  %cast_tmp150 = zext i32 %load_tmp149 to i64
-  %ptr_add_tmp151 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp150
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp148, i8* %ptr_add_tmp151, i64 2, i1 false)
-  %71 = bitcast i32* %21 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %71)
-  br label %endif158
+  %ptr_add_tmp148 = getelementptr i8, i8* %load_tmp147, i32 1
+  %load_tmp149 = load i32, i32* %5, align 4
+  %add_tmp150 = add i32 %load_tmp149, 1
+  %cast_tmp151 = sext i32 %add_tmp150 to i64
+  call void @llvm.memmove.p0i8.p0i8.i64(i8* %load_tmp146, i8* %ptr_add_tmp148, i64 %cast_tmp151, i1 false)
+  %load_tmp152 = load i8*, i8** %2, align 8
+  %load_tmp153 = load i32, i32* %5, align 4
+  %ptr_add_tmp154 = getelementptr i8, i8* %load_tmp152, i32 %load_tmp153
+  %ptr_add_tmp155 = getelementptr i8, i8* %ptr_add_tmp154, i32 1
+  store i8 46, i8* %ptr_add_tmp155, align 1
+  br label %endif156
 
-else:                                             ; preds = %endif142
-  %load_tmp152 = load i32, i32* %16, align 4
-  %cast_tmp153 = zext i32 %load_tmp152 to i64
-  %72 = trunc i64 %cast_tmp153 to i32
-  %add_tmp154 = add i32 48, %72
-  %cast_tmp155 = trunc i32 %add_tmp154 to i8
-  %load_tmp156 = load i8*, i8** %2, align 8
-  %ptr_add_tmp157 = getelementptr i8, i8* %load_tmp156, i64 1
-  store i8 %cast_tmp155, i8* %ptr_add_tmp157, align 1
-  br label %endif158
+endif156:                                         ; preds = %then145, %endif143
+  %load_tmp157 = load i32, i32* %4, align 4
+  %add_tmp158 = add i32 %load_tmp157, 1
+  %99 = zext i32 %add_tmp158 to i64
+  %load_tmp159 = load i8*, i8** %2, align 8
+  %ptr_add_tmp160 = getelementptr i8, i8* %load_tmp159, i64 %99
+  store i8* %ptr_add_tmp160, i8** %2, align 8
+  %100 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
+  %load_tmp161 = load i32, i32* %100, align 4
+  %101 = icmp sge i32 %load_tmp161, 0
+  br i1 %101, label %then162, label %endif168
 
-endif158:                                         ; preds = %else, %then144
-  %73 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
-  %load_tmp159 = load i32, i32* %73, align 4
-  %74 = icmp sge i32 %load_tmp159, 0
-  br i1 %74, label %then160, label %endif168
-
-then160:                                          ; preds = %endif158
-  %load_tmp161 = load i8*, i8** %2, align 8
-  %load_tmp162 = load i32, i32* %4, align 4
-  %cast_tmp163 = zext i32 %load_tmp162 to i64
-  %ptr_add_tmp164 = getelementptr i8, i8* %load_tmp161, i64 %cast_tmp163
-  %ptr_add_tmp165 = getelementptr i8, i8* %ptr_add_tmp164, i64 1
-  %75 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
-  %load_tmp166 = load i32, i32* %75, align 4
-  %cast_tmp167 = sext i32 %load_tmp166 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp165, i8 48, i64 %cast_tmp167, i1 false)
+then162:                                          ; preds = %endif156
+  %102 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
+  %load_tmp163 = load i32, i32* %102, align 4
+  %load_tmp164 = load i8*, i8** %2, align 8
+  %ptr_add_tmp165 = getelementptr i8, i8* %load_tmp164, i32 %load_tmp163
+  store i8* %ptr_add_tmp165, i8** %2, align 8
+  %load_tmp166 = load i8*, i8** %2, align 8
+  store i8 48, i8* %load_tmp166, align 1
+  %load_tmp167 = load i8*, i8** %2, align 8
+  %103 = getelementptr i8, i8* %load_tmp167, i64 1
+  store i8* %103, i8** %2, align 8
   br label %endif168
 
-endif168:                                         ; preds = %then160, %endif158
-  %load_tmp169 = load i32, i32* %5, align 4
-  %76 = icmp sge i32 %load_tmp169, 0
-  br i1 %76, label %then170, label %endif182
-
-then170:                                          ; preds = %endif168
-  %load_tmp171 = load i8*, i8** %2, align 8
-  %load_tmp172 = load i8*, i8** %2, align 8
-  %ptr_add_tmp173 = getelementptr i8, i8* %load_tmp172, i64 1
-  %load_tmp174 = load i32, i32* %5, align 4
-  %add_tmp175 = add i32 %load_tmp174, 1
-  %cast_tmp176 = sext i32 %add_tmp175 to i64
-  call void @llvm.memmove.p0i8.p0i8.i64(i8* %load_tmp171, i8* %ptr_add_tmp173, i64 %cast_tmp176, i1 false)
-  %load_tmp177 = load i8*, i8** %2, align 8
-  %load_tmp178 = load i32, i32* %5, align 4
-  %cast_tmp179 = sext i32 %load_tmp178 to i64
-  %ptr_add_tmp180 = getelementptr i8, i8* %load_tmp177, i64 %cast_tmp179
-  %ptr_add_tmp181 = getelementptr i8, i8* %ptr_add_tmp180, i64 1
-  store i8 46, i8* %ptr_add_tmp181, align 1
-  br label %endif182
-
-endif182:                                         ; preds = %then170, %endif168
-  %load_tmp183 = load i32, i32* %4, align 4
-  %add_tmp184 = add i32 %load_tmp183, 1
-  %cast_tmp185 = zext i32 %add_tmp184 to i64
-  %load_tmp186 = load i8*, i8** %2, align 8
-  %ptr_add_tmp187 = getelementptr i8, i8* %load_tmp186, i64 %cast_tmp185
-  store i8* %ptr_add_tmp187, i8** %2, align 8
-  %77 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
-  %load_tmp188 = load i32, i32* %77, align 4
-  %78 = icmp sge i32 %load_tmp188, 0
-  br i1 %78, label %then189, label %endif196
-
-then189:                                          ; preds = %endif182
-  %79 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
-  %load_tmp190 = load i32, i32* %79, align 4
-  %cast_tmp191 = sext i32 %load_tmp190 to i64
-  %load_tmp192 = load i8*, i8** %2, align 8
-  %ptr_add_tmp193 = getelementptr i8, i8* %load_tmp192, i64 %cast_tmp191
-  store i8* %ptr_add_tmp193, i8** %2, align 8
-  %load_tmp194 = load i8*, i8** %2, align 8
-  store i8 48, i8* %load_tmp194, align 1
-  %load_tmp195 = load i8*, i8** %2, align 8
-  %80 = getelementptr i8, i8* %load_tmp195, i64 1
-  store i8* %80, i8** %2, align 8
-  br label %endif196
-
-endif196:                                         ; preds = %then189, %endif182
-  %load_tmp197 = load i8*, i8** %2, align 8
-  %81 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %81)
-  %82 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %82)
-  %83 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %83)
-  %84 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %84)
-  %85 = bitcast i64* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %85)
-  %86 = bitcast i8** %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %86)
-  ret i8* %load_tmp197
+endif168:                                         ; preds = %then162, %endif156
+  %load_tmp169 = load i8*, i8** %2, align 8
+  %104 = bitcast i32* %16 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %104)
+  %105 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %105)
+  %106 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %106)
+  %107 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %107)
+  %108 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %108)
+  %109 = bitcast i8** %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %109)
+  ret i8* %load_tmp169
 }
 
 define internal i8* @"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_64.0P.builtin.uint8.0P.builtin.uint8"(%"struct.std::ryu::floating_decimal_64"* noalias nocapture nonnull %0, i8* %1) {
@@ -9155,351 +9041,345 @@ then:                                             ; preds = %entry
   store i32 %lshift_tmp22, i32* %13, align 4
   %load_tmp23 = load i8*, i8** %2, align 8
   %load_tmp24 = load i32, i32* %4, align 4
-  %cast_tmp25 = zext i32 %load_tmp24 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp23, i64 %cast_tmp25
-  %load_tmp26 = load i32, i32* %5, align 4
-  %cast_tmp27 = zext i32 %load_tmp26 to i64
-  %38 = sub i64 0, %cast_tmp27
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %38
-  %ptr_sub_tmp28 = getelementptr i8, i8* %ptr_sub_tmp, i64 -1
-  %load_tmp29 = load i32, i32* %10, align 4
-  %cast_tmp30 = zext i32 %load_tmp29 to i64
-  %ptr_add_tmp31 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp28, i8* %ptr_add_tmp31, i64 2, i1 false)
-  %load_tmp32 = load i8*, i8** %2, align 8
-  %load_tmp33 = load i32, i32* %4, align 4
-  %cast_tmp34 = zext i32 %load_tmp33 to i64
-  %ptr_add_tmp35 = getelementptr i8, i8* %load_tmp32, i64 %cast_tmp34
-  %load_tmp36 = load i32, i32* %5, align 4
-  %cast_tmp37 = zext i32 %load_tmp36 to i64
-  %39 = sub i64 0, %cast_tmp37
-  %ptr_sub_tmp38 = getelementptr i8, i8* %ptr_add_tmp35, i64 %39
-  %ptr_sub_tmp39 = getelementptr i8, i8* %ptr_sub_tmp38, i64 -3
-  %load_tmp40 = load i32, i32* %11, align 4
-  %cast_tmp41 = zext i32 %load_tmp40 to i64
-  %ptr_add_tmp42 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp41
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp39, i8* %ptr_add_tmp42, i64 2, i1 false)
-  %load_tmp43 = load i8*, i8** %2, align 8
-  %load_tmp44 = load i32, i32* %4, align 4
-  %cast_tmp45 = zext i32 %load_tmp44 to i64
-  %ptr_add_tmp46 = getelementptr i8, i8* %load_tmp43, i64 %cast_tmp45
-  %load_tmp47 = load i32, i32* %5, align 4
-  %cast_tmp48 = zext i32 %load_tmp47 to i64
-  %40 = sub i64 0, %cast_tmp48
-  %ptr_sub_tmp49 = getelementptr i8, i8* %ptr_add_tmp46, i64 %40
-  %ptr_sub_tmp50 = getelementptr i8, i8* %ptr_sub_tmp49, i64 -5
-  %load_tmp51 = load i32, i32* %12, align 4
-  %cast_tmp52 = zext i32 %load_tmp51 to i64
-  %ptr_add_tmp53 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp52
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp50, i8* %ptr_add_tmp53, i64 2, i1 false)
-  %load_tmp54 = load i8*, i8** %2, align 8
-  %load_tmp55 = load i32, i32* %4, align 4
-  %cast_tmp56 = zext i32 %load_tmp55 to i64
-  %ptr_add_tmp57 = getelementptr i8, i8* %load_tmp54, i64 %cast_tmp56
-  %load_tmp58 = load i32, i32* %5, align 4
-  %cast_tmp59 = zext i32 %load_tmp58 to i64
-  %41 = sub i64 0, %cast_tmp59
-  %ptr_sub_tmp60 = getelementptr i8, i8* %ptr_add_tmp57, i64 %41
-  %ptr_sub_tmp61 = getelementptr i8, i8* %ptr_sub_tmp60, i64 -7
-  %load_tmp62 = load i32, i32* %13, align 4
-  %cast_tmp63 = zext i32 %load_tmp62 to i64
-  %ptr_add_tmp64 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp63
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp61, i8* %ptr_add_tmp64, i64 2, i1 false)
-  %load_tmp65 = load i32, i32* %5, align 4
-  %add_tmp = add i32 %load_tmp65, 8
+  %38 = zext i32 %load_tmp24 to i64
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp23, i64 %38
+  %load_tmp25 = load i32, i32* %5, align 4
+  %39 = zext i32 %load_tmp25 to i64
+  %40 = sub i64 0, %39
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %40
+  %ptr_sub_tmp26 = getelementptr i8, i8* %ptr_sub_tmp, i32 -1
+  %load_tmp27 = load i32, i32* %10, align 4
+  %41 = zext i32 %load_tmp27 to i64
+  %ptr_add_tmp28 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %41
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp26, i8* %ptr_add_tmp28, i64 2, i1 false)
+  %load_tmp29 = load i8*, i8** %2, align 8
+  %load_tmp30 = load i32, i32* %4, align 4
+  %42 = zext i32 %load_tmp30 to i64
+  %ptr_add_tmp31 = getelementptr i8, i8* %load_tmp29, i64 %42
+  %load_tmp32 = load i32, i32* %5, align 4
+  %43 = zext i32 %load_tmp32 to i64
+  %44 = sub i64 0, %43
+  %ptr_sub_tmp33 = getelementptr i8, i8* %ptr_add_tmp31, i64 %44
+  %ptr_sub_tmp34 = getelementptr i8, i8* %ptr_sub_tmp33, i32 -3
+  %load_tmp35 = load i32, i32* %11, align 4
+  %45 = zext i32 %load_tmp35 to i64
+  %ptr_add_tmp36 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %45
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp34, i8* %ptr_add_tmp36, i64 2, i1 false)
+  %load_tmp37 = load i8*, i8** %2, align 8
+  %load_tmp38 = load i32, i32* %4, align 4
+  %46 = zext i32 %load_tmp38 to i64
+  %ptr_add_tmp39 = getelementptr i8, i8* %load_tmp37, i64 %46
+  %load_tmp40 = load i32, i32* %5, align 4
+  %47 = zext i32 %load_tmp40 to i64
+  %48 = sub i64 0, %47
+  %ptr_sub_tmp41 = getelementptr i8, i8* %ptr_add_tmp39, i64 %48
+  %ptr_sub_tmp42 = getelementptr i8, i8* %ptr_sub_tmp41, i32 -5
+  %load_tmp43 = load i32, i32* %12, align 4
+  %49 = zext i32 %load_tmp43 to i64
+  %ptr_add_tmp44 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %49
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp42, i8* %ptr_add_tmp44, i64 2, i1 false)
+  %load_tmp45 = load i8*, i8** %2, align 8
+  %load_tmp46 = load i32, i32* %4, align 4
+  %50 = zext i32 %load_tmp46 to i64
+  %ptr_add_tmp47 = getelementptr i8, i8* %load_tmp45, i64 %50
+  %load_tmp48 = load i32, i32* %5, align 4
+  %51 = zext i32 %load_tmp48 to i64
+  %52 = sub i64 0, %51
+  %ptr_sub_tmp49 = getelementptr i8, i8* %ptr_add_tmp47, i64 %52
+  %ptr_sub_tmp50 = getelementptr i8, i8* %ptr_sub_tmp49, i32 -7
+  %load_tmp51 = load i32, i32* %13, align 4
+  %53 = zext i32 %load_tmp51 to i64
+  %ptr_add_tmp52 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %53
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp50, i8* %ptr_add_tmp52, i64 2, i1 false)
+  %load_tmp53 = load i32, i32* %5, align 4
+  %add_tmp = add i32 %load_tmp53, 8
   store i32 %add_tmp, i32* %5, align 4
-  %42 = bitcast i32* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %42)
-  %43 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %43)
-  %44 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %44)
-  %45 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %45)
-  %46 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %46)
-  %47 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %47)
-  %48 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %48)
-  %49 = bitcast i64* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %49)
+  %54 = bitcast i32* %13 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %54)
+  %55 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %55)
+  %56 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %56)
+  %57 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %57)
+  %58 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %58)
+  %59 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %59)
+  %60 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %60)
+  %61 = bitcast i64* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %61)
   br label %endif
 
 endif:                                            ; preds = %then, %entry
-  %50 = bitcast i32* %14 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %50)
-  %load_tmp66 = load i64, i64* %3, align 8
-  %cast_tmp67 = trunc i64 %load_tmp66 to i32
-  store i32 %cast_tmp67, i32* %14, align 4
+  %62 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %62)
+  %load_tmp54 = load i64, i64* %3, align 8
+  %cast_tmp55 = trunc i64 %load_tmp54 to i32
+  store i32 %cast_tmp55, i32* %14, align 4
   br label %while_condition_check
 
 while_condition_check:                            ; preds = %while, %endif
-  %load_tmp68 = load i32, i32* %14, align 4
-  %51 = icmp uge i32 %load_tmp68, 10000
-  br i1 %51, label %while, label %endwhile
+  %load_tmp56 = load i32, i32* %14, align 4
+  %63 = icmp uge i32 %load_tmp56, 10000
+  br i1 %63, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp106 = load i32, i32* %14, align 4
-  %52 = icmp uge i32 %load_tmp106, 100
-  br i1 %52, label %then107, label %endif126
+  %load_tmp88 = load i32, i32* %14, align 4
+  %64 = icmp uge i32 %load_tmp88, 100
+  br i1 %64, label %then89, label %endif105
 
 while:                                            ; preds = %while_condition_check
-  %53 = bitcast i32* %15 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %53)
-  %load_tmp69 = load i32, i32* %14, align 4
-  %load_tmp70 = load i32, i32* %14, align 4
-  %div_tmp71 = udiv i32 %load_tmp70, 10000
-  %mul_tmp72 = mul i32 10000, %div_tmp71
-  %sub_tmp73 = sub i32 %load_tmp69, %mul_tmp72
-  store i32 %sub_tmp73, i32* %15, align 4
-  %load_tmp74 = load i32, i32* %14, align 4
-  %div_tmp75 = udiv i32 %load_tmp74, 10000
-  store i32 %div_tmp75, i32* %14, align 4
-  %54 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %54)
-  %load_tmp76 = load i32, i32* %15, align 4
-  %mod_tmp77 = urem i32 %load_tmp76, 100
-  %lshift_tmp78 = shl i32 %mod_tmp77, 1
-  store i32 %lshift_tmp78, i32* %16, align 4
-  %55 = bitcast i32* %17 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %55)
-  %load_tmp79 = load i32, i32* %15, align 4
-  %div_tmp80 = udiv i32 %load_tmp79, 100
-  %lshift_tmp81 = shl i32 %div_tmp80, 1
-  store i32 %lshift_tmp81, i32* %17, align 4
-  %load_tmp82 = load i8*, i8** %2, align 8
-  %load_tmp83 = load i32, i32* %4, align 4
-  %cast_tmp84 = zext i32 %load_tmp83 to i64
-  %ptr_add_tmp85 = getelementptr i8, i8* %load_tmp82, i64 %cast_tmp84
+  %65 = bitcast i32* %15 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %65)
+  %load_tmp57 = load i32, i32* %14, align 4
+  %load_tmp58 = load i32, i32* %14, align 4
+  %div_tmp59 = udiv i32 %load_tmp58, 10000
+  %mul_tmp60 = mul i32 10000, %div_tmp59
+  %sub_tmp61 = sub i32 %load_tmp57, %mul_tmp60
+  store i32 %sub_tmp61, i32* %15, align 4
+  %load_tmp62 = load i32, i32* %14, align 4
+  %div_tmp63 = udiv i32 %load_tmp62, 10000
+  store i32 %div_tmp63, i32* %14, align 4
+  %66 = bitcast i32* %16 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %66)
+  %load_tmp64 = load i32, i32* %15, align 4
+  %mod_tmp65 = urem i32 %load_tmp64, 100
+  %lshift_tmp66 = shl i32 %mod_tmp65, 1
+  store i32 %lshift_tmp66, i32* %16, align 4
+  %67 = bitcast i32* %17 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %67)
+  %load_tmp67 = load i32, i32* %15, align 4
+  %div_tmp68 = udiv i32 %load_tmp67, 100
+  %lshift_tmp69 = shl i32 %div_tmp68, 1
+  store i32 %lshift_tmp69, i32* %17, align 4
+  %load_tmp70 = load i8*, i8** %2, align 8
+  %load_tmp71 = load i32, i32* %4, align 4
+  %68 = zext i32 %load_tmp71 to i64
+  %ptr_add_tmp72 = getelementptr i8, i8* %load_tmp70, i64 %68
+  %load_tmp73 = load i32, i32* %5, align 4
+  %69 = zext i32 %load_tmp73 to i64
+  %70 = sub i64 0, %69
+  %ptr_sub_tmp74 = getelementptr i8, i8* %ptr_add_tmp72, i64 %70
+  %ptr_sub_tmp75 = getelementptr i8, i8* %ptr_sub_tmp74, i32 -1
+  %load_tmp76 = load i32, i32* %16, align 4
+  %71 = zext i32 %load_tmp76 to i64
+  %ptr_add_tmp77 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %71
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp75, i8* %ptr_add_tmp77, i64 2, i1 false)
+  %load_tmp78 = load i8*, i8** %2, align 8
+  %load_tmp79 = load i32, i32* %4, align 4
+  %72 = zext i32 %load_tmp79 to i64
+  %ptr_add_tmp80 = getelementptr i8, i8* %load_tmp78, i64 %72
+  %load_tmp81 = load i32, i32* %5, align 4
+  %73 = zext i32 %load_tmp81 to i64
+  %74 = sub i64 0, %73
+  %ptr_sub_tmp82 = getelementptr i8, i8* %ptr_add_tmp80, i64 %74
+  %ptr_sub_tmp83 = getelementptr i8, i8* %ptr_sub_tmp82, i32 -3
+  %load_tmp84 = load i32, i32* %17, align 4
+  %75 = zext i32 %load_tmp84 to i64
+  %ptr_add_tmp85 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %75
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp83, i8* %ptr_add_tmp85, i64 2, i1 false)
   %load_tmp86 = load i32, i32* %5, align 4
-  %cast_tmp87 = zext i32 %load_tmp86 to i64
-  %56 = sub i64 0, %cast_tmp87
-  %ptr_sub_tmp88 = getelementptr i8, i8* %ptr_add_tmp85, i64 %56
-  %ptr_sub_tmp89 = getelementptr i8, i8* %ptr_sub_tmp88, i64 -1
-  %load_tmp90 = load i32, i32* %16, align 4
-  %cast_tmp91 = zext i32 %load_tmp90 to i64
-  %ptr_add_tmp92 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp91
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp89, i8* %ptr_add_tmp92, i64 2, i1 false)
-  %load_tmp93 = load i8*, i8** %2, align 8
-  %load_tmp94 = load i32, i32* %4, align 4
-  %cast_tmp95 = zext i32 %load_tmp94 to i64
-  %ptr_add_tmp96 = getelementptr i8, i8* %load_tmp93, i64 %cast_tmp95
-  %load_tmp97 = load i32, i32* %5, align 4
-  %cast_tmp98 = zext i32 %load_tmp97 to i64
-  %57 = sub i64 0, %cast_tmp98
-  %ptr_sub_tmp99 = getelementptr i8, i8* %ptr_add_tmp96, i64 %57
-  %ptr_sub_tmp100 = getelementptr i8, i8* %ptr_sub_tmp99, i64 -3
-  %load_tmp101 = load i32, i32* %17, align 4
-  %cast_tmp102 = zext i32 %load_tmp101 to i64
-  %ptr_add_tmp103 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp102
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp100, i8* %ptr_add_tmp103, i64 2, i1 false)
-  %load_tmp104 = load i32, i32* %5, align 4
-  %add_tmp105 = add i32 %load_tmp104, 4
-  store i32 %add_tmp105, i32* %5, align 4
-  %58 = bitcast i32* %17 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %58)
-  %59 = bitcast i32* %16 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %59)
-  %60 = bitcast i32* %15 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %60)
+  %add_tmp87 = add i32 %load_tmp86, 4
+  store i32 %add_tmp87, i32* %5, align 4
+  %76 = bitcast i32* %17 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %76)
+  %77 = bitcast i32* %16 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %77)
+  %78 = bitcast i32* %15 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %78)
   br label %while_condition_check
 
-then107:                                          ; preds = %endwhile
-  %61 = bitcast i32* %18 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %61)
-  %load_tmp108 = load i32, i32* %14, align 4
-  %mod_tmp109 = urem i32 %load_tmp108, 100
-  %lshift_tmp110 = shl i32 %mod_tmp109, 1
-  store i32 %lshift_tmp110, i32* %18, align 4
-  %load_tmp111 = load i32, i32* %14, align 4
-  %div_tmp112 = udiv i32 %load_tmp111, 100
-  store i32 %div_tmp112, i32* %14, align 4
-  %load_tmp113 = load i8*, i8** %2, align 8
-  %load_tmp114 = load i32, i32* %4, align 4
-  %cast_tmp115 = zext i32 %load_tmp114 to i64
-  %ptr_add_tmp116 = getelementptr i8, i8* %load_tmp113, i64 %cast_tmp115
-  %load_tmp117 = load i32, i32* %5, align 4
-  %cast_tmp118 = zext i32 %load_tmp117 to i64
-  %62 = sub i64 0, %cast_tmp118
-  %ptr_sub_tmp119 = getelementptr i8, i8* %ptr_add_tmp116, i64 %62
-  %ptr_sub_tmp120 = getelementptr i8, i8* %ptr_sub_tmp119, i64 -1
-  %load_tmp121 = load i32, i32* %18, align 4
-  %cast_tmp122 = zext i32 %load_tmp121 to i64
-  %ptr_add_tmp123 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp122
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp120, i8* %ptr_add_tmp123, i64 2, i1 false)
-  %load_tmp124 = load i32, i32* %5, align 4
-  %add_tmp125 = add i32 %load_tmp124, 2
-  store i32 %add_tmp125, i32* %5, align 4
-  %63 = bitcast i32* %18 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %63)
-  br label %endif126
-
-endif126:                                         ; preds = %then107, %endwhile
-  %load_tmp127 = load i32, i32* %14, align 4
-  %64 = icmp uge i32 %load_tmp127, 10
-  br i1 %64, label %then128, label %else
-
-then128:                                          ; preds = %endif126
-  %65 = bitcast i32* %19 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %65)
-  %load_tmp129 = load i32, i32* %14, align 4
-  %lshift_tmp130 = shl i32 %load_tmp129, 1
-  store i32 %lshift_tmp130, i32* %19, align 4
-  %load_tmp131 = load i32, i32* %19, align 4
-  %add_tmp132 = add i32 %load_tmp131, 1
-  %66 = zext i32 %add_tmp132 to i64
-  %67 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %66
-  %load_tmp133 = load i8*, i8** %2, align 8
-  %load_tmp134 = load i32, i32* %4, align 4
-  %cast_tmp135 = zext i32 %load_tmp134 to i64
-  %ptr_add_tmp136 = getelementptr i8, i8* %load_tmp133, i64 %cast_tmp135
-  %load_tmp137 = load i32, i32* %5, align 4
-  %cast_tmp138 = zext i32 %load_tmp137 to i64
-  %68 = sub i64 0, %cast_tmp138
-  %ptr_sub_tmp139 = getelementptr i8, i8* %ptr_add_tmp136, i64 %68
-  %load_tmp140 = load i8, i8* %67, align 1
-  store i8 %load_tmp140, i8* %ptr_sub_tmp139, align 1
-  %load_tmp141 = load i32, i32* %19, align 4
-  %69 = zext i32 %load_tmp141 to i64
-  %70 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %69
-  %load_tmp142 = load i8*, i8** %2, align 8
-  %load_tmp143 = load i8, i8* %70, align 1
-  store i8 %load_tmp143, i8* %load_tmp142, align 1
-  %71 = bitcast i32* %19 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %71)
-  br label %endif149
-
-else:                                             ; preds = %endif126
-  %load_tmp144 = load i32, i32* %14, align 4
-  %cast_tmp145 = zext i32 %load_tmp144 to i64
-  %72 = trunc i64 %cast_tmp145 to i32
-  %add_tmp146 = add i32 48, %72
-  %cast_tmp147 = trunc i32 %add_tmp146 to i8
-  %load_tmp148 = load i8*, i8** %2, align 8
-  store i8 %cast_tmp147, i8* %load_tmp148, align 1
-  br label %endif149
-
-endif149:                                         ; preds = %else, %then128
-  %load_tmp150 = load i32, i32* %4, align 4
-  %73 = icmp ugt i32 %load_tmp150, 1
-  br i1 %73, label %then151, label %else159
-
-then151:                                          ; preds = %endif149
-  %load_tmp152 = load i8*, i8** %2, align 8
-  %ptr_add_tmp153 = getelementptr i8, i8* %load_tmp152, i64 1
-  store i8 46, i8* %ptr_add_tmp153, align 1
-  %load_tmp154 = load i32, i32* %4, align 4
-  %add_tmp155 = add i32 %load_tmp154, 1
-  %cast_tmp156 = zext i32 %add_tmp155 to i64
-  %load_tmp157 = load i8*, i8** %2, align 8
-  %ptr_add_tmp158 = getelementptr i8, i8* %load_tmp157, i64 %cast_tmp156
-  store i8* %ptr_add_tmp158, i8** %2, align 8
-  br label %endif161
-
-else159:                                          ; preds = %endif149
-  %load_tmp160 = load i8*, i8** %2, align 8
-  %74 = getelementptr i8, i8* %load_tmp160, i64 1
-  store i8* %74, i8** %2, align 8
-  br label %endif161
-
-endif161:                                         ; preds = %else159, %then151
-  %load_tmp162 = load i8*, i8** %2, align 8
-  store i8 101, i8* %load_tmp162, align 1
-  %load_tmp163 = load i8*, i8** %2, align 8
-  %75 = getelementptr i8, i8* %load_tmp163, i64 1
-  store i8* %75, i8** %2, align 8
-  %76 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %76)
-  %77 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
-  %load_tmp164 = load i32, i32* %77, align 4
-  %load_tmp165 = load i32, i32* %4, align 4
-  %add_tmp166 = add i32 %load_tmp164, %load_tmp165
-  %sub_tmp167 = sub i32 %add_tmp166, 1
-  store i32 %sub_tmp167, i32* %20, align 4
-  %load_tmp168 = load i32, i32* %20, align 4
-  %78 = icmp slt i32 %load_tmp168, 0
-  br i1 %78, label %then169, label %else173
-
-then169:                                          ; preds = %endif161
-  %load_tmp170 = load i8*, i8** %2, align 8
-  store i8 45, i8* %load_tmp170, align 1
-  %load_tmp171 = load i8*, i8** %2, align 8
-  %79 = getelementptr i8, i8* %load_tmp171, i64 1
-  store i8* %79, i8** %2, align 8
-  %load_tmp172 = load i32, i32* %20, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp172
-  store i32 %unary_minus_tmp, i32* %20, align 4
-  br label %endif176
-
-else173:                                          ; preds = %endif161
-  %load_tmp174 = load i8*, i8** %2, align 8
-  store i8 43, i8* %load_tmp174, align 1
-  %load_tmp175 = load i8*, i8** %2, align 8
-  %80 = getelementptr i8, i8* %load_tmp175, i64 1
-  store i8* %80, i8** %2, align 8
-  br label %endif176
-
-endif176:                                         ; preds = %else173, %then169
-  %load_tmp177 = load i32, i32* %20, align 4
-  %81 = icmp sge i32 %load_tmp177, 100
-  br i1 %81, label %then178, label %else195
-
-then178:                                          ; preds = %endif176
-  %82 = bitcast i32* %21 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %82)
-  %load_tmp179 = load i32, i32* %20, align 4
-  %mod_tmp180 = srem i32 %load_tmp179, 10
-  store i32 %mod_tmp180, i32* %21, align 4
-  %load_tmp181 = load i8*, i8** %2, align 8
-  %load_tmp182 = load i32, i32* %20, align 4
-  %div_tmp183 = sdiv i32 %load_tmp182, 10
-  %mul_tmp184 = mul i32 2, %div_tmp183
-  %cast_tmp185 = sext i32 %mul_tmp184 to i64
-  %ptr_add_tmp186 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp185
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp181, i8* %ptr_add_tmp186, i64 2, i1 false)
-  %load_tmp187 = load i32, i32* %21, align 4
-  %cast_tmp188 = sext i32 %load_tmp187 to i64
-  %83 = trunc i64 %cast_tmp188 to i32
-  %add_tmp189 = add i32 48, %83
-  %cast_tmp190 = trunc i32 %add_tmp189 to i8
-  %load_tmp191 = load i8*, i8** %2, align 8
-  %ptr_add_tmp192 = getelementptr i8, i8* %load_tmp191, i64 2
-  store i8 %cast_tmp190, i8* %ptr_add_tmp192, align 1
-  %load_tmp193 = load i8*, i8** %2, align 8
-  %ptr_add_tmp194 = getelementptr i8, i8* %load_tmp193, i64 3
-  store i8* %ptr_add_tmp194, i8** %2, align 8
-  %84 = bitcast i32* %21 to i8*
+then89:                                           ; preds = %endwhile
+  %79 = bitcast i32* %18 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %79)
+  %load_tmp90 = load i32, i32* %14, align 4
+  %mod_tmp91 = urem i32 %load_tmp90, 100
+  %lshift_tmp92 = shl i32 %mod_tmp91, 1
+  store i32 %lshift_tmp92, i32* %18, align 4
+  %load_tmp93 = load i32, i32* %14, align 4
+  %div_tmp94 = udiv i32 %load_tmp93, 100
+  store i32 %div_tmp94, i32* %14, align 4
+  %load_tmp95 = load i8*, i8** %2, align 8
+  %load_tmp96 = load i32, i32* %4, align 4
+  %80 = zext i32 %load_tmp96 to i64
+  %ptr_add_tmp97 = getelementptr i8, i8* %load_tmp95, i64 %80
+  %load_tmp98 = load i32, i32* %5, align 4
+  %81 = zext i32 %load_tmp98 to i64
+  %82 = sub i64 0, %81
+  %ptr_sub_tmp99 = getelementptr i8, i8* %ptr_add_tmp97, i64 %82
+  %ptr_sub_tmp100 = getelementptr i8, i8* %ptr_sub_tmp99, i64 -1
+  %load_tmp101 = load i32, i32* %18, align 4
+  %83 = zext i32 %load_tmp101 to i64
+  %ptr_add_tmp102 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %83
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp100, i8* %ptr_add_tmp102, i64 2, i1 false)
+  %load_tmp103 = load i32, i32* %5, align 4
+  %add_tmp104 = add i32 %load_tmp103, 2
+  store i32 %add_tmp104, i32* %5, align 4
+  %84 = bitcast i32* %18 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %84)
-  br label %endif203
+  br label %endif105
 
-else195:                                          ; preds = %endif176
-  %load_tmp196 = load i8*, i8** %2, align 8
-  %load_tmp197 = load i32, i32* %20, align 4
-  %mul_tmp198 = mul i32 2, %load_tmp197
-  %cast_tmp199 = sext i32 %mul_tmp198 to i64
-  %ptr_add_tmp200 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp199
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp196, i8* %ptr_add_tmp200, i64 2, i1 false)
-  %load_tmp201 = load i8*, i8** %2, align 8
-  %ptr_add_tmp202 = getelementptr i8, i8* %load_tmp201, i64 2
-  store i8* %ptr_add_tmp202, i8** %2, align 8
-  br label %endif203
+endif105:                                         ; preds = %then89, %endwhile
+  %load_tmp106 = load i32, i32* %14, align 4
+  %85 = icmp uge i32 %load_tmp106, 10
+  br i1 %85, label %then107, label %else
 
-endif203:                                         ; preds = %else195, %then178
-  %load_tmp204 = load i8*, i8** %2, align 8
-  %85 = bitcast i32* %20 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %85)
-  %86 = bitcast i32* %14 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %86)
-  %87 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %87)
-  %88 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %88)
-  %89 = bitcast i64* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %89)
-  %90 = bitcast i8** %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %90)
-  ret i8* %load_tmp204
+then107:                                          ; preds = %endif105
+  %86 = bitcast i32* %19 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %86)
+  %load_tmp108 = load i32, i32* %14, align 4
+  %lshift_tmp109 = shl i32 %load_tmp108, 1
+  store i32 %lshift_tmp109, i32* %19, align 4
+  %load_tmp110 = load i32, i32* %19, align 4
+  %add_tmp111 = add i32 %load_tmp110, 1
+  %87 = zext i32 %add_tmp111 to i64
+  %88 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %87
+  %load_tmp112 = load i8*, i8** %2, align 8
+  %load_tmp113 = load i32, i32* %4, align 4
+  %89 = zext i32 %load_tmp113 to i64
+  %ptr_add_tmp114 = getelementptr i8, i8* %load_tmp112, i64 %89
+  %load_tmp115 = load i32, i32* %5, align 4
+  %90 = zext i32 %load_tmp115 to i64
+  %91 = sub i64 0, %90
+  %ptr_sub_tmp116 = getelementptr i8, i8* %ptr_add_tmp114, i64 %91
+  %load_tmp117 = load i8, i8* %88, align 1
+  store i8 %load_tmp117, i8* %ptr_sub_tmp116, align 1
+  %load_tmp118 = load i32, i32* %19, align 4
+  %92 = zext i32 %load_tmp118 to i64
+  %93 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %92
+  %load_tmp119 = load i8*, i8** %2, align 8
+  %load_tmp120 = load i8, i8* %93, align 1
+  store i8 %load_tmp120, i8* %load_tmp119, align 1
+  %94 = bitcast i32* %19 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %94)
+  br label %endif125
+
+else:                                             ; preds = %endif105
+  %load_tmp121 = load i32, i32* %14, align 4
+  %add_tmp122 = add i32 48, %load_tmp121
+  %cast_tmp123 = trunc i32 %add_tmp122 to i8
+  %load_tmp124 = load i8*, i8** %2, align 8
+  store i8 %cast_tmp123, i8* %load_tmp124, align 1
+  br label %endif125
+
+endif125:                                         ; preds = %else, %then107
+  %load_tmp126 = load i32, i32* %4, align 4
+  %95 = icmp ugt i32 %load_tmp126, 1
+  br i1 %95, label %then127, label %else134
+
+then127:                                          ; preds = %endif125
+  %load_tmp128 = load i8*, i8** %2, align 8
+  %ptr_add_tmp129 = getelementptr i8, i8* %load_tmp128, i32 1
+  store i8 46, i8* %ptr_add_tmp129, align 1
+  %load_tmp130 = load i32, i32* %4, align 4
+  %add_tmp131 = add i32 %load_tmp130, 1
+  %96 = zext i32 %add_tmp131 to i64
+  %load_tmp132 = load i8*, i8** %2, align 8
+  %ptr_add_tmp133 = getelementptr i8, i8* %load_tmp132, i64 %96
+  store i8* %ptr_add_tmp133, i8** %2, align 8
+  br label %endif136
+
+else134:                                          ; preds = %endif125
+  %load_tmp135 = load i8*, i8** %2, align 8
+  %97 = getelementptr i8, i8* %load_tmp135, i64 1
+  store i8* %97, i8** %2, align 8
+  br label %endif136
+
+endif136:                                         ; preds = %else134, %then127
+  %load_tmp137 = load i8*, i8** %2, align 8
+  store i8 101, i8* %load_tmp137, align 1
+  %load_tmp138 = load i8*, i8** %2, align 8
+  %98 = getelementptr i8, i8* %load_tmp138, i64 1
+  store i8* %98, i8** %2, align 8
+  %99 = bitcast i32* %20 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %99)
+  %100 = getelementptr inbounds %"struct.std::ryu::floating_decimal_64", %"struct.std::ryu::floating_decimal_64"* %0, i32 0, i32 1
+  %load_tmp139 = load i32, i32* %100, align 4
+  %load_tmp140 = load i32, i32* %4, align 4
+  %add_tmp141 = add i32 %load_tmp139, %load_tmp140
+  %sub_tmp142 = sub i32 %add_tmp141, 1
+  store i32 %sub_tmp142, i32* %20, align 4
+  %load_tmp143 = load i32, i32* %20, align 4
+  %101 = icmp slt i32 %load_tmp143, 0
+  br i1 %101, label %then144, label %else148
+
+then144:                                          ; preds = %endif136
+  %load_tmp145 = load i8*, i8** %2, align 8
+  store i8 45, i8* %load_tmp145, align 1
+  %load_tmp146 = load i8*, i8** %2, align 8
+  %102 = getelementptr i8, i8* %load_tmp146, i64 1
+  store i8* %102, i8** %2, align 8
+  %load_tmp147 = load i32, i32* %20, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp147
+  store i32 %unary_minus_tmp, i32* %20, align 4
+  br label %endif151
+
+else148:                                          ; preds = %endif136
+  %load_tmp149 = load i8*, i8** %2, align 8
+  store i8 43, i8* %load_tmp149, align 1
+  %load_tmp150 = load i8*, i8** %2, align 8
+  %103 = getelementptr i8, i8* %load_tmp150, i64 1
+  store i8* %103, i8** %2, align 8
+  br label %endif151
+
+endif151:                                         ; preds = %else148, %then144
+  %load_tmp152 = load i32, i32* %20, align 4
+  %104 = icmp sge i32 %load_tmp152, 100
+  br i1 %104, label %then153, label %else168
+
+then153:                                          ; preds = %endif151
+  %105 = bitcast i32* %21 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %105)
+  %load_tmp154 = load i32, i32* %20, align 4
+  %mod_tmp155 = srem i32 %load_tmp154, 10
+  store i32 %mod_tmp155, i32* %21, align 4
+  %load_tmp156 = load i8*, i8** %2, align 8
+  %load_tmp157 = load i32, i32* %20, align 4
+  %div_tmp158 = sdiv i32 %load_tmp157, 10
+  %mul_tmp159 = mul i32 2, %div_tmp158
+  %ptr_add_tmp160 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i32 %mul_tmp159
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp156, i8* %ptr_add_tmp160, i64 2, i1 false)
+  %load_tmp161 = load i32, i32* %21, align 4
+  %add_tmp162 = add i32 48, %load_tmp161
+  %cast_tmp163 = trunc i32 %add_tmp162 to i8
+  %load_tmp164 = load i8*, i8** %2, align 8
+  %ptr_add_tmp165 = getelementptr i8, i8* %load_tmp164, i32 2
+  store i8 %cast_tmp163, i8* %ptr_add_tmp165, align 1
+  %load_tmp166 = load i8*, i8** %2, align 8
+  %ptr_add_tmp167 = getelementptr i8, i8* %load_tmp166, i32 3
+  store i8* %ptr_add_tmp167, i8** %2, align 8
+  %106 = bitcast i32* %21 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %106)
+  br label %endif175
+
+else168:                                          ; preds = %endif151
+  %load_tmp169 = load i8*, i8** %2, align 8
+  %load_tmp170 = load i32, i32* %20, align 4
+  %mul_tmp171 = mul i32 2, %load_tmp170
+  %ptr_add_tmp172 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i32 %mul_tmp171
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp169, i8* %ptr_add_tmp172, i64 2, i1 false)
+  %load_tmp173 = load i8*, i8** %2, align 8
+  %ptr_add_tmp174 = getelementptr i8, i8* %load_tmp173, i32 2
+  store i8* %ptr_add_tmp174, i8** %2, align 8
+  br label %endif175
+
+endif175:                                         ; preds = %else168, %then153
+  %load_tmp176 = load i8*, i8** %2, align 8
+  %107 = bitcast i32* %20 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %107)
+  %108 = bitcast i32* %14 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %108)
+  %109 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %109)
+  %110 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %110)
+  %111 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %111)
+  %112 = bitcast i8** %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %112)
+  ret i8* %load_tmp176
 }
 
 define internal i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %0, i64 %1, i64* %2) {
@@ -9895,17 +9775,15 @@ entry:                                            ; preds = %alloca
   store i32 %1, i32* %3, align 4
   %load_tmp = load i32, i32* %2, align 4
   %load_tmp1 = load i32, i32* %3, align 4
-  %cast_tmp = zext i32 %load_tmp1 to i64
-  %6 = trunc i64 %cast_tmp to i32
-  %lshift_tmp = shl i32 1, %6
+  %lshift_tmp = shl i32 1, %load_tmp1
   %sub_tmp = sub i32 %lshift_tmp, 1
   %bit_and_tmp = and i32 %load_tmp, %sub_tmp
-  %7 = icmp eq i32 %bit_and_tmp, 0
-  %8 = bitcast i32* %3 to i8*
+  %6 = icmp eq i32 %bit_and_tmp, 0
+  %7 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %7)
+  %8 = bitcast i32* %2 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %8)
-  %9 = bitcast i32* %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %9)
-  ret i1 %7
+  ret i1 %6
 }
 
 define internal i8* @"func.std.ryu.to_chars_fixed..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8"(i64 %0, i8* %1) {
@@ -9966,9 +9844,8 @@ then:                                             ; preds = %entry
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str.9, i32 0, i32 0), i64 %cast_tmp, i1 false)
   %load_tmp8 = load i32, i32* %6, align 4
   %unary_minus_tmp9 = sub i32 0, %load_tmp8
-  %cast_tmp10 = sext i32 %unary_minus_tmp9 to i64
-  %load_tmp11 = load i8*, i8** %3, align 8
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp11, i64 %cast_tmp10
+  %load_tmp10 = load i8*, i8** %3, align 8
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp10, i32 %unary_minus_tmp9
   store i8* %ptr_add_tmp, i8** %3, align 8
   %25 = bitcast %builtin.str* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 16, i8* %25)
@@ -9981,218 +9858,214 @@ endif:                                            ; preds = %then, %entry
   br label %while_condition_check
 
 while_condition_check:                            ; preds = %while, %endif
-  %load_tmp12 = load i32, i32* %4, align 4
-  %27 = icmp uge i32 %load_tmp12, 10000
+  %load_tmp11 = load i32, i32* %4, align 4
+  %27 = icmp uge i32 %load_tmp11, 10000
   br i1 %27, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp45 = load i32, i32* %4, align 4
-  %28 = icmp uge i32 %load_tmp45, 100
-  br i1 %28, label %then46, label %endif65
+  %load_tmp38 = load i32, i32* %4, align 4
+  %28 = icmp uge i32 %load_tmp38, 100
+  br i1 %28, label %then39, label %endif55
 
 while:                                            ; preds = %while_condition_check
   %29 = bitcast i32* %9 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %29)
+  %load_tmp12 = load i32, i32* %4, align 4
   %load_tmp13 = load i32, i32* %4, align 4
-  %load_tmp14 = load i32, i32* %4, align 4
-  %div_tmp = udiv i32 %load_tmp14, 10000
+  %div_tmp = udiv i32 %load_tmp13, 10000
   %mul_tmp = mul i32 10000, %div_tmp
-  %sub_tmp15 = sub i32 %load_tmp13, %mul_tmp
-  store i32 %sub_tmp15, i32* %9, align 4
-  %load_tmp16 = load i32, i32* %4, align 4
-  %div_tmp17 = udiv i32 %load_tmp16, 10000
-  store i32 %div_tmp17, i32* %4, align 4
+  %sub_tmp14 = sub i32 %load_tmp12, %mul_tmp
+  store i32 %sub_tmp14, i32* %9, align 4
+  %load_tmp15 = load i32, i32* %4, align 4
+  %div_tmp16 = udiv i32 %load_tmp15, 10000
+  store i32 %div_tmp16, i32* %4, align 4
   %30 = bitcast i32* %10 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %30)
-  %load_tmp18 = load i32, i32* %9, align 4
-  %mod_tmp = urem i32 %load_tmp18, 100
+  %load_tmp17 = load i32, i32* %9, align 4
+  %mod_tmp = urem i32 %load_tmp17, 100
   %lshift_tmp = shl i32 %mod_tmp, 1
   store i32 %lshift_tmp, i32* %10, align 4
   %31 = bitcast i32* %11 to i8*
   call void @llvm.lifetime.start.p0i8(i64 4, i8* %31)
-  %load_tmp19 = load i32, i32* %9, align 4
-  %div_tmp20 = udiv i32 %load_tmp19, 100
-  %lshift_tmp21 = shl i32 %div_tmp20, 1
-  store i32 %lshift_tmp21, i32* %11, align 4
-  %load_tmp22 = load i8*, i8** %3, align 8
-  %load_tmp23 = load i32, i32* %5, align 4
-  %cast_tmp24 = zext i32 %load_tmp23 to i64
-  %ptr_add_tmp25 = getelementptr i8, i8* %load_tmp22, i64 %cast_tmp24
-  %load_tmp26 = load i32, i32* %8, align 4
-  %cast_tmp27 = zext i32 %load_tmp26 to i64
-  %32 = sub i64 0, %cast_tmp27
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp25, i64 %32
-  %ptr_sub_tmp28 = getelementptr i8, i8* %ptr_sub_tmp, i64 -1
-  %load_tmp29 = load i32, i32* %10, align 4
-  %cast_tmp30 = zext i32 %load_tmp29 to i64
-  %ptr_add_tmp31 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp30
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp28, i8* %ptr_add_tmp31, i64 2, i1 false)
-  %load_tmp32 = load i8*, i8** %3, align 8
-  %load_tmp33 = load i32, i32* %5, align 4
-  %cast_tmp34 = zext i32 %load_tmp33 to i64
-  %ptr_add_tmp35 = getelementptr i8, i8* %load_tmp32, i64 %cast_tmp34
+  %load_tmp18 = load i32, i32* %9, align 4
+  %div_tmp19 = udiv i32 %load_tmp18, 100
+  %lshift_tmp20 = shl i32 %div_tmp19, 1
+  store i32 %lshift_tmp20, i32* %11, align 4
+  %load_tmp21 = load i8*, i8** %3, align 8
+  %load_tmp22 = load i32, i32* %5, align 4
+  %32 = zext i32 %load_tmp22 to i64
+  %ptr_add_tmp23 = getelementptr i8, i8* %load_tmp21, i64 %32
+  %load_tmp24 = load i32, i32* %8, align 4
+  %33 = zext i32 %load_tmp24 to i64
+  %34 = sub i64 0, %33
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp23, i64 %34
+  %ptr_sub_tmp25 = getelementptr i8, i8* %ptr_sub_tmp, i32 -1
+  %load_tmp26 = load i32, i32* %10, align 4
+  %35 = zext i32 %load_tmp26 to i64
+  %ptr_add_tmp27 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %35
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp25, i8* %ptr_add_tmp27, i64 2, i1 false)
+  %load_tmp28 = load i8*, i8** %3, align 8
+  %load_tmp29 = load i32, i32* %5, align 4
+  %36 = zext i32 %load_tmp29 to i64
+  %ptr_add_tmp30 = getelementptr i8, i8* %load_tmp28, i64 %36
+  %load_tmp31 = load i32, i32* %8, align 4
+  %37 = zext i32 %load_tmp31 to i64
+  %38 = sub i64 0, %37
+  %ptr_sub_tmp32 = getelementptr i8, i8* %ptr_add_tmp30, i64 %38
+  %ptr_sub_tmp33 = getelementptr i8, i8* %ptr_sub_tmp32, i32 -3
+  %load_tmp34 = load i32, i32* %11, align 4
+  %39 = zext i32 %load_tmp34 to i64
+  %ptr_add_tmp35 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %39
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp33, i8* %ptr_add_tmp35, i64 2, i1 false)
   %load_tmp36 = load i32, i32* %8, align 4
-  %cast_tmp37 = zext i32 %load_tmp36 to i64
-  %33 = sub i64 0, %cast_tmp37
-  %ptr_sub_tmp38 = getelementptr i8, i8* %ptr_add_tmp35, i64 %33
-  %ptr_sub_tmp39 = getelementptr i8, i8* %ptr_sub_tmp38, i64 -3
-  %load_tmp40 = load i32, i32* %11, align 4
-  %cast_tmp41 = zext i32 %load_tmp40 to i64
-  %ptr_add_tmp42 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp41
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp39, i8* %ptr_add_tmp42, i64 2, i1 false)
-  %load_tmp43 = load i32, i32* %8, align 4
-  %add_tmp44 = add i32 %load_tmp43, 4
-  store i32 %add_tmp44, i32* %8, align 4
-  %34 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %34)
-  %35 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %35)
-  %36 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %36)
+  %add_tmp37 = add i32 %load_tmp36, 4
+  store i32 %add_tmp37, i32* %8, align 4
+  %40 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %40)
+  %41 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %41)
+  %42 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %42)
   br label %while_condition_check
 
-then46:                                           ; preds = %endwhile
-  %37 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %37)
-  %load_tmp47 = load i32, i32* %4, align 4
-  %mod_tmp48 = urem i32 %load_tmp47, 100
-  %lshift_tmp49 = shl i32 %mod_tmp48, 1
-  store i32 %lshift_tmp49, i32* %12, align 4
-  %load_tmp50 = load i32, i32* %4, align 4
-  %div_tmp51 = udiv i32 %load_tmp50, 100
-  store i32 %div_tmp51, i32* %4, align 4
-  %load_tmp52 = load i8*, i8** %3, align 8
-  %load_tmp53 = load i32, i32* %5, align 4
-  %cast_tmp54 = zext i32 %load_tmp53 to i64
-  %ptr_add_tmp55 = getelementptr i8, i8* %load_tmp52, i64 %cast_tmp54
-  %load_tmp56 = load i32, i32* %8, align 4
-  %cast_tmp57 = zext i32 %load_tmp56 to i64
-  %38 = sub i64 0, %cast_tmp57
-  %ptr_sub_tmp58 = getelementptr i8, i8* %ptr_add_tmp55, i64 %38
-  %ptr_sub_tmp59 = getelementptr i8, i8* %ptr_sub_tmp58, i64 -1
-  %load_tmp60 = load i32, i32* %12, align 4
-  %cast_tmp61 = zext i32 %load_tmp60 to i64
-  %ptr_add_tmp62 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp61
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp59, i8* %ptr_add_tmp62, i64 2, i1 false)
-  %load_tmp63 = load i32, i32* %8, align 4
-  %add_tmp64 = add i32 %load_tmp63, 2
-  store i32 %add_tmp64, i32* %8, align 4
-  %39 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %39)
-  br label %endif65
+then39:                                           ; preds = %endwhile
+  %43 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %43)
+  %load_tmp40 = load i32, i32* %4, align 4
+  %mod_tmp41 = urem i32 %load_tmp40, 100
+  %lshift_tmp42 = shl i32 %mod_tmp41, 1
+  store i32 %lshift_tmp42, i32* %12, align 4
+  %load_tmp43 = load i32, i32* %4, align 4
+  %div_tmp44 = udiv i32 %load_tmp43, 100
+  store i32 %div_tmp44, i32* %4, align 4
+  %load_tmp45 = load i8*, i8** %3, align 8
+  %load_tmp46 = load i32, i32* %5, align 4
+  %44 = zext i32 %load_tmp46 to i64
+  %ptr_add_tmp47 = getelementptr i8, i8* %load_tmp45, i64 %44
+  %load_tmp48 = load i32, i32* %8, align 4
+  %45 = zext i32 %load_tmp48 to i64
+  %46 = sub i64 0, %45
+  %ptr_sub_tmp49 = getelementptr i8, i8* %ptr_add_tmp47, i64 %46
+  %ptr_sub_tmp50 = getelementptr i8, i8* %ptr_sub_tmp49, i32 -1
+  %load_tmp51 = load i32, i32* %12, align 4
+  %47 = zext i32 %load_tmp51 to i64
+  %ptr_add_tmp52 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %47
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp50, i8* %ptr_add_tmp52, i64 2, i1 false)
+  %load_tmp53 = load i32, i32* %8, align 4
+  %add_tmp54 = add i32 %load_tmp53, 2
+  store i32 %add_tmp54, i32* %8, align 4
+  %48 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %48)
+  br label %endif55
 
-endif65:                                          ; preds = %then46, %endwhile
-  %load_tmp66 = load i32, i32* %4, align 4
-  %40 = icmp uge i32 %load_tmp66, 10
-  br i1 %40, label %then67, label %else
+endif55:                                          ; preds = %then39, %endwhile
+  %load_tmp56 = load i32, i32* %4, align 4
+  %49 = icmp uge i32 %load_tmp56, 10
+  br i1 %49, label %then57, label %else
 
-then67:                                           ; preds = %endif65
-  %41 = bitcast i32* %13 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %41)
-  %load_tmp68 = load i32, i32* %4, align 4
-  %lshift_tmp69 = shl i32 %load_tmp68, 1
-  store i32 %lshift_tmp69, i32* %13, align 4
-  %load_tmp70 = load i8*, i8** %3, align 8
-  %ptr_add_tmp71 = getelementptr i8, i8* %load_tmp70, i64 1
-  %load_tmp72 = load i32, i32* %13, align 4
-  %cast_tmp73 = zext i32 %load_tmp72 to i64
-  %ptr_add_tmp74 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp73
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp71, i8* %ptr_add_tmp74, i64 2, i1 false)
-  %42 = bitcast i32* %13 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %42)
-  br label %endif81
+then57:                                           ; preds = %endif55
+  %50 = bitcast i32* %13 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %50)
+  %load_tmp58 = load i32, i32* %4, align 4
+  %lshift_tmp59 = shl i32 %load_tmp58, 1
+  store i32 %lshift_tmp59, i32* %13, align 4
+  %load_tmp60 = load i8*, i8** %3, align 8
+  %ptr_add_tmp61 = getelementptr i8, i8* %load_tmp60, i32 1
+  %load_tmp62 = load i32, i32* %13, align 4
+  %51 = zext i32 %load_tmp62 to i64
+  %ptr_add_tmp63 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %51
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_add_tmp61, i8* %ptr_add_tmp63, i64 2, i1 false)
+  %52 = bitcast i32* %13 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %52)
+  br label %endif69
 
-else:                                             ; preds = %endif65
-  %load_tmp75 = load i32, i32* %4, align 4
-  %cast_tmp76 = zext i32 %load_tmp75 to i64
-  %43 = trunc i64 %cast_tmp76 to i32
-  %add_tmp77 = add i32 48, %43
-  %cast_tmp78 = trunc i32 %add_tmp77 to i8
-  %load_tmp79 = load i8*, i8** %3, align 8
-  %ptr_add_tmp80 = getelementptr i8, i8* %load_tmp79, i64 1
-  store i8 %cast_tmp78, i8* %ptr_add_tmp80, align 1
-  br label %endif81
+else:                                             ; preds = %endif55
+  %load_tmp64 = load i32, i32* %4, align 4
+  %add_tmp65 = add i32 48, %load_tmp64
+  %cast_tmp66 = trunc i32 %add_tmp65 to i8
+  %load_tmp67 = load i8*, i8** %3, align 8
+  %ptr_add_tmp68 = getelementptr i8, i8* %load_tmp67, i32 1
+  store i8 %cast_tmp66, i8* %ptr_add_tmp68, align 1
+  br label %endif69
 
-endif81:                                          ; preds = %else, %then67
-  %44 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
-  %load_tmp82 = load i32, i32* %44, align 4
-  %45 = icmp sge i32 %load_tmp82, 0
-  br i1 %45, label %then83, label %endif91
+endif69:                                          ; preds = %else, %then57
+  %53 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
+  %load_tmp70 = load i32, i32* %53, align 4
+  %54 = icmp sge i32 %load_tmp70, 0
+  br i1 %54, label %then71, label %endif78
 
-then83:                                           ; preds = %endif81
-  %load_tmp84 = load i8*, i8** %3, align 8
-  %load_tmp85 = load i32, i32* %5, align 4
-  %cast_tmp86 = zext i32 %load_tmp85 to i64
-  %ptr_add_tmp87 = getelementptr i8, i8* %load_tmp84, i64 %cast_tmp86
-  %ptr_add_tmp88 = getelementptr i8, i8* %ptr_add_tmp87, i64 1
-  %46 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
-  %load_tmp89 = load i32, i32* %46, align 4
-  %cast_tmp90 = sext i32 %load_tmp89 to i64
-  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp88, i8 48, i64 %cast_tmp90, i1 false)
+then71:                                           ; preds = %endif69
+  %load_tmp72 = load i8*, i8** %3, align 8
+  %load_tmp73 = load i32, i32* %5, align 4
+  %55 = zext i32 %load_tmp73 to i64
+  %ptr_add_tmp74 = getelementptr i8, i8* %load_tmp72, i64 %55
+  %ptr_add_tmp75 = getelementptr i8, i8* %ptr_add_tmp74, i32 1
+  %56 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
+  %load_tmp76 = load i32, i32* %56, align 4
+  %cast_tmp77 = sext i32 %load_tmp76 to i64
+  call void @llvm.memset.p0i8.i64(i8* %ptr_add_tmp75, i8 48, i64 %cast_tmp77, i1 false)
+  br label %endif78
+
+endif78:                                          ; preds = %then71, %endif69
+  %load_tmp79 = load i32, i32* %6, align 4
+  %57 = icmp sge i32 %load_tmp79, 0
+  br i1 %57, label %then80, label %endif91
+
+then80:                                           ; preds = %endif78
+  %load_tmp81 = load i8*, i8** %3, align 8
+  %load_tmp82 = load i8*, i8** %3, align 8
+  %ptr_add_tmp83 = getelementptr i8, i8* %load_tmp82, i32 1
+  %load_tmp84 = load i32, i32* %6, align 4
+  %add_tmp85 = add i32 %load_tmp84, 1
+  %cast_tmp86 = sext i32 %add_tmp85 to i64
+  call void @llvm.memmove.p0i8.p0i8.i64(i8* %load_tmp81, i8* %ptr_add_tmp83, i64 %cast_tmp86, i1 false)
+  %load_tmp87 = load i8*, i8** %3, align 8
+  %load_tmp88 = load i32, i32* %6, align 4
+  %ptr_add_tmp89 = getelementptr i8, i8* %load_tmp87, i32 %load_tmp88
+  %ptr_add_tmp90 = getelementptr i8, i8* %ptr_add_tmp89, i32 1
+  store i8 46, i8* %ptr_add_tmp90, align 1
   br label %endif91
 
-endif91:                                          ; preds = %then83, %endif81
-  %load_tmp92 = load i32, i32* %6, align 4
-  %47 = icmp sge i32 %load_tmp92, 0
-  br i1 %47, label %then93, label %endif105
-
-then93:                                           ; preds = %endif91
+endif91:                                          ; preds = %then80, %endif78
+  %load_tmp92 = load i32, i32* %5, align 4
+  %add_tmp93 = add i32 %load_tmp92, 1
+  %58 = zext i32 %add_tmp93 to i64
   %load_tmp94 = load i8*, i8** %3, align 8
-  %load_tmp95 = load i8*, i8** %3, align 8
-  %ptr_add_tmp96 = getelementptr i8, i8* %load_tmp95, i64 1
-  %load_tmp97 = load i32, i32* %6, align 4
-  %add_tmp98 = add i32 %load_tmp97, 1
-  %cast_tmp99 = sext i32 %add_tmp98 to i64
-  call void @llvm.memmove.p0i8.p0i8.i64(i8* %load_tmp94, i8* %ptr_add_tmp96, i64 %cast_tmp99, i1 false)
-  %load_tmp100 = load i8*, i8** %3, align 8
-  %load_tmp101 = load i32, i32* %6, align 4
-  %cast_tmp102 = sext i32 %load_tmp101 to i64
-  %ptr_add_tmp103 = getelementptr i8, i8* %load_tmp100, i64 %cast_tmp102
-  %ptr_add_tmp104 = getelementptr i8, i8* %ptr_add_tmp103, i64 1
-  store i8 46, i8* %ptr_add_tmp104, align 1
-  br label %endif105
+  %ptr_add_tmp95 = getelementptr i8, i8* %load_tmp94, i64 %58
+  store i8* %ptr_add_tmp95, i8** %3, align 8
+  %59 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
+  %load_tmp96 = load i32, i32* %59, align 4
+  %60 = icmp sge i32 %load_tmp96, 0
+  br i1 %60, label %then97, label %endif103
 
-endif105:                                         ; preds = %then93, %endif91
-  %load_tmp106 = load i32, i32* %5, align 4
-  %add_tmp107 = add i32 %load_tmp106, 1
-  %cast_tmp108 = zext i32 %add_tmp107 to i64
-  %load_tmp109 = load i8*, i8** %3, align 8
-  %ptr_add_tmp110 = getelementptr i8, i8* %load_tmp109, i64 %cast_tmp108
-  store i8* %ptr_add_tmp110, i8** %3, align 8
-  %48 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
-  %load_tmp111 = load i32, i32* %48, align 4
-  %49 = icmp sge i32 %load_tmp111, 0
-  br i1 %49, label %then112, label %endif119
+then97:                                           ; preds = %endif91
+  %61 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
+  %load_tmp98 = load i32, i32* %61, align 4
+  %load_tmp99 = load i8*, i8** %3, align 8
+  %ptr_add_tmp100 = getelementptr i8, i8* %load_tmp99, i32 %load_tmp98
+  store i8* %ptr_add_tmp100, i8** %3, align 8
+  %load_tmp101 = load i8*, i8** %3, align 8
+  store i8 48, i8* %load_tmp101, align 1
+  %load_tmp102 = load i8*, i8** %3, align 8
+  %62 = getelementptr i8, i8* %load_tmp102, i64 1
+  store i8* %62, i8** %3, align 8
+  br label %endif103
 
-then112:                                          ; preds = %endif105
-  %50 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
-  %load_tmp113 = load i32, i32* %50, align 4
-  %cast_tmp114 = sext i32 %load_tmp113 to i64
-  %load_tmp115 = load i8*, i8** %3, align 8
-  %ptr_add_tmp116 = getelementptr i8, i8* %load_tmp115, i64 %cast_tmp114
-  store i8* %ptr_add_tmp116, i8** %3, align 8
-  %load_tmp117 = load i8*, i8** %3, align 8
-  store i8 48, i8* %load_tmp117, align 1
-  %load_tmp118 = load i8*, i8** %3, align 8
-  %51 = getelementptr i8, i8* %load_tmp118, i64 1
-  store i8* %51, i8** %3, align 8
-  br label %endif119
-
-endif119:                                         ; preds = %then112, %endif105
-  %load_tmp120 = load i8*, i8** %3, align 8
-  %52 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %52)
-  %53 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %53)
-  %54 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %54)
-  %55 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %55)
-  %56 = bitcast i8** %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %56)
-  %57 = bitcast %"struct.std::ryu::floating_decimal_32"* %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %57)
-  ret i8* %load_tmp120
+endif103:                                         ; preds = %then97, %endif91
+  %load_tmp104 = load i8*, i8** %3, align 8
+  %63 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %63)
+  %64 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %64)
+  %65 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %65)
+  %66 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %66)
+  %67 = bitcast i8** %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %67)
+  %68 = bitcast %"struct.std::ryu::floating_decimal_32"* %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %68)
+  ret i8* %load_tmp104
 }
 
 define internal i8* @"func.std.ryu.to_chars_scientific..2.struct.std::ryu::floating_decimal_32.0P.builtin.uint8.0P.builtin.uint8"(i64 %0, i8* %1) {
@@ -10239,8 +10112,8 @@ while_condition_check:                            ; preds = %while, %entry
   br i1 %21, label %while, label %endwhile
 
 endwhile:                                         ; preds = %while_condition_check
-  %load_tmp31 = load i32, i32* %4, align 4
-  %22 = icmp uge i32 %load_tmp31, 100
+  %load_tmp26 = load i32, i32* %4, align 4
+  %22 = icmp uge i32 %load_tmp26, 100
   br i1 %22, label %then, label %endif
 
 while:                                            ; preds = %while_condition_check
@@ -10269,200 +10142,197 @@ while:                                            ; preds = %while_condition_che
   store i32 %lshift_tmp10, i32* %9, align 4
   %load_tmp11 = load i8*, i8** %3, align 8
   %load_tmp12 = load i32, i32* %5, align 4
-  %cast_tmp = zext i32 %load_tmp12 to i64
-  %ptr_add_tmp = getelementptr i8, i8* %load_tmp11, i64 %cast_tmp
+  %26 = zext i32 %load_tmp12 to i64
+  %ptr_add_tmp = getelementptr i8, i8* %load_tmp11, i64 %26
   %load_tmp13 = load i32, i32* %6, align 4
-  %cast_tmp14 = zext i32 %load_tmp13 to i64
-  %26 = sub i64 0, %cast_tmp14
-  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %26
-  %ptr_sub_tmp15 = getelementptr i8, i8* %ptr_sub_tmp, i64 -1
-  %load_tmp16 = load i32, i32* %8, align 4
-  %cast_tmp17 = zext i32 %load_tmp16 to i64
-  %ptr_add_tmp18 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp17
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp15, i8* %ptr_add_tmp18, i64 2, i1 false)
-  %load_tmp19 = load i8*, i8** %3, align 8
-  %load_tmp20 = load i32, i32* %5, align 4
-  %cast_tmp21 = zext i32 %load_tmp20 to i64
-  %ptr_add_tmp22 = getelementptr i8, i8* %load_tmp19, i64 %cast_tmp21
-  %load_tmp23 = load i32, i32* %6, align 4
-  %cast_tmp24 = zext i32 %load_tmp23 to i64
-  %27 = sub i64 0, %cast_tmp24
-  %ptr_sub_tmp25 = getelementptr i8, i8* %ptr_add_tmp22, i64 %27
-  %ptr_sub_tmp26 = getelementptr i8, i8* %ptr_sub_tmp25, i64 -3
-  %load_tmp27 = load i32, i32* %9, align 4
-  %cast_tmp28 = zext i32 %load_tmp27 to i64
-  %ptr_add_tmp29 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp28
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp26, i8* %ptr_add_tmp29, i64 2, i1 false)
-  %load_tmp30 = load i32, i32* %6, align 4
-  %add_tmp = add i32 %load_tmp30, 4
+  %27 = zext i32 %load_tmp13 to i64
+  %28 = sub i64 0, %27
+  %ptr_sub_tmp = getelementptr i8, i8* %ptr_add_tmp, i64 %28
+  %ptr_sub_tmp14 = getelementptr i8, i8* %ptr_sub_tmp, i32 -1
+  %load_tmp15 = load i32, i32* %8, align 4
+  %29 = zext i32 %load_tmp15 to i64
+  %ptr_add_tmp16 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %29
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp14, i8* %ptr_add_tmp16, i64 2, i1 false)
+  %load_tmp17 = load i8*, i8** %3, align 8
+  %load_tmp18 = load i32, i32* %5, align 4
+  %30 = zext i32 %load_tmp18 to i64
+  %ptr_add_tmp19 = getelementptr i8, i8* %load_tmp17, i64 %30
+  %load_tmp20 = load i32, i32* %6, align 4
+  %31 = zext i32 %load_tmp20 to i64
+  %32 = sub i64 0, %31
+  %ptr_sub_tmp21 = getelementptr i8, i8* %ptr_add_tmp19, i64 %32
+  %ptr_sub_tmp22 = getelementptr i8, i8* %ptr_sub_tmp21, i32 -3
+  %load_tmp23 = load i32, i32* %9, align 4
+  %33 = zext i32 %load_tmp23 to i64
+  %ptr_add_tmp24 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %33
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp22, i8* %ptr_add_tmp24, i64 2, i1 false)
+  %load_tmp25 = load i32, i32* %6, align 4
+  %add_tmp = add i32 %load_tmp25, 4
   store i32 %add_tmp, i32* %6, align 4
-  %28 = bitcast i32* %9 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
-  %29 = bitcast i32* %8 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
-  %30 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %30)
+  %34 = bitcast i32* %9 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %34)
+  %35 = bitcast i32* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %35)
+  %36 = bitcast i32* %7 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %36)
   br label %while_condition_check
 
 then:                                             ; preds = %endwhile
-  %31 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %31)
-  %load_tmp32 = load i32, i32* %4, align 4
-  %mod_tmp33 = urem i32 %load_tmp32, 100
-  %lshift_tmp34 = shl i32 %mod_tmp33, 1
-  store i32 %lshift_tmp34, i32* %10, align 4
-  %load_tmp35 = load i32, i32* %4, align 4
-  %div_tmp36 = udiv i32 %load_tmp35, 100
-  store i32 %div_tmp36, i32* %4, align 4
-  %load_tmp37 = load i8*, i8** %3, align 8
-  %load_tmp38 = load i32, i32* %5, align 4
-  %cast_tmp39 = zext i32 %load_tmp38 to i64
-  %ptr_add_tmp40 = getelementptr i8, i8* %load_tmp37, i64 %cast_tmp39
-  %load_tmp41 = load i32, i32* %6, align 4
-  %cast_tmp42 = zext i32 %load_tmp41 to i64
-  %32 = sub i64 0, %cast_tmp42
-  %ptr_sub_tmp43 = getelementptr i8, i8* %ptr_add_tmp40, i64 %32
-  %ptr_sub_tmp44 = getelementptr i8, i8* %ptr_sub_tmp43, i64 -1
-  %load_tmp45 = load i32, i32* %10, align 4
-  %cast_tmp46 = zext i32 %load_tmp45 to i64
-  %ptr_add_tmp47 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp46
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp44, i8* %ptr_add_tmp47, i64 2, i1 false)
-  %load_tmp48 = load i32, i32* %6, align 4
-  %add_tmp49 = add i32 %load_tmp48, 2
-  store i32 %add_tmp49, i32* %6, align 4
-  %33 = bitcast i32* %10 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %33)
+  %37 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %37)
+  %load_tmp27 = load i32, i32* %4, align 4
+  %mod_tmp28 = urem i32 %load_tmp27, 100
+  %lshift_tmp29 = shl i32 %mod_tmp28, 1
+  store i32 %lshift_tmp29, i32* %10, align 4
+  %load_tmp30 = load i32, i32* %4, align 4
+  %div_tmp31 = udiv i32 %load_tmp30, 100
+  store i32 %div_tmp31, i32* %4, align 4
+  %load_tmp32 = load i8*, i8** %3, align 8
+  %load_tmp33 = load i32, i32* %5, align 4
+  %38 = zext i32 %load_tmp33 to i64
+  %ptr_add_tmp34 = getelementptr i8, i8* %load_tmp32, i64 %38
+  %load_tmp35 = load i32, i32* %6, align 4
+  %39 = zext i32 %load_tmp35 to i64
+  %40 = sub i64 0, %39
+  %ptr_sub_tmp36 = getelementptr i8, i8* %ptr_add_tmp34, i64 %40
+  %ptr_sub_tmp37 = getelementptr i8, i8* %ptr_sub_tmp36, i32 -1
+  %load_tmp38 = load i32, i32* %10, align 4
+  %41 = zext i32 %load_tmp38 to i64
+  %ptr_add_tmp39 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %41
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %ptr_sub_tmp37, i8* %ptr_add_tmp39, i64 2, i1 false)
+  %load_tmp40 = load i32, i32* %6, align 4
+  %add_tmp41 = add i32 %load_tmp40, 2
+  store i32 %add_tmp41, i32* %6, align 4
+  %42 = bitcast i32* %10 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %42)
   br label %endif
 
 endif:                                            ; preds = %then, %endwhile
-  %load_tmp50 = load i32, i32* %4, align 4
-  %34 = icmp uge i32 %load_tmp50, 10
-  br i1 %34, label %then51, label %else
+  %load_tmp42 = load i32, i32* %4, align 4
+  %43 = icmp uge i32 %load_tmp42, 10
+  br i1 %43, label %then43, label %else
 
-then51:                                           ; preds = %endif
-  %35 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %35)
-  %load_tmp52 = load i32, i32* %4, align 4
-  %lshift_tmp53 = shl i32 %load_tmp52, 1
-  store i32 %lshift_tmp53, i32* %11, align 4
+then43:                                           ; preds = %endif
+  %44 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %44)
+  %load_tmp44 = load i32, i32* %4, align 4
+  %lshift_tmp45 = shl i32 %load_tmp44, 1
+  store i32 %lshift_tmp45, i32* %11, align 4
+  %load_tmp46 = load i32, i32* %11, align 4
+  %add_tmp47 = add i32 %load_tmp46, 1
+  %45 = zext i32 %add_tmp47 to i64
+  %46 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %45
+  %load_tmp48 = load i8*, i8** %3, align 8
+  %load_tmp49 = load i32, i32* %5, align 4
+  %47 = zext i32 %load_tmp49 to i64
+  %ptr_add_tmp50 = getelementptr i8, i8* %load_tmp48, i64 %47
+  %load_tmp51 = load i32, i32* %6, align 4
+  %48 = zext i32 %load_tmp51 to i64
+  %49 = sub i64 0, %48
+  %ptr_sub_tmp52 = getelementptr i8, i8* %ptr_add_tmp50, i64 %49
+  %load_tmp53 = load i8, i8* %46, align 1
+  store i8 %load_tmp53, i8* %ptr_sub_tmp52, align 1
   %load_tmp54 = load i32, i32* %11, align 4
-  %add_tmp55 = add i32 %load_tmp54, 1
-  %36 = zext i32 %add_tmp55 to i64
-  %37 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %36
-  %load_tmp56 = load i8*, i8** %3, align 8
-  %load_tmp57 = load i32, i32* %5, align 4
-  %cast_tmp58 = zext i32 %load_tmp57 to i64
-  %ptr_add_tmp59 = getelementptr i8, i8* %load_tmp56, i64 %cast_tmp58
-  %load_tmp60 = load i32, i32* %6, align 4
-  %cast_tmp61 = zext i32 %load_tmp60 to i64
-  %38 = sub i64 0, %cast_tmp61
-  %ptr_sub_tmp62 = getelementptr i8, i8* %ptr_add_tmp59, i64 %38
-  %load_tmp63 = load i8, i8* %37, align 1
-  store i8 %load_tmp63, i8* %ptr_sub_tmp62, align 1
-  %load_tmp64 = load i32, i32* %11, align 4
-  %39 = zext i32 %load_tmp64 to i64
-  %40 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %39
-  %load_tmp65 = load i8*, i8** %3, align 8
-  %load_tmp66 = load i8, i8* %40, align 1
-  store i8 %load_tmp66, i8* %load_tmp65, align 1
-  %41 = bitcast i32* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %41)
-  br label %endif72
+  %50 = zext i32 %load_tmp54 to i64
+  %51 = getelementptr [200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i64 0, i64 %50
+  %load_tmp55 = load i8*, i8** %3, align 8
+  %load_tmp56 = load i8, i8* %51, align 1
+  store i8 %load_tmp56, i8* %load_tmp55, align 1
+  %52 = bitcast i32* %11 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %52)
+  br label %endif60
 
 else:                                             ; preds = %endif
-  %load_tmp67 = load i32, i32* %4, align 4
-  %cast_tmp68 = zext i32 %load_tmp67 to i64
-  %42 = trunc i64 %cast_tmp68 to i32
-  %add_tmp69 = add i32 48, %42
-  %cast_tmp70 = trunc i32 %add_tmp69 to i8
-  %load_tmp71 = load i8*, i8** %3, align 8
-  store i8 %cast_tmp70, i8* %load_tmp71, align 1
-  br label %endif72
+  %load_tmp57 = load i32, i32* %4, align 4
+  %add_tmp58 = add i32 48, %load_tmp57
+  %cast_tmp = trunc i32 %add_tmp58 to i8
+  %load_tmp59 = load i8*, i8** %3, align 8
+  store i8 %cast_tmp, i8* %load_tmp59, align 1
+  br label %endif60
 
-endif72:                                          ; preds = %else, %then51
-  %load_tmp73 = load i32, i32* %5, align 4
-  %43 = icmp ugt i32 %load_tmp73, 1
-  br i1 %43, label %then74, label %else82
+endif60:                                          ; preds = %else, %then43
+  %load_tmp61 = load i32, i32* %5, align 4
+  %53 = icmp ugt i32 %load_tmp61, 1
+  br i1 %53, label %then62, label %else69
 
-then74:                                           ; preds = %endif72
-  %load_tmp75 = load i8*, i8** %3, align 8
-  %ptr_add_tmp76 = getelementptr i8, i8* %load_tmp75, i64 1
-  store i8 46, i8* %ptr_add_tmp76, align 1
-  %load_tmp77 = load i32, i32* %5, align 4
-  %add_tmp78 = add i32 %load_tmp77, 1
-  %cast_tmp79 = zext i32 %add_tmp78 to i64
+then62:                                           ; preds = %endif60
+  %load_tmp63 = load i8*, i8** %3, align 8
+  %ptr_add_tmp64 = getelementptr i8, i8* %load_tmp63, i32 1
+  store i8 46, i8* %ptr_add_tmp64, align 1
+  %load_tmp65 = load i32, i32* %5, align 4
+  %add_tmp66 = add i32 %load_tmp65, 1
+  %54 = zext i32 %add_tmp66 to i64
+  %load_tmp67 = load i8*, i8** %3, align 8
+  %ptr_add_tmp68 = getelementptr i8, i8* %load_tmp67, i64 %54
+  store i8* %ptr_add_tmp68, i8** %3, align 8
+  br label %endif71
+
+else69:                                           ; preds = %endif60
+  %load_tmp70 = load i8*, i8** %3, align 8
+  %55 = getelementptr i8, i8* %load_tmp70, i64 1
+  store i8* %55, i8** %3, align 8
+  br label %endif71
+
+endif71:                                          ; preds = %else69, %then62
+  %load_tmp72 = load i8*, i8** %3, align 8
+  store i8 101, i8* %load_tmp72, align 1
+  %load_tmp73 = load i8*, i8** %3, align 8
+  %56 = getelementptr i8, i8* %load_tmp73, i64 1
+  store i8* %56, i8** %3, align 8
+  %57 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.start.p0i8(i64 4, i8* %57)
+  %58 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
+  %load_tmp74 = load i32, i32* %58, align 4
+  %load_tmp75 = load i32, i32* %5, align 4
+  %add_tmp76 = add i32 %load_tmp74, %load_tmp75
+  %sub_tmp77 = sub i32 %add_tmp76, 1
+  store i32 %sub_tmp77, i32* %12, align 4
+  %load_tmp78 = load i32, i32* %12, align 4
+  %59 = icmp slt i32 %load_tmp78, 0
+  br i1 %59, label %then79, label %else83
+
+then79:                                           ; preds = %endif71
   %load_tmp80 = load i8*, i8** %3, align 8
-  %ptr_add_tmp81 = getelementptr i8, i8* %load_tmp80, i64 %cast_tmp79
-  store i8* %ptr_add_tmp81, i8** %3, align 8
-  br label %endif84
-
-else82:                                           ; preds = %endif72
-  %load_tmp83 = load i8*, i8** %3, align 8
-  %44 = getelementptr i8, i8* %load_tmp83, i64 1
-  store i8* %44, i8** %3, align 8
-  br label %endif84
-
-endif84:                                          ; preds = %else82, %then74
-  %load_tmp85 = load i8*, i8** %3, align 8
-  store i8 101, i8* %load_tmp85, align 1
-  %load_tmp86 = load i8*, i8** %3, align 8
-  %45 = getelementptr i8, i8* %load_tmp86, i64 1
-  store i8* %45, i8** %3, align 8
-  %46 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.start.p0i8(i64 4, i8* %46)
-  %47 = getelementptr inbounds %"struct.std::ryu::floating_decimal_32", %"struct.std::ryu::floating_decimal_32"* %2, i32 0, i32 1
-  %load_tmp87 = load i32, i32* %47, align 4
-  %load_tmp88 = load i32, i32* %5, align 4
-  %add_tmp89 = add i32 %load_tmp87, %load_tmp88
-  %sub_tmp90 = sub i32 %add_tmp89, 1
-  store i32 %sub_tmp90, i32* %12, align 4
-  %load_tmp91 = load i32, i32* %12, align 4
-  %48 = icmp slt i32 %load_tmp91, 0
-  br i1 %48, label %then92, label %else96
-
-then92:                                           ; preds = %endif84
-  %load_tmp93 = load i8*, i8** %3, align 8
-  store i8 45, i8* %load_tmp93, align 1
-  %load_tmp94 = load i8*, i8** %3, align 8
-  %49 = getelementptr i8, i8* %load_tmp94, i64 1
-  store i8* %49, i8** %3, align 8
-  %load_tmp95 = load i32, i32* %12, align 4
-  %unary_minus_tmp = sub i32 0, %load_tmp95
+  store i8 45, i8* %load_tmp80, align 1
+  %load_tmp81 = load i8*, i8** %3, align 8
+  %60 = getelementptr i8, i8* %load_tmp81, i64 1
+  store i8* %60, i8** %3, align 8
+  %load_tmp82 = load i32, i32* %12, align 4
+  %unary_minus_tmp = sub i32 0, %load_tmp82
   store i32 %unary_minus_tmp, i32* %12, align 4
-  br label %endif99
+  br label %endif86
 
-else96:                                           ; preds = %endif84
-  %load_tmp97 = load i8*, i8** %3, align 8
-  store i8 43, i8* %load_tmp97, align 1
-  %load_tmp98 = load i8*, i8** %3, align 8
-  %50 = getelementptr i8, i8* %load_tmp98, i64 1
-  store i8* %50, i8** %3, align 8
-  br label %endif99
+else83:                                           ; preds = %endif71
+  %load_tmp84 = load i8*, i8** %3, align 8
+  store i8 43, i8* %load_tmp84, align 1
+  %load_tmp85 = load i8*, i8** %3, align 8
+  %61 = getelementptr i8, i8* %load_tmp85, i64 1
+  store i8* %61, i8** %3, align 8
+  br label %endif86
 
-endif99:                                          ; preds = %else96, %then92
-  %load_tmp100 = load i8*, i8** %3, align 8
-  %load_tmp101 = load i32, i32* %12, align 4
-  %mul_tmp102 = mul i32 2, %load_tmp101
-  %cast_tmp103 = sext i32 %mul_tmp102 to i64
-  %ptr_add_tmp104 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i64 %cast_tmp103
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp100, i8* %ptr_add_tmp104, i64 2, i1 false)
-  %load_tmp105 = load i8*, i8** %3, align 8
-  %ptr_add_tmp106 = getelementptr i8, i8* %load_tmp105, i64 2
-  store i8* %ptr_add_tmp106, i8** %3, align 8
-  %load_tmp107 = load i8*, i8** %3, align 8
-  %51 = bitcast i32* %12 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %51)
-  %52 = bitcast i32* %6 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %52)
-  %53 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %53)
-  %54 = bitcast i32* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %54)
-  %55 = bitcast i8** %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %55)
-  %56 = bitcast %"struct.std::ryu::floating_decimal_32"* %2 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %56)
-  ret i8* %load_tmp107
+endif86:                                          ; preds = %else83, %then79
+  %load_tmp87 = load i8*, i8** %3, align 8
+  %load_tmp88 = load i32, i32* %12, align 4
+  %mul_tmp89 = mul i32 2, %load_tmp88
+  %ptr_add_tmp90 = getelementptr i8, i8* getelementptr inbounds ([200 x i8], [200 x i8]* @std.ryu.DIGIT_TABLE, i32 0, i32 0), i32 %mul_tmp89
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %load_tmp87, i8* %ptr_add_tmp90, i64 2, i1 false)
+  %load_tmp91 = load i8*, i8** %3, align 8
+  %ptr_add_tmp92 = getelementptr i8, i8* %load_tmp91, i32 2
+  store i8* %ptr_add_tmp92, i8** %3, align 8
+  %load_tmp93 = load i8*, i8** %3, align 8
+  %62 = bitcast i32* %12 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %62)
+  %63 = bitcast i32* %6 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %63)
+  %64 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %64)
+  %65 = bitcast i32* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %65)
+  %66 = bitcast i8** %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %66)
+  %67 = bitcast %"struct.std::ryu::floating_decimal_32"* %2 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %67)
+  ret i8* %load_tmp93
 }
 
 define internal double @func.std.ryu.int64Bits2Double..1.builtin.uint64.builtin.float64(i64 %0) {
@@ -10575,7 +10445,7 @@ entry:                                            ; preds = %alloca
   call void @llvm.lifetime.start.p0i8(i64 8, i8* %14)
   %load_tmp = load i64, i64* %3, align 8
   %load_tmp1 = load i64*, i64** %4, align 8
-  %ptr_add_tmp = getelementptr i64, i64* %load_tmp1, i64 1
+  %ptr_add_tmp = getelementptr i64, i64* %load_tmp1, i32 1
   %load_tmp2 = load i64, i64* %ptr_add_tmp, align 8
   %15 = call i64 @func.std.ryu.umul128..3.builtin.uint64.builtin.uint64.0P.builtin.uint64.builtin.uint64(i64 %load_tmp, i64 %load_tmp2, i64* %6)
   store i64 %15, i64* %7, align 8
@@ -10763,31 +10633,31 @@ entry:                                            ; preds = %alloca
   br i1 %11, label %then, label %else
 
 then:                                             ; preds = %entry
-  %load_tmp8 = load i64, i64* %3, align 8
+  %load_tmp7 = load i64, i64* %3, align 8
   br label %endif
 
 else:                                             ; preds = %entry
   %load_tmp3 = load i64, i64* %4, align 8
   %load_tmp4 = load i32, i32* %5, align 4
   %sub_tmp = sub i32 64, %load_tmp4
-  %cast_tmp = zext i32 %sub_tmp to i64
-  %lshift_tmp = shl i64 %load_tmp3, %cast_tmp
+  %12 = zext i32 %sub_tmp to i64
+  %lshift_tmp = shl i64 %load_tmp3, %12
   %load_tmp5 = load i64, i64* %3, align 8
   %load_tmp6 = load i32, i32* %5, align 4
-  %cast_tmp7 = zext i32 %load_tmp6 to i64
-  %rshift_tmp = lshr i64 %load_tmp5, %cast_tmp7
+  %13 = zext i32 %load_tmp6 to i64
+  %rshift_tmp = lshr i64 %load_tmp5, %13
   %bit_or_tmp = or i64 %lshift_tmp, %rshift_tmp
   br label %endif
 
 endif:                                            ; preds = %else, %then
-  %12 = phi i64 [ %load_tmp8, %then ], [ %bit_or_tmp, %else ]
-  %13 = bitcast i32* %5 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %13)
-  %14 = bitcast i64* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %14)
-  %15 = bitcast i64* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %15)
-  ret i64 %12
+  %14 = phi i64 [ %load_tmp7, %then ], [ %bit_or_tmp, %else ]
+  %15 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %15)
+  %16 = bitcast i64* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %16)
+  %17 = bitcast i64* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %17)
+  ret i64 %14
 }
 
 define internal i64 @func.std.ryu.div1e8..1.builtin.uint64.builtin.uint64(i64 %0) {
@@ -10890,33 +10760,33 @@ entry:                                            ; preds = %alloca
   %load_tmp16 = load i64, i64* %10, align 8
   %load_tmp17 = load i32, i32* %5, align 4
   %sub_tmp = sub i32 %load_tmp17, 32
-  %cast_tmp18 = zext i32 %sub_tmp to i64
-  %rshift_tmp19 = lshr i64 %load_tmp16, %cast_tmp18
-  store i64 %rshift_tmp19, i64* %11, align 8
+  %22 = zext i32 %sub_tmp to i64
+  %rshift_tmp18 = lshr i64 %load_tmp16, %22
+  store i64 %rshift_tmp18, i64* %11, align 8
+  %load_tmp19 = load i64, i64* %11, align 8
+  %23 = icmp ule i64 %load_tmp19, 4294967295
+  call void @func.std.assert..1.builtin.bool.void(i1 %23)
   %load_tmp20 = load i64, i64* %11, align 8
-  %22 = icmp ule i64 %load_tmp20, 4294967295
-  call void @func.std.assert..1.builtin.bool.void(i1 %22)
-  %load_tmp21 = load i64, i64* %11, align 8
-  %cast_tmp22 = trunc i64 %load_tmp21 to i32
-  %23 = bitcast i64* %11 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %23)
-  %24 = bitcast i64* %10 to i8*
+  %cast_tmp21 = trunc i64 %load_tmp20 to i32
+  %24 = bitcast i64* %11 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %24)
-  %25 = bitcast i64* %9 to i8*
+  %25 = bitcast i64* %10 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %25)
-  %26 = bitcast i64* %8 to i8*
+  %26 = bitcast i64* %9 to i8*
   call void @llvm.lifetime.end.p0i8(i64 8, i8* %26)
-  %27 = bitcast i32* %7 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %27)
-  %28 = bitcast i32* %6 to i8*
+  %27 = bitcast i64* %8 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %27)
+  %28 = bitcast i32* %7 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %28)
-  %29 = bitcast i32* %5 to i8*
+  %29 = bitcast i32* %6 to i8*
   call void @llvm.lifetime.end.p0i8(i64 4, i8* %29)
-  %30 = bitcast i64* %4 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 8, i8* %30)
-  %31 = bitcast i32* %3 to i8*
-  call void @llvm.lifetime.end.p0i8(i64 4, i8* %31)
-  ret i32 %cast_tmp22
+  %30 = bitcast i32* %5 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %30)
+  %31 = bitcast i64* %4 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 8, i8* %31)
+  %32 = bitcast i32* %3 to i8*
+  call void @llvm.lifetime.end.p0i8(i64 4, i8* %32)
+  ret i32 %cast_tmp21
 }
 
 define internal i32 @func.std.ryu.pow5factor_32..1.builtin.uint32.builtin.uint32(i32 %0) {
