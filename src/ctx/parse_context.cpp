@@ -4059,6 +4059,19 @@ ast::expression parse_context::make_function_call_expression(
 			this->add_to_resolve_queue(called.src_tokens, *info);
 			resolve::resolve_type_info(*info, *this);
 			this->pop_resolve_queue();
+
+			if (info->is_generic())
+			{
+				this->report_error(
+					src_tokens,
+					bz::format("cannot call constructor of generic type '{}'", called_type)
+				);
+				return ast::make_error_expression(
+					src_tokens,
+					ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
+				);
+			}
+
 			auto const possible_funcs = info->constructors
 				.transform([&](auto const ctor_decl) {
 					return possible_func_t{
