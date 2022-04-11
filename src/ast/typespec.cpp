@@ -253,9 +253,10 @@ void typespec::move_from(typespec_view pos, typespec &&source)
 }
 
 
-typespec_view remove_lvalue_reference(typespec_view ts) noexcept
+template<typename ...Kinds>
+static typespec_view remove_kind_helper(typespec_view ts) noexcept
 {
-	if (ts.nodes.size() != 0 && ts.nodes.front().is<ts_lvalue_reference>())
+	if (ts.nodes.size() != 0 && (ts.nodes.front().is<Kinds>() || ...))
 	{
 		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
 	}
@@ -263,33 +264,26 @@ typespec_view remove_lvalue_reference(typespec_view ts) noexcept
 	{
 		return ts;
 	}
+}
+
+typespec_view remove_lvalue_reference(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference>(ts);
 }
 
 typespec_view remove_pointer(typespec_view ts) noexcept
 {
-	if (ts.nodes.size() != 0 && ts.nodes.front().is<ts_pointer>())
-	{
-		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
-	}
-	else
-	{
-		return ts;
-	}
+	return remove_kind_helper<ts_pointer>(ts);
 }
 
 typespec_view remove_const_or_consteval(typespec_view ts) noexcept
 {
-	if (
-		ts.nodes.size() != 0
-		&&(ts.nodes.front().is<ast::ts_const>() || ts.nodes.front().is<ast::ts_consteval>())
-	)
-	{
-		return typespec_view{ ts.src_tokens, { ts.nodes.begin() + 1, ts.nodes.end() } };
-	}
-	else
-	{
-		return ts;
-	}
+	return remove_kind_helper<ts_const, ts_consteval>(ts);
+}
+
+typespec_view remove_lvalue_or_move_reference(typespec_view ts) noexcept
+{
+	return remove_kind_helper<ts_lvalue_reference, ts_move_reference>(ts);
 }
 
 bool is_complete(typespec_view ts) noexcept
@@ -423,7 +417,7 @@ bool is_default_constructible(typespec_view ts) noexcept
 	{
 		return is_default_constructible(ts.get<ts_array>().elem_type);
 	}
-	else if (ts.is<ts_pointer>())
+	else if (ts.is<ts_pointer>() || ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
 	{
 		return false;
 	}
@@ -567,7 +561,7 @@ bool is_default_zero_initialized(typespec_view ts) noexcept
 	{
 		return is_default_zero_initialized(ts.get<ts_array>().elem_type);
 	}
-	else if (ts.is<ts_pointer>())
+	else if (ts.is<ts_pointer>() || ts.is<ts_lvalue_reference>() || ts.is<ts_move_reference>())
 	{
 		return false;
 	}

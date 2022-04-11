@@ -127,8 +127,8 @@ struct comptime_executor_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 
-	llvm::Value *get_variable(ast::decl_variable const *var_decl) const;
-	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val);
+	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
+	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type);
 
 	void add_global_variable(ast::decl_variable const *var_decl);
 
@@ -189,13 +189,13 @@ struct comptime_executor_context
 
 	llvm::Value *create_bitcast(bc::val_ptr val, llvm::Type *dest_type);
 	llvm::Value *create_cast_to_int(bc::val_ptr val);
-	llvm::Value *create_load(llvm::Value *ptr, bz::u8string_view name = "");
-	llvm::Value *create_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
-	llvm::Value *create_gep(llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name = "");
-	llvm::Value *create_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
-	llvm::Value *create_gep(llvm::Value *ptr, bz::array_view<llvm::Value * const> indces, bz::u8string_view name = "");
-	llvm::Value *create_struct_gep(llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
-	llvm::Value *create_array_gep(llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
+	llvm::Value *create_load(llvm::Type *type, llvm::Value *ptr, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx0, uint64_t idx1, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
+	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, bz::array_view<llvm::Value * const> indces, bz::u8string_view name = "");
+	llvm::Value *create_struct_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
+	llvm::Value *create_array_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
 
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
@@ -216,6 +216,7 @@ struct comptime_executor_context
 	llvm::Type *get_isize_t(void) const;
 	llvm::StructType *get_slice_t(llvm::Type *elem_type) const;
 	llvm::StructType *get_tuple_t(bz::array_view<llvm::Type * const> types) const;
+	llvm::PointerType *get_opaque_pointer_t(void) const;
 
 	bool has_terminator(void) const;
 	static bool has_terminator(llvm::BasicBlock *bb);
@@ -288,7 +289,7 @@ struct comptime_executor_context
 	parse_context *current_parse_ctx = nullptr;
 	llvm::Module *current_module = nullptr;
 
-	std::unordered_map<ast::decl_variable const *, llvm::Value    *> vars_{};
+	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
 	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
 

@@ -396,7 +396,7 @@ function swap(a: &string, b: &string)
 
 // copied from std::format
 
-@no_runtime_emit
+@__no_runtime_emit
 consteval max_uint_string_length = 20uz;
 
 function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
@@ -422,7 +422,7 @@ function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint
 	return result;
 }
 
-@no_runtime_emit
+@__no_runtime_emit
 consteval max_int_string_length = 20uz;
 
 function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_string_length: uint8], uint32]
@@ -553,16 +553,16 @@ function swap(a: &error_t, b: &error_t)
 	a.call_stack.swap(b.call_stack);
 }
 
-@no_runtime_emit
-@comptime_error_checking("errors_var")
+@__no_runtime_emit
+@__comptime_error_checking("errors_var")
 let errors = vector<error_t>[ null, null, null ];
 
-@no_runtime_emit
-@comptime_error_checking("call_stack_var")
+@__no_runtime_emit
+@__comptime_error_checking("call_stack_var")
 let call_stack = vector<uint64>[ null, null, null ];
 
 
-@comptime_error_checking("cleanup")
+@__comptime_error_checking("cleanup")
 function cleanup()
 {
 	__builtin_call_destructor(global_strings);
@@ -571,43 +571,43 @@ function cleanup()
 	__builtin_call_destructor(call_stack);
 }
 
-@comptime_error_checking("get_error_count")
+@__comptime_error_checking("get_error_count")
 function get_error_count() -> uint64
 {
 	return errors.size();
 }
 
-@comptime_error_checking("get_error_kind_by_index")
+@__comptime_error_checking("get_error_kind_by_index")
 function get_error_kind_by_index(i: uint64) -> uint32
 {
 	return if (i < errors.size()) { errors[i].kind } else { 0u32 };
 }
 
-@comptime_error_checking("get_error_begin_by_index")
+@__comptime_error_checking("get_error_begin_by_index")
 function get_error_begin_by_index(i: uint64) -> uint64
 {
 	return if (i < errors.size()) { errors[i].src_tokens.begin } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_pivot_by_index")
+@__comptime_error_checking("get_error_pivot_by_index")
 function get_error_pivot_by_index(i: uint64) -> uint64
 {
 	return if (i < errors.size()) { errors[i].src_tokens.pivot } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_end_by_index")
+@__comptime_error_checking("get_error_end_by_index")
 function get_error_end_by_index(i: uint64) -> uint64
 {
 	return if (i < errors.size()) { errors[i].src_tokens.end } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_message_size_by_index")
+@__comptime_error_checking("get_error_message_size_by_index")
 function get_error_message_size_by_index(i: uint64) -> uint64
 {
 	return if (i < errors.size()) { errors[i].message.size() } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_message_by_index")
+@__comptime_error_checking("get_error_message_by_index")
 function get_error_message_char_by_index(i: uint64, buffer: *uint8)
 {
 	if (i < errors.size())
@@ -616,19 +616,19 @@ function get_error_message_char_by_index(i: uint64, buffer: *uint8)
 	}
 }
 
-@comptime_error_checking("get_error_call_stack_size_by_index")
+@__comptime_error_checking("get_error_call_stack_size_by_index")
 function get_error_call_stack_size_by_index(i: uint64) -> uint64
 {
 	return if (i < errors.size()) { errors[i].call_stack.size() } else { 0u64 };
 }
 
-@comptime_error_checking("get_error_call_stack_element_by_index")
+@__comptime_error_checking("get_error_call_stack_element_by_index")
 function get_error_call_stack_element_by_index(i: uint64, j: uint64) -> uint64
 {
 	return if (i < errors.size() && j < errors[i].call_stack.size()) { errors[i].call_stack[j] } else { 0u64 };
 }
 
-@comptime_error_checking("has_errors")
+@__comptime_error_checking("has_errors")
 function has_errors() -> bool
 {
 	for (let &const error in errors.as_slice())
@@ -651,26 +651,26 @@ function str_from_c_str(c_str: *const uint8) -> str
 	return __builtin_str_from_ptrs(c_str, it);
 }
 
-@comptime_error_checking("add_error")
+@__comptime_error_checking("add_error")
 function add_error(kind: uint32, begin: uint64, pivot: uint64, end: uint64, message: *const uint8)
 {
 	const message_str = str_from_c_str(message);
 	errors.push_back(error_t[ kind, src_tokens_t[ begin, pivot, end ], string(message_str), call_stack ]);
 }
 
-@comptime_error_checking("push_call")
+@__comptime_error_checking("push_call")
 function push_call(call: uint64)
 {
 	call_stack.push_back(call);
 }
 
-@comptime_error_checking("pop_call")
+@__comptime_error_checking("pop_call")
 function pop_call()
 {
 	call_stack.pop_back();
 }
 
-@comptime_error_checking("clear_errors")
+@__comptime_error_checking("clear_errors")
 function clear_errors()
 {
 	errors.clear();
@@ -714,11 +714,11 @@ function swap(a: &malloc_info_t, b: &malloc_info_t)
 	a.free_call_stack.swap(b.free_call_stack);
 }
 
-@no_runtime_emit
-@comptime_error_checking("malloc_infos_var")
+@__no_runtime_emit
+@__comptime_error_checking("malloc_infos_var")
 let malloc_infos = vector<malloc_info_t>[ null, null, null ];
 
-@comptime_error_checking("register_malloc")
+@__comptime_error_checking("register_malloc")
 function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64, end: uint64)
 {
 	for (let &malloc_info in malloc_infos.as_slice())
@@ -738,7 +738,7 @@ function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64,
 	malloc_infos.push_back(malloc_info_t(ptr, size, src_tokens_t[ begin, pivot, end ]));
 }
 
-@comptime_error_checking("register_free")
+@__comptime_error_checking("register_free")
 function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (ptr == null)
@@ -768,7 +768,7 @@ function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -
 	return false;
 }
 
-@comptime_error_checking("check_leaks")
+@__comptime_error_checking("check_leaks")
 function check_leaks() -> bool
 {
 	const has_previous_errors = has_errors();
@@ -823,7 +823,7 @@ function make_index_error_message(index: isize, size: usize) -> string
 	}
 }
 
-@comptime_error_checking("index_check_unsigned")
+@__comptime_error_checking("index_check_unsigned")
 function index_check_unsigned(
 	index: usize,
 	size: usize,
@@ -844,7 +844,7 @@ function index_check_unsigned(
 	}
 }
 
-@comptime_error_checking("index_check_signed")
+@__comptime_error_checking("index_check_signed")
 function index_check_signed(
 	index: isize,
 	size: usize,
@@ -873,7 +873,7 @@ function make_malloc_error_message(size: usize) -> string
 	return result.release();
 }
 
-@comptime_error_checking("comptime_malloc_check")
+@__comptime_error_checking("comptime_malloc_check")
 function comptime_malloc_check(
 	ptr: *void,
 	size: usize,
@@ -894,7 +894,7 @@ function comptime_malloc_check(
 	}
 }
 
-@comptime_error_checking("comptime_memcpy_check")
+@__comptime_error_checking("comptime_memcpy_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
@@ -924,7 +924,7 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 	}
 }
 
-@comptime_error_checking("comptime_memmove_check")
+@__comptime_error_checking("comptime_memmove_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
@@ -949,7 +949,7 @@ function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usi
 	}
 }
 
-@comptime_error_checking("comptime_memset_check")
+@__comptime_error_checking("comptime_memset_check")
 // dest is passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
@@ -1006,7 +1006,7 @@ function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint
 	return result.release();
 }
 
-@comptime_error_checking("i8_divide_check")
+@__comptime_error_checking("i8_divide_check")
 function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i8_min = (((1u8 << 7) as int8));
@@ -1029,7 +1029,7 @@ function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end
 	}
 }
 
-@comptime_error_checking("i16_divide_check")
+@__comptime_error_checking("i16_divide_check")
 function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i16_min = (((1u16 << 15) as int16));
@@ -1052,7 +1052,7 @@ function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, 
 	}
 }
 
-@comptime_error_checking("i32_divide_check")
+@__comptime_error_checking("i32_divide_check")
 function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i32_min = (((1u32 << 31) as int32));
@@ -1075,7 +1075,7 @@ function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, 
 	}
 }
 
-@comptime_error_checking("i64_divide_check")
+@__comptime_error_checking("i64_divide_check")
 function i64_divide_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i64_min = (((1u64 << 63) as int64));
@@ -1098,7 +1098,7 @@ function i64_divide_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, 
 	}
 }
 
-@comptime_error_checking("u8_divide_check")
+@__comptime_error_checking("u8_divide_check")
 function u8_divide_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (rhs == 0u)
@@ -1113,7 +1113,7 @@ function u8_divide_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, e
 	}
 }
 
-@comptime_error_checking("u16_divide_check")
+@__comptime_error_checking("u16_divide_check")
 function u16_divide_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (rhs == 0u)
@@ -1128,7 +1128,7 @@ function u16_divide_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64
 	}
 }
 
-@comptime_error_checking("u32_divide_check")
+@__comptime_error_checking("u32_divide_check")
 function u32_divide_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (rhs == 0u)
@@ -1143,7 +1143,7 @@ function u32_divide_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64
 	}
 }
 
-@comptime_error_checking("u64_divide_check")
+@__comptime_error_checking("u64_divide_check")
 function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (rhs == 0u)
@@ -1188,7 +1188,7 @@ function isnan(x: float64) -> bool
 	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
 }
 
-@comptime_error_checking("exp_f32_check")
+@__comptime_error_checking("exp_f32_check")
 function exp_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1198,7 +1198,7 @@ function exp_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("exp_f64_check")
+@__comptime_error_checking("exp_f64_check")
 function exp_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1208,7 +1208,7 @@ function exp_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("exp2_f32_check")
+@__comptime_error_checking("exp2_f32_check")
 function exp2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1218,7 +1218,7 @@ function exp2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("exp2_f64_check")
+@__comptime_error_checking("exp2_f64_check")
 function exp2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1228,7 +1228,7 @@ function exp2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("expm1_f32_check")
+@__comptime_error_checking("expm1_f32_check")
 function expm1_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1238,7 +1238,7 @@ function expm1_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("expm1_f64_check")
+@__comptime_error_checking("expm1_f64_check")
 function expm1_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1248,7 +1248,7 @@ function expm1_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("log_f32_check")
+@__comptime_error_checking("log_f32_check")
 function log_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1263,7 +1263,7 @@ function log_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("log_f64_check")
+@__comptime_error_checking("log_f64_check")
 function log_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1278,7 +1278,7 @@ function log_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("log10_f32_check")
+@__comptime_error_checking("log10_f32_check")
 function log10_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1293,7 +1293,7 @@ function log10_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("log10_f64_check")
+@__comptime_error_checking("log10_f64_check")
 function log10_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1308,7 +1308,7 @@ function log10_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("log2_f32_check")
+@__comptime_error_checking("log2_f32_check")
 function log2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1323,7 +1323,7 @@ function log2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("log2_f64_check")
+@__comptime_error_checking("log2_f64_check")
 function log2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1338,7 +1338,7 @@ function log2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("log1p_f32_check")
+@__comptime_error_checking("log1p_f32_check")
 function log1p_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1353,7 +1353,7 @@ function log1p_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("log1p_f64_check")
+@__comptime_error_checking("log1p_f64_check")
 function log1p_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1368,7 +1368,7 @@ function log1p_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("sqrt_f32_check")
+@__comptime_error_checking("sqrt_f32_check")
 function sqrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1383,7 +1383,7 @@ function sqrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("sqrt_f64_check")
+@__comptime_error_checking("sqrt_f64_check")
 function sqrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1398,7 +1398,7 @@ function sqrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("pow_f32_check")
+@__comptime_error_checking("pow_f32_check")
 function pow_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1408,7 +1408,7 @@ function pow_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, end
 	return true;
 }
 
-@comptime_error_checking("pow_f64_check")
+@__comptime_error_checking("pow_f64_check")
 function pow_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1418,7 +1418,7 @@ function pow_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, end
 	return true;
 }
 
-@comptime_error_checking("cbrt_f32_check")
+@__comptime_error_checking("cbrt_f32_check")
 function cbrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1428,7 +1428,7 @@ function cbrt_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("cbrt_f64_check")
+@__comptime_error_checking("cbrt_f64_check")
 function cbrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1438,7 +1438,7 @@ function cbrt_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("hypot_f32_check")
+@__comptime_error_checking("hypot_f32_check")
 function hypot_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1448,7 +1448,7 @@ function hypot_f32_check(x: float32, y: float32, begin: uint64, pivot: uint64, e
 	return true;
 }
 
-@comptime_error_checking("hypot_f64_check")
+@__comptime_error_checking("hypot_f64_check")
 function hypot_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1458,7 +1458,7 @@ function hypot_f64_check(x: float64, y: float64, begin: uint64, pivot: uint64, e
 	return true;
 }
 
-@comptime_error_checking("sin_f32_check")
+@__comptime_error_checking("sin_f32_check")
 function sin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1468,7 +1468,7 @@ function sin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("sin_f64_check")
+@__comptime_error_checking("sin_f64_check")
 function sin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1478,7 +1478,7 @@ function sin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("cos_f32_check")
+@__comptime_error_checking("cos_f32_check")
 function cos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1488,7 +1488,7 @@ function cos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("cos_f64_check")
+@__comptime_error_checking("cos_f64_check")
 function cos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1498,7 +1498,7 @@ function cos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("tan_f32_check")
+@__comptime_error_checking("tan_f32_check")
 function tan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1508,7 +1508,7 @@ function tan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("tan_f64_check")
+@__comptime_error_checking("tan_f64_check")
 function tan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1518,7 +1518,7 @@ function tan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("asin_f32_check")
+@__comptime_error_checking("asin_f32_check")
 function asin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1533,7 +1533,7 @@ function asin_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("asin_f64_check")
+@__comptime_error_checking("asin_f64_check")
 function asin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1548,7 +1548,7 @@ function asin_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("acos_f32_check")
+@__comptime_error_checking("acos_f32_check")
 function acos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1563,7 +1563,7 @@ function acos_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("acos_f64_check")
+@__comptime_error_checking("acos_f64_check")
 function acos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1578,7 +1578,7 @@ function acos_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("atan_f32_check")
+@__comptime_error_checking("atan_f32_check")
 function atan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1588,7 +1588,7 @@ function atan_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("atan_f64_check")
+@__comptime_error_checking("atan_f64_check")
 function atan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1598,7 +1598,7 @@ function atan_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("atan2_f32_check")
+@__comptime_error_checking("atan2_f32_check")
 function atan2_f32_check(y: float32, x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1608,7 +1608,7 @@ function atan2_f32_check(y: float32, x: float32, begin: uint64, pivot: uint64, e
 	return true;
 }
 
-@comptime_error_checking("atan2_f64_check")
+@__comptime_error_checking("atan2_f64_check")
 function atan2_f64_check(y: float64, x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x) || isnan(y))
@@ -1618,7 +1618,7 @@ function atan2_f64_check(y: float64, x: float64, begin: uint64, pivot: uint64, e
 	return true;
 }
 
-@comptime_error_checking("sinh_f32_check")
+@__comptime_error_checking("sinh_f32_check")
 function sinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1628,7 +1628,7 @@ function sinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("sinh_f64_check")
+@__comptime_error_checking("sinh_f64_check")
 function sinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1638,7 +1638,7 @@ function sinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("cosh_f32_check")
+@__comptime_error_checking("cosh_f32_check")
 function cosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1648,7 +1648,7 @@ function cosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("cosh_f64_check")
+@__comptime_error_checking("cosh_f64_check")
 function cosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1658,7 +1658,7 @@ function cosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("tanh_f32_check")
+@__comptime_error_checking("tanh_f32_check")
 function tanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1668,7 +1668,7 @@ function tanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("tanh_f64_check")
+@__comptime_error_checking("tanh_f64_check")
 function tanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1678,7 +1678,7 @@ function tanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("asinh_f32_check")
+@__comptime_error_checking("asinh_f32_check")
 function asinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1688,7 +1688,7 @@ function asinh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("asinh_f64_check")
+@__comptime_error_checking("asinh_f64_check")
 function asinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1698,7 +1698,7 @@ function asinh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("acosh_f32_check")
+@__comptime_error_checking("acosh_f32_check")
 function acosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1713,7 +1713,7 @@ function acosh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("acosh_f64_check")
+@__comptime_error_checking("acosh_f64_check")
 function acosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1728,7 +1728,7 @@ function acosh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("atanh_f32_check")
+@__comptime_error_checking("atanh_f32_check")
 function atanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1743,7 +1743,7 @@ function atanh_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("atanh_f64_check")
+@__comptime_error_checking("atanh_f64_check")
 function atanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1758,7 +1758,7 @@ function atanh_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 	return true;
 }
 
-@comptime_error_checking("erf_f32_check")
+@__comptime_error_checking("erf_f32_check")
 function erf_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1768,7 +1768,7 @@ function erf_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("erf_f64_check")
+@__comptime_error_checking("erf_f64_check")
 function erf_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1778,7 +1778,7 @@ function erf_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 	return true;
 }
 
-@comptime_error_checking("erfc_f32_check")
+@__comptime_error_checking("erfc_f32_check")
 function erfc_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1788,7 +1788,7 @@ function erfc_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("erfc_f64_check")
+@__comptime_error_checking("erfc_f64_check")
 function erfc_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1798,7 +1798,7 @@ function erfc_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 	return true;
 }
 
-@comptime_error_checking("tgamma_f32_check")
+@__comptime_error_checking("tgamma_f32_check")
 function tgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1813,7 +1813,7 @@ function tgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64)
 	return true;
 }
 
-@comptime_error_checking("tgamma_f64_check")
+@__comptime_error_checking("tgamma_f64_check")
 function tgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1828,7 +1828,7 @@ function tgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64)
 	return true;
 }
 
-@comptime_error_checking("lgamma_f32_check")
+@__comptime_error_checking("lgamma_f32_check")
 function lgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1843,7 +1843,7 @@ function lgamma_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64)
 	return true;
 }
 
-@comptime_error_checking("lgamma_f64_check")
+@__comptime_error_checking("lgamma_f64_check")
 function lgamma_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (isnan(x))
@@ -1881,8 +1881,8 @@ consteval function __builtin_comptime_compile_warning_src_tokens(message: str, b
 	emit_diagnostic(warning_kind_comptime_warning, message, begin, pivot, end);
 }
 
-@no_runtime_emit
-@comptime_error_checking("global_strings_var")
+@__no_runtime_emit
+@__comptime_error_checking("global_strings_var")
 let global_strings = vector<string>[ null, null, null ];
 
 @__builtin

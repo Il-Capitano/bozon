@@ -10,7 +10,6 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
@@ -61,10 +60,11 @@
 
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/MC/MCAsmInfo.h>
+#include <llvm/MC/TargetRegistry.h>
 
-#if LLVM_VERSION_MAJOR < 13
-#error LLVM 13 is required
-#endif // LLVM 13
+#if LLVM_VERSION_MAJOR < 14
+#error LLVM 14 is required
+#endif // LLVM 14
 
 namespace ctx
 {
@@ -178,6 +178,24 @@ bz::array_view<uint32_t const> global_context::get_builtin_universal_functions(b
 	else
 	{
 		return {};
+	}
+}
+
+resolve::attribute_info_t *global_context::get_builtin_attribute(bz::u8string_view name)
+{
+	auto const it = std::find_if(
+		this->_builtin_attributes.begin(), this->_builtin_attributes.end(),
+		[name](auto const &attr) {
+			return attr.name == name;
+		}
+	);
+	if (it == this->_builtin_attributes.end())
+	{
+		return nullptr;
+	}
+	else
+	{
+		return &*it;
 	}
 }
 
@@ -644,7 +662,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	auto const features = "";
 
 	llvm::TargetOptions options;
-	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	auto rm = llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
 	this->_target_machine.reset(this->_target->createTargetMachine(target_triple, cpu, features, options, rm));
 	bz_assert(this->_target_machine);
 	this->_data_layout = this->_target_machine->createDataLayout();
@@ -657,10 +675,9 @@ void global_context::report_and_clear_errors_and_warnings(void)
 [[nodiscard]] bool global_context::initialize_builtins(void)
 {
 	auto const pointer_size = this->_data_layout->getPointerSize();
-	this->_builtin_types     = ast::make_builtin_types    (this->_builtin_type_infos, pointer_size);
-	// this->_builtin_functions = ast::make_builtin_functions(this->_builtin_type_infos, pointer_size);
+	this->_builtin_types      = ast::make_builtin_types(this->_builtin_type_infos, pointer_size);
+	this->_builtin_attributes = resolve::make_attribute_infos(this->_builtin_type_infos);
 	this->_builtin_functions.resize(ast::function_body::_builtin_last - ast::function_body::_builtin_first, nullptr);
-	// this->_builtin_operators = ast::make_builtin_operators(this->_builtin_type_infos);
 
 	auto const stdlib_dir_sv = std::string_view(stdlib_dir.data_as_char_ptr(), stdlib_dir.size());
 

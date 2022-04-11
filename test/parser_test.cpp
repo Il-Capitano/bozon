@@ -1,6 +1,7 @@
 #include "parse/parse_common.cpp"
 #include "parse/expression_parser.cpp"
 #include "parse/statement_parser.cpp"
+#include "resolve/attribute_resolver.cpp"
 #include "resolve/expression_resolver.cpp"
 #include "resolve/statement_resolver.cpp"
 
