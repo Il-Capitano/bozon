@@ -21,6 +21,15 @@ static void emit_bitcode(
 	Context &context
 );
 
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_copy_constructor(
+	lex::src_tokens const &src_tokens,
+	val_ptr expr_val,
+	ast::typespec_view expr_type,
+	Context &context,
+	llvm::Value *result_address
+);
+
 template<typename Context>
 static constexpr bool is_comptime = bz::meta::is_same<Context, ctx::comptime_executor_context>;
 
