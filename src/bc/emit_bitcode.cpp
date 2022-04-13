@@ -1,8 +1,25 @@
 #include "emit_bitcode.h"
 #include "global_data.h"
+#include "colors.h"
+#include "ctx/global_context.h"
+
+#include <llvm/IR/Verifier.h>
 
 namespace bc
 {
+
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_bitcode(
+	ast::expression const &expr,
+	Context &context,
+	llvm::Value *result_address
+);
+
+template<abi::platform_abi abi, typename Context>
+static void emit_bitcode(
+	ast::statement const &stmt,
+	Context &context
+);
 
 template<typename Context>
 static constexpr bool is_comptime = bz::meta::is_same<Context, ctx::comptime_executor_context>;
@@ -185,6 +202,36 @@ static void emit_error(
 	auto const continue_bb = context.add_basic_block("error_dummy_continue");
 	context.builder.CreateCondBr(llvm::ConstantInt::getFalse(context.get_llvm_context()), continue_bb, context.error_bb);
 	context.builder.SetInsertPoint(continue_bb);
+}
+
+[[nodiscard]] llvm::Value *emit_push_call(
+	lex::src_tokens src_tokens,
+	ast::function_body const *func_body,
+	ctx::comptime_executor_context &context
+)
+{
+	if (!context.do_error_checking())
+	{
+		return nullptr;
+	}
+	auto const call_ptr = context.insert_call(src_tokens, func_body);
+	auto const call_ptr_int_val = llvm::ConstantInt::get(
+		context.get_uint64_t(),
+		reinterpret_cast<uint64_t>(call_ptr)
+	);
+	auto const error_count = emit_get_error_count(context);
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::push_call), { call_ptr_int_val });
+	return error_count;
+}
+
+void emit_pop_call(llvm::Value *pre_call_error_count, ctx::comptime_executor_context &context)
+{
+	if (!context.do_error_checking())
+	{
+		return;
+	}
+	context.builder.CreateCall(context.get_comptime_function(ctx::comptime_function_kind::pop_call));
+	emit_error_check(pre_call_error_count, context);
 }
 
 template<abi::platform_abi abi, bool push_to_front = false, typename Context>
@@ -394,7 +441,15 @@ static void push_destructor_call(
 		}
 		if (info.destructor != nullptr)
 		{
-			context.push_destructor_call(src_tokens, &info.destructor->body, ptr);
+			if constexpr (is_comptime<Context>)
+			{
+				context.push_destructor_call(src_tokens, &info.destructor->body, ptr);
+			}
+			else
+			{
+				auto const dtor_func = context.get_function(&info.destructor->body);
+				context.push_destructor_call(dtor_func, ptr);
+			}
 		}
 	}
 	else if (type.is<ast::ts_tuple>())
@@ -480,12 +535,12 @@ static void emit_destructor_call(
 	}
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static val_ptr emit_copy_constructor(
 	lex::src_tokens const &src_tokens,
 	val_ptr expr_val,
 	ast::typespec_view expr_type,
-	ctx::comptime_executor_context &context,
+	Context &context,
 	llvm::Value *result_address
 )
 {
@@ -661,7 +716,7 @@ static val_ptr emit_default_constructor(
 		{
 			auto const func_body = &info->default_constructor->body;
 			auto const fn = context.get_function(func_body);
-			auto const ret_kind = context.get_pass_kind<abi>(type, llvm_type);
+			auto const ret_kind = context.template get_pass_kind<abi>(type, llvm_type);
 			switch (ret_kind)
 			{
 			case abi::pass_kind::value:
@@ -680,7 +735,7 @@ static val_ptr emit_default_constructor(
 			case abi::pass_kind::one_register:
 			case abi::pass_kind::two_registers:
 			{
-				auto const call = context.create_call(src_tokens, func_body, context);
+				auto const call = context.create_call(src_tokens, func_body, fn);
 				auto const cast_result_address = context.builder.CreatePointerCast(
 					result_address, llvm::PointerType::get(call->getType(), 0)
 				);
@@ -995,6 +1050,14 @@ static val_ptr emit_default_move_assign(
 // ================================================================
 // -------------------------- expression --------------------------
 // ================================================================
+
+template<abi::platform_abi abi, typename Context>
+static llvm::Constant *get_value(
+	ast::constant_value const &value,
+	ast::typespec_view type,
+	ast::constant_expression const *const_expr,
+	Context &context
+);
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
@@ -1432,11 +1495,11 @@ static val_ptr emit_builtin_unary_minus_minus(
 	}
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unary_op const &unary_op,
-	ctx::comptime_executor_context &context,
+	Context &context,
 	llvm::Value *result_address
 )
 {
@@ -3643,9 +3706,9 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_binary_divide_eq:
 			return emit_builtin_binary_divide_eq<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_modulo:
-			return emit_builtin_binary_modulo<abi>(func_call.params[0], func_call.params[1], context, result_address);
+			return emit_builtin_binary_modulo<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_modulo_eq:
-			return emit_builtin_binary_modulo_eq<abi>(func_call.params[0], func_call.params[1], context, result_address);
+			return emit_builtin_binary_modulo_eq<abi>(src_tokens, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_equals:
 			return emit_builtin_binary_cmp<abi>(lex::token::equals, func_call.params[0], func_call.params[1], context, result_address);
 		case ast::function_body::builtin_binary_not_equals:
@@ -3732,7 +3795,7 @@ static val_ptr emit_bitcode(
 	bz_assert(fn != nullptr);
 
 	auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
-	auto const result_kind = context.get_pass_kind<abi>(func_call.func_body->return_type, result_type);
+	auto const result_kind = context.template get_pass_kind<abi>(func_call.func_body->return_type, result_type);
 
 	ast::arena_vector<llvm::Value *> params = {};
 	ast::arena_vector<is_byval_and_type_pair> params_is_byval = {};
@@ -4589,9 +4652,12 @@ static val_ptr emit_bitcode(
 {
 	bz_assert(member_access.var_decl != nullptr);
 	auto const decl = member_access.var_decl;
-	if (decl->get_type().is<ast::ts_consteval>() && decl->init_expr.not_error())
+	if constexpr (is_comptime<Context>)
 	{
-		context.add_global_variable(decl);
+		if (decl->get_type().is<ast::ts_consteval>() && decl->init_expr.not_error())
+		{
+			context.add_global_variable(decl);
+		}
 	}
 	auto const [ptr, type] = context.get_variable(decl);
 	if constexpr (is_comptime<Context>)
@@ -5274,12 +5340,6 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static void emit_bitcode(
-	ast::statement const &stmt,
-	Context &context
-);
-
-template<abi::platform_abi abi, typename Context>
-static void emit_bitcode(
 	ast::stmt_while const &while_stmt,
 	Context &context
 )
@@ -5364,10 +5424,10 @@ static void emit_bitcode(
 	context.pop_expression_scope();
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static void emit_bitcode(
 	ast::stmt_foreach const &foreach_stmt,
-	ctx::comptime_executor_context &context
+	Context &context
 )
 {
 	context.push_expression_scope();
@@ -5458,7 +5518,14 @@ static void emit_bitcode(
 	}
 	else if (ret_stmt.expr.is_error())
 	{
-		emit_error(ret_stmt.expr.src_tokens, "failed to evaluate expression", context);
+		if constexpr (is_comptime<Context>)
+		{
+			emit_error(ret_stmt.expr.src_tokens, "failed to evaluate expression", context);
+		}
+		else
+		{
+			bz_unreachable;
+		}
 	}
 	else
 	{
@@ -5677,7 +5744,7 @@ static llvm::Function *create_function_from_symbol_impl(
 	}
 
 	auto const result_t = get_llvm_type(func_body.return_type, context);
-	auto const return_kind = context.get_pass_kind<abi>(func_body.return_type, result_t);
+	auto const return_kind = context.template get_pass_kind<abi>(func_body.return_type, result_t);
 
 	bz::vector<is_byval_and_type_pair> is_arg_byval = {};
 	bz::vector<llvm::Type *> args = {};
@@ -5738,7 +5805,7 @@ static llvm::Function *create_function_from_symbol_impl(
 				continue;
 			}
 			auto const t = get_llvm_type(p.get_type(), context);
-			auto const pass_kind = context.get_pass_kind<abi>(p.get_type(), t);
+			auto const pass_kind = context.template get_pass_kind<abi>(p.get_type(), t);
 
 			switch (pass_kind)
 			{
@@ -6004,12 +6071,12 @@ static void emit_function_bitcode_impl(
 			else
 			{
 				auto const t = get_llvm_type(p.get_type(), context);
-				auto const pass_kind = context.get_pass_kind<abi>(p.get_type(), t);
+				auto const pass_kind = context.template get_pass_kind<abi>(p.get_type(), t);
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
 				case abi::pass_kind::non_trivial:
-					push_destructor_call(fn_it, p.get_type(), context);
+					push_destructor_call(p.src_tokens, fn_it, p.get_type(), context);
 					add_variable_helper(p, fn_it, t, context);
 					break;
 				case abi::pass_kind::value:
@@ -6019,7 +6086,7 @@ static void emit_function_bitcode_impl(
 					context.start_lifetime(alloca, size);
 					context.builder.CreateStore(fn_it, alloca);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(alloca, p.get_type(), context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6031,7 +6098,7 @@ static void emit_function_bitcode_impl(
 					auto const alloca_cast = context.builder.CreatePointerCast(alloca, llvm::PointerType::get(fn_it->getType(), 0));
 					context.builder.CreateStore(fn_it, alloca_cast);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(alloca, p.get_type(), context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6054,7 +6121,7 @@ static void emit_function_bitcode_impl(
 					context.builder.CreateStore(first_val, first_address);
 					context.builder.CreateStore(second_val, second_address);
 					context.push_end_lifetime_call(alloca, size);
-					push_destructor_call(alloca, p.get_type(), context);
+					push_destructor_call(p.src_tokens, alloca, p.get_type(), context);
 					add_variable_helper(p, alloca, t, context);
 					break;
 				}
@@ -6203,7 +6270,7 @@ static void emit_function_bitcode_impl(
 			else
 			{
 				auto const t = get_llvm_type(p.get_type(), context);
-				auto const pass_kind = context.get_pass_kind<abi>(p.get_type(), t);
+				auto const pass_kind = context.template get_pass_kind<abi>(p.get_type(), t);
 				switch (pass_kind)
 				{
 				case abi::pass_kind::reference:
@@ -6376,7 +6443,7 @@ static void emit_global_variable_impl(ast::decl_variable const &var_decl, Contex
 	auto const val = context.get_module().getOrInsertGlobal(name_ref, type);
 	bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
 	auto const global_var = static_cast<llvm::GlobalVariable *>(val);
-	if (is_comptime<Conntext> || var_decl.is_external_linkage())
+	if (is_comptime<Context> || var_decl.is_external_linkage())
 	{
 		global_var->setLinkage(llvm::GlobalValue::ExternalLinkage);
 	}
