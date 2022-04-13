@@ -28,6 +28,5 @@
 #include "abi/microsoft_x64.cpp"
 #include "abi/systemv_amd64.cpp"
 
-#include "bc/runtime/runtime_emit_bitcode.cpp"
-#include "bc/comptime/comptime_emit_bitcode.cpp"
+#include "bc/emit_bitcode.cpp"
 
