@@ -419,6 +419,30 @@ llvm::Value *comptime_executor_context::create_array_gep(llvm::Type *type, llvm:
 	return this->builder.CreateGEP(type, ptr, { zero_value, idx }, name_ref);
 }
 
+llvm::CallInst *comptime_executor_context::create_call(
+	lex::src_tokens const &src_tokens,
+	ast::function_body *func_body,
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const error_count = bc::comptime::emit_push_call(src_tokens, func_body, *this);
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	bc::comptime::emit_pop_call(error_count, *this);
+	return call;
+}
+
+llvm::CallInst *comptime_executor_context::create_call(
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);

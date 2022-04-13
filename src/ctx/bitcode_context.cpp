@@ -280,6 +280,28 @@ llvm::Value *bitcode_context::create_array_gep(llvm::Type *type, llvm::Value *pt
 	return this->builder.CreateGEP(type, ptr, { zero_value, idx }, name_ref);
 }
 
+llvm::CallInst *bitcode_context::create_call(
+	[[maybe_unused]] lex::src_tokens const &src_tokens,
+	[[maybe_unused]] ast::function_body *func_body,
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
+llvm::CallInst *bitcode_context::create_call(
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
 llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
