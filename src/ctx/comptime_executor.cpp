@@ -558,7 +558,7 @@ void comptime_executor_context::start_lifetime(llvm::Value *ptr, size_t size)
 	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_start));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
 	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
-	this->builder.CreateCall(func, { size_val, void_ptr });
+	this->create_call(func, { size_val, void_ptr });
 }
 
 void comptime_executor_context::end_lifetime(llvm::Value *ptr, size_t size)
@@ -566,7 +566,7 @@ void comptime_executor_context::end_lifetime(llvm::Value *ptr, size_t size)
 	auto const func = this->get_function(this->get_builtin_function(ast::function_body::lifetime_end));
 	auto const size_val = llvm::ConstantInt::get(this->get_uint64_t(), size);
 	auto const void_ptr = this->builder.CreatePointerCast(ptr, llvm::PointerType::getInt8PtrTy(this->get_llvm_context()));
-	this->builder.CreateCall(func, { size_val, void_ptr });
+	this->create_call(func, { size_val, void_ptr });
 }
 
 bool comptime_executor_context::do_error_checking(void) const
@@ -610,7 +610,7 @@ void comptime_executor_context::emit_destructor_calls(void)
 	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
 	{
 		auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-		this->builder.CreateCall(this->get_function(func), val);
+		this->create_call(this->get_function(func), val);
 		bc::emit_pop_call(error_count, *this);
 	}
 }
@@ -624,7 +624,7 @@ void comptime_executor_context::emit_loop_destructor_calls(void)
 		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
 		{
 			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->builder.CreateCall(this->get_function(func), val);
+			this->create_call(this->get_function(func), val);
 			bc::emit_pop_call(error_count, *this);
 		}
 	}
@@ -639,7 +639,7 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
 		{
 			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
-			this->builder.CreateCall(this->get_function(func), val);
+			this->create_call(this->get_function(func), val);
 			bc::emit_pop_call(error_count, *this);
 		}
 	}
