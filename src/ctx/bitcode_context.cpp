@@ -1,6 +1,6 @@
 #include "bitcode_context.h"
 #include "global_context.h"
-#include "bc/runtime/runtime_emit_bitcode.h"
+#include "bc/emit_bitcode.h"
 
 namespace ctx
 {
@@ -52,7 +52,7 @@ llvm::Function *bitcode_context::get_function(ast::function_body *func_body)
 	auto it = this->funcs_.find(func_body);
 	if (it == this->funcs_.end())
 	{
-		bc::runtime::add_function_to_module(func_body, *this);
+		bc::add_function_to_module(func_body, *this);
 		this->ensure_function_emission(func_body);
 		it = this->funcs_.find(func_body);
 		bz_assert(it != this->funcs_.end());
@@ -278,6 +278,28 @@ llvm::Value *bitcode_context::create_array_gep(llvm::Type *type, llvm::Value *pt
 	bz_assert(ptr->getType()->isPointerTy());
 	auto const zero_value = llvm::ConstantInt::get(this->get_uint64_t(), 0);
 	return this->builder.CreateGEP(type, ptr, { zero_value, idx }, name_ref);
+}
+
+llvm::CallInst *bitcode_context::create_call(
+	[[maybe_unused]] lex::src_tokens const &src_tokens,
+	[[maybe_unused]] ast::function_body *func_body,
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
+llvm::CallInst *bitcode_context::create_call(
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
 }
 
 llvm::Type *bitcode_context::get_builtin_type(uint32_t kind) const

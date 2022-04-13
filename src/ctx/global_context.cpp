@@ -2,7 +2,7 @@
 #include "bitcode_context.h"
 #include "ast/statement.h"
 #include "cl_options.h"
-#include "bc/runtime/runtime_emit_bitcode.h"
+#include "bc/emit_bitcode.h"
 #include "colors.h"
 
 #include <cassert>
@@ -755,21 +755,21 @@ void global_context::report_and_clear_errors_and_warnings(void)
 	{
 		for (auto const struct_decl : file._global_decls.get_global().structs)
 		{
-			bc::runtime::emit_global_type_symbol(struct_decl->info, context);
+			bc::emit_global_type_symbol(struct_decl->info, context);
 		}
 	}
 	for (auto const &file : this->_src_files)
 	{
 		for (auto const struct_decl : file._global_decls.get_global().structs)
 		{
-			bc::runtime::emit_global_type(struct_decl->info, context);
+			bc::emit_global_type(struct_decl->info, context);
 		}
 	}
 	for (auto const &file : this->_src_files)
 	{
 		for (auto const var_decl : file._global_decls.get_global().variables)
 		{
-			bc::runtime::emit_global_variable(*var_decl, context);
+			bc::emit_global_variable(*var_decl, context);
 		}
 	}
 	for (auto const func : this->_compile_decls.funcs)
@@ -780,7 +780,7 @@ void global_context::report_and_clear_errors_and_warnings(void)
 		}
 	}
 
-	bc::runtime::emit_necessary_functions(context);
+	bc::emit_necessary_functions(context);
 
 	return !this->has_errors();
 }

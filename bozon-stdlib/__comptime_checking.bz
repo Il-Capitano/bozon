@@ -1149,6 +1149,150 @@ function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64
 	}
 }
 
+function get_modulo_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> string
+{
+	let result = string("taking modulo by zero in compile time execution of '");
+	result.append_number(lhs);
+	result ..= " % ";
+	result.append_number(rhs);
+	result ..= "' with type '";
+	result ..= type_name;
+	result ..= '\'';
+	return result.release();
+}
+
+function get_modulo_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> string
+{
+	let result = string("taking modulo by zero in compile time execution of '");
+	result.append_number(lhs);
+	result ..= " % ";
+	result.append_number(rhs);
+	result ..= "' with type '";
+	result ..= type_name;
+	result ..= '\'';
+	return result.release();
+}
+
+@__comptime_error_checking("i8_modulo_check")
+function i8_modulo_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0)
+	{
+		const message = get_modulo_by_zero_error_message("int8", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("i16_modulo_check")
+function i16_modulo_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0)
+	{
+		const message = get_modulo_by_zero_error_message("int16", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("i32_modulo_check")
+function i32_modulo_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0)
+	{
+		const message = get_modulo_by_zero_error_message("int32", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("i64_modulo_check")
+function i64_modulo_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0)
+	{
+		const message = get_modulo_by_zero_error_message("int64", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("u8_modulo_check")
+function u8_modulo_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0u)
+	{
+		const message = get_modulo_by_zero_error_message("uint8", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("u16_modulo_check")
+function u16_modulo_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0u)
+	{
+		const message = get_modulo_by_zero_error_message("uint16", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("u32_modulo_check")
+function u32_modulo_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0u)
+	{
+		const message = get_modulo_by_zero_error_message("uint32", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("u64_modulo_check")
+function u64_modulo_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (rhs == 0u)
+	{
+		const message = get_modulo_by_zero_error_message("uint64", lhs, rhs);
+		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
 function float_to_bits(x: float32) -> uint32
 {
 	let result = 0u32;

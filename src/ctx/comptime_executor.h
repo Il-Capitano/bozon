@@ -65,6 +65,15 @@ enum class comptime_function_kind : uint32_t
 	u32_divide_check,
 	u64_divide_check,
 
+	i8_modulo_check,
+	i16_modulo_check,
+	i32_modulo_check,
+	i64_modulo_check,
+	u8_modulo_check,
+	u16_modulo_check,
+	u32_modulo_check,
+	u64_modulo_check,
+
 	exp_f32_check,   exp_f64_check,
 	exp2_f32_check,  exp2_f64_check,
 	expm1_f32_check, expm1_f64_check,
@@ -196,6 +205,16 @@ struct comptime_executor_context
 	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, bz::array_view<llvm::Value * const> indces, bz::u8string_view name = "");
 	llvm::Value *create_struct_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
 	llvm::Value *create_array_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
+	llvm::CallInst *create_call(
+		lex::src_tokens const &src_tokens,
+		ast::function_body *func_body,
+		llvm::Function *fn,
+		llvm::ArrayRef<llvm::Value *> args = llvm::None
+	);
+	llvm::CallInst *create_call(
+		llvm::Function *fn,
+		llvm::ArrayRef<llvm::Value *> args = llvm::None
+	);
 
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
@@ -376,6 +395,15 @@ constexpr bz::array comptime_function_info = {
 	def_element(u16_divide_check),
 	def_element(u32_divide_check),
 	def_element(u64_divide_check),
+
+	def_element(i8_modulo_check),
+	def_element(i16_modulo_check),
+	def_element(i32_modulo_check),
+	def_element(i64_modulo_check),
+	def_element(u8_modulo_check),
+	def_element(u16_modulo_check),
+	def_element(u32_modulo_check),
+	def_element(u64_modulo_check),
 
 	def_element(exp_f32_check),
 	def_element(exp_f64_check),

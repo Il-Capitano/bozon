@@ -2,7 +2,7 @@
 #include "ast/statement.h"
 #include "global_context.h"
 #include "parse_context.h"
-#include "bc/comptime/comptime_emit_bitcode.h"
+#include "bc/emit_bitcode.h"
 #include "resolve/statement_resolver.h"
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -111,7 +111,7 @@ void comptime_executor_context::add_global_variable(ast::decl_variable const *va
 {
 	if (this->vars_.find(var_decl) == this->vars_.end())
 	{
-		bc::comptime::emit_global_variable(*var_decl, *this);
+		bc::emit_global_variable(*var_decl, *this);
 	}
 }
 
@@ -130,7 +130,7 @@ llvm::Type *comptime_executor_context::get_base_type(ast::type_info *info)
 		auto const name = llvm::StringRef(info->symbol_name.data_as_char_ptr(), info->symbol_name.size());
 		auto const type = llvm::StructType::create(this->get_llvm_context(), name);
 		this->add_base_type(info, type);
-		bc::comptime::resolve_global_type(info, type, *this);
+		bc::resolve_global_type(info, type, *this);
 		return type;
 	}
 	else
@@ -154,7 +154,7 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 		bz_assert(func_body->state >= ast::resolve_state::symbol);
 		auto module = this->create_module();
 		auto const prev_module = this->push_module(module.get());
-		auto const fn = bc::comptime::add_function_to_module(func_body, *this);
+		auto const fn = bc::add_function_to_module(func_body, *this);
 		this->pop_module(prev_module);
 		bz_assert(this->modules_and_functions.find(func_body) == this->modules_and_functions.end());
 		this->modules_and_functions[func_body] = { std::move(module), fn };
@@ -176,7 +176,7 @@ comptime_executor_context::get_module_and_function(ast::function_body *func_body
 		bz_assert(func_body->state >= ast::resolve_state::symbol);
 		auto module = this->create_module();
 		auto const prev_module = this->push_module(module.get());
-		auto const fn = bc::comptime::add_function_to_module(func_body, *this);
+		auto const fn = bc::add_function_to_module(func_body, *this);
 		this->pop_module(prev_module);
 		return { std::move(module), fn };
 	}
@@ -419,6 +419,30 @@ llvm::Value *comptime_executor_context::create_array_gep(llvm::Type *type, llvm:
 	return this->builder.CreateGEP(type, ptr, { zero_value, idx }, name_ref);
 }
 
+llvm::CallInst *comptime_executor_context::create_call(
+	lex::src_tokens const &src_tokens,
+	ast::function_body *func_body,
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const error_count = bc::emit_push_call(src_tokens, func_body, *this);
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	bc::emit_pop_call(error_count, *this);
+	return call;
+}
+
+llvm::CallInst *comptime_executor_context::create_call(
+	llvm::Function *fn,
+	llvm::ArrayRef<llvm::Value *> args
+)
+{
+	auto const call = this->builder.CreateCall(fn, args);
+	call->setCallingConv(fn->getCallingConv());
+	return call;
+}
+
 llvm::Type *comptime_executor_context::get_builtin_type(uint32_t kind) const
 {
 	bz_assert(kind <= ast::type_info::null_t_);
@@ -585,9 +609,9 @@ void comptime_executor_context::emit_destructor_calls(void)
 	bz_assert(!this->destructor_calls.empty());
 	for (auto const &[src_tokens, func, val] : this->destructor_calls.back().reversed())
 	{
-		auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
+		auto const error_count = bc::emit_push_call(src_tokens, func, *this);
 		this->builder.CreateCall(this->get_function(func), val);
-		bc::comptime::emit_pop_call(error_count, *this);
+		bc::emit_pop_call(error_count, *this);
 	}
 }
 
@@ -599,9 +623,9 @@ void comptime_executor_context::emit_loop_destructor_calls(void)
 	{
 		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
 		{
-			auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
+			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
 			this->builder.CreateCall(this->get_function(func), val);
-			bc::comptime::emit_pop_call(error_count, *this);
+			bc::emit_pop_call(error_count, *this);
 		}
 	}
 }
@@ -614,9 +638,9 @@ void comptime_executor_context::emit_all_destructor_calls(void)
 	{
 		for (auto const &[src_tokens, func, val] : scope_calls.reversed())
 		{
-			auto const error_count = bc::comptime::emit_push_call(src_tokens, func, *this);
+			auto const error_count = bc::emit_push_call(src_tokens, func, *this);
 			this->builder.CreateCall(this->get_function(func), val);
-			bc::comptime::emit_pop_call(error_count, *this);
+			bc::emit_pop_call(error_count, *this);
 		}
 	}
 }
@@ -947,8 +971,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		auto const prev_module = this->push_module(module.get());
 
 		auto const start_index = this->functions_to_compile.size();
-		auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(body, params, *this);
-		if (!bc::comptime::emit_necessary_functions(start_index, *this))
+		auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(body, params, *this);
+		if (!bc::emit_necessary_functions(start_index, *this))
 		{
 			this->functions_to_compile.resize(start_index);
 			this->pop_module(prev_module);
@@ -989,8 +1013,8 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	std::pair<ast::constant_value, bz::vector<error>> result;
 
 	auto const start_index = this->functions_to_compile.size();
-	auto const [fn, global_result_getters] = bc::comptime::create_function_for_comptime_execution(expr, *this);
-	if (!bc::comptime::emit_necessary_functions(start_index, *this))
+	auto const [fn, global_result_getters] = bc::create_function_for_comptime_execution(expr, *this);
+	if (!bc::emit_necessary_functions(start_index, *this))
 	{
 		this->functions_to_compile.resize(start_index);
 		this->pop_module(prev_module);
@@ -1147,13 +1171,13 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 		auto module = this->create_module();
 		auto const prev_module = this->push_module(module.get());
 		bz_assert(this->errors_array != nullptr);
-		bc::comptime::emit_global_variable(*this->errors_array, *this);
+		bc::emit_global_variable(*this->errors_array, *this);
 		bz_assert(this->call_stack != nullptr);
-		bc::comptime::emit_global_variable(*this->call_stack, *this);
+		bc::emit_global_variable(*this->call_stack, *this);
 		bz_assert(this->global_strings != nullptr);
-		bc::comptime::emit_global_variable(*this->global_strings, *this);
+		bc::emit_global_variable(*this->global_strings, *this);
 		bz_assert(this->malloc_infos != nullptr);
-		bc::comptime::emit_global_variable(*this->malloc_infos, *this);
+		bc::emit_global_variable(*this->malloc_infos, *this);
 
 		this->pop_module(prev_module);
 		this->add_module(std::move(module));
@@ -1165,14 +1189,14 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 		bz_assert(func.llvm_func == nullptr);
 		auto module = this->create_module();
 		auto const prev_module = this->push_module(module.get());
-		func.llvm_func = bc::comptime::add_function_to_module(func.func_body, *this);
+		func.llvm_func = bc::add_function_to_module(func.func_body, *this);
 		this->functions_to_compile.push_back(func.func_body);
 		this->pop_module(prev_module);
 		bz_assert(this->modules_and_functions.find(func.func_body) == this->modules_and_functions.end());
 		this->modules_and_functions[func.func_body] = { std::move(module), func.llvm_func };
 	}
 
-	[[maybe_unused]] auto const emit_result = bc::comptime::emit_necessary_functions(0, *this);
+	[[maybe_unused]] auto const emit_result = bc::emit_necessary_functions(0, *this);
 	bz_assert(emit_result);
 	this->functions_to_compile.clear();
 }
