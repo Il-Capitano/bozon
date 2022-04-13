@@ -90,7 +90,6 @@ static llvm::Value *get_constant_zero(
 	ctx::bitcode_context &context
 )
 {
-
 	switch (type.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_base_type>:
@@ -115,11 +114,7 @@ static llvm::Value *get_constant_zero(
 		case ast::type_info::str_:
 		case ast::type_info::null_t_:
 		case ast::type_info::aggregate:
-		{
-			auto const struct_type = llvm::dyn_cast<llvm::StructType>(llvm_type);
-			bz_assert(struct_type != nullptr);
-			return llvm::ConstantStruct::getNullValue(struct_type);
-		}
+			return llvm::ConstantStruct::getNullValue(llvm_type);
 		default:
 			bz_unreachable;
 		}
@@ -401,13 +396,13 @@ static void emit_destructor_call(llvm::Value *ptr, ast::typespec_view type, ctx:
 	if (type.is<ast::ts_base_type>())
 	{
 		auto const &info = *type.get<ast::ts_base_type>().info;
-		auto const llvm_type = get_llvm_type(type, context);
 		if (info.destructor != nullptr)
 		{
 			auto const dtor_func = context.get_function(&info.destructor->body);
 			context.builder.CreateCall(dtor_func, ptr);
 		}
 		auto const members_count = info.member_variables.size();
+		auto const llvm_type = get_llvm_type(type, context);
 		for (auto const &[member, i] : info.member_variables.reversed().enumerate())
 		{
 			auto const member_ptr = context.create_struct_gep(llvm_type, ptr, members_count - i - 1);
@@ -4865,14 +4860,6 @@ static llvm::Function *create_function_from_symbol_impl(
 	auto const linkage = func_body.is_external_linkage()
 		? llvm::Function::ExternalLinkage
 		: llvm::Function::InternalLinkage;
-
-	if (func_body.is_external_linkage())
-	{
-		if (auto const prev_fn = context.get_module().getFunction(name))
-		{
-			return prev_fn;
-		}
-	}
 
 	auto const fn = llvm::Function::Create(
 		func_t, linkage,
