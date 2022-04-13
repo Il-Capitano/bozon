@@ -1,14 +1,22 @@
-#ifndef BC_COMPTIME_EMIT_BITCODE_H
-#define BC_COMPTIME_EMIT_BITCODE_H
+#ifndef BC_EMIT_BITCODE_H
+#define BC_EMIT_BITCODE_H
 
-#include "ast/typespec.h"
-#include "ast/expression.h"
+#include "core.h"
 #include "ast/statement.h"
+#include "ctx/bitcode_context.h"
 #include "ctx/comptime_executor.h"
-#include "bc/common.h"
 
-namespace bc::comptime
+namespace bc
 {
+
+void add_function_to_module(ast::function_body *func_body, ctx::bitcode_context &context);
+void emit_function_bitcode(ast::function_body &func_body, ctx::bitcode_context &context);
+
+void emit_global_variable(ast::decl_variable const &var_decl, ctx::bitcode_context &context);
+void emit_global_type_symbol(ast::type_info const &info, ctx::bitcode_context &context);
+void emit_global_type(ast::type_info const &info, ctx::bitcode_context &context);
+void emit_necessary_functions(ctx::bitcode_context &context);
+
 
 llvm::Function *add_function_to_module(ast::function_body *func_body, ctx::comptime_executor_context &context);
 void emit_function_bitcode(ast::function_body &func_body, ctx::comptime_executor_context &context);
@@ -36,6 +44,7 @@ std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function_for_co
 
 void emit_pop_call(llvm::Value *prec_call_error_count, ctx::comptime_executor_context &context);
 
-} // namespace bc::comptime
 
-#endif // BC_COMPTIME_EMIT_BITCODE_H
+} // namespace bc
+
+#endif // BC_EMIT_BITCODE_H

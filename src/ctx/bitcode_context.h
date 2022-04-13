@@ -91,6 +91,16 @@ struct bitcode_context
 	llvm::Value *create_gep(llvm::Type *type, llvm::Value *ptr, bz::array_view<llvm::Value * const> indces, bz::u8string_view name = "");
 	llvm::Value *create_struct_gep(llvm::Type *type, llvm::Value *ptr, uint64_t idx, bz::u8string_view name = "");
 	llvm::Value *create_array_gep(llvm::Type *type, llvm::Value *ptr, llvm::Value *idx, bz::u8string_view name = "");
+	llvm::CallInst *create_call(
+		lex::src_tokens const &src_tokens,
+		ast::function_body *func_body,
+		llvm::Function *fn,
+		llvm::ArrayRef<llvm::Value *> args = llvm::None
+	);
+	llvm::CallInst *create_call(
+		llvm::Function *fn,
+		llvm::ArrayRef<llvm::Value *> args = llvm::None
+	);
 
 	llvm::Type *get_builtin_type(uint32_t kind) const;
 	llvm::Type *get_int8_t(void) const;
