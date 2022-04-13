@@ -1159,8 +1159,8 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
-	[[maybe_unused]] ast::expr_literal const &literal_expr,
+	lex::src_tokens const &,
+	ast::expr_literal const &literal_expr,
 	ctx::bitcode_context &context,
 	llvm::Value *
 )
@@ -1191,7 +1191,7 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
-	[[maybe_unused]] ast::expr_literal const &literal_expr,
+	ast::expr_literal const &literal_expr,
 	ctx::comptime_executor_context &context,
 	llvm::Value *
 )
@@ -1204,7 +1204,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_tuple const &tuple_expr,
 	Context &context,
 	llvm::Value *result_address
@@ -1497,7 +1497,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_unary_op const &unary_op,
 	Context &context,
 	llvm::Value *result_address
@@ -2924,7 +2924,7 @@ static val_ptr emit_builtin_binary_bool_or(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	[[maybe_unused]] lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_binary_op const &binary_op,
 	Context &context,
 	llvm::Value *result_address
@@ -4274,7 +4274,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_cast const &cast,
 	Context &context,
 	llvm::Value *result_address
@@ -4495,7 +4495,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_struct_init const &struct_init,
 	Context &context,
 	llvm::Value *result_address
@@ -4570,7 +4570,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_builtin_default_construct const &builtin_default_construct,
 	Context &context,
 	llvm::Value *result_address
@@ -4741,7 +4741,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_compound const &compound_expr,
 	Context &context,
 	llvm::Value *result_address
@@ -4767,7 +4767,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_if const &if_expr,
 	Context &context,
 	llvm::Value *result_address
@@ -4885,7 +4885,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_if_consteval const &if_expr,
 	Context &context,
 	llvm::Value *result_address
@@ -4911,7 +4911,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
+	lex::src_tokens const &,
 	ast::expr_switch const &switch_expr,
 	Context &context,
 	llvm::Value *result_address
