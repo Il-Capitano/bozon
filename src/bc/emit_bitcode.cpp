@@ -3084,6 +3084,46 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
+	if constexpr (!is_comptime<Context>)
+	{
+		if (func_call.func_body->is_only_consteval())
+		{
+			auto notes = [&]() {
+				bz::vector<ctx::source_highlight> result;
+				if (!func_call.func_body->is_intrinsic())
+				{
+					result.push_back(context.make_note(func_call.func_body->src_tokens, "function was declared 'consteval' here"));
+				}
+				else
+				{
+					result.push_back(context.make_note(func_call.func_body->src_tokens, bz::format(
+						"builtin function '{}' can only be used in a constant expression",
+						func_call.func_body->get_signature()
+					)));
+				}
+				return result;
+			}();
+			context.report_error(
+				func_call.src_tokens,
+				"a function marked as 'consteval' can only be used in a constant expression",
+				std::move(notes)
+			);
+			if (func_call.func_body->return_type.is<ast::ts_void>())
+			{
+				return val_ptr::get_none();
+			}
+			else
+			{
+				auto const result_type = get_llvm_type(func_call.func_body->return_type, context);
+				if (result_address == nullptr)
+				{
+					result_address = context.create_alloca(result_type);
+				}
+				return val_ptr::get_reference(result_address, result_type);
+			}
+		}
+	}
+
 	if (func_call.func_body->is_intrinsic() && func_call.func_body->body.is_null())
 	{
 		switch (func_call.func_body->intrinsic_kind)
@@ -4745,6 +4785,18 @@ static val_ptr emit_bitcode(
 	// the original block
 	auto const entry_bb = context.builder.GetInsertBlock();
 
+	if (auto const constant_condition = llvm::dyn_cast<llvm::ConstantInt>(condition))
+	{
+		if (constant_condition->equalsInt(1))
+		{
+			return emit_bitcode<abi>(if_expr.then_block, context, result_address);
+		}
+		else if (if_expr.else_block.not_null())
+		{
+			return emit_bitcode<abi>(if_expr.else_block, context, result_address);
+		}
+	}
+
 	// emit code for the then block
 	auto const then_bb = context.add_basic_block("then");
 	context.builder.SetInsertPoint(then_bb);
@@ -4899,8 +4951,8 @@ static val_ptr emit_bitcode(
 		case_result_vals.push_back({ context.builder.GetInsertBlock(), case_val });
 	}
 	auto const end_bb = has_default ? context.add_basic_block("switch_end") : default_bb;
-	auto const has_value = case_result_vals.is_any([](auto const &pair) {
-		return pair.second.val != nullptr || pair.second.consteval_val != nullptr;
+	auto const has_value = case_result_vals.is_all([&](auto const &pair) {
+		return context.has_terminator(pair.first) || pair.second.val != nullptr || pair.second.consteval_val != nullptr;
 	});
 	if (result_address == nullptr && has_default && has_value)
 	{
