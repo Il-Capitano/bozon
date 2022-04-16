@@ -5616,10 +5616,10 @@ static void emit_bitcode(
 				bz_unreachable;
 			case abi::pass_kind::value:
 			{
-				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
+				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer).get_value(context.builder);
 				context.emit_all_destructor_calls();
 				context.emit_all_end_lifetime_calls();
-				context.builder.CreateRet(ret_val.get_value(context.builder));
+				context.builder.CreateRet(ret_val);
 				break;
 			}
 			case abi::pass_kind::one_register:
