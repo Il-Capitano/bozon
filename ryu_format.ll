@@ -1800,11 +1800,11 @@ endif21:                                          ; preds = %then16, %then14
 
 bool_and_rhs28:                                   ; preds = %endif21
   %load_tmp29 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp29, true
+  %unary_bool_not_tmp = xor i1 %load_tmp29, true
   br label %bool_and_end30
 
 bool_and_end30:                                   ; preds = %bool_and_rhs28, %endif21
-  %bool_and_tmp31 = phi i1 [ false, %endif21 ], [ %unary_bit_not_tmp, %bool_and_rhs28 ]
+  %bool_and_tmp31 = phi i1 [ false, %endif21 ], [ %unary_bool_not_tmp, %bool_and_rhs28 ]
   br i1 %bool_and_tmp31, label %then32, label %endif46
 
 then32:                                           ; preds = %bool_and_end30
@@ -2046,8 +2046,8 @@ endif114:                                         ; preds = %endif113, %then92
 
 endif115:                                         ; preds = %endfor, %endif66
   %load_tmp116 = load i1, i1* %16, align 1
-  %unary_bit_not_tmp117 = xor i1 %load_tmp116, true
-  br i1 %unary_bit_not_tmp117, label %then118, label %endif124
+  %unary_bool_not_tmp117 = xor i1 %load_tmp116, true
+  br i1 %unary_bool_not_tmp117, label %then118, label %endif124
 
 then118:                                          ; preds = %endif115
   %load_tmp119 = load i8*, i8** %6, align 8
@@ -2575,8 +2575,8 @@ endif349:                                         ; preds = %endwhile, %endfor17
 
 else350:                                          ; preds = %endif132
   %load_tmp351 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp352 = xor i1 %load_tmp351, true
-  br i1 %unary_bit_not_tmp352, label %then353, label %endif363
+  %unary_bool_not_tmp352 = xor i1 %load_tmp351, true
+  br i1 %unary_bool_not_tmp352, label %then353, label %endif363
 
 then353:                                          ; preds = %else350
   %load_tmp354 = load i8*, i8** %6, align 8
@@ -3784,16 +3784,16 @@ endif180:                                         ; preds = %then179, %bool_and_
 
 bool_and_rhs184:                                  ; preds = %endif180
   %load_tmp185 = load i1, i1* %8, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp185, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end189, label %bool_or_rhs186
+  %unary_bool_not_tmp = xor i1 %load_tmp185, true
+  br i1 %unary_bool_not_tmp, label %bool_or_end189, label %bool_or_rhs186
 
 bool_or_rhs186:                                   ; preds = %bool_and_rhs184
   %load_tmp187 = load i1, i1* %15, align 1
-  %unary_bit_not_tmp188 = xor i1 %load_tmp187, true
+  %unary_bool_not_tmp188 = xor i1 %load_tmp187, true
   br label %bool_or_end189
 
 bool_or_end189:                                   ; preds = %bool_or_rhs186, %bool_and_rhs184
-  %bool_or_tmp190 = phi i1 [ true, %bool_and_rhs184 ], [ %unary_bit_not_tmp188, %bool_or_rhs186 ]
+  %bool_or_tmp190 = phi i1 [ true, %bool_and_rhs184 ], [ %unary_bool_not_tmp188, %bool_or_rhs186 ]
   br label %bool_and_end191
 
 bool_and_end191:                                  ; preds = %bool_or_end189, %endif180
@@ -5011,8 +5011,8 @@ entry:                                            ; preds = %alloca
   call void @llvm.lifetime.start.p0i8(i64 1, i8* %2)
   store i1 %0, i1* %1, align 1
   %load_tmp = load i1, i1* %1, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp, true
-  br i1 %unary_bit_not_tmp, label %then, label %endif
+  %unary_bool_not_tmp = xor i1 %load_tmp, true
+  br i1 %unary_bool_not_tmp, label %then, label %endif
 
 then:                                             ; preds = %entry
   unreachable
@@ -5774,16 +5774,16 @@ endif211:                                         ; preds = %then210, %bool_and_
 
 bool_and_rhs215:                                  ; preds = %endif211
   %load_tmp216 = load i1, i1* %7, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp216, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end220, label %bool_or_rhs217
+  %unary_bool_not_tmp = xor i1 %load_tmp216, true
+  br i1 %unary_bool_not_tmp, label %bool_or_end220, label %bool_or_rhs217
 
 bool_or_rhs217:                                   ; preds = %bool_and_rhs215
   %load_tmp218 = load i1, i1* %16, align 1
-  %unary_bit_not_tmp219 = xor i1 %load_tmp218, true
+  %unary_bool_not_tmp219 = xor i1 %load_tmp218, true
   br label %bool_or_end220
 
 bool_or_end220:                                   ; preds = %bool_or_rhs217, %bool_and_rhs215
-  %bool_or_tmp221 = phi i1 [ true, %bool_and_rhs215 ], [ %unary_bit_not_tmp219, %bool_or_rhs217 ]
+  %bool_or_tmp221 = phi i1 [ true, %bool_and_rhs215 ], [ %unary_bool_not_tmp219, %bool_or_rhs217 ]
   br label %bool_and_end222
 
 bool_and_end222:                                  ; preds = %bool_or_end220, %endif211
@@ -6890,8 +6890,8 @@ endif261:                                         ; preds = %else255, %then250
 
 bool_and_rhs277:                                  ; preds = %endif261
   %load_tmp278 = load i1, i1* %21, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp278, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end285, label %bool_or_rhs279
+  %unary_bool_not_tmp = xor i1 %load_tmp278, true
+  br i1 %unary_bool_not_tmp, label %bool_or_end285, label %bool_or_rhs279
 
 bool_or_rhs279:                                   ; preds = %bool_and_rhs277
   %load_tmp280 = load i64, i64* %20, align 8
@@ -7912,8 +7912,8 @@ endif276:                                         ; preds = %else270, %then265
 
 bool_and_rhs292:                                  ; preds = %endif276
   %load_tmp293 = load i1, i1* %21, align 1
-  %unary_bit_not_tmp = xor i1 %load_tmp293, true
-  br i1 %unary_bit_not_tmp, label %bool_or_end300, label %bool_or_rhs294
+  %unary_bool_not_tmp = xor i1 %load_tmp293, true
+  br i1 %unary_bool_not_tmp, label %bool_or_end300, label %bool_or_rhs294
 
 bool_or_rhs294:                                   ; preds = %bool_and_rhs292
   %load_tmp295 = load i32, i32* %20, align 4
