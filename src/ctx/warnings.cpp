@@ -3,6 +3,13 @@
 namespace ctx
 {
 
+// these need to be synched with __comptime_checking.bz
+static_assert(static_cast<int>(warning_kind::int_overflow)      == 0);
+static_assert(static_cast<int>(warning_kind::float_nan_math)    == 4);
+static_assert(static_cast<int>(warning_kind::math_domain_error) == 17);
+static_assert(static_cast<int>(warning_kind::comptime_warning)  == 23);
+static_assert(static_cast<int>(warning_kind::_last)             == 24);
+
 static_assert(
 	warning_infos.is_all([](auto const &info) { return !info.name.starts_with("no-"); }),
 	"a warning name starts with 'no-'"

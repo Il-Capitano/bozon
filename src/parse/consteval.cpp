@@ -1268,7 +1268,7 @@ case ast::function_body::func_name##_f32:                                       
         if (paren_level < 2)                                                     \
         {                                                                        \
             context.report_parenthesis_suppressed_warning(                       \
-                2 - paren_level, ctx::warning_kind::bad_float_math,              \
+                2 - paren_level, ctx::warning_kind::math_domain_error,           \
                 src_tokens, bz::format("calling '" #func_name "' " message, arg) \
             );                                                                   \
         }                                                                        \
@@ -1287,7 +1287,7 @@ case ast::function_body::func_name##_f64:                                       
         if (paren_level < 2)                                                     \
         {                                                                        \
             context.report_parenthesis_suppressed_warning(                       \
-                2 - paren_level, ctx::warning_kind::bad_float_math,              \
+                2 - paren_level, ctx::warning_kind::math_domain_error,           \
                 src_tokens, bz::format("calling '" #func_name "' " message, arg) \
             );                                                                   \
         }                                                                        \

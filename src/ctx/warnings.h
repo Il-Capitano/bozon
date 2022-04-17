@@ -25,7 +25,7 @@ enum class warning_kind
 	invalid_unicode,
 	nan_compare,
 	out_of_bounds_index,
-	bad_float_math,
+	math_domain_error,
 	binary_stdout,
 	is_comptime_always_true,
 	non_exhaustive_switch,
@@ -36,12 +36,6 @@ enum class warning_kind
 
 	_last,
 };
-
-// these need to be synched with __comptime_checking.bz
-static_assert(static_cast<int>(warning_kind::int_overflow)     == 0);
-static_assert(static_cast<int>(warning_kind::float_nan_math)   == 4);
-static_assert(static_cast<int>(warning_kind::comptime_warning) == 23);
-static_assert(static_cast<int>(warning_kind::_last)            == 24);
 
 struct warning_info
 {
@@ -72,7 +66,7 @@ constexpr auto warning_infos = []() {
 		T{ warning_kind::invalid_unicode,          "invalid-unicode",          "'char' result of an expression is an invalid unicode codepoint"                      },
 		T{ warning_kind::nan_compare,              "nan-compare",              "Comparing against nan when comparing floating-point numbers"                         },
 		T{ warning_kind::out_of_bounds_index,      "out-of-bounds-index",      "Index is out of bounds in array subscript"                                           },
-		T{ warning_kind::bad_float_math,           "bad-float-math",           "Invalid arguments for floating-point math functions"                                 },
+		T{ warning_kind::math_domain_error,        "math-domain-error",        "Domain error for floating-point math functions"                                      },
 		T{ warning_kind::binary_stdout,            "binary-stdout",            "Using stdout as output for binary emission types"                                    },
 		T{ warning_kind::is_comptime_always_true,  "is-comptime-always-true",  "'__builtin_is_comptime()' was forced to evaluate at compile time"                    },
 		T{ warning_kind::non_exhaustive_switch,    "non-exhaustive-switch",    "switch expression doesn't cover all possible values and doesn't have an else case"   },
