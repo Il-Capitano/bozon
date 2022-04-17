@@ -1,9 +1,10 @@
 import ::std::unicode;
 
-consteval warning_kind_int_overflow     = 0u32;
-consteval warning_kind_float_nan_math   = 4u32;
-consteval warning_kind_comptime_warning = 23u32;
-consteval warning_kind_error            = 24u32;
+consteval warning_kind_int_overflow      = 0u32;
+consteval warning_kind_float_nan_math    = 4u32;
+consteval warning_kind_math_domain_error = 17u32;
+consteval warning_kind_comptime_warning  = 23u32;
+consteval warning_kind_error             = 24u32;
 
 function alloc = __builtin_comptime_malloc_type;
 function free  = __builtin_comptime_free;
@@ -332,6 +333,11 @@ struct string
 		return __builtin_str_from_ptrs(self._buffer.begin(), self._buffer.end());
 	}
 
+	function as_str(self: move string) -> str
+	{
+		return __builtin_str_from_ptrs(self._buffer.begin(), self._buffer.end());
+	}
+
 	function size(self: &const string) -> usize
 	{
 		return self._buffer.size();
@@ -455,16 +461,50 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 	return result;
 }
 
-function append_number(s: &string, n: int64)
+function concat_helper(buffer: &string, s: str)
 {
-	const [buffer, size] = get_int_as_string(if (n < 0) { (-n) as uint64 } else { n as uint64 }, n < 0);
-	s ..= __builtin_str_from_ptrs(buffer.end() - size, buffer.end());
+	buffer ..= s;
 }
 
-function append_number(s: &string, n: uint64)
+function concat_helper(buffer: &string, s: &const string)
 {
-	const [buffer, size] = get_uint_as_string(n);
-	s ..= __builtin_str_from_ptrs(buffer.end() - size, buffer.end());
+	buffer ..= s.as_str();
+}
+
+function concat_helper(buffer: &string, n: int64)
+{
+	const [num_buffer, size] = get_int_as_string(if (n < 0) { (-n) as uint64 } else { n as uint64 }, n < 0);
+	buffer ..= __builtin_str_from_ptrs(num_buffer.end() - size, num_buffer.end());
+}
+
+function concat_helper(buffer: &string, n: uint64)
+{
+	const [num_buffer, size] = get_uint_as_string(n);
+	buffer ..= __builtin_str_from_ptrs(num_buffer.end() - size, num_buffer.end());
+}
+
+@symbol_name("__bozon_builtin_format_float32") function format_float32(x: float32, buffer: *uint8) -> *uint8;
+@symbol_name("__bozon_builtin_format_float64") function format_float64(x: float64, buffer: *uint8) -> *uint8;
+
+function concat_helper(buffer: &string, x: float32)
+{
+	let result_buffer: [15: uint8];
+	const end = format_float32(x, result_buffer.begin());
+	buffer ..= __builtin_str_from_ptrs(result_buffer.begin(), end);
+}
+
+function concat_helper(buffer: &string, x: float64)
+{
+	let result_buffer: [24: uint8];
+	const end = format_float64(x, result_buffer.begin());
+	buffer ..= __builtin_str_from_ptrs(result_buffer.begin(), end);
+}
+
+function concat(...##args) -> string
+{
+	let buffer = string();
+	[ ...(concat_helper(buffer, args), 0) ];
+	return buffer.release();
 }
 
 /*
@@ -801,22 +841,14 @@ function check_leaks() -> bool
 
 function make_index_error_message(index: usize, size: usize) -> string
 {
-	let result = string("index ");
-	result.append_number(index);
-	result ..= " is out-of-bounds for an array of size ";
-	result.append_number(size);
-	return result.release();
+	return concat("index ", index, " is out-of-bounds for an array of size ", size);
 }
 
 function make_index_error_message(index: isize, size: usize) -> string
 {
 	if (index < 0)
 	{
-		let result = string("negative index ");
-		result.append_number(index);
-		result ..= " in subscript for an array of size ";
-		result.append_number(size);
-		return result.release();
+		return concat("negative index ", index, " in subscript for an array of size ", size);
 	}
 	else
 	{
@@ -868,10 +900,7 @@ function index_check_signed(
 
 function make_malloc_error_message(size: usize) -> string
 {
-	let result = string("failed to allocate ");
-	result.append_number(size);
-	result ..= " bytes in comptime malloc";
-	return result.release();
+	return concat("failed to allocate ", size, " bytes in compile-time malloc");
 }
 
 @__comptime_error_checking("comptime_malloc_check")
@@ -972,39 +1001,17 @@ function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: 
 
 function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
-	let result = string("overflow in compile time execution of '");
-	result.append_number(lhs);
-	result ..= " / ";
-	result.append_number(rhs);
-	result ..= "' with type '";
-	result ..= type_name;
-	result ..= "' results in ";
-	result.append_number(lhs);
-	return result.release();
+	return concat("overflow in compile-time execution of '", lhs, " / ", "' with type '", type_name, "' results in ", lhs);
 }
 
 function get_divide_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
-	let result = string("dividing by zero in compile time execution of '");
-	result.append_number(lhs);
-	result ..= " / ";
-	result.append_number(rhs);
-	result ..= "' with type '";
-	result ..= type_name;
-	result ..= '\'';
-	return result.release();
+	return concat("dividing by zero in compile-time execution of '", lhs, " / ", rhs, "' with type '", type_name, "'");
 }
 
 function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> string
 {
-	let result = string("dividing by zero in compile time execution of '");
-	result.append_number(lhs);
-	result ..= " / ";
-	result.append_number(rhs);
-	result ..= "' with type '";
-	result ..= type_name;
-	result ..= '\'';
-	return result.release();
+	return concat("dividing by zero in compile-time execution of '", lhs, " / ", rhs, "' with type '", type_name, "'");
 }
 
 @__comptime_error_checking("i8_divide_check")
@@ -1161,26 +1168,12 @@ function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64
 
 function get_modulo_by_zero_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
-	let result = string("taking modulo by zero in compile time execution of '");
-	result.append_number(lhs);
-	result ..= " % ";
-	result.append_number(rhs);
-	result ..= "' with type '";
-	result ..= type_name;
-	result ..= '\'';
-	return result.release();
+	return concat("taking modulo by zero in compile-time execution of '", lhs, " % ", rhs, "' with type '", type_name, "'");
 }
 
 function get_modulo_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint64) -> string
 {
-	let result = string("taking modulo by zero in compile time execution of '");
-	result.append_number(lhs);
-	result ..= " % ";
-	result.append_number(rhs);
-	result ..= "' with type '";
-	result ..= type_name;
-	result ..= '\'';
-	return result.release();
+	return concat("taking modulo by zero in compile-time execution of '", lhs, " % ", rhs, "' with type '", type_name, "'");
 }
 
 @__comptime_error_checking("i8_modulo_check")

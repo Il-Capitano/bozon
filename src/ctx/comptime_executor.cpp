@@ -1071,6 +1071,16 @@ static bool bozon_is_option_set_impl(char const *begin, char const *end)
 	return defines.contains(s);
 }
 
+static char *bozon_format_float32(float32_t x, char *buffer)
+{
+	return bz::internal::f2s_short(x, buffer);
+}
+
+static char *bozon_format_float64(float64_t x, char *buffer)
+{
+	return bz::internal::d2s_short(x, buffer);
+}
+
 static void bozon_print_stdout(str_t s)
 {
 	fwrite(s.begin, 1, s.end - s.begin, stdout);
@@ -1118,6 +1128,8 @@ void comptime_executor_context::initialize_engine(void)
 		this->add_base_functions_to_engine();
 
 		this->engine->addGlobalMapping("__bozon_builtin_is_option_set_impl", reinterpret_cast<uint64_t>(&bozon_is_option_set_impl));
+		this->engine->addGlobalMapping("__bozon_builtin_format_float32",     reinterpret_cast<uint64_t>(&bozon_format_float32));
+		this->engine->addGlobalMapping("__bozon_builtin_format_float64",     reinterpret_cast<uint64_t>(&bozon_format_float64));
 		this->engine->addGlobalMapping("__bozon_builtin_print_stdout",       reinterpret_cast<uint64_t>(&bozon_print_stdout));
 		this->engine->addGlobalMapping("__bozon_builtin_println_stdout",     reinterpret_cast<uint64_t>(&bozon_println_stdout));
 		this->engine->addGlobalMapping("__bozon_builtin_comptime_malloc",    reinterpret_cast<uint64_t>(&bozon_builtin_comptime_malloc));
