@@ -1251,52 +1251,74 @@ static ast::constant_value evaluate_math_functions(
 	auto const paren_level = original_expr.paren_level;
 	auto const &src_tokens = original_expr.src_tokens;
 
+	using T = std::pair<bool, bz::u8string_view>;
+	auto const check_math_function = [&](
+		bz::u8string_view func_name,
+		auto arg,
+		auto result,
+		std::initializer_list<T> conditions
+	) -> ast::constant_value {
+		for (auto const &[condition, fmt] : conditions)
+		{
+			if (condition)
+			{
+				context.report_parenthesis_suppressed_warning(
+					2 - paren_level, ctx::warning_kind::math_domain_error,
+					src_tokens, bz::format("calling '{}' {}", func_name, bz::format(fmt, arg, result))
+				);
+				return ast::constant_value(result);
+			}
+		}
+
+		return ast::constant_value(result);
+	};
+
 	switch (func_call.func_body->intrinsic_kind)
 	{
-#define def_case_default(func_name)                            \
-case ast::function_body::func_name##_f32:                      \
-    return ast::constant_value(std::func_name(get_float32())); \
-case ast::function_body::func_name##_f64:                      \
-    return ast::constant_value(std::func_name(get_float64()));
+#define def_case_default(func_name)                         \
+case ast::function_body::func_name##_f32:                   \
+{                                                           \
+    auto const arg = get_float32();                         \
+    return check_math_function(                             \
+        #func_name, arg, std::func_name(arg),               \
+        {                                                   \
+            T{ std::isnan(arg), "with {} results in {}" } \
+        }                                                   \
+    );                                                      \
+}                                                           \
+case ast::function_body::func_name##_f64:                   \
+{                                                           \
+    auto const arg = get_float64();                         \
+    return check_math_function(                             \
+        #func_name, arg, std::func_name(arg),               \
+        {                                                   \
+            T{ std::isnan(arg), "with {} results in {}" } \
+        }                                                   \
+    );                                                      \
+}
 
-#define def_case_error(func_name, condition, message)                            \
-case ast::function_body::func_name##_f32:                                        \
-{                                                                                \
-    auto const arg = get_float32();                                              \
-    if (condition)                                                               \
-    {                                                                            \
-        if (paren_level < 2)                                                     \
-        {                                                                        \
-            context.report_parenthesis_suppressed_warning(                       \
-                2 - paren_level, ctx::warning_kind::math_domain_error,           \
-                src_tokens, bz::format("calling '" #func_name "' " message, arg) \
-            );                                                                   \
-        }                                                                        \
-        return {};                                                               \
-    }                                                                            \
-    else                                                                         \
-    {                                                                            \
-        return ast::constant_value(std::func_name(arg));                         \
-    }                                                                            \
-}                                                                                \
-case ast::function_body::func_name##_f64:                                        \
-{                                                                                \
-    auto const arg = get_float64();                                              \
-    if (condition)                                                               \
-    {                                                                            \
-        if (paren_level < 2)                                                     \
-        {                                                                        \
-            context.report_parenthesis_suppressed_warning(                       \
-                2 - paren_level, ctx::warning_kind::math_domain_error,           \
-                src_tokens, bz::format("calling '" #func_name "' " message, arg) \
-            );                                                                   \
-        }                                                                        \
-        return {};                                                               \
-    }                                                                            \
-    else                                                                         \
-    {                                                                            \
-        return ast::constant_value(std::func_name(arg));                         \
-    }                                                                            \
+#define def_case_error(func_name, ...)                       \
+case ast::function_body::func_name##_f32:                    \
+{                                                            \
+    auto const arg = get_float32();                          \
+    return check_math_function(                              \
+        #func_name, arg, std::func_name(arg),                \
+        {                                                    \
+            T{ std::isnan(arg), "with {} results in {}" }, \
+            __VA_ARGS__                                      \
+        }                                                    \
+    );                                                       \
+}                                                            \
+case ast::function_body::func_name##_f64:                    \
+{                                                            \
+    auto const arg = get_float64();                          \
+    return check_math_function(                              \
+        #func_name, arg, std::func_name(arg),                \
+        {                                                    \
+            T{ std::isnan(arg), "with {} results in {}" }, \
+            __VA_ARGS__                                      \
+        }                                                    \
+    );                                                       \
 }
 
 	// ==== exponential and logarithmic functions ====
@@ -1305,13 +1327,13 @@ case ast::function_body::func_name##_f64:                                       
 	def_case_default(exp2)
 	def_case_default(expm1)
 	// log functions can't take negative arguments, except for log1p, which can't take numbers < -1.0
-	def_case_error(log,   arg < 0,  "with a negative value, {}")
-	def_case_error(log10, arg < 0,  "with a negative value, {}")
-	def_case_error(log2,  arg < 0,  "with a negative value, {}")
-	def_case_error(log1p, arg < -1, "with a value less than -1, {}")
+	def_case_error(log,   (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
+	def_case_error(log10, (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
+	def_case_error(log2,  (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
+	def_case_error(log1p, (T{ arg == -1.0, "with {} results in {}" }), (T{ arg < -1.0, "with {} results in {}" }))
 
 	// ==== power functions ====
-	def_case_error(sqrt, arg < 0, "with a negative value, {}")
+	def_case_error(sqrt, (T{ arg < 0.0, "with a negative value {} results in {}" }))
 	case ast::function_body::pow_f32:
 		return ast::constant_value(std::pow(get_float32(0), get_float32(1)));
 	case ast::function_body::pow_f64:
@@ -1323,11 +1345,11 @@ case ast::function_body::func_name##_f64:                                       
 		return ast::constant_value(std::hypot(get_float64(0), get_float64(1)));
 
 	// ==== trigonometric functions ====
-	def_case_default(sin)
-	def_case_default(cos)
-	def_case_default(tan)
-	def_case_error(asin, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
-	def_case_error(acos, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
+	def_case_error(sin, (T{ std::isinf(arg), "with {} results in {}" }))
+	def_case_error(cos, (T{ std::isinf(arg), "with {} results in {}" }))
+	def_case_error(tan, (T{ std::isinf(arg), "with {} results in {}" }))
+	def_case_error(asin, (T{ std::abs(arg) > 1.0, "with {} results in {}" }))
+	def_case_error(acos, (T{ std::abs(arg) > 1.0, "with {} results in {}" }))
 	def_case_default(atan)
 	case ast::function_body::atan2_f32:
 		return ast::constant_value(std::atan2(get_float32(0), get_float32(1)));
@@ -1339,14 +1361,28 @@ case ast::function_body::func_name##_f64:                                       
 	def_case_default(cosh)
 	def_case_default(tanh)
 	def_case_default(asinh)
-	def_case_error(acosh, arg < 1, "with a value less than 1, {}")
-	def_case_error(atanh, arg < -1 || arg > 1, "with a value not in the range [-1, 1], {}")
+	def_case_error(acosh, (T{ arg < 1.0, "with {} results in {}" }))
+	def_case_error(
+		atanh,
+		(T{ arg == 1.0, "with {} results in {}" }),
+		(T{ arg == -1.0, "with {} results in {}" }),
+		(T{ std::abs(arg) > 1.0, "with {} results in {}" })
+	)
 
 	// ==== error and gamma functions ====
 	def_case_default(erf)
 	def_case_default(erfc)
-	def_case_error(tgamma, arg < 0, "with a negative value, {}")
-	def_case_error(lgamma, arg < 0, "with a negative value, {}")
+	def_case_error(
+		tgamma,
+		(T{ arg == 0.0, "with {} results in {}" }),
+		(T{ arg == -std::numeric_limits<decltype(arg)>::infinity(), "with {} results in {}" }),
+		(T{ arg < 0.0 && std::trunc(arg) == arg, "with a negative integer {} results in {}" })
+	)
+	def_case_error(
+		lgamma,
+		(T{ arg == 0.0, "with {} results in {}" }),
+		(T{ arg < 0.0 && std::trunc(arg) == arg, "with a negative integer {} results in {}" })
+	)
 
 	default:
 		bz_unreachable;
@@ -1727,7 +1763,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 	bz_assert(func_call.func_body->body.is_null());
 	switch (func_call.func_body->intrinsic_kind)
 	{
-	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 136);
+	static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 139);
 	static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 	static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 	static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -1817,6 +1853,8 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			return {};
 		}
 
+	case ast::function_body::builtin_is_option_set_impl:
+		return {};
 	case ast::function_body::builtin_is_option_set:
 	{
 		bz_assert(func_call.params.size() == 1);
@@ -1922,6 +1960,10 @@ static ast::constant_value evaluate_intrinsic_function_call(
 			});
 		return ast::constant_value(std::move(result));
 	}
+
+	case ast::function_body::comptime_format_float32:
+	case ast::function_body::comptime_format_float64:
+		return {};
 
 	case ast::function_body::typename_as_str:
 	{

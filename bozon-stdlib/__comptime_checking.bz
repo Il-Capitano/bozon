@@ -483,20 +483,20 @@ function concat_helper(buffer: &string, n: uint64)
 	buffer ..= __builtin_str_from_ptrs(num_buffer.end() - size, num_buffer.end());
 }
 
-@symbol_name("__bozon_builtin_format_float32") function format_float32(x: float32, buffer: *uint8) -> *uint8;
-@symbol_name("__bozon_builtin_format_float64") function format_float64(x: float64, buffer: *uint8) -> *uint8;
+@__builtin @symbol_name("__bozon_builtin_format_float32") consteval function __builtin_comptime_format_float32(x: float32, buffer: *uint8) -> *uint8;
+@__builtin @symbol_name("__bozon_builtin_format_float64") consteval function __builtin_comptime_format_float64(x: float64, buffer: *uint8) -> *uint8;
 
 function concat_helper(buffer: &string, x: float32)
 {
 	let result_buffer: [15: uint8];
-	const end = format_float32(x, result_buffer.begin());
+	const end = __builtin_comptime_format_float32(x, result_buffer.begin());
 	buffer ..= __builtin_str_from_ptrs(result_buffer.begin(), end);
 }
 
 function concat_helper(buffer: &string, x: float64)
 {
 	let result_buffer: [24: uint8];
-	const end = format_float64(x, result_buffer.begin());
+	const end = __builtin_comptime_format_float64(x, result_buffer.begin());
 	buffer ..= __builtin_str_from_ptrs(result_buffer.begin(), end);
 }
 
@@ -1331,7 +1331,11 @@ function exp_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) ->
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'exp' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }
@@ -1341,7 +1345,11 @@ function exp_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) ->
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'exp' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }
@@ -1351,7 +1359,11 @@ function exp2_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) -
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp2' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'exp2' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }
@@ -1361,7 +1373,11 @@ function exp2_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) -
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'exp2' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'exp2' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }
@@ -1371,7 +1387,11 @@ function expm1_f32_check(x: float32, begin: uint64, pivot: uint64, end: uint64) 
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'expm1' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'expm1' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }
@@ -1381,7 +1401,11 @@ function expm1_f64_check(x: float64, begin: uint64, pivot: uint64, end: uint64) 
 {
 	if (isnan(x))
 	{
-		emit_diagnostic(warning_kind_float_nan_math, "passing nan to 'expm1' results in nan", begin, pivot, end);
+		emit_diagnostic(
+			warning_kind_math_domain_error,
+			concat("calling 'expm1' with ", x, " results in nan").as_str(),
+			begin, pivot, end
+		);
 	}
 	return true;
 }

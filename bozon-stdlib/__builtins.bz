@@ -117,11 +117,11 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 
 @__builtin export function __builtin_is_comptime() -> bool;
 
-@symbol_name("__bozon_builtin_is_option_set_impl") function is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
+@__builtin @symbol_name("__bozon_builtin_is_option_set_impl") consteval function __builtin_is_option_set_impl(begin: *const uint8, end: *const uint8) -> bool;
 @__builtin
 export consteval function __builtin_is_option_set(option: str) -> bool
 {
-	return is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
+	return __builtin_is_option_set_impl(__builtin_str_begin_ptr(option), __builtin_str_end_ptr(option));
 }
 
 @__builtin @symbol_name("__bozon_builtin_panic") export function __builtin_panic();
