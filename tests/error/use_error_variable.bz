@@ -1,0 +1,7 @@
+function foo()
+{
+	const x = do_something();
+	x & 1u32;
+}
+
+static_assert((foo(), true));
