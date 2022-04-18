@@ -81,7 +81,11 @@ for test_file in error_test_files:
     )
     stdout = process.stdout.decode('utf-8')
     stderr = process.stderr.decode('utf-8')
-    if process.returncode >= 1 and process.returncode <= 7:
+    process_rerun = subprocess.run(
+        [ bozon, *flags, '--return-zero-on-error', test_file ],
+        capture_output=True
+    )
+    if process.returncode != 0 and process_rerun.returncode == 0:
         print(f'    {test_file:.<60}{bright_green}OK{clear}')
     else:
         error = True

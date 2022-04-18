@@ -3139,7 +3139,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 136);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 139);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3630,16 +3630,17 @@ static val_ptr emit_bitcode(
 			{
 				bz_assert(func_call.params.size() == 1);
 				auto const val = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+				auto const fn = context.get_function(func_call.func_body);
+				auto const result_val = context.create_call(fn, { val });
 				if (context.do_error_checking())
 				{
 					auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
 					auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
 					auto const check_fn = context.get_comptime_function(check_fn_kind);
-					auto const is_valid = context.create_call(check_fn, { val, src_begin, src_pivot, src_end });
+					auto const is_valid = context.create_call(check_fn, { val, result_val, src_begin, src_pivot, src_end });
 					emit_error_assert(is_valid, context);
 				}
-				auto const fn = context.get_function(func_call.func_body);
-				auto const result_val = context.create_call(fn, { val });
+
 				if (result_address == nullptr)
 				{
 					return val_ptr::get_value(result_val);
@@ -3664,16 +3665,17 @@ static val_ptr emit_bitcode(
 				bz_assert(func_call.params.size() == 2);
 				auto const val1 = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
 				auto const val2 = emit_bitcode<abi>(func_call.params[1], context, nullptr).get_value(context.builder);
+				auto const fn = context.get_function(func_call.func_body);
+				auto const result_val = context.create_call(fn, { val1, val2 });
 				if (context.do_error_checking())
 				{
 					auto const [src_begin, src_pivot, src_end] = get_src_tokens_llvm_value(src_tokens, context);
 					auto const check_fn_kind = get_math_check_function_kind(func_call.func_body->intrinsic_kind);
 					auto const check_fn = context.get_comptime_function(check_fn_kind);
-					auto const is_valid = context.create_call(check_fn, { val1, val2, src_begin, src_pivot, src_end });
+					auto const is_valid = context.create_call(check_fn, { val1, val2, result_val, src_begin, src_pivot, src_end });
 					emit_error_assert(is_valid, context);
 				}
-				auto const fn = context.get_function(func_call.func_body);
-				auto const result_val = context.create_call(fn, { val1, val2 });
+
 				if (result_address == nullptr)
 				{
 					return val_ptr::get_value(result_val);
@@ -5618,10 +5620,10 @@ static void emit_bitcode(
 				bz_unreachable;
 			case abi::pass_kind::value:
 			{
-				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer);
+				auto const ret_val = emit_bitcode<abi>(ret_stmt.expr, context, context.output_pointer).get_value(context.builder);
 				context.emit_all_destructor_calls();
 				context.emit_all_end_lifetime_calls();
-				context.builder.CreateRet(ret_val.get_value(context.builder));
+				context.builder.CreateRet(ret_val);
 				break;
 			}
 			case abi::pass_kind::one_register:
@@ -5705,6 +5707,7 @@ static void emit_bitcode(
 		if (var_decl.get_type().is_empty())
 		{
 			emit_error(var_decl.src_tokens, "failed to resolve variable declaration", context);
+			return;
 		}
 	}
 	if (var_decl.get_type().is<ast::ts_lvalue_reference>())

@@ -467,6 +467,7 @@ struct function_body
 		builtin_inplace_construct,
 
 		builtin_is_comptime,
+		builtin_is_option_set_impl,
 		builtin_is_option_set,
 		builtin_panic,
 
@@ -485,6 +486,9 @@ struct function_body
 		comptime_create_global_string,
 
 		comptime_concatenate_strs,
+
+		comptime_format_float32,
+		comptime_format_float64,
 
 		// type manipulation functions
 
@@ -1396,7 +1400,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 136);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 139);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1423,9 +1427,10 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
 		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
 
-		{ function_body::builtin_is_comptime,   "__builtin_is_comptime"   },
-		{ function_body::builtin_is_option_set, "__builtin_is_option_set" },
-		{ function_body::builtin_panic,         "__builtin_panic"         },
+		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
+		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },
+		{ function_body::builtin_is_option_set,      "__builtin_is_option_set"      },
+		{ function_body::builtin_panic,              "__builtin_panic"              },
 
 		{ function_body::print_stdout,   "__builtin_print_stdout"   },
 		{ function_body::print_stderr,   "__builtin_print_stderr"   },
@@ -1442,6 +1447,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::comptime_create_global_string, "__builtin_comptime_create_global_string" },
 
 		{ function_body::comptime_concatenate_strs, "__builtin_comptime_concatenate_strs" },
+
+		{ function_body::comptime_format_float32, "__builtin_comptime_format_float32" },
+		{ function_body::comptime_format_float64, "__builtin_comptime_format_float64" },
 
 		{ function_body::typename_as_str, "__builtin_typename_as_str" },
 

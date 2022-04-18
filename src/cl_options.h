@@ -155,7 +155,7 @@ template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element(
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn invalid-unicode")>          = &warnings[static_cast<size_t>(ctx::warning_kind::invalid_unicode)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn nan-compare")>              = &warnings[static_cast<size_t>(ctx::warning_kind::nan_compare)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn out-of-bounds-index")>      = &warnings[static_cast<size_t>(ctx::warning_kind::out_of_bounds_index)];
-template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn bad-float-math")>           = &warnings[static_cast<size_t>(ctx::warning_kind::bad_float_math)];
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn math-domain-error")>        = &warnings[static_cast<size_t>(ctx::warning_kind::math_domain_error)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn binary-stdout")>            = &warnings[static_cast<size_t>(ctx::warning_kind::binary_stdout)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn is-comptime-always-true")>  = &warnings[static_cast<size_t>(ctx::warning_kind::is_comptime_always_true)];
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--warn non-exhaustive-switch")>    = &warnings[static_cast<size_t>(ctx::warning_kind::non_exhaustive_switch)];
