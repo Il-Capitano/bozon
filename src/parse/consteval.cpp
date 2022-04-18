@@ -939,8 +939,8 @@ static ast::constant_value evaluate_binary_bit_right_shift(
 	bz_assert(lhs_value.is<ast::constant_value::uint>());
 	auto const lhs_int_val = lhs_value.get<ast::constant_value::uint>();
 
-	bz_assert(lhs_const_expr.type.is<ast::ts_base_type>());
-	auto const lhs_type_kind = lhs_const_expr.type.get<ast::ts_base_type>().info->kind;
+	bz_assert(ast::remove_const_or_consteval(lhs_const_expr.type).is<ast::ts_base_type>());
+	auto const lhs_type_kind = ast::remove_const_or_consteval(lhs_const_expr.type).get<ast::ts_base_type>().info->kind;
 
 	bz_assert(rhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::sint>());
 	if (rhs_value.is<ast::constant_value::uint>())
@@ -1251,6 +1251,13 @@ static ast::constant_value evaluate_math_functions(
 	auto const paren_level = original_expr.paren_level;
 	auto const &src_tokens = original_expr.src_tokens;
 
+	auto const report_domain_error = [&](bz::u8string message) {
+		context.report_parenthesis_suppressed_warning(
+			2 - paren_level, ctx::warning_kind::math_domain_error,
+			src_tokens, std::move(message)
+		);
+	};
+
 	using T = std::pair<bool, bz::u8string_view>;
 	auto const check_math_function = [&](
 		bz::u8string_view func_name,
@@ -1262,10 +1269,7 @@ static ast::constant_value evaluate_math_functions(
 		{
 			if (condition)
 			{
-				context.report_parenthesis_suppressed_warning(
-					2 - paren_level, ctx::warning_kind::math_domain_error,
-					src_tokens, bz::format("calling '{}' {}", func_name, bz::format(fmt, arg, result))
-				);
+				report_domain_error(bz::format("calling '{}' {}", func_name, bz::format(fmt, arg, result)));
 				return ast::constant_value(result);
 			}
 		}
@@ -1330,19 +1334,79 @@ case ast::function_body::func_name##_f64:                    \
 	def_case_error(log,   (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
 	def_case_error(log10, (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
 	def_case_error(log2,  (T{ arg == 0.0,  "with {} results in {}" }), (T{ arg < 0.0,  "with a negative value {} results in {}" }))
-	def_case_error(log1p, (T{ arg == -1.0, "with {} results in {}" }), (T{ arg < -1.0, "with {} results in {}" }))
+	def_case_error(log1p, (T{ arg <= -1.0, "with {} results in {}" }))
 
 	// ==== power functions ====
 	def_case_error(sqrt, (T{ arg < 0.0, "with a negative value {} results in {}" }))
 	case ast::function_body::pow_f32:
-		return ast::constant_value(std::pow(get_float32(0), get_float32(1)));
+	{
+		auto const base = get_float32(0);
+		auto const exp = get_float32(0);
+		auto const result = std::pow(base, exp);
+		if (base == 0.0f && exp < 0.0f)
+		{
+			report_domain_error(bz::format("calling 'pow' with base {} and exponent {} results in {}", base, exp, result));
+		}
+		else if (std::isfinite(base) && base < 0.0f && std::isfinite(exp) && exp != std::trunc(exp))
+		{
+			report_domain_error(bz::format("calling 'pow' with a negative base {} and a non-integer exponent {} results in {}", base, exp, result));
+		}
+		else if (
+			base != 1.0f
+			&& exp != 0.0f
+			&& (std::isnan(base) || std::isnan(exp))
+		)
+		{
+			report_domain_error(bz::format("calling 'pow' with base {} and exponent {} results in {}", base, exp, result));
+		}
+		return ast::constant_value(result);
+	}
 	case ast::function_body::pow_f64:
-		return ast::constant_value(std::pow(get_float64(0), get_float64(1)));
+	{
+		auto const base = get_float64(0);
+		auto const exp = get_float64(0);
+		auto const result = std::pow(base, exp);
+		if (base == 0.0 && exp < 0.0)
+		{
+			report_domain_error(bz::format("calling 'pow' with base {} and exponent {} results in {}", base, exp, result));
+		}
+		else if (std::isfinite(base) && base < 0.0 && std::isfinite(exp) && exp != std::trunc(exp))
+		{
+			report_domain_error(bz::format("calling 'pow' with negative base {} and non-integer exponent {} results in {}", base, exp, result));
+		}
+		else if (
+			base != 1.0
+			&& exp != 0.0
+			&& (std::isnan(base) || std::isnan(exp))
+		)
+		{
+			report_domain_error(bz::format("calling 'pow' with base {} and exponent {} results in {}", base, exp, result));
+		}
+		return ast::constant_value(result);
+	}
 	def_case_default(cbrt)
 	case ast::function_body::hypot_f32:
-		return ast::constant_value(std::hypot(get_float32(0), get_float32(1)));
+	{
+		auto const x = get_float32(0);
+		auto const y = get_float32(1);
+		auto const result = std::hypot(x, y);
+		if (!std::isinf(x) && !std::isinf(y) && (std::isnan(x) || std::isnan(y)))
+		{
+			report_domain_error(bz::format("calling 'hypot' with {} and {} results in {}", x, y, result));
+		}
+		return ast::constant_value(result);
+	}
 	case ast::function_body::hypot_f64:
-		return ast::constant_value(std::hypot(get_float64(0), get_float64(1)));
+	{
+		auto const x = get_float64(0);
+		auto const y = get_float64(1);
+		auto const result = std::hypot(x, y);
+		if (!std::isinf(x) && !std::isinf(y) && (std::isnan(x) || std::isnan(y)))
+		{
+			report_domain_error(bz::format("calling 'hypot' with {} and {} results in {}", x, y, result));
+		}
+		return ast::constant_value(result);
+	}
 
 	// ==== trigonometric functions ====
 	def_case_error(sin, (T{ std::isinf(arg), "with {} results in {}" }))
@@ -1352,9 +1416,27 @@ case ast::function_body::func_name##_f64:                    \
 	def_case_error(acos, (T{ std::abs(arg) > 1.0, "with {} results in {}" }))
 	def_case_default(atan)
 	case ast::function_body::atan2_f32:
-		return ast::constant_value(std::atan2(get_float32(0), get_float32(1)));
+	{
+		auto const y = get_float32(0);
+		auto const x = get_float32(1);
+		auto const result = std::atan2(y, x);
+		if (std::isnan(y) || std::isnan(x))
+		{
+			report_domain_error(bz::format("calling 'atan2' with {} and {} results in {}", y, x, result));
+		}
+		return ast::constant_value(result);
+	}
 	case ast::function_body::atan2_f64:
-		return ast::constant_value(std::atan2(get_float64(0), get_float64(1)));
+	{
+		auto const y = get_float64(0);
+		auto const x = get_float64(1);
+		auto const result = std::atan2(y, x);
+		if (std::isnan(y) || std::isnan(x))
+		{
+			report_domain_error(bz::format("calling 'atan2' with {} and {} results in {}", y, x, result));
+		}
+		return ast::constant_value(result);
+	}
 
 	// ==== hyperbolic functions ====
 	def_case_default(sinh)
@@ -1362,12 +1444,7 @@ case ast::function_body::func_name##_f64:                    \
 	def_case_default(tanh)
 	def_case_default(asinh)
 	def_case_error(acosh, (T{ arg < 1.0, "with {} results in {}" }))
-	def_case_error(
-		atanh,
-		(T{ arg == 1.0, "with {} results in {}" }),
-		(T{ arg == -1.0, "with {} results in {}" }),
-		(T{ std::abs(arg) > 1.0, "with {} results in {}" })
-	)
+	def_case_error(atanh, (T{ std::abs(arg) >= 1.0, "with {} results in {}" }))
 
 	// ==== error and gamma functions ====
 	def_case_default(erf)
