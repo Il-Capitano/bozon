@@ -110,11 +110,44 @@ static match_level_t get_strict_typename_match_level(
 	}
 	else if (dest.is<ast::ts_array>())
 	{
-		return get_strict_typename_match_level(dest.get<ast::ts_array>().elem_type, source.get<ast::ts_array>().elem_type) + result;
+		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		{
+			return match_level_t{};
+		}
+		else
+		{
+			return get_strict_typename_match_level(dest.get<ast::ts_array>().elem_type, source.get<ast::ts_array>().elem_type) + result;
+		}
 	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
 		return get_strict_typename_match_level(dest.get<ast::ts_array_slice>().elem_type, source.get<ast::ts_array_slice>().elem_type) + result;
+	}
+	else if (dest.is<ast::ts_tuple>())
+	{
+		auto const &dest_types = dest.get<ast::ts_tuple>().types;
+		auto const &source_types = source.get<ast::ts_tuple>().types;
+		if (dest_types.size() != source_types.size())
+		{
+			return match_level_t{};
+		}
+
+		match_level_t result{};
+		auto &result_vec = result.emplace<bz::vector<match_level_t>>();
+		result_vec.reserve(dest_types.size());
+		for (auto const i : bz::iota(0, dest_types.size()))
+		{
+			if (!dest_types[i].is_typename() && dest_types[i] != source_types[i])
+			{
+				result.clear();
+				break;
+			}
+			else
+			{
+				result_vec.push_back(get_strict_typename_match_level(dest_types[i], source_types[i]));
+			}
+		}
+		return result;
 	}
 	else
 	{

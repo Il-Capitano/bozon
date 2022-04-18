@@ -87,27 +87,24 @@ enum class type_match_result
 	}
 }
 
-static void match_typename_to_type_impl(
-	ast::expression &expr,
-	ast::typespec &dest_container,
+static bool match_typename_to_type_impl(
+	lex::src_tokens const &src_tokens,
+	ast::typespec_view original_source,
+	ast::typespec_view original_dest,
 	ast::typespec_view source,
 	ast::typespec_view dest,
 	ctx::parse_context &context
 )
 {
-	// this function doesn't modify dest, it just checks if there's an error or not
-	bz_assert(expr.is_typename());
 	bz_assert(dest.is_typename());
 
 	if (!ast::is_complete(source))
 	{
 		context.report_error(
-			expr,
-			bz::format("couldn't match non-complete type '{}' to typename type '{}'", expr.get_typename(), dest_container)
+			src_tokens,
+			bz::format("couldn't match non-complete type '{}' to typename type '{}'", original_source, original_dest)
 		);
-		expr.to_error();
-		dest_container.clear();
-		return;
+		return false;
 	}
 
 	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
@@ -118,32 +115,96 @@ static void match_typename_to_type_impl(
 
 	if (dest.is<ast::ts_typename>())
 	{
-		return;
+		return true;
 	}
 	else if (dest.kind() != source.kind())
 	{
-		context.report_error(expr, bz::format("couldn't match type '{}' to typename type '{}'", expr.get_typename(), dest_container));
-		expr.to_error();
-		dest_container.clear();
-		return;
+		context.report_error(src_tokens, bz::format("couldn't match type '{}' to typename type '{}'", original_source, original_dest));
+		return false;
 	}
 	else if (dest.is<ast::ts_array>())
 	{
-		match_typename_to_type_impl(
-			expr, dest_container,
-			source.get<ast::ts_array>().elem_type, dest.get<ast::ts_array>().elem_type,
+		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("couldn't match type '{}' to typename type '{}'", original_source, original_dest),
+				{ context.make_note(
+					src_tokens,
+					bz::format("array types '{}' and '{}' have different sizes", source, dest)
+				) }
+			);
+			return false;
+		}
+
+		return match_typename_to_type_impl(
+			src_tokens,
+			original_source, original_dest,
+			source.get<ast::ts_array>().elem_type,
+			dest.get<ast::ts_array>().elem_type,
 			context
 		);
-		return;
 	}
 	else if (dest.is<ast::ts_array_slice>())
 	{
-		match_typename_to_type_impl(
-			expr, dest_container,
+		return match_typename_to_type_impl(
+			src_tokens,
+			original_source, original_dest,
 			source.get<ast::ts_array_slice>().elem_type, dest.get<ast::ts_array_slice>().elem_type,
 			context
 		);
-		return;
+	}
+	else if (dest.is<ast::ts_tuple>())
+	{
+		auto &dest_types = dest.get<ast::ts_tuple>().types;
+		auto const &source_types = source.get<ast::ts_tuple>().types;
+		if (dest_types.size() != source_types.size())
+		{
+			context.report_error(
+				src_tokens,
+				bz::format("couldn't match type '{}' to typename type '{}'", original_source, original_dest),
+				{ context.make_note(
+					src_tokens,
+					bz::format("tuple types '{}' and '{}' have different element counts", source, dest)
+				) }
+			);
+			return false;
+		}
+
+		auto const size = dest_types.size();
+		auto const non_typename_good = bz::iota(0, size)
+			.filter([&](auto const i) { return !dest_types[i].is_typename(); })
+			.is_all([&](auto const i) {
+				return dest_types[i] == source_types[i];
+			});
+		if (!non_typename_good)
+		{
+			auto notes = bz::iota(0, size)
+				.filter([&](auto const i) { return !dest_types[i].is_typename(); })
+				.transform([&](auto const i) {
+					return context.make_note(
+						src_tokens,
+						bz::format("different types '{}' and '{}' at position {}", source_types[i], dest_types[i], i)
+					);
+				})
+				.collect();
+			context.report_error(
+				src_tokens,
+				bz::format("couldn't match type '{}' to typename type '{}'", original_source, original_dest),
+				std::move(notes)
+			);
+			return false;
+		}
+		return bz::iota(0, size)
+			.filter([&](auto const i) { return dest_types[i].is_typename(); })
+			.is_all([&](auto const i) {
+				return match_typename_to_type_impl(
+					src_tokens,
+					source_types[i], dest_types[i],
+					source_types[i], dest_types[i],
+					context
+				);
+			});
 	}
 	else
 	{
@@ -982,7 +1043,16 @@ static void match_expression_to_type_impl(
 			return;
 		}
 
-		match_typename_to_type_impl(expr, dest_container, expr.get_typename(), dest, context);
+		auto const is_good = match_typename_to_type_impl(expr.src_tokens, expr.get_typename(), dest_container, expr.get_typename(), dest, context);
+		if (!is_good)
+		{
+			expr.to_error();
+			if (!ast::is_complete(dest_container))
+			{
+				dest_container.clear();
+			}
+			return;
+		}
 	}
 	else if (expr.is_tuple())
 	{
