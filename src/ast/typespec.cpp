@@ -155,62 +155,62 @@ bool typespec_view::is_typename(void) const noexcept
 	}
 
 	return this->nodes.back().visit(bz::overload{
-		[&](ts_unresolved const &) {
+		[](ts_unresolved const &) {
 			return false;
 		},
-		[&](ts_base_type const &) {
+		[](ts_base_type const &) {
 			return false;
 		},
-		[&](ts_void const &) {
+		[](ts_void const &) {
 			return false;
 		},
-		[&](ts_function const &) {
+		[](ts_function const &) {
 			return false;
 		},
-		[&](ts_array const &array_t) {
+		[](ts_array const &array_t) {
 			return array_t.elem_type.is_typename();
 		},
-		[&](ts_array_slice const &array_slice_t) {
+		[](ts_array_slice const &array_slice_t) {
 			return array_slice_t.elem_type.is_typename();
 		},
-		[&](ts_tuple const &) {
+		[](ts_tuple const &tuple_t) {
+			return tuple_t.types.is_any([](auto const &elem_type) { return elem_type.is_typename(); });
+		},
+		[](ts_auto const &) {
 			return false;
 		},
-		[&](ts_auto const &) {
-			return false;
-		},
-		[&](ts_typename const &) {
+		[](ts_typename const &) {
 			return true;
 		},
-		[&](ts_const const &) {
+		[](ts_const const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_consteval const &) {
+		[](ts_consteval const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_pointer const &) {
+		[](ts_pointer const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_lvalue_reference const &) {
+		[](ts_lvalue_reference const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_move_reference const &) {
+		[](ts_move_reference const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_auto_reference const &) {
+		[](ts_auto_reference const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_auto_reference_const const &) {
+		[](ts_auto_reference_const const &) {
 			bz_unreachable;
 			return false;
 		},
-		[&](ts_variadic const &) {
+		[](ts_variadic const &) {
 			bz_unreachable;
 			return false;
 		},

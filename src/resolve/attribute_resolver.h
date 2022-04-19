@@ -67,6 +67,6 @@ void resolve_attributes(
 	ctx::parse_context &context
 );
 
-}
+} // namespace resolve
 
 #endif // RESOLVE_ATTRIBUTE_RESOLVER_H

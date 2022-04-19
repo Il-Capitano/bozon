@@ -1,5 +1,6 @@
 #include "expression_resolver.h"
 #include "statement_resolver.h"
+#include "match_expression.h"
 #include "global_data.h"
 #include "parse/consteval.h"
 #include "parse/expression_parser.h"
@@ -320,7 +321,7 @@ static ast::expression resolve_expr(
 
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-		context.match_expression_to_type(if_expr.condition, bool_type);
+		match_expression_to_type(if_expr.condition, bool_type, context);
 	}
 
 	if (if_expr.condition.is_error() || if_expr.then_block.is_error() || if_expr.else_block.is_error())
@@ -365,7 +366,7 @@ static ast::expression resolve_expr(
 
 	{
 		auto bool_type = ast::make_base_type_typespec({}, context.get_builtin_type_info(ast::type_info::bool_));
-		context.match_expression_to_type(if_expr.condition, bool_type);
+		match_expression_to_type(if_expr.condition, bool_type, context);
 	}
 
 	if (if_expr.condition.is_error())
@@ -473,7 +474,7 @@ static ast::expression resolve_expr(
 	resolve_expression(switch_expr.default_case, context);
 
 	ast::typespec match_type = ast::make_auto_typespec(nullptr);
-	context.match_expression_to_type(switch_expr.matched_expr, match_type);
+	match_expression_to_type(switch_expr.matched_expr, match_type, context);
 	check_switch_type(switch_expr.matched_expr, match_type, context);
 	if (switch_expr.matched_expr.is_error())
 	{
@@ -484,7 +485,7 @@ static ast::expression resolve_expr(
 	{
 		for (auto &case_value : case_values)
 		{
-			context.match_expression_to_type(case_value, match_type);
+			match_expression_to_type(case_value, match_type, context);
 			parse::consteval_try(case_value, context);
 		}
 	}

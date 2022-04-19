@@ -172,17 +172,19 @@ static void emit_index_bounds_check(
 	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
 	if (is_index_unsigned)
 	{
+		auto const index_val_u64 = context.builder.CreateIntCast(index_val, context.get_uint64_t(), false);
 		auto const is_in_bounds = context.create_call(
 			context.get_comptime_function(ctx::comptime_function_kind::index_check_unsigned),
-			{ index_val, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
+			{ index_val_u64, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
 		);
 		emit_error_assert(is_in_bounds, context);
 	}
 	else
 	{
+		auto const index_val_i64 = context.builder.CreateIntCast(index_val, context.get_int64_t(), true);
 		auto const is_in_bounds = context.create_call(
 			context.get_comptime_function(ctx::comptime_function_kind::index_check_signed),
-			{ index_val, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
+			{ index_val_i64, array_size, error_kind_val, error_begin_val, error_pivot_val, error_end_val }
 		);
 		emit_error_assert(is_in_bounds, context);
 	}

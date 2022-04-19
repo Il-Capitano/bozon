@@ -33,7 +33,7 @@ consteval FLOAT_EXPONENT_BIAS = 127;
 
 function floor_log2(value: uint32) -> uint32
 {
-	return 31u - __builtin_clz_u32(value);
+	return 31 - __builtin_clz_u32(value);
 }
 
 // The max function is already defined on Windows.
@@ -89,8 +89,8 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		{
 			return s2f_INPUT_TOO_LONG;
 		}
-		m10 = 10u * m10 + (c - '0') as uint32;
-		if (m10 != 0u)
+		m10 = 10 * m10 + (c - '0') as uint32;
+		if (m10 != 0)
 		{
 			++m10digits;
 		}
@@ -139,7 +139,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 		e10 -= eIndex - dotIndex - 1;
 	}
 
-	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -46) || (m10 == 0u))
+	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -46) || (m10 == 0))
 	{
 		// Number is less than 1e-46, which should be rounded down to 0; return +/-0.0.
 		const ieee = (signedM as uint32) << (FLOAT_EXPONENT_BITS + FLOAT_MANTISSA_BITS);
@@ -220,7 +220,7 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	// We need to figure out how much we need to shift m2. The tricky part is that we need to take
 	// the final IEEE exponent into account, so we need to reverse the bias and also special-case
 	// the value 0.
-	let shift = if (ieee_e2 == 0u) {
+	let shift = if (ieee_e2 == 0) {
 		1 - e2 - FLOAT_EXPONENT_BIAS - FLOAT_MANTISSA_BITS
 	} else {
 		ieee_e2 as int32 - e2 - FLOAT_EXPONENT_BIAS - FLOAT_MANTISSA_BITS
@@ -232,14 +232,14 @@ export function s2f_n(buffer: *const uint8, len: int32, result: *float32) -> uin
 	// trailing zeros or the result would otherwise be odd.
 	//
 	// We need to update trailingZeros given that we have the exact output exponent ieee_e2 now.
-	trailingZeros &= (m2 & ((1u32 << (shift - 1)) - 1u32)) == 0u;
+	trailingZeros &= (m2 & ((1u32 << (shift - 1)) - 1)) == 0;
 	const lastRemovedBit = (m2 >> (shift - 1)) & 1u32;
-	const roundUp = (lastRemovedBit != 0u) && (!trailingZeros || (((m2 >> shift) & 1u32) != 0u));
+	const roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift) & 1u32) != 0));
 
 	let ieee_m2 = (m2 >> shift) + roundUp as uint32;
-	assert(ieee_m2 <= (1u << (FLOAT_MANTISSA_BITS + 1)));
-	ieee_m2 &= (1u32 << FLOAT_MANTISSA_BITS) - 1u32;
-	if (ieee_m2 == 0u && roundUp)
+	assert(ieee_m2 <= (1u32 << (FLOAT_MANTISSA_BITS + 1)));
+	ieee_m2 &= (1u32 << FLOAT_MANTISSA_BITS) - 1;
+	if (ieee_m2 == 0 && roundUp)
 	{
 		// Rounding up may overflow the mantissa.
 		// In this case we move a trailing zero of the mantissa into the exponent.
@@ -259,7 +259,7 @@ function c_strlen(c_str: *const uint8) -> int32
 	}
 
 	let result = 0;
-	while (*c_str != 0u)
+	while (*c_str != 0)
 	{
 		++result;
 		++c_str;

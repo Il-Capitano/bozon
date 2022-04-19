@@ -27,7 +27,7 @@ struct has_difference_impl
 	static auto test(...) -> no;
 
 	template<typename T, typename U>
-	static constexpr bool value = meta::is_same<decltype(test<T, U>()), yes>;
+	static constexpr bool value = meta::is_same<decltype(test<T, U>(0)), yes>;
 };
 
 template<typename T, typename U>
@@ -45,7 +45,7 @@ struct has_size_impl
 	static auto test(...) -> no;
 
 	template<typename T>
-	static constexpr bool value = meta::is_same<decltype(test<T>()), yes>;
+	static constexpr bool value = meta::is_same<decltype(test<T>(0)), yes>;
 };
 
 template<typename T>
@@ -118,8 +118,11 @@ struct range_base_collect
 {
 	template<template<typename ...Ts> typename Vec>
 	constexpr auto collect(void) const;
+	template<template<typename ...Ts> typename Vec>
+	constexpr auto collect(std::size_t reserve) const;
 
 	auto collect(void) const;
+	auto collect(std::size_t reserve) const;
 };
 
 template<typename Range>
@@ -618,6 +621,18 @@ public:
 		>{ *this->_first_it, *this->_second_it };
 	}
 
+	template<
+		typename T = FirstItType,
+		typename U = SecondItType,
+		meta::enable_if<internal::has_size<T> && internal::has_size<U>, int> = 0
+	>
+	constexpr std::size_t size(void) const noexcept
+	{
+		static_assert(meta::is_same<T, FirstItType>);
+		static_assert(meta::is_same<U, SecondItType>);
+		return std::min(static_cast<std::size_t>(this->_first_it.size()), static_cast<std::size_t>(this->_second_it.size()));
+	}
+
 	constexpr friend bool operator == (self_t const &lhs, [[maybe_unused]] universal_end_sentinel<self_t> rhs) noexcept
 	{ return lhs.at_end(); }
 
@@ -870,6 +885,21 @@ constexpr auto range_base_collect<Range>::collect(void) const
 	{
 		result.reserve(self->size());
 	}
+	for (auto &&it : *self)
+	{
+		result.emplace_back(std::forward<decltype(it)>(it));
+	}
+	return result;
+}
+
+template<typename Range>
+template<template<typename ...Ts> typename Vec>
+constexpr auto range_base_collect<Range>::collect(std::size_t reserve) const
+{
+	auto const self = static_cast<Range const *>(this);
+	Vec<std::decay_t<decltype(self->operator*())>> result;
+	static_assert(!internal::has_size<Range>, "use .collect() on a sized range instead");
+	result.reserve(reserve);
 	for (auto &&it : *self)
 	{
 		result.emplace_back(std::forward<decltype(it)>(it));

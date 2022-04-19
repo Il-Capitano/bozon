@@ -166,31 +166,70 @@ expr_switch const &expression::get_switch_expr(void) const noexcept
 
 bool expression::is_literal(void) const noexcept
 {
-	return this->is<constant_expression>() && this->get<constant_expression>().expr.is<expr_literal>();
+	if (!this->is_constant_or_dynamic())
+	{
+		return false;
+	}
+	auto &expr = this->get_expr();
+	return expr.is<expr_literal>() || (expr.is<expr_compound>() && expr.get<expr_compound>().final_expr.is_literal());
 }
 
 expr_literal &expression::get_literal(void) noexcept
 {
 	bz_assert(this->is_literal());
-	return this->get<constant_expression>().expr.get<expr_literal>();
+	auto &expr = this->get_expr();
+	if (expr.is<expr_compound>())
+	{
+		return expr.get<expr_compound>().final_expr.get_literal();
+	}
+	else
+	{
+		bz_assert(expr.is<expr_literal>());
+		return expr.get<expr_literal>();
+	}
 }
 
 expr_literal const &expression::get_literal(void) const noexcept
 {
 	bz_assert(this->is_literal());
-	return this->get<constant_expression>().expr.get<expr_literal>();
+	auto &expr = this->get_expr();
+	if (expr.is<expr_compound>())
+	{
+		return expr.get<expr_compound>().final_expr.get_literal();
+	}
+	else
+	{
+		bz_assert(expr.is<expr_literal>());
+		return expr.get<expr_literal>();
+	}
 }
 
 constant_value &expression::get_literal_value(void) noexcept
 {
 	bz_assert(this->is_literal());
-	return this->get<constant_expression>().value;
+	if (this->is<constant_expression>())
+	{
+		return this->get<constant_expression>().value;
+	}
+	else
+	{
+		bz_assert(this->get_expr().is<expr_compound>());
+		return this->get_expr().get<expr_compound>().final_expr.get_literal_value();
+	}
 }
 
 constant_value const &expression::get_literal_value(void) const noexcept
 {
 	bz_assert(this->is_literal());
-	return this->get<constant_expression>().value;
+	if (this->is<constant_expression>())
+	{
+		return this->get<constant_expression>().value;
+	}
+	else
+	{
+		bz_assert(this->get_expr().is<expr_compound>());
+		return this->get_expr().get<expr_compound>().final_expr.get_literal_value();
+	}
 }
 
 bool expression::is_generic_type(void) const noexcept

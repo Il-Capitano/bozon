@@ -1,6 +1,7 @@
 #include "attribute_resolver.h"
 #include "ctx/global_context.h"
 #include "expression_resolver.h"
+#include "match_expression.h"
 #include "parse/expression_parser.h"
 #include "parse/consteval.h"
 
@@ -283,7 +284,7 @@ static bool resolve_attribute(
 			for (auto const &[arg, arg_type] : bz::zip(attribute.args, attribute_info.arg_types))
 			{
 				resolve_expression(arg, context);
-				context.match_expression_to_type(arg, arg_type);
+				match_expression_to_type(arg, arg_type, context);
 				parse::consteval_try(arg, context);
 				if (arg.not_error() && !arg.is<ast::constant_expression>())
 				{
@@ -369,4 +370,4 @@ void resolve_attributes(
 	}
 }
 
-}
+} // namespace resolve
