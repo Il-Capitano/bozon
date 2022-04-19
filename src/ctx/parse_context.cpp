@@ -3274,16 +3274,9 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 			notes.reserve(possible_funcs.size());
 			for (auto &func : filtered_funcs)
 			{
-				if (func.func_body->src_tokens.pivot == nullptr)
-				{
-					notes.emplace_back(context.make_note(func.func_body->get_candidate_message()));
-				}
-				else
-				{
-					notes.emplace_back(context.make_note(
-						func.func_body->src_tokens, func.func_body->get_candidate_message()
-					));
-				}
+				notes.emplace_back(context.make_note(
+					func.func_body->src_tokens, func.func_body->get_candidate_message()
+				));
 				if (func.stmt.is<ast::decl_function_alias>())
 				{
 					auto &alias = func.stmt.get<ast::decl_function_alias>();
@@ -3303,16 +3296,9 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 	notes.emplace_back(get_function_parameter_types_note(src_tokens, args));
 	for (auto &func : possible_funcs)
 	{
-		if (func.func_body->src_tokens.pivot == nullptr)
-		{
-			notes.emplace_back(context.make_note(func.func_body->get_candidate_message()));
-		}
-		else
-		{
-			notes.emplace_back(context.make_note(
-				func.func_body->src_tokens, func.func_body->get_candidate_message()
-			));
-		}
+		notes.emplace_back(context.make_note(
+			func.func_body->src_tokens, func.func_body->get_candidate_message()
+		));
 		if (func.stmt.is<ast::decl_function_alias>())
 		{
 			auto &alias = func.stmt.get<ast::decl_function_alias>();
@@ -3958,28 +3944,14 @@ ast::expression parse_context::make_function_call_expression(
 			{
 				if (func_decl->body.state != ast::resolve_state::error)
 				{
-					if (func_decl->body.is_intrinsic())
-					{
-						this->report_error(
-							src_tokens,
-							"couldn't match the function call to the function",
-							{
-								get_function_parameter_types_note(src_tokens, args),
-								this->make_note(func_decl->body.get_candidate_message())
-							}
-						);
-					}
-					else
-					{
-						this->report_error(
-							src_tokens,
-							"couldn't match the function call to the function",
-							{
-								get_function_parameter_types_note(src_tokens, args),
-								this->make_note(func_decl->body.src_tokens, func_decl->body.get_candidate_message())
-							}
-						);
-					}
+					this->report_error(
+						src_tokens,
+						"couldn't match the function call to the function",
+						{
+							get_function_parameter_types_note(src_tokens, args),
+							this->make_note(func_decl->body.src_tokens, func_decl->body.get_candidate_message())
+						}
+					);
 				}
 				return ast::make_error_expression(
 					src_tokens,
