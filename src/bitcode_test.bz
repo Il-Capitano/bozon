@@ -1788,9 +1788,4 @@ function generic_type_test()
 		std::printf("{}, ", i);
 	}
 	std::printf("\n");
-
-	testtest([*int32, *float32]);
 }
-
-function testtest(T: [*typename, typename]) { std::printf("1\n"); }
-function testtest(T: [typename, *typename]) { std::printf("2\n"); }
