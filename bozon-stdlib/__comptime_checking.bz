@@ -1,10 +1,13 @@
 import ::std::unicode;
 
-consteval warning_kind_int_overflow      = 0u32;
-consteval warning_kind_float_nan_math    = 4u32;
-consteval warning_kind_math_domain_error = 17u32;
-consteval warning_kind_comptime_warning  = 23u32;
-consteval warning_kind_error             = 24u32;
+@__no_runtime_emit consteval warning_kind_int_overflow      = 0u32;
+@__no_runtime_emit consteval warning_kind_float_nan_math    = 4u32;
+@__no_runtime_emit consteval warning_kind_math_domain_error = 17u32;
+@__no_runtime_emit consteval warning_kind_comptime_warning  = 23u32;
+@__no_runtime_emit consteval warning_kind_error             = 24u32;
+
+@__no_runtime_emit consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
+@__no_runtime_emit consteval inf_f64: float64 = ((1.0 / 0.0));
 
 function alloc = __builtin_comptime_malloc_type;
 function free  = __builtin_comptime_free;
@@ -1418,9 +1421,6 @@ function abs(x: float64) -> float64
 	consteval sign_mask = 0x8000'0000'0000'0000u64;
 	return bits_to_double(bits & ~sign_mask);
 }
-
-consteval inf_f32: float32 = ((1.0f32 / 0.0f32));
-consteval inf_f64: float64 = ((1.0 / 0.0));
 
 function get_regular_math_error_message(func_name: str, x: float32, result: float32) -> string
 {
