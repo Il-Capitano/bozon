@@ -107,7 +107,7 @@ identifier const &local_symbol_t::get_id(void) const
 	}
 }
 
-lex::src_tokens local_symbol_t::get_src_tokens(void) const
+lex::src_tokens const &local_symbol_t::get_src_tokens(void) const
 {
 	switch (this->index())
 	{

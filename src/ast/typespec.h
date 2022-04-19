@@ -102,7 +102,7 @@ struct typespec
 
 	declare_default_5(typespec)
 
-	typespec(lex::src_tokens _src_tokens, arena_vector<typespec_node_t> _nodes);
+	typespec(lex::src_tokens const &_src_tokens, arena_vector<typespec_node_t> _nodes);
 	typespec(typespec_view ts);
 
 	template<typename T, typename ...Args>
@@ -271,7 +271,7 @@ inline typespec make_unresolved_typespec(lex::token_range range)
 	return typespec{ lex::src_tokens::from_range(range), { ts_unresolved{ range } } };
 }
 
-inline typespec make_base_type_typespec(lex::src_tokens src_tokens, type_info *info)
+inline typespec make_base_type_typespec(lex::src_tokens const &src_tokens, type_info *info)
 {
 	return typespec{ src_tokens, { ts_base_type{ info } } };
 }
@@ -282,7 +282,7 @@ inline typespec make_void_typespec(lex::token_pos void_pos)
 }
 
 inline typespec make_array_typespec(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint64_t size,
 	typespec elem_type
 )
@@ -291,7 +291,7 @@ inline typespec make_array_typespec(
 }
 
 inline typespec make_array_slice_typespec(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	typespec elem_type
 )
 {
@@ -299,7 +299,7 @@ inline typespec make_array_slice_typespec(
 }
 
 inline typespec make_tuple_typespec(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::vector<typespec> types
 )
 {

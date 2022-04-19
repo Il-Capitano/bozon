@@ -52,7 +52,7 @@ static auto get_constant_expression_values(
 
 // &val -> *typeof val
 static ast::expression get_builtin_unary_address_of(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -82,7 +82,7 @@ static ast::expression get_builtin_unary_address_of(
 }
 
 static ast::expression get_builtin_unary_dot_dot_dot(
-	lex::src_tokens,
+	lex::src_tokens const &,
 	uint32_t,
 	ast::expression,
 	parse_context &
@@ -94,7 +94,7 @@ static ast::expression get_builtin_unary_dot_dot_dot(
 
 // &(typename) -> (&typename)
 static ast::expression get_type_op_unary_reference(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -151,7 +151,7 @@ static ast::expression get_type_op_unary_reference(
 
 // #(typename) -> (#typename)
 static ast::expression get_type_op_unary_auto_ref(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -208,7 +208,7 @@ static ast::expression get_type_op_unary_auto_ref(
 
 // ##(typename) -> (##typename)
 static ast::expression get_type_op_unary_auto_ref_const(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -277,7 +277,7 @@ static ast::expression get_type_op_unary_auto_ref_const(
 
 // *(typename) -> (*typename)
 static ast::expression get_type_op_unary_pointer(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -333,7 +333,7 @@ static ast::expression get_type_op_unary_pointer(
 
 // ...(typename) -> (...typename)
 static ast::expression get_type_op_unary_dot_dot_dot(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -364,7 +364,7 @@ static ast::expression get_type_op_unary_dot_dot_dot(
 
 // const (typename) -> (const typename)
 static ast::expression get_type_op_unary_const(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -425,7 +425,7 @@ static ast::expression get_type_op_unary_const(
 
 // consteval (typename) -> (consteval typename)
 static ast::expression get_type_op_unary_consteval(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -486,7 +486,7 @@ static ast::expression get_type_op_unary_consteval(
 
 // move (typename) -> (move typename)
 static ast::expression get_type_op_unary_move(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -542,7 +542,7 @@ static ast::expression get_type_op_unary_move(
 }
 
 static ast::expression get_builtin_unary_sizeof(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -600,7 +600,7 @@ static ast::expression get_builtin_unary_sizeof(
 
 // typeof (val) -> (typeof val)
 static ast::expression get_builtin_unary_typeof(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -638,7 +638,7 @@ static ast::expression get_builtin_unary_typeof(
 
 // move (val) -> (typeof val without lvalue ref)
 static ast::expression get_builtin_unary_move(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -671,7 +671,7 @@ static ast::expression get_builtin_unary_move(
 
 // __forward (val) -> (rvalue of typeof val)
 static ast::expression get_builtin_unary_forward(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &
@@ -698,7 +698,7 @@ static ast::expression get_builtin_unary_forward(
 
 // consteval (val) -> (force evaluate val at compile time)
 static ast::expression get_builtin_unary_consteval(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -727,7 +727,7 @@ static ast::expression get_builtin_unary_consteval(
 // uintN <<>> intM -> uintN
 // bool &&^^|| bool -> bool
 static ast::expression get_builtin_binary_bool_and_xor_or(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -786,7 +786,7 @@ static ast::expression get_builtin_binary_bool_and_xor_or(
 
 // T, U -> U
 static ast::expression get_builtin_binary_comma(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -807,7 +807,7 @@ static ast::expression get_builtin_binary_comma(
 
 
 ast::expression make_builtin_cast(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression expr,
 	ast::typespec dest_type,
 	parse_context &context
@@ -969,7 +969,7 @@ ast::expression make_builtin_cast(
 }
 
 ast::expression make_builtin_subscript_operator(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression called,
 	ast::expression arg,
 	parse_context &context
@@ -1113,7 +1113,7 @@ ast::expression make_builtin_subscript_operator(
 }
 
 static ast::expression get_type_op_binary_equals_not_equals(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -1167,7 +1167,7 @@ static ast::expression get_type_op_binary_equals_not_equals(
 
 struct unary_operator_parse_function_t
 {
-	using fn_t = ast::expression (*)(lex::src_tokens, uint32_t, ast::expression, parse_context &);
+	using fn_t = ast::expression (*)(lex::src_tokens const &, uint32_t, ast::expression, parse_context &);
 
 	uint32_t kind;
 	fn_t     parse_function;
@@ -1265,7 +1265,7 @@ constexpr auto type_op_unary_operators = []() {
 
 struct binary_operator_parse_function_t
 {
-	using fn_t = ast::expression (*)(lex::src_tokens, uint32_t, ast::expression, ast::expression, parse_context &);
+	using fn_t = ast::expression (*)(lex::src_tokens const &, uint32_t, ast::expression, ast::expression, parse_context &);
 
 	uint32_t kind;
 	fn_t     parse_function;
@@ -1352,7 +1352,7 @@ constexpr auto type_op_binary_operators = []() {
 }();
 
 ast::expression make_builtin_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -1370,7 +1370,7 @@ ast::expression make_builtin_operation(
 }
 
 ast::expression make_builtin_type_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
@@ -1388,7 +1388,7 @@ ast::expression make_builtin_type_operation(
 }
 
 ast::expression make_builtin_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -1407,7 +1407,7 @@ ast::expression make_builtin_operation(
 }
 
 ast::expression make_builtin_type_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,

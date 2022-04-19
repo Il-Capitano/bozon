@@ -392,7 +392,7 @@ static ast::arena_vector<ast::decl_variable> parse_parameter_list(
 }
 
 static ast::function_body parse_function_body(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::variant<ast::identifier, uint32_t> func_name_or_op_kind,
 	lex::token_pos &stream, lex::token_pos end,
 	ctx::parse_context &context

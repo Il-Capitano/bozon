@@ -4,137 +4,6 @@
 namespace ast
 {
 
-/*
-
-lex::src_tokens typespec_view::get_src_tokens(void) const noexcept
-{
-	lex::src_tokens src_tokens = {};
-	for (auto &node : this->nodes.reversed())
-	{
-		node.visit(bz::overload{
-			[&](ts_unresolved const &unresolved) {
-				src_tokens = { unresolved.tokens.begin, unresolved.tokens.begin, unresolved.tokens.end };
-			},
-			[&](ts_base_type const &base_type) {
-				src_tokens = base_type.src_tokens;
-			},
-			[&](ts_void const &void_) {
-				if (void_.void_pos != nullptr)
-				{
-					src_tokens = { void_.void_pos, void_.void_pos, void_.void_pos + 1 };
-				}
-			},
-			[&](ts_function const &func_t) {
-				src_tokens = func_t.src_tokens;
-			},
-			[&](ts_array const &array_t) {
-				src_tokens = array_t.src_tokens;
-			},
-			[&](ts_array_slice const &array_slice_t) {
-				src_tokens = array_slice_t.src_tokens;
-			},
-			[&](ts_tuple const &tuple) {
-				src_tokens = tuple.src_tokens;
-			},
-			[&](ts_auto const &auto_) {
-				if (auto_.auto_pos != nullptr)
-				{
-					src_tokens = { auto_.auto_pos, auto_.auto_pos, auto_.auto_pos + 1 };
-				}
-			},
-			[&](ts_typename const &typename_) {
-				if (typename_.typename_pos != nullptr)
-				{
-					src_tokens = { typename_.typename_pos, typename_.typename_pos, typename_.typename_pos + 1 };
-				}
-			},
-			[&](ts_const const &const_) {
-				if (src_tokens.begin == nullptr && const_.const_pos != nullptr)
-				{
-					src_tokens = { const_.const_pos, const_.const_pos, const_.const_pos + 1 };
-				}
-				else if (const_.const_pos != nullptr)
-				{
-					bz_assert(const_.const_pos < src_tokens.begin);
-					src_tokens.begin = const_.const_pos;
-					src_tokens.pivot = const_.const_pos;
-				}
-			},
-			[&](ts_consteval const &consteval_) {
-				if (src_tokens.begin == nullptr && consteval_.consteval_pos != nullptr)
-				{
-					src_tokens = { consteval_.consteval_pos, consteval_.consteval_pos, consteval_.consteval_pos + 1 };
-				}
-				else if (consteval_.consteval_pos != nullptr)
-				{
-					bz_assert(consteval_.consteval_pos < src_tokens.begin);
-					src_tokens.begin = consteval_.consteval_pos;
-					src_tokens.pivot = consteval_.consteval_pos;
-				}
-			},
-			[&](ts_pointer const &pointer) {
-				if (src_tokens.begin == nullptr && pointer.pointer_pos != nullptr)
-				{
-					src_tokens = { pointer.pointer_pos, pointer.pointer_pos, pointer.pointer_pos + 1 };
-				}
-				else if (pointer.pointer_pos != nullptr)
-				{
-					bz_assert(pointer.pointer_pos < src_tokens.begin);
-					src_tokens.begin = pointer.pointer_pos;
-					src_tokens.pivot = pointer.pointer_pos;
-				}
-			},
-			[&](ts_lvalue_reference const &reference) {
-				if (src_tokens.begin == nullptr && reference.reference_pos != nullptr)
-				{
-					src_tokens = { reference.reference_pos, reference.reference_pos, reference.reference_pos + 1 };
-				}
-				else if (reference.reference_pos != nullptr)
-				{
-					bz_assert(reference.reference_pos < src_tokens.begin);
-					src_tokens.begin = reference.reference_pos;
-					src_tokens.pivot = reference.reference_pos;
-				}
-			},
-			[&](ts_auto_reference const &auto_ref) {
-				if (src_tokens.begin == nullptr && auto_ref.auto_reference_pos != nullptr)
-				{
-					src_tokens = {
-						auto_ref.auto_reference_pos,
-						auto_ref.auto_reference_pos,
-						auto_ref.auto_reference_pos + 1
-					};
-				}
-				else if (auto_ref.auto_reference_pos != nullptr)
-				{
-					bz_assert(auto_ref.auto_reference_pos < src_tokens.begin);
-					src_tokens.begin = auto_ref.auto_reference_pos;
-					src_tokens.pivot = auto_ref.auto_reference_pos;
-				}
-			},
-			[&](ts_auto_reference_const const &auto_const_ref) {
-				if (src_tokens.begin == nullptr && auto_const_ref.auto_reference_const_pos != nullptr)
-				{
-					src_tokens = {
-						auto_const_ref.auto_reference_const_pos,
-						auto_const_ref.auto_reference_const_pos,
-						auto_const_ref.auto_reference_const_pos + 1
-					};
-				}
-				else if (auto_const_ref.auto_reference_const_pos != nullptr)
-				{
-					bz_assert(auto_const_ref.auto_reference_const_pos < src_tokens.begin);
-					src_tokens.begin = auto_const_ref.auto_reference_const_pos;
-					src_tokens.pivot = auto_const_ref.auto_reference_const_pos;
-				}
-			}
-		});
-	}
-	return src_tokens;
-}
-
-*/
-
 bool typespec_view::is_safe_blind_get(void) const noexcept
 {
 	return [this]<typename ...Ts>(bz::meta::type_pack<Ts...>) {
@@ -217,7 +86,7 @@ bool typespec_view::is_typename(void) const noexcept
 	});
 }
 
-typespec::typespec(lex::src_tokens _src_tokens, arena_vector<typespec_node_t> _nodes)
+typespec::typespec(lex::src_tokens const &_src_tokens, arena_vector<typespec_node_t> _nodes)
 	: src_tokens(_src_tokens), nodes(std::move(_nodes))
 {}
 

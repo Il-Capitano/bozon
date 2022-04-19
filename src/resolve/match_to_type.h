@@ -91,14 +91,14 @@ match_level_t get_function_call_match_level(
 	ast::function_body &func_body,
 	bz::array_view<ast::expression> params,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 );
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
 	ast::function_body &func_body,
 	ast::expression &expr,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 );
 match_level_t get_function_call_match_level(
 	ast::statement_view func_stmt,
@@ -106,7 +106,7 @@ match_level_t get_function_call_match_level(
 	ast::expression &lhs,
 	ast::expression &rhs,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 );
 
 } // namespace resolve

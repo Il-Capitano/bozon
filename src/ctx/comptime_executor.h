@@ -247,7 +247,7 @@ struct comptime_executor_context
 	void push_expression_scope(void);
 	void pop_expression_scope(void);
 
-	void push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
+	void push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr);
 	void emit_destructor_calls(void);
 	void emit_loop_destructor_calls(void);
 	void emit_all_destructor_calls(void);
@@ -277,7 +277,7 @@ struct comptime_executor_context
 
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::function_body *body,
 		bz::array_view<ast::expression const> params
 	);
@@ -290,18 +290,18 @@ struct comptime_executor_context
 	bool has_error(void);
 	bz::vector<error> consume_errors(void);
 
-	source_highlight const *insert_error(lex::src_tokens src_tokens, bz::u8string message);
-	comptime_func_call const *insert_call(lex::src_tokens src_tokens, ast::function_body const *body);
+	source_highlight const *insert_error(lex::src_tokens const &src_tokens, bz::u8string message);
+	comptime_func_call const *insert_call(lex::src_tokens const &src_tokens, ast::function_body const *body);
 
 	[[nodiscard]] static error make_error(
 		bz::u8string message,
 		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	);
 	[[nodiscard]] static error make_error(
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {}, bz::vector<source_highlight> suggestions = {}
 	);
-	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message);
 
 
 	global_context &global_ctx;

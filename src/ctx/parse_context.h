@@ -95,8 +95,8 @@ struct parse_context
 	void pop_parsing_template_argument(void) noexcept;
 	bool is_parsing_template_argument(void) const noexcept;
 
-	bool register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl_ref variadic_decl);
-	bool register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl const &variadic_decl);
+	bool register_variadic(lex::src_tokens const &src_tokens, ast::variadic_var_decl_ref variadic_decl);
+	bool register_variadic(lex::src_tokens const &src_tokens, ast::variadic_var_decl const &variadic_decl);
 	uint32_t get_variadic_index(void) const;
 
 	[[nodiscard]] ast::function_body *push_current_function(ast::function_body *new_function) noexcept;
@@ -130,11 +130,11 @@ struct parse_context
 		bz::vector<source_highlight> suggestions = {}
 	) const;
 	void report_error(
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {},
 		bz::vector<source_highlight> suggestions = {}
 	) const;
-	void report_error(lex::src_tokens src_tokens) const
+	void report_error(lex::src_tokens const &src_tokens) const
 	{
 		if (src_tokens.end - src_tokens.begin == 1)
 		{
@@ -194,7 +194,7 @@ struct parse_context
 	) const;
 	void report_warning(
 		warning_kind kind,
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {},
 		bz::vector<source_highlight> suggestions = {}
 	) const;
@@ -223,7 +223,7 @@ struct parse_context
 	void report_parenthesis_suppressed_warning(
 		int parens_count,
 		warning_kind kind,
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {},
 		bz::vector<source_highlight> suggestions = {}
 	) const;
@@ -245,7 +245,7 @@ struct parse_context
 
 	[[nodiscard]] static source_highlight make_note(uint32_t file_id, uint32_t line, bz::u8string message);
 	[[nodiscard]] static source_highlight make_note(lex::token_pos it, bz::u8string message);
-	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message);
 	[[nodiscard]] static source_highlight make_note(lex::token_range range, bz::u8string message)
 	{
 		return make_note({ range.begin, range.begin, range.end }, std::move(message));
@@ -269,12 +269,12 @@ struct parse_context
 	// should only be used for generic intrinsic instantiation reporting
 	[[nodiscard]] static source_highlight make_note(bz::u8string message);
 	[[nodiscard]] static source_highlight make_note_with_suggestion_before(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		lex::token_pos it, bz::u8string suggestion,
 		bz::u8string message
 	);
 	[[nodiscard]] static source_highlight make_note_with_suggestion_around(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		lex::token_pos begin, bz::u8string first_suggestion,
 		lex::token_pos end, bz::u8string second_suggestion,
 		bz::u8string message
@@ -370,47 +370,47 @@ struct parse_context
 	ast::expression make_identifier_expression(ast::identifier id);
 	ast::expression make_literal(lex::token_pos literal) const;
 	ast::expression make_string_literal(lex::token_pos begin, lex::token_pos end) const;
-	ast::expression make_tuple(lex::src_tokens src_tokens, ast::arena_vector<ast::expression> elems) const;
+	ast::expression make_tuple(lex::src_tokens const &src_tokens, ast::arena_vector<ast::expression> elems) const;
 
 	ast::expression make_unary_operator_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		uint32_t op_kind,
 		ast::expression expr
 	);
 	ast::expression make_binary_operator_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		uint32_t op_kind,
 		ast::expression lhs,
 		ast::expression rhs
 	);
 	ast::expression make_function_call_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression called,
 		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_universal_function_call_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression base,
 		ast::identifier id,
 		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_subscript_operator_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression called,
 		ast::arena_vector<ast::expression> args
 	);
 	ast::expression make_cast_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression expr,
 		ast::typespec type
 	);
 	ast::expression make_member_access_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression base,
 		lex::token_pos member
 	);
 	ast::expression make_generic_type_instantiation_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expression base,
 		ast::arena_vector<ast::expression> args
 	);
@@ -421,39 +421,39 @@ struct parse_context
 	ast::identifier make_qualified_identifier(lex::token_pos id);
 
 	ast::constant_value execute_function(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::function_body *body,
 		bz::array_view<ast::expression const> params
 	);
 
 	ast::constant_value execute_compound_expression(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expr_compound &expr
 	);
 
 	ast::constant_value execute_function_without_error(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::function_body *body,
 		bz::array_view<ast::expression const> params
 	);
 
 	ast::constant_value execute_compound_expression_without_error(
-		lex::src_tokens src_tokens,
+		lex::src_tokens const &src_tokens,
 		ast::expr_compound &expr
 	);
 
 	// bool is_implicitly_convertible(ast::expression const &from, ast::typespec_view to);
 	// bool is_explicitly_convertible(ast::expression const &from, ast::typespec_view to);
 
-	void add_to_resolve_queue(lex::src_tokens tokens, ast::function_body &func_body)
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::function_body &func_body)
 	{ this->resolve_queue.emplace_back(tokens, &func_body); }
-	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_function_alias &alias_decl)
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::decl_function_alias &alias_decl)
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
-	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_type_alias &alias_decl)
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::decl_type_alias &alias_decl)
 	{ this->resolve_queue.emplace_back(tokens, &alias_decl); }
-	void add_to_resolve_queue(lex::src_tokens tokens, ast::type_info &info)
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::type_info &info)
 	{ this->resolve_queue.emplace_back(tokens, &info); }
-	void add_to_resolve_queue(lex::src_tokens tokens, ast::decl_variable &var_decl)
+	void add_to_resolve_queue(lex::src_tokens const &tokens, ast::decl_variable &var_decl)
 	{ this->resolve_queue.emplace_back(tokens, &var_decl); }
 
 	void pop_resolve_queue(void)

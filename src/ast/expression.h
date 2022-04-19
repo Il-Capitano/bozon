@@ -208,10 +208,10 @@ struct expression : bz::variant<
 
 	declare_default_5(expression)
 
-	expression(lex::src_tokens _src_tokens) = delete;
+	expression(lex::src_tokens const &_src_tokens) = delete;
 
 	template<typename ...Ts>
-	expression(lex::src_tokens _src_tokens, Ts &&...ts)
+	expression(lex::src_tokens const &_src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
 		  src_tokens(_src_tokens),
 		  consteval_state(this->is<ast::constant_expression>() ? consteval_succeeded : consteval_never_tried),
@@ -393,7 +393,7 @@ struct expr_function_call
 	declare_default_5(expr_function_call)
 
 	expr_function_call(
-		lex::src_tokens          _src_tokens,
+		lex::src_tokens   const &_src_tokens,
 		arena_vector<expression> _params,
 		function_body           *_func_body,
 		resolve_order            _param_resolve_order
@@ -748,23 +748,23 @@ struct expr_unresolved_generic_type_instantiation
 
 
 template<typename ...Args>
-expression make_unresolved_expression(lex::src_tokens tokens, Args &&...args)
+expression make_unresolved_expression(lex::src_tokens const &tokens, Args &&...args)
 { return expression(tokens, unresolved_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
-expression make_dynamic_expression(lex::src_tokens tokens, Args &&...args)
+expression make_dynamic_expression(lex::src_tokens const &tokens, Args &&...args)
 { return expression(tokens, dynamic_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
-expression make_constant_expression(lex::src_tokens tokens, Args &&...args)
+expression make_constant_expression(lex::src_tokens const &tokens, Args &&...args)
 { return expression(tokens, constant_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
-expression make_expanded_variadic_expression(lex::src_tokens tokens, Args &&...args)
+expression make_expanded_variadic_expression(lex::src_tokens const &tokens, Args &&...args)
 { return expression(tokens, expanded_variadic_expression{ std::forward<Args>(args)... }); }
 
 template<typename ...Args>
-expression make_error_expression(lex::src_tokens tokens, Args &&...args)
+expression make_error_expression(lex::src_tokens const &tokens, Args &&...args)
 { return expression(tokens, error_expression{ std::forward<Args>(args)... }); }
 
 

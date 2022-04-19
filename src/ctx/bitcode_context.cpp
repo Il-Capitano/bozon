@@ -559,7 +559,7 @@ void bitcode_context::ensure_function_emission(ast::function_body *func)
 }
 
 void bitcode_context::report_error(
-	lex::src_tokens src_tokens, bz::u8string message,
+	lex::src_tokens const &src_tokens, bz::u8string message,
 	bz::vector<source_highlight> notes,
 	bz::vector<source_highlight> suggestions
 ) const
@@ -576,7 +576,7 @@ void bitcode_context::report_error(
 	});
 }
 
-[[nodiscard]] source_highlight bitcode_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+[[nodiscard]] source_highlight bitcode_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	return source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,

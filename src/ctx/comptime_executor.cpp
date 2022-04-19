@@ -597,7 +597,7 @@ void comptime_executor_context::pop_expression_scope(void)
 	this->end_lifetime_calls.pop_back();
 }
 
-void comptime_executor_context::push_destructor_call(lex::src_tokens src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
+void comptime_executor_context::push_destructor_call(lex::src_tokens const &src_tokens, ast::function_body *dtor_func, llvm::Value *ptr)
 {
 	bz_assert(!this->destructor_calls.empty());
 	this->destructor_calls.back().push_back({ src_tokens, dtor_func, ptr });
@@ -937,7 +937,7 @@ static ast::constant_value constant_value_from_global_getters(
 }
 
 std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::execute_function(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	bz::array_view<ast::expression const> params
 )
@@ -1354,7 +1354,7 @@ bz::vector<error> comptime_executor_context::consume_errors(void)
 	return result;
 }
 
-source_highlight const *comptime_executor_context::insert_error(lex::src_tokens src_tokens, bz::u8string message)
+source_highlight const *comptime_executor_context::insert_error(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	auto const &result = this->execution_errors.emplace_back(source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -1365,7 +1365,7 @@ source_highlight const *comptime_executor_context::insert_error(lex::src_tokens 
 	return &result;
 }
 
-comptime_func_call const *comptime_executor_context::insert_call(lex::src_tokens src_tokens, ast::function_body const *body)
+comptime_func_call const *comptime_executor_context::insert_call(lex::src_tokens const &src_tokens, ast::function_body const *body)
 {
 	auto const &result = this->execution_calls.emplace_back(comptime_func_call{ src_tokens, body });
 	return &result;
@@ -1389,7 +1389,7 @@ error comptime_executor_context::make_error(
 }
 
 error comptime_executor_context::make_error(
-	lex::src_tokens src_tokens, bz::u8string message,
+	lex::src_tokens const &src_tokens, bz::u8string message,
 	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 )
 {
@@ -1405,7 +1405,7 @@ error comptime_executor_context::make_error(
 	};
 }
 
-source_highlight comptime_executor_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+source_highlight comptime_executor_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	return source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,

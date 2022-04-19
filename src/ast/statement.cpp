@@ -334,7 +334,7 @@ bz::u8string function_body::decode_symbol_name(
 	return result;
 }
 
-type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
@@ -375,7 +375,7 @@ type_info::decl_operator_ptr type_info::make_default_op_assign(lex::src_tokens s
 	return result;
 }
 
-type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto lhs_t = [&]() {
 		typespec result = make_base_type_typespec({}, &info);
@@ -411,7 +411,7 @@ type_info::decl_operator_ptr type_info::make_default_op_move_assign(lex::src_tok
 	return result;
 }
 
-type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);
 	param_t.add_layer<ts_const>();
@@ -435,7 +435,7 @@ type_info::decl_function_ptr type_info::make_default_copy_constructor(lex::src_t
 	return result;
 }
 
-type_info::decl_function_ptr type_info::make_default_default_constructor(lex::src_tokens src_tokens, type_info &info)
+type_info::decl_function_ptr type_info::make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info)
 {
 	auto param_t = make_base_type_typespec({}, &info);
 	param_t.add_layer<ts_const>();

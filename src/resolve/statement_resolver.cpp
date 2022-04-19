@@ -2016,7 +2016,7 @@ static void add_flags(ast::type_info &info)
 	}
 }
 
-static void resolve_member_type_size(lex::src_tokens src_tokens, ast::typespec_view member_type, ctx::parse_context &context)
+static void resolve_member_type_size(lex::src_tokens const &src_tokens, ast::typespec_view member_type, ctx::parse_context &context)
 {
 	member_type = ast::remove_const_or_consteval(member_type);
 	if (member_type.is<ast::ts_base_type>())

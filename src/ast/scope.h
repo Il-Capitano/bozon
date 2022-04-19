@@ -84,7 +84,7 @@ struct local_symbol_t : bz::variant<
 >
 {
 	identifier const &get_id(void) const;
-	lex::src_tokens get_src_tokens(void) const;
+	lex::src_tokens const &get_src_tokens(void) const;
 
 	bool is_variable(void) const noexcept
 	{ return this->is<decl_variable *>(); }

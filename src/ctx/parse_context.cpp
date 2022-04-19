@@ -14,7 +14,7 @@ namespace ctx
 {
 
 static ast::expression make_expr_function_call_from_body(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	ast::arena_vector<ast::expression> params,
 	parse_context &context,
@@ -158,7 +158,7 @@ bool parse_context::is_parsing_template_argument(void) const noexcept
 	return this->parsing_template_argument != 0;
 }
 
-bool parse_context::register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl_ref variadic_decl)
+bool parse_context::register_variadic(lex::src_tokens const &src_tokens, ast::variadic_var_decl_ref variadic_decl)
 {
 	if (!this->variadic_info.is_resolving_variadic)
 	{
@@ -198,7 +198,7 @@ bool parse_context::register_variadic(lex::src_tokens src_tokens, ast::variadic_
 	}
 }
 
-bool parse_context::register_variadic(lex::src_tokens src_tokens, ast::variadic_var_decl const &variadic_decl)
+bool parse_context::register_variadic(lex::src_tokens const &src_tokens, ast::variadic_var_decl const &variadic_decl)
 {
 	return this->register_variadic(src_tokens, ast::variadic_var_decl_ref{ variadic_decl.original_decl, variadic_decl.variadic_decls });
 }
@@ -408,7 +408,7 @@ bool parse_context::has_common_global_scope(ast::enclosing_scope_t scope) const 
 	return false;
 }
 
-static source_highlight get_function_parameter_types_note(lex::src_tokens src_tokens, bz::array_view<ast::expression const> args)
+static source_highlight get_function_parameter_types_note(lex::src_tokens const &src_tokens, bz::array_view<ast::expression const> args)
 {
 	if (args.size() == 0)
 	{
@@ -493,7 +493,7 @@ static void add_generic_requirement_notes(bz::vector<source_highlight> &notes, p
 }
 
 static ast::arena_vector<ast::generic_required_from_t> get_generic_requirements(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	parse_context &context
 )
 {
@@ -557,7 +557,7 @@ void parse_context::report_error(
 }
 
 void parse_context::report_error(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::u8string message,
 	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
@@ -759,7 +759,7 @@ void parse_context::report_warning(
 
 void parse_context::report_warning(
 	warning_kind kind,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::u8string message,
 	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
@@ -799,7 +799,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 void parse_context::report_parenthesis_suppressed_warning(
 	int parens_count,
 	warning_kind kind,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::u8string message,
 	bz::vector<source_highlight> notes, bz::vector<source_highlight> suggestions
 ) const
@@ -835,7 +835,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 	};
 }
 
-[[nodiscard]] source_highlight parse_context::make_note(lex::src_tokens src_tokens, bz::u8string message)
+[[nodiscard]] source_highlight parse_context::make_note(lex::src_tokens const &src_tokens, bz::u8string message)
 {
 	return source_highlight{
 		src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
@@ -935,7 +935,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 }
 
 [[nodiscard]] source_highlight parse_context::make_note_with_suggestion_before(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	lex::token_pos it, bz::u8string suggestion,
 	bz::u8string message
 )
@@ -964,7 +964,7 @@ void parse_context::report_parenthesis_suppressed_warning(
 }
 
 [[nodiscard]] source_highlight parse_context::make_note_with_suggestion_around(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	lex::token_pos begin, bz::u8string first_suggestion,
 	lex::token_pos end, bz::u8string second_suggestion,
 	bz::u8string message
@@ -1469,7 +1469,7 @@ static ast::typespec get_function_type(ast::function_body &body)
 }
 
 static ast::expression make_variable_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::decl_variable *var_decl,
 	ast::expr_t result_expr,
 	parse_context &context
@@ -1541,7 +1541,7 @@ static ast::expression make_variable_expression(
 }
 
 static ast::expression make_variable_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_variable *var_decl,
 	parse_context &context
@@ -1557,7 +1557,7 @@ struct function_overload_set_decls
 };
 
 static ast::expression make_function_name_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_function *func_decl
 )
@@ -1571,7 +1571,7 @@ static ast::expression make_function_name_expression(
 }
 
 static ast::expression make_function_name_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_function_alias *alias_decl
 )
@@ -1603,7 +1603,7 @@ static ast::expression make_function_name_expression(
 }
 
 static ast::expression make_function_name_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	function_overload_set_decls const &fn_set
 )
@@ -1650,7 +1650,7 @@ static ast::expression make_function_name_expression(
 }
 
 static ast::expression make_type_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_struct *type,
 	parse_context &context
@@ -1680,7 +1680,7 @@ static ast::expression make_type_expression(
 }
 
 static ast::expression make_type_alias_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	ast::decl_type_alias *type_alias
 )
@@ -1738,7 +1738,7 @@ static symbol_t symbol_ref_from_local_symbol(ast::local_symbol_t const &symbol)
 }
 
 static ast::expression expression_from_symbol(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier id,
 	symbol_t const &symbol,
 	parse_context &context
@@ -3126,7 +3126,7 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 	);
 }
 
-ast::expression parse_context::make_tuple(lex::src_tokens src_tokens, ast::arena_vector<ast::expression> elems) const
+ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast::arena_vector<ast::expression> elems) const
 {
 	if (this->current_unresolved_locals.not_empty() || elems.is_any([](auto &expr) { return expr.is_unresolved(); }))
 	{
@@ -3246,7 +3246,7 @@ struct possible_func_t
 };
 
 static std::pair<ast::statement_view, ast::function_body *> find_best_match(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::array_view<possible_func_t const> possible_funcs,
 	bz::array_view<ast::expression const> args,
 	parse_context &context
@@ -3336,7 +3336,7 @@ static void expand_variadic_params(ast::arena_vector<ast::decl_variable> &params
 }
 
 static ast::expression make_expr_function_call_from_body(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	ast::arena_vector<ast::expression> args,
 	parse_context &context,
@@ -3415,7 +3415,7 @@ static ast::expression make_expr_function_call_from_body(
 }
 
 static ast::expression make_expr_function_call_from_body(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	ast::arena_vector<ast::expression> args,
 	ast::constant_value value,
@@ -3487,7 +3487,7 @@ static ast::expression make_expr_function_call_from_body(
 
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
 	ast::global_scope_t &scope,
@@ -3517,7 +3517,7 @@ static void get_possible_funcs_for_operator_helper(
 
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
 	ast::enclosing_scope_t scope,
@@ -3542,7 +3542,7 @@ static void get_possible_funcs_for_operator_helper(
 }
 
 static bz::vector<possible_func_t> get_possible_funcs_for_operator(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &expr,
 	parse_context &context
@@ -3568,7 +3568,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 }
 
 ast::expression parse_context::make_unary_operator_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr
 )
@@ -3630,7 +3630,7 @@ ast::expression parse_context::make_unary_operator_expression(
 
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
 	ast::expression &rhs,
@@ -3661,7 +3661,7 @@ static void get_possible_funcs_for_operator_helper(
 
 static void get_possible_funcs_for_operator_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
 	ast::expression &rhs,
@@ -3687,7 +3687,7 @@ static void get_possible_funcs_for_operator_helper(
 }
 
 static bz::vector<possible_func_t> get_possible_funcs_for_operator(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op,
 	ast::expression &lhs,
 	ast::expression &rhs,
@@ -3726,7 +3726,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 }
 
 ast::expression parse_context::make_binary_operator_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs
@@ -3820,7 +3820,7 @@ ast::expression parse_context::make_binary_operator_expression(
 
 static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 	ast::function_set_t const &unqualified_function_set,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
@@ -3862,7 +3862,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_unqualified_id(
 
 static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 	ast::function_set_t const &qualified_function_set,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	bz::array_view<ast::expression> params,
 	parse_context &context
 )
@@ -3905,7 +3905,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_qualified_id(
 }
 
 ast::expression parse_context::make_function_call_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression called,
 	ast::arena_vector<ast::expression> args
 )
@@ -4189,7 +4189,7 @@ ast::expression parse_context::make_function_call_expression(
 
 static void get_possible_funcs_for_universal_function_call_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
 	ast::global_scope_t &scope,
@@ -4263,7 +4263,7 @@ static void get_possible_funcs_for_universal_function_call_helper(
 
 static void get_possible_funcs_for_universal_function_call_helper(
 	bz::vector<possible_func_t> &result,
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
 	ast::enclosing_scope_t scope,
@@ -4289,7 +4289,7 @@ static void get_possible_funcs_for_universal_function_call_helper(
 }
 
 static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_call(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::identifier const &id,
 	bz::array_view<ast::expression> params,
 	parse_context &context
@@ -4334,7 +4334,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 }
 
 ast::expression parse_context::make_universal_function_call_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression base,
 	ast::identifier id,
 	ast::arena_vector<ast::expression> args
@@ -4411,7 +4411,7 @@ ast::expression parse_context::make_universal_function_call_expression(
 }
 
 ast::expression parse_context::make_subscript_operator_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression called,
 	ast::arena_vector<ast::expression> args
 )
@@ -4608,7 +4608,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 }
 
 ast::expression parse_context::make_cast_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression expr,
 	ast::typespec type
 )
@@ -4643,7 +4643,7 @@ ast::expression parse_context::make_cast_expression(
 }
 
 ast::expression parse_context::make_member_access_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression base,
 	lex::token_pos member
 )
@@ -4780,7 +4780,7 @@ ast::expression parse_context::make_member_access_expression(
 }
 
 ast::expression parse_context::make_generic_type_instantiation_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression base,
 	ast::arena_vector<ast::expression> args
 )
@@ -4961,7 +4961,7 @@ ast::identifier parse_context::make_qualified_identifier(lex::token_pos id)
 }
 
 ast::constant_value parse_context::execute_function(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	bz::array_view<ast::expression const> params
 )
@@ -4991,7 +4991,7 @@ ast::constant_value parse_context::execute_function(
 }
 
 ast::constant_value parse_context::execute_compound_expression(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_compound &expr
 )
 {
@@ -5013,7 +5013,7 @@ ast::constant_value parse_context::execute_compound_expression(
 }
 
 ast::constant_value parse_context::execute_function_without_error(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	bz::array_view<ast::expression const> params
 )
@@ -5030,7 +5030,7 @@ ast::constant_value parse_context::execute_function_without_error(
 }
 
 ast::constant_value parse_context::execute_compound_expression_without_error(
-	[[maybe_unused]] lex::src_tokens src_tokens,
+	[[maybe_unused]] lex::src_tokens const &src_tokens,
 	ast::expr_compound &expr
 )
 {

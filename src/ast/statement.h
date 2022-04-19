@@ -270,11 +270,11 @@ struct decl_variable
 	~decl_variable(void) noexcept = default;
 
 	decl_variable(
-		lex::src_tokens   _src_tokens,
-		lex::token_range  _prototype_range,
-		var_id_and_type   _id_and_type,
-		expression        _init_expr,
-		enclosing_scope_t _enclosing_scope
+		lex::src_tokens const &_src_tokens,
+		lex::token_range       _prototype_range,
+		var_id_and_type        _id_and_type,
+		expression             _init_expr,
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
@@ -285,10 +285,10 @@ struct decl_variable
 	{}
 
 	decl_variable(
-		lex::src_tokens   _src_tokens,
-		lex::token_range  _prototype_range,
-		var_id_and_type   _id_and_type,
-		enclosing_scope_t _enclosing_scope
+		lex::src_tokens const &_src_tokens,
+		lex::token_range       _prototype_range,
+		var_id_and_type        _id_and_type,
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
@@ -299,11 +299,11 @@ struct decl_variable
 	{}
 
 	decl_variable(
-		lex::src_tokens   _src_tokens,
-		lex::token_range  _prototype_range,
+		lex::src_tokens const &_src_tokens,
+		lex::token_range       _prototype_range,
 		arena_vector<decl_variable> _tuple_decls,
-		expression        _init_expr,
-		enclosing_scope_t _enclosing_scope
+		expression             _init_expr,
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
@@ -314,10 +314,10 @@ struct decl_variable
 	{}
 
 	decl_variable(
-		lex::src_tokens _src_tokens,
-		lex::token_range _prototype_range,
+		lex::src_tokens const &_src_tokens,
+		lex::token_range       _prototype_range,
 		arena_vector<decl_variable> _tuple_decls,
-		enclosing_scope_t _enclosing_scope
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens (_src_tokens),
 		  prototype_range(_prototype_range),
@@ -843,10 +843,10 @@ struct decl_function_alias
 	declare_default_5(decl_function_alias)
 
 	decl_function_alias(
-		lex::src_tokens   _src_tokens,
-		identifier        _id,
-		expression        _alias_expr,
-		enclosing_scope_t _enclosing_scope
+		lex::src_tokens const &_src_tokens,
+		identifier             _id,
+		expression             _alias_expr,
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens(_src_tokens),
 		  id(std::move(_id)),
@@ -872,10 +872,10 @@ struct decl_type_alias
 	resolve_state     state = resolve_state::none;
 
 	decl_type_alias(
-		lex::src_tokens   _src_tokens,
-		identifier        _id,
-		expression        _alias_expr,
-		enclosing_scope_t _enclosing_scope
+		lex::src_tokens const &_src_tokens,
+		identifier             _id,
+		expression             _alias_expr,
+		enclosing_scope_t      _enclosing_scope
 	)
 		: src_tokens(_src_tokens),
 		  id        (std::move(_id)),
@@ -969,7 +969,7 @@ struct type_info
 //	function_body *move_constructor;
 //	function_body_ptr move_destuctor;
 
-	type_info(lex::src_tokens _src_tokens, identifier _type_name, lex::token_range range, enclosing_scope_t _enclosing_scope)
+	type_info(lex::src_tokens const &_src_tokens, identifier _type_name, lex::token_range range, enclosing_scope_t _enclosing_scope)
 		: src_tokens(_src_tokens),
 		  kind(range.begin == nullptr ? forward_declaration : aggregate),
 		  state(resolve_state::none),
@@ -983,7 +983,7 @@ struct type_info
 	{}
 
 	type_info(
-		lex::src_tokens _src_tokens,
+		lex::src_tokens const &_src_tokens,
 		identifier _type_name,
 		lex::token_range range,
 		arena_vector<decl_variable> _generic_parameters,
@@ -1068,10 +1068,10 @@ public:
 	bool is_module_export(void) const noexcept
 	{ return (this->flags & module_export) != 0; }
 
-	static decl_operator_ptr make_default_op_assign(lex::src_tokens src_tokens, type_info &info);
-	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens src_tokens, type_info &info);
-	static decl_function_ptr make_default_default_constructor(lex::src_tokens src_tokens, type_info &info);
-	static decl_function_ptr make_default_copy_constructor(lex::src_tokens src_tokens, type_info &info);
+	static decl_operator_ptr make_default_op_assign(lex::src_tokens const &src_tokens, type_info &info);
+	static decl_operator_ptr make_default_op_move_assign(lex::src_tokens const &src_tokens, type_info &info);
+	static decl_function_ptr make_default_default_constructor(lex::src_tokens const &src_tokens, type_info &info);
+	static decl_function_ptr make_default_copy_constructor(lex::src_tokens const &src_tokens, type_info &info);
 
 	arena_vector<decl_variable> get_params_copy_for_generic_instantiation(void);
 	type_info *add_generic_instantiation(
@@ -1292,7 +1292,7 @@ struct decl_struct
 	decl_struct(decl_struct &&)      = default;
 
 	decl_struct(
-		lex::src_tokens _src_tokens,
+		lex::src_tokens const &_src_tokens,
 		identifier _id,
 		lex::token_range _range,
 		enclosing_scope_t _enclosing_scope
@@ -1302,7 +1302,7 @@ struct decl_struct
 	{}
 
 	decl_struct(
-		lex::src_tokens _src_tokens,
+		lex::src_tokens const &_src_tokens,
 		identifier _id,
 		lex::token_range _range,
 		arena_vector<decl_variable> _generic_parameters,
@@ -1313,7 +1313,7 @@ struct decl_struct
 	{}
 
 	decl_struct(
-		lex::src_tokens _src_tokens,
+		lex::src_tokens const &_src_tokens,
 		identifier _id,
 		enclosing_scope_t _enclosing_scope
 	)

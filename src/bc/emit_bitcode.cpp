@@ -216,7 +216,7 @@ static void emit_error(
 }
 
 [[nodiscard]] llvm::Value *emit_push_call(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body const *func_body,
 	ctx::comptime_executor_context &context
 )
@@ -392,7 +392,7 @@ static void add_byval_attributes(llvm::Argument &arg, llvm::Type *byval_type, Co
 
 template<abi::platform_abi abi, typename Context>
 static void create_function_call(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::function_body *body,
 	val_ptr lhs,
 	val_ptr rhs,
@@ -491,7 +491,7 @@ static void push_destructor_call(
 
 template<typename Context>
 static void emit_destructor_call(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	llvm::Value *ptr,
 	ast::typespec_view type,
 	Context &context
@@ -1021,7 +1021,7 @@ static val_ptr emit_default_copy_assign(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_default_move_assign(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
 	Context &context,
@@ -4697,7 +4697,7 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_type_member_access const &member_access,
 	Context &context,
 	llvm::Value *result_address

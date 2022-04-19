@@ -156,11 +156,11 @@ struct bitcode_context
 
 
 	void report_error(
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {},
 		bz::vector<source_highlight> suggestions = {}
 	) const;
-	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message);
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message);
 	[[nodiscard]] static source_highlight make_note(bz::u8string message);
 
 

@@ -8,21 +8,21 @@ namespace ctx
 {
 
 ast::expression make_builtin_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 );
 
 ast::expression make_builtin_type_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression expr,
 	parse_context &context
 );
 
 ast::expression make_builtin_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -30,7 +30,7 @@ ast::expression make_builtin_operation(
 );
 
 ast::expression make_builtin_type_operation(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression lhs,
 	ast::expression rhs,
@@ -38,14 +38,14 @@ ast::expression make_builtin_type_operation(
 );
 
 ast::expression make_builtin_cast(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression expr,
 	ast::typespec dest_type,
 	parse_context &context
 );
 
 ast::expression make_builtin_subscript_operator(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expression called,
 	ast::expression arg,
 	parse_context &context

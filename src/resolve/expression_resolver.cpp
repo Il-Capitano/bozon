@@ -21,7 +21,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_tuple tuple_expr,
 	ctx::parse_context &context
 )
@@ -34,7 +34,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_variadic_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unary_op &unary_op,
 	ctx::parse_context &context
 )
@@ -104,7 +104,7 @@ static ast::expression resolve_variadic_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unary_op unary_op,
 	ctx::parse_context &context
 )
@@ -122,7 +122,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_binary_op binary_op,
 	ctx::parse_context &context
 )
@@ -133,7 +133,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_subscript subscript_expr,
 	ctx::parse_context &context
 )
@@ -147,7 +147,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_function_call func_call,
 	ctx::parse_context &context
 )
@@ -161,7 +161,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_universal_function_call func_call,
 	ctx::parse_context &context
 )
@@ -180,7 +180,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_cast cast_expr,
 	ctx::parse_context &context
 )
@@ -198,7 +198,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_member_access member_access,
 	ctx::parse_context &context
 )
@@ -256,7 +256,7 @@ static bool is_statement_noreturn(ast::statement const &stmt)
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_compound compound_expr_,
 	ctx::parse_context &context
 )
@@ -308,7 +308,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_if if_expr_,
 	ctx::parse_context &context
 )
@@ -355,7 +355,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_if_consteval if_expr_,
 	ctx::parse_context &context
 )
@@ -455,7 +455,7 @@ static void check_switch_type(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_switch switch_expr_,
 	ctx::parse_context &context
 )
@@ -681,7 +681,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_array_type array_type,
 	ctx::parse_context &context
 )
@@ -870,7 +870,7 @@ static ast::expression resolve_expr(
 }
 
 static ast::expression resolve_expr(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::expr_unresolved_generic_type_instantiation generic_instantiation,
 	ctx::parse_context &context
 )

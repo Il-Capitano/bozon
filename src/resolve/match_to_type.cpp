@@ -724,7 +724,7 @@ match_level_t get_function_call_match_level(
 	ast::function_body &func_body,
 	bz::array_view<ast::expression> params,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 )
 {
 	if (func_body.state < ast::resolve_state::parameters)
@@ -796,7 +796,7 @@ match_level_t get_function_call_match_level(
 	ast::function_body &func_body,
 	ast::expression &expr,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 )
 {
 	if (func_body.params.size() != 1)
@@ -826,7 +826,7 @@ match_level_t get_function_call_match_level(
 	ast::expression &lhs,
 	ast::expression &rhs,
 	ctx::parse_context &context,
-	lex::src_tokens src_tokens
+	lex::src_tokens const &src_tokens
 )
 {
 	if (func_body.params.size() != 2)

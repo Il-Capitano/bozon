@@ -2425,7 +2425,7 @@ static ast::constant_value evaluate_intrinsic_function_call(
 }
 
 static ast::constant_value get_default_constructed_value(
-	lex::src_tokens src_tokens,
+	lex::src_tokens const &src_tokens,
 	ast::typespec_view type,
 	function_execution_kind exec_kind,
 	ctx::parse_context &context

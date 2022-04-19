@@ -109,7 +109,7 @@ struct global_context
 	}
 
 	void report_error(
-		lex::src_tokens src_tokens, bz::u8string message,
+		lex::src_tokens const &src_tokens, bz::u8string message,
 		bz::vector<source_highlight> notes = {},
 		bz::vector<source_highlight> suggestions = {}
 	)
@@ -160,7 +160,7 @@ struct global_context
 		};
 	}
 
-	[[nodiscard]] static source_highlight make_note(lex::src_tokens src_tokens, bz::u8string message)
+	[[nodiscard]] static source_highlight make_note(lex::src_tokens const &src_tokens, bz::u8string message)
 	{
 		return source_highlight{
 			src_tokens.pivot->src_pos.file_id, src_tokens.pivot->src_pos.line,
