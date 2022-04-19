@@ -10,8 +10,6 @@
 #include "ast/statement.h"
 #include "ast/scope.h"
 
-#include "decl_set.h"
-
 namespace ctx
 {
 
