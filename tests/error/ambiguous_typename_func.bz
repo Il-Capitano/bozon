@@ -1,0 +1,7 @@
+function foo(T: *typename, U: typename);
+function foo(T: typename, U: *typename);
+
+function main()
+{
+	foo(*int32, *int32);
+}
