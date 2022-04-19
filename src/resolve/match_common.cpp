@@ -28,14 +28,14 @@ bool is_implicitly_convertible(
 	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
 	if (dest.is<ast::ts_base_type>() && expr_type_without_const.is<ast::ts_base_type>())
 	{
-		auto const dest_info = dest.get<ast::ts_base_type>().info;
-		auto const expr_info = expr_type_without_const.get<ast::ts_base_type>().info;
+		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
+		auto const expr_kind = expr_type_without_const.get<ast::ts_base_type>().info->kind;
 		if (
-			(ast::is_signed_integer_kind(dest_info->kind) && ast::is_signed_integer_kind(expr_info->kind))
-			|| (ast::is_unsigned_integer_kind(dest_info->kind) && ast::is_unsigned_integer_kind(expr_info->kind))
+			(ast::is_signed_integer_kind(dest_kind) && ast::is_signed_integer_kind(expr_kind))
+			|| (ast::is_unsigned_integer_kind(dest_kind) && ast::is_unsigned_integer_kind(expr_kind))
 		)
 		{
-			return dest_info->kind >= expr_info->kind;
+			return dest_kind >= expr_kind;
 		}
 	}
 	return false;
@@ -58,12 +58,13 @@ static bool is_literal_implicitly_convertible(
 		return false;
 	}
 
-	auto const dest_info = dest.get<ast::ts_base_type>().info;
-	if (!ast::is_integer_kind(dest_info->kind) || !literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>())
+	auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
+	if (!ast::is_integer_kind(dest_kind) || !literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>())
 	{
 		return false;
 	}
 
+	bz_assert(literal_value.is<ast::constant_value::uint>() || literal_value.get<ast::constant_value::sint>() >= 0);
 	auto const literal_int_value = literal_value.is<ast::constant_value::sint>()
 		? static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>())
 		: literal_value.get<ast::constant_value::uint>();
@@ -75,7 +76,7 @@ static bool is_literal_implicitly_convertible(
 	bz_assert(is_any || !(is_any_signed && is_any_unsigned));
 
 	auto const dest_max_value = [&]() -> uint64_t {
-		switch (dest_info->kind)
+		switch (dest_kind)
 		{
 		case ast::type_info::int8_:
 			return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
@@ -104,11 +105,11 @@ static bool is_literal_implicitly_convertible(
 	}
 	else if (is_any_signed)
 	{
-		return ast::is_signed_integer_kind(dest_info->kind) && literal_int_value <= dest_max_value;
+		return ast::is_signed_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
 	}
 	else if (is_any_unsigned)
 	{
-		return ast::is_unsigned_integer_kind(dest_info->kind) && literal_int_value <= dest_max_value;
+		return ast::is_unsigned_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
 	}
 	else
 	{
