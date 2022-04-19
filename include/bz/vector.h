@@ -376,7 +376,7 @@ public:
 		}
 	}
 
-	vector(size_type size) noexcept(
+	explicit vector(size_type size) noexcept(
 		nothrow_alloc       // size change
 		&& meta::is_nothrow_default_constructible_v<value_type>
 	)
