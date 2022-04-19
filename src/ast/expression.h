@@ -111,7 +111,8 @@ constexpr bool is_lvalue(expression_type_kind kind)
 
 constexpr bool is_rvalue(expression_type_kind kind)
 {
-	return kind == expression_type_kind::rvalue;
+	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::moved_lvalue;
 }
 
 struct unresolved_expression
