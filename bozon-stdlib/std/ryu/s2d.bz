@@ -32,7 +32,7 @@ consteval DOUBLE_EXPONENT_BIAS = 1023;
 
 function floor_log2(value: uint64) -> uint32
 {
-	return 63u - __builtin_clz_u64(value) as uint32;
+	return 63 - __builtin_clz_u64(value) as uint32;
 }
 
 // The max function is already defined on Windows.
@@ -88,8 +88,8 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		{
 			return s2d_INPUT_TOO_LONG;
 		}
-		m10 = 10u * m10 + (c - '0') as uint32;
-		if (m10 != 0u)
+		m10 = 10 * m10 + (c - '0') as uint32;
+		if (m10 != 0)
 		{
 			++m10digits;
 		}
@@ -138,7 +138,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 		e10 -= eIndex - dotIndex - 1;
 	}
 
-	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -324) || (m10 == 0u))
+	if ((e10digits > 3 && signedE) || (m10digits + e10 <= -324) || (m10 == 0))
 	{
 		// Number is less than 1e-324, which should be rounded down to 0; return +/-0.0.
 		const ieee = (signedM as uint64) << (DOUBLE_EXPONENT_BITS + DOUBLE_MANTISSA_BITS) as uint32;
@@ -207,7 +207,7 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 	// We need to figure out how much we need to shift m2. The tricky part is that we need to take
 	// the final IEEE exponent into account, so we need to reverse the bias and also special-case
 	// the value 0.
-	const shift = if (ieee_e2 == 0u) {
+	const shift = if (ieee_e2 == 0) {
 		1 - e2 - DOUBLE_EXPONENT_BIAS - DOUBLE_MANTISSA_BITS
 	} else {
 		ieee_e2 as int32 - e2 - DOUBLE_EXPONENT_BIAS - DOUBLE_MANTISSA_BITS
@@ -219,14 +219,14 @@ export function s2d_n(buffer: *const uint8, len: int32, result: *float64) -> uin
 	// trailing zeros or the result would otherwise be odd.
 	//
 	// We need to update trailingZeros given that we have the exact output exponent ieee_e2 now.
-	trailingZeros &= (m2 & ((1u64 << (shift - 1) as uint32) - 1u)) == 0u;
+	trailingZeros &= (m2 & ((1u64 << (shift - 1) as uint32) - 1)) == 0;
 	const lastRemovedBit = (m2 >> (shift - 1) as uint32) & 1u64;
-	const roundUp = (lastRemovedBit != 0u) && (!trailingZeros || (((m2 >> shift as uint32) & 1u64) != 0u));
+	const roundUp = (lastRemovedBit != 0) && (!trailingZeros || (((m2 >> shift as uint32) & 1u64) != 0));
 
 	let ieee_m2 = (m2 >> shift as uint32) + roundUp as uint64;
 	assert(ieee_m2 <= (1u64 << (DOUBLE_MANTISSA_BITS + 1)));
-	ieee_m2 &= (1u64 << DOUBLE_MANTISSA_BITS as uint32) - 1u;
-	if (ieee_m2 == 0u && roundUp)
+	ieee_m2 &= (1u64 << DOUBLE_MANTISSA_BITS as uint32) - 1;
+	if (ieee_m2 == 0 && roundUp)
 	{
 		// Due to how the IEEE represents +/-Infinity, we don't need to check for overflow here.
 		++ieee_e2;
@@ -245,7 +245,7 @@ function c_strlen(c_str: *const uint8) -> int32
 	}
 
 	let result = 0;
-	while (*c_str != 0u)
+	while (*c_str != 0)
 	{
 		++result;
 		++c_str;

@@ -23,9 +23,9 @@ export function umul128(a: uint64, b: uint64, productHi: *uint64) -> uint64
 {
 	// The casts here help MSVC to avoid calls to the __allmul library function.
 	const aLo = a as uint32;
-	const aHi = (a >> 32u) as uint32;
+	const aHi = (a >> 32) as uint32;
 	const bLo = b as uint32;
-	const bHi = (b >> 32u) as uint32;
+	const bHi = (b >> 32) as uint32;
 
 	const b00 = aLo as uint64 * bLo;
 	const b01 = aLo as uint64 * bHi;
@@ -33,18 +33,18 @@ export function umul128(a: uint64, b: uint64, productHi: *uint64) -> uint64
 	const b11 = aHi as uint64 * bHi;
 
 	const b00Lo = b00 as uint32;
-	const b00Hi = (b00 >> 32u) as uint32;
+	const b00Hi = (b00 >> 32) as uint32;
 
 	const mid1 = b10 + b00Hi;
 	const mid1Lo = mid1 as uint32;
-	const mid1Hi = (mid1 >> 32u) as uint32;
+	const mid1Hi = (mid1 >> 32) as uint32;
 
 	const mid2 = b01 + mid1Lo;
 	const mid2Lo = mid2 as uint32;
-	const mid2Hi = (mid2 >> 32u) as uint32;
+	const mid2Hi = (mid2 >> 32) as uint32;
 
 	const pHi = b11 + mid1Hi + mid2Hi;
-	const pLo = (mid2Lo as uint64 << 32u) | b00Lo as uint64;
+	const pLo = (mid2Lo as uint64 << 32) | b00Lo as uint64;
 
 	*productHi = pHi;
 	return pLo;
@@ -63,39 +63,39 @@ export function shiftright128(lo: uint64, hi: uint64, dist: uint32) -> uint64
 	// the larger shift range (TODO: what is the actual range?).
 	// Check this here in case a future change requires larger shift
 	// values. In this case this function needs to be adjusted.
-	assert(dist < 64u);
-	assert(dist > 0u);
-	return if (dist == 0u) { lo } else { (hi << (64u - dist)) | (lo >> dist) };
+	assert(dist < 64);
+	assert(dist > 0);
+	return if (dist == 0) { lo } else { (hi << (64 - dist)) | (lo >> dist) };
 }
 
 export function div5(x: uint64) -> uint64
 {
-	return x / 5u;
+	return x / 5;
 }
 
 export function div10(x: uint64) -> uint64
 {
-	return x / 10u;
+	return x / 10;
 }
 
 export function div100(x: uint64) -> uint64
 {
-	return x / 100u;
+	return x / 100;
 }
 
 export function div1e8(x: uint64) -> uint64
 {
-	return x / 100000000u;
+	return x / 100000000;
 }
 
 export function div1e9(x: uint64) -> uint64
 {
-	return x / 1000000000u;
+	return x / 1000000000;
 }
 
 export function mod1e9(x: uint64) -> uint32
 {
-	return (x - 1000000000u * div1e9(x)) as uint32;
+	return (x - 1000000000 * div1e9(x)) as uint32;
 }
 
 export function pow5Factor(value: uint64) -> uint32
@@ -105,7 +105,7 @@ export function pow5Factor(value: uint64) -> uint32
 	let count = 0u32;
 	for (;;)
 	{
-		assert(value != 0u);
+		assert(value != 0);
 		value *= m_inv_5;
 		if (value > n_div_5)
 		{
@@ -126,10 +126,10 @@ export function multipleOfPowerOf5(value: uint64, p: uint32) -> bool
 // Returns true if value is divisible by 2^p.
 export function multipleOfPowerOf2(value: uint64, p: uint32) -> bool
 {
-	assert(value != 0u);
-	assert(p < 64u);
+	assert(value != 0);
+	assert(p < 64);
 	// __builtin_ctzll doesn't appear to be faster here.
-	return (value & ((1u64 << p) - 1u)) == 0u;
+	return (value & ((1u64 << p) - 1)) == 0;
 }
 
 // We need a 64x128-bit multiplication and a subsequent 128-bit shift.
@@ -182,7 +182,7 @@ export function mulShift64(m: uint64, mul: *const uint64, j: uint32) -> uint64
 	{
 		++high1; // overflow into high1
 	}
-	return shiftright128(sum, high1, j - 64u);
+	return shiftright128(sum, high1, j - 64);
 }
 
 // This is faster if we don't have a 64x64->128-bit multiplication.
@@ -191,7 +191,7 @@ export function mulShiftAll64(
 	vp: *uint64, vm: *uint64, mmShift: uint32
 ) -> uint64
 {
-	m <<= 1u;
+	m <<= 1;
 	// m is maximum 55 bits
 	let tmp: uint64;
 	const lo = umul128(m, *mul, &tmp);
@@ -200,20 +200,20 @@ export function mulShiftAll64(
 	// hi += mid < tmp; // overflow into hi
 	if (mid < tmp)
 	{
-		hi += 1u;
+		hi += 1;
 	}
 
 	const lo2 = lo + *mul;
 	const mid2 = mid + *(mul + 1) + (lo2 < lo) as uint64;
 	const hi2 = hi + (mid2 < mid) as uint64;
-	*vp = shiftright128(mid2, hi2, j - 64u - 1u);
+	*vp = shiftright128(mid2, hi2, j - 64 - 1);
 
-	if (mmShift == 1u)
+	if (mmShift == 1)
 	{
 		const lo3 = lo - *mul;
 		const mid3 = mid - *(mul + 1) - (lo3 > lo) as uint64;
 		const hi3 = hi - (mid3 > mid) as uint64;
-		*vm = shiftright128(mid3, hi3, j - 64u - 1u);
+		*vm = shiftright128(mid3, hi3, j - 64 - 1);
 	}
 	else
 	{
@@ -223,8 +223,8 @@ export function mulShiftAll64(
 		const lo4 = lo3 - *mul;
 		const mid4 = mid3 - *(mul + 1) - (lo4 > lo3) as uint64;
 		const hi4 = hi3 - (mid4 > mid3) as uint64;
-		*vm = shiftright128(mid4, hi4, j - 64u);
+		*vm = shiftright128(mid4, hi4, j - 64);
 	}
 
-	return shiftright128(mid, hi, j - 64u - 1u);
+	return shiftright128(mid, hi, j - 64 - 1);
 }
