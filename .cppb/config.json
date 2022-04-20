@@ -43,15 +43,15 @@
 				},
 				"linux-release": {},
 				"windows": {
-					"prelink_rules": [ "ryu_format.o" ],
-					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
+					"link_dependencies": [ "ryu_format.o" ],
+					"link_flags": [ "-fuse-ld=lld" ],
 					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
-					"prelink_rules": [ "ryu_format.linux.o" ],
+					"link_dependencies": [ "ryu_format.linux.o" ],
 					"compiler": "clang-14",
 					"libraries": [ "LLVM-14", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld-14", "ryu_format.linux.o" ],
+					"link_flags": [ "-fuse-ld=lld-14" ],
 					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ],
 					"emit_compile_commands": false
 				},
@@ -97,13 +97,13 @@
 				},
 				"linux-release": {},
 				"windows": {
-					"link_flags": [ "-fuse-ld=lld", "ryu_format.o" ],
+					"link_flags": [ "-fuse-ld=lld" ],
 					"libraries": [ "LLVM", "dwarfstack" ]
 				},
 				"linux": {
 					"compiler": "gcc-10",
 					"libraries": [ "LLVM-14", "backtrace" ],
-					"link_flags": [ "-fuse-ld=lld", "ryu_format.linux.o" ],
+					"link_flags": [ "-fuse-ld=lld" ],
 					"warnings": [ "no-unused-parameter" ]
 				},
 				"debug": {
@@ -145,7 +145,7 @@
 				"linux-debug": {
 					"optimization": "0",
 					"cpp_compiler_flags": [],
-					"link_flags": [ "-fuse-ld=lld-14", "ryu_format.linux.o" ],
+					"link_flags": [ "-fuse-ld=lld-14" ],
 					"warnings": [ "no-unused-parameter", "error=deprecated-declarations" ]
 				}
 			}
