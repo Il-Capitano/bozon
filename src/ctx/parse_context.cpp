@@ -2568,155 +2568,282 @@ static bz::u8char get_character(bz::u8string_view::const_iterator &it)
 	}
 }
 
-ast::expression parse_context::make_literal(lex::token_pos literal) const
+template<size_t Base>
+static std::pair<uint64_t, bool> parse_int(bz::u8string_view s)
 {
-	lex::src_tokens const src_tokens = { literal, literal, literal + 1 };
-	auto const get_int_value_and_type_info = [this, literal]<size_t N>(
-		bz::u8string_view postfix,
-		uint64_t num,
-		bz::meta::index_constant<N>
-	) -> std::pair<ast::constant_value, ast::type_info *> {
-		constexpr auto default_type_info = static_cast<uint32_t>(N);
-		using default_type = ast::type_from_type_info_t<default_type_info>;
-		static_assert(
-			bz::meta::is_same<default_type, int32_t>
-			|| bz::meta::is_same<default_type, uint32_t>
-		);
-		using wide_default_type = ast::type_from_type_info_t<default_type_info + 1>;
-		static_assert(
-			bz::meta::is_same<wide_default_type, int64_t>
-			|| bz::meta::is_same<wide_default_type, uint64_t>
-		);
-
-		std::pair<ast::constant_value, ast::type_info *> return_value{};
-		auto &value = return_value.first;
-		auto &type_info = return_value.second;
-		if (postfix == "" || postfix == "u" || postfix == "i")
+	static_assert(Base == 2 || Base == 8 || Base == 10 || Base == 16);
+	uint64_t result = 0;
+	for (auto const c : s)
+	{
+		if (c == '\'')
 		{
-			bz_assert(postfix != "u" || (bz::meta::is_same<default_type, uint32_t>));
-			bz_assert(postfix != "i" || (bz::meta::is_same<default_type,  int32_t>));
-			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
+			continue;
+		}
+
+		auto const digit_value = [c]() -> uint64_t {
+			switch (c)
 			{
-				value = static_cast<wide_default_type>(num);
-				type_info = this->get_builtin_type_info(default_type_info);
+			case '0': case '1':
+				if constexpr (Base == 2)
+				{
+					return c - '0';
+				}
+				[[fallthrough]];
+			case '2': case '3': case '4': case '5': case '6': case '7':
+				if constexpr (Base == 8)
+				{
+					return c - '0';
+				}
+				[[fallthrough]];
+			case '8': case '9':
+				if constexpr (Base == 10 || Base == 16)
+				{
+					return c - '0';
+				}
+				[[fallthrough]];
+			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+				if constexpr (Base == 16)
+				{
+					return 10 + (c - 'a');
+				}
+				[[fallthrough]];
+			default:
+				bz_unreachable;
 			}
-			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
+		}();
+
+		if (
+			result > std::numeric_limits<uint64_t>::max() / Base
+			|| Base * result > std::numeric_limits<uint64_t>::max() - digit_value
+		)
+		{
+			return { result, false };
+		}
+
+		result *= Base;
+		result += digit_value;
+	}
+	return { result, true };
+}
+
+static ast::type_info *get_literal_type(
+	lex::src_tokens const &src_tokens,
+	uint64_t value,
+	bz::u8string_view postfix,
+	bool default_is_signed,
+	parse_context const &context
+)
+{
+	if (postfix == "" || postfix == "u" || postfix == "i")
+	{
+		auto const [default_type_info, wide_default_type_info] = [&]() -> std::pair<ast::type_info *, ast::type_info *> {
+			if ((default_is_signed && postfix == "") || postfix == "i")
 			{
-				value = static_cast<wide_default_type>(num);
-				type_info = this->get_builtin_type_info(default_type_info + 1);
+				return {
+					context.get_builtin_type_info(ast::type_info::int32_),
+					context.get_builtin_type_info(ast::type_info::int64_)
+				};
 			}
 			else
 			{
-				value = num;
-				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
+				return {
+					context.get_builtin_type_info(ast::type_info::uint32_),
+					context.get_builtin_type_info(ast::type_info::uint64_)
+				};
 			}
-		}
-#define postfix_check(postfix_str, type, wide_type)                                           \
-if (postfix == postfix_str)                                                                   \
-{                                                                                             \
-    if (num > static_cast<uint64_t>(std::numeric_limits<type##_t>::max()))                    \
-    {                                                                                         \
-        this->report_error(literal, "literal value is too large to fit in type '" #type "'"); \
-    }                                                                                         \
-    value = static_cast<wide_type>(static_cast<type##_t>(num));                               \
-    type_info = this->get_builtin_type_info(ast::type_info::type##_);                         \
-}
-		else postfix_check("i8",  int8,   int64_t)
-		else postfix_check("i16", int16,  int64_t)
-		else postfix_check("i32", int32,  int64_t)
-		else postfix_check("i64", int64,  int64_t)
-		else postfix_check("u8",  uint8,  uint64_t)
-		else postfix_check("u16", uint16, uint64_t)
-		else postfix_check("u32", uint32, uint64_t)
-		else postfix_check("u64", uint64, uint64_t)
-#undef postfix_check
-		else if (postfix == "uz")
+		}();
+		auto const [default_max_value, wide_default_max_value] = [&]() -> std::pair<uint64_t, uint64_t> {
+			if (default_is_signed || postfix == "i")
+			{
+				return {
+					static_cast<uint64_t>(std::numeric_limits<int32_t>::max()),
+					static_cast<uint64_t>(std::numeric_limits<int64_t>::max()),
+				};
+			}
+			else
+			{
+				return {
+					static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()),
+					static_cast<uint64_t>(std::numeric_limits<uint64_t>::max()),
+				};
+			}
+		}();
+
+		if (value <= default_max_value)
 		{
-			uint64_t max_value;
-			switch (this->global_ctx.get_data_layout().getPointerSize())
-			{
-			case 8:
-				max_value = static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
-				value = static_cast<uint64_t>(static_cast<uint64_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
-				break;
-			case 4:
-				max_value = static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
-				value = static_cast<uint64_t>(static_cast<uint32_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::uint32_);
-				break;
-			case 2:
-				max_value = static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
-				value = static_cast<uint64_t>(static_cast<uint16_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::uint16_);
-				break;
-			case 1:
-				max_value = static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
-				value = static_cast<uint64_t>(static_cast<uint8_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::uint8_);
-				break;
-			default:
-				bz_unreachable;
-			}
-			if (num > max_value)
-			{
-				this->report_error(literal, "literal value is too large to fit in type 'usize'");
-			}
+			return default_type_info;
 		}
-		else if (postfix == "iz")
+		else if (value <= wide_default_max_value)
 		{
-			uint64_t max_value;
-			switch (this->global_ctx.get_data_layout().getPointerSize())
-			{
-			case 8:
-				max_value = static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
-				value = static_cast<int64_t>(static_cast<int64_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::int64_);
-				break;
-			case 4:
-				max_value = static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
-				value = static_cast<int64_t>(static_cast<int32_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::int32_);
-				break;
-			case 2:
-				max_value = static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
-				value = static_cast<int64_t>(static_cast<int16_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::int16_);
-				break;
-			case 1:
-				max_value = static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
-				value = static_cast<int64_t>(static_cast<int8_t>(num));
-				type_info = this->get_builtin_type_info(ast::type_info::int8_);
-				break;
-			default:
-				bz_unreachable;
-			}
-			if (num > max_value)
-			{
-				this->report_error(literal, "literal value is too large to fit in type 'isize'");
-			}
+			return wide_default_type_info;
 		}
 		else
 		{
-			if (num <= static_cast<uint64_t>(std::numeric_limits<default_type>::max()))
-			{
-				value = static_cast<wide_default_type>(num);
-				type_info = this->get_builtin_type_info(default_type_info);
-			}
-			else if (num <= static_cast<uint64_t>(std::numeric_limits<wide_default_type>::max()))
-			{
-				value = static_cast<wide_default_type>(num);
-				type_info = this->get_builtin_type_info(default_type_info + 1);
-			}
-			else
-			{
-				value = num;
-				type_info = this->get_builtin_type_info(ast::type_info::uint64_);
-			}
-			this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
+			return context.get_builtin_type_info(ast::type_info::uint64_);
 		}
-		return return_value;
-	};
+	}
+	else
+	{
+		struct T
+		{
+			ast::type_info *info;
+			bz::u8string_view type_name;
+			uint64_t max_value;
+		};
+
+		auto const [info, type_name, max_value] = [&]() -> T {
+			if (postfix == "i8")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::int8_),
+					"int8",
+					static_cast<uint64_t>(std::numeric_limits<int8_t>::max())
+				};
+			}
+			else if (postfix == "u8")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::uint8_),
+					"uint8",
+					static_cast<uint64_t>(std::numeric_limits<uint8_t>::max())
+				};
+			}
+			else if (postfix == "i16")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::int16_),
+					"int16",
+					static_cast<uint64_t>(std::numeric_limits<int16_t>::max())
+				};
+			}
+			else if (postfix == "u16")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::uint16_),
+					"uint16",
+					static_cast<uint64_t>(std::numeric_limits<uint16_t>::max())
+				};
+			}
+			else if (postfix == "i32")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::int32_),
+					"int32",
+					static_cast<uint64_t>(std::numeric_limits<int32_t>::max())
+				};
+			}
+			else if (postfix == "u32")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::uint32_),
+					"uint32",
+					static_cast<uint64_t>(std::numeric_limits<uint32_t>::max())
+				};
+			}
+			else if (postfix == "i64")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::int64_),
+					"int64",
+					static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
+				};
+			}
+			else if (postfix == "u64")
+			{
+				return {
+					context.get_builtin_type_info(ast::type_info::uint64_),
+					"uint64",
+					static_cast<uint64_t>(std::numeric_limits<uint64_t>::max())
+				};
+			}
+			else if (postfix == "iz")
+			{
+				switch (context.global_ctx.get_data_layout().getPointerSize())
+				{
+				case 8:
+					return {
+						context.get_builtin_type_info(ast::type_info::int64_),
+						"int64",
+						static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
+					};
+				case 4:
+					return {
+						context.get_builtin_type_info(ast::type_info::int32_),
+						"int32",
+						static_cast<uint64_t>(std::numeric_limits<int32_t>::max())
+					};
+				case 2:
+					return {
+						context.get_builtin_type_info(ast::type_info::int16_),
+						"int16",
+						static_cast<uint64_t>(std::numeric_limits<int16_t>::max())
+					};
+				case 1:
+					return {
+						context.get_builtin_type_info(ast::type_info::int8_),
+						"int8",
+						static_cast<uint64_t>(std::numeric_limits<int8_t>::max())
+					};
+				default:
+					bz_unreachable;
+				}
+			}
+			else if (postfix == "uz")
+			{
+				switch (context.global_ctx.get_data_layout().getPointerSize())
+				{
+				case 8:
+					return {
+						context.get_builtin_type_info(ast::type_info::uint64_),
+						"uint64",
+						static_cast<uint64_t>(std::numeric_limits<uint64_t>::max())
+					};
+				case 4:
+					return {
+						context.get_builtin_type_info(ast::type_info::uint32_),
+						"uint32",
+						static_cast<uint64_t>(std::numeric_limits<uint32_t>::max())
+					};
+				case 2:
+					return {
+						context.get_builtin_type_info(ast::type_info::uint16_),
+						"uint16",
+						static_cast<uint64_t>(std::numeric_limits<uint16_t>::max())
+					};
+				case 1:
+					return {
+						context.get_builtin_type_info(ast::type_info::uint8_),
+						"uint8",
+						static_cast<uint64_t>(std::numeric_limits<uint8_t>::max())
+					};
+				default:
+					bz_unreachable;
+				}
+			}
+
+			return { nullptr, "", 0 };
+		}();
+
+		if (info == nullptr)
+		{
+			context.report_error(src_tokens, bz::format("unknown postfix '{}'", postfix));
+			// fall back to a base case here
+			return get_literal_type(src_tokens, value, "", true, context);
+		}
+
+		if (value > max_value)
+		{
+			context.report_error(src_tokens, bz::format("literal value is too large to fit in type '{}'", type_name));
+		}
+
+		return info;
+	}
+}
+
+ast::expression parse_context::make_literal(lex::token_pos literal) const
+{
+	lex::src_tokens const src_tokens = { literal, literal, literal + 1 };
 
 	bz_assert(literal->kind != lex::token::string_literal);
 	switch (literal->kind)
@@ -2724,52 +2851,64 @@ if (postfix == postfix_str)                                                     
 	case lex::token::integer_literal:
 	{
 		auto const number_string = literal->value;
-		uint64_t num = 0;
-		for (auto c : number_string)
-		{
-			if (c == '\'')
-			{
-				continue;
-			}
+		auto [value, good] = parse_int<10>(number_string);
 
-			bz_assert(c >= '0' && c <= '9');
-			auto const num10 = num * 10;
-			if (
-				num > std::numeric_limits<uint64_t>::max() / 10
-				|| num10 > std::numeric_limits<uint64_t>::max() - (c - '0')
-			)
-			{
-				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				return ast::make_error_expression(src_tokens, ast::make_expr_literal(literal));
-			}
-			num = num10 + (c - '0');
+		if (!good)
+		{
+			this->report_error(
+				literal,
+				"literal value is too large, even for 'uint64'",
+				{ this->make_note(bz::format("maximum value for 'uint64' is {}", std::numeric_limits<uint64_t>::max())) }
+			);
+			value = 0;
 		}
 
 		auto const postfix = literal->postfix;
-		auto const [value, type_info] = [&]() {
-			if (postfix == "u")
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::uint32_>{}
-				);
-			}
-			else
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::int32_>{}
-				);
-			}
-		}();
+
+		auto const info = get_literal_type(src_tokens, value, postfix, true, *this);
+		auto const const_value = ast::is_signed_integer_kind(info->kind)
+			? ast::constant_value(static_cast<int64_t>(value))
+			: ast::constant_value(static_cast<uint64_t>(value));
 
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
-			value,
+			ast::make_base_type_typespec(src_tokens, info),
+			std::move(const_value),
+			ast::make_expr_literal(literal)
+		);
+	}
+	case lex::token::hex_literal:
+	case lex::token::oct_literal:
+	case lex::token::bin_literal:
+	{
+		// number_string_ contains the leading 0x or 0X
+		auto const number_string_ = literal->value;
+		bz_assert(number_string_.starts_with('0'));
+		auto const number_string = number_string_.substring(2);
+		auto [value, good] =
+			literal->kind == lex::token::hex_literal ? parse_int<16>(number_string) :
+			literal->kind == lex::token::oct_literal ? parse_int<8>(number_string) :
+			parse_int<2>(number_string);
+
+		if (!good)
+		{
+			this->report_error(literal, "literal value is too large, even for 'uint64'");
+			value = 0;
+		}
+
+		auto const postfix = literal->postfix;
+
+		auto const info = get_literal_type(src_tokens, value, postfix, false, *this);
+		auto const const_value = ast::is_signed_integer_kind(info->kind)
+			? ast::constant_value(static_cast<int64_t>(value))
+			: ast::constant_value(static_cast<uint64_t>(value));
+
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec(src_tokens, info),
+			std::move(const_value),
 			ast::make_expr_literal(literal)
 		);
 	}
@@ -2779,27 +2918,36 @@ if (postfix == postfix_str)                                                     
 		number_string.erase('\'');
 
 		auto const postfix = literal->postfix;
-		ast::constant_value value{};
-		ast::type_info *type_info;
 		if (postfix == "f32")
 		{
 			auto const num = bz::parse_float(number_string);
-			value = num.has_value() ? num.get() : 0.0f;
 
 			if (!num.has_value())
 			{
 				bz::vector<source_highlight> notes;
 				if (do_verbose)
 				{
-					notes.push_back(make_note(literal->src_pos.file_id, literal->src_pos.line, "at most 9 significant digits are allowed for 'float32'"));
+					notes.push_back(make_note("at most 9 significant digits are allowed for 'float32'"));
 				}
 				this->report_error(literal, "unable to parse 'float32' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
-				this->report_warning(warning_kind::float_overflow, literal, bz::format("'float32' literal value was parsed as {}", num.get()));
+				this->report_warning(
+					warning_kind::float_overflow, literal,
+					bz::format("'float32' literal value was parsed as {}", num.get())
+				);
 			}
-			type_info = this->get_builtin_type_info(ast::type_info::float32_);
+
+			auto const value = num.has_value() ? num.get() : 0.0f;
+			auto const info = this->get_builtin_type_info(ast::type_info::float32_);
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue,
+				ast::make_base_type_typespec(src_tokens, info),
+				ast::constant_value(value),
+				ast::make_expr_literal(literal)
+			);
 		}
 		else
 		{
@@ -2808,201 +2956,34 @@ if (postfix == postfix_str)                                                     
 				this->report_error(literal, bz::format("unknown postfix '{}'", postfix));
 			}
 			auto const num = bz::parse_double(number_string);
-			value = num.has_value() ? num.get() : 0.0;
 
 			if (!num.has_value())
 			{
 				bz::vector<source_highlight> notes;
 				if (do_verbose)
 				{
-					notes.push_back(make_note(literal->src_pos.file_id, literal->src_pos.line, "at most 17 significant digits are allowed for 'float64'"));
+					notes.push_back(make_note("at most 17 significant digits are allowed for 'float64'"));
 				}
 				this->report_error(literal, "unable to parse 'float64' literal value, it has too many digits", std::move(notes));
 			}
 			else if (!std::isfinite(num.get()))
 			{
-				this->report_warning(warning_kind::float_overflow, literal, bz::format("'float64' literal value was parsed as {}", num.get()));
+				this->report_warning(
+					warning_kind::float_overflow, literal,
+					bz::format("'float64' literal value was parsed as {}", num.get())
+				);
 			}
-			type_info = this->get_builtin_type_info(ast::type_info::float64_);
+
+			auto const value = num.has_value() ? num.get() : 0.0;
+			auto const info = this->get_builtin_type_info(ast::type_info::float64_);
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::rvalue,
+				ast::make_base_type_typespec(src_tokens, info),
+				ast::constant_value(value),
+				ast::make_expr_literal(literal)
+			);
 		}
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
-			value,
-			ast::make_expr_literal(literal)
-		);
-	}
-	case lex::token::hex_literal:
-	{
-		// number_string_ contains the leading 0x or 0X
-		auto const number_string_ = literal->value;
-		bz_assert(number_string_.substring(0, 2) == "0x" || number_string_.substring(0, 2) == "0X");
-		auto const number_string = number_string_.substring(2, size_t(-1));
-		uint64_t num = 0;
-		for (auto c : number_string)
-		{
-			if (c == '\'')
-			{
-				continue;
-			}
-
-			bz_assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
-			auto const num16 = num * 16;
-			auto const char_value = (c >= '0' && c <= '9') ? c - '0'
-				: (c >= 'a' && c <= 'f') ? (c - 'a') + 10
-				:/* (c >= 'A' && c <= 'F') ? */(c - 'A') + 10;
-			if (
-				num > std::numeric_limits<uint64_t>::max() / 16
-				|| num16 > std::numeric_limits<uint64_t>::max() - char_value
-			)
-			{
-				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				break;
-			}
-			num = num16 + char_value;
-		}
-
-		auto const postfix = literal->postfix;
-		auto const [value, type_info] = [&]() {
-			if (postfix == "i")
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::int32_>{}
-				);
-			}
-			else
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::uint32_>{}
-				);
-			}
-		}();
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
-			value,
-			ast::make_expr_literal(literal)
-		);
-	}
-	case lex::token::oct_literal:
-	{
-		// number_string_ contains the leading 0o or 0O
-		auto const number_string_ = literal->value;
-		bz_assert(number_string_.substring(0, 2) == "0o" || number_string_.substring(0, 2) == "0O");
-		auto const number_string = number_string_.substring(2, size_t(-1));
-		uint64_t num = 0;
-		for (auto c : number_string)
-		{
-			if (c == '\'')
-			{
-				continue;
-			}
-
-			bz_assert(c >= '0' && c <= '7');
-			auto const num8 = num * 8;
-			auto const char_value = c - '0';
-			if (
-				num > std::numeric_limits<uint64_t>::max() / 8
-				|| num8 > std::numeric_limits<uint64_t>::max() - char_value
-			)
-			{
-				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				break;
-			}
-			num = num8 + char_value;
-		}
-
-		auto const postfix = literal->postfix;
-		auto const [value, type_info] = [&]() {
-			if (postfix == "i")
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::int32_>{}
-				);
-			}
-			else
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::uint32_>{}
-				);
-			}
-		}();
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
-			value,
-			ast::make_expr_literal(literal)
-		);
-	}
-	case lex::token::bin_literal:
-	{
-		// number_string_ contains the leading 0b or 0B
-		auto const number_string_ = literal->value;
-		bz_assert(number_string_.substring(0, 2) == "0b" || number_string_.substring(0, 2) == "0B");
-		auto const number_string = number_string_.substring(2, size_t(-1));
-		uint64_t num = 0;
-		for (auto c : number_string)
-		{
-			if (c == '\'')
-			{
-				continue;
-			}
-
-			bz_assert(c >= '0' && c <= '1');
-			auto const num2 = num * 2;
-			auto const char_value = c - '0';
-			if (
-				num > std::numeric_limits<uint64_t>::max() / 2
-				|| num2 > std::numeric_limits<uint64_t>::max() - char_value
-			)
-			{
-				this->report_error(literal, "literal value is too large, even for 'uint64'");
-				break;
-			}
-			num = num2 + char_value;
-		}
-
-		auto const postfix = literal->postfix;
-		auto const [value, type_info] = [&]() {
-			if (postfix == "i")
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::int32_>{}
-				);
-			}
-			else
-			{
-				return get_int_value_and_type_info(
-					postfix,
-					num,
-					bz::meta::index_constant<ast::type_info::uint32_>{}
-				);
-			}
-		}();
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ type_info } }),
-			value,
-			ast::make_expr_literal(literal)
-		);
 	}
 	case lex::token::character_literal:
 	{
@@ -3014,12 +2995,24 @@ if (postfix == postfix_str)                                                     
 
 		if (!bz::is_valid_unicode_value(value))
 		{
+			bz::vector<source_highlight> notes = {};
+
+			if (bz::is_in_unicode_surrogate_range(value))
+			{
+				notes.push_back(this->make_note(bz::format("U+{04x} is in a unicode surrogate range", value)));
+			}
+			else
+			{
+				notes.push_back(this->make_note(bz::format("largest unicode code point value is U+{04x}", bz::max_unicode_value)));
+			}
+
 			this->report_error(
 				literal,
 				bz::format(
-					"the value \\U{:8x} is not a valid character, maximum value is \\U0010ffff",
+					"'\\U{:08x}' is not a valid character",
 					value
-				)
+				),
+				std::move(notes)
 			);
 		}
 
