@@ -47,10 +47,7 @@ static bool is_literal_implicitly_convertible(
 )
 {
 	bz_assert(expr.is_literal());
-	auto &literal = expr.get_literal();
-	auto const literal_kind = literal.tokens.begin->kind;
-	auto const postfix = (literal.tokens.end - 1)->postfix;
-
+	auto const &literal = expr.get_literal();
 	auto const &literal_value = expr.get_literal_value();
 
 	if (!dest.is<ast::ts_base_type>())
@@ -69,11 +66,6 @@ static bool is_literal_implicitly_convertible(
 		? static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>())
 		: literal_value.get<ast::constant_value::uint>();
 	// other kinds of literals are signed by default
-	auto const is_any = literal_kind == lex::token::integer_literal && postfix == "";
-	// the postfix 'i' can be used to interpret hex, octal and binary literals as signed integers
-	auto const is_any_signed   = is_any || postfix == "i";
-	auto const is_any_unsigned = is_any || (literal_kind != lex::token::integer_literal && postfix == "") || postfix == "u";
-	bz_assert(is_any || !(is_any_signed && is_any_unsigned));
 
 	auto const dest_max_value = [&]() -> uint64_t {
 		switch (dest_kind)
@@ -99,15 +91,15 @@ static bool is_literal_implicitly_convertible(
 		}
 	}();
 
-	if (is_any)
+	if (literal.kind == ast::literal_kind::integer)
 	{
 		return literal_int_value <= dest_max_value;
 	}
-	else if (is_any_signed)
+	else if (literal.kind == ast::literal_kind::signed_integer)
 	{
 		return ast::is_signed_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
 	}
-	else if (is_any_unsigned)
+	else if (literal.kind == ast::literal_kind::unsigned_integer)
 	{
 		return ast::is_unsigned_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
 	}

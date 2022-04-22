@@ -2670,6 +2670,10 @@ static ast::expression get_literal_expr(
 			}
 		}();
 
+		auto const kind = (default_is_signed && postfix == "") ? ast::literal_kind::integer :
+			postfix == "i" ? ast::literal_kind::signed_integer :
+			ast::literal_kind::unsigned_integer;
+
 		if (value <= default_max_value)
 		{
 			return ast::make_constant_expression(
@@ -2679,7 +2683,7 @@ static ast::expression get_literal_expr(
 				ast::is_signed_integer_kind(default_type_info->kind)
 					? ast::constant_value(static_cast<int64_t>(value))
 					: ast::constant_value(value),
-				ast::make_expr_literal(src_tokens.pivot)
+				ast::make_expr_literal(kind)
 			);
 		}
 		else if (value <= wide_default_max_value)
@@ -2691,7 +2695,7 @@ static ast::expression get_literal_expr(
 				ast::is_signed_integer_kind(wide_default_type_info->kind)
 					? ast::constant_value(static_cast<int64_t>(value))
 					: ast::constant_value(value),
-				ast::make_expr_literal(src_tokens.pivot)
+				ast::make_expr_literal(kind)
 			);
 		}
 		else
@@ -2702,7 +2706,7 @@ static ast::expression get_literal_expr(
 				ast::expression_type_kind::literal,
 				ast::make_base_type_typespec(src_tokens, info),
 				ast::constant_value(value),
-				ast::make_expr_literal(src_tokens.pivot)
+				ast::make_expr_literal(kind)
 			);
 		}
 	}

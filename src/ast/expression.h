@@ -313,18 +313,21 @@ struct expr_identifier
 	{}
 };
 
+enum class literal_kind
+{
+	signed_integer,
+	unsigned_integer,
+	integer,
+};
+
 struct expr_literal
 {
-	lex::token_range tokens;
+	literal_kind kind;
 
 	declare_default_5(expr_literal)
 
-	expr_literal(lex::token_range _tokens)
-		: tokens(_tokens)
-	{}
-
-	expr_literal(lex::token_pos it)
-		: tokens{ it, it + 1 }
+	expr_literal(literal_kind _kind)
+		: kind(_kind)
 	{}
 };
 
