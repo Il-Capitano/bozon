@@ -2627,7 +2627,7 @@ static std::pair<uint64_t, bool> parse_int(bz::u8string_view s)
 	return { result, true };
 }
 
-static ast::type_info *get_literal_type(
+static ast::expression get_literal_expr(
 	lex::src_tokens const &src_tokens,
 	uint64_t value,
 	bz::u8string_view postfix,
@@ -2672,15 +2672,38 @@ static ast::type_info *get_literal_type(
 
 		if (value <= default_max_value)
 		{
-			return default_type_info;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::literal,
+				ast::make_base_type_typespec(src_tokens, default_type_info),
+				ast::is_signed_integer_kind(default_type_info->kind)
+					? ast::constant_value(static_cast<int64_t>(value))
+					: ast::constant_value(value),
+				ast::make_expr_literal(src_tokens.pivot)
+			);
 		}
 		else if (value <= wide_default_max_value)
 		{
-			return wide_default_type_info;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::literal,
+				ast::make_base_type_typespec(src_tokens, wide_default_type_info),
+				ast::is_signed_integer_kind(wide_default_type_info->kind)
+					? ast::constant_value(static_cast<int64_t>(value))
+					: ast::constant_value(value),
+				ast::make_expr_literal(src_tokens.pivot)
+			);
 		}
 		else
 		{
-			return context.get_builtin_type_info(ast::type_info::uint64_);
+			auto const info = context.get_builtin_type_info(ast::type_info::uint64_);
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::literal,
+				ast::make_base_type_typespec(src_tokens, info),
+				ast::constant_value(value),
+				ast::make_expr_literal(src_tokens.pivot)
+			);
 		}
 	}
 	else
@@ -2829,15 +2852,24 @@ static ast::type_info *get_literal_type(
 		{
 			context.report_error(src_tokens, bz::format("unknown postfix '{}'", postfix));
 			// fall back to a base case here
-			return get_literal_type(src_tokens, value, "", true, context);
+			return get_literal_expr(src_tokens, value, "", true, context);
 		}
 
 		if (value > max_value)
 		{
 			context.report_error(src_tokens, bz::format("literal value is too large to fit in type '{}'", type_name));
+			value = 0;
 		}
 
-		return info;
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue,
+			ast::make_base_type_typespec(src_tokens, info),
+			ast::is_signed_integer_kind(info->kind)
+				? ast::constant_value(static_cast<int64_t>(value))
+				: ast::constant_value(value),
+			ast::make_expr_typed_literal(src_tokens.pivot)
+		);
 	}
 }
 
@@ -2865,18 +2897,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 
 		auto const postfix = literal->postfix;
 
-		auto const info = get_literal_type(src_tokens, value, postfix, true, *this);
-		auto const const_value = ast::is_signed_integer_kind(info->kind)
-			? ast::constant_value(static_cast<int64_t>(value))
-			: ast::constant_value(static_cast<uint64_t>(value));
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::literal,
-			ast::make_base_type_typespec(src_tokens, info),
-			std::move(const_value),
-			ast::make_expr_literal(literal)
-		);
+		return get_literal_expr(src_tokens, value, postfix, true, *this);
 	}
 	case lex::token::hex_literal:
 	case lex::token::oct_literal:
@@ -2899,18 +2920,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 
 		auto const postfix = literal->postfix;
 
-		auto const info = get_literal_type(src_tokens, value, postfix, false, *this);
-		auto const const_value = ast::is_signed_integer_kind(info->kind)
-			? ast::constant_value(static_cast<int64_t>(value))
-			: ast::constant_value(static_cast<uint64_t>(value));
-
-		return ast::make_constant_expression(
-			src_tokens,
-			ast::expression_type_kind::literal,
-			ast::make_base_type_typespec(src_tokens, info),
-			std::move(const_value),
-			ast::make_expr_literal(literal)
-		);
+		return get_literal_expr(src_tokens, value, postfix, false, *this);
 	}
 	case lex::token::floating_point_literal:
 	{
@@ -2943,10 +2953,10 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			auto const info = this->get_builtin_type_info(ast::type_info::float32_);
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::literal,
+				ast::expression_type_kind::rvalue,
 				ast::make_base_type_typespec(src_tokens, info),
 				ast::constant_value(value),
-				ast::make_expr_literal(literal)
+				ast::make_expr_typed_literal(literal)
 			);
 		}
 		else
@@ -2978,10 +2988,10 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			auto const info = this->get_builtin_type_info(ast::type_info::float64_);
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::literal,
+				ast::expression_type_kind::rvalue,
 				ast::make_base_type_typespec(src_tokens, info),
 				ast::constant_value(value),
-				ast::make_expr_literal(literal)
+				ast::make_expr_typed_literal(literal)
 			);
 		}
 	}
@@ -3024,35 +3034,35 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 
 		return ast::make_constant_expression(
 			src_tokens,
-			ast::expression_type_kind::literal,
+			ast::expression_type_kind::rvalue,
 			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::char_) } }),
 			ast::constant_value(value),
-			ast::make_expr_literal(literal)
+			ast::make_expr_typed_literal(literal)
 		);
 	}
 	case lex::token::kw_true:
 		return ast::make_constant_expression(
 			src_tokens,
-			ast::expression_type_kind::literal,
+			ast::expression_type_kind::rvalue,
 			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(true),
-			ast::make_expr_literal(literal)
+			ast::make_expr_typed_literal(literal)
 		);
 	case lex::token::kw_false:
 		return ast::make_constant_expression(
 			src_tokens,
-			ast::expression_type_kind::literal,
+			ast::expression_type_kind::rvalue,
 			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
 			ast::constant_value(false),
-			ast::make_expr_literal(literal)
+			ast::make_expr_typed_literal(literal)
 		);
 	case lex::token::kw_null:
 		return ast::make_constant_expression(
 			src_tokens,
-			ast::expression_type_kind::literal,
+			ast::expression_type_kind::rvalue,
 			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::null_t_) } }),
 			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_literal(literal)
+			ast::make_expr_typed_literal(literal)
 		);
 	case lex::token::kw_unreachable:
 		return ast::make_dynamic_expression(
@@ -3612,6 +3622,13 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
+		/*
+		else if (best_body->is_builtin_operator() && expr.is_constant_or_dynamic() && expr.get_expr().is<ast::expr_literal>())
+		{
+			// something
+			bz_unreachable;
+		}
+		*/
 		else
 		{
 			ast::arena_vector<ast::expression> params;

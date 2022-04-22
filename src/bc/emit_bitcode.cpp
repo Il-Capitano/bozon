@@ -1199,6 +1199,18 @@ static val_ptr emit_bitcode(
 	return val_ptr::get_none();
 }
 
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_typed_literal const &,
+	Context &,
+	llvm::Value *
+)
+{
+	// this is always a constant expression
+	bz_unreachable;
+}
+
 template<abi::platform_abi abi>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,

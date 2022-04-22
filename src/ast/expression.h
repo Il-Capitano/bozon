@@ -16,6 +16,7 @@ struct expression;
 
 struct expr_identifier;
 struct expr_literal;
+struct expr_typed_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
@@ -48,6 +49,7 @@ struct expr_unresolved_generic_type_instantiation;
 using expr_t = node<
 	expr_identifier,
 	expr_literal,
+	expr_typed_literal,
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
@@ -320,6 +322,21 @@ struct expr_literal
 	{}
 
 	expr_literal(lex::token_pos it)
+		: tokens{ it, it + 1 }
+	{}
+};
+
+struct expr_typed_literal
+{
+	lex::token_range tokens;
+
+	declare_default_5(expr_typed_literal)
+
+	expr_typed_literal(lex::token_range _tokens)
+		: tokens(_tokens)
+	{}
+
+	expr_typed_literal(lex::token_pos it)
 		: tokens{ it, it + 1 }
 	{}
 };
@@ -783,6 +800,7 @@ ret_type make_ ## node_type (Args &&...args)                                   \
 
 def_make_fn(expr_t, expr_identifier)
 def_make_fn(expr_t, expr_literal)
+def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
