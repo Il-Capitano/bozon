@@ -1,0 +1,4 @@
+function main()
+{
+	const _ = (0, if (false) { 0 } else { 0 });
+}
