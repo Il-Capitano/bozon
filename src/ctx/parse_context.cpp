@@ -3064,13 +3064,6 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_typed_literal(literal)
 		);
-	case lex::token::kw_unreachable:
-		return ast::make_dynamic_expression(
-			src_tokens,
-			ast::expression_type_kind::noreturn,
-			ast::make_void_typespec(src_tokens.pivot),
-			ast::make_expr_literal(literal)
-		);
 	default:
 		bz_unreachable;
 	}

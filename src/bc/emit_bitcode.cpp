@@ -1168,35 +1168,16 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_literal const &literal_expr,
-	ctx::bitcode_context &context,
+	ast::expr_literal const &,
+	Context &,
 	llvm::Value *
 )
 {
-	// can only be called with unreachable
-	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
-	if (no_panic_on_unreachable)
-	{
-		context.builder.CreateUnreachable();
-	}
-	else
-	{
-		auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
-		context.create_call(panic_fn);
-		auto const return_type = context.current_function.second->getReturnType();
-		if (return_type->isVoidTy())
-		{
-			context.builder.CreateRetVoid();
-		}
-		else
-		{
-			context.builder.CreateRet(llvm::UndefValue::get(return_type));
-		}
-	}
-	return val_ptr::get_none();
+	// this is always a constant expression
+	bz_unreachable;
 }
 
 template<abi::platform_abi abi, typename Context>
@@ -1209,20 +1190,6 @@ static val_ptr emit_bitcode(
 {
 	// this is always a constant expression
 	bz_unreachable;
-}
-
-template<abi::platform_abi abi>
-static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
-	ast::expr_literal const &literal_expr,
-	ctx::comptime_executor_context &context,
-	llvm::Value *
-)
-{
-	// can only be called with unreachable
-	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
-	emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
-	return val_ptr::get_none();
 }
 
 template<abi::platform_abi abi, typename Context>
@@ -5106,6 +5073,43 @@ static val_ptr emit_bitcode(
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.continue_bb);
 	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &src_tokens,
+	ast::expr_unreachable const &,
+	Context &context,
+	llvm::Value *
+)
+{
+	if constexpr (is_comptime<Context>)
+	{
+		emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
+		return val_ptr::get_none();
+	}
+	else
+	{
+		if (no_panic_on_unreachable)
+		{
+			context.builder.CreateUnreachable();
+		}
+		else
+		{
+			auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
+			context.create_call(panic_fn);
+			auto const return_type = context.current_function.second->getReturnType();
+			if (return_type->isVoidTy())
+			{
+				context.builder.CreateRetVoid();
+			}
+			else
+			{
+				context.builder.CreateRet(llvm::UndefValue::get(return_type));
+			}
+		}
+		return val_ptr::get_none();
+	}
 }
 
 template<abi::platform_abi abi, typename Context>

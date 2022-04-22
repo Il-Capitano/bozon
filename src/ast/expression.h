@@ -35,6 +35,7 @@ struct expr_if_consteval;
 struct expr_switch;
 struct expr_break;
 struct expr_continue;
+struct expr_unreachable;
 struct expr_generic_type_instantiation;
 
 struct expr_unresolved_subscript;
@@ -68,6 +69,7 @@ using expr_t = node<
 	expr_switch,
 	expr_break,
 	expr_continue,
+	expr_unreachable,
 	expr_generic_type_instantiation
 >;
 
@@ -646,6 +648,10 @@ struct expr_continue
 {
 };
 
+struct expr_unreachable
+{
+};
+
 struct expr_generic_type_instantiation
 {
 	type_info *info;
@@ -819,6 +825,7 @@ def_make_fn(expr_t, expr_if_consteval)
 def_make_fn(expr_t, expr_switch)
 def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
+def_make_fn(expr_t, expr_unreachable)
 def_make_fn(expr_t, expr_generic_type_instantiation)
 
 #undef def_make_fn
