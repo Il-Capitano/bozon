@@ -557,10 +557,10 @@ static void match_literal_to_type(
 	ctx::parse_context &context
 )
 {
-	bz_assert(expr.is_literal());
-	auto const &literal = expr.get_literal();
+	bz_assert(expr.is_integer_literal());
+	auto const &literal = expr.get_integer_literal();
 
-	auto const &literal_value = expr.get_literal_value();
+	auto const &literal_value = expr.get_integer_literal_value();
 	bz_assert((literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>()));
 
 	if (!dest.is<ast::ts_base_type>())
@@ -1033,7 +1033,7 @@ static void match_expression_to_type_impl(
 			return;
 		}
 	}
-	else if (expr.is_literal())
+	else if (expr.is_integer_literal())
 	{
 		match_literal_to_type(expr, dest_container, dest, context);
 		if (expr.is_error())

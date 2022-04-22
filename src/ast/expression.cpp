@@ -196,36 +196,36 @@ expr_switch const &expression::get_switch_expr(void) const noexcept
 	return get_expr_kind<expr_switch>(*this);
 }
 
-bool expression::is_literal(void) const noexcept
+bool expression::is_integer_literal(void) const noexcept
 {
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::literal)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::literal);
+	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::integer_literal)
+		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::integer_literal);
 }
 
-expr_literal &expression::get_literal(void) noexcept
+expr_integer_literal &expression::get_integer_literal(void) noexcept
 {
-	bz_assert(this->is_literal());
-	return get_expr_kind<expr_literal>(*this);
+	bz_assert(this->is_integer_literal());
+	return get_expr_kind<expr_integer_literal>(*this);
 }
 
-expr_literal const &expression::get_literal(void) const noexcept
+expr_integer_literal const &expression::get_integer_literal(void) const noexcept
 {
-	bz_assert(this->is_literal());
-	return get_expr_kind<expr_literal>(*this);
+	bz_assert(this->is_integer_literal());
+	return get_expr_kind<expr_integer_literal>(*this);
 }
 
-constant_value &expression::get_literal_value(void) noexcept
+constant_value &expression::get_integer_literal_value(void) noexcept
 {
-	bz_assert(this->is_literal());
-	auto &literal_expr = get_expr_kind<expr_literal, false>(*this);
+	bz_assert(this->is_integer_literal());
+	auto &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
 	bz_assert(literal_expr.is<constant_expression>());
 	return literal_expr.get<constant_expression>().value;
 }
 
-constant_value const &expression::get_literal_value(void) const noexcept
+constant_value const &expression::get_integer_literal_value(void) const noexcept
 {
-	bz_assert(this->is_literal());
-	auto const &literal_expr = get_expr_kind<expr_literal, false>(*this);
+	bz_assert(this->is_integer_literal());
+	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
 	bz_assert(literal_expr.is<constant_expression>());
 	return literal_expr.get<constant_expression>().value;
 }

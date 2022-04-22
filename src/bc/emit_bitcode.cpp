@@ -1171,7 +1171,7 @@ static val_ptr emit_bitcode(
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_literal const &,
+	ast::expr_integer_literal const &,
 	Context &,
 	llvm::Value *
 )
@@ -3854,7 +3854,7 @@ static val_ptr emit_bitcode(
 			auto const param_llvm_type = get_llvm_type(param_type, context);
 			if (param_type.is<ast::ts_move_reference>())
 			{
-				auto const result_address = ast::is_rvalue_or_literal(p.get_expr_type_and_kind().second)
+				auto const result_address = ast::is_rvalue_or_integer_literal(p.get_expr_type_and_kind().second)
 					? context.create_alloca(get_llvm_type(param_type.get<ast::ts_move_reference>(), context))
 					: nullptr;
 				auto const param_val = emit_bitcode<abi>(p, context, result_address);

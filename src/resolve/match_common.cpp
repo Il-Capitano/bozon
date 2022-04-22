@@ -41,14 +41,14 @@ bool is_implicitly_convertible(
 	return false;
 }
 
-static bool is_literal_implicitly_convertible(
+static bool is_integer_literal_implicitly_convertible(
 	ast::typespec_view dest,
 	ast::expression const &expr
 )
 {
-	bz_assert(expr.is_literal());
-	auto const &literal = expr.get_literal();
-	auto const &literal_value = expr.get_literal_value();
+	bz_assert(expr.is_integer_literal());
+	auto const &literal = expr.get_integer_literal();
+	auto const &literal_value = expr.get_integer_literal_value();
 
 	if (!dest.is<ast::ts_base_type>())
 	{
@@ -132,9 +132,9 @@ bool is_implicitly_convertible(
 				.filter([](auto const &expr) { return expr.not_null(); })
 				.is_all([&](auto const &) { return is_implicitly_convertible(dest, expr, context); });
 	}
-	else if (expr.is_literal())
+	else if (expr.is_integer_literal())
 	{
-		return is_literal_implicitly_convertible(dest, expr);
+		return is_integer_literal_implicitly_convertible(dest, expr);
 	}
 
 	bz_assert(!dest.is<ast::ts_const>());

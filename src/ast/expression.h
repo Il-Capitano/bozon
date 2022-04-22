@@ -15,7 +15,7 @@ namespace ast
 struct expression;
 
 struct expr_identifier;
-struct expr_literal;
+struct expr_integer_literal;
 struct expr_typed_literal;
 struct expr_tuple;
 struct expr_unary_op;
@@ -49,7 +49,7 @@ struct expr_unresolved_generic_type_instantiation;
 
 using expr_t = node<
 	expr_identifier,
-	expr_literal,
+	expr_integer_literal,
 	expr_typed_literal,
 	expr_tuple,
 	expr_unary_op,
@@ -97,7 +97,7 @@ enum class expression_type_kind
 	lvalue_reference,
 	rvalue,
 	moved_lvalue,
-	literal,
+	integer_literal,
 	function_name,
 	type_name,
 	tuple,
@@ -118,13 +118,13 @@ constexpr bool is_rvalue(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
 		|| kind == expression_type_kind::moved_lvalue
-		|| kind == expression_type_kind::literal;
+		|| kind == expression_type_kind::integer_literal;
 }
 
-constexpr bool is_rvalue_or_literal(expression_type_kind kind)
+constexpr bool is_rvalue_or_integer_literal(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
-		|| kind == expression_type_kind::literal;
+		|| kind == expression_type_kind::integer_literal;
 }
 
 struct unresolved_expression
@@ -258,12 +258,12 @@ struct expression : bz::variant<
 	expr_switch &get_switch_expr(void) noexcept;
 	expr_switch const &get_switch_expr(void) const noexcept;
 
-	bool is_literal(void) const noexcept;
-	expr_literal &get_literal(void) noexcept;
-	expr_literal const &get_literal(void) const noexcept;
+	bool is_integer_literal(void) const noexcept;
+	expr_integer_literal &get_integer_literal(void) noexcept;
+	expr_integer_literal const &get_integer_literal(void) const noexcept;
 
-	constant_value &get_literal_value(void) noexcept;
-	constant_value const &get_literal_value(void) const noexcept;
+	constant_value &get_integer_literal_value(void) noexcept;
+	constant_value const &get_integer_literal_value(void) const noexcept;
 
 	bool is_generic_type(void) const noexcept;
 	type_info *get_generic_type(void) const noexcept;
@@ -320,13 +320,13 @@ enum class literal_kind
 	integer,
 };
 
-struct expr_literal
+struct expr_integer_literal
 {
 	literal_kind kind;
 
-	declare_default_5(expr_literal)
+	declare_default_5(expr_integer_literal)
 
-	expr_literal(literal_kind _kind)
+	expr_integer_literal(literal_kind _kind)
 		: kind(_kind)
 	{}
 };
@@ -808,7 +808,7 @@ ret_type make_ ## node_type (Args &&...args)                                   \
 { return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
 def_make_fn(expr_t, expr_identifier)
-def_make_fn(expr_t, expr_literal)
+def_make_fn(expr_t, expr_integer_literal)
 def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)

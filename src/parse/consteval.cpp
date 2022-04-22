@@ -2855,7 +2855,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
+		[](ast::expr_integer_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
@@ -3183,10 +3183,9 @@ static ast::constant_value try_evaluate_expr(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			return {};
+		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
@@ -3516,10 +3515,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			return {};
+		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
@@ -4088,12 +4086,9 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				));
 			}
 		},
-		[&expr, &notes](ast::expr_literal const &) {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "'unreachable' is not a constant expression"
-			));
+		[](ast::expr_integer_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[](ast::expr_typed_literal const &) {
 			// these are always constant expressions

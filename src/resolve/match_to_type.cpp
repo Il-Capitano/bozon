@@ -710,7 +710,7 @@ match_level_t get_type_match_level(
 		return single_match_t{
 			0,
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
-			expr.is_literal() ? type_match_kind::implicit_literal_conversion : type_match_kind::implicit_conversion
+			expr.is_integer_literal() ? type_match_kind::implicit_literal_conversion : type_match_kind::implicit_conversion
 		};
 	}
 	else

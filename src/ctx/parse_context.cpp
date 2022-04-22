@@ -2678,24 +2678,24 @@ static ast::expression get_literal_expr(
 		{
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::literal,
+				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, default_type_info),
 				ast::is_signed_integer_kind(default_type_info->kind)
 					? ast::constant_value(static_cast<int64_t>(value))
 					: ast::constant_value(value),
-				ast::make_expr_literal(kind)
+				ast::make_expr_integer_literal(kind)
 			);
 		}
 		else if (value <= wide_default_max_value)
 		{
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::literal,
+				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, wide_default_type_info),
 				ast::is_signed_integer_kind(wide_default_type_info->kind)
 					? ast::constant_value(static_cast<int64_t>(value))
 					: ast::constant_value(value),
-				ast::make_expr_literal(kind)
+				ast::make_expr_integer_literal(kind)
 			);
 		}
 		else
@@ -2703,10 +2703,10 @@ static ast::expression get_literal_expr(
 			auto const info = context.get_builtin_type_info(ast::type_info::uint64_);
 			return ast::make_constant_expression(
 				src_tokens,
-				ast::expression_type_kind::literal,
+				ast::expression_type_kind::integer_literal,
 				ast::make_base_type_typespec(src_tokens, info),
 				ast::constant_value(value),
-				ast::make_expr_literal(kind)
+				ast::make_expr_integer_literal(kind)
 			);
 		}
 	}
