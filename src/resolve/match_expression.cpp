@@ -317,7 +317,7 @@ static bool match_typename_to_type_impl(
 	}
 	else if (dest.is<ast::ts_move_reference>())
 	{
-		if (expr_type_kind != ast::expression_type_kind::rvalue && expr_type_kind != ast::expression_type_kind::moved_lvalue)
+		if (!ast::is_rvalue(expr_type_kind))
 		{
 			return type_match_result::error;
 		}

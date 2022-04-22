@@ -93,6 +93,7 @@ enum class expression_type_kind
 	lvalue_reference,
 	rvalue,
 	moved_lvalue,
+	literal,
 	function_name,
 	type_name,
 	tuple,
@@ -112,7 +113,14 @@ constexpr bool is_lvalue(expression_type_kind kind)
 constexpr bool is_rvalue(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
-		|| kind == expression_type_kind::moved_lvalue;
+		|| kind == expression_type_kind::moved_lvalue
+		|| kind == expression_type_kind::literal;
+}
+
+constexpr bool is_rvalue_or_literal(expression_type_kind kind)
+{
+	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::literal;
 }
 
 struct unresolved_expression
