@@ -3035,7 +3035,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::char_) } }),
+			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::char_)),
 			ast::constant_value(value),
 			ast::make_expr_typed_literal(literal)
 		);
@@ -3044,7 +3044,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::bool_)),
 			ast::constant_value(true),
 			ast::make_expr_typed_literal(literal)
 		);
@@ -3052,7 +3052,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::bool_) } }),
+			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::bool_)),
 			ast::constant_value(false),
 			ast::make_expr_typed_literal(literal)
 		);
@@ -3060,7 +3060,7 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 		return ast::make_constant_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
-			ast::typespec(src_tokens, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::null_t_) } }),
+			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::null_t_)),
 			ast::constant_value(ast::internal::null_t{}),
 			ast::make_expr_typed_literal(literal)
 		);
@@ -3115,10 +3115,10 @@ ast::expression parse_context::make_string_literal(lex::token_pos const begin, l
 
 	return ast::make_constant_expression(
 		{ begin, begin, end },
-		ast::expression_type_kind::literal,
-		ast::typespec({begin, begin, end}, { ast::ts_base_type{ this->get_builtin_type_info(ast::type_info::str_) } }),
+		ast::expression_type_kind::rvalue,
+		ast::make_base_type_typespec({ begin, begin, end }, this->get_builtin_type_info(ast::type_info::str_)),
 		ast::constant_value(result),
-		ast::make_expr_literal(lex::token_range{ begin, end })
+		ast::make_expr_typed_literal(lex::token_range{ begin, end })
 	);
 }
 
