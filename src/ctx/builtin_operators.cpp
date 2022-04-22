@@ -1425,4 +1425,153 @@ ast::expression make_builtin_type_operation(
 	}(bz::meta::make_index_sequence<type_op_binary_operators.size()>{});
 }
 
+
+static ast::typespec get_literal_integer_type(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	uint64_t value,
+	parse_context &context
+)
+{
+	auto const [default_type_info, wide_default_type_info] = [&]() -> std::pair<ast::type_info *, ast::type_info *> {
+		if (kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer)
+		{
+			return {
+				context.get_builtin_type_info(ast::type_info::int32_),
+				context.get_builtin_type_info(ast::type_info::int64_)
+			};
+		}
+		else
+		{
+			return {
+				context.get_builtin_type_info(ast::type_info::uint32_),
+				context.get_builtin_type_info(ast::type_info::uint64_)
+			};
+		}
+	}();
+	auto const [default_max_value, wide_default_max_value] = [&]() -> std::pair<uint64_t, uint64_t> {
+		if (kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer)
+		{
+			return {
+				static_cast<uint64_t>(std::numeric_limits<int32_t>::max()),
+				static_cast<uint64_t>(std::numeric_limits<int64_t>::max()),
+			};
+		}
+		else
+		{
+			return {
+				static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()),
+				static_cast<uint64_t>(std::numeric_limits<uint64_t>::max()),
+			};
+		}
+	}();
+
+	if (value <= default_max_value)
+	{
+		return ast::make_base_type_typespec(src_tokens, default_type_info);
+	}
+	else if (value <= wide_default_max_value)
+	{
+		return ast::make_base_type_typespec(src_tokens, wide_default_type_info);
+	}
+	else
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_));
+	}
+}
+
+static ast::typespec get_literal_integer_type(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	int64_t value,
+	parse_context &context
+)
+{
+	bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
+	auto const int32_max_value = static_cast<int64_t>(std::numeric_limits<int32_t>::max());
+	auto const int32_min_value = static_cast<int64_t>(std::numeric_limits<int32_t>::min());
+
+	if (value <= int32_max_value && value >= int32_min_value)
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int32_));
+	}
+	else
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int64_));
+	}
+}
+
+ast::expression make_unary_literal_operation(
+	uint32_t op_kind,
+	ast::expression const &expr,
+	parse_context &context
+)
+{
+	auto const [kind, value] = expr.get_integer_literal_kind_and_value();
+	switch (op_kind)
+	{
+	case lex::token::plus:
+		// we don't really do anything with the value here
+		return ast::make_constant_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::integer_literal,
+			value.is<ast::constant_value::sint>()
+				? get_literal_integer_type(expr.src_tokens, kind, value.get<ast::constant_value::sint>(), context)
+				: get_literal_integer_type(expr.src_tokens, kind, value.get<ast::constant_value::uint>(), context),
+			value,
+			ast::make_expr_integer_literal(kind)
+		);
+	case lex::token::minus:
+	{
+		bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
+		bz_assert(value.is<ast::constant_value::sint>()); // uint can't match to 'operator -'
+		auto const int_value = value.get<ast::constant_value::sint>();
+		if (int_value == std::numeric_limits<int64_t>::min())
+		{
+			return ast::make_constant_expression(
+				expr.src_tokens,
+				ast::expression_type_kind::integer_literal,
+				ast::make_base_type_typespec(expr.src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
+				ast::constant_value(static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else
+		{
+			return ast::make_constant_expression(
+				expr.src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(expr.src_tokens, kind, -int_value, context),
+				ast::constant_value(-int_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+	// case lex::token::bit_not:
+	default:
+		return ast::expression();
+	}
+}
+
+ast::expression make_binary_literal_operation(
+	uint32_t op_kind,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	parse_context &context
+)
+{
+	auto const [lhs_kind, lhs_value] = lhs.get_integer_literal_kind_and_value();
+	auto const [rhs_kind, rhs_value] = rhs.get_integer_literal_kind_and_value();
+	switch (op_kind)
+	{
+	case lex::token::plus:
+	case lex::token::minus:
+	case lex::token::multiply:
+	case lex::token::divide:
+	case lex::token::modulo:
+	default:
+		return ast::expression();
+	}
+}
+
 } // namespace ctx

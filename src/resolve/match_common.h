@@ -22,6 +22,9 @@ bool is_implicitly_convertible(
 	ctx::parse_context &context
 );
 
+bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind, uint64_t value);
+bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind, int64_t value);
+
 } // namespace resolve
 
 #endif // RESOLVE_MATCH_COMMON_H

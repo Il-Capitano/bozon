@@ -107,6 +107,13 @@ enum class expression_type_kind
 	noreturn,
 };
 
+enum class literal_kind
+{
+	signed_integer,
+	unsigned_integer,
+	integer,
+};
+
 
 constexpr bool is_lvalue(expression_type_kind kind)
 {
@@ -265,6 +272,8 @@ struct expression : bz::variant<
 	constant_value &get_integer_literal_value(void) noexcept;
 	constant_value const &get_integer_literal_value(void) const noexcept;
 
+	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
+
 	bool is_generic_type(void) const noexcept;
 	type_info *get_generic_type(void) const noexcept;
 
@@ -311,13 +320,6 @@ struct expr_identifier
 	expr_identifier(identifier _id)
 		: id(std::move(_id)), decl(nullptr)
 	{}
-};
-
-enum class literal_kind
-{
-	signed_integer,
-	unsigned_integer,
-	integer,
 };
 
 struct expr_integer_literal

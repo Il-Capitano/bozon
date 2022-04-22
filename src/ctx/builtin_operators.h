@@ -51,6 +51,19 @@ ast::expression make_builtin_subscript_operator(
 	parse_context &context
 );
 
+ast::expression make_unary_literal_operation(
+	uint32_t op_kind,
+	ast::expression const &expr,
+	parse_context &context
+);
+
+ast::expression make_binary_literal_operation(
+	uint32_t op_kind,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	parse_context &context
+);
+
 } // namespace ctx
 
 #endif // CTX_BUILT_IN_OPERATORS_H

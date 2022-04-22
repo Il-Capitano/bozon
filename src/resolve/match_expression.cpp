@@ -558,10 +558,6 @@ static void match_literal_to_type(
 )
 {
 	bz_assert(expr.is_integer_literal());
-	auto const &literal = expr.get_integer_literal();
-
-	auto const &literal_value = expr.get_integer_literal_value();
-	bz_assert((literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>()));
 
 	if (!dest.is<ast::ts_base_type>())
 	{
@@ -578,36 +574,13 @@ static void match_literal_to_type(
 		return;
 	}
 
-	bz_assert(literal_value.is<ast::constant_value::uint>() || literal_value.get<ast::constant_value::sint>() >= 0);
-	auto const literal_int_value = literal_value.is<ast::constant_value::sint>()
-		? static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>())
-		: literal_value.get<ast::constant_value::uint>();
+	auto const [kind, value] = expr.get_integer_literal_kind_and_value();
+	bz_assert((value.is_any<ast::constant_value::sint, ast::constant_value::uint>()));
+	auto const is_convertible = value.is<ast::constant_value::sint>()
+		? is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::sint>())
+		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
 
-	auto const dest_max_value = [&]() -> uint64_t {
-		switch (dest_kind)
-		{
-		case ast::type_info::int8_:
-			return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
-		case ast::type_info::int16_:
-			return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
-		case ast::type_info::int32_:
-			return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
-		case ast::type_info::int64_:
-			return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
-		case ast::type_info::uint8_:
-			return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
-		case ast::type_info::uint16_:
-			return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
-		case ast::type_info::uint32_:
-			return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
-		case ast::type_info::uint64_:
-			return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
-		default:
-			bz_unreachable;
-		}
-	}();
-
-	if (literal.kind == ast::literal_kind::signed_integer)
+	if (kind == ast::literal_kind::signed_integer)
 	{
 		if (!ast::is_signed_integer_kind(dest_kind))
 		{
@@ -620,7 +593,7 @@ static void match_literal_to_type(
 			return;
 		}
 	}
-	else if (literal.kind == ast::literal_kind::unsigned_integer)
+	else if (kind == ast::literal_kind::unsigned_integer)
 	{
 		if (!ast::is_unsigned_integer_kind(dest_kind))
 		{
@@ -634,29 +607,44 @@ static void match_literal_to_type(
 		}
 	}
 
-	if (literal_int_value > dest_max_value)
+	if (!is_convertible)
 	{
+		bz::vector<ctx::source_highlight> notes = {};
+		if (value.is<ast::constant_value::sint>())
+		{
+			notes.push_back(context.make_note(
+				expr,
+				bz::format(
+					"value of {} is outside the range for type '{}'",
+					value.get<ast::constant_value::sint>(), dest_container
+				)
+			));
+		}
+		else
+		{
+			notes.push_back(context.make_note(
+				expr,
+				bz::format(
+					"value of {} is outside the range for type '{}'",
+					value.get<ast::constant_value::uint>(), dest_container
+				)
+			));
+		}
 		context.report_error(
 			expr,
 			bz::format(
 				"cannot implicitly convert expression from type '{}' to '{}'",
 				expr.get_expr_type_and_kind().first, dest_container
 			),
-			{ context.make_note(
-				expr,
-				bz::format(
-					"value of {} is too big for type '{}'; maximum value is {}",
-					literal_int_value, dest_container, dest_max_value
-				)
-			) }
+			std::move(notes)
 		);
 		bz_assert(ast::is_complete(dest_container));
 		expr.to_error();
 		return;
 	}
 	else if (
-		((literal.kind == ast::literal_kind::integer || literal.kind == ast::literal_kind::signed_integer) && dest_kind == ast::type_info::int32_)
-		|| (literal.kind == ast::literal_kind::unsigned_integer && dest_kind == ast::type_info::uint32_)
+		((kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer) && dest_kind == ast::type_info::int32_)
+		|| (kind == ast::literal_kind::unsigned_integer && dest_kind == ast::type_info::uint32_)
 	)
 	{
 		// default literal type doesn't need cast

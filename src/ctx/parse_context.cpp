@@ -3619,15 +3619,18 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
 		}
-		/*
-		else if (best_body->is_builtin_operator() && expr.is_constant_or_dynamic() && expr.get_expr().is<ast::expr_literal>())
-		{
-			// something
-			bz_unreachable;
-		}
-		*/
 		else
 		{
+			if (best_body->is_builtin_operator() && expr.is<ast::constant_expression>() && expr.is_integer_literal())
+			{
+				auto result = make_unary_literal_operation(best_body->function_name_or_operator_kind.get<uint32_t>(), expr, *this);
+
+				if (result.not_null())
+				{
+					return result;
+				}
+			}
+
 			ast::arena_vector<ast::expression> params;
 			params.emplace_back(std::move(expr));
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
@@ -3817,6 +3820,24 @@ ast::expression parse_context::make_binary_operator_expression(
 		}
 		else
 		{
+			if (
+				best_body->is_builtin_operator()
+				&& args[0].is<ast::constant_expression>() && args[1].is<ast::constant_expression>()
+				&& args[0].is_integer_literal() && args[1].is_integer_literal()
+			)
+			{
+				auto result = make_binary_literal_operation(
+					best_body->function_name_or_operator_kind.get<uint32_t>(),
+					args[0], args[1],
+					*this
+				);
+
+				if (result.not_null())
+				{
+					return result;
+				}
+			}
+
 			auto const resolve_order = get_binary_precedence(op_kind).is_left_associative
 				? ast::resolve_order::regular
 				: ast::resolve_order::reversed;

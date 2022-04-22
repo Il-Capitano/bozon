@@ -230,6 +230,17 @@ constant_value const &expression::get_integer_literal_value(void) const noexcept
 	return literal_expr.get<constant_expression>().value;
 }
 
+std::pair<literal_kind, constant_value const &> expression::get_integer_literal_kind_and_value(void) const noexcept
+{
+	bz_assert(this->is_integer_literal());
+	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
+	bz_assert(literal_expr.is<constant_expression>());
+	return {
+		literal_expr.get<constant_expression>().expr.get<expr_integer_literal>().kind,
+		literal_expr.get<constant_expression>().value
+	};
+}
+
 bool expression::is_generic_type(void) const noexcept
 {
 	if (!this->is_typename())
