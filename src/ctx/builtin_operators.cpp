@@ -1665,6 +1665,156 @@ static ast::expression make_binary_plus_literal_operation(
 	}
 }
 
+static ast::expression make_binary_minus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (
+		lhs_kind == ast::literal_kind::unsigned_integer
+		|| rhs_kind == ast::literal_kind::unsigned_integer
+		|| lhs_value.is<ast::constant_value::uint>()
+		|| rhs_value.is<ast::constant_value::uint>()
+	)
+	{
+		bz_assert(
+			lhs_kind == ast::literal_kind::integer
+			|| rhs_kind == ast::literal_kind::integer
+			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
+		);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		if (is_unsigned && lhs < rhs)
+		{
+			// unsigned underflow
+			return ast::expression();
+		}
+		else if (lhs < rhs && rhs - lhs > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1)
+		{
+			// signed underflow
+			return ast::expression();
+		}
+		else if (lhs < rhs)
+		{
+			auto const result_value = -static_cast<int64_t>(rhs - lhs - 1) - 1; // avoid overflow if rhs - lhs == int64_max + 1
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else
+		{
+			auto const result_value = lhs - rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+		constexpr auto int64_max = std::numeric_limits<int64_t>::max();
+		constexpr auto int64_min = std::numeric_limits<int64_t>::min();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		if (lhs >= 0 && rhs < 0 && lhs > int64_max + rhs)
+		{
+			if (is_signed)
+			{
+				// signed integer overflow
+				return ast::expression();
+			}
+
+			auto const lhs_uint = static_cast<uint64_t>(lhs);
+			auto const rhs_uint = static_cast<uint64_t>(-(rhs + 1)) + 1; // avoid overflow with -int64_min
+			bz_assert(lhs_uint <= std::numeric_limits<uint64_t>::max() - rhs_uint);
+
+			auto const result_value = lhs_uint + rhs_uint;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (lhs < 0 && rhs > 0 && lhs < int64_min + rhs)
+		{
+			// underflow
+			return ast::expression();
+		}
+		else
+		{
+			auto const result_value = lhs - rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+}
+
+static ast::expression make_binary_multiply_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	return ast::expression();
+}
+
+static ast::expression make_binary_divide_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	return ast::expression();
+}
+
+static ast::expression make_binary_modulo_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	return ast::expression();
+}
+
 ast::expression make_binary_literal_operation(
 	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
@@ -1680,9 +1830,13 @@ ast::expression make_binary_literal_operation(
 	case lex::token::plus:
 		return make_binary_plus_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	case lex::token::minus:
+		return make_binary_minus_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	case lex::token::multiply:
+		return make_binary_multiply_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	case lex::token::divide:
+		return make_binary_divide_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	case lex::token::modulo:
+		return make_binary_modulo_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	default:
 		return ast::expression();
 	}
