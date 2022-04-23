@@ -52,12 +52,14 @@ ast::expression make_builtin_subscript_operator(
 );
 
 ast::expression make_unary_literal_operation(
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression const &expr,
 	parse_context &context
 );
 
 ast::expression make_binary_literal_operation(
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression const &lhs,
 	ast::expression const &rhs,

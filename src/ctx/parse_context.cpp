@@ -3623,7 +3623,12 @@ ast::expression parse_context::make_unary_operator_expression(
 		{
 			if (best_body->is_builtin_operator() && expr.is<ast::constant_expression>() && expr.is_integer_literal())
 			{
-				auto result = make_unary_literal_operation(best_body->function_name_or_operator_kind.get<uint32_t>(), expr, *this);
+				auto result = make_unary_literal_operation(
+					src_tokens,
+					best_body->function_name_or_operator_kind.get<uint32_t>(),
+					expr,
+					*this
+				);
 
 				if (result.not_null())
 				{
@@ -3827,6 +3832,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			)
 			{
 				auto result = make_binary_literal_operation(
+					src_tokens,
 					best_body->function_name_or_operator_kind.get<uint32_t>(),
 					args[0], args[1],
 					*this

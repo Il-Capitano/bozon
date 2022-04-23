@@ -1501,7 +1501,59 @@ static ast::typespec get_literal_integer_type(
 	}
 }
 
+static ast::expression make_unary_plus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	ast::constant_value const &value,
+	parse_context &context
+)
+{
+	// we don't really do anything with the value here
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::integer_literal,
+		value.is<ast::constant_value::sint>()
+			? get_literal_integer_type(src_tokens, kind, value.get<ast::constant_value::sint>(), context)
+			: get_literal_integer_type(src_tokens, kind, value.get<ast::constant_value::uint>(), context),
+		value,
+		ast::make_expr_integer_literal(kind)
+	);
+}
+
+static ast::expression make_unary_minus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	ast::constant_value const &value,
+	parse_context &context
+)
+{
+	bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
+	bz_assert(value.is<ast::constant_value::sint>()); // uint can't match to 'operator -'
+	auto const int_value = value.get<ast::constant_value::sint>();
+	if (int_value == std::numeric_limits<int64_t>::min())
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::integer_literal,
+			ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::constant_value(static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1),
+			ast::make_expr_integer_literal(kind)
+		);
+	}
+	else
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::integer_literal,
+			get_literal_integer_type(src_tokens, kind, -int_value, context),
+			ast::constant_value(-int_value),
+			ast::make_expr_integer_literal(kind)
+		);
+	}
+}
+
 ast::expression make_unary_literal_operation(
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression const &expr,
 	parse_context &context
@@ -1511,49 +1563,110 @@ ast::expression make_unary_literal_operation(
 	switch (op_kind)
 	{
 	case lex::token::plus:
-		// we don't really do anything with the value here
-		return ast::make_constant_expression(
-			expr.src_tokens,
-			ast::expression_type_kind::integer_literal,
-			value.is<ast::constant_value::sint>()
-				? get_literal_integer_type(expr.src_tokens, kind, value.get<ast::constant_value::sint>(), context)
-				: get_literal_integer_type(expr.src_tokens, kind, value.get<ast::constant_value::uint>(), context),
-			value,
-			ast::make_expr_integer_literal(kind)
-		);
+		return make_unary_plus_literal_operation(src_tokens, kind, value, context);
 	case lex::token::minus:
-	{
-		bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
-		bz_assert(value.is<ast::constant_value::sint>()); // uint can't match to 'operator -'
-		auto const int_value = value.get<ast::constant_value::sint>();
-		if (int_value == std::numeric_limits<int64_t>::min())
-		{
-			return ast::make_constant_expression(
-				expr.src_tokens,
-				ast::expression_type_kind::integer_literal,
-				ast::make_base_type_typespec(expr.src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
-				ast::constant_value(static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1),
-				ast::make_expr_integer_literal(kind)
-			);
-		}
-		else
-		{
-			return ast::make_constant_expression(
-				expr.src_tokens,
-				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(expr.src_tokens, kind, -int_value, context),
-				ast::constant_value(-int_value),
-				ast::make_expr_integer_literal(kind)
-			);
-		}
-	}
+		return make_unary_minus_literal_operation(src_tokens, kind, value, context);
 	// case lex::token::bit_not:
 	default:
 		return ast::expression();
 	}
 }
 
+static ast::expression make_binary_plus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (
+		lhs_kind == ast::literal_kind::unsigned_integer
+		|| rhs_kind == ast::literal_kind::unsigned_integer
+		|| lhs_value.is<ast::constant_value::uint>()
+		|| rhs_value.is<ast::constant_value::uint>()
+	)
+	{
+		bz_assert(
+			lhs_kind == ast::literal_kind::integer
+			|| rhs_kind == ast::literal_kind::integer
+			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
+		);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		if (lhs > std::numeric_limits<uint64_t>::max() - rhs)
+		{
+			// we don't handle overflow here, should be handled by 'consteval_guaranteed'
+			return ast::expression();
+		}
+		else
+		{
+			auto const result_value = lhs + rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, ast::literal_kind::unsigned_integer, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(ast::literal_kind::unsigned_integer)
+			);
+		}
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+		constexpr auto int64_max = std::numeric_limits<int64_t>::max();
+		constexpr auto int64_min = std::numeric_limits<int64_t>::min();
+		if (lhs > 0 && rhs > 0 && lhs > int64_max - rhs)
+		{
+			if (lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer)
+			{
+				// explicitly signed integer overflow isn't handled
+				return ast::expression();
+			}
+
+			auto const kind = ast::literal_kind::integer;
+			auto const result_value = static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs);
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (lhs < 0 && rhs < 0 && lhs < int64_min - rhs)
+		{
+			// underflow
+			return ast::expression();
+		}
+		else
+		{
+			auto const kind = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer
+				? ast::literal_kind::signed_integer
+				: ast::literal_kind::integer;
+			auto const result_value = lhs + rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+}
+
 ast::expression make_binary_literal_operation(
+	lex::src_tokens const &src_tokens,
 	uint32_t op_kind,
 	ast::expression const &lhs,
 	ast::expression const &rhs,
@@ -1565,6 +1678,7 @@ ast::expression make_binary_literal_operation(
 	switch (op_kind)
 	{
 	case lex::token::plus:
+		return make_binary_plus_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
 	case lex::token::minus:
 	case lex::token::multiply:
 	case lex::token::divide:
