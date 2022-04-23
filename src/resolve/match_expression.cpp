@@ -663,6 +663,8 @@ static void match_expression_to_type_impl(
 	ctx::parse_context &context
 )
 {
+	dest = ast::remove_const_or_consteval(dest);
+
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	// basically a slightly different implementation of get_type_match_level
 	if (expr.is_if_expr())
