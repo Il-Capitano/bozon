@@ -74,7 +74,7 @@ uint64_t safe_binary_plus(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, uint64_t>;
+	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, max_value] =
 		type_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max() } :
 		type_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max() } :
@@ -428,7 +428,9 @@ int64_t safe_binary_multiply(
 
 	if (
 		paren_level < 2
-		&& ((lhs < 0 && rhs < 0 && lhs < max_value / rhs)
+		&& ((lhs == min_value && rhs == -1)
+		|| (lhs == -1 && rhs == min_value)
+		|| (lhs < 0 && rhs < 0 && lhs < max_value / rhs)
 		|| (lhs > 0 && rhs > 0 && lhs > max_value / rhs)
 		|| (lhs < 0 && rhs > 0 && lhs < min_value / rhs)
 		|| (lhs > 0 && rhs < 0 && lhs > min_value / rhs))
@@ -449,7 +451,7 @@ uint64_t safe_binary_multiply(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, uint64_t>;
+	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, max_value] =
 		type_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max() } :
 		type_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max() } :
@@ -524,7 +526,7 @@ bz::optional<int64_t> safe_binary_divide(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t>;
+	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, min_value] =
 		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min() } :
 		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min() } :
@@ -776,7 +778,7 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, uint64_t>;
+	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, lhs_width] =
 		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
 		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
@@ -816,7 +818,7 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, uint64_t>;
+	using T = std::pair<bz::u8string_view, uint64_t>;
 	auto const [type_name, lhs_width] =
 		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
 		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
@@ -857,7 +859,7 @@ bz::optional<uint64_t> safe_binary_bit_left_shift(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t>;
+	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, lhs_width] =
 		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
 		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
@@ -909,7 +911,7 @@ bz::optional<uint64_t> safe_binary_bit_right_shift(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t>;
+	using T = std::pair<bz::u8string_view, int64_t>;
 	auto const [type_name, lhs_width] =
 		lhs_type_kind == ast::type_info::uint8_  ? T{ "uint8",  8  } :
 		lhs_type_kind == ast::type_info::uint16_ ? T{ "uint16", 16 } :
