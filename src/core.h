@@ -122,12 +122,4 @@ constexpr auto create_parse_fn() -> decltype(default_parser)
 	}(bz::meta::make_index_sequence<parsers.size()>{});
 }
 
-#define declare_default_5(type)            \
-type(void)                      = default; \
-type(type const &)              = default; \
-type(type &&)                   = default; \
-type &operator = (type const &) = default; \
-type &operator = (type &&)      = default; \
-~type(void) noexcept            = default;
-
 #endif // CORE_H

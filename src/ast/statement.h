@@ -21,8 +21,6 @@ struct attribute
 	lex::token_pos   name;
 	lex::token_range arg_tokens;
 	arena_vector<expression> args;
-
-	declare_default_5(attribute)
 };
 
 enum class resolve_state : int8_t
@@ -49,8 +47,6 @@ struct statement : statement_node_t
 	using base_t::get;
 	using base_t::kind;
 	using base_t::emplace;
-
-	declare_default_5(statement)
 };
 
 struct statement_view : statement_node_view_t
@@ -62,8 +58,6 @@ struct statement_view : statement_node_view_t
 	using base_t::kind;
 	using base_t::emplace;
 
-	declare_default_5(statement_view)
-
 	statement_view(statement &stmt)
 		: base_t(static_cast<statement_node_t &>(stmt))
 	{}
@@ -74,8 +68,6 @@ struct stmt_while
 {
 	expression condition;
 	expression while_block;
-
-	declare_default_5(stmt_while)
 
 	stmt_while(
 		expression _condition,
@@ -92,8 +84,6 @@ struct stmt_for
 	expression condition;
 	expression iteration;
 	expression for_block;
-
-	declare_default_5(stmt_for)
 
 	stmt_for(
 		statement  _init,
@@ -118,8 +108,6 @@ struct stmt_foreach
 	expression iteration;
 	expression for_block;
 
-	declare_default_5(stmt_foreach)
-
 	stmt_foreach(
 		statement  _range_var_decl,
 		statement  _iter_deref_var_decl,
@@ -136,8 +124,6 @@ struct stmt_return
 	lex::token_pos return_pos;
 	expression expr;
 
-	declare_default_5(stmt_return)
-
 	stmt_return(lex::token_pos _return_pos)
 		: return_pos(_return_pos), expr()
 	{}
@@ -149,14 +135,11 @@ struct stmt_return
 
 struct stmt_no_op
 {
-	declare_default_5(stmt_no_op)
 };
 
 struct stmt_expression
 {
 	expression expr;
-
-	declare_default_5(stmt_expression)
 
 	stmt_expression(expression _expr)
 		: expr(std::move(_expr))
@@ -170,8 +153,6 @@ struct stmt_static_assert
 	expression condition;
 	expression message;
 	enclosing_scope_t enclosing_scope;
-
-	declare_default_5(stmt_static_assert)
 
 	stmt_static_assert(lex::token_pos _static_assert_pos, lex::token_range _arg_tokens, enclosing_scope_t _enclosing_scope)
 		: static_assert_pos(_static_assert_pos),
@@ -648,7 +629,6 @@ struct function_body
 	arena_vector<generic_required_from_t>       generic_required_from;
 	function_body *generic_parent = nullptr;
 
-//	declare_default_5(function_body)
 	function_body(void)             = default;
 	function_body(function_body &&) = default;
 
@@ -799,7 +779,7 @@ struct decl_function
 	function_body           body;
 	arena_vector<attribute> attributes;
 
-	declare_default_5(decl_function)
+	decl_function(void) = default;
 
 	decl_function(
 		identifier    _id,
@@ -817,7 +797,7 @@ struct decl_operator
 	function_body                 body;
 	arena_vector<attribute>       attributes;
 
-	declare_default_5(decl_operator)
+	decl_operator(void) = default;
 
 	decl_operator(
 		bz::vector<bz::u8string_view> _scope,
@@ -839,8 +819,6 @@ struct decl_function_alias
 	enclosing_scope_t             enclosing_scope;
 	bool                          is_export = false;
 	resolve_state                 state = resolve_state::none;
-
-	declare_default_5(decl_function_alias)
 
 	decl_function_alias(
 		lex::src_tokens const &_src_tokens,
@@ -1287,7 +1265,6 @@ struct decl_struct
 	identifier id;
 	type_info  info;
 
-//	declare_default_5(decl_struct)
 	decl_struct(decl_struct const &) = delete;
 	decl_struct(decl_struct &&)      = default;
 
@@ -1333,8 +1310,6 @@ struct decl_import
 	decl_import(identifier _id)
 		: id(std::move(_id))
 	{}
-
-	declare_default_5(decl_import)
 };
 
 

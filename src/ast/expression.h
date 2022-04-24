@@ -118,12 +118,6 @@ constexpr bool is_rvalue(expression_type_kind kind)
 struct unresolved_expression
 {
 	unresolved_expr_t expr;
-
-	unresolved_expression(void) = delete;
-	unresolved_expression(unresolved_expression const &) = default;
-	unresolved_expression(unresolved_expression &&)      = default;
-	unresolved_expression &operator = (unresolved_expression const &) = default;
-	unresolved_expression &operator = (unresolved_expression &&)      = default;
 };
 
 struct constant_expression
@@ -132,12 +126,6 @@ struct constant_expression
 	typespec             type;
 	constant_value       value;
 	expr_t               expr;
-
-	constant_expression(void) = delete;
-	constant_expression(constant_expression const &) = default;
-	constant_expression(constant_expression &&)      = default;
-	constant_expression &operator = (constant_expression const &) = default;
-	constant_expression &operator = (constant_expression &&)      = default;
 };
 
 struct dynamic_expression
@@ -145,23 +133,11 @@ struct dynamic_expression
 	expression_type_kind kind;
 	typespec             type;
 	expr_t               expr;
-
-	dynamic_expression(void) = delete;
-	dynamic_expression(dynamic_expression const &) = default;
-	dynamic_expression(dynamic_expression &&)      = default;
-	dynamic_expression &operator = (dynamic_expression const &) = default;
-	dynamic_expression &operator = (dynamic_expression &&)      = default;
 };
 
 struct expanded_variadic_expression
 {
 	arena_vector<expression> exprs;
-
-	expanded_variadic_expression(void) = delete;
-	expanded_variadic_expression(expanded_variadic_expression const &) = default;
-	expanded_variadic_expression(expanded_variadic_expression &&)      = default;
-	expanded_variadic_expression &operator = (expanded_variadic_expression const &) = default;
-	expanded_variadic_expression &operator = (expanded_variadic_expression &&)      = default;
 };
 
 struct error_expression
@@ -206,15 +182,14 @@ struct expression : bz::variant<
 	int consteval_state = consteval_never_tried;
 	int paren_level = 0;
 
-	declare_default_5(expression)
-
+	expression(void) = default;
 	expression(lex::src_tokens const &_src_tokens) = delete;
 
 	template<typename ...Ts>
 	expression(lex::src_tokens const &_src_tokens, Ts &&...ts)
 		: base_t(std::forward<Ts>(ts)...),
 		  src_tokens(_src_tokens),
-		  consteval_state(this->is<ast::constant_expression>() ? consteval_succeeded : consteval_never_tried),
+		  consteval_state(this->is<constant_expression>() ? consteval_succeeded : consteval_never_tried),
 		  paren_level(0)
 	{}
 
@@ -256,7 +231,7 @@ struct expression : bz::variant<
 	bool is_generic_type(void) const noexcept;
 	type_info *get_generic_type(void) const noexcept;
 
-	void set_type(ast::typespec new_type);
+	void set_type(typespec new_type);
 	void set_type_kind(expression_type_kind new_kind);
 
 	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept;
@@ -290,8 +265,6 @@ struct expr_identifier
 	identifier id;
 	decl_variable const *decl;
 
-	declare_default_5(expr_identifier)
-
 	expr_identifier(identifier _id, decl_variable const *var_decl)
 		: id(std::move(_id)), decl(var_decl)
 	{}
@@ -304,8 +277,6 @@ struct expr_identifier
 struct expr_literal
 {
 	lex::token_range tokens;
-
-	declare_default_5(expr_literal)
 
 	expr_literal(lex::token_range _tokens)
 		: tokens(_tokens)
@@ -320,8 +291,6 @@ struct expr_tuple
 {
 	arena_vector<expression> elems;
 
-	declare_default_5(expr_tuple)
-
 	expr_tuple(arena_vector<expression> _elems)
 		: elems(std::move(_elems))
 	{}
@@ -331,8 +300,6 @@ struct expr_unary_op
 {
 	uint32_t   op;
 	expression expr;
-
-	declare_default_5(expr_unary_op)
 
 	expr_unary_op(
 		uint32_t   _op,
@@ -349,8 +316,6 @@ struct expr_binary_op
 	expression lhs;
 	expression rhs;
 
-	declare_default_5(expr_binary_op)
-
 	expr_binary_op(
 		uint32_t   _op,
 		expression _lhs,
@@ -366,8 +331,6 @@ struct expr_subscript
 {
 	expression base;
 	expression index;
-
-	declare_default_5(expr_subscript)
 
 	expr_subscript(
 		expression _base,
@@ -390,8 +353,6 @@ struct expr_function_call
 	function_body           *func_body;
 	resolve_order            param_resolve_order;
 
-	declare_default_5(expr_function_call)
-
 	expr_function_call(
 		lex::src_tokens   const &_src_tokens,
 		arena_vector<expression> _params,
@@ -410,8 +371,6 @@ struct expr_cast
 	expression expr;
 	typespec   type;
 
-	declare_default_5(expr_cast)
-
 	expr_cast(
 		expression _expr,
 		typespec   _type
@@ -425,8 +384,6 @@ struct expr_take_reference
 {
 	expression expr;
 
-	declare_default_5(expr_take_reference)
-
 	expr_take_reference(expression _expr)
 		: expr(std::move(_expr))
 	{}
@@ -436,8 +393,6 @@ struct expr_struct_init
 {
 	arena_vector<expression> exprs;
 	typespec                 type;
-
-	declare_default_5(expr_struct_init)
 
 	expr_struct_init(
 		arena_vector<expression> _exprs,
@@ -453,8 +408,6 @@ struct expr_array_default_construct
 	expression elem_ctor_call;
 	typespec   type;
 
-	declare_default_5(expr_array_default_construct)
-
 	expr_array_default_construct(
 		expression _elem_ctor_call,
 		typespec   _type
@@ -468,8 +421,6 @@ struct expr_builtin_default_construct
 {
 	typespec type;
 
-	declare_default_5(expr_builtin_default_construct)
-
 	expr_builtin_default_construct(typespec _type)
 		: type(std::move(_type))
 	{}
@@ -479,8 +430,6 @@ struct expr_member_access
 {
 	expression base;
 	uint32_t   index;
-
-	declare_default_5(expr_member_access)
 
 	expr_member_access(
 		expression _base,
@@ -493,16 +442,14 @@ struct expr_member_access
 
 struct expr_type_member_access
 {
-	expression                base;
-	lex::token_pos            member;
-	ast::decl_variable const *var_decl;
-
-	declare_default_5(expr_type_member_access)
+	expression           base;
+	lex::token_pos       member;
+	decl_variable const *var_decl;
 
 	expr_type_member_access(
-		expression                _base,
-		lex::token_pos            _member,
-		ast::decl_variable const *_var_decl
+		expression           _base,
+		lex::token_pos       _member,
+		decl_variable const *_var_decl
 	)
 		: base(std::move(_base)),
 		  member(_member),
@@ -517,8 +464,6 @@ struct expr_compound
 	arena_vector<statement> statements;
 	expression              final_expr;
 	scope_t                 scope;
-
-	declare_default_5(expr_compound)
 
 	expr_compound(
 		arena_vector<statement> _statements,
@@ -537,8 +482,6 @@ struct expr_if
 	expression condition;
 	expression then_block;
 	expression else_block;
-
-	declare_default_5(expr_if)
 
 	expr_if(
 		expression _condition,
@@ -565,8 +508,6 @@ struct expr_if_consteval
 	expression condition;
 	expression then_block;
 	expression else_block;
-
-	declare_default_5(expr_if_consteval)
 
 	expr_if_consteval(
 		expression _condition,
@@ -599,8 +540,6 @@ struct expr_switch
 	expression                matched_expr;
 	expression                default_case;
 	arena_vector<switch_case> cases;
-
-	declare_default_5(expr_switch)
 
 	expr_switch(
 		expression                _matched_expr,
@@ -636,8 +575,6 @@ struct expr_unresolved_subscript
 	expression               base;
 	arena_vector<expression> indices;
 
-	declare_default_5(expr_unresolved_subscript)
-
 	expr_unresolved_subscript(
 		expression               _base,
 		arena_vector<expression> _indices
@@ -651,8 +588,6 @@ struct expr_unresolved_function_call
 {
 	expression               callee;
 	arena_vector<expression> args;
-
-	declare_default_5(expr_unresolved_function_call)
 
 	expr_unresolved_function_call(
 		expression               _callee,
@@ -668,8 +603,6 @@ struct expr_unresolved_universal_function_call
 	expression               base;
 	identifier               fn_id;
 	arena_vector<expression> args;
-
-	declare_default_5(expr_unresolved_universal_function_call)
 
 	expr_unresolved_universal_function_call(
 		expression               _base,
@@ -687,8 +620,6 @@ struct expr_unresolved_cast
 	expression expr;
 	expression type;
 
-	declare_default_5(expr_unresolved_cast)
-
 	expr_unresolved_cast(
 		expression _expr,
 		expression _type
@@ -702,8 +633,6 @@ struct expr_unresolved_member_access
 {
 	expression     base;
 	lex::token_pos member;
-
-	declare_default_5(expr_unresolved_member_access)
 
 	expr_unresolved_member_access(
 		expression     _base,
@@ -719,8 +648,6 @@ struct expr_unresolved_array_type
 	arena_vector<expression> sizes;
 	expression               type;
 
-	declare_default_5(expr_unresolved_array_type)
-
 	expr_unresolved_array_type(
 		arena_vector<expression> _sizes,
 		expression               _type
@@ -734,8 +661,6 @@ struct expr_unresolved_generic_type_instantiation
 {
 	expression               base;
 	arena_vector<expression> args;
-
-	declare_default_5(expr_unresolved_generic_type_instantiation)
 
 	expr_unresolved_generic_type_instantiation(
 		expression               _base,
