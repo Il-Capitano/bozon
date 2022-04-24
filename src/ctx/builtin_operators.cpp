@@ -1860,9 +1860,7 @@ static ast::expression make_binary_multiply_literal_operation(
 			}
 		}
 		else if (
-			(lhs == int64_min && rhs == -1)
-			|| (lhs == -1 && rhs == int64_min)
-			|| (lhs < 0 && rhs < 0 && lhs < int64_max / rhs)
+			(lhs < 0 && rhs < 0 && lhs < int64_max / rhs)
 			|| (lhs > 0 && rhs > 0 && lhs > int64_max / rhs)
 			|| (lhs < 0 && rhs > 0 && lhs < int64_min / rhs)
 			|| (lhs > 0 && rhs < 0 && lhs > int64_min / rhs)

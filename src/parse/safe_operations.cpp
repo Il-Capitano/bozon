@@ -428,9 +428,7 @@ int64_t safe_binary_multiply(
 
 	if (
 		paren_level < 2
-		&& ((lhs == min_value && rhs == -1)
-		|| (lhs == -1 && rhs == min_value)
-		|| (lhs < 0 && rhs < 0 && lhs < max_value / rhs)
+		&& ((lhs < 0 && rhs < 0 && lhs < max_value / rhs)
 		|| (lhs > 0 && rhs > 0 && lhs > max_value / rhs)
 		|| (lhs < 0 && rhs > 0 && lhs < min_value / rhs)
 		|| (lhs > 0 && rhs < 0 && lhs > min_value / rhs))
