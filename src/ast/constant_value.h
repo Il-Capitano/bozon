@@ -103,7 +103,7 @@ struct constant_value : bz::variant<
 	size_t kind(void) const noexcept
 	{ return this->base_t::index(); }
 
-	declare_default_5(constant_value)
+	constant_value(void) = default;
 
 	template<typename T, bz::meta::enable_if<!bz::meta::is_same<bz::meta::remove_cv_reference<T>, constant_value>, int> = 0>
 	explicit constant_value(T &&t)

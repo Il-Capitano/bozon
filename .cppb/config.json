@@ -3,7 +3,7 @@
 		"default": {
 			"compiler": "clang",
 			"c_standard": "c11",
-			"cpp_standard": "c++17",
+			"cpp_standard": "c++20",
 
 			"cpp_precompiled_header": "src/core.h",
 

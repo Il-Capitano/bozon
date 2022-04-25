@@ -100,8 +100,7 @@ struct typespec
 	lex::src_tokens src_tokens;
 	arena_vector<typespec_node_t> nodes;
 
-	declare_default_5(typespec)
-
+	typespec(void) = default;
 	typespec(lex::src_tokens const &_src_tokens, arena_vector<typespec_node_t> _nodes);
 	typespec(typespec_view ts);
 
