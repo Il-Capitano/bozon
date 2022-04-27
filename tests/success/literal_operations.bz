@@ -41,4 +41,33 @@ function main()
 	// const _ = -9223372036854775807 - 2;
 
 	// binary *
+	const _: int8 = 2 * 30;
+	const _: int8 = -2 * 30;
+	const _: int8 = -2 * -30;
+	const _: int8 = -2 * -30i;
+	const _ = 9223372036854775807 * 2;
+	static_assert(typeof _ == const uint64);
+	// const _ = 9223372036854775808 * 2;
+	const _ = 9223372036854775808 * 1;
+	const _ = (-9223372036854775807 - 1) * -1;
+	static_assert(typeof _ == const uint64);
+	// const _ = (-9223372036854775807 - 1) * -2;
+	// const _ = (-9223372036854775807 - 1) * -1i;
+	// const _ = 9223372036854775807 * 2i;
+
+	// binary /
+	const _: int8 = 256 / 3;
+	const _: int8 = 128 / -1;
+	// const _ = 10 / 0;
+	// const _ = 10u / 0;
+	const _ = (-9223372036854775807 - 1) / -1;
+	static_assert(typeof _ == const uint64);
+	// const _ = (-9223372036854775807 - 1) / -1i;
+
+	// binary %
+	const _: int8 = 123352352 % 128;
+	const _: int8 = 123352352 % 128i;
+	const _: uint8 = 123352352 % 128u;
+	// const _ = 10 % 0;
+	// const _ = 10 % 0u;
 }
