@@ -4,6 +4,7 @@
 #include "token_info.h"
 #include "parse/consteval.h"
 #include "resolve/expression_resolver.h"
+#include "overflow_operations.h"
 
 namespace ctx
 {
@@ -1601,14 +1602,9 @@ static ast::expression make_binary_plus_literal_operation(
 
 		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
 		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
-		if (lhs > uint64_max - rhs)
+		auto const [result_value, overflowed] = add_overflow(lhs, rhs);
+		if (!overflowed)
 		{
-			// we don't handle overflow here, should be handled by 'consteval_guaranteed'
-			return ast::expression();
-		}
-		else
-		{
-			auto const result_value = lhs + rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
@@ -1617,6 +1613,8 @@ static ast::expression make_binary_plus_literal_operation(
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 	else
 	{
@@ -1625,39 +1623,36 @@ static ast::expression make_binary_plus_literal_operation(
 
 		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
 		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
-		if (lhs > 0 && rhs > 0 && lhs > int64_max - rhs)
+		auto const [signed_result_value, signed_overflowed] = add_overflow(lhs, rhs);
+		if (!signed_overflowed)
 		{
-			if (is_signed)
-			{
-				// explicitly signed integer overflow isn't handled
-				return ast::expression();
-			}
-
-			auto const result_value = static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs);
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
-		else if (lhs < 0 && rhs < 0 && lhs < int64_min - rhs)
+		else if (is_signed)
 		{
-			// underflow
+			// explicitly signed integer overflow isn't handled
 			return ast::expression();
 		}
-		else
+
+		auto const [unsigned_result_value, unsigned_overflowed] = add_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
 		{
-			auto const result_value = lhs + rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 }
 
@@ -1685,38 +1680,35 @@ static ast::expression make_binary_minus_literal_operation(
 
 		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
 		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
-		if (is_unsigned && lhs < rhs)
+		auto const [unsigned_result_value, unsigned_overflowed] = sub_overflow(lhs, rhs);
+		if (!unsigned_overflowed)
 		{
-			// unsigned underflow
-			return ast::expression();
-		}
-		else if (!is_unsigned && lhs < rhs && rhs - lhs > static_cast<uint64_t>(int64_max) + 1)
-		{
-			// signed underflow
-			return ast::expression();
-		}
-		else if (lhs < rhs)
-		{
-			auto const result_value = -static_cast<int64_t>(rhs - lhs - 1) - 1; // avoid overflow if rhs - lhs == int64_max + 1
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
-		else
+		else if (is_unsigned)
 		{
-			auto const result_value = lhs - rhs;
+			return ast::expression();
+		}
+
+		auto const [signed_result_value, signed_overflowed] = sub_overflow<int64_t>(lhs, rhs);
+		if (!signed_overflowed)
+		{
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 	else
 	{
@@ -1725,43 +1717,35 @@ static ast::expression make_binary_minus_literal_operation(
 
 		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
 		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
-		if (lhs >= 0 && rhs < 0 && lhs > int64_max + rhs)
+		auto const [signed_result_value, signed_overflowed] = sub_overflow(lhs, rhs);
+		if (!signed_overflowed)
 		{
-			if (is_signed)
-			{
-				// signed integer overflow
-				return ast::expression();
-			}
-
-			auto const lhs_uint = static_cast<uint64_t>(lhs);
-			auto const rhs_uint = static_cast<uint64_t>(-(rhs + 1)) + 1; // avoid overflow with -int64_min
-			bz_assert(lhs_uint <= uint64_max - rhs_uint);
-
-			auto const result_value = lhs_uint + rhs_uint;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
-		else if (lhs < 0 && rhs > 0 && lhs < int64_min + rhs)
+		else if (is_signed)
 		{
-			// underflow
 			return ast::expression();
 		}
-		else
+
+		auto const [unsigned_result_value, unsigned_overflowed] = sub_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
 		{
-			auto const result_value = lhs - rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 }
 
@@ -1789,14 +1773,9 @@ static ast::expression make_binary_multiply_literal_operation(
 
 		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
 		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
-		if (lhs > 0 && rhs > 0 && lhs > uint64_max / rhs)
+		auto const [result_value, overflowed] = mul_overflow(lhs, rhs);
+		if (!overflowed)
 		{
-			// overflow
-			return ast::expression();
-		}
-		else
-		{
-			auto const result_value = lhs * rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
@@ -1805,6 +1784,8 @@ static ast::expression make_binary_multiply_literal_operation(
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 	else
 	{
@@ -1813,49 +1794,35 @@ static ast::expression make_binary_multiply_literal_operation(
 
 		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
 		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
-		if (!is_signed && ((lhs < 0) == (rhs < 0)))
+		auto const [signed_result_value, signed_overflowed] = mul_overflow(lhs, rhs);
+		if (!signed_overflowed)
 		{
-			auto const lhs_abs = lhs < 0 ? -static_cast<uint64_t>(lhs + 1) + 1 : static_cast<uint64_t>(lhs);
-			auto const rhs_abs = rhs < 0 ? -static_cast<uint64_t>(rhs + 1) + 1 : static_cast<uint64_t>(rhs);
-
-			if (lhs_abs > uint64_max / rhs_abs)
-			{
-				// overflow
-				return ast::expression();
-			}
-			else
-			{
-				auto const result_value = lhs_abs * rhs_abs;
-				return ast::make_constant_expression(
-					src_tokens,
-					ast::expression_type_kind::integer_literal,
-					get_literal_integer_type(src_tokens, kind, result_value, context),
-					ast::constant_value(result_value),
-					ast::make_expr_integer_literal(kind)
-				);
-			}
-		}
-		else if (
-			(lhs < 0 && rhs < 0 && lhs < int64_max / rhs)
-			|| (lhs > 0 && rhs > 0 && lhs > int64_max / rhs)
-			|| (lhs < 0 && rhs > 0 && lhs < int64_min / rhs)
-			|| (lhs > 0 && rhs < 0 && lhs > int64_min / rhs)
-		)
-		{
-			// signed overflow
-			return ast::expression();
-		}
-		else
-		{
-			auto const result_value = lhs * rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+		else if (is_signed)
+		{
+			return ast::expression();
+		}
+
+		auto const [unsigned_result_value, unsigned_overflowed] = mul_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
 	}
 }
 
