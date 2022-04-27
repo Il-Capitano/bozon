@@ -1,0 +1,44 @@
+function main()
+{
+	// unary +
+	const _: int8 = +10;
+
+	// unary -
+	const _: int8 = -10;
+	const _ = -(-9223372036854775807 - 1);
+	static_assert(typeof _ == const uint64);
+
+	// binary +
+	const _: int8 = 110 + 12;
+	const _: int8 = -10 + -20;
+	const _: uint8 = 10u + 11u;
+	const _ = 9223372036854775808 + 0;
+	static_assert(typeof _ == const uint64);
+	const _ = 0 + 9223372036854775808;
+	static_assert(typeof _ == const uint64);
+	// const _ = 9223372036854775808 + 9223372036854775808; // overflow
+	// const _ = 9223372036854775807 + 1i;
+	// const _ = 9223372036854775807i + 1;
+	const _ = 9223372036854775807 + 1;
+	static_assert(typeof _ == const uint64);
+	// const _ = -9223372036854775807 + -2;
+
+	// binary -
+	const _: int8 = 110 - 12;
+	const _: int8 = -12 - 10;
+	const _: int8 = 128 - 256;
+	const _: int8 = 128 - 1;
+	const _: uint8 = 256u - 1u;
+	// const _ = 0u - 1u;
+	// const _ = -2 - 9223372036854775807;
+	// const _ = 0 - 9223372036854775809;
+	const _ = 0 - 9223372036854775808;
+	static_assert(typeof _ == const int64);
+	const _ = 9223372036854775807 - -1;
+	static_assert(typeof _ == const uint64);
+	// const _ = 9223372036854775807i - -1;
+	// const _ = 9223372036854775807 - -1i;
+	// const _ = -9223372036854775807 - 2;
+
+	// binary *
+}
