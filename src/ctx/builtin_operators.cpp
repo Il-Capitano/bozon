@@ -1586,18 +1586,10 @@ static ast::expression make_binary_plus_literal_operation(
 	parse_context &context
 )
 {
-	if (
-		lhs_kind == ast::literal_kind::unsigned_integer
-		|| rhs_kind == ast::literal_kind::unsigned_integer
-		|| lhs_value.is<ast::constant_value::uint>()
-		|| rhs_value.is<ast::constant_value::uint>()
-	)
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
 	{
-		bz_assert(
-			lhs_kind == ast::literal_kind::integer
-			|| rhs_kind == ast::literal_kind::integer
-			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
-		);
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
 		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
 		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
 		auto const lhs = lhs_value.is<ast::constant_value::uint>()
@@ -1678,18 +1670,10 @@ static ast::expression make_binary_minus_literal_operation(
 	parse_context &context
 )
 {
-	if (
-		lhs_kind == ast::literal_kind::unsigned_integer
-		|| rhs_kind == ast::literal_kind::unsigned_integer
-		|| lhs_value.is<ast::constant_value::uint>()
-		|| rhs_value.is<ast::constant_value::uint>()
-	)
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
 	{
-		bz_assert(
-			lhs_kind == ast::literal_kind::integer
-			|| rhs_kind == ast::literal_kind::integer
-			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
-		);
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
 		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
 		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
 		auto const lhs = lhs_value.is<ast::constant_value::uint>()
@@ -1706,7 +1690,7 @@ static ast::expression make_binary_minus_literal_operation(
 			// unsigned underflow
 			return ast::expression();
 		}
-		else if (lhs < rhs && rhs - lhs > static_cast<uint64_t>(int64_max) + 1)
+		else if (!is_unsigned && lhs < rhs && rhs - lhs > static_cast<uint64_t>(int64_max) + 1)
 		{
 			// signed underflow
 			return ast::expression();
@@ -1790,18 +1774,10 @@ static ast::expression make_binary_multiply_literal_operation(
 	parse_context &context
 )
 {
-	if (
-		lhs_kind == ast::literal_kind::unsigned_integer
-		|| rhs_kind == ast::literal_kind::unsigned_integer
-		|| lhs_value.is<ast::constant_value::uint>()
-		|| rhs_value.is<ast::constant_value::uint>()
-	)
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
 	{
-		bz_assert(
-			lhs_kind == ast::literal_kind::integer
-			|| rhs_kind == ast::literal_kind::integer
-			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
-		);
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
 		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
 		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
 		auto const lhs = lhs_value.is<ast::constant_value::uint>()
@@ -1892,18 +1868,10 @@ static ast::expression make_binary_divide_literal_operation(
 	parse_context &context
 )
 {
-	if (
-		lhs_kind == ast::literal_kind::unsigned_integer
-		|| rhs_kind == ast::literal_kind::unsigned_integer
-		|| lhs_value.is<ast::constant_value::uint>()
-		|| rhs_value.is<ast::constant_value::uint>()
-	)
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
 	{
-		bz_assert(
-			lhs_kind == ast::literal_kind::integer
-			|| rhs_kind == ast::literal_kind::integer
-			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
-		);
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
 		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
 		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
 		auto const lhs = lhs_value.is<ast::constant_value::uint>()
@@ -1983,18 +1951,10 @@ static ast::expression make_binary_modulo_literal_operation(
 	parse_context &context
 )
 {
-	if (
-		lhs_kind == ast::literal_kind::unsigned_integer
-		|| rhs_kind == ast::literal_kind::unsigned_integer
-		|| lhs_value.is<ast::constant_value::uint>()
-		|| rhs_value.is<ast::constant_value::uint>()
-	)
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
 	{
-		bz_assert(
-			lhs_kind == ast::literal_kind::integer
-			|| rhs_kind == ast::literal_kind::integer
-			|| (lhs_kind == ast::literal_kind::unsigned_integer && rhs_kind == ast::literal_kind::unsigned_integer)
-		);
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
 		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
 		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
 		auto const lhs = lhs_value.is<ast::constant_value::uint>()
