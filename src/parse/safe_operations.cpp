@@ -1,7 +1,134 @@
 #include "safe_operations.h"
+#include "overflow_operations.h"
 
 namespace parse
 {
+
+enum class op
+{
+	add,
+	sub,
+	mul,
+	div,
+};
+
+template<op op_kind, typename Result>
+struct overflow_operations_adapter_t
+{
+	static inline constexpr auto signed_func = []() {
+		if constexpr (op_kind == op::add)
+		{
+			return static_cast<operation_result_t<Result> (*)(int64_t, int64_t)>(&add_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::sub)
+		{
+			return static_cast<operation_result_t<Result> (*)(int64_t, int64_t)>(&sub_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::mul)
+		{
+			return static_cast<operation_result_t<Result> (*)(int64_t, int64_t)>(&mul_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::div)
+		{
+			return static_cast<operation_result_t<Result> (*)(int64_t, int64_t)>(&div_overflow<Result>);
+		}
+		else
+		{
+			return 0;
+		}
+	}();
+
+	static inline constexpr auto unsigned_func = []() {
+		if constexpr (op_kind == op::add)
+		{
+			return static_cast<operation_result_t<Result> (*)(uint64_t, uint64_t)>(&add_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::sub)
+		{
+			return static_cast<operation_result_t<Result> (*)(uint64_t, uint64_t)>(&sub_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::mul)
+		{
+			return static_cast<operation_result_t<Result> (*)(uint64_t, uint64_t)>(&mul_overflow<Result>);
+		}
+		else if constexpr (op_kind == op::div)
+		{
+			return static_cast<operation_result_t<Result> (*)(uint64_t, uint64_t)>(&div_overflow<Result>);
+		}
+		else
+		{
+			return 0;
+		}
+	}();
+};
+
+template<typename Result>
+struct overflow_operation_result_t
+{
+	bz::u8string_view type_name;
+	Result result;
+	bool overflowed;
+};
+
+template<op op_kind>
+static overflow_operation_result_t<int64_t> get_overflow_operation_result(int64_t lhs, int64_t rhs, uint32_t type_kind)
+{
+	switch (type_kind)
+	{
+	case ast::type_info::int8_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int8_t>::signed_func(lhs, rhs);
+		return { "int8", result, overflowed };
+	}
+	case ast::type_info::int16_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int16_t>::signed_func(lhs, rhs);
+		return { "int16", result, overflowed };
+	}
+	case ast::type_info::int32_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int32_t>::signed_func(lhs, rhs);
+		return { "int32", result, overflowed };
+	}
+	case ast::type_info::int64_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, int64_t>::signed_func(lhs, rhs);
+		return { "int64", result, overflowed };
+	}
+	}
+	bz_unreachable;
+	return { "", 0, false };
+}
+
+template<op op_kind>
+static overflow_operation_result_t<uint64_t> get_overflow_operation_result(uint64_t lhs, uint64_t rhs, uint32_t type_kind)
+{
+	switch (type_kind)
+	{
+	case ast::type_info::uint8_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint8_t>::unsigned_func(lhs, rhs);
+		return { "uint8", result, overflowed };
+	}
+	case ast::type_info::uint16_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint16_t>::unsigned_func(lhs, rhs);
+		return { "uint16", result, overflowed };
+	}
+	case ast::type_info::uint32_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint32_t>::unsigned_func(lhs, rhs);
+		return { "uint32", result, overflowed };
+	}
+	case ast::type_info::uint64_:
+	{
+		auto const [result, overflowed] = overflow_operations_adapter_t<op_kind, uint64_t>::unsigned_func(lhs, rhs);
+		return { "uint64", result, overflowed };
+	}
+	}
+	bz_unreachable;
+	return { "", 0, false };
+}
 
 int64_t safe_unary_minus(
 	lex::src_tokens const &src_tokens, int paren_level,
@@ -40,24 +167,9 @@ int64_t safe_binary_plus(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
-	auto const [type_name, min_value, max_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max() } :
-		T{ "int64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::add>(lhs, rhs, type_kind);
 
-	int64_t const result =
-		type_kind == ast::type_info::int8_  ? static_cast<int8_t> (static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int16_ ? static_cast<int16_t>(static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int32_ ? static_cast<int32_t>(static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs)) :
-		static_cast<int64_t>(static_cast<uint64_t>(lhs) + static_cast<uint64_t>(rhs));
-
-	if (
-		paren_level < 2
-		&& ((lhs > 0 && rhs > 0 && lhs > max_value - rhs)
-		|| (lhs < 0 && rhs < 0 && lhs < min_value - rhs))
-	)
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -74,20 +186,9 @@ uint64_t safe_binary_plus(
 	ctx::parse_context &context
 )
 {
-	using T = std::pair<bz::u8string_view, uint64_t>;
-	auto const [type_name, max_value] =
-		type_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max() } :
-		type_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max() } :
-		type_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max() } :
-		T{ "uint64", std::numeric_limits<uint64_t>::max() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::add>(lhs, rhs, type_kind);
 
-	int64_t const result =
-		type_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (lhs + rhs) :
-		type_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(lhs + rhs) :
-		type_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(lhs + rhs) :
-		static_cast<uint64_t>(lhs + rhs);
-
-	if (paren_level < 2 && lhs > max_value - rhs)
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -253,24 +354,9 @@ int64_t safe_binary_minus(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
-	auto const [type_name, min_value, max_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max() } :
-		T{ "int64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::sub>(lhs, rhs, type_kind);
 
-	int64_t const result =
-		type_kind == ast::type_info::int8_  ? static_cast<int8_t> (static_cast<uint64_t>(lhs) - static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int16_ ? static_cast<int16_t>(static_cast<uint64_t>(lhs) - static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int32_ ? static_cast<int32_t>(static_cast<uint64_t>(lhs) - static_cast<uint64_t>(rhs)) :
-		static_cast<int64_t>(static_cast<uint64_t>(lhs) - static_cast<uint64_t>(rhs));
-
-	if (
-		paren_level < 2
-		&& ((lhs < 0 && rhs > 0 && lhs < min_value + rhs)
-		|| (lhs >= 0 && rhs < 0 && lhs > max_value + rhs))
-	)
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -287,19 +373,9 @@ uint64_t safe_binary_minus(
 	ctx::parse_context &context
 )
 {
-	bz::u8string_view const type_name =
-		type_kind == ast::type_info::uint8_  ? "uint8"  :
-		type_kind == ast::type_info::uint16_ ? "uint16" :
-		type_kind == ast::type_info::uint32_ ? "uint32" :
-		"uint64";
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::sub>(lhs, rhs, type_kind);
 
-	uint64_t const result =
-		type_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (lhs - rhs) :
-		type_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(lhs - rhs) :
-		type_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(lhs - rhs) :
-		static_cast<uint64_t>(lhs - rhs);
-
-	if (paren_level < 2 && lhs < rhs)
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -413,26 +489,9 @@ int64_t safe_binary_multiply(
 	ctx::parse_context &context
 )
 {
-	using T = std::tuple<bz::u8string_view, int64_t, int64_t>;
-	auto const [type_name, min_value, max_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min(), std::numeric_limits<int8_t> ::max() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max() } :
-		T{ "int64", std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::mul>(lhs, rhs, type_kind);
 
-	int64_t const result =
-		type_kind == ast::type_info::int8_  ? static_cast<int8_t> (static_cast<uint64_t>(lhs) * static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int16_ ? static_cast<int16_t>(static_cast<uint64_t>(lhs) * static_cast<uint64_t>(rhs)) :
-		type_kind == ast::type_info::int32_ ? static_cast<int32_t>(static_cast<uint64_t>(lhs) * static_cast<uint64_t>(rhs)) :
-		static_cast<int64_t>(static_cast<uint64_t>(lhs) * static_cast<uint64_t>(rhs));
-
-	if (
-		paren_level < 2
-		&& ((lhs < 0 && rhs < 0 && lhs < max_value / rhs)
-		|| (lhs > 0 && rhs > 0 && lhs > max_value / rhs)
-		|| (lhs < 0 && rhs > 0 && lhs < min_value / rhs)
-		|| (lhs > 0 && rhs < 0 && lhs > min_value / rhs))
-	)
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -449,20 +508,9 @@ uint64_t safe_binary_multiply(
 	ctx::parse_context &context
 )
 {
-	using T = std::pair<bz::u8string_view, uint64_t>;
-	auto const [type_name, max_value] =
-		type_kind == ast::type_info::uint8_  ? T{ "uint8",  std::numeric_limits<uint8_t> ::max() } :
-		type_kind == ast::type_info::uint16_ ? T{ "uint16", std::numeric_limits<uint16_t>::max() } :
-		type_kind == ast::type_info::uint32_ ? T{ "uint32", std::numeric_limits<uint32_t>::max() } :
-		T{ "uint64", std::numeric_limits<uint64_t>::max() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::mul>(lhs, rhs, type_kind);
 
-	uint64_t const result =
-		type_kind == ast::type_info::uint8_  ? static_cast<uint8_t> (lhs * rhs) :
-		type_kind == ast::type_info::uint16_ ? static_cast<uint16_t>(lhs * rhs) :
-		type_kind == ast::type_info::uint32_ ? static_cast<uint32_t>(lhs * rhs) :
-		static_cast<uint64_t>(lhs * rhs);
-
-	if (paren_level < 2 && (lhs > 0 && rhs > 0 && lhs > max_value / rhs))
+	if (paren_level < 2 && overflowed)
 	{
 		context.report_parenthesis_suppressed_warning(
 			2 - paren_level, ctx::warning_kind::int_overflow,
@@ -524,12 +572,7 @@ bz::optional<int64_t> safe_binary_divide(
 	ctx::parse_context &context
 )
 {
-	using T = std::pair<bz::u8string_view, int64_t>;
-	auto const [type_name, min_value] =
-		type_kind == ast::type_info::int8_  ? T{ "int8",  std::numeric_limits<int8_t> ::min() } :
-		type_kind == ast::type_info::int16_ ? T{ "int16", std::numeric_limits<int16_t>::min() } :
-		type_kind == ast::type_info::int32_ ? T{ "int32", std::numeric_limits<int32_t>::min() } :
-		T{ "int64", std::numeric_limits<int64_t>::min() };
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::div>(lhs, rhs, type_kind);
 
 	if (rhs == 0)
 	{
@@ -543,22 +586,15 @@ bz::optional<int64_t> safe_binary_divide(
 		}
 		return {};
 	}
-	else if (lhs == min_value && rhs == -1)
+	else if (paren_level < 2 && overflowed)
 	{
-		if (paren_level < 2)
-		{
-			context.report_parenthesis_suppressed_warning(
-				2 - paren_level, ctx::warning_kind::int_overflow,
-				src_tokens,
-				bz::format("overflow in constant expression '{} / {}' with type '{}' results in {}", lhs, rhs, type_name, min_value)
-			);
-		}
-		return min_value;
+		context.report_parenthesis_suppressed_warning(
+			2 - paren_level, ctx::warning_kind::int_overflow,
+			src_tokens,
+			bz::format("overflow in constant expression '{} / {}' with type '{}' results in {}", lhs, rhs, type_name, result)
+		);
 	}
-	else
-	{
-		return lhs / rhs;
-	}
+	return result;
 }
 
 bz::optional<uint64_t> safe_binary_divide(
@@ -567,11 +603,7 @@ bz::optional<uint64_t> safe_binary_divide(
 	ctx::parse_context &context
 )
 {
-	bz::u8string_view const type_name =
-		type_kind == ast::type_info::uint8_  ? "uint8"  :
-		type_kind == ast::type_info::uint16_ ? "uint16" :
-		type_kind == ast::type_info::uint32_ ? "uint32" :
-		"uint64";
+	auto const [type_name, result, overflowed] = get_overflow_operation_result<op::div>(lhs, rhs, type_kind);
 
 	if (rhs == 0)
 	{
@@ -585,10 +617,8 @@ bz::optional<uint64_t> safe_binary_divide(
 		}
 		return {};
 	}
-	else
-	{
-		return lhs / rhs;
-	}
+	bz_assert(!overflowed);
+	return result;
 }
 
 float32_t safe_binary_divide(
