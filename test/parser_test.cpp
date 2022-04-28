@@ -239,7 +239,7 @@ xx_compiles(                                                                    
 	x_err("-42u32");
 	x_warn("-(-128 as int8)");
 	auto const max_int64 = std::numeric_limits<int64_t>::max();
-	auto const test_str = bz::format("-(-{} - 1)", max_int64);
+	auto const test_str = bz::format("-(-{}i64 - 1)", max_int64);
 	x_warn(test_str);
 	x_const_expr(test_str, ast::type_info::int64_, ast::constant_value::sint, std::numeric_limits<int64_t>::min());
 

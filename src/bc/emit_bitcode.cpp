@@ -1168,49 +1168,28 @@ static val_ptr emit_bitcode(
 	}
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
 	lex::src_tokens const &,
-	ast::expr_literal const &literal_expr,
-	ctx::bitcode_context &context,
+	ast::expr_integer_literal const &,
+	Context &,
 	llvm::Value *
 )
 {
-	// can only be called with unreachable
-	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
-	if (no_panic_on_unreachable)
-	{
-		context.builder.CreateUnreachable();
-	}
-	else
-	{
-		auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
-		context.create_call(panic_fn);
-		auto const return_type = context.current_function.second->getReturnType();
-		if (return_type->isVoidTy())
-		{
-			context.builder.CreateRetVoid();
-		}
-		else
-		{
-			context.builder.CreateRet(llvm::UndefValue::get(return_type));
-		}
-	}
-	return val_ptr::get_none();
+	// this is always a constant expression
+	bz_unreachable;
 }
 
-template<abi::platform_abi abi>
+template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
-	lex::src_tokens const &src_tokens,
-	ast::expr_literal const &literal_expr,
-	ctx::comptime_executor_context &context,
+	lex::src_tokens const &,
+	ast::expr_typed_literal const &,
+	Context &,
 	llvm::Value *
 )
 {
-	// can only be called with unreachable
-	bz_assert(literal_expr.tokens.begin->kind == lex::token::kw_unreachable);
-	emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
-	return val_ptr::get_none();
+	// this is always a constant expression
+	bz_unreachable;
 }
 
 template<abi::platform_abi abi, typename Context>
@@ -3875,7 +3854,7 @@ static val_ptr emit_bitcode(
 			auto const param_llvm_type = get_llvm_type(param_type, context);
 			if (param_type.is<ast::ts_move_reference>())
 			{
-				auto const result_address = p.get_expr_type_and_kind().second == ast::expression_type_kind::rvalue
+				auto const result_address = ast::is_rvalue_or_integer_literal(p.get_expr_type_and_kind().second)
 					? context.create_alloca(get_llvm_type(param_type.get<ast::ts_move_reference>(), context))
 					: nullptr;
 				auto const param_val = emit_bitcode<abi>(p, context, result_address);
@@ -5094,6 +5073,43 @@ static val_ptr emit_bitcode(
 	bz_assert(!context.has_terminator());
 	context.builder.CreateBr(context.loop_info.continue_bb);
 	return val_ptr::get_none();
+}
+
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_bitcode(
+	lex::src_tokens const &src_tokens,
+	ast::expr_unreachable const &,
+	Context &context,
+	llvm::Value *
+)
+{
+	if constexpr (is_comptime<Context>)
+	{
+		emit_error(src_tokens, "'unreachable' hit in compile time execution", context);
+		return val_ptr::get_none();
+	}
+	else
+	{
+		if (no_panic_on_unreachable)
+		{
+			context.builder.CreateUnreachable();
+		}
+		else
+		{
+			auto const panic_fn = context.get_function(context.get_builtin_function(ast::function_body::builtin_panic));
+			context.create_call(panic_fn);
+			auto const return_type = context.current_function.second->getReturnType();
+			if (return_type->isVoidTy())
+			{
+				context.builder.CreateRetVoid();
+			}
+			else
+			{
+				context.builder.CreateRet(llvm::UndefValue::get(return_type));
+			}
+		}
+		return val_ptr::get_none();
+	}
 }
 
 template<abi::platform_abi abi, typename Context>

@@ -96,6 +96,7 @@ static bool apply_builtin(
 	else
 	{
 		op_decl.body.flags |= ast::function_body::intrinsic;
+		op_decl.body.flags |= ast::function_body::builtin_operator;
 		return true;
 	}
 }

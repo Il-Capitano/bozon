@@ -1616,6 +1616,7 @@ int main(int argc, char const **argv)
 		return_from_main(0);
 	}
 
+	auto const before_initialization = timer::now();
 	if (!global_ctx.initialize_llvm())
 	{
 		global_ctx.report_and_clear_errors_and_warnings();
@@ -1626,6 +1627,7 @@ int main(int argc, char const **argv)
 		global_ctx.report_and_clear_errors_and_warnings();
 		return_from_main(2);
 	}
+	auto const after_initialization = timer::now();
 
 	auto const before_parse_global_symbols = timer::now();
 	if (!global_ctx.parse_global_symbols())
@@ -1697,6 +1699,7 @@ int main(int argc, char const **argv)
 		auto const front_end_time            = after_bitcode_emission - begin;
 		auto const llvm_time                 = after_file_emission - before_optimization;
 		auto const command_line_parsing_time = after_command_line_parsing - begin;
+		auto const initialization_time       = after_initialization - before_initialization;
 		auto const first_pass_parse_time     = after_parse_global_symbols - before_parse_global_symbols;
 		auto const resolve_time              = after_parse - before_parse;
 		auto const bitcode_emission_time     = after_bitcode_emission - before_bitcode_emission;
@@ -1707,6 +1710,7 @@ int main(int argc, char const **argv)
 		bz::print("front-end time:           {:8.3f}ms\n", in_ms(front_end_time));
 		bz::print("LLVM time:                {:8.3f}ms\n", in_ms(llvm_time));
 		bz::print("command line parse time:  {:8.3f}ms\n", in_ms(command_line_parsing_time));
+		bz::print("initialization time:      {:8.3f}ms\n", in_ms(initialization_time));
 		bz::print("global symbol parse time: {:8.3f}ms\n", in_ms(first_pass_parse_time));
 		bz::print("parse time:               {:8.3f}ms\n", in_ms(resolve_time));
 		bz::print("bitcode emission time:    {:8.3f}ms\n", in_ms(bitcode_emission_time));

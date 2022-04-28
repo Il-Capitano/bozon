@@ -4,6 +4,7 @@
 #include "token_info.h"
 #include "parse/consteval.h"
 #include "resolve/expression_resolver.h"
+#include "overflow_operations.h"
 
 namespace ctx
 {
@@ -1423,6 +1424,577 @@ ast::expression make_builtin_type_operation(
 		), ...);
 		return result;
 	}(bz::meta::make_index_sequence<type_op_binary_operators.size()>{});
+}
+
+
+static constexpr auto int32_min = std::numeric_limits<int32_t>::min();
+static constexpr auto int32_max = std::numeric_limits<int32_t>::max();
+static constexpr auto int64_min = std::numeric_limits<int64_t>::min();
+static constexpr auto int64_max = std::numeric_limits<int64_t>::max();
+static constexpr auto uint32_max = std::numeric_limits<uint32_t>::max();
+static constexpr auto uint64_max = std::numeric_limits<uint64_t>::max();
+
+static ast::typespec get_literal_integer_type(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	uint64_t value,
+	parse_context &context
+)
+{
+	auto const [default_type_info, wide_default_type_info] = [&]() -> std::pair<ast::type_info *, ast::type_info *> {
+		if (kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer)
+		{
+			return {
+				context.get_builtin_type_info(ast::type_info::int32_),
+				context.get_builtin_type_info(ast::type_info::int64_)
+			};
+		}
+		else
+		{
+			return {
+				context.get_builtin_type_info(ast::type_info::uint32_),
+				context.get_builtin_type_info(ast::type_info::uint64_)
+			};
+		}
+	}();
+	auto const [default_max_value, wide_default_max_value] = [&]() -> std::pair<uint64_t, uint64_t> {
+		if (kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer)
+		{
+			return {
+				static_cast<uint64_t>(int32_max),
+				static_cast<uint64_t>(int64_max),
+			};
+		}
+		else
+		{
+			return {
+				static_cast<uint64_t>(uint32_max),
+				static_cast<uint64_t>(uint64_max),
+			};
+		}
+	}();
+
+	if (value <= default_max_value)
+	{
+		return ast::make_base_type_typespec(src_tokens, default_type_info);
+	}
+	else if (value <= wide_default_max_value)
+	{
+		return ast::make_base_type_typespec(src_tokens, wide_default_type_info);
+	}
+	else
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_));
+	}
+}
+
+static ast::typespec get_literal_integer_type(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	int64_t value,
+	parse_context &context
+)
+{
+	bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
+
+	if (value <= int32_max && value >= int32_min)
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int32_));
+	}
+	else
+	{
+		return ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::int64_));
+	}
+}
+
+static ast::expression make_unary_plus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	ast::constant_value const &value,
+	parse_context &context
+)
+{
+	// we don't really do anything with the value here
+	return ast::make_constant_expression(
+		src_tokens,
+		ast::expression_type_kind::integer_literal,
+		value.is<ast::constant_value::sint>()
+			? get_literal_integer_type(src_tokens, kind, value.get<ast::constant_value::sint>(), context)
+			: get_literal_integer_type(src_tokens, kind, value.get<ast::constant_value::uint>(), context),
+		value,
+		ast::make_expr_integer_literal(kind)
+	);
+}
+
+static ast::expression make_unary_minus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind kind,
+	ast::constant_value const &value,
+	parse_context &context
+)
+{
+	bz_assert(kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer);
+	bz_assert(value.is<ast::constant_value::sint>()); // uint can't match to 'operator -'
+	auto const int_value = value.get<ast::constant_value::sint>();
+	if (int_value == int64_min)
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::integer_literal,
+			ast::make_base_type_typespec(src_tokens, context.get_builtin_type_info(ast::type_info::uint64_)),
+			ast::constant_value(static_cast<uint64_t>(int64_max) + 1),
+			ast::make_expr_integer_literal(kind)
+		);
+	}
+	else
+	{
+		return ast::make_constant_expression(
+			src_tokens,
+			ast::expression_type_kind::integer_literal,
+			get_literal_integer_type(src_tokens, kind, -int_value, context),
+			ast::constant_value(-int_value),
+			ast::make_expr_integer_literal(kind)
+		);
+	}
+}
+
+ast::expression make_unary_literal_operation(
+	lex::src_tokens const &src_tokens,
+	uint32_t op_kind,
+	ast::expression const &expr,
+	parse_context &context
+)
+{
+	auto const [kind, value] = expr.get_integer_literal_kind_and_value();
+	switch (op_kind)
+	{
+	case lex::token::plus:
+		return make_unary_plus_literal_operation(src_tokens, kind, value, context);
+	case lex::token::minus:
+		return make_unary_minus_literal_operation(src_tokens, kind, value, context);
+	// case lex::token::bit_not:
+	default:
+		return ast::expression();
+	}
+}
+
+static ast::expression make_binary_plus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
+	{
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		auto const [result_value, overflowed] = add_overflow(lhs, rhs);
+		if (!overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		auto const [signed_result_value, signed_overflowed] = add_overflow(lhs, rhs);
+		if (!signed_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_signed)
+		{
+			// explicitly signed integer overflow isn't handled
+			return ast::expression();
+		}
+
+		auto const [unsigned_result_value, unsigned_overflowed] = add_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+}
+
+static ast::expression make_binary_minus_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
+	{
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		auto const [unsigned_result_value, unsigned_overflowed] = sub_overflow(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_unsigned)
+		{
+			return ast::expression();
+		}
+
+		auto const [signed_result_value, signed_overflowed] = sub_overflow<int64_t>(lhs, rhs);
+		if (!signed_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		auto const [signed_result_value, signed_overflowed] = sub_overflow(lhs, rhs);
+		if (!signed_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_signed)
+		{
+			return ast::expression();
+		}
+
+		auto const [unsigned_result_value, unsigned_overflowed] = sub_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+}
+
+static ast::expression make_binary_multiply_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
+	{
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		auto const [result_value, overflowed] = mul_overflow(lhs, rhs);
+		if (!overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		auto const [signed_result_value, signed_overflowed] = mul_overflow(lhs, rhs);
+		if (!signed_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_signed)
+		{
+			return ast::expression();
+		}
+
+		auto const [unsigned_result_value, unsigned_overflowed] = mul_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+}
+
+static ast::expression make_binary_divide_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
+	{
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		auto const [result_value, overflowed] = div_overflow(lhs, rhs);
+		if (!overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		auto const [signed_result_value, signed_overflowed] = div_overflow(lhs, rhs);
+		if (!signed_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_signed)
+		{
+			return ast::expression();
+		}
+
+		auto const [unsigned_result_value, unsigned_overflowed] = div_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
+		{
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+
+		return ast::expression();
+	}
+}
+
+static ast::expression make_binary_modulo_literal_operation(
+	lex::src_tokens const &src_tokens,
+	ast::literal_kind lhs_kind,
+	ast::literal_kind rhs_kind,
+	ast::constant_value const &lhs_value,
+	ast::constant_value const &rhs_value,
+	parse_context &context
+)
+{
+	if (lhs_value.is<ast::constant_value::uint>() || rhs_value.is<ast::constant_value::uint>())
+	{
+		bz_assert(lhs_kind == ast::literal_kind::integer || lhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(rhs_kind == ast::literal_kind::integer || rhs_kind == ast::literal_kind::unsigned_integer);
+		bz_assert(lhs_kind != ast::literal_kind::integer || lhs_value.is<ast::constant_value::uint>() || lhs_value.get<ast::constant_value::sint>() >= 0);
+		bz_assert(rhs_kind != ast::literal_kind::integer || rhs_value.is<ast::constant_value::uint>() || rhs_value.get<ast::constant_value::sint>() >= 0);
+		auto const lhs = lhs_value.is<ast::constant_value::uint>()
+			? lhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(lhs_value.get<ast::constant_value::sint>());
+		auto const rhs = rhs_value.is<ast::constant_value::uint>()
+			? rhs_value.get<ast::constant_value::uint>()
+			: static_cast<uint64_t>(rhs_value.get<ast::constant_value::sint>());
+
+		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
+		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
+		if (rhs == 0)
+		{
+			// modulo by zero
+			return ast::expression();
+		}
+		else
+		{
+			auto const result_value = lhs % rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+	else
+	{
+		auto const lhs = lhs_value.get<ast::constant_value::sint>();
+		auto const rhs = rhs_value.get<ast::constant_value::sint>();
+
+		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
+		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
+		if (rhs == 0)
+		{
+			// modulo by zero
+			return ast::expression();
+		}
+		else
+		{
+			auto const result_value = lhs % rhs;
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, result_value, context),
+				ast::constant_value(result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+	}
+}
+
+ast::expression make_binary_literal_operation(
+	lex::src_tokens const &src_tokens,
+	uint32_t op_kind,
+	ast::expression const &lhs,
+	ast::expression const &rhs,
+	parse_context &context
+)
+{
+	auto const [lhs_kind, lhs_value] = lhs.get_integer_literal_kind_and_value();
+	auto const [rhs_kind, rhs_value] = rhs.get_integer_literal_kind_and_value();
+	switch (op_kind)
+	{
+	case lex::token::plus:
+		return make_binary_plus_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
+	case lex::token::minus:
+		return make_binary_minus_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
+	case lex::token::multiply:
+		return make_binary_multiply_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
+	case lex::token::divide:
+		return make_binary_divide_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
+	case lex::token::modulo:
+		return make_binary_modulo_literal_operation(src_tokens, lhs_kind, rhs_kind, lhs_value, rhs_value, context);
+	default:
+		return ast::expression();
+	}
 }
 
 } // namespace ctx

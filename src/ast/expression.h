@@ -15,7 +15,8 @@ namespace ast
 struct expression;
 
 struct expr_identifier;
-struct expr_literal;
+struct expr_integer_literal;
+struct expr_typed_literal;
 struct expr_tuple;
 struct expr_unary_op;
 struct expr_binary_op;
@@ -34,6 +35,7 @@ struct expr_if_consteval;
 struct expr_switch;
 struct expr_break;
 struct expr_continue;
+struct expr_unreachable;
 struct expr_generic_type_instantiation;
 
 struct expr_unresolved_subscript;
@@ -47,7 +49,8 @@ struct expr_unresolved_generic_type_instantiation;
 
 using expr_t = node<
 	expr_identifier,
-	expr_literal,
+	expr_integer_literal,
+	expr_typed_literal,
 	expr_tuple,
 	expr_unary_op,
 	expr_binary_op,
@@ -66,6 +69,7 @@ using expr_t = node<
 	expr_switch,
 	expr_break,
 	expr_continue,
+	expr_unreachable,
 	expr_generic_type_instantiation
 >;
 
@@ -93,6 +97,7 @@ enum class expression_type_kind
 	lvalue_reference,
 	rvalue,
 	moved_lvalue,
+	integer_literal,
 	function_name,
 	type_name,
 	tuple,
@@ -100,6 +105,13 @@ enum class expression_type_kind
 	switch_expr,
 	none,
 	noreturn,
+};
+
+enum class literal_kind
+{
+	signed_integer,
+	unsigned_integer,
+	integer,
 };
 
 
@@ -112,7 +124,14 @@ constexpr bool is_lvalue(expression_type_kind kind)
 constexpr bool is_rvalue(expression_type_kind kind)
 {
 	return kind == expression_type_kind::rvalue
-		|| kind == expression_type_kind::moved_lvalue;
+		|| kind == expression_type_kind::moved_lvalue
+		|| kind == expression_type_kind::integer_literal;
+}
+
+constexpr bool is_rvalue_or_integer_literal(expression_type_kind kind)
+{
+	return kind == expression_type_kind::rvalue
+		|| kind == expression_type_kind::integer_literal;
 }
 
 struct unresolved_expression
@@ -221,12 +240,14 @@ struct expression : bz::variant<
 	expr_switch &get_switch_expr(void) noexcept;
 	expr_switch const &get_switch_expr(void) const noexcept;
 
-	bool is_literal(void) const noexcept;
-	expr_literal &get_literal(void) noexcept;
-	expr_literal const &get_literal(void) const noexcept;
+	bool is_integer_literal(void) const noexcept;
+	expr_integer_literal &get_integer_literal(void) noexcept;
+	expr_integer_literal const &get_integer_literal(void) const noexcept;
 
-	constant_value &get_literal_value(void) noexcept;
-	constant_value const &get_literal_value(void) const noexcept;
+	constant_value &get_integer_literal_value(void) noexcept;
+	constant_value const &get_integer_literal_value(void) const noexcept;
+
+	std::pair<literal_kind, constant_value const &> get_integer_literal_kind_and_value(void) const noexcept;
 
 	bool is_generic_type(void) const noexcept;
 	type_info *get_generic_type(void) const noexcept;
@@ -274,15 +295,24 @@ struct expr_identifier
 	{}
 };
 
-struct expr_literal
+struct expr_integer_literal
+{
+	literal_kind kind;
+
+	expr_integer_literal(literal_kind _kind)
+		: kind(_kind)
+	{}
+};
+
+struct expr_typed_literal
 {
 	lex::token_range tokens;
 
-	expr_literal(lex::token_range _tokens)
+	expr_typed_literal(lex::token_range _tokens)
 		: tokens(_tokens)
 	{}
 
-	expr_literal(lex::token_pos it)
+	expr_typed_literal(lex::token_pos it)
 		: tokens{ it, it + 1 }
 	{}
 };
@@ -560,6 +590,10 @@ struct expr_continue
 {
 };
 
+struct expr_unreachable
+{
+};
+
 struct expr_generic_type_instantiation
 {
 	type_info *info;
@@ -699,7 +733,8 @@ ret_type make_ ## node_type (Args &&...args)                                   \
 { return ret_type(make_ast_unique<node_type>(std::forward<Args>(args)...)); }
 
 def_make_fn(expr_t, expr_identifier)
-def_make_fn(expr_t, expr_literal)
+def_make_fn(expr_t, expr_integer_literal)
+def_make_fn(expr_t, expr_typed_literal)
 def_make_fn(expr_t, expr_tuple)
 def_make_fn(expr_t, expr_unary_op)
 def_make_fn(expr_t, expr_binary_op)
@@ -718,6 +753,7 @@ def_make_fn(expr_t, expr_if_consteval)
 def_make_fn(expr_t, expr_switch)
 def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
+def_make_fn(expr_t, expr_unreachable)
 def_make_fn(expr_t, expr_generic_type_instantiation)
 
 #undef def_make_fn

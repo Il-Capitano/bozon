@@ -98,6 +98,6 @@ int main(int argc, char const **argv)
 #ifdef _WIN32
 	std::exit(passed_count == test_count ? 0 : 1);
 #else
-	return 0;
+	return passed_count == test_count ? 0 : 1;
 #endif // windows
 }

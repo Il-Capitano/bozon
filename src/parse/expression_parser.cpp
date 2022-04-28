@@ -566,13 +566,23 @@ static ast::expression parse_primary_expression(
 	case lex::token::kw_true:
 	case lex::token::kw_false:
 	case lex::token::kw_null:
-	case lex::token::kw_unreachable:
 	{
 		auto const literal = stream;
 		++stream;
 		return context.make_literal(literal);
 	}
 
+	case lex::token::kw_unreachable:
+	{
+		auto const t = stream;
+		++stream;
+		return ast::make_dynamic_expression(
+			lex::src_tokens::from_single_token(t),
+			ast::expression_type_kind::noreturn,
+			ast::make_void_typespec(t),
+			ast::make_expr_unreachable()
+		);
+	}
 	case lex::token::kw_break:
 	{
 		auto const t = stream;

@@ -62,34 +62,102 @@ bool expression::is_tuple(void) const noexcept
 		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
 }
 
-expr_tuple &expression::get_tuple(void) noexcept
+template<typename expr_t, bool get_inner = true>
+static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expression &expr_)
 {
-	bz_assert(this->is_tuple());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
+	auto &expr = expr_.get_expr();
+	if (expr.is<expr_t>())
 	{
-		return expr.get<expr_compound>().final_expr.get_tuple();
+		if constexpr (get_inner)
+		{
+			return expr.get<expr_t>();
+		}
+		else
+		{
+			return expr_;
+		}
+	}
+	else if (expr.is<expr_compound>())
+	{
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_compound>().final_expr);
+	}
+	else if (expr.is<expr_binary_op>())
+	{
+		bz_assert(expr.get<expr_binary_op>().op == lex::token::comma);
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_binary_op>().rhs);
+	}
+	else if (expr.is<expr_subscript>())
+	{
+		auto &subscript = expr.get<expr_subscript>();
+		bz_assert(subscript.base.is_tuple());
+		bz_assert(subscript.index.is<constant_expression>());
+		auto const &index_value = subscript.index.get<constant_expression>().value;
+		bz_assert((index_value.is_any<constant_value::sint, constant_value::uint>()));
+		auto const index = index_value.is<constant_value::sint>()
+			? static_cast<uint64_t>(index_value.get<constant_value::sint>())
+			: index_value.get<constant_value::uint>();
+		bz_assert(index < subscript.base.get_tuple().elems.size());
+		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
 	}
 	else
 	{
-		bz_assert(expr.is<expr_tuple>());
-		return expr.get<expr_tuple>();
+		bz_unreachable;
 	}
+}
+
+template<typename expr_t, bool get_inner = true>
+static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind(expression const &expr_)
+{
+	auto &expr = expr_.get_expr();
+	if (expr.is<expr_t>())
+	{
+		if constexpr (get_inner)
+		{
+			return expr.get<expr_t>();
+		}
+		else
+		{
+			return expr_;
+		}
+	}
+	else if (expr.is<expr_compound>())
+	{
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_compound>().final_expr);
+	}
+	else if (expr.is<expr_binary_op>())
+	{
+		bz_assert(expr.get<expr_binary_op>().op == lex::token::comma);
+		return get_expr_kind<expr_t, get_inner>(expr.get<expr_binary_op>().rhs);
+	}
+	else if (expr.is<expr_subscript>())
+	{
+		auto &subscript = expr.get<expr_subscript>();
+		bz_assert(subscript.base.is_tuple());
+		bz_assert(subscript.index.is<constant_expression>());
+		auto const &index_value = subscript.index.get<constant_expression>().value;
+		bz_assert((index_value.is_any<constant_value::sint, constant_value::uint>()));
+		auto const index = index_value.is<constant_value::sint>()
+			? static_cast<uint64_t>(index_value.get<constant_value::sint>())
+			: index_value.get<constant_value::uint>();
+		bz_assert(index < subscript.base.get_tuple().elems.size());
+		return get_expr_kind<expr_t, get_inner>(subscript.base.get_tuple().elems[index]);
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+expr_tuple &expression::get_tuple(void) noexcept
+{
+	bz_assert(this->is_tuple());
+	return get_expr_kind<expr_tuple>(*this);
 }
 
 expr_tuple const &expression::get_tuple(void) const noexcept
 {
 	bz_assert(this->is_tuple());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_tuple();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_tuple>());
-		return expr.get<expr_tuple>();
-	}
+	return get_expr_kind<expr_tuple>(*this);
 }
 
 bool expression::is_if_expr(void) const noexcept
@@ -101,31 +169,13 @@ bool expression::is_if_expr(void) const noexcept
 expr_if &expression::get_if_expr(void) noexcept
 {
 	bz_assert(this->is_if_expr());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_if_expr();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_if>());
-		return expr.get<expr_if>();
-	}
+	return get_expr_kind<expr_if>(*this);
 }
 
 expr_if const &expression::get_if_expr(void) const noexcept
 {
 	bz_assert(this->is_if_expr());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_if_expr();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_if>());
-		return expr.get<expr_if>();
-	}
+	return get_expr_kind<expr_if>(*this);
 }
 
 bool expression::is_switch_expr(void) const noexcept
@@ -137,99 +187,58 @@ bool expression::is_switch_expr(void) const noexcept
 expr_switch &expression::get_switch_expr(void) noexcept
 {
 	bz_assert(this->is_switch_expr());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_switch_expr();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_switch>());
-		return expr.get<expr_switch>();
-	}
+	return get_expr_kind<expr_switch>(*this);
 }
 
 expr_switch const &expression::get_switch_expr(void) const noexcept
 {
 	bz_assert(this->is_switch_expr());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_switch_expr();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_switch>());
-		return expr.get<expr_switch>();
-	}
+	return get_expr_kind<expr_switch>(*this);
 }
 
-bool expression::is_literal(void) const noexcept
+bool expression::is_integer_literal(void) const noexcept
 {
-	if (!this->is_constant_or_dynamic())
-	{
-		return false;
-	}
-	auto &expr = this->get_expr();
-	return expr.is<expr_literal>() || (expr.is<expr_compound>() && expr.get<expr_compound>().final_expr.is_literal());
+	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::integer_literal)
+		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::integer_literal);
 }
 
-expr_literal &expression::get_literal(void) noexcept
+expr_integer_literal &expression::get_integer_literal(void) noexcept
 {
-	bz_assert(this->is_literal());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_literal();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_literal>());
-		return expr.get<expr_literal>();
-	}
+	bz_assert(this->is_integer_literal());
+	return get_expr_kind<expr_integer_literal>(*this);
 }
 
-expr_literal const &expression::get_literal(void) const noexcept
+expr_integer_literal const &expression::get_integer_literal(void) const noexcept
 {
-	bz_assert(this->is_literal());
-	auto &expr = this->get_expr();
-	if (expr.is<expr_compound>())
-	{
-		return expr.get<expr_compound>().final_expr.get_literal();
-	}
-	else
-	{
-		bz_assert(expr.is<expr_literal>());
-		return expr.get<expr_literal>();
-	}
+	bz_assert(this->is_integer_literal());
+	return get_expr_kind<expr_integer_literal>(*this);
 }
 
-constant_value &expression::get_literal_value(void) noexcept
+constant_value &expression::get_integer_literal_value(void) noexcept
 {
-	bz_assert(this->is_literal());
-	if (this->is<constant_expression>())
-	{
-		return this->get<constant_expression>().value;
-	}
-	else
-	{
-		bz_assert(this->get_expr().is<expr_compound>());
-		return this->get_expr().get<expr_compound>().final_expr.get_literal_value();
-	}
+	bz_assert(this->is_integer_literal());
+	auto &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
+	bz_assert(literal_expr.is<constant_expression>());
+	return literal_expr.get<constant_expression>().value;
 }
 
-constant_value const &expression::get_literal_value(void) const noexcept
+constant_value const &expression::get_integer_literal_value(void) const noexcept
 {
-	bz_assert(this->is_literal());
-	if (this->is<constant_expression>())
-	{
-		return this->get<constant_expression>().value;
-	}
-	else
-	{
-		bz_assert(this->get_expr().is<expr_compound>());
-		return this->get_expr().get<expr_compound>().final_expr.get_literal_value();
-	}
+	bz_assert(this->is_integer_literal());
+	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
+	bz_assert(literal_expr.is<constant_expression>());
+	return literal_expr.get<constant_expression>().value;
+}
+
+std::pair<literal_kind, constant_value const &> expression::get_integer_literal_kind_and_value(void) const noexcept
+{
+	bz_assert(this->is_integer_literal());
+	auto const &literal_expr = get_expr_kind<expr_integer_literal, false>(*this);
+	bz_assert(literal_expr.is<constant_expression>());
+	return {
+		literal_expr.get<constant_expression>().expr.get<expr_integer_literal>().kind,
+		literal_expr.get<constant_expression>().value
+	};
 }
 
 bool expression::is_generic_type(void) const noexcept

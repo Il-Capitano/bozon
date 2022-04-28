@@ -41,40 +41,8 @@ bool is_implicitly_convertible(
 	return false;
 }
 
-static bool is_literal_implicitly_convertible(
-	ast::typespec_view dest,
-	ast::expression const &expr
-)
+bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind, uint64_t value)
 {
-	bz_assert(expr.is_literal());
-	auto &literal = expr.get_literal();
-	auto const literal_kind = literal.tokens.begin->kind;
-	auto const postfix = (literal.tokens.end - 1)->postfix;
-
-	auto const &literal_value = expr.get_literal_value();
-
-	if (!dest.is<ast::ts_base_type>())
-	{
-		return false;
-	}
-
-	auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
-	if (!ast::is_integer_kind(dest_kind) || !literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>())
-	{
-		return false;
-	}
-
-	bz_assert(literal_value.is<ast::constant_value::uint>() || literal_value.get<ast::constant_value::sint>() >= 0);
-	auto const literal_int_value = literal_value.is<ast::constant_value::sint>()
-		? static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>())
-		: literal_value.get<ast::constant_value::uint>();
-	// other kinds of literals are signed by default
-	auto const is_any = literal_kind == lex::token::integer_literal && postfix == "";
-	// the postfix 'i' can be used to interpret hex, octal and binary literals as signed integers
-	auto const is_any_signed   = is_any || postfix == "i";
-	auto const is_any_unsigned = is_any || (literal_kind != lex::token::integer_literal && postfix == "") || postfix == "u";
-	bz_assert(is_any || !(is_any_signed && is_any_unsigned));
-
 	auto const dest_max_value = [&]() -> uint64_t {
 		switch (dest_kind)
 		{
@@ -99,22 +67,114 @@ static bool is_literal_implicitly_convertible(
 		}
 	}();
 
-	if (is_any)
+	if (kind == ast::literal_kind::integer)
 	{
-		return literal_int_value <= dest_max_value;
+		return value <= dest_max_value;
 	}
-	else if (is_any_signed)
+	else if (kind == ast::literal_kind::signed_integer)
 	{
-		return ast::is_signed_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
+		return ast::is_signed_integer_kind(dest_kind) && value <= dest_max_value;
 	}
-	else if (is_any_unsigned)
+	else if (kind == ast::literal_kind::unsigned_integer)
 	{
-		return ast::is_unsigned_integer_kind(dest_kind) && literal_int_value <= dest_max_value;
+		return ast::is_unsigned_integer_kind(dest_kind) && value <= dest_max_value;
 	}
 	else
 	{
 		return false;
 	}
+}
+
+bool is_integer_implicitly_convertible(uint8_t dest_kind, ast::literal_kind kind, int64_t value)
+{
+	auto const [dest_min_value, dest_max_value] = [&]() -> std::pair<int64_t, int64_t> {
+		switch (dest_kind)
+		{
+		case ast::type_info::int8_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<int8_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<int8_t>::max())
+			};
+		case ast::type_info::int16_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<int16_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<int16_t>::max())
+			};
+		case ast::type_info::int32_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<int32_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<int32_t>::max())
+			};
+		case ast::type_info::int64_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<int64_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<int64_t>::max())
+			};
+		case ast::type_info::uint8_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<uint8_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<uint8_t>::max())
+			};
+		case ast::type_info::uint16_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<uint16_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<uint16_t>::max())
+			};
+		case ast::type_info::uint32_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<uint32_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<uint32_t>::max())
+			};
+		case ast::type_info::uint64_:
+			return {
+				static_cast<int64_t>(std::numeric_limits<uint64_t>::min()),
+				static_cast<int64_t>(std::numeric_limits<int64_t>::max()) // avoid overflow
+			};
+		default:
+			bz_unreachable;
+		}
+	}();
+
+	if (kind == ast::literal_kind::integer)
+	{
+		return value >= dest_min_value && value <= dest_max_value;
+	}
+	else if (kind == ast::literal_kind::signed_integer)
+	{
+		return ast::is_signed_integer_kind(dest_kind) && value >= dest_min_value && value <= dest_max_value;
+	}
+	else if (kind == ast::literal_kind::unsigned_integer)
+	{
+		return ast::is_unsigned_integer_kind(dest_kind) && value >= dest_min_value && value <= dest_max_value;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static bool is_integer_literal_implicitly_convertible(
+	ast::typespec_view dest,
+	ast::expression const &expr
+)
+{
+	bz_assert(expr.is_integer_literal());
+	auto const [kind, value] = expr.get_integer_literal_kind_and_value();
+
+	if (!dest.is<ast::ts_base_type>())
+	{
+		return false;
+	}
+
+	auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
+	if (!ast::is_integer_kind(dest_kind) || !value.is_any<ast::constant_value::sint, ast::constant_value::uint>())
+	{
+		return false;
+	}
+
+	return value.is<ast::constant_value::sint>()
+		? is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::sint>())
+		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
 }
 
 bool is_implicitly_convertible(
@@ -140,9 +200,9 @@ bool is_implicitly_convertible(
 				.filter([](auto const &expr) { return expr.not_null(); })
 				.is_all([&](auto const &) { return is_implicitly_convertible(dest, expr, context); });
 	}
-	else if (expr.is_literal())
+	else if (expr.is_integer_literal())
 	{
-		return is_literal_implicitly_convertible(dest, expr);
+		return is_integer_literal_implicitly_convertible(dest, expr);
 	}
 
 	bz_assert(!dest.is<ast::ts_const>());

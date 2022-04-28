@@ -317,7 +317,7 @@ static bool match_typename_to_type_impl(
 	}
 	else if (dest.is<ast::ts_move_reference>())
 	{
-		if (expr_type_kind != ast::expression_type_kind::rvalue && expr_type_kind != ast::expression_type_kind::moved_lvalue)
+		if (!ast::is_rvalue(expr_type_kind))
 		{
 			return type_match_result::error;
 		}
@@ -521,157 +521,13 @@ static bool match_typename_to_type_impl(
 	}
 }
 
-static void match_literal_to_type(
+static void match_type_base_case(
 	ast::expression &expr,
 	ast::typespec &dest_container,
 	ast::typespec_view dest,
 	ctx::parse_context &context
 )
 {
-	bz_assert(expr.is_literal());
-	auto &literal = expr.get_literal();
-	auto const literal_kind = literal.tokens.begin->kind;
-	auto const postfix = (literal.tokens.end - 1)->postfix;
-
-	switch (literal_kind)
-	{
-	case lex::token::integer_literal:
-	case lex::token::hex_literal:
-	case lex::token::oct_literal:
-	case lex::token::bin_literal:
-	{
-		auto const &literal_value = expr.get_literal_value();
-		bz_assert((literal_value.is_any<ast::constant_value::sint, ast::constant_value::uint>()));
-
-		if (!dest.is<ast::ts_base_type>())
-		{
-			// return to base case if the matched type isn't a base type
-			break;
-		}
-
-		auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
-		if (!ast::is_integer_kind(dest_kind))
-		{
-			// return to base case if the matched type isn't an integer type
-			break;
-		}
-
-		bz_assert(literal_value.is<ast::constant_value::uint>() || literal_value.get<ast::constant_value::sint>() >= 0);
-		auto const literal_int_value = literal_value.is<ast::constant_value::sint>()
-			? static_cast<uint64_t>(literal_value.get<ast::constant_value::sint>())
-			: literal_value.get<ast::constant_value::uint>();
-		// other kinds of literals are signed by default
-		auto const is_any = literal_kind == lex::token::integer_literal && postfix == "";
-		// the postfix 'i' can be used to interpret hex, octal and binary literals as signed integers
-		auto const is_any_signed   = is_any || postfix == "i";
-		auto const is_any_unsigned = is_any || (literal_kind != lex::token::integer_literal && postfix == "") || postfix == "u";
-		bz_assert(is_any || !(is_any_signed && is_any_unsigned));
-		if (!(is_any || is_any_signed || is_any_unsigned))
-		{
-			// if the type has been specified explicitly, then return to base case (e.g. 1i8)
-			break;
-		}
-
-		auto const dest_max_value = [&]() -> uint64_t {
-			switch (dest_kind)
-			{
-			case ast::type_info::int8_:
-				return static_cast<uint64_t>(std::numeric_limits<int8_t>::max());
-			case ast::type_info::int16_:
-				return static_cast<uint64_t>(std::numeric_limits<int16_t>::max());
-			case ast::type_info::int32_:
-				return static_cast<uint64_t>(std::numeric_limits<int32_t>::max());
-			case ast::type_info::int64_:
-				return static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
-			case ast::type_info::uint8_:
-				return static_cast<uint64_t>(std::numeric_limits<uint8_t>::max());
-			case ast::type_info::uint16_:
-				return static_cast<uint64_t>(std::numeric_limits<uint16_t>::max());
-			case ast::type_info::uint32_:
-				return static_cast<uint64_t>(std::numeric_limits<uint32_t>::max());
-			case ast::type_info::uint64_:
-				return static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
-			default:
-				bz_unreachable;
-			}
-		}();
-
-		if (!is_any && is_any_signed)
-		{
-			if (!ast::is_signed_integer_kind(dest_kind))
-			{
-				context.report_error(
-					expr,
-					bz::format("cannot implicitly convert signed integer literal to unsigned integer type '{}'", dest_container)
-				);
-				bz_assert(ast::is_complete(dest_container));
-				expr.to_error();
-				return;
-			}
-		}
-		else if (!is_any && is_any_unsigned)
-		{
-			if (!ast::is_unsigned_integer_kind(dest_kind))
-			{
-				context.report_error(
-					expr,
-					bz::format("cannot implicitly convert unsigned integer literal to signed integer type '{}'", dest_container)
-				);
-				bz_assert(ast::is_complete(dest_container));
-				expr.to_error();
-				return;
-			}
-		}
-
-		if (literal_int_value > dest_max_value)
-		{
-			context.report_error(
-				expr,
-				bz::format(
-					"cannot implicitly convert expression from type '{}' to '{}'",
-					expr.get_expr_type_and_kind().first, dest_container
-				),
-				{ context.make_note(
-					expr,
-					bz::format(
-						"value of {} is too big for type '{}'; maximum value is {}",
-						literal_int_value, dest_container, dest_max_value
-					)
-				) }
-			);
-			bz_assert(ast::is_complete(dest_container));
-			expr.to_error();
-			return;
-		}
-		else if (
-			((is_any || is_any_signed) && dest_kind == ast::type_info::int32_)
-			|| (!is_any && is_any_unsigned && dest_kind == ast::type_info::uint32_)
-		)
-		{
-			// default literal type doesn't need cast
-			bz_assert(dest == expr.get_expr_type_and_kind().first);
-			return;
-		}
-		else
-		{
-			expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
-			return;
-		}
-	}
-	case lex::token::floating_point_literal:
-	case lex::token::raw_string_literal:
-	case lex::token::string_literal:
-	case lex::token::character_literal:
-	case lex::token::kw_auto:
-	case lex::token::kw_true:
-	case lex::token::kw_false:
-	case lex::token::kw_null:
-	case lex::token::kw_unreachable:
-		break;
-	default:
-		bz_unreachable;
-	}
-
 	auto const [expr_type, expr_type_kind] = expr.get_expr_type_and_kind();
 	auto const match_result = match_types(dest_container, expr_type, ast::remove_const_or_consteval(dest), expr_type_kind, context);
 
@@ -694,6 +550,112 @@ static void match_literal_to_type(
 	}
 }
 
+static void match_literal_to_type(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view dest,
+	ctx::parse_context &context
+)
+{
+	bz_assert(expr.is_integer_literal());
+
+	if (!dest.is<ast::ts_base_type>())
+	{
+		// return to base case if the matched type isn't a base type
+		match_type_base_case(expr, dest_container, dest, context);
+		return;
+	}
+
+	auto const dest_kind = dest.get<ast::ts_base_type>().info->kind;
+	if (!ast::is_integer_kind(dest_kind))
+	{
+		// return to base case if the matched type isn't an integer type
+		match_type_base_case(expr, dest_container, dest, context);
+		return;
+	}
+
+	auto const [kind, value] = expr.get_integer_literal_kind_and_value();
+	bz_assert((value.is_any<ast::constant_value::sint, ast::constant_value::uint>()));
+	auto const is_convertible = value.is<ast::constant_value::sint>()
+		? is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::sint>())
+		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
+
+	if (kind == ast::literal_kind::signed_integer)
+	{
+		if (!ast::is_signed_integer_kind(dest_kind))
+		{
+			context.report_error(
+				expr,
+				bz::format("cannot implicitly convert signed integer literal to unsigned integer type '{}'", dest_container)
+			);
+			bz_assert(ast::is_complete(dest_container));
+			expr.to_error();
+			return;
+		}
+	}
+	else if (kind == ast::literal_kind::unsigned_integer)
+	{
+		if (!ast::is_unsigned_integer_kind(dest_kind))
+		{
+			context.report_error(
+				expr,
+				bz::format("cannot implicitly convert unsigned integer literal to signed integer type '{}'", dest_container)
+			);
+			bz_assert(ast::is_complete(dest_container));
+			expr.to_error();
+			return;
+		}
+	}
+
+	if (!is_convertible)
+	{
+		bz::vector<ctx::source_highlight> notes = {};
+		if (value.is<ast::constant_value::sint>())
+		{
+			notes.push_back(context.make_note(
+				expr,
+				bz::format(
+					"value of {} is outside the range for type '{}'",
+					value.get<ast::constant_value::sint>(), dest_container
+				)
+			));
+		}
+		else
+		{
+			notes.push_back(context.make_note(
+				expr,
+				bz::format(
+					"value of {} is outside the range for type '{}'",
+					value.get<ast::constant_value::uint>(), dest_container
+				)
+			));
+		}
+		context.report_error(
+			expr,
+			bz::format(
+				"cannot implicitly convert expression from type '{}' to '{}'",
+				expr.get_expr_type_and_kind().first, dest_container
+			),
+			std::move(notes)
+		);
+		bz_assert(ast::is_complete(dest_container));
+		expr.to_error();
+		return;
+	}
+	else if (
+		((kind == ast::literal_kind::integer || kind == ast::literal_kind::signed_integer) && dest_kind == ast::type_info::int32_)
+		|| (kind == ast::literal_kind::unsigned_integer && dest_kind == ast::type_info::uint32_)
+	)
+	{
+		// default literal type doesn't need cast
+		bz_assert(dest == expr.get_expr_type_and_kind().first);
+	}
+	else
+	{
+		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+	}
+}
+
 static void match_expression_to_type_impl(
 	ast::expression &expr,
 	ast::typespec &dest_container,
@@ -701,6 +663,8 @@ static void match_expression_to_type_impl(
 	ctx::parse_context &context
 )
 {
+	dest = ast::remove_const_or_consteval(dest);
+
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	// basically a slightly different implementation of get_type_match_level
 	if (expr.is_if_expr())
@@ -1059,7 +1023,7 @@ static void match_expression_to_type_impl(
 			return;
 		}
 	}
-	else if (expr.is_literal())
+	else if (expr.is_integer_literal())
 	{
 		match_literal_to_type(expr, dest_container, dest, context);
 		if (expr.is_error())

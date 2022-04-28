@@ -262,7 +262,7 @@ static bz::u8string get_static_assert_expression(ast::constant_expression const 
 			return "";
 		}
 	}
-	else if (cond.expr.is<ast::expr_literal>())
+	else if (cond.expr.is<ast::expr_integer_literal>() || cond.expr.is<ast::expr_typed_literal>())
 	{
 		return ast::get_value_string(cond.value);
 	}

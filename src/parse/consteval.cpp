@@ -2855,10 +2855,13 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			return {};
+		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_typed_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3158,6 +3161,9 @@ static ast::constant_value guaranteed_evaluate_expr(
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_unreachable &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
 			bz_unreachable;
 		},
@@ -3177,10 +3183,13 @@ static ast::constant_value try_evaluate_expr(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			return {};
+		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_typed_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3486,6 +3495,9 @@ static ast::constant_value try_evaluate_expr(
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_unreachable &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
 			bz_unreachable;
 		},
@@ -3503,10 +3515,13 @@ static ast::constant_value try_evaluate_expr_without_error(
 			// variable, which is handled in parse_context::make_identifier_expr (or something similar)
 			return {};
 		},
-		[](ast::expr_literal &) -> ast::constant_value {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			return {};
+		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_typed_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&expr, &context](ast::expr_tuple &tuple) -> ast::constant_value {
 			bool is_consteval = true;
@@ -3811,6 +3826,9 @@ static ast::constant_value try_evaluate_expr_without_error(
 		[](ast::expr_continue &) -> ast::constant_value {
 			return {};
 		},
+		[](ast::expr_unreachable &) -> ast::constant_value {
+			return {};
+		},
 		[](ast::expr_generic_type_instantiation &) -> ast::constant_value {
 			bz_unreachable;
 		},
@@ -4068,12 +4086,13 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 				));
 			}
 		},
-		[&expr, &notes](ast::expr_literal const &) {
-			// non-unreachable literals are always constant expressions,
-			// and unreachable is not a constant expression
-			notes.emplace_back(ctx::parse_context::make_note(
-				expr.src_tokens, "'unreachable' is not a constant expression"
-			));
+		[](ast::expr_integer_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_typed_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
 		},
 		[&notes](ast::expr_tuple const &tuple) {
 			bool any_failed = false;
@@ -4286,6 +4305,11 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 		[&expr, &notes](ast::expr_continue const &) {
 			notes.emplace_back(ctx::parse_context::make_note(
 				expr.src_tokens, "'continue' is not a constant expression"
+			));
+		},
+		[&expr, &notes](ast::expr_unreachable const &) {
+			notes.emplace_back(ctx::parse_context::make_note(
+				expr.src_tokens, "'unreachable' is not a constant expression"
 			));
 		},
 		[](ast::expr_generic_type_instantiation const &) {
