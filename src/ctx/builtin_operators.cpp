@@ -1850,14 +1850,9 @@ static ast::expression make_binary_divide_literal_operation(
 
 		auto const is_unsigned = lhs_kind == ast::literal_kind::unsigned_integer || rhs_kind == ast::literal_kind::unsigned_integer;
 		auto const kind = is_unsigned ? ast::literal_kind::unsigned_integer : ast::literal_kind::integer;
-		if (rhs == 0)
+		auto const [result_value, overflowed] = div_overflow(lhs, rhs);
+		if (!overflowed)
 		{
-			// divide by zero
-			return ast::expression();
-		}
-		else
-		{
-			auto const result_value = lhs / rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
@@ -1866,6 +1861,8 @@ static ast::expression make_binary_divide_literal_operation(
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 	else
 	{
@@ -1874,38 +1871,35 @@ static ast::expression make_binary_divide_literal_operation(
 
 		auto const is_signed = lhs_kind == ast::literal_kind::signed_integer || rhs_kind == ast::literal_kind::signed_integer;
 		auto const kind = is_signed ? ast::literal_kind::signed_integer : ast::literal_kind::integer;
-		if (rhs == 0)
+		auto const [signed_result_value, signed_overflowed] = div_overflow(lhs, rhs);
+		if (!signed_overflowed)
 		{
-			// divide by zero
+			return ast::make_constant_expression(
+				src_tokens,
+				ast::expression_type_kind::integer_literal,
+				get_literal_integer_type(src_tokens, kind, signed_result_value, context),
+				ast::constant_value(signed_result_value),
+				ast::make_expr_integer_literal(kind)
+			);
+		}
+		else if (is_signed)
+		{
 			return ast::expression();
 		}
-		else if (rhs == -1 && lhs == int64_min)
-		{
-			if (is_signed)
-			{
-				return ast::expression();
-			}
 
-			auto const result_value = static_cast<uint64_t>(int64_max) + 1;
-			return ast::make_constant_expression(
-				src_tokens,
-				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
-				ast::make_expr_integer_literal(kind)
-			);
-		}
-		else
+		auto const [unsigned_result_value, unsigned_overflowed] = div_overflow<uint64_t>(lhs, rhs);
+		if (!unsigned_overflowed)
 		{
-			auto const result_value = lhs / rhs;
 			return ast::make_constant_expression(
 				src_tokens,
 				ast::expression_type_kind::integer_literal,
-				get_literal_integer_type(src_tokens, kind, result_value, context),
-				ast::constant_value(result_value),
+				get_literal_integer_type(src_tokens, kind, unsigned_result_value, context),
+				ast::constant_value(unsigned_result_value),
 				ast::make_expr_integer_literal(kind)
 			);
 		}
+
+		return ast::expression();
 	}
 }
 
