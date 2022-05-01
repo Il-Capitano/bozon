@@ -6072,7 +6072,7 @@ llvm::Function *add_function_to_module(
 )
 {
 	auto const fn = create_function_from_symbol(*func_body, context);
-	context.funcs_.insert({ func_body, fn });
+	context.funcs_[func_body] = { fn, nullptr, nullptr };
 	return fn;
 }
 
@@ -6848,7 +6848,7 @@ static void add_global_result_getters(
 		auto const symbol_name = bz::format("__global_result_getter.{}", get_unique_id());
 		auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 		auto const func = llvm::Function::Create(
-			func_type, llvm::Function::InternalLinkage,
+			func_type, llvm::Function::ExternalLinkage,
 			symbol_name_ref,
 			&context.get_module()
 		);
@@ -6895,7 +6895,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 	result.first = llvm::Function::Create(
 		result_func_type,
-		llvm::Function::InternalLinkage,
+		llvm::Function::ExternalLinkage,
 		symbol_name_ref,
 		&context.get_module()
 	);
@@ -6947,8 +6947,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		add_call_parameter<abi>(param_t, param_type, param_val, args, args_is_byval, context);
 	}
 
-	auto const call = context.builder.CreateCall(called_fn, llvm::ArrayRef(args.data(), args.size()));
-	call->setCallingConv(called_fn->getCallingConv());
+	auto const call = context.create_call(called_fn, llvm::ArrayRef(args.data(), args.size()));
 
 	auto is_byval_it = args_is_byval.begin();
 	auto const is_byval_end = args_is_byval.end();
@@ -7134,7 +7133,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		: bz::format("__anon_comptime_compound_expr.{}.{}", expr.final_expr.src_tokens.pivot->src_pos.line, get_unique_id());
 	auto const symbol_name_ref = llvm::StringRef(symbol_name.data_as_char_ptr(), symbol_name.size());
 	result.first = llvm::Function::Create(
-		func_t, llvm::Function::InternalLinkage,
+		func_t, llvm::Function::ExternalLinkage,
 		symbol_name_ref, &context.get_module()
 	);
 	context.current_function = { nullptr, result.first };

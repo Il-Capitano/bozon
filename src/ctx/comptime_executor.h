@@ -114,7 +114,13 @@ struct comptime_function
 {
 	comptime_function_kind kind;
 	ast::function_body    *func_body;
-	llvm::Function        *llvm_func;
+};
+
+struct function_definition_and_declaration_pair
+{
+	llvm::Function *definition;
+	llvm::Module   *module;
+	llvm::Function *declaration;
 };
 
 struct comptime_executor_context
@@ -273,7 +279,6 @@ struct comptime_executor_context
 
 	llvm::Function *get_comptime_function(comptime_function_kind kind);
 	void set_comptime_function(comptime_function_kind kind, ast::function_body *func_body);
-	void set_comptime_function(comptime_function_kind kind, llvm::Function *llvm_func);
 
 
 	std::pair<ast::constant_value, bz::vector<error>> execute_function(
@@ -282,6 +287,7 @@ struct comptime_executor_context
 		bz::array_view<ast::expression const> params
 	);
 	std::pair<ast::constant_value, bz::vector<error>> execute_compound_expression(ast::expr_compound &expr);
+	void initialize_optimizer(void);
 	void initialize_engine(void);
 	std::unique_ptr<llvm::ExecutionEngine> create_engine(std::unique_ptr<llvm::Module> module);
 	void add_base_functions_to_engine(void);
@@ -309,8 +315,8 @@ struct comptime_executor_context
 	llvm::Module *current_module = nullptr;
 
 	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
-	std::unordered_map<ast::type_info     const *, llvm::Type     *> types_{};
-	std::unordered_map<ast::function_body const *, llvm::Function *> funcs_{};
+	std::unordered_map<ast::type_info     const *, llvm::Type *> types_{};
+	std::unordered_map<ast::function_body const *, function_definition_and_declaration_pair> funcs_{};
 
 	std::unordered_map<ast::function_body const *, module_function_pair> modules_and_functions{};
 
