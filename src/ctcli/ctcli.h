@@ -836,6 +836,9 @@ inline constexpr std::size_t option_group_max_multiple_size = option_group<ID>.s
 template<group_id_t ID>
 inline constexpr char option_group_multiple = 0;
 
+template<group_id_t ID>
+inline constexpr char option_group_alias = 0;
+
 
 /// Whether there's a default help flag provided or not.  Specialize this variable if necessary.
 template<group_id_t ID>
@@ -955,6 +958,124 @@ create_undocumented_multiple_group_element(string_view usage, string_view help, 
 		return indices;
 	}();
 	return multiple_group_element_t<max_size>{ usage, help, indices, visibility_kind::undocumented };
+}
+
+
+struct alias_group_element_t
+{
+	string_view     usage;
+	string_view     help;
+	string_view     aliased_element;
+	std::uint32_t   aliased_index;
+	visibility_kind visibility;
+};
+
+template<group_id_t ID>
+constexpr alias_group_element_t create_alias_group_element(string_view usage, string_view help, string_view aliased_element)
+{
+	constexpr auto const &group = option_group<ID>;
+	internal::check_group_elment_syntax(usage);
+	assert(internal::is_bool_flag(usage));
+	std::uint32_t aliased_index = std::numeric_limits<std::uint32_t>::max();
+	if (!aliased_element.contains('='))
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				return aliased_element == group_element.usage;
+			}
+		);
+		assert(it != group.end());
+		assert(internal::is_bool_flag(it->usage));
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	else
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				auto const [flag_name, _] = internal::get_flag_names_with_equals(group_element.usage);
+				assert(_ == "");
+				return aliased_element.starts_with(flag_name);
+			}
+		);
+		assert(it != group.end());
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	assert(aliased_index != std::numeric_limits<std::uint32_t>::max());
+	return alias_group_element_t{ usage, help, aliased_element, aliased_index, visibility_kind::visible };
+}
+
+template<group_id_t ID>
+constexpr alias_group_element_t create_hidden_alias_group_element(string_view usage, string_view help, string_view aliased_element)
+{
+	constexpr auto const &group = option_group<ID>;
+	internal::check_group_elment_syntax(usage);
+	assert(internal::is_bool_flag(usage));
+	std::uint32_t aliased_index = std::numeric_limits<std::uint32_t>::max();
+	if (!aliased_element.contains('='))
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				return aliased_element == group_element.usage;
+			}
+		);
+		assert(it != group.end());
+		assert(internal::is_bool_flag(it->usage));
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	else
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				auto const [flag_name, _] = get_flag_names_with_equals(group_element.usage);
+				assert(_ == "");
+				return aliased_element.starts_with(flag_name);
+			}
+		);
+		assert(it != group.end());
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	assert(aliased_index != std::numeric_limits<std::uint32_t>::max());
+	return alias_group_element_t{ usage, help, aliased_element, aliased_index, visibility_kind::hidden };
+}
+
+template<group_id_t ID>
+constexpr alias_group_element_t create_undocumented_alias_group_element(string_view usage, string_view help, string_view aliased_element)
+{
+	constexpr auto const &group = option_group<ID>;
+	internal::check_group_elment_syntax(usage);
+	assert(internal::is_bool_flag(usage));
+	std::uint32_t aliased_index = std::numeric_limits<std::uint32_t>::max();
+	if (!aliased_element.contains('='))
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				return aliased_element == group_element.usage;
+			}
+		);
+		assert(it != group.end());
+		assert(internal::is_bool_flag(it->usage));
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	else
+	{
+		auto const it = internal::constexpr_find_if(
+			group.begin(), group.end(),
+			[&aliased_element](auto const &group_element) {
+				auto const [flag_name, _] = get_flag_names_with_equals(group_element.usage);
+				assert(_ == "");
+				return aliased_element.starts_with(flag_name);
+			}
+		);
+		assert(it != group.end());
+		aliased_index = static_cast<std::uint32_t>(it - group.begin());
+	}
+	assert(aliased_index != std::numeric_limits<std::uint32_t>::max());
+	return alias_group_element_t{ usage, help, aliased_element, aliased_index, visibility_kind::undocumented };
 }
 
 
@@ -1137,6 +1258,12 @@ template<group_id_t ID>
 constexpr bool is_valid_option_group_multiple_type_v = is_array_of_type_v<
 	std::remove_cv_t<std::remove_reference_t<decltype(option_group_multiple<ID>)>>,
 	multiple_group_element_t<option_group_max_multiple_size<ID>>
+>;
+
+template<group_id_t ID>
+constexpr bool is_valid_option_group_alias_type_v = is_array_of_type_v<
+	std::remove_cv_t<std::remove_reference_t<decltype(option_group_alias<ID>)>>,
+	alias_group_element_t
 >;
 
 template<options_id_t ID>
@@ -2388,6 +2515,60 @@ bool try_parse_multiple_group_element(
 	}
 }
 
+template<option_index_t option_index, group_id_t ID, std::size_t N>
+bool try_parse_alias_group_element(
+	string_view option_group_flag_value, string_view element_value, optional<string_view> arg_opt,
+	std::size_t flag_position, string &error
+)
+{
+	static_assert(is_valid_option_group_type_v<ID>, "The option_group array with the give ID isn't specialized or has an invalid type");
+	static_assert(is_valid_option_group_alias_type_v<ID>, "The option_group_alias array with the give ID isn't specialized or has an invalid type");
+	constexpr auto const &alias_group_element = option_group_alias<ID>[N];
+	constexpr auto usage = alias_group_element.usage;
+	constexpr auto element_names = get_flag_names(usage);
+	constexpr auto has_first_element_name  = element_names.first  != "";
+	constexpr auto has_second_element_name = element_names.second != "";
+	static_assert(is_bool_flag(usage));
+
+	auto const matched_arg_num =
+		(has_first_element_name  && element_value == element_names.first)  ? 0 :
+		(has_second_element_name && element_value == element_names.second) ? 1 :
+		-1;
+
+	if (matched_arg_num != -1)
+	{
+		if (arg_opt.has_value())
+		{
+			error = bz::format("no argument expected for option group flag '{} {}'", option_group_flag_value, element_value);
+			return true;
+		}
+
+		constexpr auto element_index = create_group_element_index(ID, alias_group_element.aliased_index);
+		constexpr auto aliased_element = alias_group_element.aliased_element;
+		constexpr auto aliased_flag_name = get_flag_names(aliased_element);
+		static_assert(aliased_flag_name.first == "");
+		auto const alias_arg_opt = [&]() -> optional<string_view> {
+			if (aliased_element.contains('='))
+			{
+				auto const it = aliased_element.find('=');
+				return string_view(it + 1, aliased_element.end());
+			}
+			else
+			{
+				return {};
+			}
+		}();
+		return try_parse_group_element<option_index, element_index>(
+			option_group_flag_value, aliased_flag_name.second, alias_arg_opt,
+			flag_position, error
+		);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 template<option_index_t Index, typename ArgFn>
 bool try_parse_group_flag(
 	string_view option_value, std::size_t flag_position, bool is_single_char,
@@ -2436,8 +2617,22 @@ bool try_parse_group_flag(
 				return 0;
 			}
 		}();
+		constexpr auto alias_size = []() -> std::size_t {
+			if constexpr (is_valid_option_group_alias_type_v<group_id>)
+			{
+				return option_group_alias<group_id>.size();
+			}
+			else
+			{
+				return 0;
+			}
+		}();
 
-		[&]<std::size_t ...GroupIs, std::size_t ...MultipleIs>(std::index_sequence<GroupIs...>, std::index_sequence<MultipleIs...>) {
+		[&]<std::size_t ...GroupIs, std::size_t ...MultipleIs, std::size_t ...AliasIs>(
+			std::index_sequence<GroupIs...>,
+			std::index_sequence<MultipleIs...>,
+			std::index_sequence<AliasIs...>
+		) {
 			bool done = false;
 			((([&]() {
 				constexpr auto group_element_index = create_group_element_index(group_id, GroupIs);
@@ -2453,12 +2648,23 @@ bool try_parse_group_flag(
 					error
 				);
 				return done;
+			}()) || ...))
+			|| (eq_it == arg.end() && (([&]() {
+				done = try_parse_alias_group_element<Index, group_id, AliasIs>(
+					matched_option_name, arg_option_value, arg_arg_value,
+					flag_position, error
+				);
+				return done;
 			}()) || ...)));
 			if (!done)
 			{
 				error = bz::format("invalid argument '{}' for option '{}'", arg_option_value, matched_option_name);
 			}
-		}(std::make_index_sequence<group.size() + (add_help_to_group<group_id> ? 1 : 0)>{}, std::make_index_sequence<multiple_size>{});
+		}(
+			std::make_index_sequence<group.size() + (add_help_to_group<group_id> ? 1 : 0)>{},
+			std::make_index_sequence<multiple_size>{},
+			std::make_index_sequence<alias_size>{}
+		);
 
 		return true;
 	}
@@ -3053,11 +3259,56 @@ string get_option_group_help_string(
 			return 0;
 		}
 	}();
+	constexpr auto alias_group_elements_count = []() -> std::size_t {
+		if constexpr (internal::is_valid_option_group_alias_type_v<ID>)
+		{
+			return option_group_alias<ID>.size();
+		}
+		else
+		{
+			return 0;
+		}
+	}();
 
 	vector<string> usages;
 	vector<string> helps;
 	usages.reserve(group_elements_count + (multiple_group_elements_count == 0 ? 0 : multiple_group_elements_count + 1));
 	helps.reserve (group_elements_count + (multiple_group_elements_count == 0 ? 0 : multiple_group_elements_count + 1));
+
+	if constexpr (alias_group_elements_count != 0)
+	{
+		vector<std::size_t> alias_indices;
+		alias_indices.resize(alias_group_elements_count);
+		for (std::size_t i = 0; i < alias_indices.size(); ++i)
+		{
+			alias_indices[i] = i;
+		}
+
+		if (sort_alphabetically)
+		{
+			std::sort(alias_indices.begin(), alias_indices.end(), [](std::size_t lhs, std::size_t rhs) {
+				auto const lhs_usage = option_group_alias<ID>[lhs].usage;
+				auto const rhs_usage = option_group_alias<ID>[rhs].usage;
+				return compare_usages(lhs_usage, rhs_usage);
+			});
+		}
+
+		for (auto const i : alias_indices)
+		{
+			auto const &element = option_group_alias<ID>[i];
+			if (
+				element.visibility != visibility_kind::undocumented
+				&& (is_verbose || element.visibility == visibility_kind::visible)
+			)
+			{
+				usages.emplace_back(element.usage);
+				helps.emplace_back(element.help);
+			}
+		}
+
+		usages.emplace_back();
+		helps.emplace_back();
+	}
 
 	if constexpr (multiple_group_elements_count != 0)
 	{

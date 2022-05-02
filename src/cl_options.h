@@ -51,41 +51,30 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 1> result{};
+	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 2> result{};
 
 	size_t i = 0;
 	for (i = 0; i < bc::optimization_infos.size(); ++i)
 	{
 		bz_assert(static_cast<size_t>(bc::optimization_infos[i].kind) == i);
-		result[i] = ctcli::create_group_element(bc::optimization_infos[i].name, bc::optimization_infos[i].description);
+		result[i] = ctcli::create_hidden_group_element(bc::optimization_infos[i].name, bc::optimization_infos[i].description);
 	}
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
 	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=1)", ctcli::arg_type::uint64);
+	result[i++] = ctcli::create_group_element("opt-level=<level>", "Set optimization level (default=0)", ctcli::arg_type::uint64);
 
 	bz_assert(i == result.size());
 	return result;
 }();
 
 template<>
-inline constexpr std::size_t ctcli::option_group_max_multiple_size<opt_group_id> = 300;
-
-template<>
-inline constexpr bz::array ctcli::option_group_multiple<opt_group_id> = []() {
-	return bz::array{
-		// opts are generated with scripts/gen_opts.py
-		ctcli::create_multiple_group_element<opt_group_id>("0", "No optimizations", {}),
-		ctcli::create_multiple_group_element<opt_group_id>("1", "Enable basic optimizations", {
-			#include "opts_O1.inc"
-		}),
-		ctcli::create_multiple_group_element<opt_group_id>("2", "Enable more optimizations", {
-			#include "opts_O2.inc"
-		}),
-		ctcli::create_multiple_group_element<opt_group_id>("3", "Enable even more optimizations", {
-			#include "opts_O3.inc"
-		}),
-	};
-}();
+inline constexpr bz::array ctcli::option_group_alias<opt_group_id> = {
+	ctcli::create_alias_group_element<opt_group_id>("0", "No optimizations (same as opt-level=0)",               "opt-level=0"),
+	ctcli::create_alias_group_element<opt_group_id>("1", "Enable basic optimizations (same as opt-level=1)",     "opt-level=1"),
+	ctcli::create_alias_group_element<opt_group_id>("2", "Enable more optimizations (same as opt-level=2)",      "opt-level=2"),
+	ctcli::create_alias_group_element<opt_group_id>("3", "Enable even more optimizations (same as opt-level=3)", "opt-level=3"),
+};
 
 template<>
 inline constexpr bz::array ctcli::command_line_options<ctcli::options_id_t::def> = {
@@ -167,6 +156,7 @@ static_assert(static_cast<size_t>(ctx::warning_kind::_last) == 24);
 template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")> = true;
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")> = &max_opt_iter_count;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>      = &opt_level;
 
 template<>
 inline constexpr auto ctcli::argument_parse_function<ctcli::option("--emit")> = [](bz::u8string_view arg) -> std::optional<emit_type> {

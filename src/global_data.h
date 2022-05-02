@@ -105,6 +105,7 @@ inline bz::vector<bz::u8string> defines;
 inline bz::u8string stdlib_dir;
 
 inline size_t max_opt_iter_count = 1;
+inline size_t opt_level = 0;
 
 bool is_warning_enabled(ctx::warning_kind kind) noexcept;
 bool is_warning_error(ctx::warning_kind kind) noexcept;
