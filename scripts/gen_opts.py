@@ -23,7 +23,7 @@ args = '-disable-output -debug-pass=Arguments -enable-new-pm=0'
 null_input_args = '< NUL 2>&1' if os.name == 'nt' else '< /dev/null 2>&1'
 
 def get_opts(opt_level):
-    command = f'{opt_bin} {args} {null_input_args}'
+    command = f'{opt_bin} {args} {null_input_args} {opt_level}'
     opt_output = (subprocess.run(command, capture_output=True, shell=True)
         .stdout.decode('utf-8'))
     lines = [opt.strip() for opt in opt_output.strip().replace('\r', '').split('\n')]
