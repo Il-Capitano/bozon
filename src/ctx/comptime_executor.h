@@ -123,6 +123,13 @@ struct function_definition_and_declaration_pair
 	llvm::Function *declaration;
 };
 
+struct variable_definition_and_declaration_pair
+{
+	llvm::GlobalVariable *definition;
+	llvm::Module         *module;
+	llvm::GlobalVariable *declaration;
+};
+
 struct comptime_executor_context
 {
 	comptime_executor_context(global_context &_global_ctx);
@@ -142,7 +149,7 @@ struct comptime_executor_context
 	ast::typespec_view get_builtin_type(bz::u8string_view name);
 	ast::function_body *get_builtin_function(uint32_t kind);
 
-	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl) const;
+	bc::value_and_type_pair get_variable(ast::decl_variable const *var_decl);
 	void add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type);
 
 	void add_global_variable(ast::decl_variable const *var_decl);
@@ -315,6 +322,7 @@ struct comptime_executor_context
 	llvm::Module *current_module = nullptr;
 
 	std::unordered_map<ast::decl_variable const *, bc::value_and_type_pair> vars_{};
+	std::unordered_map<ast::decl_variable const *, variable_definition_and_declaration_pair> global_vars_{};
 	std::unordered_map<ast::type_info     const *, llvm::Type *> types_{};
 	std::unordered_map<ast::function_body const *, function_definition_and_declaration_pair> funcs_{};
 

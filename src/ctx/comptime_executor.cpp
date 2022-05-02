@@ -98,20 +98,52 @@ ast::function_body *comptime_executor_context::get_builtin_function(uint32_t kin
 	return &this->global_ctx.get_builtin_function(kind)->body;
 }
 
-bc::value_and_type_pair comptime_executor_context::get_variable(ast::decl_variable const *var_decl) const
+bc::value_and_type_pair comptime_executor_context::get_variable(ast::decl_variable const *var_decl)
 {
 	auto const it = this->vars_.find(var_decl);
-	return it == this->vars_.end() ? bc::value_and_type_pair{ nullptr, nullptr } : it->second;
+	if (it != this->vars_.end())
+	{
+		return it->second;
+	}
+
+	auto const global_it = this->global_vars_.find(var_decl);
+	if (global_it == this->global_vars_.end())
+	{
+		return bc::value_and_type_pair{ nullptr, nullptr };
+	}
+
+	auto const &[definition, decl_module, declaration] = global_it->second;
+	if (this->current_module != nullptr && definition->getParent() != &this->get_module() && decl_module != &this->get_module())
+	{
+		global_it->second.module = &this->get_module();
+		auto const new_declaration = this->get_module().getOrInsertGlobal(definition->getName(), definition->getValueType());
+		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(new_declaration) != nullptr);
+		global_it->second.declaration = static_cast<llvm::GlobalVariable *>(new_declaration);
+		return bc::value_and_type_pair{ global_it->second.declaration, global_it->second.declaration->getValueType() };
+	}
+	else
+	{
+		auto const result = this->current_module != nullptr && decl_module == &this->get_module() ? declaration : definition;
+		return bc::value_and_type_pair{ result, result->getValueType() };
+	}
 }
 
 void comptime_executor_context::add_variable(ast::decl_variable const *var_decl, llvm::Value *val, llvm::Type *type)
 {
-	this->vars_.insert_or_assign(var_decl, bc::value_and_type_pair{ val, type });
+	if (var_decl->is_global())
+	{
+		bz_assert(llvm::dyn_cast<llvm::GlobalVariable>(val) != nullptr);
+		this->global_vars_[var_decl] = { static_cast<llvm::GlobalVariable *>(val), nullptr, nullptr };
+	}
+	else
+	{
+		this->vars_.insert_or_assign(var_decl, bc::value_and_type_pair{ val, type });
+	}
 }
 
 void comptime_executor_context::add_global_variable(ast::decl_variable const *var_decl)
 {
-	if (this->vars_.find(var_decl) == this->vars_.end())
+	if (this->global_vars_.find(var_decl) == this->global_vars_.end())
 	{
 		bc::emit_global_variable(*var_decl, *this);
 	}
@@ -177,6 +209,7 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 			this->get_module()
 		);
 		it->second.declaration->setCallingConv(definition->getCallingConv());
+		it->second.declaration->setAttributes(definition->getAttributes());
 		return it->second.declaration;
 	}
 	else
@@ -1031,8 +1064,6 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		return result;
 	}
 
-	// bz::log("{}>>>>>>>> verifying {} <<<<<<<<{}\n", colors::bright_red, module_name, colors::clear);
-	llvm::verifyModule(*this->current_module, &llvm::dbgs());
 	this->add_module(std::move(module));
 	auto const call_result = this->engine->runFunction(fn, {});
 	if (!this->has_error())
@@ -1123,14 +1154,12 @@ static void bozon_builtin_comptime_free(void *ptr) noexcept
 
 void comptime_executor_context::initialize_optimizer(void)
 {
-	// this->pass_manager.add(llvm::createDeadCodeEliminationPass());
-	// this->pass_manager.add(llvm::createInstructionCombiningPass());
-	// this->pass_manager.add(llvm::createGVNPass());
-	// this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
-	// this->pass_manager.add(llvm::createReassociatePass());
-	// this->pass_manager.add(llvm::createCFGSimplificationPass());
-	// this->pass_manager.add(llvm::createInstructionCombiningPass());
-	// this->pass_manager.add(llvm::createMemCpyOptPass());
+	if (comptime_opt_level > 0)
+	{
+		auto builder = llvm::PassManagerBuilder();
+		builder.OptLevel = comptime_opt_level >= 3 ? 3 : comptime_opt_level;
+		builder.populateModulePassManager(this->pass_manager);
+	}
 }
 
 void comptime_executor_context::initialize_engine(void)
@@ -1240,7 +1269,7 @@ void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 		output_file.flush();
 	}
 	// bz::log("{}>>>>>>>> verifying module <<<<<<<<{}\n", colors::bright_red, colors::clear);
-	// llvm::verifyModule(*module, &llvm::dbgs());
+	llvm::verifyModule(*module, &llvm::dbgs());
 	this->engine->addModule(std::move(module));
 }
 

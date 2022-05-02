@@ -3937,12 +3937,32 @@ static val_ptr emit_bitcode(
 					{ llvm::Type::getInt8PtrTy(context.get_llvm_context()) },
 					false
 				);
-				static auto debug_print_func = llvm::Function::Create(
+				static auto debug_print_func_definition = llvm::Function::Create(
 					fn_type,
 					llvm::Function::ExternalLinkage,
 					"__bozon_builtin_debug_print",
 					context.get_module()
 				);
+				static auto current_decl_module = &context.get_module();
+				static auto current_decl = debug_print_func_definition;
+
+				auto const debug_print_func = [&]() {
+					if (&context.get_module() == current_decl_module)
+					{
+						return current_decl;
+					}
+					else
+					{
+						current_decl = llvm::Function::Create(
+							fn_type,
+							llvm::Function::ExternalLinkage,
+							"__bozon_builtin_debug_print",
+							context.get_module()
+						);
+						current_decl_module = &context.get_module();
+						return current_decl;
+					}
+				}();
 
 				auto const file = context.global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id);
 				// if (!file.ends_with("__comptime_checking.bz"))
@@ -3950,7 +3970,10 @@ static val_ptr emit_bitcode(
 					auto const line = src_tokens.pivot->src_pos.line;
 					auto const message = bz::format("{}:{}: {}", file, line, func_call.func_body->get_signature());
 					auto const string_constant = context.create_string(message);
-					context.create_call(debug_print_func, { string_constant });
+					auto const c_str = context.builder.CreatePointerCast(
+						string_constant, llvm::PointerType::getInt8PtrTy(context.get_llvm_context())
+					);
+					context.create_call(debug_print_func, { c_str });
 				}
 			}
 
@@ -5327,9 +5350,9 @@ static val_ptr emit_bitcode(
 
 	if (result.val != nullptr && llvm::dyn_cast<llvm::GlobalVariable>(result.val) != nullptr)
 	{
-		auto const global_var = static_cast<llvm::GlobalVariable *>(result.val);
-		bz_assert(global_var->hasInitializer());
-		result.consteval_val = global_var->getInitializer();
+		// auto const const_val = get_value<abi>(const_expr.value, const_expr.type, &const_expr, context);
+		// result.consteval_val = const_val;
+		// bz_assert(result.type == const_val->getType());
 	}
 	else
 	{
@@ -5992,6 +6015,11 @@ static llvm::Function *create_function_from_symbol_impl(
 		func_t, linkage,
 		name, context.get_module()
 	);
+
+	if (result_t == context.get_bool_t())
+	{
+		fn->addRetAttr(llvm::Attribute::ZExt);
+	}
 
 	switch (func_body.cc)
 	{
@@ -6855,6 +6883,10 @@ static void add_global_result_getters(
 			symbol_name_ref,
 			&context.get_module()
 		);
+		if (type == context.get_bool_t())
+		{
+			func->addRetAttr(llvm::Attribute::ZExt);
+		}
 		getters.push_back(func);
 		auto const bb = llvm::BasicBlock::Create(
 			context.get_llvm_context(),
@@ -6902,6 +6934,10 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		symbol_name_ref,
 		&context.get_module()
 	);
+	if (result_type == context.get_bool_t())
+	{
+		result.first->addRetAttr(llvm::Attribute::ZExt);
+	}
 	context.current_function = { nullptr, result.first };
 	auto const alloca_bb = context.add_basic_block("alloca");
 	context.alloca_bb = alloca_bb;
@@ -7139,6 +7175,10 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		func_t, llvm::Function::ExternalLinkage,
 		symbol_name_ref, &context.get_module()
 	);
+	if (result_type == context.get_bool_t())
+	{
+		result.first->addRetAttr(llvm::Attribute::ZExt);
+	}
 	context.current_function = { nullptr, result.first };
 	auto const alloca_bb = context.add_basic_block("alloca");
 	context.alloca_bb = alloca_bb;
