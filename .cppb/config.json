@@ -31,8 +31,6 @@
 				"no-bitwise-instead-of-logical"
 			],
 
-			"prebuild_rules": [ "generate-opts" ],
-
 			"configs": {
 				"windows-debug": {},
 				"windows-release": {},
@@ -191,10 +189,6 @@
 		"builtins.linux.o": {
 			"dependencies": [ "builtins.c" ],
 			"command": "clang-14 -c builtins.c -O3 -o builtins.linux.o"
-		},
-		"generate-opts": {
-			"command": "python3 scripts/gen_opts.py",
-			"is_file": false
 		},
 		"run-tests": {
 			"command": "python3 scripts/run_tests.py",
