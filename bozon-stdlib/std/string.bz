@@ -514,8 +514,7 @@ export operator ..= (lhs: &string, rhs: #const string) -> &string
 	lhs.reserve(result_size);
 
 	// lhs.reserve could change rhs, if you write something like s ..= s
-	const rhs_begin = rhs.begin_ptr();
-	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	memcpy(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
@@ -526,8 +525,7 @@ export operator ..= (lhs: &string, rhs: str) -> &string
 	const result_size = lhs.size() + rhs_size;
 	lhs.reserve(result_size);
 
-	const rhs_begin = rhs.begin_ptr();
-	memcpy(lhs.end_ptr(), rhs_begin, rhs_size);
+	memcpy(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);
 	lhs.set_size_unsafe(result_size);
 	return lhs;
 }
