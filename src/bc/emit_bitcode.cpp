@@ -6256,6 +6256,9 @@ static void emit_function_bitcode_impl(
 	context.alloca_bb = nullptr;
 	context.output_pointer = nullptr;
 	func_body.flags |= ast::function_body::bitcode_emitted;
+
+	// run the function pass manager on the generated function
+	context.function_pass_manager.run(*fn);
 }
 
 template<abi::platform_abi abi>

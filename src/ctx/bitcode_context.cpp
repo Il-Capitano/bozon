@@ -2,14 +2,24 @@
 #include "global_context.h"
 #include "bc/emit_bitcode.h"
 
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+
 namespace ctx
 {
 
 bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
 	  module(_module),
-	  builder(_global_ctx._llvm_context)
-{}
+	  builder(_global_ctx._llvm_context),
+	  function_pass_manager(_module)
+{
+	if (opt_level != 0)
+	{
+		auto builder = llvm::PassManagerBuilder();
+		builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
+		builder.populateFunctionPassManager(this->function_pass_manager);
+	}
+}
 
 ast::type_info *bitcode_context::get_builtin_type_info(uint32_t kind)
 {
