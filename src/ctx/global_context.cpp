@@ -1040,10 +1040,17 @@ bool global_context::emit_llvm_ir(void)
 	auto &module = this->_module;
 	llvm::legacy::PassManager opt_pass_manager;
 
-	if (opt_level != 0)
 	{
 		auto builder = llvm::PassManagerBuilder();
 		builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
+		if (opt_level == 1)
+		{
+			builder.Inliner = llvm::createAlwaysInlinerLegacyPass();
+		}
+		else if (opt_level >= 2)
+		{
+			builder.Inliner = llvm::createFunctionInliningPass(builder.OptLevel, builder.SizeLevel, false);
+		}
 		builder.populateModulePassManager(opt_pass_manager);
 	}
 
