@@ -14,6 +14,8 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Utils.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/IPO/AlwaysInliner.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include "colors.h"
@@ -33,7 +35,7 @@ static bz::vector<comptime_function> create_empty_comptime_functions(void)
 	result.resize(static_cast<uint32_t>(comptime_function_kind::_last) - static_cast<uint32_t>(comptime_function_kind::_first));
 	for (auto const kind : bz::iota(0, static_cast<uint32_t>(comptime_function_kind::_last)))
 	{
-		result[kind] = { static_cast<comptime_function_kind>(kind), nullptr, nullptr };
+		result[kind] = { static_cast<comptime_function_kind>(kind), nullptr };
 	}
 	return result;
 }
@@ -158,11 +160,28 @@ llvm::Function *comptime_executor_context::get_function(ast::function_body *func
 		this->pop_module(prev_module);
 		bz_assert(this->modules_and_functions.find(func_body) == this->modules_and_functions.end());
 		this->modules_and_functions[func_body] = { std::move(module), fn };
-		return fn;
+
+		it = this->funcs_.find(func_body);
+		bz_assert(it != this->funcs_.end());
+		bz_assert(it->second.definition == fn);
+	}
+
+	auto const &[definition, decl_module, declaration] = it->second;
+	if (this->current_module != nullptr && definition->getParent() != &this->get_module() && decl_module != &this->get_module())
+	{
+		it->second.module = &this->get_module();
+		it->second.declaration = llvm::Function::Create(
+			definition->getFunctionType(),
+			llvm::Function::ExternalLinkage,
+			definition->getName(),
+			this->get_module()
+		);
+		it->second.declaration->setCallingConv(definition->getCallingConv());
+		return it->second.declaration;
 	}
 	else
 	{
-		return it->second;
+		return this->current_module != nullptr && decl_module == &this->get_module() ? declaration : definition;
 	}
 }
 
@@ -728,22 +747,13 @@ bool comptime_executor_context::resolve_function(ast::function_body *body)
 
 llvm::Function *comptime_executor_context::get_comptime_function(comptime_function_kind kind)
 {
-	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func != nullptr);
-	return this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func;
+	return this->get_function(this->comptime_functions[static_cast<uint32_t>(kind)].func_body);
 }
 
 void comptime_executor_context::set_comptime_function(comptime_function_kind kind, ast::function_body *func_body)
 {
 	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].func_body == nullptr);
-	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func == nullptr);
 	this->comptime_functions[static_cast<uint32_t>(kind)].func_body = func_body;
-}
-
-void comptime_executor_context::set_comptime_function(comptime_function_kind kind, llvm::Function *llvm_func)
-{
-	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].func_body != nullptr);
-	bz_assert(this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func == nullptr);
-	this->comptime_functions[static_cast<uint32_t>(kind)].llvm_func = llvm_func;
 }
 
 static ast::constant_value constant_value_from_generic_value(llvm::GenericValue const &value, ast::typespec_view result_type)
@@ -980,7 +990,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 		}
 
 		this->add_module(std::move(module));
-		// bz::log("running {} at {}:{}\n", body->get_signature(), this->global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id), src_tokens.pivot->src_pos.line);
+		// bz::log("running '{}' at {}:{}\n", body->get_signature(), this->global_ctx.get_file_name(src_tokens.pivot->src_pos.file_id), src_tokens.pivot->src_pos.line);
 		auto const call_result = this->engine->runFunction(fn, {});
 
 		if (!this->has_error())
@@ -1022,7 +1032,7 @@ std::pair<ast::constant_value, bz::vector<error>> comptime_executor_context::exe
 	}
 
 	// bz::log("{}>>>>>>>> verifying {} <<<<<<<<{}\n", colors::bright_red, module_name, colors::clear);
-	// llvm::verifyModule(*this->current_module, &llvm::dbgs());
+	llvm::verifyModule(*this->current_module, &llvm::dbgs());
 	this->add_module(std::move(module));
 	auto const call_result = this->engine->runFunction(fn, {});
 	if (!this->has_error())
@@ -1111,30 +1121,25 @@ static void bozon_builtin_comptime_free(void *ptr) noexcept
 	std::free(ptr);
 }
 
+void comptime_executor_context::initialize_optimizer(void)
+{
+	// this->pass_manager.add(llvm::createDeadCodeEliminationPass());
+	// this->pass_manager.add(llvm::createInstructionCombiningPass());
+	// this->pass_manager.add(llvm::createGVNPass());
+	// this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
+	// this->pass_manager.add(llvm::createReassociatePass());
+	// this->pass_manager.add(llvm::createCFGSimplificationPass());
+	// this->pass_manager.add(llvm::createInstructionCombiningPass());
+	// this->pass_manager.add(llvm::createMemCpyOptPass());
+}
+
 void comptime_executor_context::initialize_engine(void)
 {
 	if (this->engine == nullptr)
 	{
 		this->engine = this->create_engine(this->create_module());
-
-		this->pass_manager.add(llvm::createInstructionCombiningPass());
-		this->pass_manager.add(llvm::createGVNPass());
-		this->pass_manager.add(llvm::createPromoteMemoryToRegisterPass());
-		this->pass_manager.add(llvm::createReassociatePass());
-		this->pass_manager.add(llvm::createCFGSimplificationPass());
-		// this->pass_manager.add(llvm::createInstructionCombiningPass());
-		this->pass_manager.add(llvm::createMemCpyOptPass());
-
+		this->initialize_optimizer();
 		this->add_base_functions_to_engine();
-
-		this->engine->addGlobalMapping("__bozon_builtin_is_option_set_impl", reinterpret_cast<uint64_t>(&bozon_is_option_set_impl));
-		this->engine->addGlobalMapping("__bozon_builtin_format_float32",     reinterpret_cast<uint64_t>(&bozon_format_float32));
-		this->engine->addGlobalMapping("__bozon_builtin_format_float64",     reinterpret_cast<uint64_t>(&bozon_format_float64));
-		this->engine->addGlobalMapping("__bozon_builtin_print_stdout",       reinterpret_cast<uint64_t>(&bozon_print_stdout));
-		this->engine->addGlobalMapping("__bozon_builtin_println_stdout",     reinterpret_cast<uint64_t>(&bozon_println_stdout));
-		this->engine->addGlobalMapping("__bozon_builtin_comptime_malloc",    reinterpret_cast<uint64_t>(&bozon_builtin_comptime_malloc));
-		this->engine->addGlobalMapping("__bozon_builtin_comptime_free",      reinterpret_cast<uint64_t>(&bozon_builtin_comptime_free));
-		this->engine->addGlobalMapping("__bozon_builtin_debug_print",        reinterpret_cast<uint64_t>(&bozon_debug_print));
 	}
 }
 
@@ -1198,24 +1203,31 @@ void comptime_executor_context::add_base_functions_to_engine(void)
 	for (auto &func : this->comptime_functions)
 	{
 		bz_assert(func.func_body != nullptr);
-		bz_assert(func.llvm_func == nullptr);
 		auto module = this->create_module();
 		auto const prev_module = this->push_module(module.get());
-		func.llvm_func = bc::add_function_to_module(func.func_body, *this);
+		auto const llvm_func = bc::add_function_to_module(func.func_body, *this);
 		this->functions_to_compile.push_back(func.func_body);
 		this->pop_module(prev_module);
 		bz_assert(this->modules_and_functions.find(func.func_body) == this->modules_and_functions.end());
-		this->modules_and_functions[func.func_body] = { std::move(module), func.llvm_func };
+		this->modules_and_functions[func.func_body] = { std::move(module), llvm_func };
 	}
 
 	[[maybe_unused]] auto const emit_result = bc::emit_necessary_functions(0, *this);
 	bz_assert(emit_result);
 	this->functions_to_compile.clear();
+
+	this->engine->addGlobalMapping("__bozon_builtin_is_option_set_impl", reinterpret_cast<uint64_t>(&bozon_is_option_set_impl));
+	this->engine->addGlobalMapping("__bozon_builtin_format_float32",     reinterpret_cast<uint64_t>(&bozon_format_float32));
+	this->engine->addGlobalMapping("__bozon_builtin_format_float64",     reinterpret_cast<uint64_t>(&bozon_format_float64));
+	this->engine->addGlobalMapping("__bozon_builtin_print_stdout",       reinterpret_cast<uint64_t>(&bozon_print_stdout));
+	this->engine->addGlobalMapping("__bozon_builtin_println_stdout",     reinterpret_cast<uint64_t>(&bozon_println_stdout));
+	this->engine->addGlobalMapping("__bozon_builtin_comptime_malloc",    reinterpret_cast<uint64_t>(&bozon_builtin_comptime_malloc));
+	this->engine->addGlobalMapping("__bozon_builtin_comptime_free",      reinterpret_cast<uint64_t>(&bozon_builtin_comptime_free));
+	this->engine->addGlobalMapping("__bozon_builtin_debug_print",        reinterpret_cast<uint64_t>(&bozon_debug_print));
 }
 
 void comptime_executor_context::add_module(std::unique_ptr<llvm::Module> module)
 {
-	// this->pass_manager.run(*module);
 	this->pass_manager.run(*module);
 	if (debug_comptime_ir_output)
 	{
@@ -1286,7 +1298,9 @@ static Ret call_llvm_func(llvm::ExecutionEngine *engine, llvm::Function *llvm_fu
 bz::vector<error> comptime_executor_context::consume_errors(void)
 {
 	bz_assert(this->engine != nullptr);
-	auto const error_count = this->engine->runFunction(this->get_comptime_function(comptime_function_kind::get_error_count), {})
+	auto const error_count_func =
+		this->funcs_[this->comptime_functions[static_cast<uint32_t>(comptime_function_kind::get_error_count)].func_body].definition;
+	auto const error_count = this->engine->runFunction(error_count_func, {})
 		.IntVal.getLimitedValue();
 	bz::vector<error> result;
 	result.reserve(error_count);

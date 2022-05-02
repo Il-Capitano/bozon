@@ -54,6 +54,7 @@
 #include <llvm/Transforms/IPO/InferFunctionAttrs.h>
 #include <llvm/Transforms/IPO/FunctionAttrs.h>
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Instrumentation.h>
 #include <llvm/Transforms/Vectorize.h>
 #include <llvm/Transforms/Instrumentation.h>
@@ -1031,13 +1032,20 @@ bool global_context::emit_llvm_ir(void)
 [[nodiscard]] bool global_context::optimize(void)
 {
 	auto const &optimizations = ctcli::option_value<ctcli::option("--opt")>;
-	if (optimizations.empty() || max_opt_iter_count == 0)
+	if ((opt_level == 0 && optimizations.empty()) || max_opt_iter_count == 0)
 	{
 		return true;
 	}
 
 	auto &module = this->_module;
 	llvm::legacy::PassManager opt_pass_manager;
+
+	if (opt_level != 0)
+	{
+		auto builder = llvm::PassManagerBuilder();
+		builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
+		builder.populateModulePassManager(opt_pass_manager);
+	}
 
 	for (auto const opt : optimizations)
 	{
