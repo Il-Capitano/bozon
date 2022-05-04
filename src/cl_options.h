@@ -51,7 +51,7 @@ inline constexpr bz::array ctcli::option_group_multiple<warning_group_id> = []()
 
 template<>
 inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
-	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 3> result{};
+	bz::array<ctcli::group_element_t, bc::optimization_infos.size() + 4> result{};
 
 	size_t i = 0;
 	for (i = 0; i < bc::optimization_infos.size(); ++i)
@@ -62,8 +62,9 @@ inline constexpr bz::array ctcli::option_group<opt_group_id> = []() {
 
 	static_assert(bz::meta::is_same<size_t, uint64_t>);
 	result[i++] = ctcli::create_group_element("max-iter-count=<count>", "Control the maximum number of pass iterations (default=1)", ctcli::arg_type::uint64);
-	result[i++] = ctcli::create_group_element("opt-level=<level>", "Set optimization level (default=0)", ctcli::arg_type::uint64);
-	result[i++] = ctcli::create_group_element("comptime-opt-level=<level>", "Set optimization level for compile time execution (default=0)", ctcli::arg_type::uint64);
+	result[i++] = ctcli::create_group_element("opt-level=<level>", "Set optimization level (0-3) (default=0)", ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("size-opt-level=<level>", "Set size optimization level (0-2) (default=0)", ctcli::arg_type::uint32);
+	result[i++] = ctcli::create_group_element("comptime-opt-level=<level>", "Set optimization level for compile time execution (default=0)", ctcli::arg_type::uint32);
 
 	bz_assert(i == result.size());
 	return result;
@@ -158,6 +159,7 @@ template<> inline constexpr bool ctcli::is_array_like<ctcli::option("--opt")> = 
 
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt max-iter-count")>     = &max_opt_iter_count;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt opt-level")>          = &opt_level;
+template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt size-opt-level")>     = &size_opt_level;
 template<> inline constexpr auto *ctcli::value_storage_ptr<ctcli::group_element("--opt comptime-opt-level")> = &comptime_opt_level;
 
 template<>

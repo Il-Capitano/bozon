@@ -103,6 +103,25 @@ ast::scope_t get_default_decls(ast::scope_t *builtin_global_scope, bz::array_vie
 	return result;
 }
 
+llvm::PassManagerBuilder create_pass_manager_builder(void)
+{
+	auto builder = llvm::PassManagerBuilder();
+
+	builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
+	builder.SizeLevel = size_opt_level >= 2 ? 2 : size_opt_level;
+
+	if (opt_level == 1)
+	{
+		builder.Inliner = llvm::createAlwaysInlinerLegacyPass();
+	}
+	else if (opt_level >= 2)
+	{
+		builder.Inliner = llvm::createFunctionInliningPass(builder.OptLevel, builder.SizeLevel, false);
+	}
+
+	return builder;
+}
+
 global_context::global_context(void)
 	: _compile_decls{},
 	  _errors{},
@@ -848,13 +867,6 @@ bool global_context::emit_obj(void)
 		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
 		ec, llvm::sys::fs::OF_None
 	);
-	if (output_file == "-")
-	{
-		this->report_warning(
-			warning_kind::binary_stdout,
-			"outputting binary file to stdout"
-		);
-	}
 
 	if (ec)
 	{
@@ -863,6 +875,14 @@ bool global_context::emit_obj(void)
 			output_file, ec.message().c_str()
 		));
 		return false;
+	}
+
+	if (output_file == "-")
+	{
+		this->report_warning(
+			warning_kind::binary_stdout,
+			"outputting binary file to stdout"
+		);
 	}
 
 	auto &module = this->_module;
@@ -964,13 +984,6 @@ bool global_context::emit_llvm_bc(void)
 		llvm::StringRef(output_file.data_as_char_ptr(), output_file.size()),
 		ec, llvm::sys::fs::OF_None
 	);
-	if (output_file == "-")
-	{
-		this->report_warning(
-			warning_kind::binary_stdout,
-			"outputting binary file to stdout"
-		);
-	}
 
 	if (ec)
 	{
@@ -979,6 +992,14 @@ bool global_context::emit_llvm_bc(void)
 			output_file, ec.message().c_str()
 		));
 		return false;
+	}
+
+	if (output_file == "-")
+	{
+		this->report_warning(
+			warning_kind::binary_stdout,
+			"outputting binary file to stdout"
+		);
 	}
 
 	llvm::WriteBitcodeToFile(module, dest);
@@ -1041,16 +1062,7 @@ bool global_context::emit_llvm_ir(void)
 	llvm::legacy::PassManager opt_pass_manager;
 
 	{
-		auto builder = llvm::PassManagerBuilder();
-		builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
-		if (opt_level == 1)
-		{
-			builder.Inliner = llvm::createAlwaysInlinerLegacyPass();
-		}
-		else if (opt_level >= 2)
-		{
-			builder.Inliner = llvm::createFunctionInliningPass(builder.OptLevel, builder.SizeLevel, false);
-		}
+		auto builder = create_pass_manager_builder();
 		builder.populateModulePassManager(opt_pass_manager);
 	}
 

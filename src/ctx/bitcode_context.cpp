@@ -15,8 +15,7 @@ bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_mod
 {
 	if (opt_level != 0)
 	{
-		auto builder = llvm::PassManagerBuilder();
-		builder.OptLevel = opt_level >= 3 ? 3 : opt_level;
+		auto builder = create_pass_manager_builder();
 		builder.populateFunctionPassManager(this->function_pass_manager);
 	}
 }
