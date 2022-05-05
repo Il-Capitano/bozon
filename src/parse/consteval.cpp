@@ -2859,6 +2859,10 @@ static ast::constant_value guaranteed_evaluate_expr(
 			// these are always constant expressions
 			bz_unreachable;
 		},
+		[](ast::expr_null_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
 		[](ast::expr_typed_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
@@ -3184,6 +3188,10 @@ static ast::constant_value try_evaluate_expr(
 			return {};
 		},
 		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_null_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
@@ -3516,6 +3524,10 @@ static ast::constant_value try_evaluate_expr_without_error(
 			return {};
 		},
 		[](ast::expr_integer_literal &) -> ast::constant_value {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_null_literal &) -> ast::constant_value {
 			// these are always constant expressions
 			bz_unreachable;
 		},
@@ -4087,6 +4099,10 @@ static void get_consteval_fail_notes_helper(ast::expression const &expr, bz::vec
 			}
 		},
 		[](ast::expr_integer_literal const &) {
+			// these are always constant expressions
+			bz_unreachable;
+		},
+		[](ast::expr_null_literal const &) {
 			// these are always constant expressions
 			bz_unreachable;
 		},

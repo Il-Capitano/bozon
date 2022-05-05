@@ -177,6 +177,11 @@ static bool is_integer_literal_implicitly_convertible(
 		: is_integer_implicitly_convertible(dest_kind, kind, value.get<ast::constant_value::uint>());
 }
 
+static bool is_null_literal_implicitly_convertible(ast::typespec_view dest)
+{
+	return dest.is<ast::ts_pointer>();
+}
+
 bool is_implicitly_convertible(
 	ast::typespec_view dest,
 	ast::expression const &expr,
@@ -203,6 +208,10 @@ bool is_implicitly_convertible(
 	else if (expr.is_integer_literal())
 	{
 		return is_integer_literal_implicitly_convertible(dest, expr);
+	}
+	else if (expr.is_null_literal())
+	{
+		return is_null_literal_implicitly_convertible(dest);
 	}
 
 	bz_assert(!dest.is<ast::ts_const>());

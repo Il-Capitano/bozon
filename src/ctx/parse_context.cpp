@@ -3063,10 +3063,10 @@ ast::expression parse_context::make_literal(lex::token_pos literal) const
 	case lex::token::kw_null:
 		return ast::make_constant_expression(
 			src_tokens,
-			ast::expression_type_kind::rvalue,
+			ast::expression_type_kind::null_literal,
 			ast::make_base_type_typespec(src_tokens, this->get_builtin_type_info(ast::type_info::null_t_)),
 			ast::constant_value(ast::internal::null_t{}),
-			ast::make_expr_typed_literal(literal)
+			ast::make_expr_null_literal()
 		);
 	default:
 		bz_unreachable;

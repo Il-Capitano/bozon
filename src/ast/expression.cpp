@@ -56,12 +56,6 @@ typespec const &expression::get_typename(void) const noexcept
 	return this->get<constant_expression>().value.get<constant_value::type>();
 }
 
-bool expression::is_tuple(void) const noexcept
-{
-	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
-		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
-}
-
 template<typename expr_t, bool get_inner = true>
 static bz::meta::conditional<get_inner, expr_t, expression> &get_expr_kind(expression &expr_)
 {
@@ -148,6 +142,12 @@ static bz::meta::conditional<get_inner, expr_t, expression> const &get_expr_kind
 	}
 }
 
+bool expression::is_tuple(void) const noexcept
+{
+	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::tuple)
+		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::tuple);
+}
+
 expr_tuple &expression::get_tuple(void) noexcept
 {
 	bz_assert(this->is_tuple());
@@ -212,6 +212,24 @@ expr_integer_literal const &expression::get_integer_literal(void) const noexcept
 {
 	bz_assert(this->is_integer_literal());
 	return get_expr_kind<expr_integer_literal>(*this);
+}
+
+bool expression::is_null_literal(void) const noexcept
+{
+	return (this->is<constant_expression>() && this->get<constant_expression>().kind == expression_type_kind::null_literal)
+		|| (this->is<dynamic_expression>() && this->get<dynamic_expression>().kind == expression_type_kind::null_literal);
+}
+
+expr_null_literal &expression::get_null_literal(void) noexcept
+{
+	bz_assert(this->is_null_literal());
+	return get_expr_kind<expr_null_literal>(*this);
+}
+
+expr_null_literal const &expression::get_null_literal(void) const noexcept
+{
+	bz_assert(this->is_null_literal());
+	return get_expr_kind<expr_null_literal>(*this);
 }
 
 constant_value &expression::get_integer_literal_value(void) noexcept

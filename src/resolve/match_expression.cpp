@@ -260,22 +260,6 @@ static bool match_typename_to_type_impl(
 			);
 		}
 	}
-	// null to pointer
-	else if (
-		dest.is<ast::ts_pointer>()
-		&& expr_type_without_const.is<ast::ts_base_type>()
-		&& expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
-	)
-	{
-		if (!ast::is_complete(dest))
-		{
-			return type_match_result::error;
-		}
-		else
-		{
-			return type_match_result::needs_cast;
-		}
-	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
 		if (!ast::is_lvalue(expr_type_kind))
@@ -550,7 +534,7 @@ static void match_type_base_case(
 	}
 }
 
-static void match_literal_to_type(
+static void match_integer_literal_to_type(
 	ast::expression &expr,
 	ast::typespec &dest_container,
 	ast::typespec_view dest,
@@ -653,6 +637,25 @@ static void match_literal_to_type(
 	else
 	{
 		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+	}
+}
+
+static void match_null_literal_to_type(
+	ast::expression &expr,
+	ast::typespec &dest_container,
+	ast::typespec_view dest,
+	ctx::parse_context &context
+)
+{
+	bz_assert(expr.is_null_literal());
+
+	if (dest.is<ast::ts_pointer>())
+	{
+		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+	}
+	else
+	{
+		match_type_base_case(expr, dest_container, dest, context);
 	}
 }
 
@@ -1025,7 +1028,15 @@ static void match_expression_to_type_impl(
 	}
 	else if (expr.is_integer_literal())
 	{
-		match_literal_to_type(expr, dest_container, dest, context);
+		match_integer_literal_to_type(expr, dest_container, dest, context);
+		if (expr.is_error())
+		{
+			return;
+		}
+	}
+	else if (expr.is_null_literal())
+	{
+		match_null_literal_to_type(expr, dest_container, dest, context);
 		if (expr.is_error())
 		{
 			return;

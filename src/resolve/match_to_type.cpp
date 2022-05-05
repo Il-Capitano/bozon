@@ -360,22 +360,6 @@ static match_level_t get_type_match_level(
 			true, true
 		) + 1;
 	}
-	// special case for null
-	else if (
-		dest.is<ast::ts_pointer>()
-		&& expr_type_without_const.is<ast::ts_base_type>()
-		&& expr_type_without_const.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_
-	)
-	{
-		if (ast::is_complete(dest))
-		{
-			return single_match_t{ 0, reference_match_kind::exact_match, type_match_kind::implicit_conversion };
-		}
-		else
-		{
-			return match_level_t{};
-		}
-	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
 		if (!ast::is_lvalue(expr_type_kind))
