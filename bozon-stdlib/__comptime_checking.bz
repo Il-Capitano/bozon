@@ -45,22 +45,22 @@ function release(value: &auto) -> __builtin_remove_reference(typeof value)
 function round_to_next_power_of_two(n: usize) -> usize
 {
 	// https://stackoverflow.com/a/466242/11488457
-	n -= 1u;
+	n -= 1;
 	n |= n >> 1;
 	n |= n >> 2;
 	n |= n >> 4;
 	n |= n >> 8;
 	n |= n >> 16;
 	n |= n >> 32;
-	n += 1u;
+	n += 1;
 	return n;
 }
 
 function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 {
-	if (n == 0u)
+	if (n == 0)
 	{
-		return [ null, 0u ];
+		return [ null, 0 ];
 	}
 	else
 	{
@@ -113,7 +113,7 @@ struct vector<T: typename>
 	constructor(slice: [: const value_type])
 	{
 		const size = slice.size();
-		if (size == 0u)
+		if (size == 0)
 		{
 			return _self_t();
 		}
@@ -193,12 +193,12 @@ struct vector<T: typename>
 
 	function back(self: &_self_t) -> &value_type
 	{
-		return self[self.size() - 1u];
+		return self[self.size() - 1];
 	}
 
 	function back(self: &const _self_t) -> &const value_type
 	{
-		return self[self.size() - 1u];
+		return self[self.size() - 1];
 	}
 
 
@@ -241,9 +241,8 @@ struct vector<T: typename>
 
 	function push_back(self: &_self_t, value: ##value_type)
 	{
-		self.reserve(self.size() + 1u);
+		self.reserve(self.size() + 1);
 		__builtin_inplace_construct(self._data_end, value_type(value));
-		memcpy(null, null, 0u);
 		self._data_end += 1;
 	}
 
@@ -258,7 +257,7 @@ struct vector<T: typename>
 
 	function emplace_back(self: &_self_t, ...##args)
 	{
-		self.reserve(self.size() + 1u);
+		self.reserve(self.size() + 1);
 		__builtin_inplace_construct(self._data_end, value_type(...args));
 		self._data_end += 1;
 	}
@@ -377,7 +376,7 @@ struct string
 	operator ..= (lhs: &string, rhs: char) -> &string
 	{
 		const [rhs_buffer, rhs_size] = std::encode_char_utf8(rhs);
-		if (rhs_size == 1u)
+		if (rhs_size == 1)
 		{
 			lhs._buffer.push_back(rhs_buffer[0]);
 		}
@@ -402,18 +401,18 @@ consteval max_uint_string_length = 20uz;
 function get_uint_as_string(n: uint64) -> [[max_uint_string_length: uint8], uint32]
 {
 	let result: [[max_uint_string_length: uint8], uint32];
-	if (n < 10u)
+	if (n < 10)
 	{
-		result[0, max_uint_string_length - 1u] = ('0' + n) as uint8;
-		result[1] = 1u;
+		result[0, max_uint_string_length - 1] = ('0' + n) as uint8;
+		result[1] = 1;
 	}
 	else
 	{
 		let it = result[0].end();
-		while (n != 0u)
+		while (n != 0)
 		{
-			const digit = n % 10u;
-			n /= 10u;
+			const digit = n % 10;
+			n /= 10;
 			--it;
 			*it = ('0' + digit) as uint8;
 		}
@@ -429,18 +428,18 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 {
 	let n = abs_val;
 	let result: [[max_int_string_length: uint8], uint32];
-	if (n < 10u)
+	if (n < 10)
 	{
-		result[0, max_int_string_length - 1u] = ('0' + n) as uint8;
-		result[1] = 1u;
+		result[0, max_int_string_length - 1] = ('0' + n) as uint8;
+		result[1] = 1;
 	}
 	else
 	{
 		let it = result[0].end();
-		while (n != 0u)
+		while (n != 0)
 		{
-			const digit = n % 10u;
-			n /= 10u;
+			const digit = n % 10;
+			n /= 10;
 			--it;
 			*it = ('0' + digit) as uint8;
 		}
@@ -448,7 +447,7 @@ function get_int_as_string(abs_val: uint64, is_negative: bool) -> [[max_int_stri
 	}
 	if (is_negative)
 	{
-		*(result[0].end() - result[1] - 1u) = '-' as uint8;
+		*(result[0].end() - result[1] - 1) = '-' as uint8;
 		++result[1];
 	}
 	return result;
@@ -512,7 +511,7 @@ function print_ascii_char(c: char)
 
 function print_uint_impl(n: uint64, base: consteval uint64)
 {
-	if (n < 10u)
+	if (n < 10)
 	{
 		print_ascii_char('0' + n);
 	}
@@ -524,14 +523,14 @@ function print_uint_impl(n: uint64, base: consteval uint64)
 	{
 		print_uint_impl(n / base, base);
 		const mod = n % base;
-		const c = if (mod < 10u) { '0' + mod } else { 'a' + mod - 10 };
+		const c = if (mod < 10) { '0' + mod } else { 'a' + mod - 10 };
 		print_ascii_char(c);
 	}
 }
 
 function print_uint(n: uint64, base: consteval uint64)
 {
-	if (n == 0u)
+	if (n == 0)
 	{
 		print("0");
 	}
@@ -543,22 +542,22 @@ function print_uint(n: uint64, base: consteval uint64)
 
 export function print(n: uint64)
 {
-	print_uint(n, 10u);
+	print_uint(n, 10);
 }
 
 export function print(p: *const void)
 {
-	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u);
+	print("0x"), print_uint(__builtin_pointer_to_int(p), 16);
 }
 
 export function println(n: uint64)
 {
-	print_uint(n, 10u), println("");
+	print_uint(n, 10), println("");
 }
 
 export function println(p: *const void)
 {
-	print("0x"), print_uint(__builtin_pointer_to_int(p), 16u), println("");
+	print("0x"), print_uint(__builtin_pointer_to_int(p), 16), println("");
 }
 
 // */
@@ -614,31 +613,31 @@ function get_error_count() -> uint64
 @__comptime_error_checking("get_error_kind_by_index")
 function get_error_kind_by_index(i: uint64) -> uint32
 {
-	return if (i < errors.size()) { errors[i].kind } else { 0u32 };
+	return if (i < errors.size()) { errors[i].kind } else { 0 };
 }
 
 @__comptime_error_checking("get_error_begin_by_index")
 function get_error_begin_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].src_tokens.begin } else { 0u64 };
+	return if (i < errors.size()) { errors[i].src_tokens.begin } else { 0 };
 }
 
 @__comptime_error_checking("get_error_pivot_by_index")
 function get_error_pivot_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].src_tokens.pivot } else { 0u64 };
+	return if (i < errors.size()) { errors[i].src_tokens.pivot } else { 0 };
 }
 
 @__comptime_error_checking("get_error_end_by_index")
 function get_error_end_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].src_tokens.end } else { 0u64 };
+	return if (i < errors.size()) { errors[i].src_tokens.end } else { 0 };
 }
 
 @__comptime_error_checking("get_error_message_size_by_index")
 function get_error_message_size_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].message.size() } else { 0u64 };
+	return if (i < errors.size()) { errors[i].message.size() } else { 0 };
 }
 
 @__comptime_error_checking("get_error_message_by_index")
@@ -653,13 +652,13 @@ function get_error_message_char_by_index(i: uint64, buffer: *uint8)
 @__comptime_error_checking("get_error_call_stack_size_by_index")
 function get_error_call_stack_size_by_index(i: uint64) -> uint64
 {
-	return if (i < errors.size()) { errors[i].call_stack.size() } else { 0u64 };
+	return if (i < errors.size()) { errors[i].call_stack.size() } else { 0 };
 }
 
 @__comptime_error_checking("get_error_call_stack_element_by_index")
 function get_error_call_stack_element_by_index(i: uint64, j: uint64) -> uint64
 {
-	return if (i < errors.size() && j < errors[i].call_stack.size()) { errors[i].call_stack[j] } else { 0u64 };
+	return if (i < errors.size() && j < errors[i].call_stack.size()) { errors[i].call_stack[j] } else { 0 };
 }
 
 @__comptime_error_checking("has_errors")
@@ -678,7 +677,7 @@ function has_errors() -> bool
 function str_from_c_str(c_str: *const uint8) -> str
 {
 	let it = c_str;
-	while (*it != 0u)
+	while (*it != 0)
 	{
 		++it;
 	}
@@ -723,7 +722,7 @@ struct malloc_info_t
 	constructor()
 	{
 		return malloc_info_t[
-			null, 0uz, src_tokens_t(), vector<uint64>(),
+			null, 0, src_tokens_t(), vector<uint64>(),
 			false, src_tokens_t(), vector<uint64>(),
 		];
 	}
@@ -732,7 +731,7 @@ struct malloc_info_t
 	{
 		return malloc_info_t[
 			ptr, size, malloc_src_tokens, call_stack,
-			false, src_tokens_t[ 0u, 0u, 0u ], vector<uint64>(),
+			false, src_tokens_t[ 0, 0, 0 ], vector<uint64>(),
 		];
 	}
 }
@@ -921,7 +920,7 @@ function comptime_malloc_check(
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (size == 0u)
+	if (size == 0)
 	{
 		return true;
 	}
@@ -951,7 +950,7 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (size == 0u)
+	if (size == 0)
 	{
 		return true;
 	}
@@ -976,7 +975,7 @@ function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usi
 // dest is passed as *const uint8 because pointer casts are not allowed in comptime code
 function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (size == 0u)
+	if (size == 0)
 	{
 		return true;
 	}
@@ -1011,7 +1010,7 @@ function get_divide_by_zero_error_message(type_name: str, lhs: uint64, rhs: uint
 function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i8_min = (((1u8 << 7) as int8));
-	static_assert(((i8_min - 1i8)) > 0);
+	static_assert(((i8_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int8", lhs, rhs);
@@ -1034,7 +1033,7 @@ function i8_divide_check(lhs: int8, rhs: int8, begin: uint64, pivot: uint64, end
 function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i16_min = (((1u16 << 15) as int16));
-	static_assert(((i16_min - 1i16)) > 0);
+	static_assert(((i16_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int16", lhs, rhs);
@@ -1057,7 +1056,7 @@ function i16_divide_check(lhs: int16, rhs: int16, begin: uint64, pivot: uint64, 
 function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i32_min = (((1u32 << 31) as int32));
-	static_assert(((i32_min - 1i32)) > 0);
+	static_assert(((i32_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int32", lhs, rhs);
@@ -1080,7 +1079,7 @@ function i32_divide_check(lhs: int32, rhs: int32, begin: uint64, pivot: uint64, 
 function i64_divide_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	consteval i64_min = (((1u64 << 63) as int64));
-	static_assert(((i64_min - 1i64)) > 0);
+	static_assert(((i64_min - 1)) > 0);
 	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("int64", lhs, rhs);
@@ -1102,7 +1101,7 @@ function i64_divide_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, 
 @__comptime_error_checking("u8_divide_check")
 function u8_divide_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("uint8", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1117,7 +1116,7 @@ function u8_divide_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, e
 @__comptime_error_checking("u16_divide_check")
 function u16_divide_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("uint16", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1132,7 +1131,7 @@ function u16_divide_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64
 @__comptime_error_checking("u32_divide_check")
 function u32_divide_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("uint32", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1147,7 +1146,7 @@ function u32_divide_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64
 @__comptime_error_checking("u64_divide_check")
 function u64_divide_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_divide_by_zero_error_message("uint64", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1232,7 +1231,7 @@ function i64_modulo_check(lhs: int64, rhs: int64, begin: uint64, pivot: uint64, 
 @__comptime_error_checking("u8_modulo_check")
 function u8_modulo_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_modulo_by_zero_error_message("uint8", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1247,7 +1246,7 @@ function u8_modulo_check(lhs: uint8, rhs: uint8, begin: uint64, pivot: uint64, e
 @__comptime_error_checking("u16_modulo_check")
 function u16_modulo_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_modulo_by_zero_error_message("uint16", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1262,7 +1261,7 @@ function u16_modulo_check(lhs: uint16, rhs: uint16, begin: uint64, pivot: uint64
 @__comptime_error_checking("u32_modulo_check")
 function u32_modulo_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_modulo_by_zero_error_message("uint32", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1277,7 +1276,7 @@ function u32_modulo_check(lhs: uint32, rhs: uint32, begin: uint64, pivot: uint64
 @__comptime_error_checking("u64_modulo_check")
 function u64_modulo_check(lhs: uint64, rhs: uint64, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
-	if (rhs == 0u)
+	if (rhs == 0)
 	{
 		const message = get_modulo_by_zero_error_message("uint64", lhs, rhs);
 		emit_diagnostic(warning_kind_error, message.as_str(), begin, pivot, end);
@@ -1322,7 +1321,7 @@ function isnan(x: float32) -> bool
 	const bits = float_to_bits(x);
 	consteval exponent_mask = 0x7f80'0000u32;
 	consteval mantissa_mask = 0x007f'ffffu32;
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
 }
 
 function isnan(x: float64) -> bool
@@ -1330,7 +1329,7 @@ function isnan(x: float64) -> bool
 	const bits = double_to_bits(x);
 	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
 	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0u;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) != 0;
 }
 
 function isinf(x: float32) -> bool
@@ -1338,7 +1337,7 @@ function isinf(x: float32) -> bool
 	const bits = float_to_bits(x);
 	consteval exponent_mask = 0x7f80'0000u32;
 	consteval mantissa_mask = 0x007f'ffffu32;
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) == 0u;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) == 0;
 }
 
 function isinf(x: float64) -> bool
@@ -1346,7 +1345,7 @@ function isinf(x: float64) -> bool
 	const bits = double_to_bits(x);
 	consteval exponent_mask = 0x7ff0'0000'0000'0000u64;
 	consteval mantissa_mask = 0x000f'ffff'ffff'ffffu64;
-	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) == 0u;
+	return (bits & exponent_mask) == exponent_mask && (bits & mantissa_mask) == 0;
 }
 
 function isfinite(x: float32) -> bool
@@ -1373,7 +1372,7 @@ function isint(x: float32) -> bool
 	consteval mantissa_size = __builtin_popcount_u32(mantissa_mask);
 
 	// special case for 0.0
-	if ((bits & (mantissa_mask | exponent_mask)) == 0u)
+	if ((bits & (mantissa_mask | exponent_mask)) == 0)
 	{
 		return true;
 	}
@@ -1396,7 +1395,7 @@ function isint(x: float64) -> bool
 	consteval mantissa_size = __builtin_popcount_u64(mantissa_mask);
 
 	// special case for 0.0
-	if ((bits & (mantissa_mask | exponent_mask)) == 0u)
+	if ((bits & (mantissa_mask | exponent_mask)) == 0)
 	{
 		return true;
 	}
