@@ -515,7 +515,7 @@ void bitcode_context::emit_end_lifetime_calls(void)
 void bitcode_context::emit_loop_end_lifetime_calls(void)
 {
 	bz_assert(!this->has_terminator());
-	bz_assert(!this->destructor_calls.empty());
+	bz_assert(!this->end_lifetime_calls.empty());
 	for (auto const &scope_calls : this->end_lifetime_calls.slice(this->loop_info.destructor_stack_begin).reversed())
 	{
 		for (auto const &[ptr, size] : scope_calls.reversed())
