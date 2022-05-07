@@ -649,9 +649,14 @@ static void match_null_literal_to_type(
 {
 	bz_assert(expr.is_null_literal());
 
-	if (dest.is<ast::ts_pointer>())
+	if (dest.is<ast::ts_optional_pointer>() || dest.is<ast::ts_optional>())
 	{
-		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+		expr = ast::make_constant_expression(
+			expr.src_tokens,
+			ast::expression_type_kind::rvalue, dest,
+			ast::constant_value(ast::internal::null_t{}),
+			ast::make_expr_builtin_default_construct(dest)
+		);
 	}
 	else
 	{
