@@ -867,6 +867,9 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			);
 		},
 		[&](ast::ts_pointer const &) {
+			// nothing
+		},
+		[&](ast::ts_optional_pointer const &) {
 			if (value.PointerVal == nullptr)
 			{
 				result.emplace<ast::constant_value::null>();
@@ -874,6 +877,19 @@ static ast::constant_value constant_value_from_generic_value(llvm::GenericValue 
 			else
 			{
 				// nothing
+			}
+		},
+		[&](ast::ts_optional const &) {
+			if (value.AggregateVal[1].IntVal == 0)
+			{
+				result.emplace<ast::constant_value::null>();
+			}
+			else
+			{
+				result = constant_value_from_generic_value(
+					value.AggregateVal[0],
+					ast::remove_const_or_consteval(result_type).get<ast::ts_optional>()
+				);
 			}
 		},
 		[](ast::ts_lvalue_reference const &) {

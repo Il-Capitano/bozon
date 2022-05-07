@@ -190,6 +190,38 @@ static void emit_index_bounds_check(
 	}
 }
 
+static void emit_error_assert(
+	lex::src_tokens const &src_tokens,
+	llvm::Value *bool_val,
+	bz::u8string_view message,
+	ctx::comptime_executor_context &context
+)
+{
+	if (context.current_function.first != nullptr && context.current_function.first->is_no_comptime_checking())
+	{
+		return;
+	}
+
+	auto const error_bb = context.add_basic_block("optional_check_error");
+	auto const continue_bb = context.add_basic_block("optional_check_contiunue");
+
+	context.builder.CreateCondBr(bool_val, continue_bb, error_bb);
+
+	context.builder.SetInsertPoint(error_bb);
+	auto const error_kind_val  = llvm::ConstantInt::get(context.get_uint32_t(), static_cast<uint32_t>(ctx::warning_kind::_last));
+	auto const [error_begin_val, error_pivot_val, error_end_val] = get_src_tokens_llvm_value(src_tokens, context);
+	auto const string_constant = context.create_string(message);
+	auto const string_type = llvm::ArrayType::get(context.get_uint8_t(), message.size() + 1);
+	auto const message_val = context.create_struct_gep(string_type, string_constant, 0);
+	context.create_call(
+		context.get_comptime_function(ctx::comptime_function_kind::add_error),
+		{ error_kind_val, error_begin_val, error_pivot_val, error_end_val, message_val }
+	);
+	context.builder.CreateBr(context.error_bb);
+
+	context.builder.SetInsertPoint(continue_bb);
+}
+
 static void emit_error(
 	lex::src_tokens const &src_tokens,
 	bz::u8string message,
@@ -3130,7 +3162,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 139);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 143);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3255,6 +3287,106 @@ static val_ptr emit_bitcode(
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr::get_value(result);
+			}
+		}
+		case ast::function_body::builtin_optional_has_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const opt_value = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+			auto const has_value = [&]() -> llvm::Value * {
+				if (opt_value.get_type()->isPointerTy())
+				{
+					auto const pointer_val = opt_value.get_value(context.builder);
+					auto const pointer_int_val = context.builder.CreatePtrToInt(pointer_val, context.get_usize_t());
+					auto const zero_val = llvm::ConstantInt::get(pointer_int_val->getType(), 0);
+					return context.builder.CreateICmpNE(pointer_int_val, zero_val);
+				}
+				else if (opt_value.kind == val_ptr::reference)
+				{
+					auto const has_value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
+					return context.create_load(context.get_bool_t(), has_value_ptr);
+				}
+				else
+				{
+					return context.builder.CreateExtractValue(opt_value.val, 1);
+				}
+			}();
+			if (result_address != nullptr)
+			{
+				context.builder.CreateStore(has_value, result_address);
+				return val_ptr::get_reference(result_address, has_value->getType());
+			}
+			else
+			{
+				return val_ptr::get_value(has_value);
+			}
+		}
+		case ast::function_body::builtin_optional_get_value:
+		{
+			bz_assert(func_call.params.size() == 1);
+			auto const opt_value = emit_bitcode<abi>(func_call.params[0], context, nullptr);
+
+			if constexpr (is_comptime<Context>)
+			{
+				auto const has_value = [&]() -> llvm::Value * {
+					if (opt_value.get_type()->isPointerTy())
+					{
+						auto const pointer_val = opt_value.get_value(context.builder);
+						auto const pointer_int_val = context.builder.CreatePtrToInt(pointer_val, context.get_usize_t());
+						auto const zero_val = llvm::ConstantInt::get(pointer_int_val->getType(), 0);
+						return context.builder.CreateICmpNE(pointer_int_val, zero_val);
+					}
+					else if (opt_value.kind == val_ptr::reference)
+					{
+						auto const has_value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
+						return context.create_load(context.get_bool_t(), has_value_ptr);
+					}
+					else
+					{
+						return context.builder.CreateExtractValue(opt_value.val, 1);
+					}
+				}();
+				emit_error_assert(src_tokens, has_value, "'__builtin_optional_get_value' called on null value", context);
+			}
+
+			if (opt_value.get_type()->isPointerTy())
+			{
+				return opt_value;
+			}
+			else if (opt_value.kind == val_ptr::reference)
+			{
+				auto const result_ref = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
+				if (result_address != nullptr)
+				{
+					bz_assert(opt_value.get_type()->isStructTy());
+					auto const expr_type = ast::remove_lvalue_reference(func_call.params[0].get_expr_type_and_kind().first);
+					bz_assert(expr_type.is<ast::ts_optional>());
+					return emit_copy_constructor<abi>(
+						src_tokens,
+						val_ptr::get_reference(result_ref, opt_value.get_type()->getStructElementType(0)),
+						expr_type.get<ast::ts_optional>(),
+						context,
+						result_address
+					);
+				}
+				else
+				{
+					bz_assert(opt_value.get_type()->isStructTy());
+					return val_ptr::get_reference(result_ref, opt_value.get_type()->getStructElementType(0));
+				}
+			}
+			else
+			{
+				auto const result_val = context.builder.CreateExtractValue(opt_value.val, 1);
+				if (result_address != nullptr)
+				{
+					context.builder.CreateStore(result_val, result_address);
+					return val_ptr::get_reference(result_address, result_val->getType());
+				}
+				else
+				{
+					return val_ptr::get_value(result_val);
+				}
 			}
 		}
 		case ast::function_body::builtin_pointer_cast:
@@ -3688,11 +3820,13 @@ static val_ptr emit_bitcode(
 		case ast::function_body::is_const:
 		case ast::function_body::is_consteval:
 		case ast::function_body::is_pointer:
+		case ast::function_body::is_optional:
 		case ast::function_body::is_reference:
 		case ast::function_body::is_move_reference:
 		case ast::function_body::remove_const:
 		case ast::function_body::remove_consteval:
 		case ast::function_body::remove_pointer:
+		case ast::function_body::remove_optional:
 		case ast::function_body::remove_reference:
 		case ast::function_body::remove_move_reference:
 		case ast::function_body::is_default_constructible:
