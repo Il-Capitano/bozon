@@ -4950,6 +4950,12 @@ bool parse_context::is_instantiable(ast::typespec_view ts)
 			[](ast::ts_pointer const &) {
 				return 1;
 			},
+			[](ast::ts_optional_pointer const &) {
+				return 1;
+			},
+			[](ast::ts_optional const &) {
+				return 0;
+			},
 			[](ast::ts_lvalue_reference const &) {
 				return 1;
 			},
