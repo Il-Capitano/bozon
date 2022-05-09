@@ -6993,15 +6993,15 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 		}
 		auto const param_t = body->params[i].get_type().as_typespec_view();
 		auto const param_llvm_type = get_llvm_type(param_t, context);
-		if (param_t.is<ast::ts_move_reference>())
+		if (param_t.template is<ast::ts_move_reference>())
 		{
 			auto const result_address = ast::is_rvalue_or_literal(value.get_expr_type_and_kind().second)
-				? context.create_alloca(get_llvm_type(param_t.get<ast::ts_move_reference>(), context))
+				? context.create_alloca(get_llvm_type(param_t.template get<ast::ts_move_reference>(), context))
 				: nullptr;
 			auto const param_val = emit_bitcode<abi>(value, context, result_address);
 			if (result_address != nullptr)
 			{
-				push_destructor_call(value.src_tokens, result_address, param_t.get<ast::ts_move_reference>(), context);
+				push_destructor_call(value.src_tokens, result_address, param_t.template get<ast::ts_move_reference>(), context);
 			}
 			add_call_parameter<abi>(param_t, param_llvm_type, param_val, args, args_is_byval, context);
 		}
