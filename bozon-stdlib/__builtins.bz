@@ -122,6 +122,16 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 			"' in 'function __builtin_inplace_construct'"
 		)));
 	} else {}, void);
+@__builtin export function __builtin_optional_inplace_construct(ptr: *auto, val: auto)
+	-> (if consteval (__builtin_remove_optional(__builtin_remove_pointer(typeof ptr)) != typeof val) {
+		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
+			"value of type '",
+			__builtin_typename_as_str(typeof val),
+			"' doesn't match the pointer to optional type '",
+			__builtin_typename_as_str(typeof ptr),
+			"' in 'function __builtin_optional_inplace_construct'"
+		)));
+	} else {}, void);
 
 @__builtin export function __builtin_is_comptime() -> bool;
 
@@ -392,8 +402,6 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-@__builtin export operator = (lhs: &*auto, rhs: __null_t) -> typeof lhs;
-@__builtin export operator = (lhs: &*const auto, rhs: __null_t) -> typeof lhs;
 @__builtin export operator = (lhs: &[: auto], rhs: [: auto])
 	-> (if consteval (__builtin_remove_reference(typeof lhs) != typeof rhs) {
 		(consteval __builtin_comptime_compile_error(__builtin_comptime_concatenate_strs(
@@ -414,6 +422,7 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
+@__builtin export operator = (lhs: &?auto, rhs: __null_t) -> typeof lhs;
 
 @__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator + (lhs: int16, rhs: int16) -> int16;
@@ -702,8 +711,10 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
-@__builtin export operator == (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin export operator == (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator == (lhs: ?*const auto, rhs: __null_t) -> bool;
+@__builtin export operator == (lhs: __null_t, rhs: ?*const auto) -> bool;
+@__builtin export operator == (lhs: #const ?auto, rhs: __null_t) -> bool;
+@__builtin export operator == (lhs: __null_t, rhs: #const ?auto) -> bool;
 
 @__builtin export operator != (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator != (lhs: int16, rhs: int16) -> bool;
@@ -751,8 +762,10 @@ export function __builtin_print_stderr(s: str)
 			"' in comparison operator"
 		)));
 	} else {}, bool);
-@__builtin export operator != (lhs: *const auto, rhs: __null_t) -> bool;
-@__builtin export operator != (lhs: __null_t, rhs: *const auto) -> bool;
+@__builtin export operator != (lhs: ?*const auto, rhs: __null_t) -> bool;
+@__builtin export operator != (lhs: __null_t, rhs: ?*const auto) -> bool;
+@__builtin export operator != (lhs: #const ?auto, rhs: __null_t) -> bool;
+@__builtin export operator != (lhs: __null_t, rhs: #const ?auto) -> bool;
 
 @__builtin export operator < (lhs: int8,  rhs: int8)  -> bool;
 @__builtin export operator < (lhs: int16, rhs: int16) -> bool;

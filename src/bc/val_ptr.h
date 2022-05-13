@@ -83,7 +83,7 @@ struct val_ptr
 
 	llvm::Type *get_type(void) const
 	{
-		// bz_assert(this->type != nullptr);
+		bz_assert(this->type != nullptr);
 		return this->type;
 	}
 };

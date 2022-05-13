@@ -449,6 +449,7 @@ struct function_body
 
 		builtin_call_destructor,
 		builtin_inplace_construct,
+		builtin_optional_inplace_construct,
 
 		builtin_is_comptime,
 		builtin_is_option_set_impl,
@@ -1380,7 +1381,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 143);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 144);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1407,8 +1408,9 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_pointer_to_int, "__builtin_pointer_to_int" },
 		{ function_body::builtin_int_to_pointer, "__builtin_int_to_pointer" },
 
-		{ function_body::builtin_call_destructor,   "__builtin_call_destructor"   },
-		{ function_body::builtin_inplace_construct, "__builtin_inplace_construct" },
+		{ function_body::builtin_call_destructor,            "__builtin_call_destructor"            },
+		{ function_body::builtin_inplace_construct,          "__builtin_inplace_construct"          },
+		{ function_body::builtin_optional_inplace_construct, "__builtin_optional_inplace_construct" },
 
 		{ function_body::builtin_is_comptime,        "__builtin_is_comptime"        },
 		{ function_body::builtin_is_option_set_impl, "__builtin_is_option_set_impl" },

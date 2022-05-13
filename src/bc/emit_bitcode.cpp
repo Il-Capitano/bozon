@@ -129,6 +129,51 @@ static llvm::Value *get_constant_zero(
 	}
 }
 
+template<typename Context>
+static val_ptr get_optional_has_value(val_ptr opt_value, Context &context)
+{
+	if (opt_value.get_type()->isPointerTy())
+	{
+		auto const pointer_val = opt_value.get_value(context.builder);
+		auto const pointer_int_val = context.builder.CreatePtrToInt(pointer_val, context.get_usize_t());
+		auto const zero_val = llvm::ConstantInt::get(pointer_int_val->getType(), 0);
+		auto const has_value = context.builder.CreateICmpNE(pointer_int_val, zero_val);
+		return val_ptr::get_value(has_value);
+	}
+	else if (opt_value.kind == val_ptr::value)
+	{
+		bz_assert(opt_value.get_type()->isStructTy());
+		auto const has_value = context.builder.CreateExtractValue(opt_value.val, 1);
+		return val_ptr::get_value(has_value);
+	}
+	else
+	{
+		auto const has_value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
+		return val_ptr::get_reference(has_value_ptr, context.get_bool_t());
+	}
+}
+
+template<typename Context>
+static val_ptr get_optional_value(val_ptr opt_value, Context &context)
+{
+	if (opt_value.get_type()->isPointerTy())
+	{
+		return opt_value;
+	}
+	else if (opt_value.kind == val_ptr::value)
+	{
+		bz_assert(opt_value.get_type()->isStructTy());
+		auto const value = context.builder.CreateExtractValue(opt_value.val, 0);
+		return val_ptr::get_value(value);
+	}
+	else
+	{
+		bz_assert(opt_value.get_type()->isStructTy());
+		auto const value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 0);
+		return val_ptr::get_reference(value_ptr, opt_value.get_type()->getStructElementType(0));
+	}
+}
+
 static llvm::Value *emit_get_error_count(ctx::comptime_executor_context &context)
 {
 	return context.create_call(context.get_comptime_function(ctx::comptime_function_kind::get_error_count));
@@ -1022,24 +1067,11 @@ static val_ptr emit_default_copy_assign(
 )
 {
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
-	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
-	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
+	bz_assert(lhs_type == ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first));
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
-
-	if (is_rhs_null_pointer)
-	{
-		auto const lhs_llvm_type = lhs_val.get_type();
-		bz_assert(lhs_llvm_type->isPointerTy());
-		auto const rhs_null_val = val_ptr::get_value(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type)));
-		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
-	}
-	else
-	{
-		emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
-	}
+	emit_copy_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
 
 	if (result_address != nullptr)
 	{
@@ -1061,24 +1093,11 @@ static val_ptr emit_default_move_assign(
 )
 {
 	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
-	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
-	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
+	bz_assert(lhs_type == ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first));
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
 	auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
 	bz_assert(lhs_val.kind == val_ptr::reference);
-
-	if (is_rhs_null_pointer)
-	{
-		auto const lhs_llvm_type = lhs_val.get_type();
-		bz_assert(lhs_llvm_type->isPointerTy());
-		auto const rhs_null_val = val_ptr::get_value(llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(lhs_llvm_type)));
-		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_null_val, context);
-	}
-	else
-	{
-		emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
-	}
+	emit_move_assign<abi>(src_tokens, lhs_type, lhs_val, rhs_val, context);
 
 	if (result_address != nullptr)
 	{
@@ -1566,7 +1585,45 @@ static val_ptr emit_builtin_binary_assign(
 	llvm::Value *result_address
 )
 {
-	if (ast::is_lvalue(rhs.get_expr_type_and_kind().second))
+	auto const [rhs_type, rhs_type_kind] = rhs.get_expr_type_and_kind();
+
+	if (rhs_type.is<ast::ts_base_type>() && rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_)
+	{
+		auto const lhs_type = lhs.get_expr_type_and_kind().first;
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
+		bz_assert(lhs_val.kind == val_ptr::reference);
+		if (lhs_type.is<ast::ts_optional_pointer>())
+		{
+			auto const ptr_t = lhs_val.get_type();
+			bz_assert(ptr_t->isPointerTy());
+			auto const null_val = llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(ptr_t));
+			context.builder.CreateStore(null_val, lhs_val.val);
+			return lhs_val;
+		}
+		else
+		{
+			bz_assert(lhs_type.is<ast::ts_optional>());
+			auto const has_value_ptr = context.create_struct_gep(lhs_val.get_type(), lhs_val.val, 1);
+			if (ast::is_trivially_destructible(lhs_type))
+			{
+				context.builder.CreateStore(llvm::ConstantInt::getFalse(context.get_llvm_context()), has_value_ptr);
+			}
+			else
+			{
+				auto const destruct_bb = context.add_basic_block("destruct_optional");
+				auto const continue_bb = context.add_basic_block("continue_destruct_optional");
+				auto const has_value = context.create_load(context.get_bool_t(), has_value_ptr);
+				context.builder.CreateCondBr(has_value, destruct_bb, continue_bb);
+				context.builder.SetInsertPoint(destruct_bb);
+				auto const value_ptr = context.create_struct_gep(lhs_val.get_type(), lhs_val.val, 0);
+				emit_destructor_call(src_tokens, value_ptr, lhs_type.get<ast::ts_optional>(), context);
+				context.builder.CreateBr(continue_bb);
+				context.builder.SetInsertPoint(continue_bb);
+			}
+			return lhs_val;
+		}
+	}
+	else if (ast::is_lvalue(rhs_type_kind))
 	{
 		return emit_default_copy_assign<abi>(src_tokens, lhs, rhs, context, result_address);
 	}
@@ -2429,33 +2486,45 @@ static val_ptr emit_builtin_binary_cmp(
 			return val_ptr::get_reference(result_address, result_type);
 		}
 	}
+	else if (
+		(lhs_t.is<ast::ts_optional>() || lhs_t.is<ast::ts_optional_pointer>())
+		&& (rhs_t.is<ast::ts_optional>() || rhs_t.is<ast::ts_optional_pointer>())
+	)
+	{
+		bz_unreachable;
+	}
+	else if (
+		lhs_t.is<ast::ts_optional>() || lhs_t.is<ast::ts_optional_pointer>()
+		|| rhs_t.is<ast::ts_optional>() || rhs_t.is<ast::ts_optional_pointer>()
+	)
+	{
+		auto const lhs_val = emit_bitcode<abi>(lhs, context, nullptr);
+		auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
+
+		auto const has_value = lhs_t.is<ast::ts_optional>() || lhs_t.is<ast::ts_optional_pointer>()
+			? get_optional_has_value(lhs_val, context).get_value(context.builder)
+			: get_optional_has_value(rhs_val, context).get_value(context.builder);
+		auto const result_val = op == lex::token::equals
+			? context.builder.CreateNot(has_value)
+			: has_value;
+		if (result_address == nullptr)
+		{
+			return val_ptr::get_value(result_val);
+		}
+		else
+		{
+			auto const result_type = result_val->getType();
+			context.builder.CreateStore(result_val, result_address);
+			return val_ptr::get_reference(result_address, result_type);
+		}
+	}
 	else // if pointer
 	{
-		auto const [lhs_val, rhs_val] = [&]() -> std::pair<llvm::Value *, llvm::Value *> {
-			if (lhs_t.is<ast::ts_base_type>())
-			{
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				auto const lhs_val = llvm::ConstantInt::get(rhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else if (rhs_t.is<ast::ts_base_type>())
-			{
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = llvm::ConstantInt::get(lhs_val->getType(), 0);
-				return { lhs_val, rhs_val };
-			}
-			else
-			{
-				bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
-				auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
-				auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
-				auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
-				auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
-				return { lhs_val, rhs_val };
-			}
-		}();
+		bz_assert(lhs_t.is<ast::ts_pointer>() && rhs_t.is<ast::ts_pointer>());
+		auto const lhs_ptr_val = emit_bitcode<abi>(lhs, context, nullptr).get_value(context.builder);
+		auto const rhs_ptr_val = emit_bitcode<abi>(rhs, context, nullptr).get_value(context.builder);
+		auto const lhs_val = context.builder.CreatePtrToInt(lhs_ptr_val, context.get_usize_t());
+		auto const rhs_val = context.builder.CreatePtrToInt(rhs_ptr_val, context.get_usize_t());
 		auto const p = get_cmp_predicate(1); // unsigned compare
 		auto const result_val = context.builder.CreateICmp(p, lhs_val, rhs_val, "cmp_tmp");
 		if (result_address == nullptr)
@@ -3162,7 +3231,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 143);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 144);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3293,24 +3362,7 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 1);
 			auto const opt_value = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-			auto const has_value = [&]() -> llvm::Value * {
-				if (opt_value.get_type()->isPointerTy())
-				{
-					auto const pointer_val = opt_value.get_value(context.builder);
-					auto const pointer_int_val = context.builder.CreatePtrToInt(pointer_val, context.get_usize_t());
-					auto const zero_val = llvm::ConstantInt::get(pointer_int_val->getType(), 0);
-					return context.builder.CreateICmpNE(pointer_int_val, zero_val);
-				}
-				else if (opt_value.kind == val_ptr::reference)
-				{
-					auto const has_value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
-					return context.create_load(context.get_bool_t(), has_value_ptr);
-				}
-				else
-				{
-					return context.builder.CreateExtractValue(opt_value.val, 1);
-				}
-			}();
+			auto const has_value = get_optional_has_value(opt_value, context).get_value(context.builder);
 			if (result_address != nullptr)
 			{
 				context.builder.CreateStore(has_value, result_address);
@@ -3328,65 +3380,31 @@ static val_ptr emit_bitcode(
 
 			if constexpr (is_comptime<Context>)
 			{
-				auto const has_value = [&]() -> llvm::Value * {
-					if (opt_value.get_type()->isPointerTy())
-					{
-						auto const pointer_val = opt_value.get_value(context.builder);
-						auto const pointer_int_val = context.builder.CreatePtrToInt(pointer_val, context.get_usize_t());
-						auto const zero_val = llvm::ConstantInt::get(pointer_int_val->getType(), 0);
-						return context.builder.CreateICmpNE(pointer_int_val, zero_val);
-					}
-					else if (opt_value.kind == val_ptr::reference)
-					{
-						auto const has_value_ptr = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
-						return context.create_load(context.get_bool_t(), has_value_ptr);
-					}
-					else
-					{
-						return context.builder.CreateExtractValue(opt_value.val, 1);
-					}
-				}();
+				auto const has_value = get_optional_has_value(opt_value, context).get_value(context.builder);
 				emit_error_assert(src_tokens, has_value, "'__builtin_optional_get_value' called on null value", context);
 			}
 
-			if (opt_value.get_type()->isPointerTy())
+			auto const result = get_optional_value(opt_value, context);
+			if (result_address != nullptr && opt_value.get_type()->isPointerTy())
 			{
-				return opt_value;
+				context.builder.CreateStore(result.get_value(context.builder), result_address);
+				return val_ptr::get_reference(result_address, result.get_type());
 			}
-			else if (opt_value.kind == val_ptr::reference)
+			else if (result_address != nullptr)
 			{
-				auto const result_ref = context.create_struct_gep(opt_value.get_type(), opt_value.val, 1);
-				if (result_address != nullptr)
-				{
-					bz_assert(opt_value.get_type()->isStructTy());
-					auto const expr_type = ast::remove_lvalue_reference(func_call.params[0].get_expr_type_and_kind().first);
-					bz_assert(expr_type.is<ast::ts_optional>());
-					return emit_copy_constructor<abi>(
-						src_tokens,
-						val_ptr::get_reference(result_ref, opt_value.get_type()->getStructElementType(0)),
-						expr_type.get<ast::ts_optional>(),
-						context,
-						result_address
-					);
-				}
-				else
-				{
-					bz_assert(opt_value.get_type()->isStructTy());
-					return val_ptr::get_reference(result_ref, opt_value.get_type()->getStructElementType(0));
-				}
+				auto const expr_type = ast::remove_lvalue_reference(func_call.params[0].get_expr_type_and_kind().first);
+				bz_assert(expr_type.is<ast::ts_optional>());
+				return emit_copy_constructor<abi>(
+					src_tokens,
+					result,
+					expr_type.get<ast::ts_optional>(),
+					context,
+					result_address
+				);
 			}
 			else
 			{
-				auto const result_val = context.builder.CreateExtractValue(opt_value.val, 1);
-				if (result_address != nullptr)
-				{
-					context.builder.CreateStore(result_val, result_address);
-					return val_ptr::get_reference(result_address, result_val->getType());
-				}
-				else
-				{
-					return val_ptr::get_value(result_val);
-				}
+				return result;
 			}
 		}
 		case ast::function_body::builtin_pointer_cast:
@@ -3492,6 +3510,26 @@ static val_ptr emit_bitcode(
 		{
 			bz_assert(func_call.params.size() == 2);
 			auto const dest_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			emit_bitcode<abi>(func_call.params[1], context, dest_ptr);
+			return val_ptr::get_none();
+		}
+		case ast::function_body::builtin_optional_inplace_construct:
+		{
+			bz_assert(func_call.params.size() == 2);
+			auto const opt_dest_ptr = emit_bitcode<abi>(func_call.params[0], context, nullptr).get_value(context.builder);
+			auto const dest_ptr = [&]() {
+				bz_assert(func_call.params[0].get_expr_type_and_kind().first.is<ast::ts_pointer>());
+				auto const pointed_type = func_call.params[0].get_expr_type_and_kind().first.get<ast::ts_pointer>();
+				if (pointed_type.is<ast::ts_optional_pointer>())
+				{
+					return opt_dest_ptr;
+				}
+				else
+				{
+					auto const opt_type = get_llvm_type(pointed_type, context);
+					return context.create_struct_gep(opt_type, opt_dest_ptr, 0);
+				}
+			}();
 			emit_bitcode<abi>(func_call.params[1], context, dest_ptr);
 			return val_ptr::get_none();
 		}
@@ -5364,17 +5402,21 @@ static llvm::Constant *get_value(
 			static_cast<uint64_t>(value.get<ast::constant_value::boolean>())
 		);
 	case ast::constant_value::null:
-		if (ast::remove_const_or_consteval(type).is<ast::ts_pointer>())
+		if (ast::remove_const_or_consteval(type).is<ast::ts_optional_pointer>())
 		{
-			auto const ptr_t = llvm::dyn_cast<llvm::PointerType>(get_llvm_type(type, context));
-			bz_assert(ptr_t != nullptr);
-			return llvm::ConstantPointerNull::get(ptr_t);
+			auto const ptr_t = get_llvm_type(type, context);
+			bz_assert(ptr_t->isPointerTy());
+			return llvm::ConstantPointerNull::get(static_cast<llvm::PointerType *>(ptr_t));
+		}
+		else if (ast::remove_const_or_consteval(type).is<ast::ts_optional>())
+		{
+			auto const opt_t = get_llvm_type(type, context);
+			bz_assert(opt_t->isStructTy());
+			return llvm::ConstantStruct::get(static_cast<llvm::StructType *>(opt_t));
 		}
 		else
 		{
-			return llvm::ConstantStruct::get(
-				llvm::dyn_cast<llvm::StructType>(context.get_null_t())
-			);
+			return llvm::ConstantStruct::get(llvm::dyn_cast<llvm::StructType>(context.get_null_t()));
 		}
 	case ast::constant_value::void_:
 		return nullptr;
