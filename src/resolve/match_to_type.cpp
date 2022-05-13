@@ -271,6 +271,14 @@ static match_level_t get_strict_type_match_level(
 	{
 		return single_match_t{ modifier_match_level, reference_match, type_match_kind::implicit_conversion };
 	}
+	else if (
+		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
+		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
+		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
+	)
+	{
+		return single_match_t{ modifier_match_level, reference_match, type_match_kind::generic_match };
+	}
 	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
 	{
 		auto const &source_tuple_types = source.get<ast::ts_tuple>().types;
@@ -305,14 +313,6 @@ static match_level_t get_strict_type_match_level(
 		{
 			return match_level_t{};
 		}
-	}
-	else if (
-		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
-		&& source.is<ast::ts_base_type>() && source.get<ast::ts_base_type>().info->is_generic_instantiation()
-		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
-	)
-	{
-		return single_match_t{ modifier_match_level, reference_match, type_match_kind::generic_match };
 	}
 	else if (dest.is<ast::ts_array_slice>() && source.is<ast::ts_array_slice>())
 	{
@@ -437,16 +437,16 @@ static match_level_t get_type_match_level(
 	{
 		auto const dest_elem_t = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
 		auto const expr_elem_t = expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view();
-		auto const is_const_expr_elem_t = expr_type.is<ast::ts_const>();
 		auto const is_const_dest_elem_t = dest_elem_t.is<ast::ts_const>();
+		auto const is_const_expr_elem_t = expr_type.is<ast::ts_const>();
 
-		if (is_const_expr_elem_t == is_const_dest_elem_t)
+		if (is_const_dest_elem_t == is_const_expr_elem_t)
 		{
 			return get_strict_type_match_level(
 				ast::remove_const_or_consteval(dest_elem_t),
 				expr_elem_t,
 				ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
-				false, true
+				false, is_const_dest_elem_t
 			) + 1;
 		}
 		else if (is_const_expr_elem_t)

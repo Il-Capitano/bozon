@@ -15,31 +15,63 @@ enum class type_match_result
 	ast::typespec &dest_container,
 	ast::typespec_view source,
 	ast::typespec_view dest,
-	bool accept_void
+	bool accept_void,
+	bool propagate_const
 )
 {
 	bz_assert(ast::is_complete(source));
-	while (dest.kind() == source.kind() && dest.is_safe_blind_get() && source.is_safe_blind_get())
+	while (true)
 	{
-		dest = dest.blind_get();
-		source = source.blind_get();
+		// remove consts if there are any
+		{
+			auto const dest_is_const = dest.is<ast::ts_const>();
+			auto const source_is_const = source.is<ast::ts_const>();
+			if (dest_is_const && source_is_const)
+			{
+				dest = dest.blind_get();
+				source = source.blind_get();
+			}
+			else if (!dest_is_const && !source_is_const)
+			{
+				propagate_const = false;
+			}
+			else if (dest_is_const && !source_is_const && propagate_const)
+			{
+				dest = dest.blind_get();
+			}
+			else
+			{
+				return type_match_result::error;
+			}
+		}
+
+		if (dest.kind() == source.kind() && dest.is_safe_blind_get())
+		{
+			bz_assert(source.is_safe_blind_get());
+			dest = dest.blind_get();
+			source = source.blind_get();
+		}
+		else
+		{
+			break;
+		}
 	}
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	bz_assert(!source.is<ast::ts_unresolved>());
 
-	if (dest == source)
+	if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
+	{
+		bz_assert(!source.is<ast::ts_consteval>());
+		dest_container.copy_from(dest, source);
+		return type_match_result::good;
+	}
+	else if (dest == source)
 	{
 		return type_match_result::good;
 	}
 	else if (accept_void && dest.is<ast::ts_void>())
 	{
 		return type_match_result::needs_cast;
-	}
-	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
-	{
-		bz_assert(!source.is<ast::ts_consteval>());
-		dest_container.copy_from(dest, source);
-		return type_match_result::good;
 	}
 	else if (
 		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
@@ -67,7 +99,7 @@ enum class type_match_result
 		type_match_result result = type_match_result::good;
 		for (auto const [dest_elem, source_elem] : bz::zip(dest_types, source_types))
 		{
-			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false));
+			result = std::max(result, strict_match_types(dest_elem, source_elem, dest_elem, false, propagate_const));
 		}
 		return result;
 	}
@@ -78,7 +110,24 @@ enum class type_match_result
 			dest_container.nodes.back().get<ast::ts_array_slice>().elem_type,
 			source.get<ast::ts_array_slice>().elem_type,
 			dest.get<ast::ts_array_slice>().elem_type,
-			false
+			false,
+			propagate_const
+		);
+	}
+	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
+	{
+		if (dest.get<ast::ts_array>().size != source.get<ast::ts_array>().size)
+		{
+			return type_match_result::error;
+		}
+
+		bz_assert(dest_container.nodes.back().is<ast::ts_array>());
+		return strict_match_types(
+			dest_container.nodes.back().get<ast::ts_array>().elem_type,
+			source.get<ast::ts_array>().elem_type,
+			dest.get<ast::ts_array>().elem_type,
+			false,
+			propagate_const
 		);
 	}
 	else
@@ -229,36 +278,12 @@ static bool match_typename_to_type_impl(
 	{
 		auto const inner_dest = dest.get<ast::ts_pointer>();
 		auto const inner_expr_type = expr_type_without_const.get<ast::ts_pointer>();
-		if (inner_dest.is<ast::ts_const>())
-		{
-			if (inner_expr_type.is<ast::ts_const>())
-			{
-				return strict_match_types(
-					dest_container,
-					inner_expr_type.get<ast::ts_const>(),
-					inner_dest.get<ast::ts_const>(),
-					true
-				);
-			}
-			else
-			{
-				return strict_match_types(
-					dest_container,
-					inner_expr_type,
-					inner_dest.get<ast::ts_const>(),
-					true
-				);
-			}
-		}
-		else
-		{
-			return strict_match_types(
-				dest_container,
-				inner_expr_type,
-				inner_dest,
-				true
-			);
-		}
+		return strict_match_types(
+			dest_container,
+			inner_expr_type,
+			inner_dest,
+			true, true
+		);
 	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
@@ -268,36 +293,13 @@ static bool match_typename_to_type_impl(
 		}
 
 		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
-		if (inner_dest.is<ast::ts_const>())
-		{
-			if (expr_type.is<ast::ts_const>())
-			{
-				return strict_match_types(
-					dest_container,
-					expr_type.get<ast::ts_const>(),
-					inner_dest.get<ast::ts_const>(),
-					false
-				);
-			}
-			else
-			{
-				return strict_match_types(
-					dest_container,
-					expr_type,
-					inner_dest.get<ast::ts_const>(),
-					false
-				);
-			}
-		}
-		else
-		{
-			return strict_match_types(
-				dest_container,
-				expr_type,
-				inner_dest,
-				false
-			);
-		}
+		return strict_match_types(
+			dest_container,
+			expr_type,
+			inner_dest,
+			false,
+			true
+		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
 	{
@@ -307,7 +309,7 @@ static bool match_typename_to_type_impl(
 		}
 
 		auto const inner_dest = dest.get<ast::ts_move_reference>();
-		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false);
+		return strict_match_types(dest_container, expr_type_without_const, inner_dest, false, true);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
@@ -322,7 +324,7 @@ static bool match_typename_to_type_impl(
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return match_types(dest_container, expr_type, dest, expr_type_kind, context);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
 	}
 	else if (dest.is<ast::ts_auto_reference_const>())
 	{
@@ -345,7 +347,7 @@ static bool match_typename_to_type_impl(
 			dest_container.remove_layer();
 			dest = dest_container;
 		}
-		return match_types(dest_container, expr_type, dest, expr_type_kind, context);
+		return strict_match_types(dest_container, expr_type, ast::remove_lvalue_reference(dest), false, true);
 	}
 
 	if (dest.is<ast::ts_auto>())
@@ -435,65 +437,57 @@ static bool match_typename_to_type_impl(
 		}
 		return result;
 	}
-	else if (dest.is<ast::ts_array_slice>())
+	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array_slice>())
 	{
 		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
 		auto &inner_container = dest_container.nodes.back().get<ast::ts_array_slice>().elem_type;
-		auto const inner_dest = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
-		if (expr_type_without_const.is<ast::ts_array_slice>())
+		return strict_match_types(
+			inner_container,
+			expr_type_without_const.get<ast::ts_array_slice>().elem_type,
+			dest.get<ast::ts_array_slice>().elem_type,
+			false, true
+		);
+	}
+	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())
+	{
+		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
+		auto &inner_container = dest_container.nodes.back().get<ast::ts_array_slice>().elem_type;
+		auto const dest_elem_t = dest.get<ast::ts_array_slice>().elem_type.as_typespec_view();
+		auto const expr_elem_t = expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view();
+		auto const is_const_dest_elem_t = dest_elem_t.is<ast::ts_const>();
+		auto const is_const_expr_elem_t = expr_type.is<ast::ts_const>();
+
+		if (is_const_expr_elem_t && !is_const_dest_elem_t)
 		{
-			auto const inner_expr_type = expr_type_without_const.get<ast::ts_array_slice>().elem_type.as_typespec_view();
-			if (!inner_dest.is<ast::ts_const>() && inner_expr_type.is<ast::ts_const>())
-			{
-				return type_match_result::error;
-			}
-			else
-			{
-				return strict_match_types(
-					inner_container,
-					ast::remove_const_or_consteval(inner_expr_type),
-					ast::remove_const_or_consteval(inner_dest),
-					false
-				);
-			}
-		}
-		else if (expr_type_without_const.is<ast::ts_array>())
-		{
-			auto const inner_expr_type = expr_type_without_const.get<ast::ts_array>().elem_type.as_typespec_view();
-			if (!inner_dest.is<ast::ts_const>() && expr_type.is<ast::ts_const>())
-			{
-				return type_match_result::error;
-			}
-			else
-			{
-				return std::max(type_match_result::needs_cast, strict_match_types(
-					inner_container,
-					inner_expr_type,
-					ast::remove_const_or_consteval(inner_dest),
-					false
-				));
-			}
+			return type_match_result::error;
 		}
 		else
 		{
-			return type_match_result::error;
+			auto const strict_result = strict_match_types(
+				inner_container,
+				expr_elem_t,
+				dest_elem_t,
+				false, is_const_dest_elem_t
+			);
+			return std::max(strict_result, type_match_result::needs_cast);
 		}
 	}
-	else if (dest.is<ast::ts_array>())
+	else if (dest.is<ast::ts_array>() && expr_type_without_const.is<ast::ts_array>())
 	{
-		bz_assert(dest_container.is<ast::ts_array>());
-		if (!expr_type_without_const.is<ast::ts_array>())
-		{
-			return type_match_result::error;
-		}
+		bz_assert(dest_container.nodes.back().is<ast::ts_array>());
+		auto &inner_container = dest_container.nodes.back().get<ast::ts_array>().elem_type;
 		auto const &dest_array_type = dest.get<ast::ts_array>();
 		auto const &expr_array_type = expr_type_without_const.get<ast::ts_array>();
 		if (dest_array_type.size != expr_array_type.size)
 		{
 			return type_match_result::error;
 		}
-		auto &inner_container = dest_container.nodes.front().get<ast::ts_array>().elem_type;
-		return match_types(inner_container, expr_array_type.elem_type, dest_array_type.elem_type, expr_type_kind, context);
+		return strict_match_types(
+			inner_container,
+			expr_array_type.elem_type,
+			dest_array_type.elem_type,
+			false, true
+		);
 	}
 	else if (is_implicitly_convertible(dest, expr_type, expr_type_kind, context))
 	{
@@ -1017,7 +1011,11 @@ static void match_expression_to_type_impl(
 			}
 			else
 			{
-				expr.set_type(dest_without_const);
+				expr = ast::make_dynamic_expression(
+					expr.src_tokens,
+					ast::expression_type_kind::rvalue, dest_without_const,
+					ast::make_expr_array_init(std::move(expr.get_tuple().elems), dest_without_const)
+				);
 			}
 		}
 		else

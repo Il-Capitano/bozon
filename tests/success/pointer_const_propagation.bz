@@ -1,0 +1,26 @@
+function main()
+{
+	let i = 0;
+
+	let p: *int32 = &i;
+	let cp: *const int32 = &i;
+	let pp: **int32 = &p;
+	let cpp: *const *int32 = &p;
+	let pcp: **const int32 = &cp;
+	let cpcp: *const *const int32 = &cp;
+
+	let _: *const *const int32 = pp;
+	let _: *const *const int32 = cpp;
+	let _: *const *const int32 = pcp;
+	let _: *const *const int32 = cpcp;
+
+	// let _: **const int32 = pp;
+	// let _: **const int32 = cpp;
+	let _: **const int32 = pcp;
+	// let _: **const int32 = cpcp;
+
+	let _: *const *int32 = pp;
+	let _: *const *int32 = cpp;
+	// let _: *const *int32 = pcp;
+	// let _: *const *int32 = cpcp;
+}
