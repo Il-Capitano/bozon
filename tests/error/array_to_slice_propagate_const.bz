@@ -1,0 +1,6 @@
+function main()
+{
+	let i = 0;
+	let p_arr: [3: *int32] = [ &i, &i, &i ];
+	let _slice: [: *const int32] = p_arr;
+}

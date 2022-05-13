@@ -4540,6 +4540,24 @@ static val_ptr emit_bitcode(
 
 template<abi::platform_abi abi, typename Context>
 static val_ptr emit_bitcode(
+	lex::src_tokens const &,
+	ast::expr_array_init const &array_init,
+	Context &context,
+	llvm::Value *result_address
+)
+{
+	auto const type = get_llvm_type(array_init.type, context);
+	auto const result_ptr = result_address != nullptr ? result_address : context.create_alloca(type);
+	for (auto const i : bz::iota(0, array_init.exprs.size()))
+	{
+		auto const member_ptr = context.create_struct_gep(type, result_ptr, i);
+		emit_bitcode<abi>(array_init.exprs[i], context, member_ptr);
+	}
+	return val_ptr::get_reference(result_ptr, type);
+}
+
+template<abi::platform_abi abi, typename Context>
+static val_ptr emit_bitcode(
 	lex::src_tokens const &src_tokens,
 	ast::expr_array_default_construct const &array_default_construct,
 	Context &context,
