@@ -440,7 +440,6 @@ struct function_body
 		builtin_slice_from_ptrs,
 		builtin_slice_from_const_ptrs,
 
-		builtin_optional_has_value,
 		builtin_optional_get_value,
 
 		builtin_pointer_cast,
@@ -1381,7 +1380,7 @@ struct intrinsic_info_t
 };
 
 constexpr auto intrinsic_info = []() {
-	static_assert(function_body::_builtin_last - function_body::_builtin_first == 144);
+	static_assert(function_body::_builtin_last - function_body::_builtin_first == 143);
 	constexpr size_t size = function_body::_builtin_last - function_body::_builtin_first;
 	return bz::array<intrinsic_info_t, size>{{
 		{ function_body::builtin_str_length,      "__builtin_str_length"      },
@@ -1401,7 +1400,6 @@ constexpr auto intrinsic_info = []() {
 		{ function_body::builtin_slice_from_ptrs,       "__builtin_slice_from_ptrs"       },
 		{ function_body::builtin_slice_from_const_ptrs, "__builtin_slice_from_const_ptrs" },
 
-		{ function_body::builtin_optional_has_value, "__builtin_optional_has_value" },
 		{ function_body::builtin_optional_get_value, "__builtin_optional_get_value" },
 
 		{ function_body::builtin_pointer_cast,   "__builtin_pointer_cast"   },

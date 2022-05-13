@@ -99,7 +99,6 @@ export function __builtin_slice_size(slice: [: const auto]) -> usize
 		)));
 	} else {}, [: __builtin_remove_pointer(typeof begin)]);
 
-@__builtin export function __builtin_optional_has_value(value: ##?auto) -> bool;
 @__builtin export function __builtin_optional_get_value(value: ##?auto)
 	-> (if consteval (__builtin_is_reference(typeof value)) {
 		&__builtin_remove_reference(__builtin_remove_optional(typeof value))

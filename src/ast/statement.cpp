@@ -704,7 +704,6 @@ bz::vector<universal_function_set> make_builtin_universal_functions(void)
 		{ "end_ptr",     { function_body::builtin_str_end_ptr                                                   } },
 		{ "starts_with", { function_body::builtin_str_starts_with                                               } },
 		{ "ends_with",   { function_body::builtin_str_ends_with                                                 } },
-		{ "has_value",   { function_body::builtin_optional_has_value                                            } },
 		{ "get_value",   { function_body::builtin_optional_get_value                                            } },
 	};
 }

@@ -3231,7 +3231,7 @@ static val_ptr emit_bitcode(
 	{
 		switch (func_call.func_body->intrinsic_kind)
 		{
-		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 144);
+		static_assert(ast::function_body::_builtin_last - ast::function_body::_builtin_first == 143);
 		static_assert(ast::function_body::_builtin_default_constructor_last - ast::function_body::_builtin_default_constructor_first == 14);
 		static_assert(ast::function_body::_builtin_unary_operator_last - ast::function_body::_builtin_unary_operator_first == 7);
 		static_assert(ast::function_body::_builtin_binary_operator_last - ast::function_body::_builtin_binary_operator_first == 27);
@@ -3356,21 +3356,6 @@ static val_ptr emit_bitcode(
 				result = context.builder.CreateInsertValue(result, begin_ptr, 0);
 				result = context.builder.CreateInsertValue(result, end_ptr,   1);
 				return val_ptr::get_value(result);
-			}
-		}
-		case ast::function_body::builtin_optional_has_value:
-		{
-			bz_assert(func_call.params.size() == 1);
-			auto const opt_value = emit_bitcode<abi>(func_call.params[0], context, nullptr);
-			auto const has_value = get_optional_has_value(opt_value, context).get_value(context.builder);
-			if (result_address != nullptr)
-			{
-				context.builder.CreateStore(has_value, result_address);
-				return val_ptr::get_reference(result_address, has_value->getType());
-			}
-			else
-			{
-				return val_ptr::get_value(has_value);
 			}
 		}
 		case ast::function_body::builtin_optional_get_value:
