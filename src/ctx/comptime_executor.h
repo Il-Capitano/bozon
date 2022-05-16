@@ -56,6 +56,21 @@ enum class comptime_function_kind : uint32_t
 	comptime_memmove_check,
 	comptime_memset_check,
 
+	unary_dereference_pointer_check,
+	unary_plus_plus_pointer_check,
+	unary_minus_minus_pointer_check,
+
+	binary_plus_pointer_check,
+	binary_minus_pointer_check,
+
+	binary_ptrdiff_pointer_check,
+	binary_equals_pointer_check,
+	binary_not_equals_pointer_check,
+	binary_less_than_pointer_check,
+	binary_less_than_eq_pointer_check,
+	binary_greater_than_pointer_check,
+	binary_greater_than_eq_pointer_check,
+
 	i8_divide_check,
 	i16_divide_check,
 	i32_divide_check,
@@ -400,6 +415,21 @@ constexpr bz::array comptime_function_info = {
 	def_element(comptime_memcpy_check),
 	def_element(comptime_memmove_check),
 	def_element(comptime_memset_check),
+
+	def_element(unary_dereference_pointer_check),
+	def_element(unary_plus_plus_pointer_check),
+	def_element(unary_minus_minus_pointer_check),
+
+	def_element(binary_plus_pointer_check),
+	def_element(binary_minus_pointer_check),
+
+	def_element(binary_ptrdiff_pointer_check),
+	def_element(binary_equals_pointer_check),
+	def_element(binary_not_equals_pointer_check),
+	def_element(binary_less_than_pointer_check),
+	def_element(binary_less_than_eq_pointer_check),
+	def_element(binary_greater_than_pointer_check),
+	def_element(binary_greater_than_eq_pointer_check),
 
 	def_element(i8_divide_check),
 	def_element(i16_divide_check),
