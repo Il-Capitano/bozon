@@ -895,9 +895,9 @@ ast::expression make_builtin_cast(
 	auto const dest_t = ast::remove_const_or_consteval(dest_type);
 	bz_assert(ast::is_complete(dest_t));
 
-	// case from null to a pointer type
+	// case from null to a optional pointer type
 	if (
-		dest_t.is<ast::ts_pointer>()
+		dest_t.is<ast::ts_optional_pointer>()
 		&& ((
 			expr.is<ast::constant_expression>()
 			&& expr.get<ast::constant_expression>().value.kind() == ast::constant_value::null
@@ -921,10 +921,14 @@ ast::expression make_builtin_cast(
 			ast::make_expr_cast(std::move(expr), std::move(dest_type))
 		);
 	}
-	else if (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
+	else if (
+		(dest_t.is<ast::ts_optional_pointer>() && expr_t.is<ast::ts_pointer>())
+		|| (dest_t.is<ast::ts_pointer>() && expr_t.is<ast::ts_pointer>())
+		|| (dest_t.is<ast::ts_optional_pointer>() && expr_t.is<ast::ts_optional_pointer>())
+	)
 	{
-		auto inner_dest_t = dest_t.get<ast::ts_pointer>();
-		auto inner_expr_t = expr_t.get<ast::ts_pointer>();
+		auto inner_dest_t = dest_t.blind_get();
+		auto inner_expr_t = expr_t.blind_get();
 		if (!inner_dest_t.is<ast::ts_const>() && inner_expr_t.is<ast::ts_const>())
 		{
 			context.report_error(
@@ -945,7 +949,7 @@ ast::expression make_builtin_cast(
 			|| (
 				inner_dest_t.is<ast::ts_base_type>()
 				&& inner_expr_t.is<ast::ts_base_type>()
-				&& inner_dest_t.get<ast::ts_base_type>().info->kind == inner_expr_t.get<ast::ts_base_type>().info->kind
+				&& inner_dest_t.get<ast::ts_base_type>().info == inner_expr_t.get<ast::ts_base_type>().info
 			)
 		)
 		{
