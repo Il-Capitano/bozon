@@ -60,7 +60,7 @@ function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 {
 	if (n == 0)
 	{
-		return [ null, 0 ];
+		return [ alloc(T, 0), 0 ];
 	}
 	else
 	{
@@ -69,19 +69,19 @@ function rounded_alloc(T: typename, n: usize) -> [*T, usize]
 	}
 }
 
-function move_range(begin: *auto, end: *auto, other_begin: *auto)
+function move_range(begin: ?*auto, end: ?*auto, other_begin: ?*auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, other_it->release());
+		__builtin_inplace_construct(it.get_value(), other_it->release());
 	}
 }
 
-function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, *other_it);
+		__builtin_inplace_construct(it.get_value(), *other_it);
 	}
 }
 
@@ -90,9 +90,9 @@ struct vector<T: typename>
 	type value_type = T;
 	type _self_t = vector<T>;
 
-	._data_begin: *T;
-	._data_end:   *T;
-	._alloc_end:  *T;
+	._data_begin: ?*T;
+	._data_end:   ?*T;
+	._alloc_end:  ?*T;
 
 	destructor(&self)
 	{
@@ -145,6 +145,11 @@ struct vector<T: typename>
 	{
 		const size = other.size();
 		self.clear();
+		if (size == 0)
+		{
+			return self;
+		}
+
 		self.reserve(size);
 		self._data_end = self._data_begin + size;
 		copy_range(self._data_begin, self._data_end, other.begin());
@@ -163,12 +168,20 @@ struct vector<T: typename>
 
 	function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+		return if (self._data_begin == null) {
+			[: value_type]()
+		} else {
+			__builtin_slice_from_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+		};
 	}
 
 	function as_slice(self: &const _self_t) -> [: const value_type]
 	{
-		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+		return if (self._data_begin == null) {
+			[: const value_type]()
+		} else {
+			__builtin_slice_from_const_ptrs(self._data_begin.get_value(), self._data_end.get_value())
+		};
 	}
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
@@ -242,7 +255,7 @@ struct vector<T: typename>
 	function push_back(self: &_self_t, value: ##value_type)
 	{
 		self.reserve(self.size() + 1);
-		__builtin_inplace_construct(self._data_end, value_type(value));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(value));
 		self._data_end += 1;
 	}
 
@@ -258,7 +271,7 @@ struct vector<T: typename>
 	function emplace_back(self: &_self_t, ...##args)
 	{
 		self.reserve(self.size() + 1);
-		__builtin_inplace_construct(self._data_end, value_type(...args));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(...args));
 		self._data_end += 1;
 	}
 
@@ -270,22 +283,22 @@ struct vector<T: typename>
 		self._data_end += slice_size;
 	}
 
-	function begin(vec: &_self_t) -> *value_type
+	function begin(vec: &_self_t) -> ?*value_type
 	{
 		return vec._data_begin;
 	}
 
-	function end(vec: &_self_t) -> *value_type
+	function end(vec: &_self_t) -> ?*value_type
 	{
 		return vec._data_end;
 	}
 
-	function begin(vec: &const _self_t) -> *const value_type
+	function begin(vec: &const _self_t) -> ?*const value_type
 	{
 		return vec._data_begin;
 	}
 
-	function end(vec: &const _self_t) -> *const value_type
+	function end(vec: &const _self_t) -> ?*const value_type
 	{
 		return vec._data_end;
 	}
@@ -350,12 +363,12 @@ struct string
 		self._buffer.reserve(new_capacity);
 	}
 
-	function begin_ptr(self: &const string) -> *const uint8
+	function begin_ptr(self: &const string) -> ?*const uint8
 	{
 		return self._buffer.begin();
 	}
 
-	function end_ptr(self: &const string) -> *const uint8
+	function end_ptr(self: &const string) -> ?*const uint8
 	{
 		return self._buffer.end();
 	}
@@ -719,14 +732,6 @@ struct malloc_info_t
 	.free_src_tokens: src_tokens_t;
 	.free_call_stack: vector<uint64>;
 
-	constructor()
-	{
-		return malloc_info_t[
-			null, 0, src_tokens_t(), vector<uint64>(),
-			false, src_tokens_t(), vector<uint64>(),
-		];
-	}
-
 	constructor(ptr: *uint8, size: usize, malloc_src_tokens: src_tokens_t)
 	{
 		return malloc_info_t[
@@ -772,14 +777,14 @@ function register_malloc(ptr: *uint8, size: usize, begin: uint64, pivot: uint64,
 }
 
 @__comptime_error_checking("register_free")
-function register_free(ptr: *uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+function register_free(ptr: ?*uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (ptr == null)
 	{
 		return true;
 	}
 
-	for (let &malloc_info in malloc_infos.as_slice())
+	for (let &malloc_info in malloc_infos)
 	{
 		if (malloc_info.ptr == ptr)
 		{
@@ -806,7 +811,7 @@ function check_leaks() -> bool
 {
 	const has_previous_errors = has_errors();
 	let good = true;
-	for (let &malloc_info in malloc_infos.as_slice())
+	for (let &malloc_info in malloc_infos)
 	{
 		if (!malloc_info.is_freed)
 		{
@@ -897,7 +902,7 @@ function make_malloc_error_message(size: usize) -> string
 
 @__comptime_error_checking("comptime_malloc_check")
 function comptime_malloc_check(
-	ptr: *void,
+	ptr: ?*void,
 	size: usize,
 	begin: uint64,
 	pivot: uint64,
@@ -918,7 +923,7 @@ function comptime_malloc_check(
 
 @__comptime_error_checking("comptime_memcpy_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memcpy_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -948,7 +953,7 @@ function comptime_memcpy_check(dest: *const uint8, src: *const uint8, size: usiz
 
 @__comptime_error_checking("comptime_memmove_check")
 // dest and src are passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memmove_check(dest: ?*const uint8, src: ?*const uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -973,7 +978,7 @@ function comptime_memmove_check(dest: *const uint8, src: *const uint8, size: usi
 
 @__comptime_error_checking("comptime_memset_check")
 // dest is passed as *const uint8 because pointer casts are not allowed in comptime code
-function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
+function comptime_memset_check(dest: ?*const uint8, : uint8, size: usize, begin: uint64, pivot: uint64, end: uint64) -> bool
 {
 	if (size == 0)
 	{
@@ -990,6 +995,238 @@ function comptime_memset_check(dest: *const uint8, : uint8, size: usize, begin: 
 		return true;
 	}
 }
+
+@__comptime_error_checking("unary_dereference_pointer_check")
+function unary_dereference_pointer_check(ptr: ?*const uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (ptr == null)
+	{
+		emit_diagnostic(warning_kind_error, "dereferencing null pointer value", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("unary_plus_plus_pointer_check")
+function unary_plus_plus_pointer_check(ptr: ?*const uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (ptr == null)
+	{
+		emit_diagnostic(warning_kind_error, "incrementing null pointer value", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("unary_minus_minus_pointer_check")
+function unary_minus_minus_pointer_check(ptr: ?*const uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (ptr == null)
+	{
+		emit_diagnostic(warning_kind_error, "decrementing null pointer value", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_plus_pointer_check")
+function binary_plus_pointer_check(ptr: ?*const uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (ptr == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in 'operator +'", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_minus_pointer_check")
+function binary_minus_pointer_check(ptr: ?*const uint8, begin: uint64, pivot: uint64, end: uint64) -> bool
+{
+	if (ptr == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in 'operator -'", begin, pivot, end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_ptrdiff_pointer_check")
+function binary_ptrdiff_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator -'", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator -'", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_equals_pointer_check")
+function binary_equals_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator =='", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator =='", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_not_equals_pointer_check")
+function binary_not_equals_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator !='", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator !='", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_less_than_pointer_check")
+function binary_less_than_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator <'", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator <'", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_less_than_eq_pointer_check")
+function binary_less_than_eq_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator <='", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator <='", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_greater_than_pointer_check")
+function binary_greater_than_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator >'", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator >'", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+@__comptime_error_checking("binary_greater_than_eq_pointer_check")
+function binary_greater_than_eq_pointer_check(
+	lhs: ?*const uint8, rhs: ?*const uint8,
+	lhs_begin: uint64, lhs_pivot: uint64, lhs_end: uint64,
+	rhs_begin: uint64, rhs_pivot: uint64, rhs_end: uint64
+) -> bool
+{
+	if (lhs == null && rhs != null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in left-hand-side of 'operator >='", lhs_begin, lhs_pivot, lhs_end);
+		return false;
+	}
+	else if (lhs != null && rhs == null)
+	{
+		emit_diagnostic(warning_kind_error, "null pointer value in right-hand-side of 'operator >='", rhs_begin, rhs_pivot, rhs_end);
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
 
 function get_divide_overflow_error_message(type_name: str, lhs: int64, rhs: int64) -> string
 {
