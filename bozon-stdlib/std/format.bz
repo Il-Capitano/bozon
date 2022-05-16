@@ -535,7 +535,7 @@ function format_into_impl(
 	indices: consteval auto,
 	slices: [: const str],
 	fmt_specs: [: const str],
-	arg_ptrs: &const [...*const auto]
+	arg_ptrs: &const [int32, ...*const auto]
 )
 {
 	consteval global_index = global_index[0];
@@ -550,7 +550,7 @@ function format_into_impl(
 	indices: consteval auto,
 	slices: [: const str],
 	fmt_specs: [: const str],
-	arg_ptrs: &const [...*const auto]
+	arg_ptrs: &const [int32, ...*const auto]
 )
 {
 	consteval global_index = global_indices[0];
@@ -563,14 +563,14 @@ function format_into_impl(
 
 export function format_into(buffer: &format_buffer, fmt_str: consteval str, args: ...#const auto)
 {
-	const arg_ptrs = [ null as *const int32, ...&args ];
+	@maybe_unused const arg_ptrs = [ 0, ...&args ];
 	consteval args_count = count_args_in_str(fmt_str);
-	consteval global_indices = get_global_indices(0uz, args_count);
+	@maybe_unused consteval global_indices = get_global_indices(0uz, args_count);
 	consteval fmt_info = get_fmt_info(fmt_str, args_count);
 	consteval slices = fmt_info[0];
-	consteval fmt_specs = fmt_info[1];
-	consteval indices = fmt_info[2];
-	if (slices.size() > 1u)
+	@maybe_unused consteval fmt_specs = fmt_info[1];
+	@maybe_unused consteval indices = fmt_info[2];
+	if consteval (slices.size() > 1u)
 	{
 		buffer.format_into_impl(global_indices, indices, slices, fmt_specs, arg_ptrs);
 	}

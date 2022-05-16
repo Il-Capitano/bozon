@@ -28,11 +28,16 @@ export function malloc(T: typename, n: usize) -> *T
 	}
 	else
 	{
-		return __builtin_pointer_cast(*T, libc::malloc(n * sizeof T));
+		const malloc_result = libc::malloc(n * sizeof T);
+		if (malloc_result == null)
+		{
+			unreachable;
+		}
+		return __builtin_pointer_cast(*T, malloc_result.get_value());
 	}
 }
 
-export function free(p: *void)
+export function free(p: ?*void)
 {
 	if (meta::is_comptime())
 	{

@@ -74,9 +74,9 @@ consteval short_string_max_size = 2u * sizeof *uint8;
 
 export struct string
 {
-	._data_begin: *uint8;
-	._data_end:   *uint8;
-	._alloc_end:  *uint8;
+	._data_begin: ?*uint8;
+	._data_end:   ?*uint8;
+	._alloc_end:  ?*uint8;
 
 	destructor(&self)
 	{
@@ -101,7 +101,7 @@ export struct string
 		else if (!meta::is_comptime() && size <= short_string_max_size)
 		{
 			const data_begin = __builtin_int_to_pointer(*uint8, 1uz | (size << 1u));
-			let data_and_alloc_end: [2: *uint8];
+			let data_and_alloc_end: [2: ?*uint8];
 			memcpy(data_and_alloc_end.begin(), s.begin_ptr(), size);
 			return string[ data_begin, data_and_alloc_end[0], data_and_alloc_end[1] ];
 		}
@@ -168,7 +168,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-function rounded_alloc(n: usize) -> [*uint8, usize]
+function rounded_alloc(n: usize) -> [?*uint8, usize]
 {
 	if (n == 0u)
 	{
@@ -200,7 +200,7 @@ function short_string_size(s: &const string) -> usize
 	return data_begin_int >> 1u;
 }
 
-function begin_ptr(s: &const string) -> *uint8
+function begin_ptr(s: &const string) -> ?*uint8
 {
 	if (s.is_short_string())
 	{
@@ -212,7 +212,7 @@ function begin_ptr(s: &const string) -> *uint8
 	}
 }
 
-function end_ptr(s: &const string) -> *uint8
+function end_ptr(s: &const string) -> ?*uint8
 {
 	if (s.is_short_string())
 	{
@@ -252,7 +252,14 @@ function set_size_unsafe(s: &string, size: usize)
 
 function as_slice(s: &const string) -> [: const uint8]
 {
-	return __builtin_slice_from_const_ptrs(s.begin_ptr(), s.end_ptr());
+	if (s.begin_ptr() == null)
+	{
+		return [: const uint8]();
+	}
+	else
+	{
+		return __builtin_slice_from_const_ptrs(s.begin_ptr().get_value(), s.end_ptr().get_value());
+	}
 }
 
 export function as_str(s: &const string) -> str
@@ -302,22 +309,22 @@ export function is_ascii(self: #const string) -> bool
 	return true;
 }
 
-export function data(self: &string) -> *uint8
+export function data(self: &string) -> ?*uint8
 {
 	return self.begin_ptr();
 }
 
-export function data(self: &const string) -> *const uint8
+export function data(self: &const string) -> ?*const uint8
 {
 	return self.begin_ptr();
 }
 
-export function data_end(self: &string) -> *uint8
+export function data_end(self: &string) -> ?*uint8
 {
 	return self.end_ptr();
 }
 
-export function data_end(self: &const string) -> *const uint8
+export function data_end(self: &const string) -> ?*const uint8
 {
 	return self.end_ptr();
 }
@@ -523,6 +530,12 @@ export operator ..= (lhs: &string, rhs: str) -> &string
 {
 	const rhs_size = rhs.size();
 	const result_size = lhs.size() + rhs_size;
+
+	if (result_size == 0)
+	{
+		return lhs;
+	}
+
 	lhs.reserve(result_size);
 
 	memcpy(lhs.end_ptr(), rhs.begin_ptr(), rhs_size);

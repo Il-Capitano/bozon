@@ -12,8 +12,8 @@ export struct path
 
 export struct path_iterator
 {
-	._it: *const uint8;
-	._path_end: *const uint8;
+	._it: ?*const uint8;
+	._path_end: ?*const uint8;
 }
 
 export operator * (it: path_iterator) -> str

@@ -16,14 +16,14 @@ export struct ldiv_t
 @symbol_name("atoi") export function "c" atoi(str: c_str) -> int;
 @symbol_name("atol") export function "c" atol(str: c_str) -> long;
 
-@symbol_name("strtod")  export function "c" strtod(str: c_str, end_ptr: *mut_c_str) -> double;
-@symbol_name("strtol")  export function "c" strtol(str: c_str, end_ptr: *mut_c_str, base: int) -> long;
-@symbol_name("strtoul") export function "c" strtoul(str: c_str, end_ptr: *mut_c_str, base: int) -> unsigned_long;
+@symbol_name("strtod")  export function "c" strtod(str: c_str, end_ptr: ?*mut_c_str) -> double;
+@symbol_name("strtol")  export function "c" strtol(str: c_str, end_ptr: ?*mut_c_str, base: int) -> long;
+@symbol_name("strtoul") export function "c" strtoul(str: c_str, end_ptr: ?*mut_c_str, base: int) -> unsigned_long;
 
-@symbol_name("calloc")  export function "c" calloc(nitems: size_t, size: size_t) -> *void;
-@symbol_name("malloc")  export function "c" malloc(size: size_t) -> *void;
-@symbol_name("realloc") export function "c" realloc(ptr: *void, size: size_t) -> *void;
-@symbol_name("free")    export function "c" free(ptr: *void);
+@symbol_name("calloc")  export function "c" calloc(nitems: size_t, size: size_t) -> ?*void;
+@symbol_name("malloc")  export function "c" malloc(size: size_t) -> ?*void;
+@symbol_name("realloc") export function "c" realloc(ptr: ?*void, size: size_t) -> ?*void;
+@symbol_name("free")    export function "c" free(ptr: ?*void);
 
 @symbol_name("abort")  export function "c" abort();
 // @symbol_name"(atexit") export function "c" atexit(func: function() -> void) -> int;
@@ -33,8 +33,8 @@ export struct ldiv_t
 
 @symbol_name("system") export function "c" system(string: c_str) -> int;
 
-// @symbol_name("bsearch") export function "c" bsearch(key: *const void, base: *const void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int) -> *void;
-// @symbol_name("qsort")   export function "c" qsort(base: *void, nitems: size_t, size: size_t, compar: function(*const void, *const void) -> int);
+// @symbol_name("bsearch") export function "c" bsearch(key: ?*const void, base: ?*const void, nitems: size_t, size: size_t, compar: function(?*const void, ?*const void) -> int) -> ?*void;
+// @symbol_name("qsort")   export function "c" qsort(base: ?*void, nitems: size_t, size: size_t, compar: function(?*const void, ?*const void) -> int);
 
 @symbol_name("abs")  export function "c" abs(x: int) -> int;
 @symbol_name("labs") export function "c" labs(x: long) -> long;

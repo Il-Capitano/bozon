@@ -325,7 +325,7 @@ export function f2s_buffered(f: float32, result: *uint8)
 
 export function f2s(f: float32) -> *uint8
 {
-	const result = __builtin_pointer_cast(*uint8, libc::malloc(16));
+	const result = __builtin_pointer_cast(*uint8, libc::malloc(16).get_value());
 	f2s_buffered(f, result);
 	return result;
 }

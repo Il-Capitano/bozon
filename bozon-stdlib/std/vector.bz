@@ -28,9 +28,9 @@ export struct vector<T: typename>
 		.__builtin_remove_consteval();
 	type _self_t = vector<T>;
 
-	._data_begin: *value_type;
-	._data_end:   *value_type;
-	._alloc_end:  *value_type;
+	._data_begin: ?*value_type;
+	._data_end:   ?*value_type;
+	._alloc_end:  ?*value_type;
 
 	destructor(&self)
 	{
@@ -89,12 +89,26 @@ export struct vector<T: typename>
 
 	function as_slice(self: &_self_t) -> [: value_type]
 	{
-		return __builtin_slice_from_ptrs(self._data_begin, self._data_end);
+		if (self._data_begin == null)
+		{
+			return [: value_type]();
+		}
+		else
+		{
+			return __builtin_slice_from_ptrs(self._data_begin.get_value(), self._data_end.get_value());
+		}
 	}
 
 	function as_slice(self: &const _self_t) -> [: const value_type]
 	{
-		return __builtin_slice_from_const_ptrs(self._data_begin, self._data_end);
+		if (self._data_begin == null)
+		{
+			return [: const value_type]();
+		}
+		else
+		{
+			return __builtin_slice_from_const_ptrs(self._data_begin.get_value(), self._data_end.get_value());
+		}
 	}
 
 	operator [] (self: &_self_t, i: uint64) -> &value_type
@@ -153,7 +167,7 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1u);
 		}
-		__builtin_inplace_construct(self._data_end, value_type(__forward value));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(__forward value));
 		self._data_end += 1;
 	}
 
@@ -163,7 +177,7 @@ export struct vector<T: typename>
 		{
 			self.reserve(self.size() + 1u);
 		}
-		__builtin_inplace_construct(self._data_end, value_type(...__forward args));
+		__builtin_inplace_construct(self._data_end.get_value(), value_type(...__forward args));
 		self._data_end += 1;
 		return *(self._data_end - 1);
 	}
@@ -183,32 +197,32 @@ export function swap(a: &vector, b: &vector)
 	swap(a._alloc_end,  b._alloc_end);
 }
 
-export function begin(vec: &vector) -> *(typeof vec).value_type
+export function begin(vec: &vector) -> ?*(typeof vec).value_type
 {
 	return vec._data_begin;
 }
 
-export function end(vec: &vector) -> *(typeof vec).value_type
+export function end(vec: &vector) -> ?*(typeof vec).value_type
 {
 	return vec._data_end;
 }
 
-export function begin(vec: &const vector) -> *const (typeof vec).value_type
+export function begin(vec: &const vector) -> ?*const (typeof vec).value_type
 {
 	return vec._data_begin;
 }
 
-export function end(vec: &const vector) -> *const (typeof vec).value_type
+export function end(vec: &const vector) -> ?*const (typeof vec).value_type
 {
 	return vec._data_end;
 }
 
 
-function copy_range(begin: *auto, end: *auto, other_begin: *const auto)
+function copy_range(begin: ?*auto, end: ?*auto, other_begin: ?*const auto)
 {
 	for (let [it, other_it] = [ begin, other_begin ]; it != end; ++it, ++other_it)
 	{
-		__builtin_inplace_construct(it, *other_it);
+		__builtin_inplace_construct(it.get_value(), *other_it);
 	}
 }
 
@@ -227,7 +241,7 @@ function round_to_next_power_of_two(n: usize) -> usize
 	return n;
 }
 
-function rounded_alloc(T: typename, n: usize) -> [*T, usize]
+function rounded_alloc(T: typename, n: usize) -> [?*T, usize]
 {
 	if (n == 0u)
 	{
