@@ -719,13 +719,22 @@ static void resolve_variable_init_expr_and_match_type(ast::decl_variable &var_de
 					var_decl.src_tokens,
 					bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
 				);
+				var_decl.state = ast::resolve_state::error;
 			}
+		}
+		else if (!ast::is_default_constructible(var_decl.get_type()))
+		{
+			context.report_error(
+				var_decl.src_tokens,
+				bz::format("variable type '{}' does not have a default constructor", var_decl.get_type())
+			);
+			var_decl.state = ast::resolve_state::error;
 		}
 	}
 	if (
 		!var_decl.get_type().is_empty()
-		&& !context.is_instantiable(var_decl.get_type())
 		&& var_decl.state != ast::resolve_state::error
+		&& !context.is_instantiable(var_decl.get_type())
 	)
 	{
 		auto const var_decl_src_tokens = var_decl.get_type().src_tokens;
