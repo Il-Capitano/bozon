@@ -37,6 +37,18 @@ bool is_implicitly_convertible(
 		{
 			return dest_kind >= expr_kind;
 		}
+		else
+		{
+			return false;
+		}
+	}
+	else if (dest.is<ast::ts_optional>() && expr_type_without_const.is<ast::ts_optional>())
+	{
+		return is_implicitly_convertible(dest.get<ast::ts_optional>(), expr_type_without_const.get<ast::ts_optional>(), expr_type_kind, context);
+	}
+	else if (dest.is<ast::ts_optional>())
+	{
+		return is_implicitly_convertible(dest.get<ast::ts_optional>(), expr_type, expr_type_kind, context);
 	}
 	return false;
 }
@@ -179,7 +191,7 @@ static bool is_integer_literal_implicitly_convertible(
 
 static bool is_null_literal_implicitly_convertible(ast::typespec_view dest)
 {
-	return dest.is<ast::ts_optional_pointer>() || dest.is<ast::ts_optional>();
+	return (dest.is<ast::ts_optional_pointer>() || dest.is<ast::ts_optional>()) && ast::is_complete(dest);
 }
 
 bool is_implicitly_convertible(

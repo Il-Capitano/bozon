@@ -35,14 +35,15 @@ int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 	{
 		auto const [lhs_level, lhs_ref_kind, lhs_type_kind] = lhs.get_single();
 		auto const [rhs_level, rhs_ref_kind, rhs_type_kind] = rhs.get_single();
-		if (lhs_ref_kind != rhs_ref_kind)
-		{
-			return lhs_ref_kind > rhs_ref_kind ? -2 : 2;
-		}
 
 		if (lhs_level != rhs_level)
 		{
 			return lhs_level < rhs_level ? -2 : 2;
+		}
+
+		if (lhs_ref_kind != rhs_ref_kind)
+		{
+			return lhs_ref_kind > rhs_ref_kind ? -2 : 2;
 		}
 
 		if (lhs_type_kind != rhs_type_kind)
@@ -153,7 +154,7 @@ static match_level_t get_strict_typename_match_level(
 
 	if (dest.is<ast::ts_typename>())
 	{
-		return single_match_t{ modifier_match_level, reference_match_kind::exact_match, type_match_kind::direct_match };
+		return single_match_t{ modifier_match_level, reference_match_kind::reference_exact, type_match_kind::direct_match };
 	}
 	else if (dest.kind() != source.kind())
 	{
@@ -210,6 +211,7 @@ static match_level_t get_strict_type_match_level(
 	ast::typespec_view dest,
 	ast::typespec_view source,
 	reference_match_kind reference_match,
+	type_match_kind base_type_match,
 	bool accept_void,
 	bool propagate_const
 )
@@ -246,9 +248,16 @@ static match_level_t get_strict_type_match_level(
 		if (dest.kind() == source.kind() && dest.is_safe_blind_get())
 		{
 			bz_assert(source.is_safe_blind_get());
+			if (dest.is<ast::ts_optional_pointer>())
+			{
+				modifier_match_level += 2;
+			}
+			else
+			{
+				modifier_match_level += 1;
+			}
 			dest = dest.blind_get();
 			source = source.blind_get();
-			modifier_match_level += 1;
 		}
 		else
 		{
@@ -258,18 +267,24 @@ static match_level_t get_strict_type_match_level(
 	bz_assert(!dest.is<ast::ts_unresolved>());
 	bz_assert(!source.is<ast::ts_unresolved>());
 
-	if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
+	if (dest.is<ast::ts_optional>() && dest.get<ast::ts_optional>().is<ast::ts_auto>() && source.is<ast::ts_optional_pointer>())
+	{
+		modifier_match_level += 1;
+		bz_assert(!source.is<ast::ts_consteval>());
+		return single_match_t{ modifier_match_level, reference_match, std::max(base_type_match, type_match_kind::direct_match) };
+	}
+	else if (dest.is<ast::ts_auto>() && !source.is<ast::ts_const>())
 	{
 		bz_assert(!source.is<ast::ts_consteval>());
-		return single_match_t{ modifier_match_level, reference_match, type_match_kind::direct_match };
+		return single_match_t{ modifier_match_level, reference_match, std::max(base_type_match, type_match_kind::direct_match) };
 	}
 	else if (dest == source)
 	{
-		return single_match_t{ modifier_match_level, reference_match, type_match_kind::exact_match };
+		return single_match_t{ modifier_match_level, reference_match, std::max(base_type_match, type_match_kind::exact_match) };
 	}
 	else if (accept_void && dest.is<ast::ts_void>() && !source.is<ast::ts_const>())
 	{
-		return single_match_t{ modifier_match_level, reference_match, type_match_kind::implicit_conversion };
+		return single_match_t{ modifier_match_level, reference_match, std::max(base_type_match, type_match_kind::implicit_conversion) };
 	}
 	else if (
 		dest.is<ast::ts_base_type>() && dest.get<ast::ts_base_type>().info->is_generic()
@@ -277,7 +292,7 @@ static match_level_t get_strict_type_match_level(
 		&& source.get<ast::ts_base_type>().info->generic_parent == dest.get<ast::ts_base_type>().info
 	)
 	{
-		return single_match_t{ modifier_match_level, reference_match, type_match_kind::generic_match };
+		return single_match_t{ modifier_match_level, reference_match, std::max(base_type_match, type_match_kind::generic_match) };
 	}
 	else if (dest.is<ast::ts_tuple>() && source.is<ast::ts_tuple>())
 	{
@@ -299,7 +314,12 @@ static match_level_t get_strict_type_match_level(
 			bool good = true;
 			for (auto const &[source_elem_t, dest_elem_t] : bz::zip(source_tuple_types, dest_tuple_types))
 			{
-				result_vec.push_back(get_strict_type_match_level(dest_elem_t, source_elem_t, reference_match, false, propagate_const));
+				result_vec.push_back(get_strict_type_match_level(
+					dest_elem_t,
+					source_elem_t,
+					reference_match, base_type_match,
+					false, propagate_const
+				));
 				good &= result_vec.back().not_null();
 			}
 			if (!good)
@@ -319,7 +339,7 @@ static match_level_t get_strict_type_match_level(
 		return get_strict_type_match_level(
 			dest.get<ast::ts_array_slice>().elem_type,
 			source.get<ast::ts_array_slice>().elem_type,
-			reference_match,
+			reference_match, base_type_match,
 			false, propagate_const
 		) + (modifier_match_level + 1);
 	}
@@ -333,7 +353,7 @@ static match_level_t get_strict_type_match_level(
 		return get_strict_type_match_level(
 			dest.get<ast::ts_array>().elem_type,
 			source.get<ast::ts_array>().elem_type,
-			reference_match,
+			reference_match, base_type_match,
 			false, propagate_const
 		) + (modifier_match_level + 1);
 	}
@@ -351,14 +371,28 @@ static match_level_t get_type_match_level(
 {
 	auto const expr_type_without_const = ast::remove_const_or_consteval(expr_type);
 
-	if (dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
+	if (dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
 	{
 		return get_strict_type_match_level(
-			dest.get<ast::ts_pointer>(),
+			dest.get<ast::ts_optional_pointer>(),
 			expr_type_without_const.get<ast::ts_pointer>(),
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+			type_match_kind::implicit_conversion,
 			true, true
 		) + 1;
+	}
+	else if (
+		(dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
+		|| (dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_optional_pointer>())
+	)
+	{
+		return get_strict_type_match_level(
+			dest.blind_get(),
+			expr_type_without_const.blind_get(),
+			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+			type_match_kind::exact_match,
+			true, true
+		) + (dest.is<ast::ts_pointer>() ? 1 : 2);
 	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
@@ -367,11 +401,21 @@ static match_level_t get_type_match_level(
 			return match_level_t{};
 		}
 
+		auto const inner_dest = dest.get<ast::ts_lvalue_reference>();
+		if (!inner_dest.is<ast::ts_const>() && expr_type.is<ast::ts_const>())
+		{
+			return match_level_t{};
+		}
+		auto const reference_kind = inner_dest.is<ast::ts_const>() == expr_type.is<ast::ts_const>()
+			? reference_match_kind::reference_exact
+			: reference_match_kind::reference_add_const;
+
 		return get_strict_type_match_level(
-			dest.get<ast::ts_lvalue_reference>(),
-			expr_type,
-			reference_match_kind::exact_match,
-			false, true
+			ast::remove_const_or_consteval(inner_dest),
+			expr_type_without_const,
+			reference_kind,
+			type_match_kind::exact_match,
+			false, inner_dest.is<ast::ts_const>()
 		);
 	}
 	else if (dest.is<ast::ts_move_reference>())
@@ -383,17 +427,28 @@ static match_level_t get_type_match_level(
 
 		return get_strict_type_match_level(
 			dest.get<ast::ts_move_reference>(),
-			expr_type,
-			reference_match_kind::exact_match,
-			false, true
+			expr_type_without_const,
+			reference_match_kind::reference_exact,
+			type_match_kind::exact_match,
+			false, false
 		);
 	}
 	else if (dest.is<ast::ts_auto_reference>())
 	{
+		auto const inner_dest = dest.get<ast::ts_auto_reference>();
+		if (!inner_dest.is<ast::ts_const>() && expr_type.is<ast::ts_const>())
+		{
+			return match_level_t{};
+		}
+		auto const reference_kind = inner_dest.is<ast::ts_const>() == expr_type.is<ast::ts_const>()
+			? reference_match_kind::auto_reference_exact
+			: reference_match_kind::auto_reference_add_const;
+
 		return get_strict_type_match_level(
-			dest.get<ast::ts_auto_reference>(),
-			expr_type,
-			reference_match_kind::auto_reference,
+			ast::remove_const_or_consteval(inner_dest),
+			expr_type_without_const,
+			reference_kind,
+			type_match_kind::exact_match,
 			false, true
 		);
 	}
@@ -403,6 +458,7 @@ static match_level_t get_type_match_level(
 			dest.get<ast::ts_auto_reference_const>(),
 			expr_type_without_const,
 			reference_match_kind::auto_reference_const,
+			type_match_kind::exact_match,
 			false, expr_type.is<ast::ts_const>()
 		);
 		if (expr_type.is<ast::ts_const>())
@@ -421,6 +477,7 @@ static match_level_t get_type_match_level(
 			dest,
 			expr_type_without_const,
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+			type_match_kind::exact_match,
 			false, true
 		);
 	}
@@ -430,6 +487,7 @@ static match_level_t get_type_match_level(
 			dest,
 			expr_type_without_const,
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+			type_match_kind::exact_match,
 			false, true
 		);
 	}
@@ -446,6 +504,7 @@ static match_level_t get_type_match_level(
 				ast::remove_const_or_consteval(dest_elem_t),
 				expr_elem_t,
 				ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+				type_match_kind::implicit_conversion,
 				false, is_const_dest_elem_t
 			) + 1;
 		}
@@ -459,6 +518,7 @@ static match_level_t get_type_match_level(
 				ast::remove_const_or_consteval(dest_elem_t),
 				expr_elem_t,
 				ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
+				type_match_kind::implicit_conversion,
 				false, true
 			);
 		}
