@@ -3168,6 +3168,7 @@ ast::expression parse_context::make_tuple(lex::src_tokens const &src_tokens, ast
 
 static bool is_builtin_type(ast::typespec_view ts)
 {
+	static_assert(ast::typespec_types::size() == 19);
 	switch (ts.kind())
 	{
 	case ast::typespec_node_t::index_of<ast::ts_const>:
@@ -3179,6 +3180,8 @@ static bool is_builtin_type(ast::typespec_view ts)
 		return base.info->kind != ast::type_info::aggregate;
 	}
 	case ast::typespec_node_t::index_of<ast::ts_pointer>:
+	case ast::typespec_node_t::index_of<ast::ts_optional_pointer>:
+	case ast::typespec_node_t::index_of<ast::ts_optional>:
 	case ast::typespec_node_t::index_of<ast::ts_function>:
 	case ast::typespec_node_t::index_of<ast::ts_tuple>:
 	case ast::typespec_node_t::index_of<ast::ts_array>:
@@ -4115,7 +4118,7 @@ ast::expression parse_context::make_function_call_expression(
 		}
 		else if (args.empty())
 		{
-			if (called_type.is<ast::ts_pointer>())
+			if (called_type.is<ast::ts_optional_pointer>() || called_type.is<ast::ts_optional>())
 			{
 				return ast::make_constant_expression(
 					src_tokens,
