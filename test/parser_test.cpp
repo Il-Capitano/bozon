@@ -245,7 +245,7 @@ xx_compiles(                                                                    
 
 	declare_var("a", "int32", "");
 	x("++a");
-	declare_var("p", "*int32", "");
+	declare_var("p", "*int32", "&a");
 	x("++p");
 	declare_var("c", "char", "");
 	x("++c");
@@ -413,7 +413,8 @@ xx(                                                                             
 	declare_var("f64", "float64", "");
 	declare_var("c", "char", "");
 	declare_var("s", "str", "");
-	declare_var("p", "*int32", "");
+	declare_var("p", "*int32", "&i32");
+	declare_var("p", "?*int32", "");
 
 	x_err("");
 
