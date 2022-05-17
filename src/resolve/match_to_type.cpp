@@ -41,11 +41,6 @@ int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 			return lhs_level < rhs_level ? -2 : 2;
 		}
 
-		if (lhs_ref_kind != rhs_ref_kind)
-		{
-			return lhs_ref_kind > rhs_ref_kind ? -2 : 2;
-		}
-
 		if (lhs_type_kind != rhs_type_kind)
 		{
 			if (lhs_type_kind == type_match_kind::exact_match && rhs_type_kind == type_match_kind::implicit_literal_conversion)
@@ -60,6 +55,11 @@ int match_level_compare(match_level_t const &lhs, match_level_t const &rhs)
 			{
 				return lhs_type_kind > rhs_type_kind ? -2 : 2;
 			}
+		}
+
+		if (lhs_ref_kind != rhs_ref_kind)
+		{
+			return lhs_ref_kind > rhs_ref_kind ? -2 : 2;
 		}
 
 		return 0;
@@ -213,7 +213,8 @@ static match_level_t get_strict_type_match_level(
 	reference_match_kind reference_match,
 	type_match_kind base_type_match,
 	bool accept_void,
-	bool propagate_const
+	bool propagate_const,
+	bool top_level = true
 )
 {
 	bz_assert(ast::is_complete(source));
@@ -224,24 +225,35 @@ static match_level_t get_strict_type_match_level(
 		{
 			auto const dest_is_const = dest.is<ast::ts_const>();
 			auto const source_is_const = source.is<ast::ts_const>();
-			if (dest_is_const && source_is_const)
+
+			if (
+				(!dest_is_const && source_is_const)
+				|| (!propagate_const && dest_is_const && !source_is_const)
+			)
+			{
+				return match_level_t{};
+			}
+
+			if (top_level)
+			{
+				top_level = false;
+			}
+			else if (dest_is_const == source_is_const)
 			{
 				modifier_match_level += 1;
-				dest = dest.blind_get();
-				source = source.blind_get();
-			}
-			else if (!dest_is_const && !source_is_const)
-			{
-				modifier_match_level += 1;
-				propagate_const = false;
-			}
-			else if (dest_is_const && !source_is_const && propagate_const)
-			{
-				dest = dest.blind_get();
 			}
 			else
 			{
-				return match_level_t{};
+				propagate_const = false;
+			}
+
+			if (dest_is_const)
+			{
+				dest = dest.blind_get();
+			}
+			if (source_is_const)
+			{
+				source = source.blind_get();
 			}
 		}
 
@@ -256,6 +268,13 @@ static match_level_t get_strict_type_match_level(
 			{
 				modifier_match_level += 1;
 			}
+			dest = dest.blind_get();
+			source = source.blind_get();
+		}
+		else if (propagate_const && dest.is<ast::ts_optional_pointer>() && source.is<ast::ts_pointer>())
+		{
+			modifier_match_level += 1;
+			base_type_match = std::max(base_type_match, type_match_kind::implicit_conversion);
 			dest = dest.blind_get();
 			source = source.blind_get();
 		}
@@ -318,7 +337,7 @@ static match_level_t get_strict_type_match_level(
 					dest_elem_t,
 					source_elem_t,
 					reference_match, base_type_match,
-					false, propagate_const
+					false, propagate_const, false
 				));
 				good &= result_vec.back().not_null();
 			}
@@ -340,7 +359,7 @@ static match_level_t get_strict_type_match_level(
 			dest.get<ast::ts_array_slice>().elem_type,
 			source.get<ast::ts_array_slice>().elem_type,
 			reference_match, base_type_match,
-			false, propagate_const
+			false, propagate_const, false
 		) + (modifier_match_level + 1);
 	}
 	else if (dest.is<ast::ts_array>() && source.is<ast::ts_array>())
@@ -354,7 +373,7 @@ static match_level_t get_strict_type_match_level(
 			dest.get<ast::ts_array>().elem_type,
 			source.get<ast::ts_array>().elem_type,
 			reference_match, base_type_match,
-			false, propagate_const
+			false, propagate_const, false
 		) + (modifier_match_level + 1);
 	}
 	else
@@ -374,12 +393,12 @@ static match_level_t get_type_match_level(
 	if (dest.is<ast::ts_optional_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
 	{
 		return get_strict_type_match_level(
-			dest.get<ast::ts_optional_pointer>(),
-			expr_type_without_const.get<ast::ts_pointer>(),
+			dest,
+			expr_type_without_const,
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
 			type_match_kind::implicit_conversion,
 			true, true
-		) + 1;
+		);
 	}
 	else if (
 		(dest.is<ast::ts_pointer>() && expr_type_without_const.is<ast::ts_pointer>())
@@ -387,12 +406,12 @@ static match_level_t get_type_match_level(
 	)
 	{
 		return get_strict_type_match_level(
-			dest.blind_get(),
-			expr_type_without_const.blind_get(),
+			dest,
+			expr_type_without_const,
 			ast::is_rvalue(expr_type_kind) ? reference_match_kind::rvalue_copy : reference_match_kind::lvalue_copy,
 			type_match_kind::exact_match,
 			true, true
-		) + (dest.is<ast::ts_pointer>() ? 1 : 2);
+		);
 	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
@@ -461,10 +480,6 @@ static match_level_t get_type_match_level(
 			type_match_kind::exact_match,
 			false, expr_type.is<ast::ts_const>()
 		);
-		if (expr_type.is<ast::ts_const>())
-		{
-			result += 1;
-		}
 		return result;
 	}
 
