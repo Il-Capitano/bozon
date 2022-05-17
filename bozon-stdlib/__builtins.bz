@@ -452,8 +452,35 @@ export function __builtin_print_stderr(s: str)
 			"' in assignment"
 		)));
 	} else {}, typeof lhs);
-// @__builtin export operator = (lhs: &?auto, rhs: ##?auto) -> typeof lhs;
-// @__builtin export operator = (lhs: &?auto, rhs: ##auto) -> typeof lhs;
+@__builtin export operator = (lhs: &?auto, rhs: ##?auto) -> typeof lhs
+{
+	if (rhs == null)
+	{
+		lhs = null;
+		return lhs;
+	}
+	else if (lhs == null)
+	{
+		type opt_type = __builtin_remove_optional(__builtin_remove_reference(typeof lhs));
+		__builtin_optional_inplace_construct(&lhs, opt_type((__forward rhs).get_value()));
+	}
+	else
+	{
+		lhs.get_value() = (__forward rhs).get_value();
+	}
+}
+@__builtin export operator = (lhs: &?auto, rhs: ##auto) -> typeof lhs
+{
+	if (lhs == null)
+	{
+		type opt_type = __builtin_remove_optional(__builtin_remove_reference(typeof lhs));
+		__builtin_optional_inplace_construct(&lhs, opt_type(__forward rhs));
+	}
+	else
+	{
+		lhs.get_value() = __forward rhs;
+	}
+}
 
 @__builtin export operator + (lhs: int8,  rhs: int8)  -> int8;
 @__builtin export operator + (lhs: int16, rhs: int16) -> int16;
