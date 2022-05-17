@@ -5782,7 +5782,20 @@ static void emit_bitcode(
 	if (var_decl.get_type().is<ast::ts_lvalue_reference>())
 	{
 		bz_assert(var_decl.init_expr.not_null());
-		auto const init_val = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
+		auto const init_val = [&]() {
+			if (var_decl.init_expr.is_error())
+			{
+				auto const type = get_llvm_type(var_decl.get_type().get<ast::ts_lvalue_reference>(), context);
+				return val_ptr::get_reference(context.create_alloca_without_lifetime_start(type), type);
+			}
+			else
+			{
+				context.push_expression_scope();
+				auto const result = emit_bitcode<abi>(var_decl.init_expr, context, nullptr);
+				context.pop_expression_scope();
+				return result;
+			}
+		}();
 		bz_assert(init_val.kind == val_ptr::reference);
 		if (var_decl.tuple_decls.empty())
 		{
