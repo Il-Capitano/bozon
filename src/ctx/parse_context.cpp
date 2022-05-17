@@ -3262,7 +3262,7 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 		// search for possible ambiguity
 		auto filtered_funcs = possible_funcs
 			.filter([&](auto const &func) {
-				return &*max_match_it == &func || resolve::match_level_compare(max_match_it->match_level, func.match_level) == 0;
+				return &*max_match_it == &func || resolve::match_level_compare(max_match_it->match_level, func.match_level) <= 0;
 			});
 		if (filtered_funcs.count() == 1)
 		{
@@ -3271,7 +3271,8 @@ static std::pair<ast::statement_view, ast::function_body *> find_best_match(
 		else
 		{
 			bz::vector<source_highlight> notes;
-			notes.reserve(possible_funcs.size());
+			notes.reserve(possible_funcs.size() + 1);
+			notes.emplace_back(get_function_parameter_types_note(src_tokens, args));
 			for (auto &func : filtered_funcs)
 			{
 				notes.emplace_back(context.make_note(
