@@ -10,6 +10,7 @@ namespace ctx
 bitcode_context::bitcode_context(global_context &_global_ctx, llvm::Module *_module)
 	: global_ctx(_global_ctx),
 	  module(_module),
+	  current_value_reference(bc::val_ptr::get_none()),
 	  builder(_global_ctx._llvm_context),
 	  function_pass_manager(_module)
 {
@@ -536,6 +537,23 @@ void bitcode_context::emit_all_end_lifetime_calls(void)
 			this->end_lifetime(ptr, size);
 		}
 	}
+}
+
+[[nodiscard]] bc::val_ptr bitcode_context::push_value_reference(bc::val_ptr new_value)
+{
+	auto const result = this->current_value_reference;
+	this->current_value_reference = new_value;
+	return result;
+}
+
+void bitcode_context::pop_value_reference(bc::val_ptr prev_value)
+{
+	this->current_value_reference = prev_value;
+}
+
+bc::val_ptr bitcode_context::get_value_reference(void)
+{
+	return this->current_value_reference;
 }
 
 [[nodiscard]] bitcode_context::loop_info_t

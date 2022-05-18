@@ -143,6 +143,10 @@ struct bitcode_context
 	void emit_loop_end_lifetime_calls(void);
 	void emit_all_end_lifetime_calls(void);
 
+	[[nodiscard]] bc::val_ptr push_value_reference(bc::val_ptr new_value);
+	void pop_value_reference(bc::val_ptr prev_value);
+	bc::val_ptr get_value_reference(void);
+
 	struct loop_info_t
 	{
 		llvm::BasicBlock *break_bb;
@@ -181,6 +185,7 @@ struct bitcode_context
 	llvm::BasicBlock *alloca_bb = nullptr;
 	llvm::Value *output_pointer = nullptr;
 	loop_info_t loop_info = {};
+	bc::val_ptr current_value_reference;
 
 	llvm::IRBuilder<> builder;
 

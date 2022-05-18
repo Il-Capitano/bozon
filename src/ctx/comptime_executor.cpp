@@ -42,6 +42,7 @@ static bz::vector<comptime_function> create_empty_comptime_functions(void)
 
 comptime_executor_context::comptime_executor_context(global_context &_global_ctx)
 	: global_ctx(_global_ctx),
+	  current_value_reference(bc::val_ptr::get_none()),
 	  builder(_global_ctx._llvm_context),
 	  comptime_functions(create_empty_comptime_functions())
 {}
@@ -737,6 +738,23 @@ void comptime_executor_context::emit_all_end_lifetime_calls(void)
 			this->end_lifetime(ptr, size);
 		}
 	}
+}
+
+[[nodiscard]] bc::val_ptr comptime_executor_context::push_value_reference(bc::val_ptr new_value)
+{
+	auto const result = this->current_value_reference;
+	this->current_value_reference = new_value;
+	return result;
+}
+
+void comptime_executor_context::pop_value_reference(bc::val_ptr prev_value)
+{
+	this->current_value_reference = prev_value;
+}
+
+bc::val_ptr comptime_executor_context::get_value_reference(void)
+{
+	return this->current_value_reference;
 }
 
 [[nodiscard]] comptime_executor_context::loop_info_t
