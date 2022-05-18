@@ -25,10 +25,15 @@ struct expr_subscript;
 struct expr_function_call;
 struct expr_cast;
 struct expr_take_reference;
-struct expr_struct_init;
-struct expr_array_init;
+struct expr_aggregate_init;
+struct expr_aggregate_copy_construct;
+struct expr_aggregate_move_construct;
 struct expr_array_default_construct;
+struct expr_array_copy_construct;
+struct expr_array_move_construct;
 struct expr_builtin_default_construct;
+struct expr_builtin_copy_construct;
+struct expr_builtin_move_construct;
 struct expr_member_access;
 struct expr_type_member_access;
 struct expr_compound;
@@ -39,6 +44,8 @@ struct expr_break;
 struct expr_continue;
 struct expr_unreachable;
 struct expr_generic_type_instantiation;
+
+struct expr_bitcode_value_reference;
 
 struct expr_unresolved_subscript;
 struct expr_unresolved_function_call;
@@ -61,10 +68,15 @@ using expr_t = node<
 	expr_function_call,
 	expr_cast,
 	expr_take_reference,
-	expr_struct_init,
-	expr_array_init,
+	expr_aggregate_init,
+	expr_aggregate_copy_construct,
+	expr_aggregate_move_construct,
 	expr_array_default_construct,
+	expr_array_copy_construct,
+	expr_array_move_construct,
 	expr_builtin_default_construct,
+	expr_builtin_copy_construct,
+	expr_builtin_move_construct,
 	expr_member_access,
 	expr_type_member_access,
 	expr_compound,
@@ -74,7 +86,8 @@ using expr_t = node<
 	expr_break,
 	expr_continue,
 	expr_unreachable,
-	expr_generic_type_instantiation
+	expr_generic_type_instantiation,
+	expr_bitcode_value_reference
 >;
 
 using unresolved_expr_t = node<
@@ -429,60 +442,81 @@ struct expr_take_reference
 {
 	expression expr;
 
-	expr_take_reference(expression _expr)
+	expr_take_reference(
+		expression _expr
+	)
 		: expr(std::move(_expr))
 	{}
 };
 
-struct expr_struct_init
+struct expr_aggregate_init
 {
-	arena_vector<expression> exprs;
 	typespec                 type;
+	arena_vector<expression> exprs;
 
-	expr_struct_init(
-		arena_vector<expression> _exprs,
-		typespec                 _type
+	expr_aggregate_init(
+		typespec                 _type,
+		arena_vector<expression> _exprs
 	)
-		: exprs(std::move(_exprs)),
-		  type (std::move(_type))
+		: type (std::move(_type)),
+		  exprs(std::move(_exprs))
 	{}
 };
 
-struct expr_array_init
+struct expr_aggregate_copy_construct
 {
-	arena_vector<expression> exprs;
-	typespec                 type;
-
-	expr_array_init(
-		arena_vector<expression> _exprs,
-		typespec                 _type
-	)
-		: exprs(std::move(_exprs)),
-		  type (std::move(_type))
-	{}
+	expression               copied_value;
+	arena_vector<expression> copy_exprs;
 };
 
+struct expr_aggregate_move_construct
+{
+	expression               moved_value;
+	arena_vector<expression> move_exprs;
+};
 struct expr_array_default_construct
 {
-	expression elem_ctor_call;
 	typespec   type;
+	expression default_construct_expr;
 
 	expr_array_default_construct(
-		expression _elem_ctor_call,
-		typespec   _type
+		typespec   _type,
+		expression _default_construct_expr
 	)
-		: elem_ctor_call(std::move(_elem_ctor_call)),
-		  type(std::move(_type))
+		: type(std::move(_type)),
+		  default_construct_expr(std::move(_default_construct_expr))
 	{}
+};
+
+struct expr_array_copy_construct
+{
+	expression copied_value;
+	expression copy_expr;
+};
+
+struct expr_array_move_construct
+{
+	expression moved_value;
+	expression move_expr;
 };
 
 struct expr_builtin_default_construct
 {
 	typespec type;
 
-	expr_builtin_default_construct(typespec _type)
+	expr_builtin_default_construct(ast::typespec _type)
 		: type(std::move(_type))
 	{}
+};
+
+struct expr_builtin_copy_construct
+{
+	expression copied_value;
+};
+
+struct expr_builtin_move_construct
+{
+	expression moved_value;
 };
 
 struct expr_member_access
@@ -633,6 +667,11 @@ struct expr_generic_type_instantiation
 };
 
 
+struct expr_bitcode_value_reference
+{
+};
+
+
 struct expr_unresolved_subscript
 {
 	expression               base;
@@ -772,10 +811,15 @@ def_make_fn(expr_t, expr_subscript)
 def_make_fn(expr_t, expr_function_call)
 def_make_fn(expr_t, expr_cast)
 def_make_fn(expr_t, expr_take_reference)
-def_make_fn(expr_t, expr_struct_init)
-def_make_fn(expr_t, expr_array_init)
+def_make_fn(expr_t, expr_aggregate_init)
+def_make_fn(expr_t, expr_aggregate_copy_construct)
+def_make_fn(expr_t, expr_aggregate_move_construct)
 def_make_fn(expr_t, expr_array_default_construct)
+def_make_fn(expr_t, expr_array_copy_construct)
+def_make_fn(expr_t, expr_array_move_construct)
 def_make_fn(expr_t, expr_builtin_default_construct)
+def_make_fn(expr_t, expr_builtin_copy_construct)
+def_make_fn(expr_t, expr_builtin_move_construct)
 def_make_fn(expr_t, expr_member_access)
 def_make_fn(expr_t, expr_type_member_access)
 def_make_fn(expr_t, expr_compound)
@@ -786,6 +830,7 @@ def_make_fn(expr_t, expr_break)
 def_make_fn(expr_t, expr_continue)
 def_make_fn(expr_t, expr_unreachable)
 def_make_fn(expr_t, expr_generic_type_instantiation)
+def_make_fn(expr_t, expr_bitcode_value_reference)
 
 #undef def_make_fn
 

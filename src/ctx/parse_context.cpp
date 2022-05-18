@@ -4196,7 +4196,7 @@ ast::expression parse_context::make_function_call_expression(
 					return ast::make_dynamic_expression(
 						src_tokens,
 						ast::expression_type_kind::rvalue, called_type,
-						ast::make_expr_array_default_construct(std::move(ctor_call), called_type)
+						ast::make_expr_array_default_construct(called_type, std::move(ctor_call))
 					);
 				}
 			}
@@ -4471,7 +4471,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (!type_without_const.is<ast::ts_base_type>())
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 		}
 
 		auto const info = type_without_const.get<ast::ts_base_type>().info;
@@ -4484,7 +4484,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 		if (info->kind != ast::type_info::aggregate)
 		{
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type));
-			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 		}
 		else if (
 			!this->has_common_global_scope(info->get_scope())
@@ -4505,7 +4505,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 				notes.push_back(this->make_note("members whose names start with '_' are only accessible in the same file"));
 			}
 			this->report_error(src_tokens, bz::format("invalid type '{}' for struct initializer", type), std::move(notes));
-			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 		}
 		else if (info->member_variables.size() != args.size())
 		{
@@ -4521,7 +4521,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
-				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 			}
 			else if (member_size - args_size == 1)
 			{
@@ -4533,7 +4533,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
-				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 			}
 			else
 			{
@@ -4555,7 +4555,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						bz::format("'struct {}' is defined here", info->get_typename_as_string())
 					) }
 				);
-				return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+				return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 			}
 		}
 
@@ -4567,14 +4567,14 @@ ast::expression parse_context::make_subscript_operator_expression(
 		}
 		if (!is_good)
 		{
-			return ast::make_error_expression(src_tokens, ast::make_expr_struct_init(std::move(args), type));
+			return ast::make_error_expression(src_tokens, ast::make_expr_aggregate_init(type, std::move(args)));
 		}
 
 		return ast::make_dynamic_expression(
 			src_tokens,
 			ast::expression_type_kind::rvalue,
 			type_without_const,
-			ast::make_expr_struct_init(std::move(args), type_without_const)
+			ast::make_expr_aggregate_init(type_without_const, std::move(args))
 		);
 	}
 	else

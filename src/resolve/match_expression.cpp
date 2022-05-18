@@ -1009,7 +1009,7 @@ static void match_expression_to_type_impl(
 				expr = ast::make_dynamic_expression(
 					expr.src_tokens,
 					ast::expression_type_kind::rvalue, dest_without_const,
-					ast::make_expr_array_init(std::move(expr.get_tuple().elems), dest_without_const)
+					ast::make_expr_aggregate_init(dest_without_const, std::move(expr.get_tuple().elems))
 				);
 			}
 		}
