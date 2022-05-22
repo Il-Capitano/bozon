@@ -576,7 +576,7 @@ static ast::expression get_builtin_unary_sizeof(
 	}
 	else
 	{
-		auto const type = expr.get_expr_type_and_kind().first;
+		auto const type = expr.get_expr_type();
 		if (!ast::is_complete(type))
 		{
 			// this is in case type is empty; I don't see how we could get here otherwise

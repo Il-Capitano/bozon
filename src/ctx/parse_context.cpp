@@ -416,10 +416,10 @@ static source_highlight get_function_parameter_types_note(lex::src_tokens const 
 	}
 
 	auto message = [&]() {
-		bz::u8string result = bz::format("function argument types are '{}'", args[0].get_expr_type_and_kind().first);
+		bz::u8string result = bz::format("function argument types are '{}'", args[0].get_expr_type());
 		for (auto const &arg : args.slice(1))
 		{
-			auto const arg_type = arg.get_expr_type_and_kind().first;
+			auto const arg_type = arg.get_expr_type();
 			result += bz::format(", '{}'", arg_type);
 		}
 		return result;
@@ -3552,7 +3552,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	bz::vector<possible_func_t> possible_funcs = {};
 
 	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, expr, context.get_current_enclosing_scope(), context);
-	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 	if (expr_type.is<ast::ts_base_type>())
 	{
 		auto const info = expr_type.get<ast::ts_base_type>().info;
@@ -3608,7 +3608,7 @@ ast::expression parse_context::make_unary_operator_expression(
 			src_tokens,
 			bz::format(
 				"no candidate found for unary 'operator {}' with type '{}'",
-				token_info[op_kind].token_value, expr.get_expr_type_and_kind().first
+				token_info[op_kind].token_value, expr.get_expr_type()
 			)
 		);
 		return ast::make_error_expression(src_tokens, ast::make_expr_unary_op(op_kind, std::move(expr)));
@@ -3713,7 +3713,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 	bz::vector<possible_func_t> possible_funcs = {};
 
 	get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, context.get_current_enclosing_scope(), context);
-	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
 	if (lhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = lhs_type.get<ast::ts_base_type>().info;
@@ -3725,7 +3725,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_operator(
 		}
 		get_possible_funcs_for_operator_helper(possible_funcs, src_tokens, op, lhs, rhs, info->get_scope(), context);
 	}
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	if (rhs_type.is<ast::ts_base_type>())
 	{
 		auto const info = rhs_type.get<ast::ts_base_type>().info;
@@ -3808,7 +3808,7 @@ ast::expression parse_context::make_binary_operator_expression(
 			src_tokens,
 			bz::format(
 				"no candidate found for binary 'operator {}' with types '{}' and '{}'",
-				token_info[op_kind].token_value, lhs.get_expr_type_and_kind().first, rhs.get_expr_type_and_kind().first
+				token_info[op_kind].token_value, lhs.get_expr_type(), rhs.get_expr_type()
 			)
 		);
 		return ast::make_error_expression(src_tokens, ast::make_expr_binary_op(op_kind, std::move(lhs), std::move(rhs)));
@@ -4338,7 +4338,7 @@ static bz::vector<possible_func_t> get_possible_funcs_for_universal_function_cal
 
 	if (params.not_empty())
 	{
-		auto const type = ast::remove_const_or_consteval(params.front().get_expr_type_and_kind().first);
+		auto const type = ast::remove_const_or_consteval(params.front().get_expr_type());
 		if (type.is<ast::ts_base_type>())
 		{
 			auto const info = type.get<ast::ts_base_type>().info;
@@ -4430,10 +4430,10 @@ ast::expression parse_context::make_universal_function_call_expression(
 		else if (
 			best_body->is_intrinsic()
 			&& best_body->intrinsic_kind == ast::function_body::builtin_slice_size
-			&& ast::remove_const_or_consteval(args.front().get_expr_type_and_kind().first).is<ast::ts_array>()
+			&& ast::remove_const_or_consteval(args.front().get_expr_type()).is<ast::ts_array>()
 		)
 		{
-			auto const &array_t = ast::remove_const_or_consteval(args.front().get_expr_type_and_kind().first).get<ast::ts_array>();
+			auto const &array_t = ast::remove_const_or_consteval(args.front().get_expr_type()).get<ast::ts_array>();
 			ast::constant_value size;
 			size.emplace<ast::constant_value::uint>(array_t.size);
 			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), std::move(size), *this);
@@ -4612,7 +4612,7 @@ ast::expression parse_context::make_subscript_operator_expression(
 						src_tokens,
 						bz::format(
 							"no candidate found for binary 'operator []' with types '{}' and '{}'",
-							type, arg.get_expr_type_and_kind().first
+							type, arg.get_expr_type()
 						)
 					);
 					return ast::make_error_expression(src_tokens, ast::make_expr_subscript(std::move(called), std::move(arg)));

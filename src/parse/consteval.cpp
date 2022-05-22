@@ -1121,7 +1121,7 @@ static ast::constant_value evaluate_subscript(
 )
 {
 	bool is_consteval = true;
-	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type_and_kind().first);
+	auto const &base_type = ast::remove_const_or_consteval(subscript_expr.base.get_expr_type());
 
 	auto const &index = subscript_expr.index;
 	uint64_t index_value = 0;
@@ -2880,7 +2880,7 @@ static ast::constant_value guaranteed_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+			auto const expr_type = ast::remove_const_or_consteval(expr.get_expr_type());
 			auto &elem_values = expr_type.is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
@@ -3231,7 +3231,7 @@ static ast::constant_value try_evaluate_expr(
 			}
 
 			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());
@@ -3586,7 +3586,7 @@ static ast::constant_value try_evaluate_expr_without_error(
 			}
 
 			ast::constant_value result;
-			auto &elem_values = expr.get_expr_type_and_kind().first.is<ast::ts_array>()
+			auto &elem_values = expr.get_expr_type().is<ast::ts_array>()
 				? (result.emplace<ast::constant_value::array>(), result.get<ast::constant_value::array>())
 				: (result.emplace<ast::constant_value::tuple>(), result.get<ast::constant_value::tuple>());
 			elem_values.reserve(tuple.elems.size());

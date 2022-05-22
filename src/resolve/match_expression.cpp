@@ -612,7 +612,7 @@ static void match_integer_literal_to_type(
 			expr,
 			bz::format(
 				"cannot implicitly convert expression from type '{}' to '{}'",
-				expr.get_expr_type_and_kind().first, dest_container
+				expr.get_expr_type(), dest_container
 			),
 			std::move(notes)
 		);
@@ -626,7 +626,7 @@ static void match_integer_literal_to_type(
 	)
 	{
 		// default literal type doesn't need cast
-		bz_assert(dest == expr.get_expr_type_and_kind().first);
+		bz_assert(dest == expr.get_expr_type());
 	}
 	else
 	{
