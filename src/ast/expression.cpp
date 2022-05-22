@@ -319,6 +319,25 @@ std::pair<typespec_view, expression_type_kind> expression::get_expr_type_and_kin
 	}
 }
 
+typespec_view expression::get_expr_type(void) const noexcept
+{
+	switch (this->kind())
+	{
+	case ast::expression::index_of<ast::constant_expression>:
+	{
+		auto &const_expr = this->get<ast::constant_expression>();
+		return const_expr.type;
+	}
+	case ast::expression::index_of<ast::dynamic_expression>:
+	{
+		auto &dyn_expr = this->get<ast::dynamic_expression>();
+		return dyn_expr.type;
+	}
+	default:
+		return ast::typespec_view();
+	}
+}
+
 bool expression::is_constant_or_dynamic(void) const noexcept
 {
 	return this->is<constant_expression>() || this->is<dynamic_expression>();

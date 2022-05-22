@@ -280,6 +280,7 @@ struct expression : bz::variant<
 	void set_type_kind(expression_type_kind new_kind);
 
 	std::pair<typespec_view, expression_type_kind> get_expr_type_and_kind(void) const noexcept;
+	typespec_view get_expr_type(void) const noexcept;
 
 	bool is_constant_or_dynamic(void) const noexcept;
 	bool is_unresolved(void) const noexcept;

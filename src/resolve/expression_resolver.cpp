@@ -742,7 +742,7 @@ static ast::expression resolve_expr(
 					good = false;
 					context.report_error(
 						size.src_tokens,
-						bz::format("invalid type '{}' as array size", size.get_expr_type_and_kind().first)
+						bz::format("invalid type '{}' as array size", size.get_expr_type())
 					);
 					return 0;
 				}

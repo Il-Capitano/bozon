@@ -986,8 +986,8 @@ static val_ptr emit_default_copy_assign(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
 	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
@@ -1025,8 +1025,8 @@ static val_ptr emit_default_move_assign(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_type = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_type = ast::remove_const_or_consteval(rhs.get_expr_type());
 	auto const is_rhs_null_pointer = lhs_type.is<ast::ts_pointer>() && rhs_type.is<ast::ts_base_type>();
 	bz_assert(!is_rhs_null_pointer || rhs_type.get<ast::ts_base_type>().info->kind == ast::type_info::null_t_);
 	auto const rhs_val = emit_bitcode<abi>(rhs, context, nullptr);
@@ -1210,7 +1210,7 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const types = tuple_expr.elems
-		.transform([](auto const &expr) { return expr.get_expr_type_and_kind().first; })
+		.transform([](auto const &expr) { return expr.get_expr_type(); })
 		.transform([&context](auto const ts) { return get_llvm_type(ts, context); })
 		.template collect<ast::arena_vector>();
 	auto const result_type = context.get_tuple_t(types);
@@ -1313,7 +1313,7 @@ static val_ptr emit_builtin_unary_minus(
 	llvm::Value *result_address
 )
 {
-	auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	auto const expr_t = ast::remove_const_or_consteval(expr.get_expr_type());
 	bz_assert(expr_t.is<ast::ts_base_type>());
 	auto const expr_kind = expr_t.get<ast::ts_base_type>().info->kind;
 	auto const [val, type] = emit_bitcode<abi>(expr, context, nullptr).get_value_and_type(context.builder);
@@ -1340,7 +1340,7 @@ static val_ptr emit_builtin_unary_dereference(
 )
 {
 	auto const val = emit_bitcode<abi>(expr, context, nullptr).get_value(context.builder);
-	auto const type = ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first);
+	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
 	bz_assert(type.template is<ast::ts_pointer>());
 	auto const result_type = get_llvm_type(type.template get<ast::ts_pointer>(), context);
 	if (result_address == nullptr)
@@ -1352,7 +1352,7 @@ static val_ptr emit_builtin_unary_dereference(
 		emit_copy_constructor<abi>(
 			src_tokens,
 			val_ptr::get_reference(val, result_type),
-			ast::remove_const_or_consteval(expr.get_expr_type_and_kind().first),
+			ast::remove_const_or_consteval(expr.get_expr_type()),
 			context,
 			result_address
 		);
@@ -1412,7 +1412,7 @@ static val_ptr emit_builtin_unary_plus_plus(
 	auto const [original_value, type] = val.get_value_and_type(context.builder);
 	if (type->isPointerTy())
 	{
-		auto const expr_type = expr.get_expr_type_and_kind().first;
+		auto const expr_type = expr.get_expr_type();
 		bz_assert(expr_type.is<ast::ts_pointer>());
 		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
 		auto const incremented_value = context.create_gep(inner_type, original_value, 1);
@@ -1459,7 +1459,7 @@ static val_ptr emit_builtin_unary_minus_minus(
 	auto const [original_value, type] = val.get_value_and_type(context.builder);
 	if (type->isPointerTy())
 	{
-		auto const expr_type = expr.get_expr_type_and_kind().first;
+		auto const expr_type = expr.get_expr_type();
 		bz_assert(expr_type.is<ast::ts_pointer>());
 		auto const inner_type = get_llvm_type(expr_type.get<ast::ts_pointer>(), context);
 		auto const incremented_value = context.create_gep(inner_type, original_value, uint64_t(-1));
@@ -1549,8 +1549,8 @@ static val_ptr emit_builtin_binary_plus(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1676,8 +1676,8 @@ static val_ptr emit_builtin_binary_plus_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1775,8 +1775,8 @@ static val_ptr emit_builtin_binary_minus(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -1899,8 +1899,8 @@ static val_ptr emit_builtin_binary_minus_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	if (lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>())
 	{
@@ -2005,8 +2005,8 @@ static val_ptr emit_builtin_binary_multiply(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2037,8 +2037,8 @@ static val_ptr emit_builtin_binary_multiply_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2073,8 +2073,8 @@ static val_ptr emit_builtin_binary_divide(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2130,8 +2130,8 @@ static val_ptr emit_builtin_binary_divide_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2190,8 +2190,8 @@ static val_ptr emit_builtin_binary_modulo(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2247,8 +2247,8 @@ static val_ptr emit_builtin_binary_modulo_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2315,8 +2315,8 @@ static val_ptr emit_builtin_binary_cmp(
 		|| op == lex::token::greater_than
 		|| op == lex::token::greater_than_eq
 	);
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 	// 0: signed int
 	// 1: unsigned int
 	// 2: float
@@ -2444,8 +2444,8 @@ static val_ptr emit_builtin_binary_bit_and(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2478,8 +2478,8 @@ static val_ptr emit_builtin_binary_bit_and_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2515,8 +2515,8 @@ static val_ptr emit_builtin_binary_bit_xor(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2549,8 +2549,8 @@ static val_ptr emit_builtin_binary_bit_xor_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2586,8 +2586,8 @@ static val_ptr emit_builtin_binary_bit_or(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2620,8 +2620,8 @@ static val_ptr emit_builtin_binary_bit_or_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2657,8 +2657,8 @@ static val_ptr emit_builtin_binary_left_shift(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2688,8 +2688,8 @@ static val_ptr emit_builtin_binary_left_shift_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2722,8 +2722,8 @@ static val_ptr emit_builtin_binary_right_shift(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2753,8 +2753,8 @@ static val_ptr emit_builtin_binary_right_shift_eq(
 	llvm::Value *result_address
 )
 {
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2788,8 +2788,8 @@ static val_ptr emit_builtin_binary_bool_and(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2843,8 +2843,8 @@ static val_ptr emit_builtin_binary_bool_xor(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -2874,8 +2874,8 @@ static val_ptr emit_builtin_binary_bool_or(
 {
 	auto &lhs = binary_op.lhs;
 	auto &rhs = binary_op.rhs;
-	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type_and_kind().first);
-	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type_and_kind().first);
+	auto const lhs_t = ast::remove_const_or_consteval(lhs.get_expr_type());
+	auto const rhs_t = ast::remove_const_or_consteval(rhs.get_expr_type());
 
 	bz_assert(lhs_t.is<ast::ts_base_type>() && rhs_t.is<ast::ts_base_type>());
 	auto const lhs_kind = lhs_t.get<ast::ts_base_type>().info->kind;
@@ -3347,7 +3347,7 @@ static val_ptr emit_bitcode(
 		case ast::function_body::builtin_call_destructor:
 		{
 			bz_assert(func_call.params.size() == 1);
-			auto const type = func_call.params[0].get_expr_type_and_kind().first;
+			auto const type = func_call.params[0].get_expr_type();
 			auto const arg = emit_bitcode<abi>(func_call.params[0], context, nullptr);
 			bz_assert(arg.kind == val_ptr::reference);
 			emit_destructor_call(func_call.src_tokens, arg.val, type, context);
@@ -3488,7 +3488,7 @@ static val_ptr emit_bitcode(
 				ast::arena_vector<is_byval_and_type_pair> params_is_byval;
 				params_is_byval.reserve(2);
 				add_call_parameter<abi>(
-					func_call.params[0].get_expr_type_and_kind().first, context.get_str_t(),
+					func_call.params[0].get_expr_type(), context.get_str_t(),
 					message_val, params, params_is_byval, context
 				);
 
@@ -4116,13 +4116,13 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type_and_kind().first);
+	auto const base_type = ast::remove_const_or_consteval(subscript.base.get_expr_type());
 	if (base_type.is<ast::ts_array>())
 	{
 		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
-		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
 		if (ast::is_unsigned_integer_kind(kind))
 		{
 			index_val = context.builder.CreateIntCast(index_val, context.get_usize_t(), false);
@@ -4183,8 +4183,8 @@ static val_ptr emit_bitcode(
 		auto const array = emit_bitcode<abi>(subscript.base, context, nullptr);
 		auto const array_val = array.get_value(context.builder);
 		auto const begin_ptr = context.builder.CreateExtractValue(array_val, 0);
-		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).is<ast::ts_base_type>());
-		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type_and_kind().first).get<ast::ts_base_type>().info->kind;
+		bz_assert(ast::remove_const_or_consteval(subscript.index.get_expr_type()).is<ast::ts_base_type>());
+		auto const kind = ast::remove_const_or_consteval(subscript.index.get_expr_type()).get<ast::ts_base_type>().info->kind;
 		auto index_val = emit_bitcode<abi>(subscript.index, context, nullptr).get_value(context.builder);
 		if (ast::is_unsigned_integer_kind(kind))
 		{
@@ -4243,7 +4243,7 @@ static val_ptr emit_bitcode(
 
 		auto const accessed_type = base_type.is<ast::ts_tuple>()
 			? base_type.get<ast::ts_tuple>().types[index_int_value].as_typespec_view()
-			: subscript.base.get_tuple().elems[index_int_value].get_expr_type_and_kind().first;
+			: subscript.base.get_tuple().elems[index_int_value].get_expr_type();
 
 		if (tuple.kind == val_ptr::reference || (tuple.kind == val_ptr::value && accessed_type.is<ast::ts_lvalue_reference>()))
 		{
@@ -4304,7 +4304,7 @@ static val_ptr emit_bitcode(
 	llvm::Value *result_address
 )
 {
-	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type_and_kind().first);
+	auto const expr_t = ast::remove_const_or_consteval(cast.expr.get_expr_type());
 	auto const dest_t = ast::remove_const_or_consteval(cast.type);
 
 	if (expr_t.is<ast::ts_base_type>() && dest_t.is<ast::ts_base_type>())
@@ -4506,7 +4506,7 @@ static val_ptr emit_bitcode(
 	}
 	if (result_address != nullptr)
 	{
-		auto const result_type = ast::remove_const_or_consteval(take_ref.expr.get_expr_type_and_kind().first);
+		auto const result_type = ast::remove_const_or_consteval(take_ref.expr.get_expr_type());
 		bz_assert(result.kind == val_ptr::reference);
 		emit_copy_constructor<abi>(src_tokens, result, result_type, context, result_address);
 		return val_ptr::get_reference(result_address, result.get_type());
@@ -4752,7 +4752,7 @@ static val_ptr emit_bitcode(
 )
 {
 	auto const base = emit_bitcode<abi>(member_access.base, context, nullptr);
-	auto const base_type = ast::remove_const_or_consteval(member_access.base.get_expr_type_and_kind().first);
+	auto const base_type = ast::remove_const_or_consteval(member_access.base.get_expr_type());
 	bz_assert(base_type.is<ast::ts_base_type>());
 	auto const accessed_type = base_type.get<ast::ts_base_type>()
 		.info->member_variables[member_access.index]->get_type().as_typespec_view();
@@ -7318,7 +7318,7 @@ static std::pair<llvm::Function *, bz::vector<llvm::Function *>> create_function
 {
 	auto const result_type = expr.final_expr.is_null() || expr.final_expr.is_typename()
 		? llvm::Type::getVoidTy(context.get_llvm_context())
-		: get_llvm_type(expr.final_expr.get_expr_type_and_kind().first, context);
+		: get_llvm_type(expr.final_expr.get_expr_type(), context);
 	auto const void_type = llvm::Type::getVoidTy(context.get_llvm_context());
 	auto const return_result_as_global = result_type->isAggregateType();
 
