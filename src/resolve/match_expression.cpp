@@ -8,8 +8,24 @@ namespace resolve
 
 enum class type_match_result
 {
-	good, needs_cast, error
+	good, needs_copy, needs_move, needs_cast, error
 };
+
+static type_match_result type_match_result_from_expr_type_kind(ast::expression_type_kind kind)
+{
+	switch (kind)
+	{
+	case ast::expression_type_kind::rvalue:
+		return type_match_result::good;
+	case ast::expression_type_kind::moved_lvalue:
+		return type_match_result::needs_move;
+	case ast::expression_type_kind::lvalue:
+	case ast::expression_type_kind::lvalue_reference:
+		return type_match_result::needs_copy;
+	default:
+		return type_match_result::good;
+	}
+}
 
 [[nodiscard]] static type_match_result strict_match_types(
 	ast::typespec &dest_container,
@@ -278,12 +294,20 @@ static bool match_typename_to_type_impl(
 	{
 		auto const inner_dest = dest.get<ast::ts_pointer>();
 		auto const inner_expr_type = expr_type_without_const.get<ast::ts_pointer>();
-		return strict_match_types(
+		auto const strict_match_result = strict_match_types(
 			dest_container,
 			inner_expr_type,
 			inner_dest,
 			true, true
 		);
+		if (strict_match_result != type_match_result::good)
+		{
+			return strict_match_result;
+		}
+		else
+		{
+			return type_match_result_from_expr_type_kind(expr_type_kind);
+		}
 	}
 	else if (dest.is<ast::ts_lvalue_reference>())
 	{
@@ -354,7 +378,7 @@ static bool match_typename_to_type_impl(
 	{
 		dest_container.copy_from(dest, expr_type_without_const);
 		dest = ast::remove_const_or_consteval(dest_container);
-		return type_match_result::good;
+		return type_match_result_from_expr_type_kind(expr_type_kind);
 	}
 	else if (
 		dest.is<ast::ts_base_type>()
@@ -366,11 +390,11 @@ static bool match_typename_to_type_impl(
 	{
 		bz_assert(dest_container.nodes.back().is<ast::ts_base_type>());
 		dest_container.nodes.back().get<ast::ts_base_type>() = expr_type_without_const.get<ast::ts_base_type>();
-		return type_match_result::good;
+		return type_match_result_from_expr_type_kind(expr_type_kind);
 	}
 	else if (dest == expr_type_without_const)
 	{
-		return type_match_result::good;
+		return type_match_result_from_expr_type_kind(expr_type_kind);
 	}
 	else if (dest.is<ast::ts_tuple>() && expr_type_without_const.is<ast::ts_tuple>())
 	{
@@ -441,12 +465,20 @@ static bool match_typename_to_type_impl(
 	{
 		bz_assert(dest_container.nodes.back().is<ast::ts_array_slice>());
 		auto &inner_container = dest_container.nodes.back().get<ast::ts_array_slice>().elem_type;
-		return strict_match_types(
+		auto const strict_match_result = strict_match_types(
 			inner_container,
 			expr_type_without_const.get<ast::ts_array_slice>().elem_type,
 			dest.get<ast::ts_array_slice>().elem_type,
 			false, true
 		);
+		if (strict_match_result != type_match_result::good)
+		{
+			return strict_match_result;
+		}
+		else
+		{
+			return type_match_result_from_expr_type_kind(expr_type_kind);
+		}
 	}
 	else if (dest.is<ast::ts_array_slice>() && expr_type_without_const.is<ast::ts_array>())
 	{
@@ -482,12 +514,20 @@ static bool match_typename_to_type_impl(
 		{
 			return type_match_result::error;
 		}
-		return strict_match_types(
+		auto const strict_match_result = strict_match_types(
 			inner_container,
 			expr_array_type.elem_type,
 			dest_array_type.elem_type,
 			false, true
 		);
+		if (strict_match_result != type_match_result::good)
+		{
+			return strict_match_result;
+		}
+		else
+		{
+			return type_match_result_from_expr_type_kind(expr_type_kind);
+		}
 	}
 	else if (is_implicitly_convertible(dest, expr_type, expr_type_kind, context))
 	{
@@ -514,9 +554,18 @@ static void match_type_base_case(
 	case type_match_result::good:
 		// nothing
 		break;
-	case type_match_result::needs_cast:
-		expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+	case type_match_result::needs_move:
+		expr = context.make_move_construction(std::move(expr));
 		break;
+	case type_match_result::needs_copy:
+		expr = context.make_copy_construction(std::move(expr));
+		break;
+	case type_match_result::needs_cast:
+	{
+		auto const src_tokens = expr.src_tokens;
+		expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
+		break;
+	}
 	case type_match_result::error:
 		context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
 		if (!ast::is_complete(dest_container))
@@ -1050,9 +1099,18 @@ static void match_expression_to_type_impl(
 		case type_match_result::good:
 			// nothing
 			break;
-		case type_match_result::needs_cast:
-			expr = context.make_cast_expression(expr.src_tokens, std::move(expr), dest_container);
+		case type_match_result::needs_move:
+			expr = context.make_move_construction(std::move(expr));
 			break;
+		case type_match_result::needs_copy:
+			expr = context.make_copy_construction(std::move(expr));
+			break;
+		case type_match_result::needs_cast:
+		{
+			auto const src_tokens = expr.src_tokens;
+			expr = context.make_cast_expression(src_tokens, std::move(expr), dest_container);
+			break;
+		}
 		case type_match_result::error:
 			context.report_error(expr, bz::format("cannot implicitly convert expression from type '{}' to '{}'", expr_type, dest_container));
 			if (!ast::is_complete(dest_container))

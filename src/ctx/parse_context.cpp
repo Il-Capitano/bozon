@@ -3637,9 +3637,9 @@ ast::expression parse_context::make_unary_operator_expression(
 				}
 			}
 
-			ast::arena_vector<ast::expression> params;
-			params.emplace_back(std::move(expr));
-			return make_expr_function_call_from_body(src_tokens, best_body, std::move(params), *this);
+			ast::arena_vector<ast::expression> args;
+			args.emplace_back(std::move(expr));
+			return make_expr_function_call_from_body(src_tokens, best_body, std::move(args), *this);
 		}
 	}
 }
@@ -4107,6 +4107,14 @@ ast::expression parse_context::make_function_call_expression(
 						src_tokens,
 						ast::make_expr_function_call(src_tokens, std::move(args), nullptr, ast::resolve_order::regular)
 					);
+				}
+				else if (best_body->is_default_copy_constructor())
+				{
+					bz_assert(
+						args.size() == 1
+						&& ast::remove_const_or_consteval(args[0].get_expr_type()) == ast::make_base_type_typespec({}, best_body->constructor_or_destructor_of)
+					);
+					return this->make_copy_construction(std::move(args[0]));
 				}
 				else
 				{
@@ -5080,7 +5088,13 @@ ast::expression parse_context::make_copy_construction(ast::expression expr)
 	else if (type.is<ast::ts_base_type>())
 	{
 		auto const info = type.get<ast::ts_base_type>().info;
-		if (info->kind == ast::type_info::aggregate)
+		if (info->state < ast::resolve_state::all)
+		{
+			this->add_to_resolve_queue(expr.src_tokens, *info);
+			resolve::resolve_type_info(*info, *this);
+			this->pop_resolve_queue();
+		}
+		if (info->kind == ast::type_info::aggregate || info->kind == ast::type_info::forward_declaration)
 		{
 			return make_struct_copy_construction(type, std::move(expr), *this);
 		}
