@@ -4,7 +4,7 @@
 #include <bz/format.h>
 #include "colors.h"
 
-#ifdef __linux__
+#if !defined(NDEBUG) && defined(__linux__)
 
 #include <bz/format.h>
 #include <backtrace.h>
@@ -39,7 +39,7 @@ static void print_stacktrace(void)
 	backtrace_full(backtrace, 2, &full_callback, &error_callback, &count);
 }
 
-#else
+#elif !defined(NDEBUG)
 
 #include <bz/format.h>
 #include <dwarfstack.h>
@@ -97,7 +97,14 @@ static void print_stacktrace(void)
 	dwstOfLocation(&stderr_print, &count);
 }
 
-#endif // __linux__
+#else
+
+static void print_stacktrace(void)
+{
+	// nothing
+}
+
+#endif
 
 static void print_internal_compiler_error_message(bz::u8string_view msg)
 {
