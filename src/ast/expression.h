@@ -468,13 +468,30 @@ struct expr_aggregate_copy_construct
 {
 	expression               copied_value;
 	arena_vector<expression> copy_exprs;
+
+	expr_aggregate_copy_construct(
+		expression               _copied_value,
+		arena_vector<expression> _copy_exprs
+	)
+		: copied_value(std::move(_copied_value)),
+		  copy_exprs  (std::move(_copy_exprs))
+	{}
 };
 
 struct expr_aggregate_move_construct
 {
 	expression               moved_value;
 	arena_vector<expression> move_exprs;
+
+	expr_aggregate_move_construct(
+		expression               _moved_value,
+		arena_vector<expression> _move_exprs
+	)
+		: moved_value(std::move(_moved_value)),
+		  move_exprs (std::move(_move_exprs))
+	{}
 };
+
 struct expr_array_default_construct
 {
 	typespec   type;
@@ -493,12 +510,28 @@ struct expr_array_copy_construct
 {
 	expression copied_value;
 	expression copy_expr;
+
+	expr_array_copy_construct(
+		expression _copied_value,
+		expression _copy_expr
+	)
+		: copied_value(std::move(_copied_value)),
+		  copy_expr   (std::move(_copy_expr))
+	{}
 };
 
 struct expr_array_move_construct
 {
 	expression moved_value;
 	expression move_expr;
+
+	expr_array_move_construct(
+		expression _moved_value,
+		expression _move_expr
+	)
+		: moved_value(std::move(_moved_value)),
+		  move_expr  (std::move(_move_expr))
+	{}
 };
 
 struct expr_builtin_default_construct
@@ -513,11 +546,19 @@ struct expr_builtin_default_construct
 struct expr_builtin_copy_construct
 {
 	expression copied_value;
+
+	expr_builtin_copy_construct(ast::expression _copied_value)
+		: copied_value(std::move(_copied_value))
+	{}
 };
 
 struct expr_builtin_move_construct
 {
 	expression moved_value;
+
+	expr_builtin_move_construct(ast::expression _moved_value)
+		: moved_value(std::move(_moved_value))
+	{}
 };
 
 struct expr_member_access

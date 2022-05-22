@@ -415,6 +415,9 @@ struct parse_context
 		ast::arena_vector<ast::expression> args
 	);
 
+	ast::expression make_copy_construction(ast::expression expr);
+	ast::expression make_move_construction(ast::expression expr);
+
 	bool is_instantiable(ast::typespec_view ts);
 	size_t get_sizeof(ast::typespec_view ts);
 

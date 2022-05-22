@@ -4887,6 +4887,219 @@ ast::expression parse_context::make_generic_type_instantiation_expression(
 	);
 }
 
+static ast::expression make_tuple_copy_construction(
+	ast::typespec_view tuple_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(tuple_type.is<ast::ts_tuple>());
+	if (!ast::is_copy_constructible(tuple_type))
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not copyable", tuple_type),
+			tuple_type.get<ast::ts_tuple>().types
+				.filter([](auto const &elem_type) {
+					return !ast::is_copy_constructible(elem_type);
+				})
+				.transform([&expr](auto const &elem_type) {
+					return parse_context::make_note(
+						expr.src_tokens,
+						bz::format("element type '{}' is not copy-constructible", elem_type)
+					);
+				})
+				.collect()
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_aggregate_copy_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+
+	auto const src_tokens = expr.src_tokens;
+	ast::typespec type = tuple_type;
+	auto elem_copy_exprs = tuple_type.get<ast::ts_tuple>().types
+		.transform([&](auto const &elem_type) {
+			return context.make_copy_construction(ast::make_dynamic_expression(
+				src_tokens,
+				ast::expression_type_kind::lvalue_reference,
+				elem_type,
+				ast::make_expr_bitcode_value_reference()
+			));
+		})
+		.collect<ast::arena_vector>();
+	return ast::make_dynamic_expression(
+		src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs))
+	);
+}
+
+static ast::expression make_array_copy_construction(
+	ast::typespec_view array_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(array_type.is<ast::ts_array>());
+	if (!ast::is_copy_constructible(array_type))
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not copyable", array_type),
+			{
+				context.make_note(
+					expr.src_tokens,
+					bz::format("array element type '{}' is not copy-constructible", array_type.get<ast::ts_array>().elem_type)
+				)
+			}
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_array_copy_construct(std::move(expr), ast::expression())
+		);
+	}
+
+	ast::typespec type = array_type;
+	auto elem_copy_expr = context.make_copy_construction(ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::lvalue_reference,
+		array_type.get<ast::ts_array>().elem_type,
+		ast::make_expr_bitcode_value_reference()
+	));
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_array_copy_construct(std::move(expr), std::move(elem_copy_expr))
+	);
+}
+
+static ast::expression make_builtin_copy_construction(
+	ast::typespec_view builtin_type,
+	ast::expression expr,
+	parse_context &
+)
+{
+	ast::typespec type = builtin_type;
+	return ast::make_dynamic_expression(
+		expr.src_tokens,
+		ast::expression_type_kind::rvalue, std::move(type),
+		ast::make_expr_builtin_copy_construct(std::move(expr))
+	);
+}
+
+static ast::expression make_struct_copy_construction(
+	ast::typespec_view struct_type,
+	ast::expression expr,
+	parse_context &context
+)
+{
+	bz_assert(struct_type.is<ast::ts_base_type>());
+	auto const info = struct_type.get<ast::ts_base_type>().info;
+
+	if (!info->is_copy_constructible())
+	{
+		context.report_error(
+			expr.src_tokens,
+			bz::format("value of type '{}' is not copyable", struct_type),
+			info->member_variables
+				.filter([](auto const &member) {
+					return !ast::is_copy_constructible(member->get_type());
+				})
+				.transform([](auto const &member) {
+					return parse_context::make_note(
+						member->src_tokens,
+						bz::format(
+							"member '{}' of type '{}' is not copy-constructible",
+							member->get_id().format_as_unqualified(), member->get_type())
+					);
+				})
+				.collect()
+		);
+		return ast::make_error_expression(
+			expr.src_tokens,
+			ast::make_expr_aggregate_copy_construct(std::move(expr), ast::arena_vector<ast::expression>())
+		);
+	}
+
+	if (info->copy_constructor != nullptr)
+	{
+		auto const src_tokens = expr.src_tokens;
+		ast::arena_vector<ast::expression> args;
+		args.push_back(std::move(expr));
+		return make_expr_function_call_from_body(
+			src_tokens,
+			&info->copy_constructor->body,
+			std::move(args),
+			context
+		);
+	}
+	else
+	{
+		bz_assert(info->default_copy_constructor != nullptr);
+		auto const src_tokens = expr.src_tokens;
+		ast::typespec type = struct_type;
+		auto elem_copy_exprs = info->member_variables
+			.transform([](auto const member_ptr) -> auto const & {
+				return member_ptr->get_type();
+			})
+			.transform([&](auto const &member_type) {
+				return context.make_copy_construction(ast::make_dynamic_expression(
+					src_tokens,
+					ast::expression_type_kind::lvalue_reference,
+					member_type,
+					ast::make_expr_bitcode_value_reference()
+				));
+			})
+			.collect<ast::arena_vector>();
+		return ast::make_dynamic_expression(
+			src_tokens,
+			ast::expression_type_kind::rvalue, std::move(type),
+			ast::make_expr_aggregate_copy_construct(std::move(expr), std::move(elem_copy_exprs))
+		);
+	}
+}
+
+ast::expression parse_context::make_copy_construction(ast::expression expr)
+{
+	auto const type = ast::remove_const_or_consteval(expr.get_expr_type());
+
+	if (type.is<ast::ts_tuple>())
+	{
+		return make_tuple_copy_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_array>())
+	{
+		return make_array_copy_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_pointer>() || type.is<ast::ts_array_slice>())
+	{
+		return make_builtin_copy_construction(type, std::move(expr), *this);
+	}
+	else if (type.is<ast::ts_base_type>())
+	{
+		auto const info = type.get<ast::ts_base_type>().info;
+		if (info->kind == ast::type_info::aggregate)
+		{
+			return make_struct_copy_construction(type, std::move(expr), *this);
+		}
+		else
+		{
+			return make_builtin_copy_construction(type, std::move(expr), *this);
+		}
+	}
+	else
+	{
+		bz_unreachable;
+	}
+}
+
+ast::expression parse_context::make_move_construction(ast::expression expr)
+{
+	bz_unreachable;
+}
+
 bool parse_context::is_instantiable(ast::typespec_view ts)
 {
 	if (ts.nodes.size() == 0)
