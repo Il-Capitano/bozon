@@ -747,7 +747,7 @@ u8string uint_to_string_base(Uint val, format_spec spec)
 	{
 		if constexpr (base == 10)
 		{
-			bbz::array<char, lg_uint(std::numeric_limits<Uint>::max())> buffer;
+			bz::array<char, lg_uint(std::numeric_limits<Uint>::max())> buffer;
 			auto const to_chars_res = std::to_chars(buffer.data(), buffer.data() + buffer.size(), val);
 			bz_assert(to_chars_res.ec == std::errc{});
 			bz_assert(to_chars_res.ptr == buffer.data() + len - (spec.sign == '-' ? 0 : 1));
